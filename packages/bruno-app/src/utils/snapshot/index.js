@@ -30,6 +30,13 @@ const IGNORED_TAB_TYPES = new Set([
   'v4-migration'
 ]);
 
+export const WORKSPACE_TAB_UID_SUFFIX_BY_TYPE = {
+  workspaceOverview: 'overview',
+  workspaceEnvironments: 'environments'
+};
+
+export const WORKSPACE_TAB_TYPES = new Set(Object.keys(WORKSPACE_TAB_UID_SUFFIX_BY_TYPE));
+
 export const SAVE_TRIGGERS = new Map([
   ['app/setSnapshotReady', null],
   ['tabs/addTab', null],
@@ -143,6 +150,9 @@ const normalizeWorkspaceSnapshotEntry = (pathname, entry = {}) => {
       ? entry.lastActiveCollectionPathname
       : null,
     sorting: typeof entry.sorting === 'string' ? entry.sorting : 'default',
+    activeWorkspaceTabType: WORKSPACE_TAB_TYPES.has(entry.activeWorkspaceTabType)
+      ? entry.activeWorkspaceTabType
+      : null,
     collections
   };
 };
@@ -226,6 +236,7 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         pathname: workspace.pathname,
         lastActiveCollectionPathname: workspace.lastActiveCollectionPathname,
         sorting: workspace.sorting,
+        activeWorkspaceTabType: workspace.activeWorkspaceTabType,
         collections: workspace.collections
       };
 
@@ -318,6 +329,23 @@ const getTabsSnapshotFromLookups = (
     activeTab: tabsEntry.activeTab,
     tabs: Array.isArray(tabsEntry.tabs) ? tabsEntry.tabs : []
   };
+};
+
+export const getCollectionSnapshotFromLookups = (collectionPathname, snapshotLookups = {}, workspacePathname = null) => {
+  const normalizedPathname = normalizePath(collectionPathname);
+  if (!normalizedPathname) {
+    return null;
+  }
+
+  if (workspacePathname) {
+    const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(workspacePathname, collectionPathname);
+    const workspaceCollectionEntry = snapshotLookups?.collectionsByWorkspaceAndPath?.[workspaceCollectionKey];
+    if (workspaceCollectionEntry) {
+      return workspaceCollectionEntry;
+    }
+  }
+
+  return snapshotLookups?.collectionsByPath?.[normalizedPathname] || null;
 };
 
 export const getCollectionEnvironmentPath = (collection, environment, defaultValue = null) => {

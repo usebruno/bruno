@@ -91,7 +91,7 @@ const closeAllCollections = async (page) => {
  * @param collectionName - The name of the collection to open
  * @returns void
  */
-const openCollection = async (page, collectionName: string) => {
+const openCollection = async (page: Page, collectionName: string) => {
   await test.step(`Open collection "${collectionName}"`, async () => {
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
   });
@@ -352,9 +352,14 @@ const createRequest = async (
       await locators.sidebar.folder(parentName).hover();
       await locators.actions.collectionItemActions(parentName).click();
     } else {
-      await locators.sidebar.collection(parentName).hover();
+      const collectionRow = locators.sidebar.collection(parentName);
       const collectionAction = locators.actions.collectionActions(parentName);
-      await expect(collectionAction).toBeVisible({ timeout: 2000 });
+      // Re-hover on each poll: CSS `:hover` reveals `.collection-actions`, but sidebar
+      // re-renders (e.g. workspace snapshot hydration) can shift the row out from under a one-shot hover().
+      await expect(async () => {
+        await collectionRow.hover();
+        await expect(collectionAction).toBeVisible({ timeout: 1000 });
+      }).toPass({ timeout: 10000 });
       await collectionAction.click();
     }
 
@@ -470,6 +475,7 @@ const deleteCollectionFromOverview = async (page: Page, collectionName: string) 
 type ImportCollectionOptions = {
   expectedCollectionName?: string;
   expectIssues?: boolean;
+  sidebarTimeout?: number;
 };
 
 const importCollection = async (
@@ -510,7 +516,7 @@ const importCollection = async (
     if (options.expectedCollectionName) {
       await expect(
         page.locator('#sidebar-collection-name').filter({ hasText: options.expectedCollectionName })
-      ).toBeVisible();
+      ).toBeVisible({ timeout: options.sidebarTimeout ?? 5000 });
     }
 
     // Wait for import issues toast if expected
@@ -693,22 +699,42 @@ const createEnvironment = async (
   type: EnvironmentType = 'collection'
 ) => {
   await test.step(`Create ${type} environment "${environmentName}"`, async () => {
+    const locators = buildCommonLocators(page);
     await openEnvironmentSelector(page, type);
 
-    await page.locator('button[id="create-env"]').click();
+    // Environment selector shows the create button only in empty state.
+    // If environments already exist, open settings and use the sidebar create action.
+    const canCreateFromSelectorEmptyState = await locators.environment.createEnvButton().isVisible().catch(() => false);
 
-    const nameInput = type === 'collection'
-      ? page.locator('input[name="name"]')
-      : page.locator('#environment-name');
-    await expect(nameInput).toBeVisible();
-    await nameInput.fill(environmentName);
-    await page.getByRole('button', { name: 'Create' }).click();
+    if (canCreateFromSelectorEmptyState) {
+      await locators.environment.createEnvButton().click();
+
+      await expect(locators.environment.createModal()).toBeVisible();
+      const nameInput = locators.environment.createModalNameInput();
+      await expect(nameInput).toBeVisible();
+      await nameInput.fill(environmentName);
+      await locators.environment.createModalCreateButton().click();
+    } else {
+      await locators.environment.configureButton().waitFor({ state: 'visible' });
+      await locators.environment.configureButton().dispatchEvent('click');
+
+      const envTab = type === 'global'
+        ? locators.environment.globalEnvTab()
+        : locators.environment.collectionEnvTab();
+      await expect(envTab).toBeVisible();
+
+      await locators.environment.settingsCreateButton().click();
+
+      const inlineNameInput = locators.environment.settingsCreateNameInput();
+      await expect(inlineNameInput).toBeVisible();
+      await inlineNameInput.fill(environmentName);
+      await inlineNameInput.press('Enter');
+    }
 
     const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
     await expect(page.locator('.request-tab').filter({ hasText: tabLabel })).toBeVisible();
 
-    const locators = buildCommonLocators(page);
-    await page.waitForTimeout(200); // @TODO replace with dynamic waiting logic
+    await expect(locators.environment.selector()).toBeVisible();
     await locators.environment.selector().click();
     if (type === 'global') {
       await locators.environment.globalTab().click();
@@ -777,7 +803,7 @@ const addRowToActiveTab = async (page: Page, name: string, value: string) => {
     const row = page.getByTestId(`env-var-row-${name}`);
     await row.waitFor({ state: 'visible' });
 
-    const codeMirror = row.locator('.CodeMirror');
+    const codeMirror = row.getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first();
     await codeMirror.scrollIntoViewIfNeeded();
     await codeMirror.click();
     await page.keyboard.type(value);
@@ -802,7 +828,7 @@ const deleteAllGlobalEnvironments = async (page: Page) => {
     const deleteBtn = page.locator('button[title="Delete"]');
     const modal = page.locator('.bruno-modal').filter({ hasText: 'Delete Environment' });
 
-    await page.locator('.environments-container').first().waitFor({ state: 'visible' }).catch(() => {});
+    await page.locator('.environments-container').first().waitFor({ state: 'visible' }).catch(() => { });
 
     while (true) {
       if ((await deleteBtn.count()) === 0) {
@@ -1063,16 +1089,26 @@ const focusCollectionSettingsTab = async (page: Page, { timeout = 10000 } = {}) 
 
 /**
  * Open a request within a folder
+ * Expand a folder in the sidebar and open a nested request.
+ * Clicks collection → folder → request explicitly to ensure the tree is expanded.
  * @param page - The page object
+ * @param collectionName - The name of the collection
  * @param folderName - The name of the folder
  * @param requestName - The name of the request
- * @returns void
  */
-const openFolderRequest = async (page: Page, folderName: string, requestName: string) => {
-  await test.step(`Open request "${requestName}" in folder "${folderName}"`, async () => {
-    const locators = buildCommonLocators(page);
-    await locators.sidebar.folderRequest(folderName, requestName).click();
-    await expect(locators.tabs.activeRequestTab()).toContainText(requestName);
+const openFolderRequest = async (page: Page, collectionName: string, folderName: string, requestName: string) => {
+  await test.step(`Open folder request "${requestName}" in "${folderName}"`, async () => {
+    const { sidebar, tabs } = buildCommonLocators(page);
+    const collectionRow = sidebar.collectionRow(collectionName);
+    await collectionRow.click();
+    const collectionWrapper = collectionRow.locator('..');
+    const folder = collectionWrapper.locator('.collection-item-name').filter({ has: page.getByText(folderName, { exact: true }) });
+    await folder.waitFor({ state: 'visible' });
+    await folder.click();
+    const request = collectionWrapper.locator('.collection-item-name').filter({ has: page.getByText(requestName, { exact: true }) });
+    await request.waitFor({ state: 'visible' });
+    await request.click();
+    await expect(tabs.activeRequestTab()).toContainText(requestName);
   });
 };
 
@@ -1138,7 +1174,7 @@ const setResponsePreviewMode = async (page: Page, mode: 'editor' | 'preview') =>
   await responseFormatTab.click();
   const dropdown = page.getByTestId('format-response-tab-dropdown');
   await dropdown.waitFor({ state: 'visible', timeout: 5000 });
-  const toggle = page.getByTestId('preview-response-tab');
+  const toggle = dropdown.getByTestId('preview-response-tab');
   // The toggle's `title` reflects current state (`Turn off|on Preview Mode`).
   // Wait until it's actually one of those values — `getAttribute` returns
   // `null` if read before React flushes props to DOM, which would mislead
@@ -1154,6 +1190,14 @@ const setResponsePreviewMode = async (page: Page, mode: 'editor' | 'preview') =>
     // interactions (format selection, asserts) aren't shadowed by it.
     await responseFormatTab.click();
   }
+
+  const responsePane = page.getByTestId('response-pane');
+  await responsePane.click({
+    position: {
+      x: 0,
+      y: 0
+    }
+  });
   // Confirm the dropdown actually closed before returning. Otherwise a
   // subsequent format-selector click can land in a half-open state and
   // miss the next interaction.
@@ -1321,25 +1365,30 @@ const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplic
   await test.step(`Add multipart file "${path.basename(filePath)}"`, async () => {
     await mockBrowseFiles(electronApp, [filePath]);
 
-    const table = buildCommonLocators(page).table('editable-table');
+    const table = buildCommonLocators(page).table('multipart-form-table');
     // The last row is the empty "add" row. Capture its index now, because once
     // we set a file the table appends a new empty row — so `.last()` would jump
     // to that new row instead of staying on the one we just filled.
-    const rowIndex = (await table.allRows().count()) - 1;
+    let rowIndex = (await table.allRows().count()) - 1;
     const targetRow = table.allRows().nth(rowIndex);
 
-    await expect(targetRow.locator('.upload-btn')).toBeVisible();
-    await targetRow.locator('.upload-btn').click();
-    await expect(targetRow.locator('.file-value-cell')).toBeVisible();
-    const inlineChip = targetRow.getByTestId('multipart-file-chip').filter({ hasText: path.basename(filePath) });
-    const summary = targetRow.getByTestId('multipart-file-summary');
+    if (rowIndex < 0) {
+      rowIndex = 0;
+    }
+
+    await expect(targetRow.getByTestId('multipart-file-upload')).toBeVisible();
+    await targetRow.getByTestId('multipart-file-upload').click();
+    const specificRow = table.allRows().nth(rowIndex);
+    await expect(specificRow.locator('.file-value-cell')).toBeVisible({ timeout: 10000 });
+    const inlineChip = specificRow.getByTestId('multipart-file-chip').filter({ hasText: path.basename(filePath) });
+    const summary = specificRow.getByTestId('multipart-file-summary');
     await expect(inlineChip.or(summary)).toBeVisible();
   });
 };
 
 const removeFirstMultipartFile = async (page: Page) => {
   await test.step('Remove first multipart file', async () => {
-    const table = buildCommonLocators(page).table('editable-table');
+    const table = buildCommonLocators(page).table('multipart-form-table');
     const firstRow = table.allRows().first();
     await expect(firstRow.locator('.file-value-cell')).toBeVisible();
 
@@ -1834,6 +1883,36 @@ const readField = async (page: Page, labelText: string): Promise<string> => {
   return editor.evaluate((el: any) => (el as any).CodeMirror?.getValue() ?? '');
 };
 
+const openFolderSettings = async (page: Page, collectionName: string, folderName = 'api') => {
+  await test.step(`Open folder settings for "${folderName}" in collection "${collectionName}"`, async () => {
+    const collectionRow = page.locator('#sidebar-collection-name').filter({ hasText: collectionName });
+    await expect(collectionRow).toBeVisible();
+
+    const folderRow = page
+      .getByTestId('collections')
+      .locator('.collection-item-name')
+      .filter({ hasText: folderName });
+    if (!(await folderRow.isVisible().catch(() => false))) {
+      await collectionRow.click();
+      await expect(folderRow).toBeVisible();
+    }
+
+    await folderRow.dblclick();
+    await expect(page.locator('.request-tab .tab-label').filter({ hasText: folderName })).toBeVisible();
+  });
+};
+
+const setTableRowDescriptionValue = async (rowLocator: Locator, value: string) => {
+  const descCell = rowLocator.getByTestId('column-description');
+  await descCell.evaluate((el: any, val: string) => {
+    const cmEl = el.querySelector('.CodeMirror');
+    if (!cmEl) throw new Error('No CodeMirror in description cell');
+    const cm = (cmEl as any).CodeMirror;
+    if (!cm) throw new Error('CodeMirror instance not found');
+    cm.setValue(val);
+  }, value);
+};
+
 const createExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, description: string = '') => {
   const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
 
@@ -2195,7 +2274,7 @@ const renameWsMessage = async (page: Page, index: number, name: string) => {
  */
 const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
   if (await target.count()) {
-    await target.scrollIntoViewIfNeeded().catch(() => {});
+    await target.scrollIntoViewIfNeeded().catch(() => { });
     return;
   }
 
@@ -2213,7 +2292,7 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
     await scroll(true);
     await page.waitForTimeout(120);
     if (await target.count()) {
-      await target.scrollIntoViewIfNeeded().catch(() => {});
+      await target.scrollIntoViewIfNeeded().catch(() => { });
       return;
     }
   }
@@ -2223,7 +2302,7 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
     if (!(await scroll(false))) break;
     await page.waitForTimeout(120);
   }
-  await target.scrollIntoViewIfNeeded().catch(() => {});
+  await target.scrollIntoViewIfNeeded().catch(() => { });
 };
 
 export {
@@ -2308,6 +2387,8 @@ export {
   openRequestInFolder,
   setUrlEncoding,
   generateCollectionDocs,
+  openFolderSettings,
+  setTableRowDescriptionValue,
   setAppCode,
   enableApp,
   exitApp,

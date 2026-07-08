@@ -15,8 +15,10 @@ const getSizeValues = (size = 'm') => switchSizes[size] || switchSizes.m;
 export const Switch = styled.div`
   position: relative;
   display: inline-block;
+  flex-shrink: 0;
   width: ${(props) => getSizeValues(props.size).width}px;
   height: ${(props) => getSizeValues(props.size).height}px;
+  min-width: ${(props) => getSizeValues(props.size).width}px;
   border-radius: ${(props) => getSizeValues(props.size).height}px;
 `;
 

@@ -24,7 +24,6 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
-import { getCollectionEnvironmentPath } from 'utils/snapshot';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
 
@@ -1317,6 +1316,12 @@ export const collectionsSlice = createSlice({
           if (param) {
             param.name = action.payload.pathParam.name;
             param.value = action.payload.pathParam.value;
+            if ('description' in action.payload.pathParam) {
+              param.description = action.payload.pathParam.description;
+            }
+            if ('enabled' in action.payload.pathParam) {
+              param.enabled = action.payload.pathParam.enabled;
+            }
           }
         }
       }
@@ -1650,13 +1655,14 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.body.multipartForm = map(params, ({ uid, name = '', value = '', contentType = '', type = 'text', enabled = true }) => ({
+      item.draft.request.body.multipartForm = map(params, ({ uid, name = '', value = '', contentType = '', type = 'text', enabled = true, description = '' }) => ({
         uid: uid || uuid(),
         name,
         value,
         contentType,
         type,
-        enabled
+        enabled,
+        description
       }));
     },
     moveMultipartFormParam: (state, action) => {
@@ -2007,12 +2013,13 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.assertions = map(assertions, ({ uid, name = '', value = '', operator = 'eq', enabled = true }) => ({
+      item.draft.request.assertions = map(assertions, ({ uid, name = '', value = '', operator = 'eq', enabled = true, description = '' }) => ({
         uid: uid || uuid(),
         name,
         value,
         operator,
-        enabled
+        enabled,
+        description
       }));
     },
     moveAssertion: (state, action) => {
@@ -2142,10 +2149,11 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       item.draft.request.vars = item.draft.request.vars || {};
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, dataType, annotations }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', description = '', enabled = true, local = false, dataType, annotations }) => ({
         uid: uid || uuid(),
         name,
         value,
+        description,
         enabled,
         ...(dataType && dataType !== 'string' ? { dataType } : {}),
         ...(annotations?.length ? { annotations } : {}),
@@ -2501,10 +2509,13 @@ export const collectionsSlice = createSlice({
       if (!folder.draft) {
         folder.draft = cloneDeep(folder.root);
       }
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, dataType, annotations }) => ({
+
+      const mappedVars = map(vars, ({ uid, name = '', value = '', description = '', enabled = true, local = false, dataType, annotations }) => ({
+
         uid: uid || uuid(),
         name,
         value,
+        description,
         enabled,
         ...(dataType && dataType !== 'string' ? { dataType } : {}),
         ...(annotations?.length ? { annotations } : {}),
@@ -2744,10 +2755,11 @@ export const collectionsSlice = createSlice({
           root: cloneDeep(collection.root)
         };
       }
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, dataType, annotations }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', description = '', enabled = true, local = false, dataType, annotations }) => ({
         uid: uid || uuid(),
         name,
         value,
+        description,
         enabled,
         ...(dataType && dataType !== 'string' ? { dataType } : {}),
         ...(annotations?.length ? { annotations } : {}),
@@ -3059,24 +3071,6 @@ export const collectionsSlice = createSlice({
             collection.lastAction = null;
             if (lastAction.payload === environment.name) {
               collection.activeEnvironmentUid = environment.uid;
-              // Persist the selection to the UI state snapshot
-              const { ipcRenderer } = window;
-              if (ipcRenderer) {
-                const extension = collection?.brunoConfig?.opencollection ? 'yml' : 'bru';
-                const environmentPath = environment?.pathname
-                  || (environment?.name && collection?.pathname
-                    ? path.join(collection.pathname, 'environments', `${environment.name}.${extension}`)
-                    : null);
-
-                ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
-                  type: 'COLLECTION_ENVIRONMENT',
-                  data: {
-                    collectionPath: collection?.pathname,
-                    environmentPath: getCollectionEnvironmentPath(collection, environment, environmentPath),
-                    selectedEnvironment: environment?.name || ''
-                  }
-                });
-              }
             }
           }
         }

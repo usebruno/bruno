@@ -21,8 +21,6 @@ import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
 import FileEditor from 'components/FileEditor';
-import AppView from 'components/AppView';
-import CollectionApp from 'components/CollectionApp';
 import StyledWrapper from './StyledWrapper';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
@@ -240,6 +238,17 @@ const RequestTabPanel = () => {
     draggingRef.current = true;
     setDragging(true);
   }, []);
+
+  const handleDragbarMouseDown = useCallback((e) => {
+    if (e.detail > 1) {
+      e.preventDefault();
+      stopDragging();
+      resetPaneBoundaries();
+      return;
+    }
+
+    startDragging(e);
+  }, [resetPaneBoundaries, startDragging, stopDragging]);
 
   const applyPointerResize = useCallback((e) => {
     if (!mainSectionRef.current) return;
@@ -548,28 +557,10 @@ const RequestTabPanel = () => {
     );
   }
 
-  // Standalone app item (collection- or folder-level). Renders as its own tab
-  // with a Code/Preview toggle and its own ctx API surface.
-  if (item.type === 'app') {
-    return (
-      <ScopedPersistenceProvider scope={focusedTab.uid}>
-        <StyledWrapper className="flex flex-col flex-grow relative overflow-hidden">
-          <CollectionApp item={item} collection={collection} />
-        </StyledWrapper>
-      </ScopedPersistenceProvider>
-    );
-  }
-
-  const appEnabled = item.draft ? get(item, 'draft.app.enabled', false) : get(item, 'app.enabled', false);
-  if (appEnabled) {
-    const appCode = item.draft ? get(item, 'draft.app.code', '') : get(item, 'app.code', '');
-    return (
-      <ScopedPersistenceProvider scope={focusedTab.uid}>
-        <StyledWrapper className="flex flex-col flex-grow relative overflow-hidden">
-          <AppView item={item} collection={collection} code={appCode} />
-        </StyledWrapper>
-      </ScopedPersistenceProvider>
-    );
+  const appEnabled = item.type !== 'app'
+    && (item.draft ? get(item, 'draft.app.enabled', false) : get(item, 'app.enabled', false));
+  if (item.type === 'app' || appEnabled) {
+    return <StyledWrapper className="flex flex-col flex-grow relative overflow-hidden" data-testid="app-tab-placeholder" />;
   }
 
   const renderQueryUrl = () => {
@@ -663,11 +654,7 @@ const RequestTabPanel = () => {
           {!requestPaneCollapsed && !responsePaneCollapsed && (
             <div
               className="dragbar-wrapper"
-              onDoubleClick={(e) => {
-                e.preventDefault();
-                resetPaneBoundaries();
-              }}
-              onMouseDown={startDragging}
+              onMouseDown={handleDragbarMouseDown}
             >
               <div className="dragbar-handle" />
             </div>

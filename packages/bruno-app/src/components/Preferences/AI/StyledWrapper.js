@@ -12,11 +12,10 @@ const StyledWrapper = styled.div`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 7px 12px;
+    padding: 6px 0px;
+    margin-right: ${(props) => props.theme.tabs.marginRight};
     margin-bottom: -1px;
-    font-size: 12px;
-    font-weight: 500;
-    color: ${(props) => props.theme.colors.text.muted};
+    color: ${(props) => props.theme.colors.text.subtext0};
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
@@ -24,12 +23,13 @@ const StyledWrapper = styled.div`
     transition: color 0.15s ease, border-color 0.15s ease;
 
     &:hover:not(.active) {
-      color: ${(props) => props.theme.text};
+      color: ${(props) => props.theme.tabs.active.color};
     }
 
     &.active {
-      color: ${(props) => props.theme.text};
-      border-bottom-color: ${(props) => props.theme.colors.accent};
+      color: ${(props) => props.theme.tabs.active.color};
+      font-weight: ${(props) => props.theme.tabs.active.fontWeight};
+      border-bottom-color: ${(props) => props.theme.tabs.active.border};
     }
 
     svg {
@@ -41,6 +41,8 @@ const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow-y: auto;
+    padding-bottom: 2rem;
   }
 
   .ai-master {

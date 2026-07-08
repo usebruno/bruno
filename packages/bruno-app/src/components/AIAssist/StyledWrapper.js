@@ -105,6 +105,7 @@ export const PopupWrapper = styled.div`
     background: ${(props) => props.theme.input.bg};
     color: ${(props) => props.theme.text};
     resize: vertical;
+    min-height: calc(3 * 1.4em + 18px);
     outline: none;
     transition: border-color 0.15s ease;
 

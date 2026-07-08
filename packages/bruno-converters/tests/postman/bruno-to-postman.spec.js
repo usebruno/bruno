@@ -145,8 +145,8 @@ describe('brunoToPostman null checks and fallbacks', () => {
 
     const result = brunoToPostman(simpleCollection);
     expect(result.item[0].request.header).toEqual([
-      { key: '', value: 'test-value', disabled: false, type: 'default' },
-      { key: 'Content-Type', value: '', disabled: false, type: 'default' }
+      { key: '', value: 'test-value', description: '', disabled: false, type: 'default' },
+      { key: 'Content-Type', value: '', description: '', disabled: false, type: 'default' }
     ]);
   });
 
@@ -266,8 +266,8 @@ describe('brunoToPostman null checks and fallbacks', () => {
 
     const result = brunoToPostman(simpleCollection);
     expect(result.item[0].request.body.urlencoded).toEqual([
-      { key: '', value: 'test-value', disabled: false, type: 'default' },
-      { key: 'field', value: '', disabled: false, type: 'default' }
+      { key: '', value: 'test-value', disabled: false, type: 'default', description: '' },
+      { key: 'field', value: '', disabled: false, type: 'default', description: '' }
     ]);
   });
 
@@ -347,6 +347,38 @@ describe('brunoToPostman null checks and fallbacks', () => {
 
     const result = brunoToPostman(simpleCollection);
     expect(result.item[0].request.description).toBe('');
+  });
+
+  it('should pass through header and form field descriptions', () => {
+    const simpleCollection = {
+      items: [
+        {
+          name: 'Test Request',
+          type: 'http-request',
+          request: {
+            method: 'POST',
+            url: 'https://example.com',
+            headers: [
+              { name: 'X-Custom', value: 'v', enabled: true, description: 'Header note' }
+            ],
+            body: {
+              mode: 'formUrlEncoded',
+              formUrlEncoded: [
+                { name: 'field', value: 'val', enabled: true, description: 'Field note' }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const result = brunoToPostman(simpleCollection);
+    expect(result.item[0].request.header).toEqual([
+      expect.objectContaining({ key: 'X-Custom', value: 'v', description: 'Header note' })
+    ]);
+    expect(result.item[0].request.body.urlencoded).toEqual([
+      expect.objectContaining({ key: 'field', value: 'val', description: 'Field note' })
+    ]);
   });
 
   it('should handle null or undefined folder name', () => {
@@ -549,6 +581,7 @@ describe('brunoToPostman multipartForm handling', () => {
       mode: 'formdata',
       formdata: [
         {
+          description: '',
           key: 'myFile',
           src: ['/path/to/file1.txt', '/path/to/file2.txt'],
           disabled: false,
@@ -588,6 +621,7 @@ describe('brunoToPostman multipartForm handling', () => {
       mode: 'formdata',
       formdata: [
         {
+          description: '',
           key: 'myField',
           value: 'some text value',
           disabled: false,
@@ -628,6 +662,7 @@ describe('brunoToPostman multipartForm handling', () => {
       mode: 'formdata',
       formdata: [
         {
+          description: '',
           key: 'myFile',
           src: '/path/to/file.json',
           disabled: false,
@@ -674,12 +709,14 @@ describe('brunoToPostman multipartForm handling', () => {
       mode: 'formdata',
       formdata: [
         {
+          description: '',
           key: 'textField',
           value: 'hello',
           disabled: false,
           type: 'text'
         },
         {
+          description: '',
           key: 'fileField',
           src: '/path/to/file.txt',
           disabled: true,
@@ -716,6 +753,7 @@ describe('brunoToPostman multipartForm handling', () => {
 
     const result = brunoToPostman(simpleCollection);
     expect(result.item[0].request.body.formdata[0]).toEqual({
+      description: '',
       key: 'myFile',
       src: '/single/file/path.txt',
       disabled: false,
@@ -750,6 +788,7 @@ describe('brunoToPostman multipartForm handling', () => {
 
     const result = brunoToPostman(simpleCollection);
     expect(result.item[0].request.body.formdata[0]).toEqual({
+      description: '',
       key: 'myFile',
       src: null,
       disabled: false,

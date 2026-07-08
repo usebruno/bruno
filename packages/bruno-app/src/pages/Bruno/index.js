@@ -3,6 +3,7 @@ import classnames from 'classnames';
 import ManageWorkspace from 'components/ManageWorkspace';
 import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
+import AppPreviewKeepAlive from 'components/AppPreviewKeepAlive';
 import AiChatSidebar from 'components/AiChatSidebar';
 import Sidebar from 'components/Sidebar';
 import StatusBar from 'components/StatusBar';
@@ -26,6 +27,9 @@ import SaveTransientRequest from 'components/SaveTransientRequest';
 
 require('codemirror/mode/javascript/javascript');
 require('codemirror/mode/xml/xml');
+// css + htmlmixed power the app code editors (apps are HTML/CSS/JS documents)
+require('codemirror/mode/css/css');
+require('codemirror/mode/htmlmixed/htmlmixed');
 require('codemirror/mode/sparql/sparql');
 require('codemirror/addon/comment/comment');
 require('codemirror/addon/dialog/dialog');
@@ -160,9 +164,12 @@ export default function Main() {
             ) : (
               <>
                 <RequestTabs />
-                <TabPanelErrorBoundary key={activeTabUid} tabUid={activeTabUid}>
-                  <RequestTabPanel key={activeTabUid} />
-                </TabPanelErrorBoundary>
+                <div className="relative flex flex-col flex-grow overflow-hidden">
+                  <TabPanelErrorBoundary key={activeTabUid} tabUid={activeTabUid}>
+                    <RequestTabPanel key={activeTabUid} />
+                  </TabPanelErrorBoundary>
+                  <AppPreviewKeepAlive />
+                </div>
               </>
             )}
           </section>
