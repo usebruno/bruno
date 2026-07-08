@@ -366,7 +366,7 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
   };
 
   for (const subTab of ['variables', 'secrets']) {
-    test.only(`persists the "${subTab}" environment-settings sub-tab across snapshot saves and restarts`, async ({ launchElectronApp, createTmpDir }) => {
+    test(`persists the "${subTab}" environment-settings sub-tab across snapshot saves and restarts`, async ({ launchElectronApp, createTmpDir }) => {
       // One restart plus environment creation; the default budget is tight on slower machines.
       test.setTimeout(60000);
       const userDataPath = await createTmpDir(`snap-env-subtab-${subTab}`);
