@@ -14,6 +14,11 @@ const StyledWrapper = styled.div`
   .caret-icon {
     opacity: 0.7;
   }
+
+  .type-icon {
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
 `;
 
 export default StyledWrapper;

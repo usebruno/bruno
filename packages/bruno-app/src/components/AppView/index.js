@@ -13,8 +13,10 @@ import {
   initRunRequestEvent
 } from 'providers/ReduxStore/slices/collections';
 import { toggleAppModeAndSave } from 'providers/ReduxStore/slices/collections/actions';
+import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
 import { useTheme } from 'providers/Theme';
+import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import EmptyAppState from './EmptyAppState';
 import {
@@ -287,6 +289,15 @@ const AppView = ({ item, collection, code }) => {
     dispatch(toggleAppModeAndSave({ enabled: false, itemUid: item.uid, collectionUid: collection.uid }));
   }, [dispatch, item.uid, collection.uid]);
 
+  const goToAppTab = useCallback(() => {
+    dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: 'app' }));
+    dispatch(toggleAppMode({ enabled: false, itemUid: item.uid, collectionUid: collection.uid }));
+  }, [dispatch, item.uid, collection.uid]);
+
+  const openAppsDocs = useCallback(() => {
+    window?.ipcRenderer?.openExternal('https://link.usebruno.com/apps');
+  }, []);
+
   return (
     <StyledWrapper data-testid="app-view">
       <div className="app-view-toolbar">
@@ -308,7 +319,29 @@ const AppView = ({ item, collection, code }) => {
       ) : (
         <EmptyAppState
           title="No app yet"
-          hint="Switch to the App tab on this request and write some HTML/JS to get started."
+          hint="Add HTML/JS in the App tab to render a custom UI for this request."
+          actions={(
+            <>
+              <Button
+                size="sm"
+                variant="filled"
+                color="primary"
+                onClick={goToAppTab}
+                data-testid="empty-app-add-code"
+              >
+                Add app code
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                color="secondary"
+                onClick={openAppsDocs}
+                data-testid="empty-app-learn-more"
+              >
+                Learn more
+              </Button>
+            </>
+          )}
         />
       )}
     </StyledWrapper>
