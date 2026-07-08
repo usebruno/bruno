@@ -716,10 +716,11 @@ const generateCodeVerifier = () => {
 // If the user passes a state, it goes first; we append random bytes after it.
 // The user keeps their custom data, and the random suffix keeps the flow secure.
 const generateState = ({ userState }) => {
-  let cryptographicallyRandomString = crypto.randomBytes(16).toString('hex');
-  if (userState && userState.length) {
-    return userState + cryptographicallyRandomString;
+  const trimmedUserState = userState?.trim();
+  if (trimmedUserState && trimmedUserState.length > 0) {
+    return trimmedUserState;
   }
+  let cryptographicallyRandomString = crypto.randomBytes(16).toString('hex');
   return cryptographicallyRandomString;
 };
 
@@ -863,9 +864,8 @@ const getOAuth2TokenUsingImplicitGrant = async ({ request, collectionUid, forceF
   if (scope) {
     authorizationUrlWithQueryParams.searchParams.append('scope', scope);
   }
-  if (effectiveState) {
-    authorizationUrlWithQueryParams.searchParams.append('state', effectiveState);
-  }
+  authorizationUrlWithQueryParams.searchParams.append('state', effectiveState);
+
   if (additionalParameters?.authorization?.length) {
     additionalParameters.authorization.forEach((param) => {
       if (param.enabled && param.name) {
