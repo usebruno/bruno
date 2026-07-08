@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
 import { makeTabPermanent, syncTabUid } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs, saveFile } from 'providers/ReduxStore/slices/collections/actions';
 import useKeybinding from 'hooks/useKeybinding';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
@@ -279,7 +279,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     } else if (tab.type === 'collection-settings') {
       dispatch(saveCollectionSettings(collection.uid));
     } else if (item && item.uid) {
-      dispatch(saveRequest(tab.uid, tab.collectionUid));
+      if (collection.fileMode || item.type === 'js') {
+        dispatch(saveFile(item?.draft?.raw ?? item?.raw, tab.uid, tab.collectionUid));
+      } else {
+        dispatch(saveRequest(tab.uid, tab.collectionUid));
+      }
     }
     return false;
   }, { enabled: isActive, deps: [isActive, tab, item, collection, folder, globalEnvironmentDraft] });
@@ -550,13 +554,16 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             setShowConfirmClose(false);
           }}
           onSaveAndClose={() => {
-            dispatch(saveRequest(item.uid, collection.uid))
+            const useFileSave = collection.fileMode || item.type === 'js';
+            const savePromise = useFileSave
+              ? dispatch(saveFile(item?.draft?.raw ?? item?.raw, item.uid, collection.uid))
+              : dispatch(saveRequest(item.uid, collection.uid));
+
+            savePromise
               .then(() => {
-                dispatch(
-                  closeTabs({
-                    tabUids: [tab.uid]
-                  })
-                );
+                dispatch(closeTabs({
+                  tabUids: [tab.uid]
+                }));
                 setShowConfirmClose(false);
               })
               .catch((err) => {

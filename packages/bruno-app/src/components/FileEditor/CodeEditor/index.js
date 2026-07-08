@@ -5,7 +5,7 @@
  *  LICENSE file in the root directory of this source tree.
  */
 
-import React from 'react';
+import React, { createRef } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getEnvironmentVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
@@ -31,6 +31,7 @@ export default class CodeEditor extends React.Component {
     // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.variables = {};
+    this.searchBarRef = createRef();
 
     this.lintOptions = {
       esversion: 11,
@@ -61,16 +62,6 @@ export default class CodeEditor extends React.Component {
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
         'Shift-Cmd-M': () => {
           if (this.props.toggleFileMode) {
             this.props.toggleFileMode();
@@ -81,21 +72,15 @@ export default class CodeEditor extends React.Component {
             this.props.toggleFileMode();
           }
         },
-        'Cmd-F': (cm) => {
-          if (this.state.searchBarVisible) {
-            this._node.querySelector('.bruno-search-bar > input').focus();
-          }
-          if (!this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: true });
-          }
+        'Cmd-F': () => {
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+          });
         },
-        'Ctrl-F': (cm) => {
-          if (this.state.searchBarVisible) {
-            this._node.querySelector('.bruno-search-bar > input').focus();
-          }
-          if (!this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: true });
-          }
+        'Ctrl-F': () => {
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+          });
         },
         'Cmd-H': 'replace',
         'Ctrl-H': 'replace',
@@ -125,6 +110,11 @@ export default class CodeEditor extends React.Component {
       this._lastScrollTop = this.props.initialScroll || 0;
       editor.on('scroll', this._onScroll);
       this.addOverlay();
+
+      const cmInput = editor.getInputField();
+      if (cmInput) {
+        cmInput.classList.add('mousetrap');
+      }
     }
   }
 
@@ -191,6 +181,7 @@ export default class CodeEditor extends React.Component {
         font={this.props.font}
       >
         <CodeMirrorSearch
+          ref={(node) => (this.searchBarRef.current = node)}
           visible={this.state.searchBarVisible}
           editor={this.editor}
           onClose={() => this.setState({ searchBarVisible: false })}
