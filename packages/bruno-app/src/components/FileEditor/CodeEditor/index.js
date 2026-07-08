@@ -5,7 +5,7 @@
  *  LICENSE file in the root directory of this source tree.
  */
 
-import React from 'react';
+import React, { createRef } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getEnvironmentVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
@@ -31,6 +31,7 @@ export default class CodeEditor extends React.Component {
     // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.variables = {};
+    this.searchBarRef = createRef();
 
     this.lintOptions = {
       esversion: 11,
@@ -82,20 +83,26 @@ export default class CodeEditor extends React.Component {
           }
         },
         'Cmd-F': (cm) => {
-          if (this.state.searchBarVisible) {
-            this._node.querySelector('.bruno-search-bar > input').focus();
-          }
-          if (!this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: true });
-          }
+          const selected = cm.getSelection();
+          const cursor = cm.getCursor('from');
+          this.setState({ searchBarVisible: true }, () => {
+            if (selected) {
+              this.searchBarRef.current?.setSearch(selected, cursor);
+            } else {
+              this.searchBarRef.current?.focusAtCursor(cursor);
+            }
+          });
         },
         'Ctrl-F': (cm) => {
-          if (this.state.searchBarVisible) {
-            this._node.querySelector('.bruno-search-bar > input').focus();
-          }
-          if (!this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: true });
-          }
+          const selected = cm.getSelection();
+          const cursor = cm.getCursor('from');
+          this.setState({ searchBarVisible: true }, () => {
+            if (selected) {
+              this.searchBarRef.current?.setSearch(selected, cursor);
+            } else {
+              this.searchBarRef.current?.focusAtCursor(cursor);
+            }
+          });
         },
         'Cmd-H': 'replace',
         'Ctrl-H': 'replace',
@@ -113,7 +120,7 @@ export default class CodeEditor extends React.Component {
         'Cmd-I': 'unfoldAll',
         'Esc': () => {
           if (this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: false });
+            this.searchBarRef.current?.close();
           }
         }
       }
@@ -191,6 +198,10 @@ export default class CodeEditor extends React.Component {
         font={this.props.font}
       >
         <CodeMirrorSearch
+          ref={(node) => {
+            if (!node) return;
+            this.searchBarRef.current = node;
+          }}
           visible={this.state.searchBarVisible}
           editor={this.editor}
           onClose={() => this.setState({ searchBarVisible: false })}
