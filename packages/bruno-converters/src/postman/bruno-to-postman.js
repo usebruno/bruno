@@ -703,7 +703,7 @@ export const brunoToPostman = (collection) => {
           },
           {
             key: 'client_authentication',
-            value: oauth2.credentialsPlacement === 'body' ? 'body' : '',
+            value: oauth2.credentialsPlacement === 'body' ? 'body' : 'header',
             type: 'string'
           },
           {

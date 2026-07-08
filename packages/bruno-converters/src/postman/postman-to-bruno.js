@@ -344,11 +344,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
       };
 
       const postmanGrantType = findValueUsingKey('grant_type');
-      // Postman omits `grant_type` when exporting a plain authorization_code auth. Infer it from the
-      // presence of authUrl/redirect_uri so it isn't misclassified as the client_credentials default.
-      const hasAuthCodeFields = !!(findValueUsingKey('authUrl') || findValueUsingKey('redirect_uri'));
-      const effectiveGrantType = postmanGrantType || (hasAuthCodeFields ? 'authorization_code' : '');
-      const targetGrantType = oauth2GrantTypeMaps[effectiveGrantType] || 'client_credentials'; // Default
+      const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] || 'client_credentials'; // Default
 
       // Maps Postman's request-params arrays to Bruno's `additionalParameters`, converting `send_as`
       // ('request_header'/'request_url'/'request_body') to Bruno's `sendIn` ('headers'/'queryparams'/'body').
@@ -393,7 +389,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         credentialsId: findValueUsingKey('tokenName')
       };
 
-      switch (effectiveGrantType) {
+      switch (targetGrantType) {
         case 'authorization_code':
           requestObject.auth.oauth2 = {
             ...baseOAuth2Config,
@@ -428,7 +424,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
           };
           break;
         default:
-          console.warn('Unexpected OAuth2 grant type after mapping:', effectiveGrantType);
+          console.warn('Unexpected OAuth2 grant type after mapping:', targetGrantType);
           requestObject.auth.oauth2 = baseOAuth2Config; // Fallback to default which is Client Credentials
           break;
       }
