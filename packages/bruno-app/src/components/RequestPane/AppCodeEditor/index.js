@@ -6,8 +6,10 @@ import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
 import { buildAiContextPayload } from 'utils/ai';
 import { updateAppCode } from 'providers/ReduxStore/slices/collections';
-import { saveRequest, toggleAppModeAndSave } from 'providers/ReduxStore/slices/collections/actions';
+import { setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
+import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
+import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 
 const AppCodeEditor = ({ item, collection }) => {
@@ -21,7 +23,7 @@ const AppCodeEditor = ({ item, collection }) => {
     dispatch(updateAppCode({ code: value, itemUid: item.uid, collectionUid: collection.uid }));
 
   const onPreview = () =>
-    dispatch(toggleAppModeAndSave({ enabled: true, itemUid: item.uid, collectionUid: collection.uid }));
+    dispatch(setTabAppPreview({ uid: item.uid, appPreview: true }));
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
@@ -32,19 +34,19 @@ const AppCodeEditor = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full h-full flex flex-col">
-      <div className="app-toggle-row mb-3 px-1 pb-3 flex items-center justify-between">
-        <p className="text-xs opacity-70">
+      <div className="app-toolbar mb-3 pb-3 flex items-center justify-between gap-4">
+        <p className="text-xs text-muted min-w-0">
           The app view replaces the request/response panes for this request.
         </p>
-        <button
-          type="button"
-          className="btn btn-sm btn-secondary flex items-center gap-1"
+        <Button
+          size="sm"
+          icon={<IconAppWindow size={14} strokeWidth={1.5} />}
           onClick={onPreview}
+          className="flex-shrink-0"
           data-testid="app-preview-btn"
         >
-          <IconAppWindow size={14} strokeWidth={1.5} />
           Preview
-        </button>
+        </Button>
       </div>
 
       <div className="flex-1 app-editor relative" data-testid="app-code-editor">

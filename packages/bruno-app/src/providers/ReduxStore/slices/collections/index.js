@@ -2997,16 +2997,7 @@ export const collectionsSlice = createSlice({
             item.request = mergeRequestWithPreservedUids(item.request, file.data.request);
             item.settings = file.data.settings;
             item.examples = file.data.examples;
-            // app.enabled is runtime-only and not persisted, so preserve it across file reloads
-            // even when the file no longer has an `app` block on disk.
-            const currentEnabled = item.draft?.app?.enabled ?? item.app?.enabled ?? false;
-            if (file.data.app) {
-              item.app = { ...file.data.app, enabled: currentEnabled };
-            } else if (currentEnabled) {
-              item.app = { code: null, enabled: true };
-            } else {
-              item.app = null;
-            }
+            item.app = file.data.app ? { ...file.data.app } : null;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
             item.raw = file.data.raw;

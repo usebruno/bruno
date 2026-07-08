@@ -12,8 +12,7 @@ import {
   appSetRuntimeVariable,
   initRunRequestEvent
 } from 'providers/ReduxStore/slices/collections';
-import { toggleAppModeAndSave } from 'providers/ReduxStore/slices/collections/actions';
-import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateRequestPaneTab, setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
 import { useTheme } from 'providers/Theme';
 import Button from 'ui/Button';
@@ -286,13 +285,13 @@ const AppView = ({ item, collection, code }) => {
   }, [variables, pushToGuest]);
 
   const disableApp = useCallback(() => {
-    dispatch(toggleAppModeAndSave({ enabled: false, itemUid: item.uid, collectionUid: collection.uid }));
-  }, [dispatch, item.uid, collection.uid]);
+    dispatch(setTabAppPreview({ uid: item.uid, appPreview: false }));
+  }, [dispatch, item.uid]);
 
   const goToAppTab = useCallback(() => {
     dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: 'app' }));
-    dispatch(toggleAppMode({ enabled: false, itemUid: item.uid, collectionUid: collection.uid }));
-  }, [dispatch, item.uid, collection.uid]);
+    dispatch(setTabAppPreview({ uid: item.uid, appPreview: false }));
+  }, [dispatch, item.uid]);
 
   const openAppsDocs = useCallback(() => {
     window?.ipcRenderer?.openExternal('https://link.usebruno.com/apps');

@@ -75,7 +75,7 @@ const HttpRequestPane = ({ item, collection }) => {
   const auth = getProperty('request.auth');
   const tags = getProperty('tags');
   const app = getProperty('app', null);
-  const appTabEnabled = getProperty('settings.enableApp', false) === true;
+  const appTabEnabled = app?.enabled === true;
   // A previously selected App tab may be restored while apps are disabled in settings.
   const effectiveTab = requestPaneTab === 'app' && !appTabEnabled ? 'params' : requestPaneTab;
 

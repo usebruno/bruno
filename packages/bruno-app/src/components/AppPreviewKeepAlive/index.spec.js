@@ -46,7 +46,6 @@ const requestAppItem = {
   uid: 'item-1',
   name: 'My Request App',
   type: 'http-request',
-  settings: { enableApp: true },
   app: { enabled: true, code: '<div>hi</div>' },
   request: {}
 };
@@ -101,17 +100,27 @@ describe('AppPreviewKeepAlive', () => {
     expect(hiddenSlot).toHaveAttribute('aria-hidden', 'true');
   });
 
-  it('does not mount request apps when the Enable App setting is off', () => {
+  it('does not mount request apps when the app is not enabled', () => {
     const gatedItem = {
       ...requestAppItem,
       uid: 'item-gated',
-      settings: { enableApp: false }
+      app: { enabled: false, code: '<div>hi</div>' }
     };
     const gatedCollection = { uid: 'coll-1', items: [gatedItem] };
     const { store } = makeStore({
       tabs: [tabFor(gatedItem)],
       activeTabUid: gatedItem.uid,
       collections: [gatedCollection]
+    });
+    render(<Provider store={store}><AppPreviewKeepAlive /></Provider>);
+    expect(screen.queryByTestId('mock-app-view')).not.toBeInTheDocument();
+  });
+
+  it('does not mount request apps whose tab has preview explicitly off', () => {
+    const { store } = makeStore({
+      tabs: [{ ...tabFor(requestAppItem), appPreview: false }],
+      activeTabUid: requestAppItem.uid,
+      collections: [collection]
     });
     render(<Provider store={store}><AppPreviewKeepAlive /></Provider>);
     expect(screen.queryByTestId('mock-app-view')).not.toBeInTheDocument();

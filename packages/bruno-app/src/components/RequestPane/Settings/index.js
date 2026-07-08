@@ -6,6 +6,7 @@ import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
 import SettingsInput from 'components/SettingsInput';
 import InheritableSettingsInput from 'components/InheritableSettingsInput';
 import { updateItemSettings, toggleAppMode } from 'providers/ReduxStore/slices/collections';
+import { setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
 
@@ -14,8 +15,7 @@ const DEFAULT_SETTINGS = {
   encodeUrl: false,
   followRedirects: true,
   maxRedirects: 5,
-  timeout: 'inherit',
-  enableApp: false
+  timeout: 'inherit'
 };
 
 const Settings = ({ item, collection }) => {
@@ -27,7 +27,8 @@ const Settings = ({ item, collection }) => {
 
   const rawSettings = getPropertyFromDraftOrRequest('settings');
   const settings = { ...DEFAULT_SETTINGS, ...rawSettings };
-  const { encodeUrl, followRedirects, maxRedirects, timeout, enableApp } = settings;
+  const { encodeUrl, followRedirects, maxRedirects, timeout } = settings;
+  const enableApp = getPropertyFromDraftOrRequest('app.enabled') === true;
 
   // Reusable function to update settings
   const updateSetting = useCallback((settingUpdate) => {
@@ -48,11 +49,11 @@ const Settings = ({ item, collection }) => {
 
   const onToggleEnableApp = useCallback(() => {
     const next = !enableApp;
-    updateSetting({ enableApp: next });
-    if (!next) {
-      dispatch(toggleAppMode({ enabled: false, itemUid: item.uid, collectionUid: collection.uid }));
+    dispatch(toggleAppMode({ enabled: next, itemUid: item.uid, collectionUid: collection.uid }));
+    if (next) {
+      dispatch(setTabAppPreview({ uid: item.uid, appPreview: false }));
     }
-  }, [enableApp, updateSetting, dispatch, item.uid, collection.uid]);
+  }, [enableApp, dispatch, item.uid, collection.uid]);
 
   const onMaxRedirectsChange = useCallback((e) => {
     const value = e.target.value;

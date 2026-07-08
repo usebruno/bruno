@@ -557,10 +557,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       parsedSettings.followRedirects = toBool(settings.followRedirects);
     }
 
-    if (settings.enableApp !== undefined) {
-      parsedSettings.enableApp = toBool(settings.enableApp);
-    }
-
     // Parse maxRedirects as number
     if (settings.maxRedirects !== undefined) {
       const maxRedirects = parseInt(settings.maxRedirects, 10);
@@ -592,10 +588,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     if (parsedSettings.maxRedirects !== undefined) {
       _settings.maxRedirects = parsedSettings.maxRedirects;
-    }
-
-    if (parsedSettings.enableApp !== undefined) {
-      _settings.enableApp = parsedSettings.enableApp;
     }
 
     if (keepAliveInterval) {

@@ -259,8 +259,8 @@ export const stringifyBruRequest = (json: any): string => {
     bruJson.examples = _.get(json, 'examples', []).map((e: any) => jsonExampleToBru(e));
 
     const app = _.get(json, 'app');
-    if (app && app.code && app.code.length) {
-      bruJson.app = { code: app.code, enabled: app.enabled === true };
+    if (app && (app.enabled === true || (app.code && app.code.length))) {
+      bruJson.app = { code: app.code || null, enabled: app.enabled === true };
     }
 
     const bru = jsonToBruV2(bruJson);

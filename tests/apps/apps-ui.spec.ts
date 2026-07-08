@@ -140,21 +140,22 @@ test.describe('Apps - request-level UI', () => {
     });
   });
 
-  test('App code, Enable App setting and preview state persist across save + reopen', async ({ page, createTmpDir }) => {
+  test('Enable App and code persist; an enabled app opens in preview mode by default', async ({ page, createTmpDir }) => {
     const collectionPath = await createTmpDir('apps-ui-persist');
     await createCollection(page, 'apps-persist', collectionPath);
     await createRequest(page, 'persist-req', 'apps-persist', { url: 'http://localhost:8081/api/echo/anything/x' });
     await openRequest(page, 'apps-persist', 'persist-req', { persist: true });
 
+    // Enabling from Settings keeps the tab in request mode so code can be written.
     await setAppCode(page, SIMPLE_APP);
-    await previewApp(page);
+    await expect(page.getByTestId('request-pane')).toBeVisible();
     await saveRequest(page);
 
     await closeAllTabs(page);
 
     await openRequest(page, 'apps-persist', 'persist-req', { persist: true });
 
-    await test.step('Preview state was persisted — app view is active on reopen', async () => {
+    await test.step('Freshly opened app-enabled request starts in preview mode', async () => {
       await expect(activeAppView(page).locator('webview')).toBeVisible();
       await expect(page.getByTestId('view-mode-app')).toHaveClass(/active/);
     });

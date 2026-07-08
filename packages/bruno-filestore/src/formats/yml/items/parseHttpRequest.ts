@@ -139,10 +139,6 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
       settings.maxRedirects = 5;
     }
 
-    if (typeof (ocRequest.settings as any).enableApp === 'boolean') {
-      settings.enableApp = (ocRequest.settings as any).enableApp;
-    }
-
     brunoItem.settings = settings;
   }
 

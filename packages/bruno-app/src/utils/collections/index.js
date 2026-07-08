@@ -724,8 +724,8 @@ export const transformRequestToSaveToFilesystem = (item) => {
     }));
   };
 
-  const appToSave = _item.app && _item.app.code && _item.app.code.length
-    ? { code: _item.app.code, enabled: _item.app.enabled === true }
+  const appToSave = _item.app && (_item.app.enabled === true || (_item.app.code && _item.app.code.length))
+    ? { code: _item.app.code || null, enabled: _item.app.enabled === true }
     : null;
 
   const itemToSave = {

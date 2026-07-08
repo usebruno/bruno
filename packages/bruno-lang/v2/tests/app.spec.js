@@ -37,8 +37,13 @@ describe('app block', () => {
     expect(bruToJson(jsonToBru({ app: { code: '<x/>', enabled: false } })).app.enabled).toBe(false);
   });
 
-  it('should parse enableApp in the settings block', () => {
-    const output = bruToJson(`settings {\n  encodeUrl: true\n  enableApp: true\n}\n`);
-    expect(output.settings.enableApp).toBe(true);
+  it('should serialize an enabled app block even without code', () => {
+    const bru = jsonToBru({ app: { code: null, enabled: true } });
+    expect(bru).toEqual('app {\n  enabled: true\n}\n');
+    expect(bruToJson(bru).app).toEqual({ code: null, enabled: true });
+  });
+
+  it('should omit the app block when disabled and without code', () => {
+    expect(jsonToBru({ app: { code: null, enabled: false } })).toEqual('');
   });
 });

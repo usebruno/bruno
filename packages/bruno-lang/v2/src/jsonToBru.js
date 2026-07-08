@@ -770,13 +770,15 @@ ${indentString(tests)}
 `;
   }
 
-  if (app && app.code && app.code.length) {
+  if (app && (app.enabled === true || (app.code && app.code.length))) {
     bru += `app {\n`;
     if (app.enabled === true) {
       bru += `  enabled: true\n`;
     }
-    bru += `  code: '''\n${indentString(app.code, 2)}\n  '''`;
-    bru += '\n}\n\n';
+    if (app.code && app.code.length) {
+      bru += `  code: '''\n${indentString(app.code, 2)}\n  '''\n`;
+    }
+    bru += '}\n\n';
   }
 
   if (settings && Object.keys(settings).length) {

@@ -1,11 +1,15 @@
 import { Page, Locator } from '../../../playwright';
 import { buildApiSpecPanelLocators } from './openapi/render-spec';
+import { buildPreferencesLocators } from './preferences';
+import { buildAiPreferencesLocators } from './ai';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
   openApi: {
     render: buildApiSpecPanelLocators(page)
   },
+  preferences: buildPreferencesLocators(page),
+  ai: buildAiPreferencesLocators(page),
   saveButton: () => page
     .locator('.infotip')
     .filter({ hasText: /^Save/ }),

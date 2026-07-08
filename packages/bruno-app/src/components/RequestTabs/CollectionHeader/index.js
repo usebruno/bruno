@@ -23,14 +23,14 @@ import IconSparkles from 'components/Icons/IconSparkles';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
-import { showInFolder, toggleAppModeAndSave } from 'providers/ReduxStore/slices/collections/actions';
+import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections';
 import { toggleAiSidebar } from 'providers/ReduxStore/slices/chat';
 import MigrateToYmlModal from 'components/CollectionSettings/Overview/Migration/MigrateToYmlModal';
 import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
 import find from 'lodash/find';
 import get from 'lodash/get';
-import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
+import { addTab, focusTab, setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
 import Dropdown from 'components/Dropdown';
@@ -83,12 +83,14 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     : null;
   const isHttpRequestActive = activeItem?.type === 'http-request';
   const activeItemSource = activeItem ? activeItem.draft || activeItem : null;
-  const appEnabled = get(activeItemSource, 'app.enabled', false);
-  const appAvailable = isHttpRequestActive && get(activeItemSource, 'settings.enableApp', false) === true;
+  // The "Enable App" request setting (persisted as app.enabled) gates the whole
+  // Request/App/File mode toggle.
+  const appAvailable = isHttpRequestActive && get(activeItemSource, 'app.enabled', false) === true;
+  const appEnabled = appAvailable && focusedTab?.appPreview !== false;
 
   const handleToggleAppMode = (enabled) => {
     if (isHttpRequestActive) {
-      dispatch(toggleAppModeAndSave({ enabled, itemUid: activeItem.uid, collectionUid: collection.uid }));
+      dispatch(setTabAppPreview({ uid: focusedTab.uid, appPreview: enabled }));
     }
   };
 

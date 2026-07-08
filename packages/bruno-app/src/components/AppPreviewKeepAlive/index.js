@@ -44,8 +44,8 @@ const AppPreviewKeepAlive = () => {
       }
 
       const itemSource = item.draft ? item.draft : item;
-      const appEnabled = get(itemSource, 'settings.enableApp', false) === true
-        && get(itemSource, 'app.enabled', false);
+      const appEnabled = get(itemSource, 'app.enabled', false) === true
+        && tab.appPreview !== false;
       if (appEnabled) {
         const code = get(itemSource, 'app.code', '');
         out.push({ tabUid: tab.uid, collection, item, kind: 'request', code });
