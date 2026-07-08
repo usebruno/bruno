@@ -12,6 +12,12 @@ const BRUNO_OAUTH2_CALLBACK_URL = 'https://oauth.usebruno.com/callback';
 
 const oauth2Store = new Oauth2Store();
 
+const hasClientSecret = (clientSecret) => typeof clientSecret === 'string' && clientSecret.trim() !== '';
+// Public PKCE clients should send client_id without emitting Basic client authentication.
+const shouldUseBasicAuth = (credentialsPlacement, clientSecret) => {
+  return credentialsPlacement === 'basic_auth_header' && hasClientSecret(clientSecret);
+};
+
 const persistOauth2Credentials = ({ collectionUid, url, credentials, credentialsId }) => {
   if (credentials?.error || !credentials?.access_token) return;
   const enhancedCredentials = {
@@ -257,9 +263,9 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     'content-type': 'application/x-www-form-urlencoded',
     'Accept': 'application/json'
   };
-  if (credentialsPlacement === 'basic_auth_header') {
-    const secret = clientSecret ?? '';
-    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
+  const useBasicAuth = shouldUseBasicAuth(credentialsPlacement, clientSecret);
+  if (useBasicAuth) {
+    axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
   }
 
   const data = {
@@ -267,10 +273,10 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
     code: authorizationCode,
     redirect_uri: effectiveCallbackUrl
   };
-  if (credentialsPlacement !== 'basic_auth_header') {
+  if (!useBasicAuth) {
     data.client_id = clientId;
   }
-  if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== 'basic_auth_header') {
+  if (hasClientSecret(clientSecret) && !useBasicAuth) {
     data.client_secret = clientSecret;
   }
   if (pkce) {
@@ -661,10 +667,11 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
       grant_type: 'refresh_token',
       refresh_token: credentials.refresh_token
     };
-    if (credentialsPlacement !== 'basic_auth_header') {
+    const useBasicAuth = shouldUseBasicAuth(credentialsPlacement, clientSecret);
+    if (!useBasicAuth) {
       data.client_id = clientId;
     }
-    if (clientSecret && clientSecret.trim() !== '' && credentialsPlacement !== 'basic_auth_header') {
+    if (hasClientSecret(clientSecret) && !useBasicAuth) {
       data.client_secret = clientSecret;
     }
     let axiosRequestConfig = {};
@@ -673,9 +680,8 @@ const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyCon
       'content-type': 'application/x-www-form-urlencoded',
       'Accept': 'application/json'
     };
-    if (credentialsPlacement === 'basic_auth_header') {
-      const secret = clientSecret ?? '';
-      axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
+    if (useBasicAuth) {
+      axiosRequestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
     }
     axiosRequestConfig.url = url;
     axiosRequestConfig.responseType = 'arraybuffer';
