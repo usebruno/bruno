@@ -313,6 +313,78 @@ describe('node-vm sandbox', () => {
 
       expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
     });
+
+    it('should not leak npm resolution to ancestor node_modules outside allowed roots', async () => {
+      // testDir is the parent of collectionPath. Simulate an npm package installed
+      // in that parent's node_modules — an ancestor of the collection that is NOT
+      // configured as an additionalContextRoot. Node's walk-up would find it, but
+      // the security gate must reject it.
+      const ancestorNodeModules = path.join(testDir, 'node_modules', 'ancestor-only-pkg');
+      fs.mkdirSync(ancestorNodeModules, { recursive: true });
+      fs.writeFileSync(
+        path.join(ancestorNodeModules, 'index.js'),
+        'module.exports = { leaked: true };'
+      );
+
+      const script = `
+        try {
+          require('ancestor-only-pkg');
+          bru.setVar('leaked', true);
+        } catch (e) {
+          bru.setVar('leaked', false);
+        }
+      `;
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      // No additionalContextRoots configured — the ancestor node_modules must remain out of reach
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('leaked', false);
+    });
+
+    it('should walk up from a nested shared script to find its npm dependency', async () => {
+      // Structure:
+      //   shared/
+      //     node_modules/deep-dep/index.js   ← package hoisted at shared root
+      //     deep/nested/parser.js            ← requires 'deep-dep'
+      const additionalRoot = path.join(testDir, 'shared');
+      const nestedDir = path.join(additionalRoot, 'deep', 'nested');
+      fs.mkdirSync(nestedDir, { recursive: true });
+
+      const depDir = path.join(additionalRoot, 'node_modules', 'deep-dep');
+      fs.mkdirSync(depDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(depDir, 'index.js'),
+        'module.exports = { walkedUp: true };'
+      );
+
+      fs.writeFileSync(
+        path.join(nestedDir, 'parser.js'),
+        'const dep = require("deep-dep"); module.exports = { ok: dep.walkedUp };'
+      );
+
+      const script = `
+        const parser = require('../shared/deep/nested/parser');
+        bru.setVar('result', parser.ok);
+      `;
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      const scriptingConfig = {
+        additionalContextRoots: [additionalRoot]
+      };
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
+    });
   });
 
   describe('createCustomRequire - npm modules', () => {

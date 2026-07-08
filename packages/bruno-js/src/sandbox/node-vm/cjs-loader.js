@@ -115,6 +115,7 @@ function createCustomRequire({
     return loadNpmModule({
       moduleName,
       collectionPath,
+      currentModuleDir,
       isolatedContext,
       localModuleCache,
       additionalContextRootsAbsolute
@@ -270,6 +271,29 @@ function executeModuleInVmContext({
 }
 
 /**
+ * Compare a Node-resolved npm module path against allowed roots.
+ *
+ * Node's `createRequire(...).resolve(...)` returns realpath'd paths (macOS resolves
+ * `/var → /private/var` for temp/symlinked dirs). If the allowed roots come in as
+ * unresolved symlinks, a naive `path.relative` comparison produces false negatives.
+ * Canonicalize the roots so both sides are in the same physical form before checking.
+ *
+ * @param {string} candidatePath - Path returned by Node's resolver (already realpath'd)
+ * @param {string[]} additionalContextRootsAbsolute - Allowed root directories
+ * @returns {boolean} True if candidate sits inside any allowed root
+ */
+function isResolvedNpmPathAllowed(candidatePath, additionalContextRootsAbsolute) {
+  const canonicalRoots = additionalContextRootsAbsolute.map((root) => {
+    try {
+      return fs.realpathSync(root);
+    } catch {
+      return path.normalize(root);
+    }
+  });
+  return isPathWithinAllowedRoots(candidatePath, canonicalRoots);
+}
+
+/**
  * Loads an npm module into the vm context
  * @param {Object} options - Configuration options
  * @returns {*} The exported content of the loaded module
@@ -278,31 +302,35 @@ function executeModuleInVmContext({
 function loadNpmModule({
   moduleName,
   collectionPath,
+  currentModuleDir,
   isolatedContext,
   localModuleCache,
   additionalContextRootsAbsolute = []
 }) {
   let resolvedPath;
 
-  // Module resolution order:
-  // 1. Collection's node_modules (user-installed packages for their collection)
-  // 2. Additional context roots' node_modules (packages installed alongside shared scripts)
-  // 3. Bruno's node_modules (fallback for built-in dependencies)
+  // Module resolution order (standard Node.js walk-up, bounded by allowed roots):
+  // 1. currentModuleDir/node_modules → walk up parent dirs (security-checked)
+  // 2. Additional context roots' node_modules (cross-root discovery)
+  // 3. Collection's node_modules
+  // 4. Bruno's node_modules (final fallback)
   //
-  // This order ensures user packages take precedence, allowing users to:
-  // - Override Bruno's bundled package versions
-  // - Install collection-specific dependencies
-  // - Use npm packages installed in additionalContextRoots directories
-  if (collectionPath) {
+  // Step 1 uses Node's built-in resolution from the calling module's directory,
+  // matching how native require() behaves. Resolved paths must land inside an
+  // allowed root — otherwise the walk-up could escape to system node_modules.
+  if (currentModuleDir) {
     try {
-      const collectionRequire = nodeModule.createRequire(path.join(collectionPath, 'package.json'));
-      resolvedPath = collectionRequire.resolve(moduleName);
+      const callerRequire = nodeModule.createRequire(path.join(currentModuleDir, 'package.json'));
+      const candidatePath = path.normalize(callerRequire.resolve(moduleName));
+      if (isResolvedNpmPathAllowed(candidatePath, additionalContextRootsAbsolute)) {
+        resolvedPath = candidatePath;
+      }
     } catch {
-      // Module not found in collection, continue to fallback
+      // Not found via walk-up, continue to fallbacks
     }
   }
 
-  // Search additional context roots' node_modules
+  // Search additional context roots' node_modules (top-level, for cross-root discovery)
   if (!resolvedPath) {
     for (const contextRoot of additionalContextRootsAbsolute) {
       if (collectionPath && path.normalize(contextRoot) === path.normalize(collectionPath)) {
@@ -315,6 +343,21 @@ function loadNpmModule({
       } catch {
         // Module not found in this context root, try next
       }
+    }
+  }
+
+  // Fall back to collection's node_modules
+  if (!resolvedPath && collectionPath) {
+    try {
+      const collectionRequire = nodeModule.createRequire(path.join(collectionPath, 'package.json'));
+      const candidatePath = path.normalize(collectionRequire.resolve(moduleName));
+      // Node's walk-up doesn't stop at collectionPath; gate the result so we don't
+      // silently accept packages from ancestor directories outside allowed roots.
+      if (isResolvedNpmPathAllowed(candidatePath, additionalContextRootsAbsolute)) {
+        resolvedPath = candidatePath;
+      }
+    } catch {
+      // Module not found in collection, continue to fallback
     }
   }
 
