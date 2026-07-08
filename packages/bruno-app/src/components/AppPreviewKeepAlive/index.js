@@ -43,9 +43,11 @@ const AppPreviewKeepAlive = () => {
         continue;
       }
 
-      const appEnabled = item.draft ? get(item, 'draft.app.enabled', false) : get(item, 'app.enabled', false);
+      const itemSource = item.draft ? item.draft : item;
+      const appEnabled = get(itemSource, 'app.enabled', false) === true
+        && tab.appPreview !== false;
       if (appEnabled) {
-        const code = item.draft ? get(item, 'draft.app.code', '') : get(item, 'app.code', '');
+        const code = get(itemSource, 'app.code', '');
         out.push({ tabUid: tab.uid, collection, item, kind: 'request', code });
       }
     }
