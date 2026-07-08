@@ -211,7 +211,8 @@ function executeModuleInVmContext({
   moduleName,
   isolatedContext,
   collectionPath,
-  localModuleCache
+  localModuleCache,
+  additionalContextRootsAbsolute = []
 }) {
   // Check cache - we cache moduleObj, return its exports
   if (localModuleCache.has(resolvedPath)) {
@@ -251,7 +252,8 @@ function executeModuleInVmContext({
     collectionPath,
     isolatedContext,
     currentModuleDir: moduleDir,
-    localModuleCache
+    localModuleCache,
+    additionalContextRootsAbsolute
   });
 
   try {
@@ -294,6 +296,51 @@ function isResolvedNpmPathAllowed(candidatePath, additionalContextRootsAbsolute)
 }
 
 /**
+ * Trust any npm package the user (or npm) placed inside an allowed root's
+ * node_modules/ — even if it's a symlink pointing outside allowed roots
+ * (npm link / file: dependencies). The presence of the entry itself is the
+ * declaration of trust, matching how any Node.js runtime resolves it.
+ *
+ * The candidatePath must actually correspond to that entry (same realpath'd
+ * target), otherwise a walk-up match on an unrelated ancestor package with
+ * the same name would be silently accepted.
+ *
+ * @param {string} candidatePath - The resolved path being checked
+ * @param {string} moduleName - Bare npm module name (may include a scope)
+ * @param {string[]} additionalContextRootsAbsolute - Allowed root directories
+ * @returns {boolean} True if candidatePath is inside a root's node_modules/<name>
+ */
+function isModuleLinkedFromAllowedRoot(candidatePath, moduleName, additionalContextRootsAbsolute) {
+  for (const root of additionalContextRootsAbsolute) {
+    const linkPath = path.join(root, 'node_modules', moduleName);
+    try {
+      const linkTarget = fs.realpathSync(linkPath);
+      const rel = path.relative(linkTarget, candidatePath);
+      if (!rel.startsWith('..') && !path.isAbsolute(rel)) {
+        return true;
+      }
+    } catch {
+      // Not present in this root's node_modules, try next
+    }
+  }
+  return false;
+}
+
+/**
+ * Same as isResolvedNpmPathAllowed but also permits Bruno's own bundled
+ * node_modules hierarchy. Used for transitive requires made from inside a
+ * loaded npm package — e.g. chai/ajv/axios resolving their internal deps —
+ * which must be able to reach into Bruno's install directory that isn't a
+ * user-declared context root.
+ */
+function isTransitiveNpmPathAllowed(candidatePath, additionalContextRootsAbsolute) {
+  return isResolvedNpmPathAllowed(
+    candidatePath,
+    [...additionalContextRootsAbsolute, ...module.paths]
+  );
+}
+
+/**
  * Loads an npm module into the vm context
  * @param {Object} options - Configuration options
  * @returns {*} The exported content of the loaded module
@@ -322,7 +369,8 @@ function loadNpmModule({
     try {
       const callerRequire = nodeModule.createRequire(path.join(currentModuleDir, 'package.json'));
       const candidatePath = path.normalize(callerRequire.resolve(moduleName));
-      if (isResolvedNpmPathAllowed(candidatePath, additionalContextRootsAbsolute)) {
+      if (isResolvedNpmPathAllowed(candidatePath, additionalContextRootsAbsolute)
+        || isModuleLinkedFromAllowedRoot(candidatePath, moduleName, additionalContextRootsAbsolute)) {
         resolvedPath = candidatePath;
       }
     } catch {
@@ -341,7 +389,9 @@ function loadNpmModule({
         const candidatePath = path.normalize(contextRequire.resolve(moduleName));
         // Node's walk-up from contextRoot goes up to /; gate the result so we don't
         // accept packages found in ancestor directories outside allowed roots.
-        if (isResolvedNpmPathAllowed(candidatePath, additionalContextRootsAbsolute)) {
+        // Also accept file:/npm-link symlinks that live in the root's node_modules.
+        if (isResolvedNpmPathAllowed(candidatePath, additionalContextRootsAbsolute)
+          || isModuleLinkedFromAllowedRoot(candidatePath, moduleName, additionalContextRootsAbsolute)) {
           resolvedPath = candidatePath;
           break;
         }
@@ -358,7 +408,9 @@ function loadNpmModule({
       const candidatePath = path.normalize(collectionRequire.resolve(moduleName));
       // Node's walk-up doesn't stop at collectionPath; gate the result so we don't
       // silently accept packages from ancestor directories outside allowed roots.
-      if (isResolvedNpmPathAllowed(candidatePath, additionalContextRootsAbsolute)) {
+      // Also accept file:/npm-link symlinks that live in the collection's node_modules.
+      if (isResolvedNpmPathAllowed(candidatePath, additionalContextRootsAbsolute)
+        || isModuleLinkedFromAllowedRoot(candidatePath, moduleName, additionalContextRootsAbsolute)) {
         resolvedPath = candidatePath;
       }
     } catch {
@@ -383,7 +435,8 @@ function loadNpmModule({
     moduleName,
     isolatedContext,
     collectionPath,
-    localModuleCache
+    localModuleCache,
+    additionalContextRootsAbsolute
   });
 }
 
@@ -396,20 +449,32 @@ function createNpmModuleRequire({
   collectionPath,
   isolatedContext,
   currentModuleDir,
-  localModuleCache
+  localModuleCache,
+  additionalContextRootsAbsolute = []
 }) {
-  const moduleRequire = nodeModule.createRequire(path.join(currentModuleDir, 'index.js'));
+  const moduleRequire = nodeModule.createRequire(path.join(currentModuleDir, 'package.json'));
+
+  const gatedResolve = (moduleName) => {
+    const candidatePath = path.normalize(moduleRequire.resolve(moduleName));
+    if (!isTransitiveNpmPathAllowed(candidatePath, additionalContextRootsAbsolute)) {
+      throw new Error(
+        `Access to module "${moduleName}" outside allowed roots is not allowed`
+      );
+    }
+    return candidatePath;
+  };
 
   return (moduleName) => {
     // Handle relative imports within npm module
     if (moduleName.startsWith('./') || moduleName.startsWith('../')) {
-      const resolvedPath = moduleRequire.resolve(moduleName);
+      const resolvedPath = gatedResolve(moduleName);
       return executeModuleInVmContext({
         resolvedPath,
         moduleName,
         isolatedContext,
         collectionPath,
-        localModuleCache
+        localModuleCache,
+        additionalContextRootsAbsolute
       });
     }
 
@@ -421,13 +486,14 @@ function createNpmModuleRequire({
     }
 
     // Handle npm dependencies - resolve from current module's directory
-    const resolvedPath = moduleRequire.resolve(moduleName);
+    const resolvedPath = gatedResolve(moduleName);
     return executeModuleInVmContext({
       resolvedPath,
       moduleName,
       isolatedContext,
       collectionPath,
-      localModuleCache
+      localModuleCache,
+      additionalContextRootsAbsolute
     });
   };
 }
