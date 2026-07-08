@@ -1,0 +1,24 @@
+meta {
+  name: happy-path
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://httpfaker.org/api/echo
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const { generateAuthToken, formatDate } = require('../../shared-scripts/utils');
+  bru.setVar('authToken', generateAuthToken({ apiKey: 'test-api-key', timestamp: 1700000000 }));
+  bru.setVar('startDate', formatDate('2024-06-15T12:00:00Z'));
+}
+
+tests {
+  test('shared utils.js resolves signature-utils via additionalContextRoots', function() {
+    expect(bru.getVar('authToken')).to.match(/^test-api-key\.1700000000\.[0-9a-f]{8}$/);
+    expect(bru.getVar('startDate')).to.equal('2024-06-15');
+  });
+}

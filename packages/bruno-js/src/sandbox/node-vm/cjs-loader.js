@@ -338,8 +338,13 @@ function loadNpmModule({
       }
       try {
         const contextRequire = nodeModule.createRequire(path.join(contextRoot, 'package.json'));
-        resolvedPath = contextRequire.resolve(moduleName);
-        break;
+        const candidatePath = path.normalize(contextRequire.resolve(moduleName));
+        // Node's walk-up from contextRoot goes up to /; gate the result so we don't
+        // accept packages found in ancestor directories outside allowed roots.
+        if (isResolvedNpmPathAllowed(candidatePath, additionalContextRootsAbsolute)) {
+          resolvedPath = candidatePath;
+          break;
+        }
       } catch {
         // Module not found in this context root, try next
       }
