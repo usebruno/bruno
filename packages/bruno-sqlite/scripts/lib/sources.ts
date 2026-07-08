@@ -7,8 +7,9 @@ const sqlParser = new Parser()
 
 const extractTables = (sql: string): string[] => {
   try {
-    const list: string[] = sqlParser.tableList(sql, { database: "Sqlite" })
-    return [...new Set(list.map((entry) => entry.split("::")[2]).filter(Boolean))]
+    let list: string[] = sqlParser.tableList(sql, { database: "Sqlite" })
+    // This is in the form of statement::db::table, hence the second index access
+    return Array.from(list.map(entry => entry.split("::")[2]))
   } catch {
     return []
   }
