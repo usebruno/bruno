@@ -8,7 +8,7 @@ import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
-import { findItemInCollection, findItemInCollectionByPathname, hasRequestChanges, areItemsLoading } from 'utils/collections';
+import { findItemInCollection, findItemInCollectionByPathname, hasRequestChanges, areItemsLoading, isItemTransientRequest } from 'utils/collections';
 import ConfirmRequestClose from './ConfirmRequestClose';
 import ConfirmCollectionClose from './ConfirmCollectionClose';
 import ConfirmFolderClose from './ConfirmFolderClose';
@@ -279,10 +279,13 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     } else if (tab.type === 'collection-settings') {
       dispatch(saveCollectionSettings(collection.uid));
     } else if (item && item.uid) {
-      if (collection.fileMode || item.type === 'js') {
-        dispatch(saveFile(item.draft?.raw ?? item.raw, tab.uid, tab.collectionUid));
-      } else {
-        dispatch(saveRequest(tab.uid, tab.collectionUid));
+      if (hasChanges || isItemTransientRequest(item)) {
+        if (item.type === 'js' || collection.fileMode) {
+          console.log({ item });
+          dispatch(saveFile(item.draft?.raw ?? item.raw, tab.uid, tab.collectionUid));
+        } else {
+          dispatch(saveRequest(tab.uid, tab.collectionUid));
+        }
       }
     }
     return false;

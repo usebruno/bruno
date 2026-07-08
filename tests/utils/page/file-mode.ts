@@ -8,15 +8,14 @@ export const buildFileModeLocators = (page: Page) => ({
   editorContent: () => page.locator('.file-mode .CodeMirror .CodeMirror-code'),
   currentSearchMatch: () => page.locator('.file-mode .CodeMirror .cm-search-current'),
   search: {
-    bar: () => page.locator('.bruno-search-bar'),
-    input: () => page.locator('.bruno-search-bar input'),
-    resultCount: () => page.locator('.bruno-search-bar .searchbar-result-count')
+    bar: () => page.getByTestId('codemirror-search-bar'),
+    input: () => page.getByTestId('codemirror-search-input'),
+    resultCount: () => page.getByTestId('codemirror-search-result-count')
   },
   transientSaveModal: {
-    card: () => page.locator('.bruno-modal-card').filter({ hasText: 'Save Request' }),
-    nameInput: () => page.locator('.bruno-modal-card #request-name'),
-    saveButton: () =>
-      page.locator('.bruno-modal-card').filter({ hasText: 'Save Request' }).getByRole('button', { name: 'Save' })
+    card: () => page.getByTestId('save-transient-request-modal'),
+    nameInput: () => page.getByTestId('save-transient-request-name'),
+    saveButton: () => page.getByTestId('save-transient-request-submit')
   }
 });
 

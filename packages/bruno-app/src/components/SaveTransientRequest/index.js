@@ -391,6 +391,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         confirmText="Save"
         cancelText="Cancel"
         hideFooter={true}
+        dataTestId="save-transient-request-modal"
       >
         <div className="save-request-form">
           <div className="form-section">
@@ -399,6 +400,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
             </label>
             <input
               id="request-name"
+              data-testid="save-transient-request-name"
               type="text"
               className="form-input textbox"
               autoComplete="off"
@@ -811,7 +813,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
               Cancel
             </Button>
             {!isSelectingCollection && (
-              <Button type="button" color="primary" onClick={handleConfirm}>
+              <Button type="button" color="primary" onClick={handleConfirm} data-testid="save-transient-request-submit">
                 Save
               </Button>
             )}
