@@ -17,6 +17,26 @@ export const PROXY_ENV_KEYS = [
   'ALL_PROXY'
 ] as const;
 
+const TIMEOUT = Symbol('shell-env-timeout');
+const TIMEOUT_MS = 60_000;
+
+/**
+ * Races a promise against a timeout. Resolves to the TIMEOUT symbol if the
+ * timeout wins, so a misconfigured shell can't hang the caller indefinitely.
+ */
+const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number): Promise<T | typeof TIMEOUT> => {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<typeof TIMEOUT>((resolve) => {
+    timeoutId = setTimeout(() => resolve(TIMEOUT), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    clearTimeout(timeoutId!);
+  }
+};
+
 const fetchShellEnv = async (): Promise<Record<string, string> | null> => {
   // Windows handles environment variables differently - skip
   // everything related to windows proxy settings is handled by the system proxy resolver i.e getSystemProxy()
@@ -89,37 +109,20 @@ export const refreshShellEnvProxyVars = async (): Promise<Record<string, string>
 
   // Race the shell-env subprocess against a 60s timeout so a misconfigured shell
   // can't hang the refresh indefinitely.
-  const TIMEOUT_MS = 60_000;
-  const TIMEOUT = Symbol('shell-env-timeout');
-  let timeoutId: ReturnType<typeof setTimeout>;
-  const timeoutPromise = new Promise<typeof TIMEOUT>((resolve) => {
-    timeoutId = setTimeout(() => resolve(TIMEOUT), TIMEOUT_MS);
-  });
+  const result = await withTimeout(fetchShellEnv(), TIMEOUT_MS);
 
-  const result = await Promise.race([fetchShellEnv(), timeoutPromise]);
-  clearTimeout(timeoutId!);
-
-  if (result === TIMEOUT) {
+  if (result === TIMEOUT || result === null) {
     // Timed out — restore prior values rather than leave the user unproxied.
     restoreSnapshot();
     return {};
   }
 
-  const shellEnvVars = result as Record<string, string> | null;
-  console.log('shellEnvVars', shellEnvVars);
-
-  if (shellEnvVars === null) {
-    // Subprocess failed — restore prior values rather than leave the user unproxied.
-    restoreSnapshot();
-    return {};
-  }
-
   for (const key of PROXY_ENV_KEYS) {
-    const value = shellEnvVars[key];
+    const value = result[key];
     if (value) {
       process.env[key] = value;
     }
   }
 
-  return shellEnvVars;
+  return result;
 };
