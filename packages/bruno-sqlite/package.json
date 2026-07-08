@@ -39,7 +39,6 @@
     "test:watch": "jest --watch",
     "prepack": "npm run test && npm run build",
     "migration:new": "tsx scripts/new-migration.ts",
-    "statement:new": "tsx scripts/new-statement.ts",
     "migration:verify": "tsx scripts/verify-migrations.ts"
   },
   "peerDependencies": {
