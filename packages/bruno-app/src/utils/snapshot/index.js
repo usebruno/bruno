@@ -472,7 +472,8 @@ export const serializeTab = (tab, collection) => {
     };
   }
 
-  if (tab.type === 'environment-settings' && tab.tabState?.environment?.tab) {
+  const isEnvironmentTab = tab.type === 'environment-settings' || tab.type === 'global-environment-settings';
+  if (isEnvironmentTab && tab.tabState?.environment?.tab) {
     serialized.environment = { tab: tab.tabState.environment.tab };
   }
 
