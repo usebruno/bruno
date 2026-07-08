@@ -79,15 +79,38 @@ export const refreshShellEnvProxyVars = async (): Promise<Record<string, string>
     delete process.env[key];
   }
 
-  const shellEnvVars = await fetchShellEnv();
-
-  if (shellEnvVars === null) {
-    // Subprocess failed — restore prior values rather than leave the user unproxied.
+  const restoreSnapshot = () => {
     for (const key of PROXY_ENV_KEYS) {
       if (snapshot[key] !== undefined) {
         process.env[key] = snapshot[key] as string;
       }
     }
+  };
+
+  // Race the shell-env subprocess against a 60s timeout so a misconfigured shell
+  // can't hang the refresh indefinitely.
+  const TIMEOUT_MS = 60_000;
+  const TIMEOUT = Symbol('shell-env-timeout');
+  let timeoutId: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<typeof TIMEOUT>((resolve) => {
+    timeoutId = setTimeout(() => resolve(TIMEOUT), TIMEOUT_MS);
+  });
+
+  const result = await Promise.race([fetchShellEnv(), timeoutPromise]);
+  clearTimeout(timeoutId!);
+
+  if (result === TIMEOUT) {
+    // Timed out — restore prior values rather than leave the user unproxied.
+    restoreSnapshot();
+    return {};
+  }
+
+  const shellEnvVars = result as Record<string, string> | null;
+  console.log('shellEnvVars', shellEnvVars);
+
+  if (shellEnvVars === null) {
+    // Subprocess failed — restore prior values rather than leave the user unproxied.
+    restoreSnapshot();
     return {};
   }
 
