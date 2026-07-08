@@ -280,7 +280,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       dispatch(saveCollectionSettings(collection.uid));
     } else if (item && item.uid) {
       if (collection.fileMode || item.type === 'js') {
-        dispatch(saveFile(item?.draft?.raw ?? item?.raw, tab.uid, tab.collectionUid));
+        dispatch(saveFile(item.draft?.raw ?? item.raw, tab.uid, tab.collectionUid));
       } else {
         dispatch(saveRequest(tab.uid, tab.collectionUid));
       }

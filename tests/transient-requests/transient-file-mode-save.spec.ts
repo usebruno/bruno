@@ -1,11 +1,10 @@
 import { expect, test } from '../../playwright';
 import {
+  buildCommonLocators,
   closeAllCollections,
   closeFileModeSearch,
   createCollection,
   createTransientRequest,
-  expectFileModeRawContainsUrl,
-  fileModeEditor,
   fillRequestUrl,
   saveTransientViaModal,
   SEARCH_CONTENT,
@@ -14,7 +13,6 @@ import {
   setUrlInFileModeRaw,
   switchToFileMode
 } from '../utils/page';
-import { buildCommonLocators } from '../utils/page/locators';
 
 type CollectionFormat = 'bru' | 'yml';
 
@@ -59,7 +57,9 @@ const defineFileModeSaveSuite = (format: CollectionFormat) => {
 
       await test.step('Saved request keeps the file-mode edit', async () => {
         await expect(locators.sidebar.request('Saved From File Mode')).toBeVisible({ timeout: 10000 });
-        await expectFileModeRawContainsUrl(page, editedUrl);
+        await expect
+          .poll(async () => locators.fileMode.editorContent().textContent(), { timeout: 10000 })
+          .toContain(editedUrl);
       });
     });
 
@@ -82,7 +82,9 @@ const defineFileModeSaveSuite = (format: CollectionFormat) => {
 
       await test.step('Saved request keeps the file-mode edit', async () => {
         await expect(locators.sidebar.request('Saved From Close X')).toBeVisible({ timeout: 10000 });
-        await expectFileModeRawContainsUrl(page, editedUrl);
+        await expect
+          .poll(async () => locators.fileMode.editorContent().textContent(), { timeout: 10000 })
+          .toContain(editedUrl);
       });
     });
 
@@ -105,7 +107,9 @@ const defineFileModeSaveSuite = (format: CollectionFormat) => {
 
       await test.step('Saved request keeps the file-mode edit', async () => {
         await expect(locators.sidebar.request('Saved From Close Shortcut')).toBeVisible({ timeout: 10000 });
-        await expectFileModeRawContainsUrl(page, editedUrl);
+        await expect
+          .poll(async () => locators.fileMode.editorContent().textContent(), { timeout: 10000 })
+          .toContain(editedUrl);
       });
     });
 
@@ -119,14 +123,16 @@ const defineFileModeSaveSuite = (format: CollectionFormat) => {
       });
 
       await test.step('Press save while focused INSIDE the editor -> transient modal opens', async () => {
-        await fileModeEditor(page).click();
+        await locators.fileMode.editor().click();
         await page.keyboard.press(saveShortcut);
         await saveTransientViaModal(page, 'Saved From Editor Shortcut');
       });
 
       await test.step('Saved request keeps the file-mode edit', async () => {
         await expect(locators.sidebar.request('Saved From Editor Shortcut')).toBeVisible({ timeout: 10000 });
-        await expectFileModeRawContainsUrl(page, editedUrl);
+        await expect
+          .poll(async () => locators.fileMode.editorContent().textContent(), { timeout: 10000 })
+          .toContain(editedUrl);
       });
     });
 
@@ -162,14 +168,19 @@ const defineFileModeSaveSuite = (format: CollectionFormat) => {
 
       await test.step('Search "meta" -> matches are highlighted', async () => {
         await searchInFileMode(page, 'meta');
+        await expect(locators.fileMode.currentSearchMatch().first()).toBeVisible();
+        await expect(locators.fileMode.search.resultCount()).not.toHaveText('0 results');
       });
 
       await test.step('Come out of the search box', async () => {
         await closeFileModeSearch(page);
+        await expect(locators.fileMode.search.bar()).toBeHidden();
       });
 
       await test.step('Re-open search and query "settings" -> matches are highlighted', async () => {
         await searchInFileMode(page, 'settings');
+        await expect(locators.fileMode.currentSearchMatch().first()).toBeVisible();
+        await expect(locators.fileMode.search.resultCount()).not.toHaveText('0 results');
       });
     });
   });
