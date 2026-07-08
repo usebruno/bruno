@@ -35,6 +35,7 @@ const FILE_DERIVED_REQUEST_FIELDS = [
   'request',
   'settings',
   'examples',
+  'raw',
   'filename',
   'pathname',
   'partial',
@@ -2997,16 +2998,7 @@ export const collectionsSlice = createSlice({
             item.request = mergeRequestWithPreservedUids(item.request, file.data.request);
             item.settings = file.data.settings;
             item.examples = file.data.examples;
-            // app.enabled is runtime-only and not persisted, so preserve it across file reloads
-            // even when the file no longer has an `app` block on disk.
-            const currentEnabled = item.draft?.app?.enabled ?? item.app?.enabled ?? false;
-            if (file.data.app) {
-              item.app = { ...file.data.app, enabled: currentEnabled };
-            } else if (currentEnabled) {
-              item.app = { code: null, enabled: true };
-            } else {
-              item.app = null;
-            }
+            item.app = file.data.app ? { ...file.data.app } : null;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
             item.raw = file.data.raw;
@@ -3428,12 +3420,11 @@ export const collectionsSlice = createSlice({
 
       const item = findItemInCollection(collection, action.payload.itemUid);
       if (item && isItemARequest(item)) {
-        item.app = item.app || {};
-        item.app.enabled = action.payload.enabled;
-        if (item.draft) {
-          item.draft.app = item.draft.app || {};
-          item.draft.app.enabled = action.payload.enabled;
+        if (!item.draft) {
+          item.draft = cloneDeep(item);
         }
+        item.draft.app = item.draft.app || {};
+        item.draft.app.enabled = action.payload.enabled;
       }
     },
     appSetRuntimeVariable: (state, action) => {
