@@ -15,6 +15,10 @@ export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
     envVariable.dataType = obj.dataType;
   }
 
+  if (obj.description !== undefined && obj.description !== '') {
+    envVariable.description = obj.description;
+  }
+
   if (!withUuid) {
     return envVariable;
   }
@@ -104,8 +108,9 @@ export const getScriptModifiedKeys = (scriptVars, baseline, { skipKeys = [] } = 
  * This is useful when comparing variables where UIDs may differ but the actual data is the same.
  */
 export const stripEnvVarUid = (variable) => {
-  const { name, value, type, enabled, secret, dataType } = variable;
+  const { name, value, type, enabled, secret, description, dataType } = variable;
   const result = { name, value, type, enabled, secret };
+  if (description !== undefined && description !== '') result.description = description;
   if (dataType && dataType !== 'string') {
     result.dataType = dataType;
   }

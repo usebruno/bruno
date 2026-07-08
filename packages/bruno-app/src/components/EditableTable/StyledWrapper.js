@@ -107,27 +107,53 @@ const StyledWrapper = styled.div`
           overflow: hidden;
         }
 
-        /* Handle CodeMirror editors overflow */
-        .cm-editor {
+        /* Single-line CodeMirror editors: clip overflow to one row */
+        .single-line-editor .CodeMirror {
           max-width: 100%;
           height: 33px !important;
           max-height: 33px !important;
 
-          .cm-scroller {
+          .CodeMirror-scroll {
             overflow: hidden !important;
             max-height: 33px;
           }
 
-          .cm-content {
+          .CodeMirror-vscrollbar,
+          .CodeMirror-hscrollbar,
+          .CodeMirror-scrollbar-filler {
+            display: none;
+          }
+
+          .CodeMirror-lines {
             max-width: 100%;
           }
 
-          .cm-line {
+          .CodeMirror-line {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
           }
         }
+
+        &:has(.multi-line-editor) {
+          height: auto;
+          max-height: none;
+          overflow: visible;
+          white-space: normal;
+          text-overflow: clip;
+
+          > div:not(.drag-handle) {
+            height: auto;
+            max-height: none;
+            overflow: visible;
+          }
+        }
+      }
+
+      &:has(.multi-line-editor) {
+        height: auto;
+        max-height: calc(35px * 3); 
+        overflow: auto;
       }
     }
   }

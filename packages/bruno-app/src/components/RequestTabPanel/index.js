@@ -239,6 +239,17 @@ const RequestTabPanel = () => {
     setDragging(true);
   }, []);
 
+  const handleDragbarMouseDown = useCallback((e) => {
+    if (e.detail > 1) {
+      e.preventDefault();
+      stopDragging();
+      resetPaneBoundaries();
+      return;
+    }
+
+    startDragging(e);
+  }, [resetPaneBoundaries, startDragging, stopDragging]);
+
   const applyPointerResize = useCallback((e) => {
     if (!mainSectionRef.current) return;
     const mainRect = mainSectionRef.current.getBoundingClientRect();
@@ -659,11 +670,7 @@ const RequestTabPanel = () => {
           {!requestPaneCollapsed && !responsePaneCollapsed && (
             <div
               className="dragbar-wrapper"
-              onDoubleClick={(e) => {
-                e.preventDefault();
-                resetPaneBoundaries();
-              }}
-              onMouseDown={startDragging}
+              onMouseDown={handleDragbarMouseDown}
             >
               <div className="dragbar-handle" />
             </div>
