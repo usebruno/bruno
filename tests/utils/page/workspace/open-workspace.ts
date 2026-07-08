@@ -3,12 +3,8 @@ import { ElectronApplication, Page, test } from '../../../../playwright';
 import { buildCommonLocators } from '../locators';
 import { buildTitleBarLocators } from '../title-bar';
 
-export const initUserDataPath = path.join(__dirname, '../../../workspace/create-workspace/init-user-data');
+export const initUserDataPath = path.join(__dirname, '../../../workspace/open-workspace/init-user-data');
 export const WORKSPACE_NAME = 'my-workspace';
-
-export const buildOpenWorkspaceLocators = (page: Page) => ({
-  confirmTextContent: () => page.getByText('Workspace opened successfully', { exact: true })
-});
 
 type OpenWorkspaceDialogOptions = {
   canceled: boolean;
