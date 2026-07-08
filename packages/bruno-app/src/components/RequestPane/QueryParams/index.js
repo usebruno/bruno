@@ -118,7 +118,6 @@ const QueryParams = ({ item, collection }) => {
           placeholder={!value ? 'Name' : ''}
         />
       )
-      width: '20%'
     },
     {
       key: 'value',
