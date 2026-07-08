@@ -434,6 +434,51 @@ describe('node-vm sandbox', () => {
       // configured root (linked-shared/) and this assertion would fail.
       expect(context.bru.setVar).toHaveBeenCalledWith('via', 'symlink');
     });
+
+    it('should allow internal relative requires inside an npm-linked package', async () => {
+      // Physical location of a multi-file package outside every declared root.
+      const externalPkg = path.join(testDir, 'external-pkg');
+      fs.mkdirSync(externalPkg, { recursive: true });
+      fs.writeFileSync(
+        path.join(externalPkg, 'package.json'),
+        JSON.stringify({ name: 'linked-pkg', main: 'index.js' })
+      );
+      fs.writeFileSync(
+        path.join(externalPkg, 'index.js'),
+        'const util = require("./util"); module.exports = { greet: util.greet };'
+      );
+      fs.writeFileSync(
+        path.join(externalPkg, 'util.js'),
+        'module.exports = { greet: () => "hello" };'
+      );
+
+      // npm-link style: collection has node_modules/<pkg> as a symlink to the
+      // physical location that lives outside the collection.
+      const nmDir = path.join(collectionPath, 'node_modules');
+      fs.mkdirSync(nmDir, { recursive: true });
+      try {
+        fs.symlinkSync(externalPkg, path.join(nmDir, 'linked-pkg'), 'dir');
+      } catch (e) {
+        if (e.code === 'EPERM' || e.code === 'ENOTSUP') return;
+        throw e;
+      }
+
+      const script = `
+        const pkg = require('linked-pkg');
+        bru.setVar('result', pkg.greet());
+      `;
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      // Without the ownPackageRoot fallback in createNpmModuleRequire, index.js's
+      // require('./util') would be rejected as escaping allowed roots.
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'hello');
+    });
   });
 
   describe('createCustomRequire - npm modules', () => {

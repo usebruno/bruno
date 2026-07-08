@@ -311,8 +311,22 @@ function isResolvedNpmPathAllowed(candidatePath, additionalContextRootsAbsolute)
  * @returns {boolean} True if candidatePath is inside a root's node_modules/<name>
  */
 function isModuleLinkedFromAllowedRoot(candidatePath, moduleName, additionalContextRootsAbsolute) {
+  // Reject specifiers that could escape <root>/node_modules via path.join
+  // normalization (e.g. "foo/../../../etc/passwd"). Legitimate package
+  // specifiers never contain '..' segments or absolute-path prefixes.
+  if (path.isAbsolute(moduleName)) return false;
+  const segments = moduleName.split(/[/\\]/);
+  if (segments.some((seg) => seg === '..')) return false;
+
   for (const root of additionalContextRootsAbsolute) {
-    const linkPath = path.join(root, 'node_modules', moduleName);
+    const nodeModulesDir = path.join(root, 'node_modules');
+    const linkPath = path.join(nodeModulesDir, moduleName);
+    // Belt-and-suspenders: after normalization the joined path must still sit
+    // inside <root>/node_modules — reject anything that escaped it.
+    const relToNm = path.relative(nodeModulesDir, linkPath);
+    if (relToNm.startsWith('..') || path.isAbsolute(relToNm)) {
+      continue;
+    }
     try {
       const linkTarget = fs.realpathSync(linkPath);
       const rel = path.relative(linkTarget, candidatePath);
@@ -454,9 +468,19 @@ function createNpmModuleRequire({
 }) {
   const moduleRequire = nodeModule.createRequire(path.join(currentModuleDir, 'package.json'));
 
+  // A loaded npm package is entitled to require its own internal files, even
+  // when the package's physical location sits outside every declared allowed
+  // root (e.g. npm-link / file: dependencies). Locate the package root once
+  // (closest ancestor with package.json, stopping at node_modules boundaries)
+  // and treat it as an implicit allowed root for this require function only.
+  const ownPackageRoot = findOwnPackageRoot(currentModuleDir);
+  const effectiveRoots = ownPackageRoot
+    ? [...additionalContextRootsAbsolute, ownPackageRoot]
+    : additionalContextRootsAbsolute;
+
   const gatedResolve = (moduleName) => {
     const candidatePath = path.normalize(moduleRequire.resolve(moduleName));
-    if (!isTransitiveNpmPathAllowed(candidatePath, additionalContextRootsAbsolute)) {
+    if (!isTransitiveNpmPathAllowed(candidatePath, effectiveRoots)) {
       throw new Error(
         `Access to module "${moduleName}" outside allowed roots is not allowed`
       );
@@ -496,6 +520,26 @@ function createNpmModuleRequire({
       additionalContextRootsAbsolute
     });
   };
+}
+
+/**
+ * Walk up from a directory to the closest ancestor containing package.json,
+ * stopping at a node_modules/ boundary so we don't accidentally return an
+ * outer package.json (e.g. the collection's) when the module itself is
+ * missing one. Returns null when no package root is found.
+ */
+function findOwnPackageRoot(dir) {
+  let current = path.normalize(dir);
+  while (current && current !== path.dirname(current)) {
+    if (fs.existsSync(path.join(current, 'package.json'))) {
+      return current;
+    }
+    if (path.basename(path.dirname(current)) === 'node_modules') {
+      return null;
+    }
+    current = path.dirname(current);
+  }
+  return null;
 }
 
 module.exports = {
