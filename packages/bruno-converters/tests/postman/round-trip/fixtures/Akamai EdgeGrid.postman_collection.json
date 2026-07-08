@@ -1,0 +1,153 @@
+{
+  "info": {
+    "_postman_id": "afdba147-a9d3-4c38-b25f-0997d67dd2d9",
+    "name": "Akamai EdgeGrid",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "56331529",
+    "_collection_link": "https://go.postman.co/collection/56331529-afdba147-a9d3-4c38-b25f-0997d67dd2d9?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Inherit",
+      "request": {
+        "auth": {
+          "type": "ntlm",
+          "ntlm": [
+            {
+              "key": "password",
+              "value": "password",
+              "type": "string"
+            },
+            {
+              "key": "username",
+              "value": "NTLM_USER_2",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Own Auth",
+      "request": {
+        "auth": {
+          "type": "edgegrid",
+          "edgegrid": [
+            {
+              "key": "clientSecret",
+              "value": "secret",
+              "type": "string"
+            },
+            {
+              "key": "clientToken",
+              "value": "clientToken",
+              "type": "string"
+            },
+            {
+              "key": "accessToken",
+              "value": "accessToken",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "edgegrid",
+    "edgegrid": [
+      {
+        "key": "maxBodySize",
+        "value": 70,
+        "type": "number"
+      },
+      {
+        "key": "headersToSign",
+        "value": "Auth",
+        "type": "string"
+      },
+      {
+        "key": "baseURL",
+        "value": "http://localhost:4000",
+        "type": "string"
+      },
+      {
+        "key": "timestamp",
+        "value": "20260707T10:28:15+0000",
+        "type": "string"
+      },
+      {
+        "key": "nonce",
+        "value": "Nonce",
+        "type": "string"
+      },
+      {
+        "key": "clientSecret",
+        "value": "{{secret}}",
+        "type": "string"
+      },
+      {
+        "key": "clientToken",
+        "value": "{{client_token}}",
+        "type": "string"
+      },
+      {
+        "key": "accessToken",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}
