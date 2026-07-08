@@ -2,7 +2,7 @@ const path = require('path');
 const { app, ipcMain } = require('electron');
 const { createDatabase, registerSQLiteIpc, SQLITE_MUTATION_CHANNEL } = require('@usebruno/sqlite');
 
-const ipc = null;
+let ipc = null;
 
 class SqliteIPC {
   _db = null;
@@ -38,4 +38,11 @@ const registerSqliteIpc = (window) => {
   ipc = new SqliteIPC(window);
 };
 
-module.exports = { registerSqliteIpc, ipc };
+const shutdown = () => {
+  if (ipc) {
+    ipc.shutdown();
+    ipc = null;
+  }
+};
+
+module.exports = { registerSqliteIpc, shutdown };

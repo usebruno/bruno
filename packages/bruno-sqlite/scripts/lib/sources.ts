@@ -17,7 +17,6 @@ const extractTables = (sql: string): string[] => {
 const ROOT_DIR = process.cwd()
 const MIGRATIONS_DIR = path.join(ROOT_DIR, "migrations")
 const STATEMENTS_DIR = path.join(ROOT_DIR, "statements")
-const STATEMENT_TYPES: StatementType[] = ["run", "get", "all"]
 
 const parseSequence = (fileName: string): number => {
   const prefix = fileName.split("_")[0]
@@ -66,28 +65,60 @@ const walkSql = (dir: string): string[] => {
   })
 }
 
-const parseStatement = (fullPath: string): StatementDef => {
-  const relative = path.relative(STATEMENTS_DIR, fullPath)
-  const parts = path.basename(relative).split(".")
-  const type = parts[parts.length - 2] as StatementType
-  if (parts.length < 3 || parts[parts.length - 1] !== "sql" || !STATEMENT_TYPES.includes(type)) {
-    throw new Error(`Statement "${relative}" must be named "{name}.{${STATEMENT_TYPES.join("|")}}.sql".`)
+// sqlc-style query annotation: `-- name: <Name> :one|:many|:exec`
+const SQLC_NAME_ANNOTATION = /^--\s*name:\s*(\S+)\s+:(\w+)\s*$/
+
+const SQLC_COMMAND_TYPES: Record<string, StatementType> = {
+  one: "get",
+  many: "all",
+  exec: "run",
+  execrows: "run",
+  execresult: "run",
+  execlastid: "run"
+}
+
+const parseStatementFile = (relative: string, content: string): StatementDef[] => {
+  const defs: StatementDef[] = []
+  let current: { name: string; type: StatementType; body: string[] } | null = null
+
+  const flush = () => {
+    if (current === null) return
+    const sql = current.body.join("\n").trim()
+    if (sql === "") {
+      throw new Error(`Statement "${current.name}" in ${relative} has no SQL body.`)
+    }
+    defs.push({ name: current.name, type: current.type, sql, tables: extractTables(sql) })
   }
-  const base = parts.slice(0, -2).join(".")
-  const dir = path.dirname(relative)
-  const name = dir === "." ? base : `${dir.split(path.sep).join("/")}/${base}`
-  const sql = fs.readFileSync(fullPath, "utf8").trim()
-  return {
-    name,
-    type,
-    sql,
-    tables: extractTables(sql)
+
+  for (const line of content.split("\n")) {
+    const match = line.match(SQLC_NAME_ANNOTATION)
+    if (match) {
+      flush()
+      const [, name, command] = match
+      const type = SQLC_COMMAND_TYPES[command.toLowerCase()]
+      if (type === undefined) {
+        throw new Error(`Statement "${name}" in ${relative} uses unsupported command ":${command}". Use :one, :many, or :exec.`)
+      }
+      current = { name, type, body: [] }
+    } else if (current !== null) {
+      current.body.push(line)
+    }
   }
+  flush()
+  return defs
 }
 
 export const loadStatements = (): StatementDef[] => {
   if (!fs.existsSync(STATEMENTS_DIR)) return []
-  return walkSql(STATEMENTS_DIR)
-    .map(parseStatement)
-    .sort((a, b) => a.name.localeCompare(b.name))
+  const defs = walkSql(STATEMENTS_DIR).flatMap((full) =>
+    parseStatementFile(path.relative(STATEMENTS_DIR, full), fs.readFileSync(full, "utf8"))
+  )
+  const seen = new Set<string>()
+  for (const def of defs) {
+    if (seen.has(def.name)) {
+      throw new Error(`Duplicate statement name "${def.name}".`)
+    }
+    seen.add(def.name)
+  }
+  return defs.sort((a, b) => a.name.localeCompare(b.name))
 }
