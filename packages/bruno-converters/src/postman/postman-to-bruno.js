@@ -389,7 +389,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         credentialsId: findValueUsingKey('tokenName')
       };
 
-      switch (targetGrantType) {
+      switch (postmanGrantType) {
         case 'authorization_code':
           requestObject.auth.oauth2 = {
             ...baseOAuth2Config,
