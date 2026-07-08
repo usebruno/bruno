@@ -138,6 +138,55 @@ describe('useResizableColumns', () => {
     });
   });
 
+  describe('scaling invariants (regression: Devtools network tab "Size" column overflow)', () => {
+    const NETWORK_TAB_WIDTHS = [80, 70, 180, 300, 110, 100, 80];
+
+    const assertNoOverflowAndRespectsMin = (widths, minColWidth) => {
+      setup({ defaultWidths: widths, minColWidth });
+
+      const from = minColWidth * widths.length;
+      const to = Math.ceil(widths.reduce((s, w) => s + w, 0) * 1.5);
+      // Step by at least 2px: the hook itself treats a <=1px delta as noise
+      // and skips recomputing (see the ResizeObserver callback in index.js),
+      // which is unrelated to the scaling algorithm under test here.
+      const step = Math.max(2, Math.floor((to - from) / 200));
+
+      for (let target = from; target <= to; target += step) {
+        act(() => { triggerResize(target); });
+
+        const total = hookValue.colWidths.reduce((s, w) => s + w, 0);
+        const minVal = Math.min(...hookValue.colWidths);
+
+        expect(total).toBe(target);
+        expect(minVal).toBeGreaterThanOrEqual(minColWidth);
+      }
+    };
+
+    it('never overflows or dips under minColWidth across a sweep of container widths (real network-tab columns)', () => {
+      assertNoOverflowAndRespectsMin(NETWORK_TAB_WIDTHS, 60);
+    });
+
+    it('never overflows or dips under minColWidth across a sweep of container widths (generic columns)', () => {
+      assertNoOverflowAndRespectsMin(DEFAULT_WIDTHS, MIN_COL_WIDTH);
+    });
+
+    it('exact reproduction: shrinking to 380px (below minColWidth*7=420) still clips instead of overflowing', () => {
+      setup({ defaultWidths: NETWORK_TAB_WIDTHS, minColWidth: 60 });
+
+      act(() => { triggerResize(380); });
+
+      const total = hookValue.colWidths.reduce((s, w) => s + w, 0);
+      expect(total).toBe(380);
+    });
+
+    it('handles evenly-weighted columns without rounding pile-up pushing a column under minColWidth', () => {
+      // With naive per-column Math.round(), 4 equal-weight columns at this
+      // exact target used to round 3 columns up to minColWidth and leave the
+      // 4th short of it.
+      assertNoOverflowAndRespectsMin([20, 20, 20, 20], 10);
+    });
+  });
+
   describe('drag resize', () => {
     beforeEach(() => {
       setup();

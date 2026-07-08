@@ -58,6 +58,12 @@ const EXPAND_EDGE_THRESHOLD = 100;
 // Minimum response pane height to show placeholder content on click-expand
 const RESPONSE_EXPAND_MIN_HEIGHT = 300;
 
+// Tabs whose response pane we auto-collapsed when the AI sidebar docked.
+// Module-level because the panel remounts per tab (key={activeTabUid}) — a
+// tab is restored here only once the sidebar is gone AND the user didn't
+// expand it manually in the meantime.
+const aiAutoCollapsedTabs = new Set();
+
 const RequestTabPanel = () => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -70,6 +76,7 @@ const RequestTabPanel = () => {
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
+  const isAiSidebarDocked = useSelector((state) => state.chat.isOpen && !state.chat.isPoppedOut);
 
   const isRequestTab = focusedTab && ['request', 'http-request', 'grpc-request', 'ws-request', 'graphql-request'].includes(focusedTab.type);
   useKeybinding('sendRequest', (e) => {
@@ -239,6 +246,17 @@ const RequestTabPanel = () => {
     setDragging(true);
   }, []);
 
+  const handleDragbarMouseDown = useCallback((e) => {
+    if (e.detail > 1) {
+      e.preventDefault();
+      stopDragging();
+      resetPaneBoundaries();
+      return;
+    }
+
+    startDragging(e);
+  }, [resetPaneBoundaries, startDragging, stopDragging]);
+
   const applyPointerResize = useCallback((e) => {
     if (!mainSectionRef.current) return;
     const mainRect = mainSectionRef.current.getBoundingClientRect();
@@ -344,6 +362,20 @@ const RequestTabPanel = () => {
       if (frame) cancelAnimationFrame(frame);
     };
   }, [setLeftPaneWidth, isVerticalLayout]);
+
+  useEffect(() => {
+    if (isVerticalLayout) return;
+    if (isAiSidebarDocked) {
+      if (responsePaneCollapsedRef.current) return;
+      aiAutoCollapsedTabs.add(activeTabUid);
+      collapseResponseRef.current();
+    } else if (aiAutoCollapsedTabs.has(activeTabUid)) {
+      aiAutoCollapsedTabs.delete(activeTabUid);
+      if (responsePaneCollapsedRef.current) {
+        expandResponseRef.current();
+      }
+    }
+  }, [isAiSidebarDocked, isVerticalLayout, activeTabUid]);
 
   useEffect(() => {
     if (!isVerticalLayout) return;
@@ -643,11 +675,7 @@ const RequestTabPanel = () => {
           {!requestPaneCollapsed && !responsePaneCollapsed && (
             <div
               className="dragbar-wrapper"
-              onDoubleClick={(e) => {
-                e.preventDefault();
-                resetPaneBoundaries();
-              }}
-              onMouseDown={startDragging}
+              onMouseDown={handleDragbarMouseDown}
             >
               <div className="dragbar-handle" />
             </div>
