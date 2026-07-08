@@ -9,6 +9,11 @@ const SYSTEM_PREFIX
 
 const DEBUG = process.env.CURLY_AI_DEBUG === '1';
 
+// ── LLM tracing ──────────────────────────────────────────────────────────────
+let _llmTotalRequests = 0;
+let _llmActiveRequests = 0;
+// ─────────────────────────────────────────────────────────────────────────────
+
 function dbg(label, data) {
   if (!DEBUG) return;
   console.log(`\n[AI DEBUG] ${label}`);
@@ -142,7 +147,17 @@ const registerAiAssistantIpc = () => {
     const apiUrl = process.env.CURLY_AI_API_URL;
     const model = process.env.CURLY_AI_MODEL_SUBSCRIPTION_ID || 'gpt-4o';
 
+    // ── Tracing: start ──────────────────────────────────────────────────────
+    _llmTotalRequests += 1;
+    _llmActiveRequests += 1;
+    const _reqId = _llmTotalRequests;
+    const _reqStart = Date.now();
+    console.log(`[AI TRACE] #${_reqId} started | active: ${_llmActiveRequests} | total: ${_llmTotalRequests} | messages in history: ${messages.length}`);
+    // ────────────────────────────────────────────────────────────────────────
+
     if (!apiUrl) {
+      _llmActiveRequests -= 1;
+      console.log(`[AI TRACE] #${_reqId} aborted (no API URL) | active: ${_llmActiveRequests}`);
       event.sender.send('ai-response-error', 'CURLY_AI_API_URL non configurée.');
       return;
     }
@@ -152,6 +167,8 @@ const registerAiAssistantIpc = () => {
     try {
       token = await fetchToken();
     } catch (err) {
+      _llmActiveRequests -= 1;
+      console.log(`[AI TRACE] #${_reqId} aborted (auth error) | active: ${_llmActiveRequests}`);
       event.sender.send('ai-response-error', `Échec de l'authentification : ${err.message}`);
       return;
     }
@@ -168,10 +185,22 @@ const registerAiAssistantIpc = () => {
       }
       contextBlock += '\n---';
     }
-
+    // Keep only the last 5 user messages (and their interleaved assistant replies)
+    const userIndices = messages.reduce((acc, msg, i) => {
+      if (msg.role === 'user') acc.push(i);
+      return acc;
+    }, []);
+    const trimmedMessages = userIndices.length > 5
+      ? messages.slice(userIndices[userIndices.length - 5])
+      : messages;
+    if (userIndices.length > 5) {
+      console.log(`[AI TRACE] #${_reqId} history trimmed: ${userIndices.length} user messages → kept last 5 (${trimmedMessages.length} messages sent)`);
+    } else {
+      console.log(`[AI TRACE] #${_reqId} no trim needed: ${userIndices.length} user messages (${trimmedMessages.length} messages sent)`);
+    }
     // Append context to last user message
-    const withContext = messages.map((msg, i) => {
-      if (i === messages.length - 1 && msg.role === 'user' && contextBlock) {
+    const withContext = trimmedMessages.map((msg, i) => {
+      if (i === trimmedMessages.length - 1 && msg.role === 'user' && contextBlock) {
         return { role: 'user', content: msg.content + contextBlock };
       }
       return msg;
@@ -184,6 +213,11 @@ const registerAiAssistantIpc = () => {
     ];
 
     const requestBody = { model, messages: finalMessages, stream: false, temperature: 1 };
+
+    console.log(`[AI TRACE] #${_reqId} messages sent to LLM:`);
+    finalMessages.forEach((msg, i) => {
+      console.log(`  [${i}] ${msg.role}: ${msg.content.slice(0, 200)}${msg.content.length > 200 ? '...' : ''}`);
+    });
 
     dbg('LLM request', {
       url: apiUrl,
@@ -206,7 +240,9 @@ const registerAiAssistantIpc = () => {
         validateStatus: () => true
       });
 
+      const _reqDuration = Date.now() - _reqStart;
       console.log('[AI] LLM response received - Status:', response.status);
+      console.log(`[AI TRACE] #${_reqId} done | status: ${response.status} | duration: ${_reqDuration}ms | active: ${_llmActiveRequests - 1}`);
 
       dbg('LLM response headers', { status: response.status, headers: response.headers });
       dbg('LLM response body', response.data);
@@ -225,6 +261,8 @@ const registerAiAssistantIpc = () => {
       }
       event.sender.send('ai-response-end');
     } catch (err) {
+      const _reqDuration = Date.now() - _reqStart;
+      console.log(`[AI TRACE] #${_reqId} error | duration: ${_reqDuration}ms | active: ${_llmActiveRequests - 1}`);
       dbg('LLM HTTP error', {
         status: err?.response?.status,
         statusText: err?.response?.statusText,
@@ -234,6 +272,8 @@ const registerAiAssistantIpc = () => {
       });
       const msg = err?.response?.data?.error?.message || err?.message || 'Erreur inconnue.';
       event.sender.send('ai-response-error', msg);
+    } finally {
+      _llmActiveRequests -= 1;
     }
   });
 };
