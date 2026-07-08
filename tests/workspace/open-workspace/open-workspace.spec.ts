@@ -3,11 +3,11 @@ import { expect, test } from '../../../playwright';
 import { createWorkspace, switchWorkspace, waitForReadyPage } from '../../utils/page';
 import {
   WORKSPACE_NAME,
-  buildOpenWorkspaceLocators,
   initUserDataPath,
   openWorkspaceFromMenu
 } from '../../utils/page/workspace/open-workspace';
 import { buildTitleBarLocators } from '../../utils/page/title-bar';
+import { buildToastLocators } from '../../utils/page/toast';
 
 test.describe('Open Workspace', () => {
   test('TC-3213: Verify that clicking the cancel button closes the dialog on open workspace', { tag: '@sanity' }, async ({
@@ -39,7 +39,7 @@ test.describe('Open Workspace', () => {
       templateVars: { wsLocation }
     });
     const page = await waitForReadyPage(app);
-    const locators = buildOpenWorkspaceLocators(page);
+    const toastLocators = buildToastLocators(page);
     const titleBarLocators = buildTitleBarLocators(page);
 
     await test.step('Create a workspace and switch back to My Workspace', async () => {
@@ -53,7 +53,7 @@ test.describe('Open Workspace', () => {
     });
 
     await test.step('Verify workspace opened successfully', async () => {
-      await expect(locators.confirmTextContent()).toBeVisible();
+      await expect(toastLocators.confirmTextContent('Workspace opened successfully')).toBeVisible();
       await expect(titleBarLocators.activeWorkspaceName()).toHaveText(WORKSPACE_NAME);
     });
   });
