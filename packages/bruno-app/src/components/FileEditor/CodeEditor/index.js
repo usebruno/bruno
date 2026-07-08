@@ -181,7 +181,7 @@ export default class CodeEditor extends React.Component {
         font={this.props.font}
       >
         <CodeMirrorSearch
-          ref={(node) => (this.searchBarRef.current = node)}
+          ref={this.searchBarRef}
           visible={this.state.searchBarVisible}
           editor={this.editor}
           onClose={() => this.setState({ searchBarVisible: false })}
