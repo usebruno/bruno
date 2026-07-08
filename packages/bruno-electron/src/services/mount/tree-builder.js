@@ -182,6 +182,9 @@ const buildTree = (collectionPath, parserResults, options = {}) => {
           hydrateRequestUuids(data, null, collectionPath);
           tree.root = data;
         }
+        if (tree.root && typeof tree.root === 'object') {
+          tree.root.pathname = path.join(collectionPath, relativePath);
+        }
       }
     } else if (cls.type === 'folder') {
       folderRoots.set(path.dirname(relativePath), entry);

@@ -189,7 +189,7 @@ class MountManager {
         const result = parsed.get(e.relativePath);
         if (!result) continue;
         if (result.error) {
-          entry.state.set(e.relativePath, { error: result.error });
+          entry.state.set(e.relativePath, { data: result.data, error: result.error });
           continue;
         }
         entry.state.set(e.relativePath, { data: result.data });
