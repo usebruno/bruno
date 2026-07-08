@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { createSignalRConnection } from 'utils/signalr/signalr-client';
 import SignalRConsole from './SignalRConsole';
 
@@ -6,8 +6,10 @@ export default function SignalRRequest() {
   const [url, setUrl] = useState('');
   const [connection, setConnection] = useState(null);
   const [logs, setLogs] = useState([]);
+  const isConnectingRef = useRef(false);
   async function connect() {
-    if (connection) return;
+    if (connection || isConnectingRef.current) return;
+    isConnectingRef.current = true;
     const conn = createSignalRConnection({
       url
     });
@@ -20,6 +22,8 @@ export default function SignalRRequest() {
       setLogs((prev) => [...prev, { event: 'SYSTEM', data: 'Connected' }]);
     } catch (err) {
       setLogs((prev) => [...prev, { event: 'SYSTEM', data: `Connection failed: ${err?.message || err}` }]);
+    } finally {
+      isConnectingRef.current = false;
     }
   }
   async function disconnect() {

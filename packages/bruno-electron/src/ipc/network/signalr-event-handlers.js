@@ -101,9 +101,13 @@ const registerSignalrEventHandlers = (mainWindow) => {
 
       // Intercept ALL incoming server invocations and forward them to the renderer.
       // Preserve the original _invokeClientMethod so handlers registered via connection.on() still fire.
+      // Only emit the generic event for targets not already handled by register-handler
+      // to avoid duplicate events on the renderer side.
       const originalInvokeClientMethod = connection._invokeClientMethod?.bind(connection);
       connection._invokeClientMethod = async function (invocationMessage) {
-        sendEvent('main:signalr:event', requestId, collectionUid, invocationMessage.target, invocationMessage.arguments);
+        if (!state.handlers.has(invocationMessage.target)) {
+          sendEvent('main:signalr:event', requestId, collectionUid, invocationMessage.target, invocationMessage.arguments);
+        }
 
         if (invocationMessage.invocationId) {
           await this._sendWithProtocol(this._createCompletionMessage(invocationMessage.invocationId, null, null));
