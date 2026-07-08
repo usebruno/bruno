@@ -14,12 +14,16 @@ export const buildRunnerLocators = (page: Page) => ({
   resetButton: () => page.getByRole('button', { name: 'Reset' }),
   runCollectionButton: () => page.getByTestId('runner-run-button'),
   runAgainButton: () => page.getByRole('button', { name: 'Run Again' }),
+  cancelExecutionButton: () => page.getByTestId('runner-cancel-button'),
   configPanel: () => page.getByTestId('runner-config-panel'),
   configCounter: () => page.getByTestId('runner-config-counter'),
   selectAllButton: () => page.getByTestId('runner-select-all'),
   configResetButton: () => page.getByTestId('runner-config-reset'),
   requestItems: () => page.getByTestId('runner-request-item'),
-  delayInput: () => page.getByTestId('runner-delay-input')
+  delayInput: () => page.getByTestId('runner-delay-input'),
+  resultItems: () => page.getByTestId('runner-result-item'),
+  requestLoader: () => page.getByTestId('runner-result-item').locator('.animate-spin'),
+  requestStatusLabel: () => page.getByTestId('runner-iteration-status-labeling')
 });
 
 /**
