@@ -100,6 +100,32 @@ describe('AppPreviewKeepAlive', () => {
     expect(hiddenSlot).toHaveAttribute('aria-hidden', 'true');
   });
 
+  it('does not mount request apps when the app is not enabled', () => {
+    const gatedItem = {
+      ...requestAppItem,
+      uid: 'item-gated',
+      app: { enabled: false, code: '<div>hi</div>' }
+    };
+    const gatedCollection = { uid: 'coll-1', items: [gatedItem] };
+    const { store } = makeStore({
+      tabs: [tabFor(gatedItem)],
+      activeTabUid: gatedItem.uid,
+      collections: [gatedCollection]
+    });
+    render(<Provider store={store}><AppPreviewKeepAlive /></Provider>);
+    expect(screen.queryByTestId('mock-app-view')).not.toBeInTheDocument();
+  });
+
+  it('does not mount request apps whose tab has preview explicitly off', () => {
+    const { store } = makeStore({
+      tabs: [{ ...tabFor(requestAppItem), appPreview: false }],
+      activeTabUid: requestAppItem.uid,
+      collections: [collection]
+    });
+    render(<Provider store={store}><AppPreviewKeepAlive /></Provider>);
+    expect(screen.queryByTestId('mock-app-view')).not.toBeInTheDocument();
+  });
+
   it('does not mount app tabs that were never activated', () => {
     const { store } = makeStore({
       tabs: [tabFor(requestAppItem), tabFor(standaloneAppItem)],
