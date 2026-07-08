@@ -270,7 +270,6 @@ export const SingleWSMessage = ({
             onSave={onSave}
             mode={codemirrorMode[displayMode] ?? 'text/plain'}
             enableVariableHighlighting={true}
-            // readOnly={isSelected ? false : 'nocursor'}
           />
         </div>
       )}
