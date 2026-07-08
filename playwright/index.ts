@@ -439,7 +439,6 @@ export const test = baseTest.extend<
 
     const context = await app.context();
     const page = await waitForReadyPage(app);
-
     await usePageWithTracing(context, page, testInfo, use, { initTracing: true });
   }
 });

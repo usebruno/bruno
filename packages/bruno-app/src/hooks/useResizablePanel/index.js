@@ -27,7 +27,12 @@ export function useResizablePanel({
   const dragStartWidth = useRef(0);
   const currentWidth = useRef(initialWidth);
 
-  const clamp = (w) => Math.min(maxWidth, Math.max(minWidth, w));
+  const minWidthRef = useRef(minWidth);
+  const maxWidthRef = useRef(maxWidth);
+  minWidthRef.current = minWidth;
+  maxWidthRef.current = maxWidth;
+
+  const clamp = (w) => Math.min(maxWidthRef.current, Math.max(minWidthRef.current, w));
 
   const handleDragStart = (e) => {
     isDragging.current = true;
@@ -64,6 +69,15 @@ export function useResizablePanel({
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, []);
+
+  useEffect(() => {
+    if (isDragging.current) return;
+    setWidth((w) => {
+      const clamped = clamp(w);
+      currentWidth.current = clamped;
+      return clamped;
+    });
+  }, [minWidth, maxWidth]);
 
   return { width, handleDragStart };
 }
