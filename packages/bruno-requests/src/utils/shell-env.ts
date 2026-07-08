@@ -112,7 +112,8 @@ export const refreshShellEnvProxyVars = async (): Promise<Record<string, string>
   const result = await withTimeout(fetchShellEnv(), TIMEOUT_MS);
 
   if (result === TIMEOUT || result === null) {
-    // Timed out — restore prior values rather than leave the user unproxied.
+    // On timeout or fetch shell-env failure, restore the proxy vars cleared above so
+    // requests keep using the last known settings instead of running unproxied.
     restoreSnapshot();
     return {};
   }
