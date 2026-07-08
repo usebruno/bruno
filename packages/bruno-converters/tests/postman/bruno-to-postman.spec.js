@@ -837,6 +837,42 @@ describe('brunoToPostman auth export', () => {
       expect(result.auth).toBeUndefined();
     });
   });
+
+  describe('folder-level auth', () => {
+    const makeFolderWithAuth = (auth) => ({
+      items: [
+        {
+          type: 'folder',
+          name: 'Test Folder',
+          root: { request: { auth } },
+          items: []
+        }
+      ]
+    });
+
+    it('should export folder-level auth from root.request.auth', () => {
+      const result = brunoToPostman(
+        makeFolderWithAuth({ mode: 'bearer', bearer: { token: 'folder-token' } })
+      );
+      expect(result.item[0].auth).toEqual({
+        type: 'bearer',
+        bearer: [
+          { key: 'token', value: 'folder-token', type: 'string' }
+        ]
+      });
+    });
+
+    it('should omit folder auth for inherit mode so Postman falls back to the parent', () => {
+      const result = brunoToPostman(makeFolderWithAuth({ mode: 'inherit' }));
+      expect(result.item[0].auth).toBeUndefined();
+      expect(result.item[0]).not.toHaveProperty('auth');
+    });
+
+    it('should export explicit noauth for a folder set to none (no auth, do not inherit)', () => {
+      const result = brunoToPostman(makeFolderWithAuth({ mode: 'none' }));
+      expect(result.item[0].auth).toEqual({ type: 'noauth' });
+    });
+  });
 });
 
 describe('brunoToPostman multipartForm handling', () => {

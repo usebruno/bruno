@@ -29,6 +29,13 @@ export const safeStringifyJSON = (obj, indent = false) => {
   }
 };
 
+export const ensureString = (value, fallback = '') => {
+  if (value == null || value === '') return fallback;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+};
+
 export const isItemARequest = (item) => {
   return item.hasOwnProperty('request') && ['http-request', 'graphql-request'].includes(item.type) && !item.items;
 };

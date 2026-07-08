@@ -1,5 +1,5 @@
 import map from 'lodash/map';
-import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems, isItemARequest } from '../common';
+import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems, ensureString, isItemARequest } from '../common';
 import translateBruToPostman from '../utils/bruno-to-postman-translator';
 
 const isItemAFolder = (item) => item.type === 'folder';
@@ -387,7 +387,7 @@ export const brunoToPostman = (collection) => {
           bearer: [
             {
               key: 'token',
-              value: itemAuth.bearer?.token || '',
+              value: ensureString(itemAuth.bearer?.token),
               type: 'string'
             }
           ]
@@ -398,12 +398,12 @@ export const brunoToPostman = (collection) => {
           basic: [
             {
               key: 'password',
-              value: itemAuth.basic?.password || '',
+              value: ensureString(itemAuth.basic?.password),
               type: 'string'
             },
             {
               key: 'username',
-              value: itemAuth.basic?.username || '',
+              value: ensureString(itemAuth.basic?.username),
               type: 'string'
             }
           ]
@@ -415,12 +415,12 @@ export const brunoToPostman = (collection) => {
           apikey: [
             {
               key: 'key',
-              value: itemAuth.apikey?.key || '',
+              value: ensureString(itemAuth.apikey?.key),
               type: 'string'
             },
             {
               key: 'value',
-              value: itemAuth.apikey?.value || '',
+              value: ensureString(itemAuth.apikey?.value),
               type: 'string'
             },
             {
@@ -435,13 +435,13 @@ export const brunoToPostman = (collection) => {
         return {
           type: 'edgegrid',
           edgegrid: [
-            { key: 'accessToken', value: itemAuth.akamaiEdgegrid?.accessToken || '', type: 'string' },
-            { key: 'clientToken', value: itemAuth.akamaiEdgegrid?.clientToken || '', type: 'string' },
-            { key: 'clientSecret', value: itemAuth.akamaiEdgegrid?.clientSecret || '', type: 'string' },
-            { key: 'baseURL', value: itemAuth.akamaiEdgegrid?.baseURL || '', type: 'string' },
-            { key: 'nonce', value: itemAuth.akamaiEdgegrid?.nonce || '', type: 'string' },
-            { key: 'timestamp', value: itemAuth.akamaiEdgegrid?.timestamp || '', type: 'string' },
-            { key: 'headersToSign', value: itemAuth.akamaiEdgegrid?.headersToSign || '', type: 'string' },
+            { key: 'accessToken', value: ensureString(itemAuth.akamaiEdgegrid?.accessToken), type: 'string' },
+            { key: 'clientToken', value: ensureString(itemAuth.akamaiEdgegrid?.clientToken), type: 'string' },
+            { key: 'clientSecret', value: ensureString(itemAuth.akamaiEdgegrid?.clientSecret), type: 'string' },
+            { key: 'baseURL', value: ensureString(itemAuth.akamaiEdgegrid?.baseURL), type: 'string' },
+            { key: 'nonce', value: ensureString(itemAuth.akamaiEdgegrid?.nonce), type: 'string' },
+            { key: 'timestamp', value: ensureString(itemAuth.akamaiEdgegrid?.timestamp), type: 'string' },
+            { key: 'headersToSign', value: ensureString(itemAuth.akamaiEdgegrid?.headersToSign), type: 'string' },
             { key: 'maxBodySize', value: itemAuth.akamaiEdgegrid?.maxBodySize ?? '', type: 'string' }
           ]
         };
@@ -452,27 +452,27 @@ export const brunoToPostman = (collection) => {
           awsv4: [
             {
               key: 'sessionToken',
-              value: itemAuth.awsv4?.sessionToken || '',
+              value: ensureString(itemAuth.awsv4?.sessionToken),
               type: 'string'
             },
             {
               key: 'service',
-              value: itemAuth.awsv4?.service || '',
+              value: ensureString(itemAuth.awsv4?.service),
               type: 'string'
             },
             {
               key: 'region',
-              value: itemAuth.awsv4?.region || '',
+              value: ensureString(itemAuth.awsv4?.region),
               type: 'string'
             },
             {
               key: 'secretKey',
-              value: itemAuth.awsv4?.secretAccessKey || '',
+              value: ensureString(itemAuth.awsv4?.secretAccessKey),
               type: 'string'
             },
             {
               key: 'accessKey',
-              value: itemAuth.awsv4?.accessKeyId || '',
+              value: ensureString(itemAuth.awsv4?.accessKeyId),
               type: 'string'
             }
           ]
@@ -488,12 +488,12 @@ export const brunoToPostman = (collection) => {
           digest: [
             {
               key: 'password',
-              value: itemAuth.digest?.password || '',
+              value: ensureString(itemAuth.digest?.password),
               type: 'string'
             },
             {
               key: 'username',
-              value: itemAuth.digest?.username || '',
+              value: ensureString(itemAuth.digest?.username),
               type: 'string'
             }
           ]
@@ -508,17 +508,17 @@ export const brunoToPostman = (collection) => {
           ntlm: [
             {
               key: 'username',
-              value: itemAuth.ntlm?.username || '',
+              value: ensureString(itemAuth.ntlm?.username),
               type: 'string'
             },
             {
               key: 'password',
-              value: itemAuth.ntlm?.password || '',
+              value: ensureString(itemAuth.ntlm?.password),
               type: 'string'
             },
             {
               key: 'domain',
-              value: itemAuth.ntlm?.domain || '',
+              value: ensureString(itemAuth.ntlm?.domain),
               type: 'string'
             }
           ]
@@ -538,30 +538,30 @@ export const brunoToPostman = (collection) => {
         //    `privateKey` in file mode to avoid leaking a path that Postman couldn't use anyway.
         //    Text-mode keys export correctly.
         const oauth1 = itemAuth.oauth1 || {};
-        const signatureMethod = oauth1.signatureMethod || 'HMAC-SHA1';
+        const signatureMethod = ensureString(oauth1.signatureMethod, 'HMAC-SHA1');
         const isRsa = signatureMethod.startsWith('RSA-');
-        const privateKey = oauth1.privateKeyType === 'file' ? '' : (oauth1.privateKey || '');
+        const privateKey = oauth1.privateKeyType === 'file' ? '' : ensureString(oauth1.privateKey);
         return {
           type: 'oauth1',
           oauth1: [
             {
               key: 'consumerKey',
-              value: oauth1.consumerKey || '',
+              value: ensureString(oauth1.consumerKey),
               type: 'string'
             },
             {
               key: 'consumerSecret',
-              value: oauth1.consumerSecret || '',
+              value: ensureString(oauth1.consumerSecret),
               type: 'string'
             },
             {
               key: 'token',
-              value: oauth1.accessToken || '',
+              value: ensureString(oauth1.accessToken),
               type: 'string'
             },
             {
               key: 'tokenSecret',
-              value: oauth1.accessTokenSecret || '',
+              value: ensureString(oauth1.accessTokenSecret),
               type: 'string'
             },
             {
@@ -576,32 +576,32 @@ export const brunoToPostman = (collection) => {
             }] : []),
             {
               key: 'callback',
-              value: oauth1.callbackUrl || '',
+              value: ensureString(oauth1.callbackUrl),
               type: 'string'
             },
             {
               key: 'verifier',
-              value: oauth1.verifier || '',
+              value: ensureString(oauth1.verifier),
               type: 'string'
             },
             {
               key: 'timestamp',
-              value: oauth1.timestamp || '',
+              value: ensureString(oauth1.timestamp),
               type: 'string'
             },
             {
               key: 'nonce',
-              value: oauth1.nonce || '',
+              value: ensureString(oauth1.nonce),
               type: 'string'
             },
             {
               key: 'version',
-              value: oauth1.version || '1.0',
+              value: ensureString(oauth1.version, '1.0'),
               type: 'string'
             },
             {
               key: 'realm',
-              value: oauth1.realm || '',
+              value: ensureString(oauth1.realm),
               type: 'string'
             },
             {
@@ -635,8 +635,8 @@ export const brunoToPostman = (collection) => {
         // Maps a Bruno additional-parameters array to Postman's request-params format
         const sendInToSendAs = { headers: 'request_header', queryparams: 'request_url', body: 'request_body' };
         const mapAdditionalParams = (params) => (params || []).map((param) => ({
-          key: param.name || '',
-          value: param.value || '',
+          key: ensureString(param.name),
+          value: ensureString(param.value),
           enabled: param.enabled !== false,
           send_as: sendInToSendAs[param.sendIn] || 'request_header'
         }));
@@ -657,48 +657,48 @@ export const brunoToPostman = (collection) => {
           },
           {
             key: 'accessTokenUrl',
-            value: oauth2.accessTokenUrl,
+            value: ensureString(oauth2.accessTokenUrl),
             type: 'string'
           },
           {
             key: 'refreshTokenUrl',
-            value: oauth2.refreshTokenUrl,
+            value: ensureString(oauth2.refreshTokenUrl),
             type: 'string'
           },
           {
             key: 'clientId',
-            value: oauth2.clientId,
+            value: ensureString(oauth2.clientId),
             type: 'string'
           },
           {
             key: 'clientSecret',
-            value: oauth2.clientSecret,
+            value: ensureString(oauth2.clientSecret),
             type: 'string'
           },
           {
             key: 'scope',
-            value: oauth2.scope,
+            value: ensureString(oauth2.scope),
             type: 'string'
           },
           {
             key: 'state',
-            value: oauth2.state,
+            value: ensureString(oauth2.state),
             type: 'string'
           },
           {
             key: 'tokenName',
-            value: oauth2.credentialsId,
+            value: ensureString(oauth2.credentialsId),
             type: 'string'
           },
           {
             key: 'addTokenTo',
-            value: oauth2.tokenPlacement === 'header' ? 'header' : 'queryParams',
+            value: oauth2.tokenPlacement === 'url' ? 'queryParams' : 'header',
             type: 'string'
           },
           {
             key: 'headerPrefix',
             // use tokenQueryKey when postman supports queryParams customization
-            value: oauth2.tokenHeaderPrefix,
+            value: ensureString(oauth2.tokenHeaderPrefix),
             type: 'string'
           },
           {
@@ -708,22 +708,22 @@ export const brunoToPostman = (collection) => {
           },
           {
             key: 'authUrl',
-            value: oauth2.authorizationUrl,
+            value: ensureString(oauth2.authorizationUrl),
             type: 'string'
           },
           {
             key: 'redirect_uri',
-            value: oauth2.callbackUrl,
+            value: ensureString(oauth2.callbackUrl),
             type: 'string'
           },
           {
             key: 'username',
-            value: oauth2.username,
+            value: ensureString(oauth2.username),
             type: 'string'
           },
           {
             key: 'password',
-            value: oauth2.password,
+            value: ensureString(oauth2.password),
             type: 'string'
           }
         ].filter((param) => param.value !== null && param.value !== undefined && param.value !== '');
@@ -892,9 +892,11 @@ export const brunoToPostman = (collection) => {
 
       if (item.type === 'folder') {
         const folderEvents = generateEventSection(item);
+        const folderAuth = generateAuth(item.root?.request?.auth, false);
         return {
           name: item.name || 'Untitled Folder',
           item: generateItemSection(item.items),
+          ...(folderAuth ? { auth: folderAuth } : {}),
           ...(folderEvents.length ? { event: folderEvents } : {})
         };
       } else if (isItemARequest(item)) {
