@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import {
+  buildCommonLocators,
   createCollection,
   createEnvironment,
   openCollection,
@@ -358,4 +359,59 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
     expect(entry?.selectedEnvironment).toBe('local-bad');
     expect(entry?.environmentPath).toContain('local-bad');
   });
+
+  const envSubTab = (page: any, key: string) => {
+    const { environment } = buildCommonLocators(page);
+    return key === 'secrets' ? environment.secretsTab() : environment.variablesTab();
+  };
+
+  for (const subTab of ['variables', 'secrets']) {
+    test.only(`persists the "${subTab}" environment-settings sub-tab across snapshot saves and restarts`, async ({ launchElectronApp, createTmpDir }) => {
+      // One restart plus environment creation; the default budget is tight on slower machines.
+      test.setTimeout(60000);
+      const userDataPath = await createTmpDir(`snap-env-subtab-${subTab}`);
+      const collectionPath = await createTmpDir(`snap-env-subtab-col-${subTab}`);
+      const collectionRoot = path.join(collectionPath, 'SubTabCollection');
+
+      const app = await launchElectronApp({ userDataPath });
+      const page = await waitForReadyPage(app);
+
+      await test.step(`Open environment settings and switch to the "${subTab}" sub-tab`, async () => {
+        await createCollection(page, 'SubTabCollection', collectionPath);
+        await openCollection(page, 'SubTabCollection');
+        await createEnvironment(page, 'local', 'collection');
+
+        const tab = envSubTab(page, subTab);
+        await tab.click();
+        await expect(tab).toHaveClass(/active/);
+      });
+
+      await test.step('Close app and assert the snapshot stores the selected sub-tab', async () => {
+        await page.waitForTimeout(2000);
+        await closeElectronApp(app);
+
+        const snapshot = readSnapshot(userDataPath);
+        expect(snapshot).not.toBeNull();
+
+        const collections = Array.isArray(snapshot?.collections) ? snapshot.collections : [];
+        const collectionEntry = collections.find((collection: any) => collection?.pathname === collectionRoot);
+        const environmentTab = (Array.isArray(collectionEntry?.tabs) ? collectionEntry.tabs : [])
+          .find((tab: any) => tab?.type === 'environment-settings');
+
+        expect(environmentTab?.environment?.tab).toBe(subTab);
+      });
+
+      await test.step(`Restart app and verify the "${subTab}" sub-tab is restored`, async () => {
+        const app2 = await launchElectronApp({ userDataPath });
+        const page2 = await waitForReadyPage(app2);
+
+        await openCollection(page2, 'SubTabCollection');
+        // Focus the restored Environments tab; the sub-tab only renders while it is active.
+        await buildCommonLocators(page2).environment.collectionEnvTab().click();
+        await expect(envSubTab(page2, subTab)).toHaveClass(/active/);
+
+        await closeElectronApp(app2);
+      });
+    });
+  }
 });
