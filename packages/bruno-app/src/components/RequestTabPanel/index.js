@@ -58,6 +58,12 @@ const EXPAND_EDGE_THRESHOLD = 100;
 // Minimum response pane height to show placeholder content on click-expand
 const RESPONSE_EXPAND_MIN_HEIGHT = 300;
 
+// Tabs whose response pane we auto-collapsed when the AI sidebar docked.
+// Module-level because the panel remounts per tab (key={activeTabUid}) — a
+// tab is restored here only once the sidebar is gone AND the user didn't
+// expand it manually in the meantime.
+const aiAutoCollapsedTabs = new Set();
+
 const RequestTabPanel = () => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -70,6 +76,7 @@ const RequestTabPanel = () => {
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
+  const isAiSidebarDocked = useSelector((state) => state.chat.isOpen && !state.chat.isPoppedOut);
 
   const isRequestTab = focusedTab && ['request', 'http-request', 'grpc-request', 'ws-request', 'graphql-request'].includes(focusedTab.type);
   useKeybinding('sendRequest', (e) => {
@@ -357,6 +364,20 @@ const RequestTabPanel = () => {
   }, [setLeftPaneWidth, isVerticalLayout]);
 
   useEffect(() => {
+    if (isVerticalLayout) return;
+    if (isAiSidebarDocked) {
+      if (responsePaneCollapsedRef.current) return;
+      aiAutoCollapsedTabs.add(activeTabUid);
+      collapseResponseRef.current();
+    } else if (aiAutoCollapsedTabs.has(activeTabUid)) {
+      aiAutoCollapsedTabs.delete(activeTabUid);
+      if (responsePaneCollapsedRef.current) {
+        expandResponseRef.current();
+      }
+    }
+  }, [isAiSidebarDocked, isVerticalLayout, activeTabUid]);
+
+  useEffect(() => {
     if (!isVerticalLayout) return;
     if (responsePaneCollapsed) return;
 
@@ -557,8 +578,12 @@ const RequestTabPanel = () => {
     );
   }
 
+  const itemSource = item.draft ? item.draft : item;
+  // Preview state is runtime-only, kept on the tab; unset means "preview on" so
+  // an app-enabled request opens in preview mode by default.
   const appEnabled = item.type !== 'app'
-    && (item.draft ? get(item, 'draft.app.enabled', false) : get(item, 'app.enabled', false));
+    && get(itemSource, 'app.enabled', false) === true
+    && focusedTab.appPreview !== false;
   if (item.type === 'app' || appEnabled) {
     return <StyledWrapper className="flex flex-col flex-grow relative overflow-hidden" data-testid="app-tab-placeholder" />;
   }

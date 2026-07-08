@@ -69,10 +69,10 @@ const parseFile = ({ collectionPath, relativePath, format, type }) => {
   const content = buf.toString('utf8');
   try {
     const data = parseContent(content, format, type, buf.length);
-    return { relativePath, mtime, hash, data, format, type };
+    return { relativePath, mtime, hash, data, format, type, raw: content };
   } catch (err) {
     const data = format === 'bru' && type === 'request' ? extractBruMeta(content) : {};
-    return { relativePath, mtime, hash, data, format, type, partial: true, error: { message: err.message, stack: err.stack } };
+    return { relativePath, mtime, hash, data, format, type, raw: content, partial: true, error: { message: err.message, stack: err.stack } };
   }
 };
 
