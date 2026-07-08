@@ -42,3 +42,9 @@ export {
 export {
   toDisplayString
 } from './string';
+
+export {
+  toEntries,
+  buildHeaderSections,
+  flattenHeaderSections
+} from './headers-source';

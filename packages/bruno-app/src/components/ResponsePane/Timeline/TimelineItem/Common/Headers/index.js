@@ -1,13 +1,6 @@
 import { useState } from 'react';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
-
-export const toEntries = (headers) => {
-  if (!headers) return [];
-  if (Array.isArray(headers)) {
-    return headers.map((h) => ({ name: h?.name, value: h?.value }));
-  }
-  return Object.entries(headers).map(([name, value]) => ({ name, value }));
-};
+import { toEntries } from '@usebruno/common/utils';
 
 const HeaderTable = ({ entries, onNavigate }) => {
   if (!entries.length) return <div className="tl-empty">No Headers</div>;
@@ -18,20 +11,22 @@ const HeaderTable = ({ entries, onNavigate }) => {
           <tr key={i}>
             <td className="tl-headers-key">{h.name}</td>
             <td className="tl-headers-val">{String(h.value)}</td>
-            <td className="tl-headers-act">
-              {onNavigate && h.nav && (
-                <button
-                  type="button"
-                  className="tl-headers-goto"
-                  title="Open source"
-                  aria-label="Open header source"
-                  data-testid="header-goto"
-                  onClick={() => onNavigate(h.nav)}
-                >
-                  <IconChevronRight size={14} strokeWidth={2} />
-                </button>
-              )}
-            </td>
+            {onNavigate && (
+              <td className="tl-headers-act">
+                {h.nav && (
+                  <button
+                    type="button"
+                    className="tl-headers-goto"
+                    title="Open source"
+                    aria-label="Open header source"
+                    data-testid="header-goto"
+                    onClick={() => onNavigate(h.nav)}
+                  >
+                    <IconChevronRight size={14} strokeWidth={2} />
+                  </button>
+                )}
+              </td>
+            )}
           </tr>
         ))}
       </tbody>
@@ -44,10 +39,10 @@ const countSection = (section) =>
     ? section.children.reduce((sum, c) => sum + countSection(c), 0)
     : section.entries.length;
 
-// A collapsible section. Renders a headers table, or nested sections when `children` is present.
-// `pillClass` renders the label as a colored source pill; sections start collapsed.
-const CollapsibleSection = ({ section, onNavigate, defaultOpen = true }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+// A collapsible block: a headers table (leaf), or nested sections when `children` is present.
+// `pillClass` renders the label as a colored source pill; every section starts open.
+const CollapsibleSection = ({ section, onNavigate, testId = 'headers-section-toggle' }) => {
+  const [isOpen, setIsOpen] = useState(true);
   const hasChildren = Array.isArray(section.children);
   return (
     <div className="tl-block">
@@ -55,7 +50,7 @@ const CollapsibleSection = ({ section, onNavigate, defaultOpen = true }) => {
         type="button"
         className="tl-block-h"
         aria-expanded={isOpen}
-        data-testid="headers-section-toggle"
+        data-testid={testId}
         onClick={() => setIsOpen(!isOpen)}
       >
         <span className="tl-block-chev">
@@ -66,11 +61,15 @@ const CollapsibleSection = ({ section, onNavigate, defaultOpen = true }) => {
       </button>
       {isOpen
         && (hasChildren ? (
-          <div className="tl-block-sections">
-            {section.children.map((child) => (
-              <CollapsibleSection key={child.key} section={child} onNavigate={onNavigate} />
-            ))}
-          </div>
+          section.children.length ? (
+            <div className="tl-block-sections">
+              {section.children.map((child) => (
+                <CollapsibleSection key={child.key} section={child} onNavigate={onNavigate} />
+              ))}
+            </div>
+          ) : (
+            <div className="tl-empty">No Headers</div>
+          )
         ) : (
           <HeaderTable entries={section.entries} onNavigate={onNavigate} />
         ))}
@@ -78,44 +77,14 @@ const CollapsibleSection = ({ section, onNavigate, defaultOpen = true }) => {
   );
 };
 
-// `sections` (request tab): an open "Headers" wrapper holding collapsible per-source sections.
-// `headers` (response tab): a single flat, collapsible "Headers" section.
+// `sections` (request tab): the "Headers" wrapper holding per-source sub-sections.
+// `headers` (response tab): a single flat "Headers" section. Both render as the same collapsible.
 const Headers = ({ headers, sections, onNavigate }) => {
-  const [isOpen, setIsOpen] = useState(true);
-
-  const isTree = Array.isArray(sections);
-  const rootSection = isTree
+  const rootSection = Array.isArray(sections)
     ? { label: 'Headers', children: sections }
     : { label: 'Headers', entries: toEntries(headers) };
-  const count = countSection(rootSection);
 
-  return (
-    <div className="tl-block">
-      <button
-        type="button"
-        className="tl-block-h"
-        aria-expanded={isOpen}
-        data-testid="headers-toggle"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <span className="tl-block-chev">
-          {isOpen ? <IconChevronDown size={12} strokeWidth={2} /> : <IconChevronRight size={12} strokeWidth={2} />}
-        </span>
-        Headers
-        <span className="tl-block-count">({count})</span>
-      </button>
-      {isOpen
-        && (isTree ? (
-          <div className="tl-block-sections">
-            {sections.length
-              ? sections.map((s) => <CollapsibleSection key={s.key} section={s} onNavigate={onNavigate} />)
-              : <div className="tl-empty">No Headers</div>}
-          </div>
-        ) : (
-          <HeaderTable entries={rootSection.entries} />
-        ))}
-    </div>
-  );
+  return <CollapsibleSection section={rootSection} onNavigate={onNavigate} testId="headers-toggle" />;
 };
 
 export default Headers;
