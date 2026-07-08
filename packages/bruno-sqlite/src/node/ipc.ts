@@ -8,6 +8,6 @@ export interface IpcMainLike {
 
 export const registerSQLiteIpc = (ipcMain: IpcMainLike, statements: Statements): void => {
   ipcMain.handle(SQLITE_CHANNEL, (_event, request) => {
-    return statements.execute(request.name, request.params ?? [])
+    return statements.execute(request.name, request.params ?? {})
   })
 }
