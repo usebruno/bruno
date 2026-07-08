@@ -33,9 +33,14 @@ const MIGRATIONS = [
     up: `
       ALTER TABLE file_index_entries ADD COLUMN raw TEXT;
       UPDATE file_index_entries SET mtime = 0, hash = '';
+      ALTER TABLE file_index_entries ADD COLUMN created_at INTEGER;
+      ALTER TABLE file_index_entries ADD COLUMN updated_at INTEGER;
+      UPDATE file_index_entries SET created_at = unixepoch(), updated_at = unixepoch();
     `
   }
 ];
+
+// TODO: Check for trigger (ON UPDATE) and then see if we can use that to update updated_at
 
 class FileIndex {
   #db;
@@ -136,13 +141,14 @@ class FileIndex {
     const id = idForAbsolutePath(path.join(root, relativePath));
     this.#db.run(
       `
-      INSERT INTO file_index_entries (collection_path, relative_path, id, mtime, hash, data, raw)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO file_index_entries (collection_path, relative_path, id, mtime, hash, data, raw, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch())
       ON CONFLICT(collection_path, relative_path) DO UPDATE SET
         mtime = excluded.mtime,
         hash = excluded.hash,
         data = excluded.data,
-        raw = excluded.raw
+        raw = excluded.raw,
+        updated_at = unixepoch()
     `,
       root,
       relativePath,
