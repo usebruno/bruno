@@ -426,8 +426,11 @@ describe('brunoToPostman auth export', () => {
   });
 
   it('should return noauth for a null or undefined auth object', () => {
-    const result = brunoToPostman(makeRequestWithAuth(null));
-    expect(result.item[0].request.auth).toEqual({ type: 'noauth' });
+    const resultNull = brunoToPostman(makeRequestWithAuth(null));
+    expect(resultNull.item[0].request.auth).toEqual({ type: 'noauth' });
+
+    const resultUndefined = brunoToPostman(makeRequestWithAuth(undefined));
+    expect(resultUndefined.item[0].request.auth).toEqual({ type: 'noauth' });
   });
 
   it('should export bearer auth as an array (Postman v2.1 schema)', () => {
