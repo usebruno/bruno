@@ -60,7 +60,8 @@ const General = () => {
     oauth2: Yup.object({
       useSystemBrowser: Yup.boolean()
     }),
-    defaultLocation: Yup.string().max(1024)
+    defaultLocation: Yup.string().max(1024),
+    enhancedEnvironment: Yup.boolean()
   });
 
   const formik = useFormik({
@@ -83,7 +84,8 @@ const General = () => {
       oauth2: {
         useSystemBrowser: get(preferences, 'request.oauth2.useSystemBrowser', false)
       },
-      defaultLocation: get(preferences, 'general.defaultLocation', '')
+      defaultLocation: get(preferences, 'general.defaultLocation', ''),
+      enhancedEnvironment: get(preferences, 'general.enhancedEnvironment', false)
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
@@ -121,7 +123,8 @@ const General = () => {
           interval: newPreferences.autoSave.interval
         },
         general: {
-          defaultLocation: newPreferences.defaultLocation
+          defaultLocation: newPreferences.defaultLocation,
+          enhancedEnvironment: newPreferences.enhancedEnvironment
         }
       }))
       .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
@@ -301,6 +304,22 @@ const General = () => {
           <label className="block ml-2 select-none" htmlFor="oauth2.useSystemBrowser">
             Use System Browser for OAuth2 Authorization
           </label>
+        </div>
+        <div className="flex items-center mt-2">
+          <input
+            id="enhancedEnvironment"
+            type="checkbox"
+            name="enhancedEnvironment"
+            checked={formik.values.enhancedEnvironment}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="enhancedEnvironment">
+            Enhanced Environment
+          </label>
+        </div>
+        <div className="text-muted text-xs ml-6 -mt-1 mb-2">
+          Show environment color on the URL bar for better visual awareness
         </div>
         <div className="flex flex-col mt-6">
           <label className="block select-none" htmlFor="timeout">

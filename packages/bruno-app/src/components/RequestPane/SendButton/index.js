@@ -1,14 +1,22 @@
 import React from 'react';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
+import { getSendButtonTextColor } from 'utils/color';
 
-const SendButton = ({ isLoading = false, onSend, onCancel, testId = 'send-request-btn' }) => {
+const SendButton = ({ isLoading = false, onSend, onCancel, testId = 'send-request-btn', envColor = null }) => {
+  const customStyle = envColor
+    ? isLoading
+      ? { color: envColor, borderColor: envColor }
+      : { backgroundColor: envColor, color: getSendButtonTextColor(envColor), borderColor: envColor }
+    : {};
+
   return (
-    <StyledWrapper className="ml-2">
+    <StyledWrapper className="ml-2" $envColor={envColor} $isLoading={isLoading}>
       <Button
         size="sm"
         variant={isLoading ? 'outline' : 'filled'}
-        color="primary"
+        color={envColor ? undefined : 'primary'}
+        style={customStyle}
         data-testid={testId}
         data-action={isLoading ? 'cancel' : 'send'}
         onClick={isLoading ? onCancel : onSend}

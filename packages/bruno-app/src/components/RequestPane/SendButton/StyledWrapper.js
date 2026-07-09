@@ -15,6 +15,19 @@ const StyledWrapper = styled.div`
     width: 100%;
     height: 100%;
   }
+
+  /* Env-colored Send button hover/active feedback */
+  ${(props) =>
+    props.$envColor && !props.$isLoading
+      ? `
+    button:hover {
+      filter: brightness(0.88);
+    }
+    button:active {
+      filter: brightness(0.78);
+    }
+  `
+      : ''}
 `;
 
 export default StyledWrapper;
