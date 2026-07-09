@@ -2986,10 +2986,13 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, file.data.uid);
 
         if (item) {
-          // whenever a user attempts to sort a req within the same folder
-          // the seq is updated, but everything else remains the same
-          // we don't want to lose the draft in this case
+          item.partial = file.partial;
+          item.error = file.error;
+          item.loading = file.loading;
           if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
+            // whenever a user attempts to sort a req within the same folder
+            // the seq is updated, but everything else remains the same
+            // we don't want to lose the draft in this case
             item.seq = file.data.seq;
             item.raw = file.data.raw;
             if (item?.draft) {
@@ -3010,7 +3013,7 @@ export const collectionsSlice = createSlice({
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
             item.raw = file.data.raw;
-
+            item.size = file.size;
             // Only clear draft if it matches the file content
             // This preserves characters typed during autosave
             // The raw comparison is guarded so an undefined === undefined match
