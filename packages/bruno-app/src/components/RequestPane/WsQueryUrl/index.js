@@ -12,6 +12,7 @@ import { isMacOS } from 'utils/common/platform';
 import { hasRequestChanges } from 'utils/collections';
 import { closeWsConnection, getWsConnectionStatus } from 'utils/network/index';
 import StyledWrapper from './StyledWrapper';
+import ToolHint from 'components/ToolHint';
 import { interpolateUrl } from 'utils/url';
 import { getAllVariables } from 'utils/collections';
 import useDebounce from 'hooks/useDebounce';
@@ -140,52 +141,53 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             item={item}
           />
           <div className="flex items-center h-full cursor-pointer gap-3 mx-3">
-            <div
-              className="infotip"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!hasChanges) return;
-                onSave();
-              }}
-            >
-              <IconDeviceFloppy
-                color={hasChanges ? theme.draftColor : theme.requestTabs.icon.color}
-                strokeWidth={1.5}
-                size={20}
-                className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
-              />
-              <span className="infotip-text text-xs">
-                Save <span className="shortcut">({saveShortcut})</span>
-              </span>
-            </div>
+            <ToolHint text={`Save (${saveShortcut})`} toolhintId="ws-save-request" place="top" positionStrategy="fixed">
+              <div
+                className="flex items-center"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!hasChanges) return;
+                  onSave();
+                }}
+              >
+                <IconDeviceFloppy
+                  color={hasChanges ? theme.draftColor : theme.requestTabs.icon.color}
+                  strokeWidth={1.5}
+                  size={20}
+                  className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
+                />
+              </div>
+            </ToolHint>
 
             {connectionStatus === 'connected' && (
               <div className="connection-controls relative flex items-center h-full">
-                <div className="infotip" onClick={(e) => handleDisconnect(e, true)}>
-                  <IconPlugConnectedX
-                    color={theme.colors.text.danger}
-                    strokeWidth={1.5}
-                    size={20}
-                    className="cursor-pointer"
-                  />
-                  <span className="infotip-text text-xs">Close Connection</span>
-                </div>
+                <ToolHint text="Close Connection" toolhintId="ws-close-connection" place="top" positionStrategy="fixed">
+                  <div className="flex items-center" onClick={(e) => handleDisconnect(e, true)}>
+                    <IconPlugConnectedX
+                      color={theme.colors.text.danger}
+                      strokeWidth={1.5}
+                      size={20}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                </ToolHint>
               </div>
             )}
 
             {connectionStatus !== 'connected' && (
               <div className="connection-controls relative flex items-center h-full">
-                <div className="infotip" onClick={handleConnect}>
-                  <IconPlugConnected
-                    className={classnames('cursor-pointer', {
-                      'animate-pulse': connectionStatus === CONNECTION_STATUS.CONNECTING
-                    })}
-                    color={theme.colors.text.green}
-                    strokeWidth={1.5}
-                    size={20}
-                  />
-                  <span className="infotip-text text-xs">Connect</span>
-                </div>
+                <ToolHint text="Connect" toolhintId="ws-connect" place="top" positionStrategy="fixed">
+                  <div className="flex items-center" onClick={handleConnect}>
+                    <IconPlugConnected
+                      className={classnames('cursor-pointer', {
+                        'animate-pulse': connectionStatus === CONNECTION_STATUS.CONNECTING
+                      })}
+                      color={theme.colors.text.green}
+                      strokeWidth={1.5}
+                      size={20}
+                    />
+                  </div>
+                </ToolHint>
               </div>
             )}
           </div>
