@@ -150,6 +150,15 @@ const parseDataFromRequest = (request) => {
   return parseDataFromResponse(requestCopy);
 };
 
+// Read a param from the query string, falling back to the URL hash fragment
+// (implicit flow returns values in the hash rather than query params).
+const getParamFromUrl = (urlObj, param) => {
+  return (
+    urlObj.searchParams.get(param)
+    || (urlObj.hash ? new URLSearchParams(urlObj.hash.substring(1)).get(param) : null)
+  );
+};
+
 module.exports = {
   uuid,
   stringifyJson,
@@ -160,5 +169,6 @@ module.exports = {
   generateUidBasedOnHash,
   flattenDataForDotNotation,
   parseDataFromResponse,
-  parseDataFromRequest
+  parseDataFromRequest,
+  getParamFromUrl
 };
