@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts } from './index';
+import { flattenItems, mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts } from './index';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
@@ -84,6 +84,25 @@ describe('transformRequestToSaveToFilesystem', () => {
 
     expect(transformed.request.params[0].annotations).toEqual([{ name: 'param-note', value: 'keep me' }]);
     expect(transformed.request.headers[0].annotations).toEqual([{ name: 'header-note', value: 'keep me' }]);
+  });
+});
+
+describe('flattenItems', () => {
+  it('skips empty entries while flattening nested collection items', () => {
+    const request = { type: 'http-request', name: 'List Users', request: {} };
+    const folder = {
+      type: 'folder',
+      name: 'Users',
+      items: [
+        undefined,
+        request
+      ]
+    };
+
+    expect(flattenItems([null, folder])).toEqual([
+      folder,
+      request
+    ]);
   });
 });
 
