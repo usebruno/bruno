@@ -1,0 +1,52 @@
+{
+  "realm": "bruno",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "clients": [
+    {
+      "clientId": "bruno",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "DSH25NOw5mMOCEIMrmm31EtUad4TbRLM",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "bruno://app/oauth2/callback",
+        "bruno://app/oauth2/callback/*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "+"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "testuser",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "testuser@example.com",
+      "firstName": "Test",
+      "lastName": "User",
+      "requiredActions": [],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "testpassword",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

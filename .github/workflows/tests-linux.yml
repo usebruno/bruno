@@ -144,3 +144,26 @@ jobs:
 
       - name: Run OAuth1 CLI Tests
         uses: ./.github/actions/auth/oauth1/linux/run-oauth1-cli-tests
+
+  oauth2-tests:
+    name: OAuth 2.0 Auth Tests (Linux)
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+
+      - name: Setup Feature Dependencies
+        uses: ./.github/actions/auth/oauth1/linux/setup-feature-specific-deps
+
+      - name: Setup Keycloak
+        uses: ./.github/actions/auth/oauth2/linux/setup-keycloak
+
+      - name: Run OAuth2 E2E Tests
+        uses: ./.github/actions/auth/oauth2/linux/run-oauth2-e2e-tests
