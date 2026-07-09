@@ -53,6 +53,22 @@ async function openSearchBar(page: Page) {
   await resetSearchOptions(page);
 }
 
+async function openReplaceBar(page: Page) {
+  await openScriptEditor(page);
+  const cm = page.getByTestId(EDITOR_ID).locator('.CodeMirror').first();
+  await cm.evaluate((el: any) => {
+    if (el.CodeMirror) {
+      el.CodeMirror.setCursor({ line: 0, ch: 0 });
+      el.CodeMirror.focus();
+    }
+  });
+
+  await page.keyboard.press('Control+Alt+f');
+  await page.getByTestId(EDITOR_ID).getByTestId('search-bar').waitFor({ state: 'visible' });
+  await page.getByTestId(EDITOR_ID).getByTestId('replace-input').waitFor({ state: 'visible' });
+  await resetSearchOptions(page);
+}
+
 async function closeSearchBar(page: Page) {
   await page.keyboard.press('Escape');
   await page.getByTestId(EDITOR_ID).getByTestId('search-bar').waitFor({ state: 'hidden' });
@@ -290,11 +306,8 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('replace single replaces current match and advances to next', async ({ page }) => {
-    await openScriptEditor(page);
     await setEditorContent(page, 'foo bar foo baz foo');
-    await openSearchBar(page);
-
-    await page.getByTestId(EDITOR_ID).getByTestId('toggle-replace-btn').click();
+    await openReplaceBar(page);
 
     await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('foo');
     await expectMatchCount(page, '1 / 3');
@@ -308,11 +321,8 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('replace all replaces every match', async ({ page }) => {
-    await openScriptEditor(page);
     await setEditorContent(page, 'foo bar foo baz foo');
-    await openSearchBar(page);
-
-    await page.getByTestId(EDITOR_ID).getByTestId('toggle-replace-btn').click();
+    await openReplaceBar(page);
 
     await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('foo');
     await expectMatchCount(page, '1 / 3');
