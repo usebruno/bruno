@@ -7,7 +7,6 @@ export const buildImportModalLocators = (page: Page) => {
   const importModal = () => page.getByTestId('import-collection-modal');
 
   return {
-    modal: importModal,
     modalTitle: () => importModal().getByTestId('import-collection-header-title'),
     fileTab: () => importModal().getByTestId('file-tab'),
     gitRepositoryTab: () => importModal().getByTestId('github-tab'),
@@ -17,7 +16,6 @@ export const buildImportModalLocators = (page: Page) => {
     cloneGitButton: () => importModal().getByTestId('clone-git-button'),
     importUrlButton: () => importModal().getByTestId('import-url-button'),
     loader: () => page.getByTestId('import-collection-loader'),
-    chooseFilesButton: () => importModal().getByTestId('import-choose-files-button'),
-    fileInput: () => importModal().getByTestId('import-collection-file-input')
+    chooseFilesButton: () => importModal().getByTestId('import-choose-files-button')
   };
 };

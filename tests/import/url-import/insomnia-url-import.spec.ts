@@ -23,26 +23,26 @@ test.describe('Insomnia URL Import', () => {
         await locators.plusMenu.importCollection().click();
 
         await importLocators.modal().waitFor({ state: 'visible' });
-        await expect(importLocators.modalTitle()).toContainText('Import Collection');
-        await expect(importLocators.fileTab()).toBeVisible();
-        await expect(importLocators.gitRepositoryTab()).toBeVisible();
-        await expect(importLocators.urlTab()).toBeVisible();
+        await expect(importLocators.importModal.modalTitle()).toContainText('Import Collection');
+        await expect(importLocators.importModal.fileTab()).toBeVisible();
+        await expect(importLocators.importModal.gitRepositoryTab()).toBeVisible();
+        await expect(importLocators.importModal.urlTab()).toBeVisible();
       });
 
       await test.step('Select \'Import from URL\' option', async () => {
-        await importLocators.urlTab().click();
-        await expect(importLocators.urlInput()).toBeVisible();
-        await expect(importLocators.importUrlButton()).toBeVisible();
+        await importLocators.importModal.urlTab().click();
+        await expect(importLocators.importModal.urlInput()).toBeVisible();
+        await expect(importLocators.importModal.importUrlButton()).toBeVisible();
       });
 
       await test.step('Enter a valid Insomnia export URL', async () => {
-        await importLocators.urlInput().fill(insomniaUrl);
-        await expect(importLocators.urlInput()).toHaveValue(insomniaUrl);
+        await importLocators.importModal.urlInput().fill(insomniaUrl);
+        await expect(importLocators.importModal.urlInput()).toHaveValue(insomniaUrl);
       });
 
       await test.step('Initiate the import process', async () => {
-        await importLocators.importUrlButton().click();
-        await importLocators.loader().waitFor({ state: 'hidden' });
+        await importLocators.importModal.importUrlButton().click();
+        await importLocators.importModal.loader().waitFor({ state: 'hidden' });
         await expect(importLocators.locationModal()).toBeVisible();
         await expect(importLocators.locationModal().getByText(collectionName)).toBeVisible();
       });
