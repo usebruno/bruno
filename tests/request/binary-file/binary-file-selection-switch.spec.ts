@@ -32,28 +32,25 @@ const sendAndAssertSha256 = async (page: Page, locators: ReturnType<typeof build
   expect(sha256Match![1]).not.toBe(unexpectedSha256);
 };
 
-test.describe.serial('File / Binary body - switching selected file', () => {
-  const collectionName = 'binary-file-selection-switch';
-  const requestName = 'switch-selected-file';
+test.describe('File / Binary body - switching selected file', () => {
+  test.afterAll(async ({ page }) => {
+    await closeAllCollections(page);
+  });
 
-  let tmpDir: string;
-  let firstFilePath: string;
-  let secondFilePath: string;
-  let firstFileSha256: string;
-  let secondFileSha256: string;
-
-  test.beforeAll(async ({ page, createTmpDir }) => {
-    tmpDir = await createTmpDir('binary-file-selection-switch');
+  test('sends the newly-selected row, not the previously selected one', async ({ page, electronApp, createTmpDir }, testInfo) => {
+    const collectionName = `binary-file-selection-switch-${testInfo.workerIndex}-${testInfo.retry}`;
+    const requestName = 'switch-selected-file';
+    const tmpDir = await createTmpDir('binary-file-selection-switch');
 
     const firstContent = 'first file payload\n';
-    firstFilePath = path.join(tmpDir, 'first.bin');
+    const firstFilePath = path.join(tmpDir, 'first.bin');
     await fs.promises.writeFile(firstFilePath, firstContent);
-    firstFileSha256 = crypto.createHash('sha256').update(firstContent).digest('hex');
+    const firstFileSha256 = crypto.createHash('sha256').update(firstContent).digest('hex');
 
     const secondContent = 'second file payload - this one should be sent\n';
-    secondFilePath = path.join(tmpDir, 'second.bin');
+    const secondFilePath = path.join(tmpDir, 'second.bin');
     await fs.promises.writeFile(secondFilePath, secondContent);
-    secondFileSha256 = crypto.createHash('sha256').update(secondContent).digest('hex');
+    const secondFileSha256 = crypto.createHash('sha256').update(secondContent).digest('hex');
 
     await createCollection(page, collectionName, tmpDir);
     await createRequest(page, requestName, collectionName, {
@@ -61,13 +58,7 @@ test.describe.serial('File / Binary body - switching selected file', () => {
       method: 'POST',
       inFolder: false
     });
-  });
 
-  test.afterAll(async ({ page }) => {
-    await closeAllCollections(page);
-  });
-
-  test('sends the newly-selected row, not the previously selected one', async ({ page, electronApp }) => {
     await openRequest(page, collectionName, requestName, { persist: true });
 
     await selectRequestPaneTab(page, 'Body');
