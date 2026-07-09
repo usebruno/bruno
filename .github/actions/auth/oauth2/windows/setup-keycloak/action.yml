@@ -1,5 +1,5 @@
 name: 'Setup Keycloak - Windows'
-description: 'Provision and start a Keycloak IdP (realm imported) for the OAuth2 e2e tests on Windows'
+description: 'Provision Keycloak (download + realm import prep) for the OAuth2 e2e tests on Windows'
 
 runs:
   using: 'composite'
@@ -36,12 +36,15 @@ runs:
           exit 1
         }
 
-    - name: Download and start Keycloak
+    # NOTE: Keycloak is intentionally NOT started here. On Windows, GitHub Actions runs
+    # each step inside a Job Object that terminates the step's entire child-process tree
+    # when the step completes — so a Keycloak started in this step would be killed before
+    # the test step runs. It is downloaded/prepared here and started in the same step that
+    # runs the tests (run-oauth2-e2e-tests). KC_HOME is exported for that step.
+    - name: Download and prepare Keycloak
       shell: pwsh
       env:
         KEYCLOAK_VERSION: 26.3.3
-        KC_BOOTSTRAP_ADMIN_USERNAME: admin
-        KC_BOOTSTRAP_ADMIN_PASSWORD: admin
       run: |
         $ErrorActionPreference = 'Stop'
         $version = $env:KEYCLOAK_VERSION
@@ -55,26 +58,5 @@ runs:
         Copy-Item "$env:GITHUB_WORKSPACE\tests\auth\oauth2\fixtures\keycloak\realm-export.json" `
           "$kcHome\data\import\realm-export.json"
 
-        $log = "$env:RUNNER_TEMP\keycloak.log"
-        Start-Process -FilePath "$kcHome\bin\kc.bat" `
-          -ArgumentList 'start-dev','--http-port=8090','--import-realm' `
-          -RedirectStandardOutput $log -RedirectStandardError "$env:RUNNER_TEMP\keycloak.err.log" `
-          -NoNewWindow
-
-        Write-Host "Waiting for Keycloak (realm bruno) on :8090 ..."
-        $ready = $false
-        for ($i = 0; $i -lt 60; $i++) {
-          try {
-            Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:8090/realms/bruno/.well-known/openid-configuration' | Out-Null
-            $ready = $true
-            break
-          } catch {
-            Start-Sleep -Seconds 2
-          }
-        }
-        if (-not $ready) {
-          Write-Error "Keycloak did not become ready in time"
-          if (Test-Path $log) { Get-Content $log -Tail 100 }
-          exit 1
-        }
-        Write-Host "Keycloak is ready."
+        "KC_HOME=$kcHome" | Out-File -FilePath $env:GITHUB_ENV -Append
+        Write-Host "Keycloak prepared at $kcHome"
