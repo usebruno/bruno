@@ -1,10 +1,12 @@
-import { Page, Locator } from '../../../playwright';
+import { Locator, Page } from '../../../playwright';
 import { buildApiSpecPanelLocators } from './openapi/render-spec';
+import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
+  fileMode: buildFileModeLocators(page),
   openApi: {
     render: buildApiSpecPanelLocators(page)
   },

@@ -223,9 +223,10 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
 
   return (
     <StyledWrapper>
-      <div className="bruno-search-bar">
+      <div className="bruno-search-bar" data-testid="codemirror-search-bar">
         <input
           ref={inputRef}
+          data-testid="codemirror-search-input"
           autoFocus
           type="text"
           value={searchText}
@@ -238,7 +239,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
             if (e.key === 'Escape') handleSearchBarClose();
           }}
         />
-        <span className="searchbar-result-count">{matchCount > 0 ? `${matchIndex + 1} / ${matchCount}` : '0 results'}</span>
+        <span className="searchbar-result-count" data-testid="codemirror-search-result-count">{matchCount > 0 ? `${matchIndex + 1} / ${matchCount}` : '0 results'}</span>
         <ToolHint text="Regex search" toolhintId="searchbar-regex-toolhint" place="top">
           <button className={`searchbar-icon-btn ${regex ? 'active' : ''}`} onClick={handleToggleRegex}><IconRegex size={16} /></button>
         </ToolHint>
