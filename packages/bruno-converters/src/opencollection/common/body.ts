@@ -137,10 +137,9 @@ export const fromOpenCollectionBody = (body: HttpRequestBody | GraphQLBody | und
               contentType: file.contentType || '',
               selected: file.selected !== false
             };
-            const fileWithDescription = file;
-            const desc = typeof fileWithDescription.description === 'string'
-              ? fileWithDescription.description
-              : (fileWithDescription.description as { content?: string } | undefined)?.content;
+            const desc = typeof file.description === 'string'
+              ? file.description
+              : (file.description as { content?: string } | undefined)?.content;
             if (desc && desc.trim().length) entry.description = desc;
             return entry;
           })
