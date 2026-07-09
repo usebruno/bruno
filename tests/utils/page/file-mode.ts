@@ -7,6 +7,8 @@ export const buildFileModeLocators = (page: Page) => ({
   editor: () => page.locator('.file-mode .CodeMirror'),
   editorContent: () => page.locator('.file-mode .CodeMirror .CodeMirror-code'),
   currentSearchMatch: () => page.locator('.file-mode .CodeMirror .cm-search-current'),
+  overflowMenu: () => page.getByTestId('more-actions'),
+  fileModeMenuItem: () => page.getByTestId('more-actions-file-mode'),
   search: {
     bar: () => page.getByTestId('codemirror-search-bar'),
     input: () => page.getByTestId('codemirror-search-input'),
@@ -36,11 +38,15 @@ export const SEARCH_CONTENT = [
   '}'
 ].join('\n');
 
-// Switch the active request into File Mode via the header view-mode toggle.
+/* Switch the active request into File Mode. The Request/App/File view-mode toggle
+* only renders when the request has apps enabled; everywhere else (transient HTTP
+* requests included) File Mode lives in the header's "..." overflow menu.
+*/
 export const switchToFileMode = async (page: Page) => {
   await test.step('Switch to File Mode', async () => {
     const fileMode = buildFileModeLocators(page);
-    await page.getByTestId('view-mode-file').click();
+    await fileMode.overflowMenu().click();
+    await fileMode.fileModeMenuItem().click();
     await fileMode.editor().waitFor({ state: 'visible' });
   });
 };

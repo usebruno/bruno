@@ -281,7 +281,6 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     } else if (item && item.uid) {
       if (hasChanges || isItemTransientRequest(item)) {
         if (item.type === 'js' || collection.fileMode) {
-          console.log({ item });
           dispatch(saveFile(item.draft?.raw ?? item.raw, tab.uid, tab.collectionUid));
         } else {
           dispatch(saveRequest(tab.uid, tab.collectionUid));
