@@ -1,9 +1,8 @@
 import { Page } from '../../../playwright';
 
 /**
- * Builds locators for app toast notifications.
+ * Toast (react-hot-toast) locators, parameterised by message.
  */
 export const buildToastLocators = (page: Page) => ({
-  success: (message: string | RegExp) => page.getByText(message),
-  error: (message: string | RegExp) => page.getByText(message)
+  byMessage: (message: string) => page.getByText(message)
 });

@@ -25,14 +25,14 @@ test.describe('Import WSDL Collection', () => {
     await test.step('Click on Import a collection', async () => {
       await locators.plusMenu.importCollection().click();
       await importLocators.modal().waitFor({ state: 'visible' });
-      await expect(importLocators.modalTitle()).toContainText('Import Collection');
-      await expect(importLocators.fileTab()).toBeVisible();
-      await expect(importLocators.gitRepositoryTab()).toBeVisible();
-      await expect(importLocators.urlTab()).toBeVisible();
+      await expect(importLocators.importModal.modalTitle()).toContainText('Import Collection');
+      await expect(importLocators.importModal.fileTab()).toBeVisible();
+      await expect(importLocators.importModal.gitRepositoryTab()).toBeVisible();
+      await expect(importLocators.importModal.urlTab()).toBeVisible();
     });
 
     await test.step('Click on the choose files on the pop-up', async () => {
-      await expect(importLocators.chooseFilesButton()).toBeVisible();
+      await expect(importLocators.importModal.chooseFilesButton()).toBeVisible();
     });
 
     await test.step('Select the WSDL collection from the device storage', async () => {
@@ -44,8 +44,8 @@ test.describe('Import WSDL Collection', () => {
     await test.step('Click on the import button', async () => {
       await importLocators.locationInput().fill(collectionLocation);
       await importLocators.importButton(importLocators.locationModal()).click();
+      // await expect(locators.toast.byMessage('Collection imported successfully')).toBeVisible();
       await expect(locators.sidebar.collection(collectionName)).toBeVisible();
-      // await expect(locators.toast.success('Collection imported successfully')).toBeVisible();
     });
   }
   );

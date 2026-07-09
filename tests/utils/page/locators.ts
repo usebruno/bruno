@@ -3,6 +3,9 @@ import { buildApiSpecPanelLocators } from './openapi/render-spec';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
+import { buildBulkImportSelectionLocators } from './import/bulk-import';
+import { buildCloneGitLocators } from './import/clone-git';
+import { buildImportModalLocators } from './import/modal';
 import { buildToastLocators } from './toast';
 
 export const buildCommonLocators = (page: Page) => ({
@@ -271,6 +274,7 @@ export const buildCommonLocators = (page: Page) => ({
     importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
   },
   import: {
+    modal: () => page.getByTestId('import-collection-modal'),
     locationModal: () => page.getByTestId('import-collection-location-modal'),
     locationInput: () =>
       page.getByTestId('import-collection-location-modal').getByTestId('import-collection-location-input'),
@@ -278,6 +282,7 @@ export const buildCommonLocators = (page: Page) => ({
       page.getByTestId('import-collection-location-modal').getByText(name, { exact: true }),
     locationFormatSelect: () =>
       page.getByTestId('import-collection-location-modal').getByTestId('import-collection-format-select'),
+    fileInput: () => page.getByTestId('import-collection-file-input'),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
     bulkFormatSelect: () =>
       page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
@@ -303,7 +308,9 @@ export const buildCommonLocators = (page: Page) => ({
         issuesToastUrlTooLongWarning: () => issuesToast().getByTestId('import-issues-url-too-long-warning')
       };
     })(),
-    ...buildImportAddedLocators(page)
+    importModal: buildImportModalLocators(page),
+    cloneGit: buildCloneGitLocators(page),
+    bulkImport: buildBulkImportSelectionLocators(page)
   },
   /**
    * Build generic table locators for any table with a testId

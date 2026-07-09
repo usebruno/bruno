@@ -8,10 +8,6 @@ type SandboxMode = 'safe' | 'developer';
 
 type CollectionFormat = 'bru' | 'yml';
 
-type CreateCollectionOptions = {
-  successToast?: string | RegExp;
-};
-
 type WaitForAppReadyOptions = {
   timeout?: number;
 };
@@ -114,15 +110,9 @@ const createCollection = async (
   page,
   collectionName: string,
   collectionLocation: string,
-  formatOrOptions: CollectionFormat | CreateCollectionOptions = 'yml',
-  options: CreateCollectionOptions = {}
+  format: CollectionFormat = 'yml'
 ) => {
-  const format = typeof formatOrOptions === 'string' ? formatOrOptions : 'yml';
-  const opts = typeof formatOrOptions === 'string' ? options : formatOrOptions;
-
   await test.step(`Create ${format} collection "${collectionName}"`, async () => {
-    const locators = buildCommonLocators(page);
-
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
@@ -188,10 +178,6 @@ const createCollection = async (
     // signal that the form actually submitted
     await createCollectionModal.waitFor({ state: 'hidden', timeout: 5000 });
     await expect(page.locator('.bruno-modal-backdrop')).toHaveCount(0);
-
-    if (opts.successToast) {
-      await expect(locators.toast.success(opts.successToast)).toBeVisible();
-    }
 
     // Wait for the collection name to appear in the sidebar before proceeding
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).waitFor({ state: 'visible', timeout: 5000 });
@@ -526,10 +512,6 @@ const importCollection = async (
     // Set location and import
     await page.locator('#collection-location').fill(collectionLocation);
     await locationModal.getByRole('button', { name: 'Import' }).click();
-
-    if (options.successToast) {
-      await expect(locators.toast.success(options.successToast)).toBeVisible();
-    }
 
     // Wait for collection to appear in sidebar
     if (options.expectedCollectionName) {

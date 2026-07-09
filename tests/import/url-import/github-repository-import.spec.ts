@@ -26,38 +26,38 @@ test.describe('Git repository import', () => {
       await locators.plusMenu.importCollection().click();
 
       await importLocators.modal().waitFor({ state: 'visible' });
-      await expect(importLocators.modalTitle()).toContainText('Import Collection');
-      await expect(importLocators.fileTab()).toBeVisible();
-      await expect(importLocators.gitRepositoryTab()).toBeVisible();
-      await expect(importLocators.urlTab()).toBeVisible();
+      await expect(importLocators.importModal.modalTitle()).toContainText('Import Collection');
+      await expect(importLocators.importModal.fileTab()).toBeVisible();
+      await expect(importLocators.importModal.gitRepositoryTab()).toBeVisible();
+      await expect(importLocators.importModal.urlTab()).toBeVisible();
     });
 
     await test.step('Go to git repository section and Enter the URL and select the location to save the repo then click on the import button', async () => {
-      await importLocators.gitRepositoryTab().click();
-      await importLocators.gitUrlInput().fill(gitUrl);
-      await importLocators.cloneGitButton().click();
-      await importLocators.loader().waitFor({ state: 'hidden' });
+      await importLocators.importModal.gitRepositoryTab().click();
+      await importLocators.importModal.gitUrlInput().fill(gitUrl);
+      await importLocators.importModal.cloneGitButton().click();
+      await importLocators.importModal.loader().waitFor({ state: 'hidden' });
 
-      await expect(importLocators.cloneGitModal()).toBeVisible();
-      await expect(importLocators.cloneGitModal()).toContainText(gitUrl);
+      await expect(importLocators.cloneGit.cloneGitModal()).toBeVisible();
+      await expect(importLocators.cloneGit.cloneGitModal()).toContainText(gitUrl);
 
       await mockBrowseFiles(electronApp, [cloneLocation]);
 
-      await importLocators.cloneGitLocationInput().click();
-      await expect(importLocators.cloneGitLocationInput()).toHaveValue(cloneLocation);
+      await importLocators.cloneGit.cloneGitLocationInput().click();
+      await expect(importLocators.cloneGit.cloneGitLocationInput()).toHaveValue(cloneLocation);
 
-      await importLocators.cloneGitSubmitButton().click();
-      await expect(importLocators.cloneGitCollectionItemTitle(collectionName)).toBeVisible();
+      await importLocators.cloneGit.cloneGitSubmitButton().click();
+      await expect(importLocators.cloneGit.cloneGitCollectionItemTitle(collectionName)).toBeVisible();
     });
 
     await test.step('Select the desired collections and click on open', async () => {
-      await importLocators.cloneGitCollectionCheckbox(collectionName).check();
+      await importLocators.cloneGit.cloneGitCollectionCheckbox(collectionName).check();
 
-      await importLocators.cloneGitSubmitButton().click();
-      await importLocators.cloneGitModal().waitFor({ state: 'hidden' });
+      await importLocators.cloneGit.cloneGitSubmitButton().click();
+      await importLocators.cloneGit.cloneGitModal().waitFor({ state: 'hidden' });
 
       await expect(locators.sidebar.collection(collectionName)).toBeVisible();
-      await expect(locators.toast.success('Repository cloned successfully')).toBeVisible();
+      await expect(locators.toast.byMessage('Repository cloned successfully')).toBeVisible();
     });
   });
 });
