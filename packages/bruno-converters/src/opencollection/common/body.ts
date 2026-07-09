@@ -16,8 +16,6 @@ import type {
   BrunoGraphqlBody
 } from '../types';
 
-type FileBodyVariantWithDescription = FileBodyVariant & { description?: string };
-
 export const fromOpenCollectionBody = (body: HttpRequestBody | GraphQLBody | undefined, requestType: string = 'http'): BrunoHttpRequestBody => {
   const defaultBody: BrunoHttpRequestBody = {
     mode: 'none',
@@ -139,7 +137,7 @@ export const fromOpenCollectionBody = (body: HttpRequestBody | GraphQLBody | und
               contentType: file.contentType || '',
               selected: file.selected !== false
             };
-            const fileWithDescription = file as FileBodyVariantWithDescription;
+            const fileWithDescription = file;
             const desc = typeof fileWithDescription.description === 'string'
               ? fileWithDescription.description
               : (fileWithDescription.description as { content?: string } | undefined)?.content;
@@ -216,8 +214,8 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
     }
 
     case 'file': {
-      const fileData: FileBodyVariantWithDescription[] = (body.file || []).map((file): FileBodyVariantWithDescription => {
-        const entry: FileBodyVariantWithDescription = {
+      const fileData: FileBodyVariant[] = (body.file || []).map((file): FileBodyVariant => {
+        const entry: FileBodyVariant = {
           filePath: file.filePath || '',
           contentType: file.contentType || '',
           selected: file.selected !== false

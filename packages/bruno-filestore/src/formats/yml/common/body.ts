@@ -9,9 +9,8 @@ import type {
   FileBody,
   FileBodyVariant
 } from '@opencollection/types/requests/http';
-import type { FileEntry as BrunoFileEntry } from '@usebruno/schema-types/common/file';
+import type { FileEntry as BrunoFileEntry, FileEntry } from '@usebruno/schema-types/common/file';
 
-type FileBodyEntryWithDescription = FileBodyVariant & { description?: string };
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import { uuid, ensureString } from '../../../utils';
 
@@ -106,8 +105,8 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
       return multipartBody;
 
     case 'file':
-      const fileEntries: FileBodyEntryWithDescription[] = body.file?.map((file): FileBodyEntryWithDescription => {
-        const fileEntry: FileBodyEntryWithDescription = {
+      const fileEntries: FileBodyVariant[] = body.file?.map((file): FileBodyVariant => {
+        const fileEntry: FileBodyVariant = {
           filePath: file.filePath || '',
           contentType: file.contentType || '',
           selected: file.selected ?? false
@@ -239,7 +238,7 @@ export const toBrunoBody = (body: HttpRequestBody | null | undefined): BrunoHttp
           selected: file.selected ?? false
         };
 
-        const fileWithDescription = file as FileBodyEntryWithDescription;
+        const fileWithDescription = file as FileBodyVariant;
         const desc = typeof fileWithDescription.description === 'string'
           ? fileWithDescription.description
           : (fileWithDescription.description as { content?: string } | undefined)?.content;

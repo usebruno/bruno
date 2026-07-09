@@ -29,8 +29,12 @@ describe('file body description', () => {
 
     expect(out?.mode).toBe('file');
     expect(out?.file).toHaveLength(2);
-    expect(out?.file[0]).toMatchObject({ filePath: '/tmp/readme.pdf', description: 'Upload doc' });
-    expect(out?.file[1].description).toBeFalsy();
+
+    // already fails on the length check above , the if is just to satisfy typescript
+    if (out?.file) {
+      expect(out?.file[0]).toMatchObject({ filePath: '/tmp/readme.pdf', description: 'Upload doc' });
+      expect(out?.file[1].description).toBeFalsy();
+    }
   });
 
   it('round-trips file body descriptions through OC conversion', () => {
@@ -45,7 +49,12 @@ describe('file body description', () => {
     const oc = toOpenCollectionBody(brunoBody);
     const back = toBrunoBody(oc);
 
-    expect(back?.file[0]).toMatchObject({ filePath: '/tmp/readme.pdf', description: 'Upload doc' });
-    expect(back?.file[1].description).toBeFalsy();
+    expect(back?.file).toHaveLength(2);
+
+    // already fails on the length check above , the if is just to satisfy typescript
+    if (back?.file) {
+      expect(back?.file[0]).toMatchObject({ filePath: '/tmp/readme.pdf', description: 'Upload doc' });
+      expect(back?.file[1].description).toBeFalsy();
+    }
   });
 });
