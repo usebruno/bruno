@@ -17,7 +17,6 @@ const toRelativePathname = (pathname, collectionPathname) => {
 const RequestsNotLoaded = ({ collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
-  const flattenedItems = flattenItems(collection.items);
 
   const itemsFailedLoading = useMemo(() => {
     return flattenItems(collection.items)?.filter((item) => {
@@ -69,17 +68,15 @@ const RequestsNotLoaded = ({ collection }) => {
           </tr>
         </thead>
         <tbody>
-          {flattenedItems?.map((item, index) => (
-            item?.partial && !item?.loading ? (
-              <tr key={index} className="cursor-pointer" onClick={handleRequestClick(item)}>
-                <td className="py-1.5 px-3">
-                  {toRelativePathname(item?.pathname, collection?.pathname)}
-                </td>
-                <td className="py-1.5 px-3">
-                  {item?.size?.toFixed?.(2)}&nbsp;MB
-                </td>
-              </tr>
-            ) : null
+          {itemsFailedLoading?.map((item, index) => (
+            <tr key={index} className="cursor-pointer" onClick={handleRequestClick(item)}>
+              <td className="py-1.5 px-3">
+                {toRelativePathname(item?.pathname, collection?.pathname)}
+              </td>
+              <td className="py-1.5 px-3">
+                {item?.size?.toFixed?.(2)}&nbsp;MB
+              </td>
+            </tr>
           ))}
         </tbody>
       </table>

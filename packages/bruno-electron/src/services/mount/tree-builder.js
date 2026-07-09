@@ -126,7 +126,7 @@ const buildRequestNode = (absolutePath, basename, entry, uidOverrides, uidFor) =
     type: data.type || 'http-request',
     seq: data.seq,
     tags: data.tags,
-    request: data.request,
+    request: data.request || {},
     settings: data.settings,
     examples: data.examples,
     raw: entry.raw ?? null,
