@@ -1,3 +1,5 @@
+const { DiffKind } = require('../../common/diff-kind');
+
 // Canonical stringify (object keys sorted, array order preserved) so nested values like the
 // additional-params arrays (authRequestParams/tokenRequestParams/refreshRequestParams) are
 // compared structurally rather than by key order or reference.
@@ -55,9 +57,7 @@ const collectAuthNodes = (collection) => {
 };
 
 // Diff the auth subtree of two Postman collections (original vs round-tripped). Returns a flat
-// list of structured diffs. `kind` is one of:
-//   'node-only-in-original' | 'node-only-in-roundtrip' | 'type-mismatch'
-//   'key-missing-in-roundtrip' | 'key-only-in-roundtrip' | 'value-mismatch'
+// list of structured diffs. `kind` is one of the DiffKind values.
 const diffAuthNodes = (originalCollection, roundTrippedCollection) => {
   const original = collectAuthNodes(originalCollection);
   const roundtrip = collectAuthNodes(roundTrippedCollection);
@@ -69,11 +69,11 @@ const diffAuthNodes = (originalCollection, roundTrippedCollection) => {
     const b = roundtrip[nodePath];
 
     if (!(nodePath in original)) {
-      diffs.push({ node: nodePath, kind: 'node-only-in-roundtrip', authType: b?.type ?? null });
+      diffs.push({ node: nodePath, kind: DiffKind.NODE_ONLY_IN_ROUNDTRIP, authType: b?.type ?? null });
       continue;
     }
     if (!(nodePath in roundtrip)) {
-      diffs.push({ node: nodePath, kind: 'node-only-in-original', authType: a?.type ?? null });
+      diffs.push({ node: nodePath, kind: DiffKind.NODE_ONLY_IN_ORIGINAL, authType: a?.type ?? null });
       continue;
     }
 
@@ -81,7 +81,7 @@ const diffAuthNodes = (originalCollection, roundTrippedCollection) => {
     if (a === null && b === null) continue;
 
     if ((a?.type ?? null) !== (b?.type ?? null)) {
-      diffs.push({ node: nodePath, kind: 'type-mismatch', original: a?.type ?? null, roundTripped: b?.type ?? null });
+      diffs.push({ node: nodePath, kind: DiffKind.TYPE_MISMATCH, original: a?.type ?? null, roundTripped: b?.type ?? null });
       // Type differs; param-level comparison below would be noise, so skip it.
       continue;
     }
@@ -104,15 +104,15 @@ const diffAuthNodes = (originalCollection, roundTrippedCollection) => {
       const diff = { node: nodePath, authType: a.type, key };
       if (grantType !== undefined) diff.grantType = grantType;
       if (isEmpty(vA)) {
-        diffs.push({ ...diff, kind: 'key-only-in-roundtrip', roundTripped: vB });
+        diffs.push({ ...diff, kind: DiffKind.KEY_ONLY_IN_ROUNDTRIP, roundTripped: vB });
       } else if (isEmpty(vB)) {
-        diffs.push({ ...diff, kind: 'key-missing-in-roundtrip', original: vA });
+        diffs.push({ ...diff, kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, original: vA });
       } else if (stableStringify(vA) !== stableStringify(vB)) {
-        diffs.push({ ...diff, kind: 'value-mismatch', original: vA, roundTripped: vB });
+        diffs.push({ ...diff, kind: DiffKind.VALUE_MISMATCH, original: vA, roundTripped: vB });
       }
     }
   }
   return diffs;
 };
 
-module.exports = { stableStringify, normalizeAuth, collectAuthNodes, diffAuthNodes };
+module.exports = { stableStringify, normalizeAuth, collectAuthNodes, diffAuthNodes, DiffKind };
