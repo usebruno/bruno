@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { flattenItems } from 'utils/collections';
 import { IconAlertTriangle } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
@@ -7,11 +7,23 @@ import { isItemARequest, itemIsOpenedInTabs } from 'utils/tabs/index';
 import { getDefaultRequestPaneTab } from 'utils/collections/index';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 
+const toRelativePathname = (pathname, collectionPathname) => {
+  if (pathname && collectionPathname && pathname.startsWith(collectionPathname)) {
+    return pathname.slice(collectionPathname.length + 1);
+  }
+  return pathname;
+};
+
 const RequestsNotLoaded = ({ collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const flattenedItems = flattenItems(collection.items);
-  const itemsFailedLoading = flattenedItems?.filter((item) => item?.partial && !item?.loading);
+
+  const itemsFailedLoading = useMemo(() => {
+    return flattenItems(collection.items)?.filter((item) => {
+      return (item?.partial && !item.loading) || (item?.error);
+    });
+  }, [collection.items]);
 
   if (!itemsFailedLoading?.length) {
     return null;
@@ -61,7 +73,7 @@ const RequestsNotLoaded = ({ collection }) => {
             item?.partial && !item?.loading ? (
               <tr key={index} className="cursor-pointer" onClick={handleRequestClick(item)}>
                 <td className="py-1.5 px-3">
-                  {item?.pathname?.split(`${collection?.pathname}/`)?.[1]}
+                  {toRelativePathname(item?.pathname, collection?.pathname)}
                 </td>
                 <td className="py-1.5 px-3">
                   {item?.size?.toFixed?.(2)}&nbsp;MB

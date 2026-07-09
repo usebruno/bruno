@@ -5,6 +5,7 @@ const {
   uidForSeed,
   defaultClassify
 } = require('../../utils/mount');
+const { sizeInMB } = require('../../utils/filesystem');
 
 const REQUEST_EXT_RE = /\.(bru|yml|yaml)$/i;
 const stripExt = (basename) => basename.replace(REQUEST_EXT_RE, '');
@@ -129,6 +130,7 @@ const buildRequestNode = (absolutePath, basename, entry, uidOverrides, uidFor) =
     settings: data.settings,
     examples: data.examples,
     raw: entry.raw ?? null,
+    size: sizeInMB(entry?.raw?.length ?? 0),
     filename: basename,
     pathname: absolutePath,
     draft: null,

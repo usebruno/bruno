@@ -352,7 +352,19 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       } catch (error) {
-        console.error(error);
+        file.data = {
+          name: path.basename(pathname),
+          type: 'http-request'
+        };
+        file.error = {
+          message: error?.message
+        };
+        file.partial = true;
+        file.loading = false;
+        file.size = sizeInMB(fileStats?.size);
+        file.data.raw = content;
+        hydrateRequestWithUuid(file.data, pathname);
+        win.webContents.send('main:collection-tree-updated', 'addFile', file);
       } finally {
         watcher.markFileAsProcessed(win, collectionUid, pathname);
       }
@@ -561,17 +573,19 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
   const format = getCollectionFormat(collectionPath);
   if (hasRequestExtension(pathname, format)) {
-    try {
-      const file = {
-        meta: {
-          collectionUid,
-          pathname,
-          name: path.basename(pathname)
-        }
-      };
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname)
+      }
+    };
 
-      const content = fs.readFileSync(pathname, 'utf8');
-      const fileStats = fs.statSync(pathname);
+    let content;
+    let fileStats;
+    try {
+      content = fs.readFileSync(pathname, 'utf8');
+      fileStats = fs.statSync(pathname);
 
       if (fileStats.size >= MAX_FILE_SIZE && format === 'bru') {
         // redacted parse — do not write the redacted data through to the cache
@@ -586,7 +600,19 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
     } catch (err) {
-      console.error(err);
+      file.data = {
+        name: path.basename(pathname),
+        type: 'http-request'
+      };
+      file.error = {
+        message: err?.message
+      };
+      file.partial = true;
+      file.loading = false;
+      file.size = sizeInMB(fileStats?.size);
+      file.data.raw = content;
+      hydrateRequestWithUuid(file.data, pathname);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
     }
   }
 };
