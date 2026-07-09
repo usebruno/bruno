@@ -3,6 +3,7 @@ import { escapeHtml } from 'utils/response/index';
 
 const HtmlPreview = React.memo(({ data, baseUrl }) => {
   const webviewContainerRef = useRef(null);
+  const webviewRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
@@ -30,6 +31,37 @@ const HtmlPreview = React.memo(({ data, baseUrl }) => {
     return () => mutationObserver.disconnect();
   }, []);
 
+  useEffect(() => {
+    const webview = webviewRef.current;
+    if (!webview) return;
+
+    const openExternalUrl = (url) => {
+      if (/^https?:\/\//.test(url)) {
+        window.ipcRenderer.openExternal(url);
+      }
+    };
+
+    const handleNavigation = (event) => {
+      if (/^https?:\/\//.test(event.url)) {
+        event.preventDefault();
+        openExternalUrl(event.url);
+      }
+    };
+
+    const handleNewWindow = (event) => {
+      event.preventDefault();
+      openExternalUrl(event.url);
+    };
+
+    webview.addEventListener('will-navigate', handleNavigation);
+    webview.addEventListener('new-window', handleNewWindow);
+
+    return () => {
+      webview.removeEventListener('will-navigate', handleNavigation);
+      webview.removeEventListener('new-window', handleNewWindow);
+    };
+  }, []);
+
   const renderHtmlPreview = (data, baseUrl, isDragging, webviewContainerRef) => {
     const htmlContent = data.includes('<head>')
       ? data.replace('<head>', `<head><base href="${escapeHtml(baseUrl)}">`)
@@ -44,6 +76,8 @@ const HtmlPreview = React.memo(({ data, baseUrl }) => {
         style={dragStyles}
       >
         <webview
+          ref={webviewRef}
+          data-testid="html-response-preview"
           src={`data:text/html; charset=utf-8,${encodeURIComponent(htmlContent)}`}
           webpreferences="disableDialogs=true, javascript=yes"
           className="h-full bg-white"
