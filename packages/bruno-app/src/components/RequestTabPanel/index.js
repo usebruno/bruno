@@ -578,8 +578,12 @@ const RequestTabPanel = () => {
     );
   }
 
+  const itemSource = item.draft ? item.draft : item;
+  // Preview state is runtime-only, kept on the tab; unset means "preview on" so
+  // an app-enabled request opens in preview mode by default.
   const appEnabled = item.type !== 'app'
-    && (item.draft ? get(item, 'draft.app.enabled', false) : get(item, 'app.enabled', false));
+    && get(itemSource, 'app.enabled', false) === true
+    && focusedTab.appPreview !== false;
   if (item.type === 'app' || appEnabled) {
     return <StyledWrapper className="flex flex-col flex-grow relative overflow-hidden" data-testid="app-tab-placeholder" />;
   }
