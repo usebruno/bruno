@@ -9,7 +9,7 @@ import type {
   FileBody,
   FileBodyVariant
 } from '@opencollection/types/requests/http';
-import type { FileEntry as BrunoFileEntry, FileEntry } from '@usebruno/schema-types/common/file';
+import type { FileEntry as BrunoFileEntry } from '@usebruno/schema-types/common/file';
 
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import { uuid, ensureString } from '../../../utils';
