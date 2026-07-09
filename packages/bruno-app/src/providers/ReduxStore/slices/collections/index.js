@@ -313,6 +313,39 @@ export const collectionsSlice = createSlice({
         collection.brunoConfig = brunoConfig;
       }
     },
+    migrateCollectionToYmlInPlace: (state, action) => {
+      const { collectionUid, brunoConfig } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) {
+        return;
+      }
+
+      if (brunoConfig) {
+        collection.brunoConfig = brunoConfig;
+      }
+      collection.format = 'yml';
+
+      const rewriteItemPaths = (items) => {
+        (items || []).forEach((item) => {
+          if (typeof item.pathname === 'string') {
+            item.pathname = item.pathname.replace(/\.bru$/, '.yml');
+          }
+          if (typeof item.filename === 'string') {
+            item.filename = item.filename.replace(/\.bru$/, '.yml');
+          }
+          if (item.items && item.items.length) {
+            rewriteItemPaths(item.items);
+          }
+        });
+      };
+      rewriteItemPaths(collection.items);
+
+      (collection.environments || []).forEach((environment) => {
+        if (typeof environment.pathname === 'string') {
+          environment.pathname = environment.pathname.replace(/\.bru$/, '.yml');
+        }
+      });
+    },
     renameCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -3900,6 +3933,7 @@ export const {
   setCollectionSecurityConfig,
   updateCollectionVersion,
   brunoConfigUpdateEvent,
+  migrateCollectionToYmlInPlace,
   renameCollection,
   removeCollection,
   sortCollections,
