@@ -37,37 +37,50 @@ import { DiffKind } from '../../common/diff-kind';
 
 const FIXTURES_DIR = path.join(__dirname, 'fixtures');
 
+const AUTH_TYPES = Object.freeze({
+  BASIC: 'basic',
+  BEARER: 'bearer',
+  AWSV4: 'awsv4',
+  APIKEY: 'apikey',
+  DIGEST: 'digest',
+  NTLM: 'ntlm',
+  OAUTH1: 'oauth1',
+  OAUTH2: 'oauth2',
+  EDGEGRID: 'edgegrid',
+  NOAUTH: 'noauth'
+});
+
 // Shape: { fixture, node, authType, key, kind, category, reason, grantType? }
 // fixture/node support '*'. grantType (array) restricts an oauth2 entry to those grant types.
 const AUTH_ROUNDTRIP_WHITELIST = [
   // --- feature-gap: Bruno does not model these Postman fields yet (drive this list to zero) ---
   // oauth1: Bruno models currently don't support the following.
-  { fixture: '*', node: '*', authType: 'oauth1', key: 'addEmptyParamsToSign', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no oauth1 addEmptyParamsToSign field' },
-  { fixture: '*', node: '*', authType: 'oauth1', key: 'disableHeaderEncoding', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no oauth1 disableHeaderEncoding field' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.OAUTH1, key: 'addEmptyParamsToSign', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no oauth1 addEmptyParamsToSign field' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.OAUTH1, key: 'disableHeaderEncoding', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no oauth1 disableHeaderEncoding field' },
   // digest: Bruno models only support username/password; the rest of Postman's digest params are dropped.
-  { fixture: '*', node: '*', authType: 'digest', key: 'algorithm', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no digest algorithm field' },
-  { fixture: '*', node: '*', authType: 'digest', key: 'nonce', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no digest nonce field' },
-  { fixture: '*', node: '*', authType: 'digest', key: 'nonceCount', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no digest nonceCount field' },
-  { fixture: '*', node: '*', authType: 'digest', key: 'realm', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no digest realm field' },
-  { fixture: '*', node: '*', authType: 'digest', key: 'qop', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no digest qop field' },
-  { fixture: '*', node: '*', authType: 'digest', key: 'clientNonce', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no digest client nonce field' },
-  { fixture: '*', node: '*', authType: 'digest', key: 'opaque', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no digest opaque field' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.DIGEST, key: 'algorithm', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no digest algorithm field' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.DIGEST, key: 'nonce', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no digest nonce field' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.DIGEST, key: 'nonceCount', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no digest nonceCount field' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.DIGEST, key: 'realm', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no digest realm field' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.DIGEST, key: 'qop', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no digest qop field' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.DIGEST, key: 'clientNonce', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no digest client nonce field' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.DIGEST, key: 'opaque', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no digest opaque field' },
   // ntlm: Bruno models support username/password/domain only.
-  { fixture: '*', node: '*', authType: 'ntlm', key: 'workstation', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no ntlm workstation field' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.NTLM, key: 'workstation', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no ntlm workstation field' },
   // oauth2: Bruno models currently don't support the following.
-  { fixture: '*', node: '*', authType: 'oauth2', key: 'useBrowser', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no oauth2 useBrowser field' },
-  { fixture: '*', node: '*', authType: 'oauth2', key: 'code_verifier', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no oauth2 code_verifier (PKCE) field' },
-  { fixture: '*', node: '*', authType: 'oauth2', key: 'challengeAlgorithm', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no oauth2 code verifier - challenge algorithm' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.OAUTH2, key: 'useBrowser', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no oauth2 useBrowser field' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.OAUTH2, key: 'code_verifier', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no oauth2 code_verifier (PKCE) field' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.OAUTH2, key: 'challengeAlgorithm', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, category: 'feature-gap', reason: 'Bruno has no oauth2 code verifier - challenge algorithm' },
 
   // --- normalization: grant-scoped pruning (accepted ONLY for grants that don't use the field) ---
-  { fixture: '*', node: '*', authType: 'oauth2', key: 'authUrl', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, grantType: ['client_credentials', 'password_credentials'], category: 'normalization', reason: 'authorizationUrl is unused by client_credentials/password grants, so Bruno drops it' },
-  { fixture: '*', node: '*', authType: 'oauth2', key: 'redirect_uri', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, grantType: ['client_credentials', 'password_credentials'], category: 'normalization', reason: 'callbackUrl is unused by client_credentials/password grants, so Bruno drops it' },
-  { fixture: '*', node: '*', authType: 'oauth2', key: 'username', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, grantType: ['client_credentials', 'authorization_code', 'authorization_code_with_pkce', 'implicit'], category: 'normalization', reason: 'username is used only by the password grant, so Bruno drops it elsewhere' },
-  { fixture: '*', node: '*', authType: 'oauth2', key: 'password', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, grantType: ['client_credentials', 'authorization_code', 'authorization_code_with_pkce', 'implicit'], category: 'normalization', reason: 'password is used only by the password grant, so Bruno drops it elsewhere' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.OAUTH2, key: 'authUrl', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, grantType: ['client_credentials', 'password_credentials'], category: 'normalization', reason: 'authorizationUrl is unused by client_credentials/password grants, so Bruno drops it' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.OAUTH2, key: 'redirect_uri', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, grantType: ['client_credentials', 'password_credentials'], category: 'normalization', reason: 'callbackUrl is unused by client_credentials/password grants, so Bruno drops it' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.OAUTH2, key: 'username', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, grantType: ['client_credentials', 'authorization_code', 'authorization_code_with_pkce', 'implicit'], category: 'normalization', reason: 'username is used only by the password grant, so Bruno drops it elsewhere' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.OAUTH2, key: 'password', kind: DiffKind.KEY_MISSING_IN_ROUNDTRIP, grantType: ['client_credentials', 'authorization_code', 'authorization_code_with_pkce', 'implicit'], category: 'normalization', reason: 'password is used only by the password grant, so Bruno drops it elsewhere' },
 
   // --- normalization: default materialization (Postman omits, defaults it; Bruno emits explicitly) ---
-  { fixture: '*', node: '*', authType: 'apikey', key: 'in', kind: DiffKind.KEY_ONLY_IN_ROUNDTRIP, category: 'normalization', reason: 'Postman defaults apikey placement to header when omitted; Bruno emits it' },
-  { fixture: '*', node: '*', authType: 'oauth1', key: 'version', kind: DiffKind.KEY_ONLY_IN_ROUNDTRIP, category: 'normalization', reason: 'Bruno materializes default version=1.0 (== Postman default)' }
+  { fixture: '*', node: '*', authType: AUTH_TYPES.APIKEY, key: 'in', kind: DiffKind.KEY_ONLY_IN_ROUNDTRIP, category: 'normalization', reason: 'Postman defaults apikey placement to header when omitted; Bruno emits it' },
+  { fixture: '*', node: '*', authType: AUTH_TYPES.OAUTH1, key: 'version', kind: DiffKind.KEY_ONLY_IN_ROUNDTRIP, category: 'normalization', reason: 'Bruno materializes default version=1.0 (== Postman default)' }
 ];
 
 const readJson = (file) => JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, file), 'utf8'));
