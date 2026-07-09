@@ -1,0 +1,80 @@
+name: 'Setup Keycloak - Windows'
+description: 'Provision and start a Keycloak IdP (realm imported) for the OAuth2 e2e tests on Windows'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check for existing Java 21
+      id: check-java
+      shell: pwsh
+      run: |
+        $present = 'false'
+        if (Get-Command java -ErrorAction SilentlyContinue) {
+          $ver = (& java -version 2>&1) -join "`n"
+          if ($ver -match 'version "21') {
+            Write-Host "Java 21 already available:`n$ver"
+            $present = 'true'
+          }
+        }
+        if ($present -ne 'true') { Write-Host "Java 21 not found; will install via setup-java." }
+        "present=$present" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+    - name: Setup Java 21 (Temurin)
+      if: steps.check-java.outputs.present != 'true'
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+
+    - name: Verify Java 21 is active
+      shell: pwsh
+      run: |
+        $ver = (& java -version 2>&1) -join "`n"
+        Write-Host $ver
+        if ($ver -notmatch 'version "21') {
+          Write-Error "Expected Java 21 to be active"
+          exit 1
+        }
+
+    - name: Download and start Keycloak
+      shell: pwsh
+      env:
+        KEYCLOAK_VERSION: 26.3.3
+        KC_BOOTSTRAP_ADMIN_USERNAME: admin
+        KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $version = $env:KEYCLOAK_VERSION
+        $zip = "$env:RUNNER_TEMP\keycloak.zip"
+        $kcHome = "$env:RUNNER_TEMP\keycloak-$version"
+
+        Invoke-WebRequest -Uri "https://github.com/keycloak/keycloak/releases/download/$version/keycloak-$version.zip" -OutFile $zip
+        Expand-Archive -Path $zip -DestinationPath $env:RUNNER_TEMP -Force
+
+        New-Item -ItemType Directory -Force -Path "$kcHome\data\import" | Out-Null
+        Copy-Item "$env:GITHUB_WORKSPACE\tests\auth\oauth2\fixtures\keycloak\realm-export.json" `
+          "$kcHome\data\import\realm-export.json"
+
+        $log = "$env:RUNNER_TEMP\keycloak.log"
+        Start-Process -FilePath "$kcHome\bin\kc.bat" `
+          -ArgumentList 'start-dev','--http-port=8090','--import-realm' `
+          -RedirectStandardOutput $log -RedirectStandardError "$env:RUNNER_TEMP\keycloak.err.log" `
+          -NoNewWindow
+
+        Write-Host "Waiting for Keycloak (realm bruno) on :8090 ..."
+        $ready = $false
+        for ($i = 0; $i -lt 60; $i++) {
+          try {
+            Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:8090/realms/bruno/.well-known/openid-configuration' | Out-Null
+            $ready = $true
+            break
+          } catch {
+            Start-Sleep -Seconds 2
+          }
+        }
+        if (-not $ready) {
+          Write-Error "Keycloak did not become ready in time"
+          if (Test-Path $log) { Get-Content $log -Tail 100 }
+          exit 1
+        }
+        Write-Host "Keycloak is ready."
