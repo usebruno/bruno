@@ -46,25 +46,25 @@ export const openWorkspaceActionsMenu = async (page: Page, workspaceName: string
 
 export const selectWorkspaceAction = async (page: Page, optionName: string) => {
   const locators = buildManageWorkspaceLocators(page);
-  const modal = buildCommonLocators(page);
+  const commonLocators = buildCommonLocators(page);
   await test.step('Select workspace action on popup', async () => {
     await locators.workspaceDropdownItem(optionName).click();
-    await modal.modal.card().waitFor({ state: 'visible' });
+    await commonLocators.modal.card().waitFor({ state: 'visible' });
   });
 };
 
 export const enterNewWorkspaceNameAndSubmit = async (page: Page, workspaceName: string) => {
   const locators = buildManageWorkspaceLocators(page);
-  const modal = buildCommonLocators(page);
+  const commonLocators = buildCommonLocators(page);
   await test.step('Enter a new name for the workspace in the editing field.', async () => {
     await locators.workspaceFileRenameInput().fill(workspaceName);
-    await modal.modal.submitButton().click();
+    await commonLocators.modal.submitButton().click();
   });
 };
 
 export const confirmRemoveWorkspace = async (page: Page) => {
-  const modal = buildCommonLocators(page);
+  const commonLocators = buildCommonLocators(page);
   await test.step('Confirm remove workspace on popup', async () => {
-    await modal.modal.submitButton().click();
+    await commonLocators.modal.submitButton().click();
   });
 };

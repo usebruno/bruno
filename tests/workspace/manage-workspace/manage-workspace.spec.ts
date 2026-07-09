@@ -30,9 +30,9 @@ test.describe('Manage workspace', () => {
   test.describe('Open terminal from workspace actions menu', () => {
     test('TC-3109: Verify opening terminal from workspace actions menu', { tag: '@sanity' }, async ({ page }) => {
       await openTerminalFromWorkspaceActions(page, workspaceName);
-      const locators = buildTerminalLocators(page);
-      await expect(locators.terminalSession()).toBeVisible();
-      await expect(locators.terminalSession()).toContainText('Custom Workspace');
+      const terminalLocators = buildTerminalLocators(page);
+      await expect(terminalLocators.terminalSession()).toBeVisible();
+      await expect(terminalLocators.terminalSession()).toContainText('Custom Workspace');
     });
   });
 
