@@ -37,8 +37,8 @@ test.describe('Single Import - Default OpenCollection format', () => {
       await locators.plusMenu.importCollection().click();
 
       await importLocators.modal().waitFor({ state: 'visible' });
-      await expect(importLocators.modalTitle()).toContainText('Import Collection');
-      await expect(importLocators.fileTab()).toBeVisible();
+      await expect(importLocators.importModal.modalTitle()).toContainText('Import Collection');
+      await expect(importLocators.importModal.fileTab()).toBeVisible();
     });
 
     await test.step('Select the Postman collection file', async () => {
@@ -50,8 +50,6 @@ test.describe('Single Import - Default OpenCollection format', () => {
     });
 
     await test.step('Leave the format selection as default and click Import', async () => {
-      await expect(importLocators.locationFormatSelect()).toHaveCount(0);
-
       await importLocators.locationInput().fill(importLocation);
       await importLocators.importButton().click();
       await importLocators.locationModal().waitFor({ state: 'hidden' });

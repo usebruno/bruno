@@ -12,7 +12,6 @@ test.describe('Import Bruno Testbench Collection', () => {
 
     await importCollection(page, brunoFile, await createTmpDir('bruno-testbench-test'), {
       expectedCollectionName: 'bruno-testbench'
-      // successToast: 'Collection imported successfully'
     });
   });
 });

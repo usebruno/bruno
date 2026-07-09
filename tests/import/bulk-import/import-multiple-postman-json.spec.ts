@@ -35,34 +35,34 @@ test.describe('Bulk Import - Multiple Postman JSON', () => {
         await locators.plusMenu.importCollection().click();
 
         await importLocators.modal().waitFor({ state: 'visible' });
-        await expect(importLocators.modalTitle()).toContainText('Import Collection');
-        await expect(importLocators.fileTab()).toBeVisible();
-        await expect(importLocators.gitRepositoryTab()).toBeVisible();
-        await expect(importLocators.urlTab()).toBeVisible();
+        await expect(importLocators.importModal.modalTitle()).toContainText('Import Collection');
+        await expect(importLocators.importModal.fileTab()).toBeVisible();
+        await expect(importLocators.importModal.gitRepositoryTab()).toBeVisible();
+        await expect(importLocators.importModal.urlTab()).toBeVisible();
       });
 
       await test.step('Click on the choose files on the pop-up', async () => {
-        await expect(importLocators.chooseFilesButton()).toBeVisible();
+        await expect(importLocators.importModal.chooseFilesButton()).toBeVisible();
         await expect(importLocators.fileInput()).toBeAttached();
       });
 
       await test.step('Select multiple collections from the file explorer', async () => {
         await importLocators.fileInput().setInputFiles(importFiles);
-        await importLocators.loader().waitFor({ state: 'hidden' });
+        await importLocators.importModal.loader().waitFor({ state: 'hidden' });
 
         await expect(importLocators.bulkModal()).toBeVisible();
-        await expect(importLocators.bulkModalTitle()).toBeVisible();
-        await expect(importLocators.bulkCollectionsCount()).toHaveText(String(collectionNames.length));
+        await expect(importLocators.bulkImport.bulkModalTitle()).toBeVisible();
+        await expect(importLocators.bulkImport.bulkCollectionsCount()).toHaveText(String(collectionNames.length));
 
         for (const collectionName of collectionNames) {
-          await expect(importLocators.bulkCollectionItem(collectionName)).toBeVisible();
+          await expect(importLocators.bulkImport.bulkCollectionItem(collectionName)).toBeVisible();
         }
       });
 
       await test.step('Click on the import button', async () => {
         await importLocators.bulkLocationInput().fill(importLocation);
         await importLocators.bulkSubmitButton().click();
-        await expect(locators.toast.success(/collections imported successfully/i)).toBeVisible();
+        await expect(locators.toast.byMessage('collections imported successfully')).toBeVisible();
         for (const collectionName of collectionNames) {
           await expect(locators.sidebar.collection(collectionName)).toBeVisible();
         }

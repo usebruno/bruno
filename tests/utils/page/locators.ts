@@ -11,6 +11,9 @@ import { buildSidebarLocators } from './sidebar';
 import { buildDocsLocators } from './docs';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
 import { buildWebsocketCommonLocators } from './websocket';
+import { buildBulkImportSelectionLocators } from './import/bulk-import';
+import { buildCloneGitLocators } from './import/clone-git';
+import { buildImportModalLocators } from './import/modal';
 import { buildToastLocators } from './toast';
 import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
@@ -25,7 +28,6 @@ import { buildCreateWorkspaceModalLocators } from './workspace/create-workspace-
 import { buildTitleBarLocators } from './title-bar';
 import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
-import { buildImportAddedLocators } from './import/locators';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -345,6 +347,7 @@ export const buildCommonLocators = (page: Page) => ({
     importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
   },
   import: {
+    modal: () => page.getByTestId('import-collection-modal'),
     locationModal: () => page.getByTestId('import-collection-location-modal'),
     locationInput: () =>
       page.getByTestId('import-collection-location-modal').getByTestId('import-collection-location-input'),
@@ -354,6 +357,7 @@ export const buildCommonLocators = (page: Page) => ({
       page.getByTestId('import-collection-location-modal').getByTestId('import-collection-format-select'),
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
     preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
+    fileInput: () => page.getByTestId('import-collection-file-input'),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
     bulkFormatSelect: () =>
       page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
@@ -379,7 +383,9 @@ export const buildCommonLocators = (page: Page) => ({
         issuesToastUrlTooLongWarning: () => issuesToast().getByTestId('import-issues-url-too-long-warning')
       };
     })(),
-    ...buildImportAddedLocators(page)
+    importModal: buildImportModalLocators(page),
+    cloneGit: buildCloneGitLocators(page),
+    bulkImport: buildBulkImportSelectionLocators(page)
   },
   export: {
     postmanModal: () => page.getByTestId('export-to-postman-modal'),

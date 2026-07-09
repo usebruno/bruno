@@ -58,9 +58,8 @@ test.describe('Create collection', () => {
     const collectionLocation = await createTmpDir('test-collection');
     const collectionName = path.basename(collectionLocation);
 
-    await createCollection(page, collectionName, collectionLocation, {
-      successToast: 'Collection created!'
-    });
+    await createCollection(page, collectionName, collectionLocation);
+    await expect(page.getByText('Collection created!')).toBeVisible();
   });
 
   test('a newly created collection has no version set (shows "Not Set")', async ({ page, createTmpDir }) => {
