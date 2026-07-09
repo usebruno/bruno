@@ -3,10 +3,49 @@ description: 'Run OAuth2 (Keycloak) E2E tests on Windows'
 runs:
   using: 'composite'
   steps:
-    - name: Run OAuth2 E2E tests
+    # Keycloak is started HERE — in the same step as the tests — on purpose. On Windows,
+    # GitHub Actions kills a step's child-process tree when the step ends (Job Object), so a
+    # server started in an earlier step is dead by the time tests run. Keeping the process a
+    # child of this long-running step keeps it alive for the whole test run. KC_HOME comes
+    # from the setup-keycloak step.
+    - name: Start Keycloak and run OAuth2 E2E tests
       shell: pwsh
       run: |
-        npm run test:e2e:auth:oauth2
+        $ErrorActionPreference = 'Stop'
+        $kcHome = $env:KC_HOME
+        if (-not $kcHome) { Write-Error "KC_HOME is not set; setup-keycloak must run first"; exit 1 }
+
+        $log = "$env:RUNNER_TEMP\keycloak.log"
+        $errLog = "$env:RUNNER_TEMP\keycloak.err.log"
+        $kc = Start-Process -FilePath "$kcHome\bin\kc.bat" `
+          -ArgumentList 'start-dev','--http-port=8090','--import-realm' `
+          -RedirectStandardOutput $log -RedirectStandardError $errLog `
+          -NoNewWindow -PassThru
+
+        Write-Host "Waiting for Keycloak (realm bruno) on :8090 ..."
+        $ready = $false
+        for ($i = 0; $i -lt 60; $i++) {
+          try {
+            Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8090/realms/bruno/.well-known/openid-configuration' | Out-Null
+            $ready = $true
+            break
+          } catch {
+            Start-Sleep -Seconds 2
+          }
+        }
+        if (-not $ready) {
+          Write-Error "Keycloak did not become ready in time"
+          if (Test-Path $log) { Get-Content $log -Tail 100 }
+          if (Test-Path $errLog) { Get-Content $errLog -Tail 100 }
+          exit 1
+        }
+        Write-Host "Keycloak is ready."
+
+        try {
+          npm run test:e2e:auth:oauth2
+        } finally {
+          if ($kc -and -not $kc.HasExited) { Stop-Process -Id $kc.Id -Force -ErrorAction SilentlyContinue }
+        }
 
     - name: Upload Playwright Report
       if: ${{ !cancelled() }}
