@@ -14,8 +14,8 @@ import {
 export const DEFAULT_MOCK_SERVER_PORT = 4000;
 
 export const normalizeMockTabType = (type) => {
-  if (type === 'mock-server-dashboard') {
-    return 'mocker';
+  if (type === 'mock-server-dashboard' || type === 'mocker') {
+    return 'mock-server';
   }
 
   return type;
@@ -23,7 +23,7 @@ export const normalizeMockTabType = (type) => {
 
 export const isMockServerRelatedTab = (tab, mockServerUid) => {
   const type = normalizeMockTabType(tab?.type);
-  return (type === 'mocker' || type === 'mock-response') && tab?.mockServerUid === mockServerUid;
+  return (type === 'mock-server' || type === 'mock-response') && tab?.mockServerUid === mockServerUid;
 };
 
 export const suggestNextMockServerPort = (instances, { excludeUid } = {}) => {
@@ -328,7 +328,7 @@ export const openMockServerDashboard = (instance, collectionUid) => (dispatch) =
     collectionUid: collectionUid || instance.collectionUid,
     mockServerUid: instance.uid,
     tabName: instance.name,
-    type: 'mocker'
+    type: 'mock-server'
   }));
 };
 

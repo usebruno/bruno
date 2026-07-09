@@ -8,14 +8,14 @@ const makeCollection = () => ({
   pathname: '/workspace/collections/demo'
 });
 
-describe('tabs mocker dedup', () => {
-  it('addTab focuses existing mocker tab for the same mockServerUid', () => {
+describe('tabs mock-server dedup', () => {
+  it('addTab focuses existing mock-server tab for the same mockServerUid', () => {
     let state = reducer(undefined, addTab({
       uid: MOCK_SERVER_UID,
       collectionUid: COLLECTION_UID,
       mockServerUid: MOCK_SERVER_UID,
       tabName: 'Dog API',
-      type: 'mocker'
+      type: 'mock-server'
     }));
 
     state = reducer(state, addTab({
@@ -23,7 +23,7 @@ describe('tabs mocker dedup', () => {
       collectionUid: COLLECTION_UID,
       mockServerUid: MOCK_SERVER_UID,
       tabName: 'Dog API',
-      type: 'mocker'
+      type: 'mock-server'
     }));
 
     expect(state.tabs).toHaveLength(1);
@@ -31,7 +31,7 @@ describe('tabs mocker dedup', () => {
     expect(state.activeTabUid).toBe(MOCK_SERVER_UID);
   });
 
-  it('addTab focuses legacy mock-server-dashboard tab and migrates type to mocker', () => {
+  it('addTab focuses legacy mock-server-dashboard tab and migrates type to mock-server', () => {
     const legacyState = {
       tabs: [{
         uid: MOCK_SERVER_UID,
@@ -49,19 +49,45 @@ describe('tabs mocker dedup', () => {
       collectionUid: COLLECTION_UID,
       mockServerUid: MOCK_SERVER_UID,
       tabName: 'Dog API',
-      type: 'mocker'
+      type: 'mock-server'
     }));
 
     expect(state.tabs).toHaveLength(1);
-    expect(state.tabs[0].type).toBe('mocker');
+    expect(state.tabs[0].type).toBe('mock-server');
     expect(state.activeTabUid).toBe(MOCK_SERVER_UID);
   });
 
-  it('restoreTabs skips duplicate mocker snapshots for the same mockServerUid', () => {
+  it('addTab focuses legacy mocker tab and migrates type to mock-server', () => {
+    const legacyState = {
+      tabs: [{
+        uid: MOCK_SERVER_UID,
+        collectionUid: COLLECTION_UID,
+        mockServerUid: MOCK_SERVER_UID,
+        type: 'mocker',
+        tabName: 'Dog API'
+      }],
+      activeTabUid: null,
+      recentlyClosedTabs: []
+    };
+
+    const state = reducer(legacyState, addTab({
+      uid: 'new-uid',
+      collectionUid: COLLECTION_UID,
+      mockServerUid: MOCK_SERVER_UID,
+      tabName: 'Dog API',
+      type: 'mock-server'
+    }));
+
+    expect(state.tabs).toHaveLength(1);
+    expect(state.tabs[0].type).toBe('mock-server');
+    expect(state.activeTabUid).toBe(MOCK_SERVER_UID);
+  });
+
+  it('restoreTabs skips duplicate mock-server snapshots for the same mockServerUid', () => {
     const collection = makeCollection();
     const snapshotTabs = [
-      { type: 'mocker', mockServerUid: MOCK_SERVER_UID, name: 'Dog API', permanent: true },
-      { type: 'mocker', mockServerUid: MOCK_SERVER_UID, name: 'Dog API copy', permanent: true }
+      { type: 'mock-server', mockServerUid: MOCK_SERVER_UID, name: 'Dog API', permanent: true },
+      { type: 'mock-server', mockServerUid: MOCK_SERVER_UID, name: 'Dog API copy', permanent: true }
     ];
 
     const state = reducer(undefined, restoreTabs({

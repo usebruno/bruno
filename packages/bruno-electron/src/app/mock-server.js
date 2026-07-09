@@ -21,8 +21,12 @@ const {
 } = require('./mock-server-routing');
 
 const MAX_LOG_ENTRIES = 500;
+const LOG_FLUSH_MS = 300;
+const MAX_AVAILABLE_ROUTES = 50;
 
 const collections = new Map();
+const pendingLogBroadcasts = new Map();
+let logFlushTimer = null;
 const slugToCollectionUid = new Map();
 const isolatedServers = new Map();
 let gateway = null;
@@ -193,6 +197,48 @@ const emitRouteTableUpdated = (mockServerUid) => {
   });
 };
 
+const setCollectionRouteMap = (collection, routeMap) => {
+  collection.routeMap = routeMap;
+  collection.sortedRouteKeys = Array.from(routeMap.keys()).sort();
+};
+
+const getAvailableRoutes = (collection) => (
+  collection.sortedRouteKeys?.slice(0, MAX_AVAILABLE_ROUTES)
+  || Array.from(collection.routeMap.keys()).sort().slice(0, MAX_AVAILABLE_ROUTES)
+);
+
+const flushLogBroadcasts = () => {
+  logFlushTimer = null;
+
+  for (const [mockServerUid, entries] of pendingLogBroadcasts) {
+    if (!entries.length) {
+      continue;
+    }
+
+    emit('main:mock-server-request-log-batch', {
+      mockServerUid,
+      entries: [...entries]
+    });
+  }
+
+  pendingLogBroadcasts.clear();
+};
+
+const scheduleLogFlush = () => {
+  if (logFlushTimer) {
+    return;
+  }
+
+  logFlushTimer = setTimeout(flushLogBroadcasts, LOG_FLUSH_MS);
+};
+
+const queueLogBroadcast = (mockServerUid, entry) => {
+  const pending = pendingLogBroadcasts.get(mockServerUid) || [];
+  pending.push(entry);
+  pendingLogBroadcasts.set(mockServerUid, pending);
+  scheduleLogFlush();
+};
+
 const findParameterizedMatch = (routeMap, method, reqPath) => {
   const reqSegments = reqPath.split('/');
 
@@ -247,7 +293,7 @@ const logRequest = (collection, mockServerUid, data) => {
     collection.requestLog.shift();
   }
 
-  emit('main:mock-server-request-log', { mockServerUid, entry });
+  queueLogBroadcast(mockServerUid, entry);
 };
 
 const handleRequest = (mockServerUid, req, res) => {
@@ -286,7 +332,7 @@ const handleRequest = (mockServerUid, req, res) => {
       method: req.method,
       path: reqPath,
       hint: 'Create a mock response for this route',
-      availableRoutes: Array.from(collection.routeMap.keys()).sort()
+      availableRoutes: getAvailableRoutes(collection)
     });
     return;
   }
@@ -308,7 +354,7 @@ const handleRequest = (mockServerUid, req, res) => {
       method: req.method,
       path: reqPath,
       hint: 'Add or adjust mock response rules for this route',
-      availableRoutes: Array.from(collection.routeMap.keys()).sort()
+      availableRoutes: getAvailableRoutes(collection)
     });
     return;
   }
@@ -557,7 +603,7 @@ const start = async ({
 
   const baseUrl = buildBaseUrl({ mode, port: resolvedPort, slug });
 
-  collections.set(mockServerUid, {
+  const collectionState = {
     mockServerUid,
     sourceType,
     collectionPath,
@@ -567,11 +613,14 @@ const start = async ({
     slug,
     port: resolvedPort,
     baseUrl,
-    routeMap,
+    routeMap: null,
+    sortedRouteKeys: [],
     globalDelay,
     specPath,
     requestLog: []
-  });
+  };
+  setCollectionRouteMap(collectionState, routeMap);
+  collections.set(mockServerUid, collectionState);
 
   const routeCount = routeMap.size;
   const exampleCount = countRouteResponses(routeMap);
@@ -685,7 +734,7 @@ const refreshRoutes = async (mockServerUid, location = {}) => {
   const routeMap = buildRouteMapFromMockResponses(resolvedLocation);
 
   if (collection) {
-    collection.routeMap = routeMap;
+    setCollectionRouteMap(collection, routeMap);
     emitRouteTableUpdated(mockServerUid);
   }
 

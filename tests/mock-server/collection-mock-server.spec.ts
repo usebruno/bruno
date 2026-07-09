@@ -2,12 +2,12 @@ import { test, expect } from '../../playwright';
 import type { Page } from '@playwright/test';
 import { createRequest, sendRequest, getResponseBody } from '../utils/page/actions';
 
-const COLLECTION_NAME = 'mocker-test-collection';
+const COLLECTION_NAME = 'mock-server-test-collection';
 const MOCK_PORT = '4111';
 const MOCK_BASE = `http://localhost:${MOCK_PORT}`;
 
-const openMockerTab = async (page: Page) => {
-  await page.getByTestId('mocker').click();
+const openMockServerTab = async (page: Page) => {
+  await page.getByTestId('mock-server').click();
   await page.getByTestId('mock-server-dashboard').waitFor({ state: 'visible' });
 };
 
@@ -43,9 +43,9 @@ test.describe.serial('Mock Server', () => {
     await expect(page.getByTestId('mock-server-status-text')).toHaveText('Stopped');
   });
 
-  test('should open Mocker tab and show dashboard controls in stopped state', async ({ pageWithUserData: page }) => {
+  test('should open Mock Server tab and show dashboard controls in stopped state', async ({ pageWithUserData: page }) => {
     await page.locator('#sidebar-collection-name').filter({ hasText: COLLECTION_NAME }).click();
-    await openMockerTab(page);
+    await openMockServerTab(page);
 
     await expect(page.getByTestId('mock-server-dashboard')).toBeVisible();
     await expect(page.getByTestId('mock-server-status-text')).toHaveText('Stopped');
@@ -60,7 +60,7 @@ test.describe.serial('Mock Server', () => {
   });
 
   test('should show Routes and Request Log tabs', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await expect(page.getByTestId('mock-server-tab-routes')).toBeVisible();
     await expect(page.getByTestId('mock-server-tab-log')).toBeVisible();
   });
@@ -70,7 +70,7 @@ test.describe.serial('Mock Server', () => {
   // ==========================================
 
   test('should start mock server and show running status with all controls', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await startMockServer(page);
 
     await expect(page.getByTestId('mock-server-status-dot')).toHaveClass(/running/);
@@ -89,7 +89,7 @@ test.describe.serial('Mock Server', () => {
   // ==========================================
 
   test('should show registered routes from fixture examples', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await page.getByTestId('mock-server-tab-routes').click();
     await expect(page.getByTestId('mock-server-route-search')).toBeVisible();
     // Fixture has: GET /health, GET /users/1, POST /users
@@ -97,7 +97,7 @@ test.describe.serial('Mock Server', () => {
   });
 
   test('should filter routes by search query', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await page.getByTestId('mock-server-tab-routes').click();
 
     await test.step('Search for "health" should show 1 route', async () => {
@@ -115,7 +115,7 @@ test.describe.serial('Mock Server', () => {
   });
 
   test('should filter routes by method dropdown', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await page.getByTestId('mock-server-tab-routes').click();
 
     await test.step('Filter by POST should show 1 route', async () => {
@@ -289,7 +289,7 @@ test.describe.serial('Mock Server', () => {
   // ==========================================
 
   test('should show all requests in request log after Bruno sends', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await page.getByTestId('mock-server-tab-log').click();
 
     await test.step('Log count should reflect all requests made so far', async () => {
@@ -325,7 +325,7 @@ test.describe.serial('Mock Server', () => {
     });
 
     await test.step('Verify No Match label appears in log', async () => {
-      await openMockerTab(page);
+      await openMockServerTab(page);
       await page.getByTestId('mock-server-tab-log').click();
       // Wait for the log to update
       await page.waitForTimeout(500);
@@ -335,7 +335,7 @@ test.describe.serial('Mock Server', () => {
   });
 
   test('should filter request log by match status', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await page.getByTestId('mock-server-tab-log').click();
 
     await test.step('Filter to show only unmatched', async () => {
@@ -369,7 +369,7 @@ test.describe.serial('Mock Server', () => {
   });
 
   test('should filter request log by status code', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await page.getByTestId('mock-server-tab-log').click();
 
     await test.step('Filter by 2xx should only show 2xx entries', async () => {
@@ -394,7 +394,7 @@ test.describe.serial('Mock Server', () => {
   });
 
   test('should clear request log and show empty state', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await page.getByTestId('mock-server-tab-log').click();
 
     // Verify log has entries before clearing
@@ -414,7 +414,7 @@ test.describe.serial('Mock Server', () => {
     // Log was just cleared, make a fresh request
     await mockFetch('/health');
 
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await page.getByTestId('mock-server-tab-log').click();
     await page.waitForTimeout(500);
 
@@ -429,7 +429,7 @@ test.describe.serial('Mock Server', () => {
   // ==========================================
 
   test('should apply global delay to matched responses', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await page.getByTestId('mock-server-delay-input').fill('500');
 
     const start = Date.now();
@@ -441,7 +441,7 @@ test.describe.serial('Mock Server', () => {
   });
 
   test('should not delay 404 responses', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await page.getByTestId('mock-server-delay-input').fill('1000');
 
     const start = Date.now();
@@ -493,7 +493,7 @@ test.describe.serial('Mock Server', () => {
     });
 
     await test.step('Refresh routes and verify updated response', async () => {
-      await openMockerTab(page);
+      await openMockServerTab(page);
       await page.getByTestId('mock-server-refresh-btn').click();
       await expect(page.getByText('Routes refreshed')).toBeVisible({ timeout: 5000 });
 
@@ -503,7 +503,7 @@ test.describe.serial('Mock Server', () => {
   });
 
   test('should show refresh toast with correct route count', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await page.getByTestId('mock-server-refresh-btn').click();
     await expect(page.getByText(/Routes refreshed.*routes/).first()).toBeVisible({ timeout: 5000 });
   });
@@ -513,7 +513,7 @@ test.describe.serial('Mock Server', () => {
   // ==========================================
 
   test('should show stopping state during shutdown', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     // Make a request to ensure there are active connections
     await mockFetch('/health');
 
@@ -532,7 +532,7 @@ test.describe.serial('Mock Server', () => {
   });
 
   test('should show start button and hide stop button after stop', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await expect(page.getByTestId('mock-server-start-btn')).toBeVisible();
     await expect(page.getByTestId('mock-server-stop-btn')).not.toBeVisible();
     await expect(page.getByTestId('mock-server-copy-url')).not.toBeVisible();
@@ -544,7 +544,7 @@ test.describe.serial('Mock Server', () => {
   // ==========================================
 
   test('should restart server and serve routes again', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await startMockServer(page);
 
     const response = await mockFetch('/users/1');
@@ -553,7 +553,7 @@ test.describe.serial('Mock Server', () => {
   });
 
   test('should have empty request log after restart', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await page.getByTestId('mock-server-tab-log').click();
     // After server restart, the log from the previous session is cleared
     // But we just made one request in the restart test, so it should have 1 entry
@@ -568,7 +568,7 @@ test.describe.serial('Mock Server', () => {
   // ==========================================
 
   test('should stop server for cleanup', async ({ pageWithUserData: page }) => {
-    await openMockerTab(page);
+    await openMockServerTab(page);
     await stopMockServer(page);
     await expect(page.getByTestId('mock-server-status-text')).toContainText('Stopped');
   });

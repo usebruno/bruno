@@ -108,7 +108,7 @@ describe('mock-response-store', () => {
     const workspacePath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-mock-meta-'));
     const instance = {
       uid: 'mock-1',
-      name: 'Dog API Mocker',
+      name: 'Dog API Mock Server',
       port: 4001,
       sourceType: 'collection',
       collectionUid: 'collection-1',
@@ -119,14 +119,14 @@ describe('mock-response-store', () => {
     saveMockServer(workspacePath, instance);
 
     const store = readWorkspaceStore(workspacePath);
-    expect(store.mockServers['mock-1'].name).toBe('Dog API Mocker');
+    expect(store.mockServers['mock-1'].name).toBe('Dog API Mock Server');
     expect(store.mockServers['mock-1'].port).toBe(4001);
     expect(store.mockServers['mock-1'].collectionUid).toBe('collection-1');
     expect(store.mockServers['mock-1'].responses).toEqual([]);
 
     const instances = listMockServers(workspacePath, 'workspace-1');
     expect(instances).toHaveLength(1);
-    expect(instances[0].name).toBe('Dog API Mocker');
+    expect(instances[0].name).toBe('Dog API Mock Server');
 
     fs.rmSync(workspacePath, { recursive: true, force: true });
   });
@@ -141,7 +141,7 @@ describe('mock-response-store', () => {
 
     saveMockServer(workspacePath, {
       uid: 'mock-1',
-      name: 'Spec Mocker',
+      name: 'Spec Mock Server',
       port: 4000,
       sourceType: 'spec',
       specUid: 'spec-1',
@@ -157,7 +157,7 @@ describe('mock-response-store', () => {
     });
 
     const store = readWorkspaceStore(workspacePath);
-    expect(store.mockServers['mock-1'].name).toBe('Spec Mocker');
+    expect(store.mockServers['mock-1'].name).toBe('Spec Mock Server');
     expect(store.mockServers['mock-1'].responses).toHaveLength(1);
 
     fs.rmSync(workspacePath, { recursive: true, force: true });
@@ -167,7 +167,7 @@ describe('mock-response-store', () => {
     const instances = listMockServers(workspacePath, 'workspace-1', {
       migrateFrom: [{
         uid: 'mock-1',
-        name: 'Legacy Mocker',
+        name: 'Legacy Mock Server',
         port: 4002,
         sourceType: 'spec',
         specUid: 'spec-legacy',
@@ -177,8 +177,8 @@ describe('mock-response-store', () => {
     });
 
     expect(instances).toHaveLength(1);
-    expect(instances[0].name).toBe('Legacy Mocker');
-    expect(readWorkspaceStore(workspacePath).mockServers['mock-1'].name).toBe('Legacy Mocker');
+    expect(instances[0].name).toBe('Legacy Mock Server');
+    expect(readWorkspaceStore(workspacePath).mockServers['mock-1'].name).toBe('Legacy Mock Server');
   });
 
   it('migrates legacy collection mocks yml into workspace mockserver.yml', () => {

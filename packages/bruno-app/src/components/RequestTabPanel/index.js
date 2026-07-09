@@ -77,7 +77,7 @@ const RequestTabPanel = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const resolvedMockServerInstance = useSelector((state) => {
-    if (!focusedTab || (focusedTab.type !== 'mocker' && focusedTab.type !== 'mock-response')) {
+    if (!focusedTab || (focusedTab.type !== 'mock-server' && focusedTab.type !== 'mock-response')) {
       return null;
     }
 
@@ -443,7 +443,7 @@ const RequestTabPanel = () => {
     return <GlobalEnvironmentSettings />;
   }
 
-  if (focusedTab.type === 'mocker') {
+  if (focusedTab.type === 'mock-server') {
     const instance = resolvedMockServerInstance;
     if (!instance) {
       return (

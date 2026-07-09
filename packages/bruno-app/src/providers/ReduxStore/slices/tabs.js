@@ -24,10 +24,12 @@ const initialState = {
   recentlyClosedTabs: [] // LIFO stack of closed tabs, grouped by collection
 };
 
-const normalizeMockTabType = (type) => (type === 'mock-server-dashboard' ? 'mocker' : type);
+const normalizeMockTabType = (type) => (
+  type === 'mock-server-dashboard' || type === 'mocker' ? 'mock-server' : type
+);
 
-const findMockerTab = (tabs, mockServerUid) => find(tabs, (tab) => (
-  normalizeMockTabType(tab.type) === 'mocker' && tab.mockServerUid === mockServerUid
+const findMockServerTab = (tabs, mockServerUid) => find(tabs, (tab) => (
+  normalizeMockTabType(tab.type) === 'mock-server' && tab.mockServerUid === mockServerUid
 ));
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
@@ -93,7 +95,7 @@ export const tabsSlice = createSlice({
         'openapi-sync',
         'openapi-spec',
         'changelog',
-        'mocker'
+        'mock-server'
       ];
 
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
@@ -111,10 +113,10 @@ export const tabsSlice = createSlice({
       if (nonReplaceableTabTypes.includes(type)) {
         let existingTab = null;
 
-        if (type === 'mocker' && mockServerUid) {
-          existingTab = findMockerTab(state.tabs, mockServerUid);
-          if (existingTab && existingTab.type !== 'mocker') {
-            existingTab.type = 'mocker';
+        if (type === 'mock-server' && mockServerUid) {
+          existingTab = findMockServerTab(state.tabs, mockServerUid);
+          if (existingTab && existingTab.type !== 'mock-server') {
+            existingTab.type = 'mock-server';
           }
         } else {
           existingTab = tabTypeAlreadyExists(state.tabs, collectionUid, type);
@@ -553,15 +555,15 @@ export const tabsSlice = createSlice({
         const tab = deserializeTab(snapshotTab, collection);
         ensureTabUid(tab);
 
-        if (normalizeMockTabType(tab.type) === 'mocker' && tab.mockServerUid) {
-          const existingTab = findMockerTab(state.tabs, tab.mockServerUid);
+        if (normalizeMockTabType(tab.type) === 'mock-server' && tab.mockServerUid) {
+          const existingTab = findMockServerTab(state.tabs, tab.mockServerUid);
           if (existingTab) {
             if (checkIsActiveTab(tab, activeTab, collection)) {
               state.activeTabUid = ensureTabUid(existingTab);
             }
             return;
           }
-          tab.type = 'mocker';
+          tab.type = 'mock-server';
         }
 
         state.tabs.push(tab);

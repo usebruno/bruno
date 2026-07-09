@@ -8,13 +8,15 @@ import {
 } from './mock-server-instances';
 
 describe('mock server tab helpers', () => {
-  it('normalizes legacy mock-server-dashboard tab type to mocker', () => {
-    expect(normalizeMockTabType('mock-server-dashboard')).toBe('mocker');
-    expect(normalizeMockTabType('mocker')).toBe('mocker');
+  it('normalizes legacy mock-server-dashboard and mocker tab types to mock-server', () => {
+    expect(normalizeMockTabType('mock-server-dashboard')).toBe('mock-server');
+    expect(normalizeMockTabType('mocker')).toBe('mock-server');
+    expect(normalizeMockTabType('mock-server')).toBe('mock-server');
     expect(normalizeMockTabType('mock-response')).toBe('mock-response');
   });
 
-  it('matches mocker and mock-response tabs for the same mock server', () => {
+  it('matches mock-server and mock-response tabs for the same mock server', () => {
+    expect(isMockServerRelatedTab({ type: 'mock-server', mockServerUid: 'mock-1' }, 'mock-1')).toBe(true);
     expect(isMockServerRelatedTab({ type: 'mocker', mockServerUid: 'mock-1' }, 'mock-1')).toBe(true);
     expect(isMockServerRelatedTab({ type: 'mock-server-dashboard', mockServerUid: 'mock-1' }, 'mock-1')).toBe(true);
     expect(isMockServerRelatedTab({ type: 'mock-response', mockServerUid: 'mock-1' }, 'mock-1')).toBe(true);

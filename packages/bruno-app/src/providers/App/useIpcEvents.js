@@ -6,10 +6,11 @@ import {
 } from 'providers/ReduxStore/slices/app';
 import {
   updateServerStatus,
-  addRequestLogEntry,
+  addRequestLogEntries,
   setRouteTable,
   syncRunningMockServers
 } from 'providers/ReduxStore/slices/mock-server';
+import { isMockServerLogListening } from 'utils/mock-server-log-subscription';
 import {
   addTab
 } from 'providers/ReduxStore/slices/tabs';
@@ -373,8 +374,12 @@ const useIpcEvents = () => {
       dispatch(updateServerStatus(val));
     });
 
-    const removeMockServerRequestLogListener = ipcRenderer.on('main:mock-server-request-log', (val) => {
-      dispatch(addRequestLogEntry(val));
+    const removeMockServerRequestLogListener = ipcRenderer.on('main:mock-server-request-log-batch', (val) => {
+      if (!isMockServerLogListening(val?.mockServerUid)) {
+        return;
+      }
+
+      dispatch(addRequestLogEntries(val));
     });
 
     const removeMockServerRouteTableListener = ipcRenderer.on('main:mock-server-route-table-updated', (val) => {

@@ -25,6 +25,11 @@ const extractRoutePath = (rawUrl) => {
       const domainHostMatch = cleaned.match(/^(?:[a-zA-Z0-9-]+\.)+[a-zA-Z0-9-]+(?::\d+)?(\/[^?#]*)?/);
       if (domainHostMatch) {
         cleaned = domainHostMatch[1] || '/';
+      } else {
+        const bareHostMatch = cleaned.match(/^[a-zA-Z0-9-]+:\d+(\/[^?#]*)?/);
+        if (bareHostMatch) {
+          cleaned = bareHostMatch[1] || '/';
+        }
       }
     }
 

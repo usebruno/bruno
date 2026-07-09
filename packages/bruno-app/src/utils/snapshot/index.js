@@ -3,8 +3,8 @@ import path, { normalizePath } from 'utils/common/path';
 import { uuid } from 'utils/common';
 
 const normalizeTabType = (type) => {
-  if (type === 'mock-server-dashboard') {
-    return 'mocker';
+  if (type === 'mock-server-dashboard' || type === 'mocker') {
+    return 'mock-server';
   }
 
   return type;
@@ -25,7 +25,7 @@ const SINGLETON_TAB_TYPES = new Set([
   'workspaceEnvironments',
   'openapi-sync',
   'openapi-spec',
-  'mocker'
+  'mock-server'
 ]);
 
 const NON_REPLACEABLE_SINGLETON_TAB_TYPES = new Set([
@@ -33,7 +33,7 @@ const NON_REPLACEABLE_SINGLETON_TAB_TYPES = new Set([
   'variables',
   'openapi-sync',
   'openapi-spec',
-  'mocker'
+  'mock-server'
 ]);
 
 const IGNORED_TAB_TYPES = new Set([
@@ -405,7 +405,7 @@ export const findCollectionEnvironmentFromSnapshot = (collection, snapshotData =
 
 const getAccessor = (tab) => {
   if (tab.type === 'response-example') return 'pathname::exampleIndex';
-  if (tab.type === 'mocker' && tab.mockServerUid) return 'type::mockServerUid';
+  if (tab.type === 'mock-server' && tab.mockServerUid) return 'type::mockServerUid';
   if (tab.type === 'mock-response' && tab.uid) return 'type::mockResponseUid';
   if (SINGLETON_TAB_TYPES.has(tab.type)) return 'type';
   return 'pathname';
@@ -484,7 +484,7 @@ export const serializeTab = (tab, collection) => {
     };
   }
 
-  if (tab.type === 'mocker' && tab.mockServerUid) {
+  if (tab.type === 'mock-server' && tab.mockServerUid) {
     serialized.mockServerUid = tab.mockServerUid;
     if (tab.tabName) {
       serialized.name = tab.tabName;
@@ -539,7 +539,7 @@ export const serializeActiveTab = (tab, collection) => {
     return { accessor, value: `${pathname}::-1` };
   }
 
-  if (tab.type === 'mocker' && tab.mockServerUid) {
+  if (tab.type === 'mock-server' && tab.mockServerUid) {
     return { accessor: 'type::mockServerUid', value: tab.mockServerUid };
   }
 
@@ -556,7 +556,7 @@ export const isActiveTab = (tab, activeTab, collection) => {
   const { accessor, value } = activeTab;
 
   if (accessor === 'type::mockServerUid') {
-    return normalizeTabType(tab.type) === 'mocker' && tab.mockServerUid === value;
+    return normalizeTabType(tab.type) === 'mock-server' && tab.mockServerUid === value;
   }
 
   if (accessor === 'type::mockResponseUid') {
@@ -641,11 +641,11 @@ export const deserializeTab = (snapshotTab, collection) => {
   const type = normalizeTabType(snapshotTab.type);
   const restoredRequestPaneTab = typeof snapshotTab.request?.tab === 'string' ? snapshotTab.request.tab : null;
 
-  if (type === 'mocker') {
+  if (type === 'mock-server') {
     const mockServerUid = snapshotTab.mockServerUid || null;
     return {
       collectionUid: collection.uid,
-      type: 'mocker',
+      type: 'mock-server',
       mockServerUid,
       tabName: snapshotTab.name || snapshotTab.tabName || null,
       uid: mockServerUid || uuid(),
@@ -818,7 +818,7 @@ export const getActiveTabFromSnapshot = async (collectionPathname, collection, s
 
   if (accessor === 'type::mockServerUid') {
     snapshotTab = tabsSnapshot.tabs.find((t) => (
-      normalizeTabType(t.type) === 'mocker' && t.mockServerUid === value
+      normalizeTabType(t.type) === 'mock-server' && t.mockServerUid === value
     ));
   } else if (accessor === 'type::mockResponseUid') {
     snapshotTab = tabsSnapshot.tabs.find((t) => (

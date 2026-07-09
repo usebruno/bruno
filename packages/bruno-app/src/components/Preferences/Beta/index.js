@@ -171,7 +171,7 @@ const Beta = ({ close }) => {
           ))}
         </div>
 
-        {formik.values[BETA_FEATURE_IDS.MOCK_SERVER] && (
+        {/* {formik.values[BETA_FEATURE_IDS.MOCK_SERVER] && (
           <div className="mock-server-settings mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="section-header mb-3">Mock Server</div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
@@ -202,7 +202,7 @@ const Beta = ({ close }) => {
               </label>
             </div>
           </div>
-        )}
+        )} */}
 
         {!hasAnyBetaFeatures && (
           <div className="no-features-message">

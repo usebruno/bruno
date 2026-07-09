@@ -1,8 +1,8 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{collectionPath}}/mocker-test-collection",
-    "{{collectionPath}}/mocker-test-collection-2"
+    "{{collectionPath}}/mock-server-test-collection",
+    "{{collectionPath}}/mock-server-test-collection-2"
   ],
   "preferences": {
     "onboarding": {

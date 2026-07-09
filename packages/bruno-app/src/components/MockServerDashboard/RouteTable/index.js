@@ -8,7 +8,7 @@ import StyledWrapper from './StyledWrapper';
 
 const RouteTable = ({ mockServerUid }) => {
   const routes = useSelector((state) => state.mockServer.routes[mockServerUid]) || [];
-  const requestLogs = useSelector((state) => state.mockServer.requestLogs[mockServerUid]) || [];
+  const hitCounts = useSelector((state) => state.mockServer.routeHitCounts[mockServerUid]) || {};
   const [searchQuery, setSearchQuery] = useState('');
   const [methodFilter, setMethodFilter] = useState(null);
   const [copiedRouteUid, setCopiedRouteUid] = useState(null);
@@ -16,17 +16,6 @@ const RouteTable = ({ mockServerUid }) => {
   const serverState = useSelector((state) => state.mockServer.servers[mockServerUid]) || {};
   const isRunning = serverState.status === 'running';
   const baseUrl = isRunning ? serverState.baseUrl : null;
-
-  const hitCounts = useMemo(() => {
-    const counts = {};
-    for (const entry of requestLogs) {
-      if (entry.matched) {
-        const key = `${entry.method} ${entry.path}`;
-        counts[key] = (counts[key] || 0) + 1;
-      }
-    }
-    return counts;
-  }, [requestLogs]);
 
   const filteredRoutes = useMemo(() => {
     return routes

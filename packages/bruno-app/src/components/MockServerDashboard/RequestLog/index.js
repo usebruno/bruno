@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { clearMockLog } from 'providers/ReduxStore/slices/mock-server';
+import { clearMockLog, syncMockServerState } from 'providers/ReduxStore/slices/mock-server';
+import { subscribeMockServerLog } from 'utils/mock-server-log-subscription';
 import EditableTable from 'components/EditableTable';
 import FilterDropdown from 'components/FilterDropdown';
 import StyledWrapper from './StyledWrapper';
@@ -42,6 +43,13 @@ const RequestLog = ({ mockServerUid }) => {
   const [matchFilter, setMatchFilter] = useState(null);
   const [statusFilter, setStatusFilter] = useState(null);
   const tableContainerRef = useRef(null);
+
+  useEffect(() => {
+    const unsubscribe = subscribeMockServerLog(mockServerUid);
+    dispatch(syncMockServerState({ mockServerUid }));
+
+    return unsubscribe;
+  }, [dispatch, mockServerUid]);
 
   const filteredLogs = useMemo(() => {
     return logs.filter((entry) => {

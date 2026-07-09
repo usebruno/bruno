@@ -285,25 +285,42 @@ describe('deserializeTab', () => {
     expect(firstTab.uid).not.toBe(secondTab.uid);
   });
 
-  it('restores mocker tab with stable uid from mockServerUid', () => {
+  it('restores mock-server tab with stable uid from mockServerUid', () => {
     const snapshotTab = {
-      type: 'mocker',
+      type: 'mock-server',
       accessor: 'type::mockServerUid',
       mockServerUid: 'mock-server-1',
-      name: 'My Mocker',
+      name: 'My Mock Server',
       permanent: true
     };
 
     const tab = deserializeTab(snapshotTab, collection);
 
-    expect(tab.type).toBe('mocker');
+    expect(tab.type).toBe('mock-server');
     expect(tab.uid).toBe('mock-server-1');
     expect(tab.mockServerUid).toBe('mock-server-1');
-    expect(tab.tabName).toBe('My Mocker');
+    expect(tab.tabName).toBe('My Mock Server');
     expect(tab.preview).toBe(false);
   });
 
-  it('migrates legacy mock-server-dashboard snapshots to mocker', () => {
+  it('migrates legacy mocker snapshots to mock-server', () => {
+    const snapshotTab = {
+      type: 'mocker',
+      accessor: 'type::mockServerUid',
+      mockServerUid: 'mock-server-1',
+      name: 'My Mock Server',
+      permanent: true
+    };
+
+    const tab = deserializeTab(snapshotTab, collection);
+
+    expect(tab.type).toBe('mock-server');
+    expect(tab.uid).toBe('mock-server-1');
+    expect(tab.mockServerUid).toBe('mock-server-1');
+    expect(tab.tabName).toBe('My Mock Server');
+  });
+
+  it('migrates legacy mock-server-dashboard snapshots to mock-server', () => {
     const snapshotTab = {
       type: 'mock-server-dashboard',
       accessor: 'type',
@@ -313,22 +330,22 @@ describe('deserializeTab', () => {
 
     const tab = deserializeTab(snapshotTab, collection);
 
-    expect(tab.type).toBe('mocker');
+    expect(tab.type).toBe('mock-server');
     expect(tab.uid).toBe('mock-server-legacy');
   });
 
-  it('generates uid when mocker snapshot has no mockServerUid', () => {
+  it('generates uid when mock-server snapshot has no mockServerUid', () => {
     const snapshotTab = {
-      type: 'mocker',
+      type: 'mock-server',
       accessor: 'type',
       permanent: false
     };
 
     const tab = deserializeTab(snapshotTab, collection);
 
-    expect(tab.type).toBe('mocker');
+    expect(tab.type).toBe('mock-server');
     expect(tab.uid).toBeTruthy();
-    expect(tab.uid).not.toBe('mocker');
+    expect(tab.uid).not.toBe('mock-server');
   });
 
   it('restores preferences uid scoped to collection uid', () => {
@@ -622,10 +639,10 @@ describe('active tab matching', () => {
     pathname: '/collections/a'
   };
 
-  it('matches mocker tabs by mockServerUid', () => {
+  it('matches mock-server tabs by mockServerUid', () => {
     const tab = {
       uid: 'mock-server-1',
-      type: 'mocker',
+      type: 'mock-server',
       mockServerUid: 'mock-server-1'
     };
 
@@ -633,20 +650,20 @@ describe('active tab matching', () => {
     expect(isActiveTab(tab, { accessor: 'type::mockServerUid', value: 'mock-server-2' }, collection)).toBe(false);
   });
 
-  it('serializes and restores mocker active tab by mockServerUid', () => {
+  it('serializes and restores mock-server active tab by mockServerUid', () => {
     const tab = {
       uid: 'mock-server-1',
-      type: 'mocker',
+      type: 'mock-server',
       mockServerUid: 'mock-server-1',
-      tabName: 'My Mocker',
+      tabName: 'My Mock Server',
       preview: false
     };
 
     const serialized = serializeTab(tab, collection);
-    expect(serialized.type).toBe('mocker');
+    expect(serialized.type).toBe('mock-server');
     expect(serialized.accessor).toBe('type::mockServerUid');
     expect(serialized.mockServerUid).toBe('mock-server-1');
-    expect(serialized.name).toBe('My Mocker');
+    expect(serialized.name).toBe('My Mock Server');
 
     const activeTab = serializeActiveTab(tab, collection);
     expect(activeTab).toEqual({ accessor: 'type::mockServerUid', value: 'mock-server-1' });

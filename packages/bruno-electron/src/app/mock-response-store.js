@@ -163,7 +163,11 @@ const parseStoreContent = (content, filePath) => {
   return createEmptyStore();
 };
 
-const readWorkspaceStore = (workspacePath) => {
+const STORE_WRITE_DEBOUNCE_MS = 250;
+const workspaceStoreCache = new Map();
+const workspaceWriteTimers = new Map();
+
+const readWorkspaceStoreFromDisk = (workspacePath) => {
   const filePath = getWorkspaceStorePath(workspacePath);
 
   if (!fs.existsSync(filePath)) {
@@ -188,7 +192,7 @@ const readWorkspaceStore = (workspacePath) => {
   }
 };
 
-const writeWorkspaceStore = (workspacePath, store) => {
+const writeWorkspaceStoreToDisk = (workspacePath, store) => {
   const filePath = getWorkspaceStorePath(workspacePath);
   ensureDir(path.dirname(filePath));
 
@@ -202,6 +206,62 @@ const writeWorkspaceStore = (workspacePath, store) => {
 
   fs.writeFileSync(filePath, content, 'utf8');
   return filePath;
+};
+
+const getWorkspaceCacheKey = (workspacePath) => resolveWorkspacePath(workspacePath);
+
+const readWorkspaceStore = (workspacePath) => {
+  const cacheKey = getWorkspaceCacheKey(workspacePath);
+
+  if (workspaceStoreCache.has(cacheKey)) {
+    return workspaceStoreCache.get(cacheKey);
+  }
+
+  const store = readWorkspaceStoreFromDisk(workspacePath);
+  workspaceStoreCache.set(cacheKey, store);
+  return store;
+};
+
+const flushWorkspaceStore = (workspacePath) => {
+  const cacheKey = getWorkspaceCacheKey(workspacePath);
+  const pendingTimer = workspaceWriteTimers.get(cacheKey);
+
+  if (pendingTimer) {
+    clearTimeout(pendingTimer);
+    workspaceWriteTimers.delete(cacheKey);
+  }
+
+  const store = workspaceStoreCache.get(cacheKey);
+  if (store) {
+    writeWorkspaceStoreToDisk(workspacePath, store);
+  }
+};
+
+const flushAllWorkspaceStores = () => {
+  for (const cacheKey of workspaceStoreCache.keys()) {
+    flushWorkspaceStore(cacheKey);
+  }
+};
+
+const writeWorkspaceStore = (workspacePath, store) => {
+  const cacheKey = getWorkspaceCacheKey(workspacePath);
+  workspaceStoreCache.set(cacheKey, store);
+
+  if (process.env.JEST_WORKER_ID) {
+    return writeWorkspaceStoreToDisk(workspacePath, store);
+  }
+
+  const pendingTimer = workspaceWriteTimers.get(cacheKey);
+  if (pendingTimer) {
+    clearTimeout(pendingTimer);
+  }
+
+  workspaceWriteTimers.set(cacheKey, setTimeout(() => {
+    workspaceWriteTimers.delete(cacheKey);
+    writeWorkspaceStoreToDisk(workspacePath, store);
+  }, STORE_WRITE_DEBOUNCE_MS));
+
+  return getWorkspaceStorePath(workspacePath);
 };
 
 const readLegacyPerServerStore = (location) => {
@@ -498,6 +558,8 @@ module.exports = {
   createEmptyMockResponse,
   deleteMockResponse,
   deleteMockServer,
+  flushAllWorkspaceStores,
+  flushWorkspaceStore,
   getStorePath: getWorkspaceStorePath,
   getWorkspaceStorePath,
   listMockResponses,

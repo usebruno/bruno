@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { useDispatch, useSelector } from 'react-redux';
 import classnames from 'classnames';
@@ -6,7 +6,7 @@ import { IconChevronRight, IconCopy, IconDots, IconPencil, IconPlayerPlay, IconP
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { startMockServer, stopMockServer, syncMockServerState, loadMockResponses } from 'providers/ReduxStore/slices/mock-server';
+import { startMockServer, stopMockServer, loadAllMockResponses } from 'providers/ReduxStore/slices/mock-server';
 import { normalizePath } from 'utils/common/path';
 import {
   getMockServerInstances,
@@ -28,6 +28,8 @@ import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
 import StyledWrapper from '../ApiSpecs/StyledWrapper';
 
+const EMPTY_RESPONSES = [];
+
 const StatusDot = styled.span`
   width: 7px;
   height: 7px;
@@ -37,36 +39,28 @@ const StatusDot = styled.span`
   background: ${(props) => (props.$running ? '#22c55e' : '#9ca3af')};
 `;
 
-const MockServerItem = ({
+const MockServerItem = React.memo(({
   instance,
   collection,
   workspaceCollections,
   activeWorkspace,
   apiSpecs,
+  preferences,
+  workspaces,
+  location,
   onEditSettings,
   onRename,
   onClone,
   onDelete
 }) => {
   const dispatch = useDispatch();
-  const preferences = useSelector((state) => state.app.preferences);
-  const collections = useSelector((state) => state.collections.collections);
-  const workspaces = useSelector((state) => state.workspaces.workspaces);
   const workspaceInstances = useSelector((state) => getMockServerInstances(state, instance.workspaceUid));
-  const [expanded, setExpanded] = useState(false);
   const serverState = useSelector((state) => state.mockServer.servers[instance.uid]);
-  const responses = useSelector((state) => state.mockServer.mockResponses[instance.uid] || []);
+  const responses = useSelector((state) => state.mockServer.mockResponses[instance.uid] || EMPTY_RESPONSES);
+  const [expanded, setExpanded] = useState(false);
   const isRunning = serverState?.status === 'running';
   const isStarting = serverState?.status === 'starting';
   const isStopping = serverState?.status === 'stopping';
-  const resolvedCollection = collection || collections.find((item) => item.uid === instance.collectionUid) || null;
-  const location = useMemo(() => (
-    resolveMockResponseLocation(instance, resolvedCollection, collections, workspaces, activeWorkspace)
-  ), [instance, resolvedCollection, collections, workspaces, activeWorkspace]);
-
-  useEffect(() => {
-    dispatch(loadMockResponses(location));
-  }, [dispatch, location.mockServerUid, location.collectionPath, location.sourceType, location.workspacePath]);
 
   const ensureCollectionMounted = () => {
     if (instance.sourceType !== 'collection' || collection?.mountStatus === 'mounted') {
@@ -117,7 +111,6 @@ const MockServerItem = ({
         workspacePath: resolveMockServerWorkspacePath(instance, workspaces, activeWorkspace)
       });
       const result = await dispatch(startMockServer(payload)).unwrap();
-      await dispatch(syncMockServerState({ mockServerUid: instance.uid }));
 
       const message = result.examplesGenerated
         ? `Mock server started at ${result.baseUrl}. Generated ${result.examplesGenerated} example(s).`
@@ -231,7 +224,7 @@ const MockServerItem = ({
               key={response.uid}
               response={response}
               instance={instance}
-              collectionUid={resolvedCollection?.uid || instance.collectionUid}
+              collectionUid={collection?.uid || instance.collectionUid}
               location={location}
             />
           ))}
@@ -239,7 +232,9 @@ const MockServerItem = ({
       ) : null}
     </>
   );
-};
+});
+
+MockServerItem.displayName = 'MockServerItem';
 
 const MockServers = () => {
   const dispatch = useDispatch();
@@ -247,12 +242,12 @@ const MockServers = () => {
   const [renamingInstance, setRenamingInstance] = useState(null);
   const [cloningInstance, setCloningInstance] = useState(null);
   const [deletingInstance, setDeletingInstance] = useState(null);
-  const { collections, activeWorkspaceUid, workspaces, apiSpecs } = useSelector((state) => ({
-    collections: state.collections.collections,
-    activeWorkspaceUid: state.workspaces.activeWorkspaceUid,
-    workspaces: state.workspaces.workspaces,
-    apiSpecs: state.apiSpec.apiSpecs
-  }));
+  const loadedLocationsKeyRef = useRef('');
+  const collections = useSelector((state) => state.collections.collections);
+  const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
+  const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
+  const preferences = useSelector((state) => state.app.preferences);
 
   const activeWorkspace = workspaces.find((workspace) => workspace.uid === activeWorkspaceUid);
 
@@ -276,6 +271,39 @@ const MockServers = () => {
       )
     ));
   }, [activeWorkspace, collections]);
+
+  const instanceLocations = useMemo(() => (
+    instances.map((instance) => {
+      const collection = instance.sourceType === 'collection'
+        ? collections.find((item) => item.uid === instance.collectionUid)
+        : null;
+
+      return {
+        instance,
+        collection,
+        location: resolveMockResponseLocation(instance, collection, collections, workspaces, activeWorkspace)
+      };
+    })
+  ), [instances, collections, workspaces, activeWorkspace]);
+
+  useEffect(() => {
+    if (!instanceLocations.length) {
+      return;
+    }
+
+    const locationsKey = instanceLocations
+      .map(({ location }) => `${location.mockServerUid}:${location.collectionPath || ''}:${location.workspacePath || ''}`)
+      .join('|');
+
+    if (locationsKey === loadedLocationsKeyRef.current) {
+      return;
+    }
+
+    loadedLocationsKeyRef.current = locationsKey;
+    dispatch(loadAllMockResponses({
+      locations: instanceLocations.map(({ location }) => location)
+    }));
+  }, [dispatch, instanceLocations]);
 
   if (!instances.length) {
     return (
@@ -323,26 +351,23 @@ const MockServers = () => {
       )}
       <StyledWrapper>
         <div className="api-specs-list">
-          {instances.map((instance) => {
-            const collection = instance.sourceType === 'collection'
-              ? collections.find((item) => item.uid === instance.collectionUid)
-              : null;
-
-            return (
-              <MockServerItem
-                instance={instance}
-                collection={collection}
-                workspaceCollections={workspaceCollections}
-                activeWorkspace={activeWorkspace}
-                apiSpecs={apiSpecs}
-                key={instance.uid}
-                onEditSettings={setEditingInstance}
-                onRename={setRenamingInstance}
-                onClone={setCloningInstance}
-                onDelete={setDeletingInstance}
-              />
-            );
-          })}
+          {instanceLocations.map(({ instance, collection, location }) => (
+            <MockServerItem
+              instance={instance}
+              collection={collection}
+              workspaceCollections={workspaceCollections}
+              activeWorkspace={activeWorkspace}
+              apiSpecs={apiSpecs}
+              preferences={preferences}
+              workspaces={workspaces}
+              location={location}
+              key={instance.uid}
+              onEditSettings={setEditingInstance}
+              onRename={setRenamingInstance}
+              onClone={setCloningInstance}
+              onDelete={setDeletingInstance}
+            />
+          ))}
         </div>
       </StyledWrapper>
     </>

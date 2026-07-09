@@ -26,6 +26,16 @@ import MockResponsesList from 'components/MockResponse/MockResponsesList';
 import { resolveMockResponseCollection, resolveMockResponseLocation } from 'utils/mock-responses';
 import StyledWrapper from './StyledWrapper';
 
+const MockServerLogCount = ({ mockServerUid }) => {
+  const logCount = useSelector((state) => (state.mockServer.requestLogs[mockServerUid] || []).length);
+
+  if (!logCount) {
+    return null;
+  }
+
+  return <sup className="ml-1 font-medium">{logCount}</sup>;
+};
+
 const MockServerDashboard = ({ instance, collection }) => {
   const dispatch = useDispatch();
   const mockServerUid = instance.uid;
@@ -75,7 +85,6 @@ const MockServerDashboard = ({ instance, collection }) => {
     exampleCount: 0,
     globalDelay: instance.globalDelay || 0
   };
-  const logs = useSelector((state) => state.mockServer.requestLogs[mockServerUid]) || [];
 
   const isRunning = serverState.status === 'running';
   const isStarting = serverState.status === 'starting';
@@ -121,18 +130,6 @@ const MockServerDashboard = ({ instance, collection }) => {
   useEffect(() => {
     dispatch(syncMockServerState(location));
   }, [dispatch, location.mockServerUid, location.collectionPath, location.sourceType, location.workspacePath]);
-
-  useEffect(() => {
-    if (!isRunning || activeTab !== 'log') {
-      return undefined;
-    }
-
-    const intervalId = setInterval(() => {
-      dispatch(syncMockServerState(location));
-    }, 2000);
-
-    return () => clearInterval(intervalId);
-  }, [activeTab, dispatch, isRunning, mockServerUid]);
 
   const resolveStartPayload = () => resolveMockServerStartPayload(storedInstance, {
     collection,
@@ -527,7 +524,7 @@ const MockServerDashboard = ({ instance, collection }) => {
         </div>
         <div className={getTabClassname('log')} role="tab" data-testid="mock-server-tab-log" onClick={() => setActiveTab('log')}>
           Request Log
-          {logs.length > 0 && <sup className="ml-1 font-medium">{logs.length}</sup>}
+          <MockServerLogCount mockServerUid={mockServerUid} />
         </div>
       </div>
 

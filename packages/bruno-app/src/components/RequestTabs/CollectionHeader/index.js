@@ -788,8 +788,8 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                 </ActionIcon>
               </ToolHint>
               {isMockServerEnabled && (
-                <ToolHint text="Mocker" toolhintId="MockerToolhintId" place="bottom">
-                  <ActionIcon onClick={viewMockServer} aria-label="Mocker" size="sm" data-testid="mocker">
+                <ToolHint text="Mock Server" toolhintId="MockServerToolhintId" place="bottom">
+                  <ActionIcon onClick={viewMockServer} aria-label="Mock Server" size="sm" data-testid="mock-server">
                     <IconServer2 size={16} strokeWidth={1.5} />
                   </ActionIcon>
                 </ToolHint>

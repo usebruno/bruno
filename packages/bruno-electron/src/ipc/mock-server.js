@@ -8,12 +8,21 @@ const {
   createEmptyMockResponse,
   deleteMockResponse,
   deleteMockServer,
+  flushAllWorkspaceStores,
   listMockResponses,
   listMockServers,
   saveMockResponse,
   saveMockServer,
   setMockServerResponses
 } = require('../app/mock-response-store');
+
+const getResponsesAndRoutes = (location) => {
+  const mockServerUid = location.mockServerUid || location.collectionUid;
+  const responses = listMockResponses(location);
+  const routes = mockServer.getRoutes(mockServerUid, location);
+
+  return { responses, routes };
+};
 
 const parseSpecContent = (content) => {
   try {
@@ -131,8 +140,35 @@ const registerMockServerIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:mock-server-get-responses', async (_event, payload) => {
     try {
-      const responses = listMockResponses(payload);
-      return { success: true, responses };
+      const { responses, routes } = getResponsesAndRoutes(payload);
+      return { success: true, responses, routes };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('renderer:mock-server-get-responses-and-routes', async (_event, payload) => {
+    try {
+      const { responses, routes } = getResponsesAndRoutes(payload);
+      return { success: true, responses, routes };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('renderer:mock-server-load-all-responses', async (_event, { locations = [] }) => {
+    try {
+      const results = {};
+
+      for (const location of locations) {
+        if (!location?.mockServerUid) {
+          continue;
+        }
+
+        results[location.mockServerUid] = getResponsesAndRoutes(location);
+      }
+
+      return { success: true, results };
     } catch (err) {
       return { success: false, error: err.message };
     }
@@ -151,8 +187,8 @@ const registerMockServerIpc = (mainWindow) => {
         response.response.body.type = payload.bodyType;
       }
       const savedResponse = saveMockResponse(payload, response);
-      await mockServer.reloadRoutesFromStore(payload.mockServerUid, payload);
-      return { success: true, response: savedResponse };
+      const routeResult = await mockServer.reloadRoutesFromStore(payload.mockServerUid, payload);
+      return { success: true, response: savedResponse, routes: routeResult?.routes || [] };
     } catch (err) {
       return { success: false, error: err.message };
     }
@@ -162,8 +198,8 @@ const registerMockServerIpc = (mainWindow) => {
     try {
       const { response, ...location } = payload;
       const savedResponse = saveMockResponse(location, response);
-      await mockServer.reloadRoutesFromStore(location.mockServerUid, location);
-      return { success: true, response: savedResponse };
+      const routeResult = await mockServer.reloadRoutesFromStore(location.mockServerUid, location);
+      return { success: true, response: savedResponse, routes: routeResult?.routes || [] };
     } catch (err) {
       return { success: false, error: err.message };
     }
@@ -173,8 +209,8 @@ const registerMockServerIpc = (mainWindow) => {
     try {
       const { responseUid, ...location } = payload;
       deleteMockResponse(location, responseUid);
-      await mockServer.reloadRoutesFromStore(location.mockServerUid, location);
-      return { success: true, responseUid };
+      const routeResult = await mockServer.reloadRoutesFromStore(location.mockServerUid, location);
+      return { success: true, responseUid, routes: routeResult?.routes || [] };
     } catch (err) {
       return { success: false, error: err.message };
     }
@@ -184,8 +220,8 @@ const registerMockServerIpc = (mainWindow) => {
     try {
       const { responses, ...location } = payload;
       setMockServerResponses(location, responses || []);
-      await mockServer.reloadRoutesFromStore(location.mockServerUid, location);
-      return { success: true, responses: responses || [] };
+      const routeResult = await mockServer.reloadRoutesFromStore(location.mockServerUid, location);
+      return { success: true, responses: responses || [], routes: routeResult?.routes || [] };
     } catch (err) {
       return { success: false, error: err.message };
     }
@@ -293,6 +329,7 @@ const registerMockServerIpc = (mainWindow) => {
   });
 
   ipcMain.on('main:start-quit-flow', () => {
+    flushAllWorkspaceStores();
     mockServer.stopAll().catch((err) => {
       console.error('[MockServer] Error stopping servers on quit:', err.message);
     });
