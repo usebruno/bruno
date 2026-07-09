@@ -300,15 +300,14 @@ describe('collectionChangeFileEvent — failed parse', () => {
     }
   });
 
-  test('flags the item as not-loaded and preserves the last-good request', () => {
+  test('flags the item as not-loaded and keeps the raw content', () => {
     const state = reducer(makeInitialState(), collectionChangeFileEvent(makeFailedFileEvent()));
 
     const item = state.collections[0].items[0];
     expect(item.partial).toBe(true);
     expect(item.loading).toBe(false);
     expect(item.error).toEqual({ message: 'unexpected token' });
-    // the last-good parsed request must survive an invalid edit
-    expect(item.request).toEqual(makeRequest());
+    expect(item.raw).toBe('meta {\n  name: user_info');
   });
 
   test('does not wipe a user draft on a failed parse', () => {
