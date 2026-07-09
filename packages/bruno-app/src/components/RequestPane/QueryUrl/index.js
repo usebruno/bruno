@@ -418,6 +418,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             <ToolHint text="Generate Code" toolhintId="http-generate-code" place="top" positionStrategy="fixed">
               <div
                 className="flex items-center"
+                data-testid="generate-code-button"
                 onClick={(e) => {
                   handleGenerateCode(e);
                 }}
@@ -428,6 +429,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             <ToolHint text={`Save (${saveShortcut})`} toolhintId="http-save-request" place="top" positionStrategy="fixed">
               <div
                 className="flex items-center"
+                data-testid="save-request-button"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (!hasChanges) return;

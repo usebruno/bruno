@@ -144,6 +144,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             <ToolHint text={`Save (${saveShortcut})`} toolhintId="ws-save-request" place="top" positionStrategy="fixed">
               <div
                 className="flex items-center"
+                data-testid="save-request-button"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (!hasChanges) return;
@@ -162,7 +163,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             {connectionStatus === 'connected' && (
               <div className="connection-controls relative flex items-center h-full">
                 <ToolHint text="Close Connection" toolhintId="ws-close-connection" place="top" positionStrategy="fixed">
-                  <div className="flex items-center" onClick={(e) => handleDisconnect(e, true)}>
+                  <div className="flex items-center" onClick={(e) => handleDisconnect(e, true)} data-testid="ws-disconnect-button">
                     <IconPlugConnectedX
                       color={theme.colors.text.danger}
                       strokeWidth={1.5}
@@ -177,7 +178,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             {connectionStatus !== 'connected' && (
               <div className="connection-controls relative flex items-center h-full">
                 <ToolHint text="Connect" toolhintId="ws-connect" place="top" positionStrategy="fixed">
-                  <div className="flex items-center" onClick={handleConnect}>
+                  <div className="flex items-center" onClick={handleConnect} data-testid="ws-connect-button">
                     <IconPlugConnected
                       className={classnames('cursor-pointer', {
                         'animate-pulse': connectionStatus === CONNECTION_STATUS.CONNECTING

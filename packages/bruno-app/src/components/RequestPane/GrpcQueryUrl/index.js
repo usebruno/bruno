@@ -395,6 +395,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         >
           <div
             className="flex items-center"
+            data-testid="save-request-button"
             onClick={(e) => {
               e.stopPropagation();
               if (!item.draft) return;
