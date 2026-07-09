@@ -8,17 +8,20 @@ export const createDescriptionColumn = ({
   collection,
   item,
   nameFromRowIndex = false,
-  onDescriptionChange
+  onDescriptionChange,
+  readOnly
 }) => ({
   key: 'description',
   name: 'Description',
   placeholder: 'Description',
   width: '25%',
+  readOnly,
   render: ({ row, value, onChange, rowIndex }) => (
     <MultiLineEditor
       value={value || ''}
       theme={theme}
       onSave={onSave}
+      readOnly={readOnly}
       onChange={
         onDescriptionChange
           ? (newValue) => onDescriptionChange(newValue, { row, onChange })

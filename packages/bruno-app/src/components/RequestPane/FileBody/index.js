@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { get, cloneDeep } from 'lodash';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
@@ -14,8 +14,6 @@ const FileBody = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const params = item.draft ? get(item, 'draft.request.body.file') : get(item, 'request.body.file');
-
-  const [enabledFileUid, setEnableFileUid] = useState(params && params.length ? params[0].uid : '');
 
   const addFile = () => {
     dispatch(
@@ -46,8 +44,7 @@ const FileBody = ({ item, collection }) => {
         break;
       }
       case 'selected': {
-        param.selected = e.target.selected;
-        setEnableFileUid(param.uid);
+        param.selected = e.target.checked;
         break;
       }
     }
@@ -140,7 +137,7 @@ const FileBody = ({ item, collection }) => {
                           key={param.uid}
                           type="radio"
                           name="selected"
-                          checked={enabledFileUid === param.uid || param.selected}
+                          checked={!!param.selected}
                           tabIndex="-1"
                           className="mr-1 mousetrap"
                           onChange={(e) => handleParamChange(e, param, 'selected')}

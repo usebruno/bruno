@@ -122,7 +122,8 @@ const ResponseExampleFileBody = ({ item, collection, exampleUid, editMode = fals
     theme: storedTheme,
     onSave: () => {},
     collection,
-    item
+    item,
+    readOnly: !editMode
   });
 
   const columns = [
