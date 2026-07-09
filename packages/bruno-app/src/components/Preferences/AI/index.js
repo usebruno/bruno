@@ -286,7 +286,7 @@ const AI = () => {
   }, [status, formik.values.providers, formik.values.models, formik.values.openaiCompatibleEndpoints]);
 
   return (
-    <StyledWrapper className="w-full flex flex-col text-xs min-h-0 max-h-[calc(100%-30px)]">
+    <StyledWrapper className="w-full flex flex-col text-xs self-start max-h-full">
       <div className="section-header">AI</div>
 
       <div className="ai-tabs flex items-center" role="tablist" aria-label="AI preferences">
