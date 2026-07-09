@@ -37,8 +37,8 @@ const collectAuthNodes = (collection) => {
   nodes['collection'] = normalizeAuth(collection.auth);
 
   const walk = (items, parentPath) => {
-    (items || []).forEach((item) => {
-      const nodePath = `${parentPath}/${item.name}`;
+    (items || []).forEach((item, index) => {
+      const nodePath = `${parentPath}-{index}/${item.name}`;
       if (Array.isArray(item.item)) {
         // Folder: auth lives directly on the folder item.
         nodes[nodePath] = normalizeAuth(item.auth);

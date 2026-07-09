@@ -650,6 +650,16 @@
           "type": "oauth2",
           "oauth2": [
             {
+              "key": "code_verifier",
+              "value": "asfajhfkasjfjkasfkjsabjkabgjksabgjkasgjlabglajsglba",
+              "type": "string"
+            },
+            {
+              "key": "challengeAlgorithm",
+              "value": "plain",
+              "type": "string"
+            },
+            {
               "key": "grant_type",
               "value": "authorization_code_with_pkce",
               "type": "string"

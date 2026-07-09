@@ -10,21 +10,6 @@
     {
       "name": "Inherit",
       "request": {
-        "auth": {
-          "type": "ntlm",
-          "ntlm": [
-            {
-              "key": "password",
-              "value": "password",
-              "type": "string"
-            },
-            {
-              "key": "username",
-              "value": "NTLM_USER_2",
-              "type": "string"
-            }
-          ]
-        },
         "method": "GET",
         "header": [],
         "url": {
