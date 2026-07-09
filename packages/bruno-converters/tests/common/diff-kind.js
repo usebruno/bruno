@@ -7,7 +7,7 @@
 //   KEY_MISSING_IN_ROUNDTRIP -> a field present in the original was dropped on round-trip
 //   KEY_ONLY_IN_ROUNDTRIP    -> a field absent in the original was added on round-trip
 //   VALUE_MISMATCH           -> a field exists on both sides but its value differs
-const DiffKind = Object.freeze({
+export const DiffKind = Object.freeze({
   NODE_ONLY_IN_ORIGINAL: 'node-only-in-original',
   NODE_ONLY_IN_ROUNDTRIP: 'node-only-in-roundtrip',
   TYPE_MISMATCH: 'type-mismatch',
@@ -15,5 +15,3 @@ const DiffKind = Object.freeze({
   KEY_ONLY_IN_ROUNDTRIP: 'key-only-in-roundtrip',
   VALUE_MISMATCH: 'value-mismatch'
 });
-
-module.exports = { DiffKind };

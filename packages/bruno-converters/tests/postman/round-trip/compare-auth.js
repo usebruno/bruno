@@ -1,4 +1,4 @@
-const { DiffKind } = require('../../common/diff-kind');
+import { DiffKind } from '../../common/diff-kind';
 
 // Canonical stringify (object keys sorted, array order preserved) so nested values like the
 // additional-params arrays (authRequestParams/tokenRequestParams/refreshRequestParams) are
@@ -40,7 +40,7 @@ const collectAuthNodes = (collection) => {
 
   const walk = (items, parentPath) => {
     (items || []).forEach((item, index) => {
-      const nodePath = `${parentPath}-{index}/${item.name}`;
+      const nodePath = `${parentPath}-${index}/${item.name}`;
       if (Array.isArray(item.item)) {
         // Folder: auth lives directly on the folder item.
         nodes[nodePath] = normalizeAuth(item.auth);
@@ -58,7 +58,7 @@ const collectAuthNodes = (collection) => {
 
 // Diff the auth subtree of two Postman collections (original vs round-tripped). Returns a flat
 // list of structured diffs. `kind` is one of the DiffKind values.
-const diffAuthNodes = (originalCollection, roundTrippedCollection) => {
+export const diffAuthNodes = (originalCollection, roundTrippedCollection) => {
   const original = collectAuthNodes(originalCollection);
   const roundtrip = collectAuthNodes(roundTrippedCollection);
   const paths = [...new Set([...Object.keys(original), ...Object.keys(roundtrip)])].sort();
@@ -114,5 +114,3 @@ const diffAuthNodes = (originalCollection, roundTrippedCollection) => {
   }
   return diffs;
 };
-
-module.exports = { stableStringify, normalizeAuth, collectAuthNodes, diffAuthNodes, DiffKind };
