@@ -28,8 +28,8 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
   const [newName, setNewName] = useState('');
   const [nameError, setNameError] = useState('');
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const activeTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.envTab) || 'variables';
-  const setActiveTab = (tab) => dispatch(updateTabState({ uid: activeTabUid, tabState: { envTab: tab } }));
+  const activeTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.environment?.tab) || 'variables';
+  const setActiveTab = (tab) => dispatch(updateTabState({ uid: activeTabUid, tabState: { environment: { tab } } }));
 
   // Use the immediate query on a tab switch (debounced value lags and briefly
   // flashes the unfiltered table).

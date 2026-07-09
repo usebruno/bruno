@@ -344,4 +344,85 @@ describe('opencollection description round-trip', () => {
       expect(backData[2]).not.toHaveProperty('description');
     });
   });
+
+  describe('file body description', () => {
+    it('Bruno→OC→Bruno: preserves description, omits when absent or whitespace-only', () => {
+      const brunoCollection = {
+        uid: 'c-f1',
+        name: 'Test',
+        version: '1',
+        items: [
+          {
+            uid: 'i-f1',
+            type: 'http-request',
+            name: 'R',
+            request: {
+              method: 'POST',
+              url: 'https://example.com',
+              headers: [],
+              body: {
+                mode: 'file',
+                file: [
+                  { uid: 'f1', filePath: '/tmp/readme.pdf', contentType: 'application/pdf', selected: true, description: 'Upload doc' },
+                  { uid: 'f2', filePath: '/tmp/other.bin', contentType: 'application/octet-stream', selected: false },
+                  { uid: 'f3', filePath: '/tmp/plain.bin', contentType: 'application/octet-stream', selected: false, description: '   ' }
+                ]
+              }
+            }
+          }
+        ],
+        root: {}
+      };
+
+      const oc = brunoToOpenCollection(brunoCollection);
+      const ocBody = oc.items[0].http.body;
+      expect(ocBody.type).toBe('file');
+      expect(ocBody.data).toHaveLength(3);
+      expect(ocBody.data[0]).toMatchObject({ filePath: '/tmp/readme.pdf', description: 'Upload doc' });
+      expect(ocBody.data[1]).not.toHaveProperty('description');
+      expect(ocBody.data[2]).not.toHaveProperty('description');
+
+      const back = openCollectionToBruno(oc);
+      const backFile = back.items[0].request.body.file;
+      expect(backFile[0]).toMatchObject({ filePath: '/tmp/readme.pdf', description: 'Upload doc' });
+      expect(backFile[1].description).toBeFalsy();
+      expect(backFile[2].description).toBeFalsy();
+    });
+
+    it('OC→Bruno→OC: preserves description, omits when absent or whitespace-only', () => {
+      const openCollection = {
+        opencollection: '1.0.0',
+        info: { name: 'Test' },
+        items: [
+          {
+            info: { name: 'R', type: 'http' },
+            http: {
+              method: 'POST',
+              url: 'https://example.com',
+              body: {
+                type: 'file',
+                data: [
+                  { filePath: '/tmp/readme.pdf', contentType: 'application/pdf', selected: true, description: 'Upload doc' },
+                  { filePath: '/tmp/other.bin', contentType: 'application/octet-stream', selected: false },
+                  { filePath: '/tmp/plain.bin', contentType: 'application/octet-stream', selected: false, description: '   ' }
+                ]
+              }
+            }
+          }
+        ]
+      };
+
+      const bruno = openCollectionToBruno(openCollection);
+      const brunoFile = bruno.items[0].request.body.file;
+      expect(brunoFile[0]).toMatchObject({ filePath: '/tmp/readme.pdf', description: 'Upload doc' });
+      expect(brunoFile[1].description).toBeFalsy();
+      expect(brunoFile[2].description).toBeFalsy();
+
+      const backOC = brunoToOpenCollection(bruno);
+      const backData = backOC.items[0].http.body.data;
+      expect(backData[0]).toMatchObject({ filePath: '/tmp/readme.pdf', description: 'Upload doc' });
+      expect(backData[1]).not.toHaveProperty('description');
+      expect(backData[2]).not.toHaveProperty('description');
+    });
+  });
 });

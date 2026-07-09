@@ -1697,12 +1697,14 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           item.draft.request.body.file = item.draft.request.body.file || [];
+          const shouldSelectNewFile = !item.draft.request.body.file.some((p) => p.selected);
 
           item.draft.request.body.file.push({
             uid: uuid(),
             filePath: '',
             contentType: '',
-            selected: false
+            description: '',
+            selected: shouldSelectNewFile
           });
         }
       }
@@ -1724,12 +1726,18 @@ export const collectionsSlice = createSlice({
             const contentType = mime.contentType(path.extname(action.payload.param.filePath));
             param.filePath = action.payload.param.filePath;
             param.contentType = action.payload.param.contentType || contentType || '';
-            param.selected = action.payload.param.selected;
+            param.description = action.payload.param.description ?? param.description ?? '';
 
-            item.draft.request.body.file = item.draft.request.body.file.map((p) => {
-              p.selected = p.uid === param.uid;
-              return p;
-            });
+            if (typeof action.payload.param.selected === 'boolean') {
+              param.selected = action.payload.param.selected;
+
+              if (param.selected) {
+                item.draft.request.body.file = item.draft.request.body.file.map((p) => {
+                  p.selected = p.uid === param.uid;
+                  return p;
+                });
+              }
+            }
           }
         }
       }
@@ -2978,10 +2986,13 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, file.data.uid);
 
         if (item) {
-          // whenever a user attempts to sort a req within the same folder
-          // the seq is updated, but everything else remains the same
-          // we don't want to lose the draft in this case
+          item.partial = file.partial;
+          item.error = file.error;
+          item.loading = file.loading;
           if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
+            // whenever a user attempts to sort a req within the same folder
+            // the seq is updated, but everything else remains the same
+            // we don't want to lose the draft in this case
             item.seq = file.data.seq;
             item.raw = file.data.raw;
             if (item?.draft) {
@@ -3002,7 +3013,7 @@ export const collectionsSlice = createSlice({
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
             item.raw = file.data.raw;
-
+            item.size = file.size;
             // Only clear draft if it matches the file content
             // This preserves characters typed during autosave
             // The raw comparison is guarded so an undefined === undefined match
