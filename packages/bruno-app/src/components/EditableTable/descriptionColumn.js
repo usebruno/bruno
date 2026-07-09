@@ -24,6 +24,7 @@ export const createDescriptionColumn = ({
           ? (newValue) => onDescriptionChange(newValue, { row, onChange })
           : onChange
       }
+      placeholder={!value ? 'Description' : ''}
       {...(onRun ? { onRun } : {})}
       {...(collection ? { collection } : {})}
       {...(item ? { item } : {})}
