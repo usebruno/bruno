@@ -1697,12 +1697,14 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           item.draft.request.body.file = item.draft.request.body.file || [];
+          const shouldSelectNewFile = !item.draft.request.body.file.some((p) => p.selected);
 
           item.draft.request.body.file.push({
             uid: uuid(),
             filePath: '',
             contentType: '',
-            selected: false
+            description: '',
+            selected: shouldSelectNewFile
           });
         }
       }
@@ -1724,12 +1726,18 @@ export const collectionsSlice = createSlice({
             const contentType = mime.contentType(path.extname(action.payload.param.filePath));
             param.filePath = action.payload.param.filePath;
             param.contentType = action.payload.param.contentType || contentType || '';
-            param.selected = action.payload.param.selected;
+            param.description = action.payload.param.description ?? param.description ?? '';
 
-            item.draft.request.body.file = item.draft.request.body.file.map((p) => {
-              p.selected = p.uid === param.uid;
-              return p;
-            });
+            if (typeof action.payload.param.selected === 'boolean') {
+              param.selected = action.payload.param.selected;
+
+              if (param.selected) {
+                item.draft.request.body.file = item.draft.request.body.file.map((p) => {
+                  p.selected = p.uid === param.uid;
+                  return p;
+                });
+              }
+            }
           }
         }
       }

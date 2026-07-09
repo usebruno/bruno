@@ -214,11 +214,12 @@ const EnvironmentVariablesTable = ({
     const startX = e.clientX;
     const startWidth = currentCell.offsetWidth;
 
-    const colIndex = columns.indexOf(columnKey) + 1;
-    if (colIndex >= columns.length - 1) return;
+    const columnIndex = columns.indexOf(columnKey);
+    if (columnIndex < 0) return;
 
-    const matchedNextCol = columns[colIndex];
-    const nextColumnKey = matchedNextCol ?? columns.at(-1);
+    const nextColumnKey = columns[columnIndex + 1];
+    if (!nextColumnKey) return;
+
     const nextColumnStartWidth = nextCell.offsetWidth;
 
     setResizing(columnKey);
