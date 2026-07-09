@@ -30,7 +30,8 @@ describe('file body description', () => {
     expect(out?.mode).toBe('file');
     expect(out?.file).toHaveLength(2);
 
-    // already fails on the length check above , the if is just to satisfy typescript
+    // already fails on the length check above if no bodies are recieved, the if below is just
+    // to satisfy typescript and then validate the content of the files
     if (out?.file) {
       expect(out?.file[0]).toMatchObject({ filePath: '/tmp/readme.pdf', description: 'Upload doc' });
       expect(out?.file[1].description).toBeFalsy();
@@ -51,7 +52,8 @@ describe('file body description', () => {
 
     expect(back?.file).toHaveLength(2);
 
-    // already fails on the length check above , the if is just to satisfy typescript
+    // already fails on the length check above if no bodies are recieved, the if below is just
+    // to satisfy typescript and then validate the content of the files
     if (back?.file) {
       expect(back?.file[0]).toMatchObject({ filePath: '/tmp/readme.pdf', description: 'Upload doc' });
       expect(back?.file[1].description).toBeFalsy();
