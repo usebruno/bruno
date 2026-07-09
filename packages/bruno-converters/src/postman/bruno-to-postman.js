@@ -1,6 +1,7 @@
 import map from 'lodash/map';
-import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems, ensureString, isItemARequest } from '../common';
+import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems, isItemARequest } from '../common';
 import translateBruToPostman from '../utils/bruno-to-postman-translator';
+import { toDisplayString as ensureString } from '@usebruno/common/utils';
 
 const isItemAFolder = (item) => item.type === 'folder';
 
@@ -626,7 +627,10 @@ export const brunoToPostman = (collection) => {
         // 3. Bruno's `tokenPlacement` ('header'/'url') maps to Postman's `addTokenTo`, where the query case
         //    is represented as 'queryParams' (not 'url').
         // 4. Postman-only keys (`useBrowser`, `code_verifier`) have no Bruno equivalent, so
-        //    they are not produced here.
+        //    they are not produced here. Postman lets you enable `useBrowser` ("Authorize using
+        //    browser") per collection/folder/request. In Bruno, using the system browser is a
+        //    global preference (`request.oauth2.useSystemBrowser`) applied to all OAuth2 requests
+        //    and cannot be scoped per collection/folder/request.
         // 5. Bruno's `additionalParameters` (authorization/token/refresh) map to Postman's
         //    `authRequestParams`/`tokenRequestParams`/`refreshRequestParams`, with `sendIn`
         //    ('headers'/'queryparams'/'body') mapped to `send_as` ('request_header'/'request_url'/'request_body').
