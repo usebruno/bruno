@@ -69,7 +69,7 @@ const RequestsNotLoaded = ({ collection }) => {
         </thead>
         <tbody>
           {itemsFailedLoading?.map((item, index) => (
-            <tr key={index} className="cursor-pointer" onClick={handleRequestClick(item)}>
+            <tr key={item?.pathname} className="cursor-pointer" onClick={handleRequestClick(item)}>
               <td className="py-1.5 px-3">
                 {toRelativePathname(item?.pathname, collection?.pathname)}
               </td>

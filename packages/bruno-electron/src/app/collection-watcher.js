@@ -609,8 +609,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       };
       file.partial = true;
       file.loading = false;
-      file.size = sizeInMB(fileStats?.size);
-      file.data.raw = content;
+      file.size = sizeInMB(fileStats?.size ?? 0);
+      file.data.raw = content ?? '';
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
     }
