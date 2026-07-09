@@ -18,12 +18,12 @@ import {
   isItemARequest
 } from 'utils/collections';
 import { parsePathParams, splitOnFirst } from 'utils/url';
+import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
 import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
-import { getCollectionEnvironmentPath } from 'utils/snapshot';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
 import * as mockResponseEditorReducers from './mockResponseEditorReducers';
@@ -36,6 +36,7 @@ const FILE_DERIVED_REQUEST_FIELDS = [
   'request',
   'settings',
   'examples',
+  'raw',
   'filename',
   'pathname',
   'partial',
@@ -219,6 +220,8 @@ const initiatedWsResponse = {
   trailers: []
 };
 
+// Properties prefixed with `_` (e.g. `_scriptEnvBaseline`) are transient runtime state —
+// never persisted to disk or included in exports.
 export const collectionsSlice = createSlice({
   name: 'collections',
   initialState,
@@ -284,6 +287,24 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
         collection.securityConfig = action.payload.securityConfig;
+      }
+    },
+    updateCollectionVersion: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        const version = action.payload.version;
+        const applyVersion = (target) => {
+          if (!target) return;
+          if (version) {
+            target.version = version;
+          } else {
+            delete target.version;
+          }
+        };
+        collection.brunoConfig = collection.brunoConfig || {};
+        applyVersion(collection.brunoConfig);
+        // Keep any unsaved brunoConfig draft in sync so a later settings-save can't wipe it.
+        applyVersion(collection.draft?.brunoConfig);
       }
     },
     brunoConfigUpdateEvent: (state, action) => {
@@ -454,84 +475,51 @@ export const collectionsSlice = createSlice({
       }
     },
     scriptEnvironmentUpdateEvent: (state, action) => {
-      const { collectionUid, envVariables, runtimeVariables, persistentEnvVariables } = action.payload;
+      const { collectionUid, envVariables, requestUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        const activeEnvironmentUid = collection.activeEnvironmentUid;
-        const activeEnvironment = findEnvironmentInCollection(collection, activeEnvironmentUid);
+        const activeEnvironment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
 
         if (activeEnvironment) {
-          const existingEnvVarNames = new Set(Object.keys(envVariables));
+          const draft = collection.environmentsDraft;
+          if (draft && draft.environmentUid === activeEnvironment.uid && draft.variables) {
+            const baseline = {};
+            activeEnvironment.variables.forEach((v) => {
+              if (v.enabled) baseline[v.name] = v.value;
+            });
+            collection._scriptEnvBaseline = baseline;
 
-          // Update or add variables that exist in envVariables
-          forOwn(envVariables, (value, key) => {
-            const variable = find(activeEnvironment.variables, (v) => v.name === key);
-            const isPersistent = persistentEnvVariables && persistentEnvVariables[key] !== undefined;
+            activeEnvironment.variables = cloneDeep(draft.variables);
+            collection.environmentsDraft = null;
+          }
 
-            if (variable) {
-              // For updates coming from scripts, treat them as ephemeral overlays unless they are persistent.
-              if (variable.value !== value) {
-                /*
-                 Overlay (persist: false): keep new value in Redux for UI and mark ephemeral
-                 so it isn't written to disk. persistedValue stores the previous on-disk value;
-                 save/persist uses that base unless the key is explicitly persisted.
-                */
-                const previousValue = variable.value;
-                const wasEphemeral = !!variable.ephemeral;
-                variable.value = value;
-                variable.ephemeral = !isPersistent;
-                // Capture the on-disk base only when shadowing a real (non-ephemeral) var for
-                // the first time. A script-created ephemeral has no on-disk value to restore,
-                // so giving it a persistedValue would leak its overlay value into the file.
-                if (variable.persistedValue === undefined && !wasEphemeral) {
-                  variable.persistedValue = previousValue;
-                }
+          activeEnvironment.variables = applyScriptEnvVars(
+            activeEnvironment.variables,
+            envVariables,
+            collection._scriptEnvBaseline,
+            { skipKeys: ['__name__'] }
+          );
 
-                // Secrets carry a dataType too; infer it from the value like any other var.
-                const inferred = getDataTypeFromValue(value);
-                variable.dataType = inferred === 'string' ? undefined : inferred;
-              }
+          // Re-infer dataType only for vars the script actually modified — otherwise a no-op
+          // script re-write would clobber a user's in-progress draft type change.
+          const modifiedKeys = getScriptModifiedKeys(envVariables, collection._scriptEnvBaseline, { skipKeys: ['__name__'] });
+          activeEnvironment.variables.forEach((v) => {
+            if (!modifiedKeys.has(v.name)) return;
+            const inferred = getDataTypeFromValue(envVariables[v.name]);
+            if (inferred === 'string') {
+              delete v.dataType;
             } else {
-              // __name__ is a private variable used to store the name of the environment
-              // this is not a user defined variable and hence should not be updated
-              if (key !== '__name__') {
-                const inferred = getDataTypeFromValue(value);
-                activeEnvironment.variables.push({
-                  name: key,
-                  value,
-                  secret: false,
-                  enabled: true,
-                  type: 'text',
-                  uid: uuid(),
-                  ephemeral: !isPersistent,
-                  ...(inferred !== 'string' ? { dataType: inferred } : {})
-                });
-              }
+              v.dataType = inferred;
             }
-          });
-
-          // Handle variables that were deleted via bru.deleteEnvVar()
-          activeEnvironment.variables = activeEnvironment.variables.filter((variable) => {
-            // Variable still exists in envVariables after script execution - keep it
-            if (existingEnvVarNames.has(variable.name)) {
-              return true;
-            }
-
-            // Variable was deleted via bru.deleteEnvVar() - handle based on its state
-            // If variable was modified by script (has persistedValue), restore original value
-            if (variable.persistedValue !== undefined) {
-              variable.value = variable.persistedValue;
-              variable.ephemeral = false;
-              delete variable.persistedValue;
-              return true;
-            }
-
-            // Remove variable: either ephemeral (created by scripts) or non-ephemeral deleted via API
-            return false;
           });
         }
-
+      }
+    },
+    runtimeVariablesUpdateEvent: (state, action) => {
+      const { collectionUid, runtimeVariables } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
         collection.runtimeVariables = runtimeVariables;
       }
     },
@@ -906,7 +894,12 @@ export const collectionsSlice = createSlice({
       const { collectionUid, environmentUid, variables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
-        collection.environmentsDraft = { environmentUid, variables };
+        // Reset the draft when switching environments; otherwise update variables in place.
+        if (!collection.environmentsDraft || collection.environmentsDraft.environmentUid !== environmentUid) {
+          collection.environmentsDraft = { environmentUid, variables };
+        } else {
+          collection.environmentsDraft.variables = variables;
+        }
       }
     },
     clearEnvironmentsDraft: (state, action) => {
@@ -1129,6 +1122,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.auth.mode = 'apikey';
               item.draft.request.auth.apikey = action.payload.content;
               break;
+            case 'akamai-edgegrid':
+              item.draft.request.auth.mode = 'akamai-edgegrid';
+              item.draft.request.auth.akamaiEdgegrid = action.payload.content;
+              break;
           }
         }
       }
@@ -1322,6 +1319,12 @@ export const collectionsSlice = createSlice({
           if (param) {
             param.name = action.payload.pathParam.name;
             param.value = action.payload.pathParam.value;
+            if ('description' in action.payload.pathParam) {
+              param.description = action.payload.pathParam.description;
+            }
+            if ('enabled' in action.payload.pathParam) {
+              param.enabled = action.payload.pathParam.enabled;
+            }
           }
         }
       }
@@ -1655,13 +1658,14 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.body.multipartForm = map(params, ({ uid, name = '', value = '', contentType = '', type = 'text', enabled = true }) => ({
+      item.draft.request.body.multipartForm = map(params, ({ uid, name = '', value = '', contentType = '', type = 'text', enabled = true, description = '' }) => ({
         uid: uid || uuid(),
         name,
         value,
         contentType,
         type,
-        enabled
+        enabled,
+        description
       }));
     },
     moveMultipartFormParam: (state, action) => {
@@ -2012,12 +2016,13 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.assertions = map(assertions, ({ uid, name = '', value = '', operator = 'eq', enabled = true }) => ({
+      item.draft.request.assertions = map(assertions, ({ uid, name = '', value = '', operator = 'eq', enabled = true, description = '' }) => ({
         uid: uid || uuid(),
         name,
         value,
         operator,
-        enabled
+        enabled,
+        description
       }));
     },
     moveAssertion: (state, action) => {
@@ -2147,10 +2152,11 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       item.draft.request.vars = item.draft.request.vars || {};
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, dataType, annotations }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', description = '', enabled = true, local = false, dataType, annotations }) => ({
         uid: uid || uuid(),
         name,
         value,
+        description,
         enabled,
         ...(dataType && dataType !== 'string' ? { dataType } : {}),
         ...(annotations?.length ? { annotations } : {}),
@@ -2250,6 +2256,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'apikey':
             set(collection, 'draft.root.request.auth.apikey', action.payload.content);
+            break;
+          case 'akamai-edgegrid':
+            set(collection, 'draft.root.request.auth.akamaiEdgegrid', action.payload.content);
             break;
         }
       }
@@ -2503,10 +2512,13 @@ export const collectionsSlice = createSlice({
       if (!folder.draft) {
         folder.draft = cloneDeep(folder.root);
       }
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, dataType, annotations }) => ({
+
+      const mappedVars = map(vars, ({ uid, name = '', value = '', description = '', enabled = true, local = false, dataType, annotations }) => ({
+
         uid: uid || uuid(),
         name,
         value,
+        description,
         enabled,
         ...(dataType && dataType !== 'string' ? { dataType } : {}),
         ...(annotations?.length ? { annotations } : {}),
@@ -2582,6 +2594,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'apikey':
             set(folder, 'draft.request.auth.apikey', action.payload.content);
+            break;
+          case 'akamai-edgegrid':
+            set(folder, 'draft.request.auth.akamaiEdgegrid', action.payload.content);
             break;
           case 'awsv4':
             set(folder, 'draft.request.auth.awsv4', action.payload.content);
@@ -2743,10 +2758,11 @@ export const collectionsSlice = createSlice({
           root: cloneDeep(collection.root)
         };
       }
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, dataType, annotations }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', description = '', enabled = true, local = false, dataType, annotations }) => ({
         uid: uid || uuid(),
         name,
         value,
+        description,
         enabled,
         ...(dataType && dataType !== 'string' ? { dataType } : {}),
         ...(annotations?.length ? { annotations } : {}),
@@ -2757,6 +2773,39 @@ export const collectionsSlice = createSlice({
       } else if (type === 'response') {
         set(collection, 'draft.root.request.vars.res', mappedVars);
       }
+    },
+    scriptUpdateCollectionVars: (state, action) => {
+      const { collectionUid, vars } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      // Preserve description/annotations/secret/type and any other per-var metadata via `...rest`
+      // — earlier this reducer cherry-picked only {uid, name, value, enabled, dataType} which
+      // wiped those fields whenever a script touched any collection var.
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, dataType, ...rest }) => {
+        const out = { ...rest, uid: uid || uuid(), name, value, enabled };
+        if (dataType && dataType !== 'string') out.dataType = dataType;
+        return out;
+      });
+
+      set(collection, 'root.request.vars.req', mappedVars);
+
+      if (collection.draft?.root) {
+        set(collection, 'draft.root.request.vars.req', mappedVars);
+      }
+    },
+    setScriptCollVarBaseline: (state, action) => {
+      const { collectionUid, baseline } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      collection._scriptCollVarBaseline = baseline;
+    },
+    _clearScriptCollectionBaselines: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      delete collection._scriptEnvBaseline;
+      delete collection._scriptCollVarBaseline;
     },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
@@ -2951,16 +3000,7 @@ export const collectionsSlice = createSlice({
             item.request = mergeRequestWithPreservedUids(item.request, file.data.request);
             item.settings = file.data.settings;
             item.examples = file.data.examples;
-            // app.enabled is runtime-only and not persisted, so preserve it across file reloads
-            // even when the file no longer has an `app` block on disk.
-            const currentEnabled = item.draft?.app?.enabled ?? item.app?.enabled ?? false;
-            if (file.data.app) {
-              item.app = { ...file.data.app, enabled: currentEnabled };
-            } else if (currentEnabled) {
-              item.app = { code: null, enabled: true };
-            } else {
-              item.app = null;
-            }
+            item.app = file.data.app ? { ...file.data.app } : null;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
             item.raw = file.data.raw;
@@ -3011,32 +3051,11 @@ export const collectionsSlice = createSlice({
         const existingEnv = collection.environments.find((e) => e.uid === environment.uid);
 
         if (existingEnv) {
-          const prevEphemerals = (existingEnv.variables || []).filter((v) => v.ephemeral);
           existingEnv.name = environment.name;
           existingEnv.pathname = environment.pathname;
           existingEnv.variables = environment.variables;
           existingEnv.color = environment.color;
           existingEnv.externalSecrets = environment.externalSecrets;
-          /*
-           Apply temporary (ephemeral) values only to variables that actually exist in the file. This prevents deleted temporaries from “popping back” after a save. If a variable is present in the file, we temporarily override the UI value while also remembering the on-disk value in persistedValue for future saves.
-          */
-          prevEphemerals.forEach((ev) => {
-            const target = existingEnv.variables?.find((v) => v.name === ev.name);
-            if (target) {
-              if (target.value !== ev.value) {
-                if (target.persistedValue === undefined) target.persistedValue = target.value;
-                target.value = ev.value;
-              }
-              target.ephemeral = true;
-            } else if (ev.persistedValue === undefined) {
-              /*
-               No counterpart in the file. A script-created overlay (persistedValue undefined) never
-               existed on disk, so a sibling persist:true save must not erase it — keep it visible.
-               An ephemeral with persistedValue shadowed a now-absent disk var (deleted), so it drops.
-              */
-              existingEnv.variables.push(ev);
-            }
-          });
         } else {
           collection.environments.push(environment);
           collection.environments.sort((a, b) => a.name.localeCompare(b.name));
@@ -3046,24 +3065,6 @@ export const collectionsSlice = createSlice({
             collection.lastAction = null;
             if (lastAction.payload === environment.name) {
               collection.activeEnvironmentUid = environment.uid;
-              // Persist the selection to the UI state snapshot
-              const { ipcRenderer } = window;
-              if (ipcRenderer) {
-                const extension = collection?.brunoConfig?.version === '1' ? 'bru' : 'yml';
-                const environmentPath = environment?.pathname
-                  || (environment?.name && collection?.pathname
-                    ? path.join(collection.pathname, 'environments', `${environment.name}.${extension}`)
-                    : null);
-
-                ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
-                  type: 'COLLECTION_ENVIRONMENT',
-                  data: {
-                    collectionPath: collection?.pathname,
-                    environmentPath: getCollectionEnvironmentPath(collection, environment, environmentPath),
-                    selectedEnvironment: environment?.name || ''
-                  }
-                });
-              }
             }
           }
         }
@@ -3089,6 +3090,9 @@ export const collectionsSlice = createSlice({
       const { requestUid, itemUid, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
+
+      delete collection._scriptEnvBaseline;
+      delete collection._scriptCollVarBaseline;
 
       const item = findItemInCollection(collection, itemUid);
       if (!item) return;
@@ -3219,6 +3223,9 @@ export const collectionsSlice = createSlice({
         // todo
         // get startedAt and endedAt from the runner and display it in the UI
         if (type === 'testrun-started') {
+          delete collection._scriptEnvBaseline;
+          delete collection._scriptCollVarBaseline;
+
           const info = collection.runnerResult.info;
           info.collectionUid = collectionUid;
           info.folderUid = folderUid;
@@ -3239,6 +3246,12 @@ export const collectionsSlice = createSlice({
         }
 
         if (type === 'request-queued') {
+          // Folder runs reuse the same collection across N requests; clear baselines
+          // per request so request N's script-update doesn't diff against request N-1's
+          // pre-flush snapshot.
+          delete collection._scriptEnvBaseline;
+          delete collection._scriptCollVarBaseline;
+
           collection.runnerResult.items.push({
             uid: request.uid,
             status: 'queued'
@@ -3286,8 +3299,10 @@ export const collectionsSlice = createSlice({
 
         if (type === 'runner-request-skipped') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
-          item.status = 'skipped';
-          item.responseReceived = action.payload.responseReceived;
+          if (item) {
+            item.status = 'skipped';
+            item.responseReceived = action.payload.responseReceived;
+          }
         }
 
         if (type === 'post-response-script-execution') {
@@ -3392,7 +3407,8 @@ export const collectionsSlice = createSlice({
       if (!collection) return;
 
       const item = findItemInCollection(collection, action.payload.itemUid);
-      if (item && isItemARequest(item)) {
+      // Accept both request-attached apps and standalone 'app' items.
+      if (item && (isItemARequest(item) || item.type === 'app')) {
         if (!item.draft) {
           item.draft = cloneDeep(item);
         }
@@ -3406,12 +3422,11 @@ export const collectionsSlice = createSlice({
 
       const item = findItemInCollection(collection, action.payload.itemUid);
       if (item && isItemARequest(item)) {
-        item.app = item.app || {};
-        item.app.enabled = action.payload.enabled;
-        if (item.draft) {
-          item.draft.app = item.draft.app || {};
-          item.draft.app.enabled = action.payload.enabled;
+        if (!item.draft) {
+          item.draft = cloneDeep(item);
         }
+        item.draft.app = item.draft.app || {};
+        item.draft.app.enabled = action.payload.enabled;
       }
     },
     appSetRuntimeVariable: (state, action) => {
@@ -3882,6 +3897,7 @@ export const {
   updateCollectionLoadingState,
   collectionLoadedFromTree,
   setCollectionSecurityConfig,
+  updateCollectionVersion,
   brunoConfigUpdateEvent,
   renameCollection,
   removeCollection,
@@ -3898,6 +3914,7 @@ export const {
   renameItem,
   cloneItem,
   scriptEnvironmentUpdateEvent,
+  runtimeVariablesUpdateEvent,
   processEnvUpdateEvent,
   workspaceEnvUpdateEvent,
   setDotEnvVariables,
@@ -3987,6 +4004,9 @@ export const {
   updateCollectionVar,
   deleteCollectionVar,
   setCollectionVars,
+  scriptUpdateCollectionVars,
+  setScriptCollVarBaseline,
+  _clearScriptCollectionBaselines,
   updateCollectionAuthMode,
   updateCollectionAuth,
   updateCollectionRequestScript,

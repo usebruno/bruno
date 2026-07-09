@@ -232,6 +232,12 @@ const vscodeLightTheme = {
     }
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.TEXT_LINK
+    }
+  },
+
   request: {
     methods: {
       get: colors.GREEN,

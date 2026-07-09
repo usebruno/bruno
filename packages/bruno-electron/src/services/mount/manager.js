@@ -189,16 +189,17 @@ class MountManager {
         const result = parsed.get(e.relativePath);
         if (!result) continue;
         if (result.error) {
-          entry.state.set(e.relativePath, { error: result.error });
+          entry.state.set(e.relativePath, { data: result.data, error: result.error });
           continue;
         }
-        entry.state.set(e.relativePath, { data: result.data });
+        entry.state.set(e.relativePath, { data: result.data, raw: result.raw });
         this.#getIndex().stage(entry.collectionPath, {
           op: 'add',
           relativePath: e.relativePath,
           mtime: result.mtime,
           hash: result.hash,
-          data: result.data
+          data: result.data,
+          raw: result.raw
         });
       }
       for (const e of removed) {

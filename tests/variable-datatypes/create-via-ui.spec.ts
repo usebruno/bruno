@@ -31,7 +31,7 @@ const tableRowByName = (page: Page, tableId: string, name: string) =>
   buildCommonLocators(page).table(tableId).rowByName(name);
 
 const expectTypeLabel = async (row: Locator, label: string) => {
-  await expect(buildCommonLocators(row.page()).dataTypeSelector.typeLabel(row)).toHaveText(label);
+  await expect(buildCommonLocators(row.page()).dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', label);
 };
 
 // Add a row to the Vars table and pick `dataType` from the DataTypeSelector.
@@ -64,6 +64,7 @@ const addTypedVarRow = async (
     await valueEditor.click({ force: true });
     await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
     await page.keyboard.insertText(value);
+    await valueEditor.hover();
 
     // Pick dataType from the selector menu.
     const typeTrigger = locators.dataTypeSelector.typeLabel(namedRow);
@@ -71,7 +72,7 @@ const addTypedVarRow = async (
     const menuItem = locators.dataTypeSelector.menuItem(dataType);
     await expect(menuItem).toBeVisible();
     await menuItem.click();
-    await expect(typeTrigger).toHaveText(dataType);
+    await expect(typeTrigger).toHaveAttribute('data-selected-type', dataType);
     // Let the dispatched Redux mutation settle before the next interaction.
     await page.waitForTimeout(200);
   });
@@ -180,38 +181,38 @@ test.describe('DataType selector — new collection created via UI', () => {
     await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible();
 
     const envRows = locators.environment.varRows();
-    // Named rows added so far; the table always keeps one trailing empty stub,
-    // so after N adds the row count (including the stub) is N + 1.
-    let addedEnvVars = 0;
+    // Named rows added on the currently active tab; the table always keeps one
+    // trailing empty stub, so after N adds the visible row count is N + 1.
+    // Variables and secrets live on separate tabs, so the count is per-tab and
+    // resets when we switch tabs.
+    let tabRowCount = 0;
 
-    // Add one env var row: fill name + value, optionally mark it secret, then
-    // pick its dataType. Secrets render the DataTypeSelector too (value masks).
+    // Add one env var row on the active tab: fill name + value, then pick its
+    // dataType. A row is a secret by virtue of being added on the Secrets tab,
+    // so the caller switches tabs before adding secrets. Secrets render the
+    // DataTypeSelector too.
     const addEnvVar = async (name: string, dataType: NonDefaultDataType, { secret = false } = {}) => {
       await test.step(`add ${secret ? 'secret ' : ''}${dataType} env var "${name}"`, async () => {
-        const emptyRow = page.locator('tbody tr').last();
+        const emptyRow = envRows.last();
         await emptyRow.locator('input[placeholder="Name"]').fill(name);
         const namedRow = locators.environment.varRow(name);
         await expect(namedRow).toBeVisible();
         // EnvironmentVariablesTable.handleNameChange appends a trailing empty
         // row via setTimeout(0). If we click the value editor before that
         // append re-renders, focus can be dropped — wait for the new row.
-        addedEnvVars++;
-        await expect(envRows).toHaveCount(addedEnvVars + 1);
+        tabRowCount++;
+        await expect(envRows).toHaveCount(tabRowCount + 1);
 
-        const valueEditor = namedRow.locator('.CodeMirror').first();
+        const valueEditor = locators.environment.varRowValueEditor(name);
+        await valueEditor.hover();
         await valueEditor.click({ force: true });
         await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
         await page.keyboard.insertText(VALUE_FOR_DATATYPE[dataType]);
 
-        if (secret) {
-          const secretCheckbox = locators.environment.varRowSecretCheckbox(name);
-          await secretCheckbox.check();
-          await expect(secretCheckbox).toBeChecked();
-        }
-
+        await valueEditor.hover();
         await locators.dataTypeSelector.typeLabel(namedRow).click();
         await locators.dataTypeSelector.menuItem(dataType).click();
-        await expect(locators.dataTypeSelector.typeLabel(namedRow)).toHaveText(dataType);
+        await expect(locators.dataTypeSelector.typeLabel(namedRow)).toHaveAttribute('data-selected-type', dataType);
         await page.waitForTimeout(200);
       });
     };
@@ -219,22 +220,33 @@ test.describe('DataType selector — new collection created via UI', () => {
     for (const dt of TYPED_DATATYPES) {
       await addEnvVar(`env_${dt}`, dt);
     }
-    // Secrets render the DataTypeSelector too — one secret per dataType.
+    // Secrets live on their own tab; switch over and add them there. The active
+    // tab is now Secrets, so each new row is created as a secret automatically.
+    await locators.environment.secretsTab().click();
+    tabRowCount = 0;
     for (const dt of TYPED_DATATYPES) {
       await addEnvVar(`env_secret_${dt}`, dt, { secret: true });
     }
 
-    await locators.environment.saveButton().click();
+    // save-all persists both tabs at once (save-env is scoped to the active tab).
+    await locators.environment.saveAll().click();
     await page.waitForTimeout(500);
 
-    // Re-assert after save (post-formik-reset).
+    // Re-assert after save (post-formik-reset). The Secrets tab is still active,
+    // so the secret rows render here; each keeps its dataType.
     for (const dt of TYPED_DATATYPES) {
-      await expect(locators.dataTypeSelector.typeLabel(locators.environment.varRow(`env_${dt}`))).toHaveText(dt);
-    }
-    // Each secret var keeps both its secret flag and its dataType after save.
-    for (const dt of TYPED_DATATYPES) {
-      await expect(locators.environment.varRowSecretCheckbox(`env_secret_${dt}`)).toBeChecked();
       await expect(locators.dataTypeSelector.typeLabel(locators.environment.varRow(`env_secret_${dt}`))).toHaveText(dt);
+    }
+    // Switch back to the Variables tab to verify the non-secret rows.
+    await locators.environment.variablesTab().click();
+    for (const dt of TYPED_DATATYPES) {
+      await expect(locators.dataTypeSelector.typeLabel(locators.environment.varRow(`env_${dt}`))).toHaveAttribute('data-selected-type', dt);
+    }
+
+    // Each secret var keeps its dataType after save.
+    await locators.environment.secretsTab().click();
+    for (const dt of TYPED_DATATYPES) {
+      await expect(locators.dataTypeSelector.typeLabel(locators.environment.varRow(`env_secret_${dt}`))).toHaveAttribute('data-selected-type', dt);
     }
   });
 });

@@ -110,6 +110,10 @@ const config = {
     allowElevation: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true
+  },
+  pkg: {
+    installLocation: '/Applications',
+    isRelocatable: false
   }
 };
 

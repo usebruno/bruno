@@ -36,6 +36,17 @@ const NON_REPLACEABLE_SINGLETON_TAB_TYPES = new Set([
   'mocker'
 ]);
 
+const IGNORED_TAB_TYPES = new Set([
+  'v4-migration'
+]);
+
+export const WORKSPACE_TAB_UID_SUFFIX_BY_TYPE = {
+  workspaceOverview: 'overview',
+  workspaceEnvironments: 'environments'
+};
+
+export const WORKSPACE_TAB_TYPES = new Set(Object.keys(WORKSPACE_TAB_UID_SUFFIX_BY_TYPE));
+
 export const SAVE_TRIGGERS = new Map([
   ['app/setSnapshotReady', null],
   ['tabs/addTab', null],
@@ -65,6 +76,24 @@ export const SAVE_TRIGGERS = new Map([
 ]);
 
 export const isRequestTab = (type) => REQUEST_TAB_TYPES.has(type);
+
+const isIgnoredTab = (tab) => IGNORED_TAB_TYPES.has(tab?.type);
+
+const isIgnoredActiveTab = (activeTab) => activeTab?.accessor === 'type' && IGNORED_TAB_TYPES.has(activeTab.value);
+
+// Strip ignored tab types from a snapshot read on any path (lookups or ipc fallback),
+// including an active tab that points at one.
+const sanitizeSnapshotTabs = (tabsSnapshot) => {
+  if (!tabsSnapshot || !Array.isArray(tabsSnapshot.tabs)) {
+    return tabsSnapshot;
+  }
+
+  return {
+    ...tabsSnapshot,
+    activeTab: isIgnoredActiveTab(tabsSnapshot.activeTab) ? null : tabsSnapshot.activeTab,
+    tabs: tabsSnapshot.tabs.filter((tab) => !isIgnoredTab(tab))
+  };
+};
 
 export const shouldExcludeTab = (tab, transientDirectory) => {
   return transientDirectory && tab.pathname?.startsWith(transientDirectory);
@@ -117,8 +146,8 @@ const normalizeCollectionSnapshotEntry = (pathname, entry = {}, tabsEntry = {}) 
     isMounted: typeof entry.isMounted === 'boolean' ? entry.isMounted : false,
     activeTab: tabsEntry.activeTab ?? entry.activeTab ?? null,
     tabs: Array.isArray(tabsEntry.tabs)
-      ? tabsEntry.tabs.filter((tab) => isObject(tab))
-      : (Array.isArray(entry.tabs) ? entry.tabs.filter((tab) => isObject(tab)) : [])
+      ? tabsEntry.tabs.filter((tab) => isObject(tab) && !isIgnoredTab(tab))
+      : (Array.isArray(entry.tabs) ? entry.tabs.filter((tab) => isObject(tab) && !isIgnoredTab(tab)) : [])
   };
 };
 
@@ -131,6 +160,9 @@ const normalizeWorkspaceSnapshotEntry = (pathname, entry = {}) => {
       ? entry.lastActiveCollectionPathname
       : null,
     sorting: typeof entry.sorting === 'string' ? entry.sorting : 'default',
+    activeWorkspaceTabType: WORKSPACE_TAB_TYPES.has(entry.activeWorkspaceTabType)
+      ? entry.activeWorkspaceTabType
+      : null,
     collections
   };
 };
@@ -214,6 +246,7 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         pathname: workspace.pathname,
         lastActiveCollectionPathname: workspace.lastActiveCollectionPathname,
         sorting: workspace.sorting,
+        activeWorkspaceTabType: workspace.activeWorkspaceTabType,
         collections: workspace.collections
       };
 
@@ -306,6 +339,23 @@ const getTabsSnapshotFromLookups = (
     activeTab: tabsEntry.activeTab,
     tabs: Array.isArray(tabsEntry.tabs) ? tabsEntry.tabs : []
   };
+};
+
+export const getCollectionSnapshotFromLookups = (collectionPathname, snapshotLookups = {}, workspacePathname = null) => {
+  const normalizedPathname = normalizePath(collectionPathname);
+  if (!normalizedPathname) {
+    return null;
+  }
+
+  if (workspacePathname) {
+    const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(workspacePathname, collectionPathname);
+    const workspaceCollectionEntry = snapshotLookups?.collectionsByWorkspaceAndPath?.[workspaceCollectionKey];
+    if (workspaceCollectionEntry) {
+      return workspaceCollectionEntry;
+    }
+  }
+
+  return snapshotLookups?.collectionsByPath?.[normalizedPathname] || null;
 };
 
 export const getCollectionEnvironmentPath = (collection, environment, defaultValue = null) => {
@@ -447,6 +497,11 @@ export const serializeTab = (tab, collection) => {
     if (tab.responseName || tab.tabName) {
       serialized.name = tab.responseName || tab.tabName;
     }
+  }
+
+  const isEnvironmentTab = tab.type === 'environment-settings' || tab.type === 'global-environment-settings';
+  if (isEnvironmentTab && tab.tabState?.environment?.tab) {
+    serialized.environment = { tab: tab.tabState.environment.tab };
   }
 
   return serialized;
@@ -694,6 +749,9 @@ export const deserializeTab = (snapshotTab, collection) => {
   if (!tab.uid && NON_REPLACEABLE_SINGLETON_TAB_TYPES.has(type)) {
     tab.uid = uuid();
   }
+  if (snapshotTab.environment?.tab) {
+    tab.tabState = { environment: { tab: snapshotTab.environment.tab } };
+  }
 
   return tab;
 };
@@ -708,13 +766,15 @@ export const hydrateCollectionTabs = async (
 ) => {
   const { ipcRenderer } = window;
 
-  const tabsSnapshot = getTabsSnapshotFromLookups(
-    collection.pathname,
-    snapshotLookups,
-    workspacePathname,
-    strictWorkspaceScope
-  )
-  || await ipcRenderer.invoke('renderer:snapshot:get-tabs', collection.pathname, workspacePathname).catch(() => null);
+  const tabsSnapshot = sanitizeSnapshotTabs(
+    getTabsSnapshotFromLookups(
+      collection.pathname,
+      snapshotLookups,
+      workspacePathname,
+      strictWorkspaceScope
+    )
+    || await ipcRenderer.invoke('renderer:snapshot:get-tabs', collection.pathname, workspacePathname).catch(() => null)
+  );
 
   const hasPersistedTabs = Array.isArray(tabsSnapshot?.tabs) && tabsSnapshot.tabs.length > 0;
   const hasPersistedActiveTab = Boolean(tabsSnapshot?.activeTab);
@@ -746,8 +806,10 @@ export const hydrateTabs = async (collections, dispatch, restoreTabs, snapshotLo
 export const getActiveTabFromSnapshot = async (collectionPathname, collection, snapshotLookups = null, workspacePathname = null) => {
   const { ipcRenderer } = window;
 
-  const tabsSnapshot = getTabsSnapshotFromLookups(collectionPathname, snapshotLookups, workspacePathname)
-    || await ipcRenderer.invoke('renderer:snapshot:get-tabs', collectionPathname, workspacePathname).catch(() => null);
+  const tabsSnapshot = sanitizeSnapshotTabs(
+    getTabsSnapshotFromLookups(collectionPathname, snapshotLookups, workspacePathname)
+    || await ipcRenderer.invoke('renderer:snapshot:get-tabs', collectionPathname, workspacePathname).catch(() => null)
+  );
 
   if (!tabsSnapshot?.activeTab || !tabsSnapshot?.tabs?.length) return null;
 

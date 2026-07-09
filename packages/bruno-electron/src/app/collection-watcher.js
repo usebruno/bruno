@@ -674,15 +674,16 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
   }
 };
 
-const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {
+const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher, workspacePathname = null) => {
   // Mark discovery as complete
   watcher.completeCollectionDiscovery(win, collectionUid);
 
-  const collectionSnapshotState = snapshotManager.getCollection(watchPath);
+  const collectionSnapshotState = snapshotManager.getCollection(watchPath, workspacePathname);
 
   const hydratePayload = collectionSnapshotState
     ? {
         pathname: watchPath,
+        workspacePathname: workspacePathname || '',
         environmentPath: collectionSnapshotState?.environment?.collection || '',
         selectedEnvironment: collectionSnapshotState?.selectedEnvironment || ''
       }
@@ -772,7 +773,7 @@ class CollectionWatcher {
     }
 
     // v2 already loaded the tree from cache; skip startup scan and stage live edits
-    const { ignoreInitial = false, fileIndex = null } = options;
+    const { ignoreInitial = false, fileIndex = null, workspacePathname = null } = options;
     if (fileIndex) {
       fileIndexByCollection.set(watchPath, fileIndex);
     }
@@ -823,7 +824,7 @@ class CollectionWatcher {
 
       let startedNewWatcher = false;
       watcher
-        .on('ready', () => onWatcherSetupComplete(win, watchPath, collectionUid, this))
+        .on('ready', () => onWatcherSetupComplete(win, watchPath, collectionUid, this, workspacePathname))
         .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread, this))
         .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
         .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))

@@ -12,11 +12,10 @@ const StyledWrapper = styled.div`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 7px 12px;
+    padding: 6px 0px;
+    margin-right: ${(props) => props.theme.tabs.marginRight};
     margin-bottom: -1px;
-    font-size: 12px;
-    font-weight: 500;
-    color: ${(props) => props.theme.colors.text.muted};
+    color: ${(props) => props.theme.colors.text.subtext0};
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
@@ -24,12 +23,13 @@ const StyledWrapper = styled.div`
     transition: color 0.15s ease, border-color 0.15s ease;
 
     &:hover:not(.active) {
-      color: ${(props) => props.theme.text};
+      color: ${(props) => props.theme.tabs.active.color};
     }
 
     &.active {
-      color: ${(props) => props.theme.text};
-      border-bottom-color: ${(props) => props.theme.colors.accent};
+      color: ${(props) => props.theme.tabs.active.color};
+      font-weight: ${(props) => props.theme.tabs.active.fontWeight};
+      border-bottom-color: ${(props) => props.theme.tabs.active.border};
     }
 
     svg {
@@ -41,6 +41,8 @@ const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow-y: auto;
+    padding-bottom: 2rem;
   }
 
   .ai-master {
@@ -376,6 +378,205 @@ const StyledWrapper = styled.div`
       background: ${(props) => props.theme.bg};
       border: 1px solid ${(props) => props.theme.input.border};
       border-radius: 3px;
+    }
+  }
+
+  .compat-add-btn {
+    color: ${(props) => props.theme.colors.text.muted};
+    background: transparent;
+    border: 1px solid ${(props) => props.theme.input.border};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    padding: 3px 8px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+      color: ${(props) => props.theme.text};
+      border-color: ${(props) => props.theme.colors.accent}80;
+    }
+  }
+
+  .compat-models-empty {
+    color: ${(props) => props.theme.colors.text.muted};
+    border: 1px dashed ${(props) => props.theme.input.border};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+
+    code {
+      font-family: ${(props) => props.theme.font.monospace || 'monospace'};
+      color: ${(props) => props.theme.text};
+    }
+  }
+
+  .compat-model-row {
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    border: 1px solid ${(props) => props.theme.input.border};
+    background: ${(props) => props.theme.input.bg};
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+
+    &.selected {
+      background: ${(props) => props.theme.colors.accent}06;
+    }
+
+    &.disabled {
+      opacity: 0.45;
+
+      input {
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .compat-inline-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: ${(props) => props.theme.text};
+    padding: 2px 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    min-width: 0;
+    font-family: inherit;
+
+    &::placeholder {
+      color: ${(props) => props.theme.colors.text.muted};
+      opacity: 0.6;
+    }
+
+    &:focus {
+      background: ${(props) => props.theme.bg};
+      box-shadow: inset 0 0 0 1px ${(props) => props.theme.input.focusBorder};
+    }
+  }
+
+  .compat-inline-id {
+    font-family: ${(props) => props.theme.font.monospace || 'monospace'};
+  }
+
+  .compat-add-model {
+    padding-top: 4px;
+  }
+
+  .compat-remove-endpoint {
+    color: ${(props) => props.theme.colors.text.muted};
+    background: transparent;
+    border: none;
+    padding: 4px 6px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    transition: color 0.15s ease, background-color 0.15s ease;
+
+    &:hover {
+      color: ${(props) => props.theme.colors.text.danger};
+      background: ${(props) => props.theme.colors.bg.danger}15;
+    }
+  }
+
+  .security-card {
+    border: 1px solid ${(props) => props.theme.input.border};
+    border-radius: ${(props) => props.theme.border.radius.md};
+    background: ${(props) => props.theme.input.bg};
+  }
+
+  .security-sub {
+    color: ${(props) => props.theme.colors.text.muted};
+
+    code {
+      font-family: ${(props) => props.theme.font.monospace || 'monospace'};
+      color: ${(props) => props.theme.text};
+    }
+  }
+
+  .security-row + .security-row {
+    border-top: 1px dashed ${(props) => props.theme.input.border};
+  }
+
+  .security-input {
+    padding: 5px 8px;
+    font-size: 12px;
+    font-family: ${(props) => props.theme.font.monospace || 'monospace'};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    border: 1px solid ${(props) => props.theme.input.border};
+    background: ${(props) => props.theme.bg};
+    color: ${(props) => props.theme.text};
+
+    &::placeholder {
+      color: ${(props) => props.theme.colors.text.muted};
+      opacity: 0.7;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: ${(props) => props.theme.input.focusBorder};
+    }
+  }
+
+  .security-add-btn {
+    color: ${(props) => props.theme.colors.text.muted};
+    background: transparent;
+    border: 1px solid ${(props) => props.theme.input.border};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+
+    &:hover:not(:disabled) {
+      color: ${(props) => props.theme.text};
+      border-color: ${(props) => props.theme.colors.accent}80;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .security-chip-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .security-chip {
+    padding: 3px 4px 3px 8px;
+    font-size: 11px;
+    font-family: ${(props) => props.theme.font.monospace || 'monospace'};
+    border: 1px solid ${(props) => props.theme.input.border};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    background: ${(props) => props.theme.bg};
+    color: ${(props) => props.theme.text};
+  }
+
+  .security-chip-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border: none;
+    background: transparent;
+    color: ${(props) => props.theme.colors.text.muted};
+    cursor: pointer;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    transition: color 0.15s ease, background-color 0.15s ease;
+
+    &:hover {
+      color: ${(props) => props.theme.colors.text.danger};
+      background: ${(props) => props.theme.colors.bg.danger}15;
+    }
+  }
+
+  .security-builtin-chip {
+    padding: 2px 7px;
+    font-size: 10.5px;
+    font-family: ${(props) => props.theme.font.monospace || 'monospace'};
+    color: ${(props) => props.theme.colors.text.muted};
+    border: 1px dashed ${(props) => props.theme.input.border};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+  }
+
+  .security-builtin-more {
+    color: ${(props) => props.theme.colors.text.muted};
+    align-self: center;
+
+    code {
+      font-family: ${(props) => props.theme.font.monospace || 'monospace'};
+      color: ${(props) => props.theme.text};
     }
   }
 

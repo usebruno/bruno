@@ -1,0 +1,11 @@
+{
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    },
+    "ai": {
+      "enabled": true
+    }
+  }
+}
