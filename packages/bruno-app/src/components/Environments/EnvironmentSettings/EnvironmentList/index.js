@@ -43,7 +43,7 @@ const EnvironmentList = ({
 }) => {
   const dispatch = useDispatch();
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const activeEnvTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.envTab) || 'variables';
+  const activeEnvTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.environment?.tab) || 'variables';
   const envSearchQuery = useSelector((state) => state.app.envVarSearch?.collection?.[activeEnvTab]?.query ?? '');
   const isEnvSearchExpanded = useSelector((state) => state.app.envVarSearch?.collection?.[activeEnvTab]?.expanded ?? false);
   const setEnvSearchQuery = (q) => dispatch(setEnvVarSearchQuery({ context: 'collection', tab: activeEnvTab, query: q }));

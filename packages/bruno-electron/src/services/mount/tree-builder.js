@@ -128,6 +128,7 @@ const buildRequestNode = (absolutePath, basename, entry, uidOverrides, uidFor) =
     request: data.request,
     settings: data.settings,
     examples: data.examples,
+    raw: entry.raw ?? null,
     filename: basename,
     pathname: absolutePath,
     draft: null,
@@ -181,6 +182,9 @@ const buildTree = (collectionPath, parserResults, options = {}) => {
         } else {
           hydrateRequestUuids(data, null, collectionPath);
           tree.root = data;
+        }
+        if (tree.root && typeof tree.root === 'object') {
+          tree.root.pathname = path.join(collectionPath, relativePath);
         }
       }
     } else if (cls.type === 'folder') {
