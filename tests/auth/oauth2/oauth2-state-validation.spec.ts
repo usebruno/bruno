@@ -37,7 +37,10 @@ const COLLECTION = 'oauth2-state';
 // Keycloak (bin/kc.sh start-dev) running locally. The realm/client/user below must
 // exist in Keycloak, and `bruno://app/oauth2/callback` must be a Valid Redirect URI
 // on the client.
-const KEYCLOAK = 'http://localhost:8090';
+// Use 127.0.0.1 (not localhost): Node's fetch/undici resolves `localhost` to the IPv6
+// loopback (::1) first on Windows, but Keycloak's start-dev binds IPv4 only, so a
+// `localhost` fetch is refused (TypeError: fetch failed). 127.0.0.1 works on all platforms.
+const KEYCLOAK = 'http://127.0.0.1:8090';
 const KEYCLOAK_REALM = 'bruno';
 const KEYCLOAK_USER = 'testuser';
 const KEYCLOAK_PASSWORD = 'testpassword';
@@ -185,7 +188,7 @@ const getCallbackParams = (callbackUrl: string, style: CallbackStyle = 'query') 
   };
 };
 
-test.describe('OAuth2 callback state validation', () => {
+test.describe.serial('OAuth2 callback state validation', () => {
   test('authorization code: rejects callback when returned state does not match issued state', async ({ restartApp }) => {
     const app = await restartApp();
     const page = await waitForReadyPage(app);
