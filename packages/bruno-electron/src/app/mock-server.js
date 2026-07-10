@@ -12,7 +12,7 @@ const {
   extractRoutePath,
   routeMapToRouteTable
 } = require('./mock-response-routes');
-const { buildRequestContext, selectMatchingResponse } = require('./mock-rule-matcher');
+const { buildRequestContext, evaluateResponseCandidates } = require('./mock-rule-matcher');
 const {
   DEFAULT_GATEWAY_PORT,
   allocateCollectionSlug,
@@ -281,8 +281,10 @@ const logRequest = (collection, mockServerUid, data) => {
     method: data.method,
     path: data.path,
     matched: data.matched,
-    matchedExampleName: data.matchedExampleName || null,
+    matchedMockResponseName: data.matchedMockResponseName || data.matchedExampleName || null,
     matchedSourceFile: data.matchedSourceFile || null,
+    matchedResponseUid: data.matchedResponseUid || null,
+    matchTrace: data.matchTrace || null,
     statusCode: data.statusCode,
     delay: data.delay || 0,
     duration: data.duration || 0
@@ -311,8 +313,9 @@ const handleRequest = (mockServerUid, req, res) => {
   }
 
   const method = req.method.toUpperCase();
+  const routeKey = `${method} ${reqPath}`;
 
-  let examples = collection.routeMap.get(`${method} ${reqPath}`);
+  let examples = collection.routeMap.get(routeKey);
   if (!examples) {
     examples = findParameterizedMatch(collection.routeMap, method, reqPath);
   }
@@ -322,7 +325,13 @@ const handleRequest = (mockServerUid, req, res) => {
       method: req.method,
       path: reqPath,
       matched: false,
-      matchedExampleName: null,
+      matchedMockResponseName: null,
+      matchTrace: {
+        routeKey,
+        failureReason: 'no_route',
+        candidates: [],
+        availableRoutes: getAvailableRoutes(collection)
+      },
       statusCode: 404,
       duration: Date.now() - startTime
     });
@@ -337,14 +346,17 @@ const handleRequest = (mockServerUid, req, res) => {
     return;
   }
 
-  const selected = selectMatchingResponse(examples, buildRequestContext(req));
+  const requestContext = buildRequestContext(req);
+  const { selected, trace } = evaluateResponseCandidates(examples, requestContext);
+  const matchTrace = { ...trace, routeKey };
 
   if (!selected) {
     logRequest(collection, mockServerUid, {
       method: req.method,
       path: reqPath,
       matched: false,
-      matchedExampleName: null,
+      matchedMockResponseName: null,
+      matchTrace,
       statusCode: 404,
       duration: Date.now() - startTime
     });
@@ -392,8 +404,10 @@ const handleRequest = (mockServerUid, req, res) => {
       method: req.method,
       path: reqPath,
       matched: true,
-      matchedExampleName: selected.responseName || selected.exampleName,
+      matchedMockResponseName: selected.responseName || selected.exampleName,
       matchedSourceFile: selected.sourceFile,
+      matchedResponseUid: selected.responseUid || null,
+      matchTrace,
       statusCode,
       delay,
       duration: Date.now() - startTime

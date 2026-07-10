@@ -80,6 +80,29 @@ const evaluateCondition = (condition, context) => {
   return compareValues(condition.operator || 'equals', actual, condition.value);
 };
 
+const evaluateConditionDetail = (condition, context) => {
+  if (!condition?.target) {
+    return {
+      pass: true,
+      target: null,
+      key: null,
+      operator: null,
+      expected: null,
+      actual: null
+    };
+  }
+
+  const actual = getActualValue(condition, context);
+  return {
+    pass: compareValues(condition.operator || 'equals', actual, condition.value),
+    target: condition.target,
+    key: condition.key || '',
+    operator: condition.operator || 'equals',
+    expected: condition.value ?? null,
+    actual: actual === undefined || actual === null ? null : actual
+  };
+};
+
 const matchesRules = (rules, context) => {
   const conditions = rules?.conditions || [];
 
@@ -95,6 +118,32 @@ const matchesRules = (rules, context) => {
     : results.every(Boolean);
 };
 
+const evaluateRulesDetail = (rules, context) => {
+  const conditions = rules?.conditions || [];
+
+  if (!conditions.length) {
+    return {
+      matched: true,
+      operator: rules?.operator === 'OR' ? 'OR' : 'AND',
+      conditions: [],
+      isFallback: true
+    };
+  }
+
+  const operator = rules?.operator === 'OR' ? 'OR' : 'AND';
+  const conditionResults = conditions.map((condition) => evaluateConditionDetail(condition, context));
+  const matched = operator === 'OR'
+    ? conditionResults.some((result) => result.pass)
+    : conditionResults.every((result) => result.pass);
+
+  return {
+    matched,
+    operator,
+    conditions: conditionResults,
+    isFallback: false
+  };
+};
+
 const buildRequestContext = (req) => {
   const headers = {};
   for (const [name, value] of Object.entries(req.headers || {})) {
@@ -108,24 +157,69 @@ const buildRequestContext = (req) => {
   };
 };
 
-const selectMatchingResponse = (candidates, context) => {
+const evaluateResponseCandidates = (candidates, context) => {
+  const trace = {
+    candidates: [],
+    selectedResponseUid: null,
+    selectedResponseName: null,
+    selectionReason: null,
+    failureReason: null
+  };
+
   if (!candidates?.length) {
-    return null;
+    trace.failureReason = 'no_route';
+    return { selected: null, trace };
   }
 
-  for (const candidate of candidates) {
-    if (matchesRules(candidate.rules, context)) {
-      return candidate;
-    }
+  const evaluated = candidates.map((candidate) => {
+    const ruleEval = evaluateRulesDetail(candidate.rules, context);
+    return {
+      candidate,
+      ruleEval,
+      isFallback: ruleEval.isFallback
+    };
+  });
+
+  const specificMatches = evaluated.filter(({ ruleEval, isFallback }) => !isFallback && ruleEval.matched);
+  const fallbackMatches = evaluated.filter(({ ruleEval, isFallback }) => isFallback && ruleEval.matched);
+  const selectedEntry = specificMatches[0] || fallbackMatches[0] || null;
+
+  for (const { candidate, ruleEval, isFallback } of evaluated) {
+    const isSelected = Boolean(selectedEntry && selectedEntry.candidate === candidate);
+
+    trace.candidates.push({
+      responseUid: candidate.responseUid || null,
+      responseName: candidate.responseName || candidate.exampleName || 'Mock Response',
+      matched: ruleEval.matched,
+      selected: isSelected,
+      isFallback,
+      ruleOperator: ruleEval.operator,
+      conditions: ruleEval.conditions
+    });
   }
 
-  return null;
+  if (selectedEntry) {
+    trace.selectedResponseUid = selectedEntry.candidate.responseUid || null;
+    trace.selectedResponseName = selectedEntry.candidate.responseName || selectedEntry.candidate.exampleName || 'Mock Response';
+    trace.selectionReason = selectedEntry.isFallback ? 'fallback' : 'specific_rules';
+    return { selected: selectedEntry.candidate, trace };
+  }
+
+  trace.failureReason = 'no_rule_match';
+  return { selected: null, trace };
 };
+
+const selectMatchingResponse = (candidates, context) => (
+  evaluateResponseCandidates(candidates, context).selected
+);
 
 module.exports = {
   buildRequestContext,
   compareValues,
   evaluateCondition,
+  evaluateConditionDetail,
+  evaluateResponseCandidates,
+  evaluateRulesDetail,
   getJsonPathValue,
   matchesRules,
   selectMatchingResponse

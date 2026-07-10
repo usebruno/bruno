@@ -1,8 +1,8 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { IconInfoCircle } from '@tabler/icons';
 import { clearMockLog, syncMockServerState } from 'providers/ReduxStore/slices/mock-server';
 import { subscribeMockServerLog } from 'utils/mock-server-log-subscription';
-import EditableTable from 'components/EditableTable';
 import FilterDropdown from 'components/FilterDropdown';
 import StyledWrapper from './StyledWrapper';
 
@@ -25,6 +25,146 @@ const formatTimestamp = (iso) => {
   }
 };
 
+const formatConditionValue = (value) => {
+  if (value === null || value === undefined) {
+    return '(missing)';
+  }
+
+  if (typeof value === 'string') {
+    return `"${value}"`;
+  }
+
+  return String(value);
+};
+
+const formatCondition = (condition) => {
+  if (!condition?.target) {
+    return 'No rules (fallback)';
+  }
+
+  const key = condition.key ? ` ${condition.key}` : '';
+  return `${condition.target}${key} ${condition.operator} ${formatConditionValue(condition.expected)}`;
+};
+
+const getSelectionReasonLabel = (selectionReason) => {
+  if (selectionReason === 'specific_rules') {
+    return 'Selected because specific rules matched';
+  }
+
+  if (selectionReason === 'fallback') {
+    return 'Selected as fallback response';
+  }
+
+  return null;
+};
+
+const getMatchedMockResponseName = (entry) => (
+  entry?.matchedMockResponseName
+  || entry?.matchedExampleName
+  || entry?.matchTrace?.selectedResponseName
+  || null
+);
+
+const getFailureLabel = (failureReason) => {
+  if (failureReason === 'no_route') {
+    return 'No route matched this request';
+  }
+
+  if (failureReason === 'no_rule_match') {
+    return 'Route matched, but no response rules passed';
+  }
+
+  return null;
+};
+
+const MatchTracePanel = ({ entry }) => {
+  const trace = entry?.matchTrace;
+
+  if (!trace) {
+    return (
+      <div className="match-trace-panel" data-testid="mock-server-match-trace">
+        <div className="match-trace-empty">No match trace for this entry.</div>
+      </div>
+    );
+  }
+
+  const failureLabel = getFailureLabel(trace.failureReason);
+  const selectionReasonLabel = getSelectionReasonLabel(trace.selectionReason);
+
+  return (
+    <div className="match-trace-panel" data-testid="mock-server-match-trace">
+      <div className="match-trace-header">
+        <span className="match-trace-route">{trace.routeKey || `${entry.method} ${entry.path}`}</span>
+        {entry.matched
+          ? (
+              <span className="match-trace-result match-trace-result-success">
+                Matched: {trace.selectedResponseName || getMatchedMockResponseName(entry)}
+                {selectionReasonLabel ? ` (${selectionReasonLabel})` : ''}
+              </span>
+            )
+          : <span className="match-trace-result match-trace-result-fail">{failureLabel || 'No match'}</span>}
+      </div>
+
+      {trace.availableRoutes?.length ? (
+        <div className="match-trace-section">
+          <div className="match-trace-section-title">Available routes</div>
+          <ul className="match-trace-list">
+            {trace.availableRoutes.map((route) => (
+              <li key={route}>{route}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {trace.candidates?.length ? (
+        <div className="match-trace-section">
+          <div className="match-trace-section-title">Responses considered</div>
+          {trace.candidates.map((candidate) => (
+            <div
+              key={candidate.responseUid || candidate.responseName}
+              className={`match-trace-candidate ${candidate.selected ? 'is-selected' : ''}`}
+            >
+              <div className="match-trace-candidate-header">
+                <span>{candidate.responseName}</span>
+                {candidate.isFallback ? <span className="match-trace-badge">fallback</span> : null}
+                {candidate.selected ? <span className="match-trace-badge selected">selected</span> : null}
+                {candidate.matched && !candidate.selected ? (
+                  <span className="match-trace-badge skipped">matched, not selected</span>
+                ) : null}
+              </div>
+
+              {candidate.conditions?.length ? (
+                <ul className="match-trace-conditions">
+                  {candidate.conditions.map((condition, index) => (
+                    <li
+                      key={`${candidate.responseUid || candidate.responseName}-${index}`}
+                      className={condition.pass ? 'pass' : 'fail'}
+                    >
+                      <span className="match-trace-condition-status">{condition.pass ? 'pass' : 'fail'}</span>
+                      <span>{formatCondition(condition)}</span>
+                      {!condition.pass ? (
+                        <span className="match-trace-actual">got {formatConditionValue(condition.actual)}</span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="match-trace-fallback-note">Matches any request on this route</div>
+              )}
+
+              {!candidate.matched && candidate.ruleOperator && candidate.conditions?.length ? (
+                <div className="match-trace-operator">
+                  Rule group: {candidate.ruleOperator}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 const MATCH_FILTER_OPTIONS = [
   { value: 'matched', label: 'Matched' },
   { value: 'unmatched', label: 'Unmatched' }
@@ -42,7 +182,7 @@ const RequestLog = ({ mockServerUid }) => {
   const logs = useSelector((state) => state.mockServer.requestLogs[mockServerUid]) || [];
   const [matchFilter, setMatchFilter] = useState(null);
   const [statusFilter, setStatusFilter] = useState(null);
-  const tableContainerRef = useRef(null);
+  const [expandedLogUid, setExpandedLogUid] = useState(null);
 
   useEffect(() => {
     const unsubscribe = subscribeMockServerLog(mockServerUid);
@@ -68,74 +208,29 @@ const RequestLog = ({ mockServerUid }) => {
     });
   }, [logs, matchFilter, statusFilter]);
 
-  // Auto-scroll to bottom when new entries arrive
+  const displayedLogs = useMemo(() => [...filteredLogs].reverse(), [filteredLogs]);
+
   useEffect(() => {
-    if (tableContainerRef.current) {
-      tableContainerRef.current.scrollTop = tableContainerRef.current.scrollHeight;
+    if (expandedLogUid && !displayedLogs.some((entry) => entry.uid === expandedLogUid)) {
+      setExpandedLogUid(null);
     }
-  }, [filteredLogs.length]);
+  }, [displayedLogs, expandedLogUid]);
+
+  useEffect(() => {
+    const latestEntry = displayedLogs[0];
+    if (latestEntry?.matchTrace) {
+      setExpandedLogUid(latestEntry.uid);
+    }
+  }, [displayedLogs.length, displayedLogs[0]?.uid]);
 
   const handleClear = () => {
     dispatch(clearMockLog({ mockServerUid }));
+    setExpandedLogUid(null);
   };
 
-  const columns = [
-    {
-      key: 'timestamp',
-      name: 'Time',
-      width: '110px',
-      render: ({ value }) => (
-        <span className="log-timestamp">{formatTimestamp(value)}</span>
-      )
-    },
-    {
-      key: 'method',
-      name: 'Method',
-      width: '80px',
-      render: ({ value }) => (
-        <span className={`method-badge ${(value || '').toLowerCase()}`}>{value}</span>
-      )
-    },
-    {
-      key: 'path',
-      name: 'Path',
-      render: ({ value }) => (
-        <span className="log-path">{value}</span>
-      )
-    },
-    {
-      key: 'matchedExampleName',
-      name: 'Example',
-      width: '140px',
-      render: ({ row }) => (
-        row.matched
-          ? <span>{row.matchedExampleName}</span>
-          : <span className="no-match-label">No Match</span>
-      )
-    },
-    {
-      key: 'statusCode',
-      name: 'Status',
-      width: '70px',
-      render: ({ row }) => (
-        <span className={`status-code ${getStatusClass(row.statusCode, row.matched)}`}>
-          {row.statusCode}
-        </span>
-      )
-    },
-    {
-      key: 'delay',
-      name: 'Delay',
-      width: '70px',
-      render: ({ value }) => <span>{value > 0 ? `${value}ms` : '-'}</span>
-    },
-    {
-      key: 'duration',
-      name: 'Duration',
-      width: '80px',
-      render: ({ value }) => <span>{value}ms</span>
-    }
-  ];
+  const toggleTrace = (uid) => {
+    setExpandedLogUid((current) => (current === uid ? null : uid));
+  };
 
   if (logs.length === 0) {
     return (
@@ -173,15 +268,77 @@ const RequestLog = ({ mockServerUid }) => {
         </button>
       </div>
 
-      <div className="log-table-container" ref={tableContainerRef}>
-        <EditableTable
-          columns={columns}
-          rows={filteredLogs}
-          onChange={() => {}}
-          showCheckbox={false}
-          showDelete={false}
-          showAddRow={false}
-        />
+      <div className="log-table-container">
+        <table>
+          <colgroup>
+            <col style={{ width: '36px' }} />
+            <col style={{ width: '110px' }} />
+            <col style={{ width: '80px' }} />
+            <col />
+            <col style={{ width: '140px' }} />
+            <col style={{ width: '70px' }} />
+            <col style={{ width: '70px' }} />
+            <col style={{ width: '80px' }} />
+          </colgroup>
+          <thead>
+            <tr>
+              <th aria-label="Match trace" />
+              <th>Time</th>
+              <th>Method</th>
+              <th>Path</th>
+              <th>Mock Response</th>
+              <th>Status</th>
+              <th>Delay</th>
+              <th>Duration</th>
+            </tr>
+          </thead>
+          <tbody>
+            {displayedLogs.map((entry) => {
+              const isExpanded = expandedLogUid === entry.uid;
+
+              return (
+                <React.Fragment key={entry.uid}>
+                  <tr className={isExpanded ? 'log-row-expanded' : undefined}>
+                    <td>
+                      <button
+                        type="button"
+                        className={`inspect-btn ${isExpanded ? 'is-active' : ''}`}
+                        onClick={() => toggleTrace(entry.uid)}
+                        aria-label="Show match trace"
+                        aria-expanded={isExpanded}
+                        data-testid={`mock-server-log-inspect-${entry.uid}`}
+                      >
+                        <IconInfoCircle size={16} stroke={1.5} />
+                      </button>
+                    </td>
+                    <td><span className="log-timestamp">{formatTimestamp(entry.timestamp)}</span></td>
+                    <td><span className={`method-badge ${(entry.method || '').toLowerCase()}`}>{entry.method}</span></td>
+                    <td><span className="log-path">{entry.path}</span></td>
+                    <td>
+                      {entry.matched
+                        ? <span>{getMatchedMockResponseName(entry) || '-'}</span>
+                        : <span className="no-match-label">No Match</span>}
+                    </td>
+                    <td>
+                      <span className={`status-code ${getStatusClass(entry.statusCode, entry.matched)}`}>
+                        {entry.statusCode}
+                      </span>
+                    </td>
+                    <td><span>{entry.delay > 0 ? `${entry.delay}ms` : '-'}</span></td>
+                    <td><span>{entry.duration}ms</span></td>
+                  </tr>
+                  {isExpanded ? (
+                    <tr className="log-trace-row">
+                      <td colSpan={8}>
+                        <MatchTracePanel entry={entry} />
+                      </td>
+                    </tr>
+                  ) : null}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </StyledWrapper>
   );
