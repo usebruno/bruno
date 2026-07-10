@@ -284,4 +284,25 @@ describe('Docs markdown serialization', () => {
 
     expect(hardBreakCount).toBe(1);
   });
+
+  it('supports <br> and <br/> tags in markdown parsing', () => {
+    editor = createEditor('');
+
+    // Test parsing <br/> from markdown
+    editor.commands.setContent('line one<br/>line two<br>line three');
+
+    let hardBreakCount = 0;
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === 'hardBreak') {
+        hardBreakCount += 1;
+      }
+    });
+
+    expect(hardBreakCount).toBe(2);
+
+    // When serialized back, it converts hard breaks to markdown breaks (e.g. double space or \)
+    const markdown = getMarkdown(editor);
+    expect(markdown).toMatch(/line one/);
+    expect(markdown).toMatch(/line two/);
+  });
 });

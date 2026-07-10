@@ -17,16 +17,17 @@ import Vars from 'components/RequestPane/Vars';
 import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
+import Documentation from 'components/Documentation/index';
+import DocsAction from 'components/Documentation/DocsAction';
+import Settings from 'components/RequestPane/Settings';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import { updateRequestGraphqlQuery, updateRequestGraphqlVariables } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import Documentation from 'components/Documentation/index';
 import useGraphqlSchema from '../GraphQLSchemaActions/useGraphqlSchema';
 import { findEnvironmentInCollection } from 'utils/collections';
 import { hasEffectiveAuth } from 'utils/auth';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
-import Settings from 'components/RequestPane/Settings';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import AuthMode from '../Auth/AuthMode/index';
 import StatusDot from 'components/StatusDot';
@@ -332,6 +333,8 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
         </ActionIcon>
       </MenuDropdown>
     </div>
+  ) : requestPaneTab === 'docs' ? (
+    <DocsAction item={item} />
   ) : null;
 
   return (

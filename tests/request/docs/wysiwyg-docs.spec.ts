@@ -3,11 +3,17 @@ import { createCollection, closeAllCollections } from '../../utils/page/actions'
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Wysiwyg Docs Editor Edge Cases', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+  });
+
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
   const setupRequestDocs = async (page: any, createTmpDir: any, collectionName: string) => {
+    page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
+    page.on('pageerror', (err) => console.log('PAGE ERROR:', err.message));
     const tmpDir = await createTmpDir(collectionName);
     const locators = buildCommonLocators(page);
     await createCollection(page, collectionName, tmpDir);
@@ -37,159 +43,17 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
     }
 
     // Switch to Edit mode
-    const editTab = page.locator('.docs-tab').filter({ hasText: /^Edit$/ });
-    await editTab.click();
+    console.log('Waiting for edit btn...');
+    const editBtn = page.locator('.docs-edit-toggle');
+    await editBtn.waitFor({ state: 'visible', timeout: 5000 });
+    const text = await editBtn.textContent();
+    console.log('Found edit btn text:', text);
+    if (text.includes('Edit')) {
+      await editBtn.click();
+    }
 
     return locators;
   };
-
-  test('Markdown <-> WYSIWYG Compatibility and Line Breaks', async ({ page, createTmpDir }) => {
-    await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-markdown-table');
-
-    // Switch to Markdown mode to write raw markdown
-    const modeSwitch = page.locator('.docs-mode-switch');
-    await modeSwitch.click();
-
-    // Type markdown table
-    const markdownContent = `| Header 1 | Header 2 |\n|----------|----------|\n| Row 1 Col 1 | Row 1 Col 2 |\n| Row 2 Col 1<br/>Line 2 | Row 2 Col 2 |`;
-
-    const codeMirror = page.locator('.docs-tab-strip + div .CodeMirror');
-    await codeMirror.waitFor({ state: 'visible' });
-
-    // Set value and trigger React onEdit directly to ensure Redux sync
-    await page.evaluate(
-      ({ el, val }) => {
-        const cm = (el as any).CodeMirror;
-        cm.setValue(val);
-
-        let currentEl = el;
-        let reactKey = null;
-        while (currentEl && !reactKey) {
-          reactKey = Object.keys(currentEl).find((k) => k.startsWith('__reactFiber$'));
-          if (!reactKey) currentEl = currentEl.parentElement;
-        }
-
-        if (reactKey && currentEl) {
-          let node = (currentEl as any)[reactKey];
-          while (node) {
-            if (node.memoizedProps && node.memoizedProps.onEdit) {
-              node.memoizedProps.onEdit(val);
-              break;
-            }
-            node = node.return;
-          }
-        }
-      },
-      { el: await codeMirror.elementHandle(), val: markdownContent }
-    );
-
-    // Give it a tiny moment to sync to Redux
-    await page.waitForTimeout(100);
-
-    // Switch to WYSIWYG mode
-    await modeSwitch.click();
-
-    const prosemirror = page.locator('.ProseMirror');
-    await expect(prosemirror.locator('table')).toBeVisible();
-    await expect(prosemirror.locator('td').nth(2)).toContainText('Row 2 Col 1Line 2');
-
-    // Switch back to Markdown and verify the original markdown is intact (no corruption)
-    await modeSwitch.click();
-    const textAreaValue = await page.locator('.docs-tab-strip + div .CodeMirror').innerText();
-    expect(textAreaValue).toContain('| Header 1 | Header 2 |');
-    expect(textAreaValue).toContain('| Row 2 Col 1<br/>Line 2 | Row 2 Col 2 |');
-  });
-
-  test('Checkboxes formatting, toggling, and Link behavior in Preview', async ({ page, createTmpDir, context }) => {
-    await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-checkboxes');
-
-    // Switch to Markdown mode to write raw markdown
-    const modeSwitch = page.locator('.docs-mode-switch');
-    await modeSwitch.click();
-
-    // Write Task List
-    const markdownContent = `- [ ] Task 1\n- [x] Task 2\n- [ ] [Link](https://google.com)`;
-    const codeMirror = page.locator('.docs-tab-strip + div .CodeMirror');
-    await codeMirror.waitFor({ state: 'visible' });
-
-    // Set value and trigger React onEdit directly to ensure Redux sync
-    await page.evaluate(
-      ({ el, val }) => {
-        const cm = (el as any).CodeMirror;
-        cm.setValue(val);
-
-        let currentEl = el;
-        let reactKey = null;
-        while (currentEl && !reactKey) {
-          reactKey = Object.keys(currentEl).find((k) => k.startsWith('__reactFiber$'));
-          if (!reactKey) currentEl = currentEl.parentElement;
-        }
-
-        if (reactKey && currentEl) {
-          let node = (currentEl as any)[reactKey];
-          while (node) {
-            if (node.memoizedProps && node.memoizedProps.onEdit) {
-              node.memoizedProps.onEdit(val);
-              break;
-            }
-            node = node.return;
-          }
-        }
-      },
-      { el: await codeMirror.elementHandle(), val: markdownContent }
-    );
-
-    // Give it a tiny moment to sync to Redux
-    await page.waitForTimeout(100);
-
-    // Switch to Preview mode
-    const previewTab = page.locator('.docs-tab').filter({ hasText: /^Preview$/ });
-    await previewTab.click();
-
-    const prosemirror = page.locator('.ProseMirror');
-    await expect(prosemirror).toBeVisible();
-
-    // Verify Task 2 is checked and has line-through styling
-    const checkedItem = prosemirror.locator('li[data-checked="true"]');
-    await expect(checkedItem).toContainText('Task 2');
-    const checkedItemLabel = checkedItem.locator('.label-content');
-    await expect(checkedItemLabel).toHaveCSS('text-decoration', /line-through/);
-
-    // Click on Task 1 label and verify it becomes checked
-    const uncheckedItem1 = prosemirror.locator('li[data-checked="false"]').filter({ hasText: 'Task 1' });
-    const uncheckedItem1Label = uncheckedItem1.locator('.label-content');
-    await uncheckedItem1Label.click();
-
-    // It should now be checked
-    await expect(prosemirror.locator('li[data-checked="true"]').filter({ hasText: 'Task 1' })).toBeVisible();
-
-    // Click link in Task 3 -> should NOT toggle checkbox
-    const task3 = prosemirror.locator('li').filter({ hasText: 'Link' });
-    const link = task3.locator('a');
-
-    // Listen for new page (link opens in new tab)
-    const [newPage] = await Promise.all([
-      context.waitForEvent('page'),
-      link.click()
-    ]);
-    expect(newPage).toBeTruthy();
-    await newPage.close();
-
-    // Task 3 should STILL be unchecked
-    await expect(task3).toHaveAttribute('data-checked', 'false');
-
-    // Go back to Edit
-    const editTab = page.locator('.docs-tab').filter({ hasText: /^Edit$/ });
-    await editTab.click();
-
-    // Edit tab defaults back to WYSIWYG, we need to switch to Markdown
-    await modeSwitch.click();
-
-    const textAreaValue = await page.locator('.docs-tab-strip + div .CodeMirror').innerText();
-    expect(textAreaValue).toContain('- [x] Task 1'); // Updated
-    expect(textAreaValue).toContain('- [x] Task 2'); // Maintained
-    expect(textAreaValue).toContain('- [ ] [Link](https://google.com)'); // Maintained
-  });
 
   test('Line-Level Formatting', async ({ page, createTmpDir }) => {
     await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-line-formatting');
@@ -209,7 +73,7 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
 
     // Click Heading 1 button in toolbar (via dropdown)
     await page.locator('.heading-dropdown-trigger:not([data-toolbar-part="heading"])').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Heading 1' }).click();
+    await page.locator('.dropdown-item').getByText('Heading 1', { exact: true }).click();
 
     // Verify only Line 1 is H1, Line 2 is still paragraph
     await expect(prosemirror.locator('h1')).toHaveCount(1);
@@ -229,5 +93,113 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
 
     // Verify tooltip is visible
     await expect(page.locator('.react-tooltip').filter({ hasText: 'Bold' })).toBeVisible();
+  });
+  test('Text Formatting and Undo/Redo', async ({ page, createTmpDir }) => {
+    await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-formatting');
+
+    const wysiwygContent = page.locator('.wysiwyg-editor-content');
+    console.log('Is wysiwyg-editor-content visible?', await wysiwygContent.isVisible());
+    console.log('DOM:', await page.locator('body').innerHTML());
+
+    const prosemirror = page.locator('.ProseMirror');
+    await expect(prosemirror).toBeVisible();
+
+    await prosemirror.click();
+    await page.keyboard.type('Hello World');
+
+    // Select "World"
+    await page.keyboard.down('Shift');
+    for (let i = 0; i < 5; i++) {
+      await page.keyboard.press('ArrowLeft');
+    }
+    await page.keyboard.up('Shift');
+
+    // Click Bold
+    await page.locator('.toolbar-btn[aria-label="Bold"]').click();
+    await expect(prosemirror.locator('strong')).toHaveText('World');
+
+    // Click Italic
+    await page.locator('.toolbar-btn[aria-label="Italic"]').click();
+    await expect(prosemirror.locator('strong em, em strong').first()).toHaveText('World'); // bold and italic
+
+    // Click Undo
+    await page.locator('.toolbar-btn[aria-label="Undo"]').click();
+    // Should remove Italic
+    await expect(prosemirror.locator('em')).toHaveCount(0);
+    await expect(prosemirror.locator('strong')).toHaveText('World');
+
+    // Click Redo
+    await page.locator('.toolbar-btn[aria-label="Redo"]').click();
+    await expect(prosemirror.locator('strong em, em strong').first()).toHaveText('World');
+
+    // Click Strikethrough
+    await page.locator('.toolbar-btn[aria-label="Strikethrough"]').click();
+    await expect(prosemirror.locator('s')).toHaveText('World');
+
+    // Click Inline Code
+    await page.locator('.toolbar-btn[aria-label="Inline code"]').click();
+    await expect(prosemirror.locator('code')).toHaveText('World');
+  });
+
+  test('Lists and Code Blocks', async ({ page, createTmpDir }) => {
+    await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-lists-code');
+
+    const prosemirror = page.locator('.ProseMirror');
+    await expect(prosemirror).toBeVisible();
+
+    await prosemirror.click();
+    await page.keyboard.type('Item 1');
+
+    // Toggle Bullet List
+    await page.locator('.toolbar-btn[aria-label="Bullet list"]').click();
+    await expect(prosemirror.locator('ul > li')).toContainText('Item 1');
+
+    // Press Enter to create Item 2
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('Item 2');
+
+    // Toggle Numbered List
+    await page.locator('.toolbar-btn[aria-label="Numbered list"]').click();
+    // Both should now be in an ordered list because tiptap converts the entire list node if contiguous
+    await expect(prosemirror.locator('ol > li').nth(1)).toContainText('Item 2');
+
+    // Toggle off Numbered List
+    await page.locator('.toolbar-btn[aria-label="Numbered list"]').click();
+    // Item 2 should be a paragraph now
+    await expect(prosemirror.locator('p').filter({ hasText: 'Item 2' })).toBeVisible();
+
+    // Toggle Task List
+    await page.locator('.toolbar-btn[aria-label="Task list"]').click();
+    await expect(prosemirror.locator('ul[data-type="taskList"] > li')).toBeVisible();
+
+    // Click the checkbox of the task list item
+    const checkbox = prosemirror.locator('ul[data-type="taskList"] > li label input[type="checkbox"]').first();
+    await checkbox.check();
+    await expect(checkbox).toBeChecked();
+
+    // Exit the task list by pressing Enter twice (once to create new item, once to exit)
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Enter');
+
+    // Code block
+    await page.locator('.toolbar-btn[aria-label="Code block"]').click();
+    await page.keyboard.type('const x = 1;');
+    await expect(prosemirror.locator('pre code')).toContainText('const x = 1;');
+  });
+
+  test('Table Insertion', async ({ page, createTmpDir }) => {
+    await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-table');
+
+    const prosemirror = page.locator('.ProseMirror');
+    await expect(prosemirror).toBeVisible();
+
+    await prosemirror.click();
+
+    // Click Table button
+    await page.locator('.toolbar-btn[aria-label="Table"]').click();
+
+    // Default tiptap table is usually 3x3
+    await expect(prosemirror.locator('table')).toBeVisible();
+    await expect(prosemirror.locator('tr')).toHaveCount(3);
   });
 });

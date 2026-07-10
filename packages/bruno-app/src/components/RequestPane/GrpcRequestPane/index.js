@@ -9,6 +9,7 @@ import StatusDot from 'components/StatusDot/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import find from 'lodash/find';
 import Documentation from 'components/Documentation/index';
+import DocsAction from 'components/Documentation/DocsAction';
 import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
@@ -124,6 +125,8 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
     <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
       <GrpcAuthMode item={item} collection={collection} />
     </div>
+  ) : requestPaneTab === 'docs' ? (
+    <DocsAction item={item} />
   ) : null;
 
   return (

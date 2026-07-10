@@ -101,20 +101,22 @@ const Documentation = ({ item, collection }) => {
       return;
     }
 
-    if (isMarkdownMode) return;
+    if (isEditing && isMarkdownMode) return;
 
+    console.log('[DEBUG Documentation Sync]', { docs, isEditing, isMarkdownMode });
     editor.commands.setContent(docs || '', false);
-  }, [docs, editor, isMarkdownMode]);
+  }, [docs, editor, isMarkdownMode, isEditing]);
 
   useEffect(() => {
     if (!editor) return;
 
-    if (prevMarkdownModeRef.current && !isMarkdownMode) {
+    if (prevMarkdownModeRef.current && (!isEditing || !isMarkdownMode)) {
+      console.log('[DEBUG Documentation Sync Prev]', { docs, isEditing, isMarkdownMode });
       editor.commands.setContent(docs || '');
     }
 
-    prevMarkdownModeRef.current = isMarkdownMode;
-  }, [docs, editor, isMarkdownMode]);
+    prevMarkdownModeRef.current = isEditing && isMarkdownMode;
+  }, [docs, editor, isMarkdownMode, isEditing]);
 
   useEffect(() => {
     if (isEditing) {
@@ -138,15 +140,6 @@ const Documentation = ({ item, collection }) => {
   return (
     <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative" ref={wrapperRef}>
       <div className="docs-tab-strip">
-        <div className="docs-tabs" role="tablist">
-          <button type="button" className={getTabClassname('Edit')} role="tab" onClick={() => setEditing(true)}>
-            Edit
-          </button>
-          <button type="button" className={getTabClassname('Preview')} role="tab" onClick={() => setEditing(false)}>
-            Preview
-          </button>
-        </div>
-
         {isEditing && !isMarkdownMode && (
           <div className="docs-toolbar-slot">
             <WysiwygEditor.MenuBar editor={editor} />

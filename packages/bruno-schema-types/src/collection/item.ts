@@ -15,6 +15,7 @@ export type ItemType
 export interface HttpItemSettings {
   encodeUrl?: boolean | null;
   followRedirects?: boolean | null;
+  forwardAuthorizationHeader?: boolean | null;
   maxRedirects?: number | null;
   timeout?: number | 'inherit' | null;
 }

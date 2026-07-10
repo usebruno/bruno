@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback, useRef } from 'react';
 import Documentation from 'components/Documentation/index';
+import DocsAction from 'components/Documentation/DocsAction';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import StatusDot from 'components/StatusDot/index';
 import ActionIcon from 'ui/ActionIcon';
@@ -182,6 +183,8 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
         <WSAuthMode item={item} collection={collection} />
       </div>
     );
+  } else if (requestPaneTab === 'docs') {
+    rightContent = <DocsAction item={item} />;
   } else if (requestPaneTab === 'body') {
     rightContent = (
       <div ref={rightContentRef} className="flex items-center gap-2">

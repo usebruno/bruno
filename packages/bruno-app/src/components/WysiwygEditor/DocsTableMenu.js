@@ -1,3 +1,4 @@
+import React from 'react';
 import { useEditorState } from '@tiptap/react';
 import {
   IconCaretDown,
