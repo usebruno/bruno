@@ -1,3 +1,5 @@
+[English](../../contributing.md)
+
 ## Mari kita buat Bruno lebih baik bersama-sama!!
 
 Kami senang Anda ingin meningkatkan kinerja Bruno. Berikut adalah panduan untuk menjalankan Bruno di komputer Anda.
