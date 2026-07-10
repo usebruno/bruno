@@ -1653,7 +1653,7 @@ const closeAllTabs = async (page: Page) => {
     // Click "Close All" menu item
     await dropdown.locator('[role="menuitem"][data-item-id="close-all"]').click();
 
-    // Handle "Unsaved Transient Requests" modal if it appears (multiple transient requests)
+    // Handle "Unsaved Transient Requests" modal if it appears
     const discardAllButton = page.getByRole('button', { name: 'Discard All' });
     if (await discardAllButton.isVisible({ timeout: 1000 }).catch(() => false)) {
       await discardAllButton.click();
