@@ -104,6 +104,18 @@ export default class CodeEditor extends React.Component {
             }
           });
         },
+        'Cmd-Alt-F': this.props.readOnly ? false : () => {
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+            this.searchBarRef.current?.openReplace();
+          });
+        },
+        'Ctrl-Alt-F': this.props.readOnly ? false : () => {
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+            this.searchBarRef.current?.openReplace();
+          });
+        },
         'Cmd-H': 'replace',
         'Ctrl-H': 'replace',
         'Tab': function (cm) {
@@ -204,6 +216,7 @@ export default class CodeEditor extends React.Component {
           }}
           visible={this.state.searchBarVisible}
           editor={this.editor}
+          readOnly={this.props.readOnly}
           onClose={() => this.setState({ searchBarVisible: false })}
         />
         <div
