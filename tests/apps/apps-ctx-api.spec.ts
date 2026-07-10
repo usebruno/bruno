@@ -17,17 +17,18 @@ import {
  */
 const guestEval = (electronApp: ElectronApplication, code: string) =>
   electronApp.evaluate(async ({ webContents }, c) => {
-    // The app view loads from a data:text/html URL. Filtering on that keeps us
-    // bound to the app guest even if other webviews (e.g. HTML response preview)
-    // are present.
-    const guest = webContents.getAllWebContents().find((wc) => {
+    // The app view loads from a data:text/html URL. Filtering on that and
+    // selecting the newest keeps us bound to the app guest even if other
+    // webviews (e.g. HTML response preview) are present.
+    const guests = webContents.getAllWebContents().filter((wc) => {
       try {
         return wc.getType() === 'webview' && (wc.getURL() || '').startsWith('data:text/html');
       } catch {
         return false;
       }
     });
-    if (!guest) return undefined;
+    if (!guests.length) return undefined;
+    const guest = guests.reduce((newest, wc) => (wc.id > newest.id ? wc : newest));
     return await guest.executeJavaScript(c, true);
   }, code);
 
