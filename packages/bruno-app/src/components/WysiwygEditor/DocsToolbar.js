@@ -262,7 +262,7 @@ const DocsToolbar = ({ editor }) => {
         count += 1;
       }
 
-      setVisibleCount(Math.max(1, count));
+      setVisibleCount(count);
     };
 
     const observer = new ResizeObserver(recalculate);
@@ -326,7 +326,6 @@ const DocsToolbar = ({ editor }) => {
           items={headingMenuItems}
           selectedItemId={activeHeadingId}
           placement="bottom-start"
-          className="docs-heading-dropdown"
           dropdownProps={DOCS_MENU_DROPDOWN_PROPS}
         >
           <button
@@ -357,7 +356,6 @@ const DocsToolbar = ({ editor }) => {
             items={overflowMenuItems}
             activeItemIds={overflowActiveItemIds}
             placement="bottom-end"
-            className="docs-toolbar-overflow"
             showTickMark={false}
             dropdownProps={DOCS_MENU_DROPDOWN_PROPS}
           >
