@@ -799,7 +799,7 @@ const StyledWrapper = styled.div`
       }
     }
 
-    .send-btn, .stop-btn {
+    .send-btn {
       display: flex;
       align-items: center;
       gap: 4px;
@@ -809,9 +809,6 @@ const StyledWrapper = styled.div`
       font-size: 11px;
       font-weight: 500;
       cursor: pointer;
-    }
-
-    .send-btn {
       background: ${(props) => props.theme.brand};
       color: ${(props) => (props.theme.mode === 'dark' ? '#000' : '#fff')};
 
@@ -822,15 +819,6 @@ const StyledWrapper = styled.div`
       &:disabled {
         opacity: 0.4;
         cursor: not-allowed;
-      }
-    }
-
-    .stop-btn {
-      background: ${(props) => props.theme.colors.text.danger};
-      color: ${(props) => (props.theme.mode === 'dark' ? '#000' : '#fff')};
-
-      &:hover {
-        opacity: 0.9;
       }
     }
   }
