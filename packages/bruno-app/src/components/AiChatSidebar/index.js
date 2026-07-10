@@ -18,6 +18,7 @@ import IconSparkles from 'components/Icons/IconSparkles';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import MenuDropdown from 'ui/MenuDropdown';
+import Button from 'ui/Button';
 import { focusTab } from 'providers/ReduxStore/slices/tabs';
 import {
   closeAiSidebar,
@@ -942,9 +943,17 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
                   </MenuDropdown>
                 </div>
                 {isLoading ? (
-                  <button className="stop-btn" onClick={handleStop} title="Stop generating">
-                    <IconPlayerStop size={12} /> Stop
-                  </button>
+                  <Button
+                    variant="filled"
+                    color="danger"
+                    size="xs"
+                    rounded="sm"
+                    icon={<IconPlayerStop size={12} />}
+                    onClick={handleStop}
+                    title="Stop generating"
+                  >
+                    Stop
+                  </Button>
                 ) : (
                   <button
                     className="send-btn"
