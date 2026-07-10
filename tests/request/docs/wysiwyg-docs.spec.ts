@@ -23,26 +23,20 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
     await page.getByTestId('request-name').fill('test-req');
     await locators.modal.button('Create').click();
 
-    // Wait for request tab to be visible
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'test-req' })).toBeVisible();
 
-    // Wait for the request pane to render
     await page.waitForSelector('.request-pane');
 
-    // Wait for ResponsiveTabs to finish calculating and render tabs or the more-tabs dropdown
     const docsTab = page.getByTestId('responsive-tab-docs');
     const moreTabs = page.locator('.more-tabs');
     await expect(docsTab.or(moreTabs)).toBeVisible();
 
-    // Open Docs tab (handle ResponsiveTabs overflow)
     if (await docsTab.isVisible()) {
       await docsTab.click();
     } else {
       await page.locator('.more-tabs').click();
       await page.locator('.dropdown-item').filter({ hasText: 'Docs' }).click();
     }
-
-    // Switch to Edit mode
     console.log('Waiting for edit btn...');
     const editBtn = page.locator('.docs-edit-toggle');
     await editBtn.waitFor({ state: 'visible', timeout: 5000 });
@@ -58,24 +52,19 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
   test('Line-Level Formatting', async ({ page, createTmpDir }) => {
     await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-line-formatting');
 
-    // We are in WYSIWYG mode by default
     const prosemirror = page.locator('.ProseMirror');
     await expect(prosemirror).toBeVisible();
 
-    // Type two lines using keyboard to create separate paragraphs
     await prosemirror.click();
     await page.keyboard.type('Line 1');
     await page.keyboard.press('Enter');
     await page.keyboard.type('Line 2');
 
-    // Move cursor to Line 1
     await page.keyboard.press('ArrowUp');
 
-    // Click Heading 1 button in toolbar (via dropdown)
     await page.locator('.heading-dropdown-trigger:not([data-toolbar-part="heading"])').click();
     await page.locator('.dropdown-item').getByText('Heading 1', { exact: true }).click();
 
-    // Verify only Line 1 is H1, Line 2 is still paragraph
     await expect(prosemirror.locator('h1')).toHaveCount(1);
     await expect(prosemirror.locator('h1')).toContainText('Line 1');
     await expect(prosemirror.locator('p')).toContainText('Line 2');
@@ -84,14 +73,11 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
   test('Toolbar Tooltips visibility', async ({ page, createTmpDir }) => {
     await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-tooltips');
 
-    // We are in WYSIWYG mode by default, ensure toolbar is visible
     const boldButton = page.locator('.toolbar-btn[aria-label="Bold"]');
     await expect(boldButton).toBeVisible();
 
-    // Hover over Bold button
     await boldButton.hover();
 
-    // Verify tooltip is visible
     await expect(page.locator('.react-tooltip').filter({ hasText: 'Bold' })).toBeVisible();
   });
   test('Text Formatting and Undo/Redo', async ({ page, createTmpDir }) => {
@@ -107,36 +93,28 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
     await prosemirror.click();
     await page.keyboard.type('Hello World');
 
-    // Select "World"
     await page.keyboard.down('Shift');
     for (let i = 0; i < 5; i++) {
       await page.keyboard.press('ArrowLeft');
     }
     await page.keyboard.up('Shift');
 
-    // Click Bold
     await page.locator('.toolbar-btn[aria-label="Bold"]').click();
     await expect(prosemirror.locator('strong')).toHaveText('World');
 
-    // Click Italic
     await page.locator('.toolbar-btn[aria-label="Italic"]').click();
-    await expect(prosemirror.locator('strong em, em strong').first()).toHaveText('World'); // bold and italic
+    await expect(prosemirror.locator('strong em, em strong').first()).toHaveText('World');
 
-    // Click Undo
     await page.locator('.toolbar-btn[aria-label="Undo"]').click();
-    // Should remove Italic
     await expect(prosemirror.locator('em')).toHaveCount(0);
     await expect(prosemirror.locator('strong')).toHaveText('World');
 
-    // Click Redo
     await page.locator('.toolbar-btn[aria-label="Redo"]').click();
     await expect(prosemirror.locator('strong em, em strong').first()).toHaveText('World');
 
-    // Click Strikethrough
     await page.locator('.toolbar-btn[aria-label="Strikethrough"]').click();
     await expect(prosemirror.locator('s')).toHaveText('World');
 
-    // Click Inline Code
     await page.locator('.toolbar-btn[aria-label="Inline code"]').click();
     await expect(prosemirror.locator('code')).toHaveText('World');
   });
@@ -150,38 +128,28 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
     await prosemirror.click();
     await page.keyboard.type('Item 1');
 
-    // Toggle Bullet List
     await page.locator('.toolbar-btn[aria-label="Bullet list"]').click();
     await expect(prosemirror.locator('ul > li')).toContainText('Item 1');
 
-    // Press Enter to create Item 2
     await page.keyboard.press('Enter');
     await page.keyboard.type('Item 2');
 
-    // Toggle Numbered List
     await page.locator('.toolbar-btn[aria-label="Numbered list"]').click();
-    // Both should now be in an ordered list because tiptap converts the entire list node if contiguous
     await expect(prosemirror.locator('ol > li').nth(1)).toContainText('Item 2');
 
-    // Toggle off Numbered List
     await page.locator('.toolbar-btn[aria-label="Numbered list"]').click();
-    // Item 2 should be a paragraph now
     await expect(prosemirror.locator('p').filter({ hasText: 'Item 2' })).toBeVisible();
 
-    // Toggle Task List
     await page.locator('.toolbar-btn[aria-label="Task list"]').click();
     await expect(prosemirror.locator('ul[data-type="taskList"] > li')).toBeVisible();
 
-    // Click the checkbox of the task list item
     const checkbox = prosemirror.locator('ul[data-type="taskList"] > li label input[type="checkbox"]').first();
     await checkbox.check();
     await expect(checkbox).toBeChecked();
 
-    // Exit the task list by pressing Enter twice (once to create new item, once to exit)
     await page.keyboard.press('Enter');
     await page.keyboard.press('Enter');
 
-    // Code block
     await page.locator('.toolbar-btn[aria-label="Code block"]').click();
     await page.keyboard.type('const x = 1;');
     await expect(prosemirror.locator('pre code')).toContainText('const x = 1;');
@@ -195,10 +163,8 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
 
     await prosemirror.click();
 
-    // Click Table button
     await page.locator('.toolbar-btn[aria-label="Table"]').click();
 
-    // Default tiptap table is usually 3x3
     await expect(prosemirror.locator('table')).toBeVisible();
     await expect(prosemirror.locator('tr')).toHaveCount(3);
   });
