@@ -1653,10 +1653,16 @@ const closeAllTabs = async (page: Page) => {
     // Click "Close All" menu item
     await dropdown.locator('[role="menuitem"][data-item-id="close-all"]').click();
 
-    // Handle "Unsaved Transient Requests" modal if it appears
+    // Handle "Unsaved Transient Requests" modal if it appears (multiple transient requests)
     const discardAllButton = page.getByRole('button', { name: 'Discard All' });
     if (await discardAllButton.isVisible({ timeout: 1000 }).catch(() => false)) {
       await discardAllButton.click();
+    }
+
+    const saveTransientModal = page.getByTestId('save-transient-request-modal');
+    if (await saveTransientModal.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await saveTransientModal.getByRole('button', { name: 'Cancel' }).click();
+      await expect(saveTransientModal).toBeHidden();
     }
   });
 };
