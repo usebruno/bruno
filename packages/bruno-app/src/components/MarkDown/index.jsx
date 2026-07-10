@@ -1,20 +1,20 @@
-import MarkdownIt from 'markdown-it';
-import * as MarkdownItReplaceLink from 'markdown-it-replace-link';
-import StyledWrapper from './StyledWrapper';
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useEditor } from '@tiptap/react';
+import WysiwygEditor from 'components/WysiwygEditor/index';
 import { isValidUrl } from 'utils/url/index';
-import DOMPurify from 'dompurify';
-import { useMemo } from 'react';
 
 const Markdown = ({ collectionPath, onDoubleClick, content, allowHtml = true }) => {
-  const markdownItOptions = {
-    html: allowHtml,
-    breaks: true,
-    linkify: true,
-    replaceLink: function (link, env) {
-      return link.replace(/^\./, collectionPath);
+  const editor = useEditor({
+    extensions: WysiwygEditor.extensions,
+    content: content || '',
+    editable: false
+  });
+
+  useEffect(() => {
+    if (editor) {
+      editor.commands.setContent(content || '', false);
     }
-  };
+  }, [content, editor]);
 
   const handleOnClick = (event) => {
     const target = event.target;
@@ -29,24 +29,15 @@ const Markdown = ({ collectionPath, onDoubleClick, content, allowHtml = true }) 
   };
 
   const handleOnDoubleClick = (event) => {
-    if (event.detail === 2) {
+    if (event.detail === 2 && onDoubleClick) {
       onDoubleClick();
     }
   };
 
-  const md = new MarkdownIt(markdownItOptions).use(MarkdownItReplaceLink);
-  const htmlFromMarkdown = useMemo(() => md.render(content || ''), [content, collectionPath, allowHtml]);
-  const cleanHTML = useMemo(() => DOMPurify.sanitize(htmlFromMarkdown), [htmlFromMarkdown]);
-
   return (
-    <StyledWrapper>
-      <div
-        className="markdown-body"
-        dangerouslySetInnerHTML={{ __html: cleanHTML }}
-        onClick={handleOnClick}
-        onDoubleClick={handleOnDoubleClick}
-      />
-    </StyledWrapper>
+    <div className="h-full w-full markdown-wysiwyg-wrapper" onDoubleClick={handleOnDoubleClick} onClick={handleOnClick}>
+      <WysiwygEditor editor={editor} />
+    </div>
   );
 };
 

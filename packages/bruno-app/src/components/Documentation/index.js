@@ -1,34 +1,73 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
+import find from 'lodash/find';
 import { updateRequestDocs } from 'providers/ReduxStore/slices/collections';
+import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
+import AIAssist from 'components/AIAssist';
+import { buildAiContextPayload } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 import WysiwygEditor from 'components/WysiwygEditor/index';
-import { IconMarkdown, IconFileDescription } from '@tabler/icons-react';
+import { IconMarkdown, IconFileDescription } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
 import ModeSwitch from 'components/ModeSwitch/index';
 import { useEditor } from '@tiptap/react';
+import { DOCS_TOOLBAR_TOOLTIP_PROPS } from 'components/WysiwygEditor/docsToolbarUi';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
-  const [isEditing, setIsEditing] = useState(false);
-  const [isMarkdown, setIsMarkdown] = useState(true);
-  const docs = item.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const isEditing = focusedTab?.docsEditing || false;
+  const [isMarkdownMode, setIsMarkdownMode] = useState(false);
+  const docs = item?.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
   const preferences = useSelector((state) => state.app.preferences);
+
+  const wrapperRef = useRef(null);
+  const skipDocsSyncRef = useRef(false);
+  const prevMarkdownModeRef = useRef(isMarkdownMode);
+  const isMarkdownModeRef = useRef(isMarkdownMode);
+  const [scroll, setScroll] = usePersistedState({ key: `request-docs-scroll-${item?.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, onChange: setScroll, enabled: !isEditing, initialValue: scroll });
+
+  const onEdit = useCallback(
+    (value) => {
+      if (!item) return;
+      dispatch(
+        updateRequestDocs({
+          itemUid: item.uid,
+          collectionUid: collection.uid,
+          docs: value
+        })
+      );
+    },
+    [collection.uid, dispatch, item]
+  );
+
+  const onSave = useCallback(() => {
+    if (!item) return;
+    dispatch(saveRequest(item.uid, collection.uid));
+  }, [collection.uid, dispatch, item]);
+
   const editor = useEditor({
     extensions: WysiwygEditor.extensions,
-    content: docs,
-    onUpdate: ({ editor }) => {
-      onEdit(editor.storage.markdown.getMarkdown());
+    content: docs || '',
+    onUpdate: ({ editor: currentEditor }) => {
+      if (!isMarkdownModeRef.current) {
+        skipDocsSyncRef.current = true;
+      }
+      onEdit(currentEditor.storage.markdown.getMarkdown());
     },
     editorProps: {
-      handleKeyDown: (view, event) => {
+      handleKeyDown: (_view, event) => {
         if ((event.ctrlKey || event.metaKey) && event.key === 's') {
           event.preventDefault();
           onSave();
@@ -39,82 +78,114 @@ const Documentation = ({ item, collection }) => {
     }
   });
 
-  const toggleViewMode = () => {
-    setIsEditing((prev) => !prev);
-  };
+  const { requestContext, variables: aiVariables } = useMemo(
+    () => (item ? buildAiContextPayload(item, collection) : { requestContext: null, variables: [] }),
+    [item, collection]
+  );
 
-  const onEdit = (value) => {
-    dispatch(
-      updateRequestDocs({
-        itemUid: item.uid,
-        collectionUid: collection.uid,
-        docs: value
-      })
-    );
-  };
+  useEffect(() => {
+    isMarkdownModeRef.current = isMarkdownMode;
+  }, [isMarkdownMode]);
 
-  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
-
-  const getTabClassname = (tabName) => {
-    if (isEditing && tabName === 'Write') {
-      return 'flex items-end cursor-pointer px-3 py-2 border-b-2 border-neutral-800 dark:border-neutral-200';
-    } else if (!isEditing && tabName === 'Preview') {
-      return 'flex px-3 py-2  items-end cursor-pointer border-b-2 border-neutral-800  dark:border-neutral-200';
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(isEditing && !isMarkdownMode);
     }
-
-    return 'flex px-3 py-2 items-end border-b-2 border-transparent cursor-pointer';
-  };
+  }, [editor, isEditing, isMarkdownMode]);
 
   useEffect(() => {
     if (!editor) return;
-    const markdown = editor.storage.markdown.getMarkdown();
 
-    if (docs !== markdown) {
-      editor.commands.setContent(docs);
+    if (skipDocsSyncRef.current) {
+      skipDocsSyncRef.current = false;
+      return;
     }
-  }, [docs, editor]);
+
+    if (isMarkdownMode) return;
+
+    editor.commands.setContent(docs || '', false);
+  }, [docs, editor, isMarkdownMode]);
+
+  useEffect(() => {
+    if (!editor) return;
+
+    if (prevMarkdownModeRef.current && !isMarkdownMode) {
+      editor.commands.setContent(docs || '');
+    }
+
+    prevMarkdownModeRef.current = isMarkdownMode;
+  }, [docs, editor, isMarkdownMode]);
+
+  useEffect(() => {
+    if (isEditing) {
+      setIsMarkdownMode(false);
+    }
+  }, [isEditing]);
+
+  const setEditing = (editing) => {
+    dispatch(updateDocsEditing({ uid: activeTabUid, docsEditing: editing }));
+  };
+
+  const getTabClassname = (tabName) => {
+    const isActive = (tabName === 'Edit' && isEditing) || (tabName === 'Preview' && !isEditing);
+    return `docs-tab ${isActive ? 'is-active' : ''}`;
+  };
 
   if (!item) {
     return null;
   }
 
   return (
-    <StyledWrapper className="flex flex-col mt-3 gap-y-1 h-full w-full relative border-ne">
-      <div className="flex items-center border-b rounded-sm mb-2  border-[#aaa5] gap-y-1  relative">
-        {isMarkdown ? (
-          <div className="flex align-center h-full gap-2" role="tablist">
-            <div className={getTabClassname('Write')} role="tab" onClick={() => setIsEditing(true)}>
-              Write
-            </div>
-            <div className={getTabClassname('Preview')} role="tab" onClick={() => setIsEditing(false)}>
-              Preview
-            </div>
+    <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative" ref={wrapperRef}>
+      <div className="docs-tab-strip">
+        <div className="docs-tabs" role="tablist">
+          <button type="button" className={getTabClassname('Edit')} role="tab" onClick={() => setEditing(true)}>
+            Edit
+          </button>
+          <button type="button" className={getTabClassname('Preview')} role="tab" onClick={() => setEditing(false)}>
+            Preview
+          </button>
+        </div>
+
+        {isEditing && !isMarkdownMode && (
+          <div className="docs-toolbar-slot">
+            <WysiwygEditor.MenuBar editor={editor} />
           </div>
-        ) : (
-          <WysiwygEditor.MenuBar editor={editor} />
         )}
-        <ModeSwitch
-          checked={isMarkdown}
-          onChange={() => setIsMarkdown((prev) => !prev)}
-          rightComponent={(
-            <>
-              <IconMarkdown id="markdown" className="focus:outline-none" size={18} />
-              <Tooltip anchorId="markdown" place="top" html="Markdown mode" />
-            </>
-          )}
-          leftComponent={(
-            <>
-              <IconFileDescription id="wysiwyg" className="focus:outline-none" size={18} />
-              <Tooltip anchorId="wysiwyg" place="top" html="Wysiwyg mode" />
-            </>
-          )}
-          className="ml-auto mb-2"
-        />
+
+        {isEditing && (
+          <ModeSwitch
+            checked={isMarkdownMode}
+            onChange={() => setIsMarkdownMode((prev) => !prev)}
+            rightComponent={(
+              <IconMarkdown
+                id="markdown-mode"
+                className="focus:outline-none"
+                size={18}
+                strokeWidth={1.5}
+                data-tooltip-id="docs-mode-tooltip"
+                data-tooltip-content="Markdown mode"
+              />
+            )}
+            leftComponent={(
+              <IconFileDescription
+                id="wysiwyg-mode"
+                className="focus:outline-none"
+                size={18}
+                strokeWidth={1.5}
+                data-tooltip-id="docs-mode-tooltip"
+                data-tooltip-content="WYSIWYG mode"
+              />
+            )}
+            className="docs-mode-switch"
+          />
+        )}
+        <Tooltip id="docs-mode-tooltip" {...DOCS_TOOLBAR_TOOLTIP_PROPS} />
       </div>
 
-      {isMarkdown ? (
-        <section className="h-full">
-          {isEditing ? (
+      {isEditing ? (
+        isMarkdownMode ? (
+          <div className="relative flex-1 min-h-0">
             <CodeEditor
               collection={collection}
               theme={displayedTheme}
@@ -124,13 +195,24 @@ const Documentation = ({ item, collection }) => {
               onEdit={onEdit}
               onSave={onSave}
               mode="application/text"
+              initialScroll={scroll}
+              onScroll={setScroll}
             />
-          ) : (
-            <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
-          )}
-        </section>
+            <AIAssist
+              scriptType="docs"
+              currentScript={docs || ''}
+              requestContext={requestContext}
+              variables={aiVariables}
+              onApply={onEdit}
+            />
+          </div>
+        ) : (
+          <section className="flex flex-col flex-1 min-h-0 w-full">
+            <WysiwygEditor editor={editor} />
+          </section>
+        )
       ) : (
-        <section className="flex flex-col h-full w-full">
+        <section className="flex flex-col flex-1 min-h-0 w-full" onDoubleClick={() => setEditing(true)}>
           <WysiwygEditor editor={editor} />
         </section>
       )}

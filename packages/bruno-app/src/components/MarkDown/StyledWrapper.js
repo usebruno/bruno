@@ -1,88 +1,39 @@
 import styled from 'styled-components';
+import docsContentStyles from 'components/Documentation/docsContentStyles';
 
 const StyledMarkdownBodyWrapper = styled.div`
   background: transparent;
+
   .markdown-body {
     background: transparent;
     overflow-y: auto;
-    color: ${(props) => props.theme.text};
     box-sizing: border-box;
     height: 100%;
     margin: 0 auto;
-    font-size: ${(props) => props.theme.font.size.base};
+    ${docsContentStyles}
 
-    h1 {
-      margin: 0.67em 0;
-      font-weight: var(--base-text-weight-semibold, 600);
-      padding-bottom: 0.3em;
-      font-size: 2.2em;
-      border-bottom: 1px solid var(--color-border-muted);
+    && table {
+      display: table;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      table-layout: fixed;
     }
 
-    h2 {
-      font-weight: var(--base-text-weight-semibold, 600);
-      padding-bottom: 0.3em;
-      font-size: 1.7em;
-      border-bottom: 1px solid var(--color-border-muted);
+    && table th,
+    && table td {
+      padding: 6px 13px;
+      min-height: calc(1.5em + 12px);
+      line-height: 1.5;
     }
 
-    h3 {
-      font-weight: var(--base-text-weight-semibold, 600);
-      font-size: 1.45em;
+    && table p {
+      margin: 0;
+      min-height: 1.5em;
+      line-height: 1.5;
     }
 
-    h4 {
-      font-weight: var(--base-text-weight-semibold, 600);
-      font-size: 1.1em;
-    }
-
-    h5 {
-      font-weight: var(--base-text-weight-semibold, 600);
-      font-size: 0.975em;
-    }
-
-    h6 {
-      font-weight: var(--base-text-weight-semibold, 600);
-      font-size: 0.85em;
-      color: var(--color-fg-muted);
-    }
-
-    hr {
-      box-sizing: content-box;
-      overflow: hidden;
-      border-bottom: 1px solid var(--color-border-muted);
-      height: 1px;
-      padding: 0;
-      margin: 24px 0;
-      background-color: var(--color-sidebar-collection-item-active-indent-border);
-      border: 0;
-    }
-
-    ul {
-      list-style-type: disc;
-    }
-
-    ol {
-      list-style-type: decimal;
-    }
-
-    pre {
-      background: ${(props) => props.theme.sidebar.bg};
-      color: ${(props) => props.theme.text};
-    }
-
-    table {
-      th,
-      td {
-        border: 1px solid ${(props) => props.theme.table.border};
-        background-color: ${(props) => props.theme.bg};
-      }
-    }
-
-    p {
-      white-space: pre-wrap;
-    }
-
+    p,
     div {
       white-space: pre-wrap;
     }

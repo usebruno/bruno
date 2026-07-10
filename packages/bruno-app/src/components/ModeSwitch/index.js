@@ -1,49 +1,66 @@
+import styled from 'styled-components';
+
+const StyledModeSwitch = styled.button`
+  position: relative;
+  width: 80px;
+  height: 32px;
+  padding: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: ${(props) => props.theme.dropdown.bg};
+  border: 1px solid ${(props) => props.theme.dropdown.separator};
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+  cursor: pointer;
+
+  .mode-switch-thumb {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    left: 3px;
+    width: 34px;
+    background: ${(props) => props.theme.dropdown.hoverBg};
+    border-radius: 3px;
+    transition: transform 0.2s ease;
+    transform: translateX(${(props) => (props.$checked ? '36px' : '0')});
+  }
+
+  .mode-switch-side {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50%;
+    height: 100%;
+    color: ${(props) => props.theme.dropdown.iconColor};
+    transition: color 0.2s ease;
+
+    &.is-active {
+      color: ${(props) => props.theme.dropdown.selectedColor};
+    }
+  }
+`;
+
 const ModeSwitch = ({ checked, onChange, leftComponent, rightComponent, className, ...props }) => {
-  const leftIconClassName = checked
-    ? 'text-neutral-500 dark:text-neutral-200'
-    : 'text-neutral-800 dark:text-neutral-800';
-
-  const rightIconClassName = checked
-    ? 'text-neutral-800 dark:text-neutral-800'
-    : 'text-neutral-500 dark:text-neutral-200';
-
   return (
-    <button
+    <StyledModeSwitch
+      type="button"
       onClick={onChange}
-      className={`
-          relative w-[80px] h-[40px] p-1 flex justify-between
-          bg-neutral-200 dark:bg-neutral-900 rounded-sm  dark:border-gray-600
-          transition-colors flex-shrink-0 ${className}`}
+      className={className}
+      $checked={checked}
+      aria-label={checked ? 'Switch to WYSIWYG mode' : 'Switch to Markdown mode'}
       {...props}
     >
-      <div
-        className={`
-            absolute top-1 bottom-1 left-1 w-[36px] bg-neutral-300 dark:bg-gray-300
-            rounded-sm transition-transform duration-300
-            ${checked ? 'translate-x-[36px]' : 'translate-x-0'}
-          `}
-      />
-
+      <div className="mode-switch-thumb" />
       {leftComponent && (
-        <span
-          className={`
-            relative flex items-center justify-center
-            w-full h-full transition-colors ${leftIconClassName}`}
-        >
-          {leftComponent}
-        </span>
+        <span className={`mode-switch-side ${!checked ? 'is-active' : ''}`}>{leftComponent}</span>
       )}
       {rightComponent && (
-        <span
-          className={`
-            relative flex items-center justify-center
-            w-full  h-full transition-colors ${rightIconClassName}
-          `}
-        >
-          {rightComponent}
-        </span>
+        <span className={`mode-switch-side ${checked ? 'is-active' : ''}`}>{rightComponent}</span>
       )}
-    </button>
+    </StyledModeSwitch>
   );
 };
 
