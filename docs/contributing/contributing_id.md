@@ -8,7 +8,7 @@ Kami senang Anda ingin meningkatkan kinerja Bruno. Berikut adalah panduan untuk 
 
 Bruno dibangun menggunakan React dan Electron.
 
-Perpustakaan yang kami gunakan
+Pustaka yang kami gunakan
 
 - CSS - Tailwind
 - Code Editors - Codemirror
