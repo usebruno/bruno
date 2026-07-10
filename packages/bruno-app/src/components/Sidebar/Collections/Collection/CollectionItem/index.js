@@ -745,41 +745,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           </div>
         </div>
       </div>
-      {!itemIsCollapsed ? (
-        <div>
-          {folderItems && folderItems.length
-            ? folderItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
-              })
-            : null}
-          {requestItems && requestItems.length
-            ? requestItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
-              })
-            : null}
-          {showEmptyFolderMessage ? (
-            <div className="empty-folder-message">
-              {range(item.depth + 1).map((i) => (
-                <div className="indent-block" key={i} style={{ width: 16, minWidth: 16, height: '100%' }}>
-                  &nbsp;
-                </div>
-              ))}
-              <div style={{ paddingLeft: 8 }}>
-                <MenuDropdown
-                  data-testid="add-request-cta-folder"
-                  items={emptyFolderMenuItems}
-                  placement="bottom-start"
-                  appendTo={dropdownContainerRef?.current || document.body}
-                  popperOptions={{ strategy: 'fixed' }}
-                >
-                  <button className="ml-1 add-request-link">+ Add request</button>
-                </MenuDropdown>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
       {/* Show examples when expanded (only for HTTP requests) */}
       {isItemARequest(item) && item.type === 'http-request' && examplesExpanded && hasExamples && (
         <div>

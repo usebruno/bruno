@@ -562,36 +562,6 @@ const Collection = ({ collection, searchText }) => {
           </div>
         </div>
       </div>
-      <div>
-        {!collectionIsCollapsed ? (
-          <div>
-            {folderItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
-            })}
-            {requestItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
-            })}
-            {showEmptyCollectionMessage ? (
-              <div className="empty-collection-message">
-                <div className="indent-block" style={{ width: 16, minWidth: 16, height: '100%' }}>
-                  &nbsp;
-                </div>
-                <div style={{ paddingLeft: 8 }}>
-                  <MenuDropdown
-                    data-testid="add-request-cta"
-                    items={emptyStateMenuItems}
-                    placement="bottom-start"
-                    appendTo={dropdownContainerRef?.current || document.body}
-                    popperOptions={{ strategy: 'fixed' }}
-                  >
-                    <button className="ml-1 add-request-link">+ Add request</button>
-                  </MenuDropdown>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
     </StyledWrapper>
   );
 };

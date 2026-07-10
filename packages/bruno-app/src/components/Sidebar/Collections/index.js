@@ -8,6 +8,8 @@ import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
 import path, { normalizePath } from 'utils/common/path';
 import { isScratchCollection } from 'utils/collections';
+import { Virtuoso } from 'react-virtuoso';
+import { flattenSidebar } from 'utils/collections/flatten';
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
@@ -76,6 +78,50 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     );
   }
 
+  // Flatten the entries
+  const flattenedItems = useMemo(() => {
+    return flattenSidebar(sidebarEntries, searchText);
+  }, [sidebarEntries, searchText]);
+
+  const renderItem = (index, item) => {
+    switch (item.type) {
+      case 'collection-root':
+        return <Collection searchText={searchText} collection={item.collection} />;
+      case 'ghost-collection':
+        return <GitRemoteCollectionRow entry={item.entry} />;
+      case 'collection-item':
+        return <CollectionItem item={item.item} collectionUid={item.collectionUid} collectionPathname={item.collectionPathname} searchText={searchText} />;
+      case 'empty-collection-message':
+        return (
+          <div className="empty-collection-message">
+            <div className="indent-block" style={{ width: 16, minWidth: 16, height: '100%' }}>
+              &nbsp;
+            </div>
+            <div style={{ paddingLeft: 8 }}>
+              <button className="ml-1 add-request-link">+ Add request</button>
+            </div>
+          </div>
+        );
+      case 'empty-folder-message':
+        // we can calculate indents from item.item.depth
+        const indents = Array.from({ length: item.item.depth + 1 }).map((_, i) => i);
+        return (
+          <div className="empty-folder-message">
+            {indents.map((i) => (
+              <div className="indent-block" key={i} style={{ width: 16, minWidth: 16, height: '100%' }}>
+                &nbsp;
+              </div>
+            ))}
+            <div style={{ paddingLeft: 8 }}>
+              <button className="ml-1 add-request-link">+ Add request</button>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <StyledWrapper data-testid="collections">
       {showSearch && (
@@ -90,12 +136,12 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
             onOpenAdvanced={onOpenAdvancedCreate}
           />
         )}
-        {sidebarEntries.map((entry) => {
-          if (entry.kind === 'loaded') {
-            return <Collection searchText={searchText} collection={entry.collection} key={entry.key} />;
-          }
-          return <GitRemoteCollectionRow entry={entry.entry} key={entry.key} />;
-        })}
+        <Virtuoso
+          data={flattenedItems}
+          itemContent={renderItem}
+          className="collections-list"
+          style={{ flex: 1 }}
+        />
       </div>
     </StyledWrapper>
   );
