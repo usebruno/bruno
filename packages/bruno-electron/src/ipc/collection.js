@@ -61,7 +61,7 @@ const {
   scanForBrunoFiles,
   withFileLock
 } = require('../utils/filesystem');
-const { getCollectionConfigFile, openCollection, openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
+const { getCollectionConfigFile, openCollection, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
 const { isValidNpmPackageName, runNpmInstall } = require('../utils/install-packages');
 const { waitForShellEnv } = require('../store/shell-env-state');
@@ -1240,12 +1240,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
 
     return results;
-  });
-
-  ipcMain.handle('renderer:open-collection', async () => {
-    if (watcher && mainWindow) {
-      await openCollectionDialog(mainWindow, watcher);
-    }
   });
 
   ipcMain.handle('renderer:open-multiple-collections', async (e, collectionPaths, options = {}) => {
@@ -2815,10 +2809,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 };
 
-const registerMainEventHandlers = (mainWindow, watcher) => {
+const registerMainEventHandlers = (mainWindow) => {
   ipcMain.on('main:open-collection', () => {
-    if (watcher && mainWindow) {
-      openCollectionDialog(mainWindow, watcher);
+    if (mainWindow) {
+      mainWindow.webContents.send('main:show-open-collection');
     }
   });
 
