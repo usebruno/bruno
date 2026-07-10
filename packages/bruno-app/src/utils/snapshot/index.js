@@ -30,6 +30,13 @@ const IGNORED_TAB_TYPES = new Set([
   'v4-migration'
 ]);
 
+export const WORKSPACE_TAB_UID_SUFFIX_BY_TYPE = {
+  workspaceOverview: 'overview',
+  workspaceEnvironments: 'environments'
+};
+
+export const WORKSPACE_TAB_TYPES = new Set(Object.keys(WORKSPACE_TAB_UID_SUFFIX_BY_TYPE));
+
 export const SAVE_TRIGGERS = new Map([
   ['app/setSnapshotReady', null],
   ['tabs/addTab', null],
@@ -143,6 +150,9 @@ const normalizeWorkspaceSnapshotEntry = (pathname, entry = {}) => {
       ? entry.lastActiveCollectionPathname
       : null,
     sorting: typeof entry.sorting === 'string' ? entry.sorting : 'default',
+    activeWorkspaceTabType: WORKSPACE_TAB_TYPES.has(entry.activeWorkspaceTabType)
+      ? entry.activeWorkspaceTabType
+      : null,
     collections
   };
 };
@@ -226,6 +236,7 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         pathname: workspace.pathname,
         lastActiveCollectionPathname: workspace.lastActiveCollectionPathname,
         sorting: workspace.sorting,
+        activeWorkspaceTabType: workspace.activeWorkspaceTabType,
         collections: workspace.collections
       };
 
@@ -461,6 +472,11 @@ export const serializeTab = (tab, collection) => {
     };
   }
 
+  const isEnvironmentTab = tab.type === 'environment-settings' || tab.type === 'global-environment-settings';
+  if (isEnvironmentTab && tab.tabState?.environment?.tab) {
+    serialized.environment = { tab: tab.tabState.environment.tab };
+  }
+
   return serialized;
 };
 
@@ -637,6 +653,10 @@ export const deserializeTab = (snapshotTab, collection) => {
     } else {
       tab.uid = type;
     }
+  }
+
+  if (snapshotTab.environment?.tab) {
+    tab.tabState = { environment: { tab: snapshotTab.environment.tab } };
   }
 
   return tab;

@@ -40,16 +40,27 @@ const PROVIDERS = {
  * Static model catalog for built-in providers. User-defined custom models for
  * OpenAI-compatible endpoints are layered on top at lookup time.
  */
+// `reasoning: true` marks models whose SDK path rejects temperature/stopSequences
+// (OpenAI Responses API reasoning models) or accepts them only when thinking is
+// off (Anthropic Claude 4+). Callers doing latency-critical work like
+// autocomplete drop those params for reasoning models to silence warnings.
 const MODEL_DEFINITIONS = {
   // OpenAI
   'gpt-4o-mini': { provider: 'openai', modelId: 'gpt-4o-mini', label: 'GPT-4o Mini' },
   'gpt-4o': { provider: 'openai', modelId: 'gpt-4o', label: 'GPT-4o' },
-  'gpt-5': { provider: 'openai', modelId: 'gpt-5', label: 'GPT-5' },
-  'gpt-5-mini': { provider: 'openai', modelId: 'gpt-5-mini', label: 'GPT-5 Mini' },
+  'gpt-5': { provider: 'openai', modelId: 'gpt-5', label: 'GPT-5', reasoning: true },
+  'gpt-5-mini': { provider: 'openai', modelId: 'gpt-5-mini', label: 'GPT-5 Mini', reasoning: true },
   // Anthropic
-  'claude-opus-4-7': { provider: 'anthropic', modelId: 'claude-opus-4-7', label: 'Claude Opus 4.7' },
-  'claude-sonnet-4-6': { provider: 'anthropic', modelId: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
-  'claude-haiku-4-5': { provider: 'anthropic', modelId: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' }
+  'claude-opus-4-7': { provider: 'anthropic', modelId: 'claude-opus-4-7', label: 'Claude Opus 4.7', reasoning: true },
+  'claude-sonnet-4-6': { provider: 'anthropic', modelId: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', reasoning: true },
+  'claude-haiku-4-5': { provider: 'anthropic', modelId: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5', reasoning: true }
+};
+
+const isReasoningModel = (modelId) => Boolean(MODEL_DEFINITIONS[modelId]?.reasoning);
+
+const isOpenAiReasoningModel = (modelId) => {
+  const def = MODEL_DEFINITIONS[modelId];
+  return Boolean(def?.reasoning && def?.provider === 'openai');
 };
 
 // Cache SDK instances. Built-in keyed by `${providerId}:${apiKey}`; compat
@@ -174,6 +185,8 @@ const resolveModelDefinition = (modelId, aiPreferences) => {
   return null;
 };
 
+const isBuiltInModelId = (modelId) => Boolean(MODEL_DEFINITIONS[modelId]);
+
 const providerLabel = (providerId, aiPreferences) => {
   if (PROVIDERS[providerId]) return PROVIDERS[providerId].label;
   const endpointId = endpointIdFromProviderId(providerId);
@@ -206,7 +219,9 @@ const getModel = (modelId, { aiPreferences, getApiKey }) => {
     throw new Error(`${providerLabel(def.providerId, aiPreferences)} is missing a Base URL. Set one in Preferences > AI.`);
   }
 
-  return getSdk({ providerId: def.providerId, apiKey, baseURL: def.baseURL })(def.sdkModelId);
+  const sdk = getSdk({ providerId: def.providerId, apiKey, baseURL: def.baseURL });
+  if (isOpenAiCompatibleProviderId(def.providerId)) return sdk.chat(def.sdkModelId);
+  return sdk(def.sdkModelId);
 };
 
 /**
@@ -270,6 +285,9 @@ module.exports = {
   providerIdFromEndpointId,
   getCompatEndpoint,
   isKnownProviderId,
+  isBuiltInModelId,
+  isReasoningModel,
+  isOpenAiReasoningModel,
   validateApiKeyForProvider,
   providerLabel
 };

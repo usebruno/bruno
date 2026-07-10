@@ -54,7 +54,9 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
     };
 
     const appData = _.get(json, 'app');
-    const app = appData ? { code: _.get(appData, 'code', null) } : null;
+    const app = appData
+      ? { code: _.get(appData, 'code', null), enabled: _.get(appData, 'enabled', false) === true }
+      : null;
 
     const transformedJson = {
       type: requestType,
@@ -257,8 +259,8 @@ export const stringifyBruRequest = (json: any): string => {
     bruJson.examples = _.get(json, 'examples', []).map((e: any) => jsonExampleToBru(e));
 
     const app = _.get(json, 'app');
-    if (app && app.code && app.code.length) {
-      bruJson.app = { code: app.code };
+    if (app && (app.enabled === true || (app.code && app.code.length))) {
+      bruJson.app = { code: app.code || null, enabled: app.enabled === true };
     }
 
     const bru = jsonToBruV2(bruJson);

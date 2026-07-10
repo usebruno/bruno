@@ -15,6 +15,7 @@ import MultipartFileChipsCell from 'components/MultipartFileChipsCell';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import path, { getRelativePathWithinBasePath, normalizePath } from 'utils/common/path';
 import { getMultipartAutoContentType } from 'utils/common/multipartContentType';
@@ -167,7 +168,7 @@ const MultipartFormParams = ({ item, collection }) => {
       name: 'Key',
       isKeyField: true,
       placeholder: 'Key',
-      width: '30%'
+      width: '20%'
     },
     {
       key: 'value',
@@ -229,20 +230,29 @@ const MultipartFormParams = ({ item, collection }) => {
           collection={collection}
         />
       )
-    }
+    },
+    createDescriptionColumn({
+      theme: storedTheme,
+      onSave,
+      onRun: handleRun,
+      collection,
+      item
+    })
   ];
 
   const defaultRow = {
     name: '',
     value: '',
     contentType: '',
-    type: 'text'
+    type: 'text',
+    description: ''
   };
 
   return (
     <StyledWrapper className="w-full" ref={wrapperRef}>
       <EditableTable
         tableId="multipart-form"
+        testId="multipart-form-table"
         columns={columns}
         rows={params || []}
         onChange={handleParamsChange}

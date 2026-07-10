@@ -1,5 +1,5 @@
 import { IconCopy, IconEdit, IconTrash, IconCheck, IconX, IconSearch, IconDeviceFloppy } from '@tabler/icons';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { renameGlobalEnvironment, updateGlobalEnvironmentColor } from 'providers/ReduxStore/slices/global-environments';
 import { updateTabState } from 'providers/ReduxStore/slices/tabs';
@@ -28,8 +28,18 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
   const [newName, setNewName] = useState('');
   const [nameError, setNameError] = useState('');
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const activeTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.envTab) || 'variables';
-  const setActiveTab = (tab) => dispatch(updateTabState({ uid: activeTabUid, tabState: { envTab: tab } }));
+  const activeTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.environment?.tab) || 'variables';
+  const setActiveTab = (tab) => dispatch(updateTabState({ uid: activeTabUid, tabState: { environment: { tab } } }));
+
+  // Use the immediate query on a tab switch (debounced value lags and briefly
+  // flashes the unfiltered table).
+  const prevTabRef = useRef(activeTab);
+  const tabJustChanged = prevTabRef.current !== activeTab;
+  useEffect(() => {
+    prevTabRef.current = activeTab;
+  }, [activeTab]);
+  const tableSearchQuery = tabJustChanged ? searchQuery : debouncedSearchQuery;
+
   const inputRef = useRef(null);
   const rightContentRef = useRef(null);
 
@@ -205,6 +215,9 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
         </div>
         {nameError && isRenaming && <div className="title-error">{nameError}</div>}
         <div className="actions">
+          <ActionIcon label="Save All" onClick={handleSaveAll} data-testid="save-all-env">
+            <IconDeviceFloppy size={15} strokeWidth={1.5} />
+          </ActionIcon>
           <ActionIcon label="Rename" onClick={handleRenameClick} data-testid="env-rename-action">
             <IconEdit size={15} strokeWidth={1.5} />
           </ActionIcon>
@@ -224,9 +237,6 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
           onTabSelect={setActiveTab}
           rightContent={(
             <div ref={rightContentRef} className="env-search-container">
-              <ActionIcon label="Save" onClick={handleSaveAll} data-testid="save-all-env">
-                <IconDeviceFloppy size={15} strokeWidth={1.5} />
-              </ActionIcon>
               {isSearchExpanded ? (
                 <div className="search-input-wrapper">
                   <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
@@ -272,7 +282,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
           environment={environment}
           setIsModified={setIsModified}
           collection={collection}
-          searchQuery={debouncedSearchQuery}
+          searchQuery={tableSearchQuery}
           variableType={activeTab}
         />
       </div>
