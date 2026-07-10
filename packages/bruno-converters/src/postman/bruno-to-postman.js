@@ -281,6 +281,7 @@ export const brunoToPostman = (collection) => {
       return {
         key: item.name || '',
         value: item.value || '',
+        description: item.description || '',
         disabled: !item.enabled,
         type: 'default'
       };
@@ -304,7 +305,8 @@ export const brunoToPostman = (collection) => {
               key: bodyItem.name || '',
               value: bodyItem.value || '',
               disabled: !bodyItem.enabled,
-              type: 'default'
+              type: 'default',
+              description: bodyItem.description || ''
             };
           })
         };
@@ -327,6 +329,7 @@ export const brunoToPostman = (collection) => {
               key: bodyItem.name || '',
               disabled: !bodyItem.enabled,
               type: isFile ? 'file' : 'text',
+              description: bodyItem.description || '',
               ...(isFile ? { src: getSrc() } : { value: bodyItem.value || '' }),
               ...(bodyItem.contentType && { contentType: bodyItem.contentType })
             };
@@ -417,6 +420,21 @@ export const brunoToPostman = (collection) => {
               value: itemAuth.apikey?.value || '',
               type: 'string'
             }
+          ]
+        };
+      }
+      case 'akamai-edgegrid': {
+        return {
+          type: 'edgegrid',
+          edgegrid: [
+            { key: 'accessToken', value: itemAuth.akamaiEdgegrid?.accessToken || '', type: 'string' },
+            { key: 'clientToken', value: itemAuth.akamaiEdgegrid?.clientToken || '', type: 'string' },
+            { key: 'clientSecret', value: itemAuth.akamaiEdgegrid?.clientSecret || '', type: 'string' },
+            { key: 'baseURL', value: itemAuth.akamaiEdgegrid?.baseURL || '', type: 'string' },
+            { key: 'nonce', value: itemAuth.akamaiEdgegrid?.nonce || '', type: 'string' },
+            { key: 'timestamp', value: itemAuth.akamaiEdgegrid?.timestamp || '', type: 'string' },
+            { key: 'headersToSign', value: itemAuth.akamaiEdgegrid?.headersToSign || '', type: 'string' },
+            { key: 'maxBodySize', value: itemAuth.akamaiEdgegrid?.maxBodySize ?? '', type: 'string' }
           ]
         };
       }

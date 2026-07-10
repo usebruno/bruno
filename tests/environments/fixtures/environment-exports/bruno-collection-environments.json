@@ -13,14 +13,16 @@
           "value": "http://localhost:3000",
           "type": "text",
           "enabled": true,
-          "secret": false
+          "secret": false,
+          "description": "Single-line host desc"
         },
         {
           "name": "secretToken",
           "value": "",
           "type": "text",
           "enabled": true,
-          "secret": true
+          "secret": true,
+          "description": "Secret line one\nSecret line two"
         }
       ]
     },
@@ -32,14 +34,16 @@
           "value": "https://echo.usebruno.com",
           "type": "text",
           "enabled": true,
-          "secret": false
+          "secret": false,
+          "description": "Single-line host desc"
         },
         {
           "name": "secretToken",
           "value": "",
           "type": "text",
           "enabled": true,
-          "secret": true
+          "secret": true,
+          "description": "Secret line one\nSecret line two"
         }
       ]
     }

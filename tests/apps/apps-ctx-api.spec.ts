@@ -4,7 +4,7 @@ import {
   createRequest,
   openRequest,
   setAppCode,
-  enableApp,
+  previewApp,
   saveRequest,
   selectRequestBodyMode,
   getAppWebviewHtml
@@ -87,7 +87,7 @@ test.describe('Apps - ctx API', () => {
     await openRequest(page, 'apps-ctx', 'ctx-req', { persist: true });
 
     await setAppCode(page, CTX_APP);
-    await enableApp(page);
+    await previewApp(page);
     await waitForGuestReady(electronApp);
 
     const raw = await guestEval(
@@ -118,7 +118,7 @@ test.describe('Apps - ctx API', () => {
     await openRequest(page, 'apps-theme', 'theme-req', { persist: true });
 
     await setAppCode(page, CTX_APP);
-    await enableApp(page);
+    await previewApp(page);
     await waitForGuestReady(electronApp);
 
     const raw = await guestEval(
@@ -137,7 +137,7 @@ test.describe('Apps - ctx API', () => {
     await openRequest(page, 'apps-log', 'log-req', { persist: true });
 
     await setAppCode(page, CTX_APP);
-    await enableApp(page);
+    await previewApp(page);
     await waitForGuestReady(electronApp);
 
     const result = await guestEval(electronApp, 'window.__log()');
@@ -153,7 +153,7 @@ test.describe('Apps - ctx API', () => {
     await setJsonBodyWithVar(page);
     await setAppCode(page, CTX_APP);
     await saveRequest(page);
-    await enableApp(page);
+    await previewApp(page);
     await waitForGuestReady(electronApp);
 
     await test.step('flat override keys become runtime variables', async () => {
@@ -176,7 +176,7 @@ test.describe('Apps - ctx API', () => {
     await setJsonBodyWithVar(page);
     await setAppCode(page, CTX_APP);
     await saveRequest(page);
-    await enableApp(page);
+    await previewApp(page);
     await waitForGuestReady(electronApp);
 
     await guestEval(electronApp, `window.__setVar('q', 'viaSet')`);
@@ -197,7 +197,7 @@ test.describe('Apps - ctx API', () => {
     await openRequest(page, 'apps-boot', 'boot-req', { persist: true });
 
     await setAppCode(page, CTX_APP);
-    await enableApp(page);
+    await previewApp(page);
 
     const html = await getAppWebviewHtml(page);
     // ctx API surface is present in the injected bootstrap

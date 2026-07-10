@@ -3,6 +3,8 @@ import {
   createCollection,
   closeAllCollections,
   createRequest,
+  createFolder,
+  expandFolder,
   createEnvironment,
   addEnvironmentVariables,
   saveEnvironment,
@@ -632,6 +634,86 @@ test.describe('Variable Tooltip', () => {
 
       const updatedClipboard = await page.evaluate(() => navigator.clipboard.readText());
       expect(updatedClipboard).toBe('original-copy-edited');
+    });
+  });
+
+  test('should copy pretty-printed JSON for an object-typed folder variable', async ({ page, createTmpDir }) => {
+    const collectionName = 'tooltip-object-copy-test';
+    const folderName = 'objFolder';
+    const objectValue = { city: 'NYC', zip: 10001 };
+
+    const expectedJson = JSON.stringify(objectValue, null, 2);
+
+    await test.step('Create a folder with an object-typed folder variable', async () => {
+      await createCollection(page, collectionName, await createTmpDir('tooltip-object-collection'));
+      await createFolder(page, folderName, collectionName);
+
+      const locators = buildCommonLocators(page);
+
+      // Open Folder Settings > Vars tab
+      const folderRow = locators.sidebar.folder(folderName);
+      await folderRow.dblclick();
+      await locators.paneTabs.folderSettingsTab('vars').click();
+
+      // Add the variable row and type its value
+      const tableContainer = page.getByTestId('folder-vars-req').first();
+      const lastRow = tableContainer.locator('tbody tr').last();
+      const nameInput = lastRow.locator('input[type="text"]').first();
+      await nameInput.click();
+      await page.keyboard.type('objVar');
+
+      const namedRow = tableContainer.locator('tbody tr[data-row-name="objVar"]');
+      await expect(namedRow).toBeVisible();
+
+      const valueEditor = namedRow.locator('[data-testid="column-value"] .CodeMirror').first();
+      await valueEditor.click({ force: true });
+      await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
+      await page.keyboard.insertText(JSON.stringify(objectValue));
+
+      // Switch the variable's dataType from the default `string` to `object`
+      const typeTrigger = locators.dataTypeSelector.typeLabel(namedRow);
+      await typeTrigger.click();
+      await locators.dataTypeSelector.menuItem('object').click();
+      await expect(typeTrigger).toHaveText('object');
+
+      await page.getByRole('button', { name: 'Save', exact: true }).first().click();
+      await page.waitForTimeout(500);
+    });
+
+    await test.step('Create request inside the folder referencing the object variable', async () => {
+      await expandFolder(page, folderName);
+      await createRequest(page, 'Object Copy Request', folderName, { inFolder: true });
+
+      const locators = buildCommonLocators(page);
+      await locators.sidebar.folderRequest(folderName, 'Object Copy Request').click();
+
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      await urlEditor.click();
+      await page.keyboard.type('https://api.example.com?data={{objVar}}');
+      await page.keyboard.press(saveShortcut);
+    });
+
+    await test.step('Tooltip shows pretty-printed JSON and copy button copies it verbatim', async () => {
+      const urlEditor = page.locator('#request-url .CodeMirror');
+      const objVar = urlEditor.locator('.cm-variable-valid').filter({ hasText: 'objVar' }).first();
+      await objVar.hover();
+
+      const tooltip = page.locator('.CodeMirror-brunoVarInfo').first();
+      await expect(tooltip).toBeVisible();
+      await expect(tooltip.locator('.var-scope-badge')).toContainText('Folder');
+
+      // Parse back and deep-compare so the assertion isn't coupled to whitespace.
+      const valueDisplay = tooltip.locator('.var-value-editable-display');
+      await expect.poll(async () => JSON.parse((await valueDisplay.textContent()) ?? 'null')).toEqual(objectValue);
+
+      const copyButton = tooltip.locator('.copy-button');
+      await copyButton.click();
+
+      // Success state confirms writeText resolved before we read the clipboard.
+      await expect(copyButton.locator('svg polyline')).toBeVisible({ timeout: 1000 });
+
+      const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
+      expect(clipboardText).toBe(expectedJson);
     });
   });
 });
