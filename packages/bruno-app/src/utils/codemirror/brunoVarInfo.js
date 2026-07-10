@@ -7,6 +7,7 @@
  */
 
 import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
+import { toDisplayString } from '@usebruno/common/utils';
 import { getVariableScope, isVariableSecret, getAllVariables, findCollectionByUid, findItemInCollectionByItemUid } from 'utils/collections';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
 import store from 'providers/ReduxStore';
@@ -95,7 +96,7 @@ const updateValueDisplay = (valueDisplay, value, isSecret, isMasked, isRevealed)
   }
 
   if (typeof value === 'object') {
-    valueDisplay.textContent = value === null ? 'null' : JSON.stringify(value, null, 2);
+    valueDisplay.textContent = value === null ? 'null' : toDisplayString(value, String(value));
     return;
   }
 
@@ -153,8 +154,10 @@ const getCopyButton = (getVariableValue, onCopyCallback) => {
     // Resolve the latest value at click time so edits/saves are reflected.
     const valueToCopy = typeof getVariableValue === 'function' ? getVariableValue() : getVariableValue;
 
+    const valueStr = toDisplayString(valueToCopy, String(valueToCopy));
+
     navigator.clipboard
-      .writeText(valueToCopy ?? '')
+      .writeText(valueStr)
       .then(() => {
         isCopied = true;
         copyButton.innerHTML = CHECKMARK_ICON_SVG_TEXT;

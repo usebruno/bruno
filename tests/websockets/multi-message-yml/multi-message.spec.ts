@@ -291,4 +291,31 @@ test.describe.serial('websocket multi-message (yml format)', () => {
     const ymlContent = await readFile(MULTI_MSG_YML_PATH, 'utf8');
     expect(ymlContent).toContain('subscribe request');
   });
+
+  test('rename a message and save with the keyboard shortcut while editing', async ({ pageWithUserData: page }) => {
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+
+    await openRequest(page, COLLECTION_NAME, SINGLE_MSG_REQ);
+
+    const messageLabel = page.getByTestId('ws-message-label-0');
+    await messageLabel.dblclick();
+
+    const nameInput = page.getByTestId('ws-message-name-input-0');
+    await expect(nameInput).toBeVisible();
+
+    await nameInput.selectText();
+    await page.keyboard.type('renamed via shortcut');
+
+    // Press cmd/ctrl+s while the name input still has focus, without pressing
+    // Enter or blurring first. This must commit the pending name and persist it.
+    await nameInput.press(saveShortcut);
+
+    // The editing input closes and the new name is committed to the UI.
+    await expect(page.getByTestId('ws-message-label-0').filter({ hasText: 'renamed via shortcut' })).toBeVisible();
+
+    // The rename must be written to disk by the shortcut-triggered save.
+    await expect
+      .poll(async () => await readFile(SINGLE_MSG_YML_PATH, 'utf8'))
+      .toContain('renamed via shortcut');
+  });
 });

@@ -1,0 +1,28 @@
+info:
+  name: api
+  type: folder
+  seq: 1
+
+request:
+  headers:
+    - name: X-Version
+      value: "2.0"
+      description: Single-line header desc
+    - name: X-Multi
+      value: value
+      description: |-
+        Header line one
+        Header line two
+    - name: X-Plain
+      value: plain-value
+  variables:
+    - name: baseUrl
+      value: https://example.com
+      description: Single-line var desc
+    - name: apiKey
+      value: abc123
+      description: |-
+        Var line one
+        Var line two
+    - name: plain
+      value: no-desc

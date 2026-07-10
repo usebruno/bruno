@@ -74,11 +74,18 @@ expect(x).to.exist
 \`\`\`
 `;
 
+const DECLINE_PREFIX = 'BRUNO_AI_DECLINE:';
+
+const DECLINE_RULE = `If the request cannot be fulfilled as this content type — it is off-topic (general knowledge, trivia, anything unrelated to this API workspace), asks for something this editor cannot contain, or depends on information you do not have — do NOT generate placeholder or unrelated content. Instead output exactly one line and nothing else:
+${DECLINE_PREFIX} <one short sentence explaining why, or what the user should do first>`;
+
 const COMMON_OUTPUT_RULES = `## Output Rules
 
 Return ONLY raw JavaScript code that can be executed directly. No markdown fences, no backticks, no commentary, no preamble. Begin with the first line of code.
 
-If existing code was provided, return the COMPLETE updated script (your output replaces the entire file). Preserve any existing logic the user did not ask you to remove.`;
+If existing code was provided, return the COMPLETE updated script (your output replaces the entire file). Preserve any existing logic the user did not ask you to remove.
+
+${DECLINE_RULE}`;
 
 const SCRIPT_PROMPTS = {
   'tests': `You are an AI assistant that writes test scripts for the Bruno API client.
@@ -161,6 +168,7 @@ ctx.sendRequest(overrides?)        // returns Promise<response>; overrides may c
 ctx.setRuntimeVariable(key, value) // persist a runtime variable on the collection
 ctx.log(...args)                   // forwarded to the Bruno devtools console
 
+ctx.onInit              = (ctx) => { ... }   // called ONCE when the initial state arrives — do the first render here
 ctx.onThemeChange       = (theme) => { ... }
 ctx.onResponseUpdate    = (response) => { ... }
 ctx.onResultsUpdate     = ({ assertionResults, testResults }) => { ... }
@@ -171,6 +179,7 @@ Theme changes automatically add a \`light\` or \`dark\` class on \`document.body
 
 ## Best Practices
 
+- CRITICAL: ctx data (\`ctx.response\`, \`ctx.variables\`, …) is delivered asynchronously AFTER the page loads. Reading it at the top level or in a \`DOMContentLoaded\` handler yields null/empty values. Do the initial render inside \`ctx.onInit\` and react to later changes via the granular \`on*\` callbacks.
 - Use modern JavaScript (async/await). Always handle loading and error states around \`ctx.sendRequest\`.
 - Bind UI updates to the \`on*\` callbacks so the app reacts to host updates without polling.
 - Do not rely on Bruno internals beyond \`ctx\`. Do not invent endpoints — the request URL/method is provided as HTTP Request Context.
@@ -180,7 +189,9 @@ Theme changes automatically add a \`light\` or \`dark\` class on \`document.body
 
 Return ONLY the raw HTML/CSS/JS for the app. No code fences, no commentary, no preamble. Begin with the first line of code (either a tag like \`<div>\` / \`<style>\` / \`<!DOCTYPE html>\`, or a \`<script>\` block).
 
-If existing app code was provided, return the COMPLETE updated app (your output replaces the entire file). Preserve any existing markup or logic the user did not ask you to remove.`,
+If existing app code was provided, return the COMPLETE updated app (your output replaces the entire file). Preserve any existing markup or logic the user did not ask you to remove.
+
+${DECLINE_RULE}`,
 
   'app-collection': `You are an AI assistant that writes Bruno App code attached to a collection or folder.
 
@@ -200,8 +211,10 @@ ctx.runRequest(pathname, overrides?)   // runs a single request by its pathname;
 ctx.setRuntimeVariable(key, value)     // persist a runtime variable on the collection
 ctx.log(...args)                       // forwarded to the Bruno devtools console
 
+ctx.onInit            = (ctx) => { ... }   // called ONCE when the initial state arrives — do the first render here
 ctx.onThemeChange     = (theme) => { ... }
 ctx.onVariablesUpdate = (variables) => { ... }
+ctx.onCollectionUpdate = (collection) => { ... }
 \`\`\`
 
 A collection-level app is NOT bound to a single request — use \`ctx.listRequests()\` to discover what is available and \`ctx.runRequest(pathname)\` to execute one. There is no \`ctx.response\` / \`ctx.sendRequest\` / \`ctx.assertionResults\` / \`ctx.testResults\` here — those exist only on request-level apps.
@@ -210,6 +223,7 @@ Theme changes automatically add a \`light\` or \`dark\` class on \`document.body
 
 ## Best Practices
 
+- CRITICAL: ctx data (\`ctx.collection\`, \`ctx.variables\`, …) is delivered asynchronously AFTER the page loads. Reading it at the top level or in a \`DOMContentLoaded\` handler yields null/empty values. Do the initial render inside \`ctx.onInit\` and react to later changes via the granular \`on*\` callbacks. (\`ctx.listRequests()\` / \`ctx.runRequest()\` return promises and are safe to call any time.)
 - Use modern JavaScript (async/await). Always handle loading and error states around \`ctx.runRequest\` and \`ctx.listRequests\`.
 - Reference requests by the \`pathname\` returned from \`ctx.listRequests()\`, not by name — names can collide.
 - When Documentation Context lists the collection's requests, you may pre-populate the UI with those names, but always discover via \`ctx.listRequests()\` at runtime so the app stays in sync as requests are added or renamed.
@@ -219,7 +233,9 @@ Theme changes automatically add a \`light\` or \`dark\` class on \`document.body
 
 Return ONLY the raw HTML/CSS/JS for the app. No code fences, no commentary, no preamble. Begin with the first line of code (either a tag like \`<div>\` / \`<style>\` / \`<!DOCTYPE html>\`, or a \`<script>\` block).
 
-If existing app code was provided, return the COMPLETE updated app (your output replaces the entire file). Preserve any existing markup or logic the user did not ask you to remove.`,
+If existing app code was provided, return the COMPLETE updated app (your output replaces the entire file). Preserve any existing markup or logic the user did not ask you to remove.
+
+${DECLINE_RULE}`,
 
   'docs': `You are an AI assistant that writes API documentation in Markdown for the Bruno API client.
 
@@ -246,7 +262,9 @@ When Documentation Context is provided:
 
 Return ONLY raw Markdown that can be saved directly. No wrapping commentary, no preamble like "Here is the documentation". Begin with the first line of Markdown.
 
-If existing documentation was provided, return the COMPLETE updated document (your output replaces the entire file). Preserve any existing content the user did not ask you to remove.`
+If existing documentation was provided, return the COMPLETE updated document (your output replaces the entire file). Preserve any existing content the user did not ask you to remove.
+
+${DECLINE_RULE}`
 };
 
 const SCRIPT_TYPES = Object.keys(SCRIPT_PROMPTS);
@@ -299,7 +317,8 @@ const buildScriptUserPrompt = ({
   requestContext,
   docsContext,
   variables,
-  scriptType
+  scriptType,
+  security
 }) => {
   const sections = [];
   const docsContextStr = formatDocsContext(docsContext);
@@ -308,10 +327,10 @@ const buildScriptUserPrompt = ({
   // Same redaction rules as the chat sidebar — sensitive headers/params masked,
   // response shape only (no real values). Body is sent in full so the model
   // can write code that references real keys.
-  const contextStr = formatRequestContext(requestContext, { includeResponse: true });
+  const contextStr = formatRequestContext(requestContext, { includeResponse: true, security });
   if (contextStr) sections.push(`HTTP Request Context\n${contextStr}`);
 
-  const varsStr = formatVariablesList(variables);
+  const varsStr = formatVariablesList(variables, { security });
   if (varsStr) {
     sections.push(`Available Variables (names only — call search_variables(query) for a value)\n${varsStr}`);
   }
@@ -330,6 +349,19 @@ const buildScriptUserPrompt = ({
   }
   sections.push(`User Request\n${userPrompt}`);
   return sections.join('\n\n');
+};
+
+/**
+ * Detect the decline sentinel in generated output. Returns the reason string
+ * when the model declined, or null when the output is real content. Tolerates
+ * a leading fence/whitespace the model may have wrapped around the sentinel.
+ */
+const parseDecline = (text) => {
+  if (!text) return null;
+  const cleaned = stripCodeFences(text).trim();
+  if (!cleaned.startsWith(DECLINE_PREFIX)) return null;
+  const reason = cleaned.slice(DECLINE_PREFIX.length).split('\n')[0].trim();
+  return reason || 'This request is outside what can be generated here.';
 };
 
 const stripCodeFences = (text) => {
@@ -355,7 +387,10 @@ You may call these tools BEFORE producing the final code to gather context. Do n
 - read_response(): returns the redacted shape (keys + value types) of the most recent response for this request. Use it when writing tests / post-response scripts that need to know which fields exist. Values are placeholders (\`<string>\`, \`<number>\`, …) — never hard-code them; reference fields at runtime via \`res.getBody()\` / \`res('path')\`.
 - search_variables(query?): search environment / collection / global / runtime variables by name (case-insensitive substring). Pass a query to confirm a name exists before referencing it in code. Variables marked \`secret\` come back as \`<redacted>\`. Each result has a \`scope\` field — use it to pick the right runtime accessor: \`bru.getEnvVar\` for \`env\`, \`bru.getGlobalEnvVar\` for \`global\`, \`bru.getCollectionVar\` / \`bru.getFolderVar\` / \`bru.getRequestVar\` for \`collection\`, \`bru.getVar\` for \`runtime\`, and \`bru.getSecretVar\` for any value that came back redacted. Never paste a returned value.
 
-Only call a tool when the extra information would change the code you write. For greetings, simple boilerplate, or tasks fully covered by the inline context, skip the tools.`;
+Only call a tool when the extra information would change the code you write. For greetings, simple boilerplate, or tasks fully covered by the inline context, skip the tools.
+
+If the task depends on the response structure (asserting body fields, extracting values, rendering response data) and read_response reports that no response is available, do NOT invent field names or guess the shape. Decline instead:
+${DECLINE_PREFIX} Run the request once so I can read the response structure, then try again.`;
 
 const buildScriptSystemPrompt = (scriptType) => {
   const base = SCRIPT_PROMPTS[scriptType];
@@ -366,8 +401,10 @@ const buildScriptSystemPrompt = (scriptType) => {
 module.exports = {
   SCRIPT_PROMPTS,
   SCRIPT_TYPES,
+  DECLINE_PREFIX,
   buildScriptSystemPrompt,
   buildScriptUserPrompt,
   formatDocsContext,
+  parseDecline,
   stripCodeFences
 };

@@ -690,4 +690,66 @@ describe('processAuth', () => {
     processAuth(auth, requestObject);
     expect(requestObject.auth.oauth1.placement).toBe('query');
   });
+
+  it('should handle edgegrid auth (Postman v2.1 array form)', () => {
+    const auth = {
+      type: 'edgegrid',
+      edgegrid: [
+        { key: 'accessToken', value: 'akab-access-token', type: 'string' },
+        { key: 'clientToken', value: 'akab-client-token', type: 'string' },
+        { key: 'clientSecret', value: 'secret==', type: 'string' },
+        { key: 'baseURL', value: 'https://akaa-x.luna.akamaiapis.net', type: 'string' },
+        { key: 'nonce', value: 'my-nonce', type: 'string' },
+        { key: 'timestamp', value: '20240101T00:00:00+0000', type: 'string' },
+        { key: 'headersToSign', value: 'X-Test1,X-Test2', type: 'string' },
+        { key: 'maxBodySize', value: '2048', type: 'string' }
+      ]
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('akamai-edgegrid');
+    expect(requestObject.auth.akamaiEdgegrid).toEqual({
+      accessToken: 'akab-access-token',
+      clientToken: 'akab-client-token',
+      clientSecret: 'secret==',
+      nonce: 'my-nonce',
+      timestamp: '20240101T00:00:00+0000',
+      baseURL: 'https://akaa-x.luna.akamaiapis.net',
+      headersToSign: 'X-Test1,X-Test2',
+      maxBodySize: 2048
+    });
+  });
+
+  it('should handle edgegrid auth (object form)', () => {
+    const auth = {
+      type: 'edgegrid',
+      edgegrid: { accessToken: 'at', clientToken: 'ct', clientSecret: 'cs' }
+    };
+    processAuth(auth, requestObject);
+    expect(requestObject.auth.mode).toBe('akamai-edgegrid');
+    expect(requestObject.auth.akamaiEdgegrid).toEqual({
+      accessToken: 'at',
+      clientToken: 'ct',
+      clientSecret: 'cs',
+      nonce: '',
+      timestamp: '',
+      baseURL: '',
+      headersToSign: '',
+      maxBodySize: null
+    });
+  });
+
+  it('should handle edgegrid auth with missing edgegrid key', () => {
+    processAuth({ type: 'edgegrid' }, requestObject);
+    expect(requestObject.auth.mode).toBe('akamai-edgegrid');
+    expect(requestObject.auth.akamaiEdgegrid).toEqual({
+      accessToken: '',
+      clientToken: '',
+      clientSecret: '',
+      nonce: '',
+      timestamp: '',
+      baseURL: '',
+      headersToSign: '',
+      maxBodySize: null
+    });
+  });
 });

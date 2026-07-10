@@ -11,6 +11,8 @@ const {
   getAvailableModels,
   clearSdkCache,
   isKnownProviderId,
+  isBuiltInModelId,
+  isReasoningModel,
   validateApiKeyForProvider,
   providerLabel
 } = require('./providers');
@@ -18,6 +20,7 @@ const {
   SCRIPT_TYPES,
   buildScriptSystemPrompt,
   buildScriptUserPrompt,
+  parseDecline,
   stripCodeFences
 } = require('./script-prompts');
 const {
@@ -29,7 +32,16 @@ const registerChatIpc = require('./chat');
 
 const activeStreams = new Map();
 
+const SCRIPT_MAX_OUTPUT_TOKENS = {
+  'app-request': 16000,
+  'app-collection': 16000,
+  'docs': 8000
+};
+const DEFAULT_SCRIPT_MAX_OUTPUT_TOKENS = 4096;
+
 const getAiPrefs = () => getPreferences().ai || {};
+
+const getSecurityPrefs = () => getAiPrefs().security || null;
 
 const isEnabled = () => Boolean(getAiPrefs().enabled);
 
@@ -151,7 +163,7 @@ const registerAiIpc = (mainWindow) => {
         system,
         prompt,
         maxOutputTokens: maxTokens ?? 1024,
-        temperature: temperature ?? 0.3
+        ...(isReasoningModel(modelId) ? {} : { temperature: temperature ?? 0.3 })
       });
       return { text };
     } catch (err) {
@@ -168,7 +180,8 @@ const registerAiIpc = (mainWindow) => {
       requestContext,
       docsContext,
       variables,
-      model: requestedModel
+      model: requestedModel,
+      streamId
     } = params || {};
 
     if (!SCRIPT_TYPES.includes(scriptType)) {
@@ -190,6 +203,12 @@ const registerAiIpc = (mainWindow) => {
       return { error: err.message };
     }
 
+    const security = getSecurityPrefs();
+    const controller = streamId ? new AbortController() : null;
+    if (streamId && controller) {
+      activeStreams.set(streamId, controller);
+    }
+
     // Generation runs through streamText so the model can call tools
     // (read_response, search_variables) when the inline context isn't enough.
     // We don't stream tokens back to the renderer — the sparkle UI shows a
@@ -205,7 +224,7 @@ const registerAiIpc = (mainWindow) => {
           if (!status && data == null) {
             return '(No response available — the request has not been executed yet.)';
           }
-          return formatResponseShape(status, data) || '(empty response)';
+          return formatResponseShape(status, data, { security }) || '(empty response)';
         }
       },
       search_variables: {
@@ -221,7 +240,7 @@ const registerAiIpc = (mainWindow) => {
             return '(No variables available — the collection has no environment, runtime, or collection variables defined.)';
           }
           const result = searchVariables(variables, query);
-          return formatSearchVariablesResult(result, query);
+          return formatSearchVariablesResult(result, query, { security });
         }
       }
     };
@@ -236,21 +255,41 @@ const registerAiIpc = (mainWindow) => {
           requestContext,
           docsContext,
           variables,
-          scriptType
+          scriptType,
+          security
         }),
         tools,
         // Cap tool-call iteration — the model gets a few chances to look
         // things up before it MUST produce the final script.
-        stopWhen: stepCountIs(4),
+        stopWhen: stepCountIs(6),
         toolChoice: 'auto',
-        maxOutputTokens: 2048
+        // Custom OpenAI-compatible models may be small local models that
+        // reject a max_tokens above their context window, let the server
+        // apply its own default for those instead of forcing a big cap.
+        maxOutputTokens: isBuiltInModelId(modelId)
+          ? (SCRIPT_MAX_OUTPUT_TOKENS[scriptType] || DEFAULT_SCRIPT_MAX_OUTPUT_TOKENS)
+          : undefined,
+        abortSignal: controller?.signal
       });
 
       let fullText = '';
       for await (const part of result.fullStream) {
+        if (controller?.signal.aborted) break;
         if (part.type === 'text-delta') {
           fullText += part.text;
         }
+      }
+
+      if (controller?.signal.aborted) {
+        return { stopped: true };
+      }
+
+      // The model declines out-of-scope prompts (or ones missing required
+      // context, e.g. "no response yet") via a sentinel line instead of
+      // emitting unrelated code that would get applied to the user's file.
+      const declineReason = parseDecline(fullText);
+      if (declineReason) {
+        return { error: declineReason, declined: true };
       }
 
       const content = stripCodeFences(fullText);
@@ -259,8 +298,13 @@ const registerAiIpc = (mainWindow) => {
       }
       return { content, modelId };
     } catch (err) {
+      if (err?.name === 'AbortError' || controller?.signal.aborted) {
+        return { stopped: true };
+      }
       console.error('AI generate-script error:', err);
       return { error: err.message || 'Failed to generate script' };
+    } finally {
+      if (streamId) activeStreams.delete(streamId);
     }
   });
 
@@ -301,7 +345,7 @@ const registerAiIpc = (mainWindow) => {
         model,
         system,
         maxOutputTokens: maxTokens ?? 2048,
-        temperature: temperature ?? 0.7,
+        ...(isReasoningModel(modelId) ? {} : { temperature: temperature ?? 0.7 }),
         abortSignal: controller.signal
       };
       if (messages) {

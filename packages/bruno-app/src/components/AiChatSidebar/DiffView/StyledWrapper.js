@@ -200,6 +200,10 @@ const StyledWrapper = styled.div`
     }
   }
 
+  .diff-lines {
+    min-width: max-content;
+  }
+
   .diff-line {
     padding: 0 8px 0 4px;
     white-space: pre;
@@ -224,7 +228,6 @@ const StyledWrapper = styled.div`
 
     .line-content {
       flex: 1;
-      overflow-x: auto;
     }
 
     &.added {
