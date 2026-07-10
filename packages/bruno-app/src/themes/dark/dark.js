@@ -107,6 +107,12 @@ const darkTheme = {
     subtle: palette.primary.SUBTLE
   },
 
+  ws: {
+    activeMessage: {
+      label: palette.primary.TEXT
+    }
+  },
+
   accents: {
     primary: palette.primary.SOLID
   },

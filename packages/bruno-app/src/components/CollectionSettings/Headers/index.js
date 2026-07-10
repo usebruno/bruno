@@ -7,6 +7,7 @@ import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import SingleLineEditor from 'components/SingleLineEditor';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
@@ -65,13 +66,20 @@ const Headers = ({ collection }) => {
     return null;
   }, []);
 
+  const descriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    onSave: handleSave,
+    collection,
+    nameFromRowIndex: true
+  });
+
   const columns = [
     {
       key: 'name',
       name: 'Name',
       isKeyField: true,
       placeholder: 'Name',
-      width: '30%',
+      width: '20%',
       render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
@@ -99,7 +107,8 @@ const Headers = ({ collection }) => {
           placeholder={!value ? 'Value' : ''}
         />
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
@@ -132,6 +141,7 @@ const Headers = ({ collection }) => {
       <EditableTable
         tableId="collection-headers"
         focusUid={collection.uid}
+        testId="collection-headers"
         columns={columns}
         rows={headers}
         onChange={handleHeadersChange}

@@ -1,9 +1,11 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import get from 'lodash/get';
-import { IconStars, IconX, IconArrowBackUp, IconPlayerStop } from '@tabler/icons';
+import Tippy from '@tippyjs/react';
+import { IconX, IconArrowBackUp, IconPlayerStop } from '@tabler/icons';
+import IconSparkles from 'components/Icons/IconSparkles';
 import { aiGenerateScript, stopAiGeneration } from 'utils/ai';
-import StyledWrapper from './StyledWrapper';
+import StyledWrapper, { PopupWrapper } from './StyledWrapper';
 
 const SUGGESTIONS = {
   'tests': [
@@ -65,12 +67,28 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [generated, setGenerated] = useState(null);
-  const buttonRef = useRef(null);
   const streamIdRef = useRef(null);
+  const tippyRef = useRef(null);
 
-  const focusOnMount = useCallback((el) => {
-    el?.focus();
-  }, []);
+  // Focus the prompt textarea when coming back from preview
+  useEffect(() => {
+    if (isOpen && generated == null) {
+      tippyRef.current?.popper?.querySelector('.popup-input')?.focus();
+    }
+  }, [isOpen, generated]);
+
+  // handle Escape key to close the popup
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        tippyRef.current?.hide();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, [isOpen]);
 
   const preferences = useSelector((state) => state.app.preferences);
   const isAiEnabled = get(preferences, 'ai.enabled', false);
@@ -80,27 +98,8 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
   const previewLabel = PREVIEW_LABELS[scriptType] || 'Preview · replaces current script';
 
   const close = useCallback(() => {
-    setIsOpen(false);
-    setError(null);
+    tippyRef.current?.hide();
   }, []);
-
-  const attachPopup = useCallback((el) => {
-    if (!el) return undefined;
-    const onDocMouseDown = (e) => {
-      if (!el.contains(e.target) && !buttonRef.current?.contains(e.target)) {
-        close();
-      }
-    };
-    const onKey = (e) => {
-      if (e.key === 'Escape') close();
-    };
-    document.addEventListener('mousedown', onDocMouseDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDocMouseDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [close]);
 
   const handleGenerate = useCallback(
     async (overridePrompt) => {
@@ -167,120 +166,136 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
 
   return (
     <StyledWrapper>
-      <button
-        ref={buttonRef}
-        className={`ai-assist-trigger ${isOpen ? 'open' : ''}`}
-        onClick={() => setIsOpen((v) => !v)}
-        title={title}
-        type="button"
-        aria-label={title}
-      >
-        <IconStars size={14} strokeWidth={1.75} />
-      </button>
+      <Tippy
+        interactive
+        trigger="click"
+        placement="bottom-end"
+        arrow={false}
+        animation={false}
+        maxWidth="none"
+        appendTo={() => document.body}
+        onCreate={(instance) => (tippyRef.current = instance)}
+        onShow={(instance) => {
+          setIsOpen(true);
+          // rAF so the popup content is in the DOM
+          requestAnimationFrame(() => instance.popper?.querySelector('.popup-input')?.focus());
+        }}
+        onHide={() => {
+          setIsOpen(false);
+          setError(null);
+        }}
+        render={(attrs) => (
+          <PopupWrapper className="ai-assist-popup" role="dialog" aria-label={title} tabIndex={-1} {...attrs}>
+            <div className="popup-header">
+              <span className="popup-title">
+                <IconSparkles size={12} strokeWidth={1.75} />
+                {title}
+              </span>
+              <button className="popup-close" onClick={close} type="button" aria-label="Close">
+                <IconX size={14} />
+              </button>
+            </div>
 
-      {isOpen && (
-        <div ref={attachPopup} className="ai-assist-popup" role="dialog" aria-label={title}>
-          <div className="popup-header">
-            <span className="popup-title">
-              <IconStars size={12} strokeWidth={1.75} />
-              {title}
-            </span>
-            <button className="popup-close" onClick={close} type="button" aria-label="Close">
-              <IconX size={14} />
-            </button>
-          </div>
+            {generated == null ? (
+              <>
+                <div className="popup-body">
+                  <textarea
+                    className="popup-input"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleGenerate();
+                      }
+                    }}
+                    placeholder="Describe what you want to generate..."
+                    rows={3}
+                    disabled={isLoading}
+                  />
 
-          {generated == null ? (
-            <>
-              <div className="popup-body">
-                <textarea
-                  ref={focusOnMount}
-                  className="popup-input"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleGenerate();
-                    }
-                  }}
-                  placeholder="Describe what you want to generate..."
-                  rows={3}
-                  disabled={isLoading}
-                />
+                  {!isLoading && !prompt && suggestions.length > 0 && (
+                    <div className="popup-suggestions">
+                      {suggestions.map((s) => (
+                        <button
+                          key={s.label}
+                          className="suggestion-chip"
+                          type="button"
+                          onClick={() => handleGenerate(s.prompt)}
+                          disabled={isLoading}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
-                {!isLoading && !prompt && suggestions.length > 0 && (
-                  <div className="popup-suggestions">
-                    {suggestions.map((s) => (
-                      <button
-                        key={s.label}
-                        className="suggestion-chip"
-                        type="button"
-                        onClick={() => handleGenerate(s.prompt)}
-                        disabled={isLoading}
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {error && <div className="popup-error">{error}</div>}
-              </div>
-
-              <div className="popup-footer">
-                {isLoading ? (
-                  <span className="popup-loading">
-                    <span className="loading-spinner" />
-                    Generating...
-                  </span>
-                ) : (
-                  <span className="popup-hint">Enter to generate · Shift+Enter for newline</span>
-                )}
-                {isLoading ? (
-                  <button
-                    className="btn-stop"
-                    type="button"
-                    onClick={handleStop}
-                    title="Stop generating"
-                  >
-                    <IconPlayerStop size={12} /> Stop
-                  </button>
-                ) : (
-                  <button
-                    className="btn-generate"
-                    type="button"
-                    onClick={() => handleGenerate()}
-                    disabled={!prompt.trim()}
-                  >
-                    Generate
-                  </button>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="popup-body">
-                <div className="preview-section">
-                  <span className="preview-label">{previewLabel}</span>
-                  <pre className="preview-code">{generated}</pre>
+                  {error && <div className="popup-error">{error}</div>}
                 </div>
-              </div>
 
-              <div className="popup-footer">
-                <button className="btn-secondary" type="button" onClick={handleBackToPrompt}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <IconArrowBackUp size={12} /> Back
-                  </span>
-                </button>
-                <button className="btn-generate" type="button" onClick={handleApply}>
-                  Apply
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+                <div className="popup-footer">
+                  {isLoading ? (
+                    <span className="popup-loading">
+                      <span className="loading-spinner" />
+                      Generating...
+                    </span>
+                  ) : (
+                    <span className="popup-hint">Enter to generate · Shift+Enter for newline</span>
+                  )}
+                  {isLoading ? (
+                    <button
+                      className="btn-stop"
+                      type="button"
+                      onClick={handleStop}
+                      title="Stop generating"
+                    >
+                      <IconPlayerStop size={12} /> Stop
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-generate"
+                      type="button"
+                      onClick={() => handleGenerate()}
+                      disabled={!prompt.trim()}
+                    >
+                      Generate
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="popup-body">
+                  <div className="preview-section">
+                    <span className="preview-label">{previewLabel}</span>
+                    <pre className="preview-code">{generated}</pre>
+                  </div>
+                </div>
+
+                <div className="popup-footer">
+                  <button className="btn-secondary" type="button" onClick={handleBackToPrompt}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <IconArrowBackUp size={12} /> Back
+                    </span>
+                  </button>
+                  <button className="btn-generate" type="button" onClick={handleApply}>
+                    Apply
+                  </button>
+                </div>
+              </>
+            )}
+          </PopupWrapper>
+        )}
+      >
+        <button
+          className={`ai-assist-trigger ${isOpen ? 'open' : ''}`}
+          title={title}
+          type="button"
+          aria-label={title}
+        >
+          <IconSparkles size={14} strokeWidth={1.75} />
+        </button>
+      </Tippy>
     </StyledWrapper>
   );
 };

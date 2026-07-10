@@ -7,6 +7,7 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import SingleLineEditor from 'components/SingleLineEditor';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
@@ -75,13 +76,21 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     setIsBulkEditMode(!isBulkEditMode);
   };
 
+  const descriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    onRun: handleRun,
+    collection,
+    item
+  });
+
   const columns = [
     {
       key: 'name',
       name: 'Name',
       isKeyField: true,
       placeholder: 'Name',
-      width: '30%',
+      width: '20%',
       render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
@@ -113,7 +122,8 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
           placeholder={!value ? 'Value' : ''}
         />
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
@@ -141,6 +151,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
       <EditableTable
         tableId="request-headers"
         focusUid={item.uid}
+        testId="request-headers-table"
         columns={columns}
         rows={headers || []}
         onChange={handleHeadersChange}

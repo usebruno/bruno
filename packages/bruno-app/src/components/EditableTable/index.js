@@ -415,7 +415,11 @@ const EditableTable = ({
         </td>
       ))}
       {showDelete && (
-        <td style={{ width: '60px' }}></td>
+        <td
+          id="delete-column-header"
+          style={{ width: '57px' }}
+        >
+        </td>
       )}
     </tr>
   ), [showCheckbox, checkboxLabel, columns, getColumnWidth, resizing, tableHeight, handleResizeStart, showDelete]);
@@ -461,7 +465,19 @@ const EditableTable = ({
           </td>
         ))}
         {showDelete && (
-          <td>
+          <td ref={(node) => {
+            if (!node) return;
+            const width = node.scrollWidth;
+            const parent = node.parentElement.parentElement.parentElement.querySelector('#delete-column-header');
+            if (parent) {
+              const parentWidth = parseInt(parent.style.width);
+              const nextWidth = Math.max(parentWidth, width);
+              if (nextWidth !== parentWidth) {
+                parent.style.width = nextWidth + 'px';
+              }
+            }
+          }}
+          >
             {!isEmpty && (
               <button
                 data-testid="column-delete"

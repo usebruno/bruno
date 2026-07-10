@@ -105,6 +105,15 @@ describe('AIAssist', () => {
       expect(screen.queryByRole('dialog', { name: 'Generate Tests' })).not.toBeInTheDocument();
     });
 
+    it('renders the popup into document.body as a portal', () => {
+      renderAIAssist();
+      openPopup();
+      const dialog = screen.getByRole('dialog', { name: 'Generate Tests' });
+      const tippyRoot = dialog.closest('[data-tippy-root]');
+      expect(tippyRoot).not.toBeNull();
+      expect(tippyRoot.parentElement).toBe(document.body);
+    });
+
     it('closes the popup when Escape is pressed', () => {
       renderAIAssist();
       openPopup();
@@ -148,6 +157,13 @@ describe('AIAssist', () => {
       });
 
       expect(screen.queryByRole('button', { name: 'Status 200' })).not.toBeInTheDocument();
+    });
+
+    it('shows the generate shortcut hint', () => {
+      renderAIAssist();
+      openPopup();
+
+      expect(screen.getByText('Enter to generate · Shift+Enter for newline')).toBeInTheDocument();
     });
 
     it('keeps Generate disabled until the prompt has text', () => {

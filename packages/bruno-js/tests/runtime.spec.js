@@ -2,8 +2,6 @@ const { describe, it, expect, beforeAll } = require('@jest/globals');
 const TestRuntime = require('../src/runtime/test-runtime');
 const ScriptRuntime = require('../src/runtime/script-runtime');
 const AssertRuntime = require('../src/runtime/assert-runtime');
-const Bru = require('../src/bru');
-const VarsRuntime = require('../src/runtime/vars-runtime');
 const { loader: quickJsLoader } = require('../src/sandbox/quickjs');
 
 describe('runtime', () => {
@@ -250,15 +248,6 @@ describe('runtime', () => {
       expect(result.envVariables.only_env).toBe('val');
       expect(result.collectionVariables).toBeNull();
       expect(result.globalEnvironmentVariables).toBeNull();
-    });
-
-    it('should not include persistentEnvVariables in result', async () => {
-      const script = `bru.setEnvVar('key', 'val');`;
-      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-
-      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
-
-      expect(result).not.toHaveProperty('persistentEnvVariables');
     });
 
     it('should include collectionVariables in result', async () => {

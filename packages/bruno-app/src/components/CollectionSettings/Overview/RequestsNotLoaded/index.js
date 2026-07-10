@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { flattenItems } from 'utils/collections';
 import { IconAlertTriangle } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
@@ -6,14 +6,29 @@ import { useDispatch, useSelector } from 'react-redux';
 import { isItemARequest, itemIsOpenedInTabs } from 'utils/tabs/index';
 import { getDefaultRequestPaneTab } from 'utils/collections/index';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
+import { normalizePath } from 'utils/common/path';
+
+const toRelativePathname = (pathname, collectionPathname) => {
+  if (!pathname || !collectionPathname) return pathname;
+  const normalizedPathname = normalizePath(pathname);
+  const normalizedCollection = normalizePath(collectionPathname);
+  if (normalizedPathname.toLowerCase().startsWith(normalizedCollection.toLowerCase())) {
+    return normalizedPathname.slice(normalizedCollection.length + 1);
+  }
+  return pathname;
+};
 
 const RequestsNotLoaded = ({ collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
-  const flattenedItems = flattenItems(collection.items);
-  const itemsFailedLoading = flattenedItems?.filter((item) => item?.partial && !item?.loading);
 
-  if (!itemsFailedLoading?.length) {
+  const itemsFailedLoading = useMemo(() => {
+    return flattenItems(collection.items)?.filter((item) => {
+      return (item?.partial && !item?.loading) || item?.error;
+    }) ?? [];
+  }, [collection.items]);
+
+  if (!itemsFailedLoading.length) {
     return null;
   }
 
@@ -57,17 +72,15 @@ const RequestsNotLoaded = ({ collection }) => {
           </tr>
         </thead>
         <tbody>
-          {flattenedItems?.map((item, index) => (
-            item?.partial && !item?.loading ? (
-              <tr key={index} className="cursor-pointer" onClick={handleRequestClick(item)}>
-                <td className="py-1.5 px-3">
-                  {item?.pathname?.split(`${collection?.pathname}/`)?.[1]}
-                </td>
-                <td className="py-1.5 px-3">
-                  {item?.size?.toFixed?.(2)}&nbsp;MB
-                </td>
-              </tr>
-            ) : null
+          {itemsFailedLoading.map((item) => (
+            <tr key={item?.pathname} className="cursor-pointer" onClick={handleRequestClick(item)}>
+              <td className="py-1.5 px-3">
+                {toRelativePathname(item?.pathname, collection?.pathname)}
+              </td>
+              <td className="py-1.5 px-3">
+                {item?.size ? `${item.size?.toFixed?.(2)} MB` : '-'}
+              </td>
+            </tr>
           ))}
         </tbody>
       </table>

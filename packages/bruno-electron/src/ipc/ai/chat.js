@@ -11,6 +11,7 @@ const {
   formatSearchVariablesResult
 } = require('./context');
 const { getPreferences } = require('../../store/preferences');
+const { isBuiltInModelId } = require('./providers');
 
 const getSecurityPrefs = () => get(getPreferences(), 'ai.security', null);
 
@@ -238,11 +239,13 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
         system: buildSystemPrompt(effectiveType, hasMultiple),
         messages: allMessages,
         tools,
-        stopWhen: stepCountIs(5),
+        stopWhen: stepCountIs(8),
         toolChoice: 'auto',
+        maxOutputTokens: isBuiltInModelId(effectiveModelId) ? 16000 : undefined,
         abortSignal: controller.signal
       });
 
+      let streamError = null;
       for await (const part of result.fullStream) {
         if (controller.signal.aborted) break;
         switch (part.type) {
@@ -269,10 +272,16 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
             send('main:ai-chat-tool-done', { requestId, toolName: part.toolName });
             break;
           }
+          case 'error': {
+            streamError = part.error;
+            break;
+          }
           default:
             break;
         }
       }
+
+      if (streamError) throw streamError;
 
       activeStreams.delete(requestId);
 

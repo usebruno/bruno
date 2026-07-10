@@ -24,7 +24,6 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
-import { getCollectionEnvironmentPath } from 'utils/snapshot';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
 
@@ -36,6 +35,7 @@ const FILE_DERIVED_REQUEST_FIELDS = [
   'request',
   'settings',
   'examples',
+  'raw',
   'filename',
   'pathname',
   'partial',
@@ -287,6 +287,24 @@ export const collectionsSlice = createSlice({
         collection.securityConfig = action.payload.securityConfig;
       }
     },
+    updateCollectionVersion: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        const version = action.payload.version;
+        const applyVersion = (target) => {
+          if (!target) return;
+          if (version) {
+            target.version = version;
+          } else {
+            delete target.version;
+          }
+        };
+        collection.brunoConfig = collection.brunoConfig || {};
+        applyVersion(collection.brunoConfig);
+        // Keep any unsaved brunoConfig draft in sync so a later settings-save can't wipe it.
+        applyVersion(collection.draft?.brunoConfig);
+      }
+    },
     brunoConfigUpdateEvent: (state, action) => {
       const { collectionUid, brunoConfig } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -459,12 +477,6 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        // Ignore stale updates from superseded requests so an in-flight pre/post
-        // from request N-1 can't clobber state for request N.
-        if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
-          return;
-        }
-
         const activeEnvironment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
 
         if (activeEnvironment) {
@@ -503,12 +515,9 @@ export const collectionsSlice = createSlice({
       }
     },
     runtimeVariablesUpdateEvent: (state, action) => {
-      const { collectionUid, runtimeVariables, requestUid } = action.payload;
+      const { collectionUid, runtimeVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
-        if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
-          return;
-        }
         collection.runtimeVariables = runtimeVariables;
       }
     },
@@ -1111,6 +1120,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.auth.mode = 'apikey';
               item.draft.request.auth.apikey = action.payload.content;
               break;
+            case 'akamai-edgegrid':
+              item.draft.request.auth.mode = 'akamai-edgegrid';
+              item.draft.request.auth.akamaiEdgegrid = action.payload.content;
+              break;
           }
         }
       }
@@ -1304,6 +1317,12 @@ export const collectionsSlice = createSlice({
           if (param) {
             param.name = action.payload.pathParam.name;
             param.value = action.payload.pathParam.value;
+            if ('description' in action.payload.pathParam) {
+              param.description = action.payload.pathParam.description;
+            }
+            if ('enabled' in action.payload.pathParam) {
+              param.enabled = action.payload.pathParam.enabled;
+            }
           }
         }
       }
@@ -1637,13 +1656,14 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.body.multipartForm = map(params, ({ uid, name = '', value = '', contentType = '', type = 'text', enabled = true }) => ({
+      item.draft.request.body.multipartForm = map(params, ({ uid, name = '', value = '', contentType = '', type = 'text', enabled = true, description = '' }) => ({
         uid: uid || uuid(),
         name,
         value,
         contentType,
         type,
-        enabled
+        enabled,
+        description
       }));
     },
     moveMultipartFormParam: (state, action) => {
@@ -1677,12 +1697,14 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           item.draft.request.body.file = item.draft.request.body.file || [];
+          const shouldSelectNewFile = !item.draft.request.body.file.some((p) => p.selected);
 
           item.draft.request.body.file.push({
             uid: uuid(),
             filePath: '',
             contentType: '',
-            selected: false
+            description: '',
+            selected: shouldSelectNewFile
           });
         }
       }
@@ -1704,12 +1726,18 @@ export const collectionsSlice = createSlice({
             const contentType = mime.contentType(path.extname(action.payload.param.filePath));
             param.filePath = action.payload.param.filePath;
             param.contentType = action.payload.param.contentType || contentType || '';
-            param.selected = action.payload.param.selected;
+            param.description = action.payload.param.description ?? param.description ?? '';
 
-            item.draft.request.body.file = item.draft.request.body.file.map((p) => {
-              p.selected = p.uid === param.uid;
-              return p;
-            });
+            if (typeof action.payload.param.selected === 'boolean') {
+              param.selected = action.payload.param.selected;
+
+              if (param.selected) {
+                item.draft.request.body.file = item.draft.request.body.file.map((p) => {
+                  p.selected = p.uid === param.uid;
+                  return p;
+                });
+              }
+            }
           }
         }
       }
@@ -1994,12 +2022,13 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.assertions = map(assertions, ({ uid, name = '', value = '', operator = 'eq', enabled = true }) => ({
+      item.draft.request.assertions = map(assertions, ({ uid, name = '', value = '', operator = 'eq', enabled = true, description = '' }) => ({
         uid: uid || uuid(),
         name,
         value,
         operator,
-        enabled
+        enabled,
+        description
       }));
     },
     moveAssertion: (state, action) => {
@@ -2129,10 +2158,11 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       item.draft.request.vars = item.draft.request.vars || {};
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, dataType, annotations }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', description = '', enabled = true, local = false, dataType, annotations }) => ({
         uid: uid || uuid(),
         name,
         value,
+        description,
         enabled,
         ...(dataType && dataType !== 'string' ? { dataType } : {}),
         ...(annotations?.length ? { annotations } : {}),
@@ -2232,6 +2262,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'apikey':
             set(collection, 'draft.root.request.auth.apikey', action.payload.content);
+            break;
+          case 'akamai-edgegrid':
+            set(collection, 'draft.root.request.auth.akamaiEdgegrid', action.payload.content);
             break;
         }
       }
@@ -2485,10 +2518,13 @@ export const collectionsSlice = createSlice({
       if (!folder.draft) {
         folder.draft = cloneDeep(folder.root);
       }
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, dataType, annotations }) => ({
+
+      const mappedVars = map(vars, ({ uid, name = '', value = '', description = '', enabled = true, local = false, dataType, annotations }) => ({
+
         uid: uid || uuid(),
         name,
         value,
+        description,
         enabled,
         ...(dataType && dataType !== 'string' ? { dataType } : {}),
         ...(annotations?.length ? { annotations } : {}),
@@ -2564,6 +2600,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'apikey':
             set(folder, 'draft.request.auth.apikey', action.payload.content);
+            break;
+          case 'akamai-edgegrid':
+            set(folder, 'draft.request.auth.akamaiEdgegrid', action.payload.content);
             break;
           case 'awsv4':
             set(folder, 'draft.request.auth.awsv4', action.payload.content);
@@ -2725,10 +2764,11 @@ export const collectionsSlice = createSlice({
           root: cloneDeep(collection.root)
         };
       }
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false, dataType, annotations }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', description = '', enabled = true, local = false, dataType, annotations }) => ({
         uid: uid || uuid(),
         name,
         value,
+        description,
         enabled,
         ...(dataType && dataType !== 'string' ? { dataType } : {}),
         ...(annotations?.length ? { annotations } : {}),
@@ -2772,9 +2812,6 @@ export const collectionsSlice = createSlice({
       if (!collection) return;
       delete collection._scriptEnvBaseline;
       delete collection._scriptCollVarBaseline;
-      // Also drop the inflight request UID so updates from WS/OAuth2 paths (which
-      // don't dispatch initRunRequestEvent) aren't gated out by a stale HTTP UID.
-      delete collection._scriptRequestUid;
     },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
@@ -2949,10 +2986,13 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, file.data.uid);
 
         if (item) {
-          // whenever a user attempts to sort a req within the same folder
-          // the seq is updated, but everything else remains the same
-          // we don't want to lose the draft in this case
+          item.partial = file.partial;
+          item.error = file.error;
+          item.loading = file.loading;
           if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
+            // whenever a user attempts to sort a req within the same folder
+            // the seq is updated, but everything else remains the same
+            // we don't want to lose the draft in this case
             item.seq = file.data.seq;
             item.raw = file.data.raw;
             if (item?.draft) {
@@ -2969,20 +3009,11 @@ export const collectionsSlice = createSlice({
             item.request = mergeRequestWithPreservedUids(item.request, file.data.request);
             item.settings = file.data.settings;
             item.examples = file.data.examples;
-            // app.enabled is runtime-only and not persisted, so preserve it across file reloads
-            // even when the file no longer has an `app` block on disk.
-            const currentEnabled = item.draft?.app?.enabled ?? item.app?.enabled ?? false;
-            if (file.data.app) {
-              item.app = { ...file.data.app, enabled: currentEnabled };
-            } else if (currentEnabled) {
-              item.app = { code: null, enabled: true };
-            } else {
-              item.app = null;
-            }
+            item.app = file.data.app ? { ...file.data.app } : null;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
             item.raw = file.data.raw;
-
+            item.size = file.size;
             // Only clear draft if it matches the file content
             // This preserves characters typed during autosave
             // The raw comparison is guarded so an undefined === undefined match
@@ -3043,24 +3074,6 @@ export const collectionsSlice = createSlice({
             collection.lastAction = null;
             if (lastAction.payload === environment.name) {
               collection.activeEnvironmentUid = environment.uid;
-              // Persist the selection to the UI state snapshot
-              const { ipcRenderer } = window;
-              if (ipcRenderer) {
-                const extension = collection?.brunoConfig?.version === '1' ? 'bru' : 'yml';
-                const environmentPath = environment?.pathname
-                  || (environment?.name && collection?.pathname
-                    ? path.join(collection.pathname, 'environments', `${environment.name}.${extension}`)
-                    : null);
-
-                ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
-                  type: 'COLLECTION_ENVIRONMENT',
-                  data: {
-                    collectionPath: collection?.pathname,
-                    environmentPath: getCollectionEnvironmentPath(collection, environment, environmentPath),
-                    selectedEnvironment: environment?.name || ''
-                  }
-                });
-              }
             }
           }
         }
@@ -3089,7 +3102,6 @@ export const collectionsSlice = createSlice({
 
       delete collection._scriptEnvBaseline;
       delete collection._scriptCollVarBaseline;
-      collection._scriptRequestUid = requestUid;
 
       const item = findItemInCollection(collection, itemUid);
       if (!item) return;
@@ -3248,7 +3260,6 @@ export const collectionsSlice = createSlice({
           // pre-flush snapshot.
           delete collection._scriptEnvBaseline;
           delete collection._scriptCollVarBaseline;
-          collection._scriptRequestUid = action.payload.requestUid || null;
 
           collection.runnerResult.items.push({
             uid: request.uid,
@@ -3297,8 +3308,10 @@ export const collectionsSlice = createSlice({
 
         if (type === 'runner-request-skipped') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
-          item.status = 'skipped';
-          item.responseReceived = action.payload.responseReceived;
+          if (item) {
+            item.status = 'skipped';
+            item.responseReceived = action.payload.responseReceived;
+          }
         }
 
         if (type === 'post-response-script-execution') {
@@ -3418,12 +3431,11 @@ export const collectionsSlice = createSlice({
 
       const item = findItemInCollection(collection, action.payload.itemUid);
       if (item && isItemARequest(item)) {
-        item.app = item.app || {};
-        item.app.enabled = action.payload.enabled;
-        if (item.draft) {
-          item.draft.app = item.draft.app || {};
-          item.draft.app.enabled = action.payload.enabled;
+        if (!item.draft) {
+          item.draft = cloneDeep(item);
         }
+        item.draft.app = item.draft.app || {};
+        item.draft.app.enabled = action.payload.enabled;
       }
     },
     appSetRuntimeVariable: (state, action) => {
@@ -3889,6 +3901,7 @@ export const {
   updateCollectionLoadingState,
   collectionLoadedFromTree,
   setCollectionSecurityConfig,
+  updateCollectionVersion,
   brunoConfigUpdateEvent,
   renameCollection,
   removeCollection,
