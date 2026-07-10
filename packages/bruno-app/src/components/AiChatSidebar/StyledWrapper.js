@@ -3,47 +3,14 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   flex-shrink: 0;
   height: 100%;
-  position: relative;
 
   .ai-sidebar {
-    width: 100%;
+    width: 420px;
     height: 100%;
     background: ${(props) => props.theme.bg};
     border-left: 1px solid ${(props) => props.theme.border.border1};
     display: flex;
     flex-direction: column;
-  }
-
-  .ai-sidebar-drag-handle {
-    position: absolute;
-    top: 0;
-    left: -3px;
-    z-index: 2;
-    width: 6px;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: col-resize;
-
-    .drag-border {
-      width: 1px;
-      height: 100%;
-      border-left: solid 1px transparent;
-      transition: border-color 0.2s ease;
-    }
-
-    &:hover .drag-border,
-    &.is-dragging .drag-border {
-      border-left-color: ${(props) => props.theme.sidebar.dragbar.activeBorder};
-    }
-  }
-
-  .ai-sidebar-resize-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    cursor: col-resize;
   }
 
   .ai-sidebar-header {

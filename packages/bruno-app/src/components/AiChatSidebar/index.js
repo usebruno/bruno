@@ -55,22 +55,6 @@ import { renderMarkdown, parseMessageSegments } from './utils';
 const SELECTED_MODEL_LS_KEY = 'bruno.ai.chat.selectedModel';
 const AUTO_MODEL_ID = '';
 
-const SIDEBAR_WIDTH_LS_KEY = 'bruno.ai.chat.sidebarWidth';
-const MIN_AI_SIDEBAR_WIDTH = 320;
-const MAX_AI_SIDEBAR_WIDTH = 720;
-const DEFAULT_AI_SIDEBAR_WIDTH = 420;
-
-const clampSidebarWidth = (value) =>
-  Math.min(MAX_AI_SIDEBAR_WIDTH, Math.max(MIN_AI_SIDEBAR_WIDTH, value));
-
-const readStoredSidebarWidth = () => {
-  try {
-    const stored = parseInt(localStorage.getItem(SIDEBAR_WIDTH_LS_KEY), 10);
-    if (Number.isFinite(stored)) return clampSidebarWidth(stored);
-  } catch {}
-  return DEFAULT_AI_SIDEBAR_WIDTH;
-};
-
 const ToolActivityGroup = ({ activities }) => {
   if (!activities?.length) return null;
   const allDone = activities.every((a) => a.done);
@@ -191,13 +175,10 @@ const AiChatSidebar = ({ collection }) => {
     try { return localStorage.getItem(SELECTED_MODEL_LS_KEY) ?? AUTO_MODEL_ID; } catch { return AUTO_MODEL_ID; }
   });
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(readStoredSidebarWidth);
-  const [isResizing, setIsResizing] = useState(false);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const isNearBottomRef = useRef(true);
   const textareaRef = useRef(null);
-  const sidebarWidthRef = useRef(sidebarWidth);
 
   const isOpen = useSelector((state) => state.chat.isOpen);
   const allChats = useSelector((state) => state.chat.chats);
@@ -442,40 +423,6 @@ const AiChatSidebar = ({ collection }) => {
   useEffect(() => {
     if (isOpen) textareaRef.current?.focus();
   }, [isOpen]);
-
-  // Drag-to-resize: the panel is docked to the right, so its width grows as the
-  // pointer moves left (window width minus clientX). Listeners live on the
-  // document, and a full-viewport overlay (rendered while resizing) keeps the
-  // App Preview iframe / CodeMirror from swallowing the mouse events.
-  const handleResizeMouseDown = (e) => {
-    e.preventDefault();
-    setIsResizing(true);
-  };
-
-  useEffect(() => {
-    if (!isResizing) return;
-
-    const handleMouseMove = (e) => {
-      const upperBound = Math.min(MAX_AI_SIDEBAR_WIDTH, Math.max(MIN_AI_SIDEBAR_WIDTH, window.innerWidth - 360));
-      const next = Math.min(upperBound, Math.max(MIN_AI_SIDEBAR_WIDTH, window.innerWidth - e.clientX));
-      sidebarWidthRef.current = next;
-      setSidebarWidth(next);
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      try {
-        localStorage.setItem(SIDEBAR_WIDTH_LS_KEY, String(sidebarWidthRef.current));
-      } catch {}
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isResizing]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -802,17 +749,7 @@ const AiChatSidebar = ({ collection }) => {
   const historyCount = historyList?.length || 0;
 
   return (
-    <StyledWrapper style={{ width: sidebarWidth }}>
-      <div
-        className={`ai-sidebar-drag-handle ${isResizing ? 'is-dragging' : ''}`}
-        onMouseDown={handleResizeMouseDown}
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Resize AI panel"
-      >
-        <div className="drag-border" />
-      </div>
-      {isResizing && <div className="ai-sidebar-resize-overlay" />}
+    <StyledWrapper>
       <div className="ai-sidebar">
         <div className="ai-sidebar-header">
           <div className="header-left">
