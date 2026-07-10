@@ -90,7 +90,7 @@ const ChangeCollectionVersion = ({ collectionUid, onClose }) => {
               <div className="version-col">
                 <div className="col-label">Current Version</div>
                 <div className="current-value" data-testid="change-version-current">
-                  {currentVersion || <span className="unset">Not Set</span>}
+                  {currentVersion || <span className="text-muted italic">Not Set</span>}
                 </div>
               </div>
 
@@ -129,7 +129,7 @@ const ChangeCollectionVersion = ({ collectionUid, onClose }) => {
 
             <p className="preview m-0" data-testid="change-version-preview">
               Updates <strong>{targetKey}</strong> in {targetFile} from{' '}
-              <span className="old">{currentVersion || '(none)'}</span>
+              <span className="old">{currentVersion || <span className="text-muted italic not-set">(Not Set)</span>}</span>
               <IconArrowRight size={13} className="preview-arrow" stroke={1.5} />
               <span className="new">{trimmedVersion || '…'}</span>
             </p>

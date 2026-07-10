@@ -2779,6 +2779,17 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       ymlBrunoConfig.size = size;
       ymlBrunoConfig.filesCount = filesCount;
 
+      if (watcher) {
+        try {
+          watcher.addWatcher(mainWindow, collectionPathname, collectionUid, ymlBrunoConfig, false, undefined, { ignoreInitial: true });
+        } catch (watcherError) {
+          console.error('Failed to re-attach watcher after migration:', watcherError);
+          mainWindow.webContents.send('main:display-error', {
+            message: `Collection migrated to yml, but live sync could not be re-enabled: ${watcherError.message}. Please reopen the collection.`
+          });
+        }
+      }
+
       return ymlBrunoConfig;
     } catch (error) {
       for (const ymlFile of writtenYmlFiles) {

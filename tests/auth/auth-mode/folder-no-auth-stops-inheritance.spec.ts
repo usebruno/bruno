@@ -6,7 +6,6 @@ import {
   createFolder,
   createRequest,
   openRequest,
-  saveRequest,
   selectAuthMode,
   selectRequestPaneTab,
   selectResponsePaneTab,
@@ -53,7 +52,7 @@ test('Request inherits No Auth from the folder — collection Bearer Token is ov
     await openRequest(page, collectionName, requestName);
     await selectRequestPaneTab(page, 'Auth');
     await selectAuthMode(page, AUTH_MODE_LABELS.INHERIT);
-    await saveRequest(page);
+    await expect(locators.auth.modeSelector()).toContainText(AUTH_MODE_LABELS.INHERIT);
   });
 
   await test.step('Send the request and open the Timeline tab', async () => {

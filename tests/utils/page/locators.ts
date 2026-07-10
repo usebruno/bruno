@@ -1,18 +1,18 @@
-import { Page, Locator } from '../../../playwright';
+import { Locator, Page } from '../../../playwright';
 import { buildApiSpecPanelLocators } from './openapi/render-spec';
+import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
+  fileMode: buildFileModeLocators(page),
   openApi: {
     render: buildApiSpecPanelLocators(page)
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
-  saveButton: () => page
-    .locator('.infotip')
-    .filter({ hasText: /^Save/ }),
+  saveButton: () => page.getByTestId('save-request-button'),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: {
     collectionsContainer: () => page.getByTestId('collections'),
@@ -166,7 +166,7 @@ export const buildCommonLocators = (page: Page) => ({
     newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
     requestNameInput: () => page.getByPlaceholder('Request Name'),
     requestTestId: () => page.getByTestId('request-name'),
-    generateCodeButton: () => page.locator('#request-actions .infotip').first(),
+    generateCodeButton: () => page.getByTestId('generate-code-button'),
     bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
     bodyEditor: () => page.getByTestId('request-body-editor'),
     bodyVariableToken: (name: string) =>
@@ -346,16 +346,8 @@ export const buildCommonLocators = (page: Page) => ({
 export const buildWebsocketCommonLocators = (page: Page) => ({
   ...buildCommonLocators(page),
   connectionControls: {
-    connect: () =>
-      page
-        .locator('div.connection-controls')
-        .locator('.infotip')
-        .filter({ hasText: /^Connect$/ }),
-    disconnect: () =>
-      page
-        .locator('div.connection-controls')
-        .locator('.infotip')
-        .filter({ hasText: /^Close Connection$/ })
+    connect: () => page.getByTestId('ws-connect-button'),
+    disconnect: () => page.getByTestId('ws-disconnect-button')
   },
   messages: () => page.locator('.ws-message'),
   message: {
