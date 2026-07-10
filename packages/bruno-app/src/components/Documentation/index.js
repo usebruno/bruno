@@ -28,6 +28,7 @@ const Documentation = ({ item, collection }) => {
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const isEditing = focusedTab?.docsEditing || false;
   const [isMarkdownMode, setIsMarkdownMode] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
   const docs = item?.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
   const preferences = useSelector((state) => state.app.preferences);
 
@@ -37,6 +38,18 @@ const Documentation = ({ item, collection }) => {
   const isMarkdownModeRef = useRef(isMarkdownMode);
   const [scroll, setScroll] = usePersistedState({ key: `request-docs-scroll-${item?.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, onChange: setScroll, enabled: !isEditing, initialValue: scroll });
+
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver(() => {
+      setIsCompact(el.offsetWidth < 450);
+    });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const onEdit = useCallback(
     (value) => {
@@ -68,7 +81,7 @@ const Documentation = ({ item, collection }) => {
     },
     editorProps: {
       handleKeyDown: (_view, event) => {
-        if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
           event.preventDefault();
           onSave();
           return true;
@@ -148,6 +161,7 @@ const Documentation = ({ item, collection }) => {
 
         {isEditing && (
           <ModeSwitch
+            compact={isCompact}
             checked={isMarkdownMode}
             onChange={() => setIsMarkdownMode((prev) => !prev)}
             rightComponent={(

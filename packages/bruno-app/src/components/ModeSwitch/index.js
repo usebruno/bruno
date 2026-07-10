@@ -35,7 +35,7 @@ const StyledModeSwitch = styled.div`
   }
 `;
 
-const ModeSwitch = ({ checked, onChange, leftComponent, rightComponent, className, ...props }) => {
+const ModeSwitch = ({ checked, onChange, leftComponent, rightComponent, compact, className, ...props }) => {
   return (
     <StyledModeSwitch className={className} {...props}>
       <button
@@ -43,14 +43,14 @@ const ModeSwitch = ({ checked, onChange, leftComponent, rightComponent, classNam
         className={`${!checked ? 'is-active' : ''}`}
         onClick={() => { if (checked) onChange(); }}
       >
-        {leftComponent} WYSIWYG
+        {leftComponent} {!compact && <span className="mode-text">WYSIWYG</span>}
       </button>
       <button
         type="button"
         className={`${checked ? 'is-active' : ''}`}
         onClick={() => { if (!checked) onChange(); }}
       >
-        {rightComponent} Markdown
+        {rightComponent} {!compact && <span className="mode-text">Markdown</span>}
       </button>
     </StyledModeSwitch>
   );
