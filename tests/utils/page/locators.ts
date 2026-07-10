@@ -12,9 +12,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
-  saveButton: () => page
-    .locator('.infotip')
-    .filter({ hasText: /^Save/ }),
+  saveButton: () => page.getByTestId('save-request-button'),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: {
     collectionsContainer: () => page.getByTestId('collections'),
@@ -168,7 +166,7 @@ export const buildCommonLocators = (page: Page) => ({
     newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
     requestNameInput: () => page.getByPlaceholder('Request Name'),
     requestTestId: () => page.getByTestId('request-name'),
-    generateCodeButton: () => page.locator('#request-actions .infotip').first(),
+    generateCodeButton: () => page.getByTestId('generate-code-button'),
     bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
     bodyEditor: () => page.getByTestId('request-body-editor'),
     bodyVariableToken: (name: string) =>
@@ -348,16 +346,8 @@ export const buildCommonLocators = (page: Page) => ({
 export const buildWebsocketCommonLocators = (page: Page) => ({
   ...buildCommonLocators(page),
   connectionControls: {
-    connect: () =>
-      page
-        .locator('div.connection-controls')
-        .locator('.infotip')
-        .filter({ hasText: /^Connect$/ }),
-    disconnect: () =>
-      page
-        .locator('div.connection-controls')
-        .locator('.infotip')
-        .filter({ hasText: /^Close Connection$/ })
+    connect: () => page.getByTestId('ws-connect-button'),
+    disconnect: () => page.getByTestId('ws-disconnect-button')
   },
   messages: () => page.locator('.ws-message'),
   message: {
