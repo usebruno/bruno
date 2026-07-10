@@ -40,6 +40,7 @@ const getNextIndex = (currentIndex, total, key, noFocus) => {
  * @param {string} props.placement - Tippy placement (default: 'bottom-end')
  * @param {string} props.className - Optional className for the dropdown
  * @param {string} props.selectedItemId - Optional ID of the selected/active item to focus on open
+ * @param {Array<string>} props.activeItemIds - Optional IDs of active items to highlight (supports multiple)
  * @param {boolean} props.opened - Controlled open state (when provided, component is controlled)
  * @param {function} props.onChange - Callback when dropdown state changes: (opened: boolean) => void
  * @param {ReactNode} props.header - Optional header content to render above menu items
@@ -58,6 +59,7 @@ const MenuDropdown = forwardRef(({
   placement = 'bottom-end',
   className,
   selectedItemId,
+  activeItemIds,
   opened,
   onChange,
   header,
@@ -196,6 +198,15 @@ const MenuDropdown = forwardRef(({
       return item;
     });
   }, [normalizedItems, showTickMark, selectedItemId]);
+
+  const menuStateKey = useMemo(() => {
+    const activeKey = activeItemIds?.join(',') ?? '';
+    const itemStateKey = normalizedItems
+      .map((item) => `${item.id}:${item.disabled ? 1 : 0}`)
+      .join('|');
+
+    return `${selectedItemId ?? ''}::${activeKey}::${itemStateKey}`;
+  }, [activeItemIds, normalizedItems, selectedItemId]);
 
   // Clear focused class from all items
   const clearFocusedClass = (menuContainer) => {
@@ -358,7 +369,7 @@ const MenuDropdown = forwardRef(({
   // Get common props for menu items (shared between regular items and submenu triggers)
   const getMenuItemProps = (item, extraProps = {}) => {
     const selectIndentClass = item.groupStyle === 'select' ? 'dropdown-item-select' : '';
-    const isActive = item.id === selectedItemId;
+    const isActive = item.id === selectedItemId || activeItemIds?.includes(item.id);
     const activeClass = isActive ? 'dropdown-item-active' : '';
 
     // Destructure className from extraProps to avoid it being overwritten by spread
@@ -495,7 +506,7 @@ const MenuDropdown = forwardRef(({
             <div className="dropdown-divider"></div>
           </div>
         )}
-        <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown}>
+        <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown} key={menuStateKey}>
           {renderMenuContent()}
         </div>
         {footer && (

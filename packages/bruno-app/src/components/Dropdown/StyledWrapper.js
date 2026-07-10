@@ -159,11 +159,17 @@ const Wrapper = styled.div`
       background-color: ${({ theme }) => rgba(theme.dropdown.selectedColor, 0.07)} !important;
       .dropdown-icon {
         color: ${({ theme }) => theme.dropdown.selectedColor} !important;
+        opacity: 1;
       }
 
       &:hover {
         color: ${({ theme }) => theme.dropdown.selectedColor} !important;
         background-color: ${({ theme }) => rgba(theme.dropdown.selectedColor, 0.07)} !important;
+      }
+
+      &.disabled {
+        opacity: 1;
+        cursor: not-allowed;
       }
     }
 
