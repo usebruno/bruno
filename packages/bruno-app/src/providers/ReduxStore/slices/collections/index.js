@@ -322,11 +322,17 @@ export const collectionsSlice = createSlice({
 
       if (brunoConfig) {
         collection.brunoConfig = brunoConfig;
+        if (collection.draft?.brunoConfig) {
+          collection.draft.brunoConfig = brunoConfig;
+        }
       }
       collection.format = 'yml';
 
       const rewriteItemPaths = (items) => {
         (items || []).forEach((item) => {
+          if (item.isTransient) {
+            return;
+          }
           if (typeof item.pathname === 'string') {
             item.pathname = item.pathname.replace(/\.bru$/, '.yml');
           }
