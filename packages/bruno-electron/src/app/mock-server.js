@@ -23,6 +23,7 @@ const {
 const MAX_LOG_ENTRIES = 500;
 const LOG_FLUSH_MS = 300;
 const MAX_AVAILABLE_ROUTES = 50;
+const LOCALHOST_IPV4 = '127.0.0.1';
 
 const collections = new Map();
 const pendingLogBroadcasts = new Map();
@@ -108,7 +109,7 @@ const isPortAvailable = (port) => new Promise((resolve) => {
     .once('listening', () => {
       tester.close(() => resolve(true));
     })
-    .listen(port, 'localhost');
+    .listen(port, LOCALHOST_IPV4);
 });
 
 const checkPortAvailable = async (port, { mockServerUid = null, additionalUsedPorts = [] } = {}) => {
@@ -508,8 +509,8 @@ const tryMockRequest = ({ url, method = 'GET', headers = {}, body = null }) => n
 });
 
 const listenOnPort = (app, port) => new Promise((resolve, reject) => {
-  const server = app.listen(port, 'localhost', () => resolve(server));
-  server.on('error', (err) => {
+  const server = app.listen(port, LOCALHOST_IPV4, () => resolve(server));
+  server.once('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       reject(new Error(`Port ${port} is already in use. Choose a different port.`));
       return;
