@@ -1,5 +1,6 @@
 import { test, expect } from '../../../playwright';
 import path from 'path';
+import fs from 'fs';
 import { Page } from '@playwright/test';
 import { importCollection, createEnvironment, closeAllCollections, addRowToActiveTab, saveEnvironment, deleteAllGlobalEnvironments } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
@@ -104,7 +105,8 @@ test.describe('Environment Variables / Secrets tab separation', () => {
   });
 
   test('per-tab Save on the Secrets tab keeps unsaved Variables edits', async ({ page, createTmpDir }) => {
-    await importCollection(page, collectionFile, await createTmpDir('var-unsaved-secret-save'), {
+    const collectionDir = await createTmpDir('var-unsaved-secret-save');
+    await importCollection(page, collectionFile, collectionDir, {
       expectedCollectionName: 'test_collection'
     });
 
@@ -128,6 +130,14 @@ test.describe('Environment Variables / Secrets tab separation', () => {
       await expect(varRowValueLine(page, 'host')).toHaveText('https://echo.usebruno.com');
       // The variable is still unsaved, so the draft indicator must remain.
       await expect(tabDraftIcon(page)).toBeVisible();
+    });
+
+    await test.step('Saving the Variables tab now persists the variable', async () => {
+      await saveTab(page).click();
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(varRowValueLine(page, 'host')).toHaveText('https://echo.usebruno.com');
+      // Everything is saved now, so the draft indicator must clear.
+      await expect(tabDraftIcon(page)).not.toBeVisible();
     });
   });
 
@@ -391,6 +401,14 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
       await expect(varRowValueLine(page, 'host')).toHaveText('https://echo.usebruno.com');
       // The variable is still unsaved, so the draft indicator must remain.
       await expect(tabDraftIcon(page)).toBeVisible();
+    });
+
+    await test.step('Saving the Variables tab now persists the variable', async () => {
+      await saveTab(page).click();
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(varRowValueLine(page, 'host')).toHaveText('https://echo.usebruno.com');
+      // Everything is saved now, so the draft indicator must clear.
+      await expect(tabDraftIcon(page)).not.toBeVisible();
     });
   });
 
