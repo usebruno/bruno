@@ -7,7 +7,10 @@ import { buildCommonLocators } from '../../utils/page/locators';
 const variablesTab = (page: Page) => buildCommonLocators(page).environment.variablesTab();
 const secretsTab = (page: Page) => buildCommonLocators(page).environment.secretsTab();
 const varRow = (page: Page, name: string) => buildCommonLocators(page).environment.varRow(name);
+const varRowValueEditor = (page: Page, name: string) => buildCommonLocators(page).environment.varRowValueEditor(name);
+const varRowValueLine = (page: Page, name: string) => buildCommonLocators(page).environment.varRowValueLine(name);
 const saveTab = (page: Page) => buildCommonLocators(page).environment.saveTab();
+const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
 const searchInputLocator = (page: Page) => buildCommonLocators(page).environment.searchInput();
 const tabDraftIcon = (page: Page) => page.locator('.request-tab.active').getByTestId('tab-draft-icon');
 
@@ -99,6 +102,44 @@ test.describe('Environment Variables / Secrets tab separation', () => {
       await secretsTab(page).click();
       await expect(varRow(page, 'apiToken')).toBeVisible();
       await expect(varRow(page, 'host')).toHaveCount(0);
+    });
+  });
+
+  test('per-tab Save on the Secrets tab keeps unsaved Variables edits', async ({ page, createTmpDir }) => {
+    await importCollection(page, collectionFile, await createTmpDir('var-unsaved-secret-save'), {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, 'Unsaved Var Env', 'collection');
+
+    await test.step('Add and save a variable on the Variables tab', async () => {
+      await addRowToActiveTab(page, 'host', 'https://original.example.com');
+      await saveTab(page).click();
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+    });
+
+    await test.step('Edit the variable value but do NOT save', async () => {
+      await varRowValueEditor(page, 'host').click();
+      await page.keyboard.press(selectAllShortcut);
+      await page.keyboard.type('https://edited.example.com');
+      await expect(varRowValueLine(page, 'host')).toHaveText('https://edited.example.com');
+    });
+
+    await test.step('Add a secret and save it with the per-tab Save button', async () => {
+      await secretsTab(page).click();
+      await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
+      await saveTab(page).click();
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+    });
+
+    await test.step('The unsaved Variables edit survived the Secrets save', async () => {
+      await variablesTab(page).click();
+      await expect(varRow(page, 'host')).toBeVisible();
+      // Regression: previously the post-save reinitialize snapped the value back to
+      // the last-saved "https://original.example.com", silently dropping the edit.
+      await expect(varRowValueLine(page, 'host')).toHaveText('https://edited.example.com');
+      // The edit is still unsaved, so the draft indicator must remain.
+      await expect(tabDraftIcon(page)).toBeVisible();
     });
   });
 
@@ -334,6 +375,44 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
       await secretsTab(page).click();
       await expect(varRow(page, 'apiToken')).toBeVisible();
       await expect(varRow(page, 'host')).toHaveCount(0);
+    });
+  });
+
+  test('per-tab Save on the Secrets tab keeps unsaved Variables edits', async ({ page, createTmpDir }) => {
+    await importCollection(page, collectionFile, await createTmpDir('global-var-unsaved-secret-save'), {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, 'Global Unsaved Var Env', 'global');
+
+    await test.step('Add and save a variable on the Variables tab', async () => {
+      await addRowToActiveTab(page, 'host', 'https://original.example.com');
+      await saveTab(page).click();
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+    });
+
+    await test.step('Edit the variable value but do NOT save', async () => {
+      await varRowValueEditor(page, 'host').click();
+      await page.keyboard.press(selectAllShortcut);
+      await page.keyboard.type('https://edited.example.com');
+      await expect(varRowValueLine(page, 'host')).toHaveText('https://edited.example.com');
+    });
+
+    await test.step('Add a secret and save it with the per-tab Save button', async () => {
+      await secretsTab(page).click();
+      await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
+      await saveTab(page).click();
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+    });
+
+    await test.step('The unsaved Variables edit survived the Secrets save', async () => {
+      await variablesTab(page).click();
+      await expect(varRow(page, 'host')).toBeVisible();
+      // Regression: previously the post-save reinitialize snapped the value back to
+      // the last-saved "https://original.example.com", silently dropping the edit.
+      await expect(varRowValueLine(page, 'host')).toHaveText('https://edited.example.com');
+      // The edit is still unsaved, so the draft indicator must remain.
+      await expect(tabDraftIcon(page)).toBeVisible();
     });
   });
 
