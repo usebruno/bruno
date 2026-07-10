@@ -126,7 +126,9 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       <GrpcAuthMode item={item} collection={collection} />
     </div>
   ) : requestPaneTab === 'docs' ? (
-    <DocsAction item={item} />
+    <div ref={rightContentRef}>
+      <DocsAction item={item} />
+    </div>
   ) : null;
 
   return (

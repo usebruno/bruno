@@ -334,7 +334,9 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
       </MenuDropdown>
     </div>
   ) : requestPaneTab === 'docs' ? (
-    <DocsAction item={item} />
+    <div ref={schemaActionsRef}>
+      <DocsAction item={item} />
+    </div>
   ) : null;
 
   return (

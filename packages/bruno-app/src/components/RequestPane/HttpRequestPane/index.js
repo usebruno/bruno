@@ -139,7 +139,9 @@ const HttpRequestPane = ({ item, collection }) => {
       <AuthMode item={item} collection={collection} />
     </div>
   ) : requestPaneTab === 'docs' ? (
-    <DocsAction item={item} />
+    <div ref={rightContentRef}>
+      <DocsAction item={item} />
+    </div>
   ) : null;
 
   return (

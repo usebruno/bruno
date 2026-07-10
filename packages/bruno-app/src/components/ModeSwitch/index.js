@@ -29,12 +29,6 @@ const StyledModeSwitch = styled.div`
     }
 
     &.is-active {
-      background: ${(props) => props.theme.dropdown.hoverBg};
-      color: ${(props) => props.theme.dropdown.iconColor};
-    }
-    
-    /* specifically for WYSIWYG */
-    &.wysiwyg-btn.is-active {
       background: var(--color-orange-500, #f5a623);
       color: #fff;
     }
@@ -46,7 +40,7 @@ const ModeSwitch = ({ checked, onChange, leftComponent, rightComponent, classNam
     <StyledModeSwitch className={className} {...props}>
       <button
         type="button"
-        className={`wysiwyg-btn ${!checked ? 'is-active' : ''}`}
+        className={`${!checked ? 'is-active' : ''}`}
         onClick={() => { if (checked) onChange(); }}
       >
         {leftComponent} WYSIWYG

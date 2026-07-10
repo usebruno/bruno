@@ -184,7 +184,11 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
       </div>
     );
   } else if (requestPaneTab === 'docs') {
-    rightContent = <DocsAction item={item} />;
+    rightContent = (
+      <div ref={rightContentRef}>
+        <DocsAction item={item} />
+      </div>
+    );
   } else if (requestPaneTab === 'body') {
     rightContent = (
       <div ref={rightContentRef} className="flex items-center gap-2">
