@@ -34,7 +34,7 @@ runs:
           }
         }
         if (-not $ready) {
-          Write-Error "Keycloak did not become ready in time"
+          Write-Host "Keycloak did not become ready in time"
           if (Test-Path $log) { Get-Content $log -Tail 100 }
           if (Test-Path $errLog) { Get-Content $errLog -Tail 100 }
           exit 1
