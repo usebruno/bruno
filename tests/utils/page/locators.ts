@@ -3,6 +3,10 @@ import { buildApiSpecPanelLocators } from './openapi/render-spec';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
+import { buildBulkImportSelectionLocators } from './import/bulk-import';
+import { buildCloneGitLocators } from './import/clone-git';
+import { buildImportModalLocators } from './import/modal';
+import { buildToastLocators } from './toast';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
@@ -79,6 +83,7 @@ export const buildCommonLocators = (page: Page) => ({
     submitButton: () => page.locator('.bruno-modal-footer .submit'),
     newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`)
   },
+  toast: buildToastLocators(page),
   environment: {
     selector: () => page.getByTestId('environment-selector-trigger'),
     collectionTab: () => page.getByTestId('env-tab-collection'),
@@ -269,18 +274,28 @@ export const buildCommonLocators = (page: Page) => ({
     importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
   },
   import: {
-    modal: () => page.locator('[data-testid="import-collection-modal"]'),
-    locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
-    locationInput: () => page.locator('#collection-location'),
-    fileInput: () => page.locator('input[type="file"]'),
+    modal: () => page.getByTestId('import-collection-modal'),
+    locationModal: () => page.getByTestId('import-collection-location-modal'),
+    locationInput: () =>
+      page.getByTestId('import-collection-location-modal').getByTestId('import-collection-location-input'),
+    locationCollectionName: (name: string) =>
+      page.getByTestId('import-collection-location-modal').getByText(name, { exact: true }),
+    locationFormatSelect: () =>
+      page.getByTestId('import-collection-location-modal').getByTestId('import-collection-format-select'),
+    fileInput: () => page.getByTestId('import-collection-file-input'),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
-    bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
-    bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
+    bulkFormatSelect: () =>
+      page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
+    bulkLocationInput: () =>
+      page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
     bulkSubmitButton: () => page.getByTestId('bulk-import-collection-location-modal-submit-btn'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
     parsingError: () => page.getByTestId('import-error-message'),
     browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
-    importButton: (root?: Locator) => (root ?? page).getByTestId('import-collection-location-modal-submit-btn'),
+    importButton: (root?: Locator) =>
+      (root ?? page.getByTestId('import-collection-location-modal')).getByTestId(
+        'import-collection-location-modal-submit-btn'
+      ),
     ...(() => {
       const issuesToast = () => page.getByTestId('import-issues-toast').last();
       return {
@@ -292,7 +307,10 @@ export const buildCommonLocators = (page: Page) => ({
         issuesToastCloseBtn: () => issuesToast().getByTestId('import-issues-toast-close'),
         issuesToastUrlTooLongWarning: () => issuesToast().getByTestId('import-issues-url-too-long-warning')
       };
-    })()
+    })(),
+    importModal: buildImportModalLocators(page),
+    cloneGit: buildCloneGitLocators(page),
+    bulkImport: buildBulkImportSelectionLocators(page)
   },
   /**
    * Build generic table locators for any table with a testId

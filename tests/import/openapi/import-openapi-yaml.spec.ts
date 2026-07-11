@@ -7,7 +7,7 @@ test.describe('Import OpenAPI v3 YAML Collection', () => {
     await closeAllCollections(page);
   });
 
-  test('Import comprehensive OpenAPI v3 YAML successfully', async ({ page, createTmpDir }) => {
+  test('TC112: Verify Importing OpenAPI V3 file as YAML', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-comprehensive.yaml');
 
     await importCollection(page, openApiFile, await createTmpDir('comprehensive-test'), {

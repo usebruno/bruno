@@ -255,6 +255,7 @@ const FileTab = ({
           <input
             ref={fileInputRef}
             type="file"
+            data-testid="import-collection-file-input"
             className="hidden"
             multiple
             onChange={handleFileInputChange}
@@ -263,7 +264,9 @@ const FileTab = ({
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
             Drop file(s) to import or{' '}
             <button
+              type="button"
               className="underline cursor-pointer"
+              data-testid="import-choose-files-button"
               onClick={handleBrowseFiles}
               style={{ color: theme.textLink }}
             >

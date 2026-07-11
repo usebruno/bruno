@@ -1,0 +1,90 @@
+{
+  "info": {
+    "_postman_id": "bc6ca8cb-17ca-41e3-8f23-747e5079b78a",
+    "name": "External Modules Collection 2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "32319314"
+  },
+  "item": [
+    {
+      "name": "ReqPa",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://echo.usebruno.com?param=a",
+          "protocol": "https",
+          "host": [
+            "echo",
+            "usebruno",
+            "com"
+          ],
+          "query": [
+            {
+              "key": "param",
+              "value": "a",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "ReqPb",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://echo.usebruno.com?param=b",
+          "protocol": "https",
+          "host": [
+            "echo",
+            "usebruno",
+            "com"
+          ],
+          "query": [
+            {
+              "key": "param",
+              "value": "b"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {
+          "npm:lodash@4.17.21": {
+            "id": "npm:lodash@4.17.21"
+          },
+          "npm:axios@1.11.0": {
+            "id": "npm:axios@1.11.0"
+          }
+        },
+        "requests": {},
+        "exec": [
+          "const _ = pm.require('npm:lodash@4.17.21');",
+          "const axios = pm.require('npm:axios@1.11.0');",
+          ""
+        ]
+      }
+    }
+  ]
+}
