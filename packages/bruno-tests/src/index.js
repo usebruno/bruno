@@ -12,6 +12,7 @@ const wsRouter = require('./ws');
 const setupGraphQL = require('./graphql');
 const sseRouter = require('./sse');
 const fileBinaryRouter = require('./file-binary');
+const grpcServer = require('./grpc');
 
 const app = new express();
 const port = process.env.PORT || 8081;

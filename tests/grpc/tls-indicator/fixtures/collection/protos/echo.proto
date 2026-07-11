@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package bruno.tests.echo;
+
+service EchoService {
+  // Unary — server responds with a single fixed message.
+  rpc Ping(PingRequest) returns (PingResponse);
+
+  // Unary — echoes the request payload back and mirrors request metadata into
+  // response initial metadata (Grpc-Echo-* prefixed) for header assertions.
+  // If delay_ms is set, the server waits before responding, useful for
+  // timeout / deadline tests.
+  rpc Echo(EchoRequest) returns (EchoResponse);
+
+  // Server streaming — emits `count` messages, one every `interval_ms`.
+  rpc EchoStream(EchoStreamRequest) returns (stream EchoResponse);
+
+  // Client streaming — client sends N messages, server returns aggregate.
+  rpc Collect(stream EchoRequest) returns (CollectResponse);
+
+  // Bidirectional — for each incoming message, server echoes it back.
+  rpc Chat(stream EchoRequest) returns (stream EchoResponse);
+
+  // Unary — always fails with the requested status code + message, so tests
+  // can exercise error-handling paths without needing invalid inputs.
+  rpc ThrowError(ErrorRequest) returns (EchoResponse);
+}
+
+message PingRequest {}
+
+message PingResponse {
+  string message = 1;
+}
+
+message EchoRequest {
+  string message = 1;
+  int32 delay_ms = 2;
+}
+
+message EchoResponse {
+  string message = 1;
+  int32 index = 2;
+}
+
+message EchoStreamRequest {
+  string message = 1;
+  int32 count = 2;
+  int32 interval_ms = 3;
+}
+
+message CollectResponse {
+  int32 count = 1;
+  string concatenated = 2;
+}
+
+message ErrorRequest {
+  // gRPC status code (see grpc.status). Defaults to 2 (UNKNOWN) if unset.
+  int32 code = 1;
+  string message = 2;
+}
