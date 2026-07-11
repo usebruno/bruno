@@ -1,6 +1,6 @@
 // To implement grpc event handlers
 const { ipcMain, app } = require('electron');
-const { GrpcClient } = require('@usebruno/requests');
+const { GrpcClient, resolveGrpcUseTls } = require('@usebruno/requests');
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 const { cloneDeep, get } = require('lodash');
 const { preferencesUtil } = require('../../store/preferences');
@@ -157,6 +157,9 @@ const registerGrpcEventHandlers = (window) => {
       const requestCopy = cloneDeep(request);
       const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
 
+      const sslVerification = preferencesUtil.shouldVerifyTls();
+      const useTls = resolveGrpcUseTls(preparedRequest.url, sslVerification);
+
       const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
       if (!protocolRegex.test(preparedRequest.url)) {
         preparedRequest.url = `http://${preparedRequest.url}`;
@@ -190,7 +193,7 @@ const registerGrpcEventHandlers = (window) => {
 
       // Configure verify options
       const verifyOptions = {
-        rejectUnauthorized: preferencesUtil.shouldVerifyTls()
+        rejectUnauthorized: sslVerification
       };
 
       // Extract certificate information
@@ -229,6 +232,7 @@ const registerGrpcEventHandlers = (window) => {
         passphrase,
         pfx,
         verifyOptions,
+        useTls,
         includeDirs,
         proxyConfig: grpcProxyConfig
       });
@@ -317,6 +321,9 @@ const registerGrpcEventHandlers = (window) => {
       const requestCopy = cloneDeep(request);
       const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables);
 
+      const sslVerification = preferencesUtil.shouldVerifyTls();
+      const useTls = resolveGrpcUseTls(preparedRequest.url, sslVerification);
+
       const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
       if (!protocolRegex.test(preparedRequest.url)) {
         preparedRequest.url = `http://${preparedRequest.url}`;
@@ -350,7 +357,7 @@ const registerGrpcEventHandlers = (window) => {
 
       // Configure verify options
       const verifyOptions = {
-        rejectUnauthorized: preferencesUtil.shouldVerifyTls()
+        rejectUnauthorized: sslVerification
       };
 
       // Extract certificate information
@@ -384,6 +391,7 @@ const registerGrpcEventHandlers = (window) => {
         passphrase,
         pfx,
         verifyOptions,
+        useTls,
         sendEvent,
         proxyConfig: grpcProxyConfig
       });
@@ -445,6 +453,9 @@ const registerGrpcEventHandlers = (window) => {
       const requestCopy = cloneDeep(request);
       const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
 
+      const sslVerification = preferencesUtil.shouldVerifyTls();
+      const useTls = resolveGrpcUseTls(preparedRequest.url, sslVerification);
+
       const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
       if (!protocolRegex.test(preparedRequest.url)) {
         preparedRequest.url = `http://${preparedRequest.url}`;
@@ -467,7 +478,7 @@ const registerGrpcEventHandlers = (window) => {
         const domain = interpolateString(clientCert?.domain, interpolationOptions);
         const type = clientCert?.type || 'cert';
         if (domain) {
-          const hostRegex = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/)' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+          const hostRegex = '^(https:\\/\\/|grpc:\\/\\/|grpcs:\\/\\/|http:\\/\\/)?' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
           const requestUrl = interpolateString(preparedRequest.url, interpolationOptions);
           if (requestUrl.match(hostRegex)) {
             if (type === 'cert') {
@@ -487,7 +498,9 @@ const registerGrpcEventHandlers = (window) => {
           ca: caCertFilePath,
           cert: certFilePath,
           key: keyFilePath
-        }
+        },
+        useTls,
+        sslVerification
       });
 
       return { success: true, command };
