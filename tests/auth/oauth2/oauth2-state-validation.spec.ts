@@ -1,3 +1,12 @@
+// use this command to start the keycloak server: and make sure that you update the path of the realm-export.json file
+// docker run -d --name bruno-keycloak \
+//   -p 8090:8080 \
+//   -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
+//   -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+//   -v <paste path of the file here>:/opt/keycloak/data/import/realm-export.json:ro \
+//   quay.io/keycloak/keycloak:26.0 \
+//   start-dev --http-port=8080 --import-realm
+
 // This is a Playwright E2E test (in the oauth2 project). It needs a Keycloak server running (port 8090), and the app built.
 
 // To run just this file:
@@ -72,14 +81,14 @@ const loginToKeycloakForAuthCode = async (authorizationUrl: string): Promise<str
   const loginPage = await fetch(authorizationUrl, { redirect: 'manual' });
   expect(loginPage.ok, 'Keycloak authorize should return a login page').toBeTruthy();
 
-  const cookies = (loginPage.headers.getSetCookie?.() ?? [])
+  const cookies = ((loginPage.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie?.() ?? [])
     .map((c) => c.split(';')[0])
     .join('; ');
 
   const html = await loginPage.text();
-  const formActionMatch = html.match(/action="([^"]+login-actions\/authenticate[^"]*)"/);
+  const formActionMatch = html.match(/action="([^"]+login-actions\/authenticate[^"]*)"/); // extract the form action URL from the login page
   expect(formActionMatch, 'Keycloak login page should expose a form action').toBeTruthy();
-  const formAction = formActionMatch![1].replace(/&amp;/g, '&');
+  const formAction = formActionMatch![1].replace(/&amp;/g, '&'); // replace &amp; with & to avoid URL encoding issues
 
   const submission = await fetch(formAction, {
     method: 'POST',
@@ -112,17 +121,18 @@ const fireCallback = (app: ElectronApplication, url: string) =>
  * Wrap the real `second-instance` listener so callback URLs are recorded when Bruno
  * receives them — same argv path as `getAppProtocolUrlFromArgv` in index.js.
  */
-const installCallbackCapture = (app: ElectronApplication) =>
-  app.evaluate(({ app: electronApp }) => {
+const installCallbackCapture = (app: ElectronApplication) => {
+  return app.evaluate(({ app: electronApp }) => {
     (globalThis as any).__brunoCapturedCallbackUrl = null;
 
     electronApp.prependListener('second-instance', (_event, commandLine) => {
-      const url = commandLine?.find((arg) => arg?.startsWith('bruno://'));
+      const url = commandLine?.find((arg: string) => arg?.startsWith('bruno://'));
       if (url) {
         (globalThis as any).__brunoCapturedCallbackUrl = url;
       }
     });
   });
+};
 
 const getCapturedCallbackUrl = (app: ElectronApplication): Promise<string | null> =>
   app.evaluate(() => (globalThis as any).__brunoCapturedCallbackUrl ?? null);
@@ -148,11 +158,6 @@ const waitForAuthorizationStarted = async (app: ElectronApplication) => {
 type CallbackStyle = 'query' | 'hash';
 
 const stateFromAuthorizationUrl = (url: string) => new URL(url).searchParams.get('state');
-
-// Bruno always appends a cryptographically random nonce (crypto.randomBytes(16) → 32 hex
-// chars) to the state — whether the user configured one or not (see generateState in
-// oauth2.js). So the issued state is at least that nonce length.
-const STATE_NONCE_HEX_LENGTH = 32;
 
 /** `state` Bruno sent on the authorization URL (stored internally as expectedState). */
 const getIssuedState = async (app: ElectronApplication): Promise<string> => {
@@ -188,96 +193,24 @@ const getCallbackParams = (callbackUrl: string, style: CallbackStyle = 'query') 
   };
 };
 
-test.describe.serial('OAuth2 callback state validation', () => {
-  test('authorization code: rejects callback when returned state does not match issued state', async ({ restartApp }) => {
-    const app = await restartApp();
-    const page = await waitForReadyPage(app);
-
-    await test.step('start the authorization code flow', async () => {
-      await stubOpenExternal(app);
-      await installCallbackCapture(app);
-      await clickGetAccessToken(page, 'AuthorizationCode');
-      await waitForAuthorizationStarted(app);
-    });
-
-    const issuedState = await test.step('capture the issued state', () => getIssuedState(app));
-
-    const callbackUrl = `${CALLBACK}?code=${PROVIDER_AUTH_CODE}&state=${WRONG_STATE}`;
-    await test.step('deliver a callback with a mismatched state', async () => {
-      await fireCallback(app, callbackUrl);
-
-      const receivedCallbackUrl = await getCapturedCallbackUrl(app);
-      expect(receivedCallbackUrl).toBe(callbackUrl);
-
-      const { state: returnedState, code } = getCallbackParams(receivedCallbackUrl as string);
-      expect(returnedState).toBe(WRONG_STATE);
-      expect(returnedState).not.toBe(issuedState);
-      expect(code).toBe(PROVIDER_AUTH_CODE);
-    });
-
-    await test.step('surface a state mismatch error', async () => {
-      await expect(
-        buildCommonLocators(page).response.pane().getByText(STATE_MISMATCH_ERROR)
-      ).toBeVisible({ timeout: 15_000 });
-    });
-  });
-
-  test('authorization code: accepts callback when returned state matches issued state', async ({ restartApp }) => {
-    test.setTimeout(60_000);
-    const app = await restartApp();
-    const page = await waitForReadyPage(app);
-
-    await test.step('start the authorization code flow', async () => {
-      await stubOpenExternal(app);
-      await installCallbackCapture(app);
-      await clickGetAccessToken(page, 'AuthorizationCode');
-      await waitForAuthorizationStarted(app);
-    });
-
-    const authUrl = await getCapturedAuthUrl(app);
-    expect(authUrl).toBeTruthy();
-
-    const issuedState = await test.step('capture the issued state', () => getIssuedState(app));
-
-    const authCode = await test.step('obtain a valid auth code from Keycloak', () =>
-      loginToKeycloakForAuthCode(authUrl as string));
-
-    const callbackUrl = `${CALLBACK}?code=${authCode}&state=${encodeURIComponent(issuedState)}`;
-    await test.step('deliver a callback with the matching state', async () => {
-      await fireCallback(app, callbackUrl);
-
-      const receivedCallbackUrl = await getCapturedCallbackUrl(app);
-      expect(receivedCallbackUrl).toBe(callbackUrl);
-
-      const { state: returnedState, code } = getCallbackParams(receivedCallbackUrl as string);
-      expect(returnedState).toBe(issuedState);
-      expect(code).toBe(authCode);
-    });
-
-    await expect(page.getByText('Token fetched successfully!')).toBeVisible({ timeout: 15_000 });
-  });
-
-  test('authorization code (user-supplied state): issues userState accepts matching callback', async ({ restartApp }) => {
+test.describe('OAuth2 callback state validation', () => {
+  test('authorization code: (user-supplied state): issues userState accepts matching callback', async ({ restartApp }) => {
     test.setTimeout(60_000);
     const USER_STATE = 'brunoUserState';
     const app = await restartApp();
     const page = await waitForReadyPage(app);
 
-    // await test.step('start the authorization code flow', async () => {
     await stubOpenExternal(app);
     await installCallbackCapture(app);
     await clickGetAccessToken(page, 'AuthCodeUserSuppliedState');
     await waitForAuthorizationStarted(app);
-    // });
 
     const authUrl = await getCapturedAuthUrl(app);
 
     expect(authUrl).toBeTruthy();
 
-    const issuedState = await test.step('capture and verify the issued state carries userState + nonce', async () => {
+    const issuedState = await test.step('capture and verify the issued state carries userState', async () => {
       const state = await getIssuedState(app);
-      // Bruno appends a nonce — the issued state must be `userState + <32 hex>`, not the raw input.
-      expect(state.startsWith(USER_STATE)).toBeTruthy();
       expect(state).toBe(USER_STATE);
       return state;
     });
@@ -297,6 +230,143 @@ test.describe.serial('OAuth2 callback state validation', () => {
       expect(returnedState).toBe(issuedState);
       expect(code).toBe(authCode);
     });
+
+    await expect(page.getByText('Token fetched successfully!')).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('authorization code: (no state): issues a random state accepts matching callback', async ({ restartApp }) => {
+    test.setTimeout(60_000);
+    const app = await restartApp();
+    const page = await waitForReadyPage(app);
+
+    await stubOpenExternal(app);
+    await installCallbackCapture(app);
+    await clickGetAccessToken(page, 'AuthorizationCode');
+    await waitForAuthorizationStarted(app);
+
+    const authUrl = await getCapturedAuthUrl(app);
+
+    expect(authUrl).toBeTruthy();
+
+    const issuedState = await getIssuedState(app);
+
+    const authCode = await test.step('obtain a valid auth code from Keycloak', () =>
+      loginToKeycloakForAuthCode(authUrl as string));
+
+    const callbackUrl = `${CALLBACK}?code=${authCode}&state=${encodeURIComponent(issuedState)}`;
+
+    await test.step('deliver a callback with the matching state', async () => {
+      await fireCallback(app, callbackUrl);
+
+      const receivedCallbackUrl = await getCapturedCallbackUrl(app);
+      expect(receivedCallbackUrl).toBe(callbackUrl);
+
+      const { state: returnedState, code } = getCallbackParams(receivedCallbackUrl as string);
+      expect(returnedState).toBe(issuedState);
+      expect(code).toBe(authCode);
+    });
+
+    await expect(page.getByText('Token fetched successfully!')).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('authorization code: rejects callback when returned state does not match issued state', async ({ restartApp }) => {
+    const app = await restartApp();
+    const page = await waitForReadyPage(app);
+
+    await test.step('start the authorization code flow', async () => {
+      await stubOpenExternal(app); // fake opening the browser so we can read the login URL
+      await installCallbackCapture(app);
+      await clickGetAccessToken(page, 'AuthorizationCode');
+      await waitForAuthorizationStarted(app);
+    });
+
+    const issuedState = await getIssuedState(app);
+
+    const callbackUrl = `${CALLBACK}?code=${PROVIDER_AUTH_CODE}&state=${WRONG_STATE}`;
+    await test.step('deliver a callback with a mismatched state', async () => {
+      await fireCallback(app, callbackUrl);
+
+      const receivedCallbackUrl = await getCapturedCallbackUrl(app);
+      expect(receivedCallbackUrl).toBe(callbackUrl);
+
+      const { state: returnedState, code } = getCallbackParams(receivedCallbackUrl as string);
+      expect(returnedState).toBe(WRONG_STATE);
+      expect(returnedState).not.toBe(issuedState);
+      expect(code).toBe(PROVIDER_AUTH_CODE);
+    });
+
+    await test.step('Check for mismatch error in the response pane', async () => {
+      await expect(
+        buildCommonLocators(page).response.pane().getByText(STATE_MISMATCH_ERROR)
+      ).toBeVisible({ timeout: 15_000 });
+    });
+  });
+
+  test('implicit grant: (user-supplied state): issues userState accepts matching callback', async ({ restartApp }) => {
+    test.setTimeout(60_000);
+
+    const USER_STATE = 'brunoUserState';
+    const app = await restartApp();
+    const page = await waitForReadyPage(app);
+
+    await test.step('start the implicit grant flow', async () => {
+      await stubOpenExternal(app);
+      await installCallbackCapture(app);
+      await clickGetAccessToken(page, 'ImplicitUserSuppliedState');
+      await waitForAuthorizationStarted(app);
+    });
+
+    const issuedState = await test.step('capture and verify the issued state carries userState', async () => {
+      const state = await getIssuedState(app);
+      expect(state).toBe(USER_STATE);
+      return state;
+    });
+
+    const callbackUrl
+      = `${CALLBACK}#access_token=${PROVIDER_ACCESS_TOKEN}&token_type=Bearer&expires_in=3600&state=${encodeURIComponent(issuedState)}`;
+
+    await test.step('deliver a callback with the matching state', async () => {
+      await fireCallback(app, callbackUrl);
+
+      const receivedCallbackUrl = await getCapturedCallbackUrl(app);
+      expect(receivedCallbackUrl).toBe(callbackUrl);
+
+      const { state: returnedState, access_token } = getCallbackParams(receivedCallbackUrl as string, 'hash');
+      expect(returnedState).toBe(issuedState);
+      expect(access_token).toBe(PROVIDER_ACCESS_TOKEN);
+    });
+
+    await expect(page.getByText('Token fetched successfully!')).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('implicit grant: (no state): issues a random state accepts matching callback', async ({ restartApp }) => {
+    test.setTimeout(60_000);
+    const app = await restartApp();
+    const page = await waitForReadyPage(app);
+
+    await test.step('start the implicit grant flow', async () => {
+      await stubOpenExternal(app);
+      await installCallbackCapture(app);
+      await clickGetAccessToken(page, 'AuthorizationImplicit');
+      await waitForAuthorizationStarted(app);
+    });
+
+    const issuedState = await getIssuedState(app);
+
+    const callbackUrl
+      = `${CALLBACK}#access_token=${PROVIDER_ACCESS_TOKEN}&token_type=Bearer&expires_in=3600&state=${encodeURIComponent(issuedState)}`;
+
+    await test.step('deliver a callback with the matching state', async () => {
+      await fireCallback(app, callbackUrl);
+
+      const receivedCallbackUrl = await getCapturedCallbackUrl(app);
+      expect(receivedCallbackUrl).toBe(callbackUrl);
+
+      const { state: returnedState, access_token } = getCallbackParams(receivedCallbackUrl as string, 'hash');
+      expect(returnedState).toBe(issuedState);
+      expect(access_token).toBe(PROVIDER_ACCESS_TOKEN);
+    });
+
     await expect(page.getByText('Token fetched successfully!')).toBeVisible({ timeout: 15_000 });
   });
 
@@ -332,76 +402,5 @@ test.describe.serial('OAuth2 callback state validation', () => {
         buildCommonLocators(page).response.pane().getByText(STATE_MISMATCH_ERROR)
       ).toBeVisible({ timeout: 15_000 });
     });
-  });
-
-  test('implicit grant: accepts callback when returned state matches issued state', async ({ restartApp }) => {
-    test.setTimeout(60_000);
-    const app = await restartApp();
-    const page = await waitForReadyPage(app);
-
-    await test.step('start the implicit grant flow', async () => {
-      await stubOpenExternal(app);
-      await installCallbackCapture(app);
-      await clickGetAccessToken(page, 'AuthorizationImplicit');
-      await waitForAuthorizationStarted(app);
-    });
-
-    const issuedState = await test.step('capture the issued state', () => getIssuedState(app));
-
-    const callbackUrl
-      = `${CALLBACK}#access_token=${PROVIDER_ACCESS_TOKEN}&token_type=Bearer&expires_in=3600&state=${encodeURIComponent(issuedState)}`;
-
-    await test.step('deliver a callback with the matching state', async () => {
-      await fireCallback(app, callbackUrl);
-
-      const receivedCallbackUrl = await getCapturedCallbackUrl(app);
-      expect(receivedCallbackUrl).toBe(callbackUrl);
-
-      const { state: returnedState, access_token } = getCallbackParams(receivedCallbackUrl as string, 'hash');
-      expect(returnedState).toBe(issuedState);
-      expect(access_token).toBe(PROVIDER_ACCESS_TOKEN);
-    });
-
-    await expect(page.getByText('Token fetched successfully!')).toBeVisible({ timeout: 15_000 });
-  });
-
-  test('implicit grant (user-supplied state): issues userState + nonce and accepts matching callback', async ({ restartApp }) => {
-    test.setTimeout(60_000);
-    const USER_STATE = 'brunoUserState';
-    const app = await restartApp();
-    const page = await waitForReadyPage(app);
-
-    await test.step('start the implicit grant flow', async () => {
-      await stubOpenExternal(app);
-      await installCallbackCapture(app);
-      await clickGetAccessToken(page, 'ImplicitUserSuppliedState');
-      await waitForAuthorizationStarted(app);
-    });
-
-    const authUrl = await getCapturedAuthUrl(app);
-    expect(authUrl).toBeTruthy();
-
-    const issuedState = await test.step('capture and verify the issued state carries userState + nonce', async () => {
-      const state = await getIssuedState(app);
-      // Bruno appends a nonce — the issued state must be `userState + <32 hex>`, not the raw input.
-      expect(state.startsWith(USER_STATE)).toBeTruthy();
-      expect(state).toBe(USER_STATE);
-      return state;
-    });
-
-    const callbackUrl
-      = `${CALLBACK}#access_token=${PROVIDER_ACCESS_TOKEN}&token_type=Bearer&expires_in=3600&state=${encodeURIComponent(issuedState)}`;
-    await test.step('deliver a callback with the matching state', async () => {
-      await fireCallback(app, callbackUrl);
-
-      const receivedCallbackUrl = await getCapturedCallbackUrl(app);
-      expect(receivedCallbackUrl).toBe(callbackUrl);
-
-      const { state: returnedState, access_token } = getCallbackParams(receivedCallbackUrl as string, 'hash');
-      expect(returnedState).toBe(issuedState);
-      expect(access_token).toBe(PROVIDER_ACCESS_TOKEN);
-    });
-
-    await expect(page.getByText('Token fetched successfully!')).toBeVisible({ timeout: 15_000 });
   });
 });
