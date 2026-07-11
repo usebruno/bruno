@@ -1,3 +1,42 @@
+/**
+ * Local gRPC testbench.
+ *
+ * Boots one `grpc.Server` that binds three endpoints so tests can pick the
+ * transport they want without spinning up separate processes:
+ *
+ *   50051  insecure  — plaintext, no credentials required (env: GRPC_PORT)
+ *   50052  TLS       — server presents its cert (env: GRPC_TLS_PORT)
+ *   50053  mTLS      — server presents cert AND requires a client cert
+ *                      signed by the test CA (env: GRPC_MTLS_PORT)
+ *
+ * Certificates live in ./certs/ and are self-signed:
+ *   - ca.crt / ca.key                  — test CA
+ *   - server.crt / server.key          — SAN: DNS:localhost, IP:127.0.0.1
+ *   - client.crt / client.key          — EKU: clientAuth (for mTLS)
+ * A production client will fail to verify these without trusting ca.crt —
+ * that's intentional; it lets us exercise the "self-signed cert rejected"
+ * path in Bruno's SSL/TLS verification logic.
+ *
+ * Service (see ./echo.proto) — bruno.tests.echo.EchoService:
+ *   Ping         unary          → { message: "pong" }
+ *   Echo         unary          → echoes payload, mirrors request metadata
+ *                                  back as `grpc-echo-*` initial metadata,
+ *                                  honors optional delay_ms for deadline tests
+ *   EchoStream   server stream  → emits `count` messages every `interval_ms`
+ *   Collect      client stream  → returns { count, concatenated }
+ *   Chat         bidi stream    → echoes each incoming message
+ *   ThrowError   unary          → always fails with the requested status code
+ *
+ * Reflection is registered via `@grpc/reflection` so Bruno's reflection-based
+ * method discovery works against this server without needing the .proto file
+ * on the client side. The reflection service is available on all three ports.
+ *
+ * Usage:
+ *   node ./src/grpc/index.js                 # standalone
+ *   const grpc = require('./grpc');          # imported (see ../index.js)
+ *   grpc.start().catch(err => { ... });
+ */
+
 const fs = require('fs');
 const path = require('path');
 const grpc = require('@grpc/grpc-js');
