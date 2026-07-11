@@ -104,6 +104,11 @@ const server = require('http').createServer(app);
 
 server.on('upgrade', wsRouter);
 
+grpcServer.start().catch((err) => {
+  console.error('Failed to start gRPC testbench', err);
+  process.exit(1);
+});
+
 setupGraphQL(app).then(() => {
   server.listen(port, function () {
     console.log(`Testbench started on port: ${port}`);

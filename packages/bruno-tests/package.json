@@ -4,7 +4,8 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "start": "node ."
+    "start": "node .",
+    "start:grpc": "node ./src/grpc/index.js"
   },
   "repository": {
     "type": "git",
@@ -18,15 +19,18 @@
   },
   "homepage": "https://github.com/usebruno/bruno-testbench#readme",
   "dependencies": {
+    "@grpc/grpc-js": "^1.14.4",
+    "@grpc/proto-loader": "^0.7.15",
+    "@grpc/reflection": "^1.0.4",
     "axios": "1.16.0",
     "body-parser": "2.2.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "express": "^4.21.2",
-    "graphql": "^16.10.0",
-    "graphql-yoga": "^5.10.6",
     "express-basic-auth": "^1.2.1",
     "fast-xml-parser": "^5.5.7",
+    "graphql": "^16.10.0",
+    "graphql-yoga": "^5.10.6",
     "http-proxy": "^1.18.1",
     "js-yaml": "^4.1.1",
     "jsonwebtoken": "^9.0.3",
