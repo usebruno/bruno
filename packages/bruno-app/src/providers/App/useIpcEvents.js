@@ -48,6 +48,8 @@ import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState, collectionLoadedFromTree } from 'providers/ReduxStore/slices/collections/index';
 import { migrationProgressEvent } from 'providers/ReduxStore/slices/collection-migration';
+import { globalEnvironmentsUpdateEvent, restoreGlobalEnvironmentDraftFromSession, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
+import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections/index';
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import { loadNotifications } from 'providers/ReduxStore/slices/notifications';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
@@ -174,6 +176,7 @@ const useIpcEvents = () => {
             workspacePath: workspace.pathname
           }).then((result) => {
             dispatch(updateGlobalEnvironments(result));
+            dispatch(restoreGlobalEnvironmentDraftFromSession());
           }).catch((error) => {
             console.error('Error refreshing global environments:', error);
           });
@@ -192,6 +195,7 @@ const useIpcEvents = () => {
             workspacePath: workspace.pathname
           }).then((result) => {
             dispatch(updateGlobalEnvironments(result));
+            dispatch(restoreGlobalEnvironmentDraftFromSession());
           }).catch((error) => {
             console.error('Error refreshing global environments:', error);
           });
@@ -210,6 +214,7 @@ const useIpcEvents = () => {
             workspacePath: workspace.pathname
           }).then((result) => {
             dispatch(updateGlobalEnvironments(result));
+            dispatch(restoreGlobalEnvironmentDraftFromSession());
           }).catch((error) => {
             console.error('Error refreshing global environments:', error);
           });
@@ -346,6 +351,7 @@ const useIpcEvents = () => {
 
     const removeGlobalEnvironmentsUpdatesListener = ipcRenderer.on('main:load-global-environments', (val) => {
       dispatch(updateGlobalEnvironments(val));
+      dispatch(restoreGlobalEnvironmentDraftFromSession());
     });
 
     const removeSnapshotHydrationListener = ipcRenderer.on('main:hydrate-app-with-ui-state-snapshot', (val) => {

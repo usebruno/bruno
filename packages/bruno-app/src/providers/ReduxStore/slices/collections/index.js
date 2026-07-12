@@ -22,7 +22,7 @@ import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
 import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
 import mime from 'mime-types';
-import path from 'utils/common/path';
+import path, { normalizePath } from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
@@ -195,6 +195,57 @@ const mergeRequestWithPreservedUids = (existingRequest, newRequest) =>
 
 const mergeRootWithPreservedUids = (existingRoot, newRoot) =>
   preserveUidsAtPaths(existingRoot, newRoot, ROOT_UID_PATHS);
+
+const consumePersistedItemDraft = (collection, draftType, pathname) => {
+  if (!collection?.persistedDraftSession || !pathname) {
+    return null;
+  }
+
+  const normalizedPath = normalizePath(pathname);
+  const draft = collection.persistedDraftSession?.[draftType]?.[normalizedPath];
+
+  if (draft) {
+    delete collection.persistedDraftSession[draftType][normalizedPath];
+  }
+
+  return draft || null;
+};
+
+const applyPersistedFolderDraft = (collection, folderItem, pathname) => {
+  if (!folderItem?.draft) {
+    const draft = consumePersistedItemDraft(collection, 'folderDrafts', pathname || folderItem?.pathname);
+    if (draft) {
+      folderItem.draft = draft;
+    }
+  }
+};
+
+const applyPersistedRequestDraft = (collection, requestItem, pathname) => {
+  if (!requestItem?.draft) {
+    const draft = consumePersistedItemDraft(collection, 'requestDrafts', pathname || requestItem?.pathname);
+    if (draft) {
+      requestItem.draft = draft;
+    }
+  }
+};
+
+const applyPersistedEnvironmentDraft = (collection, environment) => {
+  const persistedDraft = collection?.persistedDraftSession?.environmentsDraft;
+  if (collection?.environmentsDraft || !persistedDraft || !environment) {
+    return;
+  }
+
+  const isMatch = (persistedDraft.environmentUid && persistedDraft.environmentUid === environment.uid)
+    || (persistedDraft.environmentName && persistedDraft.environmentName === environment.name);
+
+  if (isMatch) {
+    collection.environmentsDraft = {
+      environmentUid: environment.uid,
+      variables: persistedDraft.variables
+    };
+    delete collection.persistedDraftSession.environmentsDraft;
+  }
+};
 
 const initialState = {
   collections: [],
@@ -2924,6 +2975,7 @@ export const collectionsSlice = createSlice({
           if (file?.data?.meta?.seq) {
             folderItem.seq = file.data?.meta?.seq;
           }
+          applyPersistedFolderDraft(collection, folderItem, folderPath);
         }
         return;
       }
@@ -2955,6 +3007,7 @@ export const collectionsSlice = createSlice({
             // Update existing folder to be transient if the file is transient
             childItem.isTransient = true;
           }
+          applyPersistedFolderDraft(collection, childItem, currentPath);
           currentSubItems = childItem.items;
         }
 
@@ -2980,8 +3033,9 @@ export const collectionsSlice = createSlice({
             currentItem.size = file.size;
             currentItem.error = file.error;
             currentItem.isTransient = isTransientFile;
+            applyPersistedRequestDraft(collection, currentItem, file.meta.pathname);
           } else {
-            currentSubItems.push({
+            const newItem = {
               uid: file.data.uid,
               name: file.data.name,
               type: file.data.type,
@@ -3000,7 +3054,9 @@ export const collectionsSlice = createSlice({
               size: file.size,
               error: file.error,
               isTransient: isTransientFile
-            });
+            };
+            applyPersistedRequestDraft(collection, newItem, file.meta.pathname);
+            currentSubItems.push(newItem);
           }
         }
         addDepth(collection.items);
@@ -3053,6 +3109,7 @@ export const collectionsSlice = createSlice({
             // Update existing folder to be transient if the directory is transient
             childItem.isTransient = true;
           }
+          applyPersistedFolderDraft(collection, childItem, currentPath);
           currentSubItems = childItem.items;
         });
         addDepth(collection.items);
@@ -3081,6 +3138,7 @@ export const collectionsSlice = createSlice({
             folderItem.seq = file?.data?.meta?.seq;
           }
           folderItem.root = mergeRootWithPreservedUids(folderItem.root, file.data);
+          applyPersistedFolderDraft(collection, folderItem, folderPath);
         }
         return;
       }
@@ -3144,6 +3202,8 @@ export const collectionsSlice = createSlice({
               item.draft = null;
             }
           }
+
+          applyPersistedRequestDraft(collection, item, file.meta.pathname);
         }
       }
     },
@@ -3186,9 +3246,24 @@ export const collectionsSlice = createSlice({
           existingEnv.variables = environment.variables;
           existingEnv.color = environment.color;
           existingEnv.externalSecrets = environment.externalSecrets;
+          /*
+           Apply temporary (ephemeral) values only to variables that actually exist in the file. This prevents deleted temporaries from “popping back” after a save. If a variable is present in the file, we temporarily override the UI value while also remembering the on-disk value in persistedValue for future saves.
+          */
+          prevEphemerals.forEach((ev) => {
+            const target = existingEnv.variables?.find((v) => v.name === ev.name);
+            if (target) {
+              if (target.value !== ev.value) {
+                if (target.persistedValue === undefined) target.persistedValue = target.value;
+                target.value = ev.value;
+              }
+              target.ephemeral = true;
+            }
+          });
+          applyPersistedEnvironmentDraft(collection, existingEnv);
         } else {
           collection.environments.push(environment);
           collection.environments.sort((a, b) => a.name.localeCompare(b.name));
+          applyPersistedEnvironmentDraft(collection, environment);
 
           const lastAction = collection.lastAction;
           if (lastAction && lastAction.type === 'ADD_ENVIRONMENT') {
