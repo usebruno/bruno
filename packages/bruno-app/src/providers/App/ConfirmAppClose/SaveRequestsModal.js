@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo } from 'react';
 import each from 'lodash/each';
 import filter from 'lodash/filter';
-import groupBy from 'lodash/groupBy';
 import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
-import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
+import { flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
 import { pluralizeWord } from 'utils/common';
 import { getInvalidVariableNames } from 'utils/common/variables';
 import { isEnvironmentValidationError } from 'utils/environments';
@@ -16,14 +15,16 @@ import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
 import toast from 'react-hot-toast';
+import { useStore } from 'react-redux';
+import { clearPersistedDraftSession, persistDraftSession } from 'providers/ReduxStore/utils/draftSession';
 
 const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [] }) => {
   const MAX_UNSAVED_ITEMS_TO_SHOW = 5;
   const collections = useSelector((state) => state.collections.collections);
-  const tabs = useSelector((state) => state.tabs.tabs);
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
   const dispatch = useDispatch();
+  const store = useStore();
 
   const allDrafts = useMemo(() => {
     const requestDrafts = [];
@@ -34,8 +35,8 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
     const relevantTabs = forceCloseTabs ? tabs.filter((t) => tabUidsToClose.includes(t.uid)) : tabs;
     const tabsByCollection = groupBy(relevantTabs, (t) => t.collectionUid);
 
-    Object.keys(tabsByCollection).forEach((collectionUid) => {
-      const collection = findCollectionByUid(collections, collectionUid);
+    collections.forEach((collection) => {
+      const collectionUid = collection?.uid;
       if (collection) {
         // Check for collection draft
         if (collection.draft) {
@@ -108,8 +109,8 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
       }
     }
 
-    return [...collectionDrafts, ...folderDrafts, ...environmentDrafts, ...appDrafts, ...requestDrafts];
-  }, [collections, tabs, globalEnvironments, globalEnvironmentDraft, forceCloseTabs, tabUidsToClose]);
+    return [...collectionDrafts, ...folderDrafts, ...environmentDrafts, ...requestDrafts];
+  }, [collections, globalEnvironments, globalEnvironmentDraft]);
 
   const totalDraftsCount = allDrafts.length;
 
@@ -121,6 +122,8 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
       } else {
         dispatch(completeQuitFlow());
       }
+      clearPersistedDraftSession();
+      return dispatch(completeQuitFlow());
     }
   }, [totalDraftsCount, dispatch, forceCloseTabs, tabUidsToClose]);
 
@@ -151,6 +154,8 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
     } else {
       dispatch(completeQuitFlow());
     }
+    persistDraftSession(store.getState());
+    dispatch(completeQuitFlow());
     onClose();
   };
 
@@ -229,6 +234,8 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
       } else {
         dispatch(completeQuitFlow());
       }
+      clearPersistedDraftSession();
+      dispatch(completeQuitFlow());
       onClose();
     } catch (error) {
       console.error('Error saving drafts:', error);
