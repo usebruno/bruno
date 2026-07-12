@@ -127,6 +127,10 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.colors.text.danger};
       font-weight: 700;
       word-break: break-all;
+   
+      .not-set {
+        font-weight: 500;
+      }
     }
 
     .new {

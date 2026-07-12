@@ -35,6 +35,7 @@ const FILE_DERIVED_REQUEST_FIELDS = [
   'request',
   'settings',
   'examples',
+  'raw',
   'filename',
   'pathname',
   'partial',
@@ -311,6 +312,45 @@ export const collectionsSlice = createSlice({
       if (collection) {
         collection.brunoConfig = brunoConfig;
       }
+    },
+    migrateCollectionToYmlInPlace: (state, action) => {
+      const { collectionUid, brunoConfig } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) {
+        return;
+      }
+
+      if (brunoConfig) {
+        collection.brunoConfig = brunoConfig;
+        if (collection.draft?.brunoConfig) {
+          collection.draft.brunoConfig = brunoConfig;
+        }
+      }
+      collection.format = 'yml';
+
+      const rewriteItemPaths = (items) => {
+        (items || []).forEach((item) => {
+          if (item.isTransient) {
+            return;
+          }
+          if (typeof item.pathname === 'string') {
+            item.pathname = item.pathname.replace(/\.bru$/, '.yml');
+          }
+          if (typeof item.filename === 'string') {
+            item.filename = item.filename.replace(/\.bru$/, '.yml');
+          }
+          if (item.items && item.items.length) {
+            rewriteItemPaths(item.items);
+          }
+        });
+      };
+      rewriteItemPaths(collection.items);
+
+      (collection.environments || []).forEach((environment) => {
+        if (typeof environment.pathname === 'string') {
+          environment.pathname = environment.pathname.replace(/\.bru$/, '.yml');
+        }
+      });
     },
     renameCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -1696,12 +1736,14 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           item.draft.request.body.file = item.draft.request.body.file || [];
+          const shouldSelectNewFile = !item.draft.request.body.file.some((p) => p.selected);
 
           item.draft.request.body.file.push({
             uid: uuid(),
             filePath: '',
             contentType: '',
-            selected: false
+            description: '',
+            selected: shouldSelectNewFile
           });
         }
       }
@@ -1723,12 +1765,18 @@ export const collectionsSlice = createSlice({
             const contentType = mime.contentType(path.extname(action.payload.param.filePath));
             param.filePath = action.payload.param.filePath;
             param.contentType = action.payload.param.contentType || contentType || '';
-            param.selected = action.payload.param.selected;
+            param.description = action.payload.param.description ?? param.description ?? '';
 
-            item.draft.request.body.file = item.draft.request.body.file.map((p) => {
-              p.selected = p.uid === param.uid;
-              return p;
-            });
+            if (typeof action.payload.param.selected === 'boolean') {
+              param.selected = action.payload.param.selected;
+
+              if (param.selected) {
+                item.draft.request.body.file = item.draft.request.body.file.map((p) => {
+                  p.selected = p.uid === param.uid;
+                  return p;
+                });
+              }
+            }
           }
         }
       }
@@ -2981,17 +3029,43 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, file.data.uid);
 
         if (item) {
-          // whenever a user attempts to sort a req within the same folder
-          // the seq is updated, but everything else remains the same
-          // we don't want to lose the draft in this case
-          if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
-            item.seq = file.data.seq;
-            item.raw = file.data.raw;
-            if (item?.draft) {
-              item.draft.seq = file.data.seq;
-            }
-            if (item?.draft && areItemsTheSameExceptSeqUpdate(item?.draft, file.data)) {
-              item.draft = null;
+          item.partial = file.partial;
+          item.error = file.error;
+          item.loading = file.loading;
+          if (item.request) {
+            if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
+              // whenever a user attempts to sort a req within the same folder
+              // the seq is updated, but everything else remains the same
+              // we don't want to lose the draft in this case
+              item.seq = file.data.seq;
+              item.raw = file.data.raw;
+              if (item?.draft) {
+                item.draft.seq = file.data.seq;
+              }
+              if (item?.draft && areItemsTheSameExceptSeqUpdate(item?.draft, file.data)) {
+                item.draft = null;
+              }
+            } else {
+              item.name = file.data.name;
+              item.type = file.data.type;
+              item.seq = file.data.seq;
+              item.tags = file.data.tags;
+              item.request = mergeRequestWithPreservedUids(item.request, file.data.request);
+              item.settings = file.data.settings;
+              item.examples = file.data.examples;
+              item.app = file.data.app ? { ...file.data.app } : null;
+              item.filename = file.meta.name;
+              item.pathname = file.meta.pathname;
+              item.raw = file.data.raw;
+              item.size = file.size;
+              // Only clear draft if it matches the file content
+              // This preserves characters typed during autosave
+              // The raw comparison is guarded so an undefined === undefined match
+              // (when neither side has raw content) does not wipe a genuine draft
+              const draftRawMatchesFile = item.draft?.raw !== undefined && item.draft.raw === file.data.raw;
+              if (item.draft && (areItemsTheSameExceptSeqUpdate(item.draft, file.data) || draftRawMatchesFile)) {
+                item.draft = null;
+              }
             }
           } else {
             item.name = file.data.name;
@@ -3001,26 +3075,12 @@ export const collectionsSlice = createSlice({
             item.request = mergeRequestWithPreservedUids(item.request, file.data.request);
             item.settings = file.data.settings;
             item.examples = file.data.examples;
-            // app.enabled is runtime-only and not persisted, so preserve it across file reloads
-            // even when the file no longer has an `app` block on disk.
-            const currentEnabled = item.draft?.app?.enabled ?? item.app?.enabled ?? false;
-            if (file.data.app) {
-              item.app = { ...file.data.app, enabled: currentEnabled };
-            } else if (currentEnabled) {
-              item.app = { code: null, enabled: true };
-            } else {
-              item.app = null;
-            }
+            item.app = file.data.app ? { ...file.data.app } : null;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
             item.raw = file.data.raw;
-
-            // Only clear draft if it matches the file content
-            // This preserves characters typed during autosave
-            // The raw comparison is guarded so an undefined === undefined match
-            // (when neither side has raw content) does not wipe a genuine draft
-            const draftRawMatchesFile = item.draft?.raw !== undefined && item.draft.raw === file.data.raw;
-            if (item.draft && (areItemsTheSameExceptSeqUpdate(item.draft, file.data) || draftRawMatchesFile)) {
+            item.size = file.size;
+            if (!item.draft || item.draft.raw === file.data.raw) {
               item.draft = null;
             }
           }
@@ -3432,12 +3492,11 @@ export const collectionsSlice = createSlice({
 
       const item = findItemInCollection(collection, action.payload.itemUid);
       if (item && isItemARequest(item)) {
-        item.app = item.app || {};
-        item.app.enabled = action.payload.enabled;
-        if (item.draft) {
-          item.draft.app = item.draft.app || {};
-          item.draft.app.enabled = action.payload.enabled;
+        if (!item.draft) {
+          item.draft = cloneDeep(item);
         }
+        item.draft.app = item.draft.app || {};
+        item.draft.app.enabled = action.payload.enabled;
       }
     },
     appSetRuntimeVariable: (state, action) => {
@@ -3906,6 +3965,7 @@ export const {
   setCollectionSecurityConfig,
   updateCollectionVersion,
   brunoConfigUpdateEvent,
+  migrateCollectionToYmlInPlace,
   renameCollection,
   removeCollection,
   sortCollections,

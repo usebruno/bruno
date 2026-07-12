@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { get, cloneDeep, isArray } from 'lodash';
+import React from 'react';
+import { get, cloneDeep } from 'lodash';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -8,13 +8,12 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
+import MultiLineEditor from 'components/MultiLineEditor';
 
 const FileBody = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const params = item.draft ? get(item, 'draft.request.body.file') : get(item, 'request.body.file');
-
-  const [enabledFileUid, setEnableFileUid] = useState(params && params.length ? params[0].uid : '');
 
   const addFile = () => {
     dispatch(
@@ -40,9 +39,12 @@ const FileBody = ({ item, collection }) => {
         param.contentType = e.target.contentType;
         break;
       }
+      case 'description': {
+        param.description = e.target.description;
+        break;
+      }
       case 'selected': {
-        param.selected = e.target.selected;
-        setEnableFileUid(param.uid);
+        param.selected = e.target.checked;
         break;
       }
     }
@@ -66,7 +68,7 @@ const FileBody = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full">
+    <StyledWrapper className="w-full" data-testid="file-body-table">
       <table>
         <thead>
           <tr>
@@ -79,12 +81,15 @@ const FileBody = ({ item, collection }) => {
             <td>
               <div className="flex items-center justify-center">Selected</div>
             </td>
+            <td>
+              <div className="flex items-center justify-center">Description</div>
+            </td>
             <td></td>
           </tr>
         </thead>
         <tbody>
           {params && params.length
-            ? params.map((param, index) => {
+            ? params.map((param) => {
                 return (
                   <tr key={param.uid}>
                     <td>
@@ -132,12 +137,33 @@ const FileBody = ({ item, collection }) => {
                           key={param.uid}
                           type="radio"
                           name="selected"
-                          checked={enabledFileUid === param.uid || param.selected}
+                          checked={!!param.selected}
                           tabIndex="-1"
                           className="mr-1 mousetrap"
                           onChange={(e) => handleParamChange(e, param, 'selected')}
                         />
                       </div>
+                    </td>
+                    <td data-testid="column-description">
+                      <MultiLineEditor
+                        value={param.description || ''}
+                        theme={storedTheme}
+                        onSave={onSave}
+                        onChange={(newValue) =>
+                          handleParamChange(
+                            {
+                              target: {
+                                description: newValue
+                              }
+                            },
+                            param,
+                            'description'
+                          )}
+                        onRun={handleRun}
+                        collection={collection}
+                        item={item}
+                        placeholder={!param.description ? 'Description' : ''}
+                      />
                     </td>
                     <td>
                       <div className="flex items-center justify-center">

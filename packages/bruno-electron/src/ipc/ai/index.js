@@ -12,6 +12,7 @@ const {
   clearSdkCache,
   isKnownProviderId,
   isBuiltInModelId,
+  isReasoningModel,
   validateApiKeyForProvider,
   providerLabel
 } = require('./providers');
@@ -162,7 +163,7 @@ const registerAiIpc = (mainWindow) => {
         system,
         prompt,
         maxOutputTokens: maxTokens ?? 1024,
-        temperature: temperature ?? 0.3
+        ...(isReasoningModel(modelId) ? {} : { temperature: temperature ?? 0.3 })
       });
       return { text };
     } catch (err) {
@@ -344,7 +345,7 @@ const registerAiIpc = (mainWindow) => {
         model,
         system,
         maxOutputTokens: maxTokens ?? 2048,
-        temperature: temperature ?? 0.7,
+        ...(isReasoningModel(modelId) ? {} : { temperature: temperature ?? 0.7 }),
         abortSignal: controller.signal
       };
       if (messages) {

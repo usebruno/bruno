@@ -4,6 +4,7 @@ import get from 'lodash/get';
 import Tippy from '@tippyjs/react';
 import { IconX, IconArrowBackUp, IconPlayerStop } from '@tabler/icons';
 import IconSparkles from 'components/Icons/IconSparkles';
+import Button from 'ui/Button';
 import { aiGenerateScript, stopAiGeneration } from 'utils/ai';
 import StyledWrapper, { PopupWrapper } from './StyledWrapper';
 
@@ -243,14 +244,17 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
                     <span className="popup-hint">Enter to generate · Shift+Enter for newline</span>
                   )}
                   {isLoading ? (
-                    <button
-                      className="btn-stop"
-                      type="button"
+                    <Button
+                      variant="filled"
+                      color="danger"
+                      size="sm"
+                      rounded="sm"
+                      icon={<IconPlayerStop size={12} />}
                       onClick={handleStop}
                       title="Stop generating"
                     >
-                      <IconPlayerStop size={12} /> Stop
-                    </button>
+                      Stop
+                    </Button>
                   ) : (
                     <button
                       className="btn-generate"

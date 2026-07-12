@@ -340,6 +340,9 @@ const createGetNumFromRecord = (obj) => (key, { fallback } = {}) => {
   return asNumber;
 };
 
+// Dictionary values arrive as strings; booleans may already be coerced upstream.
+const toBool = (value) => (typeof value === 'boolean' ? value : value === 'true');
+
 // Parse example content using dedicated example parser
 const parseExampleContent = (content) => {
   try {
@@ -540,7 +543,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const appData = mapPairListToKeyValPair(dictionary.ast);
     return {
       app: {
-        code: appData.code || null
+        code: appData.code || null,
+        enabled: toBool(appData.enabled)
       }
     };
   },
@@ -552,7 +556,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     const parsedSettings = {};
     if (settings.followRedirects !== undefined) {
-      parsedSettings.followRedirects = typeof settings.followRedirects === 'boolean' ? settings.followRedirects : settings.followRedirects === 'true';
+      parsedSettings.followRedirects = toBool(settings.followRedirects);
     }
 
     // Parse maxRedirects as number
@@ -576,7 +580,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     }
 
     const _settings = {
-      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
+      encodeUrl: toBool(settings.encodeUrl),
       timeout: parsedSettings.timeout !== undefined ? parsedSettings.timeout : 0
     };
 
