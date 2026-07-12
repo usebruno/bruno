@@ -29,8 +29,8 @@ const StyledModeSwitch = styled.div`
     }
 
     &.is-active {
-      background: var(--color-orange-500, #f5a623);
-      color: #fff;
+      background-color: ${(props) => props.theme.button2.color['primary']?.bg};
+      color: ${(props) => props.theme.button2.color['primary']?.text};
     }
   }
 `;
