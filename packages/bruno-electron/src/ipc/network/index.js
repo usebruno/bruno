@@ -1058,7 +1058,10 @@ const registerNetworkIpc = (mainWindow) => {
             response.data = await promisifyStream(response.data);
           }
         } else {
-          await executeRequestOnFailHandler(request, error);
+          const onFailScriptResult = await executeRequestOnFailHandler(request, error);
+          if (onFailScriptResult) {
+            sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection });
+          }
 
           // if it's not a network error, don't continue
           // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
@@ -1935,7 +1938,10 @@ const registerNetworkIpc = (mainWindow) => {
                   ...eventData
                 });
               } else {
-                await executeRequestOnFailHandler(request, error);
+                const onFailScriptResult = await executeRequestOnFailHandler(request, error);
+                if (onFailScriptResult) {
+                  sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection });
+                }
 
                 // if it's not a network error, don't continue
                 throw error;
@@ -2231,7 +2237,7 @@ const executeRequestOnFailHandler = async (request, error) => {
   }
 
   try {
-    await request.onFailHandler(error);
+    return await request.onFailHandler(error);
   } catch (handlerError) {
     console.error('Error executing onFail handler', handlerError);
     // @TODO: This is a temporary solution to display the error message in the response pane. Revisit and handle properly.

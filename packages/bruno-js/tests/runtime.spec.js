@@ -120,6 +120,29 @@ describe('runtime', () => {
         const result = await runtime.runRequestScript(script, { ...baseRequest }, {}, {}, '.', null, process.env);
         expect(result.runtimeVariables.validation).toBeTruthy();
       });
+
+      it('should return variable updates made in req.onFail', async () => {
+        const script = `
+          bru.setVar('runtimeToken', 'before');
+          bru.setEnvVar('environmentToken', 'before');
+          bru.setGlobalEnvVar('globalToken', 'before');
+
+          req.onFail(() => {
+            bru.setVar('runtimeToken', 'after');
+            bru.setEnvVar('environmentToken', 'after');
+            bru.setGlobalEnvVar('globalToken', 'after');
+          });
+        `;
+        const request = { ...baseRequest };
+        const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+        await runtime.runRequestScript(script, request, {}, {}, '.', null, process.env);
+        const result = await request.onFailHandler(new Error('Connection failed'));
+
+        expect(result.runtimeVariables.runtimeToken).toBe('after');
+        expect(result.envVariables.environmentToken).toBe('after');
+        expect(result.globalEnvironmentVariables.globalToken).toBe('after');
+      });
     });
 
     describe('run-response-script', () => {
