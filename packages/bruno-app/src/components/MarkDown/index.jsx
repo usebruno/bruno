@@ -17,13 +17,12 @@ const Markdown = ({ collectionPath, onDoubleClick, content, allowHtml = true }) 
   }, [content, editor]);
 
   const handleOnClick = (event) => {
-    const target = event.target;
-    if (target.tagName === 'A') {
-      event.preventDefault();
+    const target = event.target.closest('a');
+    if (target && target.tagName === 'A') {
       const href = target.getAttribute('href');
       if (href && isValidUrl(href)) {
+        event.preventDefault();
         window.open(href, '_blank');
-        return;
       }
     }
   };

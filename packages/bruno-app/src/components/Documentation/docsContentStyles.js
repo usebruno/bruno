@@ -228,6 +228,16 @@ const docsContentStyles = css`
       line-height: 1.5;
     }
   }
+  a,
+  .docs-link {
+    color: ${(props) => props.theme.textLink};
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 `;
 
 export default docsContentStyles;
