@@ -168,4 +168,25 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
     await expect(prosemirror.locator('table')).toBeVisible();
     await expect(prosemirror.locator('tr')).toHaveCount(3);
   });
+  test('Markdown to WYSIWYG Sync', async ({ page, createTmpDir }) => {
+    await setupRequestDocs(page, createTmpDir, 'test-markdown-sync');
+
+    // Switch to Markdown
+    await page.locator('.docs-mode-switch button').nth(1).click();
+    await page.waitForTimeout(500);
+
+    // Type in Markdown
+    const codeEditor = page.locator('.editor-container .CodeMirror-scroll');
+    await codeEditor.click();
+
+    await page.keyboard.type('Hello MARKDOWN');
+    await page.waitForTimeout(500);
+
+    // Switch to WYSIWYG
+    await page.locator('.docs-mode-switch button').nth(0).click();
+    await page.waitForTimeout(1000);
+
+    const wysiwygText = await page.textContent('.ProseMirror');
+    expect(wysiwygText).toContain('Hello MARKDOWN');
+  });
 });

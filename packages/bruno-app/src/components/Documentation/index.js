@@ -73,10 +73,10 @@ const Documentation = ({ item, collection }) => {
   const editor = useEditor({
     extensions: WysiwygEditor.extensions,
     content: docs || '',
-    onUpdate: ({ editor: currentEditor }) => {
-      if (!isMarkdownModeRef.current) {
-        skipDocsSyncRef.current = true;
-      }
+    onUpdate: ({ editor: currentEditor, transaction }) => {
+      if (isMarkdownModeRef.current) return;
+      if (transaction && !transaction.docChanged) return;
+      skipDocsSyncRef.current = true;
       onEdit(currentEditor.storage.markdown.getMarkdown());
     },
     editorProps: {
@@ -116,19 +116,9 @@ const Documentation = ({ item, collection }) => {
 
     if (isEditing && isMarkdownMode) return;
 
-    console.log('[DEBUG Documentation Sync]', { docs, isEditing, isMarkdownMode });
-    editor.commands.setContent(docs || '', false);
-  }, [docs, editor, isMarkdownMode, isEditing]);
-
-  useEffect(() => {
-    if (!editor) return;
-
-    if (prevMarkdownModeRef.current && (!isEditing || !isMarkdownMode)) {
-      console.log('[DEBUG Documentation Sync Prev]', { docs, isEditing, isMarkdownMode });
-      editor.commands.setContent(docs || '');
+    if (!editor.isDestroyed) {
+      editor.commands.setContent(docs || '', false);
     }
-
-    prevMarkdownModeRef.current = isEditing && isMarkdownMode;
   }, [docs, editor, isMarkdownMode, isEditing]);
 
   useEffect(() => {
@@ -190,39 +180,35 @@ const Documentation = ({ item, collection }) => {
         <Tooltip id="docs-mode-tooltip" {...DOCS_TOOLBAR_TOOLTIP_PROPS} />
       </div>
 
-      {isEditing ? (
-        isMarkdownMode ? (
-          <div className="relative flex-1 min-h-0">
-            <CodeEditor
-              collection={collection}
-              theme={displayedTheme}
-              font={get(preferences, 'font.codeFont', 'default')}
-              fontSize={get(preferences, 'font.codeFontSize')}
-              value={docs || ''}
-              onEdit={onEdit}
-              onSave={onSave}
-              mode="application/text"
-              initialScroll={scroll}
-              onScroll={setScroll}
-            />
-            <AIAssist
-              scriptType="docs"
-              currentScript={docs || ''}
-              requestContext={requestContext}
-              variables={aiVariables}
-              onApply={onEdit}
-            />
-          </div>
-        ) : (
-          <section className="flex flex-col flex-1 min-h-0 w-full">
-            <WysiwygEditor editor={editor} />
-          </section>
-        )
-      ) : (
-        <section className="flex flex-col flex-1 min-h-0 w-full" onDoubleClick={() => setEditing(true)}>
-          <WysiwygEditor editor={editor} />
-        </section>
+      {isEditing && isMarkdownMode && (
+        <div className="relative flex-1 min-h-0">
+          <CodeEditor
+            collection={collection}
+            theme={displayedTheme}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+            value={docs || ''}
+            onEdit={onEdit}
+            onSave={onSave}
+            mode="application/text"
+            initialScroll={scroll}
+            onScroll={setScroll}
+          />
+          <AIAssist
+            scriptType="docs"
+            currentScript={docs || ''}
+            requestContext={requestContext}
+            variables={aiVariables}
+            onApply={onEdit}
+          />
+        </div>
       )}
+      <section
+        className={`flex flex-col flex-1 min-h-0 w-full ${isEditing && isMarkdownMode ? 'hidden' : ''}`}
+        onDoubleClick={() => !isEditing && setEditing(true)}
+      >
+        <WysiwygEditor editor={editor} />
+      </section>
     </StyledWrapper>
   );
 };
