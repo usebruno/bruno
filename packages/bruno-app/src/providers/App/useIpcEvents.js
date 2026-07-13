@@ -136,7 +136,7 @@ const useIpcEvents = () => {
       dispatch(workspaceOpenedEvent(workspacePath, workspaceUid, workspaceConfig));
     });
 
-    const removeShowOpenCollectionListener = ipcRenderer.on('main:show-open-collection', () => {
+    const removeOpenCollectionModalListener = ipcRenderer.on('main:open-collection', () => {
       dispatch(setIsOpeningCollection(true));
     });
 
@@ -391,7 +391,7 @@ const useIpcEvents = () => {
       removeApiSpecTreeUpdateListener();
       removeOpenCollectionListener();
       removeOpenWorkspaceListener();
-      removeShowOpenCollectionListener();
+      removeOpenCollectionModalListener();
       removeWorkspacesReadyListener();
       removeWorkspaceConfigUpdatedListener();
       removeWorkspaceEnvironmentAddedListener();
