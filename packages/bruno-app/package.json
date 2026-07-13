@@ -16,7 +16,6 @@
     "@prantlf/jsonlint": "^16.0.0",
     "@reduxjs/toolkit": "^1.8.0",
     "@tabler/icons": "^1.46.0",
-    "@tanstack/react-query": "5.101.1",
     "@testing-library/user-event": "^14.6.1",
     "@tippyjs/react": "^4.2.6",
     "@usebruno/common": "0.1.0",

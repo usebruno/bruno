@@ -1,4 +1,4 @@
-export type StatementType = 'run' | 'get' | 'all'
+export type StatementType = 'one' | 'many' | 'exec'
 
 export type Migration = {
   sequence: number

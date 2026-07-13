@@ -2,10 +2,10 @@ import { DatabaseSync } from 'node:sqlite';
 import type { StatementDef } from '../../src/shared/types';
 
 const defs: StatementDef[] = [
-  { name: 'insertItem', type: 'run', sql: 'INSERT INTO items(name) VALUES (:name)', tables: ['items'] },
-  { name: 'insertWithId', type: 'run', sql: 'INSERT INTO items(id, name) VALUES (:id, :name)', tables: ['items'] },
-  { name: 'getItem', type: 'get', sql: 'SELECT * FROM items WHERE id = :id', tables: ['items'] },
-  { name: 'allItems', type: 'all', sql: 'SELECT * FROM items', tables: ['items'] }
+  { name: 'insertItem', type: 'exec', sql: 'INSERT INTO items(name) VALUES (:name)', tables: ['items'] },
+  { name: 'insertWithId', type: 'exec', sql: 'INSERT INTO items(id, name) VALUES (:id, :name)', tables: ['items'] },
+  { name: 'getItem', type: 'one', sql: 'SELECT * FROM items WHERE id = :id', tables: ['items'] },
+  { name: 'allItems', type: 'many', sql: 'SELECT * FROM items', tables: ['items'] }
 ];
 
 jest.doMock('../../src/generated/node/statements', () => ({ statements: defs }));
@@ -30,7 +30,7 @@ describe('Statements.execute mutation signalling', () => {
     expect(onMutation).toHaveBeenCalledWith({ name: 'insertItem', tables: ['items'] });
   });
 
-  it('does not notify for a "get" read', () => {
+  it('does not notify for a "one" read', () => {
     const onMutation = jest.fn();
     const statements = newStatements(onMutation);
     statements.execute('insertItem', { name: 'alpha' });
@@ -40,7 +40,7 @@ describe('Statements.execute mutation signalling', () => {
     expect(onMutation).not.toHaveBeenCalled();
   });
 
-  it('does not notify for an "all" read', () => {
+  it('does not notify for a "many" read', () => {
     const onMutation = jest.fn();
     const statements = newStatements(onMutation);
     statements.execute('insertItem', { name: 'alpha' });

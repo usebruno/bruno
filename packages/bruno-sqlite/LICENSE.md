@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2022 Anoop M D, Anusree P S and Contributors
+Copyright (c) 2026 Bruno Software Inc. and Contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -14,8 +14,6 @@ const { intersectsTablesPredicate } = require('../../src/web/tables');
 const isInvalidated = (client: QueryClient, queryKey: unknown[]) =>
   client.getQueryState(queryKey)?.isInvalidated ?? false;
 
-// Mirrors what SQLiteProvider does when it receives a mutation broadcast:
-// invalidate every cached read whose tables intersect the changed tables.
 const broadcast = (client: QueryClient, tables: string[]) =>
   client.invalidateQueries({ predicate: intersectsTablesPredicate(tables) });
 
