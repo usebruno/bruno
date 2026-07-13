@@ -101,11 +101,10 @@ class MountManager {
     return tempDirectoryPath;
   }
 
-  async remount({ collectionUid, brunoConfig, win }) {
+  async remount({ collectionUid, brunoConfig }) {
     const entry = this.#mounts.get(collectionUid);
     if (!entry) return false;
 
-    if (win) entry.win = win;
     if (brunoConfig) entry.brunoConfig = brunoConfig;
 
     // the caller tore the watcher down (e.g. yml migration rewrote every file);
