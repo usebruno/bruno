@@ -135,9 +135,15 @@ export const buildCommonLocators = (page: Page) => ({
     // Variables and secrets each live on their own tab in the environment editor.
     variablesTab: () => page.getByTestId('responsive-tab-variables'),
     secretsTab: () => page.getByTestId('responsive-tab-secrets'),
+    // The per-tab unsaved-changes dot, scoped to its tab (the visible tab carries the
+    // responsive-tab testid; the hidden measurement copy does not, so this stays unique).
+    // The dot is always in the DOM and toggles via visibility, so assert with
+    // toBeVisible()/toBeHidden() rather than presence.
+    tabDot: (tab: string) => page.getByTestId(`responsive-tab-${tab}`).getByTestId('env-tab-draft-indicator'),
     saveTab: () => page.getByTestId('save-env'),
     saveAll: () => page.getByTestId('save-all-env'),
     searchInput: () => page.getByTestId('env-search-input'),
+    searchAction: () => page.getByTestId('env-search-action'),
     collectionEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Environments$/ }),
     globalEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Global Environments$/ }),
     unsavedModal: {
