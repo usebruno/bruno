@@ -1,5 +1,5 @@
 import { expect, test } from '../../playwright';
-import { buildWebsocketCommonLocators } from '../utils/page/locators';
+import { buildCommonLocators } from '../utils/page/locators';
 import { createTransientRequest, selectRequestPaneTab, closeAllTabs, switchToOpenTab } from '../utils/page/actions';
 
 test.describe('websocket expanded-message persistence across tab switches', () => {
@@ -10,18 +10,18 @@ test.describe('websocket expanded-message persistence across tab switches', () =
   test('keeps every open message open (not just the selected one) after switching tabs and back', async ({
     page
   }) => {
-    const ws = buildWebsocketCommonLocators(page);
+    const ws = buildCommonLocators(page);
 
     // Tab A: a WebSocket request with two messages, both expanded.
     await createTransientRequest(page, { requestType: 'WebSocket' });
     await selectRequestPaneTab(page, 'Message');
-    await expect(ws.message.body(0)).toBeVisible();
+    await expect(ws.websocket.message.body(0)).toBeVisible();
 
     // Adding a second message auto-expands it (and selects it), so both are open.
-    await ws.message.addButton().click();
-    await expect(ws.message.headers()).toHaveCount(2);
-    await expect(ws.message.body(0)).toBeVisible();
-    await expect(ws.message.body(1)).toBeVisible();
+    await ws.websocket.message.addButton().click();
+    await expect(ws.websocket.message.headers()).toHaveCount(2);
+    await expect(ws.websocket.message.body(0)).toBeVisible();
+    await expect(ws.websocket.message.body(1)).toBeVisible();
 
     // Tab B: another request to switch to, unmounting tab A's message list.
     await createTransientRequest(page, { requestType: 'WebSocket' });
@@ -32,7 +32,7 @@ test.describe('websocket expanded-message persistence across tab switches', () =
 
     // Both messages must remain expanded — previously only the selected message
     // was restored on remount and the rest collapsed.
-    await expect(ws.message.body(0)).toBeVisible();
-    await expect(ws.message.body(1)).toBeVisible();
+    await expect(ws.websocket.message.body(0)).toBeVisible();
+    await expect(ws.websocket.message.body(1)).toBeVisible();
   });
 });

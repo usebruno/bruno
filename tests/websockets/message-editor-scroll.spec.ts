@@ -1,6 +1,6 @@
 import { expect, test } from '../../playwright';
 import { openRequest, closeAllCollections } from '../utils/page/actions';
-import { buildWebsocketCommonLocators } from '../utils/page/locators';
+import { buildCommonLocators } from '../utils/page/locators';
 
 const COLLECTION_NAME = 'collection';
 const SCROLL_REQ = 'ws-scroll-top';
@@ -12,13 +12,13 @@ test.describe('websocket message editor scroll behaviour', () => {
   });
 
   test('reopening a message restores the scroll position where we left it', async ({ pageWithUserData: page }) => {
-    const ws = buildWebsocketCommonLocators(page);
+    const ws = buildCommonLocators(page);
     // CodeMirror's scroller lives inside the message body.
-    const cmScroll = (index: number) => ws.message.body(index).locator('.CodeMirror-scroll');
+    const cmScroll = (index: number) => ws.websocket.message.body(index).locator('.CodeMirror-scroll');
 
     await openRequest(page, COLLECTION_NAME, SCROLL_REQ);
 
-    await expect(ws.message.body(0)).toBeVisible();
+    await expect(ws.websocket.message.body(0)).toBeVisible();
 
     await expect
       .poll(() => cmScroll(0).evaluate((el) => el.scrollHeight - el.clientHeight))
@@ -32,10 +32,10 @@ test.describe('websocket message editor scroll behaviour', () => {
     expect(target).toBeGreaterThan(0);
 
     // Collapse then reopen.
-    await ws.message.header(0).click({ position: { x: 8, y: 12 } });
-    await expect(ws.message.body(0)).toBeHidden();
-    await ws.message.header(0).click({ position: { x: 8, y: 12 } });
-    await expect(ws.message.body(0)).toBeVisible();
+    await ws.websocket.message.header(0).click({ position: { x: 8, y: 12 } });
+    await expect(ws.websocket.message.body(0)).toBeHidden();
+    await ws.websocket.message.header(0).click({ position: { x: 8, y: 12 } });
+    await expect(ws.websocket.message.body(0)).toBeVisible();
 
     // Editor should return to where we left it, not to the top.
     await expect
@@ -46,14 +46,14 @@ test.describe('websocket message editor scroll behaviour', () => {
   test('opening a collapsed message scrolls its header to the top of the list', async ({
     pageWithUserData: page
   }) => {
-    const ws = buildWebsocketCommonLocators(page);
-    const container = ws.message.container();
+    const ws = buildCommonLocators(page);
+    const container = ws.websocket.message.container();
 
     await openRequest(page, COLLECTION_NAME, TWO_MSG_REQ);
 
     // Message 1 is expanded by default; message 2 starts collapsed and below it.
-    await expect(ws.message.body(0)).toBeVisible();
-    await expect(ws.message.body(1)).toHaveCount(0);
+    await expect(ws.websocket.message.body(0)).toBeVisible();
+    await expect(ws.websocket.message.body(1)).toHaveCount(0);
 
     // Start from the top of the list so message 2 is below the fold.
     await container.evaluate((el) => {
@@ -61,8 +61,8 @@ test.describe('websocket message editor scroll behaviour', () => {
     });
 
     // Open message 2.
-    await ws.message.header(1).click({ position: { x: 8, y: 12 } });
-    await expect(ws.message.body(1)).toBeVisible();
+    await ws.websocket.message.header(1).click({ position: { x: 8, y: 12 } });
+    await expect(ws.websocket.message.body(1)).toBeVisible();
 
     // Its (sticky) header should settle at the top of the list — i.e. the message
     // wrapper's top aligns with the container's top.
@@ -81,13 +81,13 @@ test.describe('websocket message editor scroll behaviour', () => {
   test('selecting another message does not reset the deselected editor scroll to top', async ({
     pageWithUserData: page
   }) => {
-    const ws = buildWebsocketCommonLocators(page);
-    const cmScroll = (index: number) => ws.message.body(index).locator('.CodeMirror-scroll');
+    const ws = buildCommonLocators(page);
+    const cmScroll = (index: number) => ws.websocket.message.body(index).locator('.CodeMirror-scroll');
 
     await openRequest(page, COLLECTION_NAME, TWO_MSG_REQ);
 
     // Message 1 is selected + expanded by default.
-    await expect(ws.message.body(0)).toBeVisible();
+    await expect(ws.websocket.message.body(0)).toBeVisible();
 
     await expect
       .poll(() => cmScroll(0).evaluate((el) => el.scrollHeight - el.clientHeight))
@@ -101,7 +101,7 @@ test.describe('websocket message editor scroll behaviour', () => {
     expect(target).toBeGreaterThan(0);
 
     // Select message 2.
-    await ws.message.header(1).click({ position: { x: 8, y: 12 } });
+    await ws.websocket.message.header(1).click({ position: { x: 8, y: 12 } });
 
     // Message 1 stays expanded; its scroll must not have jumped to the top.
     await expect

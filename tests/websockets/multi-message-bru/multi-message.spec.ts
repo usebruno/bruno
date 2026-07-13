@@ -1,5 +1,5 @@
 import { expect, test } from '../../../playwright';
-import { buildWebsocketCommonLocators } from '../../utils/page/locators';
+import { buildCommonLocators } from '../../utils/page/locators';
 import { openRequest, saveRequest, closeAllCollections } from '../../utils/page/actions';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
@@ -30,20 +30,20 @@ test.describe.serial('websocket multi-message (bru format)', () => {
   });
 
   test('add a new message and save', async ({ pageWithUserData: page }) => {
-    const ws = buildWebsocketCommonLocators(page);
+    const ws = buildCommonLocators(page);
     await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
 
-    await ws.message.addButton().click();
+    await ws.websocket.message.addButton().click();
 
-    const nameInput = ws.message.nameInputs();
+    const nameInput = ws.websocket.message.nameInputs();
     await expect(nameInput).toBeVisible();
 
     await nameInput.selectText();
     await page.keyboard.type('ping message');
     await nameInput.press('Enter');
 
-    await expect(ws.message.labels().filter({ hasText: 'ping message' })).toBeVisible();
-    await expect(ws.message.headers()).toHaveCount(3);
+    await expect(ws.websocket.message.labels().filter({ hasText: 'ping message' })).toBeVisible();
+    await expect(ws.websocket.message.headers()).toHaveCount(3);
 
     await saveRequest(page);
 
@@ -52,16 +52,16 @@ test.describe.serial('websocket multi-message (bru format)', () => {
   });
 
   test('edit message content and verify persistence', async ({ pageWithUserData: page }) => {
-    const ws = buildWebsocketCommonLocators(page);
+    const ws = buildCommonLocators(page);
     const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
 
     await openRequest(page, COLLECTION_NAME, SINGLE_MSG_REQ);
 
     // Expand the first message if not already expanded
-    if (!(await ws.message.body(0).isVisible())) {
-      await ws.message.header(0).click();
+    if (!(await ws.websocket.message.body(0).isVisible())) {
+      await ws.websocket.message.header(0).click();
     }
-    const editor = ws.message.editor(0);
+    const editor = ws.websocket.message.editor(0);
     await editor.click();
     const textarea = editor.locator('textarea');
     await textarea.focus();
@@ -75,13 +75,13 @@ test.describe.serial('websocket multi-message (bru format)', () => {
   });
 
   test('messages with different types persist correctly', async ({ pageWithUserData: page }) => {
-    const ws = buildWebsocketCommonLocators(page);
+    const ws = buildCommonLocators(page);
     await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
 
-    const firstHeader = ws.message.header(0);
+    const firstHeader = ws.websocket.message.header(0);
     await expect(firstHeader.locator('.selected-body-mode')).toContainText('JSON');
 
-    const secondHeader = ws.message.header(1);
+    const secondHeader = ws.websocket.message.header(1);
     await expect(secondHeader.locator('.selected-body-mode')).toContainText('TEXT');
 
     // Change message 1 type from json to xml
@@ -100,21 +100,21 @@ test.describe.serial('websocket multi-message (bru format)', () => {
     await openRequest(page, COLLECTION_NAME, SINGLE_MSG_REQ);
     await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
 
-    await expect(ws.message.header(0).locator('.selected-body-mode')).toContainText('XML');
-    await expect(ws.message.header(1).locator('.selected-body-mode')).toContainText('TEXT');
+    await expect(ws.websocket.message.header(0).locator('.selected-body-mode')).toContainText('XML');
+    await expect(ws.websocket.message.header(1).locator('.selected-body-mode')).toContainText('TEXT');
   });
 
   test('send selected message to active connection', async ({ pageWithUserData: page }) => {
-    const ws = buildWebsocketCommonLocators(page);
+    const ws = buildCommonLocators(page);
 
     await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
 
-    await ws.connectionControls.connect().click();
-    await expect(ws.connectionControls.disconnect()).toBeAttached({
+    await ws.websocket.connectionControls.connect().click();
+    await expect(ws.websocket.connectionControls.disconnect()).toBeAttached({
       timeout: MAX_CONNECTION_TIME
     });
 
-    const messageItems = ws.messages().locator('.text-ellipsis');
+    const messageItems = ws.websocket.messages().locator('.text-ellipsis');
     const beforeCount = await messageItems.count();
 
     // Click the main send button — sends the currently selected message
@@ -123,19 +123,19 @@ test.describe.serial('websocket multi-message (bru format)', () => {
     // Expect at least one new message (outgoing + echo response from server)
     await expect.poll(() => messageItems.count(), { timeout: MAX_CONNECTION_TIME }).toBeGreaterThan(beforeCount);
 
-    await ws.connectionControls.disconnect().click();
-    await expect(ws.connectionControls.connect()).toBeVisible();
+    await ws.websocket.connectionControls.disconnect().click();
+    await expect(ws.websocket.connectionControls.connect()).toBeVisible();
   });
 
   test('first message is implicitly selected when no message is marked selected', async ({ pageWithUserData: page }) => {
-    const ws = buildWebsocketCommonLocators(page);
+    const ws = buildCommonLocators(page);
 
     await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
 
     // ws-multi-msg.bru has two messages with no `selected: true` flag. The
     // main send button should therefore dispatch the first message.
-    await ws.connectionControls.connect().click();
-    await expect(ws.connectionControls.disconnect()).toBeAttached({
+    await ws.websocket.connectionControls.connect().click();
+    await expect(ws.websocket.connectionControls.disconnect()).toBeAttached({
       timeout: MAX_CONNECTION_TIME
     });
 
@@ -143,74 +143,74 @@ test.describe.serial('websocket multi-message (bru format)', () => {
 
     // the first message's content ("subscribe"), and none should carry the
     // second message's content ("hello world").
-    await expect(ws.messages().filter({ hasText: 'subscribe' }).first()).toBeAttached({
+    await expect(ws.websocket.messages().filter({ hasText: 'subscribe' }).first()).toBeAttached({
       timeout: MAX_CONNECTION_TIME
     });
-    await expect(ws.messages().filter({ hasText: 'hello world' })).toHaveCount(0);
+    await expect(ws.websocket.messages().filter({ hasText: 'hello world' })).toHaveCount(0);
 
-    await ws.connectionControls.disconnect().click();
+    await ws.websocket.connectionControls.disconnect().click();
   });
 
   test('selecting a different message routes run-button to that message', async ({ pageWithUserData: page }) => {
-    const ws = buildWebsocketCommonLocators(page);
+    const ws = buildCommonLocators(page);
 
     await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
 
     // Select the second message by clicking its header
-    await ws.message.header(1).click();
+    await ws.websocket.message.header(1).click();
 
-    await ws.connectionControls.connect().click();
-    await expect(ws.connectionControls.disconnect()).toBeAttached({
+    await ws.websocket.connectionControls.connect().click();
+    await expect(ws.websocket.connectionControls.disconnect()).toBeAttached({
       timeout: MAX_CONNECTION_TIME
     });
 
     await ws.runner().click();
 
-    await expect(ws.messages().filter({ hasText: 'hello world' }).first()).toBeAttached({
+    await expect(ws.websocket.messages().filter({ hasText: 'hello world' }).first()).toBeAttached({
       timeout: MAX_CONNECTION_TIME
     });
-    await expect(ws.messages().filter({ hasText: 'subscribe' })).toHaveCount(0);
+    await expect(ws.websocket.messages().filter({ hasText: 'subscribe' })).toHaveCount(0);
 
-    await ws.connectionControls.disconnect().click();
+    await ws.websocket.connectionControls.disconnect().click();
   });
 
   test('per-message send button sends that specific message', async ({ pageWithUserData: page }) => {
-    const ws = buildWebsocketCommonLocators(page);
+    const ws = buildCommonLocators(page);
 
     await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
 
     // Hover the header to reveal hover-actions, then click the second
-    await ws.message.header(1).hover();
-    await ws.message.sendButton(1).click();
+    await ws.websocket.message.header(1).hover();
+    await ws.websocket.message.sendButton(1).click();
 
-    await expect(ws.connectionControls.disconnect()).toBeAttached({
+    await expect(ws.websocket.connectionControls.disconnect()).toBeAttached({
       timeout: MAX_CONNECTION_TIME
     });
-    await expect(ws.messages().filter({ hasText: 'hello world' }).first()).toBeAttached({
+    await expect(ws.websocket.messages().filter({ hasText: 'hello world' }).first()).toBeAttached({
       timeout: MAX_CONNECTION_TIME
     });
 
-    await ws.connectionControls.disconnect().click();
+    await ws.websocket.connectionControls.disconnect().click();
   });
 
   test('prettify json message content', async ({ pageWithUserData: page }) => {
-    const ws = buildWebsocketCommonLocators(page);
+    const ws = buildCommonLocators(page);
     const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
 
     await openRequest(page, COLLECTION_NAME, SINGLE_MSG_REQ);
 
     // Expand the first message if not already expanded
-    if (!(await ws.message.body(0).isVisible())) {
-      await ws.message.header(0).click();
+    if (!(await ws.websocket.message.body(0).isVisible())) {
+      await ws.websocket.message.header(0).click();
     }
-    const editor = ws.message.editor(0);
+    const editor = ws.websocket.message.editor(0);
     await editor.click();
     const textarea = editor.locator('textarea');
     await textarea.focus();
     await page.keyboard.press(selectAllShortcut);
     await page.keyboard.insertText('{"name":"bruno","version":"1.0"}');
 
-    await ws.message.prettifyAll().click();
+    await ws.websocket.message.prettifyAll().click();
 
     // Verify prettification split single line into multiple lines
     const lineNumbers = await editor.locator('.CodeMirror-linenumber').count();
@@ -218,16 +218,16 @@ test.describe.serial('websocket multi-message (bru format)', () => {
   });
 
   test('delete a message', async ({ pageWithUserData: page }) => {
-    const ws = buildWebsocketCommonLocators(page);
+    const ws = buildCommonLocators(page);
     await openRequest(page, COLLECTION_NAME, MULTI_MSG_REQ);
 
-    await expect(ws.message.headers()).toHaveCount(2);
+    await expect(ws.websocket.message.headers()).toHaveCount(2);
 
     // Hover over the message header to reveal the delete button
-    await ws.message.header(1).hover();
-    await ws.message.deleteButton(1).click();
+    await ws.websocket.message.header(1).hover();
+    await ws.websocket.message.deleteButton(1).click();
 
-    await expect(ws.message.headers()).toHaveCount(1);
+    await expect(ws.websocket.message.headers()).toHaveCount(1);
 
     await saveRequest(page);
 
@@ -237,19 +237,19 @@ test.describe.serial('websocket multi-message (bru format)', () => {
   });
 
   test('rename a message via double-click', async ({ pageWithUserData: page }) => {
-    const ws = buildWebsocketCommonLocators(page);
+    const ws = buildCommonLocators(page);
     await openRequest(page, COLLECTION_NAME, SINGLE_MSG_REQ);
 
-    await ws.message.label(0).dblclick();
+    await ws.websocket.message.label(0).dblclick();
 
-    const nameInput = ws.message.nameInput(0);
+    const nameInput = ws.websocket.message.nameInput(0);
     await expect(nameInput).toBeVisible();
 
     await nameInput.selectText();
     await page.keyboard.type('subscribe request');
     await nameInput.press('Enter');
 
-    await expect(ws.message.label(0).filter({ hasText: 'subscribe request' })).toBeVisible();
+    await expect(ws.websocket.message.label(0).filter({ hasText: 'subscribe request' })).toBeVisible();
 
     await saveRequest(page);
 
@@ -258,14 +258,14 @@ test.describe.serial('websocket multi-message (bru format)', () => {
   });
 
   test('rename a message and save with the keyboard shortcut while editing', async ({ pageWithUserData: page }) => {
-    const ws = buildWebsocketCommonLocators(page);
+    const ws = buildCommonLocators(page);
     const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 
     await openRequest(page, COLLECTION_NAME, SINGLE_MSG_REQ);
 
-    await ws.message.label(0).dblclick();
+    await ws.websocket.message.label(0).dblclick();
 
-    const nameInput = ws.message.nameInput(0);
+    const nameInput = ws.websocket.message.nameInput(0);
     await expect(nameInput).toBeVisible();
 
     await nameInput.selectText();
@@ -276,7 +276,7 @@ test.describe.serial('websocket multi-message (bru format)', () => {
     await nameInput.press(saveShortcut);
 
     // The editing input closes and the new name is committed to the UI.
-    await expect(ws.message.label(0).filter({ hasText: 'renamed via shortcut' })).toBeVisible();
+    await expect(ws.websocket.message.label(0).filter({ hasText: 'renamed via shortcut' })).toBeVisible();
 
     // The rename must be written to disk by the shortcut-triggered save.
     await expect

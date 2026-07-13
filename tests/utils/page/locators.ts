@@ -346,11 +346,11 @@ export const buildCommonLocators = (page: Page) => ({
       },
       rowValueInput: (rowIndex: number) => baseTable.rowCell('value', rowIndex)
     };
-  }
+  },
+  websocket: buildWebsocketCommonLocators(page)
 });
 
 export const buildWebsocketCommonLocators = (page: Page) => ({
-  ...buildCommonLocators(page),
   connectionControls: {
     connect: () => page.getByTestId('ws-connect-button'),
     disconnect: () => page.getByTestId('ws-disconnect-button')

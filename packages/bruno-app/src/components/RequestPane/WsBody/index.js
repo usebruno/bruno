@@ -29,12 +29,15 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   // back keeps every open message open (not just the selected one). Stored as an
   // array of uids since localStorage can't serialize a Set; defaults to the
   // selected message (falls back to first).
+  // Computed once (usePersistedState only reads default on first mount) so it
+  // isn't rebuilt on every render.
+  const defaultExpanded = useMemo(() => {
+    const uid = messages[selectedIndex]?.uid || messages[0]?.uid;
+    return uid ? [uid] : [];
+  }, []);
   const [expandedUidList, setExpandedUidList] = usePersistedState({
     key: `ws-expanded-${item.uid}`,
-    default: (() => {
-      const uid = messages[selectedIndex]?.uid || messages[0]?.uid;
-      return uid ? [uid] : [];
-    })()
+    default: defaultExpanded
   });
   const expandedUids = useMemo(() => new Set(expandedUidList), [expandedUidList]);
   const [newMessageUid, setNewMessageUid] = useState(null);
@@ -66,18 +69,28 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     }));
   }, [body, dispatch, item.uid, collection.uid]);
 
+  // Scroll the list so the given message's header sits at the top. Runs for a few
+  // frames because the list is still growing as the message expands.
   const scrollMessageToTop = useCallback((uid) => {
+    // Find where this message sits in the list; its DOM wrapper is the child at
+    // the same position.
     const index = messages.findIndex((m) => m.uid === uid);
     if (index < 0) return;
+    // Stop any animation already running so they don't fight over the scroll.
     if (pinScrollRef.current !== null) cancelAnimationFrame(pinScrollRef.current);
     let frames = 0;
     const align = () => {
       const el = messagesContainerRef.current;
+      // Bail if the list is gone (unmounted) or this run was cancelled.
       if (!el || pinScrollRef.current === null) return;
       const wrapper = el.children[index];
       if (wrapper) {
+        // Nudge the list by the gap between the wrapper's top and the list's top,
+        // bringing the header flush with the top.
         el.scrollTop += wrapper.getBoundingClientRect().top - el.getBoundingClientRect().top;
       }
+      // Keep re-aligning for up to 12 frames while the editor finishes opening,
+      // then stop.
       if (++frames < 12) {
         pinScrollRef.current = requestAnimationFrame(align);
       } else {
@@ -182,6 +195,10 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
       pinScrollRef.current = null;
     }
   }, []);
+
+  // Cancel any in-flight scroll/pin animation when the component unmounts (e.g.
+  // on tab switch) so a stray frame doesn't fire after teardown.
+  useEffect(() => () => cancelAnimationFrame(pinScrollRef.current), []);
 
   if (!messages.length) {
     return (
