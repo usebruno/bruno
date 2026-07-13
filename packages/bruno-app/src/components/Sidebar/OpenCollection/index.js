@@ -141,10 +141,12 @@ const OpenCollectionModal = ({ onClose }) => {
     try {
       const result = await dispatch(openMultipleCollections(selectedCollectionPaths, { silent: true }));
       notifyOpenResult(result);
+      if (result?.opened?.length) {
+        onClose();
+      }
     } catch {
       toast.error('An error occurred while opening the collections');
     }
-    onClose();
   };
 
   const describeLocation = (collection) => {
