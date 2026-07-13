@@ -95,7 +95,7 @@ const extensions = [
   }),
   DocsTableKeyboard,
   Link.configure({
-    openOnClick: true,
+    openOnClick: false,
     autolink: true,
     linkOnPaste: true,
     HTMLAttributes: {

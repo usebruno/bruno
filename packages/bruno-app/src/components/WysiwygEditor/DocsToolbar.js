@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useEditorState } from '@tiptap/react';
+import { getMarkRange } from '@tiptap/core';
 import {
   IconArrowBackUp,
   IconArrowForwardUp,
@@ -8,6 +9,7 @@ import {
   IconCode,
   IconDots,
   IconItalic,
+  IconLink,
   IconList,
   IconListCheck,
   IconListNumbers,
@@ -21,6 +23,7 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { Tooltip } from 'react-tooltip';
 import ToolbarStyledWrapper from './ToolbarStyledWrapper';
 import DocsTableMenu from './DocsTableMenu';
+import DocsLinkModal from './DocsLinkModal';
 import { DOCS_MENU_DROPDOWN_PROPS, DOCS_TOOLBAR_TOOLTIP_PROPS } from './docsToolbarUi';
 
 const HEADING_OPTIONS = [
@@ -75,7 +78,7 @@ const ToolbarAction = ({ editor, action, isActive, disabled, showLabel = false }
   );
 };
 
-const buildToolbarActions = () => [
+const buildToolbarActions = (onLinkClick) => [
   {
     id: 'bold',
     tooltip: 'Bold',
@@ -99,6 +102,14 @@ const buildToolbarActions = () => [
     run: (editor) => editor.chain().focus().toggleStrike().run(),
     isActive: (editor) => editor.isActive('strike'),
     canRun: (editor) => editor.can().chain().focus().toggleStrike().run()
+  },
+  {
+    id: 'link',
+    tooltip: 'Link',
+    Icon: IconLink,
+    run: (editor) => onLinkClick(editor),
+    isActive: (editor) => editor.isActive('link'),
+    canRun: (editor) => true
   },
   {
     id: 'bulletList',
@@ -211,8 +222,82 @@ const getToolbarFormatState = (editor, toolbarActions) => {
 const DocsToolbar = ({ editor }) => {
   const toolbarRef = useRef(null);
   const measureRef = useRef(null);
-  const [visibleCount, setVisibleCount] = useState(buildToolbarActions().length);
-  const actions = useMemo(() => buildToolbarActions(), []);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [initialLinkData, setInitialLinkData] = useState({ text: '', url: '' });
+
+  const handleLinkClick = useCallback((currentEditor) => {
+    if (currentEditor.isActive('link')) {
+      // Don't unset the link! We want to edit it!
+      const { from, to } = currentEditor.state.selection;
+      let selectedText = '';
+      if (!currentEditor.state.selection.empty) {
+        selectedText = currentEditor.state.doc.textBetween(from, to, ' ');
+      } else {
+        const linkMarkType = currentEditor.schema.marks.link;
+        if (linkMarkType) {
+          const $pos = currentEditor.state.doc.resolve(from);
+          const range = getMarkRange($pos, linkMarkType);
+          if (range) {
+            selectedText = currentEditor.state.doc.textBetween(range.from, range.to, ' ');
+          }
+        }
+      }
+
+      const attrs = currentEditor.getAttributes('link');
+      setInitialLinkData({ text: selectedText, url: attrs?.href || '' });
+      setIsLinkModalOpen(true);
+      return;
+    }
+    const { from, to } = currentEditor.state.selection;
+    let selectedText = '';
+    if (!currentEditor.state.selection.empty) {
+      selectedText = currentEditor.state.doc.textBetween(from, to, ' ');
+    }
+    setInitialLinkData({ text: selectedText, url: '' });
+    setIsLinkModalOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (editor) {
+      editor.brunoOpenLinkModal = () => handleLinkClick(editor);
+    }
+    return () => {
+      if (editor) {
+        delete editor.brunoOpenLinkModal;
+      }
+    };
+  }, [editor, handleLinkClick]);
+
+  const handleLinkSubmit = useCallback(
+    ({ text, url }) => {
+      if (!editor) return;
+
+      const chain = editor.chain().focus();
+
+      // If we are currently inside a link, select the entire link first
+      if (editor.isActive('link')) {
+        chain.extendMarkRange('link');
+      }
+
+      if (!url) {
+        // If url is empty, remove the link mark but keep the text
+        chain.unsetLink().run();
+        return;
+      }
+
+      chain
+        .insertContent({
+          type: 'text',
+          text: text || url,
+          marks: [{ type: 'link', attrs: { href: url } }]
+        })
+        .run();
+    },
+    [editor]
+  );
+
+  const actions = useMemo(() => buildToolbarActions(handleLinkClick), [handleLinkClick]);
+  const [visibleCount, setVisibleCount] = useState(actions.length);
 
   const toolbarState = useEditorState({
     editor,
@@ -326,8 +411,8 @@ const DocsToolbar = ({ editor }) => {
           items={headingMenuItems}
           selectedItemId={activeHeadingId}
           placement="bottom-start"
+          data-testid="docs-heading-dropdown"
           dropdownProps={DOCS_MENU_DROPDOWN_PROPS}
-          testId="docs-heading-dropdown"
         >
           <button
             type="button"
@@ -367,6 +452,13 @@ const DocsToolbar = ({ editor }) => {
         )}
       </div>
       <Tooltip id="docs-toolbar-tooltip" {...DOCS_TOOLBAR_TOOLTIP_PROPS} />
+      <DocsLinkModal
+        isOpen={isLinkModalOpen}
+        onClose={() => setIsLinkModalOpen(false)}
+        onSubmit={handleLinkSubmit}
+        initialText={initialLinkData.text}
+        initialUrl={initialLinkData.url}
+      />
     </ToolbarStyledWrapper>
   );
 };

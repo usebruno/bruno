@@ -71,7 +71,7 @@ export const buildCommonLocators = (page: Page) => ({
     moreTabs: () => page.locator('.more-tabs'),
     proseMirror: () => page.locator('.ProseMirror'),
     toolbarBtn: (label: string) => page.locator(`.toolbar-btn[aria-label="${label}"]`),
-    headingDropdown: () => page.getByTestId('docs-heading-dropdown'),
+    headingDropdown: () => page.locator('button.heading-dropdown-trigger'),
     editToggle: () => page.locator('.docs-edit-toggle'),
     modeSwitchDocs: () => page.locator('.docs-mode-switch button').filter({ has: page.locator('#wysiwyg-mode') }),
     modeSwitchMarkdown: () => page.locator('.docs-mode-switch button').filter({ has: page.locator('#markdown-mode') }),

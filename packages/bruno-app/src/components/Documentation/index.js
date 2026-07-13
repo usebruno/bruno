@@ -91,6 +91,36 @@ const Documentation = ({ item, collection }) => {
     }
   });
 
+  useEffect(() => {
+    if (!editor) return;
+    const dom = editor.view.dom;
+    const handleClick = (event) => {
+      const target = event.target;
+      if (target && target.closest('a.docs-link')) {
+        if (editor.brunoOpenLinkModal) {
+          editor.brunoOpenLinkModal();
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }
+    };
+    const handleDoubleClick = (event) => {
+      const target = event.target;
+      const link = target && target.closest('a.docs-link');
+      if (link && link.href) {
+        window.open(link.href, '_blank', 'noopener noreferrer nofollow');
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    dom.addEventListener('click', handleClick);
+    dom.addEventListener('dblclick', handleDoubleClick);
+    return () => {
+      dom.removeEventListener('click', handleClick);
+      dom.removeEventListener('dblclick', handleDoubleClick);
+    };
+  }, [editor]);
+
   const { requestContext, variables: aiVariables } = useMemo(
     () => (item ? buildAiContextPayload(item, collection) : { requestContext: null, variables: [] }),
     [item, collection]
