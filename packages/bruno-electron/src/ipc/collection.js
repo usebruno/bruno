@@ -2831,11 +2831,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 };
 
 const registerMainEventHandlers = (mainWindow) => {
-  ipcMain.on('main:open-collection', () => {
+  const triggerOpenCollection = () => {
     if (mainWindow) {
-      mainWindow.webContents.send('main:show-open-collection');
+      mainWindow.webContents.send('main:open-collection');
     }
-  });
+  };
+
+  ipcMain.on('renderer:open-collection', triggerOpenCollection);
+  ipcMain.on('menu:open-collection', triggerOpenCollection);
 
   ipcMain.on('main:open-docs', () => {
     const docsURL = 'https://docs.usebruno.com';
