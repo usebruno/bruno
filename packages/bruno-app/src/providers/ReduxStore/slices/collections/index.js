@@ -172,6 +172,14 @@ const REQUEST_UID_PATHS = [
 
 const ROOT_UID_PATHS = ['request.headers', 'request.vars.req', 'request.vars.res'];
 
+const applyReorder = (params, updateReorderedItem) => {
+  const byUid = new Map(params.map((param) => [param.uid, param]));
+  const reordered = updateReorderedItem.map((uid) => byUid.get(uid)).filter(Boolean);
+  const reorderedUids = new Set(updateReorderedItem);
+  const missing = params.filter((param) => !reorderedUids.has(param.uid));
+  return [...reordered, ...missing];
+};
+
 const mergeRequestWithPreservedUids = (existingRequest, newRequest) =>
   preserveUidsAtPaths(existingRequest, newRequest, REQUEST_UID_PATHS);
 
@@ -2575,6 +2583,26 @@ export const collectionsSlice = createSlice({
         set(folder, 'draft.request.vars.res', mappedVars);
       }
     },
+    moveFolderVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      const type = action.payload.type;
+
+      if (folder) {
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+
+        const { updateReorderedItem } = action.payload;
+        if (type === 'request') {
+          const params = get(folder, 'draft.request.vars.req', []);
+          set(folder, 'draft.request.vars.req', applyReorder(params, updateReorderedItem));
+        } else if (type === 'response') {
+          const params = get(folder, 'draft.request.vars.res', []);
+          set(folder, 'draft.request.vars.res', applyReorder(params, updateReorderedItem));
+        }
+      }
+    },
     updateFolderRequestScript: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
@@ -2817,6 +2845,27 @@ export const collectionsSlice = createSlice({
         set(collection, 'draft.root.request.vars.req', mappedVars);
       } else if (type === 'response') {
         set(collection, 'draft.root.request.vars.res', mappedVars);
+      }
+    },
+    moveCollectionVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
+
+        const { updateReorderedItem } = action.payload;
+        if (type === 'request') {
+          const params = get(collection, 'draft.root.request.vars.req', []);
+          set(collection, 'draft.root.request.vars.req', applyReorder(params, updateReorderedItem));
+        } else if (type === 'response') {
+          const params = get(collection, 'draft.root.request.vars.res', []);
+          set(collection, 'draft.root.request.vars.res', applyReorder(params, updateReorderedItem));
+        }
       }
     },
     scriptUpdateCollectionVars: (state, action) => {
@@ -4056,6 +4105,7 @@ export const {
   updateFolderVar,
   deleteFolderVar,
   setFolderVars,
+  moveFolderVar,
   updateFolderRequestScript,
   updateFolderResponseScript,
   updateFolderTests,
@@ -4066,6 +4116,7 @@ export const {
   updateCollectionVar,
   deleteCollectionVar,
   setCollectionVars,
+  moveCollectionVar,
   scriptUpdateCollectionVars,
   setScriptCollVarBaseline,
   _clearScriptCollectionBaselines,

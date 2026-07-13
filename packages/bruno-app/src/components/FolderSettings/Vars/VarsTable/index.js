@@ -13,9 +13,11 @@ import { createDescriptionColumn } from 'components/EditableTable/descriptionCol
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
-import { setFolderVars } from 'providers/ReduxStore/slices/collections/index';
+import { setFolderVars, moveFolderVar } from 'providers/ReduxStore/slices/collections/index';
+import { useSortableEditableTableRows } from 'hooks/useSortableEditableTableRows';
+import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
 
-const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => {
+const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0, hasDraft }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -40,6 +42,17 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
     }));
   }, [dispatch, collection.uid, folder.uid, varType]);
 
+  const handleReorder = useCallback(({ updateReorderedItem }) => {
+    dispatch(moveFolderVar({ type: varType, collectionUid: collection.uid, folderUid: folder.uid, updateReorderedItem }));
+  }, [dispatch, varType, collection.uid, folder.uid]);
+
+  const { displayRows, handleChange, reorderable, cycleSortMode, SortIcon, sortLabel } = useSortableEditableTableRows({
+    storageKey: `folder-vars-sort::${folder.uid}::${varType}`,
+    rows: vars || [],
+    onChange: handleVarsChange,
+    hasDraft
+  });
+
   const getRowError = useCallback((row, index, key) => {
     if (key !== 'name') return null;
     if (!row.name || row.name.trim() === '') return null;
@@ -60,7 +73,7 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
   const columns = [
     {
       key: 'name',
-      name: 'Name',
+      name: <ColumnSortHeader label="Name" onCycle={cycleSortMode} SortIcon={SortIcon} sortLabel={sortLabel} testId={`column-sort-toggle-folder-${varType}`} />,
       isKeyField: true,
       placeholder: 'Name',
       width: '25%'
@@ -121,8 +134,10 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0 }) => 
         tableId="folder-vars"
         testId={`folder-vars-${varType === 'response' ? 'res' : 'req'}`}
         columns={columns}
-        rows={vars}
-        onChange={handleVarsChange}
+        rows={displayRows}
+        onChange={handleChange}
+        reorderable={reorderable}
+        onReorder={handleReorder}
         defaultRow={defaultRow}
         getRowError={getRowError}
         columnWidths={folderVarsWidths}
