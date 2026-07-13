@@ -12,7 +12,7 @@
       "clientId": "bruno",
       "enabled": true,
       "protocol": "openid-connect",
-      "publicClient": false,
+      "publicClient": true,
       "secret": "DSH25NOw5mMOCEIMrmm31EtUad4TbRLM",
       "standardFlowEnabled": true,
       "implicitFlowEnabled": true,

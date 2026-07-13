@@ -176,6 +176,26 @@ const clickGetAccessToken = async (page: Parameters<typeof openRequest>[0], requ
   await page.getByRole('button', { name: 'Get Access Token' }).click();
 };
 
+/**
+ * Common flow bootstrap shared by every test: restart the app, wait for a ready page,
+ * stub `shell.openExternal`, install the callback capture, click "Get Access Token" for
+ * the given request, and wait for the authorization URL to be captured.
+ */
+const startOAuth2Flow = async (
+  restartApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>,
+  requestName: string
+) => {
+  const app = await restartApp();
+  const page = await waitForReadyPage(app);
+
+  await stubOpenExternal(app); // fake opening the browser so we can read the login URL
+  await installCallbackCapture(app);
+  await clickGetAccessToken(page, requestName);
+  await waitForAuthorizationStarted(app);
+
+  return { app, page };
+};
+
 const getCallbackParams = (callbackUrl: string, style: CallbackStyle = 'query') => {
   const url = new URL(callbackUrl);
   if (style === 'hash') {
@@ -197,13 +217,7 @@ test.describe('OAuth2 callback state validation', () => {
   test('authorization code: (user-supplied state): issues userState accepts matching callback', async ({ restartApp }) => {
     test.setTimeout(60_000);
     const USER_STATE = 'brunoUserState';
-    const app = await restartApp();
-    const page = await waitForReadyPage(app);
-
-    await stubOpenExternal(app);
-    await installCallbackCapture(app);
-    await clickGetAccessToken(page, 'AuthCodeUserSuppliedState');
-    await waitForAuthorizationStarted(app);
+    const { app, page } = await startOAuth2Flow(restartApp, 'AuthCodeUserSuppliedState');
 
     const authUrl = await getCapturedAuthUrl(app);
 
@@ -236,19 +250,19 @@ test.describe('OAuth2 callback state validation', () => {
 
   test('authorization code: (no state): issues a random state accepts matching callback', async ({ restartApp }) => {
     test.setTimeout(60_000);
-    const app = await restartApp();
-    const page = await waitForReadyPage(app);
-
-    await stubOpenExternal(app);
-    await installCallbackCapture(app);
-    await clickGetAccessToken(page, 'AuthorizationCode');
-    await waitForAuthorizationStarted(app);
+    const { app, page } = await startOAuth2Flow(restartApp, 'AuthorizationCode');
 
     const authUrl = await getCapturedAuthUrl(app);
 
     expect(authUrl).toBeTruthy();
 
-    const issuedState = await getIssuedState(app);
+    const issuedState = await test.step('capture and verify a cryptographically random state was issued', async () => {
+      const state = await getIssuedState(app);
+      // No user state was configured, so Bruno must generate a random 32-char hex string
+      // (crypto.randomBytes(16).toString('hex')).
+      expect(state).toMatch(/^[0-9a-f]{32}$/);
+      return state;
+    });
 
     const authCode = await test.step('obtain a valid auth code from Keycloak', () =>
       loginToKeycloakForAuthCode(authUrl as string));
@@ -270,15 +284,9 @@ test.describe('OAuth2 callback state validation', () => {
   });
 
   test('authorization code: rejects callback when returned state does not match issued state', async ({ restartApp }) => {
-    const app = await restartApp();
-    const page = await waitForReadyPage(app);
+    test.setTimeout(60_000);
 
-    await test.step('start the authorization code flow', async () => {
-      await stubOpenExternal(app); // fake opening the browser so we can read the login URL
-      await installCallbackCapture(app);
-      await clickGetAccessToken(page, 'AuthorizationCode');
-      await waitForAuthorizationStarted(app);
-    });
+    const { app, page } = await startOAuth2Flow(restartApp, 'AuthorizationCode');
 
     const issuedState = await getIssuedState(app);
 
@@ -304,17 +312,8 @@ test.describe('OAuth2 callback state validation', () => {
 
   test('implicit grant: (user-supplied state): issues userState accepts matching callback', async ({ restartApp }) => {
     test.setTimeout(60_000);
-
     const USER_STATE = 'brunoUserState';
-    const app = await restartApp();
-    const page = await waitForReadyPage(app);
-
-    await test.step('start the implicit grant flow', async () => {
-      await stubOpenExternal(app);
-      await installCallbackCapture(app);
-      await clickGetAccessToken(page, 'ImplicitUserSuppliedState');
-      await waitForAuthorizationStarted(app);
-    });
+    const { app, page } = await startOAuth2Flow(restartApp, 'ImplicitUserSuppliedState');
 
     const issuedState = await test.step('capture and verify the issued state carries userState', async () => {
       const state = await getIssuedState(app);
@@ -341,17 +340,15 @@ test.describe('OAuth2 callback state validation', () => {
 
   test('implicit grant: (no state): issues a random state accepts matching callback', async ({ restartApp }) => {
     test.setTimeout(60_000);
-    const app = await restartApp();
-    const page = await waitForReadyPage(app);
+    const { app, page } = await startOAuth2Flow(restartApp, 'AuthorizationImplicit');
 
-    await test.step('start the implicit grant flow', async () => {
-      await stubOpenExternal(app);
-      await installCallbackCapture(app);
-      await clickGetAccessToken(page, 'AuthorizationImplicit');
-      await waitForAuthorizationStarted(app);
+    const issuedState = await test.step('capture and verify a cryptographically random state was issued', async () => {
+      const state = await getIssuedState(app);
+      // No user state was configured, so Bruno must generate a random 32-char hex string
+      // (crypto.randomBytes(16).toString('hex')).
+      expect(state).toMatch(/^[0-9a-f]{32}$/);
+      return state;
     });
-
-    const issuedState = await getIssuedState(app);
 
     const callbackUrl
       = `${CALLBACK}#access_token=${PROVIDER_ACCESS_TOKEN}&token_type=Bearer&expires_in=3600&state=${encodeURIComponent(issuedState)}`;
@@ -371,15 +368,8 @@ test.describe('OAuth2 callback state validation', () => {
   });
 
   test('implicit grant: rejects callback when returned state does not match issued state', async ({ restartApp }) => {
-    const app = await restartApp();
-    const page = await waitForReadyPage(app);
-
-    await test.step('start the implicit grant flow', async () => {
-      await stubOpenExternal(app);
-      await installCallbackCapture(app);
-      await clickGetAccessToken(page, 'AuthorizationImplicit');
-      await waitForAuthorizationStarted(app);
-    });
+    test.setTimeout(60_000);
+    const { app, page } = await startOAuth2Flow(restartApp, 'AuthorizationImplicit');
 
     const issuedState = await test.step('capture the issued state', () => getIssuedState(app));
 
