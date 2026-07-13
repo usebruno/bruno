@@ -652,7 +652,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
           )}
         </div>
 
-        <div className="flex flex-grow gap-1.5 items-center justify-end">
+        <div className="header-actions flex gap-1.5 items-center">
           {!isScratchCollection && (
             <>
               {appAvailable && (

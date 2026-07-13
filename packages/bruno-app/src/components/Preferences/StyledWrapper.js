@@ -38,10 +38,12 @@ const StyledWrapper = styled.div`
   }
 
   section.tab-panel {
-    max-height: calc(100% - 55px);
+    min-height: 0;
+    max-height: 100%;
     overflow-y: auto;
     flex-grow: 1;
     padding: 12px;
+    padding-bottom: 0;
   }
 
   input[type="checkbox"],

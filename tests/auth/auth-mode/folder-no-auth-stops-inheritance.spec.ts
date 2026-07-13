@@ -41,7 +41,7 @@ test('Request inherits No Auth from the folder — collection Bearer Token is ov
     await page.getByRole('button', { name: 'Save' }).click();
   });
 
-  await test.step('Create an HTTP request inside folder-1 and set auth type for the request as Inherit', async () => {
+  await test.step(`Create an HTTP request inside folder-1 and verify its auth mode defaults to Inherit`, async () => {
     const requestName = 'http-request-1';
     await createRequest(page, requestName, 'folder-1', {
       inFolder: true,
@@ -51,7 +51,6 @@ test('Request inherits No Auth from the folder — collection Bearer Token is ov
     });
     await openRequest(page, collectionName, requestName);
     await selectRequestPaneTab(page, 'Auth');
-    await selectAuthMode(page, AUTH_MODE_LABELS.INHERIT);
     await expect(locators.auth.modeSelector()).toContainText(AUTH_MODE_LABELS.INHERIT);
   });
 
