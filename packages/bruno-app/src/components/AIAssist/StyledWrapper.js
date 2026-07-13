@@ -254,18 +254,23 @@ export const PopupWrapper = styled.div`
     letter-spacing: 0.05em;
   }
 
+  /* ponytail: overflow on wrapper, not <pre>; same-element overflow+pre under-reports scrollWidth/Height under load */
   .preview-code {
     max-height: 220px;
-    overflow: auto;
+    overflow: scroll;
     padding: 8px 10px;
-    font-family: ${(props) => props.theme.font.monospace || 'monospace'};
-    font-size: 11.5px;
-    line-height: 1.5;
-    color: ${(props) => props.theme.text};
     background: ${(props) => props.theme.input.bg};
     border: 1px solid ${(props) => props.theme.input.border};
     border-radius: ${(props) => props.theme.border.radius.sm};
-    white-space: pre;
+
+    pre {
+      margin: 0;
+      font-family: ${(props) => props.theme.font.monospace || 'monospace'};
+      font-size: 11.5px;
+      line-height: 1.5;
+      color: ${(props) => props.theme.text};
+      white-space: pre;
+    }
   }
 
   .preview-modes {

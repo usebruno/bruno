@@ -272,7 +272,9 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
                 <div className="popup-body">
                   <div className="preview-section">
                     <span className="preview-label">{previewLabel}</span>
-                    <pre className="preview-code">{generated}</pre>
+                    <div className="preview-code">
+                      <pre>{generated}</pre>
+                    </div>
                   </div>
                 </div>
 
