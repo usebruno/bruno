@@ -24,6 +24,13 @@ const OpenCollectionModal = ({ onClose }) => {
   const [selectedCollectionPaths, setSelectedCollectionPaths] = useState([]);
   const startedRef = useRef(false);
 
+  const notifyOpenFailures = (result) => {
+    const failedCount = (result?.failed?.length || 0) + (result?.invalid?.length || 0);
+    if (failedCount > 0) {
+      toast.error(`Failed to open ${failedCount} collection${failedCount === 1 ? '' : 's'}`);
+    }
+  };
+
   useEffect(() => {
     // Guard against opening the picker twice
     if (startedRef.current) return;
@@ -73,19 +80,32 @@ const OpenCollectionModal = ({ onClose }) => {
           return;
         }
 
-        // If all selected folders are collections and nothing is skipped, open them directly
+        if (failedScans.length) {
+          toast.error(`Failed to scan ${failedScans.length} folder${failedScans.length === 1 ? '' : 's'} for collections`);
+        }
+
+        // If all selected folders are collections, open them directly
         const pickedFolders = new Set(dirPaths.map(normalizePath));
         const noNestedCollections = items.every((item) => pickedFolders.has(normalizePath(item.pathname)));
-        if (skippedItems.length === 0 && noNestedCollections) {
-          dispatch(openMultipleCollections(items.map((item) => item.pathname)))
-            .catch(() => toast.error('An error occurred while opening the collections'));
+        if (
+          failedScans.length === 0
+          && skippedItems.length === 0
+          && items.length === pickedFolders.size
+          && noNestedCollections
+        ) {
+          try {
+            const result = await dispatch(openMultipleCollections(items.map((item) => item.pathname)));
+            notifyOpenFailures(result);
+          } catch {
+            toast.error('An error occurred while opening the collections');
+          }
           onClose();
           return;
         }
 
         setCollectionPaths(items);
         setSkippedCollectionPaths(skippedItems);
-        setSelectedCollectionPaths(items.map((collection) => collection.pathname));
+        setSelectedCollectionPaths([]);
         setShowSelection(true);
       } catch (err) {
         console.error(err);
@@ -111,12 +131,17 @@ const OpenCollectionModal = ({ onClose }) => {
     );
   };
 
-  const handleConfirm = () => {
-    if (selectedCollectionPaths.length > 0) {
-      dispatch(openMultipleCollections(selectedCollectionPaths))
-        .catch(() => toast.error('An error occurred while opening the collections'));
-      onClose();
+  const handleConfirm = async () => {
+    if (selectedCollectionPaths.length === 0) {
+      return;
     }
+    try {
+      const result = await dispatch(openMultipleCollections(selectedCollectionPaths));
+      notifyOpenFailures(result);
+    } catch {
+      toast.error('An error occurred while opening the collections');
+    }
+    onClose();
   };
 
   const describeLocation = (collection) => {
