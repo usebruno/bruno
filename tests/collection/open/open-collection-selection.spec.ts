@@ -217,7 +217,7 @@ test.describe('Open Collection - selection flow', () => {
 
     await expect(openCollectionModal(page)).toHaveCount(0);
     await expect(page.getByText('An error occurred while scanning for collections')).toHaveCount(0);
-    await expect(page.getByText('No Bruno collections were found')).toHaveCount(0);
+    await expect(page.getByText('No Bruno collections found')).toHaveCount(0);
   });
 
   test('reports a toast when a folder has no collections', async ({
@@ -231,7 +231,9 @@ test.describe('Open Collection - selection flow', () => {
     await mockPickerPaths(electronApp, [empty]);
     await openViaSidebar(page);
 
-    await expect(page.getByText('No Bruno collections were found.')).toBeVisible();
+    await expect(
+      page.getByText('No Bruno collections found. Couldn\'t find a bruno.json or opencollection.yml')
+    ).toBeVisible();
     await expect(openCollectionModal(page)).toHaveCount(0);
   });
 

@@ -63,10 +63,11 @@ const OpenCollectionModal = ({ onClose }) => {
 
         if (items.length === 0) {
           if (failedScans.length) {
-            toast.error(`Failed to scan ${failedScans.length} folder${failedScans.length === 1 ? '' : 's'} for collections.`);
+            toast.error(`Failed to scan ${failedScans.length} folder${failedScans.length === 1 ? '' : 's'} for collections`);
+          } else if (skippedItems.length) {
+            toast.error(`No Bruno collections found. ${skippedItems.length} skipped, config could not be read`);
           } else {
-            const skippedNote = skippedItems.length ? ` (${skippedItems.length} skipped, config could not be read)` : '';
-            toast.error(`No Bruno collections were found${skippedNote}.`);
+            toast.error('No Bruno collections found. Couldn\'t find a bruno.json or opencollection.yml');
           }
           onClose();
           return;
