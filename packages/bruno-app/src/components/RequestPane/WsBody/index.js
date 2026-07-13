@@ -15,6 +15,7 @@ const getSelectedIndex = (messages) => {
 const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   const dispatch = useDispatch();
   const messagesContainerRef = useRef(null);
+  const pinScrollRef = useRef(null);
   const [listScrollTop, setListScrollTop] = usePersistedState({
     key: `ws-list-scroll-${item.uid}`,
     default: 0
@@ -65,12 +66,37 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     }));
   }, [body, dispatch, item.uid, collection.uid]);
 
+  const scrollMessageToTop = useCallback((uid) => {
+    const index = messages.findIndex((m) => m.uid === uid);
+    if (index < 0) return;
+    if (pinScrollRef.current !== null) cancelAnimationFrame(pinScrollRef.current);
+    let frames = 0;
+    const align = () => {
+      const el = messagesContainerRef.current;
+      if (!el || pinScrollRef.current === null) return;
+      const wrapper = el.children[index];
+      if (wrapper) {
+        el.scrollTop += wrapper.getBoundingClientRect().top - el.getBoundingClientRect().top;
+      }
+      if (++frames < 12) {
+        pinScrollRef.current = requestAnimationFrame(align);
+      } else {
+        pinScrollRef.current = null;
+      }
+    };
+    pinScrollRef.current = requestAnimationFrame(align);
+  }, [messages]);
+
   const toggleMessage = useCallback((uid) => {
     if (!uid) return;
+    const willOpen = !expandedUids.has(uid);
     setExpandedUidList((prev) => (
       prev.includes(uid) ? prev.filter((u) => u !== uid) : [...prev, uid]
     ));
-  }, [setExpandedUidList]);
+    // Opening a message brings its header to the top of the list; collapsing
+    // leaves the list where it is.
+    if (willOpen) scrollMessageToTop(uid);
+  }, [expandedUids, setExpandedUidList, scrollMessageToTop]);
 
   const handleSelect = useCallback((index) => {
     if (index !== selectedIndex) {
@@ -120,7 +146,6 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   // CodeMirror's cursor, flinging the whole panel. Pin the list's scrollTop for a
   // few frames so focus/keystrokes can't move it (the editor still scrolls
   // internally); a real user scroll (wheel/touch) releases the pin.
-  const pinScrollRef = useRef(null);
   const pinListScroll = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return;

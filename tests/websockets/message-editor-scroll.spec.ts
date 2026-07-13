@@ -43,6 +43,41 @@ test.describe('websocket message editor scroll behaviour', () => {
       .toBeGreaterThan(target - 60);
   });
 
+  test('opening a collapsed message scrolls its header to the top of the list', async ({
+    pageWithUserData: page
+  }) => {
+    const ws = buildWebsocketCommonLocators(page);
+    const container = ws.message.container();
+
+    await openRequest(page, COLLECTION_NAME, TWO_MSG_REQ);
+
+    // Message 1 is expanded by default; message 2 starts collapsed and below it.
+    await expect(ws.message.body(0)).toBeVisible();
+    await expect(ws.message.body(1)).toHaveCount(0);
+
+    // Start from the top of the list so message 2 is below the fold.
+    await container.evaluate((el) => {
+      el.scrollTop = 0;
+    });
+
+    // Open message 2.
+    await ws.message.header(1).click({ position: { x: 8, y: 12 } });
+    await expect(ws.message.body(1)).toBeVisible();
+
+    // Its (sticky) header should settle at the top of the list — i.e. the message
+    // wrapper's top aligns with the container's top.
+    await expect
+      .poll(() =>
+        container.evaluate((el) => {
+          const header = el.querySelector('[data-testid="ws-message-header-1"]');
+          const wrapper = header?.parentElement;
+          if (!wrapper) return Number.MAX_SAFE_INTEGER;
+          return Math.round(wrapper.getBoundingClientRect().top - el.getBoundingClientRect().top);
+        })
+      )
+      .toBeLessThanOrEqual(4);
+  });
+
   test('selecting another message does not reset the deselected editor scroll to top', async ({
     pageWithUserData: page
   }) => {
