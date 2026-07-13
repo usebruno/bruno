@@ -18,16 +18,16 @@ const variablesTabDot = (page: Page) => envLocators(page).tabDot('variables');
 const secretsTabDot = (page: Page) => envLocators(page).tabDot('secrets');
 
 const searchEnv = async (page: Page, query: string) => {
-  const input = page.locator('.search-input');
+  const input = searchInputLocator(page);
   if ((await input.count()) === 0) {
-    await page.locator('.env-search-container button[title="Search"]').click();
+    await envLocators(page).searchAction().click();
     await input.waitFor({ state: 'visible' });
   }
   await input.fill(query);
 };
 
 const resetSearch = async (page: Page) => {
-  const input = page.locator('.search-input');
+  const input = searchInputLocator(page);
   if ((await input.count()) === 0) return;
   await input.fill('');
   await input.blur();
