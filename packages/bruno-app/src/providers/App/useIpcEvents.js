@@ -124,9 +124,9 @@ const useIpcEvents = () => {
 
     const removeApiSpecTreeUpdateListener = ipcRenderer.on('main:apispec-tree-updated', _apiSpecTreeUpdated);
 
-    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', async (pathname, uid, brunoConfig) => {
+    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', async (pathname, uid, brunoConfig, options) => {
       try {
-        await dispatch(openCollectionEvent(uid, pathname, brunoConfig));
+        await dispatch(openCollectionEvent(uid, pathname, brunoConfig, options));
       } finally {
         dispatch(hydrateSnapshotForOpenedCollection(pathname));
       }

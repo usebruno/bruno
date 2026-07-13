@@ -2799,7 +2799,7 @@ export const openScratchCollectionEvent = (uid, pathname, brunoConfig) => (dispa
   });
 };
 
-export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
+export const openCollectionEvent = (uid, pathname, brunoConfig, options = {}) => (dispatch, getState) => {
   const { ipcRenderer } = window;
 
   return new Promise((resolve, reject) => {
@@ -2816,7 +2816,9 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     );
 
     if (existingCollection && isAlreadyInWorkspace) {
-      toast.success('Collection is already opened');
+      if (!options.silent) {
+        toast.success('Collection is already opened');
+      }
       resolve();
       return;
     }
@@ -2835,7 +2837,9 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         ipcRenderer
           .invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection)
           .then(() => {
-            toast.success('Collection added to workspace');
+            if (!options.silent) {
+              toast.success('Collection added to workspace');
+            }
           })
           .catch((err) => {
             console.error('Failed to add collection to workspace', err);
