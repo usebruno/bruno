@@ -5,13 +5,17 @@ import { Page } from '@playwright/test';
 import { importCollection, createEnvironment, closeAllCollections, addRowToActiveTab, saveEnvironment, deleteAllGlobalEnvironments } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
-const variablesTab = (page: Page) => buildCommonLocators(page).environment.variablesTab();
-const secretsTab = (page: Page) => buildCommonLocators(page).environment.secretsTab();
-const varRow = (page: Page, name: string) => buildCommonLocators(page).environment.varRow(name);
-const varRowValueLine = (page: Page, name: string) => buildCommonLocators(page).environment.varRowValueLine(name);
-const saveTab = (page: Page) => buildCommonLocators(page).environment.saveTab();
-const searchInputLocator = (page: Page) => buildCommonLocators(page).environment.searchInput();
+const envLocators = (page: Page) => buildCommonLocators(page).environment;
+
+const variablesTab = (page: Page) => envLocators(page).variablesTab();
+const secretsTab = (page: Page) => envLocators(page).secretsTab();
+const varRow = (page: Page, name: string) => envLocators(page).varRow(name);
+const varRowValueLine = (page: Page, name: string) => envLocators(page).varRowValueLine(name);
+const saveTab = (page: Page) => envLocators(page).saveTab();
+const searchInputLocator = (page: Page) => envLocators(page).searchInput();
 const tabDraftIcon = (page: Page) => page.locator('.request-tab.active').getByTestId('tab-draft-icon');
+const variablesTabDot = (page: Page) => envLocators(page).tabDot('variables');
+const secretsTabDot = (page: Page) => envLocators(page).tabDot('secrets');
 
 const searchEnv = async (page: Page, query: string) => {
   const input = page.locator('.search-input');
@@ -138,6 +142,48 @@ test.describe('Environment Variables / Secrets tab separation', () => {
       await expect(varRowValueLine(page, 'host')).toHaveText('https://echo.usebruno.com');
       // Everything is saved now, so the draft indicator must clear.
       await expect(tabDraftIcon(page)).not.toBeVisible();
+    });
+  });
+
+  test('the unsaved-changes dot appears only on the tab with unsaved edits', async ({ page, createTmpDir }) => {
+    await importCollection(page, collectionFile, await createTmpDir('var-secret-per-tab-dot'), {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, 'Per-Tab Dot Env', 'collection');
+
+    await test.step('No dots before anything is edited', async () => {
+      await expect(variablesTabDot(page)).toHaveCount(0);
+      await expect(secretsTabDot(page)).toHaveCount(0);
+    });
+
+    await test.step('Editing the Variables tab lights up only the Variables dot', async () => {
+      await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
+      await expect(variablesTabDot(page)).toBeVisible();
+      await expect(secretsTabDot(page)).toHaveCount(0);
+    });
+
+    await test.step('Editing the Secrets tab lights up its own dot without clearing Variables', async () => {
+      await secretsTab(page).click();
+      await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
+      await expect(secretsTabDot(page)).toBeVisible();
+      // The Variables tab still has its unsaved row, so its dot must remain.
+      await expect(variablesTabDot(page)).toBeVisible();
+    });
+
+    await test.step('Saving the Secrets tab clears only the Secrets dot', async () => {
+      await saveTab(page).click();
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(secretsTabDot(page)).toHaveCount(0);
+      await expect(variablesTabDot(page)).toBeVisible();
+    });
+
+    await test.step('Saving the Variables tab clears the last remaining dot', async () => {
+      await variablesTab(page).click();
+      await saveTab(page).click();
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(variablesTabDot(page)).toHaveCount(0);
+      await expect(secretsTabDot(page)).toHaveCount(0);
     });
   });
 
@@ -409,6 +455,48 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
       await expect(varRowValueLine(page, 'host')).toHaveText('https://echo.usebruno.com');
       // Everything is saved now, so the draft indicator must clear.
       await expect(tabDraftIcon(page)).not.toBeVisible();
+    });
+  });
+
+  test('the unsaved-changes dot appears only on the tab with unsaved edits', async ({ page, createTmpDir }) => {
+    await importCollection(page, collectionFile, await createTmpDir('global-var-secret-per-tab-dot'), {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, 'Global Per-Tab Dot Env', 'global');
+
+    await test.step('No dots before anything is edited', async () => {
+      await expect(variablesTabDot(page)).toHaveCount(0);
+      await expect(secretsTabDot(page)).toHaveCount(0);
+    });
+
+    await test.step('Editing the Variables tab lights up only the Variables dot', async () => {
+      await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
+      await expect(variablesTabDot(page)).toBeVisible();
+      await expect(secretsTabDot(page)).toHaveCount(0);
+    });
+
+    await test.step('Editing the Secrets tab lights up its own dot without clearing Variables', async () => {
+      await secretsTab(page).click();
+      await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
+      await expect(secretsTabDot(page)).toBeVisible();
+      // The Variables tab still has its unsaved row, so its dot must remain.
+      await expect(variablesTabDot(page)).toBeVisible();
+    });
+
+    await test.step('Saving the Secrets tab clears only the Secrets dot', async () => {
+      await saveTab(page).click();
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(secretsTabDot(page)).toHaveCount(0);
+      await expect(variablesTabDot(page)).toBeVisible();
+    });
+
+    await test.step('Saving the Variables tab clears the last remaining dot', async () => {
+      await variablesTab(page).click();
+      await saveTab(page).click();
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(variablesTabDot(page)).toHaveCount(0);
+      await expect(secretsTabDot(page)).toHaveCount(0);
     });
   });
 

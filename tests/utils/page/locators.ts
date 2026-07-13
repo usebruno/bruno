@@ -135,6 +135,9 @@ export const buildCommonLocators = (page: Page) => ({
     // Variables and secrets each live on their own tab in the environment editor.
     variablesTab: () => page.getByTestId('responsive-tab-variables'),
     secretsTab: () => page.getByTestId('responsive-tab-secrets'),
+    // The per-tab unsaved-changes dot, scoped to its tab (the visible tab carries the
+    // responsive-tab testid; the hidden measurement copy does not, so this stays unique).
+    tabDot: (tab: string) => page.getByTestId(`responsive-tab-${tab}`).getByTestId('tab-unsaved-dot'),
     saveTab: () => page.getByTestId('save-env'),
     saveAll: () => page.getByTestId('save-all-env'),
     searchInput: () => page.getByTestId('env-search-input'),

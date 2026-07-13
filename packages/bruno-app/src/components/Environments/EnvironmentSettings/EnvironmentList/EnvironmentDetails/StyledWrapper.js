@@ -103,6 +103,16 @@ const StyledWrapper = styled.div`
     padding: 0 20px;
     flex-shrink: 0;
 
+    .tab-unsaved-dot {
+      display: inline-block;
+      flex-shrink: 0;
+      margin-left: 2px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: ${(props) => props.theme.draftColor};
+    }
+
     .env-search-container {
       display: flex;
       align-items: center;
