@@ -77,6 +77,7 @@ const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
+const { remount: remountCollectionV2 } = require('./mount');
 const { transformBrunoConfigBeforeSave, transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { REQUEST_TYPES } = require('../utils/constants');
 const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
@@ -2779,13 +2780,21 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       ymlBrunoConfig.size = size;
       ymlBrunoConfig.filesCount = filesCount;
 
-      if (watcher) {
-        try {
+      try {
+        const remounted = await remountCollectionV2({ collectionUid, brunoConfig: ymlBrunoConfig });
+        if (!remounted && watcher) {
           watcher.addWatcher(mainWindow, collectionPathname, collectionUid, ymlBrunoConfig, false, undefined, { ignoreInitial: true });
-        } catch (watcherError) {
-          console.error('Failed to re-attach watcher after migration:', watcherError);
+        }
+      } catch (watcherError) {
+        console.error('Failed to re-attach watcher after migration:', watcherError);
+        try {
+          if (watcher) {
+            watcher.addWatcher(mainWindow, collectionPathname, collectionUid, ymlBrunoConfig, false, undefined, { ignoreInitial: true });
+          }
+        } catch (fallbackError) {
+          console.error('Fallback watcher attach failed after migration:', fallbackError);
           mainWindow.webContents.send('main:display-error', {
-            message: `Collection migrated to yml, but live sync could not be re-enabled: ${watcherError.message}. Please reopen the collection.`
+            message: `Collection migrated to yml, but live sync could not be re-enabled: ${fallbackError.message}. Please reopen the collection.`
           });
         }
       }
@@ -2802,13 +2811,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
 
       // Restart the watcher on the original bru collection
-      if (watcher) {
-        try {
-          const config = JSON.parse(fs.readFileSync(path.join(collectionPathname, 'bruno.json'), 'utf8'));
+      try {
+        const config = JSON.parse(fs.readFileSync(path.join(collectionPathname, 'bruno.json'), 'utf8'));
+        const remounted = await remountCollectionV2({ collectionUid, brunoConfig: config });
+        if (!remounted && watcher) {
           watcher.addWatcher(mainWindow, collectionPathname, collectionUid, config);
-        } catch (watcherError) {
-          console.error('Failed to restart watcher after migration error:', watcherError);
         }
+      } catch (watcherError) {
+        console.error('Failed to restart watcher after migration error:', watcherError);
       }
       throw error;
     }
