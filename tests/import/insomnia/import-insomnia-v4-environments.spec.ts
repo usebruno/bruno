@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { openCollection, closeAllCollections } from '../../utils/page/actions';
+import { openCollection, closeAllCollections, getEnvVarValueLine } from '../../utils/page/actions';
 
 test.describe('Import Insomnia v4 Collection - Environment Import', () => {
   test.afterEach(async ({ page }) => {
@@ -74,53 +74,21 @@ test.describe('Import Insomnia v4 Collection - Environment Import', () => {
         .first()
         .click();
 
-      // Gate on the env-switch flatten pass having fully landed before
-      // per-row asserts. The flatten renders top-level keys first and the
-      // deepest nested keys (array-indexed `user.roles[*]`) last; on slow
-      // runners the trailing batch can take longer than the 5s default.
-      // Waiting on the deepest asserted key here guarantees every shallower
-      // input is also in DOM by the time the per-input asserts below run.
-      await page.locator('input[value="user.roles[1]"]').waitFor({ state: 'visible', timeout: 15000 });
-
       // **Assertion 1: Basic Variables (Top-level keys)**
       // Verifies that simple key-value pairs from the base environment are imported correctly
-      const v4BaseUrlInput = page.locator('input[value="baseUrl"]');
-      const v4AuthTokenInput = page.locator('input[value="authToken"]');
-      await expect(v4BaseUrlInput).toBeVisible();
-      await expect(v4AuthTokenInput).toBeVisible();
-
-      // Assert: Top-level string values are preserved exactly as in the source
-      const baseUrlRow = page.locator('tbody tr').filter({ has: page.locator('input[value="baseUrl"]') });
-      await expect(baseUrlRow.locator('.CodeMirror-line').first()).toHaveText('https://api.example.com');
-      const authTokenRow = page.locator('tbody tr').filter({ has: page.locator('input[value="authToken"]') });
-      await expect(authTokenRow.locator('.CodeMirror-line').first()).toHaveText('your_auth_token_here');
+      await expect(await getEnvVarValueLine(page, 'baseUrl')).toHaveText('https://api.example.com');
+      await expect(await getEnvVarValueLine(page, 'authToken')).toHaveText('your_auth_token_here');
 
       // **Assertion 2: Nested Object Flattening**
       // Verifies that nested objects are flattened to dot-notation keys (e.g., user.name, user.id)
-      const v4UserNameInput = page.locator('input[value="user.name"]');
-      const v4UserIdInput = page.locator('input[value="user.id"]');
-      await expect(v4UserNameInput).toBeVisible();
-      await expect(v4UserIdInput).toBeVisible();
-
-      // Assert: Nested object properties are accessible via dot notation
-      const userNameRow = page.locator('tbody tr').filter({ has: page.locator('input[value="user.name"]') });
-      await expect(userNameRow.locator('.CodeMirror-line').first()).toHaveText('admin');
-      // Assert: Numeric values are converted to strings and preserved
-      const userIdRow = page.locator('tbody tr').filter({ has: page.locator('input[value="user.id"]') });
-      await expect(userIdRow.locator('.CodeMirror-line').first()).toHaveText('123');
+      await expect(await getEnvVarValueLine(page, 'user.name')).toHaveText('admin');
+      // Numeric values are converted to strings and preserved
+      await expect(await getEnvVarValueLine(page, 'user.id')).toHaveText('123');
 
       // **Assertion 3: Array Flattening**
       // Verifies that arrays are flattened using JavaScript-style square bracket notation (e.g., user.roles[0], user.roles[1])
-      const v4UserRoles0Input = page.locator('input[value="user.roles[0]"]');
-      const v4UserRoles1Input = page.locator('input[value="user.roles[1]"]');
-      await expect(v4UserRoles0Input).toBeVisible();
-      await expect(v4UserRoles1Input).toBeVisible();
-
-      // Assert: Array elements are accessible via JavaScript-style square bracket notation
-      const userRoles0Row = page.locator('tbody tr').filter({ has: page.locator('input[value="user.roles[0]"]') });
-      await expect(userRoles0Row.locator('.CodeMirror-line').first()).toHaveText('admin');
-      const userRoles1Row = page.locator('tbody tr').filter({ has: page.locator('input[value="user.roles[1]"]') });
-      await expect(userRoles1Row.locator('.CodeMirror-line').first()).toHaveText('user');
+      await expect(await getEnvVarValueLine(page, 'user.roles[0]')).toHaveText('admin');
+      await expect(await getEnvVarValueLine(page, 'user.roles[1]')).toHaveText('user');
     });
 
     await test.step('Test Staging Environment - verify merging with base', async () => {
@@ -130,46 +98,22 @@ test.describe('Import Insomnia v4 Collection - Environment Import', () => {
         .first()
         .click();
 
-      // Gate on the env-switch flatten pass having fully landed before
-      // per-row asserts. Inherited deep keys (like `user.roles[0]`) are the
-      // last to merge in for a sub-env; waiting on it here guarantees every
-      // other input is also in DOM by the time the per-input asserts run.
-      await page.locator('input[value="user.roles[0]"]').waitFor({ state: 'visible', timeout: 15000 });
-
       // **Assertion 1: Top-level Variable Override**
       // Verifies that staging environment overrides base environment values
-      const v4StagingBaseUrlInput = page.locator('input[value="baseUrl"]');
-      await expect(v4StagingBaseUrlInput).toBeVisible();
-      // Assert: Staging overrides baseUrl with its own value
-      const stagingBaseUrlRow = page.locator('tbody tr').filter({ has: page.locator('input[value="baseUrl"]') });
-      await expect(stagingBaseUrlRow.locator('.CodeMirror-line').first()).toHaveText('https://staging-api.example.com');
+      await expect(await getEnvVarValueLine(page, 'baseUrl')).toHaveText('https://staging-api.example.com');
 
       // **Assertion 2: Top-level Variable Inheritance**
-      // Verifies that staging environment inherits base environment values when not overridden
-      const v4StagingAuthTokenInput = page.locator('input[value="authToken"]');
-      await expect(v4StagingAuthTokenInput).toBeVisible();
-      // Assert: Staging inherits authToken from base (not overridden in staging)
-      const stagingAuthTokenRow = page.locator('tbody tr').filter({ has: page.locator('input[value="authToken"]') });
-      await expect(stagingAuthTokenRow.locator('.CodeMirror-line').first()).toHaveText('your_auth_token_here');
+      // Staging inherits authToken from base (not overridden in staging)
+      await expect(await getEnvVarValueLine(page, 'authToken')).toHaveText('your_auth_token_here');
 
       // **Assertion 3: Nested Object Variable Override and Inheritance**
       // Verifies that nested object properties can be selectively overridden while inheriting others
-      const v4StagingUserNameInput = page.locator('input[value="user.name"]');
-      const v4StagingUserIdInput = page.locator('input[value="user.id"]');
-      const v4StagingUserRoles0Input = page.locator('input[value="user.roles[0]"]');
-      await expect(v4StagingUserNameInput).toBeVisible();
-      await expect(v4StagingUserIdInput).toBeVisible();
-      await expect(v4StagingUserRoles0Input).toBeVisible();
-
-      // Assert: Staging overrides user.name with its own value
-      const stagingUserNameRow = page.locator('tbody tr').filter({ has: page.locator('input[value="user.name"]') });
-      await expect(stagingUserNameRow.locator('.CodeMirror-line').first()).toHaveText('staging_admin');
-      // Assert: Staging inherits user.id from base (not overridden in staging)
-      const stagingUserIdRow = page.locator('tbody tr').filter({ has: page.locator('input[value="user.id"]') });
-      await expect(stagingUserIdRow.locator('.CodeMirror-line').first()).toHaveText('123');
-      // Assert: Staging inherits user.roles[0] from base (not overridden in staging)
-      const stagingUserRoles0Row = page.locator('tbody tr').filter({ has: page.locator('input[value="user.roles[0]"]') });
-      await expect(stagingUserRoles0Row.locator('.CodeMirror-line').first()).toHaveText('admin');
+      // Staging overrides user.name with its own value
+      await expect(await getEnvVarValueLine(page, 'user.name')).toHaveText('staging_admin');
+      // Staging inherits user.id from base (not overridden in staging)
+      await expect(await getEnvVarValueLine(page, 'user.id')).toHaveText('123');
+      // Staging inherits user.roles[0] from base (not overridden in staging)
+      await expect(await getEnvVarValueLine(page, 'user.roles[0]')).toHaveText('admin');
     });
 
     await test.step('Test Development Environment - verify new variables', async () => {
@@ -179,40 +123,17 @@ test.describe('Import Insomnia v4 Collection - Environment Import', () => {
         .first()
         .click();
 
-      // Gate on the env-switch merge pass having fully landed before
-      // per-row asserts. The sub-env's newly-added keys (`newFeature.*`)
-      // are the last to merge in; waiting on the deepest of those here
-      // guarantees every other input is also in DOM by the time the
-      // per-input asserts below run.
-      await page.locator('input[value="newFeature.version"]').waitFor({ state: 'visible', timeout: 15000 });
-
       // **Assertion 1: Multiple Top-level Variable Overrides**
       // Verifies that development environment can override multiple base environment values
-      const v4DevBaseUrlInput = page.locator('input[value="baseUrl"]');
-      const v4DevAuthTokenInput = page.locator('input[value="authToken"]');
-      await expect(v4DevBaseUrlInput).toBeVisible();
-      await expect(v4DevAuthTokenInput).toBeVisible();
-
-      // Assert: Development overrides baseUrl with its own value
-      const devBaseUrlRow = page.locator('tbody tr').filter({ has: page.locator('input[value="baseUrl"]') });
-      await expect(devBaseUrlRow.locator('.CodeMirror-line').first()).toHaveText('https://dev-api.example.com');
-      // Assert: Development overrides authToken with its own value
-      const devAuthTokenRow = page.locator('tbody tr').filter({ has: page.locator('input[value="authToken"]') });
-      await expect(devAuthTokenRow.locator('.CodeMirror-line').first()).toHaveText('dev_token_123');
+      await expect(await getEnvVarValueLine(page, 'baseUrl')).toHaveText('https://dev-api.example.com');
+      await expect(await getEnvVarValueLine(page, 'authToken')).toHaveText('dev_token_123');
 
       // **Assertion 2: New Nested Variables Addition**
       // Verifies that development environment can add completely new nested variables not present in base
-      const v4NewFeatureEnabledInput = page.locator('input[value="newFeature.enabled"]');
-      const v4NewFeatureVersionInput = page.locator('input[value="newFeature.version"]');
-      await expect(v4NewFeatureEnabledInput).toBeVisible();
-      await expect(v4NewFeatureVersionInput).toBeVisible();
-
-      // Assert: New boolean variable is added and converted to string
-      const newFeatureEnabledRow = page.locator('tbody tr').filter({ has: page.locator('input[value="newFeature.enabled"]') });
-      await expect(newFeatureEnabledRow.locator('.CodeMirror-line').first()).toHaveText('true');
-      // Assert: New numeric variable is added and converted to string with full precision
-      const newFeatureVersionRow = page.locator('tbody tr').filter({ has: page.locator('input[value="newFeature.version"]') });
-      await expect(newFeatureVersionRow.locator('.CodeMirror-line').first()).toHaveText('2.099123123');
+      // New boolean variable is added and converted to string
+      await expect(await getEnvVarValueLine(page, 'newFeature.enabled')).toHaveText('true');
+      // New numeric variable is added and converted to string with full precision
+      await expect(await getEnvVarValueLine(page, 'newFeature.version')).toHaveText('2.099123123');
     });
 
     await test.step('Close environment tab', async () => {

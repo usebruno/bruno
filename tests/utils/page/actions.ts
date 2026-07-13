@@ -1317,7 +1317,10 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
       }
 
       if (await overflowButton.isVisible()) {
-        await overflowButton.click({ timeout: 2000 });
+        const isExpanded = (await overflowButton.getAttribute('aria-expanded')) === 'true';
+        if (!isExpanded) {
+          await overflowButton.click({ timeout: 2000 });
+        }
 
         const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
         await dropdownItem.waitFor({ state: 'visible', timeout: 2000 });
@@ -2384,9 +2387,28 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
   await target.scrollIntoViewIfNeeded().catch(() => { });
 };
 
+/**
+ *
+ * The table is virtualized (react-virtuoso), so only the rows within the
+ * scroll viewport are mounted in the DOM. On a small window (e.g. CI) the
+ * bottom rows are culled until scrolled into view. This reveals the target row
+ * first so the assertion doesn't depend on the window being tall enough to
+ * mount every row at once.
+ */
+const getEnvVarValueLine = async (page: Page, name: string): Promise<Locator> => {
+  const input = page.locator(`input[value="${name}"]`);
+  await expect(async () => {
+    await scrollVirtuosoRowIntoView(page, input);
+    await expect(input).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15000 });
+  const row = page.locator('tbody tr').filter({ has: input });
+  return row.locator('.CodeMirror-line').first();
+};
+
 export {
   waitForReadyPage,
   scrollVirtuosoRowIntoView,
+  getEnvVarValueLine,
   dismissImportIssuesToasts,
   closeAllCollections,
   openCollection,
