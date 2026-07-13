@@ -1596,6 +1596,17 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             const content = await stringifyRequestViaWorker(itemToSave, { format });
             await writeFile(item.pathname, content);
           }
+        } else if (item?.type === 'app') {
+          if (fs.existsSync(item.pathname)) {
+            const existingContent = fs.readFileSync(item.pathname, 'utf8');
+            const appJson = parseRequest(existingContent, { format });
+            if (appJson?.seq === item.seq) {
+              continue;
+            }
+            appJson.seq = item.seq;
+            const newContent = stringifyRequest(appJson, { format });
+            await writeFile(item.pathname, newContent);
+          }
         }
       }
       return true;
