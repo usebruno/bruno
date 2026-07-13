@@ -70,12 +70,12 @@ const walkSql = (dir: string): string[] => {
 const SQLC_NAME_ANNOTATION = /^--\s*name:\s*(\S+)\s+:(\w+)\s*$/
 
 const SQLC_COMMAND_TYPES: Record<string, StatementType> = {
-  one: "get",
-  many: "all",
-  exec: "run",
-  execrows: "run",
-  execresult: "run",
-  execlastid: "run"
+  one: "one",
+  many: "many",
+  exec: "exec",
+  execrows: "exec",
+  execresult: "exec",
+  execlastid: "exec"
 }
 
 const parseStatementFile = (relative: string, content: string): StatementDef[] => {
@@ -91,7 +91,7 @@ const parseStatementFile = (relative: string, content: string): StatementDef[] =
     defs.push({ name: current.name, type: current.type, sql, tables: extractTables(sql) })
   }
 
-  for (const line of content.split("\n")) {
+  content.split("\n").forEach((line) => {
     const match = line.match(SQLC_NAME_ANNOTATION)
     if (match) {
       flush()
@@ -104,7 +104,7 @@ const parseStatementFile = (relative: string, content: string): StatementDef[] =
     } else if (current !== null) {
       current.body.push(line)
     }
-  }
+  })
   flush()
   return defs
 }

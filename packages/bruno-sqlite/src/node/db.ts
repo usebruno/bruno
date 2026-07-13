@@ -28,35 +28,42 @@ export class DB {
     db.exec(this._migrations_table)
 
     const available = [...migrations].sort((a, b) => a.sequence - b.sequence)
-    const maxAvailable = available.length ? available[available.length - 1].sequence : 0
+    const maxSequence = available.length ? available[available.length - 1].sequence : 0
 
-    const toRollback = db
+    this._rollbackObsolete(db, maxSequence)
+    this._applyPending(db, available)
+  }
+
+  _rollbackObsolete(db: DatabaseSync, maxSequence: number): void {
+    const obsolete = db
       .prepare(`SELECT sequence, down FROM _migrations WHERE sequence > ? ORDER BY sequence DESC`)
-      .all(maxAvailable) as { sequence: number; down: string }[]
+      .all(maxSequence) as { sequence: number; down: string }[]
 
     const deleteStmt = db.prepare(`DELETE FROM _migrations WHERE sequence = ?`)
-    for (const row of toRollback) {
+    for (const row of obsolete) {
       this._transaction(() => {
         db.exec(row.down)
         deleteStmt.run(row.sequence)
       })
     }
+  }
 
+  _applyPending(db: DatabaseSync, migrations: Migration[]): void {
     const appliedRows = db
       .prepare(`SELECT sequence, up_hash, down_hash FROM _migrations`)
       .all() as { sequence: number; up_hash: string; down_hash: string }[]
-    const appliedHashes = new Map(appliedRows.map(row => [row.sequence, row] as const))
+    const applied = new Map(appliedRows.map(row => [row.sequence, row] as const))
 
     const insertStmt = db.prepare(
       `INSERT INTO _migrations (sequence, name, up, down, up_hash, down_hash) VALUES (?, ?, ?, ?, ?, ?)`
     )
-    for (const migration of available) {
+    for (const migration of migrations) {
       const upHash = this._hash(migration.up)
       const downHash = this._hash(migration.down)
 
-      const applied = appliedHashes.get(migration.sequence)
-      if (applied !== undefined) {
-        if (applied.up_hash !== upHash || applied.down_hash !== downHash) {
+      const existing = applied.get(migration.sequence)
+      if (existing !== undefined) {
+        if (existing.up_hash !== upHash || existing.down_hash !== downHash) {
           throw new Error(
             `Migration "${migration.name}" (sequence ${migration.sequence}) does not match the migration already applied to the database. It may have been modified after being applied.`
           )

@@ -7,10 +7,10 @@ import { statementTypes } from "../generated/web/statements"
 
 type StatementTypeMap = typeof statementTypes
 type ReadStatementName = {
-  [K in keyof StatementTypeMap]: StatementTypeMap[K] extends "get" | "all" ? K : never
+  [K in keyof StatementTypeMap]: StatementTypeMap[K] extends "one" | "many" ? K : never
 }[keyof StatementTypeMap]
 type WriteStatementName = {
-  [K in keyof StatementTypeMap]: StatementTypeMap[K] extends "run" ? K : never
+  [K in keyof StatementTypeMap]: StatementTypeMap[K] extends "exec" ? K : never
 }[keyof StatementTypeMap]
 
 export const useSqliteQuery = <TData = unknown>(

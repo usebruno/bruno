@@ -26,14 +26,14 @@ export class Statements {
     }
     const args = params as Record<string, SupportedValueType>
     switch (def.type) {
-      case 'run': {
+      case 'exec': {
         const result = stmt.run(args)
         this._onMutation?.({ name: def.name, tables: def.tables })
         return result
       }
-      case 'get':
+      case 'one':
         return stmt.get(args)
-      case 'all':
+      case 'many':
         return stmt.all(args)
     }
   }
