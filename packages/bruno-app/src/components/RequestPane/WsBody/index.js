@@ -122,6 +122,15 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     prevMessagesLengthRef.current = messages.length;
   }, [messages.length]);
 
+  // Drop uids of deleted messages so the persisted list doesn't accumulate stale
+  // entries over the request's lifetime.
+  useEffect(() => {
+    const hasStale = expandedUidList.some((uid) => !messages.some((m) => m.uid === uid));
+    if (hasStale) {
+      setExpandedUidList((prev) => prev.filter((uid) => messages.some((m) => m.uid === uid)));
+    }
+  }, [messages, expandedUidList, setExpandedUidList]);
+
   const handleNewMessageRendered = useCallback(() => {
     setNewMessageUid(null);
   }, []);
