@@ -23,9 +23,12 @@ const OpenCollectionModal = ({ onClose }) => {
   const [skippedCollectionPaths, setSkippedCollectionPaths] = useState([]);
   const [selectedCollectionPaths, setSelectedCollectionPaths] = useState([]);
   const startedRef = useRef(false);
-
-  const notifyOpenFailures = (result) => {
+  const notifyOpenResult = (result) => {
+    const openedCount = result?.opened?.length || 0;
     const failedCount = (result?.failed?.length || 0) + (result?.invalid?.length || 0);
+    if (openedCount > 0) {
+      toast.success(`${openedCount === 1 ? 'Collection' : 'Collections'} added to workspace`);
+    }
     if (failedCount > 0) {
       toast.error(`Failed to open ${failedCount} collection${failedCount === 1 ? '' : 's'}`);
     }
@@ -94,8 +97,8 @@ const OpenCollectionModal = ({ onClose }) => {
           && noNestedCollections
         ) {
           try {
-            const result = await dispatch(openMultipleCollections(items.map((item) => item.pathname)));
-            notifyOpenFailures(result);
+            const result = await dispatch(openMultipleCollections(items.map((item) => item.pathname), { silent: true }));
+            notifyOpenResult(result);
           } catch {
             toast.error('An error occurred while opening the collections');
           }
@@ -136,8 +139,8 @@ const OpenCollectionModal = ({ onClose }) => {
       return;
     }
     try {
-      const result = await dispatch(openMultipleCollections(selectedCollectionPaths));
-      notifyOpenFailures(result);
+      const result = await dispatch(openMultipleCollections(selectedCollectionPaths, { silent: true }));
+      notifyOpenResult(result);
     } catch {
       toast.error('An error occurred while opening the collections');
     }
