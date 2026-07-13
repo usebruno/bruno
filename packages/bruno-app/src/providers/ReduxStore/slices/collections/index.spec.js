@@ -3,7 +3,8 @@ import { collectionsSlice } from './index';
 const {
   setRequestVars,
   setFolderVars,
-  setCollectionVars
+  setCollectionVars,
+  updateFile
 } = collectionsSlice.actions;
 const reducer = collectionsSlice.reducer;
 
@@ -83,5 +84,45 @@ describe('setCollectionVars — strips dataType: \'string\' (implicit default)',
     );
 
     assertGuardedVars(next.collections[0].draft.root.request.vars.req);
+  });
+});
+
+describe('updateFile — does not steal selection on non-selection edits', () => {
+  it('editing the description of a non-selected file leaves the selected file selected', () => {
+    const item = {
+      uid: 'item1',
+      type: 'http-request',
+      request: {
+        body: {
+          file: [
+            { uid: 'f1', filePath: '/tmp/readme.pdf', contentType: 'application/pdf', selected: true, description: '' },
+            { uid: 'f2', filePath: '/tmp/plain.bin', contentType: 'application/octet-stream', selected: false, description: '' }
+          ]
+        }
+      }
+    };
+
+    const next = reducer(
+      makeStateWith(item),
+      updateFile({
+        collectionUid: 'col1',
+        itemUid: 'item1',
+        param: {
+          uid: 'f2',
+          filePath: '/tmp/plain.bin',
+          contentType: 'application/octet-stream',
+          description: 'a plain file',
+          selected: false
+        }
+      })
+    );
+
+    const files = next.collections[0].items[0].draft.request.body.file;
+    const f1 = files.find((p) => p.uid === 'f1');
+    const f2 = files.find((p) => p.uid === 'f2');
+
+    expect(f1.selected).toBe(true);
+    expect(f2.selected).toBe(false);
+    expect(f2.description).toBe('a plain file');
   });
 });

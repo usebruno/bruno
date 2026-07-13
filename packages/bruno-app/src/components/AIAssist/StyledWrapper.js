@@ -5,6 +5,9 @@ const StyledWrapper = styled.div`
   top: 6px;
   right: 6px;
   z-index: 10;
+  background: ${(props) => props.theme.bg};
+  border: 1px solid ${(props) => props.theme.input.border};
+  border-radius: ${(props) => props.theme.border.radius.sm};
 
   .ai-assist-trigger {
     display: inline-flex;
@@ -13,11 +16,11 @@ const StyledWrapper = styled.div`
     width: 24px;
     height: 24px;
     border-radius: ${(props) => props.theme.border.radius.sm};
-    border: 1px solid transparent;
+    border: none;
     background: transparent;
     color: ${(props) => props.theme.colors.text.muted};
     cursor: pointer;
-    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+    transition: color 0.15s ease, background-color 0.15s ease;
     opacity: 0.7;
 
     &:hover,
@@ -25,7 +28,6 @@ const StyledWrapper = styled.div`
       opacity: 1;
       color: ${(props) => props.theme.colors.accent};
       background: ${(props) => props.theme.colors.accent}10;
-      border-color: ${(props) => props.theme.input.border};
     }
 
     &:focus-visible {
@@ -34,16 +36,15 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .ai-assist-popup {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    width: 360px;
-    background: ${(props) => props.theme.bg};
-    border: 1px solid ${(props) => props.theme.input.border};
-    border-radius: ${(props) => props.theme.border.radius.md};
-    overflow: hidden;
-  }
+`;
+
+// Tippy renders the popup into document.body, outside StyledWrapper's subtree.
+export const PopupWrapper = styled.div`
+  width: 360px;
+  background: ${(props) => props.theme.bg};
+  border: 1px solid ${(props) => props.theme.input.border};
+  border-radius: ${(props) => props.theme.border.radius.md};
+  overflow: hidden;
 
   .popup-header {
     display: flex;
@@ -106,6 +107,7 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.input.bg};
     color: ${(props) => props.theme.text};
     resize: vertical;
+    min-height: calc(4 * 1.4em + 18px);
     outline: none;
     transition: border-color 0.15s ease;
 

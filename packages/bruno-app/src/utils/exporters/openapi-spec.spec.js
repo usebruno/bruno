@@ -968,3 +968,37 @@ describe('exportApiSpec - non-HTTP request type filtering', () => {
     expect(spec.paths['/transient']).toBeUndefined();
   });
 });
+
+describe('exportApiSpec - descriptions', () => {
+  it('includes header and query param descriptions in the OpenAPI output', () => {
+    const items = [
+      {
+        name: 'Described Request',
+        type: 'http-request',
+        request: {
+          url: 'https://example.com/users',
+          method: 'GET',
+          params: [
+            { name: 'q', value: 'search', enabled: true, type: 'query', description: 'Search query' }
+          ],
+          headers: [
+            { name: 'X-Version', value: '2', enabled: true, description: 'API version header' }
+          ],
+          body: {},
+          auth: {}
+        }
+      }
+    ];
+
+    const { content } = exportApiSpec({ variables: {}, items, name: 'Described API' });
+    const spec = require('js-yaml').load(content);
+    const operation = spec.paths['/users'].get;
+
+    expect(operation.parameters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'q', in: 'query', description: 'Search query' }),
+        expect.objectContaining({ name: 'X-Version', in: 'header', description: 'API version header' })
+      ])
+    );
+  });
+});
