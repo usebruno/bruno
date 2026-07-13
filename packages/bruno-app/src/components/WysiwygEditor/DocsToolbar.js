@@ -327,6 +327,7 @@ const DocsToolbar = ({ editor }) => {
           selectedItemId={activeHeadingId}
           placement="bottom-start"
           dropdownProps={DOCS_MENU_DROPDOWN_PROPS}
+          testId="docs-heading-dropdown"
         >
           <button
             type="button"
