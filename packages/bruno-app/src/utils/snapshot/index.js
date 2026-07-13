@@ -28,7 +28,6 @@ const NON_REPLACEABLE_SINGLETON_TAB_TYPES = new Set([
 
 const IGNORED_TAB_TYPES = new Set([
   'v4-migration',
-  // ponytail: one-shot upgrade tab; pathname accessor leaves uid unset on restore
   'changelog'
 ]);
 
