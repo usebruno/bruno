@@ -3028,17 +3028,40 @@ export const collectionsSlice = createSlice({
           item.partial = file.partial;
           item.error = file.error;
           item.loading = file.loading;
-          if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
-            // whenever a user attempts to sort a req within the same folder
-            // the seq is updated, but everything else remains the same
-            // we don't want to lose the draft in this case
-            item.seq = file.data.seq;
-            item.raw = file.data.raw;
-            if (item?.draft) {
-              item.draft.seq = file.data.seq;
-            }
-            if (item?.draft && areItemsTheSameExceptSeqUpdate(item?.draft, file.data)) {
-              item.draft = null;
+          if (item.request) {
+            if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
+              // whenever a user attempts to sort a req within the same folder
+              // the seq is updated, but everything else remains the same
+              // we don't want to lose the draft in this case
+              item.seq = file.data.seq;
+              item.raw = file.data.raw;
+              if (item?.draft) {
+                item.draft.seq = file.data.seq;
+              }
+              if (item?.draft && areItemsTheSameExceptSeqUpdate(item?.draft, file.data)) {
+                item.draft = null;
+              }
+            } else {
+              item.name = file.data.name;
+              item.type = file.data.type;
+              item.seq = file.data.seq;
+              item.tags = file.data.tags;
+              item.request = mergeRequestWithPreservedUids(item.request, file.data.request);
+              item.settings = file.data.settings;
+              item.examples = file.data.examples;
+              item.app = file.data.app ? { ...file.data.app } : null;
+              item.filename = file.meta.name;
+              item.pathname = file.meta.pathname;
+              item.raw = file.data.raw;
+              item.size = file.size;
+              // Only clear draft if it matches the file content
+              // This preserves characters typed during autosave
+              // The raw comparison is guarded so an undefined === undefined match
+              // (when neither side has raw content) does not wipe a genuine draft
+              const draftRawMatchesFile = item.draft?.raw !== undefined && item.draft.raw === file.data.raw;
+              if (item.draft && (areItemsTheSameExceptSeqUpdate(item.draft, file.data) || draftRawMatchesFile)) {
+                item.draft = null;
+              }
             }
           } else {
             item.name = file.data.name;
@@ -3053,12 +3076,7 @@ export const collectionsSlice = createSlice({
             item.pathname = file.meta.pathname;
             item.raw = file.data.raw;
             item.size = file.size;
-            // Only clear draft if it matches the file content
-            // This preserves characters typed during autosave
-            // The raw comparison is guarded so an undefined === undefined match
-            // (when neither side has raw content) does not wipe a genuine draft
-            const draftRawMatchesFile = item.draft?.raw !== undefined && item.draft.raw === file.data.raw;
-            if (item.draft && (areItemsTheSameExceptSeqUpdate(item.draft, file.data) || draftRawMatchesFile)) {
+            if (!item.draft || item.draft.raw === file.data.raw) {
               item.draft = null;
             }
           }
