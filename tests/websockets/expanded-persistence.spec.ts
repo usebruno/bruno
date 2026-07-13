@@ -1,13 +1,6 @@
-import { expect, test, Page } from '../../playwright';
+import { expect, test } from '../../playwright';
 import { buildWebsocketCommonLocators } from '../utils/page/locators';
-import { createTransientRequest, selectRequestPaneTab, closeAllTabs } from '../utils/page/actions';
-
-// Switch to an already-open request tab by its label (transient tabs are "Untitled N").
-const switchToTab = async (page: Page, label: string) => {
-  const tab = page.getByTestId('request-tab').filter({ hasText: label });
-  await tab.click();
-  await expect(tab).toHaveAttribute('aria-selected', 'true');
-};
+import { createTransientRequest, selectRequestPaneTab, closeAllTabs, switchToOpenTab } from '../utils/page/actions';
 
 test.describe('websocket expanded-message persistence across tab switches', () => {
   test.afterEach(async ({ page }) => {
@@ -34,7 +27,7 @@ test.describe('websocket expanded-message persistence across tab switches', () =
     await createTransientRequest(page, { requestType: 'WebSocket' });
 
     // Back to tab A.
-    await switchToTab(page, 'Untitled 1');
+    await switchToOpenTab(page, 'Untitled 1');
     await selectRequestPaneTab(page, 'Message');
 
     // Both messages must remain expanded — previously only the selected message

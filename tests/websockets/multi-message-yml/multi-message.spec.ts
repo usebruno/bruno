@@ -156,7 +156,7 @@ test.describe.serial('websocket multi-message (yml format)', () => {
     const beforeCount = await messageItems.count();
 
     // Click the main send button — sends the currently selected message
-    await page.getByTestId('run-button').click();
+    await ws.runner().click();
 
     // Expect at least one new message (outgoing + echo response from server)
     await expect.poll(() => messageItems.count(), { timeout: MAX_CONNECTION_TIME }).toBeGreaterThan(beforeCount);
@@ -177,7 +177,7 @@ test.describe.serial('websocket multi-message (yml format)', () => {
       timeout: MAX_CONNECTION_TIME
     });
 
-    await page.getByTestId('run-button').click();
+    await ws.runner().click();
 
     // the first message's content ("subscribe"), and none should carry the
     // second message's content ("hello world").
@@ -202,7 +202,7 @@ test.describe.serial('websocket multi-message (yml format)', () => {
       timeout: MAX_CONNECTION_TIME
     });
 
-    await page.getByTestId('run-button').click();
+    await ws.runner().click();
 
     await expect(ws.messages().filter({ hasText: 'hello world' }).first()).toBeAttached({
       timeout: MAX_CONNECTION_TIME

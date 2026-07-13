@@ -1667,6 +1667,15 @@ const closeAllTabs = async (page: Page) => {
   });
 };
 
+// Switch to an already-open request tab by its label (e.g. transient tabs are "Untitled N").
+const switchToOpenTab = async (page: Page, label: string) => {
+  await test.step(`Switch to tab "${label}"`, async () => {
+    const tab = page.getByTestId('request-tab').filter({ hasText: label });
+    await tab.click();
+    await expect(tab).toHaveAttribute('aria-selected', 'true');
+  });
+};
+
 /**
  * Create a new workspace via the title bar dropdown inline rename flow
  * @param page - The page object
@@ -2449,6 +2458,7 @@ export {
   generateGrpcSampleMessage,
   selectGrpcMethod,
   closeAllTabs,
+  switchToOpenTab,
   createWorkspace,
   switchWorkspace,
   selectScriptSubTab,
