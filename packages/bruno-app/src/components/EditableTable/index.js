@@ -3,6 +3,7 @@ import { TableVirtuoso } from 'react-virtuoso';
 import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
 import { uuid } from 'utils/common';
+import { setDragPreview } from 'utils/dragPreview';
 import StyledWrapper from './StyledWrapper';
 
 const MIN_COLUMN_WIDTH = 80;
@@ -35,7 +36,7 @@ const TableRow = React.memo(
         className={className}
         data-row-name={rowName || undefined}
         draggable={canDrag}
-        onDragStart={canDrag ? (e) => onDragStart(e, rowIndex) : undefined}
+        onDragStart={canDrag ? (e) => onDragStart(e, rowIndex, rowName) : undefined}
         onDragOver={canDrag ? (e) => onDragOver(e, rowIndex) : undefined}
         onDragLeave={canDrag ? (e) => onDragLeave(e, rowIndex) : undefined}
         onDrop={canDrag ? (e) => onDrop(e, rowIndex) : undefined}
@@ -255,9 +256,10 @@ const EditableTable = ({
     onChange(filteredRows);
   }, [rows, onChange]);
 
-  const handleDragStart = useCallback((e, index) => {
+  const handleDragStart = useCallback((e, index, name) => {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', index);
+    setDragPreview(e, name);
   }, []);
 
   const handleDragOver = useCallback((e, index) => {

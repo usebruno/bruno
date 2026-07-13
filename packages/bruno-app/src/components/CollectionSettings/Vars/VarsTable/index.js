@@ -13,9 +13,11 @@ import { createDescriptionColumn } from 'components/EditableTable/descriptionCol
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
-import { setCollectionVars } from 'providers/ReduxStore/slices/collections/index';
+import { setCollectionVars, moveCollectionVar } from 'providers/ReduxStore/slices/collections/index';
+import { useSortableEditableTableRows } from 'hooks/useSortableEditableTableRows';
+import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
 
-const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
+const VarsTable = ({ collection, vars, varType, initialScroll = 0, hasDraft }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -34,6 +36,17 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
   const handleVarsChange = useCallback((updatedVars) => {
     dispatch(setCollectionVars({ collectionUid: collection.uid, vars: updatedVars, type: varType }));
   }, [dispatch, collection.uid, varType]);
+
+  const handleReorder = useCallback(({ updateReorderedItem }) => {
+    dispatch(moveCollectionVar({ type: varType, collectionUid: collection.uid, updateReorderedItem }));
+  }, [dispatch, varType, collection.uid]);
+
+  const { displayRows, handleChange, reorderable, cycleSortMode, SortIcon, sortLabel } = useSortableEditableTableRows({
+    storageKey: `collection-vars-sort::${collection.uid}::${varType}`,
+    rows: vars || [],
+    onChange: handleVarsChange,
+    hasDraft
+  });
 
   const getRowError = useCallback((row, index, key) => {
     if (key !== 'name') return null;
@@ -54,7 +67,7 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
   const columns = [
     {
       key: 'name',
-      name: 'Name',
+      name: <ColumnSortHeader label="Name" onCycle={cycleSortMode} SortIcon={SortIcon} sortLabel={sortLabel} testId={`column-sort-toggle-collection-${varType}`} />,
       isKeyField: true,
       placeholder: 'Name',
       width: '25%'
@@ -114,8 +127,10 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
         tableId="collection-vars"
         testId={`collection-vars-${varType === 'response' ? 'res' : 'req'}`}
         columns={columns}
-        rows={vars}
-        onChange={handleVarsChange}
+        rows={displayRows}
+        onChange={handleChange}
+        reorderable={reorderable}
+        onReorder={handleReorder}
         defaultRow={defaultRow}
         getRowError={getRowError}
         columnWidths={collectionVarsWidths}

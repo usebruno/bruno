@@ -14,8 +14,10 @@ import { createDescriptionColumn } from 'components/EditableTable/descriptionCol
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
+import { useSortableEditableTableRows } from 'hooks/useSortableEditableTableRows';
+import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
 
-const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
+const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, hasDraft }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -50,6 +52,13 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
     }));
   }, [dispatch, varType, collection.uid, item.uid]);
 
+  const { displayRows, handleChange, reorderable, cycleSortMode, SortIcon, sortLabel } = useSortableEditableTableRows({
+    storageKey: `request-vars-sort::${item.uid}::${varType}`,
+    rows: vars || [],
+    onChange: handleVarsChange,
+    hasDraft
+  });
+
   const getRowError = useCallback((row, index, key) => {
     if (key !== 'name') return null;
     if (!row.name || row.name.trim() === '') return null;
@@ -71,7 +80,7 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
   const columns = [
     {
       key: 'name',
-      name: 'Name',
+      name: <ColumnSortHeader label="Name" onCycle={cycleSortMode} SortIcon={SortIcon} sortLabel={sortLabel} testId={`column-sort-toggle-request-${varType}`} />,
       isKeyField: true,
       placeholder: 'Name',
       width: '20%'
@@ -133,11 +142,11 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
         tableId="request-vars"
         testId={`request-vars-${varType === 'response' ? 'res' : 'req'}`}
         columns={columns}
-        rows={vars || []}
-        onChange={handleVarsChange}
+        rows={displayRows}
+        onChange={handleChange}
         defaultRow={defaultRow}
         getRowError={getRowError}
-        reorderable={true}
+        reorderable={reorderable}
         onReorder={handleVarDrag}
         columnWidths={varsWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('request-vars', widths)}
