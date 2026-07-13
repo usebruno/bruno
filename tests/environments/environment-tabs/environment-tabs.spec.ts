@@ -153,14 +153,14 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     await createEnvironment(page, 'Per-Tab Dot Env', 'collection');
 
     await test.step('No dots before anything is edited', async () => {
-      await expect(variablesTabDot(page)).toHaveCount(0);
-      await expect(secretsTabDot(page)).toHaveCount(0);
+      await expect(variablesTabDot(page)).toBeHidden();
+      await expect(secretsTabDot(page)).toBeHidden();
     });
 
     await test.step('Editing the Variables tab lights up only the Variables dot', async () => {
       await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
       await expect(variablesTabDot(page)).toBeVisible();
-      await expect(secretsTabDot(page)).toHaveCount(0);
+      await expect(secretsTabDot(page)).toBeHidden();
     });
 
     await test.step('Editing the Secrets tab lights up its own dot without clearing Variables', async () => {
@@ -174,7 +174,7 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     await test.step('Saving the Secrets tab clears only the Secrets dot', async () => {
       await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
-      await expect(secretsTabDot(page)).toHaveCount(0);
+      await expect(secretsTabDot(page)).toBeHidden();
       await expect(variablesTabDot(page)).toBeVisible();
     });
 
@@ -182,8 +182,8 @@ test.describe('Environment Variables / Secrets tab separation', () => {
       await variablesTab(page).click();
       await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
-      await expect(variablesTabDot(page)).toHaveCount(0);
-      await expect(secretsTabDot(page)).toHaveCount(0);
+      await expect(variablesTabDot(page)).toBeHidden();
+      await expect(secretsTabDot(page)).toBeHidden();
     });
   });
 
@@ -466,14 +466,14 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     await createEnvironment(page, 'Global Per-Tab Dot Env', 'global');
 
     await test.step('No dots before anything is edited', async () => {
-      await expect(variablesTabDot(page)).toHaveCount(0);
-      await expect(secretsTabDot(page)).toHaveCount(0);
+      await expect(variablesTabDot(page)).toBeHidden();
+      await expect(secretsTabDot(page)).toBeHidden();
     });
 
     await test.step('Editing the Variables tab lights up only the Variables dot', async () => {
       await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
       await expect(variablesTabDot(page)).toBeVisible();
-      await expect(secretsTabDot(page)).toHaveCount(0);
+      await expect(secretsTabDot(page)).toBeHidden();
     });
 
     await test.step('Editing the Secrets tab lights up its own dot without clearing Variables', async () => {
@@ -487,7 +487,7 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     await test.step('Saving the Secrets tab clears only the Secrets dot', async () => {
       await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
-      await expect(secretsTabDot(page)).toHaveCount(0);
+      await expect(secretsTabDot(page)).toBeHidden();
       await expect(variablesTabDot(page)).toBeVisible();
     });
 
@@ -495,8 +495,8 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
       await variablesTab(page).click();
       await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
-      await expect(variablesTabDot(page)).toHaveCount(0);
-      await expect(secretsTabDot(page)).toHaveCount(0);
+      await expect(variablesTabDot(page)).toBeHidden();
+      await expect(secretsTabDot(page)).toBeHidden();
     });
   });
 

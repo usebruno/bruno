@@ -103,14 +103,22 @@ const StyledWrapper = styled.div`
     padding: 0 20px;
     flex-shrink: 0;
 
-    .tab-unsaved-dot {
-      display: inline-block;
-      flex-shrink: 0;
-      margin-left: 2px;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: ${(props) => props.theme.draftColor};
+    /* Float the unsaved dot into the tab's right margin so the tab (and its active underline)
+       stays as wide as the label. The overflow dropdown portals outside this container, so its
+       dot stays inline. */
+    .tab {
+      position: relative;
+      /* Extra room after the label so the floated dot sits close to its own tab and clear of the next. */
+      margin-right: 1.75rem;
+    }
+
+    .env-tab-draft-indicator {
+      position: absolute;
+      left: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      margin-left: 0.375rem;
+      display: inline-flex;
     }
 
     .env-search-container {

@@ -137,7 +137,9 @@ export const buildCommonLocators = (page: Page) => ({
     secretsTab: () => page.getByTestId('responsive-tab-secrets'),
     // The per-tab unsaved-changes dot, scoped to its tab (the visible tab carries the
     // responsive-tab testid; the hidden measurement copy does not, so this stays unique).
-    tabDot: (tab: string) => page.getByTestId(`responsive-tab-${tab}`).getByTestId('tab-unsaved-dot'),
+    // The dot is always in the DOM and toggles via visibility, so assert with
+    // toBeVisible()/toBeHidden() rather than presence.
+    tabDot: (tab: string) => page.getByTestId(`responsive-tab-${tab}`).getByTestId('env-tab-draft-indicator'),
     saveTab: () => page.getByTestId('save-env'),
     saveAll: () => page.getByTestId('save-all-env'),
     searchInput: () => page.getByTestId('env-search-input'),
