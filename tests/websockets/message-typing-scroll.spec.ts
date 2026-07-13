@@ -1,9 +1,9 @@
 import { expect, test } from '../../playwright';
 import { openRequest, closeAllCollections } from '../utils/page/actions';
+import { buildWebsocketCommonLocators } from '../utils/page/locators';
 
 const COLLECTION_NAME = 'collection';
 const SCROLL_REQ = 'ws-scroll-top';
-const MULTI_REQ = 'ws-long-msg';
 
 test.describe('websocket message editor typing scroll', () => {
   test.afterEach(async ({ pageWithUserData: page }) => {
@@ -11,10 +11,11 @@ test.describe('websocket message editor typing scroll', () => {
   });
 
   test('typing does not jump the list to the end', async ({ pageWithUserData: page }) => {
+    const ws = buildWebsocketCommonLocators(page);
     await openRequest(page, COLLECTION_NAME, SCROLL_REQ);
 
-    const container = page.getByTestId('ws-messages-container');
-    const body = page.getByTestId('ws-message-body-0');
+    const container = ws.message.container();
+    const body = ws.message.body(0);
     await expect(container).toBeVisible();
     await expect(body).toBeVisible();
 
@@ -27,7 +28,7 @@ test.describe('websocket message editor typing scroll', () => {
     await cmScroll.evaluate((el) => {
       el.scrollTop = Math.floor((el.scrollHeight - el.clientHeight) / 2);
     });
-    await body.locator('.CodeMirror').click();
+    await ws.message.editor(0).click();
 
     const containerBefore = await container.evaluate((el) => el.scrollTop);
     const cmBefore = await cmScroll.evaluate((el) => el.scrollTop);

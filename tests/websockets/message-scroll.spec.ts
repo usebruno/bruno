@@ -1,5 +1,6 @@
 import { expect, test } from '../../playwright';
 import { openRequest, selectRequestPaneTab, closeAllCollections } from '../utils/page/actions';
+import { buildWebsocketCommonLocators } from '../utils/page/locators';
 
 const COLLECTION_NAME = 'collection';
 const LONG_MSG_REQ = 'ws-long-msg';
@@ -12,12 +13,13 @@ test.describe('websocket message list scroll on tab switch', () => {
   test('does not scroll the expanded message list when switching request pane tabs', async ({
     pageWithUserData: page
   }) => {
+    const ws = buildWebsocketCommonLocators(page);
     await openRequest(page, COLLECTION_NAME, LONG_MSG_REQ);
 
-    const container = page.getByTestId('ws-messages-container');
+    const container = ws.message.container();
     await expect(container).toBeVisible();
 
-    await expect(page.getByTestId('ws-message-body-0')).toBeVisible();
+    await expect(ws.message.body(0)).toBeVisible();
 
     // the container must actually be scrollable.
     await expect
@@ -36,7 +38,7 @@ test.describe('websocket message list scroll on tab switch', () => {
     await selectRequestPaneTab(page, 'Message');
 
     await expect(container).toBeVisible();
-    await expect(page.getByTestId('ws-message-body-0')).toBeVisible();
+    await expect(ws.message.body(0)).toBeVisible();
 
     // The scroll position must not have jumped to the bottom on remount.
     await expect.poll(() => container.evaluate((el) => el.scrollTop)).toBe(0);
@@ -45,11 +47,12 @@ test.describe('websocket message list scroll on tab switch', () => {
   test('restores the scroll position when switching back to the Message tab', async ({
     pageWithUserData: page
   }) => {
+    const ws = buildWebsocketCommonLocators(page);
     await openRequest(page, COLLECTION_NAME, LONG_MSG_REQ);
 
-    const container = page.getByTestId('ws-messages-container');
+    const container = ws.message.container();
     await expect(container).toBeVisible();
-    await expect(page.getByTestId('ws-message-body-0')).toBeVisible();
+    await expect(ws.message.body(0)).toBeVisible();
 
     // The container must actually be scrollable.
     await expect
@@ -71,7 +74,7 @@ test.describe('websocket message list scroll on tab switch', () => {
     await selectRequestPaneTab(page, 'Message');
 
     await expect(container).toBeVisible();
-    await expect(page.getByTestId('ws-message-body-0')).toBeVisible();
+    await expect(ws.message.body(0)).toBeVisible();
 
     // The scroll position must be restored to where we left off.
     await expect.poll(() => container.evaluate((el) => el.scrollTop)).toBe(targetScroll);

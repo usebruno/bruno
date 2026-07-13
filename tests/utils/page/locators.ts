@@ -366,9 +366,12 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
     editorPlaceholder: (index: number) =>
       page.getByTestId(`ws-message-body-${index}`).locator('.CodeMirror-placeholder'),
     editorCode: (index: number) => page.getByTestId(`ws-message-body-${index}`).locator('.CodeMirror-code'),
+    labels: () => page.getByTestId(/^ws-message-label-/),
     label: (index: number) => page.getByTestId(`ws-message-label-${index}`),
+    nameInputs: () => page.getByTestId(/^ws-message-name-input-/),
     nameInput: (index: number) => page.getByTestId(`ws-message-name-input-${index}`),
     nameTooltip: () => page.getByTestId('ws-message-name-tooltip'),
+    prettifyAll: () => page.getByTestId('ws-prettify-all'),
     sendButton: (index: number) => page.getByTestId(`ws-send-msg-${index}`),
     deleteButton: (index: number) => page.getByTestId(`ws-delete-msg-${index}`)
   },

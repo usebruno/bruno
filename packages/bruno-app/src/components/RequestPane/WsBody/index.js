@@ -1,7 +1,7 @@
 import { get } from 'lodash';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { IconPlus } from '@tabler/icons';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { usePersistedState } from 'hooks/usePersistedState';
 import StyledWrapper from './StyledWrapper';
@@ -24,11 +24,18 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
 
   const selectedIndex = getSelectedIndex(messages);
 
-  // Expand the selected message by default (falls back to first)
-  const [expandedUids, setExpandedUids] = useState(() => {
-    const uid = messages[selectedIndex]?.uid || messages[0]?.uid;
-    return new Set(uid ? [uid] : []);
+  // Persist which messages are expanded per request so switching tabs and coming
+  // back keeps every open message open (not just the selected one). Stored as an
+  // array of uids since localStorage can't serialize a Set; defaults to the
+  // selected message (falls back to first).
+  const [expandedUidList, setExpandedUidList] = usePersistedState({
+    key: `ws-expanded-${item.uid}`,
+    default: (() => {
+      const uid = messages[selectedIndex]?.uid || messages[0]?.uid;
+      return uid ? [uid] : [];
+    })()
   });
+  const expandedUids = useMemo(() => new Set(expandedUidList), [expandedUidList]);
   const [newMessageUid, setNewMessageUid] = useState(null);
   const prevMessagesLengthRef = useRef(messages.length);
 
@@ -60,16 +67,10 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
 
   const toggleMessage = useCallback((uid) => {
     if (!uid) return;
-    setExpandedUids((prev) => {
-      const next = new Set(prev);
-      if (next.has(uid)) {
-        next.delete(uid);
-      } else {
-        next.add(uid);
-      }
-      return next;
-    });
-  }, []);
+    setExpandedUidList((prev) => (
+      prev.includes(uid) ? prev.filter((u) => u !== uid) : [...prev, uid]
+    ));
+  }, [setExpandedUidList]);
 
   const handleSelect = useCallback((index) => {
     if (index !== selectedIndex) {
@@ -82,7 +83,7 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     if (messages.length > prevMessagesLengthRef.current) {
       const newMsg = messages[messages.length - 1];
       if (newMsg?.uid) {
-        setExpandedUids((prev) => new Set(prev).add(newMsg.uid));
+        setExpandedUidList((prev) => (prev.includes(newMsg.uid) ? prev : [...prev, newMsg.uid]));
         setNewMessageUid(newMsg.uid);
         setSelectedIndex(messages.length - 1);
       }
