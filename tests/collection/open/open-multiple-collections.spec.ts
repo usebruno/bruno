@@ -102,7 +102,7 @@ test.describe('Open Multiple Collections', () => {
     await expect(page.locator('#sidebar-collection-name')).toHaveCount(collectionCountBefore);
 
     // Verify invalid collection error
-    const invalidCollectionError = page.getByText('The collection is not valid').first();
+    const invalidCollectionError = page.getByText('No Bruno collections were found').first();
     await expect(invalidCollectionError).toBeVisible();
   });
 });
