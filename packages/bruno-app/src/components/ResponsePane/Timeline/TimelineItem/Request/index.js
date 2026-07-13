@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { getTreePathFromCollectionToItem } from 'utils/collections/index';
 import {
@@ -29,8 +30,10 @@ const Request = ({ collection, request, item, timeline }) => {
     dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
   }
 
-  const treePath = getTreePathFromCollectionToItem(collection, item);
-  const headerSections = buildHeaderSections({ collection, item, treePath, request, timeline });
+  const headerSections = useMemo(
+    () => buildHeaderSections({ collection, item, treePath: getTreePathFromCollectionToItem(collection, item), request, timeline }),
+    [collection, item, request, timeline]
+  );
 
   // Open (mounting if needed) the tab/sub-tab where this header comes from, then flash the row/line.
   const handleNavigate = (nav) => {

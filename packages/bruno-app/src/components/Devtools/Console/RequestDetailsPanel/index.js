@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   IconX,
@@ -21,9 +21,11 @@ const RequestTab = ({ request, response, item, collection }) => {
     return JSON.stringify(body, null, 2);
   };
 
-  const treePath = getTreePathFromCollectionToItem(collection, item);
-  const headerRows = flattenHeaderSections(
-    buildHeaderSections({ collection, item, treePath, request, timeline: response?.timeline })
+  const headerRows = useMemo(
+    () => flattenHeaderSections(
+      buildHeaderSections({ collection, item, treePath: getTreePathFromCollectionToItem(collection, item), request, timeline: response?.timeline })
+    ),
+    [collection, item, request, response?.timeline]
   );
 
   return (

@@ -37,7 +37,7 @@ const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Best-effort static check: the 1-based line where this pre-request script sets the given header
 // (via req.setHeader or a req.headers[...] / req.headers.x assignment), else null. Used only to
-// attribute an already-detected script-set header to its level/line — a miss falls back to line 1.
+// attribute an already-detected script-set header to its level/line - a miss falls back to line 1.
 const scriptHeaderLine = (script, name) => {
   if (!script || !name) return null;
   const n = escapeRegExp(name);
@@ -46,7 +46,7 @@ const scriptHeaderLine = (script, name) => {
     new RegExp(`headers\\s*\\[\\s*[\`'"]${n}[\`'"]\\s*\\]`, 'i'),
     new RegExp(`headers\\s*\\.\\s*${n}(?![\\w-])`, 'i')
   ];
-  const lines = String(script).split('\n');
+  const lines = String(script).split(/\r\n|\r|\n/);
   for (let i = 0; i < lines.length; i++) {
     if (patterns.some((re) => re.test(lines[i]))) return i + 1;
   }
@@ -66,7 +66,7 @@ const scriptHeaderLine = (script, name) => {
  * collection > (transport) default.
  *
  * `treePath` is the collection-root-to-item path (folders + the item), as produced by the app's
- * getTreePathFromCollectionToItem — passed in so this package stays free of app collection helpers.
+ * getTreePathFromCollectionToItem - passed in so this package stays free of app collection helpers.
  */
 export const buildHeaderSections = ({ collection, item, treePath = [], request, timeline }) => {
   const collectionRoot = collection?.draft?.root || collection?.root || {};
@@ -92,13 +92,14 @@ export const buildHeaderSections = ({ collection, item, treePath = [], request, 
   // Headers the pre-request script added/changed via req.setHeader (recorded by the network layer).
   const scriptSetNames = new Set((Array.isArray(request?.scriptSetHeaders) ? request.scriptSetHeaders : []).map(norm));
 
-  // Which level's script set this header, and where. { level, folderUid?, line } | null.
+  // For a header the script set, which level's script set it, and where. { level, folderUid?, line }.
+  // Precedence matches header merging (request > deeper folder > collection); missing line -> null.
   const scriptInfoOf = (name) => {
     let line = scriptHeaderLine(requestScript, name);
     if (line) return { level: 'request', line };
-    for (const f of folderScripts) {
-      line = scriptHeaderLine(f.script, name);
-      if (line) return { level: 'folder', folderUid: f.uid, line };
+    for (let i = folderScripts.length - 1; i >= 0; i--) {
+      line = scriptHeaderLine(folderScripts[i].script, name);
+      if (line) return { level: 'folder', folderUid: folderScripts[i].uid, line };
     }
     line = scriptHeaderLine(collectionScript, name);
     if (line) return { level: 'collection', line };
@@ -117,9 +118,11 @@ export const buildHeaderSections = ({ collection, item, treePath = [], request, 
     if (!key || seen.has(key)) return;
     seen.add(key);
 
-    const scriptInfo = scriptInfoOf(h.name);
-    // A script setting a header wins over any definition it overrides, so it's checked first.
-    if (scriptSetNames.has(key) || scriptInfo) {
+    // Whether a script actually set this header is decided solely by the network-layer diff
+    // (scriptSetNames); the static scan only locates which level/line to jump to. A script setting a
+    // header wins over any definition it overrides, so this is checked first.
+    if (scriptSetNames.has(key)) {
+      const scriptInfo = scriptInfoOf(h.name);
       const level = scriptInfo?.level || 'request';
       scriptBuckets[level].push({
         name: h.name,
