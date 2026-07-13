@@ -15,18 +15,23 @@ jest.mock('utils/ai', () => ({
 const theme = {
   bg: '#1e1e1e',
   text: '#ffffff',
-  border: { radius: { sm: '4px', md: '6px' } },
+  border: { radius: { sm: '4px', base: '5px', md: '6px', lg: '8px' } },
   colors: {
     accent: '#6366f1',
     text: { muted: '#9ca3af', danger: '#ef4444' },
     bg: { danger: '#ef4444' }
+  },
+  button2: {
+    color: {
+      danger: { bg: '#ef4444', text: '#ffffff', border: '#ef4444' }
+    }
   },
   input: {
     border: '#374151',
     bg: '#111827',
     focusBorder: '#6366f1'
   },
-  font: { monospace: 'monospace' }
+  font: { monospace: 'monospace', size: { xs: '11px', sm: '12px', base: '13px' } }
 };
 
 const createStore = (aiEnabled = true) => configureStore({
@@ -157,6 +162,13 @@ describe('AIAssist', () => {
       });
 
       expect(screen.queryByRole('button', { name: 'Status 200' })).not.toBeInTheDocument();
+    });
+
+    it('shows the generate shortcut hint', () => {
+      renderAIAssist();
+      openPopup();
+
+      expect(screen.getByText('Enter to generate · Shift+Enter for newline')).toBeInTheDocument();
     });
 
     it('keeps Generate disabled until the prompt has text', () => {

@@ -1,10 +1,18 @@
-import { Page, Locator } from '../../../playwright';
+import { Locator, Page } from '../../../playwright';
+import { buildApiSpecPanelLocators } from './openapi/render-spec';
+import { buildFileModeLocators } from './file-mode';
+import { buildPreferencesLocators } from './preferences';
+import { buildAiPreferencesLocators } from './ai';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
-  saveButton: () => page
-    .locator('.infotip')
-    .filter({ hasText: /^Save/ }),
+  fileMode: buildFileModeLocators(page),
+  openApi: {
+    render: buildApiSpecPanelLocators(page)
+  },
+  preferences: buildPreferencesLocators(page),
+  ai: buildAiPreferencesLocators(page),
+  saveButton: () => page.getByTestId('save-request-button'),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: {
     collectionsContainer: () => page.getByTestId('collections'),
@@ -87,23 +95,34 @@ export const buildCommonLocators = (page: Page) => ({
     // share a name (e.g. enabled + disabled twins after a script write).
     varRowsByValue: (name: string, value: string | RegExp) =>
       page.getByTestId(`env-var-row-${name}`)
-        .filter({ has: page.locator('.CodeMirror-line', { hasText: value }) }),
+        .filter({ has: page.getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror-line', { hasText: value }) }),
     // Each env-var row has an `enabled` and a `secret` checkbox; target the latter
     // by its `<index>.secret` name (the formik index is dynamic).
     varRowSecretCheckbox: (name: string) => page.getByTestId(`env-var-row-${name}`).locator('input[name$=".secret"]'),
     // Eye icon that masks/reveals a secret variable's value.
     varRowEyeToggle: (name: string) => page.getByTestId(`env-var-row-${name}`).getByTestId('secret-reveal-toggle'),
-    varRowLine: (name: string) => page.getByTestId(`env-var-row-${name}`).locator('.CodeMirror-line').first(),
+    varRowValueCell: (name: string) => page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.value$/),
+    varRowValueEditor: (name: string) =>
+      page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first(),
+    varRowValueLine: (name: string) =>
+      page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror-line').first(),
+    varRowLine: (name: string) =>
+      page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror-line').first(),
     addVariableButton: () => page.getByTestId('add-variable'),
     variableNameInput: (index: number) => page.locator(`input[name="${index}.name"]`),
     variableSecretCheckbox: (index: number) => page.locator(`input[name="${index}.secret"]`),
     variableRow: (index: number) => page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) }),
+    variableDescriptionEditor: (index: number) =>
+      page.locator(`[data-testid="test-multiline-editor-${index}.description"]`).locator('.CodeMirror'),
+    varRowDescriptionEditor: (name: string) =>
+      page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.description$/).locator('.CodeMirror').first(),
     variableRowByName: (name: string) => page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }),
     // Targets the `.CodeMirror` wrapper (not `.CodeMirror-line`) so single-line and
     // multi-line values (e.g. formatted JSON for @object vars) are both covered —
     // CodeMirror renders each visual line as a separate `.CodeMirror-line`, so
     // matching on the wrapper is the only way to get the full concatenated text.
-    variableValue: (name: string) => page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }).locator('.CodeMirror').first(),
+    variableValue: (name: string) =>
+      page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first(),
     createEnvButton: () => page.locator('button[id="create-env"]'),
     settingsCreateButton: () =>
       page.locator('.environments-container .sidebar button[title="Create environment"]'),
@@ -118,6 +137,7 @@ export const buildCommonLocators = (page: Page) => ({
     secretsTab: () => page.getByTestId('responsive-tab-secrets'),
     saveTab: () => page.getByTestId('save-env'),
     saveAll: () => page.getByTestId('save-all-env'),
+    searchInput: () => page.getByTestId('env-search-input'),
     collectionEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Environments$/ }),
     globalEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Global Environments$/ }),
     unsavedModal: {
@@ -129,10 +149,11 @@ export const buildCommonLocators = (page: Page) => ({
   codeMirror: {
     byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first()
   },
-  // The DataTypeSelector renders a `.type-label` trigger per row (request/folder/
-  // collection vars + env vars) and a MenuDropdown (role=menu) at page scope.
+  // The DataTypeSelector exposes a stable trigger per row (request/folder/collection
+  // vars + env vars). Compact mode shows an icon; full mode shows `.type-label`.
   dataTypeSelector: {
-    typeLabel: (row: Locator) => row.locator('.type-label').first(),
+    trigger: (row: Locator) => row.getByTestId('datatype-selector-trigger'),
+    typeLabel: (row: Locator) => row.getByTestId('datatype-selector-trigger'),
     // Yellow warning icon shown when a value can't be coerced to its dataType.
     mismatchIcon: (row: Locator) => row.locator('svg.text-yellow-600'),
     menuItem: (type: string) => page.locator('[role="menu"]').last().getByText(type, { exact: true })
@@ -145,7 +166,7 @@ export const buildCommonLocators = (page: Page) => ({
     newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
     requestNameInput: () => page.getByPlaceholder('Request Name'),
     requestTestId: () => page.getByTestId('request-name'),
-    generateCodeButton: () => page.locator('#request-actions .infotip').first(),
+    generateCodeButton: () => page.getByTestId('generate-code-button'),
     bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
     bodyEditor: () => page.getByTestId('request-body-editor'),
     bodyVariableToken: (name: string) =>
@@ -325,22 +346,25 @@ export const buildCommonLocators = (page: Page) => ({
 export const buildWebsocketCommonLocators = (page: Page) => ({
   ...buildCommonLocators(page),
   connectionControls: {
-    connect: () =>
-      page
-        .locator('div.connection-controls')
-        .locator('.infotip')
-        .filter({ hasText: /^Connect$/ }),
-    disconnect: () =>
-      page
-        .locator('div.connection-controls')
-        .locator('.infotip')
-        .filter({ hasText: /^Close Connection$/ })
+    connect: () => page.getByTestId('ws-connect-button'),
+    disconnect: () => page.getByTestId('ws-disconnect-button')
   },
   messages: () => page.locator('.ws-message'),
   message: {
+    container: () => page.getByTestId('ws-messages-container'),
+    addButton: () => page.getByTestId('ws-add-message'),
+    headers: () => page.getByTestId(/^ws-message-header-/),
+    header: (index: number) => page.getByTestId(`ws-message-header-${index}`),
+    body: (index: number) => page.getByTestId(`ws-message-body-${index}`),
+    editor: (index: number) => page.getByTestId(`ws-message-body-${index}`).locator('.CodeMirror'),
+    editorPlaceholder: (index: number) =>
+      page.getByTestId(`ws-message-body-${index}`).locator('.CodeMirror-placeholder'),
+    editorCode: (index: number) => page.getByTestId(`ws-message-body-${index}`).locator('.CodeMirror-code'),
     label: (index: number) => page.getByTestId(`ws-message-label-${index}`),
     nameInput: (index: number) => page.getByTestId(`ws-message-name-input-${index}`),
-    nameTooltip: () => page.getByTestId('ws-message-name-tooltip')
+    nameTooltip: () => page.getByTestId('ws-message-name-tooltip'),
+    sendButton: (index: number) => page.getByTestId(`ws-send-msg-${index}`),
+    deleteButton: (index: number) => page.getByTestId(`ws-delete-msg-${index}`)
   },
   toolbar: {
     latestFirst: () => page.getByRole('button', { name: 'Latest First' }),

@@ -1,10 +1,25 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   .collection-switcher {
     display: flex;
     align-items: center;
     gap: 4px;
+  }
+
+  .header-actions {
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    > * {
+      flex-shrink: 0;
+    }
   }
 
   .switcher-trigger {
@@ -219,34 +234,49 @@ const StyledWrapper = styled.div`
   .mode-toggle {
     display: inline-flex;
     align-items: stretch;
-    padding: 2px;
-    gap: 2px;
-    background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-    border-radius: ${(props) => props.theme.border.radius.base};
+    background: transparent;
+
+    > * + * .mode-btn,
+    .mode-btn + .mode-btn {
+      margin-left: -1px;
+    }
 
     .mode-btn {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 26px;
+      width: 28px;
+      height: 26px;
       padding: 0;
-      border: 1px solid transparent;
+      border: 1px solid ${(props) => props.theme.input.border};
       background: transparent;
       color: ${(props) => props.theme.colors.text.muted};
-      border-radius: ${(props) => props.theme.border.radius.sm};
+      border-radius: 0;
       cursor: pointer;
       transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 
       &:hover:not(.active) {
         color: ${(props) => props.theme.text};
+        z-index: 1;
       }
 
       &.active {
-        background: ${(props) => props.theme.bg};
-        color: ${(props) => props.theme.text};
-        border-color: ${(props) => props.theme.input.border};
-        box-shadow: ${(props) => props.theme.shadow.sm};
+        background: ${(props) => rgba(props.theme.primary.solid, 0.12)};
+        color: ${(props) => props.theme.primary.solid};
+        border-color: ${(props) => rgba(props.theme.primary.solid, 0.4)};
+        z-index: 2;
       }
+    }
+
+    > *:first-child .mode-btn {
+      border-top-left-radius: ${(props) => props.theme.border.radius.sm};
+      border-bottom-left-radius: ${(props) => props.theme.border.radius.sm};
+    }
+
+    > *:last-child .mode-btn {
+      border-top-right-radius: ${(props) => props.theme.border.radius.sm};
+      border-bottom-right-radius: ${(props) => props.theme.border.radius.sm};
     }
   }
 `;

@@ -22,6 +22,9 @@ const defaultPreferences = {
       hasLaunchedBefore: true,
       hasSeenWelcomeModal: true,
       lastSeenVersion: version
+    },
+    ai: {
+      enabled: false
     }
   }
 };
@@ -436,7 +439,6 @@ export const test = baseTest.extend<
 
     const context = await app.context();
     const page = await waitForReadyPage(app);
-
     await usePageWithTracing(context, page, testInfo, use, { initTracing: true });
   }
 });

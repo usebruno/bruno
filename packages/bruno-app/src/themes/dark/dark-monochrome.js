@@ -212,6 +212,12 @@ const darkMonochromeTheme = {
     }
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.TEXT
+    }
+  },
+
   request: {
     methods: {
       get: '#a3a3a3',

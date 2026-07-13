@@ -148,7 +148,7 @@ const SecurityPane = ({
             </span>
           </div>
           <ToggleSwitch
-            size="m"
+            size="xs"
             isOn={redactHeaders}
             handleToggle={() => onToggleRedactHeaders(!redactHeaders)}
             data-testid="ai-security-headers-toggle"
@@ -163,7 +163,7 @@ const SecurityPane = ({
             </span>
           </div>
           <ToggleSwitch
-            size="m"
+            size="xs"
             isOn={redactBody}
             handleToggle={() => onToggleRedactBody(!redactBody)}
             data-testid="ai-security-body-toggle"
@@ -178,7 +178,7 @@ const SecurityPane = ({
             </span>
           </div>
           <ToggleSwitch
-            size="m"
+            size="xs"
             isOn={redactResponse}
             handleToggle={() => onToggleRedactResponse(!redactResponse)}
             data-testid="ai-security-response-toggle"
@@ -193,7 +193,7 @@ const SecurityPane = ({
             </span>
           </div>
           <ToggleSwitch
-            size="m"
+            size="xs"
             isOn={redactVariables}
             handleToggle={() => onToggleRedactVariables(!redactVariables)}
             data-testid="ai-security-variables-toggle"

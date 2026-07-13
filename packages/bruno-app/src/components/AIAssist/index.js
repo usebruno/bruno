@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSelector } from 'react-redux';
 import get from 'lodash/get';
 import Tippy from '@tippyjs/react';
-import { IconStars, IconX, IconArrowBackUp, IconPlayerStop } from '@tabler/icons';
+import { IconX, IconArrowBackUp, IconPlayerStop } from '@tabler/icons';
+import IconSparkles from 'components/Icons/IconSparkles';
+import Button from 'ui/Button';
 import { aiGenerateScript, stopAiGeneration } from 'utils/ai';
 import StyledWrapper, { PopupWrapper } from './StyledWrapper';
 
@@ -187,7 +189,7 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
           <PopupWrapper className="ai-assist-popup" role="dialog" aria-label={title} tabIndex={-1} {...attrs}>
             <div className="popup-header">
               <span className="popup-title">
-                <IconStars size={12} strokeWidth={1.75} />
+                <IconSparkles size={12} strokeWidth={1.75} />
                 {title}
               </span>
               <button className="popup-close" onClick={close} type="button" aria-label="Close">
@@ -242,14 +244,17 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
                     <span className="popup-hint">Enter to generate · Shift+Enter for newline</span>
                   )}
                   {isLoading ? (
-                    <button
-                      className="btn-stop"
-                      type="button"
+                    <Button
+                      variant="filled"
+                      color="danger"
+                      size="sm"
+                      rounded="sm"
+                      icon={<IconPlayerStop size={12} />}
                       onClick={handleStop}
                       title="Stop generating"
                     >
-                      <IconPlayerStop size={12} /> Stop
-                    </button>
+                      Stop
+                    </Button>
                   ) : (
                     <button
                       className="btn-generate"
@@ -292,7 +297,7 @@ const AIAssist = ({ scriptType, currentScript, requestContext, docsContext, vari
           type="button"
           aria-label={title}
         >
-          <IconStars size={14} strokeWidth={1.75} />
+          <IconSparkles size={14} strokeWidth={1.75} />
         </button>
       </Tippy>
     </StyledWrapper>

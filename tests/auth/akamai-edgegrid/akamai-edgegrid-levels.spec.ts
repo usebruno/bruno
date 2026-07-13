@@ -118,8 +118,8 @@ test.describe('Akamai EdgeGrid Authentication — collection, folder & inherit',
   test('Folder level: renders, persists, and an inheriting request signs', async ({ page, createTmpDir }) => {
     test.setTimeout(120_000);
     const values = valuesFor('folder-nonce');
-    await createCollection(page, 'edgegrid-folder', await createTmpDir());
-    await createFolder(page, 'folder-1', 'edgegrid-folder', true);
+    await createCollection(page, 'edgegrid-collection', await createTmpDir());
+    await createFolder(page, 'folder-1', 'edgegrid-collection', true);
 
     await page.locator('.collection-item-name').filter({ hasText: 'folder-1' }).dblclick();
     await page.locator('.tab.auth').click();
@@ -143,7 +143,7 @@ test.describe('Akamai EdgeGrid Authentication — collection, folder & inherit',
 
     await test.step('A request inside the folder set to Inherit signs with the folder EdgeGrid auth', async () => {
       await createRequest(page, 'folder-inherit-request', 'folder-1', { url: SIMULATOR_URL, inFolder: true });
-      await openFolderRequest(page, 'folder-1', 'folder-inherit-request');
+      await openFolderRequest(page, 'edgegrid-collection', 'folder-1', 'folder-inherit-request');
       await selectRequestPaneTab(page, 'Auth');
       await selectAuthMode(page, 'Inherit');
 
