@@ -23,14 +23,11 @@ const StyledWrapper = styled.div`
     }
   }
 
-  &:not(.disabled) .accordion-header {
+  .accordion-header {
     position: sticky;
     top: 0;
     z-index: 1;
     background: ${(props) => props.theme.bg};
-  }
-
-  .accordion-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
