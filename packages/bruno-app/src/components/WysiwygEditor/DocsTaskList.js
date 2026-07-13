@@ -175,9 +175,10 @@ const DocsTaskItem = TaskItem.extend({
 
         let tr = editor.state.tr;
         const currentNode = tr.doc.nodeAt(position);
+        if (!currentNode) return;
 
         tr = tr.setNodeMarkup(position, undefined, {
-          ...currentNode?.attrs,
+          ...currentNode.attrs,
           checked
         });
 

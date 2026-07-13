@@ -15,6 +15,8 @@ const createEditor = () => {
   });
 };
 
+const originalResizeObserver = global.ResizeObserver;
+
 // Mock ResizeObserver for DocsToolbar
 global.ResizeObserver = class ResizeObserver {
   observe() {}
@@ -35,6 +37,11 @@ describe('DocsToolbar', () => {
 
   afterAll(() => {
     offsetWidthSpy.mockRestore();
+    if (originalResizeObserver === undefined) {
+      delete global.ResizeObserver;
+    } else {
+      global.ResizeObserver = originalResizeObserver;
+    }
   });
 
   beforeEach(() => {

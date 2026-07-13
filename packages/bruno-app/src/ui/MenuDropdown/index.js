@@ -199,15 +199,6 @@ const MenuDropdown = forwardRef(({
     });
   }, [normalizedItems, showTickMark, selectedItemId]);
 
-  const menuStateKey = useMemo(() => {
-    const activeKey = activeItemIds?.join(',') ?? '';
-    const itemStateKey = normalizedItems
-      .map((item) => `${item.id}:${item.disabled ? 1 : 0}`)
-      .join('|');
-
-    return `${selectedItemId ?? ''}::${activeKey}::${itemStateKey}`;
-  }, [activeItemIds, normalizedItems, selectedItemId]);
-
   // Clear focused class from all items
   const clearFocusedClass = (menuContainer) => {
     if (menuContainer) {
@@ -506,7 +497,7 @@ const MenuDropdown = forwardRef(({
             <div className="dropdown-divider"></div>
           </div>
         )}
-        <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown} key={menuStateKey}>
+        <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown}>
           {renderMenuContent()}
         </div>
         {footer && (

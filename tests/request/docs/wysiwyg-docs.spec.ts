@@ -23,26 +23,26 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
     await page.getByTestId('request-name').fill('test-req');
     await locators.modal.button('Create').click();
 
-    await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'test-req' })).toBeVisible();
+    await expect(locators.tabs.requestTab('test-req')).toBeVisible();
 
     await page.waitForSelector('.request-pane');
 
-    const docsTab = page.getByTestId('responsive-tab-docs');
-    const moreTabs = page.locator('.more-tabs');
+    const docsTab = locators.docs.docsTab();
+    const moreTabs = locators.docs.moreTabs();
     await expect(docsTab.or(moreTabs)).toBeVisible();
 
     if (await docsTab.isVisible()) {
       await docsTab.click();
     } else {
-      await page.locator('.more-tabs').click();
-      await page.locator('.dropdown-item').filter({ hasText: 'Docs' }).click();
+      await moreTabs.click();
+      await locators.dropdown.item('Docs').click();
     }
     console.log('Waiting for edit btn...');
-    const editBtn = page.locator('.docs-edit-toggle');
+    const editBtn = locators.docs.editToggle();
     await editBtn.waitFor({ state: 'visible', timeout: 5000 });
     const text = await editBtn.textContent();
     console.log('Found edit btn text:', text);
-    if (text.includes('Edit')) {
+    if (text?.includes('Edit')) {
       await editBtn.click();
     }
 
@@ -50,9 +50,9 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
   };
 
   test('Line-Level Formatting', async ({ page, createTmpDir }) => {
-    await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-line-formatting');
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-line-formatting');
 
-    const prosemirror = page.locator('.ProseMirror');
+    const prosemirror = locators.docs.proseMirror();
     await expect(prosemirror).toBeVisible();
 
     await prosemirror.click();
@@ -62,8 +62,8 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
 
     await page.keyboard.press('ArrowUp');
 
-    await page.locator('.heading-dropdown-trigger:not([data-toolbar-part="heading"])').click();
-    await page.locator('.dropdown-item').getByText('Heading 1', { exact: true }).click();
+    await locators.docs.headingDropdown().click();
+    await locators.dropdown.item('Heading 1').click();
 
     await expect(prosemirror.locator('h1')).toHaveCount(1);
     await expect(prosemirror.locator('h1')).toContainText('Line 1');
@@ -71,23 +71,20 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
   });
 
   test('Toolbar Tooltips visibility', async ({ page, createTmpDir }) => {
-    await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-tooltips');
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-tooltips');
 
-    const boldButton = page.locator('.toolbar-btn[aria-label="Bold"]');
+    const boldButton = locators.docs.toolbarBtn('Bold');
     await expect(boldButton).toBeVisible();
 
     await boldButton.hover();
 
-    await expect(page.locator('.react-tooltip').filter({ hasText: 'Bold' })).toBeVisible();
+    await expect(locators.docs.tooltip('Bold')).toBeVisible();
   });
+
   test('Text Formatting and Undo/Redo', async ({ page, createTmpDir }) => {
-    await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-formatting');
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-formatting');
 
-    const wysiwygContent = page.locator('.wysiwyg-editor-content');
-    console.log('Is wysiwyg-editor-content visible?', await wysiwygContent.isVisible());
-    console.log('DOM:', await page.locator('body').innerHTML());
-
-    const prosemirror = page.locator('.ProseMirror');
+    const prosemirror = locators.docs.proseMirror();
     await expect(prosemirror).toBeVisible();
 
     await prosemirror.click();
@@ -99,48 +96,48 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
     }
     await page.keyboard.up('Shift');
 
-    await page.locator('.toolbar-btn[aria-label="Bold"]').click();
+    await locators.docs.toolbarBtn('Bold').click();
     await expect(prosemirror.locator('strong')).toHaveText('World');
 
-    await page.locator('.toolbar-btn[aria-label="Italic"]').click();
+    await locators.docs.toolbarBtn('Italic').click();
     await expect(prosemirror.locator('strong em, em strong').first()).toHaveText('World');
 
-    await page.locator('.toolbar-btn[aria-label="Undo"]').click();
+    await locators.docs.toolbarBtn('Undo').click();
     await expect(prosemirror.locator('em')).toHaveCount(0);
     await expect(prosemirror.locator('strong')).toHaveText('World');
 
-    await page.locator('.toolbar-btn[aria-label="Redo"]').click();
+    await locators.docs.toolbarBtn('Redo').click();
     await expect(prosemirror.locator('strong em, em strong').first()).toHaveText('World');
 
-    await page.locator('.toolbar-btn[aria-label="Strikethrough"]').click();
+    await locators.docs.toolbarBtn('Strikethrough').click();
     await expect(prosemirror.locator('s')).toHaveText('World');
 
-    await page.locator('.toolbar-btn[aria-label="Inline code"]').click();
+    await locators.docs.toolbarBtn('Inline code').click();
     await expect(prosemirror.locator('code')).toHaveText('World');
   });
 
   test('Lists and Code Blocks', async ({ page, createTmpDir }) => {
-    await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-lists-code');
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-lists-code');
 
-    const prosemirror = page.locator('.ProseMirror');
+    const prosemirror = locators.docs.proseMirror();
     await expect(prosemirror).toBeVisible();
 
     await prosemirror.click();
     await page.keyboard.type('Item 1');
 
-    await page.locator('.toolbar-btn[aria-label="Bullet list"]').click();
+    await locators.docs.toolbarBtn('Bullet list').click();
     await expect(prosemirror.locator('ul > li')).toContainText('Item 1');
 
     await page.keyboard.press('Enter');
     await page.keyboard.type('Item 2');
 
-    await page.locator('.toolbar-btn[aria-label="Numbered list"]').click();
+    await locators.docs.toolbarBtn('Numbered list').click();
     await expect(prosemirror.locator('ol > li').nth(1)).toContainText('Item 2');
 
-    await page.locator('.toolbar-btn[aria-label="Numbered list"]').click();
+    await locators.docs.toolbarBtn('Numbered list').click();
     await expect(prosemirror.locator('p').filter({ hasText: 'Item 2' })).toBeVisible();
 
-    await page.locator('.toolbar-btn[aria-label="Task list"]').click();
+    await locators.docs.toolbarBtn('Task list').click();
     await expect(prosemirror.locator('ul[data-type="taskList"] > li')).toBeVisible();
 
     const checkbox = prosemirror.locator('ul[data-type="taskList"] > li label input[type="checkbox"]').first();
@@ -150,43 +147,45 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
     await page.keyboard.press('Enter');
     await page.keyboard.press('Enter');
 
-    await page.locator('.toolbar-btn[aria-label="Code block"]').click();
+    await locators.docs.toolbarBtn('Code block').click();
     await page.keyboard.type('const x = 1;');
     await expect(prosemirror.locator('pre code')).toContainText('const x = 1;');
   });
 
   test('Table Insertion', async ({ page, createTmpDir }) => {
-    await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-table');
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-table');
 
-    const prosemirror = page.locator('.ProseMirror');
+    const prosemirror = locators.docs.proseMirror();
     await expect(prosemirror).toBeVisible();
 
     await prosemirror.click();
 
-    await page.locator('.toolbar-btn[aria-label="Table"]').click();
+    await locators.docs.toolbarBtn('Table').click();
 
     await expect(prosemirror.locator('table')).toBeVisible();
     await expect(prosemirror.locator('tr')).toHaveCount(3);
   });
+
   test('Markdown to WYSIWYG Sync', async ({ page, createTmpDir }) => {
-    await setupRequestDocs(page, createTmpDir, 'test-markdown-sync');
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-markdown-sync');
 
     // Switch to Markdown
-    await page.locator('.docs-mode-switch button').nth(1).click();
+    await locators.docs.modeSwitchMarkdown().click();
     await page.waitForTimeout(500);
 
     // Type in Markdown
-    const codeEditor = page.locator('.editor-container .CodeMirror-scroll');
+    const codeEditor = locators.docs.codeEditor();
     await codeEditor.click();
 
     await page.keyboard.type('Hello MARKDOWN');
     await page.waitForTimeout(500);
 
     // Switch to WYSIWYG
-    await page.locator('.docs-mode-switch button').nth(0).click();
+    await locators.docs.modeSwitchDocs().click();
     await page.waitForTimeout(1000);
 
-    const wysiwygText = await page.textContent('.ProseMirror');
+    const prosemirror = locators.docs.proseMirror();
+    const wysiwygText = await prosemirror.textContent();
     expect(wysiwygText).toContain('Hello MARKDOWN');
   });
 });
