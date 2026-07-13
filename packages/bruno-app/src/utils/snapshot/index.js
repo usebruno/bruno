@@ -472,6 +472,11 @@ export const serializeTab = (tab, collection) => {
     };
   }
 
+  const isEnvironmentTab = tab.type === 'environment-settings' || tab.type === 'global-environment-settings';
+  if (isEnvironmentTab && tab.tabState?.environment?.tab) {
+    serialized.environment = { tab: tab.tabState.environment.tab };
+  }
+
   return serialized;
 };
 
@@ -648,6 +653,10 @@ export const deserializeTab = (snapshotTab, collection) => {
     } else {
       tab.uid = type;
     }
+  }
+
+  if (snapshotTab.environment?.tab) {
+    tab.tabState = { environment: { tab: snapshotTab.environment.tab } };
   }
 
   return tab;

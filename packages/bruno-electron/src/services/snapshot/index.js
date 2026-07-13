@@ -45,6 +45,9 @@ const tabSchema = yup.object({
     tab: yup.string(),
     format: yup.string().nullable(),
     viewTab: yup.string().nullable()
+  }).optional(),
+  environment: yup.object({
+    tab: yup.string()
   }).optional()
 });
 

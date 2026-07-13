@@ -245,6 +245,7 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
         abortSignal: controller.signal
       });
 
+      let streamError = null;
       for await (const part of result.fullStream) {
         if (controller.signal.aborted) break;
         switch (part.type) {
@@ -271,10 +272,16 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
             send('main:ai-chat-tool-done', { requestId, toolName: part.toolName });
             break;
           }
+          case 'error': {
+            streamError = part.error;
+            break;
+          }
           default:
             break;
         }
       }
+
+      if (streamError) throw streamError;
 
       activeStreams.delete(requestId);
 

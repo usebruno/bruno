@@ -3,14 +3,51 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   flex-shrink: 0;
   height: 100%;
+  position: relative;
 
   .ai-sidebar {
-    width: 420px;
+    width: 100%;
     height: 100%;
     background: ${(props) => props.theme.bg};
+    color: ${(props) => props.theme.text};
     border-left: 1px solid ${(props) => props.theme.border.border1};
     display: flex;
     flex-direction: column;
+  }
+
+  .ai-sidebar-resize-handle {
+    position: absolute;
+    top: 0;
+    left: -3px;
+    width: 6px;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    cursor: col-resize;
+    z-index: 5;
+
+    .drag-border {
+      width: 1px;
+      height: 100%;
+      border-left: solid 1px transparent;
+    }
+
+    &:hover .drag-border {
+      border-left-color: ${(props) => props.theme.sidebar.dragbar.border};
+    }
+  }
+
+  &.popout .ai-sidebar {
+    border-left: none;
+  }
+
+  &.popout .ai-sidebar-header {
+    -webkit-app-region: drag;
+
+    button,
+    .history-popover {
+      -webkit-app-region: no-drag;
+    }
   }
 
   .ai-sidebar-header {
@@ -762,7 +799,7 @@ const StyledWrapper = styled.div`
       }
     }
 
-    .send-btn, .stop-btn {
+    .send-btn {
       display: flex;
       align-items: center;
       gap: 4px;
@@ -772,9 +809,6 @@ const StyledWrapper = styled.div`
       font-size: 11px;
       font-weight: 500;
       cursor: pointer;
-    }
-
-    .send-btn {
       background: ${(props) => props.theme.brand};
       color: ${(props) => (props.theme.mode === 'dark' ? '#000' : '#fff')};
 
@@ -785,15 +819,6 @@ const StyledWrapper = styled.div`
       &:disabled {
         opacity: 0.4;
         cursor: not-allowed;
-      }
-    }
-
-    .stop-btn {
-      background: ${(props) => props.theme.colors.text.danger};
-      color: ${(props) => (props.theme.mode === 'dark' ? '#000' : '#fff')};
-
-      &:hover {
-        opacity: 0.9;
       }
     }
   }
