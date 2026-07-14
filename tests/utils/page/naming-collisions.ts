@@ -29,6 +29,16 @@ export const buildNamingCollisionLocators = (page: Page) => ({
   collectionDropTarget: (collectionName: string): Locator =>
     page.locator('.collection-name').filter({ hasText: collectionName }),
 
+  // Sidebar items with an exact display name, scoped to one collection's container
+  // (for counting duplicates / asserting presence within a specific collection).
+  itemsByTitleInCollection: (collectionName: string, title: string): Locator =>
+    page
+      .locator('.collection-name')
+      .filter({ hasText: collectionName })
+      .locator('..')
+      .locator('.item-name')
+      .and(page.getByTitle(title, { exact: true })),
+
   toast: (text: string | RegExp): Locator => page.getByText(text),
 
   anyModal: (): Locator => page.locator('.bruno-modal'),

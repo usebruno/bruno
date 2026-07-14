@@ -1,4 +1,3 @@
-import process from 'node:process';
 import * as path from 'path';
 import { test, expect } from '../../../playwright';
 import {
@@ -12,7 +11,7 @@ import {
   createRequestWithEditedFilename,
   revealFilesystemName
 } from '../../utils/page';
-import { listRequestFiles } from '../utils';
+import { listRequestFiles, findCollectionDir, isCaseInsensitiveFs } from '../utils';
 
 test.describe('Naming collisions - create request', () => {
   test.afterEach(async ({ page }) => {
@@ -139,10 +138,11 @@ test.describe('Naming collisions - create request', () => {
     await test.step('On disk: case-insensitive FS suffixes; case-sensitive FS coexists', async () => {
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');
-      if (process.platform === 'linux') {
-        expect(files).toContain('Login.bru'); // distinct free name, no suffix
-      } else {
+      // Branch on the *observed* filesystem behavior, not the OS.
+      if (isCaseInsensitiveFs(findCollectionDir(testDir))) {
         expect(files).toContain('Login1.bru'); // collides case-insensitively -> suffixed
+      } else {
+        expect(files).toContain('Login.bru'); // distinct free name, no suffix
       }
       expect(files).toHaveLength(2);
     });

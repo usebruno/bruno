@@ -71,6 +71,7 @@ test.describe('Naming collisions - copy/paste folder', () => {
     await pasteIntoFolder(page, 'Target');
 
     await test.step('Copy lands inside "Target" as "Users copy"', async () => {
+      await expect(sidebar.folderRequest('Target', 'Users copy')).toBeVisible();
       const targetDir = path.join(findCollectionDir(testDir), 'Target');
       expect(fs.existsSync(path.join(targetDir, 'Users copy'))).toBe(true);
     });

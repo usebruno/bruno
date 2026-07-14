@@ -36,6 +36,11 @@ test.describe('Naming collisions - drag/drop folder', () => {
       await source.dragTo(nc.collectionDropTarget('Folder Drag Target'));
     });
 
+    await test.step('Sidebar: both "Auth" folders show in the target, none left in the source', async () => {
+      await expect(nc.itemsByTitleInCollection('Folder Drag Target', 'Auth')).toHaveCount(2);
+      await expect(nc.itemsByTitleInCollection('Folder Drag Source', 'Auth')).toHaveCount(0);
+    });
+
     await test.step('Target keeps both folders (dir suffixed); moved subtree intact; source emptied', async () => {
       const collDir = findCollectionDir(targetDir);
       await expect.poll(() => fs.existsSync(path.join(collDir, 'Auth')), { timeout: 10000 }).toBe(true);
@@ -61,6 +66,11 @@ test.describe('Naming collisions - drag/drop folder', () => {
       const source = nc.itemInCollection('Folder NC Source', 'Auth');
       await expect(source).toBeVisible();
       await source.dragTo(nc.collectionDropTarget('Folder NC Target'));
+    });
+
+    await test.step('Sidebar: "Auth" now shows in the target and is gone from the source', async () => {
+      await expect(nc.itemsByTitleInCollection('Folder NC Target', 'Auth')).toHaveCount(1);
+      await expect(nc.itemsByTitleInCollection('Folder NC Source', 'Auth')).toHaveCount(0);
     });
 
     await test.step('Target has "Auth" (no suffix) with subtree; source emptied', async () => {

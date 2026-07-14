@@ -1,4 +1,3 @@
-import process from 'node:process';
 import * as path from 'path';
 import { test, expect } from '../../../playwright';
 import {
@@ -12,7 +11,7 @@ import {
   renameViaFilename,
   revealFilesystemName
 } from '../../utils/page';
-import { listRequestFiles } from '../utils';
+import { listRequestFiles, findCollectionDir, isCaseInsensitiveFs } from '../utils';
 
 test.describe('Naming collisions - rename request', () => {
   test.afterEach(async ({ page }) => {
@@ -192,10 +191,11 @@ test.describe('Naming collisions - rename request', () => {
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');
       expect(files).not.toContain('signin.bru'); // renamed away
-      if (process.platform === 'linux') {
-        expect(files).toContain('Login.bru'); // distinct free name, no suffix
-      } else {
+      // Branch on the *observed* filesystem behavior, not the OS.
+      if (isCaseInsensitiveFs(findCollectionDir(testDir))) {
         expect(files).toContain('Login1.bru'); // collides case-insensitively -> suffixed
+      } else {
+        expect(files).toContain('Login.bru'); // distinct free name, no suffix
       }
       expect(files).toHaveLength(2);
     });

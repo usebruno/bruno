@@ -73,6 +73,13 @@ test.describe('Naming collisions - clone folder', () => {
 
     await cloneItem(page, 'Users');
 
+    await test.step('Sidebar shows "Users copy" with its nested request and subfolder', async () => {
+      await expect(sidebar.folder('Users copy')).toBeVisible();
+      await sidebar.folder('Users copy').dblclick(); // expand the clone
+      await expect(sidebar.folderRequest('Users copy', 'login')).toBeVisible();
+      await expect(sidebar.folderRequest('Users copy', 'Admin')).toBeVisible();
+    });
+
     await test.step('On disk: the whole subtree is copied under "Users copy"', async () => {
       const copyDir = path.join(findCollectionDir(testDir), 'Users copy');
       expect(fs.existsSync(copyDir)).toBe(true);

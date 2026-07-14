@@ -46,3 +46,29 @@ export const findCollectionDir = (testDir: string): string => {
 
 /** Minimal valid .bru request content, for seeding files directly on disk. */
 export const minimalBru = (name: string) => `meta {\n  name: ${name}\n  type: http\n  seq: 1\n}\n`;
+
+/**
+ * Probe whether the filesystem backing `dir` is case-insensitive, by creating a
+ * marker file and checking whether a case-flipped name resolves to the same file.
+ *
+ * We must NOT infer this from `process.platform` — the OS doesn't determine
+ * volume semantics (macOS can be mounted case-sensitive; a Linux mount can be
+ * case-insensitive). Tests whose expected on-disk result differs by case
+ * behavior branch on this observed value instead.
+ */
+export const isCaseInsensitiveFs = (dir: string): boolean => {
+  const marker = path.join(dir, `.bruno-case-probe-${process.pid}-${Date.now()}a`);
+  const flipped = path.join(dir, path.basename(marker).replace(/a$/, 'A'));
+  try {
+    fs.writeFileSync(marker, '');
+    return fs.existsSync(flipped);
+  } catch {
+    return false;
+  } finally {
+    try {
+      fs.rmSync(marker, { force: true });
+    } catch {
+      /* ignore cleanup errors */
+    }
+  }
+};
