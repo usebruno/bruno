@@ -5,7 +5,8 @@ import {
   setGitVersion
 } from 'providers/ReduxStore/slices/app';
 import {
-  addTab
+  addTab,
+  closeAllCollectionTabs
 } from 'providers/ReduxStore/slices/tabs';
 import {
   brunoConfigUpdateEvent,
@@ -14,6 +15,7 @@ import {
   collectionChangeFileEvent,
   collectionRenamedEvent,
   collectionUnlinkDirectoryEvent,
+  collectionUnlinkCollectionEvent,
   collectionUnlinkEnvFileEvent,
   collectionUnlinkFileEvent,
   processEnvUpdateEvent,
@@ -96,6 +98,11 @@ const useIpcEvents = () => {
             directory: val
           })
         );
+      }
+      if (type === 'unlinkCollection') {
+        const { collectionUid } = val.meta;
+        dispatch(closeAllCollectionTabs({ collectionUid }));
+        dispatch(collectionUnlinkCollectionEvent({ collectionUid }));
       }
       if (type === 'addEnvironmentFile') {
         dispatch(collectionAddEnvFileEvent(val));
