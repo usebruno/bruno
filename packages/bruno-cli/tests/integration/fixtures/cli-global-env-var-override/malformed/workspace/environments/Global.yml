@@ -1,0 +1,6 @@
+name: Global
+variables:
+  - name: baseUrl
+    value: {{BASE_URL}}
+    enabled: true
+    secret: false

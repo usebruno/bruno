@@ -1,0 +1,23 @@
+meta {
+  name: echo-globals
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/ping
+  body: none
+  auth: none
+}
+
+script:post-response {
+  // Echo both scopes back to force full-env write attempts, plus a deliberate unrelated write
+  // in each scope that must persist.
+  bru.setGlobalEnvVar("token", bru.getGlobalEnvVar("token"));
+  bru.setGlobalEnvVar("region", bru.getGlobalEnvVar("region"));
+  bru.setGlobalEnvVar("globalUnrelated", "global-kept");
+
+  bru.setEnvVar("apiKey", bru.getEnvVar("apiKey"));
+  bru.setEnvVar("stage", bru.getEnvVar("stage"));
+  bru.setEnvVar("localUnrelated", "local-kept");
+}

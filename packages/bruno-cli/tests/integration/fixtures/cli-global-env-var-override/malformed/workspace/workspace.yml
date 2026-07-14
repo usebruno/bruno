@@ -1,0 +1,9 @@
+opencollection: 1.0.0
+info:
+  name: "Test Workspace"
+  type: workspace
+collections:
+  - name: "malformed-collection"
+    path: "malformed-collection"
+specs:
+docs: ''
