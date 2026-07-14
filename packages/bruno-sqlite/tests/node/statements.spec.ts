@@ -1,11 +1,12 @@
 import { DatabaseSync } from 'node:sqlite';
-import type { StatementDef } from '../../src/shared/types';
+import type { StatementDef, StatementType } from '../../src/shared/types';
 
 const defs: StatementDef[] = [
   { name: 'insertItem', type: 'exec', sql: 'INSERT INTO items(name) VALUES (:name)', tables: ['items'] },
   { name: 'insertWithId', type: 'exec', sql: 'INSERT INTO items(id, name) VALUES (:id, :name)', tables: ['items'] },
   { name: 'getItem', type: 'one', sql: 'SELECT * FROM items WHERE id = :id', tables: ['items'] },
-  { name: 'allItems', type: 'many', sql: 'SELECT * FROM items', tables: ['items'] }
+  { name: 'allItems', type: 'many', sql: 'SELECT * FROM items', tables: ['items'] },
+  { name: 'invalid', type: 'invalid_type' as StatementType, sql: 'SELECT * FROM items', tables: ['items'] }
 ];
 
 jest.doMock('../../src/generated/node/statements', () => ({ statements: defs }));
@@ -67,4 +68,12 @@ describe('Statements.execute mutation signalling', () => {
     expect(() => statements.execute('nope', {})).toThrow('Unknown statement: "nope"');
     expect(onMutation).not.toHaveBeenCalled();
   });
+
+  // This is a very stretched test. The generator would already catch any types which are not valid
+  it('throws for an unknown definition type without notifying', () => {
+    const onMutation = jest.fn();
+    const statements = newStatements(onMutation);
+    expect(() => statements.execute('invalid', {})).toThrow('unknown definition type: invalid_type');
+    expect(onMutation).not.toHaveBeenCalled();
+  })
 });

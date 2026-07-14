@@ -35,6 +35,8 @@ export class Statements {
         return stmt.get(args)
       case 'many':
         return stmt.all(args)
+      default:
+        throw new Error(`unknown definition type: ${def.type}`)
     }
   }
 }
