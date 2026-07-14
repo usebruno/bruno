@@ -4,7 +4,7 @@ const { createDatabase, registerSQLiteIpc, SQLITE_MUTATION_CHANNEL } = require('
 
 let ipc = null;
 
-class SqliteIPC {
+class SqliteEventModel {
   _db = null;
   _statements = null;
   _window = null;
@@ -35,7 +35,7 @@ class SqliteIPC {
 }
 
 const registerSqliteIpc = (window) => {
-  ipc = new SqliteIPC(window);
+  ipc = new SqliteEventModel(window);
 };
 
 const shutdown = () => {
