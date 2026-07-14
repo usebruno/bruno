@@ -2428,13 +2428,13 @@ const setRequestUrlAndSave = async (page: Page, url: string) => {
  * Hover a `{{var}}` token in the URL editor and return its (visible) info tooltip.
  * @param page - The page object
  * @param varName - The variable name inside the braces
- * @param state - Highlight class to match: 'valid' (known), 'invalid' (unknown), or 'any'
+ * @param state - Highlight class to match: 'valid' (known) or 'invalid' (unknown); omit to match either
  * @returns The tooltip popup locator
  */
 const openUrlVarTooltip = async (
   page: Page,
   varName: string,
-  state: 'valid' | 'invalid' | 'any' = 'valid'
+  state?: 'valid' | 'invalid'
 ): Promise<Locator> => {
   const { request, varInfoPopup } = buildCommonLocators(page);
   // Dismiss any previously-open tooltip first.

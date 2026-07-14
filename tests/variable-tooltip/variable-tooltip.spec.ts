@@ -29,7 +29,7 @@ test.describe('Variable Tooltip', () => {
 
   test('should test tooltip functionality with environment variables', async ({ page, createTmpDir }) => {
     const collectionName = 'tooltip-test';
-    const { sidebar, varInfoPopup } = buildCommonLocators(page);
+    const { sidebar, request, varInfoPopup } = buildCommonLocators(page);
 
     await test.step('Create collection and add environment variables', async () => {
       await createCollection(page, collectionName, await createTmpDir('tooltip-collection'));
@@ -77,8 +77,7 @@ test.describe('Variable Tooltip', () => {
       await page.keyboard.press(saveShortcut);
 
       // Hover the secret token in the header value editor.
-      const secretVar = headerValueEditor.locator('.cm-variable-valid').filter({ hasText: 'secretToken' }).first();
-      await secretVar.hover();
+      await request.headerVariableToken(headerRow, 'secretToken').hover();
 
       const tooltip = varInfoPopup.all().first();
       await expect(tooltip).toBeVisible();
@@ -197,7 +196,7 @@ test.describe('Variable Tooltip', () => {
       await page.keyboard.press(saveShortcut);
 
       // process.env vars can render as valid or invalid depending on presence.
-      const tooltip = await openUrlVarTooltip(page, 'process.env.HOME', 'any');
+      const tooltip = await openUrlVarTooltip(page, 'process.env.HOME');
       await expect(varInfoPopup.name(tooltip)).toContainText('process.env.HOME');
       await expect(varInfoPopup.scopeBadge(tooltip)).toContainText('Process Env');
 
@@ -314,8 +313,7 @@ test.describe('Variable Tooltip', () => {
 
       // Hover over the invalid variable.
       await page.mouse.move(0, 0);
-      const invalidVar = bodyEditor.locator('.cm-variable-invalid, .cm-variable-valid').filter({ hasText: 'user id' }).first();
-      await invalidVar.hover();
+      await request.bodyVariableToken('user id', 'invalid').hover();
 
       // Verify tooltip shows a warning and hides the editable input.
       const tooltip = varInfoPopup.all().first();

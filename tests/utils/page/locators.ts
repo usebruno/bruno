@@ -175,11 +175,17 @@ export const buildCommonLocators = (page: Page) => ({
     generateCodeButton: () => page.getByTestId('generate-code-button'),
     bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
     bodyEditor: () => page.getByTestId('request-body-editor'),
-    bodyVariableToken: (name: string) =>
-      page.getByTestId('request-body-editor').locator('.CodeMirror .cm-variable-valid').filter({ hasText: name }),
-    urlVariableToken: (name: string, state: 'valid' | 'invalid' | 'any' = 'valid') => {
-      const selector = state === 'any' ? '.cm-variable-valid, .cm-variable-invalid' : `.cm-variable-${state}`;
+    bodyVariableToken: (name: string, state?: 'valid' | 'invalid') => {
+      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
+      return page.getByTestId('request-body-editor').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
+    },
+    urlVariableToken: (name: string, state?: 'valid' | 'invalid') => {
+      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
       return page.getByTestId('request-url').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
+    },
+    headerVariableToken: (row: Locator, name: string, state?: 'valid' | 'invalid') => {
+      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
+      return row.locator('.CodeMirror').nth(1).locator(selector).filter({ hasText: name }).first();
     },
     pane: () => page.getByTestId('request-pane')
   },
