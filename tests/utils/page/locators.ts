@@ -12,6 +12,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
+  websocket: buildWebsocketCommonLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: {
@@ -346,8 +347,7 @@ export const buildCommonLocators = (page: Page) => ({
       },
       rowValueInput: (rowIndex: number) => baseTable.rowCell('value', rowIndex)
     };
-  },
-  websocket: buildWebsocketCommonLocators(page)
+  }
 });
 
 export const buildWebsocketCommonLocators = (page: Page) => ({

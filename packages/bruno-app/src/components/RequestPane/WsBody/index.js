@@ -164,10 +164,10 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     }
   }, [setListScrollTop]);
 
-  // Clicking or typing in an editor makes the browser scroll the list to reveal
-  // CodeMirror's cursor, flinging the whole panel. Pin the list's scrollTop for a
-  // few frames so focus/keystrokes can't move it (the editor still scrolls
-  // internally); a real user scroll (wheel/touch) releases the pin.
+  // Typing can make the browser scroll the list to follow the cursor, flinging
+  // the panel. Hold the list's scroll for a few frames so keystrokes can't move
+  // it; a real scroll (wheel/touch) releases it. Clicks are handled separately
+  // by the editor's `containScroll`.
   const pinListScroll = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -196,8 +196,6 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     }
   }, []);
 
-  // Cancel any in-flight scroll/pin animation when the component unmounts (e.g.
-  // on tab switch) so a stray frame doesn't fire after teardown.
   useEffect(() => () => cancelAnimationFrame(pinScrollRef.current), []);
 
   if (!messages.length) {
@@ -221,7 +219,6 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
         className="messages-container"
         data-testid="ws-messages-container"
         onScroll={handleScroll}
-        onMouseDownCapture={pinListScroll}
         onKeyDownCapture={pinListScroll}
         onWheel={releasePin}
         onTouchMove={releasePin}

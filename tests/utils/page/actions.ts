@@ -2349,9 +2349,9 @@ const selectAppView = async (page: Page, view: 'code' | 'preview') => {
  */
 const renameWsMessage = async (page: Page, index: number, name: string) => {
   await test.step(`Rename websocket message ${index} to "${name}"`, async () => {
-    const ws = buildCommonLocators(page);
-    await ws.websocket.message.label(index).dblclick();
-    const nameInput = ws.websocket.message.nameInput(index);
+    const { websocket } = buildCommonLocators(page);
+    await websocket.message.label(index).dblclick();
+    const nameInput = websocket.message.nameInput(index);
     await expect(nameInput).toBeVisible();
     await nameInput.selectText();
     await page.keyboard.type(name);
