@@ -30,9 +30,9 @@ const StyledWrapper = styled.div`
     max-height: 200px;
 
     pre.CodeMirror-placeholder {
-      color: ${(props) => props.theme.text};
+      color: ${(props) => props.theme.codemirror.placeholder.color} !important;
+      opacity: ${(props) => props.theme.codemirror.placeholder.opacity} !important;
       padding-left: 0;
-      opacity: 0.5;
     }
 
     .CodeMirror-vscrollbar,

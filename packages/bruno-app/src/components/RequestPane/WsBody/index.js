@@ -1,7 +1,7 @@
 import { get } from 'lodash';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { IconPlus } from '@tabler/icons';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { usePersistedState } from 'hooks/usePersistedState';
 import StyledWrapper from './StyledWrapper';
@@ -15,6 +15,7 @@ const getSelectedIndex = (messages) => {
 const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   const dispatch = useDispatch();
   const messagesContainerRef = useRef(null);
+  const pinScrollRef = useRef(null);
   const [listScrollTop, setListScrollTop] = usePersistedState({
     key: `ws-list-scroll-${item.uid}`,
     default: 0
@@ -24,11 +25,22 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
 
   const selectedIndex = getSelectedIndex(messages);
 
-  // Expand the selected message by default (falls back to first)
-  const [expandedUids, setExpandedUids] = useState(() => {
+  // Persist which messages are expanded per request so switching tabs and coming
+  // back keeps every open message open (not just the selected one). Stored as an
+  // array of uids since localStorage can't serialize a Set; defaults to the
+  // selected message (falls back to first).
+  // usePersistedState only reads `default` when there's no persisted value (first
+  // mount, or when the key changes), so recomputing this is cheap and keeps it in
+  // sync with the current messages for those reads.
+  const defaultExpanded = useMemo(() => {
     const uid = messages[selectedIndex]?.uid || messages[0]?.uid;
-    return new Set(uid ? [uid] : []);
+    return uid ? [uid] : [];
+  }, [messages, selectedIndex]);
+  const [expandedUidList, setExpandedUidList] = usePersistedState({
+    key: `ws-expanded-${item.uid}`,
+    default: defaultExpanded
   });
+  const expandedUids = useMemo(() => new Set(expandedUidList), [expandedUidList]);
   const [newMessageUid, setNewMessageUid] = useState(null);
   const prevMessagesLengthRef = useRef(messages.length);
 
@@ -58,18 +70,63 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     }));
   }, [body, dispatch, item.uid, collection.uid]);
 
+  // Refs/cancel for the mount scroll-restore loop (defined further below). Declared
+  // here so scrollMessageToTop can cancel an in-flight restore before it starts
+  // driving the scroll itself.
+  const isRestoringRef = useRef(false);
+  const restoreRafRef = useRef(null);
+  const cancelRestore = useCallback(() => {
+    if (restoreRafRef.current !== null) {
+      cancelAnimationFrame(restoreRafRef.current);
+      restoreRafRef.current = null;
+    }
+    isRestoringRef.current = false;
+  }, []);
+
+  // Scroll the list so the given message's header sits at the top. Runs for a few
+  // frames because the list is still growing as the message expands.
+  const scrollMessageToTop = useCallback((uid) => {
+    // Find where this message sits in the list; its DOM wrapper is the child at
+    // the same position.
+    const index = messages.findIndex((m) => m.uid === uid);
+    if (index < 0) return;
+    // A deliberate expand takes over the scroll: cancel any in-flight restore so
+    // the two RAF loops don't fight over scrollTop.
+    cancelRestore();
+    // Stop any animation already running so they don't fight over the scroll.
+    if (pinScrollRef.current !== null) cancelAnimationFrame(pinScrollRef.current);
+    let frames = 0;
+    const align = () => {
+      const el = messagesContainerRef.current;
+      // Bail if the list is gone (unmounted) or this run was cancelled.
+      if (!el || pinScrollRef.current === null) return;
+      const wrapper = el.children[index];
+      if (wrapper) {
+        // Nudge the list by the gap between the wrapper's top and the list's top,
+        // bringing the header flush with the top.
+        el.scrollTop += wrapper.getBoundingClientRect().top - el.getBoundingClientRect().top;
+      }
+      // Keep re-aligning for up to 12 frames while the editor finishes opening,
+      // then stop.
+      if (++frames < 12) {
+        pinScrollRef.current = requestAnimationFrame(align);
+      } else {
+        pinScrollRef.current = null;
+      }
+    };
+    pinScrollRef.current = requestAnimationFrame(align);
+  }, [messages, cancelRestore]);
+
   const toggleMessage = useCallback((uid) => {
     if (!uid) return;
-    setExpandedUids((prev) => {
-      const next = new Set(prev);
-      if (next.has(uid)) {
-        next.delete(uid);
-      } else {
-        next.add(uid);
-      }
-      return next;
-    });
-  }, []);
+    const willOpen = !expandedUids.has(uid);
+    setExpandedUidList((prev) => (
+      prev.includes(uid) ? prev.filter((u) => u !== uid) : [...prev, uid]
+    ));
+    // Opening a message brings its header to the top of the list; collapsing
+    // leaves the list where it is.
+    if (willOpen) scrollMessageToTop(uid);
+  }, [expandedUids, setExpandedUidList, scrollMessageToTop]);
 
   const handleSelect = useCallback((index) => {
     if (index !== selectedIndex) {
@@ -82,7 +139,7 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     if (messages.length > prevMessagesLengthRef.current) {
       const newMsg = messages[messages.length - 1];
       if (newMsg?.uid) {
-        setExpandedUids((prev) => new Set(prev).add(newMsg.uid));
+        setExpandedUidList((prev) => (prev.includes(newMsg.uid) ? prev : [...prev, newMsg.uid]));
         setNewMessageUid(newMsg.uid);
         setSelectedIndex(messages.length - 1);
       }
@@ -95,31 +152,60 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     prevMessagesLengthRef.current = messages.length;
   }, [messages.length]);
 
+  // Drop uids of deleted messages so the persisted list doesn't accumulate stale
+  // entries over the request's lifetime.
+  useEffect(() => {
+    const hasStale = expandedUidList.some((uid) => !messages.some((m) => m.uid === uid));
+    if (hasStale) {
+      setExpandedUidList((prev) => prev.filter((uid) => messages.some((m) => m.uid === uid)));
+    }
+  }, [messages, expandedUidList, setExpandedUidList]);
+
   const handleNewMessageRendered = useCallback(() => {
     setNewMessageUid(null);
   }, []);
 
-  // Restore the last scroll position on mount (component remounts on tab switch,
-  // so listScrollTop is read synchronously for this request).
+  // Restore the last scroll position on mount (component remounts on tab switch).
+  // The editors render their height after mount, so a one-shot set gets clamped
+  // by a not-yet-full scrollHeight and lands short of where we left off (e.g. the
+  // bottom). Re-apply the target each frame until it sticks (content is tall
+  // enough), then stop. While restoring we suppress handleScroll so the clamped
+  // value can't overwrite the saved one; a real user scroll (or a deliberate
+  // expand) cancels the restore.
   useEffect(() => {
     const container = messagesContainerRef.current;
-    if (container) {
-      container.scrollTop = listScrollTop;
-    }
-  }, [item.uid]);
+    if (!container) return;
+    const target = listScrollTop;
+    if (!target) return; // nothing to restore (top) — don't fight a fresh scroll
+    isRestoringRef.current = true;
+    let frames = 0;
+    const apply = () => {
+      const el = messagesContainerRef.current;
+      if (!el || !isRestoringRef.current) return; // cancelled by a user scroll
+      el.scrollTop = target;
+      const stuck = el.scrollTop === target; // false while still clamped by a short scrollHeight
+      if (!stuck && ++frames < 20) {
+        restoreRafRef.current = requestAnimationFrame(apply);
+      } else {
+        cancelRestore();
+      }
+    };
+    restoreRafRef.current = requestAnimationFrame(apply);
+    return cancelRestore;
+  }, [item.uid, cancelRestore]);
 
   const handleScroll = useCallback(() => {
+    if (isRestoringRef.current) return; // don't persist the clamped value mid-restore
     const container = messagesContainerRef.current;
     if (container) {
       setListScrollTop(container.scrollTop);
     }
   }, [setListScrollTop]);
 
-  // Clicking or typing in an editor makes the browser scroll the list to reveal
-  // CodeMirror's cursor, flinging the whole panel. Pin the list's scrollTop for a
-  // few frames so focus/keystrokes can't move it (the editor still scrolls
-  // internally); a real user scroll (wheel/touch) releases the pin.
-  const pinScrollRef = useRef(null);
+  // Typing can make the browser scroll the list to follow the cursor, flinging
+  // the panel. Hold the list's scroll for a few frames so keystrokes can't move
+  // it; a real scroll (wheel/touch) releases it. Clicks are handled separately
+  // by the editor's `containScroll`.
   const pinListScroll = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -140,13 +226,17 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     pinScrollRef.current = requestAnimationFrame(pin);
   }, []);
 
-  // A real user scroll (wheel/touch) releases the pin immediately.
+  // A real user scroll (wheel/touch) releases the pin and cancels any in-flight
+  // scroll restore immediately the user is taking over.
   const releasePin = useCallback(() => {
     if (pinScrollRef.current !== null) {
       cancelAnimationFrame(pinScrollRef.current);
       pinScrollRef.current = null;
     }
-  }, []);
+    cancelRestore();
+  }, [cancelRestore]);
+
+  useEffect(() => () => cancelAnimationFrame(pinScrollRef.current), []);
 
   if (!messages.length) {
     return (
@@ -169,7 +259,6 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
         className="messages-container"
         data-testid="ws-messages-container"
         onScroll={handleScroll}
-        onMouseDownCapture={pinListScroll}
         onKeyDownCapture={pinListScroll}
         onWheel={releasePin}
         onTouchMove={releasePin}
