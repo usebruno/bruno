@@ -22,7 +22,7 @@ class Bru {
    * @property {object} [options.oauth2CredentialVariables={}] - OAuth2 credential variables
    * @property {string} [options.collectionName] - Name of the collection
    * @property {object} [options.promptVariables={}] - Prompt variables
-   * @property {object} [options.certsAndProxyConfig] - Configuration for bru.sendRequest (proxy, certs, TLS)
+   * @property {object|Function} [options.certsAndProxyConfig] - Configuration or async provider for bru.sendRequest (proxy, certs, TLS)
    * @property {string} [options.certsAndProxyConfig.collectionPath] - Path to the collection
    * @property {object} [options.certsAndProxyConfig.options] - TLS and proxy options
    * @property {object} [options.certsAndProxyConfig.clientCertificates] - Client certificate configuration
@@ -60,13 +60,29 @@ class Bru {
     // Set by the host-side __bruSetScope global at the top of each segment's IIFE.
     this._currentScope = null;
     this.scriptedRequestEntries = [];
+    let certsAndProxyConfigPromise;
+    const resolveCertsAndProxyConfig = () => {
+      if (typeof certsAndProxyConfig !== 'function') {
+        return certsAndProxyConfig;
+      }
+
+      certsAndProxyConfigPromise ??= Promise.resolve().then(certsAndProxyConfig);
+      return certsAndProxyConfigPromise;
+    };
     this.sendRequest = (...args) => {
       const scopeSnapshot = this._currentScope ? { ...this._currentScope } : null;
-      const send = createSendRequest(certsAndProxyConfig, {
-        onComplete: (entry) =>
-          this._recordScriptedRequest({ source: 'sendRequest', scope: scopeSnapshot, ...entry })
-      });
-      return send(...args);
+      const sendWithConfig = (config) => {
+        const send = createSendRequest(config, {
+          onComplete: (entry) =>
+            this._recordScriptedRequest({ source: 'sendRequest', scope: scopeSnapshot, ...entry })
+        });
+        return send(...args);
+      };
+      const config = resolveCertsAndProxyConfig();
+
+      return config && typeof config.then === 'function'
+        ? Promise.resolve(config).then(sendWithConfig)
+        : sendWithConfig(config);
     };
     this.runtime = runtime;
     this.requestUrl = requestUrl;
@@ -84,8 +100,9 @@ class Bru {
     // Holds credential IDs to be reset after script execution
     this.oauth2CredentialsToReset = [];
     this.runner = {
-      skipRequest: () => {
+      skipRequest: (reason) => {
         this.skipRequest = true;
+        this.skipReason = typeof reason === 'string' && reason.trim().length > 0 ? reason.trim() : undefined;
       },
       stopExecution: () => {
         this.stopExecution = true;

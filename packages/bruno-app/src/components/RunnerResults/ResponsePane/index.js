@@ -91,7 +91,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   if (item.status === 'skipped') {
     return (
       <StyledWrapper className="flex h-full relative">
-        <SkippedRequest />
+        <SkippedRequest reason={item.skipReason || responseReceived?.skipReason || responseReceived?.statusText} />
       </StyledWrapper>
     );
   }

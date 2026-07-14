@@ -53,7 +53,7 @@ class ScriptRuntime {
       certsAndProxyConfig,
       requestUrl: request?.url
     });
-    const req = new BrunoRequest(request);
+    const req = new BrunoRequest(request, (reason) => bru.runner.skipRequest(reason));
 
     // extend bru with result getter methods
     const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
@@ -96,7 +96,9 @@ class ScriptRuntime {
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,
+      skipped: bru.skipRequest === true,
       skipRequest: bru.skipRequest,
+      skipReason: bru.skipReason,
       stopExecution: bru.stopExecution,
       scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
     });

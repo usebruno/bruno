@@ -15,7 +15,7 @@ bru.getSecretVar(key) / bru.getProcessEnv(key)
 \`\`\`javascript
 bru.cwd() / bru.getCollectionName() / bru.interpolate(strOrObj) / await bru.sleep(ms)
 bru.visualize(htmlString) / bru.utils.minifyJson(json) / bru.utils.minifyXml(xml)
-bru.setNextRequest(name) / bru.runner.skipRequest() / bru.runner.stopExecution()
+bru.setNextRequest(name) / req.skip(reason) / bru.runner.skipRequest(reason) / bru.runner.stopExecution()
 const response = await bru.sendRequest({ url, method, headers, body })
 await bru.runRequest(itemPathname)
 \`\`\`

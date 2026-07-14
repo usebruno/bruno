@@ -114,7 +114,11 @@ const ResponsePane = ({ item, collection }) => {
       return 0;
     }
   }, [response.size, response.dataBuffer]);
-  const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
+
+  const responseHeadersCount
+    = response.headers && typeof response.headers === 'object'
+      ? Object.keys(response.headers).length
+      : 0;
 
   const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
 
@@ -202,7 +206,7 @@ const ResponsePane = ({ item, collection }) => {
   if (item.response && item.status === 'skipped') {
     return (
       <StyledWrapper className="flex h-full relative">
-        <SkippedRequest />
+        <SkippedRequest reason={item.skipReason || item.response?.skipReason || item.response?.statusText} />
       </StyledWrapper>
     );
   }

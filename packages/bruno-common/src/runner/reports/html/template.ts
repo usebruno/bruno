@@ -385,6 +385,9 @@ export const htmlTemplateString = (resutsJsonString: string) => `<!DOCTYPE html>
           <n-alert v-if="hasError || (result.response.status === 'skipped' && result.error)" title="Error" type="error">
             {{result.error}}
           </n-alert>
+          <n-alert v-if="result.response.status === 'skipped'" title="Skip reason" type="warning">
+            {{result.skipReason || result.response.statusText || 'Request skipped'}}
+          </n-alert>
           <n-card title="REQUEST HEADERS">
             <n-data-table
               :columns="headerColumns"

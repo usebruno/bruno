@@ -14,8 +14,9 @@ class BrunoRequest {
    * It must be noted that the user cannot set these properties directly.
    * They should use the respective setter methods to set these properties.
    */
-  constructor(req) {
+  constructor(req, onSkipRequest) {
     this.req = req;
+    this._onSkipRequest = onSkipRequest;
     this.url = req.url;
     this.method = req.method;
     this.headers = req.headers;
@@ -268,6 +269,18 @@ class BrunoRequest {
 
   getExecutionMode() {
     return this.req.__bruno__executionMode;
+  }
+
+  /**
+   * Skip the current request before transport begins.
+   * @param {string} [reason] Optional reason to include in the execution result.
+   */
+  skip(reason) {
+    if (typeof this._onSkipRequest !== 'function') {
+      throw new Error('req.skip() is only available in pre-request scripts.');
+    }
+
+    this._onSkipRequest(reason);
   }
 
   getName() {

@@ -637,6 +637,12 @@ export const collectionsSlice = createSlice({
           item.response = action.payload.response;
           item.cancelTokenUid = item.response.stream?.running ? item.cancelTokenUid : null;
           item.requestStartTime = null;
+          item.status = item.response.skipped ? 'skipped' : null;
+          item.skipReason = item.response.skipReason || null;
+
+          if (item.response.skipped) {
+            return;
+          }
 
           if (!collection.timeline) {
             collection.timeline = [];
@@ -3176,6 +3182,8 @@ export const collectionsSlice = createSlice({
       item.preRequestScriptErrorContext = null;
       item.postResponseScriptErrorContext = null;
       item.testScriptErrorContext = null;
+      item.status = null;
+      item.skipReason = null;
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -3368,6 +3376,7 @@ export const collectionsSlice = createSlice({
           if (item) {
             item.status = 'skipped';
             item.responseReceived = action.payload.responseReceived;
+            item.skipReason = action.payload.skipReason || action.payload.responseReceived?.skipReason || null;
           }
         }
 
