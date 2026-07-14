@@ -12,6 +12,8 @@ class ErrorBoundary extends React.Component {
   componentDidMount() {
     // Add a global error event listener to capture client-side errors
     window.onerror = (message, source, lineno, colno, error) => {
+      // ResizeObserver loop errors are benign and should not trigger the error boundary
+      if (message && message.includes('ResizeObserver')) return;
       this.setState({ hasError: true, error });
     };
   }

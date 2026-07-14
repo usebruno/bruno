@@ -2,7 +2,6 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   display: flex;
-  align-self: stretch;
   min-width: 4.1rem;
   flex-shrink: 0;
 
@@ -13,7 +12,6 @@ const StyledWrapper = styled.div`
 
   button {
     width: 100%;
-    height: 100%;
   }
 `;
 

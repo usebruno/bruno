@@ -2,9 +2,8 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   width: 100%;
-  height: ${(props) => (props.$isCompact ? '1.375rem' : '1.875rem')};
-  overflow-y: hidden;
-  overflow-x: hidden;
+  min-height: ${(props) => (props.$isCompact ? '1.375rem' : '1.875rem')};
+  overflow: hidden;
 
   &.read-only {
     .CodeMirror-cursor {
@@ -14,14 +13,27 @@ const StyledWrapper = styled.div`
 
   .CodeMirror {
     background: transparent;
-    height: ${(props) => (props.$isCompact ? '1.375rem' : '2.125rem')};
+    height: auto;
+    width: 100%;
+    min-height: ${(props) => (props.$isCompact ? '1.375rem' : '2.125rem')};
     font-size: ${(props) => props.theme.font.size.base};
-    line-height: ${(props) => (props.$isCompact ? '1.375rem' : '1.875rem')};
+    line-height: ${(props) => (props.$isCompact ? '1.375rem' : '1.5rem')};
     overflow: hidden;
+    ${(props) => props.$lineWrapping ? 'min-height: 0 !important;' : ''}
 
     .CodeMirror-scroll {
       overflow: hidden !important;
-      padding-bottom: 3.125rem !important;
+      padding-bottom: 0 !important;
+      height: auto !important;
+      min-height: 0 !important;
+      width: 100% !important;
+    }
+
+    .CodeMirror-sizer {
+      min-height: 0 !important;
+      margin-bottom: 0 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
 
     .CodeMirror-vscrollbar,
@@ -31,7 +43,8 @@ const StyledWrapper = styled.div`
     }
 
     .CodeMirror-lines {
-      padding: 0;
+      padding: ${(props) => props.$lineWrapping ? '0.15rem 0' : '0.25rem 0'};
+      word-break: ${(props) => props.$lineWrapping ? 'break-all' : 'normal'};
 
       .CodeMirror-placeholder {
         color: ${(props) => props.theme.codemirror.placeholder.color} !important;
@@ -40,8 +53,8 @@ const StyledWrapper = styled.div`
     }
 
     .CodeMirror-cursor {
-      height: ${(props) => (props.$isCompact ? '0.875rem' : '1.25rem')} !important;
-      margin-top: ${(props) => (props.$isCompact ? '0.25rem' : '0.3125rem')} !important;
+      height: ${(props) => (props.$isCompact ? '0.875rem' : '1.125rem')} !important;
+      margin-top: ${(props) => (props.$isCompact ? '0.25rem' : '0.1875rem')} !important;
       border-left: 1px solid ${(props) => props.theme.text} !important;
     }
 
@@ -53,6 +66,7 @@ const StyledWrapper = styled.div`
     .CodeMirror-line {
       color: ${(props) => props.theme.text};
       padding: 0;
+      word-break: ${(props) => props.$lineWrapping ? 'break-all' : 'normal'};
     }
 
     .CodeMirror-selected {

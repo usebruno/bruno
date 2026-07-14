@@ -30,20 +30,35 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
-  const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
+  const rawUrl = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
+  const url = rawUrl?.replace(/\n/g, '') ?? rawUrl;
   const isMac = isMacOS();
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
   const editorRef = useRef(null);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
 
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
+  const [urlFocused, setUrlFocused] = useState(false);
   const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
+
+  const shouldWrap = urlFocused;
 
   useEffect(() => {
     if (item.isTransient && !url && editorRef.current?.editor) {
       setTimeout(() => editorRef.current?.editor?.focus(), 0);
     }
   }, [item.uid]);
+
+  // Strip newlines from stored URL — newlines are invalid in URLs and cause display gaps
+  useEffect(() => {
+    if (rawUrl && rawUrl.includes('\n')) {
+      dispatch(requestUrlChanged({
+        itemUid: item.uid,
+        collectionUid: collection.uid,
+        url: rawUrl.replace(/\n/g, '')
+      }));
+    }
+  }, [item.uid, rawUrl]);
 
   const onSave = () => {
     dispatch(saveRequest(item.uid, collection.uid));
@@ -54,7 +69,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     const editor = editorRef.current.editor;
     const cursor = editor.getCursor();
 
-    const finalUrl = value?.trim() ?? value;
+    const finalUrl = (value?.trim() ?? value)?.replace(/\n/g, '');
 
     dispatch(
       requestUrlChanged({
@@ -392,67 +407,77 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   };
   return (
     <StyledWrapper className="flex items-center w-full">
-      <div className="flex items-center h-full url-input-group">
-        <div className="flex items-center h-full min-w-fit">
-          <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
-        </div>
-        <div
-          id="request-url"
-          className="h-full w-full flex flex-row items-center input-container overflow-hidden"
-        >
-          <SingleLineEditor
-            ref={editorRef}
-            value={url}
-            placeholder="Enter URL or paste a cURL request"
-            onSave={(finalValue) => onSave(finalValue)}
-            theme={storedTheme}
-            onChange={(newValue) => onUrlChange(newValue)}
-            onRun={handleRun}
-            onPaste={item.type === 'http-request' ? handleHttpPaste : item.type === 'graphql-request' ? handleGraphqlPaste : null}
-            collection={collection}
-            highlightPathParams={true}
-            item={item}
-            showNewlineArrow={true}
-          />
-          <div className="flex items-center h-full mx-2 gap-3" id="request-actions">
-            <ToolHint text="Generate Code" toolhintId="http-generate-code" place="top" positionStrategy="fixed">
-              <div
-                className="flex items-center"
-                data-testid="generate-code-button"
-                onClick={(e) => {
-                  handleGenerateCode(e);
-                }}
-              >
-                <IconCode color={theme.requestTabs.icon.color} strokeWidth={1.5} size={20} className="cursor-pointer" />
-              </div>
-            </ToolHint>
-            <ToolHint text={`Save (${saveShortcut})`} toolhintId="http-save-request" place="top" positionStrategy="fixed">
-              <div
-                className="flex items-center"
-                data-testid="save-request-button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!hasChanges) return;
-                  onSave();
-                }}
-              >
-                <IconDeviceFloppy
-                  color={hasChanges ? theme.draftColor : theme.requestTabs.icon.color}
-                  strokeWidth={1.5}
-                  size={20}
-                  className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
-                />
-              </div>
-            </ToolHint>
+      <div className="url-row self-start" style={{ flex: 1, minWidth: 0 }}>
+        <div className={`flex items-center url-input-group${urlFocused ? ' focused' : ''}${shouldWrap ? ' expanded' : ''}`}>
+          <div className="flex items-center shrink-0" style={{ height: '2.1rem' }}>
+            <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
+          </div>
+          <div
+            id="request-url"
+            className="flex-1 min-w-0 input-container"
+          >
+            <SingleLineEditor
+              ref={editorRef}
+              value={url}
+              placeholder="Enter URL or paste a cURL request"
+              onSave={(finalValue) => onSave(finalValue)}
+              theme={storedTheme}
+              onChange={(newValue) => onUrlChange(newValue)}
+              onRun={handleRun}
+              onFocus={() => setUrlFocused(true)}
+              onBlur={() => setUrlFocused(false)}
+              onPaste={item.type === 'http-request' ? handleHttpPaste : item.type === 'graphql-request' ? handleGraphqlPaste : null}
+              collection={collection}
+              highlightPathParams={true}
+              item={item}
+              showNewlineArrow={true}
+              stripNewlines={true}
+              lineWrapping={shouldWrap}
+            />
           </div>
         </div>
       </div>
-      <SendButton
-        isLoading={isLoading || item.response?.stream?.running}
-        onSend={handleRun}
-        onCancel={handleCancelRequest}
-        testId="send-arrow-icon"
-      />
+      <div
+        id="request-actions"
+        className="flex items-center gap-3 shrink-0"
+        style={{ height: '2.1rem', padding: '0 0.5rem' }}
+      >
+        <ToolHint text="Generate Code" toolhintId="http-generate-code" place="top" positionStrategy="fixed">
+          <div
+            className="flex items-center"
+            data-testid="generate-code-button"
+            onClick={(e) => { handleGenerateCode(e); }}
+          >
+            <IconCode color={theme.requestTabs.icon.color} strokeWidth={1.5} size={20} className="cursor-pointer" />
+          </div>
+        </ToolHint>
+        <ToolHint text={`Save (${saveShortcut})`} toolhintId="http-save-request" place="top" positionStrategy="fixed">
+          <div
+            className="flex items-center"
+            data-testid="save-request-button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!hasChanges) return;
+              onSave();
+            }}
+          >
+            <IconDeviceFloppy
+              color={hasChanges ? theme.draftColor : theme.requestTabs.icon.color}
+              strokeWidth={1.5}
+              size={20}
+              className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
+            />
+          </div>
+        </ToolHint>
+      </div>
+      <div className="shrink-0">
+        <SendButton
+          isLoading={isLoading || item.response?.stream?.running}
+          onSend={handleRun}
+          onCancel={handleCancelRequest}
+          testId="send-arrow-icon"
+        />
+      </div>
       {generateCodeItemModalOpen && (
         <GenerateCodeItem
           collectionUid={collection.uid}

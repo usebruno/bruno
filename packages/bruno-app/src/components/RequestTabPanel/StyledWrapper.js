@@ -9,6 +9,11 @@ const StyledWrapper = styled.div`
     }
   }
 
+  .query-url-wrapper {
+    position: relative;
+    z-index: 10;
+  }
+
   .request-pane {
     flex-shrink: 0;
   }
