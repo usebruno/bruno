@@ -1,22 +1,23 @@
+const path = require('path');
 const { stampFolderSeqFromDisplayOrder } = require('./migrate-folder-seq');
 
 describe('stampFolderSeqFromDisplayOrder', () => {
   it('assigns contiguous seq matching bru display order including drag seq', () => {
     const items = [
       {
-        folderPath: '/col/zeta',
+        folderPath: path.join('/col', 'zeta'),
         name: 'zeta',
         seq: undefined,
         folderData: { meta: { name: 'zeta' } }
       },
       {
-        folderPath: '/col/alpha',
+        folderPath: path.join('/col', 'alpha'),
         name: 'alpha',
         seq: undefined,
         folderData: { meta: { name: 'alpha' } }
       },
       {
-        folderPath: '/col/dragged',
+        folderPath: path.join('/col', 'dragged'),
         name: 'dragged',
         seq: 1,
         folderData: { meta: { name: 'dragged', seq: 1 } }
@@ -34,19 +35,19 @@ describe('stampFolderSeqFromDisplayOrder', () => {
   it('sequences each parent independently', () => {
     const items = [
       {
-        folderPath: '/col/a',
+        folderPath: path.join('/col', 'a'),
         name: 'b-folder',
         seq: undefined,
         folderData: { meta: { name: 'b-folder' } }
       },
       {
-        folderPath: '/col/a2',
+        folderPath: path.join('/col', 'a2'),
         name: 'a-folder',
         seq: undefined,
         folderData: { meta: { name: 'a-folder' } }
       },
       {
-        folderPath: '/col/nested/z',
+        folderPath: path.join('/col', 'nested', 'z'),
         name: 'z',
         seq: undefined,
         folderData: { meta: { name: 'z' } }
