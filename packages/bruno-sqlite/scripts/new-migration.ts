@@ -4,8 +4,17 @@ import readline from "readline/promises"
 
 const MIGRATIONS_DIR = path.join(process.cwd(), 'migrations');
 const PREFIX_LENGTH = 7
-const getEmptyFileTemplate = (name: string): string => {
-  return `-- UP: ${name}\n-- Write your UP statements here\n-- DOWN: ${name}\n-- Write your DOWN statements here`
+const getEmptyFileTemplate = (): string => {
+  return `
+export const up = (): string => {
+  // Return the SQL that applies this migration
+  return '';
+}
+export const down = (): string => {
+  // Return the SQL that reverts this migration
+  return '';
+}
+  `
 }
 
 const promptName = async (): Promise<string> => {
@@ -31,7 +40,7 @@ const main = async () => {
   fs.mkdirSync(MIGRATIONS_DIR, {recursive: true})
 
   let files = fs.readdirSync(MIGRATIONS_DIR, {withFileTypes: true})
-  files = files.filter(file => path.extname(file.name) == '.sql')
+  files = files.filter(file => path.extname(file.name) == '.ts')
   files.sort((a, b) => a.name.localeCompare(b.name))
 
   const last = files.pop()
@@ -43,7 +52,7 @@ const main = async () => {
 
   const newSequence = sequence + 1;
   const prefix = newSequence.toString().padStart(PREFIX_LENGTH, "0")
-  const fileName = `${prefix}_${name}.sql`
+  const fileName = `${prefix}_${name}.ts`
   const filePath = path.join(MIGRATIONS_DIR, fileName)
 
   fs.writeFileSync(filePath, getEmptyFileTemplate(fileName))

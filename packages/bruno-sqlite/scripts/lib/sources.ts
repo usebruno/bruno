@@ -34,18 +34,22 @@ const commentBody = (line: string): string => {
   return trimmed.slice(2).trim().toUpperCase()
 }
 
-const parseMigration = (fileName: string, content: string): Migration => {
-  const lines = content.split("\n")
-  const upIdx = lines.findIndex(line => commentBody(line).startsWith("UP"))
-  const downIdx = lines.findIndex(line => commentBody(line).startsWith("DOWN"))
-  if (upIdx === -1 || downIdx === -1 || downIdx < upIdx) {
-    throw new Error(`Migration "${fileName}" must contain a "-- UP" section followed by a "-- DOWN" section.`)
-  }
+const parseMigration = (parentPath: string, name: string): Migration => {
+  const filePath = path.join(parentPath, name)
+  const { up, down } = require(filePath)
+  if (up === undefined || down === undefined) throw new Error(`Migration ${name} should export up and down methods`)
+
+  const upStatement = typeof up === 'function' ? up() : up;
+  const downStatement = typeof down === 'function' ? down() : down;
+
+  if (typeof upStatement !== 'string') throw new Error('up should be a string or a function returning a string')
+  if (typeof downStatement !== 'string') throw new Error('down should be a string or a function returning a string')
+
   return {
-    sequence: parseSequence(fileName),
-    name: path.basename(fileName, ".sql"),
-    up: lines.slice(upIdx + 1, downIdx).join("\n").trim(),
-    down: lines.slice(downIdx + 1).join("\n").trim()
+    sequence: parseSequence(name),
+    name: path.basename(name, ".ts"),
+    up: upStatement,
+    down: downStatement
   }
 }
 
@@ -53,8 +57,8 @@ export const loadMigrations = (): Migration[] => {
   if (!fs.existsSync(MIGRATIONS_DIR)) return []
   return fs
     .readdirSync(MIGRATIONS_DIR, { withFileTypes: true })
-    .filter(entry => entry.isFile() && path.extname(entry.name) === ".sql")
-    .map(entry => parseMigration(entry.name, fs.readFileSync(path.join(MIGRATIONS_DIR, entry.name), "utf8")))
+    .filter(entry => entry.isFile() && path.extname(entry.name) === ".ts")
+    .map(entry => parseMigration(entry.parentPath, entry.name))
     .sort((a, b) => a.sequence - b.sequence)
 }
 
