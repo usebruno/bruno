@@ -748,6 +748,7 @@ type EnvironmentVariable = {
   name: string;
   value: string;
   isSecret?: boolean;
+  dataType?: 'number' | 'boolean' | 'object';
 };
 
 /**
@@ -766,7 +767,7 @@ const addEnvironmentVariable = async (page: Page, variable: EnvironmentVariable)
     await tab.click();
     await expect(tab).toHaveClass(/active/);
 
-    await addRowToActiveTab(page, variable.name, variable.value);
+    await addRowToActiveTab(page, variable.name, variable.value, variable.dataType);
   });
 };
 
@@ -788,13 +789,19 @@ const addEnvironmentVariables = async (page: Page, variables: EnvironmentVariabl
 /**
  * Add a variable or secret to whichever environment tab (Variables / Secrets) is
  * currently active. The active tab determines the row's type, so select the tab
- * before calling.
+ * before calling. When `dataType` is given, its type is set via the DataTypeSelector.
  * @param page - The page object
  * @param name - The variable/secret name
  * @param value - The variable/secret value
+ * @param dataType - Optional non-string dataType to assign (default `string`)
  * @returns void
  */
-const addRowToActiveTab = async (page: Page, name: string, value: string) => {
+const addRowToActiveTab = async (
+  page: Page,
+  name: string,
+  value: string,
+  dataType?: 'number' | 'boolean' | 'object'
+) => {
   await test.step(`Add row "${name}" to the active environment tab`, async () => {
     const nameInput = page.locator('input[placeholder="Name"]').last();
     await nameInput.waitFor({ state: 'visible' });
@@ -806,7 +813,18 @@ const addRowToActiveTab = async (page: Page, name: string, value: string) => {
     const codeMirror = row.getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first();
     await codeMirror.scrollIntoViewIfNeeded();
     await codeMirror.click();
-    await page.keyboard.type(value);
+    if (dataType) {
+      await expect(codeMirror).toHaveClass(/CodeMirror-focused/);
+      await page.keyboard.insertText(value);
+
+      const { dataTypeSelector } = buildCommonLocators(page);
+      await codeMirror.hover();
+      await dataTypeSelector.typeLabel(row).click();
+      await dataTypeSelector.menuItem(dataType).click();
+      await expect(dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', dataType);
+    } else {
+      await page.keyboard.type(value);
+    }
   });
 };
 
@@ -2399,8 +2417,48 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
   await target.scrollIntoViewIfNeeded().catch(() => { });
 };
 
+/**
+ * Set the active request's URL and save it. Typed char-by-char so CodeMirror
+ * tokenizes `{{var}}` references (vs. a bulk fill that skips tokenization).
+ * @param page - The page object
+ * @param url - The URL to type into the request URL editor
+ */
+const setRequestUrlAndSave = async (page: Page, url: string) => {
+  await test.step(`Set request URL: ${url}`, async () => {
+    const { request } = buildCommonLocators(page);
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await request.urlInput().click();
+    await page.keyboard.type(url);
+    await page.keyboard.press(saveShortcut);
+  });
+};
+
+/**
+ * Hover a `{{var}}` token in the URL editor and return its (visible) info tooltip.
+ * @param page - The page object
+ * @param varName - The variable name inside the braces
+ * @param state - Highlight class to match: 'valid' (known) or 'invalid' (unknown); omit to match either
+ * @returns The tooltip popup locator
+ */
+const openUrlVarTooltip = async (
+  page: Page,
+  varName: string,
+  state?: 'valid' | 'invalid'
+): Promise<Locator> => {
+  const { request, varInfoPopup } = buildCommonLocators(page);
+  // Dismiss any previously-open tooltip first.
+  await page.mouse.move(0, 0);
+  await request.urlVariableToken(varName, state).hover();
+
+  const tooltip = varInfoPopup.all().first();
+  await expect(tooltip).toBeVisible();
+  return tooltip;
+};
+
 export {
   waitForReadyPage,
+  setRequestUrlAndSave,
+  openUrlVarTooltip,
   scrollVirtuosoRowIntoView,
   dismissImportIssuesToasts,
   closeAllCollections,
