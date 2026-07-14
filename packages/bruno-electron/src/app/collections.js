@@ -20,6 +20,12 @@ const configSchema = Yup.object({
   name: Yup.string().max(256, 'name must be 256 characters or less').required('name is required'),
   type: Yup.string().oneOf(['collection']).required('type is required'),
   version: Yup.string().notRequired(),
+  // Collection-level presets (defaults shared with the collection)
+  presets: Yup.object({
+    requestType: Yup.string().notRequired(),
+    requestUrl: Yup.string().notRequired(),
+    defaultEnvironment: Yup.string().notRequired()
+  }).notRequired(),
   // For YAML format collections (opencollection)
   opencollection: Yup.string().notRequired(),
   // OpenAPI sync configuration (array, one entry per synced spec)

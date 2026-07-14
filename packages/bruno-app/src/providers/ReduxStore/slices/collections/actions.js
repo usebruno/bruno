@@ -35,6 +35,7 @@ import {
   createCollection as _createCollection,
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
+  setCollectionDefaultEnvironment as _setCollectionDefaultEnvironment,
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
   moveCollection,
@@ -2744,6 +2745,36 @@ export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getS
   });
 };
 
+// Sets (or toggles off) the default environment for a collection and persists it to
+// bruno.json immediately. The default is stored by environment name at the top level
+// (brunoConfig.presets.defaultEnvironment) so it can be shared with the collection.
+export const setCollectionDefaultEnvironment = (environmentName, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const currentDefault = collection.brunoConfig?.presets?.defaultEnvironment;
+    // Toggle behaviour: selecting the current default clears it.
+    const nextDefault = currentDefault === environmentName ? null : environmentName;
+
+    dispatch(_setCollectionDefaultEnvironment({ collectionUid, defaultEnvironment: nextDefault }));
+
+    // Persist immediately using the updated committed brunoConfig.
+    const updatedCollection = findCollectionByUid(getState().collections.collections, collectionUid);
+    const brunoConfigToSave = cloneDeep(updatedCollection.brunoConfig);
+
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('renderer:update-bruno-config', brunoConfigToSave, collection.pathname, collection.root)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
 /**
  * Opens a scratch collection and creates it in Redux state.
  * This is a simplified version of openCollectionEvent for scratch collections,
@@ -3143,10 +3174,22 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
       const collectionUid = collectionCopy?.uid;
 
       // update selected environment
+      // Precedence:
+      //   1. The environment saved in the ui-state-snapshot always wins.
+      //   2. The collection's configured default environment (brunoConfig.presets.defaultEnvironment)
+      //      is applied ONLY the first time a collection is opened/imported.
       const environment = findCollectionEnvironmentFromSnapshot(collectionCopy, collectionSnapshotData);
 
       if (environment) {
         dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
+      } else if (collectionSnapshotData?.hasSnapshotEntry === false) {
+        const defaultEnvironmentName = collectionCopy?.brunoConfig?.presets?.defaultEnvironment;
+        if (defaultEnvironmentName && Array.isArray(collectionCopy?.environments)) {
+          const defaultEnvironment = collectionCopy.environments.find((env) => env?.name === defaultEnvironmentName);
+          if (defaultEnvironment) {
+            dispatch(_selectEnvironment({ environmentUid: defaultEnvironment.uid, collectionUid }));
+          }
+        }
       }
 
       // todo: add any other redux state that you want to save
@@ -3298,7 +3341,9 @@ export const mountCollection
                 .invoke('renderer:snapshot:get-collection', collection.pathname, workspacePathname)
                 .catch(() => null);
               await dispatch(hydrateCollectionWithUiStateSnapshot(
-                collectionSnapshotState ? { pathname: collection.pathname, ...collectionSnapshotState } : null
+                collectionSnapshotState
+                  ? { pathname: collection.pathname, ...collectionSnapshotState, hasSnapshotEntry: true }
+                  : { pathname: collection.pathname, hasSnapshotEntry: false }
               ));
             }
           })

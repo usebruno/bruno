@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { updateCollectionPresets } from 'providers/ReduxStore/slices/collections';
-import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionSettings, setCollectionDefaultEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { get } from 'lodash';
+import toast from 'react-hot-toast';
 import Button from 'ui/Button';
+import Dropdown from 'components/Dropdown';
+import { IconCaretDown } from '@tabler/icons';
 import { DEFAULT_PRESET_REQUEST_TYPE, PRESET_REQUEST_TYPES } from 'utils/common/constants';
 
 const PresetsSettings = ({ collection }) => {
@@ -24,6 +27,33 @@ const PresetsSettings = ({ collection }) => {
       presets: updatedPresets
     }));
   };
+
+  // Default environment is stored at the top level of bruno.json (not under presets) and
+  // is persisted immediately on change, independent of the Save button below.
+  const environments = collection?.environments || [];
+  const defaultEnvironmentName = collection?.brunoConfig?.presets?.defaultEnvironment || '';
+  const defaultEnvDropdownRef = useRef(null);
+  const closeDefaultEnvDropdown = () => defaultEnvDropdownRef.current?.hide();
+
+  const applyDefaultEnvironment = (name) => {
+    closeDefaultEnvDropdown();
+    const normalized = name || null;
+    if ((collection?.brunoConfig?.presets?.defaultEnvironment || null) === normalized) return;
+    dispatch(setCollectionDefaultEnvironment(normalized, collection.uid))
+      .then(() => {
+        toast.success(normalized ? `"${normalized}" set as the default environment` : 'Default environment cleared');
+      })
+      .catch(() => {
+        toast.error('Failed to set the default environment');
+      });
+  };
+
+  const defaultEnvTrigger = (
+    <div className="default-env-trigger flex items-center justify-between cursor-pointer" data-testid="presets-default-environment">
+      <span className="truncate">{defaultEnvironmentName || 'None'}</span>
+      <IconCaretDown className="caret" size={14} strokeWidth={2} />
+    </div>
+  );
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
@@ -126,6 +156,34 @@ const PresetsSettings = ({ collection }) => {
               />
             </div>
           </div>
+        </div>
+
+        <div className="mb-3 flex items-center">
+          <label className="settings-label" htmlFor="default-environment">
+            Default Environment
+          </label>
+          <div className="flex items-center default-env-dropdown">
+            <Dropdown onCreate={(ref) => (defaultEnvDropdownRef.current = ref)} icon={defaultEnvTrigger} placement="bottom-start">
+              <div
+                className={`dropdown-item ${!defaultEnvironmentName ? 'active' : ''}`}
+                onClick={() => applyDefaultEnvironment('')}
+              >
+                None
+              </div>
+              {environments.map((env) => (
+                <div
+                  key={env.uid}
+                  className={`dropdown-item ${env.name === defaultEnvironmentName ? 'active' : ''}`}
+                  onClick={() => applyDefaultEnvironment(env.name)}
+                >
+                  {env.name}
+                </div>
+              ))}
+            </Dropdown>
+          </div>
+        </div>
+        <div className="text-xs mb-4 text-muted">
+          Automatically selected the first time this collection is opened, when no environment has been chosen.
         </div>
 
         <div className="mt-6">

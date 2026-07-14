@@ -419,6 +419,31 @@ const handler = async function (argv) {
       }
     }
 
+    // Fall back to the collection's configured default environment
+    // (bruno.json presets.defaultEnvironment) when no environment was
+    // specified via --env or --env-file.
+    const defaultEnvironment = brunoConfig?.presets?.defaultEnvironment;
+    if (!env && !envFile && defaultEnvironment) {
+      const envExt = FORMAT_CONFIG[collection.format].ext;
+      const defaultEnvFilePath = path.join(collectionPath, 'environments', `${defaultEnvironment}${envExt}`);
+      if (await exists(defaultEnvFilePath)) {
+        try {
+          const defaultEnvVars = loadEnvFromFile(defaultEnvFilePath, defaultEnvironment);
+          envVars = { ...envVars, ...defaultEnvVars };
+          envFileDescriptor = { path: defaultEnvFilePath, format: collection.format };
+          console.log(chalk.dim(`Using default environment: ${defaultEnvironment}`));
+        } catch (err) {
+          console.error(chalk.red(`Failed to parse default environment file: ${err.message}`));
+          process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+        }
+      } else {
+        console.warn(
+          chalk.yellow(`Configured default environment not found: `)
+          + chalk.dim(`environments/${defaultEnvironment}${envExt}`)
+        );
+      }
+    }
+
     // Load --env and merge (collection env takes precedence)
     if (env) {
       const envExt = FORMAT_CONFIG[collection.format].ext;

@@ -26,13 +26,16 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     brunoConfig.version = String(oc.info.version);
   }
 
-  if (brunoExtension?.presets?.requestType || brunoExtension?.presets?.requestUrl) {
+  if (brunoExtension?.presets?.requestType || brunoExtension?.presets?.requestUrl || brunoExtension?.presets?.defaultEnvironment) {
     brunoConfig.presets = {};
     if (brunoExtension.presets.requestType) {
       brunoConfig.presets.requestType = brunoExtension.presets.requestType;
     }
     if (brunoExtension.presets.requestUrl) {
       brunoConfig.presets.requestUrl = brunoExtension.presets.requestUrl;
+    }
+    if (brunoExtension.presets.defaultEnvironment) {
+      brunoConfig.presets.defaultEnvironment = brunoExtension.presets.defaultEnvironment;
     }
   }
 
