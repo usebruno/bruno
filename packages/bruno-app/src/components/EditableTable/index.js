@@ -255,14 +255,22 @@ const EditableTable = ({
     const segments = text.split(/[&\n]+/).map((s) => s.trim()).filter(Boolean);
     if (!segments.some((s) => /[=:]/.test(s))) return; // fall back to default browser paste
 
-    e.preventDefault();
-
     const valueColumn = columns.find((col) => !col.isKeyField);
     if (!valueColumn) return;
 
+    const decodeSafe = (v) => {
+      try {
+        return decodeURIComponent(v);
+      } catch {
+        return v;
+      }
+    };
+
+    e.preventDefault();
+
     const pairs = segments.map((s) => {
       const [, name = s, value = ''] = s.match(/^([^=:]*)[=:](.*)$/) || [];
-      return { name: decodeURIComponent(name.trim()), value: decodeURIComponent(value.trim()) };
+      return { name: decodeSafe(name.trim()), value: decodeSafe(value.trim()) };
     });
 
     const rowIndex = rowsWithEmpty.findIndex((r) => r.uid === rowUid);
