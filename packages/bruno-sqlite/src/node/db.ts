@@ -18,7 +18,13 @@ export class DB {
 
   constructor(path: string, migrations: Migration[], options: DatabaseOptions = {}) {
     this._db = new DatabaseSync(path, options)
-    this._runMigrations(migrations)
+    try {
+      this._runMigrations(migrations)
+    } catch (err) {
+      this._db.close();
+      this._db = undefined;
+      throw err;
+    }
   }
 
   _runMigrations(migrations: Migration[]) {
