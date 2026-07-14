@@ -79,18 +79,6 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
       });
   };
 
-  const handleReconnect = async (e) => {
-    e && e.stopPropagation();
-    try {
-      handleDisconnect(e, false);
-      setTimeout(() => {
-        handleConnect(e, false);
-      }, 2000);
-    } catch (err) {
-      console.error('Failed to re-connect WebSocket connection', err);
-    }
-  };
-
   const handleRunClick = async (e) => {
     e.stopPropagation();
     if (!url) {
@@ -114,13 +102,17 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
     }));
   };
 
-  // Detect interpolated URL changes and reconnect if connection is active
+  const tryDisconnect = () => {
+    closeWsConnection(item.uid).then(() => {}).catch(() => {});
+  };
+
+  // Detect interpolated URL changes and attempt a disconnect
   useEffect(() => {
     if (connectionStatus !== 'connected') return;
     if (previousDeboundedInterpolatedURL.current === debouncedInterpolatedURL) return;
     if (debouncedInterpolatedURL === '') return;
-    handleReconnect();
-  }, [debouncedInterpolatedURL, connectionStatus]);
+    tryDisconnect();
+  }, [debouncedInterpolatedURL, connectionStatus, item]);
 
   return (
     <StyledWrapper>
