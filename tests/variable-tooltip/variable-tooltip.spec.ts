@@ -631,7 +631,6 @@ test.describe('Variable Tooltip - Global Secret Variables', () => {
 
         // Focus the Global Environments editor tab; `isSecret` then routes the
         // row to its Secrets sub-tab and `dataType` sets the type.
-        await environment.globalEnvTab().click();
         await addEnvironmentVariable(page, {
           name: testCase.varName,
           value: testCase.value,
