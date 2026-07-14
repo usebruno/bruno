@@ -3,7 +3,7 @@ const { generateText } = require('ai');
 const { getPreferences } = require('../../store/preferences');
 const { aiKeyStore } = require('../../store/ai-keys');
 const { getModel, getAvailableModels, isReasoningModel, isOpenAiReasoningModel } = require('./providers');
-const { buildSystemPrompt, buildUserPrompt, STOP_SEQUENCES, cleanSuggestion, ensureNewlineAfterComment } = require('./autocomplete-prompts');
+const { buildSystemPrompt, buildUserPrompt, STOP_SEQUENCES, cleanSuggestion, ensureNewlineAfterComment, stripDisallowedApis } = require('./autocomplete-prompts');
 
 const SUPPORTED_SCRIPT_TYPES = ['tests', 'pre-request', 'post-response'];
 
@@ -162,7 +162,10 @@ const registerAutocompleteIpc = () => {
         abortSignal: controller.signal
       });
 
-      const suggestion = ensureNewlineAfterComment(prefix, cleanSuggestion(text || ''));
+      const suggestion = stripDisallowedApis(
+        ensureNewlineAfterComment(prefix, cleanSuggestion(text || '')),
+        scriptType
+      );
       if (suggestion) cacheSet(key, suggestion);
       return { suggestion, modelId };
     } catch (err) {

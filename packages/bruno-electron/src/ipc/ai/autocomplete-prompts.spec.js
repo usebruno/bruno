@@ -1,4 +1,4 @@
-const { ensureNewlineAfterComment, cleanSuggestion } = require('./autocomplete-prompts');
+const { ensureNewlineAfterComment, cleanSuggestion, buildSystemPrompt, stripDisallowedApis } = require('./autocomplete-prompts');
 
 describe('ensureNewlineAfterComment', () => {
   it('prepends a newline when code is suggested at the end of a comment line', () => {
@@ -45,5 +45,64 @@ describe('ensureNewlineAfterComment', () => {
 describe('cleanSuggestion', () => {
   it('keeps indentation while stripping fences', () => {
     expect(cleanSuggestion('```js\n  const a = 1;\n```')).toBe('  const a = 1;');
+  });
+});
+
+describe('buildSystemPrompt', () => {
+  it('omits the res API block for pre-request', () => {
+    const prompt = buildSystemPrompt('pre-request');
+    expect(prompt).not.toContain('res:');
+    expect(prompt).toContain('bru:');
+    expect(prompt).toContain('req:');
+  });
+
+  it('includes the res API block for post-response', () => {
+    const prompt = buildSystemPrompt('post-response');
+    expect(prompt).toContain('res:');
+    expect(prompt).toContain('bru:');
+    expect(prompt).toContain('req:');
+  });
+
+  it('includes res and test/expect for tests', () => {
+    const prompt = buildSystemPrompt('tests');
+    expect(prompt).toContain('res:');
+    expect(prompt).toContain('test/expect:');
+  });
+});
+
+describe('stripDisallowedApis', () => {
+  it('drops a pre-request suggestion that uses res.method()', () => {
+    expect(stripDisallowedApis('res.getStatus();', 'pre-request')).toBe('');
+  });
+
+  it('drops a pre-request suggestion that uses res() JSONPath form', () => {
+    expect(stripDisallowedApis('res(\'data.id\');', 'pre-request')).toBe('');
+  });
+
+  it('drops a pre-request suggestion that uses res bracket access', () => {
+    expect(stripDisallowedApis('res[\'body\'];', 'pre-request')).toBe('');
+  });
+
+  it('leaves a pre-request suggestion using bru untouched', () => {
+    expect(stripDisallowedApis('bru.getEnvVar(\'token\');', 'pre-request')).toBe('bru.getEnvVar(\'token\');');
+  });
+
+  it('does not flag a variable named result/response in pre-request', () => {
+    expect(stripDisallowedApis('const result = bru.getVar("x");', 'pre-request'))
+      .toBe('const result = bru.getVar("x");');
+    expect(stripDisallowedApis('const response = 1;', 'pre-request')).toBe('const response = 1;');
+  });
+
+  it('keeps res usage in post-response', () => {
+    expect(stripDisallowedApis('res.getStatus();', 'post-response')).toBe('res.getStatus();');
+  });
+
+  it('keeps res usage in tests', () => {
+    expect(stripDisallowedApis('expect(res.getStatus()).to.equal(200);', 'tests'))
+      .toBe('expect(res.getStatus()).to.equal(200);');
+  });
+
+  it('handles empty suggestions', () => {
+    expect(stripDisallowedApis('', 'pre-request')).toBe('');
   });
 });
