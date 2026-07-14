@@ -1624,9 +1624,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           return;
         }
 
-        validatePathIsInsideCollection(sourcePathname);
-        validatePathIsInsideCollection(targetDirname);
-
         // No-op if the item is already in the destination directory (e.g. a
         // same-folder drop) — don't create a spurious suffixed copy.
         if (path.dirname(sourcePathname) === targetDirname) {
@@ -1666,9 +1663,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         if (!fs.existsSync(targetDirname)) {
           throw new Error(`Target directory: ${targetDirname} does not exist`);
         }
-
-        validatePathIsInsideCollection(sourcePathname);
-        validatePathIsInsideCollection(targetDirname);
 
         const sourceBasename = path.basename(sourcePathname);
         const filenameWithoutExt = sourceBasename.replace(/\.(bru|yml|yaml)$/, '');

@@ -3,6 +3,7 @@ import { buildApiSpecPanelLocators } from './openapi/render-spec';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
+import { buildNamingCollisionLocators } from './naming-collisions';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
@@ -12,6 +13,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
+  namingCollisions: buildNamingCollisionLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: {
