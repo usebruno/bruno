@@ -162,7 +162,7 @@ const FileBody = ({ item, collection }) => {
                         onRun={handleRun}
                         collection={collection}
                         item={item}
-                        placeholder={!param.description ? 'Description' : ''}
+                        placeholder={!param.filePath && !param.description ? 'Description' : ''}
                       />
                     </td>
                     <td>
