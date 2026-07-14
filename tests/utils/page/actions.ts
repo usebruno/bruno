@@ -748,8 +748,6 @@ type EnvironmentVariable = {
   name: string;
   value: string;
   isSecret?: boolean;
-  // Non-string dataType to assign via the DataTypeSelector. Omit for the
-  // default `string` type.
   dataType?: 'number' | 'boolean' | 'object';
 };
 
@@ -816,7 +814,6 @@ const addRowToActiveTab = async (
     await codeMirror.scrollIntoViewIfNeeded();
     await codeMirror.click();
     if (dataType) {
-      // `insertText` avoids CodeMirror's auto-pair smart input (e.g. on object braces).
       await expect(codeMirror).toHaveClass(/CodeMirror-focused/);
       await page.keyboard.insertText(value);
 
@@ -824,8 +821,6 @@ const addRowToActiveTab = async (
       await codeMirror.hover();
       await dataTypeSelector.typeLabel(row).click();
       await dataTypeSelector.menuItem(dataType).click();
-      // The attribute reflecting the applied dataType is the settle signal — the
-      // Redux mutation has landed once it's present, so no fixed wait is needed.
       await expect(dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', dataType);
     } else {
       await page.keyboard.type(value);
