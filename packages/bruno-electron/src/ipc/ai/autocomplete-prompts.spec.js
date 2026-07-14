@@ -83,6 +83,15 @@ describe('stripDisallowedApis', () => {
     expect(stripDisallowedApis('res[\'body\'];', 'pre-request')).toBe('');
   });
 
+  it('drops a pre-request suggestion that uses optional-chained res', () => {
+    expect(stripDisallowedApis('res?.getStatus();', 'pre-request')).toBe('');
+    expect(stripDisallowedApis('res?.[\'body\'];', 'pre-request')).toBe('');
+  });
+
+  it('keeps optional-chained res usage in post-response', () => {
+    expect(stripDisallowedApis('res?.getStatus();', 'post-response')).toBe('res?.getStatus();');
+  });
+
   it('leaves a pre-request suggestion using bru untouched', () => {
     expect(stripDisallowedApis('bru.getEnvVar(\'token\');', 'pre-request')).toBe('bru.getEnvVar(\'token\');');
   });
@@ -135,12 +144,12 @@ describe('stripTypedPrefixOverlap', () => {
 });
 
 describe('sanitizeSuggestion', () => {
-  it('drops a pre-request suggestion that uses res (BRU-3820)', () => {
+  it('drops a pre-request suggestion that uses res', () => {
     expect(sanitizeSuggestion({ text: 'res.getStatus()', prefix: 'const status = ', scriptType: 'pre-request' }))
       .toBe('');
   });
 
-  it('trims a repeated partial keyword (BRU-3787)', () => {
+  it('trims a repeated partial keyword', () => {
     expect(sanitizeSuggestion({ text: 'const variable1 = 1;', prefix: 'con', scriptType: 'pre-request' }))
       .toBe('st variable1 = 1;');
   });

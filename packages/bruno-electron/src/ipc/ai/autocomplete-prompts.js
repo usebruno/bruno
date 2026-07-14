@@ -199,7 +199,7 @@ const ensureNewlineAfterComment = (prefix, suggestion) => {
   return '\n' + suggestion;
 };
 
-const RES_API_USAGE_RE = /\bres\s*[.([]/;
+const RES_API_USAGE_RE = /\bres\s*\??[.([]/;
 
 const stripDisallowedApis = (suggestion, scriptType) => {
   if (!suggestion) return suggestion;
