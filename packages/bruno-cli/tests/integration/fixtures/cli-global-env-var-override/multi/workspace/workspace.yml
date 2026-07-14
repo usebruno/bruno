@@ -1,0 +1,9 @@
+opencollection: 1.0.0
+info:
+  name: "Test Workspace"
+  type: workspace
+collections:
+  - name: "multi-override-collection"
+    path: "multi-override-collection"
+specs:
+docs: ''

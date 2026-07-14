@@ -1,0 +1,14 @@
+name: Global
+variables:
+  - name: baseUrl
+    value: {{BASE_URL}}
+    enabled: true
+    secret: false
+  - name: token
+    value: real-token
+    enabled: true
+    secret: false
+  - name: region
+    value: us
+    enabled: true
+    secret: false

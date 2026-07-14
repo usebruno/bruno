@@ -1,0 +1,17 @@
+meta {
+  name: echo-global-token
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/ping?token={{token}}
+  body: none
+  auth: none
+}
+
+script:post-response {
+  // Echo the override back to force a full-env write attempt, and dirty an unrelated key.
+  bru.setGlobalEnvVar("token", bru.getGlobalEnvVar("token"));
+  bru.setGlobalEnvVar("unrelated", "value");
+}
