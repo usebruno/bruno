@@ -29,12 +29,13 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   // back keeps every open message open (not just the selected one). Stored as an
   // array of uids since localStorage can't serialize a Set; defaults to the
   // selected message (falls back to first).
-  // Computed once (usePersistedState only reads default on first mount) so it
-  // isn't rebuilt on every render.
+  // usePersistedState only reads `default` when there's no persisted value (first
+  // mount, or when the key changes), so recomputing this is cheap and keeps it in
+  // sync with the current messages for those reads.
   const defaultExpanded = useMemo(() => {
     const uid = messages[selectedIndex]?.uid || messages[0]?.uid;
     return uid ? [uid] : [];
-  }, []);
+  }, [messages, selectedIndex]);
   const [expandedUidList, setExpandedUidList] = usePersistedState({
     key: `ws-expanded-${item.uid}`,
     default: defaultExpanded
@@ -69,6 +70,19 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     }));
   }, [body, dispatch, item.uid, collection.uid]);
 
+  // Refs/cancel for the mount scroll-restore loop (defined further below). Declared
+  // here so scrollMessageToTop can cancel an in-flight restore before it starts
+  // driving the scroll itself.
+  const isRestoringRef = useRef(false);
+  const restoreRafRef = useRef(null);
+  const cancelRestore = useCallback(() => {
+    if (restoreRafRef.current !== null) {
+      cancelAnimationFrame(restoreRafRef.current);
+      restoreRafRef.current = null;
+    }
+    isRestoringRef.current = false;
+  }, []);
+
   // Scroll the list so the given message's header sits at the top. Runs for a few
   // frames because the list is still growing as the message expands.
   const scrollMessageToTop = useCallback((uid) => {
@@ -76,6 +90,9 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     // the same position.
     const index = messages.findIndex((m) => m.uid === uid);
     if (index < 0) return;
+    // A deliberate expand takes over the scroll: cancel any in-flight restore so
+    // the two RAF loops don't fight over scrollTop.
+    cancelRestore();
     // Stop any animation already running so they don't fight over the scroll.
     if (pinScrollRef.current !== null) cancelAnimationFrame(pinScrollRef.current);
     let frames = 0;
@@ -98,7 +115,7 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
       }
     };
     pinScrollRef.current = requestAnimationFrame(align);
-  }, [messages]);
+  }, [messages, cancelRestore]);
 
   const toggleMessage = useCallback((uid) => {
     if (!uid) return;
@@ -153,16 +170,8 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
   // by a not-yet-full scrollHeight and lands short of where we left off (e.g. the
   // bottom). Re-apply the target each frame until it sticks (content is tall
   // enough), then stop. While restoring we suppress handleScroll so the clamped
-  // value can't overwrite the saved one; a real user scroll cancels the restore.
-  const isRestoringRef = useRef(false);
-  const restoreRafRef = useRef(null);
-  const cancelRestore = useCallback(() => {
-    if (restoreRafRef.current !== null) {
-      cancelAnimationFrame(restoreRafRef.current);
-      restoreRafRef.current = null;
-    }
-    isRestoringRef.current = false;
-  }, []);
+  // value can't overwrite the saved one; a real user scroll (or a deliberate
+  // expand) cancels the restore.
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
