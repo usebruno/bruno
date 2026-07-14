@@ -165,8 +165,8 @@ export const buildCommonLocators = (page: Page) => ({
     menuItem: (type: string) => page.locator('[role="menu"]').last().getByText(type, { exact: true })
   },
   request: {
-    urlInput: () => page.locator('#request-url .CodeMirror'),
-    urlLine: () => page.locator('#request-url .CodeMirror-line'),
+    urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
+    urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
     sendButton: () => page.getByTestId('send-arrow-icon'),
     methodDropdown: () => page.getByTestId('request-method-selector'),
     newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
@@ -177,17 +177,28 @@ export const buildCommonLocators = (page: Page) => ({
     bodyEditor: () => page.getByTestId('request-body-editor'),
     bodyVariableToken: (name: string) =>
       page.getByTestId('request-body-editor').locator('.CodeMirror .cm-variable-valid').filter({ hasText: name }),
+    urlVariableToken: (name: string, state: 'valid' | 'invalid' | 'any' = 'valid') => {
+      const selector = state === 'any' ? '.cm-variable-valid, .cm-variable-invalid' : `.cm-variable-${state}`;
+      return page.getByTestId('request-url').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
+    },
     pane: () => page.getByTestId('request-pane')
   },
   // The variable-info popup shown when hovering a `{{var}}` token in an editor.
   varInfoPopup: {
-    all: () => page.locator('.CodeMirror-brunoVarInfo'),
+    all: () => page.getByTestId('var-info-popup'),
     byName: (name: string) =>
-      page.locator('.CodeMirror-brunoVarInfo').filter({ has: page.locator('.var-name').filter({ hasText: new RegExp(`^${name}$`) }) }),
-    valueDisplay: (popup: Locator) => popup.locator('.var-value-editable-display, .var-value-display').first(),
-    editableValue: (popup: Locator) => popup.locator('.var-value-editable-display').first(),
-    secretToggle: (popup: Locator) => popup.locator('.secret-toggle-button'),
-    editor: (popup: Locator) => popup.locator('.var-value-editor .CodeMirror')
+      page.getByTestId('var-info-popup').filter({ has: page.getByTestId('var-info-name').filter({ hasText: new RegExp(`^${name}$`) }) }),
+    name: (popup: Locator) => popup.getByTestId('var-info-name'),
+    scopeBadge: (popup: Locator) => popup.getByTestId('var-info-scope-badge'),
+    valueDisplay: (popup: Locator) => popup.getByTestId(/^var-info-value-(editable|display)$/).first(),
+    editableValue: (popup: Locator) => popup.getByTestId('var-info-value-editable').first(),
+    secretToggle: (popup: Locator) => popup.getByTestId('var-info-secret-toggle'),
+    copyButton: (popup: Locator) => popup.getByTestId('var-info-copy-button'),
+    readonlyNote: (popup: Locator) => popup.getByTestId('var-info-readonly-note'),
+    warningNote: (popup: Locator) => popup.getByTestId('var-info-warning-note'),
+    // The editor container itself (hidden until the value display is clicked).
+    editorContainer: (popup: Locator) => popup.getByTestId('var-info-value-editor'),
+    editor: (popup: Locator) => popup.getByTestId('var-info-value-editor').locator('.CodeMirror')
   },
   auth: {
     apiKey: {
