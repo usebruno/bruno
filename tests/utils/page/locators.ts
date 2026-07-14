@@ -76,6 +76,12 @@ export const buildCommonLocators = (page: Page) => ({
     varRow: (name: string) => page.getByTestId(`env-var-row-${name}`),
     // Prefix match — keep as a CSS selector since getByTestId is exact-match only.
     varRows: () => page.locator('tbody tr[data-testid^="env-var-row-"]'),
+    // Name column's sort-cycle button (Variables tab only).
+    sortToggle: () => page.getByTestId('column-sort-toggle'),
+    // Present only when dragging is enabled for this row.
+    dragHandle: (name: string) => page.getByTestId(`env-var-row-${name}`).getByTestId('drag-handle'),
+    // Every visible row's Name input, in on-screen order.
+    visibleNameInputs: () => page.locator('tbody tr[data-testid^="env-var-row-"]').locator('input[name$=".name"]'),
     // Rows for `name` whose CodeMirror value matches `value`. Useful when two rows
     // share a name (e.g. enabled + disabled twins after a script write).
     varRowsByValue: (name: string, value: string | RegExp) =>

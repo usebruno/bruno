@@ -9,8 +9,7 @@ import {
   addRowToActiveTab,
   cycleVariableSort,
   getVisibleVariableNames,
-  dragVariableRow,
-  buildVariableSortLocators
+  dragVariableRow
 } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
@@ -18,16 +17,15 @@ const variablesTab = (page: Page) => buildCommonLocators(page).environment.varia
 const secretsTab = (page: Page) => buildCommonLocators(page).environment.secretsTab();
 const varRow = (page: Page, name: string) => buildCommonLocators(page).environment.varRow(name);
 const saveTab = (page: Page) => buildCommonLocators(page).environment.saveTab();
-const dragHandle = (page: Page, name: string) => buildVariableSortLocators(page).dragHandle(name);
+const dragHandle = (page: Page, name: string) => buildCommonLocators(page).environment.dragHandle(name);
 
 const renameRow = async (page: Page, oldName: string, newName: string) => {
   await varRow(page, oldName).locator('input[name$=".name"]').fill(newName);
 };
 
+// Last Name input on the page — the trailing "add new" row, always empty.
 const typeIntoTrailingRow = async (page: Page, name: string) => {
-  // The trailing "add new" row always has an empty name — its input has no stable
-  // per-name testid yet, so it's the last Name input on the page.
-  await buildVariableSortLocators(page).visibleNameInputs().last().fill(name);
+  await buildCommonLocators(page).environment.visibleNameInputs().last().fill(name);
 };
 
 const searchEnv = async (page: Page, query: string) => {
@@ -50,9 +48,7 @@ const resetSearch = async (page: Page) => {
 const collectionFile = path.join(__dirname, '..', 'create-environment', 'fixtures', 'bruno-collection.json');
 const COLLECTION_NAME = 'test_collection';
 
-// Finds the on-disk environment file for `envName` regardless of collection format (.bru/.yml).
-// `tmpDir` is the directory passed to `createTmpDir`/`importCollection` — the imported
-// collection itself lands in a `COLLECTION_NAME` subdirectory underneath it.
+// Reads the on-disk environment file for `envName`, regardless of format (.bru/.yml).
 const readEnvironmentFile = (tmpDir: string, envName: string): string => {
   const envDir = path.join(tmpDir, COLLECTION_NAME, 'environments');
   const file = fs.readdirSync(envDir).find((f) => path.basename(f, path.extname(f)) === envName);
