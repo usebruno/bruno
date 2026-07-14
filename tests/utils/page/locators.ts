@@ -399,6 +399,40 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
   }
 });
 
+export const buildSignalRCommonLocators = (page: Page) => ({
+  ...buildCommonLocators(page),
+  /** Click the sidebar collection name to expand/collapse the collection tree. */
+  sidebarCollectionName: () => page.locator('#sidebar-collection-name'),
+  /** Select a request by its title attribute within the collections sidebar. */
+  requestByTitle: (name: string | RegExp) => page.getByTestId('collections').getByTitle(name),
+  connectionControls: {
+    connect: () =>
+      page
+        .locator('div.connection-controls')
+        .locator('.infotip')
+        .filter({ hasText: /^Connect$/ }),
+    disconnect: () =>
+      page
+        .locator('div.connection-controls')
+        .locator('.infotip')
+        .filter({ hasText: /^Close Connection$/ })
+  },
+  messages: () => page.locator('.ws-message'),
+  message: {
+    label: (index: number) => page.getByTestId(`ws-message-label-${index}`),
+    nameInput: (index: number) => page.getByTestId(`ws-message-name-input-${index}`),
+    body: (index: number) => page.getByTestId(`ws-message-body-${index}`),
+    sendButton: (index: number) => page.getByTestId(`ws-send-msg-${index}`),
+    deleteButton: (index: number) => page.getByTestId(`ws-delete-msg-${index}`),
+    header: (index: number) => page.getByTestId(`ws-message-header-${index}`),
+    nameTooltip: () => page.getByTestId('ws-message-name-tooltip')
+  },
+  toolbar: {
+    addMessage: () => page.getByTestId('ws-add-message'),
+    clearResponse: () => page.getByTestId('response-clear-btn')
+  }
+});
+
 export const getTableCell = (row, index) => row.locator('td').nth(index + 1);
 
 export const buildGrpcCommonLocators = (page: Page) => ({

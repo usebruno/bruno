@@ -244,6 +244,7 @@ const catppuccinLatteTheme = {
 
     grpc: colors.SKY,
     ws: colors.MAUVE,
+    signalr: '#04a5e5',
     gql: colors.PINK
   },
 

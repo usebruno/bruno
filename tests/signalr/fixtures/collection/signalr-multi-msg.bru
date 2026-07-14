@@ -1,0 +1,28 @@
+meta {
+  name: signalr-multi-msg
+  type: signalr
+  seq: 3
+}
+
+signalr {
+  url: http://localhost:8081/hub
+  body: signalr
+  auth: inherit
+}
+
+body:signalr {
+  name: JoinGroup
+  type: json
+  selected: true
+  content: '''
+    ["room1"]
+  '''
+}
+
+body:signalr {
+  name: LeaveGroup
+  type: text
+  content: '''
+    ["room2"]
+  '''
+}

@@ -244,6 +244,7 @@ const catppuccinMochaTheme = {
 
     grpc: colors.SKY,
     ws: colors.MAUVE,
+    signalr: '#89b4fa',
     gql: colors.PINK
   },
 

@@ -268,6 +268,7 @@ const lightTheme = {
 
     grpc: palette.hues.INDIGO,
     ws: palette.hues.ORANGE,
+    signalr: 'hsl(210, 55%, 45%)',
     gql: palette.hues.PINK
   },
 

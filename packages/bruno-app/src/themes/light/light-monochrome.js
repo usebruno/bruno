@@ -232,6 +232,7 @@ const lightMonochromeTheme = {
 
     grpc: '#525252',
     ws: '#737373',
+    signalr: '#666666',
     gql: '#404040'
   },
 

@@ -250,6 +250,7 @@ const vscodeLightTheme = {
     },
     grpc: colors.CYAN,
     ws: '#795e26',
+    signalr: '#3794ff',
     gql: colors.PURPLE
   },
 

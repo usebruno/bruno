@@ -9,6 +9,7 @@ const multipartRouter = require('./multipart');
 const redirectRouter = require('./redirect');
 const mixRouter = require('./mix');
 const wsRouter = require('./ws');
+const { signalrRouter, handleNegotiate } = require('./signalr');
 const setupGraphQL = require('./graphql');
 const sseRouter = require('./sse');
 const fileBinaryRouter = require('./file-binary');
@@ -62,6 +63,8 @@ app.get('/ping', function (req, res) {
   return res.send('pong');
 });
 
+app.post('/hub/negotiate', handleNegotiate);
+
 app.get('/headers', function (req, res) {
   return res.json(req.headers);
 });
@@ -102,7 +105,14 @@ app.use((err, req, res, next) => {
 
 const server = require('http').createServer(app);
 
-server.on('upgrade', wsRouter);
+server.on('upgrade', (request, socket, head) => {
+  const url = new URL(request.url, `http://${request.headers.host}`);
+  if (url.pathname.startsWith('/hub')) {
+    signalrRouter(request, socket, head);
+  } else {
+    wsRouter(request, socket, head);
+  }
+});
 
 setupGraphQL(app).then(() => {
   server.listen(port, function () {

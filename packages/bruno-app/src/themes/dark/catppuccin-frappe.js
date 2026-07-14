@@ -244,6 +244,7 @@ const catppuccinFrappeTheme = {
 
     grpc: colors.SKY,
     ws: colors.MAUVE,
+    signalr: '#8caaee',
     gql: colors.PINK
   },
 

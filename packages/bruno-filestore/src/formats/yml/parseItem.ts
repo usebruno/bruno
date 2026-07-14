@@ -5,6 +5,7 @@ import type { GraphQLRequest } from '@opencollection/types/requests/graphql';
 import type { GrpcRequest } from '@opencollection/types/requests/grpc';
 import type { WebSocketRequest } from '@opencollection/types/requests/websocket';
 import { parseYml } from './utils';
+import parseSignalRRequest from './items/parseSignalRRequest';
 import parseHttpRequest from './items/parseHttpRequest';
 import parseGraphQLRequest from './items/parseGraphQLRequest';
 import parseGrpcRequest from './items/parseGrpcRequest';
@@ -42,6 +43,11 @@ const ensureAuthV3Rc1BackwardsCompatibility = (parsedItemYml: any): any => {
     case 'graphql':
       if (parsedItemYml.runtime?.auth && !parsedItemYml.graphql?.auth) {
         parsedItemYml.graphql.auth = parsedItemYml.runtime.auth;
+      }
+      break;
+    case 'signalr':
+      if (parsedItemYml.runtime?.auth && !parsedItemYml.signalr?.auth) {
+        parsedItemYml.signalr.auth = parsedItemYml.runtime.auth;
       }
       break;
     case 'grpc':
@@ -84,6 +90,9 @@ const parseItem = (ymlString: string): BrunoItem => {
 
       case 'websocket':
         return parseWebsocketRequest(ocItem as WebSocketRequest);
+
+      case 'signalr':
+        return parseSignalRRequest(ocItem);
 
       case 'script':
         return parseScript(ocItem as ScriptFile);

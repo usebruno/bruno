@@ -107,10 +107,11 @@ export const filterItemsInCollection = (collection) => {
 export const transformItemsInCollection = (collection) => {
   const transformItems = (items = []) => {
     each(items, (item) => {
-      if (['http', 'graphql', 'grpc', 'ws'].includes(item.type)) {
+      if (['http', 'graphql', 'grpc', 'ws', 'signalr'].includes(item.type)) {
         item.type = `${item.type}-request`;
         const isGrpcRequest = item.type === 'grpc-request';
         const isWSRequest = item.type === 'ws-request';
+        const isSignalRRequest = item.type === 'signalr-request';
         item.request.url = valueToString(item.request.url);
 
         if (item.request.query) {
@@ -125,7 +126,7 @@ export const transformItemsInCollection = (collection) => {
           delete item.request.params;
         }
 
-        if (isWSRequest) {
+        if (isWSRequest || isSignalRRequest) {
           delete item.request.params;
           delete item.request.method;
         }
@@ -146,10 +147,11 @@ export const transformItemsInCollection = (collection) => {
 
         // Transform examples as well
         each(get(item, 'examples'), (example) => {
-          if (['http', 'graphql', 'grpc', 'ws'].includes(example.type)) {
+          if (['http', 'graphql', 'grpc', 'ws', 'signalr'].includes(example.type)) {
             example.type = `${example.type}-request`;
             const isGrpcExample = example.type === 'grpc-request';
             const isWSExample = example.type === 'ws-request';
+            const isSignalRExample = example.type === 'signalr-request';
 
             if (example.request) {
               example.request.url = valueToString(example.request.url);
@@ -167,7 +169,7 @@ export const transformItemsInCollection = (collection) => {
               delete example.request.params;
             }
 
-            if (isWSExample) {
+            if (isWSExample || isSignalRExample) {
               delete example.request.params;
               delete example.request.method;
             }

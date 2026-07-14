@@ -41,7 +41,7 @@ export const deleteUidsInItems = (items) => {
  */
 export const transformItem = (items = []) => {
   each(items, (item) => {
-    if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
+    if (['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'signalr-request'].includes(item.type)) {
       if (item.type === 'graphql-request') {
         item.type = 'graphql';
       }
@@ -57,6 +57,10 @@ export const transformItem = (items = []) => {
       if (item.type === 'ws-request') {
         item.type = 'ws';
       }
+
+      if (item.type === 'signalr-request') {
+        item.type = 'signalr';
+      }
     }
 
     each(get(item, 'examples'), (example) => {
@@ -68,6 +72,8 @@ export const transformItem = (items = []) => {
         example.type = 'grpc';
       } else if (example.type === 'ws-request') {
         example.type = 'ws';
+      } else if (example.type === 'signalr-request') {
+        example.type = 'signalr';
       }
     });
 

@@ -3,6 +3,7 @@ import stringifyHttpRequest from './items/stringifyHttpRequest';
 import stringifyGraphqlRequest from './items/stringifyGraphQLRequest';
 import stringifyGrpcRequest from './items/stringifyGrpcRequest';
 import stringifyWebsocketRequest from './items/stringifyWebsocketRequest';
+import stringifySignalRRequest from './items/stringifySignalRRequest';
 import stringifyScript from './items/stringifyScript';
 import stringifyApp from './items/stringifyApp';
 
@@ -20,6 +21,9 @@ const stringifyItem = (item: BrunoItem): string => {
 
       case 'ws-request':
         return stringifyWebsocketRequest(item);
+
+      case 'signalr-request':
+        return stringifySignalRRequest(item);
 
       case 'js':
         return stringifyScript(item);

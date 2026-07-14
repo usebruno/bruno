@@ -41,6 +41,9 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
       case 'ws':
         requestType = 'ws-request';
         break;
+      case 'signalr':
+        requestType = 'signalr-request';
+        break;
       default:
         requestType = 'http-request';
     }
@@ -50,6 +53,7 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
     const urlPath: Record<typeof requestType, string> = {
       'grpc-request': 'grpc.url',
       'ws-request': 'ws.url',
+      'signalr-request': 'signalr.url',
       'default': 'http.url'
     };
 
@@ -113,6 +117,19 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
           }
         ])
       });
+    } else if (requestType === 'signalr-request') {
+      transformedJson.request.auth.mode = _.get(json, 'signalr.auth', 'none');
+      transformedJson.request.body = _.get(json, 'body', {
+        mode: 'signalr',
+        signalr: _.get(json, 'body.signalr', [
+          {
+            name: 'methodName',
+            type: 'json',
+            content: '[]',
+            selected: true
+          }
+        ])
+      });
     } else {
       // For HTTP and GraphQL
       (transformedJson.request as any).params = _.get(json, 'params', []);
@@ -167,6 +184,9 @@ export const stringifyBruRequest = (json: any): string => {
         break;
       case 'ws-request':
         type = 'ws';
+        break;
+      case 'signalr-request':
+        type = 'signalr';
         break;
       default:
         type = 'http';
@@ -234,6 +254,24 @@ export const stringifyBruRequest = (json: any): string => {
           {
             name: 'message 1',
             content: '{}'
+          }
+        ])
+      });
+    } else if (type === 'signalr') {
+      bruJson.signalr = {
+        url: _.get(json, 'request.url'),
+        auth: _.get(json, 'request.auth.mode', 'none'),
+        body: _.get(json, 'request.body.mode', 'signalr')
+      };
+
+      bruJson.body = _.get(json, 'request.body', {
+        mode: 'signalr',
+        signalr: _.get(json, 'request.body.signalr', [
+          {
+            name: 'methodName',
+            type: 'json',
+            content: '[]',
+            selected: true
           }
         ])
       });
@@ -405,6 +443,9 @@ export const bruExampleToJson = (data: string | any, parsed: boolean = false, pa
         break;
       case 'ws':
         transformedType = 'ws-request';
+        break;
+      case 'signalr':
+        transformedType = 'signalr-request';
         break;
       default:
         transformedType = 'http-request';

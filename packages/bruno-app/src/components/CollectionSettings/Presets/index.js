@@ -101,6 +101,20 @@ const PresetsSettings = ({ collection }) => {
             <label htmlFor="ws" className="ml-1 cursor-pointer select-none">
               WebSocket
             </label>
+
+            <input
+              id="signalr"
+              data-testid="presets-request-type-signalr"
+              className="ml-4 cursor-pointer"
+              type="radio"
+              name="requestType"
+              onChange={handleRequestTypeChange}
+              value={PRESET_REQUEST_TYPES.SIGNALR}
+              checked={(currentPresets.requestType || DEFAULT_PRESET_REQUEST_TYPE) === PRESET_REQUEST_TYPES.SIGNALR}
+            />
+            <label htmlFor="signalr" className="ml-1 cursor-pointer select-none">
+              SignalR
+            </label>
           </div>
         </div>
         <div className="mb-3 flex items-center">

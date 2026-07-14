@@ -48,6 +48,58 @@ const StyledWrapper = styled.div`
     }
   }
 
+  .infotip {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+  }
+
+  .infotip:hover .infotip-text {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .infotip-text {
+    visibility: hidden;
+    width: auto;
+    background-color: ${(props) => props.theme.background.surface2};
+    color: ${(props) => props.theme.text};
+    text-align: center;
+    border-radius: 4px;
+    padding: 4px 8px;
+    position: absolute;
+    z-index: 1;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+  }
+
+  .infotip-text::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    margin-left: -4px;
+    border-width: 4px;
+    border-style: solid;
+    border-color: transparent transparent ${(props) => props.theme.background.surface2} transparent;
+  }
+
+  .shortcut {
+    font-size: 0.625rem;
+  }
+
+  .connection-controls {
+    .infotip {
+      &:hover {
+        background-color: color-mix(in srgb, ${(props) => props.theme.colors.text.danger} 6%, transparent);
+      }
+    }
+  }
+
 `;
 
 export default StyledWrapper;

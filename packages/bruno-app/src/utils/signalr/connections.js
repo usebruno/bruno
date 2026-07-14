@@ -1,0 +1,67 @@
+const eventHandlers = new Map();
+
+export const startSignalRConnection = async (item, collection, environment, runtimeVariables) => {
+  const { ipcRenderer } = window;
+  const requestId = item.uid;
+  const request = item.draft ? item.draft : item;
+
+  try {
+    const result = await ipcRenderer.invoke('renderer:signalr:start-connection', {
+      requestId,
+      collectionUid: collection.uid,
+      request,
+      collection,
+      environment,
+      runtimeVariables
+    });
+    return result;
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const stopSignalRConnection = async (requestId) => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:signalr:stop-connection', requestId);
+};
+
+export const sendSignalRMessage = async (requestId, method, args) => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:signalr:send-message', requestId, method, args);
+};
+
+export const isSignalRConnectionActive = async (requestId) => {
+  const { ipcRenderer } = window;
+  const result = await ipcRenderer.invoke('renderer:signalr:connection-status', requestId);
+  return { isActive: result.status === 'connected' };
+};
+
+export const getSignalRConnectionStatus = async (requestId) => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:signalr:connection-status', requestId);
+};
+
+export const registerSignalRHandler = (requestId, eventName, handler) => {
+  const { ipcRenderer } = window;
+
+  if (!eventHandlers.has(requestId)) {
+    eventHandlers.set(requestId, new Map());
+  }
+  eventHandlers.get(requestId).set(eventName, handler);
+  return ipcRenderer.invoke('renderer:signalr:register-handler', requestId, eventName)
+    .catch((err) => console.error('Failed to register SignalR handler', err));
+};
+
+export const removeSignalRHandler = (requestId, eventName) => {
+  const { ipcRenderer } = window;
+
+  if (eventHandlers.has(requestId)) {
+    if (eventName) {
+      eventHandlers.get(requestId).delete(eventName);
+    } else {
+      eventHandlers.delete(requestId);
+    }
+  }
+  return ipcRenderer.invoke('renderer:signalr:remove-handler', requestId, eventName)
+    .catch((err) => console.error('Failed to remove SignalR handler', err));
+};
