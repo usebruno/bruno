@@ -45,7 +45,7 @@ class SingleLineEditor extends Component {
 
     this.editor = CodeMirror(this.editorRef.current, {
       placeholder: this.props.placeholder ?? '',
-      lineWrapping: false,
+      lineWrapping: this.props.lineWrapping || false,
       lineNumbers: false,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       mode: 'brunovariables',
@@ -93,8 +93,10 @@ class SingleLineEditor extends Component {
 
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
+    this.editor.on('beforeChange', this._onBeforeChange);
     this.editor.on('paste', this._onPaste);
     this.editor.on('blur', this._onBlur);
+    this.editor.on('focus', this._onFocus);
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
@@ -104,6 +106,41 @@ class SingleLineEditor extends Component {
       this._updateNewlineMarkers();
     }
     setupLinkAware(this.editor);
+
+    if (this.props.lineWrapping) {
+      const initWrapping = () => {
+        if (!this.editor || !this.editorRef.current) return;
+        this.editor.setSize(null, 'auto');
+        this.editor.refresh();
+        // CodeMirror hardcodes 50px (scrollerGap) as borderRightWidth on the sizer
+        // to reserve space for a scrollbar. Since we hide scrollbars, reclaim that space.
+        this._fixSizerGap();
+        this._syncHeight();
+        // Prevent CodeMirror from ever scrolling vertically — freeze scrollTop only
+        const scrollEl = this.editorRef.current.querySelector('.CodeMirror-scroll');
+        if (scrollEl) {
+          Object.defineProperty(scrollEl, 'scrollTop', {
+            get: () => 0,
+            set: () => {},
+            configurable: true
+          });
+        }
+      };
+      // Two rAF frames: first waits for paint, second ensures layout is settled
+      requestAnimationFrame(() => requestAnimationFrame(initWrapping));
+      this.editor.on('change', this._syncHeight);
+      this.editor.on('update', this._syncHeight);
+      this._resizeObserver = new ResizeObserver(() => {
+        try {
+          if (this.editor) this.editor.refresh();
+          this._fixSizerGap();
+          this._syncHeight();
+        } catch (e) {
+          // ignore ResizeObserver loop errors
+        }
+      });
+      this._resizeObserver.observe(this.editorRef.current);
+    }
 
     // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
     const cmInput = this.editor.getInputField();
@@ -128,10 +165,54 @@ class SingleLineEditor extends Component {
     }
   };
 
+  _fixSizerGap = () => {
+    if (!this.editorRef.current) return;
+    const sizerEl = this.editorRef.current.querySelector('.CodeMirror-sizer');
+    if (sizerEl) {
+      sizerEl.style.borderRightWidth = '0px';
+      sizerEl.style.paddingRight = '0px';
+      sizerEl.style.minWidth = '0px';
+    }
+  };
+
+  _syncHeight = () => {
+    if (!this.editor || !this.editorRef.current) return;
+    const linesEl = this.editorRef.current.querySelector('.CodeMirror-lines');
+    const cmEl = this.editorRef.current.querySelector('.CodeMirror');
+    const scrollEl = this.editorRef.current.querySelector('.CodeMirror-scroll');
+    const sizerEl = this.editorRef.current.querySelector('.CodeMirror-sizer');
+    if (!linesEl) return;
+    this._fixSizerGap();
+    const h = linesEl.scrollHeight;
+    if (h > 0) {
+      this.editorRef.current.style.height = h + 'px';
+      if (cmEl) {
+        cmEl.style.height = h + 'px'; cmEl.style.minHeight = '0';
+      }
+      if (scrollEl) {
+        scrollEl.style.height = h + 'px'; scrollEl.style.minHeight = '0';
+      }
+      if (sizerEl) {
+        sizerEl.style.minHeight = '0'; sizerEl.style.width = '100%';
+      }
+    }
+  };
+
+  _onBeforeChange = (_, change) => {
+    if (this.props.stripNewlines && change.text.some((t) => t.includes('\n'))) {
+      change.cancel();
+    }
+  };
+
   _onBlur = () => {
     if (this.editor) {
       this.editor.setCursor(this.editor.getCursor());
     }
+    this.props.onBlur?.();
+  };
+
+  _onFocus = () => {
+    this.props.onFocus?.();
   };
 
   _onEdit = () => {
@@ -203,6 +284,58 @@ class SingleLineEditor extends Component {
     if (this.props.placeholder !== prevProps.placeholder && this.editor) {
       this.editor.setOption('placeholder', this.props.placeholder);
     }
+    if (this.props.lineWrapping !== prevProps.lineWrapping && this.editor) {
+      if (this.props.lineWrapping) {
+        this.editor.setOption('lineWrapping', true);
+        this.editor.setSize(null, 'auto');
+        this._fixSizerGap();
+        this._syncHeight();
+        // Re-apply newline markers after switching to wrapped mode
+        if (this.props.showNewlineArrow) {
+          this._updateNewlineMarkers();
+        }
+        // Freeze scroll on the scroll element so CodeMirror can't scroll vertically
+        const scrollEl = this.editorRef.current?.querySelector('.CodeMirror-scroll');
+        if (scrollEl && !scrollEl._scrollFrozen) {
+          Object.defineProperty(scrollEl, 'scrollTop', {
+            get: () => 0,
+            set: () => {},
+            configurable: true
+          });
+          scrollEl._scrollFrozen = true;
+        }
+      } else {
+        // Reset all inline heights set by _syncHeight so CSS takes over again
+        if (this.editorRef.current) {
+          this.editorRef.current.style.height = '';
+          const cmEl = this.editorRef.current.querySelector('.CodeMirror');
+          const scrollEl = this.editorRef.current.querySelector('.CodeMirror-scroll');
+          const sizerEl = this.editorRef.current.querySelector('.CodeMirror-sizer');
+          if (cmEl) {
+            cmEl.style.height = ''; cmEl.style.minHeight = '';
+          }
+          if (scrollEl) {
+            scrollEl.style.height = '';
+            scrollEl.style.minHeight = '';
+            // Unfreeze scrollTop
+            if (scrollEl._scrollFrozen) {
+              delete scrollEl._scrollFrozen;
+              Object.defineProperty(scrollEl, 'scrollTop', { configurable: true, writable: true, value: 0 });
+            }
+          }
+          if (sizerEl) {
+            sizerEl.style.minHeight = ''; sizerEl.style.width = '';
+          }
+        }
+        this.editor.setSize(null, null);
+        this.editor.setOption('lineWrapping', false);
+        this.editor.refresh();
+        // Re-apply newline markers after switching back to non-wrapped mode
+        if (this.props.showNewlineArrow) {
+          this._updateNewlineMarkers();
+        }
+      }
+    }
     this.ignoreChangeEvent = false;
   }
 
@@ -212,8 +345,18 @@ class SingleLineEditor extends Component {
         this.editor._destroyLinkAware();
       }
       this.editor.off('change', this._onEdit);
+      this.editor.off('beforeChange', this._onBeforeChange);
       this.editor.off('paste', this._onPaste);
       this.editor.off('blur', this._onBlur);
+      this.editor.off('focus', this._onFocus);
+      if (this.props.lineWrapping) {
+        this.editor.off('change', this._syncHeight);
+        this.editor.off('update', this._syncHeight);
+        if (this._resizeObserver) {
+          this._resizeObserver.disconnect();
+          this._resizeObserver = null;
+        }
+      }
       this._clearNewlineMarkers();
       this.editor.getWrapperElement().remove();
       this.editor = null;
@@ -239,19 +382,15 @@ class SingleLineEditor extends Component {
   _updateNewlineMarkers = () => {
     if (!this.editor) return;
 
-    // Clear existing markers
     this._clearNewlineMarkers();
-
     this.newlineMarkers = [];
     const content = this.editor.getValue();
 
-    // Find all newlines and replace them with arrow widgets
     for (let i = 0; i < content.length; i++) {
       if (content[i] === '\n') {
         const pos = this.editor.posFromIndex(i);
         const nextPos = this.editor.posFromIndex(i + 1);
 
-        // Create a widget to display the arrow
         const arrow = document.createElement('span');
         arrow.className = 'newline-arrow';
         arrow.textContent = '↲';
@@ -263,7 +402,6 @@ class SingleLineEditor extends Component {
           display: inline-block;
         `;
 
-        // Mark the newline character and replace it with the arrow widget
         const marker = this.editor.markText(pos, nextPos, {
           replacedWith: arrow,
           handleMouseEvents: true
@@ -314,11 +452,12 @@ class SingleLineEditor extends Component {
 
   render() {
     return (
-      <div className={`flex flex-row items-center w-full overflow-x-auto ${this.props.className}`}>
+      <div className={`flex flex-row items-start w-full ${this.props.lineWrapping ? '' : 'overflow-x-auto'} ${this.props.className}`}>
         <StyledWrapper
           ref={this.editorRef}
           className={`single-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`}
           $isCompact={this.props.isCompact}
+          $lineWrapping={this.props.lineWrapping}
           {...(this.props['data-testid'] ? { 'data-testid': this.props['data-testid'] } : {})}
         />
         <div className="flex items-center">
