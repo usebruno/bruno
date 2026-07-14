@@ -8,6 +8,7 @@ import type { Assertion } from '@opencollection/types/common/assertions';
 import type { Action } from '@opencollection/types/common/actions';
 import type { HttpRequestParam, HttpRequestBody } from '@opencollection/types/requests/http';
 import { stringifyYml } from '../utils';
+import { toOpenCollectionApp, OpenCollectionApp } from '../common/app';
 import { toOpenCollectionAuth } from '../common/auth';
 import { toOpenCollectionHttpHeaders, toOpenCollectionResponseHeaders } from '../common/headers';
 import { toOpenCollectionParams } from '../common/params';
@@ -33,6 +34,9 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     }
     if (item.tags?.length) {
       info.tags = item.tags;
+    }
+    if (isNonEmptyString(item.description)) {
+      info.description = item.description;
     }
     ocRequest.info = info;
 
@@ -210,6 +214,12 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     // docs
     if (isNonEmptyString(brunoRequest.docs)) {
       ocRequest.docs = brunoRequest.docs;
+    }
+
+    // app
+    const app: OpenCollectionApp | undefined = toOpenCollectionApp(item.app);
+    if (app) {
+      (ocRequest as any).app = app;
     }
 
     return stringifyYml(ocRequest);

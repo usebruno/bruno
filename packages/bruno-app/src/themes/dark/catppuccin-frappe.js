@@ -75,6 +75,12 @@ const catppuccinFrappeTheme = {
     subtle: colors.MAUVE
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.MAUVE
+    }
+  },
+
   accents: {
     primary: colors.MAUVE
   },
@@ -271,15 +277,13 @@ const catppuccinFrappeTheme = {
   },
 
   notifications: {
-    bg: colors.SURFACE0,
+    bg: colors.BASE,
     list: {
-      bg: colors.SURFACE0,
-      borderRight: colors.SURFACE2,
+      bg: colors.BASE,
       borderBottom: colors.SURFACE1,
       hoverBg: colors.SURFACE1,
       active: {
-        border: colors.BLUE,
-        bg: colors.SURFACE2,
+        bg: colors.SURFACE0,
         hoverBg: colors.SURFACE2
       }
     }

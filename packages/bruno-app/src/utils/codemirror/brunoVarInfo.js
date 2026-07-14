@@ -7,6 +7,7 @@
  */
 
 import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
+import { toDisplayString } from '@usebruno/common/utils';
 import { getVariableScope, isVariableSecret, getAllVariables, findCollectionByUid, findItemInCollectionByItemUid } from 'utils/collections';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
 import store from 'providers/ReduxStore';
@@ -95,7 +96,7 @@ const updateValueDisplay = (valueDisplay, value, isSecret, isMasked, isRevealed)
   }
 
   if (typeof value === 'object') {
-    valueDisplay.textContent = value === null ? 'null' : JSON.stringify(value, null, 2);
+    valueDisplay.textContent = value === null ? 'null' : toDisplayString(value, String(value));
     return;
   }
 
@@ -153,8 +154,10 @@ const getCopyButton = (getVariableValue, onCopyCallback) => {
     // Resolve the latest value at click time so edits/saves are reflected.
     const valueToCopy = typeof getVariableValue === 'function' ? getVariableValue() : getVariableValue;
 
+    const valueStr = toDisplayString(valueToCopy, String(valueToCopy));
+
     navigator.clipboard
-      .writeText(valueToCopy ?? '')
+      .writeText(valueStr)
       .then(() => {
         isCopied = true;
         copyButton.innerHTML = CHECKMARK_ICON_SVG_TEXT;
@@ -278,8 +281,8 @@ export const renderVarInfo = (token, options) => {
   // Check if variable is read-only (process.env, runtime, dynamic/faker, oauth2, and undefined variables cannot be edited)
   const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'undefined' || hasRuntimeVariable;
 
-  // Get raw value from scope
-  const rawValue = scopeInfo.value || '';
+  // `??` preserves typed falsy values (false / 0); `||` would clobber them to ''.
+  const rawValue = scopeInfo.value ?? '';
 
   // Check if variable should be masked:
   const isSecret = scopeInfo.type !== 'undefined' ? isVariableSecret(scopeInfo) : false;
@@ -383,9 +386,10 @@ export const renderVarInfo = (token, options) => {
     // Get all variables for syntax highlighting (but prevent recursive tooltips)
     const allVariables = collection ? getAllVariables(collection, item) : {};
 
-    // Create CodeMirror instance
+    const editorInitialValue = typeof rawValue === 'string' ? rawValue : JSON.stringify(rawValue, null, 2);
+
     const cmEditor = CodeMirror(editorContainer, {
-      value: typeof rawValue === 'string' ? rawValue : String(rawValue), // Use raw value (e.g., {{echo-host}} not resolved value) (ensure it's always a string for CodeMirror) #usebruno/bruno/#6265
+      value: editorInitialValue,
       mode: 'brunovariables',
       theme: cmTheme,
       lineWrapping: true,
@@ -415,8 +419,8 @@ export const renderVarInfo = (token, options) => {
       maskedEditor.enable();
     }
 
-    // Store original value for comparison and track editing state
-    let originalValue = rawValue;
+    // Use the editor-formatted string so a no-op blur on a typed value doesn't dispatch.
+    let originalValue = editorInitialValue;
     let isEditing = false;
     // Latest resolved value and mask state used by the copy button, eye toggle, and
     // error-revert path. Updated after each successful save so subsequent redraws
@@ -702,8 +706,10 @@ if (!SERVER_RENDERED) {
     }
 
     const box = target.getBoundingClientRect();
+    let point = { left: e.clientX, top: e.clientY };
 
-    const onMouseMove = function () {
+    const onMouseMove = function (moveEvent) {
+      point = { left: moveEvent.clientX, top: moveEvent.clientY };
       clearTimeout(state.hoverTimeout);
       state.hoverTimeout = setTimeout(onHover, hoverTime);
     };
@@ -719,7 +725,7 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(document, 'mousemove', onMouseMove);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       state.hoverTimeout = undefined;
-      onMouseHover(cm, box);
+      onMouseHover(cm, box, point);
     };
 
     const hoverTime = getHoverTime(cm);
@@ -729,8 +735,8 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
   }
 
-  function onMouseHover(cm, box) {
-    const pos = cm.coordsChar({
+  function onMouseHover(cm, box, point) {
+    const pos = cm.coordsChar(point || {
       left: (box.left + box.right) / 2,
       top: (box.top + box.bottom) / 2
     });

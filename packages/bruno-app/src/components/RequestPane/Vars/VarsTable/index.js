@@ -6,7 +6,11 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
+import DataTypeSelector from 'components/DataTypeSelector';
+import VarValueCell from 'components/VarValueCell';
+import { valueToString } from '@usebruno/common/utils';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
@@ -55,13 +59,22 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
     return null;
   }, []);
 
+  const descriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    onRun: handleRun,
+    collection,
+    item,
+    nameFromRowIndex: true
+  });
+
   const columns = [
     {
       key: 'name',
       name: 'Name',
       isKeyField: true,
       placeholder: 'Name',
-      width: '35%'
+      width: '20%'
     },
     {
       key: 'value',
@@ -72,24 +85,45 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',
-      render: ({ value, onChange }) => (
-        <MultiLineEditor
-          value={value || ''}
-          theme={storedTheme}
-          onSave={onSave}
-          onChange={onChange}
-          onRun={handleRun}
-          collection={collection}
-          item={item}
-          placeholder={!value ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+      render: ({ row, value, onChange, isLastEmptyRow, rowIndex }) => (
+        <VarValueCell
+          editor={(
+            <MultiLineEditor
+              value={valueToString(value)}
+              name={`${rowIndex}.value`}
+              theme={storedTheme}
+              onSave={onSave}
+              onChange={onChange}
+              onRun={handleRun}
+              collection={collection}
+              item={item}
+              placeholder={value == null || (typeof value === 'string' && value.trim() === '') ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+            />
+          )}
+          renderTypeSelector={!isLastEmptyRow && varType === 'request'
+            ? ({ compact }) => (
+                <DataTypeSelector
+                  compact={compact}
+                  variable={row}
+                  theme={storedTheme}
+                  collection={collection}
+                  onChange={(fields) => {
+                    const updated = (vars || []).map((v) => v.uid === row.uid ? { ...v, ...fields } : v);
+                    handleVarsChange(updated);
+                  }}
+                />
+              )
+            : null}
         />
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
     name: '',
     value: '',
+    description: '',
     ...(varType === 'response' ? { local: false } : {})
   };
 
@@ -97,6 +131,7 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
     <StyledWrapper className="w-full">
       <EditableTable
         tableId="request-vars"
+        testId={`request-vars-${varType === 'response' ? 'res' : 'req'}`}
         columns={columns}
         rows={vars || []}
         onChange={handleVarsChange}

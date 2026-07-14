@@ -7,6 +7,7 @@ import useIpcEvents from './useIpcEvents';
 import useTelemetry from './useTelemetry';
 import StyledWrapper from './StyledWrapper';
 import useOpenAPISyncPolling from './useOpenAPISyncPolling';
+import useChangelogOnUpdate from './useChangelogOnUpdate';
 import { version } from '../../../package.json';
 
 export const AppContext = React.createContext();
@@ -15,10 +16,13 @@ export const AppProvider = (props) => {
   useTelemetry({ version });
   useIpcEvents();
   useOpenAPISyncPolling();
+  useChangelogOnUpdate();
   const dispatch = useDispatch();
 
   useEffect(() => {
     dispatch(refreshScreenWidth());
+    // v3.5.0 v4 migration tab state; feature was removed from main.
+    localStorage.removeItem('v4-migration');
   }, []);
 
   useEffect(() => {

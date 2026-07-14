@@ -82,6 +82,12 @@ const nordTheme = {
     subtle: colors.BRAND
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.BRAND
+    }
+  },
+
   accents: {
     primary: colors.BRAND
   },
@@ -273,16 +279,14 @@ const nordTheme = {
   },
 
   notifications: {
-    bg: colors.NORD2,
+    bg: colors.NORD0,
     list: {
-      bg: colors.NORD1,
-      borderRight: colors.NORD3,
+      bg: colors.NORD0,
       borderBottom: colors.NORD3,
-      hoverBg: colors.NORD2,
+      hoverBg: colors.NORD3,
       active: {
-        border: colors.NORD8,
         bg: colors.NORD2,
-        hoverBg: colors.NORD2
+        hoverBg: '#5d6b83'
       }
     }
   },

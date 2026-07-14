@@ -22,22 +22,25 @@ import {
   runFolderEvent,
   runRequestEvent,
   scriptEnvironmentUpdateEvent,
+  runtimeVariablesUpdateEvent,
   streamDataReceived,
   setDotEnvVariables
 } from 'providers/ReduxStore/slices/collections';
-import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, mergeAndPersistEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, persistActiveEnvironment, collectionVariablesUpdateEvent } from 'providers/ReduxStore/slices/collections/actions';
 import {
   workspaceOpenedEvent,
   workspaceConfigUpdatedEvent,
-  hydrateSnapshotForOpenedCollection
+  hydrateSnapshotForOpenedCollection,
+  restoreActiveWorkspaceFromSnapshot
 } from 'providers/ReduxStore/slices/workspaces/actions';
 import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables } from 'providers/ReduxStore/slices/workspaces';
 import toast from 'react-hot-toast';
 import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
-import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
-import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState } from 'providers/ReduxStore/slices/collections/index';
+import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
+import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState, collectionLoadedFromTree } from 'providers/ReduxStore/slices/collections/index';
 import { addLog } from 'providers/ReduxStore/slices/logs';
+import { loadNotifications } from 'providers/ReduxStore/slices/notifications';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
 import { apiSpecAddFileEvent, apiSpecChangeFileEvent } from 'providers/ReduxStore/slices/apiSpec';
 
@@ -114,7 +117,6 @@ const useIpcEvents = () => {
         dispatch(apiSpecChangeFileEvent({ data: val }));
       }
     };
-
     ipcRenderer.invoke('renderer:ready');
 
     const removeCollectionTreeUpdateListener = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
@@ -131,6 +133,10 @@ const useIpcEvents = () => {
 
     const removeOpenWorkspaceListener = ipcRenderer.on('main:workspace-opened', (workspacePath, workspaceUid, workspaceConfig) => {
       dispatch(workspaceOpenedEvent(workspacePath, workspaceUid, workspaceConfig));
+    });
+
+    const removeWorkspacesReadyListener = ipcRenderer.on('main:workspaces-ready', () => {
+      dispatch(restoreActiveWorkspaceFromSnapshot());
     });
 
     const removeWorkspaceConfigUpdatedListener = ipcRenderer.on('main:workspace-config-updated', (workspacePath, workspaceUid, workspaceConfig) => {
@@ -200,16 +206,23 @@ const useIpcEvents = () => {
       }
     });
 
-    const removeScriptEnvUpdateListener = ipcRenderer.on('main:script-environment-update', (val) => {
-      dispatch(scriptEnvironmentUpdateEvent(val));
+    const removeRuntimeVariablesUpdateListener = ipcRenderer.on('main:runtime-variables-update', (val) => {
+      dispatch(runtimeVariablesUpdateEvent(val));
     });
 
-    const removePersistentEnvVariablesUpdateListener = ipcRenderer.on('main:persistent-env-variables-update', (val) => {
-      dispatch(mergeAndPersistEnvironment(val));
+    const removeScriptEnvUpdateListener = ipcRenderer.on('main:script-environment-update', (val) => {
+      dispatch(scriptEnvironmentUpdateEvent(val));
+      if (val.collectionUid) {
+        dispatch(persistActiveEnvironment(val.collectionUid));
+      }
     });
 
     const removeGlobalEnvironmentVariablesUpdateListener = ipcRenderer.on('main:global-environment-variables-update', (val) => {
       dispatch(globalEnvironmentsUpdateEvent(val));
+    });
+
+    const removeCollectionVariablesUpdateListener = ipcRenderer.on('main:collection-variables-update', (val) => {
+      dispatch(collectionVariablesUpdateEvent(val));
     });
 
     const removeCollectionRenamedListener = ipcRenderer.on('main:collection-renamed', (val) => {
@@ -217,6 +230,12 @@ const useIpcEvents = () => {
     });
 
     const removeRunFolderEventListener = ipcRenderer.on('main:run-folder-event', (val) => {
+      // Folder runs reuse the workspace baseline across N requests; clear it
+      // per request so request N's global-env update doesn't diff against
+      // request N-1's pre-flush snapshot.
+      if (val.type === 'testrun-started' || val.type === 'request-queued') {
+        dispatch(_clearScriptGlobalEnvBaseline());
+      }
       dispatch(runFolderEvent(val));
     });
 
@@ -343,11 +362,31 @@ const useIpcEvents = () => {
       dispatch(setGitVersion(val));
     });
 
+    const removeLoadNotificationsListener = ipcRenderer.on('main:load-notifications', (notifications) => {
+      dispatch(loadNotifications(notifications));
+    });
+
+    const removeCollectionTreeLoadedListener = ipcRenderer.on('main:collection-tree-loaded', ({ collectionUid, tree }) => {
+      dispatch(collectionLoadedFromTree({ collectionUid, tree }));
+    });
+
+    const removeCollectionLoadingStateV2Listener = ipcRenderer.on('main:collection-loading-state-updated-v2', (val) => {
+      dispatch(updateCollectionLoadingState(val));
+    });
+
+    const removeBrunoConfigUpdateV2Listener = ipcRenderer.on('main:bruno-config-update-v2', (val) => {
+      dispatch(brunoConfigUpdateEvent(val));
+    });
+
     return () => {
+      removeCollectionTreeLoadedListener();
+      removeCollectionLoadingStateV2Listener();
+      removeBrunoConfigUpdateV2Listener();
       removeCollectionTreeUpdateListener();
       removeApiSpecTreeUpdateListener();
       removeOpenCollectionListener();
       removeOpenWorkspaceListener();
+      removeWorkspacesReadyListener();
       removeWorkspaceConfigUpdatedListener();
       removeWorkspaceEnvironmentAddedListener();
       removeWorkspaceEnvironmentChangedListener();
@@ -373,9 +412,11 @@ const useIpcEvents = () => {
       removeHttpStreamNewDataListener();
       removeHttpStreamEndListener();
       removeCollectionLoadingStateListener();
-      removePersistentEnvVariablesUpdateListener();
+      removeCollectionVariablesUpdateListener();
+      removeRuntimeVariablesUpdateListener();
       removeSystemResourcesListener();
       gitVersionListener();
+      removeLoadNotificationsListener();
     };
   }, [isElectron]);
 };

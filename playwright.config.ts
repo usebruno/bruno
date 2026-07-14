@@ -7,10 +7,10 @@ if (process.env.CI) {
 }
 
 export default defineConfig({
-  fullyParallel: false,
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? undefined : 1,
+  workers: undefined,
   reporter,
 
   use: {
@@ -40,7 +40,6 @@ export default defineConfig({
       // system-pac and pac specs share the same PAC/proxy/target ports.
       name: 'system-pac',
       testDir: './tests/proxy/system-pac',
-      dependencies: ['default']
     }
   ],
 

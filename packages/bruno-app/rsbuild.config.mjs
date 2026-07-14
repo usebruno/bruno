@@ -38,6 +38,9 @@ export default defineConfig({
             dynamicImportMode: "eager",
           },
         },
+        rules: [
+          { test: /\.md$/, type: 'asset/source' }
+        ]
       },
       ignoreWarnings: [
         (warning) =>  warning.message.includes('Critical dependency: the request of a dependency is an expression') && warning?.moduleDescriptor?.name?.includes('flow-parser')
