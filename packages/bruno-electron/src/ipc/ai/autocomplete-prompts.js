@@ -207,11 +207,29 @@ const stripDisallowedApis = (suggestion, scriptType) => {
   return suggestion;
 };
 
+const TRAILING_IDENTIFIER_RE = /[\w$]+$/;
+
+const stripTypedPrefixOverlap = (prefix, suggestion) => {
+  if (!prefix || !suggestion) return suggestion;
+  const typed = prefix.match(TRAILING_IDENTIFIER_RE);
+  if (typed && suggestion.startsWith(typed[0])) return suggestion.slice(typed[0].length);
+  return suggestion;
+};
+
+const sanitizeSuggestion = ({ text, prefix, scriptType }) => {
+  const cleaned = cleanSuggestion(text || '');
+  const allowed = stripDisallowedApis(cleaned, scriptType);
+  const deduped = stripTypedPrefixOverlap(prefix, allowed);
+  return ensureNewlineAfterComment(prefix, deduped);
+};
+
 module.exports = {
   buildSystemPrompt,
   buildUserPrompt,
   STOP_SEQUENCES,
   cleanSuggestion,
   ensureNewlineAfterComment,
-  stripDisallowedApis
+  stripDisallowedApis,
+  stripTypedPrefixOverlap,
+  sanitizeSuggestion
 };
