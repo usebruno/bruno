@@ -73,6 +73,7 @@ const snapshotManager = require('../services/snapshot');
 const interpolateVars = require('./network/interpolate-vars');
 const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
+const { buildStampedFolderMigrateItems } = require('./migrate-folder-seq');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
@@ -2728,6 +2729,30 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const envDirPath = path.join(collectionPathname, 'environments');
       const bruFilesToDelete = [];
 
+      // Freeze sidebar folder order as contiguous seq on every visible folder before writing yml
+      const folderMigrateItems = buildStampedFolderMigrateItems(collectionPathname, bruFiles, (folderPath) => {
+        const folderBruPath = path.join(folderPath, 'folder.bru');
+        if (!fs.existsSync(folderBruPath)) {
+          return null;
+        }
+        const folderData = parseFolder(fs.readFileSync(folderBruPath, 'utf8'), { format: 'bru' });
+        return {
+          name: folderData?.meta?.name,
+          seq: folderData?.meta?.seq,
+          folderData
+        };
+      });
+
+      for (const item of folderMigrateItems) {
+        const ymlContent = stringifyFolder(item.folderData, { format: 'yml' });
+        const ymlFilePath = path.join(item.folderPath, 'folder.yml');
+        await writeFile(ymlFilePath, ymlContent);
+        writtenYmlFiles.push(ymlFilePath);
+        if (item.bruFilePath) {
+          bruFilesToDelete.push(item.bruFilePath);
+        }
+      }
+
       for (const bruFilePath of bruFiles) {
         const basename = path.basename(bruFilePath);
         const dirname = path.dirname(bruFilePath);
@@ -2742,13 +2767,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
 
         if (basename === 'folder.bru') {
-          const folderBruContent = fs.readFileSync(bruFilePath, 'utf8');
-          const folderData = parseFolder(folderBruContent, { format: 'bru' });
-          const ymlContent = stringifyFolder(folderData, { format: 'yml' });
-          const ymlFilePath = path.join(dirname, 'folder.yml');
-          await writeFile(ymlFilePath, ymlContent);
-          writtenYmlFiles.push(ymlFilePath);
-          bruFilesToDelete.push(bruFilePath);
           continue;
         }
 
