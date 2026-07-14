@@ -184,6 +184,12 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'getExecutionMode', getExecutionMode);
   getExecutionMode.dispose();
 
+  let skip = vm.newFunction('skip', function (reason) {
+    req.skip(reason === undefined ? undefined : vm.dump(reason));
+  });
+  vm.setProp(reqObject, 'skip', skip);
+  skip.dispose();
+
   let getTags = vm.newFunction('getTags', function () {
     return marshallToVm(req.getTags(), vm);
   });

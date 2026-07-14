@@ -68,7 +68,11 @@ type T_SkippedResponse = {
   headers?: null | undefined;
   data?: null | undefined;
   responseTime?: number | undefined;
+  duration?: number | undefined;
+  size?: number | undefined;
   isHtml?: boolean | undefined;
+  skipped?: boolean | undefined;
+  skipReason?: string | undefined;
 };
 
 // response types

@@ -168,8 +168,8 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'setNextRequest', setNextRequest);
   setNextRequest.dispose();
 
-  let runnerSkipRequest = vm.newFunction('skipRequest', function () {
-    bru?.runner?.skipRequest();
+  let runnerSkipRequest = vm.newFunction('skipRequest', function (reason) {
+    bru?.runner?.skipRequest(reason === undefined ? undefined : vm.dump(reason));
   });
   vm.setProp(bruRunnerObject, 'skipRequest', runnerSkipRequest);
   runnerSkipRequest.dispose();

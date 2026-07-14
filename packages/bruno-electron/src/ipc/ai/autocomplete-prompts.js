@@ -15,7 +15,8 @@ bru:    env/global/collection/folder/request/runtime vars — get/set/has/delete
 
 req:    url, method, headers, body, timeout. getUrl/setUrl, getHeader/setHeader,
         getBody/setBody, getMethod/setMethod, getTimeout/setTimeout. Available in
-        pre-request, post-response and tests.
+        pre-request, post-response and tests. skip(reason) is pre-request only and
+        prevents the HTTP request.
 
 res:    status, headers, body, responseTime. getStatus, getStatusText,
         getHeader, getHeaders, getBody, getResponseTime, getSize. res('json.path')

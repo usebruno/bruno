@@ -236,6 +236,19 @@ describe('Bruno Autocomplete', () => {
         );
       });
 
+      it('should provide req.skip(reason) autocomplete', () => {
+        mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 5 });
+        mockedCodemirror.getLine.mockReturnValue('req.s');
+        mockedCodemirror.getRange.mockReturnValue('req.s');
+
+        const result = getAutoCompleteHints(mockedCodemirror, {}, [], {
+          showHintsFor: ['req']
+        });
+
+        expect(result).toBeTruthy();
+        expect(result.list).toContain('skip(reason)');
+      });
+
       it('should handle bru.runner sub-object', () => {
         mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: 11 });
         mockedCodemirror.getLine.mockReturnValue('bru.runner.');
@@ -249,7 +262,7 @@ describe('Bruno Autocomplete', () => {
         expect(result.list).toEqual(
           expect.arrayContaining([
             'setNextRequest(requestName)',
-            'skipRequest()',
+            'skipRequest(reason)',
             'stopExecution()'
           ])
         );
@@ -467,7 +480,7 @@ describe('Bruno Autocomplete', () => {
       });
 
       it('should return the next segment after a trailing dot', () => {
-        const hints = ['bru.cookies.jar()', 'bru.runner.skipRequest()'];
+        const hints = ['bru.cookies.jar()', 'bru.runner.skipRequest(reason)'];
         const result = extractNextSegmentSuggestions(hints, 'bru.');
 
         expect(result).toEqual(['cookies', 'runner']);

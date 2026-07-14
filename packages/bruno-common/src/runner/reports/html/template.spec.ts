@@ -1,4 +1,4 @@
-import { getFilteredRequestResults } from './template';
+import { getFilteredRequestResults, htmlTemplateString } from './template';
 import vm from 'vm';
 
 describe('getFilteredRequestResults', () => {
@@ -28,5 +28,14 @@ describe('getFilteredRequestResults', () => {
         index: 1
       }
     ]);
+  });
+});
+
+describe('HTML runner report template', () => {
+  it('renders a warning containing the request skip reason', () => {
+    const html = htmlTemplateString('[]');
+
+    expect(html).toContain('title="Skip reason" type="warning"');
+    expect(html).toContain('result.skipReason || result.response.statusText || \'Request skipped\'');
   });
 });

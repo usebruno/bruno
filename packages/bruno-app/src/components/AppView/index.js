@@ -219,7 +219,9 @@ const AppView = ({ item, collection, code }) => {
               dataBuffer: result.dataBuffer,
               size: result.size,
               duration: result.duration,
-              timeline: serializeTimeline(result.timeline)
+              timeline: serializeTimeline(result.timeline),
+              skipped: result.skipped,
+              skipReason: result.skipReason
             }
           })
         );

@@ -104,7 +104,16 @@ const makeJUnitOutput = async (results, outputPath) => {
     });
 
     if (result?.skipped) {
+      const skipReason = result.skipReason || result.response?.statusText || 'Request skipped';
       suite['@skipped'] = 1;
+      suite['@tests']++;
+      suite.testcase.push({
+        '@name': 'Request skipped',
+        '@status': 'skipped',
+        '@classname': classname,
+        '@time': '0.000',
+        'skipped': [{ '@message': skipReason }]
+      });
     } else if (result.error) {
       suite['@errors'] = 1;
       suite['@tests'] = 1;

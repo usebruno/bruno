@@ -82,7 +82,9 @@ export const projectResponse = (r) => ({
   data: r?.data ?? null,
   headers: r?.headers ?? null,
   duration: r?.duration ?? null,
-  size: r?.size ?? null
+  size: r?.size ?? null,
+  skipped: r?.skipped ?? false,
+  skipReason: r?.skipReason ?? null
 });
 
 /**

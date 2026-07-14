@@ -28,6 +28,46 @@ const onConsoleLog = (type, args) => {
   console[type](...args);
 };
 
+const DEFAULT_REQUEST_SKIP_REASON = 'Request skipped via pre-request script';
+
+const buildSkippedResult = ({
+  relativeItemPathname,
+  request,
+  skipReason,
+  preRequestTestResults = [],
+  shouldStopRunnerExecution = false
+}) => ({
+  test: {
+    filename: relativeItemPathname
+  },
+  request: {
+    method: request.method,
+    url: request.url,
+    headers: request.headers,
+    data: request.data
+  },
+  response: {
+    status: 'skipped',
+    statusText: skipReason || DEFAULT_REQUEST_SKIP_REASON,
+    headers: null,
+    data: null,
+    responseTime: 0,
+    duration: 0,
+    size: 0,
+    skipped: true,
+    skipReason
+  },
+  error: null,
+  status: 'skipped',
+  skipped: true,
+  skipReason,
+  assertionResults: [],
+  testResults: [],
+  preRequestTestResults,
+  postResponseTestResults: [],
+  shouldStopRunnerExecution
+});
+
 const getCACertHostRegex = (domain) => {
   return '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
 };
@@ -170,33 +210,12 @@ const runSingleRequest = async function (
     if (promptVars.length > 0) {
       const errorMsg = `Prompt variables detected in request. CLI execution is not supported for requests with prompt variables. \nPrompts: ${promptVars.join(', ')}`;
       console.log(chalk.yellow(stripExtension(relativeItemPathname) + ' Skipped:') + chalk.dim(` (${errorMsg})`));
-      return {
-        test: {
-          filename: relativeItemPathname
-        },
-        request: {
-          method: request.method,
-          url: request.url,
-          headers: request.headers,
-          data: request.data
-        },
-        response: {
-          status: 'skipped',
-          statusText: errorMsg,
-          data: null,
-          responseTime: 0,
-          duration: 0,
-          size: 0
-        },
-        error: null,
-        status: 'skipped',
-        skipped: true,
-        assertionResults: [],
-        testResults: [],
-        preRequestTestResults: [],
-        postResponseTestResults: [],
+      return buildSkippedResult({
+        relativeItemPathname,
+        request,
+        skipReason: errorMsg,
         shouldStopRunnerExecution
-      };
+      });
     }
 
     request.__bruno__executionMode = 'cli';
@@ -204,37 +223,36 @@ const runSingleRequest = async function (
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = runtime;
 
-    // Build certsAndProxyConfig for bru.sendRequest
     const options = getOptions();
-    const systemProxyConfig = options['cachedSystemProxy'];
-    const sendRequestInterpolationOptions = {
-      envVars: envVariables,
-      runtimeVariables,
-      processEnvVars,
-      globalEnvVars,
-      collectionVariables: request.collectionVariables || {},
-      folderVariables: request.folderVariables || {},
-      requestVariables: request.requestVariables || {}
-    };
-    const rawClientCertificates = get(brunoConfig, 'clientCertificates');
-    const rawProxyConfig = get(brunoConfig, 'proxy', {});
-    const certsAndProxyConfig = {
-      collectionPath,
-      options: {
-        noproxy: get(options, 'noproxy', false),
-        shouldVerifyTls: !get(options, 'insecure', false),
-        shouldUseCustomCaCertificate: !!options['cacert'],
-        customCaCertificateFilePath: options['cacert'],
-        shouldKeepDefaultCaCertificates: !options['ignoreTruststore'],
-        cacheSslSession: get(options, 'cacheSslSession', false)
-      },
-      clientCertificates: rawClientCertificates ? interpolateObject(rawClientCertificates, sendRequestInterpolationOptions) : undefined,
-      collectionLevelProxy: transformProxyConfig(interpolateObject(rawProxyConfig, sendRequestInterpolationOptions)),
-      systemProxyConfig
-    };
+    // Defer proxy/certificate preparation until bru.sendRequest is actually invoked.
+    request.certsAndProxyConfig = () => {
+      const sendRequestInterpolationOptions = {
+        envVars: envVariables,
+        runtimeVariables,
+        processEnvVars,
+        globalEnvVars,
+        collectionVariables: request.collectionVariables || {},
+        folderVariables: request.folderVariables || {},
+        requestVariables: request.requestVariables || {}
+      };
+      const rawClientCertificates = get(brunoConfig, 'clientCertificates');
+      const rawProxyConfig = get(brunoConfig, 'proxy', {});
 
-    // Add certsAndProxyConfig to request object for bru.sendRequest
-    request.certsAndProxyConfig = certsAndProxyConfig;
+      return {
+        collectionPath,
+        options: {
+          noproxy: get(options, 'noproxy', false),
+          shouldVerifyTls: !get(options, 'insecure', false),
+          shouldUseCustomCaCertificate: !!options['cacert'],
+          customCaCertificateFilePath: options['cacert'],
+          shouldKeepDefaultCaCertificates: !options['ignoreTruststore'],
+          cacheSslSession: get(options, 'cacheSslSession', false)
+        },
+        clientCertificates: rawClientCertificates ? interpolateObject(rawClientCertificates, sendRequestInterpolationOptions) : undefined,
+        collectionLevelProxy: transformProxyConfig(interpolateObject(rawProxyConfig, sendRequestInterpolationOptions)),
+        systemProxyConfig: options['cachedSystemProxy']
+      };
+    };
 
     // run pre request script
     const requestScriptFile = get(request, 'script.req');
@@ -268,33 +286,13 @@ const runSingleRequest = async function (
         }
 
         if (result?.skipRequest) {
-          return {
-            test: {
-              filename: relativeItemPathname
-            },
-            request: {
-              method: request.method,
-              url: request.url,
-              headers: request.headers,
-              data: request.data
-            },
-            response: {
-              status: 'skipped',
-              statusText: 'request skipped via pre-request script',
-              data: null,
-              responseTime: 0,
-              duration: 0,
-              size: 0
-            },
-            error: null,
-            status: 'skipped',
-            skipped: true,
-            assertionResults: [],
-            testResults: [],
+          return buildSkippedResult({
+            relativeItemPathname,
+            request,
+            skipReason: result.skipReason,
             preRequestTestResults: result?.results || [],
-            postResponseTestResults: [],
             shouldStopRunnerExecution
-          };
+          });
         }
 
         preRequestTestResults = result?.results || [];

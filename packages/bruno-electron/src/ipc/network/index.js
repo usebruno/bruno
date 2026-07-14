@@ -42,6 +42,19 @@ const { easterEggResponse } = require('../../utils/woof');
 const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
+const DEFAULT_REQUEST_SKIP_REASON = 'Request skipped via pre-request script';
+
+const buildSkippedResponse = (skipReason) => ({
+  status: 'skipped',
+  statusText: skipReason || DEFAULT_REQUEST_SKIP_REASON,
+  data: null,
+  responseTime: 0,
+  duration: 0,
+  size: 0,
+  headers: null,
+  skipped: true,
+  skipReason
+});
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -604,6 +617,10 @@ const registerNetworkIpc = (mainWindow) => {
       sendVariableUpdates(scriptResult, { collectionUid, requestUid, collection });
       resetOauth2Credentials({ oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset, request, collectionUid });
 
+      if (scriptResult?.skipRequest) {
+        return scriptResult;
+      }
+
       const domainsWithCookies = await getDomainsWithCookies();
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
     }
@@ -884,8 +901,8 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = abortController.signal;
       saveCancelToken(cancelTokenUid, abortController);
 
-      // Build certsAndProxyConfig for bru.sendRequest
-      const certsAndProxyConfig = await buildCertsAndProxyConfig({
+      // Defer proxy/certificate preparation until bru.sendRequest is actually invoked.
+      request.certsAndProxyConfig = () => buildCertsAndProxyConfig({
         collectionUid,
         collection,
         collectionPath,
@@ -894,9 +911,6 @@ const registerNetworkIpc = (mainWindow) => {
         processEnvVars,
         request
       });
-
-      // Add certsAndProxyConfig to request object for bru.sendRequest
-      request.certsAndProxyConfig = certsAndProxyConfig;
 
       let preRequestScriptResult = null;
       let preRequestError = null;
@@ -950,6 +964,12 @@ const registerNetworkIpc = (mainWindow) => {
       if (preRequestError) {
         return Promise.reject(preRequestError);
       }
+
+      if (preRequestScriptResult?.skipRequest) {
+        deleteCancelToken(cancelTokenUid);
+        return buildSkippedResponse(preRequestScriptResult.skipReason);
+      }
+
       const axiosInstance = await configureRequest(
         collectionUid,
         collection,
@@ -1672,8 +1692,8 @@ const registerNetworkIpc = (mainWindow) => {
           }
 
           try {
-            // Build certsAndProxyConfig for bru.sendRequest
-            const certsAndProxyConfig = await buildCertsAndProxyConfig({
+            // Defer proxy/certificate preparation until bru.sendRequest is actually invoked.
+            request.certsAndProxyConfig = () => buildCertsAndProxyConfig({
               collectionUid,
               collection,
               collectionPath,
@@ -1682,9 +1702,6 @@ const registerNetworkIpc = (mainWindow) => {
               processEnvVars,
               request
             });
-
-            // Add certsAndProxyConfig to request object for bru.sendRequest
-            request.certsAndProxyConfig = certsAndProxyConfig;
 
             let preRequestScriptResult;
             let preRequestError = null;
@@ -1732,9 +1749,6 @@ const registerNetworkIpc = (mainWindow) => {
               scriptMetadata: request.script?.reqMetadata
             });
 
-            const domainsWithCookiesPreRequest = await getDomainsWithCookies();
-            mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesPreRequest)));
-
             if (preRequestError) {
               throw preRequestError;
             }
@@ -1748,21 +1762,19 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             if (preRequestScriptResult?.skipRequest) {
+              const skipReason = preRequestScriptResult.skipReason;
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'runner-request-skipped',
-                error: 'Request has been skipped from pre-request script',
-                responseReceived: {
-                  status: 'skipped',
-                  statusText: 'request skipped via pre-request script',
-                  data: null,
-                  responseTime: 0,
-                  headers: null
-                },
+                skipReason,
+                responseReceived: buildSkippedResponse(skipReason),
                 ...eventData
               });
               currentRequestIndex++;
               continue;
             }
+
+            const domainsWithCookiesPreRequest = await getDomainsWithCookies();
+            mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesPreRequest)));
 
             const { data: requestData, dataBuffer: requestDataBuffer } = parseDataFromRequest(request);
 

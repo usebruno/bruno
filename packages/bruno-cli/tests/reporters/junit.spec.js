@@ -244,4 +244,45 @@ describe('makeJUnitOutput', () => {
     expect(failcase.failure[0]['@type']).toBe('failure');
     expect(failcase.failure[0]['@message']).toBe('expected 200 to equal 404');
   });
+
+  it('should emit a skipped testcase with the request skip reason', () => {
+    const results = [
+      {
+        name: 'Optional request',
+        path: 'optional/request.bru',
+        test: {
+          filename: 'optional/request.bru'
+        },
+        request: {
+          method: 'GET',
+          url: 'https://example.test'
+        },
+        response: {
+          status: 'skipped',
+          statusText: 'Feature unavailable in this environment'
+        },
+        status: 'skipped',
+        skipped: true,
+        skipReason: 'Feature unavailable in this environment',
+        assertionResults: [],
+        testResults: [],
+        preRequestTestResults: [],
+        postResponseTestResults: [],
+        runDuration: 0
+      }
+    ];
+
+    makeJUnitOutput(results, '/tmp/testfile.xml');
+
+    const suite = xmlbuilder.create.mock.calls[0][0].testsuites.testsuite[0];
+    expect(suite['@skipped']).toBe(1);
+    expect(suite['@tests']).toBe(1);
+    expect(suite.testcase).toEqual([
+      expect.objectContaining({
+        '@name': 'Request skipped',
+        '@status': 'skipped',
+        'skipped': [{ '@message': 'Feature unavailable in this environment' }]
+      })
+    ]);
+  });
 });

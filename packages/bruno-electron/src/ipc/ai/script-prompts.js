@@ -44,6 +44,7 @@ req.getHeaders() / req.setHeaders(headers)
 req.getHeader(name) / req.setHeader(name, value)
 req.getBody() / req.setBody(data)
 req.getTimeout() / req.setTimeout(ms)
+req.skip(reason)             // pre-request only; skips the HTTP request
 \`\`\`
 
 ### res – response object (available in post-response and tests only)

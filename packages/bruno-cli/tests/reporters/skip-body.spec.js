@@ -39,6 +39,34 @@ const createMockResult = () => ({
 
 describe('reporter-skip-body', () => {
   describe('JSON report', () => {
+    it('should preserve a structured request skip and reason', () => {
+      const results = [{
+        ...createMockResult(),
+        status: 'skipped',
+        skipped: true,
+        skipReason: 'Optional tests are disabled',
+        response: {
+          status: 'skipped',
+          statusText: 'Optional tests are disabled',
+          headers: null,
+          data: null,
+          responseTime: 0,
+          duration: 0,
+          size: 0,
+          skipped: true,
+          skipReason: 'Optional tests are disabled'
+        }
+      }];
+      const json = JSON.parse(JSON.stringify({ summary: {}, results }));
+
+      expect(json.results[0]).toEqual(expect.objectContaining({
+        status: 'skipped',
+        skipped: true,
+        skipReason: 'Optional tests are disabled'
+      }));
+      expect(json.results[0].response.skipReason).toBe('Optional tests are disabled');
+    });
+
     it('should exclude both request and response bodies with --reporter-skip-body', () => {
       const results = [createMockResult()];
       // --reporter-skip-body sets both skipRequestBody and skipResponseBody to true

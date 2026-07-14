@@ -36,11 +36,16 @@ jest.mock('@usebruno/requests', () => {
 
 const ScriptRuntime = require('../src/runtime/script-runtime');
 const TestRuntime = require('../src/runtime/test-runtime');
+const { createSendRequest } = require('@usebruno/requests').scripting;
 
 const baseRequest = { method: 'GET', url: 'http://localhost/', headers: {}, data: undefined };
 const baseResponse = { status: 200, statusText: 'OK', data: {} };
 
 describe('ScriptRuntime — scripted entries across the three script phases', () => {
+  beforeEach(() => {
+    createSendRequest.mockClear();
+  });
+
   describe('pre-request (runRequestScript)', () => {
     test('drains bru.sendRequest calls into result.scriptedRequestEntries', async () => {
       const script = `await bru.sendRequest('https://example.com/ping');`;
@@ -64,6 +69,48 @@ describe('ScriptRuntime — scripted entries across the three script phases', ()
         `bru.setVar('foo', 'bar');`, { ...baseRequest }, {}, {}, '.', null, process.env
       );
       expect(result.scriptedRequestEntries).toEqual([]);
+    });
+
+    test('does not resolve lazy proxy configuration when the request is skipped', async () => {
+      const certsAndProxyConfig = jest.fn().mockResolvedValue({ proxyMode: 'off' });
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+      const result = await runtime.runRequestScript(
+        `req.skip('No test data');`,
+        { ...baseRequest, certsAndProxyConfig },
+        {},
+        {},
+        '.',
+        null,
+        process.env
+      );
+
+      expect(result.skipped).toBe(true);
+      expect(certsAndProxyConfig).not.toHaveBeenCalled();
+      expect(createSendRequest).not.toHaveBeenCalled();
+    });
+
+    test('resolves lazy proxy configuration only when bru.sendRequest is invoked', async () => {
+      const resolvedConfig = { proxyMode: 'off' };
+      const certsAndProxyConfig = jest.fn().mockResolvedValue(resolvedConfig);
+      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
+
+      await runtime.runRequestScript(
+        `
+          await bru.sendRequest('https://example.com/ping');
+          await bru.sendRequest('https://example.com/health');
+        `,
+        { ...baseRequest, certsAndProxyConfig },
+        {},
+        {},
+        '.',
+        null,
+        process.env
+      );
+
+      expect(certsAndProxyConfig).toHaveBeenCalledTimes(1);
+      expect(createSendRequest).toHaveBeenCalledTimes(2);
+      expect(createSendRequest).toHaveBeenCalledWith(resolvedConfig, expect.any(Object));
     });
 
     test('__bruSetScope from inside the script stamps scope onto every later entry', async () => {

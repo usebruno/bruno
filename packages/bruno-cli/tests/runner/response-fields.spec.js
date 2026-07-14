@@ -83,6 +83,10 @@ jest.mock('@usebruno/common', () => {
 
 const prepareRequest = require('../../src/runner/prepare-request');
 const { makeAxiosInstance } = require('../../src/utils/axios-instance');
+const { setupProxyAgents } = require('../../src/utils/proxy-util');
+const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
+const { transformProxyConfig } = require('@usebruno/requests');
+const { getOAuth2Token, getFormattedOauth2Credentials } = require('../../src/utils/oauth2');
 const { runSingleRequest } = require('../../src/runner/run-single-request');
 
 const baseItem = {
@@ -193,5 +197,100 @@ describe('runSingleRequest: duration and size fields (issue #7352)', () => {
     expect(result.response.duration).toBe(0);
     expect(result.response.size).toBe(0);
     expect(result.response.responseTime).toBe(0);
+  });
+
+  it('should return a clean skipped result before proxy, auth, network, and response processing', async () => {
+    prepareRequest.mockResolvedValue({
+      method: 'GET',
+      url: 'http://example.com/api',
+      headers: {},
+      data: null,
+      settings: {},
+      oauth2: {
+        accessTokenUrl: 'https://identity.example.test/token',
+        grantType: 'client_credentials'
+      },
+      script: {
+        req: `req.skip('Feature unavailable in this environment');`,
+        res: `throw new Error('post-response script must not execute');`
+      },
+      tests: `throw new Error('response tests must not execute');`
+    });
+
+    const runRequestScript = jest.fn().mockResolvedValue({
+      skipped: true,
+      skipRequest: true,
+      skipReason: 'Feature unavailable in this environment',
+      results: [],
+      scriptedRequestEntries: []
+    });
+    ScriptRuntime.mockImplementation(() => ({ runRequestScript }));
+
+    const result = await runSingleRequest(...baseArgs);
+
+    expect(result).toEqual(expect.objectContaining({
+      status: 'skipped',
+      skipped: true,
+      skipReason: 'Feature unavailable in this environment',
+      error: null,
+      assertionResults: [],
+      testResults: [],
+      postResponseTestResults: []
+    }));
+    expect(result.response).toEqual(expect.objectContaining({
+      status: 'skipped',
+      statusText: 'Feature unavailable in this environment',
+      duration: 0,
+      size: 0,
+      responseTime: 0,
+      skipped: true,
+      skipReason: 'Feature unavailable in this environment'
+    }));
+    expect(makeAxiosInstance).not.toHaveBeenCalled();
+    expect(setupProxyAgents).not.toHaveBeenCalled();
+    expect(transformProxyConfig).not.toHaveBeenCalled();
+    expect(getOAuth2Token).not.toHaveBeenCalled();
+    expect(getFormattedOauth2Credentials).not.toHaveBeenCalled();
+    expect(TestRuntime).not.toHaveBeenCalled();
+    expect(VarsRuntime).not.toHaveBeenCalled();
+    expect(AssertRuntime).not.toHaveBeenCalled();
+  });
+
+  it('should use the default status text when req.skip() has no reason', async () => {
+    prepareRequest.mockResolvedValue({
+      method: 'GET',
+      url: 'http://example.com/api',
+      headers: {},
+      data: null,
+      settings: {},
+      script: {
+        req: 'req.skip();'
+      }
+    });
+
+    ScriptRuntime.mockImplementation(() => ({
+      runRequestScript: jest.fn().mockResolvedValue({
+        skipped: true,
+        skipRequest: true,
+        skipReason: undefined,
+        results: [],
+        scriptedRequestEntries: []
+      })
+    }));
+
+    const result = await runSingleRequest(...baseArgs);
+
+    expect(result).toEqual(expect.objectContaining({
+      status: 'skipped',
+      skipped: true,
+      skipReason: undefined
+    }));
+    expect(result.response).toEqual(expect.objectContaining({
+      status: 'skipped',
+      statusText: 'Request skipped via pre-request script',
+      skipped: true,
+      skipReason: undefined
+    }));
+    expect(makeAxiosInstance).not.toHaveBeenCalled();
   });
 });
