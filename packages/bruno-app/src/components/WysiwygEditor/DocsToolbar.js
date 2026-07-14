@@ -226,34 +226,27 @@ const DocsToolbar = ({ editor }) => {
   const [initialLinkData, setInitialLinkData] = useState({ text: '', url: '' });
 
   const handleLinkClick = useCallback((currentEditor) => {
+    let selectedText = '';
+    let url = '';
+
     if (currentEditor.isActive('link')) {
-      // Don't unset the link! We want to edit it!
-      const { from, to } = currentEditor.state.selection;
-      let selectedText = '';
-      if (!currentEditor.state.selection.empty) {
-        selectedText = currentEditor.state.doc.textBetween(from, to, ' ');
-      } else {
-        const linkMarkType = currentEditor.schema.marks.link;
-        if (linkMarkType) {
-          const $pos = currentEditor.state.doc.resolve(from);
-          const range = getMarkRange($pos, linkMarkType);
-          if (range) {
-            selectedText = currentEditor.state.doc.textBetween(range.from, range.to, ' ');
-          }
-        }
+      const { from } = currentEditor.state.selection;
+      const linkMarkType = currentEditor.schema.marks.link;
+      const $pos = currentEditor.state.doc.resolve(from);
+
+      const range = getMarkRange($pos, linkMarkType);
+      if (range) {
+        selectedText = currentEditor.state.doc.textBetween(range.from, range.to, ' ');
       }
 
       const attrs = currentEditor.getAttributes('link');
-      setInitialLinkData({ text: selectedText, url: attrs?.href || '' });
-      setIsLinkModalOpen(true);
-      return;
-    }
-    const { from, to } = currentEditor.state.selection;
-    let selectedText = '';
-    if (!currentEditor.state.selection.empty) {
+      url = attrs?.href || '';
+    } else if (!currentEditor.state.selection.empty) {
+      const { from, to } = currentEditor.state.selection;
       selectedText = currentEditor.state.doc.textBetween(from, to, ' ');
     }
-    setInitialLinkData({ text: selectedText, url: '' });
+
+    setInitialLinkData({ text: selectedText, url });
     setIsLinkModalOpen(true);
   }, []);
 
@@ -282,6 +275,11 @@ const DocsToolbar = ({ editor }) => {
       if (!url) {
         // If url is empty, remove the link mark but keep the text
         chain.unsetLink().run();
+        return;
+      }
+
+      const parsedUrl = url.trim().toLowerCase();
+      if (parsedUrl.startsWith('javascript:')) {
         return;
       }
 
@@ -412,7 +410,7 @@ const DocsToolbar = ({ editor }) => {
           selectedItemId={activeHeadingId}
           placement="bottom-start"
           data-testid="docs-heading-dropdown"
-          dropdownProps={DOCS_MENU_DROPDOWN_PROPS}
+          {...DOCS_MENU_DROPDOWN_PROPS}
         >
           <button
             type="button"

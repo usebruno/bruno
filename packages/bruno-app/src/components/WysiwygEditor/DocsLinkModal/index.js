@@ -52,12 +52,6 @@ const DocsLinkModal = ({ isOpen, onClose, onSubmit, initialText, initialUrl }) =
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://example.com"
                 autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleConfirm();
-                  }
-                }}
               />
             </div>
           </div>
