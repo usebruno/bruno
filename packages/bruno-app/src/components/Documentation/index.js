@@ -220,7 +220,7 @@ const Documentation = ({ item, collection }) => {
             value={docs || ''}
             onEdit={onEdit}
             onSave={onSave}
-            mode="application/text"
+            mode="gfm"
             initialScroll={scroll}
             onScroll={setScroll}
           />

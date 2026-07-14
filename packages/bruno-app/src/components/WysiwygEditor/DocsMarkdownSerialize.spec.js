@@ -305,4 +305,11 @@ describe('Docs markdown serialization', () => {
     expect(markdown).toMatch(/line one/);
     expect(markdown).toMatch(/line two/);
   });
+
+  it('serializes code blocks with language', () => {
+    editor = createEditor('<pre><code class="language-javascript">const x = 1;</code></pre>');
+    const markdown = getMarkdown(editor);
+    expect(markdown).toContain('```javascript');
+    expect(markdown).toContain('const x = 1;');
+  });
 });

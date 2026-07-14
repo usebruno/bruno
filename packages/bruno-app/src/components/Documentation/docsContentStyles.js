@@ -140,7 +140,7 @@ const docsContentStyles = css`
     color: ${(props) => props.theme.text};
     font-family: ${(props) => props.theme.font.monospace || 'monospace'};
     margin: 1rem 0;
-    padding: 0.75rem 1rem;
+    padding: 2.5rem 1rem 0.75rem 1rem;
     border-radius: 4px;
     overflow-x: auto;
 
@@ -149,6 +149,11 @@ const docsContentStyles = css`
       padding: 0;
       font-size: 0.85em;
     }
+  }
+
+  .docs-code-block.single-line pre {
+    padding-top: 0.75rem;
+    padding-right: 2.5rem;
   }
 
   blockquote {
@@ -236,6 +241,61 @@ const docsContentStyles = css`
       text-decoration: underline;
     }
   }
-`;
 
+
+
+  /* Syntax Highlighting for code blocks (highlight.js classes from lowlight) */
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-title,
+  .hljs-section,
+  .hljs-doctag,
+  .hljs-name,
+  .hljs-strong {
+    color: ${(props) => props.theme.codemirror.tokens.keyword};
+  }
+
+  .hljs-comment {
+    color: ${(props) => props.theme.codemirror.tokens.comment};
+  }
+
+  .hljs-string,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    color: ${(props) => props.theme.codemirror.tokens.string};
+  }
+
+  .hljs-variable,
+  .hljs-template-variable,
+  .hljs-attribute {
+    color: ${(props) => props.theme.codemirror.tokens.variable};
+  }
+
+  .hljs-attr,
+  .hljs-property {
+    color: ${(props) => props.theme.codemirror.tokens.property};
+  }
+
+  .hljs-number,
+  .hljs-literal {
+    color: ${(props) => props.theme.codemirror.tokens.number};
+  }
+
+  .hljs-built_in,
+  .hljs-type,
+  .hljs-params,
+  .hljs-meta,
+  .hljs-link {
+    color: ${(props) => props.theme.codemirror.tokens.atom};
+  }
+
+  .hljs-symbol,
+  .hljs-bullet,
+  .hljs-addition,
+  .hljs-deletion {
+    color: ${(props) => props.theme.codemirror.tokens.tag};
+  }
+    
+`;
 export default docsContentStyles;

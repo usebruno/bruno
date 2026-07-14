@@ -188,4 +188,37 @@ test.describe('Wysiwyg Docs Editor Edge Cases', () => {
     const wysiwygText = await prosemirror.textContent();
     expect(wysiwygText).toContain('Hello MARKDOWN');
   });
+
+  test('Code Block Language Selection', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-code-lang');
+
+    const prosemirror = locators.docs.proseMirror();
+    await expect(prosemirror).toBeVisible();
+
+    await prosemirror.click();
+    await locators.docs.toolbarBtn('Code block').click();
+    await page.keyboard.type('const x = 1;');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('const y = 2;');
+
+    const langSelector = prosemirror.locator('.docs-code-block-lang-selector');
+    await expect(langSelector).toBeVisible();
+    await expect(langSelector).toContainText('auto');
+
+    // Click language selector dropdown
+    await langSelector.click();
+
+    // Select javascript
+    const jsOption = page.locator('.dropdown-item[data-language="javascript"]');
+    await expect(jsOption).toBeVisible();
+    await jsOption.click();
+
+    // Verify language changed
+    await expect(langSelector).toContainText('javascript');
+
+    // Verify code block is properly syntax highlighted (should have hljs classes)
+    const keywords = prosemirror.locator('pre code .hljs-keyword');
+    await expect(keywords).toHaveCount(2);
+    await expect(keywords.first()).toContainText('const');
+  });
 });
