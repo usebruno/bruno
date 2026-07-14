@@ -1,13 +1,13 @@
 {
   "collections": [
     {
-      "path": "{{projectRoot}}/tests/request/settings/collection/requests-settings-bru",
+      "path": "{{collectionPath}}/requests-settings-bru",
       "securityConfig": {
         "jsSandboxMode": "safe"
       }
     },
     {
-      "path": "{{projectRoot}}/tests/request/settings/collection/requests-settings-yml",
+      "path": "{{collectionPath}}/requests-settings-yml",
       "securityConfig": {
         "jsSandboxMode": "safe"
       }

@@ -24,8 +24,13 @@ export {
   valueToString
 } from './datatype';
 
-export const TIMEOUT_INHERIT = 'inherit' as const;
-
 export {
   toDisplayString
 } from './string';
+
+export const TIMEOUT_INHERIT = 'inherit' as const;
+
+// Normalize a request timeout setting for serialization: keep numbers and the
+// "inherit" sentinel as-is; fall back to 0 for anything else (null/undefined/invalid).
+export const resolveTimeoutSetting = (value: unknown): number | typeof TIMEOUT_INHERIT =>
+  typeof value === 'number' || value === TIMEOUT_INHERIT ? value : 0;

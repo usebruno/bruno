@@ -1,150 +1,148 @@
-import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { expect, Page, test } from '../../../playwright';
-import { closeAllCollections, selectRequestPaneTab } from '../../utils/page';
+import { expect, test, closeElectronApp, waitForReadyPage, ElectronApplication } from '../../../playwright';
+import {
+  buildCommonLocators,
+  selectRequestPaneTab,
+  saveRequest,
+  setRequestTimeoutPreference,
+  resetRequestTimeoutToInherit
+} from '../../utils/page';
 
-const bruRequestPath = path.join(__dirname, 'collection', 'requests-settings-bru', 'timeout.bru');
-const yamlRequestPath = path.join(__dirname, 'collection', 'requests-settings-yml', 'timeout.yml');
+const initUserDataPath = path.join(__dirname, 'init-user-data');
+const fixtureCollectionsPath = path.join(__dirname, 'fixtures', 'collections');
 
-const setGlobalRequestTimeout = async (page: Page, value: string) => {
-  await page.locator('.status-bar button[data-trigger="preferences"]').click();
+type LaunchFixtures = {
+  launchElectronApp: (options?: { initUserDataPath?: string; templateVars?: Record<string, string> }) => Promise<ElectronApplication>;
+  createTmpDir: (tag?: string) => Promise<string>;
+};
 
-  const generalTab = page.getByRole('tab', { name: 'General' });
-  await expect(generalTab).toBeVisible({ timeout: 10000 });
-  await generalTab.click();
-
-  const timeoutPreference = page.locator('input[name="timeout"]');
-  await expect(timeoutPreference).toBeVisible({ timeout: 10000 });
-  await timeoutPreference.fill(value);
-  await expect(timeoutPreference).toHaveValue(value, { timeout: 5000 });
-
-  const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
-  await preferencesTab.hover();
-  await preferencesTab.locator('.close-icon').click({ force: true });
-  await expect(preferencesTab).not.toBeVisible({ timeout: 10000 });
+// Copy the committed fixture collections into a per-test tmp dir and launch an app that opens them.
+// Each test mutates only its own copy, so the tests are parallel- and retry-safe and need no restore.
+const launchWithIsolatedCollections = async ({ launchElectronApp, createTmpDir }: LaunchFixtures) => {
+  const collectionPath = await createTmpDir('settings-collections');
+  await fs.promises.cp(fixtureCollectionsPath, collectionPath, { recursive: true });
+  const app = await launchElectronApp({ initUserDataPath, templateVars: { collectionPath } });
+  const page = await waitForReadyPage(app);
+  return { app, page, collectionPath };
 };
 
 test.describe('Timeout Settings Tests', () => {
-  test.afterEach(async ({ pageWithUserData: page }) => {
-    await closeAllCollections(page);
-  });
+  test('should persist inherit timeout for a bru request', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(60000);
+    const { app, page, collectionPath } = await launchWithIsolatedCollections({ launchElectronApp, createTmpDir });
 
-  test.afterAll(() => {
-    execSync(`git checkout -- "${bruRequestPath}" "${yamlRequestPath}"`);
-  });
+    try {
+      const { sidebar, requestSettings, request, response, tabs } = buildCommonLocators(page);
 
-  test.describe('bru request timeout settings', () => {
-    test('should configure and test timeout settings', async ({
-      pageWithUserData: page
-    }) => {
-      await expect(page.locator('#sidebar-collection-name').getByText('settings-test')).toBeVisible();
-
-      await page.locator('#sidebar-collection-name').getByText('settings-test').click();
-      await page.getByRole('complementary').getByText('timeout-test').click();
-
+      // Open the request from the bru collection
+      await expect(sidebar.collection('settings-test')).toBeVisible();
+      await sidebar.collection('settings-test').click();
+      await sidebar.request('timeout-test').click();
       await selectRequestPaneTab(page, 'Settings');
 
-      const timeoutInput = page.locator('#timeout');
-      await expect(timeoutInput).toBeVisible();
+      // Verify the custom timeout value from the .bru file (5)
+      await expect(requestSettings.timeoutInput()).toBeVisible();
+      await expect(requestSettings.timeoutInput()).toHaveValue('5');
 
-      await expect(timeoutInput).toHaveValue('5');
+      // Send and verify the custom timeout (5ms) is applied
+      await request.sendButton().click();
+      await expect(response.pane()).toContainText('timeout of 5ms exceeded');
 
-      await page.getByTestId('send-arrow-icon').click();
+      // Change the global preference that "inherit" should fall back to
+      await setRequestTimeoutPreference(page, '10');
 
-      const responsePane = page.locator('.response-pane');
-      await expect(responsePane).toContainText('timeout of 5ms exceeded');
-
-      await setGlobalRequestTimeout(page, '10');
-
-      await page.getByRole('complementary').getByText('timeout-test').click();
+      // Return to the request and Settings tab
+      await sidebar.request('timeout-test').click();
       await selectRequestPaneTab(page, 'Settings');
 
-      const resetButton = page.locator('button[title="Reset to inherit"]');
-      await expect(resetButton).toBeVisible();
-      await resetButton.click();
+      // Reset the timeout to inherit
+      await resetRequestTimeoutToInherit(page);
+      await expect(requestSettings.timeoutInheritButton()).toBeVisible();
+      await expect(requestSettings.timeoutInput()).not.toBeVisible();
 
-      const inheritButton = page.locator('button:has-text("Inherit")');
-      await expect(inheritButton).toBeVisible();
-      await expect(timeoutInput).not.toBeVisible();
+      // Save so the inherit setting is serialized to disk
+      await saveRequest(page);
 
-      const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
-      await page.keyboard.press(saveShortcut);
-      await expect(page.getByText('Request saved successfully')).toBeVisible();
-
-      const savedContent = fs.readFileSync(bruRequestPath, 'utf-8');
+      // Verify persistence: the serialized file keeps timeout: inherit (not reset to a custom value)
+      const savedContent = await fs.promises.readFile(
+        path.join(collectionPath, 'requests-settings-bru', 'timeout.bru'),
+        'utf-8'
+      );
       expect(savedContent).toMatch(/timeout:\s*['"]?inherit['"]?/);
 
-      const requestTab = page.locator('.request-tab').filter({ hasText: 'timeout-test' });
-      await requestTab.hover();
-      await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
-
-      await page.getByRole('complementary').getByText('timeout-test').click();
+      // Reopen the request to confirm the inherit state persists in the Settings UI after reload
+      await tabs.requestTab('timeout-test').hover();
+      await tabs.closeTab('timeout-test').click({ force: true });
+      await sidebar.request('timeout-test').click();
       await selectRequestPaneTab(page, 'Settings');
+      await expect(requestSettings.timeoutInheritButton()).toBeVisible();
+      await expect(requestSettings.timeoutInput()).not.toBeVisible();
 
-      await expect(inheritButton).toBeVisible();
-      await expect(timeoutInput).not.toBeVisible();
-
-      await page.getByTestId('send-arrow-icon').click();
-
-      await expect(responsePane).toContainText('timeout of 10ms exceeded', { timeout: 15000 });
-    });
+      // Send and verify the inherited timeout resolves to the preference (10ms), not the file value (5ms)
+      await request.sendButton().click();
+      await expect(response.pane()).toContainText('timeout of 10ms exceeded', { timeout: 15000 });
+    } finally {
+      await closeElectronApp(app);
+    }
   });
 
-  test.describe('yaml request timeout settings', () => {
-    test('should configure and test timeout settings for yaml request', async ({
-      pageWithUserData: page
-    }) => {
-      await expect(page.locator('#sidebar-collection-name').getByText('settings-yaml')).toBeVisible();
+  test('should persist inherit timeout for a yaml request', async ({ launchElectronApp, createTmpDir }) => {
+    test.setTimeout(60000);
+    const { app, page, collectionPath } = await launchWithIsolatedCollections({ launchElectronApp, createTmpDir });
 
-      await page.locator('#sidebar-collection-name').getByText('settings-yaml').click();
-      await page.getByRole('complementary').getByText('timeout-test-yaml').click();
+    try {
+      const { sidebar, requestSettings, request, response, tabs } = buildCommonLocators(page);
 
+      // Open the request from the yaml collection
+      await expect(sidebar.collection('settings-yaml')).toBeVisible();
+      await sidebar.collection('settings-yaml').click();
+      await sidebar.request('timeout-test-yaml').click();
       await selectRequestPaneTab(page, 'Settings');
 
-      const timeoutInput = page.locator('#timeout');
-      await expect(timeoutInput).toBeVisible();
+      // Verify the custom timeout value from the .yml file (5)
+      await expect(requestSettings.timeoutInput()).toBeVisible();
+      await expect(requestSettings.timeoutInput()).toHaveValue('5');
 
-      await expect(timeoutInput).toHaveValue('5');
+      // Send and verify the custom timeout (5ms) is applied
+      await request.sendButton().click();
+      await expect(response.pane()).toContainText('timeout of 5ms exceeded');
 
-      await page.getByTestId('send-arrow-icon').click();
+      // Change the global preference that "inherit" should fall back to
+      await setRequestTimeoutPreference(page, '10');
 
-      const responsePane = page.locator('.response-pane');
-      await expect(responsePane).toContainText('timeout of 5ms exceeded');
-
-      await setGlobalRequestTimeout(page, '10');
-
-      await page.getByRole('complementary').getByText('timeout-test-yaml').click();
+      // Return to the request and Settings tab
+      await sidebar.request('timeout-test-yaml').click();
       await selectRequestPaneTab(page, 'Settings');
 
-      const resetButton = page.locator('button[title="Reset to inherit"]');
-      await expect(resetButton).toBeVisible();
-      await resetButton.click();
+      // Reset the timeout to inherit
+      await resetRequestTimeoutToInherit(page);
+      await expect(requestSettings.timeoutInheritButton()).toBeVisible();
+      await expect(requestSettings.timeoutInput()).not.toBeVisible();
 
-      const inheritButton = page.locator('button:has-text("Inherit")');
-      await expect(inheritButton).toBeVisible();
-      await expect(timeoutInput).not.toBeVisible();
+      // Save so the inherit setting is serialized to disk
+      await saveRequest(page);
 
-      const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
-      await page.keyboard.press(saveShortcut);
-      await expect(page.getByText('Request saved successfully')).toBeVisible();
-
-      const savedContent = fs.readFileSync(yamlRequestPath, 'utf-8');
+      // Verify YAML persistence: the serialized file keeps timeout: inherit (not reset to 0)
+      const savedContent = await fs.promises.readFile(
+        path.join(collectionPath, 'requests-settings-yml', 'timeout.yml'),
+        'utf-8'
+      );
       expect(savedContent).toMatch(/timeout:\s*['"]?inherit['"]?/);
 
-      const requestTab = page.locator('.request-tab').filter({ hasText: 'timeout-test-yaml' });
-      await requestTab.hover();
-      await requestTab.getByTestId('request-tab-close-icon').click({ force: true });
-
-      await page.getByRole('complementary').getByText('timeout-test-yaml').click();
+      // Reopen the request to confirm the inherit state persists in the Settings UI after reload
+      await tabs.requestTab('timeout-test-yaml').hover();
+      await tabs.closeTab('timeout-test-yaml').click({ force: true });
+      await sidebar.request('timeout-test-yaml').click();
       await selectRequestPaneTab(page, 'Settings');
+      await expect(requestSettings.timeoutInheritButton()).toBeVisible();
+      await expect(requestSettings.timeoutInput()).not.toBeVisible();
 
-      await expect(inheritButton).toBeVisible();
-      await expect(timeoutInput).not.toBeVisible();
-
-      await page.getByTestId('send-arrow-icon').click();
-
-      await expect(responsePane).toContainText('timeout of 10ms exceeded', { timeout: 15000 });
-    });
+      // Send and verify the inherited timeout resolves to the preference (10ms), not the file value (5ms)
+      await request.sendButton().click();
+      await expect(response.pane()).toContainText('timeout of 10ms exceeded', { timeout: 15000 });
+    } finally {
+      await closeElectronApp(app);
+    }
   });
 });

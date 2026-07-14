@@ -18,7 +18,7 @@ import { toOpenCollectionActions } from '../common/actions';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
 import { isNumber, isNonEmptyString } from '../../../utils';
-import { TIMEOUT_INHERIT } from '@usebruno/common/utils';
+import { resolveTimeoutSetting } from '@usebruno/common/utils';
 
 const stringifyHttpRequest = (item: BrunoItem): string => {
   try {
@@ -121,12 +121,7 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
       settings.encodeUrl = true;
     }
 
-    const timeout = httpSettings?.timeout;
-    if (isNumber(timeout) || timeout === TIMEOUT_INHERIT) {
-      settings.timeout = timeout;
-    } else {
-      settings.timeout = 0;
-    }
+    settings.timeout = resolveTimeoutSetting(httpSettings?.timeout);
 
     if (httpSettings?.followRedirects === true) {
       settings.followRedirects = true;

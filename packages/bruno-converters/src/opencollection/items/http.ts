@@ -16,7 +16,7 @@ import {
   toOpenCollectionActions,
   fromOpenCollectionAssertions,
   toOpenCollectionAssertions,
-  TIMEOUT_INHERIT
+  resolveTimeoutSetting
 } from '../common';
 import type {
   HttpRequest,
@@ -106,7 +106,7 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
   if (ocRequest.settings) {
     const settings: BrunoHttpItemSettings = {
       encodeUrl: typeof ocRequest.settings.encodeUrl === 'boolean' ? ocRequest.settings.encodeUrl : true,
-      timeout: typeof ocRequest.settings.timeout === 'number' || ocRequest.settings.timeout === TIMEOUT_INHERIT ? ocRequest.settings.timeout : 0,
+      timeout: resolveTimeoutSetting(ocRequest.settings.timeout),
       followRedirects: typeof ocRequest.settings.followRedirects === 'boolean' ? ocRequest.settings.followRedirects : true,
       maxRedirects: typeof ocRequest.settings.maxRedirects === 'number' ? ocRequest.settings.maxRedirects : 5
     };
@@ -222,7 +222,7 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
 
   const settings: HttpRequestSettings = {
     encodeUrl: typeof brunoSettings?.encodeUrl === 'boolean' ? brunoSettings.encodeUrl : true,
-    timeout: typeof brunoSettings?.timeout === 'number' || brunoSettings?.timeout === TIMEOUT_INHERIT ? brunoSettings.timeout : 0,
+    timeout: resolveTimeoutSetting(brunoSettings?.timeout),
     followRedirects: typeof brunoSettings?.followRedirects === 'boolean' ? brunoSettings.followRedirects : true,
     maxRedirects: typeof brunoSettings?.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5
   };

@@ -6,4 +6,4 @@ export { fromOpenCollectionVariables, toOpenCollectionVariables } from './variab
 export { fromOpenCollectionActions, toOpenCollectionActions } from './actions';
 export { fromOpenCollectionScripts, toOpenCollectionScripts } from './scripts';
 export { fromOpenCollectionAssertions, toOpenCollectionAssertions } from './assertions';
-export { TIMEOUT_INHERIT } from '@usebruno/common/utils';
+export { resolveTimeoutSetting } from '@usebruno/common/utils';
