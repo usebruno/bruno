@@ -37,12 +37,14 @@ const stringifyFolder = (folderRoot: FolderRoot): string => {
   try {
     const ocFolder: Folder = {};
 
-    // info block
+    // omit seq when unset so alphabetical folder order is preserved
     const info: FolderInfo = {
       name: folderRoot.meta?.name || 'Untitled Folder',
-      type: 'folder',
-      seq: folderRoot.meta?.seq || 1
+      type: 'folder'
     };
+    if (typeof folderRoot.meta?.seq === 'number') {
+      info.seq = folderRoot.meta.seq;
+    }
     ocFolder.info = info;
 
     // request defaults

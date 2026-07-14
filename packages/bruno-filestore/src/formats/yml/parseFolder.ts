@@ -17,7 +17,7 @@ const parseFolder = (ymlString: string): FolderRoot => {
     const folderRoot: FolderRoot = {
       meta: {
         name: ensureString(info?.name, 'Untitled Folder'),
-        seq: info?.seq || 1
+        ...(typeof info?.seq === 'number' ? { seq: info.seq } : {})
       },
       request: {
         headers: [],

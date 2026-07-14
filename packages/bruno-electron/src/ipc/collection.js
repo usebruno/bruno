@@ -73,6 +73,7 @@ const snapshotManager = require('../services/snapshot');
 const interpolateVars = require('./network/interpolate-vars');
 const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
+const { stampFolderSeqFromDisplayOrder } = require('./migrate-folder-seq');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
@@ -2727,6 +2728,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const bruFiles = searchForFiles(collectionPathname, '.bru');
       const envDirPath = path.join(collectionPathname, 'environments');
       const bruFilesToDelete = [];
+      const folderMigrateItems = [];
 
       for (const bruFilePath of bruFiles) {
         const basename = path.basename(bruFilePath);
@@ -2744,11 +2746,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         if (basename === 'folder.bru') {
           const folderBruContent = fs.readFileSync(bruFilePath, 'utf8');
           const folderData = parseFolder(folderBruContent, { format: 'bru' });
-          const ymlContent = stringifyFolder(folderData, { format: 'yml' });
-          const ymlFilePath = path.join(dirname, 'folder.yml');
-          await writeFile(ymlFilePath, ymlContent);
-          writtenYmlFiles.push(ymlFilePath);
-          bruFilesToDelete.push(bruFilePath);
+          folderMigrateItems.push({
+            bruFilePath,
+            folderPath: dirname,
+            name: folderData?.meta?.name || path.basename(dirname),
+            seq: folderData?.meta?.seq,
+            folderData
+          });
           continue;
         }
 
@@ -2761,6 +2765,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         tabPathMap[bruFilePath] = ymlFilePath;
         writtenYmlFiles.push(ymlFilePath);
         bruFilesToDelete.push(bruFilePath);
+      }
+
+      // Freeze pre-migrate display order (alpha + drag seq) as contiguous yml seq
+      stampFolderSeqFromDisplayOrder(folderMigrateItems);
+      for (const item of folderMigrateItems) {
+        const ymlContent = stringifyFolder(item.folderData, { format: 'yml' });
+        const ymlFilePath = path.join(item.folderPath, 'folder.yml');
+        await writeFile(ymlFilePath, ymlContent);
+        writtenYmlFiles.push(ymlFilePath);
+        bruFilesToDelete.push(item.bruFilePath);
       }
 
       if (fs.existsSync(envDirPath)) {
