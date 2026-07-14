@@ -1,7 +1,7 @@
 import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import * as path from 'path';
-import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, buildWebsocketCommonLocators } from './locators';
+import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
 import { waitForCollectionMount } from './mounting';
 
 type SandboxMode = 'safe' | 'developer';
@@ -1667,6 +1667,15 @@ const closeAllTabs = async (page: Page) => {
   });
 };
 
+// Switch to an already-open request tab by its label (e.g. transient tabs are "Untitled N").
+const switchToOpenTab = async (page: Page, label: string) => {
+  await test.step(`Switch to tab "${label}"`, async () => {
+    const tab = page.getByTestId('request-tab').filter({ has: page.getByText(label, { exact: true }) });
+    await tab.click();
+    await expect(tab).toHaveAttribute('aria-selected', 'true');
+  });
+};
+
 /**
  * Create a new workspace via the title bar dropdown inline rename flow
  * @param page - The page object
@@ -2340,9 +2349,9 @@ const selectAppView = async (page: Page, view: 'code' | 'preview') => {
  */
 const renameWsMessage = async (page: Page, index: number, name: string) => {
   await test.step(`Rename websocket message ${index} to "${name}"`, async () => {
-    const ws = buildWebsocketCommonLocators(page);
-    await ws.message.label(index).dblclick();
-    const nameInput = ws.message.nameInput(index);
+    const { websocket } = buildCommonLocators(page);
+    await websocket.message.label(index).dblclick();
+    const nameInput = websocket.message.nameInput(index);
     await expect(nameInput).toBeVisible();
     await nameInput.selectText();
     await page.keyboard.type(name);
@@ -2449,6 +2458,7 @@ export {
   generateGrpcSampleMessage,
   selectGrpcMethod,
   closeAllTabs,
+  switchToOpenTab,
   createWorkspace,
   switchWorkspace,
   selectScriptSubTab,
