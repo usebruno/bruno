@@ -23,6 +23,9 @@ const defaultPreferences = {
     timeout: 0,
     oauth2: {
       useSystemBrowser: false
+    },
+    clientCertificates: {
+      certs: []
     }
   },
   font: {
@@ -113,7 +116,19 @@ const preferencesSchema = Yup.object().shape({
     timeout: Yup.number(),
     oauth2: Yup.object({
       useSystemBrowser: Yup.boolean()
-    })
+    }),
+    clientCertificates: Yup.object({
+      certs: Yup.array().of(
+        Yup.object({
+          domain: Yup.string().max(1024),
+          type: Yup.string().oneOf(['cert', 'pfx']),
+          certFilePath: Yup.string().nullable(),
+          keyFilePath: Yup.string().nullable(),
+          pfxFilePath: Yup.string().nullable(),
+          passphrase: Yup.string().nullable()
+        })
+      )
+    }).optional()
   }),
   font: Yup.object().shape({
     codeFont: Yup.string().nullable(),
