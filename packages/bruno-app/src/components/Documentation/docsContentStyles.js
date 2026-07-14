@@ -195,13 +195,13 @@ const docsContentStyles = css`
     th,
     td {
       border: 1px solid ${(props) => props.theme.table.border};
-      background-color: ${(props) => props.theme.bg};
+      background-color: transparent;
       box-sizing: border-box;
-      padding: 6px 13px;
+      padding: 12px 16px;
       vertical-align: top;
       position: relative;
       min-width: 60px;
-      min-height: calc(1.5em + 12px);
+      min-height: calc(1.5em + 24px);
       line-height: 1.5;
       word-break: break-word;
     }
@@ -215,11 +215,9 @@ const docsContentStyles = css`
 
     th {
       font-weight: 600;
-      background-color: ${(props) => props.theme.sidebar.bg};
-    }
-
-    tbody tr:nth-child(2n) td {
+      text-align: left;
       background-color: ${(props) => props.theme.table.striped};
+
     }
 
     p {
