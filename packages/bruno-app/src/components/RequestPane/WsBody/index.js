@@ -148,16 +148,45 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     setNewMessageUid(null);
   }, []);
 
-  // Restore the last scroll position on mount (component remounts on tab switch,
-  // so listScrollTop is read synchronously for this request).
+  // Restore the last scroll position on mount (component remounts on tab switch).
+  // The editors render their height after mount, so a one-shot set gets clamped
+  // by a not-yet-full scrollHeight and lands short of where we left off (e.g. the
+  // bottom). Re-apply the target each frame until it sticks (content is tall
+  // enough), then stop. While restoring we suppress handleScroll so the clamped
+  // value can't overwrite the saved one; a real user scroll cancels the restore.
+  const isRestoringRef = useRef(false);
+  const restoreRafRef = useRef(null);
+  const cancelRestore = useCallback(() => {
+    if (restoreRafRef.current !== null) {
+      cancelAnimationFrame(restoreRafRef.current);
+      restoreRafRef.current = null;
+    }
+    isRestoringRef.current = false;
+  }, []);
   useEffect(() => {
     const container = messagesContainerRef.current;
-    if (container) {
-      container.scrollTop = listScrollTop;
-    }
-  }, [item.uid]);
+    if (!container) return;
+    const target = listScrollTop;
+    if (!target) return; // nothing to restore (top) — don't fight a fresh scroll
+    isRestoringRef.current = true;
+    let frames = 0;
+    const apply = () => {
+      const el = messagesContainerRef.current;
+      if (!el || !isRestoringRef.current) return; // cancelled by a user scroll
+      el.scrollTop = target;
+      const stuck = el.scrollTop === target; // false while still clamped by a short scrollHeight
+      if (!stuck && ++frames < 20) {
+        restoreRafRef.current = requestAnimationFrame(apply);
+      } else {
+        cancelRestore();
+      }
+    };
+    restoreRafRef.current = requestAnimationFrame(apply);
+    return cancelRestore;
+  }, [item.uid, cancelRestore]);
 
   const handleScroll = useCallback(() => {
+    if (isRestoringRef.current) return; // don't persist the clamped value mid-restore
     const container = messagesContainerRef.current;
     if (container) {
       setListScrollTop(container.scrollTop);
@@ -188,13 +217,15 @@ const WSBody = ({ item, collection, handleRun, onAddMessage }) => {
     pinScrollRef.current = requestAnimationFrame(pin);
   }, []);
 
-  // A real user scroll (wheel/touch) releases the pin immediately.
+  // A real user scroll (wheel/touch) releases the pin and cancels any in-flight
+  // scroll restore immediately the user is taking over.
   const releasePin = useCallback(() => {
     if (pinScrollRef.current !== null) {
       cancelAnimationFrame(pinScrollRef.current);
       pinScrollRef.current = null;
     }
-  }, []);
+    cancelRestore();
+  }, [cancelRestore]);
 
   useEffect(() => () => cancelAnimationFrame(pinScrollRef.current), []);
 
