@@ -96,7 +96,7 @@ test.describe('Modified indicator for auth tab', () => {
         await page.getByRole('button', { name: 'Save' }).click();
       });
 
-      await test.step(`Create a ${protocol} request inside folder-1 (auth defaults to Inherit)`, async () => {
+      await test.step(`Create a ${protocol} request inside folder-1 and verify its auth mode defaults to Inherit`, async () => {
         await createRequest(page, requestName, 'folder-1', { inFolder: true, requestType, url });
         await openRequest(page, collectionName, requestName);
         await selectRequestPaneTab(page, 'Auth');

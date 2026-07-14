@@ -147,9 +147,15 @@ export const buildCommonLocators = (page: Page) => ({
     // Variables and secrets each live on their own tab in the environment editor.
     variablesTab: () => page.getByTestId('responsive-tab-variables'),
     secretsTab: () => page.getByTestId('responsive-tab-secrets'),
+    // The per-tab unsaved-changes dot, scoped to its tab (the visible tab carries the
+    // responsive-tab testid; the hidden measurement copy does not, so this stays unique).
+    // The dot is always in the DOM and toggles via visibility, so assert with
+    // toBeVisible()/toBeHidden() rather than presence.
+    tabDot: (tab: string) => page.getByTestId(`responsive-tab-${tab}`).getByTestId('env-tab-draft-indicator'),
     saveTab: () => page.getByTestId('save-env'),
     saveAll: () => page.getByTestId('save-all-env'),
     searchInput: () => page.getByTestId('env-search-input'),
+    searchAction: () => page.getByTestId('env-search-action'),
     collectionEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Environments$/ }),
     globalEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Global Environments$/ }),
     unsavedModal: {
@@ -363,9 +369,20 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
   },
   messages: () => page.locator('.ws-message'),
   message: {
+    container: () => page.getByTestId('ws-messages-container'),
+    addButton: () => page.getByTestId('ws-add-message'),
+    headers: () => page.getByTestId(/^ws-message-header-/),
+    header: (index: number) => page.getByTestId(`ws-message-header-${index}`),
+    body: (index: number) => page.getByTestId(`ws-message-body-${index}`),
+    editor: (index: number) => page.getByTestId(`ws-message-body-${index}`).locator('.CodeMirror'),
+    editorPlaceholder: (index: number) =>
+      page.getByTestId(`ws-message-body-${index}`).locator('.CodeMirror-placeholder'),
+    editorCode: (index: number) => page.getByTestId(`ws-message-body-${index}`).locator('.CodeMirror-code'),
     label: (index: number) => page.getByTestId(`ws-message-label-${index}`),
     nameInput: (index: number) => page.getByTestId(`ws-message-name-input-${index}`),
-    nameTooltip: () => page.getByTestId('ws-message-name-tooltip')
+    nameTooltip: () => page.getByTestId('ws-message-name-tooltip'),
+    sendButton: (index: number) => page.getByTestId(`ws-send-msg-${index}`),
+    deleteButton: (index: number) => page.getByTestId(`ws-delete-msg-${index}`)
   },
   toolbar: {
     latestFirst: () => page.getByRole('button', { name: 'Latest First' }),
