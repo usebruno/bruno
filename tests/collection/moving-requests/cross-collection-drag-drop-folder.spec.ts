@@ -168,7 +168,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     // Perform drag and drop operation
     await sourceFolder.dragTo(targetCollection);
 
-    // New behavior: the collision is resolved silently (folder directory suffixed on disk).
+    // collision is resolved silently (folder directory suffixed on disk).
     // No error toast is shown, and no flow fails just because a folder name already exists.
     await expect(page.getByText(/already exists/i)).toHaveCount(0);
 

@@ -137,6 +137,25 @@ const withFileLock = async (pathname, fn) => {
 
 const MAX_DUPLICATE_NAMES = 200;
 
+const MAX_FILENAME_LENGTH = 255;
+// Longest numeric suffix the duplicate cap can append (e.g. 199 -> 3 chars).
+const SUFFIX_RESERVE = String(MAX_DUPLICATE_NAMES - 1).length;
+
+/**
+ * Truncate `base` so that `base` + the largest possible collision suffix + the
+ * extension can never exceed the filesystem filename limit (255). This keeps
+ * both the no-collision name and every suffixed candidate within bounds, so a
+ * max-length name can't trigger ENAMETOOLONG.
+ *
+ * @param {string} base   basename without extension
+ * @param {string} ext    extension without a leading dot ('' for directories)
+ */
+const truncateBaseForSuffix = (base, ext) => {
+  const extLength = ext ? ext.length + 1 : 0;
+  const maxBaseLength = Math.max(1, MAX_FILENAME_LENGTH - extLength - SUFFIX_RESERVE);
+  return base.length > maxBaseLength ? base.slice(0, maxBaseLength) : base;
+};
+
 const firstFreeSuffix = async (dirname, baseName, ext) => {
   let existing;
   try {
@@ -164,13 +183,9 @@ const firstFreeSuffix = async (dirname, baseName, ext) => {
 const writeFileUnique = async (dirname, baseFilename, ext, content) => {
   const normalizedExt = ext && ext.startsWith('.') ? ext.slice(1) : ext;
 
-  const MAX_FILENAME_LENGTH = 255;
-  const extLength = normalizedExt ? normalizedExt.length + 1 : 0;
-  // Reserve exactly enough room for the largest possible suffix (bounded by the
-  // duplicate cap) so base + suffix + ext can never exceed the filename limit.
-  const SUFFIX_RESERVE = String(MAX_DUPLICATE_NAMES - 1).length;
-  const maxBaseLength = Math.max(1, MAX_FILENAME_LENGTH - extLength - SUFFIX_RESERVE);
-  const safeBase = baseFilename.length > maxBaseLength ? baseFilename.slice(0, maxBaseLength) : baseFilename;
+  // Reserve room for the extension + largest possible suffix so base + suffix +
+  // ext can never exceed the filename limit.
+  const safeBase = truncateBaseForSuffix(baseFilename, normalizedExt);
 
   // readdir hint: jump to the first free suffix instead of probing from 0.
   const start = await firstFreeSuffix(dirname, safeBase, normalizedExt);
@@ -199,11 +214,15 @@ const writeFileUnique = async (dirname, baseFilename, ext, content) => {
  * @returns {Promise<{ pathname: string, name: string }>} the directory created
  */
 const mkdirUnique = async (dirname, baseName) => {
+  // Directories have no extension; still reserve room for the suffix so a
+  // max-length name + suffix can't exceed the filename limit.
+  const safeBase = truncateBaseForSuffix(baseName, '');
+
   // readdir hint: jump to the first free suffix instead of probing from 0.
-  const start = await firstFreeSuffix(dirname, baseName, '');
+  const start = await firstFreeSuffix(dirname, safeBase, '');
 
   for (let counter = start; counter < MAX_DUPLICATE_NAMES; counter++) {
-    const name = nextSuffixedName(baseName, '', counter);
+    const name = nextSuffixedName(safeBase, '', counter);
     const pathname = path.join(dirname, name);
     try {
       await fsPromises.mkdir(pathname);
@@ -376,17 +395,28 @@ const safeToRename = (oldPath, newPath) => {
 };
 
 const getUniqueRenamePath = (oldPath, desiredNewPath) => {
-  if (safeToRename(oldPath, desiredNewPath)) {
-    return desiredNewPath;
-  }
   const dir = path.dirname(desiredNewPath);
   const ext = path.extname(desiredNewPath); // '' for directories, '.bru' etc. for files
-  const base = path.basename(desiredNewPath, ext);
+  const rawBase = path.basename(desiredNewPath, ext);
   const extNoDot = ext.startsWith('.') ? ext.slice(1) : ext;
+  // Truncate so both the no-collision name and every suffixed candidate stay
+  // within the filename limit (a max-length name + ext could otherwise exceed it).
+  const base = truncateBaseForSuffix(rawBase, extNoDot);
+
+  // counter 0 = the (possibly truncated) desired name, no suffix.
+  const safeDesired = path.join(dir, nextSuffixedName(base, extNoDot, 0));
+  if (safeToRename(oldPath, safeDesired)) {
+    return safeDesired;
+  }
+
+  // On case-insensitive volumes (Windows/macOS default) a candidate collides with
+  // an existing entry that differs only in case, so compare case-insensitively.
+  const caseInsensitiveFs = isWindowsOS() || process.platform === 'darwin';
+  const normalizeName = (name) => (caseInsensitiveFs ? name.toLowerCase() : name);
 
   let existing;
   try {
-    existing = new Set(fs.readdirSync(dir));
+    existing = new Set(fs.readdirSync(dir).map(normalizeName));
   } catch (err) {
     existing = null;
   }
@@ -394,12 +424,12 @@ const getUniqueRenamePath = (oldPath, desiredNewPath) => {
   for (let counter = 1; counter < MAX_DUPLICATE_NAMES; counter++) {
     const candidate = nextSuffixedName(base, extNoDot, counter);
     const candidatePath = path.join(dir, candidate);
-    const isFree = existing ? !existing.has(candidate) : safeToRename(oldPath, candidatePath);
+    const isFree = existing ? !existing.has(normalizeName(candidate)) : safeToRename(oldPath, candidatePath);
     if (isFree) {
       return candidatePath;
     }
   }
-  throw new Error(`Too many items named "${base}" (limit ${MAX_DUPLICATE_NAMES}). Please use a different name.`);
+  throw new Error(`Too many items named "${rawBase}" (limit ${MAX_DUPLICATE_NAMES}). Please use a different name.`);
 };
 
 /**
@@ -427,7 +457,12 @@ const copyPathTo = async (source, targetPath) => {
 
   const copyTree = async (src, dest) => {
     const stat = await fsPromises.lstat(src);
-    if (stat.isDirectory()) {
+    if (stat.isSymbolicLink()) {
+      // Preserve symlinks by recreating the link rather than dereferencing it —
+      // otherwise a symlinked directory would wrongly fall into copyFile().
+      const linkTarget = await fsPromises.readlink(src);
+      await fsPromises.symlink(linkTarget, dest);
+    } else if (stat.isDirectory()) {
       await fsPromises.mkdir(dest, { recursive: true });
       const entries = await fsPromises.readdir(src);
       for (const entry of entries) {

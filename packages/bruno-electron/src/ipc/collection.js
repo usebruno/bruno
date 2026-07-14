@@ -191,7 +191,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         collectionFolderName = sanitizeName(collectionFolderName);
 
         if (!validateName(collectionFolderName)) {
-          throw new Error(`collection: invalid pathname - ${path.join(collectionLocation, collectionFolderName)}`);
+          throw new Error(utils.validateNameError(collectionFolderName));
         }
 
         // Resolve directory-name collisions silently with a numeric suffix
@@ -250,7 +250,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       collectionFolderName = sanitizeName(collectionFolderName);
 
       if (!validateName(collectionFolderName)) {
-        throw new Error(`collection: invalid pathname - ${path.join(collectionLocation, collectionFolderName)}`);
+        throw new Error(utils.validateNameError(collectionFolderName));
       }
 
       // create dir — resolve name collisions silently with a numeric suffix
@@ -1501,8 +1501,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const format = getCollectionFormat(collectionPathname);
 
       // Recursive function to parse the folder and create files/folders.
-      // Uses for...of so nested async writes are actually awaited (a plain
-      // forEach(async) would resolve the handler before children were written).
       const parseCollectionItems = async (items = [], currentPath) => {
         for (const item of items) {
           if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
@@ -1621,7 +1619,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     return withDirLock(targetDirname, async () => {
       try {
         if (!fs.existsSync(targetDirname)) {
-          return;
+          throw new Error(`Target directory: ${targetDirname} does not exist`);
         }
 
         // No-op if the item is already in the destination directory (e.g. a
@@ -1658,10 +1656,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     return withDirLock(targetDirname, async () => {
       try {
         if (!fs.existsSync(sourcePathname)) {
-          throw new Error(`Source path: ${sourcePathname} does not exist`);
+          throw new Error('The item you are moving no longer exists.');
         }
         if (!fs.existsSync(targetDirname)) {
-          throw new Error(`Target directory: ${targetDirname} does not exist`);
+          throw new Error('The destination folder no longer exists.');
         }
 
         const sourceBasename = path.basename(sourcePathname);

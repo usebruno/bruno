@@ -6,12 +6,16 @@ import { buildCommonLocators } from './locators';
  * the create/rename/clone modals and their fields, and the success/error toasts.
  */
 export const buildNamingCollisionLocators = (page: Page) => ({
-  itemByTitle: (title: string): Locator => page.locator(`.item-name[title="${title}"]`),
+  // Use getByTitle (not a CSS attribute selector) so display names containing
+  // quotes/backslashes don't break the selector, and scope to the sidebar
+  // `.item-name` span — the request tab's `.tab-name` also carries title={name},
+  // so an unscoped getByTitle would double-count items that are open in a tab.
+  itemByTitle: (title: string): Locator => page.locator('.item-name').and(page.getByTitle(title, { exact: true })),
 
   itemRow: (title: string): Locator =>
     page
       .locator('[data-testid="sidebar-collection-item-row"]')
-      .filter({ has: page.locator(`.item-name[title="${title}"]`) }),
+      .filter({ has: page.locator('.item-name').and(page.getByTitle(title, { exact: true })) }),
 
   itemInCollection: (collectionName: string, itemName: string): Locator =>
     page
