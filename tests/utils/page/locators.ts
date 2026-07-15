@@ -3,6 +3,7 @@ import { buildApiSpecPanelLocators } from './openapi/render-spec';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
+import { buildRequestLocators } from './request';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
@@ -13,6 +14,7 @@ export const buildCommonLocators = (page: Page) => ({
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
   websocket: buildWebsocketCommonLocators(page),
+  request: buildRequestLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: {
@@ -164,31 +166,6 @@ export const buildCommonLocators = (page: Page) => ({
     // Yellow warning icon shown when a value can't be coerced to its dataType.
     mismatchIcon: (row: Locator) => row.locator('svg.text-yellow-600'),
     menuItem: (type: string) => page.locator('[role="menu"]').last().getByText(type, { exact: true })
-  },
-  request: {
-    urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
-    urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
-    sendButton: () => page.getByTestId('send-arrow-icon'),
-    methodDropdown: () => page.getByTestId('request-method-selector'),
-    newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
-    requestNameInput: () => page.getByPlaceholder('Request Name'),
-    requestTestId: () => page.getByTestId('request-name'),
-    generateCodeButton: () => page.getByTestId('generate-code-button'),
-    bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
-    bodyEditor: () => page.getByTestId('request-body-editor'),
-    bodyVariableToken: (name: string, state?: 'valid' | 'invalid') => {
-      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
-      return page.getByTestId('request-body-editor').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
-    },
-    urlVariableToken: (name: string, state?: 'valid' | 'invalid') => {
-      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
-      return page.getByTestId('request-url').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
-    },
-    headerVariableToken: (row: Locator, name: string, state?: 'valid' | 'invalid') => {
-      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
-      return row.locator('.CodeMirror').nth(1).locator(selector).filter({ hasText: name }).first();
-    },
-    pane: () => page.getByTestId('request-pane')
   },
   // The variable-info popup shown when hovering a `{{var}}` token in an editor.
   varInfoPopup: {
