@@ -6,7 +6,11 @@ import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import {
+  sendRequest,
+  saveRequest
+} from 'providers/ReduxStore/slices/collections/actions';
+import { shouldMaskValue } from 'utils/auth';
 import StyledWrapper from './StyledWrapper';
 
 const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
@@ -77,10 +81,15 @@ const BasicAuth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
-          isSecret={true}
+          isSecret={shouldMaskValue(basicAuth.password)}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}
+        {showWarning && (
+          <SensitiveFieldWarning
+            fieldName="basic-password"
+            warningMessage={warningMessage}
+          />
+        )}
       </div>
     </StyledWrapper>
   );

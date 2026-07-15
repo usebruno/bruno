@@ -6,6 +6,7 @@ import { useDispatch } from 'react-redux';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
+import { shouldMaskValue } from 'utils/auth';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
@@ -141,7 +142,7 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, upd
             onRun={handleRun}
             collection={collection}
             item={item}
-            isSecret={isSecret}
+            isSecret={isSecret && shouldMaskValue(fieldValue)}
             isCompact
           />
           {showWarning && (

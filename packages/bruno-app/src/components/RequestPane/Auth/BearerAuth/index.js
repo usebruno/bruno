@@ -6,7 +6,11 @@ import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import {
+  sendRequest,
+  saveRequest
+} from 'providers/ReduxStore/slices/collections/actions';
+import { shouldMaskValue } from 'utils/auth';
 import StyledWrapper from './StyledWrapper';
 
 const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
@@ -17,6 +21,8 @@ const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
   const bearerToken = get(request, 'auth.bearer.token', '');
   const { isSensitive } = useDetectSensitiveField(collection);
   const { showWarning, warningMessage } = isSensitive(bearerToken);
+
+  const isSecret = shouldMaskValue(bearerToken);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -49,10 +55,15 @@ const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
-          isSecret={true}
+          isSecret={isSecret}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="bearer-token" warningMessage={warningMessage} />}
+        {showWarning && (
+          <SensitiveFieldWarning
+            fieldName="bearer-token"
+            warningMessage={warningMessage}
+          />
+        )}
       </div>
     </StyledWrapper>
   );

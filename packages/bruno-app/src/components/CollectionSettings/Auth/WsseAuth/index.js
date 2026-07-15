@@ -7,13 +7,16 @@ import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import { shouldMaskValue } from 'utils/auth';
 import StyledWrapper from './StyledWrapper';
 
 const WsseAuth = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const wsseAuth = collection.draft?.root ? get(collection, 'draft.root.request.auth.wsse', {}) : get(collection, 'root.request.auth.wsse', {});
+  const wsseAuth = collection.draft?.root
+    ? get(collection, 'draft.root.request.auth.wsse', {})
+    : get(collection, 'root.request.auth.wsse', {});
   const { isSensitive } = useDetectSensitiveField(collection);
   const { showWarning, warningMessage } = isSensitive(wsseAuth?.password);
 
@@ -67,10 +70,15 @@ const WsseAuth = ({ collection }) => {
           onSave={handleSave}
           onChange={(val) => handlePasswordChange(val)}
           collection={collection}
-          isSecret={true}
+          isSecret={shouldMaskValue(wsseAuth.password)}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="wsse-password" warningMessage={warningMessage} />}
+        {showWarning && (
+          <SensitiveFieldWarning
+            fieldName="wsse-password"
+            warningMessage={warningMessage}
+          />
+        )}
       </div>
     </StyledWrapper>
   );

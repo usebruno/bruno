@@ -6,7 +6,11 @@ import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import {
+  sendRequest,
+  saveRequest
+} from 'providers/ReduxStore/slices/collections/actions';
+import { shouldMaskValue } from 'utils/auth';
 import StyledWrapper from './StyledWrapper';
 
 const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
@@ -94,10 +98,15 @@ const NTLMAuth = ({ item, collection, request, save, updateAuth }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
-          isSecret={true}
+          isSecret={shouldMaskValue(ntlmAuth.password)}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" warningMessage={warningMessage} />}
+        {showWarning && (
+          <SensitiveFieldWarning
+            fieldName="ntlm-password"
+            warningMessage={warningMessage}
+          />
+        )}
       </div>
 
       <label className="block mb-1">Domain</label>

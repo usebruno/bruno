@@ -7,13 +7,16 @@ import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import { shouldMaskValue } from 'utils/auth';
 import StyledWrapper from './StyledWrapper';
 
 const NTLMAuth = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const ntlmAuth = collection.draft?.root ? get(collection, 'draft.root.request.auth.ntlm', {}) : get(collection, 'root.request.auth.ntlm', {});
+  const ntlmAuth = collection.draft?.root
+    ? get(collection, 'draft.root.request.auth.ntlm', {})
+    : get(collection, 'root.request.auth.ntlm', {});
   const { isSensitive } = useDetectSensitiveField(collection);
   const { showWarning, warningMessage } = isSensitive(ntlmAuth?.password);
 
@@ -28,7 +31,6 @@ const NTLMAuth = ({ collection }) => {
           username: username || '',
           password: ntlmAuth.password || '',
           domain: ntlmAuth.domain || ''
-
         }
       })
     );
@@ -84,10 +86,15 @@ const NTLMAuth = ({ collection }) => {
           onSave={handleSave}
           onChange={(val) => handlePasswordChange(val)}
           collection={collection}
-          isSecret={true}
+          isSecret={shouldMaskValue(ntlmAuth.password)}
           isCompact
         />
-        {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" warningMessage={warningMessage} />}
+        {showWarning && (
+          <SensitiveFieldWarning
+            fieldName="ntlm-password"
+            warningMessage={warningMessage}
+          />
+        )}
       </div>
 
       <label className="block mb-1">Domain</label>

@@ -1,7 +1,5 @@
 import { get } from 'lodash';
-import {
-  getTreePathFromCollectionToItem
-} from 'utils/collections/index';
+import { getTreePathFromCollectionToItem } from 'utils/collections/index';
 import { AUTH_MODES } from 'utils/common/constants';
 
 // Resolve inherited auth by traversing up the folder hierarchy
@@ -30,8 +28,15 @@ export const resolveInheritedAuth = (item, collection) => {
   for (let idx = requestTreePath.length - 1; idx >= 0; idx--) {
     const i = requestTreePath[idx];
     if (i.type === 'folder') {
-      const folderAuth = i?.draft ? get(i, 'draft.request.auth') : get(i, 'root.request.auth');
-      if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
+      const folderAuth = i?.draft
+        ? get(i, 'draft.request.auth')
+        : get(i, 'root.request.auth');
+      if (
+        folderAuth
+        && folderAuth.mode
+        && folderAuth.mode !== 'none'
+        && folderAuth.mode !== 'inherit'
+      ) {
         effectiveAuth = folderAuth;
         break;
       }
@@ -47,7 +52,7 @@ export const resolveInheritedAuth = (item, collection) => {
 export const getEffectiveAuthSource = (collection, item) => {
   const authMode = item?.draft
     ? get(item, 'draft.request.auth.mode')
-    : (get(item, 'request.auth.mode') ?? get(item, 'root.request.auth.mode'));
+    : get(item, 'request.auth.mode') ?? get(item, 'root.request.auth.mode');
   if (authMode !== AUTH_MODES.INHERIT) return null;
 
   const collectionRoot = collection?.draft?.root || collection?.root || {};
@@ -63,7 +68,9 @@ export const getEffectiveAuthSource = (collection, item) => {
     const i = requestTreePath[idx];
     if (i?.uid === item?.uid) continue;
     if (i?.type !== 'folder') continue;
-    const folderAuth = i?.draft ? get(i, 'draft.request.auth') : get(i, 'root.request.auth');
+    const folderAuth = i?.draft
+      ? get(i, 'draft.request.auth')
+      : get(i, 'root.request.auth');
     if (!folderAuth || !folderAuth.mode) continue;
     if (folderAuth.mode === AUTH_MODES.INHERIT) continue;
     effectiveSource = {
@@ -83,11 +90,24 @@ export const getEffectiveAuthSource = (collection, item) => {
 export const hasEffectiveAuth = (collection, item, supportedModes) => {
   const auth = item?.draft
     ? get(item, 'draft.request.auth')
-    : (get(item, 'request.auth') ?? get(item, 'root.request.auth'));
-  const mode = auth?.mode === AUTH_MODES.INHERIT
-    ? getEffectiveAuthSource(collection, item)?.auth?.mode
-    : auth?.mode;
+    : get(item, 'request.auth') ?? get(item, 'root.request.auth');
+  const mode
+    = auth?.mode === AUTH_MODES.INHERIT
+      ? getEffectiveAuthSource(collection, item)?.auth?.mode
+      : auth?.mode;
   if (!mode || mode === AUTH_MODES.NONE) return false;
   if (supportedModes && !supportedModes.includes(mode)) return false;
   return true;
+};
+
+/**
+ * Determines whether a value should be masked as a secret in the editor.
+ * Returns false when the value contains a variable reference (e.g. `{{token}}`),
+ * so the reference text stays visible and autocomplete works normally.
+ * Returns true for empty/plain-text values to keep isSecret stable and avoid
+ * visual flashing when the user starts typing.
+ */
+export const shouldMaskValue = (value) => {
+  if (!value || typeof value !== 'string') return true;
+  return !value.includes('{');
 };
