@@ -4,6 +4,8 @@ const os = require('os');
 const path = require('path');
 const http = require('http');
 const { spawn } = require('child_process');
+const yaml = require('js-yaml');
+const { bruToEnvJsonV2 } = require('@usebruno/lang');
 
 const CLI_BIN = path.resolve(__dirname, '..', '..', 'bin', 'bru.js');
 const FIXTURES_DIR = path.join(__dirname, 'fixtures', 'cli-global-env-var-override');
@@ -15,9 +17,11 @@ describe('CLI run — --global-env-var overrides', () => {
   let server;
   let baseUrl;
   let tmpDir;
+  let receivedUrl; // request path the mock server saw this test (one request per run) — lets us assert what reached the run
 
   beforeAll(async () => {
-    server = http.createServer((_req, res) => {
+    server = http.createServer((req, res) => {
+      receivedUrl = req.url; // fixtures interpolate override values into the query string
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
     });
@@ -32,34 +36,39 @@ describe('CLI run — --global-env-var overrides', () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-cli-global-env-var-'));
+    receivedUrl = undefined;
   });
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
+  // Recursively traverse the provided directory, identifying all files.
+  // For each file, replace every instance of the placeholder `{{BASE_URL}}`
+  // with the actual live server URL (`baseUrl`). This ensures that all fixtures
+  // reference the dynamic test HTTP server, enabling isolation and deterministic integration tests.
+  const substituteBaseUrl = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        substituteBaseUrl(full);
+      } else {
+        const content = fs.readFileSync(full, 'utf8');
+        if (content.includes('{{BASE_URL}}')) {
+          fs.writeFileSync(full, content.split('{{BASE_URL}}').join(baseUrl));
+        }
+      }
+    }
+  };
+
   // Fixtures are static on disk but the mock server's port is random per run. Copy the named
   // scenario into a fresh temp dir (so the test can mutate it) and substitute {{BASE_URL}} in
   // text files with the live server URL.
   const stageFixture = (scenario) => {
-    const src = path.join(FIXTURES_DIR, scenario);
-    const dest = path.join(tmpDir, scenario);
-    fs.cpSync(src, dest, { recursive: true });
-
-    const substitute = (dir) => {
-      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-          substitute(full);
-        } else {
-          const content = fs.readFileSync(full, 'utf8');
-          if (content.includes('{{BASE_URL}}')) {
-            fs.writeFileSync(full, content.split('{{BASE_URL}}').join(baseUrl));
-          }
-        }
-      }
-    };
-    substitute(dest);
+    const src = path.join(FIXTURES_DIR, scenario); // get the path of the fixture
+    const dest = path.join(tmpDir, scenario); // get the path of the temp dir
+    fs.cpSync(src, dest, { recursive: true }); // copy the fixture to the temp dir
+    substituteBaseUrl(dest); // substitute the {{BASE_URL}} with the live server URL
     return dest;
   };
 
@@ -100,11 +109,17 @@ describe('CLI run — --global-env-var overrides', () => {
       );
     }
 
+    // check for runtime override value in the request url
+    expect(receivedUrl).toContain('token=transient-cli-value');
+    expect(receivedUrl).not.toContain('real-global-secret');
+
+    // Global env on disk: real secret survives and genuine writes persist, override never lands
     const written = fs.readFileSync(path.join(root, 'workspace', 'environments', 'Global.yml'), 'utf8');
-    expect(written).toMatch(/value:\s*real-global-secret/);
-    expect(written).not.toContain('transient-cli-value');
-    // The unrelated deliberate write still persists.
-    expect(written).toMatch(/name:\s*unrelated[\s\S]*?value:\s*value/);
+    expect(written).not.toContain('transient-cli-value'); // transient override never touches disk
+
+    const varsByName = Object.fromEntries(yaml.load(written).variables.map((v) => [v.name, v.value]));
+    expect(varsByName.token).toBe('real-global-secret');
+    expect(varsByName.persistedByScript).toBe('kept-on-disk');
   }, 60_000);
 
   // --global-env-var is meaningless without a loaded global environment; the guard rejects it
@@ -177,20 +192,28 @@ describe('CLI run — --global-env-var overrides', () => {
       );
     }
 
-    // Global env file: real values kept, injected overrides absent, unrelated write persists.
-    const globalWritten = fs.readFileSync(path.join(root, 'workspace', 'environments', 'Global.yml'), 'utf8');
-    expect(globalWritten).toMatch(/value:\s*real-token/);
-    expect(globalWritten).toMatch(/value:\s*us/);
-    expect(globalWritten).not.toContain('transient-token');
-    expect(globalWritten).not.toContain('eu-transient');
-    expect(globalWritten).toMatch(/name:\s*globalUnrelated[\s\S]*?value:\s*global-kept/);
+    // Runtime request url: both local and global overrides are applied
+    expect(receivedUrl).toContain('token=transient-token');
+    expect(receivedUrl).toContain('region=eu-transient');
+    expect(receivedUrl).toContain('apiKey=transient-api-key');
+    expect(receivedUrl).toContain('stage=transient-stage');
 
-    // Local env file: same guarantees, independently.
+    // Global env on disk: real values survive and genuine writes persist, overrides never land
+    const globalWritten = fs.readFileSync(path.join(root, 'workspace', 'environments', 'Global.yml'), 'utf8');
+    const globalVars = Object.fromEntries(yaml.load(globalWritten).variables.map((v) => [v.name, v.value]));
+    expect(globalVars.token).toBe('real-token'); // real secret kept
+    expect(globalVars.region).toBe('us'); // real value kept
+    expect(globalVars.globalUnrelated).toBe('global-kept'); // genuine (non-override) write persists
+    expect(globalWritten).not.toContain('transient-token'); // injected override never touches disk
+    expect(globalWritten).not.toContain('eu-transient');
+
+    // Local env on disk: real values survive and genuine writes persist, overrides never land
     const localWritten = fs.readFileSync(path.join(collectionDir, 'environments', 'Local.bru'), 'utf8');
-    expect(localWritten).toMatch(/apiKey:\s*real-api-key/);
-    expect(localWritten).toMatch(/stage:\s*prod/);
-    expect(localWritten).not.toContain('transient-api-key');
+    const localVars = Object.fromEntries(bruToEnvJsonV2(localWritten).variables.map((v) => [v.name, v.value]));
+    expect(localVars.apiKey).toBe('real-api-key'); // real secret kept
+    expect(localVars.stage).toBe('prod'); // real value kept
+    expect(localVars.localUnrelated).toBe('local-kept'); // genuine (non-override) write persists
+    expect(localWritten).not.toContain('transient-api-key'); // injected override never touches disk
     expect(localWritten).not.toContain('transient-stage');
-    expect(localWritten).toMatch(/localUnrelated:\s*local-kept/);
   }, 60_000);
 });
