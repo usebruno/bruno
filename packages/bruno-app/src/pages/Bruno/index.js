@@ -124,11 +124,11 @@ export default function Main() {
           <Sidebar />
           <section className="flex flex-grow flex-col overflow-hidden">
             {showApiSpecPage && activeApiSpecUid ? (
-              <Suspense fallback={<PageLoader />}>
+              <Suspense fallback={<PageLoader name="API Spec" />}>
                 <ApiSpecPanel key={activeApiSpecUid} />
               </Suspense>
             ) : showManageWorkspacePage ? (
-              <Suspense fallback={<PageLoader />}>
+              <Suspense fallback={<PageLoader name="workspace" />}>
                 <ManageWorkspace />
               </Suspense>
             ) : (
@@ -148,12 +148,12 @@ export default function Main() {
             )}
           </section>
           {isAiSidebarOpen && activeCollection && isAiPoppedOut && (
-            <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader name="AI Assistant" />}>
               <AiChatPopout collection={activeCollection} />
             </Suspense>
           )}
           {isAiSidebarOpen && activeCollection && !isAiPoppedOut && !showApiSpecPage && !showManageWorkspacePage && (
-            <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader name="AI Assistant" />}>
               <AiChatSidebar collection={activeCollection} />
             </Suspense>
           )}

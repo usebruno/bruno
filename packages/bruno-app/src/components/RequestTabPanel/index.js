@@ -425,7 +425,7 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'changelog') {
     return (
-      <React.Suspense fallback={<RequestTabPanelLoading />}>
+      <React.Suspense fallback={<RequestTabPanelLoading name="changelog" />}>
         <ChangelogTab />
       </React.Suspense>
     );
@@ -528,7 +528,7 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'openapi-sync') {
     return (
-      <React.Suspense fallback={<RequestTabPanelLoading />}>
+      <React.Suspense fallback={<RequestTabPanelLoading name="OpenAPI Sync" />}>
         <OpenAPISyncTab collection={collection} />
       </React.Suspense>
     );
@@ -536,7 +536,7 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'openapi-spec') {
     return (
-      <React.Suspense fallback={<RequestTabPanelLoading />}>
+      <React.Suspense fallback={<RequestTabPanelLoading name="OpenAPI Spec" />}>
         <OpenAPISpecTab collection={collection} tabUid={focusedTab.uid} />
       </React.Suspense>
     );
