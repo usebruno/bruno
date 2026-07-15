@@ -333,7 +333,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
 
   return (
     <StyledWrapper $replaceVisible={replaceVisible}>
-      <div className="bruno-search-bar" ref={containerRef} data-testid="search-bar">
+      <div className="bruno-search-bar" ref={containerRef} data-testid="codemirror-search-bar">
         <button
           type="button"
           className={`toggle-replace-btn${replaceVisible ? ' active' : ''}`}
@@ -357,7 +357,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
               onChange={(e) => handleSearchTextChange(e.target.value)}
               placeholder="Search..."
               spellCheck={false}
-              data-testid="search-input"
+              data-testid="codemirror-search-input"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && replaceVisible && !isReplaceDisabled) {
                   e.preventDefault();
@@ -369,19 +369,19 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
                 }
               }}
             />
-            <span className="searchbar-result-count" data-testid="match-count">{matchCount > 0 ? `${matchIndex + 1} / ${matchCount}` : '0 results'}</span>
+            <span className="searchbar-result-count" data-testid="codemirror-search-result-count">{matchCount > 0 ? `${matchIndex + 1} / ${matchCount}` : '0 results'}</span>
             <ToolHint text="Regex search" toolhintId="searchbar-regex-toolhint" place="top">
-              <button type="button" className={`searchbar-icon-btn ${regex ? 'active' : ''}`} onClick={handleToggleRegex} data-testid="search-regex-btn"><IconRegex size={16} /></button>
+              <button type="button" className={`searchbar-icon-btn ${regex ? 'active' : ''}`} onClick={handleToggleRegex} data-testid="codemirror-search-regex-btn"><IconRegex size={16} /></button>
             </ToolHint>
             <ToolHint text="Case sensitive" toolhintId="searchbar-case-toolhint" place="top">
-              <button type="button" className={`searchbar-icon-btn ${caseSensitive ? 'active' : ''}`} onClick={handleToggleCase} data-testid="search-case-btn"><IconLetterCase size={14} /></button>
+              <button type="button" className={`searchbar-icon-btn ${caseSensitive ? 'active' : ''}`} onClick={handleToggleCase} data-testid="codemirror-search-case-btn"><IconLetterCase size={14} /></button>
             </ToolHint>
             <ToolHint text="Whole word" toolhintId="searchbar-wholeword-toolhint" place="top">
-              <button type="button" className={`searchbar-icon-btn ${wholeWord ? 'active' : ''}`} onClick={handleToggleWholeWord} data-testid="search-wholeword-btn"><IconLetterW size={14} /></button>
+              <button type="button" className={`searchbar-icon-btn ${wholeWord ? 'active' : ''}`} onClick={handleToggleWholeWord} data-testid="codemirror-search-wholeword-btn"><IconLetterW size={14} /></button>
             </ToolHint>
-            <button type="button" className="searchbar-icon-btn" title="Previous (Shift+Enter)" onClick={handlePrev} data-testid="search-prev-btn"><IconArrowUp size={14} /></button>
-            <button type="button" className="searchbar-icon-btn" title="Next (Enter)" onClick={handleNext} data-testid="search-next-btn"><IconArrowDown size={14} /></button>
-            <button type="button" className="searchbar-icon-btn" title="Close" onClick={handleSearchBarClose} data-testid="search-close-btn"><IconX size={14} /></button>
+            <button type="button" className="searchbar-icon-btn" title="Previous (Shift+Enter)" onClick={handlePrev} data-testid="codemirror-search-prev-btn"><IconArrowUp size={14} /></button>
+            <button type="button" className="searchbar-icon-btn" title="Next (Enter)" onClick={handleNext} data-testid="codemirror-search-next-btn"><IconArrowDown size={14} /></button>
+            <button type="button" className="searchbar-icon-btn" title="Close" onClick={handleSearchBarClose} data-testid="codemirror-search-close-btn"><IconX size={14} /></button>
           </div>
           {replaceVisible && !readOnly && (
             <div className="replace-row">
@@ -392,7 +392,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
                 onChange={(e) => setReplaceText(e.target.value)}
                 placeholder="Replace..."
                 spellCheck={false}
-                data-testid="replace-input"
+                data-testid="codemirror-search-replace-input"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !isReplaceDisabled) {
                     e.preventDefault();
@@ -403,10 +403,10 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
                 }}
               />
               <ToolHint text="Replace" toolhintId="searchbar-replace-toolhint" place="top">
-                <button type="button" aria-label="Replace" className="searchbar-icon-btn" disabled={isReplaceDisabled} onClick={handleReplace} data-testid="replace-btn"><IconReplace size={15} /></button>
+                <button type="button" aria-label="Replace" className="searchbar-icon-btn" disabled={isReplaceDisabled} onClick={handleReplace} data-testid="codemirror-search-replace-btn"><IconReplace size={15} /></button>
               </ToolHint>
               <ToolHint text="Replace all" toolhintId="searchbar-replaceall-toolhint" place="top">
-                <button type="button" aria-label="Replace all" className="searchbar-icon-btn" disabled={isReplaceDisabled} onClick={handleReplaceAll} data-testid="replace-all-btn"><IconArrowsExchange2 size={15} /></button>
+                <button type="button" aria-label="Replace all" className="searchbar-icon-btn" disabled={isReplaceDisabled} onClick={handleReplaceAll} data-testid="codemirror-search-replaceall-btn"><IconArrowsExchange2 size={15} /></button>
               </ToolHint>
             </div>
           )}

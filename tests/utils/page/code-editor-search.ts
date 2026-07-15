@@ -14,18 +14,18 @@ export const buildCodeEditorSearchLocators = (page: Page, editorId: string) => {
   return {
     editor: () => page.getByTestId(editorId),
     codeMirror: () => page.getByTestId(editorId).locator('.CodeMirror').first(),
-    searchBar: () => scoped('search-bar'),
-    searchInput: () => scoped('search-input'),
-    replaceInput: () => scoped('replace-input'),
-    matchCount: () => scoped('match-count'),
-    searchRegexBtn: () => scoped('search-regex-btn'),
-    searchCaseBtn: () => scoped('search-case-btn'),
-    searchWholeWordBtn: () => scoped('search-wholeword-btn'),
-    searchPrevBtn: () => scoped('search-prev-btn'),
-    searchNextBtn: () => scoped('search-next-btn'),
-    searchCloseBtn: () => scoped('search-close-btn'),
-    replaceBtn: () => scoped('replace-btn'),
-    replaceAllBtn: () => scoped('replace-all-btn')
+    searchBar: () => scoped('codemirror-search-bar'),
+    searchInput: () => scoped('codemirror-search-input'),
+    replaceInput: () => scoped('codemirror-search-replace-input'),
+    matchCount: () => scoped('codemirror-search-result-count'),
+    searchRegexBtn: () => scoped('codemirror-search-regex-btn'),
+    searchCaseBtn: () => scoped('codemirror-search-case-btn'),
+    searchWholeWordBtn: () => scoped('codemirror-search-wholeword-btn'),
+    searchPrevBtn: () => scoped('codemirror-search-prev-btn'),
+    searchNextBtn: () => scoped('codemirror-search-next-btn'),
+    searchCloseBtn: () => scoped('codemirror-search-close-btn'),
+    replaceBtn: () => scoped('codemirror-search-replace-btn'),
+    replaceAllBtn: () => scoped('codemirror-search-replaceall-btn')
   };
 };
 
