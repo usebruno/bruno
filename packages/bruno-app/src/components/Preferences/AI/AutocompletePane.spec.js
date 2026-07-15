@@ -45,7 +45,10 @@ describe('AutocompletePane shortcut copy', () => {
     ['non-macOS', 'Ctrl']
   ])('shows the %s modifier in the keymap', (_platform, modifier) => {
     renderPane(modifier);
-    expect(screen.getByText(modifier)).toBeInTheDocument();
+    // The modifier key appears in multiple shortcuts (accept word and trigger).
+    const modifierKeys = screen.getAllByText(modifier);
+    expect(modifierKeys.length).toBeGreaterThan(0);
+    modifierKeys.forEach((key) => expect(key).toBeInTheDocument());
   });
 
   it('shows the platform modifier in the manual trigger description', () => {
