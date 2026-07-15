@@ -29,8 +29,7 @@ const StyledWrapper = styled.div`
     z-index: 1;
     background: ${(props) => props.theme.bg};
 
-    &:hover,
-    &:focus-within {
+    &:hover {
       z-index: 2;
     }
 

@@ -40,7 +40,12 @@ const WSRequestBodyMode = ({ mode, onModeChange }) => {
   return (
     <StyledWrapper>
       <div className="inline-flex items-center cursor-pointer body-mode-selector" data-testid="ws-body-mode-selector">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+        <Dropdown
+          onCreate={onDropdownCreate}
+          icon={<Icon />}
+          placement="bottom-end"
+          appendTo={() => document.body}
+        >
           <div className="label-item font-medium">Raw</div>
           {RAW_MODES.map((d) => (
             <div
