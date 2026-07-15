@@ -3,6 +3,7 @@ import { buildApiSpecPanelLocators } from './openapi/render-spec';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
+import { buildWebsocketCommonLocators } from './websocket';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
@@ -364,38 +365,6 @@ export const buildCommonLocators = (page: Page) => ({
       },
       rowValueInput: (rowIndex: number) => baseTable.rowCell('value', rowIndex)
     };
-  }
-});
-
-export const buildWebsocketCommonLocators = (page: Page) => ({
-  connectionControls: {
-    connect: () => page.getByTestId('ws-connect-button'),
-    disconnect: () => page.getByTestId('ws-disconnect-button')
-  },
-  messages: () => page.locator('.ws-message'),
-  message: {
-    container: () => page.getByTestId('ws-messages-container'),
-    addButton: () => page.getByTestId('ws-add-message'),
-    headers: () => page.getByTestId(/^ws-message-header-/),
-    header: (index: number) => page.getByTestId(`ws-message-header-${index}`),
-    body: (index: number) => page.getByTestId(`ws-message-body-${index}`),
-    editor: (index: number) => page.getByTestId(`ws-message-body-${index}`).locator('.CodeMirror'),
-    editorPlaceholder: (index: number) =>
-      page.getByTestId(`ws-message-body-${index}`).locator('.CodeMirror-placeholder'),
-    editorCode: (index: number) => page.getByTestId(`ws-message-body-${index}`).locator('.CodeMirror-code'),
-    labels: () => page.getByTestId(/^ws-message-label-/),
-    label: (index: number) => page.getByTestId(`ws-message-label-${index}`),
-    nameInputs: () => page.getByTestId(/^ws-message-name-input-/),
-    nameInput: (index: number) => page.getByTestId(`ws-message-name-input-${index}`),
-    nameTooltip: () => page.getByTestId('ws-message-name-tooltip'),
-    prettifyAll: () => page.getByTestId('ws-prettify-all'),
-    sendButton: (index: number) => page.getByTestId(`ws-send-msg-${index}`),
-    deleteButton: (index: number) => page.getByTestId(`ws-delete-msg-${index}`)
-  },
-  toolbar: {
-    latestFirst: () => page.getByRole('button', { name: 'Latest First' }),
-    latestLast: () => page.getByRole('button', { name: 'Latest Last' }),
-    clearResponse: () => page.getByTestId('response-clear-btn')
   }
 });
 
