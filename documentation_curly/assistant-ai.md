@@ -31,7 +31,7 @@ Les réponses du LLM sont affichées en temps réel via streaming (Server-Sent E
 
 ## Configuration
 
-L'Assistant AI se configure via des **variables d'environnement** à définir avant de lancer Bruno.
+L'Assistant AI se configure via des **variables d'environnement** à définir avant de lancer Curly CATS.
 
 ### Variables d'environnement
 

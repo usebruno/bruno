@@ -1,6 +1,15 @@
+const fs = require('fs');
 const { spawn } = require('child_process');
 const path = require('path');
+const dotenv = require('dotenv');
 
+const rootDir = path.join(__dirname, '..');
+const envPath = path.join(rootDir, '.env');
+
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath });
+  console.log(`✅ Loaded environment from ${envPath}`);
+}
 
 // ANSI color codes
 const colors = {
@@ -23,7 +32,6 @@ const log = {
   label: (label, msg) => console.log(`${colors.bright}${colors.magenta}[${label}]${colors.reset} ${msg}`)
 };
 
-const rootDir = path.join(__dirname, '..');
 const webDir = path.join(rootDir, 'packages/bruno-app');
 const electronDir = path.join(rootDir, 'packages/bruno-electron');
 

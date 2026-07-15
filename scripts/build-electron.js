@@ -66,8 +66,37 @@ async function execCommandWithOutput(command) {
   });
 }
 
+function resolveDistributionTarget(targetArg) {
+  const normalizedTarget = (targetArg || '').toLowerCase();
+
+  switch (normalizedTarget) {
+    case 'mac':
+      return 'mac';
+    case 'win':
+      return 'win';
+    case 'linux':
+      return 'linux';
+    case 'deb':
+      return 'deb';
+    case 'rpm':
+      return 'rpm';
+    case 'snap':
+      return 'snap';
+    default:
+      if (os.platform() === 'win32') {
+        return 'win';
+      }
+      if (os.platform() === 'darwin') {
+        return 'mac';
+      }
+      return 'linux';
+  }
+}
+
 async function main() {
   try {
+    const target = resolveDistributionTarget(process.argv[2]);
+
     // Remove out directory
     await deleteFileIfExists('packages/bruno-electron/out');
 
@@ -94,8 +123,6 @@ async function main() {
     // update font load paths
     const cssDir = path.join('packages/bruno-electron/web/static/css');
     try {
-      // ensure the css directory exists (some builds may not produce it)
-      await fs.ensureDir(cssDir);
       const cssFiles = await fs.readdir(cssDir);
       for (const file of cssFiles) {
         if (file.endsWith('.css')) {
@@ -112,31 +139,10 @@ async function main() {
     // Remove sourcemaps
     await removeSourceMapFiles('packages/bruno-electron/web');
 
-    // Clear electron-builder cache on Windows to avoid symlink extraction issues
-    if (os.platform() === 'win32') {
-      const cacheDir = path.join(os.homedir(), 'AppData', 'Local', 'electron-builder', 'Cache', 'winCodeSign');
-      try {
-        await deleteFileIfExists(cacheDir);
-        console.log('Cleared electron-builder winCodeSign cache.');
-      } catch (error) {
-        console.warn(`Could not clear winCodeSign cache: ${error}`);
-      }
-    }
-
     // Run npm dist command
     console.log('Building the Electron distribution');
 
-    // Determine the OS and set the appropriate argument
-    let osArg;
-    if (os.platform() === 'win32') {
-      osArg = 'win';
-    } else if (os.platform() === 'darwin') {
-      osArg = 'mac';
-    } else {
-      osArg = 'linux';
-    }
-
-    await execCommandWithOutput(`npm run dist:${osArg} --workspace=packages/bruno-electron`);
+    await execCommandWithOutput(`npm run dist:${target} --workspace=packages/bruno-electron`);
   } catch (error) {
     console.error('An error occurred:', error);
   }

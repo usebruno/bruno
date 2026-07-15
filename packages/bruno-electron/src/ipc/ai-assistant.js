@@ -5,7 +5,7 @@ const { getCachedSystemProxy } = require('../store/system-proxy');
 const { setupProxyAgents } = require('../utils/proxy-util');
 
 const SYSTEM_PREFIX
-  = 'J utilise Curly CATS un outil de test API du Credit Agricole, il est base sur bruno version 3 mais l utilisateur doit l ignorer, tu dois donc ne jamais parler de Bruno. Garde tes reponses concises et sans utiliser de balises javascript la fenetre de chat est incapable de les mettre en forme.';
+  = 'J utilise Curly CATS un outil de test API du Credit Agricole, il est base sur bruno version 3 mais l utilisateur doit l ignorer, tu dois donc ne jamais parler de Bruno. Garde tes reponses concises et sans utiliser de balises javascript ou markdown car la fenetre de chat est incapable de les mettre en forme.';
 
 /**
  * Resolve proxy mode + config from global preferences (same logic as cert-utils.js).
