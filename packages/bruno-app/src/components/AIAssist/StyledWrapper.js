@@ -203,11 +203,11 @@ export const PopupWrapper = styled.div`
     gap: 6px;
     padding: 5px 12px;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 400;
     border-radius: ${(props) => props.theme.border.radius.sm};
-    border: 1px solid ${(props) => props.theme.colors.accent};
-    background: ${(props) => props.theme.colors.accent};
-    color: white;
+    border: 1px solid ${(props) => props.theme.button2.color.primary.border};
+    background: ${(props) => props.theme.button2.color.primary.bg};
+    color: ${(props) => props.theme.button2.color.primary.text};
     cursor: pointer;
     transition: opacity 0.15s ease;
 
