@@ -125,7 +125,7 @@ For each test file:
 ## Readability and Abstractions
 
 - Extract abstractions that improve readability or serve clear, anticipated reuse.
-- Avoid abstractions that add indirection without improving clarity or earning reuse.
+- Avoid abstractions that add complexity without improving clarity or earning reuse.
 - Names for functions need to be concise and descriptive.
 - Add in JSDoc comments to add more details to the abstractions if needed.
 - Follow functional programming but just enough to be readable, we don't need to go as deep as ADTs and Monads, we want to keep the code pipeline obvious and easy for everyone to read and contribute to.
