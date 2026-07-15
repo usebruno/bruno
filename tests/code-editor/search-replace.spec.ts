@@ -1,5 +1,13 @@
 import { test, expect, Page } from '../../playwright';
-import { selectRequestPaneTab, closeAllCollections, createCollection, createRequest } from '../utils/page';
+import { closeAllCollections, createCollection, createRequest } from '../utils/page';
+import {
+  buildCodeEditorSearchLocators,
+  openPreRequestScriptEditor,
+  setCodeEditorContent,
+  openCodeEditorSearchBar,
+  openCodeEditorReplaceBar,
+  closeCodeEditorSearchBar
+} from '../utils/page/code-editor-search';
 import process from 'node:process';
 
 const cmdKey = process.platform === 'darwin' ? 'Meta' : 'Control';
@@ -15,348 +23,280 @@ const LARGE_DOC = Array.from(
     + `Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n`
 ).join('\n');
 
-async function openScriptEditor(page: Page) {
-  await selectRequestPaneTab(page, 'Script');
-
-  await page.getByTestId('tab-trigger-pre-request').click();
-  await page.getByTestId(EDITOR_ID).waitFor({ state: 'visible' });
-}
-
-async function setEditorContent(page: Page, content: string) {
-  const cm = page.getByTestId(EDITOR_ID).locator('.CodeMirror').first();
-  await cm.waitFor({ state: 'visible' });
-  await cm.evaluate((el: any, val: string) => {
-    if (el.CodeMirror) el.CodeMirror.setValue(val);
-  }, content);
-  await page.waitForTimeout(50);
-}
-
-async function resetSearchOptions(page: Page) {
-  for (const testId of ['search-case-btn', 'search-regex-btn', 'search-wholeword-btn']) {
-    const btn = page.getByTestId(EDITOR_ID).getByTestId(testId);
-    const cls = await btn.getAttribute('class');
-    if (cls?.includes('active')) await btn.click();
-  }
-}
-
-async function openSearchBar(page: Page) {
-  await openScriptEditor(page);
-  const cm = page.getByTestId(EDITOR_ID).locator('.CodeMirror').first();
-  await cm.evaluate((el: any) => {
-    if (el.CodeMirror) {
-      el.CodeMirror.setCursor({ line: 0, ch: 0 });
-      el.CodeMirror.focus();
-    }
-  });
-  await page.keyboard.press(`${cmdKey}+f`);
-  await page.getByTestId(EDITOR_ID).getByTestId('search-bar').waitFor({ state: 'visible' });
-  await resetSearchOptions(page);
-}
-
-async function openReplaceBar(page: Page) {
-  await openScriptEditor(page);
-  const cm = page.getByTestId(EDITOR_ID).locator('.CodeMirror').first();
-  await cm.evaluate((el: any) => {
-    if (el.CodeMirror) {
-      el.CodeMirror.setCursor({ line: 0, ch: 0 });
-      el.CodeMirror.focus();
-    }
-  });
-
-  await page.keyboard.press('Control+Alt+f');
-  await page.getByTestId(EDITOR_ID).getByTestId('search-bar').waitFor({ state: 'visible' });
-  await page.getByTestId(EDITOR_ID).getByTestId('replace-input').waitFor({ state: 'visible' });
-  await resetSearchOptions(page);
-}
-
-async function closeSearchBar(page: Page) {
-  await page.keyboard.press('Escape');
-  await page.getByTestId(EDITOR_ID).getByTestId('search-bar').waitFor({ state: 'hidden' });
-}
-
+/**
+ * Assertion helper — calls expect so it stays in the spec, not the page module.
+ */
 async function expectMatchCount(page: Page, expected: string) {
-  await expect(page.getByTestId(EDITOR_ID).getByTestId('match-count')).toHaveText(expected, { timeout: 1500 });
+  const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+  await expect(loc.matchCount()).toHaveText(expected, { timeout: 1500 });
 }
 
+// Serial so each test sees the editor state left by the previous one (shared CM instance).
 test.describe.serial('CodeEditor Search/Replace', () => {
+  // Create the collection + request once and seed the editor with LARGE_DOC.
   test.beforeAll(async ({ page, createTmpDir }) => {
     const tmpDir = await createTmpDir('search-replace');
     await createCollection(page, COLLECTION, tmpDir);
     await createRequest(page, REQUEST, COLLECTION);
-    await openScriptEditor(page);
-    await setEditorContent(page, LARGE_DOC);
+    await openPreRequestScriptEditor(page, EDITOR_ID);
+    await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);
   });
 
+  // Remove the collection so the workspace is clean for the next suite.
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });
 
+  // Dismiss any leftover search bar and restore the full document before each test.
   test.beforeEach(async ({ page }) => {
-    await openScriptEditor(page);
-    const searchBar = page.getByTestId(EDITOR_ID).getByTestId('search-bar');
-    if (await searchBar.isVisible()) {
-      await page.getByTestId(EDITOR_ID).getByTestId('search-close-btn').click();
-      await searchBar.waitFor({ state: 'hidden' });
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openPreRequestScriptEditor(page, EDITOR_ID);
+    if (await loc.searchBar().isVisible()) {
+      await loc.searchCloseBtn().click();
+      await loc.searchBar().waitFor({ state: 'hidden' });
     }
-    await setEditorContent(page, LARGE_DOC);
+    await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);
   });
 
   test('Cmd+F opens the search bar', async ({ page }) => {
-    await openSearchBar(page);
-    await expect(page.getByTestId(EDITOR_ID).getByTestId('search-bar')).toBeVisible();
-    await closeSearchBar(page);
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openCodeEditorSearchBar(page, EDITOR_ID);
+    await expect(loc.searchBar()).toBeVisible();
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('Escape closes the search bar', async ({ page }) => {
-    await openSearchBar(page);
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openCodeEditorSearchBar(page, EDITOR_ID);
     await page.keyboard.press('Escape');
-    await expect(page.getByTestId(EDITOR_ID).getByTestId('search-bar')).toBeHidden();
+    await expect(loc.searchBar()).toBeHidden();
   });
 
   test('close button closes the search bar', async ({ page }) => {
-    await openSearchBar(page);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-close-btn').click();
-    await expect(page.getByTestId(EDITOR_ID).getByTestId('search-bar')).toBeHidden();
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openCodeEditorSearchBar(page, EDITOR_ID);
+    await loc.searchCloseBtn().click();
+    await expect(loc.searchBar()).toBeHidden();
   });
 
   test('search input is auto-focused on open', async ({ page }) => {
-    await openSearchBar(page);
-    await expect(page.getByTestId(EDITOR_ID).getByTestId('search-input')).toBeFocused();
-    await closeSearchBar(page);
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openCodeEditorSearchBar(page, EDITOR_ID);
+    await expect(loc.searchInput()).toBeFocused();
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('Cmd+F with text selected pre-fills the search input', async ({ page }) => {
-    await openScriptEditor(page);
-    const cm = page.getByTestId(EDITOR_ID).locator('.CodeMirror').first();
-    await cm.evaluate((el: any) => {
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openPreRequestScriptEditor(page, EDITOR_ID);
+    await loc.codeMirror().evaluate((el: any) => {
       if (el.CodeMirror) {
         el.CodeMirror.setSelection({ line: 0, ch: 3 }, { line: 0, ch: 10 });
         el.CodeMirror.focus();
       }
     });
     await page.keyboard.press(`${cmdKey}+f`);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-bar').waitFor({ state: 'visible' });
-    await expect(page.getByTestId(EDITOR_ID).getByTestId('search-input')).toHaveValue('Section');
+    await loc.searchBar().waitFor({ state: 'visible' });
+    await expect(loc.searchInput()).toHaveValue('Section');
     await expectMatchCount(page, '1 / 200');
-    await closeSearchBar(page);
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('typing finds all matches in the document', async ({ page }) => {
-    await openSearchBar(page);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('lorem');
-    await expect(page.getByTestId(EDITOR_ID).getByTestId('match-count')).toContainText('/ 400', { timeout: 1500 });
-    await closeSearchBar(page);
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openCodeEditorSearchBar(page, EDITOR_ID);
+    await loc.searchInput().fill('lorem');
+    await expect(loc.matchCount()).toContainText('/ 400', { timeout: 1500 });
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('unknown term shows 0 results', async ({ page }) => {
-    await openSearchBar(page);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('xyznothere');
-    await expect(page.getByTestId(EDITOR_ID).getByTestId('match-count')).toHaveText('0 results', { timeout: 1500 });
-    await closeSearchBar(page);
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openCodeEditorSearchBar(page, EDITOR_ID);
+    await loc.searchInput().fill('xyznothere');
+    await expect(loc.matchCount()).toHaveText('0 results', { timeout: 1500 });
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('clearing the search input resets match count', async ({ page }) => {
-    await openSearchBar(page);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('lorem');
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openCodeEditorSearchBar(page, EDITOR_ID);
+    await loc.searchInput().fill('lorem');
     await expectMatchCount(page, '1 / 400');
-    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('');
-    await expect(page.getByTestId(EDITOR_ID).getByTestId('match-count')).toHaveText('0 results', { timeout: 1500 });
-    await closeSearchBar(page);
+    await loc.searchInput().fill('');
+    await expect(loc.matchCount()).toHaveText('0 results', { timeout: 1500 });
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('Enter navigates to next match', async ({ page }) => {
-    await openSearchBar(page);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('Section');
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openCodeEditorSearchBar(page, EDITOR_ID);
+    await loc.searchInput().fill('Section');
     await expectMatchCount(page, '1 / 200');
     await page.keyboard.press('Enter');
     await expectMatchCount(page, '2 / 200');
     await page.keyboard.press('Enter');
     await expectMatchCount(page, '3 / 200');
-    await closeSearchBar(page);
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('Shift+Enter goes to previous match and wraps from 1 to last', async ({ page }) => {
-    await openSearchBar(page);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('Section');
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openCodeEditorSearchBar(page, EDITOR_ID);
+    await loc.searchInput().fill('Section');
     await expectMatchCount(page, '1 / 200');
     await page.keyboard.press('Shift+Enter');
     await expectMatchCount(page, '200 / 200');
-    await closeSearchBar(page);
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('Next/Prev buttons wrap around', async ({ page }) => {
-    await openSearchBar(page);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('lorem');
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openCodeEditorSearchBar(page, EDITOR_ID);
+    await loc.searchInput().fill('lorem');
     await expectMatchCount(page, '1 / 400');
-
-    await page.getByTestId(EDITOR_ID).getByTestId('search-prev-btn').click();
+    await loc.searchPrevBtn().click();
     await expectMatchCount(page, '400 / 400');
-
-    await page.getByTestId(EDITOR_ID).getByTestId('search-next-btn').click();
+    await loc.searchNextBtn().click();
     await expectMatchCount(page, '1 / 400');
-
-    await closeSearchBar(page);
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('search anchors to cursor position when opened mid-document', async ({ page }) => {
-    await openScriptEditor(page);
-
-    const cm = page.getByTestId(EDITOR_ID).locator('.CodeMirror').first();
-    await cm.evaluate((el: any) => {
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openPreRequestScriptEditor(page, EDITOR_ID);
+    await loc.codeMirror().evaluate((el: any) => {
       if (el.CodeMirror) {
         el.CodeMirror.setCursor({ line: 500, ch: 0 });
         el.CodeMirror.focus();
       }
     });
-
     await page.keyboard.press(`${cmdKey}+f`);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-bar').waitFor({ state: 'visible' });
-
-    await cm.evaluate((el: any) => {
+    await loc.searchBar().waitFor({ state: 'visible' });
+    await loc.codeMirror().evaluate((el: any) => {
       if (el.CodeMirror) el.CodeMirror.setCursor({ line: 500, ch: 0 });
     });
-
-    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('Section');
+    await loc.searchInput().fill('Section');
     await expectMatchCount(page, '101 / 200');
-
-    await closeSearchBar(page);
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('reopening restores previous search text and resumes from cursor at close', async ({ page }) => {
-    await openSearchBar(page);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('Section');
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openCodeEditorSearchBar(page, EDITOR_ID);
+    await loc.searchInput().fill('Section');
     await expectMatchCount(page, '1 / 200');
     await page.keyboard.press('Enter');
     await page.keyboard.press('Enter');
     await expectMatchCount(page, '3 / 200');
-    await closeSearchBar(page);
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
 
     await page.keyboard.press(`${cmdKey}+f`);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-bar').waitFor({ state: 'visible' });
-
+    await loc.searchBar().waitFor({ state: 'visible' });
     // Text is preserved; match resumes from Section 3 where the cursor was left
-    await expect(page.getByTestId(EDITOR_ID).getByTestId('search-input')).toHaveValue('Section');
+    await expect(loc.searchInput()).toHaveValue('Section');
     await expectMatchCount(page, '3 / 200');
-
-    await closeSearchBar(page);
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('reopening after moving cursor starts from the new cursor position', async ({ page }) => {
-    await openSearchBar(page);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('Section');
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openCodeEditorSearchBar(page, EDITOR_ID);
+    await loc.searchInput().fill('Section');
     await expectMatchCount(page, '1 / 200');
-    await closeSearchBar(page);
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
 
     // Simulate scroll + click somewhere else in the document, cursor moves to Section 101 (line 500)
-    const cm = page.getByTestId(EDITOR_ID).locator('.CodeMirror').first();
-    await cm.evaluate((el: any) => {
+    await loc.codeMirror().evaluate((el: any) => {
       if (el.CodeMirror) {
         el.CodeMirror.setCursor({ line: 500, ch: 0 });
         el.CodeMirror.focus();
       }
     });
-
     await page.keyboard.press(`${cmdKey}+f`);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-bar').waitFor({ state: 'visible' });
-
+    await loc.searchBar().waitFor({ state: 'visible' });
     await expectMatchCount(page, '101 / 200');
-
-    await closeSearchBar(page);
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('reopening the search bar does not scroll away from the current viewport', async ({ page }) => {
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
     // Search, navigate to a match, then close — leaving the match text selected in the editor
-    await openSearchBar(page);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('Section');
+    await openCodeEditorSearchBar(page, EDITOR_ID);
+    await loc.searchInput().fill('Section');
     await expectMatchCount(page, '1 / 200');
-    await closeSearchBar(page);
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
 
     // Scroll to the middle of the document without moving the cursor
-    const cm = page.getByTestId(EDITOR_ID).locator('.CodeMirror').first();
-    await cm.evaluate((el: any) => {
+    await loc.codeMirror().evaluate((el: any) => {
       if (el.CodeMirror) {
         el.CodeMirror.scrollTo(null, el.CodeMirror.heightAtLine(500, 'local'));
       }
     });
-
-    const scrollBefore = await cm.evaluate((el: any) => el.CodeMirror?.getScrollInfo().top ?? 0);
+    const scrollBefore = await loc.codeMirror().evaluate((el: any) => el.CodeMirror?.getScrollInfo().top ?? 0);
 
     // Reopen — previously this would re-detect the selected match text and scroll back to it
     await page.keyboard.press(`${cmdKey}+f`);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-bar').waitFor({ state: 'visible' });
-
-    const scrollAfter = await cm.evaluate((el: any) => el.CodeMirror?.getScrollInfo().top ?? 0);
+    await loc.searchBar().waitFor({ state: 'visible' });
+    const scrollAfter = await loc.codeMirror().evaluate((el: any) => el.CodeMirror?.getScrollInfo().top ?? 0);
     expect(Math.abs(scrollAfter - scrollBefore)).toBeLessThan(50);
 
-    await closeSearchBar(page);
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('case-sensitive toggle halves matches for mixed-case term', async ({ page }) => {
-    await openSearchBar(page);
-    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('lorem');
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openCodeEditorSearchBar(page, EDITOR_ID);
+    await loc.searchInput().fill('lorem');
     await expectMatchCount(page, '1 / 400');
-
-    await page.getByTestId(EDITOR_ID).getByTestId('search-case-btn').click();
+    await loc.searchCaseBtn().click();
     await expectMatchCount(page, '1 / 200');
-
-    await page.getByTestId(EDITOR_ID).getByTestId('search-case-btn').click();
+    await loc.searchCaseBtn().click();
     await expectMatchCount(page, '1 / 400');
-
-    await closeSearchBar(page);
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('replace single replaces current match and advances to next', async ({ page }) => {
-    await setEditorContent(page, 'foo bar foo baz foo');
-    await openReplaceBar(page);
-
-    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('foo');
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await setCodeEditorContent(page, EDITOR_ID, 'foo bar foo baz foo');
+    await openCodeEditorReplaceBar(page, EDITOR_ID);
+    await loc.searchInput().fill('foo');
     await expectMatchCount(page, '1 / 3');
-
-    await page.getByTestId(EDITOR_ID).getByTestId('replace-input').fill('qux');
-    await page.getByTestId(EDITOR_ID).getByTestId('replace-btn').click();
-
+    await loc.replaceInput().fill('qux');
+    await loc.replaceBtn().click();
     await expectMatchCount(page, '1 / 2');
-
-    await closeSearchBar(page);
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('replace all replaces every match', async ({ page }) => {
-    await setEditorContent(page, 'foo bar foo baz foo');
-    await openReplaceBar(page);
-
-    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('foo');
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await setCodeEditorContent(page, EDITOR_ID, 'foo bar foo baz foo');
+    await openCodeEditorReplaceBar(page, EDITOR_ID);
+    await loc.searchInput().fill('foo');
     await expectMatchCount(page, '1 / 3');
-
-    await page.getByTestId(EDITOR_ID).getByTestId('replace-input').fill('qux');
-    await page.getByTestId(EDITOR_ID).getByTestId('replace-all-btn').click();
-
-    await expect(page.getByTestId(EDITOR_ID).getByTestId('match-count')).toHaveText('0 results', { timeout: 1500 });
-
-    await closeSearchBar(page);
-
-    await setEditorContent(page, LARGE_DOC);
+    await loc.replaceInput().fill('qux');
+    await loc.replaceAllBtn().click();
+    await expect(loc.matchCount()).toHaveText('0 results', { timeout: 1500 });
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
+    await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);
   });
 
   test('match count updates when the document is edited while search is open', async ({ page }) => {
-    await openScriptEditor(page);
-    await setEditorContent(page, 'foo bar baz');
-    await openSearchBar(page);
-
-    await page.getByTestId(EDITOR_ID).getByTestId('search-input').fill('foo');
+    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    await openPreRequestScriptEditor(page, EDITOR_ID);
+    await setCodeEditorContent(page, EDITOR_ID, 'foo bar baz');
+    await openCodeEditorSearchBar(page, EDITOR_ID);
+    await loc.searchInput().fill('foo');
     await expectMatchCount(page, '1 / 1');
-
-    const cm = page.getByTestId(EDITOR_ID).locator('.CodeMirror').first();
-    await cm.evaluate((el: any) => {
+    await loc.codeMirror().evaluate((el: any) => {
       if (el.CodeMirror) {
         const lastLine = el.CodeMirror.lastLine();
         const lastCh = el.CodeMirror.getLine(lastLine).length;
         el.CodeMirror.replaceRange(' foo', { line: lastLine, ch: lastCh });
       }
     });
-
     await expectMatchCount(page, '1 / 2');
-
-    await closeSearchBar(page);
-    await setEditorContent(page, LARGE_DOC);
+    await closeCodeEditorSearchBar(page, EDITOR_ID);
+    await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);
   });
 });

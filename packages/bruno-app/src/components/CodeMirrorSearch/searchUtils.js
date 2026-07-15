@@ -14,7 +14,7 @@ function escapeRegExp(string) {
  * @param {boolean} wholeWord
  * @returns {Array<{ from: {line, ch}, to: {line, ch} }>}
  */
-export function findSearchMatches(editor, searchText, regex, caseSensitive, wholeWord) {
+export function findSearchMatches(editor, searchText, regex, caseSensitive, wholeWord, limit = MAX_MATCHES) {
   try {
     let query, options = {};
     if (regex) {
@@ -36,7 +36,7 @@ export function findSearchMatches(editor, searchText, regex, caseSensitive, whol
     const out = [];
     while (cursor.findNext()) {
       out.push({ from: cursor.from(), to: cursor.to() });
-      if (out.length >= MAX_MATCHES) break;
+      if (out.length >= limit) break;
     }
     return out;
   } catch (e) {
