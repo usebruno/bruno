@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { IconLoader2, IconRefresh } from '@tabler/icons';
 import { getSystemProxyVariables, refreshSystemProxy } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from '../StyledWrapper';
-import { formatTimestamp } from 'utils/common';
+import { formatProxyTimestamp } from 'utils/common';
 
 const SystemProxy = () => {
   const dispatch = useDispatch();
@@ -103,13 +103,18 @@ const SystemProxy = () => {
           <span
             className="text-link cursor-pointer hover:underline default-collection-location-browse flex flex-row items-center"
             onClick={handleRefresh}
+            data-testid="system-proxy-refresh-button"
           >
             <IconRefresh size={14} strokeWidth={1.5} className="mr-1" />
             Refresh
           </span>
           {lastRefreshedAt && (
-            <small className="system-proxy-last-refreshed text-muted">
-              Last refreshed at {formatTimestamp(lastRefreshedAt)}
+            <small
+              className="text-muted"
+              data-testid="system-proxy-last-refreshed"
+              data-refreshed-at={lastRefreshedAt.getTime()}
+            >
+              Last refreshed at {formatProxyTimestamp(lastRefreshedAt)}
             </small>
           )}
         </div>
