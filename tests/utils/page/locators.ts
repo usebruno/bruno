@@ -3,6 +3,8 @@ import { buildApiSpecPanelLocators } from './openapi/render-spec';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
+import { buildSidebarLocators } from './sidebar';
+import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
 import { buildWebsocketCommonLocators } from './websocket';
 
 export const buildCommonLocators = (page: Page) => ({
@@ -16,28 +18,8 @@ export const buildCommonLocators = (page: Page) => ({
   websocket: buildWebsocketCommonLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
-  sidebar: {
-    collectionsContainer: () => page.getByTestId('collections'),
-    collection: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
-    folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
-    request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
-    folderRequest: (folderName: string, requestName: string) => {
-      // Find the folder's collection-item-name, then navigate to its parent wrapper container (StyledWrapper),
-      // and search for the request within that container's descendants.
-      // Using .locator('..') gets the parent element of the folder's collection-item-name div.
-      const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
-      return folderWrapper.locator('.collection-item-name').filter({ hasText: requestName });
-    },
-    closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
-    collectionRow: (name: string) => page.getByTestId('sidebar-collection-row').filter({ hasText: name }),
-    itemRow: (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ hasText: name }),
-    requestExamplesToggle: (requestName: string) =>
-      page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('request-item-chevron'),
-    example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
-    // The sidebar tree wraps each collection in `#collection-<slug>`; scope queries
-    // to it to disambiguate items that share names across collections.
-    collectionScope: (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`)
-  },
+  sidebar: buildSidebarLocators(page),
+  deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
   actions: {
     collectionActions: (collectionName: string) =>
       page.getByTestId('collections').locator('.collection-name')
