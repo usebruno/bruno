@@ -28,6 +28,12 @@ const StyledWrapper = styled.div`
     top: 0;
     z-index: 1;
     background: ${(props) => props.theme.bg};
+
+    &:hover,
+    &:focus-within {
+      z-index: 2;
+    }
+
     display: flex;
     align-items: center;
     justify-content: space-between;
