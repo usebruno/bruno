@@ -116,6 +116,10 @@ export const buildCommonLocators = (page: Page) => ({
       page.locator(`[data-testid="test-multiline-editor-${index}.description"]`).locator('.CodeMirror'),
     varRowDescriptionEditor: (name: string) =>
       page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.description$/).locator('.CodeMirror').first(),
+    varRowDescriptionLine: (name: string) =>
+      page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.description$/).locator('.CodeMirror-line').first(),
+    // The collection Environments settings tab (request-tab labelled "Environments").
+    settingsTab: () => page.locator('.request-tab').filter({ hasText: 'Environments' }),
     variableRowByName: (name: string) => page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }),
     // Targets the `.CodeMirror` wrapper (not `.CodeMirror-line`) so single-line and
     // multi-line values (e.g. formatted JSON for @object vars) are both covered —
