@@ -1,6 +1,6 @@
 import { test, expect } from '../../playwright';
 import { createTransientRequest, fillRequestUrl, closeAllCollections, createCollection, sendRequest, clickResponseAction, selectRequestPaneTab } from '../utils/page';
-import { buildCommonLocators, buildWebsocketCommonLocators } from '../utils/page/locators';
+import { buildCommonLocators } from '../utils/page/locators';
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 

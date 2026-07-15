@@ -248,6 +248,27 @@ describe('hydrateSnapshotLookups', () => {
       { type: 'variables', accessor: 'type', permanent: true }
     ]);
   });
+
+  it('drops changelog tabs from snapshot lookups', () => {
+    const snapshot = {
+      collections: [
+        {
+          pathname: '/collections/a',
+          activeTab: { accessor: 'type', value: 'changelog' },
+          tabs: [
+            { type: 'changelog', accessor: 'pathname', permanent: true },
+            { type: 'variables', accessor: 'type', permanent: true }
+          ]
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    expect(lookups.tabsByCollectionPath['/collections/a'].tabs).toEqual([
+      { type: 'variables', accessor: 'type', permanent: true }
+    ]);
+  });
 });
 
 describe('deserializeTab', () => {
@@ -817,6 +838,41 @@ describe('hydrateCollectionTabs', () => {
 
     await hydrateCollectionTabs(
       { uid: 'collection-uid', pathname: '/collections/legacy' },
+      dispatch,
+      restoreTabs,
+      null,
+      null,
+      true
+    );
+
+    expect(restoreTabs).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tabs: [{ type: 'variables', accessor: 'type', permanent: true }],
+        activeTab: null
+      })
+    );
+  });
+
+  it('does not restore changelog tabs from direct tab snapshots', async () => {
+    global.window.ipcRenderer.invoke.mockResolvedValue({
+      tabs: [
+        { type: 'changelog', accessor: 'pathname', permanent: true },
+        { type: 'variables', accessor: 'type', permanent: true }
+      ],
+      activeTab: {
+        accessor: 'type',
+        value: 'changelog'
+      }
+    });
+
+    const dispatch = jest.fn();
+    const restoreTabs = jest.fn((payload) => ({
+      type: 'tabs/restoreTabs',
+      payload
+    }));
+
+    await hydrateCollectionTabs(
+      { uid: 'collection-uid', pathname: '/collections/a' },
       dispatch,
       restoreTabs,
       null,
