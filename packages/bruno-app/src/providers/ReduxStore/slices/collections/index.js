@@ -18,7 +18,7 @@ import {
   isItemARequest
 } from 'utils/collections';
 import { parsePathParams, splitOnFirst } from 'utils/url';
-import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys, stripEnvVarUid } from 'utils/environments';
 import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
 import mime from 'mime-types';
@@ -26,6 +26,16 @@ import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
+
+const envVarsContentEqual = (a, b) => {
+  const normalize = (vars) =>
+    (vars || [])
+      .map(stripEnvVarUid)
+      .map((v) => JSON.stringify(v))
+      .sort()
+      .join('|');
+  return normalize(a) === normalize(b);
+};
 
 const FILE_DERIVED_REQUEST_FIELDS = [
   'name',
@@ -550,6 +560,9 @@ export const collectionsSlice = createSlice({
               v.dataType = inferred;
             }
           });
+
+          // External mutation — bump _revision so the open editor reinitializes (self-saves don't).
+          activeEnvironment._revision = (activeEnvironment._revision || 0) + 1;
         }
       }
     },
@@ -3117,11 +3130,17 @@ export const collectionsSlice = createSlice({
         const existingEnv = collection.environments.find((e) => e.uid === environment.uid);
 
         if (existingEnv) {
+          const contentChanged = !envVarsContentEqual(existingEnv.variables, environment.variables);
+
           existingEnv.name = environment.name;
           existingEnv.pathname = environment.pathname;
           existingEnv.variables = environment.variables;
           existingEnv.color = environment.color;
           existingEnv.externalSecrets = environment.externalSecrets;
+
+          if (contentChanged) {
+            existingEnv._revision = (existingEnv._revision || 0) + 1;
+          }
         } else {
           collection.environments.push(environment);
           collection.environments.sort((a, b) => a.name.localeCompare(b.name));

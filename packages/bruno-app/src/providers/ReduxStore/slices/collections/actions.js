@@ -2138,6 +2138,9 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
     }
 
     environment.variables = variables;
+    // `_revision` is a transient in-memory marker used to detect external mutations;
+    // it must never be validated against the schema or written to disk.
+    delete environment._revision;
 
     const { ipcRenderer } = window;
     const envForValidation = cloneDeep(environment);

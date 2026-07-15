@@ -1,7 +1,6 @@
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { TableVirtuoso } from 'react-virtuoso';
 import cloneDeep from 'lodash/cloneDeep';
-import isEqual from 'lodash/isEqual';
 import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useSelector, useDispatch } from 'react-redux';
@@ -281,10 +280,17 @@ const EnvironmentVariablesTable = ({
     return c;
   }, [collection, globalEnvironmentVariables, workspaceProcessEnvVariables, environment.uid]);
 
-  // Reuse the previous initialValues when only uids changed but the content is
-  // identical.
+  // Reinitialize only when `_revision` bumps (external mutations: script setEnvVar / file reload),
+  // not on the app's own autosave echo — returning the same reference keeps Formik from resetting mid-typing.
   const initialValuesRef = useRef(null);
+  const revisionRef = useRef(environment._revision);
   const initialValues = useMemo(() => {
+    const prev = initialValuesRef.current;
+    if (prev && environment._revision === revisionRef.current) {
+      return prev;
+    }
+    revisionRef.current = environment._revision;
+
     const vars = environment.variables || [];
     const next = [
       ...vars.map((v) => ({ ...v, description: v.description ?? '' })),
@@ -298,13 +304,9 @@ const EnvironmentVariablesTable = ({
         description: ''
       }
     ];
-    const prev = initialValuesRef.current;
-    if (prev && isEqual(prev.map(stripEnvVarUid), next.map(stripEnvVarUid))) {
-      return prev;
-    }
     initialValuesRef.current = next;
     return next;
-  }, [environment.uid, environment.variables]);
+  }, [environment.uid, environment.variables, environment._revision]);
 
   const formik = useFormik({
     enableReinitialize: true,
