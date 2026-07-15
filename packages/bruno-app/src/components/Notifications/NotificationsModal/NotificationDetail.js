@@ -1,7 +1,11 @@
-import Markdown from 'components/MarkDown';
+import React from 'react';
 import { parseToRgb, rgba } from 'polished';
 import { useTheme } from 'providers/Theme';
 import { humanizeDate } from 'utils/common';
+
+// Markdown pulls in markdown-it (~180 kB) — lazy loaded so it stays out of the
+// main bundle (this file is reachable from the eagerly-loaded Notifications).
+const Markdown = React.lazy(() => import('components/MarkDown'));
 
 // color may be any CSS color (hex, rgb, hsl): solid text on a 15% tinted bg.
 // Falls back to the theme's purple when the supplied color can't be parsed.
@@ -44,7 +48,9 @@ const NotificationDetail = ({ notification }) => {
         <div className="notif-detail-title">{notification.title}</div>
       </div>
       <div key={notification.id} className="notif-detail-body">
-        <Markdown content={notification.description} allowHtml={false} onDoubleClick={() => {}} />
+        <React.Suspense fallback={null}>
+          <Markdown content={notification.description} allowHtml={false} onDoubleClick={() => {}} />
+        </React.Suspense>
       </div>
     </div>
   );

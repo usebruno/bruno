@@ -5,7 +5,18 @@ import { pluginStyledComponents } from '@rsbuild/plugin-styled-components';
 import { pluginSass } from '@rsbuild/plugin-sass';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill'
 
+const withBundleAnalyzer = process.env.BUNDLE_ANALYZE === 'true';
+
 export default defineConfig({
+  ...(withBundleAnalyzer && {
+    performance: {
+      bundleAnalyze: {
+        analyzerMode: 'static',
+        openAnalyzer: true,
+        reportFilename: 'bundle-report.html',
+      },
+    },
+  }),
   plugins: [
     pluginNodePolyfill(),
     pluginReact(),
