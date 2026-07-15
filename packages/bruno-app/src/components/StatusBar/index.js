@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import find from 'lodash/find';
 import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub } from '@tabler/icons';
 import Mousetrap from 'mousetrap';
 import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import ToolHint from 'components/ToolHint';
-import Cookies from 'components/Cookies';
+const Cookies = lazy(() => import('components/Cookies'));
 import Notifications from 'components/Notifications';
 import Portal from 'components/Portal';
 import ThemeDropdown from './ThemeDropdown';
@@ -59,16 +59,18 @@ const StatusBar = () => {
     <StyledWrapper>
       {cookiesOpen && (
         <Portal>
-          <Cookies
-            onClose={() => {
-              setCookiesOpen(false);
-              document.querySelector('[data-trigger="cookies"]').focus();
-            }}
-            aria-modal="true"
-            role="dialog"
-            aria-labelledby="cookies-title"
-            aria-describedby="cookies-description"
-          />
+          <Suspense fallback={null}>
+            <Cookies
+              onClose={() => {
+                setCookiesOpen(false);
+                document.querySelector('[data-trigger="cookies"]').focus();
+              }}
+              aria-modal="true"
+              role="dialog"
+              aria-labelledby="cookies-title"
+              aria-describedby="cookies-description"
+            />
+          </Suspense>
         </Portal>
       )}
 

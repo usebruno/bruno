@@ -148,19 +148,19 @@ export default function Main() {
             )}
           </section>
           {isAiSidebarOpen && activeCollection && isAiPoppedOut && (
-            <Suspense fallback={null}>
+            <Suspense fallback={<PageLoader />}>
               <AiChatPopout collection={activeCollection} />
             </Suspense>
           )}
           {isAiSidebarOpen && activeCollection && !isAiPoppedOut && !showApiSpecPage && !showManageWorkspacePage && (
-            <Suspense fallback={null}>
+            <Suspense fallback={<PageLoader />}>
               <AiChatSidebar collection={activeCollection} />
             </Suspense>
           )}
         </StyledWrapper>
       </div>
 
-      <Suspense fallback={null}>
+      <Suspense fallback={<PageLoader />}>
         <Devtools mainSectionRef={mainSectionRef} />
       </Suspense>
       <StatusBar />

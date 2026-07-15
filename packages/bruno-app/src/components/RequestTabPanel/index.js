@@ -44,9 +44,9 @@ import WorkspaceOverview from 'components/WorkspaceHome/WorkspaceOverview';
 import Preferences from 'components/Preferences';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
-import OpenAPISyncTab from 'components/OpenAPISyncTab';
-import OpenAPISpecTab from 'components/OpenAPISpecTab';
-import ChangelogTab from 'components/ChangelogTab';
+const OpenAPISyncTab = React.lazy(() => import('components/OpenAPISyncTab'));
+const OpenAPISpecTab = React.lazy(() => import('components/OpenAPISpecTab'));
+const ChangelogTab = React.lazy(() => import('components/ChangelogTab'));
 import CollapsedPanelIndicator from './CollapsedPanelIndicator';
 import { clampRequestHeightForResponse } from './paneSize';
 import { IconLoader2 } from '@tabler/icons';
@@ -424,7 +424,11 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'changelog') {
-    return <ChangelogTab />;
+    return (
+      <React.Suspense fallback={<RequestTabPanelLoading />}>
+        <ChangelogTab />
+      </React.Suspense>
+    );
   }
 
   if (focusedTab.type === 'workspaceOverview') {
@@ -523,11 +527,19 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'openapi-sync') {
-    return <OpenAPISyncTab collection={collection} />;
+    return (
+      <React.Suspense fallback={<RequestTabPanelLoading />}>
+        <OpenAPISyncTab collection={collection} />
+      </React.Suspense>
+    );
   }
 
   if (focusedTab.type === 'openapi-spec') {
-    return <OpenAPISpecTab collection={collection} tabUid={focusedTab.uid} />;
+    return (
+      <React.Suspense fallback={<RequestTabPanelLoading />}>
+        <OpenAPISpecTab collection={collection} tabUid={focusedTab.uid} />
+      </React.Suspense>
+    );
   }
 
   if (!item || !item.uid) {

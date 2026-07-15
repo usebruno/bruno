@@ -10,7 +10,7 @@ import XmlPreview from './XmlPreview/index';
 import TextPreview from './TextPreview';
 import HtmlPreview from './HtmlPreview';
 import VideoPreview from './VideoPreview';
-import JsonPreview from './JsonPreview';
+const JsonPreview = React.lazy(() => import('./JsonPreview'));
 
 const QueryResultPreview = ({
   selectedTab,
@@ -85,7 +85,11 @@ const QueryResultPreview = ({
       return <VideoPreview contentType={contentType} dataBuffer={dataBuffer} />;
     }
     case 'preview-json': {
-      return <JsonPreview data={data} displayedTheme={displayedTheme} />;
+      return (
+        <React.Suspense fallback={null}>
+          <JsonPreview data={data} displayedTheme={displayedTheme} />
+        </React.Suspense>
+      );
     }
 
     case 'preview-text': {
