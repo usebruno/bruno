@@ -1,24 +1,11 @@
 import { expect, test } from '../../playwright';
-import { closeAllTabs, createTransientRequest, selectRequestPaneTab } from '../utils/page/actions';
+import { closeAllTabs, createTransientRequest, elementIsInsideDropdown, selectRequestPaneTab } from '../utils/page/actions';
 import { buildCommonLocators } from '../utils/page/locators';
-import type { Locator } from '@playwright/test';
 
 test.describe('websocket sticky header dropdown overlap', () => {
   test.afterEach(async ({ page }) => {
     await closeAllTabs(page);
   });
-
-  // Returns true if the dropdown item is on top at its centre (not hidden behind a header).
-  const topElementIsInsideDropdown = async (locator: Locator) => {
-    const box = await locator.boundingBox();
-    expect(box, 'dropdown item should have a layout box').not.toBeNull();
-    const x = box!.x + box!.width / 2;
-    const y = box!.y + box!.height / 2;
-    return locator.page().evaluate(
-      ({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest('.tippy-box, .dropdown')),
-      { x, y }
-    );
-  };
 
   test('body-mode dropdown of an upper message renders above the collapsed headers below it', async ({
     page
@@ -61,7 +48,7 @@ test.describe('websocket sticky header dropdown overlap', () => {
 
       // The item must be the topmost element at its own centre. Without the fix
       // a lower header paints over it and this resolves to the header instead.
-      expect(await topElementIsInsideDropdown(textItem)).toBe(true);
+      expect(await elementIsInsideDropdown(textItem)).toBe(true);
     });
 
     await test.step('Select the item and verify it applies', async () => {
@@ -115,7 +102,7 @@ test.describe('websocket sticky header dropdown overlap', () => {
     });
 
     await test.step('Dropdown stays on top and is still clickable', async () => {
-      expect(await topElementIsInsideDropdown(textItem)).toBe(true);
+      expect(await elementIsInsideDropdown(textItem)).toBe(true);
       await textItem.click();
       await expect(websocket.message.bodyModeLabel(0)).toContainText('TEXT');
     });
