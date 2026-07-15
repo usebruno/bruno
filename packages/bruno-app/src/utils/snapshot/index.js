@@ -27,7 +27,8 @@ const NON_REPLACEABLE_SINGLETON_TAB_TYPES = new Set([
 ]);
 
 const IGNORED_TAB_TYPES = new Set([
-  'v4-migration'
+  'v4-migration',
+  'changelog'
 ]);
 
 export const WORKSPACE_TAB_UID_SUFFIX_BY_TYPE = {
@@ -86,7 +87,8 @@ const sanitizeSnapshotTabs = (tabsSnapshot) => {
 };
 
 export const shouldExcludeTab = (tab, transientDirectory) => {
-  return transientDirectory && tab.pathname?.startsWith(transientDirectory);
+  return IGNORED_TAB_TYPES.has(tab?.type)
+    || (transientDirectory && tab.pathname?.startsWith(transientDirectory));
 };
 
 const normalizeSnapshotPathRef = (value) => {

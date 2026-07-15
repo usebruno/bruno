@@ -7,22 +7,30 @@
  *    instruction. Output is appended verbatim at the cursor.
  */
 
-const BRUNO_API_SUMMARY = `## Bruno runtime APIs (available inside scripts)
-
-bru:    env/global/collection/folder/request/runtime vars — get/set/has/delete,
+const API_BLOCKS = {
+  bru: `bru:    env/global/collection/folder/request/runtime vars — get/set/has/delete,
         interpolate(strOrObj), sleep(ms), sendRequest(cfg), setNextRequest(name),
-        cookies, utils.minifyJson/Xml, getEnvName, getCollectionName, cwd
-
-req:    url, method, headers, body, timeout. getUrl/setUrl, getHeader/setHeader,
-        getBody/setBody, getMethod/setMethod, getTimeout/setTimeout. Available in
-        pre-request, post-response and tests.
-
-res:    status, headers, body, responseTime. getStatus, getStatusText,
+        cookies, utils.minifyJson/Xml, getEnvName, getCollectionName, cwd`,
+  req: `req:    url, method, headers, body, timeout. getUrl/setUrl, getHeader/setHeader,
+        getBody/setBody, getMethod/setMethod, getTimeout/setTimeout.`,
+  res: `res:    status, headers, body, responseTime. getStatus, getStatusText,
         getHeader, getHeaders, getBody, getResponseTime, getSize. res('json.path')
-        for JSONPath-style queries. Available in post-response and tests.
+        for JSONPath-style queries.`,
+  test: `test/expect:  Chai-style assertions inside test("name", () => { ... }) blocks.`
+};
 
-test/expect:  Chai-style assertions inside test("name", () => { ... }) blocks.
-              Available in tests only.`;
+const API_BLOCKS_BY_SCRIPT_TYPE = {
+  'pre-request': ['bru', 'req'],
+  'post-response': ['bru', 'req', 'res'],
+  'tests': ['bru', 'req', 'res', 'test']
+};
+
+const buildApiSummary = (scriptType) => {
+  const blocks = API_BLOCKS_BY_SCRIPT_TYPE[scriptType] || Object.keys(API_BLOCKS);
+  return `## Bruno runtime APIs (available inside scripts)
+
+${blocks.map((block) => API_BLOCKS[block]).join('\n\n')}`;
+};
 
 const SCRIPT_CONTEXTS = {
   'tests': `Tests run AFTER the response. Globals: bru, req, res, test, expect. Assertions go inside test("name", () => { ... }) blocks. Don't call bru.setEnvVar / setVar — keep tests pure.`,
@@ -41,7 +49,7 @@ const buildSystemPrompt = (scriptType) => {
   const context = SCRIPT_CONTEXTS[scriptType] || '';
   return `You are an inline code-completion engine for ${label}.
 
-${BRUNO_API_SUMMARY}
+${buildApiSummary(scriptType)}
 
 ## Context for ${scriptType}
 ${context}
@@ -191,10 +199,37 @@ const ensureNewlineAfterComment = (prefix, suggestion) => {
   return '\n' + suggestion;
 };
 
+const RES_API_USAGE_RE = /\bres\s*\??[.([]/;
+
+const stripDisallowedApis = (suggestion, scriptType) => {
+  if (!suggestion) return suggestion;
+  if (scriptType === 'pre-request' && RES_API_USAGE_RE.test(suggestion)) return '';
+  return suggestion;
+};
+
+const TRAILING_IDENTIFIER_RE = /[\w$]+$/;
+
+const stripTypedPrefixOverlap = (prefix, suggestion) => {
+  if (!prefix || !suggestion) return suggestion;
+  const typed = prefix.match(TRAILING_IDENTIFIER_RE);
+  if (typed && suggestion.startsWith(typed[0])) return suggestion.slice(typed[0].length);
+  return suggestion;
+};
+
+const sanitizeSuggestion = ({ text, prefix, scriptType }) => {
+  const cleaned = cleanSuggestion(text || '');
+  const allowed = stripDisallowedApis(cleaned, scriptType);
+  const deduped = stripTypedPrefixOverlap(prefix, allowed);
+  return ensureNewlineAfterComment(prefix, deduped);
+};
+
 module.exports = {
   buildSystemPrompt,
   buildUserPrompt,
   STOP_SEQUENCES,
   cleanSuggestion,
-  ensureNewlineAfterComment
+  ensureNewlineAfterComment,
+  stripDisallowedApis,
+  stripTypedPrefixOverlap,
+  sanitizeSuggestion
 };

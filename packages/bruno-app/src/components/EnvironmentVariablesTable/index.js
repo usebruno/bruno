@@ -262,6 +262,7 @@ const EnvironmentVariablesTable = ({
 
   const prevEnvUidRef = useRef(null);
   const mountedRef = useRef(false);
+  const pendingDraftRestoreRef = useRef(false);
 
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
@@ -364,7 +365,8 @@ const EnvironmentVariablesTable = ({
     prevEnvUidRef.current = environment.uid;
     mountedRef.current = true;
 
-    if ((isMount || envChanged) && hasDraftForThisEnv && draft?.variables) {
+    if ((isMount || envChanged || pendingDraftRestoreRef.current) && hasDraftForThisEnv && draft?.variables) {
+      pendingDraftRestoreRef.current = false;
       formik.setValues([
         ...draft.variables.map((v) => ({ ...v, description: v.description ?? '' })),
         {
@@ -580,6 +582,7 @@ const EnvironmentVariablesTable = ({
 
         if (otherDirty) {
           onDraftChange(cloneDeep(retainedVariables));
+          pendingDraftRestoreRef.current = true;
         } else {
           onDraftClear();
         }
@@ -863,7 +866,7 @@ const EnvironmentVariablesTable = ({
                     collection={_collection}
                     name={`${actualIndex}.description`}
                     value={variable.description ?? ''}
-                    placeholder={!variable.description || (typeof variable.description === 'string' && variable.description.trim() === '') ? 'Description' : ''}
+                    placeholder={isLastEmptyRow && (!variable.description || (typeof variable.description === 'string' && variable.description.trim() === '')) ? 'Description' : ''}
                     onChange={(newValue) => {
                       formik.setFieldValue(`${actualIndex}.description`, newValue, true);
                       if (isLastRow) {

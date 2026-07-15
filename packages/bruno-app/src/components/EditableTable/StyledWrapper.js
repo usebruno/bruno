@@ -191,6 +191,11 @@ const StyledWrapper = styled.div`
     &:focus {
       outline: none !important;
     }
+    
+    &::placeholder {
+      color: ${(props) => props.theme.codemirror.placeholder.color} !important;
+      opacity: ${(props) => props.theme.codemirror.placeholder.opacity} !important;
+    }
   }
 
   input[type='checkbox'] {

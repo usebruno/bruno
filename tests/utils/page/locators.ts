@@ -12,6 +12,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
+  websocket: buildWebsocketCommonLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: {
@@ -135,9 +136,15 @@ export const buildCommonLocators = (page: Page) => ({
     // Variables and secrets each live on their own tab in the environment editor.
     variablesTab: () => page.getByTestId('responsive-tab-variables'),
     secretsTab: () => page.getByTestId('responsive-tab-secrets'),
+    // The per-tab unsaved-changes dot, scoped to its tab (the visible tab carries the
+    // responsive-tab testid; the hidden measurement copy does not, so this stays unique).
+    // The dot is always in the DOM and toggles via visibility, so assert with
+    // toBeVisible()/toBeHidden() rather than presence.
+    tabDot: (tab: string) => page.getByTestId(`responsive-tab-${tab}`).getByTestId('env-tab-draft-indicator'),
     saveTab: () => page.getByTestId('save-env'),
     saveAll: () => page.getByTestId('save-all-env'),
     searchInput: () => page.getByTestId('env-search-input'),
+    searchAction: () => page.getByTestId('env-search-action'),
     collectionEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Environments$/ }),
     globalEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Global Environments$/ }),
     unsavedModal: {
@@ -159,8 +166,8 @@ export const buildCommonLocators = (page: Page) => ({
     menuItem: (type: string) => page.locator('[role="menu"]').last().getByText(type, { exact: true })
   },
   request: {
-    urlInput: () => page.locator('#request-url .CodeMirror'),
-    urlLine: () => page.locator('#request-url .CodeMirror-line'),
+    urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
+    urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
     sendButton: () => page.getByTestId('send-arrow-icon'),
     methodDropdown: () => page.getByTestId('request-method-selector'),
     newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
@@ -169,19 +176,36 @@ export const buildCommonLocators = (page: Page) => ({
     generateCodeButton: () => page.getByTestId('generate-code-button'),
     bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
     bodyEditor: () => page.getByTestId('request-body-editor'),
-    bodyVariableToken: (name: string) =>
-      page.getByTestId('request-body-editor').locator('.CodeMirror .cm-variable-valid').filter({ hasText: name }),
+    bodyVariableToken: (name: string, state?: 'valid' | 'invalid') => {
+      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
+      return page.getByTestId('request-body-editor').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
+    },
+    urlVariableToken: (name: string, state?: 'valid' | 'invalid') => {
+      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
+      return page.getByTestId('request-url').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
+    },
+    headerVariableToken: (row: Locator, name: string, state?: 'valid' | 'invalid') => {
+      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
+      return row.locator('.CodeMirror').nth(1).locator(selector).filter({ hasText: name }).first();
+    },
     pane: () => page.getByTestId('request-pane')
   },
   // The variable-info popup shown when hovering a `{{var}}` token in an editor.
   varInfoPopup: {
-    all: () => page.locator('.CodeMirror-brunoVarInfo'),
+    all: () => page.getByTestId('var-info-popup'),
     byName: (name: string) =>
-      page.locator('.CodeMirror-brunoVarInfo').filter({ has: page.locator('.var-name').filter({ hasText: new RegExp(`^${name}$`) }) }),
-    valueDisplay: (popup: Locator) => popup.locator('.var-value-editable-display, .var-value-display').first(),
-    editableValue: (popup: Locator) => popup.locator('.var-value-editable-display').first(),
-    secretToggle: (popup: Locator) => popup.locator('.secret-toggle-button'),
-    editor: (popup: Locator) => popup.locator('.var-value-editor .CodeMirror')
+      page.getByTestId('var-info-popup').filter({ has: page.getByTestId('var-info-name').filter({ hasText: new RegExp(`^${name}$`) }) }),
+    name: (popup: Locator) => popup.getByTestId('var-info-name'),
+    scopeBadge: (popup: Locator) => popup.getByTestId('var-info-scope-badge'),
+    valueDisplay: (popup: Locator) => popup.getByTestId(/^var-info-value-(editable|display)$/).first(),
+    editableValue: (popup: Locator) => popup.getByTestId('var-info-value-editable').first(),
+    secretToggle: (popup: Locator) => popup.getByTestId('var-info-secret-toggle'),
+    copyButton: (popup: Locator) => popup.getByTestId('var-info-copy-button'),
+    readonlyNote: (popup: Locator) => popup.getByTestId('var-info-readonly-note'),
+    warningNote: (popup: Locator) => popup.getByTestId('var-info-warning-note'),
+    // The editor container itself (hidden until the value display is clicked).
+    editorContainer: (popup: Locator) => popup.getByTestId('var-info-value-editor'),
+    editor: (popup: Locator) => popup.getByTestId('var-info-value-editor').locator('.CodeMirror')
   },
   auth: {
     apiKey: {
@@ -344,16 +368,29 @@ export const buildCommonLocators = (page: Page) => ({
 });
 
 export const buildWebsocketCommonLocators = (page: Page) => ({
-  ...buildCommonLocators(page),
   connectionControls: {
     connect: () => page.getByTestId('ws-connect-button'),
     disconnect: () => page.getByTestId('ws-disconnect-button')
   },
   messages: () => page.locator('.ws-message'),
   message: {
+    container: () => page.getByTestId('ws-messages-container'),
+    addButton: () => page.getByTestId('ws-add-message'),
+    headers: () => page.getByTestId(/^ws-message-header-/),
+    header: (index: number) => page.getByTestId(`ws-message-header-${index}`),
+    body: (index: number) => page.getByTestId(`ws-message-body-${index}`),
+    editor: (index: number) => page.getByTestId(`ws-message-body-${index}`).locator('.CodeMirror'),
+    editorPlaceholder: (index: number) =>
+      page.getByTestId(`ws-message-body-${index}`).locator('.CodeMirror-placeholder'),
+    editorCode: (index: number) => page.getByTestId(`ws-message-body-${index}`).locator('.CodeMirror-code'),
+    labels: () => page.getByTestId(/^ws-message-label-/),
     label: (index: number) => page.getByTestId(`ws-message-label-${index}`),
+    nameInputs: () => page.getByTestId(/^ws-message-name-input-/),
     nameInput: (index: number) => page.getByTestId(`ws-message-name-input-${index}`),
-    nameTooltip: () => page.getByTestId('ws-message-name-tooltip')
+    nameTooltip: () => page.getByTestId('ws-message-name-tooltip'),
+    prettifyAll: () => page.getByTestId('ws-prettify-all'),
+    sendButton: (index: number) => page.getByTestId(`ws-send-msg-${index}`),
+    deleteButton: (index: number) => page.getByTestId(`ws-delete-msg-${index}`)
   },
   toolbar: {
     latestFirst: () => page.getByRole('button', { name: 'Latest First' }),
