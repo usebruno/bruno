@@ -36,7 +36,9 @@
     "watch": "rollup -c -w",
     "prepack": "npm run test && npm run build"
   },
-  "dependencies": {},
+  "dependencies": {
+    "crypto-js": "4.2.0"
+  },
   "devDependencies": {
     "@babel/preset-env": "^7.26.9",
     "@babel/preset-typescript": "^7.27.0",
