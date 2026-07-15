@@ -12,6 +12,10 @@ import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 
 // Addon CSS
+import 'codemirror/addon/dialog/dialog.css';
+import 'codemirror/addon/fold/foldgutter.css';
+import 'codemirror/addon/hint/show-hint.css';
+import 'codemirror/addon/lint/lint.css';
 import 'codemirror/addon/scroll/simplescrollbars.css';
 
 // Modes
