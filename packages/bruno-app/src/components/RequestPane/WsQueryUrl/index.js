@@ -21,6 +21,7 @@ import get from 'lodash/get';
 const CONNECTION_STATUS = {
   CONNECTING: 'connecting',
   CONNECTED: 'connected',
+  DISCONNECTING: 'disconnecting',
   DISCONNECTED: 'disconnected'
 };
 
@@ -68,15 +69,16 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
 
   const handleDisconnect = async (e, notify) => {
     e && e.stopPropagation();
-    closeWsConnection(item.uid)
-      .then(() => {
-        notify && toast.success('WebSocket connection closed');
-        setConnectionStatus('disconnected');
-      })
-      .catch((err) => {
-        console.error('Failed to close WebSocket connection:', err);
-        notify && toast.error('Failed to close WebSocket connection');
-      });
+    setConnectionStatus(CONNECTION_STATUS.DISCONNECTING);
+    try {
+      await closeWsConnection(item.uid);
+      notify && toast.success('WebSocket connection closed');
+      setConnectionStatus(CONNECTION_STATUS.DISCONNECTED);
+    } catch (err) {
+      console.error('Failed to close WebSocket connection:', err);
+      notify && toast.error('Failed to close WebSocket connection');
+      setConnectionStatus(CONNECTION_STATUS.DISCONNECTED);
+    }
   };
 
   const handleRunClick = async (e) => {
@@ -152,22 +154,24 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
               </div>
             </ToolHint>
 
-            {connectionStatus === 'connected' && (
+            {(connectionStatus === 'connected' || connectionStatus === 'disconnecting') && (
               <div className="connection-controls relative flex items-center h-full">
-                <ToolHint text="Close Connection" toolhintId="ws-close-connection" place="top" positionStrategy="fixed">
-                  <div className="flex items-center" onClick={(e) => handleDisconnect(e, true)} data-testid="ws-disconnect-button">
+                <ToolHint text={connectionStatus === 'disconnecting' ? 'Disconnecting...' : 'Close Connection'} toolhintId="ws-close-connection" place="top" positionStrategy="fixed">
+                  <div className="flex items-center" onClick={(e) => connectionStatus === 'connected' ? handleDisconnect(e, true) : null} data-testid="ws-disconnect-button">
                     <IconPlugConnectedX
                       color={theme.colors.text.danger}
                       strokeWidth={1.5}
                       size={20}
-                      className="cursor-pointer"
+                      className={classnames('cursor-pointer', {
+                        'animate-blink': connectionStatus === CONNECTION_STATUS.DISCONNECTING
+                      })}
                     />
                   </div>
                 </ToolHint>
               </div>
             )}
 
-            {connectionStatus !== 'connected' && (
+            {(connectionStatus === 'connecting' || connectionStatus === 'disconnected') && (
               <div className="connection-controls relative flex items-center h-full">
                 <ToolHint text="Connect" toolhintId="ws-connect" place="top" positionStrategy="fixed">
                   <div className="flex items-center" onClick={handleConnect} data-testid="ws-connect-button">
@@ -185,6 +189,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             )}
           </div>
           {connectionStatus === CONNECTION_STATUS.CONNECTED && <div className="connection-status-strip"></div>}
+          {connectionStatus === CONNECTION_STATUS.DISCONNECTING && <div className="connection-status-strip disconnecting"></div>}
         </div>
         <SendButton
           onSend={handleRunClick}
