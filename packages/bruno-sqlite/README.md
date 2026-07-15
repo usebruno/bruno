@@ -1,6 +1,6 @@
 # @usebruno/sqlite
 
-SQLite storage for the Bruno API client. You author migrations and statements as `.sql`; the package compiles them into a typed, cached data layer for the Electron main process and the React renderer.
+SQLite storage for the Bruno API client. You author migrations as `.ts` and statements as `.sql`; the package compiles them into a typed, cached data layer for the Electron main process and the React renderer.
 
 ## Entry points
 
@@ -15,17 +15,29 @@ Peer deps for the web layer: `react` 19, `@tanstack/react-query` 5. The node lay
 npm run migration:new --workspace=packages/bruno-sqlite   # prompts for a name
 ```
 
-Fill in the `-- UP` / `-- DOWN` sections:
+This scaffolds a sequence-prefixed `migrations/<seq>_<name>.ts` file exporting `up` and `down`. Each returns the SQL to apply or revert the migration (a plain string also works):
 
-```sql
--- UP: create_users
-CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT);
-
--- DOWN: create_users
-DROP TABLE users;
+```ts
+export const up = (): string => {
+  return 'CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT);';
+}
+export const down = (): string => {
+  return 'DROP TABLE users;';
+}
 ```
 
-Migrations apply automatically (in prefix order) when the DB opens. Verify them against an in-memory DB with `npm run migration:verify`.
+Migrations apply automatically (in prefix order) when the DB opens, and their content is hashed into a `_migrations` table so an already-applied migration can't be silently edited.
+
+### Verify migrations
+
+`npm run migration:verify` replays every migration against a throwaway `VACUUM INTO` copy of a real database, so it exercises them over actual data without touching the source DB. Point it at the DB with an absolute `DB_PATH`:
+
+```bash
+cp .env.example .env      # then set DB_PATH to an absolute path
+npm run migration:verify --workspace=packages/bruno-sqlite
+```
+
+It fails if a migration errors, or if a migration's content no longer matches what was recorded when it was first applied to that DB.
 
 ## Add statements (sqlc syntax)
 
