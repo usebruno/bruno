@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { IconLoader2, IconRefresh } from '@tabler/icons';
 import { getSystemProxyVariables, refreshSystemProxy } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from '../StyledWrapper';
+import { formatTimestamp } from 'utils/common';
 
 const SystemProxy = () => {
   const dispatch = useDispatch();
@@ -10,13 +11,19 @@ const SystemProxy = () => {
   const { source, http_proxy, https_proxy, no_proxy, pac_url } = systemProxyVariables || {};
   const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState(null);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState(null);
 
   const fetchProxy = (forceRefresh = false) => {
     setIsFetching(true);
     setError(null);
     const action = forceRefresh ? refreshSystemProxy : getSystemProxyVariables;
     dispatch(action())
-      .then(() => setError(null))
+      .then(() => {
+        setError(null);
+        if (forceRefresh) {
+          setLastRefreshedAt(new Date());
+        }
+      })
       .catch((err) => setError(err.message || String(err)))
       .finally(() => setIsFetching(false));
   };
@@ -92,13 +99,20 @@ const SystemProxy = () => {
             <div className="system-proxy-value">{pac_url || '-'}</div>
           </div>
         </div>
-        <span
-          className="text-link cursor-pointer hover:underline default-collection-location-browse flex flex-row items-center"
-          onClick={handleRefresh}
-        >
-          <IconRefresh size={14} strokeWidth={1.5} className="mr-1" />
-          Refresh
-        </span>
+        <div className="flex flex-row items-center gap-2">
+          <span
+            className="text-link cursor-pointer hover:underline default-collection-location-browse flex flex-row items-center"
+            onClick={handleRefresh}
+          >
+            <IconRefresh size={14} strokeWidth={1.5} className="mr-1" />
+            Refresh
+          </span>
+          {lastRefreshedAt && (
+            <small className="system-proxy-last-refreshed text-muted">
+              Last refreshed at {formatTimestamp(lastRefreshedAt)}
+            </small>
+          )}
+        </div>
       </div>
     </StyledWrapper>
   );
