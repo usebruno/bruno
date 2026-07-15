@@ -11,7 +11,8 @@ get {
 }
 
 script:post-response {
-  // Echo the override back to force a full-env write attempt, and dirty an unrelated key.
+  // Echo the override back to force a full-env write attempt, and make a genuine
+  // (non-override) write that SHOULD persist to the global env file.
   bru.setGlobalEnvVar("token", bru.getGlobalEnvVar("token"));
-  bru.setGlobalEnvVar("unrelated", "value");
+  bru.setGlobalEnvVar("persistedByScript", "kept-on-disk");
 }
