@@ -71,7 +71,7 @@ test.describe('websocket sticky header dropdown overlap', () => {
     });
   });
 
-  test.only('open dropdown stays on top when a lower message header is hovered', async ({
+  test('open dropdown stays on top when a lower message header is hovered', async ({
     page
   }) => {
     const { websocket } = buildCommonLocators(page);
