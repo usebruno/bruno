@@ -160,7 +160,9 @@ export default function Main() {
         </StyledWrapper>
       </div>
 
-      <Suspense fallback={<PageLoader />}>
+      {/* null fallback: PageLoader is a full-height centered container and would
+          cause a layout shift for the bottom-anchored Devtools panel */}
+      <Suspense fallback={null}>
         <Devtools mainSectionRef={mainSectionRef} />
       </Suspense>
       <StatusBar />
