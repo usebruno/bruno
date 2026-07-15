@@ -73,16 +73,16 @@ const FileBody = ({ item, collection }) => {
         <thead>
           <tr>
             <td>
-              <div className="flex items-center justify-center">File</div>
+              <div title="File" className="flex items-center justify-start">File</div>
             </td>
             <td>
-              <div className="flex items-center justify-center">Content-Type</div>
+              <div title="Content-Type" className="flex items-center justify-start">Content-Type</div>
             </td>
             <td>
-              <div className="flex items-center justify-center">Selected</div>
+              <div title="Selected" className="flex items-center justify-start"></div>
             </td>
             <td>
-              <div className="flex items-center justify-center">Description</div>
+              <div title="Description" className="flex items-center justify-start">Description</div>
             </td>
             <td></td>
           </tr>
