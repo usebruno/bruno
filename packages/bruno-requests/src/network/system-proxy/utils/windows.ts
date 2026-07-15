@@ -45,6 +45,7 @@ export class WindowsProxyResolver implements ProxyResolver {
     const lines = stdout.split('\n');
     let proxyEnabled = false;
     let proxyServer: string | null = null;
+    let hasProxyServerValue = false;
     let proxyOverride: string | null = null;
     let autoConfigURL: string | null = null;
 
@@ -61,6 +62,7 @@ export class WindowsProxyResolver implements ProxyResolver {
       }
 
       if (trimmedLine.includes('ProxyServer') && trimmedLine.includes('REG_SZ')) {
+        hasProxyServerValue = true;
         const match = trimmedLine.match(/ProxyServer\s+REG_SZ\s+(.+)/);
         if (match) proxyServer = match[1].trim();
       }
@@ -86,6 +88,10 @@ export class WindowsProxyResolver implements ProxyResolver {
 
     if (proxyEnabled && proxyServer) {
       return this.parseProxyString(proxyServer, proxyOverride);
+    }
+
+    if (proxyEnabled && hasProxyServerValue) {
+      return { http_proxy: null, https_proxy: null, no_proxy: null, source: 'windows-system' };
     }
 
     return null;
