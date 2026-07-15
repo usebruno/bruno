@@ -427,6 +427,7 @@ class AssertRuntime {
       folderVariables,
       requestVariables,
       globalEnvironmentVariables,
+      globalEnvironmentName: request?.globalEnvironmentName,
       promptVariables,
       certsAndProxyConfig,
       requestUrl: request?.url

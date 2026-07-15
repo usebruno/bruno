@@ -101,6 +101,7 @@ const STATIC_API_HINTS = {
     'bru',
     'bru.cwd()',
     'bru.getEnvName()',
+    'bru.getGlobalEnvName()',
     'bru.getProcessEnv(key)',
     'bru.hasEnvVar(key)',
     'bru.getEnvVar(key)',

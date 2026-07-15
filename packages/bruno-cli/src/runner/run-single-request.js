@@ -163,6 +163,8 @@ const runSingleRequest = async function (
 
     // Set global environment variables on the request for scripts to access via bru.getGlobalEnvVar()
     request.globalEnvironmentVariables = globalEnvVars;
+    // Expose the active global environment name via bru.getGlobalEnvName()
+    request.globalEnvironmentName = globalEnvVars?.__name__;
 
     // Detect prompt variables before proceeding
     const promptVars = extractPromptVariablesForRequest({ request, collection, envVariables, runtimeVariables, processEnvVars, brunoConfig });

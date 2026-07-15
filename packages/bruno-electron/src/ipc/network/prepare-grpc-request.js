@@ -132,6 +132,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
+    request.globalEnvironmentName = collection?.globalEnvironmentName;
     request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
     request.promptVariables = promptVariables;
   }

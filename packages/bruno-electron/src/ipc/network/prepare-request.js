@@ -399,6 +399,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     mergeVars(collection, request, requestTreePath);
     mergeAuth(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
+    request.globalEnvironmentName = collection?.globalEnvironmentName;
     request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
     request.promptVariables = collection?.promptVariables || {};
   }
@@ -547,6 +548,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   axiosRequest.requestVariables = request.requestVariables;
   axiosRequest.promptVariables = request.promptVariables;
   axiosRequest.globalEnvironmentVariables = request.globalEnvironmentVariables;
+  axiosRequest.globalEnvironmentName = request.globalEnvironmentName;
   axiosRequest.oauth2CredentialVariables = request.oauth2CredentialVariables;
   axiosRequest.assertions = request.assertions;
   axiosRequest.oauth2Credentials = request.oauth2Credentials;
