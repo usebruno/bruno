@@ -7,7 +7,7 @@ test.describe.serial('URL Interpolation', () => {
     await closeAllCollections(page);
   });
 
-  test('Interpolate basic path params', async ({ pageWithUserData: page }) => {
+  test('Interpolate basic path params', { tag: '@smoke' }, async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
     await locators.sidebar.collection('interpolation').click();
     await locators.sidebar.request('echo-request-url').click();

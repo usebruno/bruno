@@ -204,7 +204,7 @@ test.describe.serial('Transient Requests', () => {
     });
   });
 
-  test('Send transient HTTP request - verify response', async ({ page }) => {
+  test('Send transient HTTP request - verify response', { tag: '@smoke' }, async ({ page }) => {
     await test.step('Create transient HTTP request', async () => {
       await createTransientRequest(page, {
         requestType: 'HTTP'
