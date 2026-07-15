@@ -80,6 +80,25 @@ HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settin
       expect(mockExecFile).toHaveBeenCalledTimes(1);
     });
 
+    it('should clear manual proxy values when ProxyServer is invalid instead of returning a malformed URL', async () => {
+      const regOutput = `
+HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings
+    ProxyEnable    REG_DWORD    0x1
+    ProxyServer    REG_SZ    http:/example.com
+`;
+      mockExecFile.mockResolvedValueOnce({ stdout: regOutput, stderr: '' });
+
+      const result = await detector.detect();
+
+      expect(result).toEqual({
+        http_proxy: null,
+        https_proxy: null,
+        no_proxy: null,
+        source: 'windows-system'
+      });
+      expect(mockExecFile).toHaveBeenCalledTimes(1);
+    });
+
     it('should fallback to WinHTTP when registry fails', async () => {
       const winhttpOutput = `
 Current WinHTTP proxy settings:

@@ -211,14 +211,14 @@ export class WindowsProxyResolver implements ProxyResolver {
         const [proto, server] = protocol.split('=');
         if (!server || !proto) continue;
         if (proto === 'http') {
-          http_proxy = normalizeProxyUrl(server);
+          http_proxy = this.normalizeProxyUrlIfValid(server);
         } else if (proto === 'https') {
-          https_proxy = normalizeProxyUrl(server);
+          https_proxy = this.normalizeProxyUrlIfValid(server);
         }
       }
     } else {
       // Single proxy for all protocols: "proxy.example.com:8080"
-      const proxy = normalizeProxyUrl(proxyServer);
+      const proxy = this.normalizeProxyUrlIfValid(proxyServer);
       http_proxy = proxy;
       https_proxy = proxy;
     }
@@ -229,5 +229,13 @@ export class WindowsProxyResolver implements ProxyResolver {
       no_proxy: bypassList && bypassList !== '(none)' ? normalizeNoProxy(bypassList) : null,
       source: 'windows-system'
     };
+  }
+
+  private normalizeProxyUrlIfValid(proxy: string): string | null {
+    if (/^[a-z][a-z0-9+.-]*:\/(?!\/)/i.test(proxy)) {
+      return null;
+    }
+
+    return normalizeProxyUrl(proxy);
   }
 }
