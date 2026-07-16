@@ -5,6 +5,7 @@
  *  LICENSE file in the root directory of this source tree.
  */
 
+import 'utils/codemirror/setup';
 import React, { createRef } from 'react';
 import { useSelector } from 'react-redux';
 import { debounce, isEqual } from 'lodash';

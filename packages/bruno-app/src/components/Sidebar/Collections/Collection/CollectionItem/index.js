@@ -28,14 +28,15 @@ import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/s
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
 import { copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
-import NewRequest from 'components/Sidebar/NewRequest';
-import NewFolder from 'components/Sidebar/NewFolder';
-import NewApp from 'components/Sidebar/NewApp';
-import RenameCollectionItem from './RenameCollectionItem';
-import CloneCollectionItem from './CloneCollectionItem';
-import DeleteCollectionItem from './DeleteCollectionItem';
-import RunCollectionItem from './RunCollectionItem';
-import GenerateCodeItem from './GenerateCodeItem';
+// Only shown on user interaction — lazy load to keep out of main bundle
+const NewRequest = React.lazy(() => import('components/Sidebar/NewRequest'));
+const NewFolder = React.lazy(() => import('components/Sidebar/NewFolder'));
+const NewApp = React.lazy(() => import('components/Sidebar/NewApp'));
+const RenameCollectionItem = React.lazy(() => import('./RenameCollectionItem'));
+const CloneCollectionItem = React.lazy(() => import('./CloneCollectionItem'));
+const DeleteCollectionItem = React.lazy(() => import('./DeleteCollectionItem'));
+const RunCollectionItem = React.lazy(() => import('./RunCollectionItem'));
+const GenerateCodeItem = React.lazy(() => import('./GenerateCodeItem'));
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
@@ -57,7 +58,7 @@ import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
-import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
+const CreateExampleModal = React.lazy(() => import('components/ResponseExample/CreateExampleModal'));
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -645,40 +646,44 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   return (
     <StyledWrapper className={className}>
-      {renameItemModalOpen && (
-        <RenameCollectionItem item={item} collectionUid={collectionUid} onClose={() => setRenameItemModalOpen(false)} />
-      )}
-      {cloneItemModalOpen && (
-        <CloneCollectionItem item={item} collectionUid={collectionUid} onClose={() => setCloneItemModalOpen(false)} />
-      )}
-      {deleteItemModalOpen && (
-        <DeleteCollectionItem item={item} collectionUid={collectionUid} onClose={() => setDeleteItemModalOpen(false)} />
-      )}
-      {newRequestModalOpen && (
-        <NewRequest item={item} collectionUid={collectionUid} onClose={() => setNewRequestModalOpen(false)} />
-      )}
-      {newFolderModalOpen && (
-        <NewFolder item={item} collectionUid={collectionUid} onClose={() => setNewFolderModalOpen(false)} />
-      )}
-      {newAppModalOpen && (
-        <NewApp item={item} collectionUid={collectionUid} onClose={() => setNewAppModalOpen(false)} />
-      )}
-      {runCollectionModalOpen && (
-        <RunCollectionItem collectionUid={collectionUid} item={item} onClose={() => setRunCollectionModalOpen(false)} />
-      )}
-      {generateCodeItemModalOpen && (
-        <GenerateCodeItem collectionUid={collectionUid} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
-      )}
-      {itemInfoModalOpen && (
-        <CollectionItemInfo item={item} onClose={() => setItemInfoModalOpen(false)} />
-      )}
-      <CreateExampleModal
-        isOpen={createExampleModalOpen}
-        onClose={() => setCreateExampleModalOpen(false)}
-        onSave={handleCreateExample}
-        title="Create Response Example"
-        initialName={getInitialExampleName(item)}
-      />
+      <React.Suspense fallback={null}>
+        {renameItemModalOpen && (
+          <RenameCollectionItem item={item} collectionUid={collectionUid} onClose={() => setRenameItemModalOpen(false)} />
+        )}
+        {cloneItemModalOpen && (
+          <CloneCollectionItem item={item} collectionUid={collectionUid} onClose={() => setCloneItemModalOpen(false)} />
+        )}
+        {deleteItemModalOpen && (
+          <DeleteCollectionItem item={item} collectionUid={collectionUid} onClose={() => setDeleteItemModalOpen(false)} />
+        )}
+        {newRequestModalOpen && (
+          <NewRequest item={item} collectionUid={collectionUid} onClose={() => setNewRequestModalOpen(false)} />
+        )}
+        {newFolderModalOpen && (
+          <NewFolder item={item} collectionUid={collectionUid} onClose={() => setNewFolderModalOpen(false)} />
+        )}
+        {newAppModalOpen && (
+          <NewApp item={item} collectionUid={collectionUid} onClose={() => setNewAppModalOpen(false)} />
+        )}
+        {runCollectionModalOpen && (
+          <RunCollectionItem collectionUid={collectionUid} item={item} onClose={() => setRunCollectionModalOpen(false)} />
+        )}
+        {generateCodeItemModalOpen && (
+          <GenerateCodeItem collectionUid={collectionUid} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+        )}
+        {itemInfoModalOpen && (
+          <CollectionItemInfo item={item} onClose={() => setItemInfoModalOpen(false)} />
+        )}
+        {createExampleModalOpen && (
+          <CreateExampleModal
+            isOpen={createExampleModalOpen}
+            onClose={() => setCreateExampleModalOpen(false)}
+            onSave={handleCreateExample}
+            title="Create Response Example"
+            initialName={getInitialExampleName(item)}
+          />
+        )}
+      </React.Suspense>
       <div
         className={itemRowClassName}
         ref={(node) => {

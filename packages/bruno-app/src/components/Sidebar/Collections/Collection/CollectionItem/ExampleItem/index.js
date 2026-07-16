@@ -16,10 +16,13 @@ import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
 import Modal from 'components/Modal';
 import DeleteResponseExampleModal from './DeleteResponseExampleModal';
-import GenerateCodeItem from '../GenerateCodeItem';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
+
+// Heavy modal (codegen + editor deps) — lazy loaded to keep it out of the main bundle,
+// mirroring the pattern in CollectionItem/index.js
+const GenerateCodeItem = React.lazy(() => import('../GenerateCodeItem'));
 
 const ExampleItem = ({ example, item, collection }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
@@ -265,13 +268,15 @@ const ExampleItem = ({ example, item, collection }) => {
       )}
 
       {generateCodeItemModalOpen && (
-        <GenerateCodeItem
-          collectionUid={collection.uid}
-          item={item}
-          onClose={() => setGenerateCodeItemModalOpen(false)}
-          isExample={true}
-          exampleUid={example.uid}
-        />
+        <React.Suspense fallback={null}>
+          <GenerateCodeItem
+            collectionUid={collection.uid}
+            item={item}
+            onClose={() => setGenerateCodeItemModalOpen(false)}
+            isExample={true}
+            exampleUid={example.uid}
+          />
+        </React.Suspense>
       )}
     </StyledWrapper>
   );

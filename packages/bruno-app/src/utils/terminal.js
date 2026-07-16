@@ -1,5 +1,7 @@
+// NOTE: do not import from components/Devtools here — this util is used by the
+// eagerly-loaded Sidebar/Hotkeys, and a static import would pull @xterm (~280 kB)
+// into the initial bundle.
 import { openConsole, setActiveTab } from 'providers/ReduxStore/slices/logs';
-import { getSessionId } from 'components/Devtools/Console/TerminalTab';
 
 /**
  * Opens the devtools console and switches to the terminal tab
@@ -21,12 +23,4 @@ export const openDevtoolsAndSwitchToTerminal = async (dispatch, cwd = null) => {
       window.dispatchEvent(new CustomEvent('terminal:open-at-cwd', { detail: { cwd } }));
     }, 100);
   }
-};
-
-/**
- * Gets the current terminal session ID if a terminal session is running
- * @returns {string|null} The session ID if terminal session exists, null otherwise
- */
-export const getSessionID = () => {
-  return getSessionId();
 };

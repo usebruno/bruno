@@ -1,65 +1,29 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useRef, useEffect } from 'react';
 import classnames from 'classnames';
-import ManageWorkspace from 'components/ManageWorkspace';
 import RequestTabs from 'components/RequestTabs';
-import RequestTabPanel from 'components/RequestTabPanel';
-import AppPreviewKeepAlive from 'components/AppPreviewKeepAlive';
-import AiChatSidebar from 'components/AiChatSidebar';
-import AiChatPopout from 'components/AiChatSidebar/Popout';
 import Sidebar from 'components/Sidebar';
 import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
-import ApiSpecPanel from 'components/ApiSpecPanel';
-import TabPanelErrorBoundary from 'components/RequestTabPanel/TabPanelErrorBoundary';
+import PageLoader from 'components/RequestTabPanel/RequestTabPanelLoading';
 // import ErrorCapture from 'components/ErrorCapture';
 import { useSelector } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
-import 'codemirror/theme/material.css';
-import 'codemirror/theme/monokai.css';
-import 'codemirror/addon/scroll/simplescrollbars.css';
-import 'swagger-ui-react/swagger-ui.css';
-import Devtools from 'components/Devtools';
-import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
-import useWsEventListeners from 'utils/network/ws-event-listeners';
 import Portal from 'components/Portal';
 import SaveTransientRequestContainer from 'components/SaveTransientRequest/Container';
 import SaveTransientRequest from 'components/SaveTransientRequest';
+import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
+import useWsEventListeners from 'utils/network/ws-event-listeners';
 
-require('codemirror/mode/javascript/javascript');
-require('codemirror/mode/xml/xml');
-// css + htmlmixed power the app code editors (apps are HTML/CSS/JS documents)
-require('codemirror/mode/css/css');
-require('codemirror/mode/htmlmixed/htmlmixed');
-require('codemirror/mode/sparql/sparql');
-require('codemirror/addon/comment/comment');
-require('codemirror/addon/dialog/dialog');
-require('codemirror/addon/edit/closebrackets');
-require('codemirror/addon/edit/matchbrackets');
-require('codemirror/addon/fold/brace-fold');
-require('codemirror/addon/fold/foldgutter');
-require('codemirror/addon/fold/xml-fold');
-require('codemirror/addon/hint/javascript-hint');
-require('codemirror/addon/hint/show-hint');
-require('codemirror/addon/lint/lint');
-require('codemirror/addon/lint/json-lint');
-require('codemirror/addon/mode/overlay');
-require('codemirror/addon/scroll/simplescrollbars');
-require('codemirror/addon/search/jump-to-line');
-require('codemirror/addon/search/search');
-require('codemirror/addon/search/searchcursor');
-require('codemirror/addon/display/placeholder');
-require('codemirror/keymap/sublime');
-
-require('codemirror-graphql/hint');
-require('codemirror-graphql/info');
-require('codemirror-graphql/jump');
-require('codemirror-graphql/lint');
-require('codemirror-graphql/mode');
-
-require('utils/codemirror/brunoVarInfo');
-require('utils/codemirror/javascript-lint');
-require('utils/codemirror/autocomplete');
+// Heavy components — loaded only when first needed
+const ManageWorkspace = lazy(() => import('components/ManageWorkspace'));
+const RequestTabPanel = lazy(() => import('components/RequestTabPanel'));
+const AppPreviewKeepAlive = lazy(() => import('components/AppPreviewKeepAlive'));
+const AiChatSidebar = lazy(() => import('components/AiChatSidebar'));
+const AiChatPopout = lazy(() => import('components/AiChatSidebar/Popout'));
+const ApiSpecPanel = lazy(() => import('components/ApiSpecPanel'));
+const TabPanelErrorBoundary = lazy(() => import('components/RequestTabPanel/TabPanelErrorBoundary'));
+const Devtools = lazy(() => import('components/Devtools'));
 
 const TransientRequestModalsRenderer = ({ modals }) => {
   if (modals.length === 0) {
@@ -160,31 +124,47 @@ export default function Main() {
           <Sidebar />
           <section className="flex flex-grow flex-col overflow-hidden">
             {showApiSpecPage && activeApiSpecUid ? (
-              <ApiSpecPanel key={activeApiSpecUid} />
+              <Suspense fallback={<PageLoader name="API Spec" />}>
+                <ApiSpecPanel key={activeApiSpecUid} />
+              </Suspense>
             ) : showManageWorkspacePage ? (
-              <ManageWorkspace />
+              <Suspense fallback={<PageLoader name="workspace" />}>
+                <ManageWorkspace />
+              </Suspense>
             ) : (
               <>
                 <RequestTabs />
                 <div className="relative flex flex-col flex-grow overflow-hidden">
-                  <TabPanelErrorBoundary key={activeTabUid} tabUid={activeTabUid}>
-                    <RequestTabPanel key={activeTabUid} />
-                  </TabPanelErrorBoundary>
-                  <AppPreviewKeepAlive />
+                  <Suspense fallback={<PageLoader />}>
+                    <TabPanelErrorBoundary key={activeTabUid} tabUid={activeTabUid}>
+                      <RequestTabPanel key={activeTabUid} />
+                    </TabPanelErrorBoundary>
+                  </Suspense>
+                  <Suspense fallback={null}>
+                    <AppPreviewKeepAlive />
+                  </Suspense>
                 </div>
               </>
             )}
           </section>
           {isAiSidebarOpen && activeCollection && isAiPoppedOut && (
-            <AiChatPopout collection={activeCollection} />
+            <Suspense fallback={<PageLoader name="AI Assistant" />}>
+              <AiChatPopout collection={activeCollection} />
+            </Suspense>
           )}
           {isAiSidebarOpen && activeCollection && !isAiPoppedOut && !showApiSpecPage && !showManageWorkspacePage && (
-            <AiChatSidebar collection={activeCollection} />
+            <Suspense fallback={<PageLoader name="AI Assistant" />}>
+              <AiChatSidebar collection={activeCollection} />
+            </Suspense>
           )}
         </StyledWrapper>
       </div>
 
-      <Devtools mainSectionRef={mainSectionRef} />
+      {/* null fallback: PageLoader is a full-height centered container and would
+          cause a layout shift for the bottom-anchored Devtools panel */}
+      <Suspense fallback={null}>
+        <Devtools mainSectionRef={mainSectionRef} />
+      </Suspense>
       <StatusBar />
       <TransientRequestModalsRenderer modals={saveTransientRequestModals} />
     </div>
