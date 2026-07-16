@@ -414,17 +414,15 @@ describe('persistVariableUpdates — global env file', () => {
   // injected via the CLI and passed through unchanged must never reach the global .yml,
   // while a deliberate `bru.setGlobalEnvVar` write of a different value still persists.
   it('respects globalEnvVarOverrides when persisting to the global env file', () => {
-    const globalPath = writeFile('global.yml',
-      'name: global\nvariables:\n  - name: token\n    value: real-global-secret\n  - name: region\n    value: us\n'
-    );
-    persistVariableUpdates(
-      // Simulates a --global-env-var override that a script echoed back unchanged.
-      { globalEnvironmentVariables: { token: 'transient-cli-value', region: 'eu' } },
-      {
-        globalEnvFile: { path: globalPath, format: 'yml' },
-        globalEnvVarOverrides: new Map([['token', 'transient-cli-value']])
-      }
-    );
+    const globalYml = 'name: global\nvariables:\n  - name: token\n    value: real-global-secret\n  - name: region\n    value: us\n';
+    const globalPath = writeFile('global.yml', globalYml);
+    // Simulates a --global-env-var override that a script echoed back unchanged.
+    const updates = { globalEnvironmentVariables: { token: 'transient-cli-value', region: 'eu' } };
+    const options = {
+      globalEnvFile: { path: globalPath, format: 'yml' },
+      globalEnvVarOverrides: new Map([['token', 'transient-cli-value']])
+    };
+    persistVariableUpdates(updates, options);
     const written = fs.readFileSync(globalPath, 'utf8');
     // token's on-disk value must NOT be the transient override
     expect(written).not.toMatch(/transient-cli-value/);
@@ -435,16 +433,14 @@ describe('persistVariableUpdates — global env file', () => {
 
   // A deliberate script write of a value different from the injected override must persist.
   it('persists a deliberate global write that differs from the injected override', () => {
-    const globalPath = writeFile('global.yml',
-      'name: global\nvariables:\n  - name: token\n    value: real-global-secret\n'
-    );
-    persistVariableUpdates(
-      { globalEnvironmentVariables: { token: 'rotated' } },
-      {
-        globalEnvFile: { path: globalPath, format: 'yml' },
-        globalEnvVarOverrides: new Map([['token', 'transient-cli-value']])
-      }
-    );
+    const globalYml = 'name: global\nvariables:\n  - name: token\n    value: real-global-secret\n';
+    const globalPath = writeFile('global.yml', globalYml);
+    const updates = { globalEnvironmentVariables: { token: 'rotated' } };
+    const options = {
+      globalEnvFile: { path: globalPath, format: 'yml' },
+      globalEnvVarOverrides: new Map([['token', 'transient-cli-value']])
+    };
+    persistVariableUpdates(updates, options);
     const written = fs.readFileSync(globalPath, 'utf8');
     expect(written).toMatch(/value:\s*rotated/);
     expect(written).not.toMatch(/transient-cli-value/);

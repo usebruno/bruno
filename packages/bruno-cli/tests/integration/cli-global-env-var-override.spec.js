@@ -92,21 +92,18 @@ describe('CLI run — --global-env-var overrides', () => {
     const root = stageFixture('leak');
     const collectionDir = path.join(root, 'workspace', 'override-leak-collection');
 
-    const result = await runCli(
-      [
-        'run', 'echo-global-token.bru',
-        '--global-env', 'Global',
-        '--global-env-var', 'token=transient-cli-value',
-        '--sandbox', 'developer',
-        '--noproxy'
-      ],
-      collectionDir
-    );
+    const args = [
+      'run', 'echo-global-token.bru',
+      '--global-env', 'Global',
+      '--global-env-var', 'token=transient-cli-value',
+      '--sandbox', 'developer',
+      '--noproxy'
+    ];
+    const result = await runCli(args, collectionDir);
 
     if (result.code !== 0) {
-      throw new Error(
-        `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`
-      );
+      const message = `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`;
+      throw new Error(message);
     }
 
     // check for runtime override value in the request url
@@ -127,16 +124,14 @@ describe('CLI run — --global-env-var overrides', () => {
   it('exits with an error when --global-env-var is passed without --global-env', async () => {
     const root = stageFixture('no-global-env');
 
-    const result = await runCli(
-      [
-        'run', 'ping.bru',
-        '--env', 'Test',
-        '--global-env-var', 'token=xxx',
-        '--sandbox', 'developer',
-        '--noproxy'
-      ],
-      root
-    );
+    const args = [
+      'run', 'ping.bru',
+      '--env', 'Test',
+      '--global-env-var', 'token=xxx',
+      '--sandbox', 'developer',
+      '--noproxy'
+    ];
+    const result = await runCli(args, root);
 
     expect(result.code).toBe(8);
     expect(result.stderr).toContain('--global-env-var requires --global-env to be set');
@@ -148,16 +143,14 @@ describe('CLI run — --global-env-var overrides', () => {
     const root = stageFixture('malformed');
     const collectionDir = path.join(root, 'workspace', 'malformed-collection');
 
-    const result = await runCli(
-      [
-        'run', 'ping.bru',
-        '--global-env', 'Global',
-        '--global-env-var', 'token',
-        '--sandbox', 'developer',
-        '--noproxy'
-      ],
-      collectionDir
-    );
+    const args = [
+      'run', 'ping.bru',
+      '--global-env', 'Global',
+      '--global-env-var', 'token',
+      '--sandbox', 'developer',
+      '--noproxy'
+    ];
+    const result = await runCli(args, collectionDir);
 
     expect(result.code).toBe(8);
     expect(result.stderr).toContain('Overridable global environment variable not correct');
@@ -171,25 +164,22 @@ describe('CLI run — --global-env-var overrides', () => {
     const root = stageFixture('multi');
     const collectionDir = path.join(root, 'workspace', 'multi-override-collection');
 
-    const result = await runCli(
-      [
-        'run', 'echo-globals.bru',
-        '--env', 'Local',
-        '--env-var', 'apiKey=transient-api-key',
-        '--env-var', 'stage=transient-stage',
-        '--global-env', 'Global',
-        '--global-env-var', 'token=transient-token',
-        '--global-env-var', 'region=eu-transient',
-        '--sandbox', 'developer',
-        '--noproxy'
-      ],
-      collectionDir
-    );
+    const args = [
+      'run', 'echo-globals.bru',
+      '--env', 'Local',
+      '--env-var', 'apiKey=transient-api-key',
+      '--env-var', 'stage=transient-stage',
+      '--global-env', 'Global',
+      '--global-env-var', 'token=transient-token',
+      '--global-env-var', 'region=eu-transient',
+      '--sandbox', 'developer',
+      '--noproxy'
+    ];
+    const result = await runCli(args, collectionDir);
 
     if (result.code !== 0) {
-      throw new Error(
-        `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`
-      );
+      const message = `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`;
+      throw new Error(message);
     }
 
     // Runtime request url: both local and global overrides are applied
