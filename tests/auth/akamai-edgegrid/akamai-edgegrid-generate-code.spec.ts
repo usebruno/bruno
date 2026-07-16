@@ -1,5 +1,6 @@
 import { expect, Page, test } from '../../../playwright';
 import {
+  buildCommonLocators,
   closeAllCollections,
   closeGenerateCodeDialog,
   createCollection,
@@ -36,6 +37,10 @@ const fillEdgeGridCredentials = async (page: Page) => {
 };
 
 test.describe('Akamai EdgeGrid - Generate Code', () => {
+  // Configuring auth, saving, and generating a real signed snippet across several requests runs
+  // longer than the default 30s under parallel load.
+  test.describe.configure({ timeout: 60_000 });
+
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
@@ -59,19 +64,20 @@ test.describe('Akamai EdgeGrid - Generate Code', () => {
   });
 
   test('inherited collection auth is resolved and signed in the snippet', async ({ page, createTmpDir }) => {
+    const { paneTabs, settingsSaveButton, auth } = buildCommonLocators(page);
     await createCollection(page, 'edgegrid-gencode-inherit', await createTmpDir());
     // Collection settings open on creation - configure collection-level EdgeGrid auth.
-    await page.locator('.tab.auth').click();
+    await paneTabs.collectionSettingsTab('auth').click();
     await selectAuthMode(page, 'Akamai EdgeGrid');
     await fillEdgeGridCredentials(page);
-    await page.getByRole('button', { name: 'Save' }).click();
+    await settingsSaveButton().click();
 
     await createRequest(page, 'inheriting-request', 'edgegrid-gencode-inherit', { url: REQUEST_URL });
     await openRequest(page, 'edgegrid-gencode-inherit', 'inheriting-request');
     await selectRequestPaneTab(page, 'Auth');
     // A new request already defaults to Inherit; Generate Code reads the draft and resolves
     // inheritance from the collection, so no save is needed here.
-    await expect(page.locator('.inherit-mode-text')).toHaveText('Akamai EdgeGrid');
+    await expect(auth.inheritedMode()).toHaveText('Akamai EdgeGrid');
 
     const snippet = await getGeneratedSnippet(page);
 

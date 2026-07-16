@@ -63,6 +63,10 @@ const VALUES: Record<string, string> = {
 };
 
 test.describe('Akamai EdgeGrid Authentication (request level)', () => {
+  // Each flow fills 8 credential fields character-by-character, saves, re-verifies every field, and
+  // makes real signed round-trips to the simulator — more than the default 30s under parallel load.
+  test.describe.configure({ timeout: 60_000 });
+
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });
@@ -173,8 +177,8 @@ test.describe('Akamai EdgeGrid Authentication (request level)', () => {
       await selectResponsePaneTab(page, 'Timeline');
       const entry = timeline.items().first();
       await timeline.itemHeader(entry).click();
-      await entry.getByRole('button', { name: 'Network' }).click();
-      const networkLogs = entry.locator('.network-logs-container');
+      await timeline.networkButton(entry).click();
+      const networkLogs = timeline.networkLogs(entry);
 
       // Credentials were interpolated from the variables before signing - no unresolved tokens.
       await expect(networkLogs).toContainText(`access_token=${TEST_EDGEGRID.accessToken}`);

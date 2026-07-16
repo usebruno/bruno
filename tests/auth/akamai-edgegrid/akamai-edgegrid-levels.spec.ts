@@ -75,6 +75,10 @@ const expectInheritedEdgeGridSignature = async (page, expectedNonce: string) => 
 };
 
 test.describe('Akamai EdgeGrid Authentication - collection, folder & inherit', () => {
+  // Each flow fills 8 credential fields character-by-character, switches auth modes, re-verifies
+  // every field, and makes real signed round-trips — more than the default 30s under parallel load.
+  test.describe.configure({ timeout: 60_000 });
+
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
