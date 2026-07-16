@@ -128,7 +128,7 @@ const docsContentStyles = css`
   }
 
   code {
-    background-color: ${(props) => props.theme.codemirror.gutter.bg};
+    background-color: ${(props) => props.theme.background.surface0};
     border-radius: 4px;
     font-size: 0.85em;
     padding: 0.15em 0.35em;
@@ -136,7 +136,7 @@ const docsContentStyles = css`
   }
 
   pre {
-    background-color: ${(props) => props.theme.codemirror.gutter.bg};
+    background-color: ${(props) => props.theme.background.surface0};
     color: ${(props) => props.theme.text};
     font-family: ${(props) => props.theme.font.monospace || 'monospace'};
     margin: 1rem 0;
