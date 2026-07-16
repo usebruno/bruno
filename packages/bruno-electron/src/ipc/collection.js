@@ -77,6 +77,7 @@ const { getProcessEnvVars } = require('../store/process-env');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
+const { remount: remountCollectionV2 } = require('./mount');
 const { transformBrunoConfigBeforeSave, transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { REQUEST_TYPES } = require('../utils/constants');
 const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
@@ -1595,6 +1596,17 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             const content = await stringifyRequestViaWorker(itemToSave, { format });
             await writeFile(item.pathname, content);
           }
+        } else if (item?.type === 'app') {
+          if (fs.existsSync(item.pathname)) {
+            const existingContent = fs.readFileSync(item.pathname, 'utf8');
+            const appJson = parseRequest(existingContent, { format });
+            if (appJson?.seq === item.seq) {
+              continue;
+            }
+            appJson.seq = item.seq;
+            const newContent = stringifyRequest(appJson, { format });
+            await writeFile(item.pathname, newContent);
+          }
         }
       }
       return true;
@@ -2684,6 +2696,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     // Track all written yml files so we can roll back on failure
     const writtenYmlFiles = [];
 
+    const tabPathMap = {};
+
     try {
       const brunoJsonPath = path.join(collectionPathname, 'bruno.json');
       const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
@@ -2743,6 +2757,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const ymlContent = stringifyRequest(requestData, { format: 'yml' });
         const ymlFilePath = bruFilePath.replace(/\.bru$/, '.yml');
         await writeFile(ymlFilePath, ymlContent);
+        moveRequestUid(bruFilePath, ymlFilePath);
+        tabPathMap[bruFilePath] = ymlFilePath;
         writtenYmlFiles.push(ymlFilePath);
         bruFilesToDelete.push(bruFilePath);
       }
@@ -2755,6 +2771,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           const ymlContent = stringifyEnvironment(envData, { format: 'yml' });
           const ymlFilePath = envBruFilePath.replace(/\.bru$/, '.yml');
           await writeFile(ymlFilePath, ymlContent);
+          moveRequestUid(envBruFilePath, ymlFilePath);
           writtenYmlFiles.push(ymlFilePath);
           bruFilesToDelete.push(envBruFilePath);
         }
@@ -2765,9 +2782,33 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
       fs.unlinkSync(brunoJsonPath);
 
+      try {
+        snapshotManager.remapCollectionTabPaths(collectionPathname, tabPathMap);
+      } catch (_) {
+      }
+
       const { size, filesCount } = await getCollectionStats(collectionPathname);
       ymlBrunoConfig.size = size;
       ymlBrunoConfig.filesCount = filesCount;
+
+      try {
+        const remounted = await remountCollectionV2({ collectionUid, brunoConfig: ymlBrunoConfig });
+        if (!remounted && watcher) {
+          watcher.addWatcher(mainWindow, collectionPathname, collectionUid, ymlBrunoConfig, false, undefined, { ignoreInitial: true });
+        }
+      } catch (watcherError) {
+        console.error('Failed to re-attach watcher after migration:', watcherError);
+        try {
+          if (watcher) {
+            watcher.addWatcher(mainWindow, collectionPathname, collectionUid, ymlBrunoConfig, false, undefined, { ignoreInitial: true });
+          }
+        } catch (fallbackError) {
+          console.error('Fallback watcher attach failed after migration:', fallbackError);
+          mainWindow.webContents.send('main:display-error', {
+            message: `Collection migrated to yml, but live sync could not be re-enabled: ${fallbackError.message}. Please reopen the collection.`
+          });
+        }
+      }
 
       return ymlBrunoConfig;
     } catch (error) {
@@ -2781,13 +2822,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
 
       // Restart the watcher on the original bru collection
-      if (watcher) {
-        try {
-          const config = JSON.parse(fs.readFileSync(path.join(collectionPathname, 'bruno.json'), 'utf8'));
+      try {
+        const config = JSON.parse(fs.readFileSync(path.join(collectionPathname, 'bruno.json'), 'utf8'));
+        const remounted = await remountCollectionV2({ collectionUid, brunoConfig: config });
+        if (!remounted && watcher) {
           watcher.addWatcher(mainWindow, collectionPathname, collectionUid, config);
-        } catch (watcherError) {
-          console.error('Failed to restart watcher after migration error:', watcherError);
         }
+      } catch (watcherError) {
+        console.error('Failed to restart watcher after migration error:', watcherError);
       }
       throw error;
     }

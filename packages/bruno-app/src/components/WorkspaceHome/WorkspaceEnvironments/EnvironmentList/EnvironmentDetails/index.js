@@ -1,5 +1,5 @@
 import { IconCopy, IconEdit, IconTrash, IconCheck, IconX, IconSearch, IconDeviceFloppy } from '@tabler/icons';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { renameGlobalEnvironment, updateGlobalEnvironmentColor } from 'providers/ReduxStore/slices/global-environments';
 import { updateTabState } from 'providers/ReduxStore/slices/tabs';
@@ -11,16 +11,14 @@ import EnvironmentVariables from './EnvironmentVariables';
 import ColorPicker from 'components/ColorPicker';
 import ActionIcon from 'ui/ActionIcon';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
+import DraftTabIcon from 'components/RequestTabs/RequestTab/DraftTabIcon';
+import { stripEnvVarUid } from 'utils/environments';
 import StyledWrapper from './StyledWrapper';
-
-const TABS = [
-  { key: 'variables', label: 'Variables' },
-  { key: 'secrets', label: 'Secrets' }
-];
 
 const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuery, setSearchQuery, isSearchExpanded, setIsSearchExpanded, debouncedSearchQuery, searchInputRef }) => {
   const dispatch = useDispatch();
   const globalEnvs = useSelector((state) => state?.globalEnvironments?.globalEnvironments);
+  const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
 
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
   const [openCopyModal, setOpenCopyModal] = useState(false);
@@ -28,8 +26,42 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
   const [newName, setNewName] = useState('');
   const [nameError, setNameError] = useState('');
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const activeTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.envTab) || 'variables';
-  const setActiveTab = (tab) => dispatch(updateTabState({ uid: activeTabUid, tabState: { envTab: tab } }));
+  const activeTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.environment?.tab) || 'variables';
+  const setActiveTab = (tab) => dispatch(updateTabState({ uid: activeTabUid, tabState: { environment: { tab } } }));
+
+  // A tab shows an unsaved-changes dot when its slice of the environment draft differs from what's
+  // saved: Variables/Secrets compare their own (non-)secret variables.
+  const environmentsDraft = globalEnvironmentDraft?.environmentUid === environment?.uid ? globalEnvironmentDraft : null;
+
+  const tabs = useMemo(() => {
+    const variablesTabDirty = (isSecret) => {
+      if (!environmentsDraft?.variables) return false;
+      const belongsToTab = (v) => (isSecret ? !!v.secret : !v.secret);
+      const normalize = (list) => JSON.stringify((list || []).filter(belongsToTab).map(stripEnvVarUid));
+      return normalize(environmentsDraft.variables) !== normalize(environment?.variables);
+    };
+    // The dot is floated into the tab's right margin (see StyledWrapper), so it never widens the
+    // tab; visibility toggles whether it shows without shifting the tab.
+    const draftIndicator = (dirty) => (
+      <span className="env-tab-draft-indicator" data-testid="env-tab-draft-indicator" style={{ visibility: dirty ? 'visible' : 'hidden' }}>
+        <DraftTabIcon />
+      </span>
+    );
+    return [
+      { key: 'variables', label: 'Variables', indicator: draftIndicator(variablesTabDirty(false)) },
+      { key: 'secrets', label: 'Secrets', indicator: draftIndicator(variablesTabDirty(true)) }
+    ];
+  }, [environmentsDraft, environment?.variables]);
+
+  // Use the immediate query on a tab switch (debounced value lags and briefly
+  // flashes the unfiltered table).
+  const prevTabRef = useRef(activeTab);
+  const tabJustChanged = prevTabRef.current !== activeTab;
+  useEffect(() => {
+    prevTabRef.current = activeTab;
+  }, [activeTab]);
+  const tableSearchQuery = tabJustChanged ? searchQuery : debouncedSearchQuery;
+
   const inputRef = useRef(null);
   const rightContentRef = useRef(null);
 
@@ -205,6 +237,9 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
         </div>
         {nameError && isRenaming && <div className="title-error">{nameError}</div>}
         <div className="actions">
+          <ActionIcon label="Save All" onClick={handleSaveAll} data-testid="save-all-env">
+            <IconDeviceFloppy size={15} strokeWidth={1.5} />
+          </ActionIcon>
           <ActionIcon label="Rename" onClick={handleRenameClick} data-testid="env-rename-action">
             <IconEdit size={15} strokeWidth={1.5} />
           </ActionIcon>
@@ -219,14 +254,11 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
 
       <div className="tabs-container">
         <ResponsiveTabs
-          tabs={TABS}
+          tabs={tabs}
           activeTab={activeTab}
           onTabSelect={setActiveTab}
           rightContent={(
             <div ref={rightContentRef} className="env-search-container">
-              <ActionIcon label="Save" onClick={handleSaveAll} data-testid="save-all-env">
-                <IconDeviceFloppy size={15} strokeWidth={1.5} />
-              </ActionIcon>
               {isSearchExpanded ? (
                 <div className="search-input-wrapper">
                   <IconSearch size={14} strokeWidth={1.5} className="search-icon" />
@@ -272,7 +304,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
           environment={environment}
           setIsModified={setIsModified}
           collection={collection}
-          searchQuery={debouncedSearchQuery}
+          searchQuery={tableSearchQuery}
           variableType={activeTab}
         />
       </div>

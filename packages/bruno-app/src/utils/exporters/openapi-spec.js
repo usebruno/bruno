@@ -171,14 +171,14 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
         ...params?.filter((p) => p?.type !== 'path').map((param) => ({
           name: param?.name,
           in: 'query',
-          description: '',
+          description: param?.description || '',
           required: param?.enabled,
           example: param?.value
         })),
         ...headers?.map((header) => ({
           name: header?.name,
           in: 'header',
-          description: '',
+          description: header?.description || '',
           required: header?.enabled,
           example: header?.value
         })),
@@ -306,11 +306,15 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
           case 'multipartForm':
             if (!body?.multipartForm) break;
             const multipartFormComponentId = getItemComponentId();
-            let multipartFormToKeyValue = body?.multipartForm.reduce((acc, f) => {
-              acc[f?.name] = f.value;
-              return acc;
-            }, {});
-            components.schemas[multipartFormComponentId] = generateProperyShape(multipartFormToKeyValue);
+            {
+              const multipartFormProps = {};
+              body.multipartForm.forEach((f) => {
+                const prop = generateProperyShape(f.value);
+                if (f.description) prop.description = f.description;
+                multipartFormProps[f.name] = prop;
+              });
+              components.schemas[multipartFormComponentId] = { type: 'object', properties: multipartFormProps };
+            }
             components.requestBodies[multipartFormComponentId] = {
               content: {
                 'multipart/form-data': {
@@ -329,11 +333,15 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
           case 'formUrlEncoded':
             if (!body?.formUrlEncoded) break;
             const formUrlEncodedComponentId = getItemComponentId();
-            let formUrlEncodedToKeyValue = body?.formUrlEncoded.reduce((acc, f) => {
-              acc[f?.name] = f.value;
-              return acc;
-            }, {});
-            components.schemas[formUrlEncodedComponentId] = generateProperyShape(formUrlEncodedToKeyValue);
+            {
+              const formUrlEncodedProps = {};
+              body.formUrlEncoded.forEach((f) => {
+                const prop = generateProperyShape(f.value);
+                if (f.description) prop.description = f.description;
+                formUrlEncodedProps[f.name] = prop;
+              });
+              components.schemas[formUrlEncodedComponentId] = { type: 'object', properties: formUrlEncodedProps };
+            }
             components.requestBodies[formUrlEncodedComponentId] = {
               content: {
                 'application/x-www-form-urlencoded': {

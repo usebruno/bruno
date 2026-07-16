@@ -329,11 +329,11 @@ export const setResponseExampleHeaders = (state, action) => {
   const example = item.draft.examples.find((e) => e.uid === exampleUid);
   if (!example) return;
 
-  example.response.headers = map(headers, ({ uid, name = '', value = '', enabled = true }) => ({
+  example.response.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
     uid: uid || uuid(),
     name: name,
     value: value,
-    description: '',
+    description,
     enabled: enabled
   }));
 };
@@ -927,11 +927,11 @@ export const setResponseExampleRequestHeaders = (state, action) => {
   const example = item.draft.examples.find((e) => e.uid === exampleUid);
   if (!example) return;
 
-  example.request.headers = map(headers, ({ uid, name = '', value = '', enabled = true }) => ({
+  example.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
     uid: uid || uuid(),
     name: name,
     value: value,
-    description: '',
+    description,
     enabled: enabled
   }));
 };
@@ -956,11 +956,11 @@ export const setResponseExampleParams = (state, action) => {
   const example = item.draft.examples.find((e) => e.uid === exampleUid);
   if (!example) return;
 
-  example.request.params = map(params, ({ uid, name = '', value = '', enabled = true, type = 'query' }) => ({
+  example.request.params = map(params, ({ uid, name = '', value = '', description = '', enabled = true, type = 'query' }) => ({
     uid: uid || uuid(),
     name: name,
     value: value,
-    description: '',
+    description,
     enabled: enabled,
     type: type
   }));

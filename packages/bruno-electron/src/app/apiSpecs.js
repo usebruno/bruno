@@ -1,8 +1,9 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 const { dialog, ipcMain } = require('electron');
 const { normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
+const { parseApiSpecContent } = require('../utils/apiSpecs');
 const {
   addApiSpecToWorkspace,
   readWorkspaceConfig,
@@ -10,6 +11,18 @@ const {
 } = require('../utils/workspace-config');
 
 const DEFAULT_WORKSPACE_NAME = 'My Workspace';
+
+const INVALID_EXTENSION_MESSAGE
+  = 'Invalid file format. Please select a valid OpenAPI spec in YAML or JSON format.';
+
+const VALID_API_SPEC_EXTENSIONS = ['.yaml', '.yml', '.json'];
+
+const validateApiSpec = (filePath) => {
+  const ext = path.extname(filePath).toLowerCase();
+  if (!VALID_API_SPEC_EXTENSIONS.includes(ext)) {
+    throw new Error(INVALID_EXTENSION_MESSAGE);
+  }
+};
 
 const prepareWorkspaceConfigForClient = (workspaceConfig, isDefault) => {
   if (isDefault) {
@@ -24,7 +37,8 @@ const prepareWorkspaceConfigForClient = (workspaceConfig, isDefault) => {
 
 const openApiSpecDialog = async (win, watcher, options = {}) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
-    properties: ['openFile', 'createFile']
+    properties: ['openFile', 'createFile'],
+    filters: [{ name: 'OpenAPI Spec', extensions: ['yaml', 'yml', 'json'] }]
   });
 
   if (filePaths && filePaths[0]) {
@@ -39,6 +53,8 @@ const openApiSpecDialog = async (win, watcher, options = {}) => {
 
 const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
   try {
+    validateApiSpec(apiSpecPath);
+
     const uid = generateUidBasedOnHash(apiSpecPath);
 
     if (options.workspacePath) {
@@ -76,28 +92,22 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
     if (!watcher.hasWatcher(apiSpecPath)) {
       ipcMain.emit('main:apispec-opened', win, apiSpecPath, uid, options.workspacePath);
     } else {
+      const rawContent = fs.readFileSync(apiSpecPath, 'utf8');
+      const extension = path.extname(apiSpecPath);
+
       win.webContents.send('main:apispec-tree-updated', 'addFile', {
         pathname: apiSpecPath,
         uid: uid,
-        raw: require('fs').readFileSync(apiSpecPath, 'utf8'),
-        name: require('path').basename(apiSpecPath, require('path').extname(apiSpecPath)),
-        filename: require('path').basename(apiSpecPath),
-        json: (() => {
-          const ext = require('path').extname(apiSpecPath).toLowerCase();
-          const content = require('fs').readFileSync(apiSpecPath, 'utf8');
-          if (ext === '.yaml' || ext === '.yml') {
-            return require('js-yaml').load(content);
-          } else if (ext === '.json') {
-            return JSON.parse(content);
-          }
-          return null;
-        })()
+        raw: rawContent,
+        name: path.basename(apiSpecPath, path.extname(apiSpecPath)),
+        filename: path.basename(apiSpecPath),
+        json: parseApiSpecContent(rawContent, extension)
       });
     }
   } catch (err) {
     if (!options.dontSendDisplayErrors) {
       win.webContents.send('main:display-error', {
-        error: err.message || 'An error occurred while opening the apiSpec'
+        message: err.message || 'An error occurred while opening the apiSpec'
       });
     }
   }
@@ -105,5 +115,6 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
 
 module.exports = {
   openApiSpec,
-  openApiSpecDialog
+  openApiSpecDialog,
+  INVALID_EXTENSION_MESSAGE
 };

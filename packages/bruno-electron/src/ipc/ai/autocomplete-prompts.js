@@ -7,22 +7,30 @@
  *    instruction. Output is appended verbatim at the cursor.
  */
 
-const BRUNO_API_SUMMARY = `## Bruno runtime APIs (available inside scripts)
-
-bru:    env/global/collection/folder/request/runtime vars — get/set/has/delete,
+const API_BLOCKS = {
+  bru: `bru:    env/global/collection/folder/request/runtime vars — get/set/has/delete,
         interpolate(strOrObj), sleep(ms), sendRequest(cfg), setNextRequest(name),
-        cookies, utils.minifyJson/Xml, getEnvName, getCollectionName, cwd
-
-req:    url, method, headers, body, timeout. getUrl/setUrl, getHeader/setHeader,
-        getBody/setBody, getMethod/setMethod, getTimeout/setTimeout. Available in
-        pre-request, post-response and tests.
-
-res:    status, headers, body, responseTime. getStatus, getStatusText,
+        cookies, utils.minifyJson/Xml, getEnvName, getCollectionName, cwd`,
+  req: `req:    url, method, headers, body, timeout. getUrl/setUrl, getHeader/setHeader,
+        getBody/setBody, getMethod/setMethod, getTimeout/setTimeout.`,
+  res: `res:    status, headers, body, responseTime. getStatus, getStatusText,
         getHeader, getHeaders, getBody, getResponseTime, getSize. res('json.path')
-        for JSONPath-style queries. Available in post-response and tests.
+        for JSONPath-style queries.`,
+  test: `test/expect:  Chai-style assertions inside test("name", () => { ... }) blocks.`
+};
 
-test/expect:  Chai-style assertions inside test("name", () => { ... }) blocks.
-              Available in tests only.`;
+const API_BLOCKS_BY_SCRIPT_TYPE = {
+  'pre-request': ['bru', 'req'],
+  'post-response': ['bru', 'req', 'res'],
+  'tests': ['bru', 'req', 'res', 'test']
+};
+
+const buildApiSummary = (scriptType) => {
+  const blocks = API_BLOCKS_BY_SCRIPT_TYPE[scriptType] || Object.keys(API_BLOCKS);
+  return `## Bruno runtime APIs (available inside scripts)
+
+${blocks.map((block) => API_BLOCKS[block]).join('\n\n')}`;
+};
 
 const SCRIPT_CONTEXTS = {
   'tests': `Tests run AFTER the response. Globals: bru, req, res, test, expect. Assertions go inside test("name", () => { ... }) blocks. Don't call bru.setEnvVar / setVar — keep tests pure.`,
@@ -41,7 +49,7 @@ const buildSystemPrompt = (scriptType) => {
   const context = SCRIPT_CONTEXTS[scriptType] || '';
   return `You are an inline code-completion engine for ${label}.
 
-${BRUNO_API_SUMMARY}
+${buildApiSummary(scriptType)}
 
 ## Context for ${scriptType}
 ${context}
@@ -51,6 +59,7 @@ ${context}
 - Continue the code from the cursor marker \`<CURSOR>\` exactly where it is.
 - Output ONLY the characters that should be inserted at the cursor — no markdown, no fences, no commentary, no leading newline.
 - Match the surrounding indentation and quote style.
+- If the cursor is at the end of a \`//\` comment line and you are generating CODE (not finishing the comment's text), begin your output with a newline — anything emitted on the comment line itself would be commented out. A comment like \`// test that status is 200\` is an instruction: put the implementing code on the following line(s).
 - Stop at a natural break (end of statement, end of block) — do not rewrite code that already exists after the cursor.
 - Prefer real variable names from the provided lists over placeholders.
 - Return an empty string if you have nothing useful to add.`;
@@ -165,9 +174,62 @@ const cleanSuggestion = (raw) => {
   return out;
 };
 
+// --- Comment-line guard ----------------------------------------------------
+// Models often ignore the "start with a newline after a comment" rule and
+// emit code directly at the cursor, which lands inside the comment. Detect
+// the case deterministically and prepend the newline ourselves.
+
+const CODE_START_RE = /^\s*(?:const\s|let\s|var\s|function[\s(]|async\s|await\s|if\s*\(|for\s*\(|while\s*\(|switch\s*\(|try\s*\{|return[\s;(]|throw\s|new\s|test\s*\(|describe\s*\(|expect\s*\(|bru\.|req\.|res[.(]|console\.|JSON\.|Object\.|Array\.|Promise\.|[{}]|[\w$]+\s*\(|[\w$]+\s*[+\-*/]?=[^=])/;
+
+// Strip string literals so `//` inside a URL ('https://…') isn't mistaken
+// for a comment marker.
+const stripStringLiterals = (line) =>
+  line.replace(/'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`/g, '""');
+
+/**
+ * If the cursor sits after a `//` comment and the suggestion starts with code,
+ * prepend a newline so the code lands on its own line instead of inside the
+ * comment. Suggestions that continue the comment's prose are left untouched.
+ */
+const ensureNewlineAfterComment = (prefix, suggestion) => {
+  if (!suggestion || /^[\r\n]/.test(suggestion)) return suggestion;
+  const lastLine = String(prefix || '').split('\n').pop();
+  if (!stripStringLiterals(lastLine).includes('//')) return suggestion;
+  if (!CODE_START_RE.test(suggestion)) return suggestion;
+  return '\n' + suggestion;
+};
+
+const RES_API_USAGE_RE = /\bres\s*\??[.([]/;
+
+const stripDisallowedApis = (suggestion, scriptType) => {
+  if (!suggestion) return suggestion;
+  if (scriptType === 'pre-request' && RES_API_USAGE_RE.test(suggestion)) return '';
+  return suggestion;
+};
+
+const TRAILING_IDENTIFIER_RE = /[\w$]+$/;
+
+const stripTypedPrefixOverlap = (prefix, suggestion) => {
+  if (!prefix || !suggestion) return suggestion;
+  const typed = prefix.match(TRAILING_IDENTIFIER_RE);
+  if (typed && suggestion.startsWith(typed[0])) return suggestion.slice(typed[0].length);
+  return suggestion;
+};
+
+const sanitizeSuggestion = ({ text, prefix, scriptType }) => {
+  const cleaned = cleanSuggestion(text || '');
+  const allowed = stripDisallowedApis(cleaned, scriptType);
+  const deduped = stripTypedPrefixOverlap(prefix, allowed);
+  return ensureNewlineAfterComment(prefix, deduped);
+};
+
 module.exports = {
   buildSystemPrompt,
   buildUserPrompt,
   STOP_SEQUENCES,
-  cleanSuggestion
+  cleanSuggestion,
+  ensureNewlineAfterComment,
+  stripDisallowedApis,
+  stripTypedPrefixOverlap,
+  sanitizeSuggestion
 };

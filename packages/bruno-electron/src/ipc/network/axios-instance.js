@@ -327,6 +327,12 @@ function makeAxiosInstance({
           redirectCount++;
 
           const locationHeader = error.response.headers.location;
+
+          if (!locationHeader) {
+            error.response.timeline = timeline;
+            return Promise.reject(error);
+          }
+
           let redirectUrl = locationHeader;
 
           // Handle relative URLs by resolving them against the original request URL

@@ -458,7 +458,7 @@ test.describe('Scroll Position Persistence', () => {
     test('Request Headers - scroll persists with many headers across tab switches', async ({ pageWithUserData: page }) => {
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const scrollContainer = '.flex-boundary';
-      const firstVisibleRowLocator = () => page.getByTestId('editable-table').locator('table > tbody > tr:nth-child(2)');
+      const firstVisibleRowLocator = () => page.getByTestId('request-headers-table').locator('table > tbody > tr[data-index]').first();
 
       await test.step('Setup request and navigate to Headers tab', async () => {
         await openCollection(page, 'scroll-fixtures');
@@ -1174,7 +1174,7 @@ test.describe('Scroll Position Persistence', () => {
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
       const scrollContainer = '.collection-settings-content';
-      const firstVisibleRowLocator = () => page.getByTestId('editable-table').locator('table > tbody > tr:nth-child(2)');
+      const firstVisibleRowLocator = () => page.getByTestId('collection-headers').locator('table > tbody > tr[data-index]').first();
 
       await test.step('Open collection settings and navigate to Headers tab', async () => {
         await openCollection(page, 'scroll-fixtures');

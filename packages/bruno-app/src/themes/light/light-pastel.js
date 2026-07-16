@@ -228,6 +228,12 @@ const lightPastelTheme = {
     }
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.BRAND
+    }
+  },
+
   request: {
     methods: {
       get: '#3c9d7c', // Soft emerald - success

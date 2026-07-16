@@ -5,6 +5,9 @@ const StyledWrapper = styled.div`
   top: 6px;
   right: 6px;
   z-index: 10;
+  background: ${(props) => props.theme.bg};
+  border: 1px solid ${(props) => props.theme.input.border};
+  border-radius: ${(props) => props.theme.border.radius.sm};
 
   .ai-assist-trigger {
     display: inline-flex;
@@ -13,11 +16,11 @@ const StyledWrapper = styled.div`
     width: 24px;
     height: 24px;
     border-radius: ${(props) => props.theme.border.radius.sm};
-    border: 1px solid transparent;
+    border: none;
     background: transparent;
     color: ${(props) => props.theme.colors.text.muted};
     cursor: pointer;
-    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+    transition: color 0.15s ease, background-color 0.15s ease;
     opacity: 0.7;
 
     &:hover,
@@ -25,7 +28,6 @@ const StyledWrapper = styled.div`
       opacity: 1;
       color: ${(props) => props.theme.colors.accent};
       background: ${(props) => props.theme.colors.accent}10;
-      border-color: ${(props) => props.theme.input.border};
     }
 
     &:focus-visible {
@@ -105,6 +107,7 @@ export const PopupWrapper = styled.div`
     background: ${(props) => props.theme.input.bg};
     color: ${(props) => props.theme.text};
     resize: vertical;
+    min-height: calc(4 * 1.4em + 10px);
     outline: none;
     transition: border-color 0.15s ease;
 
@@ -200,11 +203,11 @@ export const PopupWrapper = styled.div`
     gap: 6px;
     padding: 5px 12px;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 400;
     border-radius: ${(props) => props.theme.border.radius.sm};
-    border: 1px solid ${(props) => props.theme.colors.accent};
-    background: ${(props) => props.theme.colors.accent};
-    color: white;
+    border: 1px solid ${(props) => props.theme.button2.color.primary.border};
+    background: ${(props) => props.theme.button2.color.primary.bg};
+    color: ${(props) => props.theme.button2.color.primary.text};
     cursor: pointer;
     transition: opacity 0.15s ease;
 
@@ -215,26 +218,6 @@ export const PopupWrapper = styled.div`
     &:disabled {
       opacity: 0.45;
       cursor: not-allowed;
-    }
-  }
-
-  .btn-stop {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 5px 12px;
-    font-size: 12px;
-    font-weight: 500;
-    border-radius: ${(props) => props.theme.border.radius.sm};
-    border: 1px solid ${(props) => props.theme.input.border};
-    background: ${(props) => props.theme.input.bg};
-    color: ${(props) => props.theme.text};
-    cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
-
-    &:hover {
-      border-color: ${(props) => props.theme.colors.text.danger};
-      color: ${(props) => props.theme.colors.text.danger};
     }
   }
 
@@ -271,18 +254,23 @@ export const PopupWrapper = styled.div`
     letter-spacing: 0.05em;
   }
 
+  /* ponytail: overflow on wrapper, not <pre>; same-element overflow+pre under-reports scrollWidth/Height under load */
   .preview-code {
     max-height: 220px;
-    overflow: auto;
+    overflow: scroll;
     padding: 8px 10px;
-    font-family: ${(props) => props.theme.font.monospace || 'monospace'};
-    font-size: 11.5px;
-    line-height: 1.5;
-    color: ${(props) => props.theme.text};
     background: ${(props) => props.theme.input.bg};
     border: 1px solid ${(props) => props.theme.input.border};
     border-radius: ${(props) => props.theme.border.radius.sm};
-    white-space: pre;
+
+    pre {
+      margin: 0;
+      font-family: ${(props) => props.theme.font.monospace || 'monospace'};
+      font-size: 11.5px;
+      line-height: 1.5;
+      color: ${(props) => props.theme.text};
+      white-space: pre;
+    }
   }
 
   .preview-modes {
