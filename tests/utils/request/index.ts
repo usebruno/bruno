@@ -1,5 +1,5 @@
 import { test, expect, Page, Locator } from '../../../playwright';
-import { buildCommonLocators } from './locators';
+import { buildCommonLocators } from '../page/locators';
 
 export const buildRequestLocators = (page: Page) => ({
   urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
@@ -81,7 +81,7 @@ export const createRequestFromCurl = async (
       await expect(async () => {
         await collectionRow.hover();
         await expect(collectionAction).toBeVisible({ timeout: 1000 });
-      }).toPass({ timeout: 10000 });
+      }).toPass({ timeout: 5000 });
       await collectionAction.click();
     }
 

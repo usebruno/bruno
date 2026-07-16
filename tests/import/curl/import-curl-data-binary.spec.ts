@@ -1,7 +1,7 @@
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, createCollection, selectRequestPaneTab } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
-import { createRequestFromCurl } from '../../utils/page/request';
+import { createRequestFromCurl } from '../../utils/request';
 
 const COLLECTION_NAME = 'curl-data-binary';
 
