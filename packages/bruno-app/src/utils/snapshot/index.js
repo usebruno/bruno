@@ -685,17 +685,17 @@ export const hydrateCollectionTabs = async (
   );
 
   const hasPersistedTabs = Array.isArray(tabsSnapshot?.tabs) && tabsSnapshot.tabs.length > 0;
-  const hasPersistedActiveTab = Boolean(tabsSnapshot?.activeTab);
   const shouldRestoreEmptyWorkspaceScopedTabs = Boolean(workspacePathname) && (
     strictWorkspaceScope
     || Boolean(snapshotLookups?.hasWorkspaceScopedTabs)
     || isCollectionSharedAcrossWorkspaces(snapshotLookups, collection.pathname)
   );
 
+  // activeTab alone must not trigger restore; empty tabs + stale activeTab would wipe tabs just opened
   if (
     tabsSnapshot
     && Array.isArray(tabsSnapshot.tabs)
-    && (hasPersistedTabs || hasPersistedActiveTab || shouldRestoreEmptyWorkspaceScopedTabs)
+    && (hasPersistedTabs || shouldRestoreEmptyWorkspaceScopedTabs)
   ) {
     dispatch(restoreTabs({
       collection,

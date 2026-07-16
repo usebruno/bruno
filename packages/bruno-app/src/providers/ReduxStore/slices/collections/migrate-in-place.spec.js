@@ -133,6 +133,28 @@ describe('migrateCollectionToYmlInPlace', () => {
     expect(next.collections[0].environments[0].uid).toBe('e1');
   });
 
+  it('refreshes item.raw from rawContentMap so file mode does not show stale bru content', () => {
+    const next = reducer(
+      makeState(),
+      migrateCollectionToYmlInPlace({
+        collectionUid: 'col1',
+        brunoConfig: {},
+        rawContentMap: {
+          '/c/ping.yml': 'meta:\n  name: ping\n',
+          '/c/api/users.yml': 'meta:\n  name: users\n'
+        }
+      })
+    );
+    const col = next.collections[0];
+    const r1 = col.items[0];
+    const f1 = col.items[1];
+    const r2 = f1.items[0];
+
+    expect(r1.raw).toBe('meta:\n  name: ping\n');
+    expect(r1.draft).toBeNull();
+    expect(r2.raw).toBe('meta:\n  name: users\n');
+  });
+
   it('is a no-op for an unknown collection', () => {
     const state = makeState();
     const next = reducer(state, migrateCollectionToYmlInPlace({ collectionUid: 'nope', brunoConfig: {} }));

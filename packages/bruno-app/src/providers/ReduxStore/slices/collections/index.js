@@ -314,7 +314,7 @@ export const collectionsSlice = createSlice({
       }
     },
     migrateCollectionToYmlInPlace: (state, action) => {
-      const { collectionUid, brunoConfig } = action.payload;
+      const { collectionUid, brunoConfig, rawContentMap } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) {
         return;
@@ -338,6 +338,13 @@ export const collectionsSlice = createSlice({
           }
           if (typeof item.filename === 'string') {
             item.filename = item.filename.replace(/\.bru$/, '.yml');
+          }
+          // The path rewrite above only updates the pointer — item.raw still holds the
+          // pre-migration bru-formatted text unless we overwrite it with the freshly
+          // written yml content the main process already generated for this file.
+          if (rawContentMap && Object.prototype.hasOwnProperty.call(rawContentMap, item.pathname)) {
+            item.raw = rawContentMap[item.pathname];
+            item.draft = null;
           }
           if (item.items && item.items.length) {
             rewriteItemPaths(item.items);
@@ -3098,13 +3105,21 @@ export const collectionsSlice = createSlice({
     collectionUnlinkDirectoryEvent: (state, action) => {
       const { directory } = action.payload;
       const collection = findCollectionByUid(state.collections, directory.meta.collectionUid);
+      if (!collection) return;
 
-      if (collection) {
-        const item = findItemInCollectionByPathname(collection, directory.meta.pathname);
+      // The collection root folder itself was deleted on disk. It's not a child item, so the
+      // pathname lookup below would never match it — clear the whole tree explicitly instead,
+      // otherwise these items linger and collide with whatever gets added back at this path.
+      if (directory.meta.isCollectionRoot) {
+        collection.items = [];
+        collection.environments = [];
+        return;
+      }
 
-        if (item) {
-          deleteItemInCollectionByPathname(directory.meta.pathname, collection);
-        }
+      const item = findItemInCollectionByPathname(collection, directory.meta.pathname);
+
+      if (item) {
+        deleteItemInCollectionByPathname(directory.meta.pathname, collection);
       }
     },
     collectionAddEnvFileEvent: (state, action) => {
@@ -3418,6 +3433,20 @@ export const collectionsSlice = createSlice({
           }
         }
       }
+    },
+    // Reopening a collection whose Redux entry never got cleared (removal raced/skipped, or the
+    // folder was replaced on disk without going through remove-collection first) must not keep
+    // trusting the stale item tree — drop it so the fresh watcher scan we trigger right after
+    // rebuilds it from what's actually on disk now.
+    resetCollectionForReopen: (state, action) => {
+      const { collectionUid, brunoConfig } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      collection.items = [];
+      collection.environments = [];
+      collection.brunoConfig = brunoConfig;
+      collection.format = brunoConfig?.opencollection ? 'yml' : brunoConfig?.format || 'bru';
     },
     resetCollectionRunner: (state, action) => {
       const { collectionUid } = action.payload;
@@ -4090,6 +4119,7 @@ export const {
   initRunRequestEvent,
   runRequestEvent,
   runFolderEvent,
+  resetCollectionForReopen,
   resetCollectionRunner,
   updateRunnerTagsDetails,
   updateRunnerConfiguration,

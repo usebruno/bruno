@@ -1288,8 +1288,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
 
     await require('./mount').unmount(collectionUid).catch(() => {});
+    require('./mount').clearCollectionIndex(collectionPath);
 
-    // Clean up
+    // Clean up. collectionUid is a deterministic hash of collectionPath, so re-adding
+    // the same folder later reuses it — these caches must not resurface stale data.
+    const { clearBrunoConfig } = require('../store/bruno-config');
+    clearBrunoConfig(collectionUid);
+    const { clearRequestUidsForCollection } = require('../cache/requestUids');
+    clearRequestUidsForCollection(collectionPath);
+
     const { clearCollectionWorkspace } = require('../store/process-env');
     clearCollectionWorkspace(collectionUid);
 
@@ -2693,16 +2700,52 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       watcher.removeWatcher(collectionPathname, mainWindow, collectionUid);
     }
 
+    const brunoJsonPath = path.join(collectionPathname, 'bruno.json');
+    const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
+    const brunoConfig = JSON.parse(brunoJsonContent);
+
+    const restoreWatcherOnFailure = async () => {
+      try {
+        // Re-read from disk — authoritative state if bruno.json was modified between handler entry and failure
+        const freshConfig = JSON.parse(fs.readFileSync(brunoJsonPath, 'utf8'));
+        const remounted = await remountCollectionV2({ collectionUid, brunoConfig: freshConfig });
+        if (!remounted && watcher) {
+          watcher.addWatcher(mainWindow, collectionPathname, collectionUid, freshConfig);
+        }
+      } catch (watcherError) {
+        console.error('Failed to restart watcher after migration error:', watcherError);
+      }
+    };
+
     // Track all written yml files so we can roll back on failure
     const writtenYmlFiles = [];
+    // Track all moveRequestUid calls so we can reverse them on rollback
+    const movedUids = [];
+    // Prevent double rollback when inner catch already handled it
+    let rolledBack = false;
+
+    const rollback = async () => {
+      if (rolledBack) return;
+      rolledBack = true;
+      for (const ymlFile of writtenYmlFiles) {
+        try {
+          if (fs.existsSync(ymlFile)) {
+            fs.unlinkSync(ymlFile);
+          }
+        } catch (_) {}
+      }
+      for (const { from, to } of movedUids) {
+        moveRequestUid(to, from);
+      }
+      await restoreWatcherOnFailure();
+    };
 
     const tabPathMap = {};
+    // New yml content per request, keyed by the new path , lets the renderer refresh
+    // item.raw in place instead of showing stale bru content until the next full reload.
+    const rawContentMap = {};
 
     try {
-      const brunoJsonPath = path.join(collectionPathname, 'bruno.json');
-      const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
-      const brunoConfig = JSON.parse(brunoJsonContent);
-
       const collectionBruPath = path.join(collectionPathname, 'collection.bru');
       let collectionRoot = {};
       if (fs.existsSync(collectionBruPath)) {
@@ -2721,12 +2764,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const ocYmlPath = path.join(collectionPathname, 'opencollection.yml');
       const ymlCollectionContent = stringifyCollection(collectionRoot, ymlBrunoConfig, { format: 'yml' });
-      await writeFile(ocYmlPath, ymlCollectionContent);
-      writtenYmlFiles.push(ocYmlPath);
 
       const bruFiles = searchForFiles(collectionPathname, '.bru');
       const envDirPath = path.join(collectionPathname, 'environments');
       const bruFilesToDelete = [];
+
+      // Phase 1: single-pass read → parse → convert to memory.
+      // Collect all conversion results before touching disk.
+      // getCollectionFormat still returns 'bru' here (bruno.json exists, no opencollection.yml yet).
+      const parseErrors = [];
+      const conversionPlan = []; // { ymlPath, ymlContent, bruPath, addToTabMap, isRaw }
 
       for (const bruFilePath of bruFiles) {
         const basename = path.basename(bruFilePath);
@@ -2737,54 +2784,108 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           continue;
         }
 
-        if (path.normalize(dirname) === path.normalize(envDirPath)) {
-          continue;
-        }
+        try {
+          const bruContent = fs.readFileSync(bruFilePath, 'utf8');
 
-        if (basename === 'folder.bru') {
-          const folderBruContent = fs.readFileSync(bruFilePath, 'utf8');
-          const folderData = parseFolder(folderBruContent, { format: 'bru' });
-          const ymlContent = stringifyFolder(folderData, { format: 'yml' });
-          const ymlFilePath = path.join(dirname, 'folder.yml');
-          await writeFile(ymlFilePath, ymlContent);
-          writtenYmlFiles.push(ymlFilePath);
-          bruFilesToDelete.push(bruFilePath);
-          continue;
-        }
-
-        const bruContent = fs.readFileSync(bruFilePath, 'utf8');
-        const requestData = parseRequest(bruContent, { format: 'bru' });
-        const ymlContent = stringifyRequest(requestData, { format: 'yml' });
-        const ymlFilePath = bruFilePath.replace(/\.bru$/, '.yml');
-        await writeFile(ymlFilePath, ymlContent);
-        moveRequestUid(bruFilePath, ymlFilePath);
-        tabPathMap[bruFilePath] = ymlFilePath;
-        writtenYmlFiles.push(ymlFilePath);
-        bruFilesToDelete.push(bruFilePath);
-      }
-
-      if (fs.existsSync(envDirPath)) {
-        const envBruFiles = searchForFiles(envDirPath, '.bru');
-        for (const envBruFilePath of envBruFiles) {
-          const envBruContent = fs.readFileSync(envBruFilePath, 'utf8');
-          const envData = parseEnvironment(envBruContent, { format: 'bru' });
-          const ymlContent = stringifyEnvironment(envData, { format: 'yml' });
-          const ymlFilePath = envBruFilePath.replace(/\.bru$/, '.yml');
-          await writeFile(ymlFilePath, ymlContent);
-          moveRequestUid(envBruFilePath, ymlFilePath);
-          writtenYmlFiles.push(ymlFilePath);
-          bruFilesToDelete.push(envBruFilePath);
+          if (path.normalize(dirname) === path.normalize(envDirPath)) {
+            const envData = parseEnvironment(bruContent, { format: 'bru' });
+            conversionPlan.push({
+              ymlPath: bruFilePath.replace(/\.bru$/, '.yml'),
+              ymlContent: stringifyEnvironment(envData, { format: 'yml' }),
+              bruPath: bruFilePath,
+              addToTabMap: true,
+              isRaw: false
+            });
+          } else if (basename === 'folder.bru') {
+            const folderData = parseFolder(bruContent, { format: 'bru' });
+            conversionPlan.push({
+              ymlPath: path.join(dirname, 'folder.yml'),
+              ymlContent: stringifyFolder(folderData, { format: 'yml' }),
+              bruPath: bruFilePath,
+              addToTabMap: false,
+              isRaw: false
+            });
+          } else {
+            const requestData = parseRequest(bruContent, { format: 'bru' });
+            conversionPlan.push({
+              ymlPath: bruFilePath.replace(/\.bru$/, '.yml'),
+              ymlContent: stringifyRequest(requestData, { format: 'yml' }),
+              bruPath: bruFilePath,
+              addToTabMap: true,
+              isRaw: true
+            });
+          }
+        } catch (parseError) {
+          parseErrors.push(`${bruFilePath}: ${parseError.message}`);
         }
       }
 
-      for (const bruFile of bruFilesToDelete) {
-        fs.unlinkSync(bruFile);
+      if (parseErrors.length > 0) {
+        throw new Error(`Migration aborted — ${parseErrors.length} file(s) failed to parse:\n${parseErrors.join('\n')}`);
       }
-      fs.unlinkSync(brunoJsonPath);
+
+      // Phase 2: write all converted yml files (except opencollection.yml) — no disk reads
+      for (const { ymlPath, ymlContent, bruPath, addToTabMap, isRaw } of conversionPlan) {
+        await writeFile(ymlPath, ymlContent);
+        writtenYmlFiles.push(ymlPath);
+        bruFilesToDelete.push(bruPath);
+        if (addToTabMap) {
+          tabPathMap[bruPath] = ymlPath;
+        }
+        if (isRaw) {
+          rawContentMap[ymlPath] = ymlContent;
+        }
+      }
+
+      // Remap request UID cache after all yml files are confirmed written
+      for (const [bruPath, ymlPath] of Object.entries(tabPathMap)) {
+        moveRequestUid(bruPath, ymlPath);
+        movedUids.push({ from: bruPath, to: ymlPath });
+      }
+
+      // Phase 3: write opencollection.yml, format flips from 'bru' to 'yml' here.
+      // All yml request/folder/env files are written. If this fails, bru files are still
+      // intact so rollback is clean.
+      await writeFile(ocYmlPath, ymlCollectionContent);
+      writtenYmlFiles.push(ocYmlPath);
+
+      // Phase 4: delete all bru files — cleanup only.
+      // If deletion fails after opencollection.yml is written, the collection is fully
+      // functional in yml format; orphaned bru files are simply ignored by the yml reader.
+      // Retries handle transient locks (Windows antivirus/indexer briefly holding files after read).
+      const tryDeleteWithRetry = async (filePath, retries = 3, delayMs = 150) => {
+        for (let attempt = 1; attempt <= retries; attempt++) {
+          try {
+            fs.unlinkSync(filePath);
+            return null;
+          } catch (err) {
+            if (attempt === retries) return err;
+            await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+          }
+        }
+      };
+
+      const failedDeletes = [];
+      for (const bruFile of [...bruFilesToDelete, brunoJsonPath]) {
+        const err = await tryDeleteWithRetry(bruFile);
+        if (err) {
+          console.error(`Failed to delete after 3 attempts: ${bruFile}`, err);
+          failedDeletes.push(bruFile);
+        }
+      }
+      if (failedDeletes.length > 0) {
+        mainWindow.webContents.send('main:display-error', {
+          message: `Collection migrated to yml, but ${failedDeletes.length} file(s) could not be deleted and must be removed manually:\n${failedDeletes.join('\n')}`
+        });
+      }
 
       try {
         snapshotManager.remapCollectionTabPaths(collectionPathname, tabPathMap);
-      } catch (_) {
+      } catch (snapshotError) {
+        console.error('Failed to remap snapshot tab paths after migration:', snapshotError);
+        mainWindow.webContents.send('main:display-error', {
+          message: `Collection migrated to yml, but open tab state could not be updated: ${snapshotError.message}. You may need to reopen your tabs.`
+        });
       }
 
       const { size, filesCount } = await getCollectionStats(collectionPathname);
@@ -2810,27 +2911,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
       }
 
-      return ymlBrunoConfig;
+      return { brunoConfig: ymlBrunoConfig, rawContentMap };
     } catch (error) {
-      for (const ymlFile of writtenYmlFiles) {
-        try {
-          if (fs.existsSync(ymlFile)) {
-            fs.unlinkSync(ymlFile);
-          }
-        } catch (_) {
-        }
-      }
-
-      // Restart the watcher on the original bru collection
-      try {
-        const config = JSON.parse(fs.readFileSync(path.join(collectionPathname, 'bruno.json'), 'utf8'));
-        const remounted = await remountCollectionV2({ collectionUid, brunoConfig: config });
-        if (!remounted && watcher) {
-          watcher.addWatcher(mainWindow, collectionPathname, collectionUid, config);
-        }
-      } catch (watcherError) {
-        console.error('Failed to restart watcher after migration error:', watcherError);
-      }
+      await rollback();
       throw error;
     }
   });

@@ -2,7 +2,9 @@ import reducer, {
   createCollection,
   toggleCollectionFileMode,
   updateFileContent,
-  collectionChangeFileEvent
+  collectionChangeFileEvent,
+  collectionUnlinkDirectoryEvent,
+  resetCollectionForReopen
 } from 'providers/ReduxStore/slices/collections';
 
 const COLLECTION_UID = 'col-1';
@@ -58,6 +60,66 @@ describe('createCollection', () => {
 
     expect(state.collections).toHaveLength(1);
     expect(state.collections[0].fileMode).toBe(false);
+  });
+});
+
+describe('collectionUnlinkDirectoryEvent — collection root removed', () => {
+  test('clears items/environments when the collection root itself is deleted', () => {
+    const state = reducer(
+      makeInitialState(),
+      collectionUnlinkDirectoryEvent({
+        directory: { meta: { collectionUid: COLLECTION_UID, pathname: '/coll', name: 'coll', isCollectionRoot: true } }
+      })
+    );
+
+    expect(state.collections[0].items).toEqual([]);
+  });
+
+  test('still removes a plain subfolder by pathname (not the root case)', () => {
+    let state = makeInitialState();
+    state.collections[0].items.push({
+      uid: 'folder-1',
+      type: 'folder',
+      name: 'sub',
+      pathname: '/coll/sub',
+      items: []
+    });
+
+    state = reducer(
+      state,
+      collectionUnlinkDirectoryEvent({
+        directory: { meta: { collectionUid: COLLECTION_UID, pathname: '/coll/sub', name: 'sub' } }
+      })
+    );
+
+    expect(state.collections[0].items.find((i) => i.uid === 'folder-1')).toBeUndefined();
+    expect(state.collections[0].items.find((i) => i.uid === ITEM_UID)).toBeDefined();
+  });
+});
+
+describe('resetCollectionForReopen', () => {
+  test('drops stale items/environments and refreshes format from the new brunoConfig', () => {
+    const state = reducer(
+      makeInitialState(),
+      resetCollectionForReopen({
+        collectionUid: COLLECTION_UID,
+        brunoConfig: { name: 'coll', format: 'bru' }
+      })
+    );
+
+    expect(state.collections[0].items).toEqual([]);
+    expect(state.collections[0].environments).toEqual([]);
+    expect(state.collections[0].format).toBe('bru');
+  });
+
+  test('does nothing for an unknown collection', () => {
+    const initialState = makeInitialState();
+    const state = reducer(
+      initialState,
+      resetCollectionForReopen({ collectionUid: 'unknown', brunoConfig: {} })
+    );
+
+    expect(state.collections[0].items).toHaveLength(1);
   });
 });
 

@@ -500,11 +500,15 @@ export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
 
     const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === snapshotHydration.workspaceUid);
     const activeWorkspacePathname = activeWorkspace?.pathname || null;
+    const hasOpenTabs = getState().tabs.tabs.some((tab) => tab.collectionUid === collection.uid);
 
-    await hydrateTabs([collection], dispatch, restoreTabs, null, activeWorkspacePathname);
+    if (!hasOpenTabs) {
+      await hydrateTabs([collection], dispatch, restoreTabs, null, activeWorkspacePathname);
+    }
 
     if (
-      snapshotHydration.activeCollectionPathname
+      !hasOpenTabs
+      && snapshotHydration.activeCollectionPathname
       && normalizePath(snapshotHydration.activeCollectionPathname) === normalizedCollectionPath
     ) {
       dispatch(expandCollection(collection.uid));

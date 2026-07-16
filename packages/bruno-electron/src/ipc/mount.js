@@ -32,5 +32,6 @@ const registerMountIpc = () => {
 const unmount = (collectionUid) => manager.unmount(collectionUid);
 const remount = (params) => manager.remount(params);
 const shutdown = () => manager.shutdown();
+const clearCollectionIndex = (collectionPath) => manager.clearCollectionIndex(collectionPath);
 
-module.exports = { registerMountIpc, unmount, remount, shutdown };
+module.exports = { registerMountIpc, unmount, remount, shutdown, clearCollectionIndex };
