@@ -79,7 +79,9 @@ const FileBody = ({ item, collection }) => {
               <div title="Content-Type" className="flex items-center justify-start">Content-Type</div>
             </td>
             <td>
-              <div title="Selected" className="flex items-center justify-start"></div>
+              <div title="Selected" className="flex items-center justify-start min-w-0">
+                <span className="truncate">Selected</span>
+              </div>
             </td>
             <td>
               <div title="Description" className="flex items-center justify-start">Description</div>
