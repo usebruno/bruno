@@ -1,27 +1,30 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useState } from 'react';
 import { useSortCycle } from 'hooks/useSortCycle';
 import { sortRowsByName, reconcileEditsToRealOrder } from 'utils/sortableRows';
 
 export const useSortableEditableTableRows = ({ storageKey, rows, onChange, hasDraft }) => {
   const { sortMode, cycleSortMode, SortIcon, sortLabel } = useSortCycle({ storageKey });
 
-  const orderRef = useRef(null);
-  const prevSortModeRef = useRef();
-  const prevHasDraftRef = useRef(hasDraft);
-  const justCommitted = prevHasDraftRef.current === true && hasDraft === false;
-  prevHasDraftRef.current = hasDraft;
+  const [prevSortMode, setPrevSortMode] = useState(undefined);
+  const [prevHasDraft, setPrevHasDraft] = useState(hasDraft);
+  const [order, setOrder] = useState(null);
 
-  if (prevSortModeRef.current !== sortMode || justCommitted) {
-    prevSortModeRef.current = sortMode;
-    orderRef.current = sortMode === 'default' ? null : sortRowsByName(rows, sortMode).map((row) => row.uid);
+  const justCommitted = prevHasDraft === true && hasDraft === false;
+  if (prevHasDraft !== hasDraft) {
+    setPrevHasDraft(hasDraft);
   }
 
-  const displayRows = (sortMode === 'default' || !orderRef.current)
+  if (prevSortMode !== sortMode || justCommitted) {
+    setPrevSortMode(sortMode);
+    setOrder(sortMode === 'default' ? null : sortRowsByName(rows, sortMode).map((row) => row.uid));
+  }
+
+  const displayRows = (sortMode === 'default' || !order)
     ? rows
     : (() => {
         const byUid = new Map(rows.map((row) => [row.uid, row]));
-        const knownUids = new Set(orderRef.current);
-        const ordered = orderRef.current.filter((uid) => byUid.has(uid)).map((uid) => byUid.get(uid));
+        const knownUids = new Set(order);
+        const ordered = order.filter((uid) => byUid.has(uid)).map((uid) => byUid.get(uid));
         const added = rows.filter((row) => !knownUids.has(row.uid));
         return [...ordered, ...added];
       })();
