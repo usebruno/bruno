@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
@@ -10,6 +10,7 @@ import { sanitizeName, validateName, validateNameError } from 'utils/common/rege
 
 const NewApp = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
+  const submitLockRef = useRef(false);
 
   const collection = useSelector((state) =>
     state.collections.collections?.find((c) => c.uid === collectionUid)
@@ -40,13 +41,16 @@ const NewApp = ({ collectionUid, item, onClose }) => {
           toast.success('App created');
           onClose();
         })
-        .catch((err) => toast.error(err?.message || 'Failed to create app'));
+        .catch((err) => toast.error(err?.message || 'Failed to create app'))
+        .finally(() => { submitLockRef.current = false; });
     }
   });
 
   const onSubmit = () => {
-    if (formik.isSubmitting) return;
+    if (submitLockRef.current || formik.isSubmitting) return;
+    submitLockRef.current = true;
     formik.handleSubmit();
+    setTimeout(() => { submitLockRef.current = false; }, 0);
   };
 
   return (

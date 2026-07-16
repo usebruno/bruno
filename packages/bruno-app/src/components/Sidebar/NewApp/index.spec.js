@@ -1,4 +1,6 @@
 import '@testing-library/jest-dom';
+import os from 'os';
+import path from 'path';
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { Provider } from 'react-redux';
@@ -46,7 +48,7 @@ jest.mock('components/Modal', () => ({
 const buildCollection = (overrides = {}) => ({
   uid: 'collection-1',
   name: 'Bruno-Testbench',
-  pathname: '/tmp/bruno-testbench',
+  pathname: path.join(os.tmpdir(), 'bruno-testbench'),
   format: 'bru',
   items: [],
   ...overrides
@@ -200,7 +202,28 @@ describe('NewApp', () => {
       expect(toast.error).not.toHaveBeenCalled();
     });
 
-    it('ignores a second confirm click while the first submission is still in flight', async () => {
+    it('ignores a second confirm click fired in the same tick as the first', async () => {
+      let resolveDispatch;
+      mockNewApp.mockReturnValue(new Promise((resolve) => { resolveDispatch = resolve; }));
+      renderNewApp();
+
+      typeName('My App');
+      const submitBtn = screen.getByTestId('new-app-submit-btn');
+
+      // Fire two clicks BEFORE React can flush the disabled state — this is the
+      // scenario formik.isSubmitting alone cannot guard against, since it is
+      // render-state read via closure. The ref lock must catch the second one.
+      fireEvent.click(submitBtn);
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => expect(mockNewApp).toHaveBeenCalledTimes(1));
+
+      // Let the original resolve — success toast fires exactly once.
+      await act(async () => { resolveDispatch(); });
+      await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+    });
+
+    it('disables the confirm button while a submission is in flight', async () => {
       let resolveDispatch;
       mockNewApp.mockReturnValue(new Promise((resolve) => { resolveDispatch = resolve; }));
       renderNewApp();
@@ -209,18 +232,9 @@ describe('NewApp', () => {
       const submitBtn = screen.getByTestId('new-app-submit-btn');
 
       fireEvent.click(submitBtn);
-      // Let formik enter its submitting state.
-      await waitFor(() => expect(mockNewApp).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(submitBtn).toBeDisabled());
 
-      // Rapid second click while in-flight should be a no-op.
-      fireEvent.click(submitBtn);
-      await act(async () => {});
-      expect(mockNewApp).toHaveBeenCalledTimes(1);
-
-      // Let the original resolve — success toast fires exactly once.
       await act(async () => { resolveDispatch(); });
-      await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
     });
   });
 
