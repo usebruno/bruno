@@ -44,6 +44,8 @@ export {
 } from './string';
 
 export {
+  MAX_BODY_SIZE_DEFAULT,
+  isStrPresent,
   makeEdgeGridTimestamp,
   makeEdgeGridNonce,
   canonicalizeHeaders,

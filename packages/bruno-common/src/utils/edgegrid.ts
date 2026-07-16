@@ -1,10 +1,8 @@
-import { v4 as uuid } from 'uuid';
-
 /**
  * Shared EG1-HMAC-SHA256 primitives, used by both the runtime signer
  * (packages/bruno-requests/src/auth/edgegrid-helper.js) and the Generate Code signer
  * (packages/bruno-common/src/generate-code/har/edgegrid.ts) so the signing logic lives in one
- * place. Uses the native Web Crypto API (`globalThis.crypto.subtle`) to stay browser-safe and
+ * place. Uses the native Web Crypto API (`globalThis.crypto`) to stay browser-safe and
  * dependency-free; Web Crypto is async, so the hashing helpers return Promises. Kept byte-for-byte
  * compatible with Akamai's reference implementation (github.com/akamai/AkamaiOPEN-edgegrid-node).
  */
@@ -13,7 +11,9 @@ import { v4 as uuid } from 'uuid';
 // tsconfig omits the DOM lib.
 const subtle = (globalThis as any).crypto.subtle;
 
-const isStrPresent = (str?: string | null): boolean =>
+export const MAX_BODY_SIZE_DEFAULT = 131072; // 128 KB
+
+export const isStrPresent = (str?: string | null): str is string =>
   !!str && String(str).trim() !== '' && String(str).trim() !== 'undefined';
 
 const utf8 = (data: string): Uint8Array => new TextEncoder().encode(data);
@@ -38,17 +38,17 @@ export const makeEdgeGridTimestamp = (): string => {
 };
 
 // UUID v4 nonce.
-export const makeEdgeGridNonce = (): string => uuid();
+export const makeEdgeGridNonce = (): string => (globalThis as any).crypto.randomUUID();
 
 // `name:value` per signed header (lowercased name, trimmed + whitespace-collapsed value),
 // tab-joined. Only headers present on the request are emitted, preserving config order.
-export const canonicalizeHeaders = (headersToSign?: string, requestHeaders: Record<string, string> = {}): string => {
+export const canonicalizeHeaders = (headersToSign?: string | null, requestHeaders: Record<string, string> = {}): string => {
   if (!isStrPresent(headersToSign)) return '';
   const lookup: Record<string, string> = {};
   Object.keys(requestHeaders || {}).forEach((name) => {
     lookup[name.toLowerCase()] = requestHeaders[name];
   });
-  return (headersToSign as string)
+  return headersToSign
     .split(',')
     .map((name) => name.trim().toLowerCase())
     .filter((name) => name.length > 0)
@@ -65,7 +65,6 @@ export const makeContentHash = async (
 ): Promise<string> => {
   if (!method || method.toUpperCase() !== 'POST' || !bodyText) return '';
   let body = bodyText;
-  if (body.length === 0) return '';
   if (body.length > maxBodySize) body = body.substring(0, maxBodySize);
   return base64Sha256(body);
 };

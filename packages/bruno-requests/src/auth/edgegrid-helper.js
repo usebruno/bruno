@@ -1,9 +1,11 @@
 import {
+  MAX_BODY_SIZE_DEFAULT,
   makeEdgeGridTimestamp,
   makeEdgeGridNonce,
   canonicalizeHeaders,
   base64HmacSha256,
-  makeContentHash
+  makeContentHash,
+  isStrPresent
 } from '@usebruno/common/utils';
 
 const { URL } = require('node:url');
@@ -16,12 +18,6 @@ const { URL } = require('node:url');
  * signer via @usebruno/common/utils; they use Web Crypto and are async.
  * Spec: https://techdocs.akamai.com/developer/docs/authenticate-with-edgegrid
  */
-
-const MAX_BODY_SIZE_DEFAULT = 131072; // 128 KB
-
-function isStrPresent(str) {
-  return str && str.trim() !== '' && str.trim() !== 'undefined';
-}
 
 /**
  * Sign an EdgeGrid request.
