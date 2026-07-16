@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  *   guest -> host  : console.log(SENTINEL + json), surfaced via 'console-message'
  *
  * Both the request-level AppView and the standalone CollectionApp use this — they
- * differ only in the bootstrap script (which builds window.ctx) and the message
+ * differ only in the bootstrap script (which builds window.bru) and the message
  * handler the host registers.
  */
 export const SENTINEL = '__BRUNO_APP_MSG__';
@@ -33,7 +33,7 @@ const FRAGMENT_STYLES = `<style>
 
 /**
  * Wrap user code into a guest document, injecting the host-supplied bootstrap
- * script as early as possible (right after <head>) so window.ctx exists before
+ * script as early as possible (right after <head>) so window.bru exists before
  * any user script runs. Full HTML documents have the bootstrap injected; bare
  * fragments are placed inside a minimal shell.
  */
@@ -114,7 +114,7 @@ export const useAppWebview = (onGuestMessage) => {
 
   // Outgoing messages sent before the guest is ready are queued and flushed by
   // the dom-ready effect below. This is critical for guest scripts that call
-  // promise-returning ctx APIs (e.g. ctx.listRequests) at parse time — the host
+  // promise-returning ctx APIs (e.g. bru.ctx.listRequests) at parse time — the host
   // receives the request via console-message before Electron's `dom-ready`
   // fires, and without a queue the reply gets dropped and the promise never
   // resolves.

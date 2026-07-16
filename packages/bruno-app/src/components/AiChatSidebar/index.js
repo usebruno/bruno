@@ -262,6 +262,15 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
     return () => { cancelled = true; };
   }, [isOpen, aiEnabled, preferences?.ai]);
 
+  useEffect(() => {
+    const { ipcRenderer } = window;
+    if (!ipcRenderer) return;
+    const unsub = ipcRenderer.on('main:ai-status-changed', (status) => {
+      setAvailableModels(status?.availableModels || []);
+    });
+    return () => unsub();
+  }, []);
+
   // Auto = empty string. We don't auto-correct to the first model — let the
   // backend pick, so users get smart defaults that adapt as providers change.
   useEffect(() => {
@@ -866,7 +875,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
             <button
               className="icon-btn"
               onClick={handleNewChat}
-              title="New chat"
+              title="New Session"
               disabled={isLoading || messages.length === 0}
             >
               <IconPlus size={14} />

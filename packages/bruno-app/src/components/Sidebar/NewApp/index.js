@@ -47,7 +47,7 @@ const NewApp = ({ collectionUid, item, onClose }) => {
 
   return (
     <Modal
-      size="sm"
+      size="md"
       title="New App"
       confirmText="Create"
       handleConfirm={onSubmit}
@@ -70,10 +70,9 @@ const NewApp = ({ collectionUid, item, onClose }) => {
           className="block textbox mt-2 w-full"
           value={formik.values.appName}
           onChange={formik.handleChange}
-          onBlur={formik.handleBlur}
         />
         {formik.touched.appName && formik.errors.appName ? (
-          <div className="text-red-500 text-xs mt-1">{formik.errors.appName}</div>
+          <div className="text-red-500 text-xs mt-2">{formik.errors.appName}</div>
         ) : (
           <div className="text-xs mt-2 opacity-70">
             Creates a standalone app file in {item ? 'this folder' : `collection "${collection?.name || ''}"`}.
