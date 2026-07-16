@@ -425,9 +425,14 @@ export default function RunnerResults({ collection }) {
                           </button>
                         </span>
                       ) : (
-                        <span className="danger text-xs cursor-pointer flex-shrink-0" onClick={() => setSelectedItem(item)}>
+                        <button
+                          onClick={() => setSelectedItem(item)}
+                          className="danger text-xs cursor-pointer flex-shrink-0"
+                          title="View response"
+                          aria-label="View response"
+                        >
                           (request failed)
-                        </span>
+                        </button>
                       )}
                     </div>
                     {areTagsAdded && item?.tags?.length > 0 && (
