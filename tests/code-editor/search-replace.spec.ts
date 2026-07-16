@@ -1,13 +1,15 @@
 import { test, expect, Page } from '../../playwright';
-import { closeAllCollections, createCollection, createRequest } from '../utils/page';
 import {
-  buildCodeEditorSearchLocators,
+  buildCommonLocators,
+  closeAllCollections,
+  createCollection,
+  createRequest,
   openPreRequestScriptEditor,
   setCodeEditorContent,
   openCodeEditorSearchBar,
   openCodeEditorReplaceBar,
   closeCodeEditorSearchBar
-} from '../utils/page/code-editor-search';
+} from '../utils/page';
 import process from 'node:process';
 
 const cmdKey = process.platform === 'darwin' ? 'Meta' : 'Control';
@@ -27,7 +29,7 @@ const LARGE_DOC = Array.from(
  * Assertion helper — calls expect so it stays in the spec, not the page module.
  */
 async function expectMatchCount(page: Page, expected: string) {
-  const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+  const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
   await expect(loc.matchCount()).toHaveText(expected, { timeout: 1500 });
 }
 
@@ -49,7 +51,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
 
   // Dismiss any leftover search bar and restore the full document before each test.
   test.beforeEach(async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openPreRequestScriptEditor(page, EDITOR_ID);
     if (await loc.searchBar().isVisible()) {
       await loc.searchCloseBtn().click();
@@ -59,35 +61,35 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('Cmd+F opens the search bar', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openCodeEditorSearchBar(page, EDITOR_ID);
     await expect(loc.searchBar()).toBeVisible();
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('Escape closes the search bar', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openCodeEditorSearchBar(page, EDITOR_ID);
     await page.keyboard.press('Escape');
     await expect(loc.searchBar()).toBeHidden();
   });
 
   test('close button closes the search bar', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openCodeEditorSearchBar(page, EDITOR_ID);
     await loc.searchCloseBtn().click();
     await expect(loc.searchBar()).toBeHidden();
   });
 
   test('search input is auto-focused on open', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openCodeEditorSearchBar(page, EDITOR_ID);
     await expect(loc.searchInput()).toBeFocused();
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('Cmd+F with text selected pre-fills the search input', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openPreRequestScriptEditor(page, EDITOR_ID);
     await loc.codeMirror().evaluate((el: any) => {
       if (el.CodeMirror) {
@@ -103,7 +105,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('typing finds all matches in the document', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openCodeEditorSearchBar(page, EDITOR_ID);
     await loc.searchInput().fill('lorem');
     await expect(loc.matchCount()).toContainText('/ 400', { timeout: 1500 });
@@ -111,7 +113,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('unknown term shows 0 results', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openCodeEditorSearchBar(page, EDITOR_ID);
     await loc.searchInput().fill('xyznothere');
     await expect(loc.matchCount()).toHaveText('0 results', { timeout: 1500 });
@@ -119,7 +121,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('clearing the search input resets match count', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openCodeEditorSearchBar(page, EDITOR_ID);
     await loc.searchInput().fill('lorem');
     await expectMatchCount(page, '1 / 400');
@@ -129,7 +131,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('Enter navigates to next match', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openCodeEditorSearchBar(page, EDITOR_ID);
     await loc.searchInput().fill('Section');
     await expectMatchCount(page, '1 / 200');
@@ -141,7 +143,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('Shift+Enter goes to previous match and wraps from 1 to last', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openCodeEditorSearchBar(page, EDITOR_ID);
     await loc.searchInput().fill('Section');
     await expectMatchCount(page, '1 / 200');
@@ -151,7 +153,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('Next/Prev buttons wrap around', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openCodeEditorSearchBar(page, EDITOR_ID);
     await loc.searchInput().fill('lorem');
     await expectMatchCount(page, '1 / 400');
@@ -163,7 +165,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('search anchors to cursor position when opened mid-document', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openPreRequestScriptEditor(page, EDITOR_ID);
     await loc.codeMirror().evaluate((el: any) => {
       if (el.CodeMirror) {
@@ -182,7 +184,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('reopening restores previous search text and resumes from cursor at close', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openCodeEditorSearchBar(page, EDITOR_ID);
     await loc.searchInput().fill('Section');
     await expectMatchCount(page, '1 / 200');
@@ -200,7 +202,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('reopening after moving cursor starts from the new cursor position', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openCodeEditorSearchBar(page, EDITOR_ID);
     await loc.searchInput().fill('Section');
     await expectMatchCount(page, '1 / 200');
@@ -220,7 +222,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('reopening the search bar does not scroll away from the current viewport', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     // Search, navigate to a match, then close — leaving the match text selected in the editor
     await openCodeEditorSearchBar(page, EDITOR_ID);
     await loc.searchInput().fill('Section');
@@ -245,7 +247,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('case-sensitive toggle halves matches for mixed-case term', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openCodeEditorSearchBar(page, EDITOR_ID);
     await loc.searchInput().fill('lorem');
     await expectMatchCount(page, '1 / 400');
@@ -257,7 +259,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('replace single replaces current match and advances to next', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await setCodeEditorContent(page, EDITOR_ID, 'foo bar foo baz foo');
     await openCodeEditorReplaceBar(page, EDITOR_ID);
     await loc.searchInput().fill('foo');
@@ -269,7 +271,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('replace all replaces every match', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await setCodeEditorContent(page, EDITOR_ID, 'foo bar foo baz foo');
     await openCodeEditorReplaceBar(page, EDITOR_ID);
     await loc.searchInput().fill('foo');
@@ -282,7 +284,7 @@ test.describe.serial('CodeEditor Search/Replace', () => {
   });
 
   test('match count updates when the document is edited while search is open', async ({ page }) => {
-    const loc = buildCodeEditorSearchLocators(page, EDITOR_ID);
+    const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
     await openPreRequestScriptEditor(page, EDITOR_ID);
     await setCodeEditorContent(page, EDITOR_ID, 'foo bar baz');
     await openCodeEditorSearchBar(page, EDITOR_ID);

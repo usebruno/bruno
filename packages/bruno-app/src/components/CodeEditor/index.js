@@ -21,6 +21,7 @@ import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
+import { buildSearchKeyBindings } from 'components/CodeMirrorSearch/searchKeyBindings';
 import {
   applyEditorState,
   captureEditorState,
@@ -102,52 +103,12 @@ class CodeEditor extends React.Component {
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
-        'Cmd-F': (cm) => {
-          const selected = cm.getSelection();
-          const cursor = cm.getCursor('from');
-          this.setState({ searchBarVisible: true }, () => {
-            if (selected) {
-              this.searchBarRef.current?.setSearch(selected, cursor);
-            } else {
-              this.searchBarRef.current?.focusAtCursor(cursor);
-            }
-          });
-        },
-        'Ctrl-F': (cm) => {
-          const selected = cm.getSelection();
-          const cursor = cm.getCursor('from');
-          this.setState({ searchBarVisible: true }, () => {
-            if (selected) {
-              this.searchBarRef.current?.setSearch(selected, cursor);
-            } else {
-              this.searchBarRef.current?.focusAtCursor(cursor);
-            }
-          });
-        },
-        'Cmd-H': this.props.readOnly ? false : () => {
-          this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
-            this.searchBarRef.current?.openReplace();
-          });
-        },
-        'Ctrl-H': this.props.readOnly ? false : () => {
-          this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
-            this.searchBarRef.current?.openReplace();
-          });
-        },
-        'Cmd-Alt-F': this.props.readOnly ? false : () => {
-          this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
-            this.searchBarRef.current?.openReplace();
-          });
-        },
-        'Ctrl-Alt-F': this.props.readOnly ? false : () => {
-          this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
-            this.searchBarRef.current?.openReplace();
-          });
-        },
+        ...buildSearchKeyBindings({
+          setState: (update, cb) => this.setState(update, cb),
+          searchBarRef: this.searchBarRef,
+          isSearchBarVisible: () => this.state.searchBarVisible,
+          readOnly: this.props.readOnly
+        }),
         'Cmd-Enter': runShortcut,
         'Ctrl-Enter': runShortcut,
         'Tab': function (cm) {
@@ -178,11 +139,6 @@ class CodeEditor extends React.Component {
             this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
           } else {
             this.editor.toggleComment();
-          }
-        },
-        'Esc': () => {
-          if (this.state.searchBarVisible) {
-            this.searchBarRef.current?.close();
           }
         }
       },

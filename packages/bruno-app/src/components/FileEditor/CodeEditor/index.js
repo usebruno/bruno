@@ -13,6 +13,7 @@ import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import CodeMirrorSearch from 'components/CodeMirrorSearch';
+import { buildSearchKeyBindings } from 'components/CodeMirrorSearch/searchKeyBindings';
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 
@@ -72,42 +73,12 @@ export default class CodeEditor extends React.Component {
             this.props.toggleFileMode();
           }
         },
-        'Cmd-F': (cm) => {
-          const selected = cm.getSelection();
-          const cursor = cm.getCursor('from');
-          this.setState({ searchBarVisible: true }, () => {
-            if (selected) {
-              this.searchBarRef.current?.setSearch(selected, cursor);
-            } else {
-              this.searchBarRef.current?.focusAtCursor(cursor);
-            }
-          });
-        },
-        'Ctrl-F': (cm) => {
-          const selected = cm.getSelection();
-          const cursor = cm.getCursor('from');
-          this.setState({ searchBarVisible: true }, () => {
-            if (selected) {
-              this.searchBarRef.current?.setSearch(selected, cursor);
-            } else {
-              this.searchBarRef.current?.focusAtCursor(cursor);
-            }
-          });
-        },
-        'Cmd-Alt-F': this.props.readOnly ? false : () => {
-          this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
-            this.searchBarRef.current?.openReplace();
-          });
-        },
-        'Ctrl-Alt-F': this.props.readOnly ? false : () => {
-          this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
-            this.searchBarRef.current?.openReplace();
-          });
-        },
-        'Cmd-H': 'replace',
-        'Ctrl-H': 'replace',
+        ...buildSearchKeyBindings({
+          setState: (update, cb) => this.setState(update, cb),
+          searchBarRef: this.searchBarRef,
+          isSearchBarVisible: () => this.state.searchBarVisible,
+          readOnly: this.props.readOnly
+        }),
         'Tab': function (cm) {
           cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
             ? cm.execCommand('indentMore')
@@ -119,12 +90,7 @@ export default class CodeEditor extends React.Component {
         'Ctrl-Y': 'foldAll',
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
-        'Cmd-I': 'unfoldAll',
-        'Esc': () => {
-          if (this.state.searchBarVisible) {
-            this.searchBarRef.current?.close();
-          }
-        }
+        'Cmd-I': 'unfoldAll'
       }
     }));
     if (editor) {

@@ -70,7 +70,7 @@ function renderSearch(props = {}, ref = null) {
 }
 
 function typeSearch(text) {
-  fireEvent.change(screen.getByPlaceholderText('Search...'), { target: { value: text } });
+  fireEvent.change(screen.getByTestId('codemirror-search-input'), { target: { value: text } });
   act(() => jest.advanceTimersByTime(250));
 }
 
@@ -93,25 +93,25 @@ describe('CodeMirrorSearch', () => {
 
     it('renders search input when visible', () => {
       renderSearch();
-      expect(screen.getByPlaceholderText('Search...')).toBeInTheDocument();
+      expect(screen.getByTestId('codemirror-search-input')).toBeInTheDocument();
     });
 
     it('does not show replace row by default', () => {
       renderSearch();
-      expect(screen.queryByPlaceholderText('Replace...')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('codemirror-search-replace-input')).not.toBeInTheDocument();
     });
 
     it('shows replace row after toggling chevron', () => {
       renderSearch();
       fireEvent.click(screen.getByTitle('Show replace'));
-      expect(screen.getByPlaceholderText('Replace...')).toBeInTheDocument();
+      expect(screen.getByTestId('codemirror-search-replace-input')).toBeInTheDocument();
     });
   });
 
   describe('result count', () => {
     it('shows "0 results" when search is empty', () => {
       renderSearch();
-      expect(screen.getByText('0 results')).toBeInTheDocument();
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('0 results');
     });
 
     it('shows "1 / 3" for first match of 3', () => {
@@ -122,13 +122,13 @@ describe('CodeMirrorSearch', () => {
       ];
       renderSearch({ editor: makeMockEditor(matches) });
       typeSearch('test');
-      expect(screen.getByText('1 / 3')).toBeInTheDocument();
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('1 / 3');
     });
 
     it('shows "0 results" when no matches found', () => {
       renderSearch({ editor: makeMockEditor([]) });
       typeSearch('xyz');
-      expect(screen.getByText('0 results')).toBeInTheDocument();
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('0 results');
     });
   });
 
@@ -145,32 +145,32 @@ describe('CodeMirrorSearch', () => {
 
     it('advances to next match on Enter', () => {
       setupWithMatches(3);
-      expect(screen.getByText('1 / 3')).toBeInTheDocument();
-      fireEvent.keyDown(screen.getByPlaceholderText('Search...'), { key: 'Enter' });
-      expect(screen.getByText('2 / 3')).toBeInTheDocument();
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('1 / 3');
+      fireEvent.keyDown(screen.getByTestId('codemirror-search-input'), { key: 'Enter' });
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('2 / 3');
     });
 
     it('goes to previous match on Shift+Enter', () => {
       setupWithMatches(3);
-      fireEvent.keyDown(screen.getByPlaceholderText('Search...'), { key: 'Enter' });
-      fireEvent.keyDown(screen.getByPlaceholderText('Search...'), { key: 'Enter', shiftKey: true });
-      expect(screen.getByText('1 / 3')).toBeInTheDocument();
+      fireEvent.keyDown(screen.getByTestId('codemirror-search-input'), { key: 'Enter' });
+      fireEvent.keyDown(screen.getByTestId('codemirror-search-input'), { key: 'Enter', shiftKey: true });
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('1 / 3');
     });
 
     it('wraps from last to first on next', () => {
       setupWithMatches(3);
-      const input = screen.getByPlaceholderText('Search...');
+      const input = screen.getByTestId('codemirror-search-input');
       fireEvent.keyDown(input, { key: 'Enter' });
       fireEvent.keyDown(input, { key: 'Enter' });
-      expect(screen.getByText('3 / 3')).toBeInTheDocument();
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('3 / 3');
       fireEvent.keyDown(input, { key: 'Enter' });
-      expect(screen.getByText('1 / 3')).toBeInTheDocument();
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('1 / 3');
     });
 
     it('wraps from first to last on prev', () => {
       setupWithMatches(3);
-      fireEvent.keyDown(screen.getByPlaceholderText('Search...'), { key: 'Enter', shiftKey: true });
-      expect(screen.getByText('3 / 3')).toBeInTheDocument();
+      fireEvent.keyDown(screen.getByTestId('codemirror-search-input'), { key: 'Enter', shiftKey: true });
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('3 / 3');
     });
   });
 
@@ -179,14 +179,14 @@ describe('CodeMirrorSearch', () => {
       const ref = createRef();
       renderSearch({}, ref);
       act(() => ref.current.focus());
-      expect(document.activeElement).toBe(screen.getByPlaceholderText('Search...'));
+      expect(document.activeElement).toBe(screen.getByTestId('codemirror-search-input'));
     });
 
     it('setSearch(text) populates the input', () => {
       const ref = createRef();
       renderSearch({}, ref);
       act(() => ref.current.setSearch('hello'));
-      expect(screen.getByPlaceholderText('Search...')).toHaveValue('hello');
+      expect(screen.getByTestId('codemirror-search-input')).toHaveValue('hello');
     });
 
     it('setSearch(text, cursorPos) shows the match at cursor position', () => {
@@ -202,7 +202,7 @@ describe('CodeMirrorSearch', () => {
         jest.advanceTimersByTime(250);
       });
 
-      expect(screen.getByText('3 / 5')).toBeInTheDocument();
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('3 / 5');
     });
 
     it('openReplace() shows the replace row', () => {
@@ -212,7 +212,7 @@ describe('CodeMirrorSearch', () => {
         ref.current.openReplace();
         jest.runAllTimers();
       });
-      expect(screen.getByPlaceholderText('Replace...')).toBeInTheDocument();
+      expect(screen.getByTestId('codemirror-search-replace-input')).toBeInTheDocument();
     });
 
     it('close() calls onClose and collapses replace', () => {
@@ -224,7 +224,7 @@ describe('CodeMirrorSearch', () => {
       });
       act(() => ref.current.close());
       expect(onClose).toHaveBeenCalled();
-      expect(screen.queryByPlaceholderText('Replace...')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('codemirror-search-replace-input')).not.toBeInTheDocument();
     });
   });
 
@@ -232,7 +232,7 @@ describe('CodeMirrorSearch', () => {
     it('closes the bar and calls onClose', () => {
       const onClose = jest.fn();
       renderSearch({ onClose });
-      fireEvent.keyDown(screen.getByPlaceholderText('Search...'), { key: 'Escape' });
+      fireEvent.keyDown(screen.getByTestId('codemirror-search-input'), { key: 'Escape' });
       expect(onClose).toHaveBeenCalled();
     });
   });
@@ -246,7 +246,7 @@ describe('CodeMirrorSearch', () => {
       });
 
       // Type but do NOT advance timers — debounce still pending
-      fireEvent.change(screen.getByPlaceholderText('Search...'), { target: { value: 'test' } });
+      fireEvent.change(screen.getByTestId('codemirror-search-input'), { target: { value: 'test' } });
 
       expect(screen.getByRole('button', { name: 'Replace' })).toBeDisabled();
       expect(screen.getByRole('button', { name: 'Replace all' })).toBeDisabled();
@@ -260,7 +260,7 @@ describe('CodeMirrorSearch', () => {
         ref.current.openReplace(); jest.runAllTimers();
       });
 
-      fireEvent.change(screen.getByPlaceholderText('Search...'), { target: { value: 'test' } });
+      fireEvent.change(screen.getByTestId('codemirror-search-input'), { target: { value: 'test' } });
       act(() => jest.advanceTimersByTime(250));
 
       expect(screen.getByRole('button', { name: 'Replace' })).not.toBeDisabled();
@@ -282,7 +282,7 @@ describe('CodeMirrorSearch', () => {
 
       renderSearch({ editor });
       typeSearch('console');
-      expect(screen.getByText('1 / 2')).toBeInTheDocument();
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('1 / 2');
 
       // Simulate undo — document reverts, now no matches
       editor.getSearchCursor.mockImplementation(() => {
@@ -295,7 +295,7 @@ describe('CodeMirrorSearch', () => {
         jest.advanceTimersByTime(100);
       });
 
-      expect(screen.getByText('0 results')).toBeInTheDocument();
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('0 results');
     });
   });
 
@@ -322,7 +322,7 @@ describe('CodeMirrorSearch', () => {
       act(() => {
         ref.current.openReplace(); jest.runAllTimers();
       });
-      fireEvent.change(screen.getByPlaceholderText('Replace...'), { target: { value: 'log' } });
+      fireEvent.change(screen.getByTestId('codemirror-search-replace-input'), { target: { value: 'log' } });
 
       fireEvent.click(screen.getByRole('button', { name: 'Replace all' }));
 
