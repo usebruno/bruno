@@ -77,7 +77,7 @@ const EnvVarValueCell = ({
   return (
     <VarValueCell
       onCompactChange={setCompact}
-      trailingContent={variable.secret && compact ? (
+      trailingContent={variable.secret ? (
         <SecretEyeButton
           masked={masked}
           onToggle={() => editorRef.current?.toggleVisibleSecret()}
@@ -96,7 +96,7 @@ const EnvVarValueCell = ({
             value={valueToString(variable.value, 2)}
             placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
             isSecret={variable.secret}
-            hideSecretEye={variable.secret && compact}
+            hideSecretEye={variable.secret}
             onMaskChange={setMasked}
             onChange={(newValue) => {
               formik.setFieldValue(`${actualIndex}.value`, newValue, true);
@@ -354,7 +354,7 @@ const EnvironmentVariablesTable = ({
       });
       return Object.keys(errors).length > 0 ? errors : {};
     },
-    onSubmit: () => {}
+    onSubmit: () => { }
   });
 
   // Restore draft values on mount or environment switch (not on external filesystem reloads)
