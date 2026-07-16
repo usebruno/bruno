@@ -163,7 +163,7 @@ const PresetsSettings = ({ collection }) => {
             Default Environment
           </label>
           <div className="flex items-center default-env-dropdown">
-            <Dropdown onCreate={(ref) => (defaultEnvDropdownRef.current = ref)} icon={defaultEnvTrigger} placement="bottom-start">
+            <Dropdown onCreate={(ref) => (defaultEnvDropdownRef.current = ref)} icon={defaultEnvTrigger} placement="bottom-start" sameWidth>
               <div
                 className={`dropdown-item ${!defaultEnvironmentName ? 'active' : ''}`}
                 onClick={() => applyDefaultEnvironment('')}
