@@ -8,8 +8,6 @@ import {
   findEnvironmentInCollection,
   findItemInCollectionByPathname,
   flattenItems,
-  getEnvironmentVariables,
-  getGlobalEnvironmentVariables,
   isItemARequest
 } from 'utils/collections';
 import { uuid } from 'utils/common';
@@ -26,6 +24,7 @@ import AIAssist from 'components/AIAssist';
 import { buildAiVariablesPayload, buildDocsContextFromCollection } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import EmptyAppState from '../AppView/EmptyAppState';
+import { buildVariables } from '../AppView/buildVariables';
 import {
   SENTINEL,
   wrapHtml,
@@ -155,20 +154,6 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
   }
 })();
 </script>`;
-
-const buildVariables = (collection) => {
-  const env = getEnvironmentVariables(collection);
-  const global = getGlobalEnvironmentVariables({
-    globalEnvironments: collection?.globalEnvironments || [],
-    activeGlobalEnvironmentUid: collection?.activeGlobalEnvironmentUid
-  });
-  return {
-    ...global,
-    ...env,
-    ...(collection?.collectionVariables || {}),
-    ...(collection?.runtimeVariables || {})
-  };
-};
 
 const listRequestSummaries = (collection) =>
   flattenItems(collection?.items || [])
