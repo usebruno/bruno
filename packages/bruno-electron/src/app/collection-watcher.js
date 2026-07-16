@@ -811,7 +811,10 @@ class CollectionWatcher {
 
           return ignores.some((ignorePattern) => {
             const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');
-            return normalizedRelativePath === normalizedIgnorePattern || normalizedRelativePath.startsWith(normalizedIgnorePattern);
+            if (!normalizedIgnorePattern) {
+              return false;
+            }
+            return normalizedRelativePath === normalizedIgnorePattern || normalizedRelativePath.startsWith(`${normalizedIgnorePattern}/`);
           });
         },
         persistent: true,
