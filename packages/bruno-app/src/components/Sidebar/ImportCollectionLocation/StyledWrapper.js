@@ -21,6 +21,16 @@ const Wrapper = styled.div`
       fill: ${(props) => props.theme.textLink};
     }
   }
+
+  .preserve-scripts-label {
+    font-weight: 500;
+  }
+
+  .preserve-scripts-description {
+    font-size: 0.75rem;
+    color: ${(props) => props.theme.colors.text.muted};
+    margin-top: 0.25rem;
+  }
 `;
 
 export default Wrapper;

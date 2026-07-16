@@ -56,7 +56,7 @@ const getCollectionName = (format, rawData) => {
 
 // Convert raw data to Bruno collection format
 // Returns { collection, issues } where issues tracks items that were skipped or degraded
-const convertCollection = async (format, rawData, groupingType, collectionFormat) => {
+const convertCollection = async (format, rawData, groupingType, collectionFormat, preserveScripts) => {
   try {
     let collection;
     let issues = [];
@@ -69,7 +69,7 @@ const convertCollection = async (format, rawData, groupingType, collectionFormat
         collection = await wsdlToBruno(rawData);
         break;
       case 'postman': {
-        const result = await postmanToBruno(rawData);
+        const result = await postmanToBruno(rawData, { preserveScripts });
         collection = result.collection;
         issues = result.issues || [];
         break;
@@ -109,11 +109,13 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
   const dispatch = useDispatch();
   const [groupingType, setGroupingType] = useState('tags');
   const [collectionFormat, setCollectionFormat] = useState(DEFAULT_COLLECTION_FORMAT);
-  const [showFileFormat, setShowFileFormat] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [enableCheckForSpecUpdates, setEnableCheckForSpecUpdates] = useState(false);
+  const [preserveScripts, setPreserveScripts] = useState(false);
   const dropdownTippyRef = useRef();
   const optionsDropdownTippyRef = useRef();
   const isOpenApi = format === 'openapi';
+  const isPostman = format === 'postman';
   const isZipImport = format === 'bruno-zip';
   const isOpenApiFromUrl = isOpenApi && !!sourceUrl && !filePath;
   const isOpenApiFromFile = isOpenApi && !!filePath && !sourceUrl;
@@ -143,7 +145,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
         .required('Location is required')
     }),
     onSubmit: async (values) => {
-      const { collection: convertedCollection, issues } = await convertCollection(format, rawData, groupingType, collectionFormat);
+      const { collection: convertedCollection, issues } = await convertCollection(format, rawData, groupingType, collectionFormat, preserveScripts);
       const options = { format: collectionFormat };
 
       if (showCheckForSpecUpdatesOption && enableCheckForSpecUpdates) {
@@ -274,13 +276,13 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                 <Dropdown onCreate={onOptionsDropdownCreate} icon={<ImportOptions />} placement="bottom-start">
                   <div
                     className="dropdown-item"
-                    data-testid="show-file-format-toggle"
+                    data-testid="show-advanced-options-toggle"
                     onClick={() => {
                       optionsDropdownTippyRef?.current?.hide();
-                      setShowFileFormat(!showFileFormat);
+                      setShowAdvancedOptions(!showAdvancedOptions);
                     }}
                   >
-                    {showFileFormat ? 'Hide File Format' : 'Show File Format'}
+                    {showAdvancedOptions ? 'Hide Advanced Options' : 'Show Advanced Options'}
                   </div>
                 </Dropdown>
               </div>
@@ -332,7 +334,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                 </span>
               </div>
 
-              {showFileFormat && !isZipImport && (
+              {showAdvancedOptions && !isZipImport && (
                 <div className="mt-4">
                   <label htmlFor="format" className="flex items-center font-medium">
                     File Format
@@ -356,6 +358,24 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                     <option value="yml">OpenCollection (YAML)</option>
                     <option value="bru">BRU Format (.bru)</option>
                   </select>
+                </div>
+              )}
+
+              {showAdvancedOptions && isPostman && (
+                <div className="mt-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={preserveScripts}
+                      onChange={(e) => setPreserveScripts(e.target.checked)}
+                      className="checkbox cursor-pointer"
+                      data-testid="preserve-scripts-toggle"
+                    />
+                    <span className="preserve-scripts-label">Preserve scripts</span>
+                  </label>
+                  <p className="preserve-scripts-description">
+                    Imports pm.* scripts as-is, without translating them to bru.*.
+                  </p>
                 </div>
               )}
             </div>

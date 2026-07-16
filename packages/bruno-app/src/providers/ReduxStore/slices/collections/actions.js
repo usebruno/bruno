@@ -2685,6 +2685,17 @@ export const browseFiles = (filters, properties) => (_dispatch, _getState) => {
   });
 };
 
+export const exportCollectionToPostman = (location, fileName, content, overwrite = false) => (_dispatch, _getState) => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    ipcRenderer
+      .invoke('renderer:export-collection-postman', location, fileName, content, overwrite)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
 export const saveCollectionSettings = (collectionUid, brunoConfig = null, silent = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
