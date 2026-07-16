@@ -3,6 +3,7 @@ import process from 'node:process';
 import * as path from 'path';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
 import { waitForCollectionMount } from './mounting';
+import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
 
 type SandboxMode = 'safe' | 'developer';
 
@@ -2472,6 +2473,20 @@ const elementIsInsideDropdown = async (locator: Locator) => {
   );
 };
 
+/**
+* Open the System Proxy panel in the Preferences dialog and wait for the refresh button to be visible.
+* @param page - The page object
+*/
+
+const openSystemProxyPanel = async (page: Page) => {
+  await openPreferences(page);
+  await selectPreferencesTab(page, 'Proxy');
+
+  const systemProxyLocators = buildPreferencesLocators(page).systemProxy;
+  await systemProxyLocators.systemProxyMode().click();
+  await systemProxyLocators.systemProxyRefreshButton().waitFor({ state: 'visible' });
+};
+
 export {
   waitForReadyPage,
   setRequestUrlAndSave,
@@ -2574,7 +2589,8 @@ export {
   createApp,
   selectAppView,
   renameWsMessage,
-  elementIsInsideDropdown
+  elementIsInsideDropdown,
+  openSystemProxyPanel
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
