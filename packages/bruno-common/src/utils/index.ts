@@ -42,3 +42,12 @@ export {
 export {
   toDisplayString
 } from './string';
+
+export {
+  makeEdgeGridTimestamp,
+  makeEdgeGridNonce,
+  canonicalizeHeaders,
+  base64HmacSha256,
+  base64Sha256,
+  makeContentHash
+} from './edgegrid';

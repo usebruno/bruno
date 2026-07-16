@@ -2,8 +2,8 @@ import { signEdgeGridRequest } from './edgegrid';
 
 /**
  * Akamai's OFFICIAL EdgeGrid vectors (github.com/akamai/AkamaiOPEN-edgegrid-node). Matching them
- * byte-for-byte proves the crypto-js (browser) signer here produces the same signature as the
- * Node runtime signer, so Generate Code snippets validate against the real gateway.
+ * byte-for-byte proves the Web Crypto signer here produces the same signature as the Node runtime
+ * signer, so Generate Code snippets validate against the real gateway.
  */
 const CREDS = {
   clientToken: 'akab-client-token-xxx-xxxxxxxxxxxxxxxx',
@@ -24,16 +24,16 @@ describe('signEdgeGridRequest (codegen) - Akamai official vectors', () => {
     { name: 'POST with empty body', request: { method: 'POST', url: `${HOST}/testapi/v1/t6`, bodyText: '' }, expected: '1gEDxeQGD5GovIkJJGcBaKnZ+VaPtrc4qBUHixjsPCQ=' }
   ];
 
-  test.each(cases)('$name', ({ request, expected }) => {
-    expect(sig(signEdgeGridRequest(CREDS, request))).toBe(expected);
+  test.each(cases)('$name', async ({ request, expected }) => {
+    expect(sig(await signEdgeGridRequest(CREDS, request))).toBe(expected);
   });
 
-  it('returns null when required credentials are missing (caller omits the header)', () => {
-    expect(signEdgeGridRequest({ ...CREDS, clientSecret: '' }, { method: 'GET', url: `${HOST}/` })).toBeNull();
+  it('returns null when required credentials are missing (caller omits the header)', async () => {
+    expect(await signEdgeGridRequest({ ...CREDS, clientSecret: '' }, { method: 'GET', url: `${HOST}/` })).toBeNull();
   });
 
-  it('emits a placeholder signature when credentials are unresolved {{var}} (interpolation off)', () => {
-    const header = signEdgeGridRequest(
+  it('emits a placeholder signature when credentials are unresolved {{var}} (interpolation off)', async () => {
+    const header = await signEdgeGridRequest(
       { ...CREDS, clientToken: '{{client_token}}', clientSecret: '{{client_secret}}' },
       { method: 'POST', url: `${HOST}/edgegrid/verify` }
     );

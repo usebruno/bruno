@@ -37,7 +37,7 @@
     "prepack": "npm run test && npm run build"
   },
   "dependencies": {
-    "crypto-js": "4.2.0"
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.26.9",
@@ -49,6 +49,7 @@
     "@rollup/plugin-terser": "^1.0.0",
     "@rollup/plugin-typescript": "^12.1.2",
     "@types/jest": "^29.5.14",
+    "@types/uuid": "^10.0.0",
     "babel-jest": "^29.7.0",
     "form-data": "4.0.4",
     "is-ip": "^5.0.1",

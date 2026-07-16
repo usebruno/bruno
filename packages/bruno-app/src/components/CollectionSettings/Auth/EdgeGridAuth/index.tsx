@@ -15,10 +15,10 @@ interface AkamaiEdgeGridAuthValues {
   accessToken?: string;
   clientToken?: string;
   clientSecret?: string;
-  nonce?: string;
-  timestamp?: string;
-  baseURL?: string;
-  headersToSign?: string;
+  baseURL?: string | null;
+  nonce?: string | null;
+  timestamp?: string | null;
+  headersToSign?: string | null;
   maxBodySize?: number | null;
 }
 

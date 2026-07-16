@@ -349,13 +349,13 @@ const looksLikeUrl = (url: string | undefined): boolean =>
  *   - 'wsse'                                  → runtime-only signing
  */
 
-const authToHeaders = (
+const authToHeaders = async (
   auth: BrunoAuth | undefined,
   variables: Record<string, unknown>,
   oauth2Credentials: OAuth2CredentialRecord[] | undefined,
   collectionUid: string | undefined,
   request?: { method?: string; url?: string; headers?: BrunoKV[]; bodyText?: string }
-): BrunoKV[] => {
+): Promise<BrunoKV[]> => {
   if (!auth || !auth.mode || auth.mode === 'none' || auth.mode === 'inherit') return [];
 
   switch (auth.mode) {
@@ -423,7 +423,7 @@ const authToHeaders = (
       (request.headers || []).forEach((h) => {
         if (h?.enabled !== false && h?.name) requestHeaders[h.name] = String(h.value ?? '');
       });
-      const value = signEdgeGridRequest(get(auth, 'akamaiEdgegrid') || {}, {
+      const value = await signEdgeGridRequest(get(auth, 'akamaiEdgegrid') || {}, {
         method: request.method,
         url: request.url,
         headers: requestHeaders,
@@ -584,7 +584,7 @@ const buildPostData = (body: BrunoBody | undefined): any => {
 // Main
 // ---------------------------------------------------------------------------
 
-export function buildHar(input: BuildHarInput): BuildHarOutput {
+export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   const variables = input.variables || {};
   const shouldInterpolate = input.shouldInterpolate ?? true;
 
@@ -629,7 +629,7 @@ export function buildHar(input: BuildHarInput): BuildHarOutput {
 
   // Step 5 — Auth → headers. Append to request headers. Request-signing auth (EdgeGrid) must
   // sign the same `encodedUrl` the snippet transmits, or the signature won't cover the sent bytes.
-  const authHeaders = authToHeaders(working.auth, variables, input.oauth2Credentials, input.collectionUid, {
+  const authHeaders = await authToHeaders(working.auth, variables, input.oauth2Credentials, input.collectionUid, {
     method: working.method || 'GET',
     url: encodedUrl,
     headers: working.headers,
