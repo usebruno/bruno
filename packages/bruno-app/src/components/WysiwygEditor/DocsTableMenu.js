@@ -14,6 +14,18 @@ import { DOCS_MENU_DROPDOWN_PROPS } from './docsToolbarUi';
 
 const TABLE_MENU_GROUPS = [
   {
+    name: 'Table',
+    options: [
+      {
+        id: 'deleteTable',
+        label: 'Delete table',
+        Icon: IconTrash,
+        run: (editor) => editor.chain().focus().deleteTable().run(),
+        canRun: (editor) => editor.can().chain().focus().deleteTable().run()
+      }
+    ]
+  },
+  {
     name: 'Rows',
     options: [
       {

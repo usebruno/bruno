@@ -109,7 +109,9 @@ const buildToolbarActions = (onLinkClick) => [
     Icon: IconLink,
     run: (editor) => onLinkClick(editor),
     isActive: (editor) => editor.isActive('link'),
-    canRun: (editor) => true
+    canRun: (editor) =>
+      !editor.isActive('code')
+      && !editor.isActive('codeBlock')
   },
   {
     id: 'bulletList',
@@ -151,6 +153,7 @@ const buildToolbarActions = (onLinkClick) => [
     isActive: (editor) => editor.isActive('table'),
     canRun: (editor) =>
       !editor.isActive('table')
+      && !editor.isActive('codeBlock')
       && editor.can().chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
   },
   {
@@ -178,11 +181,38 @@ const buildToolbarActions = (onLinkClick) => [
     id: 'blockquote',
     tooltip: 'Quote',
     Icon: IconQuote,
-    run: (editor) => editor.chain().focus().toggleBlockquote().run(),
+    run: (editor) => {
+      if (editor.isActive('blockquote')) {
+        editor.commands.unsetBlockquote();
+      } else {
+        editor.chain()
+          .unsetBlockquote() // unwrap any existing blockquotes to prevent nesting
+          .setBlockquote()
+          .command(({ tr }) => {
+            let pos = 0;
+            while (pos < tr.doc.content.size) {
+              const node = tr.doc.nodeAt(pos);
+              if (!node) {
+                pos++;
+                continue;
+              }
+              const $pos = tr.doc.resolve(pos);
+              if ($pos.nodeBefore && $pos.nodeBefore.type.name === 'blockquote' && node.type.name === 'blockquote') {
+                tr.join(pos);
+                continue;
+              }
+              pos += node.nodeSize;
+            }
+            return true;
+          })
+          .run();
+      }
+      editor.commands.focus();
+    },
     isActive: (editor) => editor.isActive('blockquote'),
     canRun: (editor) =>
-      !editor.isActive('blockquote')
-      && editor.can().chain().focus().toggleBlockquote().run()
+      !editor.isActive('codeBlock')
+      && (editor.can().unsetBlockquote() || editor.can().setBlockquote())
   },
   {
     id: 'undo',
