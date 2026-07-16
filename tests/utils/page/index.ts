@@ -6,5 +6,4 @@ export * from './sidebar';
 export * from './mounting';
 export * from './preferences';
 export * from './ai';
-export * from './variable-sort';
 export * from '../snapshot';
