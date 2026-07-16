@@ -15,12 +15,12 @@ import { buildCommonLocators } from '../../utils/page/locators';
 
 const variablesTab = (page: Page) => buildCommonLocators(page).environment.variablesTab();
 const secretsTab = (page: Page) => buildCommonLocators(page).environment.secretsTab();
-const varRow = (page: Page, name: string) => buildCommonLocators(page).environment.varRow(name);
 const saveTab = (page: Page) => buildCommonLocators(page).environment.saveTab();
+const savedToast = (page: Page) => buildCommonLocators(page).environment.savedToast();
 const dragHandle = (page: Page, name: string) => buildCommonLocators(page).environment.dragHandle(name);
 
 const renameRow = async (page: Page, oldName: string, newName: string) => {
-  await varRow(page, oldName).locator('input[name$=".name"]').fill(newName);
+  await buildCommonLocators(page).environment.varRowNameInput(oldName).fill(newName);
 };
 
 // Last Name input on the page — the trailing "add new" row, always empty.
@@ -29,16 +29,16 @@ const typeIntoTrailingRow = async (page: Page, name: string) => {
 };
 
 const searchEnv = async (page: Page, query: string) => {
-  const input = page.locator('.search-input');
+  const input = buildCommonLocators(page).environment.searchInput();
   if ((await input.count()) === 0) {
-    await page.locator('.env-search-container button[title="Search"]').click();
+    await buildCommonLocators(page).environment.searchAction().click();
     await input.waitFor({ state: 'visible' });
   }
   await input.fill(query);
 };
 
 const resetSearch = async (page: Page) => {
-  const input = page.locator('.search-input');
+  const input = buildCommonLocators(page).environment.searchInput();
   if ((await input.count()) === 0) return;
   await input.fill('');
   await input.blur();
@@ -73,7 +73,7 @@ test.describe('Variable sort + drag-and-drop (Environment vars)', () => {
     await addRowToActiveTab(page, 'apple', '2');
     await addRowToActiveTab(page, 'mango', '3');
     await saveTab(page).click();
-    await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+    await expect(savedToast(page)).toBeVisible();
 
     await test.step('A-Z sorts the view alphabetically', async () => {
       await cycleVariableSort(page);
@@ -107,7 +107,7 @@ test.describe('Variable sort + drag-and-drop (Environment vars)', () => {
     await addRowToActiveTab(page, 'cherry', '2');
     await addRowToActiveTab(page, 'apple', '3');
     await saveTab(page).click();
-    await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+    await expect(savedToast(page)).toBeVisible();
 
     await cycleVariableSort(page); // A-Z
     await expect.poll(() => getVisibleVariableNames(page)).toEqual(['apple', 'banana', 'cherry']);
@@ -120,7 +120,7 @@ test.describe('Variable sort + drag-and-drop (Environment vars)', () => {
 
     await test.step('Saving re-sorts using the new name', async () => {
       await saveTab(page).click();
-      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(savedToast(page)).toBeVisible();
       await expect.poll(() => getVisibleVariableNames(page)).toEqual(['banana', 'cherry', 'zzzz']);
     });
   });
@@ -133,7 +133,7 @@ test.describe('Variable sort + drag-and-drop (Environment vars)', () => {
     await addRowToActiveTab(page, 'banana', '1');
     await addRowToActiveTab(page, 'cherry', '2');
     await saveTab(page).click();
-    await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+    await expect(savedToast(page)).toBeVisible();
 
     await cycleVariableSort(page); // A-Z
     await expect.poll(() => getVisibleVariableNames(page)).toEqual(['banana', 'cherry']);
@@ -145,7 +145,7 @@ test.describe('Variable sort + drag-and-drop (Environment vars)', () => {
 
     await test.step('Saving sorts the new variable into place', async () => {
       await saveTab(page).click();
-      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(savedToast(page)).toBeVisible();
       await expect.poll(() => getVisibleVariableNames(page)).toEqual(['apple', 'banana', 'cherry']);
     });
   });
@@ -159,7 +159,7 @@ test.describe('Variable sort + drag-and-drop (Environment vars)', () => {
     await addRowToActiveTab(page, 'alpha', '1');
     await addRowToActiveTab(page, 'beta', '2');
     await saveTab(page).click();
-    await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+    await expect(savedToast(page)).toBeVisible();
 
     await test.step('Drag handle is present in Manual mode', async () => {
       await expect(dragHandle(page, 'alpha')).toHaveCount(1);
@@ -193,13 +193,13 @@ test.describe('Variable sort + drag-and-drop (Environment vars)', () => {
       await addRowToActiveTab(page, 'v1', 'one');
       await addRowToActiveTab(page, 'v2', 'two');
       await saveTab(page).click();
-      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(savedToast(page)).toBeVisible();
 
       await secretsTab(page).click();
       await addRowToActiveTab(page, 's1', 'secret-one');
       await addRowToActiveTab(page, 's2', 'secret-two');
       await saveTab(page).click();
-      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(savedToast(page)).toBeVisible();
 
       await variablesTab(page).click();
     });
@@ -208,7 +208,7 @@ test.describe('Variable sort + drag-and-drop (Environment vars)', () => {
       await dragVariableRow(page, 'v2', 'v1');
       await expect.poll(() => getVisibleVariableNames(page)).toEqual(['v2', 'v1']);
       await saveTab(page).click();
-      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(savedToast(page)).toBeVisible();
     });
 
     await test.step('On disk, variables were reordered but secrets kept their original order', async () => {
