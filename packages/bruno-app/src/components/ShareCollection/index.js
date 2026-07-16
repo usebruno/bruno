@@ -175,6 +175,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
             <div
               className={`other-format-card ${selectedFormat === EXPORT_FORMATS.POSTMAN ? 'selected' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => !isDisabled && setSelectedFormat(EXPORT_FORMATS.POSTMAN)}
+              data-testid="export-format-postman"
             >
               <div className="format-icon">
                 <IconFileExport size={28} strokeWidth={1.5} />

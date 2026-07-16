@@ -304,6 +304,9 @@ export const buildCommonLocators = (page: Page) => ({
       };
     })()
   },
+  export: {
+    postmanModal: () => page.getByTestId('export-to-postman-modal')
+  },
   /**
    * Build generic table locators for any table with a testId
    * @param testId - The testId of the table
