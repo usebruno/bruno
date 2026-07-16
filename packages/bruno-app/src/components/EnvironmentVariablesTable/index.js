@@ -80,6 +80,7 @@ const EnvVarValueCell = ({
       trailingContent={variable.secret ? (
         <SecretEyeButton
           masked={masked}
+          testId="secret-reveal-toggle"
           onToggle={() => editorRef.current?.toggleVisibleSecret()}
         />
       ) : null}
