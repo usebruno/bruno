@@ -18,6 +18,7 @@ import {
   updateAppCode
 } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { addLog } from 'providers/ReduxStore/slices/logs';
 import { useTheme } from 'providers/Theme';
 import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
@@ -288,6 +289,7 @@ const CollectionApp = ({ item, collection }) => {
           break;
         case 'log':
           console.log('[app]', ...(data.args || []));
+          dispatch(addLog({ type: 'log', args: ['[app]', ...(data.args || [])], timestamp: new Date().toISOString() }));
           break;
         case 'setRuntimeVariable':
           if (typeof data.key === 'string' && data.key.length) {
