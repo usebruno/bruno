@@ -846,7 +846,7 @@ const EnvironmentVariablesTable = ({
                     <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
                   </div>
                 </td>
-                <td style={{ width: columnWidths.value }}>
+                <td style={{ width: columnWidths.value }} className="overflow-hidden">
                   <EnvVarValueCell
                     variable={variable}
                     actualIndex={actualIndex}

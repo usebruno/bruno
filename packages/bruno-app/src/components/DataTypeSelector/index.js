@@ -75,6 +75,7 @@ const DataTypeSelector = ({ variable, onChange, compact = false }) => {
               size={16}
             />
             <Tooltip
+              positionStrategy="fixed"
               className="tooltip-mod"
               id={`type-error-${variable.uid}`}
               content={typeError}
