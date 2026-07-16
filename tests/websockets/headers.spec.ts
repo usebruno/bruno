@@ -35,10 +35,10 @@ test.describe('message header selection on delete', () => {
       await createTransientRequest(page, { requestType: 'WebSocket' });
       await selectRequestPaneTab(page, 'Message');
 
-      await websocket.message.addButton().click();
-      await websocket.message.nameInputs().press('Escape');
-      await websocket.message.addButton().click();
-      await websocket.message.nameInputs().press('Escape');
+      for (let i = 0; i < 2; i++) {
+        await websocket.message.addButton().click();
+        await websocket.message.nameInputs().press('Escape');
+      }
       await expect(websocket.message.headers()).toHaveCount(3);
     });
 
