@@ -25,7 +25,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
   const workspaces = useSelector((state) => state.workspaces?.workspaces || []);
   const workspaceUid = useSelector((state) => state.workspaces?.activeWorkspaceUid);
   const [isEditing, toggleEditing] = useState(false);
-  const [showFileFormat, setShowFileFormat] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
 
   const dropdownTippyRef = useRef();
@@ -243,7 +243,7 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
                 </div>
               )}
 
-              {showFileFormat && (
+              {showAdvancedOptions && (
                 <div className="mt-4">
                   <label htmlFor="format" className="flex items-center font-medium">
                     File Format
@@ -280,14 +280,14 @@ const CreateCollection = ({ onClose, defaultLocation: propDefaultLocation, initi
                 <Dropdown onCreate={onDropdownCreate} icon={<AdvancedOptions />} placement="bottom-start">
                   <div
                     className="dropdown-item"
-                    key="show-file-format"
-                    data-testid="show-file-format-toggle"
+                    key="show-advanced-options"
+                    data-testid="show-advanced-options-toggle"
                     onClick={(e) => {
                       dropdownTippyRef.current.hide();
-                      setShowFileFormat(!showFileFormat);
+                      setShowAdvancedOptions(!showAdvancedOptions);
                     }}
                   >
-                    {showFileFormat ? 'Hide File Format' : 'Show File Format'}
+                    {showAdvancedOptions ? 'Hide Advanced Options' : 'Show Advanced Options'}
                   </div>
                 </Dropdown>
               </div>
