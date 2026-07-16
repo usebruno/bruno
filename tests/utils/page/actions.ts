@@ -157,13 +157,13 @@ const createCollection = async (
 
     if (format) {
       const advancedBtn = createCollectionModal.locator('.advanced-options .btn-advanced');
-      const showFileFormatToggle = page.getByTestId('show-file-format-toggle');
+      const showAdvancedOptionsToggle = page.getByTestId('show-advanced-options-toggle');
       const formatSelect = createCollectionModal.locator('#format');
 
       await expect(async () => {
         if (!(await formatSelect.isVisible())) {
           await advancedBtn.click();
-          await showFileFormatToggle.click({ timeout: 2000 });
+          await showAdvancedOptionsToggle.click({ timeout: 2000 });
         }
         await expect(formatSelect).toBeVisible({ timeout: 2000 });
       }).toPass({ timeout: 15000 });
@@ -476,6 +476,7 @@ type ImportCollectionOptions = {
   expectedCollectionName?: string;
   expectIssues?: boolean;
   sidebarTimeout?: number;
+  preserveScripts?: boolean;
 };
 
 const importCollection = async (
@@ -506,6 +507,15 @@ const importCollection = async (
     // Verify expected collection name if provided
     if (options.expectedCollectionName) {
       await expect(locationModal.getByText(options.expectedCollectionName)).toBeVisible();
+    }
+
+    // Enable 'Preserve scripts' option via the Advanced Options toggle
+    if (options.preserveScripts) {
+      await locationModal.getByRole('button', { name: 'Options' }).click();
+      await page.getByTestId('show-advanced-options-toggle').click();
+      const preserveScriptsCheckbox = page.getByTestId('preserve-scripts-toggle');
+      await preserveScriptsCheckbox.check();
+      await expect(preserveScriptsCheckbox).toBeChecked();
     }
 
     // Set location and import

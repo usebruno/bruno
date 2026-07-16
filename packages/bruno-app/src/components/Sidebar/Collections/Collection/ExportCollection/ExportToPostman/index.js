@@ -99,6 +99,7 @@ const ExportToPostman = ({ onClose, onExported, collection }) => {
         <Modal
           size="md"
           title="Export to Postman"
+          dataTestId="export-to-postman-modal"
           confirmText={fileExists ? 'Replace' : 'Export'}
           confirmButtonColor={fileExists ? 'danger' : 'primary'}
           handleConfirm={() => (fileExists ? handleReplace() : formik.handleSubmit())}
