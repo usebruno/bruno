@@ -555,8 +555,8 @@ export function isHexFormat(str) {
   return false;
 }
 
-export const formatProxyTimestamp = (date) => {
-  return date.toLocaleString('en-GB', {
+export const formatProxyTimestamp = (timestamp) => {
+  return new Date(timestamp).toLocaleString('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

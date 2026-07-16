@@ -8,10 +8,10 @@ import { formatProxyTimestamp } from 'utils/common';
 const SystemProxy = () => {
   const dispatch = useDispatch();
   const systemProxyVariables = useSelector((state) => state.app.systemProxyVariables);
+  const lastRefreshedAt = useSelector((state) => state.app.systemProxyLastRefreshedAt);
   const { source, http_proxy, https_proxy, no_proxy, pac_url } = systemProxyVariables || {};
   const [isFetching, setIsFetching] = useState(true);
   const [error, setError] = useState(null);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState(null);
 
   const fetchProxy = (forceRefresh = false) => {
     setIsFetching(true);
@@ -20,9 +20,6 @@ const SystemProxy = () => {
     dispatch(action())
       .then(() => {
         setError(null);
-        if (forceRefresh) {
-          setLastRefreshedAt(new Date());
-        }
       })
       .catch((err) => setError(err.message || String(err)))
       .finally(() => setIsFetching(false));
@@ -112,7 +109,7 @@ const SystemProxy = () => {
             <small
               className="text-muted"
               data-testid="system-proxy-last-refreshed"
-              data-refreshed-at={lastRefreshedAt.getTime()}
+              data-refreshed-at={lastRefreshedAt}
             >
               Last refreshed at {formatProxyTimestamp(lastRefreshedAt)}
             </small>

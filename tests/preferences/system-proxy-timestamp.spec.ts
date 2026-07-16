@@ -2,10 +2,10 @@ import { expect, test } from '../../playwright';
 import { buildPreferencesLocators, openSystemProxyPanel } from '../utils/page';
 
 // The System Proxy panel renders a "Last refreshed at <timestamp>" label that is
-// produced by the `formatTimestamp` util. The label is created only when the user
+// produced by the `formatProxyTimestamp` util. The label is created only when the user
 // explicitly clicks "Refresh" (a forced refresh), not on the initial auto-fetch.
 //
-// formatTimestamp uses `toLocaleString('en-GB', { day: '2-digit', month: 'short',
+// formatProxyTimestamp uses `toLocaleString('en-GB', { day: '2-digit', month: 'short',
 // year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })`, e.g.
 //   "15 Jul 2026, 04:30 pm"
 const TIMESTAMP_REGEX = /^Last refreshed at \d{2} [A-Z][a-z]{2} \d{4},\s+\d{2}:\d{2}\s?(am|pm)$/i;
