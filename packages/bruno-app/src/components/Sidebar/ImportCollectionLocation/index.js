@@ -362,21 +362,21 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
               )}
 
               {showAdvancedOptions && isPostman && (
-                <div className="mt-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={preserveScripts}
-                      onChange={(e) => setPreserveScripts(e.target.checked)}
-                      className="checkbox cursor-pointer"
-                      data-testid="preserve-scripts-toggle"
-                    />
-                    <span className="preserve-scripts-label">Preserve scripts</span>
-                  </label>
-                  <p className="preserve-scripts-description">
-                    Imports pm.* scripts as-is, without translating them to bru.*.
-                  </p>
-                </div>
+                <label className="mt-4 flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={preserveScripts}
+                    onChange={(e) => setPreserveScripts(e.target.checked)}
+                    className="checkbox cursor-pointer mt-0.5"
+                    data-testid="preserve-scripts-toggle"
+                  />
+                  <div>
+                    <span className="checkbox-option-label">Preserve scripts</span>
+                    <p className="checkbox-option-description">
+                      Imports pm.* scripts as-is, without translating them to bru.*.
+                    </p>
+                  </div>
+                </label>
               )}
             </div>
 
@@ -410,23 +410,23 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
               </div>
             )}
             {showCheckForSpecUpdatesOption && (
-              <div className={`mt-4 ${isSwagger2 ? 'opacity-50 pointer-events-none' : ''}`}>
-                <label className={`flex items-center gap-2 ${isSwagger2 ? '' : 'cursor-pointer'}`}>
-                  <input
-                    type="checkbox"
-                    checked={isSwagger2 ? false : enableCheckForSpecUpdates}
-                    onChange={(e) => setEnableCheckForSpecUpdates(e.target.checked)}
-                    disabled={isSwagger2}
-                    className={`checkbox ${isSwagger2 ? '' : 'cursor-pointer'}`}
-                  />
-                  <span className="font-medium">Check for Spec Updates</span>
-                </label>
-                <p className="text-muted text-xs mt-1">
-                  {isSwagger2
-                    ? 'OpenAPI Sync is not supported for Swagger 2.0 specs.'
-                    : 'Stay notified of spec changes and sync your collection with the spec.'}
-                </p>
-              </div>
+              <label className={`mt-4 flex items-start gap-2 ${isSwagger2 ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}>
+                <input
+                  type="checkbox"
+                  checked={isSwagger2 ? false : enableCheckForSpecUpdates}
+                  onChange={(e) => setEnableCheckForSpecUpdates(e.target.checked)}
+                  disabled={isSwagger2}
+                  className={`checkbox mt-0.5 ${isSwagger2 ? '' : 'cursor-pointer'}`}
+                />
+                <div>
+                  <span className="checkbox-option-label">Check for Spec Updates</span>
+                  <p className="checkbox-option-description">
+                    {isSwagger2
+                      ? 'OpenAPI Sync is not supported for Swagger 2.0 specs.'
+                      : 'Stay notified of spec changes and sync your collection with the spec.'}
+                  </p>
+                </div>
+              </label>
             )}
           </form>
         </Modal>

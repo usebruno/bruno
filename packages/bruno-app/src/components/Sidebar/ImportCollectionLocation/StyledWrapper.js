@@ -22,13 +22,13 @@ const Wrapper = styled.div`
     }
   }
 
-  .preserve-scripts-label {
+  .checkbox-option-label {
     font-weight: 500;
   }
 
-  .preserve-scripts-description {
+  .checkbox-option-description {
     font-size: 0.75rem;
-    color: ${(props) => props.theme.colors.text.muted};
+    color: ${(props) => props.theme.colors.text.subtext0};
     margin-top: 0.25rem;
   }
 `;

@@ -171,21 +171,21 @@ const ExportToPostman = ({ onClose, onExported, collection }) => {
             </div>
 
             {showAdvancedOptions && (
-              <div className="mt-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={preserveScripts}
-                    onChange={(e) => setPreserveScripts(e.target.checked)}
-                    className="checkbox cursor-pointer"
-                    data-testid="preserve-scripts-toggle"
-                  />
+              <label className="mt-4 flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={preserveScripts}
+                  onChange={(e) => setPreserveScripts(e.target.checked)}
+                  className="checkbox cursor-pointer mt-0.5"
+                  data-testid="preserve-scripts-toggle"
+                />
+                <div>
                   <span className="preserve-scripts-label">Preserve scripts</span>
-                </label>
-                <p className="preserve-scripts-description">
-                  Exports bru.* scripts as-is, without translating them to pm.*.
-                </p>
-              </div>
+                  <p className="preserve-scripts-description">
+                    Exports bru.* scripts as-is, without translating them to pm.*.
+                  </p>
+                </div>
+              </label>
             )}
           </form>
         </Modal>

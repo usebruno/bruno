@@ -22,7 +22,7 @@ const StyledWrapper = styled.div`
 
   .preserve-scripts-description {
     font-size: 0.75rem;
-    color: ${(props) => props.theme.colors.text.muted};
+    color: ${(props) => props.theme.colors.text.subtext0};
     margin-top: 0.25rem;
   }
 `;
