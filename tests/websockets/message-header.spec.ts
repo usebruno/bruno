@@ -18,7 +18,7 @@ test.describe('websocket message header selection on delete', () => {
 
       for (let i = 0; i < 2; i++) {
         await websocket.message.addButton().click();
-        await websocket.message.nameInputs().press('Escape');
+        await websocket.message.nameInput(i + 1).press('Escape');
       }
       await expect(websocket.message.headers()).toHaveCount(3);
     });
@@ -49,7 +49,7 @@ test.describe('websocket message header selection on delete', () => {
       await selectRequestPaneTab(page, 'Message');
 
       await websocket.message.addButton().click();
-      await websocket.message.nameInputs().press('Escape');
+      await websocket.message.nameInput(1).press('Escape');
       await expect(websocket.message.headers()).toHaveCount(2);
     });
 
