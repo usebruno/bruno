@@ -6,19 +6,24 @@ import {
   IconCheck,
   IconCode,
   IconWand,
-  IconStars,
   IconCornerDownLeft,
   IconChevronDown,
   IconHistory,
   IconPlus,
-  IconTrash
+  IconTrash,
+  IconExternalLink,
+  IconLayoutSidebarRightExpand
 } from '@tabler/icons';
+import IconSparkles from 'components/Icons/IconSparkles';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import MenuDropdown from 'ui/MenuDropdown';
+import Button from 'ui/Button';
 import { focusTab } from 'providers/ReduxStore/slices/tabs';
 import {
   closeAiSidebar,
+  popOutAiChat,
+  dockAiChat,
   sendAiMessage,
   stopAiStream,
   setChatBinding,
@@ -43,7 +48,8 @@ import {
   updateCollectionTests,
   updateCollectionDocs
 } from 'providers/ReduxStore/slices/collections';
-import { findItemInCollection, isItemAFolder, isItemARequest } from 'utils/collections';
+import { updateIsDragging } from 'providers/ReduxStore/slices/app';
+import { findItemInCollection, findItemInCollectionByPathname, isItemAFolder, isItemARequest } from 'utils/collections';
 import { buildAiVariablesPayload, getAiStatus } from 'utils/ai';
 
 import StyledWrapper from './StyledWrapper';
@@ -54,6 +60,19 @@ import { renderMarkdown, parseMessageSegments } from './utils';
 
 const SELECTED_MODEL_LS_KEY = 'bruno.ai.chat.selectedModel';
 const AUTO_MODEL_ID = '';
+
+const SIDEBAR_WIDTH_LS_KEY = 'bruno.ai.chat.sidebarWidth';
+const DEFAULT_SIDEBAR_WIDTH = 420;
+const MIN_SIDEBAR_WIDTH = 340;
+const MAX_SIDEBAR_WIDTH = 720;
+
+const clampSidebarWidth = (value) =>
+  Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, value));
+
+// The docked sidebar and the popout are different subtrees, so switching
+// between them remounts this component. Keep the unsent draft here so it
+// survives the pop-out/dock transition.
+let draftInputCache = '';
 
 const ToolActivityGroup = ({ activities }) => {
   if (!activities?.length) return null;
@@ -126,11 +145,14 @@ const HistoryPopover = ({ items, activeId, onPick, onDelete, onClose }) => {
     const handleKey = (e) => {
       if (e.key === 'Escape') onClose();
     };
-    document.addEventListener('mousedown', handleClick);
-    document.addEventListener('keydown', handleKey);
+    // ownerDocument in the popped-out window the popover
+    // lives in a different document than the one this module closed over.
+    const doc = popoverRef.current?.ownerDocument || document;
+    doc.addEventListener('mousedown', handleClick);
+    doc.addEventListener('keydown', handleKey);
     return () => {
-      document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('keydown', handleKey);
+      doc.removeEventListener('mousedown', handleClick);
+      doc.removeEventListener('keydown', handleKey);
     };
   }, [onClose]);
 
@@ -166,15 +188,28 @@ const HistoryPopover = ({ items, activeId, onPick, onDelete, onClose }) => {
   );
 };
 
-const AiChatSidebar = ({ collection }) => {
+const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
   const dispatch = useDispatch();
-  const [input, setInput] = useState('');
+  const isPopout = variant === 'popout';
+  const [input, _setInput] = useState(() => draftInputCache);
+  const setInput = useCallback((value) => {
+    draftInputCache = value;
+    _setInput(value);
+  }, []);
   const [processingStage, setProcessingStage] = useState(null);
   const [availableModels, setAvailableModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState(() => {
     try { return localStorage.getItem(SELECTED_MODEL_LS_KEY) ?? AUTO_MODEL_ID; } catch { return AUTO_MODEL_ID; }
   });
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    try {
+      const stored = parseInt(localStorage.getItem(SIDEBAR_WIDTH_LS_KEY), 10);
+      if (!Number.isNaN(stored)) return clampSidebarWidth(stored);
+    } catch {}
+    return DEFAULT_SIDEBAR_WIDTH;
+  });
+  const [resizing, setResizing] = useState(false);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const isNearBottomRef = useRef(true);
@@ -188,7 +223,13 @@ const AiChatSidebar = ({ collection }) => {
   const aiEnabled = get(preferences, 'ai.enabled', false);
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  const activeItem = focusedTab && collection ? findItemInCollection(collection, activeTabUid) : null;
+
+  const activeItem = useMemo(() => {
+    if (!focusedTab || !collection) return null;
+    const found = findItemInCollection(collection, activeTabUid);
+    if (found) return found;
+    return focusedTab.pathname ? findItemInCollectionByPathname(collection, focusedTab.pathname) : null;
+  }, [focusedTab, collection, activeTabUid]);
 
   const aiContext = useMemo(() => {
     if (!focusedTab || !collection) return null;
@@ -220,6 +261,15 @@ const AiChatSidebar = ({ collection }) => {
       });
     return () => { cancelled = true; };
   }, [isOpen, aiEnabled, preferences?.ai]);
+
+  useEffect(() => {
+    const { ipcRenderer } = window;
+    if (!ipcRenderer) return;
+    const unsub = ipcRenderer.on('main:ai-status-changed', (status) => {
+      setAvailableModels(status?.availableModels || []);
+    });
+    return () => unsub();
+  }, []);
 
   // Auto = empty string. We don't auto-correct to the first model — let the
   // backend pick, so users get smart defaults that adapt as providers change.
@@ -418,6 +468,45 @@ const AiChatSidebar = ({ collection }) => {
     if (isOpen) textareaRef.current?.focus();
   }, [isOpen]);
 
+  // Re-measure the textarea on mount when a draft was restored from the
+  // module cache (pop-out/dock remount) so it isn't stuck at one row.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (el && el.value) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!resizing) return;
+    const handleMouseMove = (e) => {
+      e.preventDefault();
+      setSidebarWidth(clampSidebarWidth(window.innerWidth - e.clientX));
+    };
+    const handleMouseUp = (e) => {
+      e.preventDefault();
+      setResizing(false);
+      dispatch(updateIsDragging({ isDragging: false }));
+      setSidebarWidth((width) => {
+        try { localStorage.setItem(SIDEBAR_WIDTH_LS_KEY, String(width)); } catch {}
+        return width;
+      });
+    };
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizing, dispatch]);
+
+  const handleResizeStart = (e) => {
+    e.preventDefault();
+    setResizing(true);
+    dispatch(updateIsDragging({ isDragging: true }));
+  };
+
   useEffect(() => {
     if (!isLoading) {
       setProcessingStage(null);
@@ -547,6 +636,7 @@ const AiChatSidebar = ({ collection }) => {
   };
 
   const handleClose = () => dispatch(closeAiSidebar());
+  const handleTogglePopout = () => dispatch(isPopout ? dockAiChat() : popOutAiChat());
   const handleSwitchChat = (tabUid) => dispatch(focusTab({ uid: tabUid }));
 
   const handleSuggestionClick = (suggestion) => {
@@ -566,7 +656,7 @@ const AiChatSidebar = ({ collection }) => {
 
   const ModelSelectorTrigger = forwardRef((props, ref) => (
     <div ref={ref} className="model-btn" {...props}>
-      <IconStars size={14} strokeWidth={1.75} />
+      <IconSparkles size={14} strokeWidth={1.75} />
       <span>{selectedModelLabel}</span>
       <IconChevronDown size={12} />
     </div>
@@ -594,7 +684,7 @@ const AiChatSidebar = ({ collection }) => {
       <div className="processing-indicator">
         <div className="processing-content">
           <div className="processing-icon">
-            {stage.icon === 'sparkles' && <IconStars size={12} />}
+            {stage.icon === 'sparkles' && <IconSparkles size={12} />}
             {stage.icon === 'wand' && <IconWand size={12} />}
             {stage.icon === 'code' && <IconCode size={12} />}
             {stage.icon === 'send' && <IconCornerDownLeft size={12} />}
@@ -718,7 +808,7 @@ const AiChatSidebar = ({ collection }) => {
     const suggestions = SUGGESTIONS_BY_TYPE[contentType] || SUGGESTIONS_BY_TYPE.app;
     return (
       <div className="empty-state">
-        <div className="empty-icon"><IconStars size={20} /></div>
+        <div className="empty-icon"><IconSparkles size={20} /></div>
         <h3>AI Assistant</h3>
         <p>Ask me to generate or modify code, tests, scripts, and docs.</p>
         <div className="suggestions">
@@ -743,11 +833,26 @@ const AiChatSidebar = ({ collection }) => {
   const historyCount = historyList?.length || 0;
 
   return (
-    <StyledWrapper>
+    <StyledWrapper
+      className={isPopout ? 'popout' : ''}
+      style={isPopout ? undefined : { width: sidebarWidth }}
+    >
+      {!isPopout && (
+        <div
+          className="ai-sidebar-resize-handle"
+          data-testid="ai-sidebar-resize-handle"
+          onMouseDown={handleResizeStart}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize AI sidebar"
+        >
+          <div className="drag-border" />
+        </div>
+      )}
       <div className="ai-sidebar">
         <div className="ai-sidebar-header">
           <div className="header-left">
-            <IconStars size={18} className="header-icon" />
+            <IconSparkles size={18} className="header-icon" />
             <span className={`header-method method-${(requestMethod || 'get').toLowerCase()}`}>{requestMethod}</span>
             <span className="header-title">{requestName}</span>
             {chatsWithMessages.length > 1 && (
@@ -794,6 +899,14 @@ const AiChatSidebar = ({ collection }) => {
                 />
               )}
             </div>
+            <button
+              className="icon-btn"
+              onClick={handleTogglePopout}
+              title={isPopout ? 'Dock to sidebar' : 'Open in new window'}
+              data-testid="ai-popout-toggle"
+            >
+              {isPopout ? <IconLayoutSidebarRightExpand size={14} /> : <IconExternalLink size={14} />}
+            </button>
             <button className="icon-btn close-btn" onClick={handleClose} title="Close">
               <IconX size={14} />
             </button>
@@ -839,9 +952,17 @@ const AiChatSidebar = ({ collection }) => {
                   </MenuDropdown>
                 </div>
                 {isLoading ? (
-                  <button className="stop-btn" onClick={handleStop} title="Stop generating">
-                    <IconPlayerStop size={12} /> Stop
-                  </button>
+                  <Button
+                    variant="filled"
+                    color="danger"
+                    size="xs"
+                    rounded="sm"
+                    icon={<IconPlayerStop size={12} />}
+                    onClick={handleStop}
+                    title="Stop generating"
+                  >
+                    Stop
+                  </Button>
                 ) : (
                   <button
                     className="send-btn"

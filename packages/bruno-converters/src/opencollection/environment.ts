@@ -56,6 +56,12 @@ export const fromOpenCollectionEnvironments = (environments: Environment[] | und
         result.value = variable.value;
       }
 
+      if (variable.description) {
+        result.description = typeof variable.description === 'string'
+          ? variable.description
+          : (variable.description as { content?: string })?.content || '';
+      }
+
       return result;
     }),
     color: env.color || null

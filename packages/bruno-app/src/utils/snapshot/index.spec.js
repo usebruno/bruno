@@ -16,7 +16,8 @@ const {
   hydrateSnapshotLookups,
   hydrateCollectionTabs,
   isActiveTab,
-  getActiveTabFromSnapshot
+  getActiveTabFromSnapshot,
+  getCollectionSnapshotFromLookups
 } = require('./index');
 
 describe('hydrateSnapshotLookups', () => {
@@ -177,10 +178,10 @@ describe('hydrateSnapshotLookups', () => {
           pathname: sharedCollectionPath,
           workspacePathname: workspaceAPath,
           environment: {
-            collection: '',
+            collection: 'env-a',
             global: ''
           },
-          selectedEnvironment: '',
+          selectedEnvironment: 'env-a',
           isOpen: true,
           isMounted: false,
           activeTab: { accessor: 'pathname', value: '/collections/shared/ReqA' },
@@ -190,10 +191,10 @@ describe('hydrateSnapshotLookups', () => {
           pathname: sharedCollectionPath,
           workspacePathname: workspaceBPath,
           environment: {
-            collection: '',
+            collection: 'env-b',
             global: ''
           },
-          selectedEnvironment: '',
+          selectedEnvironment: 'env-b',
           isOpen: true,
           isMounted: false,
           activeTab: { accessor: 'pathname', value: '/collections/shared/ReqB' },
@@ -217,6 +218,14 @@ describe('hydrateSnapshotLookups', () => {
     });
 
     expect(lookups.hasWorkspaceScopedTabs).toBe(true);
+
+    // Each workspace should resolve to its own selected environment for the shared collection.
+    expect(getCollectionSnapshotFromLookups(sharedCollectionPath, lookups, workspaceAPath)).toMatchObject({
+      selectedEnvironment: 'env-a'
+    });
+    expect(getCollectionSnapshotFromLookups(sharedCollectionPath, lookups, workspaceBPath)).toMatchObject({
+      selectedEnvironment: 'env-b'
+    });
   });
 
   it('drops legacy v4 migration tabs from snapshot lookups', () => {
@@ -236,6 +245,27 @@ describe('hydrateSnapshotLookups', () => {
     const lookups = hydrateSnapshotLookups(snapshot);
 
     expect(lookups.tabsByCollectionPath['/collections/legacy'].tabs).toEqual([
+      { type: 'variables', accessor: 'type', permanent: true }
+    ]);
+  });
+
+  it('drops changelog tabs from snapshot lookups', () => {
+    const snapshot = {
+      collections: [
+        {
+          pathname: '/collections/a',
+          activeTab: { accessor: 'type', value: 'changelog' },
+          tabs: [
+            { type: 'changelog', accessor: 'pathname', permanent: true },
+            { type: 'variables', accessor: 'type', permanent: true }
+          ]
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    expect(lookups.tabsByCollectionPath['/collections/a'].tabs).toEqual([
       { type: 'variables', accessor: 'type', permanent: true }
     ]);
   });
@@ -808,6 +838,41 @@ describe('hydrateCollectionTabs', () => {
 
     await hydrateCollectionTabs(
       { uid: 'collection-uid', pathname: '/collections/legacy' },
+      dispatch,
+      restoreTabs,
+      null,
+      null,
+      true
+    );
+
+    expect(restoreTabs).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tabs: [{ type: 'variables', accessor: 'type', permanent: true }],
+        activeTab: null
+      })
+    );
+  });
+
+  it('does not restore changelog tabs from direct tab snapshots', async () => {
+    global.window.ipcRenderer.invoke.mockResolvedValue({
+      tabs: [
+        { type: 'changelog', accessor: 'pathname', permanent: true },
+        { type: 'variables', accessor: 'type', permanent: true }
+      ],
+      activeTab: {
+        accessor: 'type',
+        value: 'changelog'
+      }
+    });
+
+    const dispatch = jest.fn();
+    const restoreTabs = jest.fn((payload) => ({
+      type: 'tabs/restoreTabs',
+      payload
+    }));
+
+    await hydrateCollectionTabs(
+      { uid: 'collection-uid', pathname: '/collections/a' },
       dispatch,
       restoreTabs,
       null,

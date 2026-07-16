@@ -352,7 +352,19 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
         hydrateRequestWithUuid(file.data, pathname);
         win.webContents.send('main:collection-tree-updated', 'addFile', file);
       } catch (error) {
-        console.error(error);
+        file.data = {
+          name: path.basename(pathname),
+          type: 'http-request'
+        };
+        file.error = {
+          message: error?.message
+        };
+        file.partial = true;
+        file.loading = false;
+        file.size = sizeInMB(fileStats?.size);
+        file.data.raw = content;
+        hydrateRequestWithUuid(file.data, pathname);
+        win.webContents.send('main:collection-tree-updated', 'addFile', file);
       } finally {
         watcher.markFileAsProcessed(win, collectionUid, pathname);
       }
@@ -561,17 +573,19 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
   const format = getCollectionFormat(collectionPath);
   if (hasRequestExtension(pathname, format)) {
-    try {
-      const file = {
-        meta: {
-          collectionUid,
-          pathname,
-          name: path.basename(pathname)
-        }
-      };
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname)
+      }
+    };
 
-      const content = fs.readFileSync(pathname, 'utf8');
-      const fileStats = fs.statSync(pathname);
+    let content;
+    let fileStats;
+    try {
+      content = fs.readFileSync(pathname, 'utf8');
+      fileStats = fs.statSync(pathname);
 
       if (fileStats.size >= MAX_FILE_SIZE && format === 'bru') {
         // redacted parse — do not write the redacted data through to the cache
@@ -586,7 +600,19 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
     } catch (err) {
-      console.error(err);
+      file.data = {
+        name: path.basename(pathname),
+        type: 'http-request'
+      };
+      file.error = {
+        message: err?.message
+      };
+      file.partial = true;
+      file.loading = false;
+      file.size = sizeInMB(fileStats?.size ?? 0);
+      file.data.raw = content ?? '';
+      hydrateRequestWithUuid(file.data, pathname);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
     }
   }
 };
@@ -674,15 +700,16 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
   }
 };
 
-const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher) => {
+const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher, workspacePathname = null) => {
   // Mark discovery as complete
   watcher.completeCollectionDiscovery(win, collectionUid);
 
-  const collectionSnapshotState = snapshotManager.getCollection(watchPath);
+  const collectionSnapshotState = snapshotManager.getCollection(watchPath, workspacePathname);
 
   const hydratePayload = collectionSnapshotState
     ? {
         pathname: watchPath,
+        workspacePathname: workspacePathname || '',
         environmentPath: collectionSnapshotState?.environment?.collection || '',
         selectedEnvironment: collectionSnapshotState?.selectedEnvironment || ''
       }
@@ -772,7 +799,7 @@ class CollectionWatcher {
     }
 
     // v2 already loaded the tree from cache; skip startup scan and stage live edits
-    const { ignoreInitial = false, fileIndex = null } = options;
+    const { ignoreInitial = false, fileIndex = null, workspacePathname = null } = options;
     if (fileIndex) {
       fileIndexByCollection.set(watchPath, fileIndex);
     }
@@ -829,7 +856,7 @@ class CollectionWatcher {
 
       let startedNewWatcher = false;
       watcher
-        .on('ready', () => onWatcherSetupComplete(win, watchPath, collectionUid, this))
+        .on('ready', () => onWatcherSetupComplete(win, watchPath, collectionUid, this, workspacePathname))
         .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread, this))
         .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
         .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
