@@ -4,6 +4,7 @@ import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import Modal from 'components/Modal';
+import Portal from 'components/Portal';
 import { newApp } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 
@@ -27,7 +28,7 @@ const NewApp = ({ collectionUid, item, onClose }) => {
     }),
     onSubmit: (values) => {
       const name = values.appName.trim();
-      dispatch(
+      return dispatch(
         newApp({
           appName: name,
           filename: sanitizeName(name),
@@ -43,43 +44,53 @@ const NewApp = ({ collectionUid, item, onClose }) => {
     }
   });
 
-  const onSubmit = () => formik.handleSubmit();
+  const onSubmit = () => {
+    if (formik.isSubmitting) return;
+    formik.handleSubmit();
+  };
 
   return (
-    <Modal
-      size="md"
-      title="New App"
-      confirmText="Create"
-      handleConfirm={onSubmit}
-      handleCancel={onClose}
-      disableEscapeKey={false}
-      disableCloseOnOutsideClick={false}
-    >
-      <form className="bruno-form" onSubmit={formik.handleSubmit} data-testid="new-app-form">
-        <label htmlFor="appName" className="block font-semibold">
-          Name
-        </label>
-        <input
-          id="appName"
-          type="text"
-          name="appName"
-          data-testid="new-app-name-input"
-          autoFocus
-          autoComplete="off"
-          spellCheck="false"
-          className="block textbox mt-2 w-full"
-          value={formik.values.appName}
-          onChange={formik.handleChange}
-        />
-        {formik.touched.appName && formik.errors.appName ? (
-          <div className="text-red-500 text-xs mt-2">{formik.errors.appName}</div>
-        ) : (
-          <div className="text-xs mt-2 opacity-70">
-            Creates a standalone app file in {item ? 'this folder' : `collection "${collection?.name || ''}"`}.
-          </div>
-        )}
-      </form>
-    </Modal>
+    <Portal>
+      <Modal
+        size="md"
+        title="New App"
+        confirmText="Create"
+        handleConfirm={onSubmit}
+        handleCancel={onClose}
+        disableEscapeKey={false}
+        disableCloseOnOutsideClick={false}
+        confirmDisabled={formik.isSubmitting}
+      >
+        <form
+          className="bruno-form"
+          onSubmit={(e) => e.preventDefault()}
+          data-testid="new-app-form"
+        >
+          <label htmlFor="appName" className="block font-semibold">
+            Name
+          </label>
+          <input
+            id="appName"
+            type="text"
+            name="appName"
+            data-testid="new-app-name-input"
+            autoFocus
+            autoComplete="off"
+            spellCheck="false"
+            className="block textbox mt-2 w-full"
+            value={formik.values.appName}
+            onChange={formik.handleChange}
+          />
+          {formik.touched.appName && formik.errors.appName ? (
+            <div className="text-red-500 text-xs mt-2">{formik.errors.appName}</div>
+          ) : (
+            <div className="text-xs mt-2 opacity-70">
+              Creates a standalone app file in {item ? 'this folder' : `collection "${collection?.name || ''}"`}.
+            </div>
+          )}
+        </form>
+      </Modal>
+    </Portal>
   );
 };
 
