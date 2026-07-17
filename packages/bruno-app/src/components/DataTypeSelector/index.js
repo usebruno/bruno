@@ -19,6 +19,13 @@ const TYPE_ICONS = {
   object: IconBraces
 };
 
+const TYPE_ICONS_SIZES = {
+  string: 16,
+  number: 18,
+  boolean: 18,
+  object: 18
+};
+
 const DataTypeSelector = ({ variable, onChange, compact = false }) => {
   const selectedType = variable.dataType || 'string';
   const coercedValue = parseValueByDataType(variable.value, selectedType);
@@ -53,7 +60,7 @@ const DataTypeSelector = ({ variable, onChange, compact = false }) => {
             aria-label={`Data type: ${selectedType}`}
           >
             {compact ? (
-              <TypeIcon className="type-icon" size={12} strokeWidth={2} />
+              <TypeIcon className="type-icon" size={TYPE_ICONS_SIZES[selectedType]} strokeWidth={2} />
             ) : (
               <span className="type-label">{selectedType}</span>
             )}
@@ -68,6 +75,7 @@ const DataTypeSelector = ({ variable, onChange, compact = false }) => {
               size={16}
             />
             <Tooltip
+              positionStrategy="fixed"
               className="tooltip-mod"
               id={`type-error-${variable.uid}`}
               content={typeError}
