@@ -1,4 +1,4 @@
-const { ensureNewlineAfterComment, cleanSuggestion, buildSystemPrompt, stripDisallowedApis, stripTypedPrefixOverlap, sanitizeSuggestion } = require('./autocomplete-prompts');
+const { ensureNewlineAfterComment, cleanSuggestion, buildSystemPrompt, stripDisallowedApis, stripTypedPrefixOverlap, duplicatesPrecedingWord, sanitizeSuggestion } = require('./autocomplete-prompts');
 
 describe('ensureNewlineAfterComment', () => {
   it('prepends a newline when code is suggested at the end of a comment line', () => {
@@ -159,6 +159,56 @@ describe('sanitizeSuggestion', () => {
       .toBe('');
   });
 
+  it('drops pre-request res when the user already typed res and the model continues it', () => {
+    expect(sanitizeSuggestion({ text: '.getStatus();', prefix: 'const status = res', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('drops pre-request res split across a partially typed prefix', () => {
+    expect(sanitizeSuggestion({ text: 's.getStatus();', prefix: 'const status = re', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('drops pre-request res when the accessor dot is already typed', () => {
+    expect(sanitizeSuggestion({ text: 'status;', prefix: 'const status = res.', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('drops pre-request res when the bracket accessor is already typed', () => {
+    expect(sanitizeSuggestion({ text: '\'body\'];', prefix: 'const x = res[', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('drops pre-request res when the call paren is already typed', () => {
+    expect(sanitizeSuggestion({ text: '\'json.path\')', prefix: 'const x = res(', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('does not drop when res is a property of another object', () => {
+    expect(sanitizeSuggestion({ text: 'status;', prefix: 'const x = payload.res.', scriptType: 'pre-request' }))
+      .toBe('status;');
+  });
+
+  it('does not drop when the trailing identifier merely ends in res', () => {
+    expect(sanitizeSuggestion({ text: '.getStatus();', prefix: 'const x = myres', scriptType: 'pre-request' }))
+      .toBe('.getStatus();');
+  });
+
+  it('keeps a continuation of res in post-response', () => {
+    expect(sanitizeSuggestion({ text: '.getStatus();', prefix: 'const status = res', scriptType: 'post-response' }))
+      .toBe('.getStatus();');
+  });
+
+  it('allows res member access when the user declared res in a pre-request script', () => {
+    const prefix = 'const res = await bru.sendRequest(cfg);\nres';
+    expect(sanitizeSuggestion({ text: '.data', prefix, scriptType: 'pre-request' })).toBe('.data');
+  });
+
+  it('allows res member access when res is a callback parameter in a pre-request script', () => {
+    const prefix = 'bru.sendRequest(cfg).then((res) => {\n  res';
+    expect(sanitizeSuggestion({ text: '.data', prefix, scriptType: 'pre-request' })).toBe('.data');
+  });
+
   it('keeps res in post-response while still trimming the typed overlap', () => {
     expect(sanitizeSuggestion({ text: 'const x = res.getBody();', prefix: 'con', scriptType: 'post-response' }))
       .toBe('st x = res.getBody();');
@@ -172,5 +222,80 @@ describe('sanitizeSuggestion', () => {
   it('prepends a newline when completing after a comment', () => {
     expect(sanitizeSuggestion({ text: 'const body = req.getBody();', prefix: '// get body', scriptType: 'pre-request' }))
       .toBe('\nconst body = req.getBody();');
+  });
+
+  it('trims a repeated full member expression', () => {
+    expect(sanitizeSuggestion({ text: 'bru.getVar()', prefix: 'bru.getV', scriptType: 'pre-request' }))
+      .toBe('ar()');
+  });
+
+  it('trims a repeated member expression mid-line', () => {
+    expect(sanitizeSuggestion({ text: 'bru.sendRequest()', prefix: 'await bru.send', scriptType: 'pre-request' }))
+      .toBe('Request()');
+  });
+
+  it('suppresses a completion that duplicates the preceding keyword', () => {
+    expect(sanitizeSuggestion({ text: 'onst employeesUrl = "x";', prefix: 'const c', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('suppresses a completion that mangles into the preceding keyword', () => {
+    expect(sanitizeSuggestion({ text: 'onst response = await sendRequest();', prefix: 'const rec', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('suppresses a full-keyword repeat after the same keyword', () => {
+    expect(sanitizeSuggestion({ text: 'const variable1', prefix: 'const con', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('does not suppress a legitimate word following a space-separated keyword', () => {
+    expect(sanitizeSuggestion({ text: 'ult;', prefix: 'return res', scriptType: 'post-response' }))
+      .toBe('ult;');
+  });
+
+  it('does not suppress member access on a repeated identifier across a dot', () => {
+    expect(sanitizeSuggestion({ text: '.pop()', prefix: 'list.push(x); list', scriptType: 'pre-request' }))
+      .toBe('.pop()');
+  });
+
+  it('completes a member access on the user variable cleanly', () => {
+    expect(sanitizeSuggestion({ text: '.join(\', \');', prefix: 'function join(str) {\n  return str', scriptType: 'pre-request' }))
+      .toBe('.join(\', \');');
+  });
+
+  it('is not frozen by a very large prefix', () => {
+    const prefix = 'a'.repeat(300000) + '!\nconst c';
+    const start = Date.now();
+    const out = sanitizeSuggestion({ text: 'onst x = 1;', prefix, scriptType: 'pre-request' });
+    expect(Date.now() - start).toBeLessThan(200);
+    expect(out).toBe('');
+  });
+});
+
+describe('duplicatesPrecedingWord', () => {
+  it('flags a completion that reproduces the space-separated preceding word', () => {
+    expect(duplicatesPrecedingWord('const c', 'onst employeesUrl')).toBe(true);
+  });
+
+  it('flags a completion that mangles into the preceding word', () => {
+    expect(duplicatesPrecedingWord('const rec', 'onst response')).toBe(true);
+  });
+
+  it('does not flag when there is no preceding word', () => {
+    expect(duplicatesPrecedingWord('con', 'st variable1')).toBe(false);
+  });
+
+  it('does not flag a distinct word after a keyword', () => {
+    expect(duplicatesPrecedingWord('return res', 'ult')).toBe(false);
+  });
+
+  it('does not flag a member-access continuation (empty word head)', () => {
+    expect(duplicatesPrecedingWord('list.push(x); list', '.pop()')).toBe(false);
+  });
+
+  it('handles empty prefix or suggestion', () => {
+    expect(duplicatesPrecedingWord('', 'const')).toBe(false);
+    expect(duplicatesPrecedingWord('const c', '')).toBe(false);
   });
 });
