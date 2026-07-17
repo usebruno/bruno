@@ -1,7 +1,7 @@
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
-import { test, expect, ElectronApplication, Page } from '../../playwright';
+import { test, expect, ElectronApplication, Page, waitForReadyPage, closeElectronApp } from '../../playwright';
 import { getCollectionTreeStructure, CollectionTreeItem, closeAllCollections } from '../utils/page';
 
 const formats = ['bru', 'yml'] as const;
@@ -114,8 +114,7 @@ for (const { label, fileCacheEnabled } of cacheModes) {
       test.beforeAll(async ({ launchElectronApp }) => {
         fixture = await buildSymlinkFixture(format, fileCacheEnabled);
         app = await launchElectronApp({ userDataPath: fixture.userDataPath });
-        page = await app.firstWindow();
-        await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+        page = await waitForReadyPage(app);
       });
 
       test.afterAll(async () => {
@@ -123,8 +122,7 @@ for (const { label, fileCacheEnabled } of cacheModes) {
           await closeAllCollections(page);
         }
         if (app) {
-          await app.context().close();
-          await app.close();
+          await closeElectronApp(app);
         }
         if (fixture) {
           await fixture.cleanup();
