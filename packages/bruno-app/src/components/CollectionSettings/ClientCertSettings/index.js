@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconCertificate, IconTrash, IconKey, IconLock, IconFile, IconX, IconUpload, IconPlus } from '@tabler/icons';
+import { IconCertificate, IconTrash, IconFile, IconX, IconUpload, IconPlus, IconEye, IconEyeOff } from '@tabler/icons';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import StyledWrapper from './StyledWrapper';
@@ -15,7 +15,16 @@ import { updateCollectionClientCertificates } from 'providers/ReduxStore/slices/
 import get from 'lodash/get';
 import Button from 'ui/Button';
 import ActionIcon from 'ui/ActionIcon';
-import StatusBadge from 'ui/StatusBadge';
+
+const CertField = ({ label, value, title, action }) => (
+  <div className="cert-field">
+    <span className="cert-field-label">{label}</span>
+    <span className="cert-field-value truncate" title={title}>
+      {value}
+    </span>
+    {action}
+  </div>
+);
 
 const CertFileInput = ({ label, name, value, inputRef, onSelect, onClear, error, touched, dangerColor }) => (
   <div className="mb-3 flex items-start">
@@ -61,6 +70,11 @@ const CertFileInput = ({ label, name, value, inputRef, onSelect, onClear, error,
 const ClientCertSettings = ({ collection }) => {
   const dispatch = useDispatch();
   const [showAddCertModal, setShowAddCertModal] = useState(false);
+  const [visiblePassphrases, setVisiblePassphrases] = useState([]);
+
+  const togglePassphraseVisibility = (index) => {
+    setVisiblePassphrases((prev) => (prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]));
+  };
 
   // Get client certs from draft if exists, otherwise from brunoConfig
   const clientCertConfig = collection.draft?.brunoConfig
@@ -226,46 +240,36 @@ const ClientCertSettings = ({ collection }) => {
           {clientCertConfig.map((clientCert, index) => (
             <li key={`client-cert-${index}`} className="cert-item">
               <IconCertificate className="cert-icon" size={20} strokeWidth={1.5} />
-              <div className="cert-details">
-                <div className="cert-domain">
-                  <span className="truncate" title={clientCert.domain}>
-                    {clientCert.domain}
-                  </span>
-                  <StatusBadge
-                    size="xs"
-                    // status={clientCert.type === 'pfx' ? 'info' : 'success'}
-                    status="info"
-                    variant="light"
-                    className="cert-type-tag"
-                  >
-                    {clientCert.type === 'pfx' ? 'PFX' : 'CERT'}
-                  </StatusBadge>
-                </div>
-                <div className="cert-files">
-                  {clientCert.type === 'pfx' ? (
-                    <span className="cert-file" title={clientCert.pfxFilePath}>
-                      <IconCertificate size={13} strokeWidth={1.5} />
-                      {path.basename(clientCert.pfxFilePath || '')}
-                    </span>
-                  ) : (
-                    <>
-                      <span className="cert-file" title={clientCert.certFilePath}>
-                        <IconCertificate size={13} strokeWidth={1.5} />
-                        {path.basename(clientCert.certFilePath || '')}
-                      </span>
-                      <span className="cert-file" title={clientCert.keyFilePath}>
-                        <IconKey size={13} strokeWidth={1.5} />
-                        {path.basename(clientCert.keyFilePath || '')}
-                      </span>
-                    </>
-                  )}
-                  {clientCert.passphrase ? (
-                    <span className="cert-file" title="Passphrase set">
-                      <IconLock size={13} strokeWidth={1.5} />
-                      Passphrase
-                    </span>
-                  ) : null}
-                </div>
+              <div className="cert-fields">
+                <CertField label="Host" value={clientCert.domain} title={clientCert.domain} />
+                {clientCert.type === 'pfx' ? (
+                  <CertField label="PFX File" value={path.basename(clientCert.pfxFilePath || '')} title={clientCert.pfxFilePath} />
+                ) : (
+                  <>
+                    <CertField label="Cert File" value={path.basename(clientCert.certFilePath || '')} title={clientCert.certFilePath} />
+                    <CertField label="Key File" value={path.basename(clientCert.keyFilePath || '')} title={clientCert.keyFilePath} />
+                  </>
+                )}
+                {clientCert.passphrase ? (
+                  <CertField
+                    label="Passphrase"
+                    value={visiblePassphrases.includes(index) ? clientCert.passphrase : '••••••••'}
+                    action={(
+                      <ActionIcon
+                        size="sm"
+                        className={visiblePassphrases.includes(index) ? 'stay-visible' : ''}
+                        label={visiblePassphrases.includes(index) ? 'Hide passphrase' : 'Show passphrase'}
+                        onClick={() => togglePassphraseVisibility(index)}
+                      >
+                        {visiblePassphrases.includes(index) ? (
+                          <IconEyeOff size={14} strokeWidth={1.5} />
+                        ) : (
+                          <IconEye size={14} strokeWidth={1.5} />
+                        )}
+                      </ActionIcon>
+                    )}
+                  />
+                ) : null}
               </div>
               <ActionIcon
                 label="Remove certificate"

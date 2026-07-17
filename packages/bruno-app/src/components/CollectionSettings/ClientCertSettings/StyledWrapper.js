@@ -55,7 +55,7 @@ const StyledWrapper = styled.div`
 
   .cert-item {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.65rem;
     padding: 0.6rem 0.75rem;
     transition: background-color ease-in-out 0.12s;
@@ -69,62 +69,48 @@ const StyledWrapper = styled.div`
       background-color: rgba(128, 128, 128, 0.07);
     }
 
-    /* keep the remove action hidden until the row is engaged */
+    /* keep row actions hidden until the row is engaged */
     .action-icon {
       opacity: 0;
       transition: opacity ease-in-out 0.12s;
     }
 
     &:hover .action-icon,
-    &:focus-within .action-icon {
+    &:focus-within .action-icon,
+    .action-icon.stay-visible {
       opacity: 1;
     }
 
     .cert-icon {
       flex-shrink: 0;
+      margin-top: 1px;
       color: ${(props) => props.theme.colors.text.yellow};
     }
 
-    .cert-details {
+    .cert-fields {
       display: flex;
       flex-direction: column;
-      gap: 0.1rem;
+      gap: 0.2rem;
       min-width: 0;
       flex: 1;
     }
 
-    .cert-domain {
+    .cert-field {
       display: flex;
-      align-items: baseline;
-      gap: 0.5rem;
-      font-weight: 500;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.8125rem;
       min-width: 0;
     }
 
-    .cert-type-tag {
+    .cert-field-label {
       flex-shrink: 0;
-      align-self: center;
+      width: 80px;
+      color: ${(props) => props.theme.colors.text.muted};
     }
 
-    .cert-files {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0.2rem 0.85rem;
-      font-size: 0.75rem;
-      color: ${(props) => props.theme.colors.text.muted};
-
-      .cert-file {
-        display: flex;
-        align-items: center;
-        gap: 0.3rem;
-        min-width: 0;
-
-        svg {
-          flex-shrink: 0;
-          opacity: 0.7;
-        }
-      }
+    .cert-field-value {
+      min-width: 0;
     }
   }
 
