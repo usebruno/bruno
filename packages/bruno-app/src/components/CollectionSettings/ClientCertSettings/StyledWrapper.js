@@ -13,11 +13,159 @@ const StyledWrapper = styled.div`
     width: 300px;
   }
 
-  .available-certificates {
-    background-color: ${(props) => props.theme.requestTabPanel.url.bg};
+  /* Empty state — same frame as the list so the surface stays put */
+  .cert-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.3rem;
+    max-width: 800px;
+    padding: 2rem 1rem;
+    border: 1px solid ${(props) => props.theme.border.border1};
+    border-radius: ${(props) => props.theme.border.radius.md};
+    color: ${(props) => props.theme.colors.text.muted};
 
-    button.remove-certificate {
-      color: ${(props) => props.theme.colors.text.danger};
+    svg {
+      opacity: 0.5;
+      margin-bottom: 0.2rem;
+    }
+
+    .cert-empty-title {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: ${(props) => props.theme.text};
+    }
+
+    .cert-empty-text {
+      font-size: 0.75rem;
+      max-width: 340px;
+    }
+  }
+
+  /* Certificate list — bordered container with internal dividers */
+  .cert-list {
+    display: flex;
+    flex-direction: column;
+    max-width: 800px;
+    border: 1px solid ${(props) => props.theme.border.border1};
+    border-radius: ${(props) => props.theme.border.radius.md};
+    overflow: hidden;
+  }
+
+  .cert-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.6rem 0.75rem;
+    transition: background-color ease-in-out 0.12s;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid ${(props) => props.theme.border.border1};
+    }
+
+    &:hover,
+    &:focus-within {
+      background-color: rgba(128, 128, 128, 0.07);
+    }
+
+    /* keep the remove action hidden until the row is engaged */
+    .action-icon {
+      opacity: 0;
+      transition: opacity ease-in-out 0.12s;
+    }
+
+    &:hover .action-icon,
+    &:focus-within .action-icon {
+      opacity: 1;
+    }
+
+    .cert-icon {
+      flex-shrink: 0;
+      color: ${(props) => props.theme.colors.text.yellow};
+    }
+
+    .cert-details {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .cert-domain {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      font-weight: 500;
+      min-width: 0;
+    }
+
+    .cert-type-tag {
+      flex-shrink: 0;
+      align-self: center;
+    }
+
+    .cert-files {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.2rem 0.85rem;
+      font-size: 0.75rem;
+      color: ${(props) => props.theme.colors.text.muted};
+
+      .cert-file {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        min-width: 0;
+
+        svg {
+          flex-shrink: 0;
+          opacity: 0.7;
+        }
+      }
+    }
+  }
+
+  /* Cert vs PFX segmented control */
+  .type-picker {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: ${(props) => props.theme.border.radius.base};
+    background-color: ${(props) => props.theme.background.surface1};
+
+    .type-option {
+      font-size: 0.8125rem;
+      line-height: 1;
+      padding: 0.3rem 0.75rem;
+      border-radius: ${(props) => props.theme.border.radius.sm};
+      color: ${(props) => props.theme.colors.text.muted};
+      transition: all ease-in-out 0.12s;
+
+      &:hover {
+        color: ${(props) => props.theme.text};
+      }
+
+      &.active {
+        color: ${(props) => props.theme.text};
+        background-color: ${(props) => props.theme.bg};
+        box-shadow: 0 0 0 1px ${(props) => props.theme.border.border1};
+      }
+    }
+  }
+
+  /* Selected file in the add form */
+  .file-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8125rem;
+    color: ${(props) => props.theme.text};
+
+    svg {
+      color: ${(props) => props.theme.colors.text.muted};
     }
   }
 
