@@ -1,61 +1,15 @@
-import { test, expect, Page } from '../../../playwright';
-import { closeAllCollections, openCollection } from '../../utils/page';
-import { buildCommonLocators } from '../../utils/page/locators';
+import { test, expect } from '../../../playwright';
+import {
+  closeAllCollections,
+  buildCommonLocators,
+  openExportToPostmanModal,
+  closeExportToPostmanModal,
+  exportCollectionToPostman
+} from '../../utils/page';
 import * as fs from 'fs';
 import * as nodePath from 'path';
 
 const COLLECTION_NAME = 'Export Scripts Collection';
-
-const openExportToPostmanModal = async (page: Page) => {
-  const locators = buildCommonLocators(page);
-
-  await openCollection(page, COLLECTION_NAME);
-
-  const collectionAction = locators.actions.collectionActions(COLLECTION_NAME);
-  await locators.sidebar.collection(COLLECTION_NAME).hover();
-  await expect(collectionAction).toBeVisible({ timeout: 2000 });
-  await collectionAction.click();
-  await locators.dropdown.item('Share').click();
-  await expect(locators.modal.title('Share Collection')).toBeVisible();
-
-  await page.getByTestId('export-format-postman').click();
-  await locators.modal.button('Proceed').click();
-  await expect(locators.modal.title('Export to Postman')).toBeVisible();
-};
-
-// export a collection via Share -> Export to Postman into outputDir and read the file
-const exportPostmanCollection = async (
-  page: Page,
-  outputDir: string,
-  { preserveScripts }: { preserveScripts: boolean }
-) => {
-  const locators = buildCommonLocators(page);
-
-  await openExportToPostmanModal(page);
-
-  await test.step('Set the export location', async () => {
-    await page.getByLabel('Location', { exact: true }).fill(outputDir);
-  });
-
-  await test.step('Configure preserve scripts', async () => {
-    if (preserveScripts) {
-      // 'Preserve scripts' lives under the modal footer's advanced options
-      await page.getByRole('button', { name: 'Options' }).click();
-      await page.getByTestId('show-advanced-options-toggle').click();
-      const checkbox = page.getByTestId('preserve-scripts-toggle');
-      await expect(checkbox).toBeVisible();
-      await checkbox.check();
-      await expect(checkbox).toBeChecked();
-    }
-  });
-
-  return await test.step('Export and read the written file', async () => {
-    await locators.modal.button('Export').click();
-    const filePath = nodePath.join(outputDir, `${COLLECTION_NAME}.json`);
-    await expect.poll(() => fs.existsSync(filePath), { timeout: 5000 }).toBe(true);
-    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-  });
-};
 
 const findLoginEvents = (exported: any) => {
   const login = exported.item.find((i: any) => i.name === 'Login');
@@ -66,13 +20,13 @@ const findLoginEvents = (exported: any) => {
 };
 
 test.describe('Export Postman Collection - Preserve scripts option', () => {
-  test.afterAll(async ({ pageWithUserData: page }) => {
+  test.afterEach(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
   test('should export scripts as is when preserve scripts is enabled', async ({ pageWithUserData: page, createTmpDir }) => {
     const outputDir = await createTmpDir('postman-export');
-    const exported = await exportPostmanCollection(page, outputDir, { preserveScripts: true });
+    const exported = await exportCollectionToPostman(page, COLLECTION_NAME, outputDir, { preserveScripts: true });
     const { prerequest, test: testEvent } = findLoginEvents(exported);
 
     expect(prerequest.script.exec.join('\n')).toContain('bru.setEnvVar(\'token\', \'abc\')');
@@ -83,7 +37,7 @@ test.describe('Export Postman Collection - Preserve scripts option', () => {
 
   test('should translate scripts to pm.* by default when preserve scripts is disabled', async ({ pageWithUserData: page, createTmpDir }) => {
     const outputDir = await createTmpDir('postman-export');
-    const exported = await exportPostmanCollection(page, outputDir, { preserveScripts: false });
+    const exported = await exportCollectionToPostman(page, COLLECTION_NAME, outputDir, { preserveScripts: false });
     const { prerequest } = findLoginEvents(exported);
 
     expect(prerequest.script.exec.join('\n')).toContain('pm.environment.set');
@@ -98,10 +52,10 @@ test.describe('Export Postman Collection - Preserve scripts option', () => {
     // Pre seed a conflicting file so the export hits the "already exists" path
     fs.writeFileSync(filePath, '{"stale":true}', 'utf-8');
 
-    await openExportToPostmanModal(page);
+    await openExportToPostmanModal(page, COLLECTION_NAME);
 
     await test.step('Exporting over an existing file prompts to replace', async () => {
-      await page.getByLabel('Location', { exact: true }).fill(outputDir);
+      await locators.export.locationInput().fill(outputDir);
       await locators.modal.button('Export').click();
       await expect(page.getByText('Name already exists in this location')).toBeVisible();
       await expect(locators.modal.button('Replace')).toBeVisible();
@@ -123,10 +77,10 @@ test.describe('Export Postman Collection - Preserve scripts option', () => {
   test('should require a name and location before exporting', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
 
-    await openExportToPostmanModal(page);
+    await openExportToPostmanModal(page, COLLECTION_NAME);
 
     await test.step('Clearing the name and location blocks export with validation errors', async () => {
-      await page.getByLabel('Name', { exact: true }).fill('');
+      await locators.export.nameInput().fill('');
       await locators.modal.button('Export').click();
 
       await expect(page.getByText('Name is required')).toBeVisible();
@@ -135,13 +89,24 @@ test.describe('Export Postman Collection - Preserve scripts option', () => {
       await expect(locators.modal.title('Export to Postman')).toBeVisible();
     });
 
-    // Close both modals to cleanup the app state for the next test
-    await test.step('Close the export and share modals', async () => {
-      await locators.export.postmanModal().getByTestId('modal-close-button').click();
-      await expect(locators.modal.title('Export to Postman')).toBeHidden();
-      await locators.modal.byTitle('Share Collection').getByTestId('modal-close-button').click();
-      await expect(locators.modal.title('Share Collection')).toBeHidden();
+    await closeExportToPostmanModal(page);
+  });
+
+  test('should block export when the name has invalid characters', async ({ pageWithUserData: page }) => {
+    const locators = buildCommonLocators(page);
+
+    await openExportToPostmanModal(page, COLLECTION_NAME);
+
+    await test.step('An invalid name shows a validation error and blocks export', async () => {
+      await locators.export.nameInput().fill('foo/bar');
+      await locators.modal.button('Export').click();
+
+      await expect(page.getByText('Special characters aren\'t allowed in the name')).toBeVisible();
+      // The modal stays open and the export did not proceed
+      await expect(locators.modal.title('Export to Postman')).toBeVisible();
     });
+
+    await closeExportToPostmanModal(page);
   });
 
   test('should let the user rename to avoid overwriting an existing file', async ({ pageWithUserData: page, createTmpDir }) => {
@@ -151,17 +116,17 @@ test.describe('Export Postman Collection - Preserve scripts option', () => {
     // Pre-seed a conflicting file for the default (collection) name
     fs.writeFileSync(nodePath.join(outputDir, `${COLLECTION_NAME}.json`), '{"stale":true}', 'utf-8');
 
-    await openExportToPostmanModal(page);
+    await openExportToPostmanModal(page, COLLECTION_NAME);
 
     await test.step('Exporting over an existing file prompts to replace', async () => {
-      await page.getByLabel('Location', { exact: true }).fill(outputDir);
+      await locators.export.locationInput().fill(outputDir);
       await locators.modal.button('Export').click();
       await expect(page.getByText('Name already exists in this location')).toBeVisible();
       await expect(locators.modal.button('Replace')).toBeVisible();
     });
 
     await test.step('Renaming clears the conflict and restores Export', async () => {
-      await page.getByLabel('Name', { exact: true }).fill('Renamed Export');
+      await locators.export.nameInput().fill('Renamed Export');
       await expect(page.getByText('Name already exists in this location')).toBeHidden();
       await expect(locators.modal.button('Export')).toBeVisible();
     });

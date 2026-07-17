@@ -2555,7 +2555,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error('Export location does not exist');
       }
 
-      const filePath = path.join(dirPath, fileName);
+      // ensure the resolved path is inside the export directory
+      const resolvedDir = path.resolve(dirPath);
+      const filePath = path.resolve(resolvedDir, fileName);
+      if (!filePath.startsWith(resolvedDir + path.sep) && filePath !== resolvedDir) {
+        throw new Error('Invalid file name');
+      }
 
       if (!overwrite && fs.existsSync(filePath)) {
         throw new Error(`path: ${filePath} already exists`);

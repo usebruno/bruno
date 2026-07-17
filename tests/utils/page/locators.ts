@@ -301,7 +301,13 @@ export const buildCommonLocators = (page: Page) => ({
     })()
   },
   export: {
-    postmanModal: () => page.getByTestId('export-to-postman-modal')
+    postmanModal: () => page.getByTestId('export-to-postman-modal'),
+    postmanFormatCard: () => page.getByTestId('export-format-postman'),
+    nameInput: () => page.getByLabel('Name', { exact: true }),
+    locationInput: () => page.getByLabel('Location', { exact: true }),
+    optionsButton: () => page.getByRole('button', { name: 'Options' }),
+    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle')
   },
   /**
    * Build generic table locators for any table with a testId

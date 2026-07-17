@@ -373,7 +373,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sour
                   <div>
                     <span className="checkbox-option-label">Preserve scripts</span>
                     <p className="checkbox-option-description">
-                      Imports pm.* scripts as-is, without translating them to bru.*.
+                      Import Postman scripts without translating them.
                     </p>
                   </div>
                 </label>

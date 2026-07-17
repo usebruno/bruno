@@ -5,7 +5,7 @@ import * as Yup from 'yup';
 import { cloneDeep } from 'lodash';
 import { IconCaretDown } from '@tabler/icons';
 import toast from 'react-hot-toast';
-import { sanitizeName } from 'utils/common/regex';
+import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import Dropdown from 'components/Dropdown';
@@ -20,6 +20,7 @@ const ExportToPostman = ({ onClose, onExported, collection }) => {
   const inputRef = useRef();
   const [preserveScripts, setPreserveScripts] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const optionsDropdownTippyRef = useRef();
   const onOptionsDropdownCreate = (ref) => (optionsDropdownTippyRef.current = ref);
 
@@ -31,8 +32,13 @@ const ExportToPostman = ({ onClose, onExported, collection }) => {
     },
     validationSchema: Yup.object({
       fileName: Yup.string()
+        .trim()
         .min(1, 'must be at least 1 character')
         .max(255, 'must be 255 characters or less')
+        .test('is-valid-name', function (value) {
+          const isValid = validateName(value);
+          return isValid ? true : this.createError({ message: validateNameError(value) });
+        })
         .required('Name is required'),
       location: Yup.string().min(1, 'Location is required').required('Location is required')
     }),
@@ -43,9 +49,12 @@ const ExportToPostman = ({ onClose, onExported, collection }) => {
   const fileExists = formik.errors.fileName === FILE_EXISTS_ERROR;
 
   async function handleExport(values, overwrite) {
+    if (isExporting) return;
+
+    setIsExporting(true);
     try {
       const content = exportPostmanCollection(cloneDeep(collection), { preserveScripts });
-      await dispatch(exportCollectionToPostman(values.location, `${values.fileName}.json`, content, overwrite));
+      await dispatch(exportCollectionToPostman(values.location, `${values.fileName.trim()}.json`, content, overwrite));
       toast.success('Collection exported successfully');
       onExported();
     } catch (error) {
@@ -57,6 +66,8 @@ const ExportToPostman = ({ onClose, onExported, collection }) => {
         return;
       }
       toast.error('Failed to export collection: ' + message);
+    } finally {
+      setIsExporting(false);
     }
   }
 
@@ -102,6 +113,7 @@ const ExportToPostman = ({ onClose, onExported, collection }) => {
           dataTestId="export-to-postman-modal"
           confirmText={fileExists ? 'Replace' : 'Export'}
           confirmButtonColor={fileExists ? 'danger' : 'primary'}
+          confirmDisabled={isExporting}
           handleConfirm={() => (fileExists ? handleReplace() : formik.handleSubmit())}
           handleCancel={onClose}
           footerLeft={(
@@ -182,7 +194,7 @@ const ExportToPostman = ({ onClose, onExported, collection }) => {
                 <div>
                   <span className="preserve-scripts-label">Preserve scripts</span>
                   <p className="preserve-scripts-description">
-                    Exports bru.* scripts as-is, without translating them to pm.*.
+                    Export Bruno scripts without translating them.
                   </p>
                 </div>
               </label>
