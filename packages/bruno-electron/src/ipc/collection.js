@@ -2695,14 +2695,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       throw new Error('Collection is already in YML format');
     }
 
-    // Stop the watcher during migration to avoid triggering events
-    if (watcher) {
-      watcher.removeWatcher(collectionPathname, mainWindow, collectionUid);
-    }
-
     const brunoJsonPath = path.join(collectionPathname, 'bruno.json');
     const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
     const brunoConfig = JSON.parse(brunoJsonContent);
+
+    // Stop the watcher during migration to avoid triggering events.
+    // Done only after bruno.json is confirmed readable, so a bad config never leaves the watcher detached.
+    if (watcher) {
+      watcher.removeWatcher(collectionPathname, mainWindow, collectionUid);
+    }
 
     const restoreWatcherOnFailure = async () => {
       try {
@@ -2824,6 +2825,18 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(`Migration aborted — ${parseErrors.length} file(s) failed to parse:\n${parseErrors.join('\n')}`);
       }
 
+      // Reject collisions with pre-existing yml files before writing anything — otherwise a
+      // later rollback would delete files that predate this migration, not ones it created.
+      const collisions = conversionPlan
+        .map(({ ymlPath }) => ymlPath)
+        .filter((ymlPath) => fs.existsSync(ymlPath));
+      if (fs.existsSync(ocYmlPath)) {
+        collisions.push(ocYmlPath);
+      }
+      if (collisions.length > 0) {
+        throw new Error(`Migration aborted — target yml file(s) already exist:\n${collisions.join('\n')}`);
+      }
+
       // Phase 2: write all converted yml files (except opencollection.yml) — no disk reads
       for (const { ymlPath, ymlContent, bruPath, addToTabMap, isRaw } of conversionPlan) {
         await writeFile(ymlPath, ymlContent);
@@ -2888,9 +2901,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         });
       }
 
-      const { size, filesCount } = await getCollectionStats(collectionPathname);
-      ymlBrunoConfig.size = size;
-      ymlBrunoConfig.filesCount = filesCount;
+      // From here on, bru sources are already gone (or being deleted), so no failure below this
+      // point should call rollback(), since it can no longer restore deleted bru files and would
+      // instead just destroy the newly migrated yml output. Report and continue instead.
+      try {
+        const { size, filesCount } = await getCollectionStats(collectionPathname);
+        ymlBrunoConfig.size = size;
+        ymlBrunoConfig.filesCount = filesCount;
+      } catch (statsError) {
+        console.error('Failed to compute collection stats after migration:', statsError);
+      }
 
       try {
         const remounted = await remountCollectionV2({ collectionUid, brunoConfig: ymlBrunoConfig });
