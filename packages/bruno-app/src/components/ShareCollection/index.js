@@ -65,10 +65,6 @@ const ShareCollection = ({ onClose, collectionUid }) => {
 
   const handlePostmanModalClose = () => {
     setShowPostmanExportModal(false);
-  };
-
-  const handlePostmanExported = () => {
-    setShowPostmanExportModal(false);
     onClose();
   };
 
@@ -99,6 +95,16 @@ const ShareCollection = ({ onClose, collectionUid }) => {
   };
 
   const isDisabled = isCollectionLoading || isExporting;
+
+  if (showPostmanExportModal) {
+    return (
+      <ExportToPostman
+        collection={collection}
+        onClose={handlePostmanModalClose}
+        onExported={handlePostmanModalClose}
+      />
+    );
+  }
 
   return (
     <>
@@ -207,14 +213,6 @@ const ShareCollection = ({ onClose, collectionUid }) => {
           </div>
         </StyledWrapper>
       </Modal>
-
-      {showPostmanExportModal && (
-        <ExportToPostman
-          collection={collection}
-          onClose={handlePostmanModalClose}
-          onExported={handlePostmanExported}
-        />
-      )}
     </>
   );
 };

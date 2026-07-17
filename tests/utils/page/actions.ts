@@ -1,6 +1,7 @@
 import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import * as path from 'path';
+import * as fs from 'fs';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
@@ -2173,6 +2174,68 @@ const generateCollectionDocs = async (
   });
 };
 
+const openExportToPostmanModal = async (page: Page, collectionName: string) => {
+  await test.step(`Open Export to Postman for "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    await openCollection(page, collectionName);
+
+    const collectionAction = locators.actions.collectionActions(collectionName);
+    await locators.sidebar.collection(collectionName).hover();
+    await expect(collectionAction).toBeVisible({ timeout: 2000 });
+    await collectionAction.click();
+    await locators.dropdown.item('Share').click();
+    await expect(locators.modal.title('Share Collection')).toBeVisible();
+
+    await locators.export.postmanFormatCard().click();
+    await locators.modal.button('Proceed').click();
+    await expect(locators.modal.title('Export to Postman')).toBeVisible();
+  });
+};
+
+const closeExportToPostmanModal = async (page: Page) => {
+  await test.step('Close the export modal', async () => {
+    const locators = buildCommonLocators(page);
+
+    await locators.export.postmanModal().getByTestId('modal-close-button').click();
+    await expect(locators.modal.title('Export to Postman')).toBeHidden();
+    await expect(locators.modal.title('Share Collection')).toBeHidden();
+  });
+};
+
+const exportCollectionToPostman = async (
+  page: Page,
+  collectionName: string,
+  outputDir: string,
+  { preserveScripts = false }: { preserveScripts?: boolean } = {}
+) => {
+  const locators = buildCommonLocators(page);
+
+  await openExportToPostmanModal(page, collectionName);
+
+  await test.step('Set the export location', async () => {
+    await locators.export.locationInput().fill(outputDir);
+  });
+
+  await test.step('Configure preserve scripts', async () => {
+    if (preserveScripts) {
+      await locators.export.optionsButton().click();
+      await locators.export.advancedOptionsToggle().click();
+      const checkbox = locators.export.preserveScriptsToggle();
+      await expect(checkbox).toBeVisible();
+      await checkbox.check();
+      await expect(checkbox).toBeChecked();
+    }
+  });
+
+  return await test.step('Export and read the written file', async () => {
+    await locators.modal.button('Export').click();
+    const filePath = path.join(outputDir, `${collectionName}.json`);
+    await expect.poll(() => fs.existsSync(filePath), { timeout: 5000 }).toBe(true);
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  });
+};
+
 /**
  * Toggle the "Enable App" request setting idempotently (Settings tab).
  * Enabling exposes the App tab and the Request/App/File view-mode toggle.
@@ -2582,6 +2645,9 @@ export {
   openRequestInFolder,
   setUrlEncoding,
   generateCollectionDocs,
+  openExportToPostmanModal,
+  closeExportToPostmanModal,
+  exportCollectionToPostman,
   openFolderSettings,
   setTableRowDescriptionValue,
   setAppCode,
