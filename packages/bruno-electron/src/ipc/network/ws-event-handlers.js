@@ -89,6 +89,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
     folderVariables: request.folderVariables,
     requestVariables: request.requestVariables,
     globalEnvironmentVariables: request.globalEnvironmentVariables,
+    globalEnvironmentName: request.globalEnvironmentName,
     oauth2CredentialVariables: request.oauth2CredentialVariables
   };
 

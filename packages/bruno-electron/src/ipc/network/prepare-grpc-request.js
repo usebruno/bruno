@@ -165,6 +165,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     folderVariables: request.folderVariables,
     requestVariables: request.requestVariables,
     globalEnvironmentVariables: request.globalEnvironmentVariables,
+    globalEnvironmentName: request.globalEnvironmentName,
     oauth2CredentialVariables: request.oauth2CredentialVariables
   };
 
