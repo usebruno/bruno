@@ -692,36 +692,6 @@ describe('hydrateCollectionTabs', () => {
     delete global.window;
   });
 
-  it('does not restore tabs when snapshot has only a stale activeTab', async () => {
-    const snapshot = {
-      collections: [
-        {
-          pathname: '/collections/legacy',
-          selectedEnvironment: 'local',
-          tabs: [],
-          activeTab: {
-            accessor: 'pathname',
-            value: '/collections/legacy/request.bru'
-          }
-        }
-      ]
-    };
-    const lookups = hydrateSnapshotLookups(snapshot);
-    const dispatch = jest.fn();
-    const restoreTabs = jest.fn();
-
-    await hydrateCollectionTabs(
-      { uid: 'collection-uid', pathname: '/collections/legacy' },
-      dispatch,
-      restoreTabs,
-      lookups,
-      null,
-      true
-    );
-
-    expect(dispatch).not.toHaveBeenCalled();
-  });
-
   it('does not restore tabs when snapshot has no tab state', async () => {
     const snapshot = {
       collections: [

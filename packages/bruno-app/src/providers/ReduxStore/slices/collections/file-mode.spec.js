@@ -3,7 +3,6 @@ import reducer, {
   toggleCollectionFileMode,
   updateFileContent,
   collectionChangeFileEvent,
-  collectionUnlinkDirectoryEvent,
   resetCollectionForReopen
 } from 'providers/ReduxStore/slices/collections';
 
@@ -60,40 +59,6 @@ describe('createCollection', () => {
 
     expect(state.collections).toHaveLength(1);
     expect(state.collections[0].fileMode).toBe(false);
-  });
-});
-
-describe('collectionUnlinkDirectoryEvent — collection root removed', () => {
-  test('clears items/environments when the collection root itself is deleted', () => {
-    const state = reducer(
-      makeInitialState(),
-      collectionUnlinkDirectoryEvent({
-        directory: { meta: { collectionUid: COLLECTION_UID, pathname: '/coll', name: 'coll', isCollectionRoot: true } }
-      })
-    );
-
-    expect(state.collections[0].items).toEqual([]);
-  });
-
-  test('still removes a plain subfolder by pathname (not the root case)', () => {
-    let state = makeInitialState();
-    state.collections[0].items.push({
-      uid: 'folder-1',
-      type: 'folder',
-      name: 'sub',
-      pathname: '/coll/sub',
-      items: []
-    });
-
-    state = reducer(
-      state,
-      collectionUnlinkDirectoryEvent({
-        directory: { meta: { collectionUid: COLLECTION_UID, pathname: '/coll/sub', name: 'sub' } }
-      })
-    );
-
-    expect(state.collections[0].items.find((i) => i.uid === 'folder-1')).toBeUndefined();
-    expect(state.collections[0].items.find((i) => i.uid === ITEM_UID)).toBeDefined();
   });
 });
 

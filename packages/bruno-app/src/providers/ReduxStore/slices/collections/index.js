@@ -3063,21 +3063,13 @@ export const collectionsSlice = createSlice({
     collectionUnlinkDirectoryEvent: (state, action) => {
       const { directory } = action.payload;
       const collection = findCollectionByUid(state.collections, directory.meta.collectionUid);
-      if (!collection) return;
 
-      // The collection root folder itself was deleted on disk. It's not a child item, so the
-      // pathname lookup below would never match it — clear the whole tree explicitly instead,
-      // otherwise these items linger and collide with whatever gets added back at this path.
-      if (directory.meta.isCollectionRoot) {
-        collection.items = [];
-        collection.environments = [];
-        return;
-      }
+      if (collection) {
+        const item = findItemInCollectionByPathname(collection, directory.meta.pathname);
 
-      const item = findItemInCollectionByPathname(collection, directory.meta.pathname);
-
-      if (item) {
-        deleteItemInCollectionByPathname(directory.meta.pathname, collection);
+        if (item) {
+          deleteItemInCollectionByPathname(directory.meta.pathname, collection);
+        }
       }
     },
     collectionAddEnvFileEvent: (state, action) => {

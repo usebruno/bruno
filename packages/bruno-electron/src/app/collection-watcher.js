@@ -661,18 +661,6 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
 
 const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
   try {
-    // The collection root itself was removed (e.g. the whole folder was deleted on disk
-    // while the collection stayed open/watched in the app). Tell the renderer to drop the
-    // entire stale item tree instead of bailing out below, otherwise nothing is ever told
-    // these items are gone, and files later added back at the same path (even a fresh
-    // directory) show up as duplicates alongside the never cleared stale ones.
-    if (path.normalize(pathname) === path.normalize(collectionPath) && !fs.existsSync(collectionPath)) {
-      win.webContents.send('main:collection-tree-updated', 'unlinkDir', {
-        meta: { collectionUid, pathname, name: path.basename(pathname), isCollectionRoot: true }
-      });
-      return;
-    }
-
     if (!fs.existsSync(collectionPath)) {
       return;
     }

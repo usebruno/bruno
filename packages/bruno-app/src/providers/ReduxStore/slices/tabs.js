@@ -481,25 +481,20 @@ export const tabsSlice = createSlice({
         (t) => t.uid === state.activeTabUid && t.collectionUid === collectionUid
       );
 
-      // Drop request tabs remapped by bru↔yml migrate that no longer match collection format
-      const staleExt = collection.format === 'yml' ? /\.bru$/i : /\.ya?ml$/i;
-      const tabsToRestore = (snapshotTabs || []).filter(
-        (tab) => !(typeof tab.pathname === 'string' && staleExt.test(tab.pathname))
-      );
-      const existingCollectionTabs = state.tabs.filter((t) => t.collectionUid === collectionUid);
-
-      // all snapshot tabs filtered as stale must not wipe tabs already open
-      if ((snapshotTabs || []).length > 0 && !tabsToRestore.length && existingCollectionTabs.length) {
-        return;
-      }
-
       state.tabs = state.tabs.filter((t) => t.collectionUid !== collectionUid);
 
       if (activeTabWasInCollection) {
         state.activeTabUid = null;
       }
 
-      tabsToRestore.forEach((snapshotTab) => {
+      // Drop request tabs remapped by bru↔yml migrate that no longer match collection format
+      const staleExt = collection.format === 'yml' ? /\.bru$/i : /\.ya?ml$/i;
+
+      (snapshotTabs || []).forEach((snapshotTab) => {
+        if (typeof snapshotTab.pathname === 'string' && staleExt.test(snapshotTab.pathname)) {
+          return;
+        }
+
         const tab = deserializeTab(snapshotTab, collection);
         state.tabs.push(tab);
 

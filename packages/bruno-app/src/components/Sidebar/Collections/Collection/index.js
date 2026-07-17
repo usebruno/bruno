@@ -116,15 +116,13 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const ensureCollectionIsMounted = () => {
-    if (collection.mountStatus === 'mounted' || collection.mountStatus === 'mounting') {
+    if (collection.mountStatus === 'mounted') {
       return;
     }
     dispatch(mountCollection({
       collectionUid: collection.uid,
       collectionPathname: collection.pathname,
-      brunoConfig: collection.brunoConfig,
-      skipTabRestore: true,
-      workspacePathname: activeWorkspace?.pathname || null
+      brunoConfig: collection.brunoConfig
     }));
   };
 
@@ -140,6 +138,8 @@ const Collection = ({ collection, searchText }) => {
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
     setTimeout(scrollToTheActiveTab, 50);
+
+    ensureCollectionIsMounted();
 
     if (collection.collapsed) {
       dispatch(toggleCollection(collection.uid));
@@ -160,8 +160,6 @@ const Collection = ({ collection, searchText }) => {
         })
       );
     }
-
-    ensureCollectionIsMounted();
   };
 
   const handleDoubleClick = (_event) => {

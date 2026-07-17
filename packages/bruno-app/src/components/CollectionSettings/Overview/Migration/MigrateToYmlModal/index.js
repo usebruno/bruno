@@ -85,7 +85,7 @@ const MigrateToYmlModal = ({ collection, onClose }) => {
                   color="secondary"
                   variant="outline"
                   onClick={handleExportBackup}
-                  disabled={isExporting}
+                  disabled={isExporting || isMigrating}
                 >
                   {isExporting ? 'Exporting…' : 'Export Collection'}
                 </Button>
