@@ -85,9 +85,10 @@ const EnvVarValueCell = ({
       ) : null}
       editor={(
         <div
-          className="relative flex flex-col"
+          className="flex items-center"
           onFocus={() => handleRowFocus(variable.uid)}
         >
+          {renderExtraValueContent && renderExtraValueContent(variable)}
           <MultiLineEditor
             ref={editorRef}
             theme={storedTheme}
@@ -120,7 +121,6 @@ const EnvVarValueCell = ({
             }}
             onSave={handleSave}
           />
-          {renderExtraValueContent && renderExtraValueContent(variable)}
         </div>
       )}
       renderTypeSelector={!isLastEmptyRow
