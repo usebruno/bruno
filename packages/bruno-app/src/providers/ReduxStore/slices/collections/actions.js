@@ -66,12 +66,11 @@ import {
   _clearScriptCollectionBaselines,
   addTransientDirectory,
   addSaveTransientRequestModal,
-  updatePathParam,
-  migrateCollectionToYmlInPlace
+  updatePathParam
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab, migrateCollectionTabsToYml } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
@@ -3548,21 +3547,22 @@ export const reopenClosedTab = ({ collectionUid } = {}) => async (dispatch) => {
 
 export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) => {
   const { ipcRenderer } = window;
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection) {
+    return Promise.reject(new Error('Collection not found'));
+  }
+
+  // Migrated files get new paths, so there's nothing meaningful to restore tabs to — close them
+  // up front and let the collection reload fresh from disk once migration settles (success,
+  // failure, or cancel all reload the same way on the main-process side).
+  dispatch(closeAllCollectionTabs({ collectionUid }));
+  dispatch(resetCollectionForReopen({ collectionUid, brunoConfig: collection.brunoConfig }));
 
   return new Promise((resolve, reject) => {
-    const state = getState();
-    const collection = findCollectionByUid(state.collections.collections, collectionUid);
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
-
-    const collectionPathname = collection.pathname;
     ipcRenderer
-      .invoke('renderer:migrate-collection-to-yml', collectionPathname, collectionUid)
-      .then(({ brunoConfig: updatedBrunoConfig, rawContentMap }) => {
-        dispatch(migrateCollectionToYmlInPlace({ collectionUid, brunoConfig: updatedBrunoConfig, rawContentMap }));
-        dispatch(migrateCollectionTabsToYml({ collectionUid }));
-
+      .invoke('renderer:migrate-collection-to-yml', collection.pathname, collectionUid)
+      .then(() => {
         dispatch(addTab({
           uid: collectionUid,
           collectionUid: collectionUid,
@@ -3578,4 +3578,9 @@ export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) =>
         reject(err);
       });
   });
+};
+
+export const cancelMigrateCollectionToYml = (collectionUid) => () => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:cancel-migrate-collection-to-yml', collectionUid);
 };

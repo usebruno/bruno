@@ -311,53 +311,11 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.brunoConfig = brunoConfig;
+        // opencollection.yml carries the config once a collection is migrated to yml — derive
+        // format from its presence rather than trusting whatever format was last known, so a
+        // migration's post-reload config refresh flips this correctly without a dedicated event.
+        collection.format = brunoConfig?.opencollection ? 'yml' : brunoConfig?.format || collection.format || 'bru';
       }
-    },
-    migrateCollectionToYmlInPlace: (state, action) => {
-      const { collectionUid, brunoConfig, rawContentMap } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      if (!collection) {
-        return;
-      }
-
-      if (brunoConfig) {
-        collection.brunoConfig = brunoConfig;
-        if (collection.draft?.brunoConfig) {
-          collection.draft.brunoConfig = brunoConfig;
-        }
-      }
-      collection.format = 'yml';
-
-      const rewriteItemPaths = (items) => {
-        (items || []).forEach((item) => {
-          if (item.isTransient) {
-            return;
-          }
-          if (typeof item.pathname === 'string') {
-            item.pathname = item.pathname.replace(/\.bru$/, '.yml');
-          }
-          if (typeof item.filename === 'string') {
-            item.filename = item.filename.replace(/\.bru$/, '.yml');
-          }
-          // The path rewrite above only updates the pointer — item.raw still holds the
-          // pre-migration bru-formatted text unless we overwrite it with the freshly
-          // written yml content the main process already generated for this file.
-          if (rawContentMap && Object.prototype.hasOwnProperty.call(rawContentMap, item.pathname)) {
-            item.raw = rawContentMap[item.pathname];
-            item.draft = null;
-          }
-          if (item.items && item.items.length) {
-            rewriteItemPaths(item.items);
-          }
-        });
-      };
-      rewriteItemPaths(collection.items);
-
-      (collection.environments || []).forEach((environment) => {
-        if (typeof environment.pathname === 'string') {
-          environment.pathname = environment.pathname.replace(/\.bru$/, '.yml');
-        }
-      });
     },
     renameCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -3989,7 +3947,6 @@ export const {
   setCollectionSecurityConfig,
   updateCollectionVersion,
   brunoConfigUpdateEvent,
-  migrateCollectionToYmlInPlace,
   renameCollection,
   removeCollection,
   sortCollections,
