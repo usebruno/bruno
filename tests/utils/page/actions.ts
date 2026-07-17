@@ -2203,6 +2203,15 @@ const closeExportToPostmanModal = async (page: Page) => {
   });
 };
 
+// Dismiss an open modal if one is present
+const dismissModalIfOpen = async (page: Page) => {
+  const { modal } = buildCommonLocators(page);
+  if (await modal.closeButton().isVisible()) {
+    await modal.closeButton().click({ force: true });
+    await expect(modal.card()).toBeHidden();
+  }
+};
+
 const exportCollectionToPostman = async (
   page: Page,
   collectionName: string,
@@ -2647,6 +2656,7 @@ export {
   generateCollectionDocs,
   openExportToPostmanModal,
   closeExportToPostmanModal,
+  dismissModalIfOpen,
   exportCollectionToPostman,
   openFolderSettings,
   setTableRowDescriptionValue,

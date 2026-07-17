@@ -4,6 +4,7 @@ import {
   buildCommonLocators,
   openExportToPostmanModal,
   closeExportToPostmanModal,
+  dismissModalIfOpen,
   exportCollectionToPostman
 } from '../../utils/page';
 import * as fs from 'fs';
@@ -21,6 +22,10 @@ const findLoginEvents = (exported: any) => {
 
 test.describe('Export Postman Collection - Preserve scripts option', () => {
   test.afterEach(async ({ pageWithUserData: page }) => {
+    await dismissModalIfOpen(page);
+  });
+
+  test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 

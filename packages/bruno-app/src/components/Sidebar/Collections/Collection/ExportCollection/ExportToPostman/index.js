@@ -36,6 +36,7 @@ const ExportToPostman = ({ onClose, onExported, collection }) => {
         .min(1, 'must be at least 1 character')
         .max(255, 'must be 255 characters or less')
         .test('is-valid-name', function (value) {
+          if (!value) return true;
           const isValid = validateName(value);
           return isValid ? true : this.createError({ message: validateNameError(value) });
         })
