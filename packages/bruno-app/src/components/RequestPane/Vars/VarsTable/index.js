@@ -80,7 +80,8 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, hasDraf
   const columns = [
     {
       key: 'name',
-      name: <ColumnSortHeader label="Name" onCycle={cycleSortMode} SortIcon={SortIcon} sortLabel={sortLabel} testId={`column-sort-toggle-request-${varType}`} />,
+      name: <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} testId={`column-sort-toggle-request-${varType}`} />,
+      onHeaderClick: cycleSortMode,
       isKeyField: true,
       placeholder: 'Name',
       width: '20%'

@@ -73,7 +73,8 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0, hasDr
   const columns = [
     {
       key: 'name',
-      name: <ColumnSortHeader label="Name" onCycle={cycleSortMode} SortIcon={SortIcon} sortLabel={sortLabel} testId={`column-sort-toggle-folder-${varType}`} />,
+      name: <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} testId={`column-sort-toggle-folder-${varType}`} />,
+      onHeaderClick: cycleSortMode,
       isKeyField: true,
       placeholder: 'Name',
       width: '25%'
