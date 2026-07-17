@@ -283,6 +283,8 @@ export const buildCommonLocators = (page: Page) => ({
     locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
+    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
     bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
     bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),

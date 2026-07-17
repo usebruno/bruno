@@ -514,8 +514,8 @@ const importCollection = async (
     // Enable 'Preserve scripts' option via the Advanced Options toggle
     if (options.preserveScripts) {
       await locationModal.getByRole('button', { name: 'Options' }).click();
-      await page.getByTestId('show-advanced-options-toggle').click();
-      const preserveScriptsCheckbox = page.getByTestId('preserve-scripts-toggle');
+      await locators.import.advancedOptionsToggle().click();
+      const preserveScriptsCheckbox = locators.import.preserveScriptsToggle();
       await preserveScriptsCheckbox.check();
       await expect(preserveScriptsCheckbox).toBeChecked();
     }

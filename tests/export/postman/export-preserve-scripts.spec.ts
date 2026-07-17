@@ -29,10 +29,8 @@ test.describe('Export Postman Collection - Preserve scripts option', () => {
     const exported = await exportCollectionToPostman(page, COLLECTION_NAME, outputDir, { preserveScripts: true });
     const { prerequest, test: testEvent } = findLoginEvents(exported);
 
-    expect(prerequest.script.exec.join('\n')).toContain('bru.setEnvVar(\'token\', \'abc\')');
-    expect(prerequest.script.exec.join('\n')).not.toContain('pm.');
-    expect(testEvent.script.exec.join('\n')).toContain('bru.setVar(\'userId\', \'42\')');
-    expect(testEvent.script.exec.join('\n')).not.toContain('pm.');
+    expect(prerequest.script.exec).toEqual(['bru.setEnvVar(\'token\', \'abc\');']);
+    expect(testEvent.script.exec).toEqual(['bru.setVar(\'userId\', \'42\');']);
   });
 
   test('should translate scripts to pm.* by default when preserve scripts is disabled', async ({ pageWithUserData: page, createTmpDir }) => {
