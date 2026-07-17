@@ -370,6 +370,8 @@ const EditableTable = ({
         <td
           key={column.key}
           style={{ width: getColumnWidth(column) }}
+          className={column.onHeaderClick ? 'sortable-header' : ''}
+          onClick={column.onHeaderClick}
         >
           <span className="column-name">{column.name}</span>
           {colIndex < columns.length - 1 && (

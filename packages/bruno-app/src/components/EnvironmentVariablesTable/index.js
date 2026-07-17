@@ -892,9 +892,13 @@ const EnvironmentVariablesTable = ({
           fixedHeaderContent={() => (
             <tr>
               <td className="text-center"></td>
-              <td style={{ width: columnWidths.name }}>
+              <td
+                style={{ width: columnWidths.name }}
+                className={!isSecretTab ? 'sortable-header' : ''}
+                onClick={!isSecretTab ? cycleSortMode : undefined}
+              >
                 {isSecretTab ? 'Name' : (
-                  <ColumnSortHeader label="Name" onCycle={cycleSortMode} SortIcon={SortIcon} sortLabel={sortLabel} />
+                  <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} />
                 )}
                 <div
                   className={`resize-handle ${resizing === 'name' ? 'resizing' : ''}`}

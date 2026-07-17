@@ -62,6 +62,10 @@ const Wrapper = styled.div`
           border-right: none;
         }
 
+        &.sortable-header {
+          cursor: pointer;
+        }
+
         .resize-handle {
           position: absolute;
           right: 0;

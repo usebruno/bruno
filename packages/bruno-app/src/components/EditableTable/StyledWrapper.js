@@ -46,6 +46,10 @@ const StyledWrapper = styled.div`
         border-right: none;
       }
 
+      &.sortable-header {
+        cursor: pointer;
+      }
+
       .column-name {
         display: block;
         overflow: hidden;

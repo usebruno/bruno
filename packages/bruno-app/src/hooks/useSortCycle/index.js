@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { IconSortAscendingLetters, IconSortDescendingLetters, IconArrowsSort } from '@tabler/icons';
+import { IconArrowUp, IconArrowDown } from '@tabler/icons';
 import { usePersistedState } from 'hooks/usePersistedState';
 
 const NEXT_MODE = {
@@ -9,15 +9,15 @@ const NEXT_MODE = {
 };
 
 const ICON_BY_MODE = {
-  default: IconSortAscendingLetters,
-  asc: IconSortDescendingLetters,
-  desc: IconArrowsSort
+  default: null,
+  asc: IconArrowUp,
+  desc: IconArrowDown
 };
 
 const LABEL_BY_MODE = {
-  default: 'Sort A-Z',
-  asc: 'Sort Z-A',
-  desc: 'Clear sort'
+  default: 'Default order',
+  asc: 'Sorted A-Z',
+  desc: 'Sorted Z-A'
 };
 
 export const useSortCycle = ({ storageKey, defaultMode = 'default' }) => {
