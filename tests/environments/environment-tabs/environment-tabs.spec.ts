@@ -76,6 +76,29 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     });
   });
 
+  test.only('Secret value does not carry its reveal-eye toggle onto the Variables tab', async ({ page, createTmpDir }) => {
+    await importCollection(page, collectionFile, await createTmpDir('var-secret-eye-toggle'), {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, 'Eye Toggle Env', 'collection');
+
+    await test.step('Add a secret on the Secrets tab; its reveal-eye toggle is shown there', async () => {
+      await secretsTab(page).click();
+      await expect(secretsTab(page)).toHaveClass(/active/);
+      await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
+      await expect(envLocators(page).varRowEyeToggle('apiToken')).toBeVisible();
+    });
+
+    await test.step('Switching to the Variables tab hides the secret and its reveal-eye toggle', async () => {
+      await variablesTab(page).click();
+      await expect(variablesTab(page)).toHaveClass(/active/);
+      await expect(varRow(page, 'apiToken')).toHaveCount(0);
+      await expect(page.getByTestId('secret-reveal-toggle')).toHaveCount(0);
+    });
+    await page.pause();
+  });
+
   test('saves variables and secrets independently and persists both', async ({ page, createTmpDir }) => {
     await importCollection(page, collectionFile, await createTmpDir('var-secret-save'), {
       expectedCollectionName: 'test_collection'
