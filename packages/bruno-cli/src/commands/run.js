@@ -369,6 +369,7 @@ const handler = async function (argv) {
 
     const runtimeVariables = {};
     let envVars = {};
+    let globalEnvVars = {};
     let envFileDescriptor = null;
     let globalEnvFileDescriptor = null;
     // --env-var overrides as Map<name, injected value>. The persistence layer compares the
@@ -449,7 +450,6 @@ const handler = async function (argv) {
       }
     }
 
-    let globalEnvVars = {};
     if (globalEnv) {
       const findWorkspacePath = (startPath) => {
         let currentPath = startPath;
@@ -533,12 +533,6 @@ const handler = async function (argv) {
     }
 
     if (globalEnvVar) {
-      // check if globalEnv is passed
-      if (!globalEnv) {
-        console.error(chalk.red(`--global-env-var requires --global-env to be set`));
-        process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
-      }
-
       let processVars;
       if (typeof globalEnvVar === 'string') {
         processVars = [globalEnvVar];
