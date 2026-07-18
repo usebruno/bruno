@@ -1,9 +1,10 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useSidebarAccordion } from './SidebarAccordionContext';
-import { updateSidebarSectionSizes } from 'providers/ReduxStore/slices/app';
+import { updateSidebarSectionSizes, removeSidebarSectionSize } from 'providers/ReduxStore/slices/app';
 import SidebarSectionSash from './SidebarSectionSash';
 import {
+  COLLAPSE_THRESHOLD_PX,
   DEFAULT_SECTION_WEIGHT,
   MIN_SECTION_PX,
   NEW_SECTION_FRACTION,
@@ -17,7 +18,7 @@ import {
  * a draggable sash between two adjacent expanded sections resizes them.
  */
 const SidebarContent = ({ sections }) => {
-  const { isExpanded } = useSidebarAccordion();
+  const { isExpanded, setSectionExpanded } = useSidebarAccordion();
   const dispatch = useDispatch();
   const sizes = useSelector((state) => state.app.sidebarSectionSizes);
 
@@ -76,6 +77,18 @@ const SidebarContent = ({ sections }) => {
       onDrag: (deltaPx) => {
         if (!startRef.current) return;
         const { abovePx, belowPx, combinedWeight } = startRef.current;
+
+        // Dragging a neighbor past its minimum, into the collapse zone, closes
+        // that section (header only) instead of flooring at the min height.
+        const collapse = (id) => {
+          startRef.current = null;
+          setLiveSizes(null);
+          dispatch(removeSidebarSectionSize(id));
+          setSectionExpanded(id, false);
+        };
+        if (belowPx - deltaPx < COLLAPSE_THRESHOLD_PX) return collapse(belowId);
+        if (abovePx + deltaPx < COLLAPSE_THRESHOLD_PX) return collapse(aboveId);
+
         const { weightAbove, weightBelow } = computeSashTransfer({
           abovePx,
           belowPx,
