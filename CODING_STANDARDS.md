@@ -96,6 +96,8 @@ Rules:
 
 6. Centralise locators and actions in page modules under `tests/utils/page/*` — never inline raw selectors in a spec. See the **Best Practices** section of `docs/playwright-testing-guide.md` for the page-module pattern and `buildCommonLocators` usage.
 
+7. Tag only critical paths as `smoke` tests (e.g., request sending, socket connections like WebSocket/gRPC, response formats, environment variable interpolation, and basic script execution). Avoid over-tagging; limit this to essential functionality only.
+
 For each test file:
 - Identify behavioural vs non-behavioural tests.
 - Flag brittle selectors, hardcoded waits, shared state, serial dependencies, and fake assertions.
