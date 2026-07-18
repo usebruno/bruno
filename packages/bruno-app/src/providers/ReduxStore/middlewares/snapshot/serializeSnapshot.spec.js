@@ -252,3 +252,17 @@ describe('serializeSnapshot collection environment preservation', () => {
     });
   });
 });
+
+describe('serializeSnapshot sidebar section sizes', () => {
+  it('persists sidebar section sizes without clobbering devTools extras', async () => {
+    const state = makeState();
+    state.app.sidebarSectionSizes = { 'collections': 4, 'api-specs': 1 };
+
+    const snapshot = await serializeSnapshot(state, {
+      getExistingSnapshot: async () => null
+    });
+
+    expect(snapshot.extras.sidebar.sectionSizes).toEqual({ 'collections': 4, 'api-specs': 1 });
+    expect(snapshot.extras.devTools).toBeDefined();
+  });
+});
