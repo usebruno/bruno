@@ -117,6 +117,9 @@ export const serializeSnapshot = async (state, options = {}) => {
           ...existingDevToolsTabs,
           [resolvedDevToolsActiveTab]: existingDevToolsTabs[resolvedDevToolsActiveTab] ?? {}
         }
+      },
+      sidebar: {
+        sectionSizes: state.app?.sidebarSectionSizes || {}
       }
     },
     workspaces: [],
