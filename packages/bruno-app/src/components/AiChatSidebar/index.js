@@ -875,7 +875,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
             <button
               className="icon-btn"
               onClick={handleNewChat}
-              title="New chat"
+              title="New Session"
               disabled={isLoading || messages.length === 0}
             >
               <IconPlus size={14} />

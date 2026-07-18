@@ -3,6 +3,7 @@ import process from 'node:process';
 import * as path from 'path';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
 import { waitForCollectionMount } from './mounting';
+import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
 
 type SandboxMode = 'safe' | 'developer';
 
@@ -2455,6 +2456,37 @@ const openUrlVarTooltip = async (
   return tooltip;
 };
 
+/**
+ * Returns true if the element is on top at its centre (not hidden behind a header),
+ * i.e. the topmost element at its centre is inside a dropdown/tippy container.
+ * @param locator - The dropdown item locator
+ * @returns Whether the item is the topmost element at its own centre
+ */
+const elementIsInsideDropdown = async (locator: Locator) => {
+  const box = await locator.boundingBox();
+  expect(box, 'dropdown item should have a layout box').not.toBeNull();
+  const x = box!.x + box!.width / 2;
+  const y = box!.y + box!.height / 2;
+  return locator.page().evaluate(
+    ({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest('.tippy-box, .dropdown')),
+    { x, y }
+  );
+};
+
+/**
+* Open the System Proxy panel in the Preferences dialog and wait for the refresh button to be visible.
+* @param page - The page object
+*/
+
+const openSystemProxyPanel = async (page: Page) => {
+  await openPreferences(page);
+  await selectPreferencesTab(page, 'Proxy');
+
+  const systemProxyLocators = buildPreferencesLocators(page).systemProxy;
+  await systemProxyLocators.systemProxyMode().click();
+  await systemProxyLocators.systemProxyRefreshButton().waitFor({ state: 'visible' });
+};
+
 export {
   waitForReadyPage,
   setRequestUrlAndSave,
@@ -2556,7 +2588,9 @@ export {
   getAppWebviewHtml,
   createApp,
   selectAppView,
-  renameWsMessage
+  renameWsMessage,
+  elementIsInsideDropdown,
+  openSystemProxyPanel
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
