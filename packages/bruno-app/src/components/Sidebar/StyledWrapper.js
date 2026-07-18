@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { MIN_SECTION_PX } from './sidebarSectionSizing';
 
 const Wrapper = styled.div`
   color: ${(props) => props.theme.sidebar.color};
@@ -20,7 +21,8 @@ const Wrapper = styled.div`
       height: 100%;
     }
 
-    /* Expanded sections grow to fill available space but are constrained */
+    /* Expanded section fills its wrapper; the wrapper's inline flex-grow (the
+       section weight) decides how much of the sidebar the wrapper gets. */
     .sidebar-section.expanded {
       flex: 1 1 0%;
       min-height: 0;
@@ -28,24 +30,6 @@ const Wrapper = styled.div`
       .section-header {
         border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.hoverBg};
       }
-    }
-
-    /* Single expanded section: add margin-bottom to push others down */
-    .sidebar-section.single-expanded {
-      margin-bottom: auto !important;
-      flex: 1 1 0% !important;
-      min-height: 0;
-      max-height: 100%;
-    }
-
-    /* Multiple expanded sections: equal split, no margin-bottom */
-    .sidebar-section.multi-expanded {
-      margin-bottom: 0;
-      flex: 1 1 0% !important;
-
-      min-height: 0;
-      overflow: hidden;
-      max-height: 100%;
     }
 
     /* Collapsed sections only take header height */
@@ -74,30 +58,22 @@ const Wrapper = styled.div`
       border-top: 1px solid ${(props) => props.theme.sidebar.collection.item.hoverBg};
     }
 
-    /* When a section is single expanded, wrapper should fill space but respect pinned sections */
-    .accordion-section-wrapper.single-expanded-wrapper {
-      flex: 1 1 0% !important;
-      min-height: 0;
+    /* Expanded wrappers fill in proportion to their inline flex-grow (weight),
+       floored so a section can't be crushed below a usable height. */
+    .accordion-section-wrapper.expanded-wrapper {
+      min-height: ${MIN_SECTION_PX}px;
       overflow: hidden;
     }
 
-    /* Normal flow: sections not pinned and not multi-expanded */
-    .accordion-section-wrapper:not(.pinned-to-bottom):not(.multi-expanded) {
+    /* Collapsed wrappers take only header height */
+    .accordion-section-wrapper:not(.expanded-wrapper) {
       flex: 0 0 auto;
     }
 
-    /* When a section is pinned to bottom */
+    /* Collapsed sections below an expanded one stick to the bottom */
     .accordion-section-wrapper.pinned-to-bottom {
       flex: 0 0 auto;
       margin-top: auto;
-    }
-
-    /* When multiple sections are expanded, split space equally */
-    .accordion-section-wrapper.multi-expanded {
-      flex: 1 1 0% !important;
-      min-height: 0;
-      margin-top: 0 !important;
-      height: auto !important;
     }
 
   }
