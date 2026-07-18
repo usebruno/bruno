@@ -58,27 +58,35 @@ const SidebarContent = ({ sections }) => {
   };
 
   const makeSashHandlers = (aboveId, belowId) => {
-    const combinedRef = { current: 0 };
+    // Captured once at drag start. The drag delta is measured from the start
+    // position, so it must apply to the heights as they were then — re-reading
+    // the live (already-resized) heights each move would compound the delta.
+    const startRef = { current: null };
     return {
       onDragStart: () => {
-        combinedRef.current = weightFor(aboveId) + weightFor(belowId);
-      },
-      onDrag: (deltaPx) => {
         const aboveEl = wrapperRefs.current[aboveId];
         const belowEl = wrapperRefs.current[belowId];
         if (!aboveEl || !belowEl) return;
-        const abovePx = aboveEl.getBoundingClientRect().height;
-        const belowPx = belowEl.getBoundingClientRect().height;
+        startRef.current = {
+          abovePx: aboveEl.getBoundingClientRect().height,
+          belowPx: belowEl.getBoundingClientRect().height,
+          combinedWeight: weightFor(aboveId) + weightFor(belowId)
+        };
+      },
+      onDrag: (deltaPx) => {
+        if (!startRef.current) return;
+        const { abovePx, belowPx, combinedWeight } = startRef.current;
         const { weightAbove, weightBelow } = computeSashTransfer({
           abovePx,
           belowPx,
           deltaPx,
-          combinedWeight: combinedRef.current,
+          combinedWeight,
           minPx: MIN_SECTION_PX
         });
         setLiveSizes({ [aboveId]: weightAbove, [belowId]: weightBelow });
       },
       onDragEnd: () => {
+        startRef.current = null;
         setLiveSizes((current) => {
           if (current) dispatch(updateSidebarSectionSizes(current));
           return null;
