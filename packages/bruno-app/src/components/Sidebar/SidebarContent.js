@@ -1,53 +1,90 @@
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { useSidebarAccordion } from './SidebarAccordionContext';
+import { updateSidebarSectionSizes } from 'providers/ReduxStore/slices/app';
+import SidebarSectionSash from './SidebarSectionSash';
+import {
+  DEFAULT_SECTION_WEIGHT,
+  MIN_SECTION_PX,
+  NEW_SECTION_FRACTION,
+  computeExpandWeight,
+  computeSashTransfer
+} from './sidebarSectionSizing';
 
 /**
- * Sections configuration
- *
- * All sections use the same generic accordion behavior with the class 'accordion-section-wrapper'.
- * Layout behavior is fully automatic based on section order and expansion state:
- * - Single expanded: When only one section is expanded, it fills available space
- * - Multi-expanded: When multiple sections are expanded, they split space equally
- * - Automatic pinning: Sections below an expanded section are automatically pinned to bottom
- *
- * To add a new section, simply add a new entry to this array:
- *
- * {
- *   id: 'my-section',                    // Unique identifier
- *   component: MySectionComponent,       // React component to render
- *   getProps: (context) => ({ ... })     // Function to get props for component
- * }
+ * Renders the stacked sidebar sections. Expanded sections divide the available
+ * height in proportion to their persisted weights (app.sidebarSectionSizes);
+ * a draggable sash between two adjacent expanded sections resizes them.
  */
-
 const SidebarContent = ({ sections }) => {
-  const { isExpanded, getExpandedCount } = useSidebarAccordion();
+  const { isExpanded } = useSidebarAccordion();
+  const dispatch = useDispatch();
+  const sizes = useSelector((state) => state.app.sidebarSectionSizes);
 
-  const expandedCount = getExpandedCount();
+  // Live weights during a sash drag (committed to redux on mouseup).
+  const [liveSizes, setLiveSizes] = useState(null);
+  const wrapperRefs = useRef({});
+
+  const expandedIds = sections.filter((s) => isExpanded(s.id)).map((s) => s.id);
+
+  // Assign a ~20% default weight to any newly-expanded, never-sized section.
+  useEffect(() => {
+    const unsized = expandedIds.filter((id) => !(id in sizes));
+    if (unsized.length === 0) return;
+
+    const runningWeights = expandedIds
+      .filter((id) => id in sizes)
+      .map((id) => sizes[id]);
+    const updates = {};
+    unsized.forEach((id) => {
+      const weight = computeExpandWeight(runningWeights, NEW_SECTION_FRACTION);
+      updates[id] = weight;
+      runningWeights.push(weight);
+    });
+    dispatch(updateSidebarSectionSizes(updates));
+  }, [expandedIds.join('|'), sizes, dispatch]);
+
+  const weightFor = (id) => liveSizes?.[id] ?? sizes[id] ?? DEFAULT_SECTION_WEIGHT;
 
   const getWrapperClassName = (section, sectionIndex) => {
-    const sectionExpanded = isExpanded(section.id);
-    // Use generic accordion-section-wrapper class for all sections
     const classes = ['accordion-section-wrapper'];
-
-    // Multi-expanded: when multiple sections are expanded
-    if (expandedCount > 1 && sectionExpanded) {
-      classes.push('multi-expanded');
-    }
-
-    // Single expanded wrapper behavior: when only one section is expanded, it fills space
-    if (sectionExpanded && expandedCount === 1) {
-      classes.push('single-expanded-wrapper');
-    }
-
-    // Automatic pinning: if section is not expanded and any section above it (earlier in array) is expanded
-    if (!sectionExpanded) {
-      // Check if any section before this one (earlier in array) is expanded
+    if (isExpanded(section.id)) {
+      classes.push('expanded-wrapper');
+    } else {
       const hasExpandedAbove = sections.slice(0, sectionIndex).some((s) => isExpanded(s.id));
-      if (hasExpandedAbove) {
-        classes.push('pinned-to-bottom');
-      }
+      if (hasExpandedAbove) classes.push('pinned-to-bottom');
     }
-
     return classes.join(' ');
+  };
+
+  const makeSashHandlers = (aboveId, belowId) => {
+    const combinedRef = { current: 0 };
+    return {
+      onDragStart: () => {
+        combinedRef.current = weightFor(aboveId) + weightFor(belowId);
+      },
+      onDrag: (deltaPx) => {
+        const aboveEl = wrapperRefs.current[aboveId];
+        const belowEl = wrapperRefs.current[belowId];
+        if (!aboveEl || !belowEl) return;
+        const abovePx = aboveEl.getBoundingClientRect().height;
+        const belowPx = belowEl.getBoundingClientRect().height;
+        const { weightAbove, weightBelow } = computeSashTransfer({
+          abovePx,
+          belowPx,
+          deltaPx,
+          combinedWeight: combinedRef.current,
+          minPx: MIN_SECTION_PX
+        });
+        setLiveSizes({ [aboveId]: weightAbove, [belowId]: weightBelow });
+      },
+      onDragEnd: () => {
+        setLiveSizes((current) => {
+          if (current) dispatch(updateSidebarSectionSizes(current));
+          return null;
+        });
+      }
+    };
   };
 
   return (
@@ -55,11 +92,28 @@ const SidebarContent = ({ sections }) => {
       {sections.map((section, index) => {
         const SectionComponent = section.component;
         const wrapperClassName = getWrapperClassName(section, index);
+        const expanded = isExpanded(section.id);
+
+        // A sash sits before this section when both it and the previous
+        // section are expanded (two adjacent expanded neighbors).
+        const prevSection = sections[index - 1];
+        const showSashBefore = expanded && prevSection && isExpanded(prevSection.id);
 
         return (
-          <div key={section.id} className={wrapperClassName}>
-            <SectionComponent />
-          </div>
+          <Fragment key={section.id}>
+            {showSashBefore && (
+              <SidebarSectionSash {...makeSashHandlers(prevSection.id, section.id)} />
+            )}
+            <div
+              className={wrapperClassName}
+              ref={(node) => {
+                wrapperRefs.current[section.id] = node;
+              }}
+              style={expanded ? { flexGrow: weightFor(section.id), flexBasis: 0 } : undefined}
+            >
+              <SectionComponent />
+            </div>
+          </Fragment>
         );
       })}
     </>
