@@ -3,7 +3,7 @@ import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import { IconDots, IconX } from '@tabler/icons';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import CloseApiSpec from '../CloseApiSpec/index';
 import { isApiSpecTabForPathname } from 'utils/api-specs';
@@ -19,6 +19,7 @@ const ApiSpecItem = ({ apiSpec }) => {
 
   const [closeApiSpecModal, setCloseApiSpecModal] = useState(false);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
+  const menuDropdownRef = useRef(null);
 
   const openApiSpec = () => {
     dispatch(openApiSpecTab(apiSpec));
@@ -29,6 +30,12 @@ const ApiSpecItem = ({ apiSpec }) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     e.preventDefault();
     openApiSpec();
+  };
+
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    menuDropdownRef.current?.show();
   };
 
   const menuItems = [
@@ -53,6 +60,7 @@ const ApiSpecItem = ({ apiSpec }) => {
         onFocus={() => setIsKeyboardFocused(true)}
         onBlur={() => setIsKeyboardFocused(false)}
         onKeyDown={handleRowKeyDown}
+        onContextMenu={handleContextMenu}
       >
         <div
           className="cursor-pointer flex items-center flex-grow w-[80%] pl-3 justify-between"
@@ -64,6 +72,7 @@ const ApiSpecItem = ({ apiSpec }) => {
         </div>
         <div className="pr-2">
           <MenuDropdown
+            ref={menuDropdownRef}
             items={menuItems}
             placement="bottom-start"
             appendTo={dropdownContainerRef?.current || document.body}
