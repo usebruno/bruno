@@ -84,11 +84,11 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
     );
   };
 
-  const cloneError = () => {
+  const cloneError = (errorMessage) => {
     setSteps((prev) =>
       prev.map((step) =>
         step.step === 'clone'
-          ? { ...step, title: 'Cloning failed', completed: true, error: true }
+          ? { ...step, title: 'Cloning failed', completed: true, error: true, errorMessage }
           : step
       )
     );
@@ -145,7 +145,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
         setCollectionPaths(scanResult?.items || []);
         setSkippedCollectionPaths(scanResult?.skippedItems || []);
       } catch (err) {
-        cloneError();
+        cloneError(err?.message);
         dispatch(removeGitOperationProgress(processUid));
         console.error(err);
       }
@@ -339,18 +339,21 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                   <ul>
                     {steps.filter((step) => !step.completed || step.error).map((step, index) => (
                       <li key={index} className="flex-col items-center space-x-2 mt-1">
-                        <div className="flex">
+                        <div className="flex items-center">
                           {step.error ? (
                             <IconAlertCircle className="clone-step-error-icon" size={18} strokeWidth={1.5} />
                           ) : (
                             <IconRefresh className="clone-step-progress-icon animate-spin" size={18} strokeWidth={1.5} />
                           )}
-                          <span className="ml-2">{step.title}</span>
+                          <span className={`ml-2 ${step.error ? 'clone-step-error-title' : ''}`}>{step.title}</span>
                         </div>
                         {step.info && (
                           <div className="w-full mt-2">
                             <pre className="info-box ml-4">{step.info}</pre>
                           </div>
+                        )}
+                        {step.error && step.errorMessage && (
+                          <pre className="clone-step-error-box ml-6 mt-2">{step.errorMessage}</pre>
                         )}
                       </li>
                     ))}

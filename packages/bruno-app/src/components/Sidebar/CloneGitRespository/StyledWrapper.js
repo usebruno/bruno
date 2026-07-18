@@ -15,6 +15,27 @@ const StyledWrapper = styled.div`
     margin-top: 5px;
     width: 400px;
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+
+  .clone-step-error-title {
+    color: ${(props) => props.theme.status.danger.text};
+  }
+
+  .clone-step-error-box {
+    background-color: ${(props) => props.theme.status.danger.background};
+    color: ${(props) => props.theme.text};
+    border: 1px solid ${(props) => props.theme.status.danger.border};
+    font-size: ${(props) => props.theme.font.size.sm};
+    padding: 10px;
+    border-radius: 5px;
+    width: 100%;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     max-height: 150px;
     overflow-y: auto;
   }

@@ -10,7 +10,6 @@ import trim from 'lodash/trim';
 import path, { normalizePath, isPathExternalToBasePath } from 'utils/common/path';
 import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
-import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
 import SaveFileErrorModal from 'components/Errors/SaveFileErrorModal/index';
 import {
   findCollectionByUid,
@@ -3436,10 +3435,7 @@ export const cloneGitRepository = (data) => (dispatch, getState) => {
         console.log('clone done', res);
       })
       .then(resolve)
-      .catch((err) => {
-        toast.custom(<IpcErrorModal error={err?.message} />);
-        reject();
-      });
+      .catch(reject);
   });
 };
 
