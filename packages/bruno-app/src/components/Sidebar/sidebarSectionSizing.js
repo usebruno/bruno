@@ -3,6 +3,9 @@ export const NEW_SECTION_FRACTION = 0.25;
 export const MIN_SECTION_PX = 64;
 // Dragging a neighbor's height below this (past its min) collapses the section.
 export const COLLAPSE_THRESHOLD_PX = 32;
+// The top section never collapses via drag; it stays at least this fraction of
+// the shared area so the sash remains reachable (matches VSCode).
+export const TOP_MIN_FRACTION = 0.25;
 
 // Weight for a section that should occupy `fraction` of the area shared with its
 // already-expanded siblings, leaving the siblings' relative proportions intact.
@@ -15,10 +18,18 @@ export const computeExpandWeight = (expandedSiblingWeights, fraction = NEW_SECTI
 // Given the two neighbors' pixel heights and a drag delta, return new weights that
 // preserve their combined weight. The delta is clamped so neither neighbor goes
 // below `minPx`.
-export const computeSashTransfer = ({ abovePx, belowPx, deltaPx, combinedWeight, minPx = MIN_SECTION_PX }) => {
+export const computeSashTransfer = ({
+  abovePx,
+  belowPx,
+  deltaPx,
+  combinedWeight,
+  minPx = MIN_SECTION_PX,
+  minAbovePx = minPx,
+  minBelowPx = minPx
+}) => {
   const totalPx = abovePx + belowPx;
-  const minDelta = minPx - abovePx;
-  const maxDelta = belowPx - minPx;
+  const minDelta = minAbovePx - abovePx;
+  const maxDelta = belowPx - minBelowPx;
   const clampedDelta = Math.max(minDelta, Math.min(maxDelta, deltaPx));
   const newAbovePx = abovePx + clampedDelta;
   const weightAbove = combinedWeight * (newAbovePx / totalPx);

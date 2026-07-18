@@ -8,6 +8,7 @@ import {
   DEFAULT_SECTION_WEIGHT,
   MIN_SECTION_PX,
   NEW_SECTION_FRACTION,
+  TOP_MIN_FRACTION,
   computeExpandWeight,
   computeSashTransfer
 } from './sidebarSectionSizing';
@@ -58,7 +59,7 @@ const SidebarContent = ({ sections }) => {
     return classes.join(' ');
   };
 
-  const makeSashHandlers = (aboveId, belowId) => {
+  const makeSashHandlers = (aboveId, belowId, aboveIsTop) => {
     // Captured once at drag start. The drag delta is measured from the start
     // position, so it must apply to the heights as they were then — re-reading
     // the live (already-resized) heights each move would compound the delta.
@@ -87,14 +88,20 @@ const SidebarContent = ({ sections }) => {
           setSectionExpanded(id, false);
         };
         if (belowPx - deltaPx < COLLAPSE_THRESHOLD_PX) return collapse(belowId);
-        if (abovePx + deltaPx < COLLAPSE_THRESHOLD_PX) return collapse(aboveId);
+        // The top section never collapses via drag — it floors at TOP_MIN_FRACTION
+        // of the shared area so the sash stays reachable.
+        if (!aboveIsTop && abovePx + deltaPx < COLLAPSE_THRESHOLD_PX) return collapse(aboveId);
 
+        const minAbovePx = aboveIsTop
+          ? Math.max(MIN_SECTION_PX, TOP_MIN_FRACTION * (abovePx + belowPx))
+          : MIN_SECTION_PX;
         const { weightAbove, weightBelow } = computeSashTransfer({
           abovePx,
           belowPx,
           deltaPx,
           combinedWeight,
-          minPx: MIN_SECTION_PX
+          minAbovePx,
+          minBelowPx: MIN_SECTION_PX
         });
         setLiveSizes({ [aboveId]: weightAbove, [belowId]: weightBelow });
       },
@@ -123,7 +130,7 @@ const SidebarContent = ({ sections }) => {
         return (
           <Fragment key={section.id}>
             {showSashBefore && (
-              <SidebarSectionSash {...makeSashHandlers(prevSection.id, section.id)} />
+              <SidebarSectionSash {...makeSashHandlers(prevSection.id, section.id, index - 1 === 0)} />
             )}
             <div
               className={wrapperClassName}
