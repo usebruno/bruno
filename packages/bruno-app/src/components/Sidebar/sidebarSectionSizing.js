@@ -1,0 +1,25 @@
+export const DEFAULT_SECTION_WEIGHT = 1;
+export const NEW_SECTION_FRACTION = 0.2;
+export const MIN_SECTION_PX = 64;
+
+// Weight for a section that should occupy `fraction` of the area shared with its
+// already-expanded siblings, leaving the siblings' relative proportions intact.
+export const computeExpandWeight = (expandedSiblingWeights, fraction = NEW_SECTION_FRACTION) => {
+  const sum = expandedSiblingWeights.reduce((total, weight) => total + (weight > 0 ? weight : 0), 0);
+  if (sum <= 0) return DEFAULT_SECTION_WEIGHT;
+  return (fraction / (1 - fraction)) * sum;
+};
+
+// Given the two neighbors' pixel heights and a drag delta, return new weights that
+// preserve their combined weight. The delta is clamped so neither neighbor goes
+// below `minPx`.
+export const computeSashTransfer = ({ abovePx, belowPx, deltaPx, combinedWeight, minPx = MIN_SECTION_PX }) => {
+  const totalPx = abovePx + belowPx;
+  const minDelta = minPx - abovePx;
+  const maxDelta = belowPx - minPx;
+  const clampedDelta = Math.max(minDelta, Math.min(maxDelta, deltaPx));
+  const newAbovePx = abovePx + clampedDelta;
+  const weightAbove = combinedWeight * (newAbovePx / totalPx);
+  const weightBelow = combinedWeight - weightAbove;
+  return { weightAbove, weightBelow };
+};
