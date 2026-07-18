@@ -1,5 +1,5 @@
 export const DEFAULT_SECTION_WEIGHT = 1;
-export const NEW_SECTION_FRACTION = 0.2;
+export const NEW_SECTION_FRACTION = 0.25;
 export const MIN_SECTION_PX = 64;
 
 // Weight for a section that should occupy `fraction` of the area shared with its
