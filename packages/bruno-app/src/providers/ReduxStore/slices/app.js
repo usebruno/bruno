@@ -26,6 +26,7 @@ const initialState = {
     startedAt: null
   },
   leftSidebarWidth: null,
+  sidebarSectionSizes: {},
   sidebarCollapsed: null,
   showSidebarSearch: false,
   focusedSidebarPath: null,
@@ -187,6 +188,13 @@ export const appSlice = createSlice({
     updateLeftSidebarWidth: (state, action) => {
       state.leftSidebarWidth = action.payload.leftSidebarWidth;
     },
+    updateSidebarSectionSizes: (state, action) => {
+      Object.entries(action.payload || {}).forEach(([sectionId, weight]) => {
+        if (typeof weight === 'number' && Number.isFinite(weight) && weight > 0) {
+          state.sidebarSectionSizes[sectionId] = weight;
+        }
+      });
+    },
     updateIsDragging: (state, action) => {
       state.isDragging = action.payload.isDragging;
     },
@@ -298,6 +306,7 @@ export const {
   clearSnapshotHydrationSession,
   refreshScreenWidth,
   updateLeftSidebarWidth,
+  updateSidebarSectionSizes,
   updateIsDragging,
   showHomePage,
   hideHomePage,
