@@ -42,4 +42,13 @@ describe('computeSashTransfer', () => {
     expect(weightAbove).toBeCloseTo(3 * (64 / 300), 5);
     expect(weightBelow).toBeCloseTo(3 * (236 / 300), 5);
   });
+
+  it('honors a larger minAbovePx floor for the top section', () => {
+    // container 800px, top floored at 25% = 200px; big up-drag should stop there
+    const { weightAbove, weightBelow } = computeSashTransfer({
+      abovePx: 600, belowPx: 200, deltaPx: -1000, combinedWeight: 4, minAbovePx: 200, minBelowPx: 64
+    });
+    expect(weightAbove).toBeCloseTo(4 * (200 / 800), 5); // top stays at 200px
+    expect(weightBelow).toBeCloseTo(4 * (600 / 800), 5);
+  });
 });
