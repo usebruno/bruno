@@ -1,6 +1,8 @@
 export const DEFAULT_SECTION_WEIGHT = 1;
 export const NEW_SECTION_FRACTION = 0.25;
 export const MIN_SECTION_PX = 64;
+// Dragging a neighbor's height below this (past its min) collapses the section.
+export const COLLAPSE_THRESHOLD_PX = 32;
 
 // Weight for a section that should occupy `fraction` of the area shared with its
 // already-expanded siblings, leaving the siblings' relative proportions intact.

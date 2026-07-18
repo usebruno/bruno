@@ -173,6 +173,9 @@ export const appSlice = createSlice({
         }
       });
     },
+    removeSidebarSectionSize: (state, action) => {
+      delete state.sidebarSectionSizes[action.payload];
+    },
     updateIsDragging: (state, action) => {
       state.isDragging = action.payload.isDragging;
     },
@@ -295,6 +298,7 @@ export const {
   refreshScreenWidth,
   updateLeftSidebarWidth,
   updateSidebarSectionSizes,
+  removeSidebarSectionSize,
   updateIsDragging,
   showHomePage,
   hideHomePage,
