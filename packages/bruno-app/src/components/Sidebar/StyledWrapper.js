@@ -65,15 +65,11 @@ const Wrapper = styled.div`
       overflow: hidden;
     }
 
-    /* Collapsed wrappers take only header height */
+    /* Collapsed wrappers take only header height. An expanded section fills the
+       remaining space and pushes trailing collapsed headers to the bottom, so no
+       auto margin is needed (and it would otherwise starve the flex-grow). */
     .accordion-section-wrapper:not(.expanded-wrapper) {
       flex: 0 0 auto;
-    }
-
-    /* Collapsed sections below an expanded one stick to the bottom */
-    .accordion-section-wrapper.pinned-to-bottom {
-      flex: 0 0 auto;
-      margin-top: auto;
     }
 
   }
