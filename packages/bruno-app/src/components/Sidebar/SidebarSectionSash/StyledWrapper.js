@@ -7,7 +7,18 @@ const StyledWrapper = styled.div`
   cursor: row-resize;
   background: transparent;
   transition: background-color 0.15s ease;
-  z-index: 1;
+  position: relative;
+  z-index: 2;
+
+  /* Extend the grab area beyond the 4px line without affecting layout. */
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -3px;
+    bottom: -3px;
+  }
 
   &:hover,
   &.dragging {
