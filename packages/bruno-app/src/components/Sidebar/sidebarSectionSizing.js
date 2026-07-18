@@ -36,3 +36,29 @@ export const computeSashTransfer = ({
   const weightBelow = combinedWeight - weightAbove;
   return { weightAbove, weightBelow };
 };
+
+// Decides what a sash drag does given the neighbours' start heights and the
+// cumulative delta. Returns either a collapse of one side, or the new weights.
+// Positive delta drags the sash down (grows `above`, shrinks `below`).
+export const resolveSashDrag = ({ abovePx, belowPx, deltaPx, combinedWeight, aboveIsTop }) => {
+  if (belowPx - deltaPx < COLLAPSE_THRESHOLD_PX) {
+    return { action: 'collapse', side: 'below' };
+  }
+  // The top section never collapses via drag; it floors instead (see below).
+  if (!aboveIsTop && abovePx + deltaPx < COLLAPSE_THRESHOLD_PX) {
+    return { action: 'collapse', side: 'above' };
+  }
+
+  const minAbovePx = aboveIsTop
+    ? Math.max(MIN_SECTION_PX, TOP_MIN_FRACTION * (abovePx + belowPx))
+    : MIN_SECTION_PX;
+  const { weightAbove, weightBelow } = computeSashTransfer({
+    abovePx,
+    belowPx,
+    deltaPx,
+    combinedWeight,
+    minAbovePx,
+    minBelowPx: MIN_SECTION_PX
+  });
+  return { action: 'resize', weightAbove, weightBelow };
+};

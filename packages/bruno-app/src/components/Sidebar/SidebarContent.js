@@ -4,13 +4,10 @@ import { useSidebarAccordion } from './SidebarAccordionContext';
 import { updateSidebarSectionSizes, removeSidebarSectionSize } from 'providers/ReduxStore/slices/app';
 import SidebarSectionSash from './SidebarSectionSash';
 import {
-  COLLAPSE_THRESHOLD_PX,
   DEFAULT_SECTION_WEIGHT,
-  MIN_SECTION_PX,
   NEW_SECTION_FRACTION,
-  TOP_MIN_FRACTION,
   computeExpandWeight,
-  computeSashTransfer
+  resolveSashDrag
 } from './sidebarSectionSizing';
 
 /**
@@ -48,14 +45,17 @@ const SidebarContent = ({ sections }) => {
 
   const weightFor = (id) => liveSizes?.[id] ?? sizes[id] ?? DEFAULT_SECTION_WEIGHT;
 
-  const getWrapperClassName = (section, sectionIndex) => {
+  // Normalize the rendered flex-grow across expanded sections so it always sums
+  // to the expanded count (>= 1). CSS distributes only a fraction of the free
+  // space when the flex-grow values sum to less than 1, which would leave a
+  // single low-weight section short of filling. Ratios are preserved.
+  const expandedWeightSum = expandedIds.reduce((sum, id) => sum + weightFor(id), 0);
+  const flexGrowFor = (id) =>
+    (expandedWeightSum > 0 ? (weightFor(id) / expandedWeightSum) * expandedIds.length : 1);
+
+  const getWrapperClassName = (section) => {
     const classes = ['accordion-section-wrapper'];
-    if (isExpanded(section.id)) {
-      classes.push('expanded-wrapper');
-    } else {
-      const hasExpandedAbove = sections.slice(0, sectionIndex).some((s) => isExpanded(s.id));
-      if (hasExpandedAbove) classes.push('pinned-to-bottom');
-    }
+    if (isExpanded(section.id)) classes.push('expanded-wrapper');
     return classes.join(' ');
   };
 
@@ -79,31 +79,19 @@ const SidebarContent = ({ sections }) => {
         if (!startRef.current) return;
         const { abovePx, belowPx, combinedWeight } = startRef.current;
 
+        const result = resolveSashDrag({ abovePx, belowPx, deltaPx, combinedWeight, aboveIsTop });
+
         // Dragging a neighbor past its minimum, into the collapse zone, closes
         // that section (header only) instead of flooring at the min height.
-        const collapse = (id) => {
+        if (result.action === 'collapse') {
+          const id = result.side === 'below' ? belowId : aboveId;
           startRef.current = null;
           setLiveSizes(null);
           dispatch(removeSidebarSectionSize(id));
           setSectionExpanded(id, false);
-        };
-        if (belowPx - deltaPx < COLLAPSE_THRESHOLD_PX) return collapse(belowId);
-        // The top section never collapses via drag — it floors at TOP_MIN_FRACTION
-        // of the shared area so the sash stays reachable.
-        if (!aboveIsTop && abovePx + deltaPx < COLLAPSE_THRESHOLD_PX) return collapse(aboveId);
-
-        const minAbovePx = aboveIsTop
-          ? Math.max(MIN_SECTION_PX, TOP_MIN_FRACTION * (abovePx + belowPx))
-          : MIN_SECTION_PX;
-        const { weightAbove, weightBelow } = computeSashTransfer({
-          abovePx,
-          belowPx,
-          deltaPx,
-          combinedWeight,
-          minAbovePx,
-          minBelowPx: MIN_SECTION_PX
-        });
-        setLiveSizes({ [aboveId]: weightAbove, [belowId]: weightBelow });
+          return;
+        }
+        setLiveSizes({ [aboveId]: result.weightAbove, [belowId]: result.weightBelow });
       },
       onDragEnd: () => {
         startRef.current = null;
@@ -119,7 +107,7 @@ const SidebarContent = ({ sections }) => {
     <>
       {sections.map((section, index) => {
         const SectionComponent = section.component;
-        const wrapperClassName = getWrapperClassName(section, index);
+        const wrapperClassName = getWrapperClassName(section);
         const expanded = isExpanded(section.id);
 
         // A sash sits before this section when both it and the previous
@@ -137,7 +125,7 @@ const SidebarContent = ({ sections }) => {
               ref={(node) => {
                 wrapperRefs.current[section.id] = node;
               }}
-              style={expanded ? { flexGrow: weightFor(section.id), flexBasis: 0 } : undefined}
+              style={expanded ? { flexGrow: flexGrowFor(section.id), flexBasis: 0 } : undefined}
             >
               <SectionComponent />
             </div>
