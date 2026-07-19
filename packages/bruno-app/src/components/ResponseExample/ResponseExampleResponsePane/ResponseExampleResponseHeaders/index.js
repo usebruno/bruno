@@ -96,17 +96,12 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
     if (!editMode) {
       return;
     }
-    const cleanedHeaders = newHeaders.map((header) => ({
-      uid: header.uid,
-      name: header.name,
-      value: header.value
-    }));
 
     dispatch(setResponseExampleHeaders({
       itemUid: item.uid,
       collectionUid: collection.uid,
       exampleUid: exampleUid,
-      headers: cleanedHeaders
+      headers: newHeaders
     }));
   };
 

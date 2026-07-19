@@ -1,5 +1,6 @@
 import { IconChevronDown } from '@tabler/icons';
 import ToggleSwitch from 'components/ToggleSwitch';
+import { getPlatformModifierKey } from 'utils/common/platform';
 
 /**
  * Autocomplete tab content. Sibling of the Configuration tab inside
@@ -25,7 +26,7 @@ const TRIGGER_MODES = [
   {
     value: 'manual',
     label: 'Manual',
-    description: 'Only on ⌘+\\ / Ctrl+\\'
+    description: `Only on ${getPlatformModifierKey()}+\\`
   }
 ];
 
@@ -74,7 +75,7 @@ const AutocompletePane = ({
             </span>
           </div>
           <ToggleSwitch
-            size="m"
+            size="xs"
             isOn={enabled}
             handleToggle={() => onToggleEnabled(!enabled)}
             data-testid="ai-autocomplete-enabled-toggle"
@@ -148,7 +149,7 @@ const AutocompletePane = ({
           <div className="flex flex-col gap-1">
             <span className="text-[11.5px] font-medium">Keymap</span>
             <div className="autocomplete-keymap text-[10.5px]">
-              <kbd>Tab</kbd> accept · <kbd>Esc</kbd> dismiss · <kbd>⌘</kbd>+<kbd>\</kbd> trigger
+              <kbd>Tab</kbd> accept · <kbd>{getPlatformModifierKey()}</kbd>+<kbd>→</kbd> accept word · <kbd>Esc</kbd> dismiss · <kbd>{getPlatformModifierKey()}</kbd>+<kbd>\</kbd> trigger
             </div>
           </div>
         </div>

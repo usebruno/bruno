@@ -9,6 +9,7 @@ const Wrapper = styled.div`
   .messages-container {
     flex: 1;
     overflow-y: auto;
+    isolation: isolate;
   }
 
   .empty-state {

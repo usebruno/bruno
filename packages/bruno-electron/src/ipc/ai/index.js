@@ -11,6 +11,8 @@ const {
   getAvailableModels,
   clearSdkCache,
   isKnownProviderId,
+  isBuiltInModelId,
+  isReasoningModel,
   validateApiKeyForProvider,
   providerLabel
 } = require('./providers');
@@ -18,6 +20,7 @@ const {
   SCRIPT_TYPES,
   buildScriptSystemPrompt,
   buildScriptUserPrompt,
+  parseDecline,
   stripCodeFences
 } = require('./script-prompts');
 const {
@@ -28,6 +31,13 @@ const {
 const registerChatIpc = require('./chat');
 
 const activeStreams = new Map();
+
+const SCRIPT_MAX_OUTPUT_TOKENS = {
+  'app-request': 16000,
+  'app-collection': 16000,
+  'docs': 8000
+};
+const DEFAULT_SCRIPT_MAX_OUTPUT_TOKENS = 4096;
 
 const getAiPrefs = () => getPreferences().ai || {};
 
@@ -83,6 +93,12 @@ const assertKnownProvider = (providerId) => {
 };
 
 const registerAiIpc = (mainWindow) => {
+  const broadcastStatus = (status) => {
+    if (mainWindow?.webContents && !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send('main:ai-status-changed', status);
+    }
+  };
+
   ipcMain.handle('renderer:get-ai-status', async () => buildStatus());
 
   ipcMain.handle('renderer:set-ai-api-key', async (_event, { providerId, apiKey }) => {
@@ -93,14 +109,18 @@ const registerAiIpc = (mainWindow) => {
     }
     aiKeyStore.setKey(providerId, trimmed);
     clearSdkCache();
-    return buildStatus();
+    const status = buildStatus();
+    broadcastStatus(status);
+    return status;
   });
 
   ipcMain.handle('renderer:clear-ai-api-key', async (_event, { providerId }) => {
     assertKnownProvider(providerId);
     aiKeyStore.clearKey(providerId);
     clearSdkCache();
-    return buildStatus();
+    const status = buildStatus();
+    broadcastStatus(status);
+    return status;
   });
 
   ipcMain.handle('renderer:get-ai-api-key', async (_event, { providerId }) => {
@@ -153,7 +173,7 @@ const registerAiIpc = (mainWindow) => {
         system,
         prompt,
         maxOutputTokens: maxTokens ?? 1024,
-        temperature: temperature ?? 0.3
+        ...(isReasoningModel(modelId) ? {} : { temperature: temperature ?? 0.3 })
       });
       return { text };
     } catch (err) {
@@ -251,9 +271,14 @@ const registerAiIpc = (mainWindow) => {
         tools,
         // Cap tool-call iteration — the model gets a few chances to look
         // things up before it MUST produce the final script.
-        stopWhen: stepCountIs(4),
+        stopWhen: stepCountIs(6),
         toolChoice: 'auto',
-        maxOutputTokens: 2048,
+        // Custom OpenAI-compatible models may be small local models that
+        // reject a max_tokens above their context window, let the server
+        // apply its own default for those instead of forcing a big cap.
+        maxOutputTokens: isBuiltInModelId(modelId)
+          ? (SCRIPT_MAX_OUTPUT_TOKENS[scriptType] || DEFAULT_SCRIPT_MAX_OUTPUT_TOKENS)
+          : undefined,
         abortSignal: controller?.signal
       });
 
@@ -267,6 +292,14 @@ const registerAiIpc = (mainWindow) => {
 
       if (controller?.signal.aborted) {
         return { stopped: true };
+      }
+
+      // The model declines out-of-scope prompts (or ones missing required
+      // context, e.g. "no response yet") via a sentinel line instead of
+      // emitting unrelated code that would get applied to the user's file.
+      const declineReason = parseDecline(fullText);
+      if (declineReason) {
+        return { error: declineReason, declined: true };
       }
 
       const content = stripCodeFences(fullText);
@@ -322,7 +355,7 @@ const registerAiIpc = (mainWindow) => {
         model,
         system,
         maxOutputTokens: maxTokens ?? 2048,
-        temperature: temperature ?? 0.7,
+        ...(isReasoningModel(modelId) ? {} : { temperature: temperature ?? 0.7 }),
         abortSignal: controller.signal
       };
       if (messages) {

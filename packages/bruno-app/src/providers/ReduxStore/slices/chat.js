@@ -10,6 +10,7 @@ import {
 
 const initialState = {
   isOpen: false,
+  isPoppedOut: false,
   chats: {}
 };
 
@@ -39,12 +40,20 @@ export const chatSlice = createSlice({
   reducers: {
     toggleAiSidebar: (state) => {
       state.isOpen = !state.isOpen;
+      if (!state.isOpen) state.isPoppedOut = false;
     },
     openAiSidebar: (state) => {
       state.isOpen = true;
     },
     closeAiSidebar: (state) => {
       state.isOpen = false;
+      state.isPoppedOut = false;
+    },
+    popOutAiChat: (state) => {
+      state.isPoppedOut = true;
+    },
+    dockAiChat: (state) => {
+      state.isPoppedOut = false;
     },
     setChatBinding: (state, action) => {
       const { tabUid, pathname, collectionUid, contentType } = action.payload;
@@ -167,6 +176,8 @@ export const {
   toggleAiSidebar,
   openAiSidebar,
   closeAiSidebar,
+  popOutAiChat,
+  dockAiChat,
   setChatBinding,
   startNewConversation,
   addAiMessage,
