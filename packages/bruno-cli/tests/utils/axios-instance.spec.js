@@ -115,7 +115,7 @@ describe('makeAxiosInstance', () => {
     expect(headers.get('cookie')).toBe('target=from-jar');
   });
 
-  it('merges manual and cookie jar values without duplicate headers on same-origin redirects', async () => {
+  it('merges cookies without duplicate headers and preserves jar precedence on same-origin redirects', async () => {
     mockGetCookieStringForUrl.mockReturnValue('session=from-jar');
     const stubAdapter = createStubAdapter();
     const instance = makeAxiosInstance({ storeCookies: false, sendCookies: true });
@@ -123,7 +123,7 @@ describe('makeAxiosInstance', () => {
       config: {
         url: 'https://api.example.com/start',
         method: 'get',
-        headers: { Cookie: 'manual=value' },
+        headers: { Cookie: 'session=manual; manual=value' },
         adapter: stubAdapter
       },
       response: {
@@ -138,6 +138,6 @@ describe('makeAxiosInstance', () => {
 
     const headers = stubAdapter.getConfig().headers;
     expect(Object.keys(headers).filter((name) => name.toLowerCase() === 'cookie')).toHaveLength(1);
-    expect(headers.get('cookie')).toBe('manual=value; session=from-jar');
+    expect(headers.get('cookie')).toBe('session=from-jar; manual=value');
   });
 });

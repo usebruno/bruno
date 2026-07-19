@@ -44,6 +44,7 @@ const stripSensitiveHeadersOnCrossOriginRedirect = (headers, sourceUrl, redirect
 
 /**
  * Merges matching jar cookies into one case-insensitive Cookie header.
+ * Jar values take precedence on name collisions, matching initial request behavior.
  */
 const mergeCookieHeader = (headers, cookieString) => {
   const cookieHeaderNames = Object.keys(headers).filter((name) => name.toLowerCase() === 'cookie');

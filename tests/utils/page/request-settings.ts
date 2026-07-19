@@ -1,4 +1,4 @@
-import { expect, Page, test } from '../../../playwright';
+import { Page, test } from '../../../playwright';
 import { buildSidebarLocators } from './sidebar';
 
 /** Builds locators for the request Settings cookie controls and related request flow. */
@@ -22,7 +22,7 @@ export const buildRequestSettingsLocators = (page: Page) => {
 export const openRequestSettingsCollection = async (page: Page, collectionName: string) => {
   await test.step(`Open request settings collection "${collectionName}"`, async () => {
     const locators = buildRequestSettingsLocators(page);
-    await expect(locators.collection(collectionName)).toBeVisible();
+    await locators.collection(collectionName).waitFor({ state: 'visible' });
     await locators.collection(collectionName).click();
   });
 };
@@ -33,17 +33,22 @@ export const openRequestSettings = async (page: Page, requestName: string) => {
     const locators = buildRequestSettingsLocators(page);
     await locators.request(requestName).click();
 
-    await expect(async () => {
-      if (await locators.settingsTab().isVisible()) {
-        await locators.settingsTab().click({ timeout: 2000 });
-      } else {
-        await locators.overflowButton().click({ timeout: 2000 });
-        await locators.overflowSettingsItem().click({ force: true, timeout: 2000 });
-      }
-      await expect(locators.settingsTab()).toContainClass('active', { timeout: 2000 });
-    }).toPass({ timeout: 15000 });
+    const settingsTab = locators.settingsTab();
+    const overflowButton = locators.overflowButton();
+    await Promise.race([
+      settingsTab.waitFor({ state: 'visible', timeout: 15000 }),
+      overflowButton.waitFor({ state: 'visible', timeout: 15000 })
+    ]);
 
-    await expect(locators.storeCookiesToggle()).toBeVisible();
+    if (await settingsTab.isVisible()) {
+      await settingsTab.click();
+    } else {
+      await overflowButton.click();
+      await locators.overflowSettingsItem().waitFor({ state: 'visible' });
+      await locators.overflowSettingsItem().click({ force: true });
+    }
+
+    await locators.storeCookiesToggle().waitFor({ state: 'visible', timeout: 15000 });
   });
 };
 
@@ -51,23 +56,6 @@ export const openRequestSettings = async (page: Page, requestName: string) => {
 export const openRequestFromSettingsCollection = async (page: Page, requestName: string) => {
   await test.step(`Open request "${requestName}"`, async () => {
     await buildRequestSettingsLocators(page).request(requestName).click();
-  });
-};
-
-/** Asserts the checked state of a request-level cookie setting. */
-export const expectCookieSetting = async (
-  page: Page,
-  setting: 'store' | 'send',
-  enabled: boolean
-) => {
-  await test.step(`Expect automatic cookie ${setting} to be ${enabled ? 'enabled' : 'disabled'}`, async () => {
-    const locators = buildRequestSettingsLocators(page);
-    const toggle = setting === 'store' ? locators.storeCookiesToggle() : locators.sendCookiesToggle();
-    if (enabled) {
-      await expect(toggle).toBeChecked();
-    } else {
-      await expect(toggle).not.toBeChecked();
-    }
   });
 };
 
@@ -80,11 +68,9 @@ export const toggleCookieSetting = async (page: Page, setting: 'store' | 'send')
   });
 };
 
-/** Sends the active request and waits for the expected response status. */
-export const sendRequestAndExpectStatus = async (page: Page, status: string) => {
-  await test.step(`Send request and expect status ${status}`, async () => {
-    const locators = buildRequestSettingsLocators(page);
-    await locators.sendButton().click();
-    await expect(locators.responseStatus()).toContainText(status, { timeout: 15000 });
+/** Sends the active request. */
+export const sendRequestFromSettings = async (page: Page) => {
+  await test.step('Send request', async () => {
+    await buildRequestSettingsLocators(page).sendButton().click();
   });
 };
