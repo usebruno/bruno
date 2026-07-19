@@ -75,6 +75,8 @@ const createRedirectConfig = (error, redirectUrl) => {
 function makeAxiosInstance({
   requestMaxRedirects = 5,
   disableCookies,
+  storeCookies = true,
+  sendCookies = true,
   followRedirects = true,
   proxyMode,
   proxyConfig,
@@ -120,7 +122,7 @@ function makeAxiosInstance({
     }
 
     // Add cookies to request if available and not disabled
-    if (!disableCookies) {
+    if (!disableCookies && sendCookies) {
       const cookieString = getCookieStringForUrl(config.url);
       if (cookieString && typeof cookieString === 'string' && cookieString.length) {
         config.headers['cookie'] = cookieString;
@@ -147,7 +149,7 @@ function makeAxiosInstance({
 
         if (redirectResponseCodes.includes(error.response.status)) {
           if (!followRedirects) {
-            if (!disableCookies) {
+            if (!disableCookies && storeCookies) {
               saveCookies(error.config.url, error.response.headers);
             }
 
@@ -173,7 +175,7 @@ function makeAxiosInstance({
             redirectUrl = URL.resolve(error.config.url, locationHeader);
           }
 
-          if (!disableCookies) {
+          if (!disableCookies && storeCookies) {
             saveCookies(error.config.url, error.response.headers);
           }
 
@@ -189,7 +191,7 @@ function makeAxiosInstance({
             disableCache
           });
 
-          if (!disableCookies) {
+          if (!disableCookies && sendCookies) {
             const cookieString = getCookieStringForUrl(redirectUrl);
             if (cookieString && typeof cookieString === 'string' && cookieString.length) {
               requestConfig.headers['cookie'] = cookieString;

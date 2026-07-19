@@ -78,7 +78,9 @@ function makeAxiosInstance({
   requestMaxRedirects = 5,
   httpsAgentRequestFields = {},
   interpolationOptions = {},
-  followRedirects = true
+  followRedirects = true,
+  storeCookies = true,
+  sendCookies = true
 } = {}) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
@@ -306,7 +308,7 @@ function makeAxiosInstance({
           error.response.timeline = timeline;
 
           if (!followRedirects) {
-            if (preferencesUtil.shouldStoreCookies()) {
+            if (storeCookies && preferencesUtil.shouldStoreCookies()) {
               saveCookies(error.config.url, error.response.headers);
             }
 
@@ -347,7 +349,7 @@ function makeAxiosInstance({
             });
           }
 
-          if (preferencesUtil.shouldStoreCookies()) {
+          if (storeCookies && preferencesUtil.shouldStoreCookies()) {
             saveCookies(error.config.url, error.response.headers);
           }
 
@@ -415,7 +417,7 @@ function makeAxiosInstance({
             }
           }
 
-          if (preferencesUtil.shouldSendCookies()) {
+          if (sendCookies && preferencesUtil.shouldSendCookies()) {
             const cookieString = getCookieStringForUrl(redirectUrl);
             if (cookieString && typeof cookieString === 'string' && cookieString.length) {
               requestConfig.headers['cookie'] = cookieString;

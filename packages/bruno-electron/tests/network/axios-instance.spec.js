@@ -6,18 +6,24 @@ jest.mock('electron', () => ({
 }));
 
 // Mock preferences
+const mockShouldStoreCookies = jest.fn(() => true);
+const mockShouldSendCookies = jest.fn(() => true);
+
 jest.mock('../../src/store/preferences', () => ({
   preferencesUtil: {
-    shouldStoreCookies: () => false,
-    shouldSendCookies: () => false,
+    shouldStoreCookies: mockShouldStoreCookies,
+    shouldSendCookies: mockShouldSendCookies,
     isSslSessionCachingEnabled: () => true
   }
 }));
 
 // Mock cookies
+const mockAddCookieToJar = jest.fn();
+const mockGetCookieStringForUrl = jest.fn();
+
 jest.mock('../../src/utils/cookies', () => ({
-  addCookieToJar: jest.fn(),
-  getCookieStringForUrl: jest.fn()
+  addCookieToJar: mockAddCookieToJar,
+  getCookieStringForUrl: mockGetCookieStringForUrl
 }));
 
 // Mock proxy-util
@@ -52,6 +58,11 @@ function createStubAdapter() {
 }
 
 describe('axios-instance: default headers', () => {
+  beforeEach(() => {
+    mockAddCookieToJar.mockReset();
+    mockGetCookieStringForUrl.mockReset();
+  });
+
   test('setting User-Agent does not clobber the axios default Accept header', async () => {
     const stubAdapter = createStubAdapter();
     const instance = makeAxiosInstance();
@@ -70,6 +81,34 @@ describe('axios-instance: default headers', () => {
     await instance({ url: 'https://api.example.com/test', method: 'get', adapter: stubAdapter });
 
     expect(stubAdapter.getConfig().headers['User-Agent']).toMatch(/^bruno-runtime\//);
+  });
+
+  test('does not store or inject cookie jar cookies on redirects when request cookie automation is disabled', async () => {
+    mockGetCookieStringForUrl.mockReturnValue('session=from-jar');
+    const stubAdapter = createStubAdapter();
+    const instance = makeAxiosInstance({ storeCookies: false, sendCookies: false });
+    const redirectError = {
+      config: {
+        url: 'https://api.example.com/start',
+        method: 'get',
+        headers: { Cookie: 'manual=value' },
+        metadata: { timeline: [] },
+        adapter: stubAdapter
+      },
+      response: {
+        status: 302,
+        headers: {
+          'location': 'https://api.example.com/target',
+          'set-cookie': ['session=from-response']
+        }
+      }
+    };
+
+    await instance.interceptors.response.handlers[0].rejected(redirectError);
+
+    expect(mockGetCookieStringForUrl).not.toHaveBeenCalled();
+    expect(mockAddCookieToJar).not.toHaveBeenCalled();
+    expect(stubAdapter.getConfig().headers.Cookie).toBe('manual=value');
   });
 });
 

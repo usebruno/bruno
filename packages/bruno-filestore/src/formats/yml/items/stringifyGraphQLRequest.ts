@@ -123,7 +123,10 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
 
     // settings
     const httpSettings = item.settings as BrunoHttpItemSettings | undefined;
-    const settings: GraphQLRequestSettings = {};
+    const settings: GraphQLRequestSettings & {
+      storeCookies?: boolean;
+      sendCookies?: boolean;
+    } = {};
     if (httpSettings?.encodeUrl === true) {
       settings.encodeUrl = true;
     } else if (httpSettings?.encodeUrl === false) {
@@ -153,6 +156,9 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
     } else {
       settings.maxRedirects = 5;
     }
+
+    settings.storeCookies = httpSettings?.storeCookies !== false;
+    settings.sendCookies = httpSettings?.sendCookies !== false;
 
     ocRequest.settings = settings;
 

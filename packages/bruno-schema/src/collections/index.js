@@ -678,6 +678,8 @@ const itemSchema = Yup.object({
         encodeUrl: Yup.boolean().nullable(),
         followRedirects: Yup.boolean().nullable(),
         maxRedirects: Yup.number().min(0).max(50).nullable(),
+        storeCookies: Yup.boolean().nullable(),
+        sendCookies: Yup.boolean().nullable(),
         timeout: Yup.mixed().nullable()
       }).noUnknown(true)
     .strict()
