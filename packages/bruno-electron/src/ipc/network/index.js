@@ -59,9 +59,15 @@ const saveCookies = (url, headers) => {
   }
 };
 
+/**
+ * Returns whether global and request-level settings allow cookie storage.
+ */
 const shouldStoreCookiesForRequest = (request) =>
   preferencesUtil.shouldStoreCookies() && request.settings?.storeCookies !== false;
 
+/**
+ * Returns whether global and request-level settings allow cookie sending.
+ */
 const shouldSendCookiesForRequest = (request) =>
   preferencesUtil.shouldSendCookies() && request.settings?.sendCookies !== false;
 

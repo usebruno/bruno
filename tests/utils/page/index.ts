@@ -5,5 +5,6 @@ export * from './locators';
 export * from './sidebar';
 export * from './mounting';
 export * from './preferences';
+export * from './request-settings';
 export * from './ai';
 export * from '../snapshot';

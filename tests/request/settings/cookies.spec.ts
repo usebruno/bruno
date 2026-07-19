@@ -1,45 +1,44 @@
-import { test, expect } from '../../../playwright';
-import { selectRequestPaneTab } from '../../utils/page';
+import { test } from '../../../playwright';
+import {
+  expectCookieSetting,
+  openRequestFromSettingsCollection,
+  openRequestSettings,
+  openRequestSettingsCollection,
+  sendRequestAndExpectStatus,
+  toggleCookieSetting
+} from '../../utils/page';
 
 test.describe('Per-request Cookie Settings Tests', () => {
   test('controls automatic cookie storage and sending independently', async ({
     pageWithUserData: page
   }) => {
-    await expect(page.locator('#sidebar-collection-name').getByText('settings-test')).toBeVisible();
-    await page.locator('#sidebar-collection-name').getByText('settings-test').click();
+    await openRequestSettingsCollection(page, 'settings-test');
 
-    await page.getByRole('complementary').getByText('cookie-login').click();
-    await selectRequestPaneTab(page, 'Settings');
+    await test.step('Do not store response cookies when automatic storage is disabled', async () => {
+      await openRequestSettings(page, 'cookie-login');
+      await expectCookieSetting(page, 'store', false);
+      await sendRequestAndExpectStatus(page, '200');
 
-    const storeCookiesToggle = page.getByTestId('store-cookies-toggle');
-    await expect(storeCookiesToggle).toBeVisible();
-    await expect(storeCookiesToggle).not.toBeChecked();
+      await openRequestFromSettingsCollection(page, 'cookie-protected');
+      await sendRequestAndExpectStatus(page, '401');
+    });
 
-    await page.getByTestId('send-arrow-icon').click();
-    await expect(page.getByTestId('response-status-code')).toContainText('200');
+    await test.step('Store response cookies when automatic storage is enabled', async () => {
+      await openRequestSettings(page, 'cookie-login');
+      await toggleCookieSetting(page, 'store');
+      await expectCookieSetting(page, 'store', true);
+      await sendRequestAndExpectStatus(page, '200');
 
-    await page.getByRole('complementary').getByText('cookie-protected').click();
-    await page.getByTestId('send-arrow-icon').click();
-    await expect(page.getByTestId('response-status-code')).toContainText('401');
+      await openRequestFromSettingsCollection(page, 'cookie-protected');
+      await sendRequestAndExpectStatus(page, '200');
+    });
 
-    await page.getByRole('complementary').getByText('cookie-login').click();
-    await selectRequestPaneTab(page, 'Settings');
-    await storeCookiesToggle.click();
-    await expect(storeCookiesToggle).toBeChecked();
-    await page.getByTestId('send-arrow-icon').click();
-    await expect(page.getByTestId('response-status-code')).toContainText('200');
-
-    await page.getByRole('complementary').getByText('cookie-protected').click();
-    await page.getByTestId('send-arrow-icon').click();
-    await expect(page.getByTestId('response-status-code')).toContainText('200');
-
-    await selectRequestPaneTab(page, 'Settings');
-    const sendCookiesToggle = page.getByTestId('send-cookies-toggle');
-    await expect(sendCookiesToggle).toBeChecked();
-    await sendCookiesToggle.click();
-    await expect(sendCookiesToggle).not.toBeChecked();
-
-    await page.getByTestId('send-arrow-icon').click();
-    await expect(page.getByTestId('response-status-code')).toContainText('401');
+    await test.step('Do not send stored cookies when automatic sending is disabled', async () => {
+      await openRequestSettings(page, 'cookie-protected');
+      await expectCookieSetting(page, 'send', true);
+      await toggleCookieSetting(page, 'send');
+      await expectCookieSetting(page, 'send', false);
+      await sendRequestAndExpectStatus(page, '401');
+    });
   });
 });

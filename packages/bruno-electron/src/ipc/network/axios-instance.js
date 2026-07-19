@@ -14,6 +14,53 @@ const LOCAL_IPV4 = '127.0.0.1';
 const LOCALHOST = 'localhost';
 const version = electronApp?.app?.getVersion() ?? '';
 const redirectResponseCodes = [301, 302, 303, 307, 308];
+const SENSITIVE_REDIRECT_HEADERS = new Set(['authorization', 'proxy-authorization', 'cookie']);
+
+/**
+ * Parses a Cookie header into name-value pairs.
+ */
+const parseCookieHeader = (value) => value.split(';').reduce((cookies, cookie) => {
+  const [name, ...rest] = cookie.split('=');
+  if (name && name.trim()) {
+    cookies[name.trim()] = rest.join('=').trim();
+  }
+  return cookies;
+}, {});
+
+/**
+ * Removes credentials copied from the previous request when a redirect crosses origins.
+ */
+const stripSensitiveHeadersOnCrossOriginRedirect = (headers, sourceUrl, redirectUrl) => {
+  if (new globalThis.URL(sourceUrl).origin === new globalThis.URL(redirectUrl).origin) {
+    return;
+  }
+
+  Object.keys(headers).forEach((name) => {
+    if (SENSITIVE_REDIRECT_HEADERS.has(name.toLowerCase())) {
+      delete headers[name];
+    }
+  });
+};
+
+/**
+ * Merges matching jar cookies into one case-insensitive Cookie header.
+ */
+const mergeCookieHeader = (headers, cookieString) => {
+  const cookieHeaderNames = Object.keys(headers).filter((name) => name.toLowerCase() === 'cookie');
+  const existingCookieString = cookieHeaderNames
+    .map((name) => headers[name])
+    .filter((value) => typeof value === 'string')
+    .join('; ');
+  const mergedCookies = {
+    ...parseCookieHeader(existingCookieString),
+    ...parseCookieHeader(cookieString)
+  };
+
+  cookieHeaderNames.forEach((name) => delete headers[name]);
+  headers[cookieHeaderNames[0] || 'cookie'] = Object.entries(mergedCookies)
+    .map(([name, value]) => `${name}=${value}`)
+    .join('; ');
+};
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -362,6 +409,8 @@ function makeAxiosInstance({
             }
           };
 
+          stripSensitiveHeadersOnCrossOriginRedirect(requestConfig.headers, error.config.url, redirectUrl);
+
           // Apply proper HTTP redirect behavior based on status code
           const statusCode = error.response.status;
           const originalMethod = (error.config.method || 'get').toLowerCase();
@@ -420,7 +469,7 @@ function makeAxiosInstance({
           if (sendCookies && preferencesUtil.shouldSendCookies()) {
             const cookieString = getCookieStringForUrl(redirectUrl);
             if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-              requestConfig.headers['cookie'] = cookieString;
+              mergeCookieHeader(requestConfig.headers, cookieString);
             }
           }
 
