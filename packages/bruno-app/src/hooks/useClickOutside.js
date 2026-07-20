@@ -7,12 +7,12 @@ const useClickOutside = (refs, onClose) => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       const isOutside = refs.every((ref) => !ref.current || !ref.current.contains(event.target));
-      if (isOutside) savedOnClose.current();
+      if (isOutside) savedOnClose.current?.();
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [refs]);
 };
 
 export default useClickOutside;

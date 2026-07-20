@@ -348,67 +348,67 @@ const StyledWrapper = styled.div`
     }
 
     &.error {
-      border-left-color: #f14c4c;
+      border-left-color: ${(props) => props.theme.status.danger.text};
 
       .log-level {
-        background: #f14c4c;
+        background: ${(props) => props.theme.status.danger.text};
         color: white;
       }
 
       .log-icon {
-        color: #f14c4c;
+        color: ${(props) => props.theme.status.danger.text};
       }
     }
 
     &.warn {
-      border-left-color: #ffcc02;
+      border-left-color: ${(props) => props.theme.status.warning.text};
 
       .log-level {
-        background: #ffcc02;
+        background: ${(props) => props.theme.status.warning.text};
         color: #000;
       }
 
       .log-icon {
-        color: #ffcc02;
+        color: ${(props) => props.theme.status.warning.text};
       }
     }
 
     &.info {
-      border-left-color: #0078d4;
+      border-left-color: ${(props) => props.theme.status.info.text};
 
       .log-level {
-        background: #0078d4;
+        background: ${(props) => props.theme.status.info.text};
         color: white;
       }
 
       .log-icon {
-        color: #0078d4;
+        color: ${(props) => props.theme.status.info.text};
       }
     }
 
     &.debug {
-      border-left-color: #9b59b6;
+      border-left-color: ${(props) => props.theme.colors?.text?.purple || props.theme.status.danger.text};
 
       .log-level {
-        background: #9b59b6;
+        background: ${(props) => props.theme.colors?.text?.purple || props.theme.status.danger.text};
         color: white;
       }
 
       .log-icon {
-        color: #9b59b6;
+        color: ${(props) => props.theme.colors?.text?.purple || props.theme.status.danger.text};
       }
     }
 
     &.log {
-      border-left-color: #6a6a6a;
+      border-left-color: ${(props) => props.theme.colors?.text?.muted || props.theme.overlay.overlay2};
 
       .log-level {
-        background: #6a6a6a;
+        background: ${(props) => props.theme.colors?.text?.muted || props.theme.overlay.overlay2};
         color: white;
       }
 
       .log-icon {
-        color: #6a6a6a;
+        color: ${(props) => props.theme.colors?.text?.muted || props.theme.overlay.overlay2};
       }
     }
   }
@@ -514,7 +514,7 @@ export const PortalDropdownMenu = styled.div`
   max-width: 250px;
   background: ${(props) => props.theme.console.dropdownBg};
   border: 1px solid ${(props) => props.theme.console.border};
-  border-radius: 6px;
+  border-radius: ${(props) => props.theme.border.radius.sm};
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 
@@ -592,10 +592,10 @@ export const PortalDropdownMenu = styled.div`
 
   .log-icon {
     flex-shrink: 0;
-    &.error { color: #f14c4c; }
-    &.warn  { color: #ffcc02; }
-    &.info  { color: #0078d4; }
-    &.log   { color: #6a6a6a; }
+    &.error { color: ${(props) => props.theme.status.danger.text}; }
+    &.warn  { color: ${(props) => props.theme.status.warning.text}; }
+    &.info  { color: ${(props) => props.theme.status.info.text}; }
+    &.log   { color: ${(props) => props.theme.colors?.text?.muted || props.theme.overlay.overlay2}; }
   }
 `;
 

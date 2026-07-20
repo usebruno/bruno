@@ -25,7 +25,7 @@ import {
   toggleAllNetworkFilters
 } from 'providers/ReduxStore/slices/logs';
 
-import { FilterDropdown, NetworkFilterDropdown } from './FilterDropdown';
+import { DevToolsFilterDropdown } from './FilterDropdown';
 import NetworkTab from './NetworkTab';
 import TerminalTab from './TerminalTab';
 import RequestDetailsPanel from './RequestDetailsPanel';
@@ -393,11 +393,14 @@ const Console = () => {
         return (
           <div className="tab-controls">
             <div className="filter-controls">
-              <FilterDropdown
+              <DevToolsFilterDropdown
                 filters={filters}
-                logCounts={logCounts}
+                counts={logCounts}
                 onFilterToggle={handleFilterToggle}
                 onToggleAll={handleToggleAllFilters}
+                headerLabel="Filter by Type"
+                title="Filter logs by type"
+                renderIcon={(type) => <LogIcon type={type} />}
               />
             </div>
             <div className="action-controls">
@@ -415,11 +418,13 @@ const Console = () => {
         return (
           <div className="tab-controls">
             <div className="filter-controls">
-              <NetworkFilterDropdown
+              <DevToolsFilterDropdown
                 filters={networkFilters}
-                requestCounts={requestCounts}
+                counts={requestCounts}
                 onFilterToggle={handleNetworkFilterToggle}
                 onToggleAll={handleToggleAllNetworkFilters}
+                headerLabel="Filter by Method"
+                title="Filter requests by method"
               />
             </div>
           </div>
