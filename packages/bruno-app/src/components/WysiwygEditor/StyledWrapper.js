@@ -70,28 +70,18 @@ const StyledWrapper = styled.div`
     table.docs-table {
       .column-resize-handle {
         position: absolute;
-        right: -3px;
+        right: -2px;
         top: 0;
-        bottom: 0;
-        width: 6px;
-        background-color: ${(props) => props.theme.dropdown.selectedColor};
+        bottom: -1px;
+        width: 4px;
+        background-color: ${(props) => props.theme.colors.accent};
         pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.15s ease;
-        z-index: 2;
-      }
-
-      .column-resize-dragging {
-        background-color: ${(props) => props.theme.dropdown.hoverBg};
+        z-index: 10;
       }
     }
 
     &.resize-cursor {
       cursor: col-resize;
-
-      .column-resize-handle {
-        opacity: 1;
-      }
     }
   }
 

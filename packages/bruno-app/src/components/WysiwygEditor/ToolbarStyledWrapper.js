@@ -26,7 +26,7 @@ const ToolbarStyledWrapper = styled.div`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 8px;
+    padding: 2px 6px;
     border-radius: 4px;
     border: 1px solid ${(props) => props.theme.dropdown.separator};
     background: ${(props) => props.theme.dropdown.bg};

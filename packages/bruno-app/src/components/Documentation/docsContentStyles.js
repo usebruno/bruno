@@ -181,43 +181,57 @@ const docsContentStyles = css`
 
   table,
   table.docs-table {
-    display: table;
     width: 100%;
-    max-width: 100%;
     margin: 1rem 0;
-    border-collapse: collapse;
-    border-spacing: 0;
     table-layout: fixed;
-    overflow: visible;
-    font-variant: normal;
-    font-size: inherit;
+    font-size: ${(props) => props.theme.font.size.base};
+    font-weight: normal !important;
 
-    th,
-    td {
-      border: 1px solid ${(props) => props.theme.table.border};
-      background-color: transparent;
-      box-sizing: border-box;
-      padding: 12px 16px;
-      vertical-align: top;
-      position: relative;
-      min-width: 60px;
-      min-height: calc(1.5em + 24px);
-      line-height: 1.5;
-      word-break: break-word;
-    }
-
-    th:empty::before,
-    td:empty::before {
-      content: '\\00a0';
-      display: inline-block;
-      min-height: 1.5em;
-    }
+    border-radius: ${(props) => props.theme.border.radius.base};
+    border: solid 1px ${(props) => props.theme.border.border0};
+    overflow: clip;
+    border-collapse: separate; 
+    border-spacing: 0;
 
     th {
-      font-weight: 600;
+      color: ${(props) => props.theme.table.thead.color} !important;
+      background: ${(props) => props.theme.sidebar.bg};
+      user-select: none;
+      font-weight: 500;
       text-align: left;
-      background-color: ${(props) => props.theme.table.striped};
+      padding: 5px 10px !important;
+      border-top: none !important;
+      border-left: none !important;
+      border-bottom: solid 1px ${(props) => props.theme.border.border0};
+      border-right: solid 1px ${(props) => props.theme.border.border0};
+      vertical-align: middle;
+      position: relative;
 
+      &:last-child {
+        border-right: none;
+      }
+    }
+
+    td {
+      padding: 6px 10px !important;
+      border-top: none !important;
+      border-left: none !important;
+      border-bottom: solid 1px ${(props) => props.theme.border.border0};
+      border-right: solid 1px ${(props) => props.theme.border.border0};
+      vertical-align: middle;
+      box-sizing: border-box;
+      position: relative;
+
+      &:last-child {
+        border-right: none;
+      }
+    }
+
+    tr {
+      &:last-child td,
+      &:last-child th {
+        border-bottom: none;
+      }
     }
 
     p {
@@ -226,6 +240,7 @@ const docsContentStyles = css`
       line-height: 1.5;
     }
   }
+
   a,
   .docs-link {
     color: ${(props) => props.theme.textLink};
