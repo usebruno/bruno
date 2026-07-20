@@ -17,6 +17,10 @@ import {
  * Promise. Kept byte-for-byte compatible with Akamai's reference implementation.
  */
 
+// buildHar rewrites unresolved `{{var}}` URL tokens to a `bruno-var-hash-*` placeholder
+// (packages/bruno-common/src/utils/template-hasher.ts); every other unresolved input stays `{{var}}`.
+const UNRESOLVED_INPUT = /\{\{.+?\}\}|bruno-var-hash-/;
+
 export interface AkamaiEdgeGridAuthValues {
   accessToken?: string;
   clientToken?: string;
@@ -51,6 +55,20 @@ export const signEdgeGridRequest = async (
   const nonce = isStrPresent(config.nonce) ? config.nonce : makeEdgeGridNonce();
   const timestamp = isStrPresent(config.timestamp) ? config.timestamp : makeEdgeGridTimestamp();
 
+  // The auth header (sans signature) is also the last field of the data-to-sign, per spec.
+  const authHeader = `EG1-HMAC-SHA256 client_token=${clientToken};access_token=${accessToken};timestamp=${timestamp};nonce=${nonce};`;
+  const signedHeaders = canonicalizeHeaders(headersToSign, request.headers);
+
+  // A real signature can only be produced when every signed input is fully resolved. Generate Code
+  // may still carry `{{var}}` (interpolation off, or an undefined var), and buildHar rewrites
+  // unresolved URL vars to `bruno-var-hash-*` — signing either would cover bytes that differ from
+  // what's actually sent. Emit a placeholder the user replaces once the request is signed at send time.
+  const hasUnresolvedInput = [authHeader, clientSecret, baseURL, headersToSign, request.method, request.url, request.bodyText, signedHeaders]
+    .some((v) => typeof v === 'string' && UNRESOLVED_INPUT.test(v));
+  if (hasUnresolvedInput) {
+    return `${authHeader}signature=<computed-at-request-time>`;
+  }
+
   let parsedUrl: URL;
   try {
     let urlToSign = request.url;
@@ -67,22 +85,12 @@ export const signEdgeGridRequest = async (
     return null;
   }
 
-  // The auth header (sans signature) is also the last field of the data-to-sign, per spec.
-  const authHeader = `EG1-HMAC-SHA256 client_token=${clientToken};access_token=${accessToken};timestamp=${timestamp};nonce=${nonce};`;
-
-  // With variables unresolved (Generate Code, interpolation off) a real signature can't be
-  // produced — it would sign literal `{{var}}` tokens. Emit a placeholder the user replaces
-  // once the request is signed at send time.
-  if (/\{\{.+?\}\}/.test(authHeader) || /\{\{.+?\}\}/.test(clientSecret)) {
-    return `${authHeader}signature=<computed-at-request-time>`;
-  }
-
   const dataToSign = [
     request.method.toUpperCase(),
     parsedUrl.protocol.replace(':', ''),
     parsedUrl.host,
     parsedUrl.pathname + parsedUrl.search,
-    canonicalizeHeaders(headersToSign, request.headers),
+    signedHeaders,
     await makeContentHash(request.method, request.bodyText, maxBodySize),
     authHeader
   ].join('\t');
