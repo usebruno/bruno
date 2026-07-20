@@ -435,6 +435,52 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('via', 'symlink');
     });
 
+    it('should allow subpath imports into an npm-linked package', async () => {
+      // Physical location of a multi-file package outside every declared root.
+      const externalPkg = path.join(testDir, 'external-subpath-pkg');
+      fs.mkdirSync(externalPkg, { recursive: true });
+      fs.writeFileSync(
+        path.join(externalPkg, 'package.json'),
+        JSON.stringify({ name: 'subpath-pkg', main: 'index.js' })
+      );
+      fs.writeFileSync(
+        path.join(externalPkg, 'index.js'),
+        'module.exports = { root: true };'
+      );
+      // Subpath file — require('subpath-pkg/utils') maps to utils.js (a file,
+      // not a directory-with-index.js).
+      fs.writeFileSync(
+        path.join(externalPkg, 'utils.js'),
+        'module.exports = { greet: () => "sub-hello" };'
+      );
+
+      const nmDir = path.join(collectionPath, 'node_modules');
+      fs.mkdirSync(nmDir, { recursive: true });
+      try {
+        fs.symlinkSync(externalPkg, path.join(nmDir, 'subpath-pkg'), 'dir');
+      } catch (e) {
+        if (e.code === 'EPERM' || e.code === 'ENOTSUP') return;
+        throw e;
+      }
+
+      const script = `
+        const utils = require('subpath-pkg/utils');
+        bru.setVar('result', utils.greet());
+      `;
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      // Without the bare-name lookup, isModuleLinkedFromAllowedRoot would build
+      // linkPath = <coll>/node_modules/subpath-pkg/utils, realpath'd against a
+      // candidate of .../utils.js, produce '../utils.js', and reject.
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'sub-hello');
+    });
+
     it('should allow internal relative requires inside an npm-linked package', async () => {
       // Physical location of a multi-file package outside every declared root.
       const externalPkg = path.join(testDir, 'external-pkg');
