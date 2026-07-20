@@ -8,8 +8,6 @@ import {
   findEnvironmentInCollection,
   findItemInCollectionByPathname,
   flattenItems,
-  getEnvironmentVariables,
-  getGlobalEnvironmentVariables,
   isItemARequest
 } from 'utils/collections';
 import { uuid } from 'utils/common';
@@ -20,12 +18,14 @@ import {
   updateAppCode
 } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { addLog } from 'providers/ReduxStore/slices/logs';
 import { useTheme } from 'providers/Theme';
 import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
 import { buildAiVariablesPayload, buildDocsContextFromCollection } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import EmptyAppState from '../AppView/EmptyAppState';
+import { buildVariables } from '../AppView/buildVariables';
 import {
   SENTINEL,
   wrapHtml,
@@ -42,10 +42,10 @@ import {
  * the code prop changes.
  *
  * Collection ctx surface differs from the request-level AppView:
- *   shared:  theme, log, variables, setRuntimeVariable, onThemeChange, onVariablesUpdate
- *   added:   collection, listRequests(), runRequest(pathname, overrides?)
- *   dropped: sendRequest, response, assertionResults, testResults
- *             (and their on* hooks — they only make sense for one request)
+ *   shared:  theme, log, variables (.resolved / .runtime.set), onThemeChange, onVariablesChange
+ *   added:   collection, listRequests(), runRequest(pathname, options?), onCollectionChange
+ *   dropped: submitRequest, http.response, assertions, tests
+ *             (and their on*Change hooks — they only make sense for one request)
  */
 
 const COLLECTION_CTX_BOOTSTRAP = `<script>
@@ -71,36 +71,43 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
   }
 
   var ctx = {
-    theme: 'light',
-    variables: {},
+    theme: { name: 'light', mode: 'light', config: {} },
     collection: null,
+    variables: {
+      resolved: {},
+      runtime: {
+        set: function (name, value) {
+          sendToHost({ type: 'setRuntimeVariable', key: String(name), value: value });
+        }
+      }
+    },
 
     onInit: null,
     onThemeChange: null,
-    onVariablesUpdate: null,
-    onCollectionUpdate: null,
+    onVariablesChange: null,
+    onCollectionChange: null,
 
     listRequests: function () {
       return awaitReply('listRequests');
     },
-    runRequest: function (pathname, overrides) {
-      return awaitReply('runRequest', { pathname: String(pathname || ''), overrides: overrides || {} });
-    },
-    setRuntimeVariable: function (key, value) {
-      sendToHost({ type: 'setRuntimeVariable', key: String(key), value: value });
+    runRequest: function (pathname, options) {
+      return awaitReply('runRequest', { pathname: String(pathname || ''), options: options || {} });
     },
     log: function () {
       var args = Array.prototype.slice.call(arguments);
       sendToHost({ type: 'log', args: args });
     }
   };
-  window.ctx = ctx;
+
+  var bru = { ctx: ctx };
+  window.bru = bru;
 
   function applyTheme(theme) {
-    ctx.theme = theme || 'light';
+    ctx.theme = theme || { name: 'light', mode: 'light', config: {} };
+    var mode = ctx.theme.mode || 'light';
     if (document.body) {
       document.body.classList.remove('light', 'dark');
-      document.body.classList.add(ctx.theme);
+      document.body.classList.add(mode);
     }
   }
 
@@ -109,12 +116,12 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
     switch (msg.type) {
       case 'state':
         applyTheme(msg.theme);
-        ctx.variables = msg.variables || {};
+        ctx.variables.resolved = msg.variables || {};
         ctx.collection = msg.collection || null;
         if (!initialized) {
           initialized = true;
           if (typeof ctx.onInit === 'function') {
-            try { ctx.onInit(ctx); } catch (e) { sendToHost({ type: 'log', args: ['onInit error: ' + (e && e.message)] }); }
+            try { ctx.onInit(bru); } catch (e) { sendToHost({ type: 'log', args: ['onInit error: ' + (e && e.message)] }); }
           }
         }
         break;
@@ -123,12 +130,12 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
         if (typeof ctx.onThemeChange === 'function') ctx.onThemeChange(ctx.theme);
         break;
       case 'variables':
-        ctx.variables = msg.variables || {};
-        if (typeof ctx.onVariablesUpdate === 'function') ctx.onVariablesUpdate(ctx.variables);
+        ctx.variables.resolved = msg.variables || {};
+        if (typeof ctx.onVariablesChange === 'function') ctx.onVariablesChange(ctx.variables);
         break;
       case 'collection':
         ctx.collection = msg.collection || null;
-        if (typeof ctx.onCollectionUpdate === 'function') ctx.onCollectionUpdate(ctx.collection);
+        if (typeof ctx.onCollectionChange === 'function') ctx.onCollectionChange(ctx.collection);
         break;
       case 'reply': {
         var entry = pending.get(msg.replyId);
@@ -149,20 +156,6 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
 })();
 </script>`;
 
-const buildVariables = (collection) => {
-  const env = getEnvironmentVariables(collection);
-  const global = getGlobalEnvironmentVariables({
-    globalEnvironments: collection?.globalEnvironments || [],
-    activeGlobalEnvironmentUid: collection?.activeGlobalEnvironmentUid
-  });
-  return {
-    ...global,
-    ...env,
-    ...(collection?.collectionVariables || {}),
-    ...(collection?.runtimeVariables || {})
-  };
-};
-
 const listRequestSummaries = (collection) =>
   flattenItems(collection?.items || [])
     .filter(isItemARequest)
@@ -177,9 +170,18 @@ const listRequestSummaries = (collection) =>
 
 const CollectionApp = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { displayedTheme } = useTheme();
+  const { displayedTheme, theme, themeVariantLight, themeVariantDark } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const [view, setView] = useState('preview');
+
+  const themePayload = useMemo(
+    () => ({
+      name: displayedTheme === 'light' ? themeVariantLight : themeVariantDark,
+      mode: displayedTheme,
+      config: theme
+    }),
+    [displayedTheme, theme, themeVariantLight, themeVariantDark]
+  );
 
   const code = item.draft ? get(item, 'draft.app.code', '') : get(item, 'app.code', '');
 
@@ -216,7 +218,7 @@ const CollectionApp = ({ item, collection }) => {
   // overrides into runtime variables, sends, and dispatches responseReceived so the
   // request's normal Response pane updates too.
   const runRequestByPath = useCallback(
-    async (pathname, overrides) => {
+    async (pathname, options) => {
       const target = findItemInCollectionByPathname(collection, pathname);
       if (!target) {
         throw new Error(`Request not found: ${pathname}`);
@@ -232,13 +234,13 @@ const CollectionApp = ({ item, collection }) => {
         initRunRequestEvent({ requestUid, itemUid: target.uid, collectionUid: collection.uid })
       );
 
-      const flat = overrides && typeof overrides === 'object' ? { ...overrides } : {};
-      const explicit = flat.variables;
-      delete flat.variables;
+      const runtimeOverrides
+        = options && typeof options.runtimeVariables === 'object' && options.runtimeVariables
+          ? options.runtimeVariables
+          : {};
       const mergedRuntime = {
         ...(collection.runtimeVariables || {}),
-        ...flat,
-        ...(explicit && typeof explicit === 'object' ? explicit : {})
+        ...runtimeOverrides
       };
 
       const result = await sendNetworkRequest(requestItem, collection, environment, mergedRuntime);
@@ -287,6 +289,7 @@ const CollectionApp = ({ item, collection }) => {
           break;
         case 'log':
           console.log('[app]', ...(data.args || []));
+          dispatch(addLog({ type: 'log', args: ['[app]', ...(data.args || [])], timestamp: new Date().toISOString() }));
           break;
         case 'setRuntimeVariable':
           if (typeof data.key === 'string' && data.key.length) {
@@ -301,7 +304,7 @@ const CollectionApp = ({ item, collection }) => {
         }
         case 'runRequest': {
           try {
-            const res = await runRequestByPath(data.pathname, data.overrides);
+            const res = await runRequestByPath(data.pathname, data.options);
             push({ type: 'reply', replyId: data.replyId, result: res });
           } catch (err) {
             push({ type: 'reply', replyId: data.replyId, error: err?.message || 'runRequest failed' });
@@ -319,15 +322,15 @@ const CollectionApp = ({ item, collection }) => {
   pushToGuestRef.current = pushToGuest;
 
   const stateRef = useRef();
-  stateRef.current = { theme: displayedTheme, variables, collection: collectionInfo };
+  stateRef.current = { theme: themePayload, variables, collection: collectionInfo };
   useEffect(() => {
     if (!domReady) return;
     pushToGuest({ type: 'state', ...stateRef.current });
   }, [domReady, pushToGuest]);
 
   useEffect(() => {
-    pushToGuest({ type: 'theme', theme: displayedTheme });
-  }, [displayedTheme, pushToGuest]);
+    pushToGuest({ type: 'theme', theme: themePayload });
+  }, [themePayload, pushToGuest]);
 
   useEffect(() => {
     pushToGuest({ type: 'variables', variables });

@@ -7,22 +7,30 @@
  *    instruction. Output is appended verbatim at the cursor.
  */
 
-const BRUNO_API_SUMMARY = `## Bruno runtime APIs (available inside scripts)
-
-bru:    env/global/collection/folder/request/runtime vars — get/set/has/delete,
+const API_BLOCKS = {
+  bru: `bru:    env/global/collection/folder/request/runtime vars — get/set/has/delete,
         interpolate(strOrObj), sleep(ms), sendRequest(cfg), setNextRequest(name),
-        cookies, utils.minifyJson/Xml, getEnvName, getCollectionName, cwd
-
-req:    url, method, headers, body, timeout. getUrl/setUrl, getHeader/setHeader,
-        getBody/setBody, getMethod/setMethod, getTimeout/setTimeout. Available in
-        pre-request, post-response and tests.
-
-res:    status, headers, body, responseTime. getStatus, getStatusText,
+        cookies, utils.minifyJson/Xml, getEnvName, getCollectionName, cwd`,
+  req: `req:    url, method, headers, body, timeout. getUrl/setUrl, getHeader/setHeader,
+        getBody/setBody, getMethod/setMethod, getTimeout/setTimeout.`,
+  res: `res:    status, headers, body, responseTime. getStatus, getStatusText,
         getHeader, getHeaders, getBody, getResponseTime, getSize. res('json.path')
-        for JSONPath-style queries. Available in post-response and tests.
+        for JSONPath-style queries.`,
+  test: `test/expect:  Chai-style assertions inside test("name", () => { ... }) blocks.`
+};
 
-test/expect:  Chai-style assertions inside test("name", () => { ... }) blocks.
-              Available in tests only.`;
+const API_BLOCKS_BY_SCRIPT_TYPE = {
+  'pre-request': ['bru', 'req'],
+  'post-response': ['bru', 'req', 'res'],
+  'tests': ['bru', 'req', 'res', 'test']
+};
+
+const buildApiSummary = (scriptType) => {
+  const blocks = API_BLOCKS_BY_SCRIPT_TYPE[scriptType] || Object.keys(API_BLOCKS);
+  return `## Bruno runtime APIs (available inside scripts)
+
+${blocks.map((block) => API_BLOCKS[block]).join('\n\n')}`;
+};
 
 const SCRIPT_CONTEXTS = {
   'tests': `Tests run AFTER the response. Globals: bru, req, res, test, expect. Assertions go inside test("name", () => { ... }) blocks. Don't call bru.setEnvVar / setVar — keep tests pure.`,
@@ -41,7 +49,7 @@ const buildSystemPrompt = (scriptType) => {
   const context = SCRIPT_CONTEXTS[scriptType] || '';
   return `You are an inline code-completion engine for ${label}.
 
-${BRUNO_API_SUMMARY}
+${buildApiSummary(scriptType)}
 
 ## Context for ${scriptType}
 ${context}
@@ -191,10 +199,62 @@ const ensureNewlineAfterComment = (prefix, suggestion) => {
   return '\n' + suggestion;
 };
 
+const RES_API_USAGE_RE = /(?<![\w$.?])res\s*\??\s*[.([]/;
+const RES_BINDING_RE = /\b(?:const|let|var)\s+res\b|[(,]\s*res\s*[,)=]|\bres\s*=>/;
+const TRAILING_MEMBER_EXPR_RE = /[\w$.?[\]()]*$/;
+const TRAILING_WORD_RE = /[\w$]+$/;
+const PRECEDING_WORD_RE = /([\w$]+)\s+$/;
+const LEADING_WORD_RE = /^[\w$]+/;
+
+const PREFIX_TAIL_LIMIT = 512;
+const prefixTail = (prefix) => prefix.slice(-PREFIX_TAIL_LIMIT);
+
+const stripDisallowedApis = (suggestion, scriptType, prefix = '') => {
+  if (!suggestion || scriptType !== 'pre-request') return suggestion;
+  if (RES_BINDING_RE.test(prefix)) return suggestion;
+  const trailingExpr = (prefixTail(prefix).match(TRAILING_MEMBER_EXPR_RE) || [''])[0];
+  if (RES_API_USAGE_RE.test(suggestion) || RES_API_USAGE_RE.test(trailingExpr + suggestion)) return '';
+  return suggestion;
+};
+
+const stripTypedPrefixOverlap = (prefix, suggestion) => {
+  if (!prefix || !suggestion) return suggestion;
+  const trailingExpr = (prefixTail(prefix).match(TRAILING_MEMBER_EXPR_RE) || [''])[0];
+  for (let overlapLen = Math.min(trailingExpr.length, suggestion.length); overlapLen > 0; overlapLen--) {
+    if (trailingExpr.endsWith(suggestion.slice(0, overlapLen))) return suggestion.slice(overlapLen);
+  }
+  return suggestion;
+};
+
+const duplicatesPrecedingWord = (prefix, suggestion) => {
+  if (!prefix || !suggestion) return false;
+  const tail = prefixTail(prefix);
+  const pendingWord = (tail.match(TRAILING_WORD_RE) || [''])[0];
+  if (!pendingWord) return false;
+  const beforePending = tail.slice(0, tail.length - pendingWord.length);
+  const preceding = beforePending.match(PRECEDING_WORD_RE);
+  if (!preceding) return false;
+  const head = (suggestion.match(LEADING_WORD_RE) || [''])[0];
+  if (!head) return false;
+  return (pendingWord + head).endsWith(preceding[1]);
+};
+
+const sanitizeSuggestion = ({ text, prefix, scriptType }) => {
+  const cleaned = cleanSuggestion(text || '');
+  const allowed = stripDisallowedApis(cleaned, scriptType, prefix);
+  const deduped = stripTypedPrefixOverlap(prefix, allowed);
+  if (duplicatesPrecedingWord(prefix, deduped)) return '';
+  return ensureNewlineAfterComment(prefix, deduped);
+};
+
 module.exports = {
   buildSystemPrompt,
   buildUserPrompt,
   STOP_SEQUENCES,
   cleanSuggestion,
-  ensureNewlineAfterComment
+  ensureNewlineAfterComment,
+  stripDisallowedApis,
+  stripTypedPrefixOverlap,
+  duplicatesPrecedingWord,
+  sanitizeSuggestion
 };
