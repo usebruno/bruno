@@ -57,8 +57,8 @@ export const buildCommonLocators = (page: Page) => ({
     toolbarBtn: (label: string) => page.locator(`.toolbar-btn[aria-label="${label}"]`),
     headingDropdown: () => page.locator('button.heading-dropdown-trigger'),
     editToggle: () => page.locator('.docs-edit-toggle'),
-    modeSwitchDocs: () => page.locator('.docs-mode-switch button').filter({ has: page.locator('#wysiwyg-mode') }),
-    modeSwitchMarkdown: () => page.locator('.docs-mode-switch button').filter({ has: page.locator('#markdown-mode') }),
+    modeSwitchDocs: () => page.locator('.docs-mode-switch button').filter({ hasText: 'Rich Text' }),
+    modeSwitchMarkdown: () => page.locator('.docs-mode-switch button').filter({ hasText: 'Markdown' }),
     tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
     codeEditor: () => page.locator('.editor-container .CodeMirror-scroll')
   },
