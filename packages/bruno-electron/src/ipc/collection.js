@@ -2766,6 +2766,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const conversionPlan = []; // { ymlPath, ymlContent, bruPath }
 
       for (const bruFilePath of bruFiles) {
+        // readFileSync + parse below are synchronous and without a yield here, this loop
+        // never gives the event loop a turn to process a pending cancel IPC message,
+        // so checkCancelled() would never see it flip during the longest phase.
+        await new Promise((resolve) => setImmediate(resolve));
         checkCancelled();
         const basename = path.basename(bruFilePath);
         const dirname = path.dirname(bruFilePath);
