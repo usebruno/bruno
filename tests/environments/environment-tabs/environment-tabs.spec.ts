@@ -372,6 +372,50 @@ test.describe('Environment Variables / Secrets tab separation', () => {
       await expect(varRow(page, 'host')).toBeVisible();
     });
   });
+
+  test('a secret keeps its own value when a plain variable shares its name', async ({
+    page,
+    createTmpDir
+  }) => {
+    const ENV_NAME = 'Collision Env';
+    const SHARED_KEY = 'token';
+    const PLAIN_VALUE = 'plain-variable-value';
+    const SECRET_VALUE = 'super-secret-value-98765';
+
+    const collectionDir = await createTmpDir('var-secret-name-collision');
+    await importCollection(page, collectionFile, collectionDir, {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, ENV_NAME, 'collection');
+
+    await test.step('Add a plain variable and a secret that share the name `token`', async () => {
+      await expect(variablesTab(page)).toHaveClass(/active/);
+      await addRowToActiveTab(page, SHARED_KEY, PLAIN_VALUE);
+      await expect(varRowValueLine(page, SHARED_KEY)).toHaveText(PLAIN_VALUE);
+
+      await secretsTab(page).click();
+      await addRowToActiveTab(page, SHARED_KEY, SECRET_VALUE);
+      await expect(varRow(page, SHARED_KEY)).toBeVisible();
+    });
+
+    await test.step('Save both tabs at once', async () => {
+      await saveEnvironment(page);
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+    });
+
+    await test.step('The secret still reveals its own value (not blanked)', async () => {
+      await secretsTab(page).click();
+      await expect(varRow(page, SHARED_KEY)).toBeVisible();
+      await envLocators(page).varRowEyeToggle(SHARED_KEY).click();
+      await expect(envLocators(page).varRowValueEditor(SHARED_KEY)).toContainText(SECRET_VALUE);
+    });
+
+    await test.step('The plain variable kept its own value (not overwritten by the secret)', async () => {
+      await variablesTab(page).click();
+      await expect(varRowValueLine(page, SHARED_KEY)).toHaveText(PLAIN_VALUE);
+    });
+  });
 });
 
 test.describe('Global Environment Variables / Secrets tab separation', () => {
@@ -681,6 +725,49 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     await test.step('The variable on the Variables tab is untouched', async () => {
       await variablesTab(page).click();
       await expect(varRow(page, 'host')).toBeVisible();
+    });
+  });
+
+  test('a secret keeps its own value when a plain variable shares its name', async ({
+    page,
+    createTmpDir
+  }) => {
+    const ENV_NAME = 'Global Collision Env';
+    const SHARED_KEY = 'token';
+    const PLAIN_VALUE = 'plain-variable-value';
+    const SECRET_VALUE = 'super-secret-value-98765';
+
+    await importCollection(page, collectionFile, await createTmpDir('global-var-secret-name-collision'), {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, ENV_NAME, 'global');
+
+    await test.step('Add a plain variable and a secret that share the name `token`', async () => {
+      await expect(variablesTab(page)).toHaveClass(/active/);
+      await addRowToActiveTab(page, SHARED_KEY, PLAIN_VALUE);
+      await expect(varRowValueLine(page, SHARED_KEY)).toHaveText(PLAIN_VALUE);
+
+      await secretsTab(page).click();
+      await addRowToActiveTab(page, SHARED_KEY, SECRET_VALUE);
+      await expect(varRow(page, SHARED_KEY)).toBeVisible();
+    });
+
+    await test.step('Save both tabs at once', async () => {
+      await saveEnvironment(page);
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+    });
+
+    await test.step('The secret still reveals its own value (not blanked)', async () => {
+      await secretsTab(page).click();
+      await expect(varRow(page, SHARED_KEY)).toBeVisible();
+      await envLocators(page).varRowEyeToggle(SHARED_KEY).click();
+      await expect(envLocators(page).varRowValueEditor(SHARED_KEY)).toContainText(SECRET_VALUE);
+    });
+
+    await test.step('The plain variable kept its own value (not overwritten by the secret)', async () => {
+      await variablesTab(page).click();
+      await expect(varRowValueLine(page, SHARED_KEY)).toHaveText(PLAIN_VALUE);
     });
   });
 });

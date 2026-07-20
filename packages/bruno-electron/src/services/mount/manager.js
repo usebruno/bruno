@@ -31,7 +31,7 @@ const hydrateEnvironments = (collectionPath, environments) => {
     try {
       const envSecrets = getEnvSecretsStore().getEnvSecrets(collectionPath, env);
       for (const secret of envSecrets || []) {
-        const variable = env.variables.find((v) => v.name === secret.name);
+        const variable = env.variables.find((v) => v.name === secret.name && v.secret);
         if (variable && secret.value) {
           const decrypted = decryptStringSafe(secret.value);
           variable.value = decrypted.value;
