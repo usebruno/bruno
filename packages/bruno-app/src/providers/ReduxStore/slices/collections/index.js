@@ -465,7 +465,7 @@ export const collectionsSlice = createSlice({
         collection.activeEnvironmentUid = environment.uid;
         collection.pendingDefaultEnvironment = null;
       } else {
-        // Environment files aren't loaded yet — remember to apply the default once the
+        // Environment files aren't loaded yet - remember to apply the default once the
         // matching environment file arrives (see collectionAddEnvFileEvent).
         collection.pendingDefaultEnvironment = defaultEnvironmentName;
       }

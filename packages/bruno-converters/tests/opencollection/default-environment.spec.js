@@ -10,7 +10,7 @@ const makeBrunoCollection = (presets) => ({
   root: {}
 });
 
-describe('opencollection <-> bruno — presets.defaultEnvironment', () => {
+describe('presets.defaultEnvironment mapping between bruno and opencollection', () => {
   it('maps brunoConfig.presets.defaultEnvironment to extensions.bruno.presets.defaultEnvironment', () => {
     const oc = brunoToOpenCollection(
       makeBrunoCollection({ requestType: 'http', requestUrl: 'https://example.com', defaultEnvironment: 'prod' })
@@ -30,7 +30,7 @@ describe('opencollection <-> bruno — presets.defaultEnvironment', () => {
     expect(bruno.brunoConfig.presets.defaultEnvironment).toBe('staging');
   });
 
-  it('round-trips defaultEnvironment through bruno -> opencollection -> bruno', () => {
+  it('round-trips defaultEnvironment through bruno to opencollection and back', () => {
     const oc = brunoToOpenCollection(makeBrunoCollection({ defaultEnvironment: 'prod' }));
     const back = openCollectionToBruno(oc);
 

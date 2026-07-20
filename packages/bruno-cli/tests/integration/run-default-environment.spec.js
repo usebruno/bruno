@@ -25,7 +25,7 @@ get {
 }
 `;
 
-describe('CLI run — default environment fallback (presets.defaultEnvironment)', () => {
+describe('CLI run - default environment fallback (presets.defaultEnvironment)', () => {
   let server;
   let baseUrl;
   let tmpDir;
@@ -131,7 +131,7 @@ describe('CLI run — default environment fallback (presets.defaultEnvironment)'
 
     const result = await runCli(['run', 'ping.bru', '--sandbox', 'developer', '--noproxy']);
 
-    // A missing configured default is a soft warning, not a hard error — the run still succeeds.
+    // A missing configured default is a soft warning, not a hard error - the run still succeeds.
     if (result.code !== 0) {
       throw new Error(
         `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`
