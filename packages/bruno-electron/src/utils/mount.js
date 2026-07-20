@@ -24,7 +24,17 @@ const isDenied = (relativePathPosix, patterns) => {
 
 const walk = (root, denylist) => {
   const out = [];
+  const visited = new Set();
   const visit = (absDir, relDir) => {
+    let canonicalDir;
+    try {
+      canonicalDir = fs.realpathSync(absDir);
+    } catch (err) {
+      return;
+    }
+    if (visited.has(canonicalDir)) return;
+    visited.add(canonicalDir);
+
     const entries = fs.readdirSync(absDir, { withFileTypes: true });
     for (const entry of entries) {
       const childAbs = path.join(absDir, entry.name);

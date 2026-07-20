@@ -74,6 +74,9 @@ async function buildSymlinkFixture(format: Format, fileCacheEnabled: boolean): P
     try {
       await fs.promises.symlink(targetRequest, path.join(collectionPath, `LinkedRequest.${ext}`), symlinkType(false));
       await fs.promises.symlink(targetDir, path.join(collectionPath, 'LinkedFolder'), symlinkType(true));
+      if (fileCacheEnabled) {
+        await fs.promises.symlink(collectionPath, path.join(collectionPath, 'AncestorLink'), symlinkType(true));
+      }
     } catch (err: any) {
       // Windows without Developer Mode / admin rights rejects symlink creation.
       if (err.code === 'EPERM' || err.code === 'EACCES') {
@@ -147,6 +150,25 @@ for (const { label, fileCacheEnabled } of cacheModes) {
           .filter((item) => item.type === 'request')
           .map((item) => item.name);
         expect(nestedRequestNames).toContain('NestedRequest');
+      });
+
+      test('should skip a directory symlink that resolves to an ancestor', async () => {
+        test.skip(!fixture.symlinksSupported, 'symlink creation not permitted on this platform');
+        test.skip(!fileCacheEnabled, 'the cycle guard applies to the file-cache walk path');
+
+        const tree = await getCollectionTreeStructure(page, COLLECTION_NAME);
+
+        const countRequests = (items: CollectionTreeItem[]): number =>
+          items.reduce(
+            (count, item) =>
+              item.type === 'request'
+                ? count + 1
+                : count + countRequests(item.items ?? []),
+            0
+          );
+
+        expect(tree.items.some((item) => item.type === 'folder' && item.name === 'AncestorLink')).toBe(false);
+        expect(countRequests(tree.items)).toBe(3);
       });
     });
   }
