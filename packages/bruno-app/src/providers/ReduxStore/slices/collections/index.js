@@ -1,6 +1,6 @@
 import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
-import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, unset, findIndex, pick } from 'lodash';
+import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex, pick } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import { hexy as hexdump } from 'hexy';
 import {
@@ -2425,28 +2425,6 @@ export const collectionsSlice = createSlice({
         set(collection, 'draft.brunoConfig.presets', action.payload.presets);
       }
     },
-    setCollectionDefaultEnvironment: (state, action) => {
-      const { collectionUid, defaultEnvironment } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-
-      if (collection) {
-        // Persist directly on the committed brunoConfig (immediate, not a draft action).
-        collection.brunoConfig = collection.brunoConfig || {};
-        if (defaultEnvironment) {
-          set(collection, 'brunoConfig.presets.defaultEnvironment', defaultEnvironment);
-        } else {
-          unset(collection, 'brunoConfig.presets.defaultEnvironment');
-        }
-        // Keep any unsaved brunoConfig draft in sync so a later settings-save can't wipe it.
-        if (collection.draft?.brunoConfig) {
-          if (defaultEnvironment) {
-            set(collection, 'draft.brunoConfig.presets.defaultEnvironment', defaultEnvironment);
-          } else {
-            unset(collection, 'draft.brunoConfig.presets.defaultEnvironment');
-          }
-        }
-      }
-    },
     updateCollectionProtobuf: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -4133,7 +4111,6 @@ export const {
   updateCollectionProxy,
   updateCollectionClientCertificates,
   updateCollectionPresets,
-  setCollectionDefaultEnvironment,
   updateCollectionProtobuf,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,

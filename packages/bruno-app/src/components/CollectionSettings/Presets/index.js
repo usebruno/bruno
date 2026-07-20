@@ -2,9 +2,8 @@ import React, { useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { updateCollectionPresets } from 'providers/ReduxStore/slices/collections';
-import { saveCollectionSettings, setCollectionDefaultEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { get } from 'lodash';
-import toast from 'react-hot-toast';
 import Button from 'ui/Button';
 import Dropdown from 'components/Dropdown';
 import { IconCaretDown } from '@tabler/icons';
@@ -28,24 +27,22 @@ const PresetsSettings = ({ collection }) => {
     }));
   };
 
-  // Default environment is stored at the top level of bruno.json (not under presets) and
-  // is persisted immediately on change, independent of the Save button below.
+  // Default environment is part of the collection presets; like Request Type and Base URL
+  // it is written to the draft and persisted via the Save button (or autosave).
   const environments = collection?.environments || [];
-  const defaultEnvironmentName = collection?.brunoConfig?.presets?.defaultEnvironment || '';
+  const defaultEnvironmentName = currentPresets.defaultEnvironment || '';
   const defaultEnvDropdownRef = useRef(null);
   const closeDefaultEnvDropdown = () => defaultEnvDropdownRef.current?.hide();
 
-  const applyDefaultEnvironment = (name) => {
+  const handleDefaultEnvironmentChange = (name) => {
     closeDefaultEnvDropdown();
-    const normalized = name || null;
-    if ((collection?.brunoConfig?.presets?.defaultEnvironment || null) === normalized) return;
-    dispatch(setCollectionDefaultEnvironment(normalized, collection.uid))
-      .then(() => {
-        toast.success(normalized ? `"${normalized}" set as the default environment` : 'Default environment cleared');
-      })
-      .catch(() => {
-        toast.error('Failed to set the default environment');
-      });
+    if (name) {
+      updatePresets({ defaultEnvironment: name });
+    } else {
+      // "None" — remove the default from the draft presets.
+      const { defaultEnvironment, ...rest } = currentPresets;
+      dispatch(updateCollectionPresets({ collectionUid: collection.uid, presets: rest }));
+    }
   };
 
   const defaultEnvTrigger = (
@@ -166,7 +163,7 @@ const PresetsSettings = ({ collection }) => {
             <Dropdown onCreate={(ref) => (defaultEnvDropdownRef.current = ref)} icon={defaultEnvTrigger} placement="bottom-start" sameWidth>
               <div
                 className={`dropdown-item ${!defaultEnvironmentName ? 'active' : ''}`}
-                onClick={() => applyDefaultEnvironment('')}
+                onClick={() => handleDefaultEnvironmentChange('')}
               >
                 None
               </div>
@@ -174,7 +171,7 @@ const PresetsSettings = ({ collection }) => {
                 <div
                   key={env.uid}
                   className={`dropdown-item ${env.name === defaultEnvironmentName ? 'active' : ''}`}
-                  onClick={() => applyDefaultEnvironment(env.name)}
+                  onClick={() => handleDefaultEnvironmentChange(env.name)}
                 >
                   {env.name}
                 </div>

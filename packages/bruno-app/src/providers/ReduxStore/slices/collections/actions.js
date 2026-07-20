@@ -36,7 +36,6 @@ import {
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
   applyDefaultEnvironment as _applyDefaultEnvironment,
-  setCollectionDefaultEnvironment as _setCollectionDefaultEnvironment,
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
   moveCollection,
@@ -2741,36 +2740,6 @@ export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getS
     const { ipcRenderer } = window;
     ipcRenderer
       .invoke('renderer:update-bruno-config', brunoConfig, collection.pathname, collection.root)
-      .then(resolve)
-      .catch(reject);
-  });
-};
-
-// Sets (or toggles off) the default environment for a collection and persists it to
-// bruno.json immediately. The default is stored by environment name at the top level
-// (brunoConfig.presets.defaultEnvironment) so it can be shared with the collection.
-export const setCollectionDefaultEnvironment = (environmentName, collectionUid) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
-
-  return new Promise((resolve, reject) => {
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
-
-    const currentDefault = collection.brunoConfig?.presets?.defaultEnvironment;
-    // Toggle behaviour: selecting the current default clears it.
-    const nextDefault = currentDefault === environmentName ? null : environmentName;
-
-    dispatch(_setCollectionDefaultEnvironment({ collectionUid, defaultEnvironment: nextDefault }));
-
-    // Persist immediately using the updated committed brunoConfig.
-    const updatedCollection = findCollectionByUid(getState().collections.collections, collectionUid);
-    const brunoConfigToSave = cloneDeep(updatedCollection.brunoConfig);
-
-    const { ipcRenderer } = window;
-    ipcRenderer
-      .invoke('renderer:update-bruno-config', brunoConfigToSave, collection.pathname, collection.root)
       .then(resolve)
       .catch(reject);
   });

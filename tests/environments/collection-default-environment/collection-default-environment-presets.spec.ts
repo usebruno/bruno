@@ -21,6 +21,8 @@ const setDefaultViaPresets = async (page: Page, collectionName: string, environm
   await locators.paneTabs.collectionSettingsTab('presets').click();
   await locators.presets.defaultEnvironment().click();
   await locators.presets.defaultEnvironmentOption(environmentName).click();
+  // The default is a draft change (like Request Type / Base URL); persist it via Save.
+  await locators.presets.saveBtn().click();
 };
 
 test.describe('Collection Default Environment - Presets & sharing', () => {
@@ -81,9 +83,10 @@ test.describe('Collection Default Environment - Presets & sharing', () => {
     await setDefaultViaPresets(page, 'default-env-presets-clear', 'prod');
     await expect.poll(readDefaultEnvironment, { timeout: 10000 }).toBe('prod');
 
-    // Selecting "None" removes the key entirely.
+    // Selecting "None" and saving removes the key entirely.
     await locators.presets.defaultEnvironment().click();
     await locators.presets.defaultEnvironmentOption('None').click();
+    await locators.presets.saveBtn().click();
     await expect.poll(readDefaultEnvironment, { timeout: 10000 }).toBeUndefined();
   });
 
