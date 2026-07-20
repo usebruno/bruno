@@ -8,8 +8,6 @@ import {
   findEnvironmentInCollection,
   findItemInCollectionByPathname,
   flattenItems,
-  getEnvironmentVariables,
-  getGlobalEnvironmentVariables,
   isItemARequest
 } from 'utils/collections';
 import { uuid } from 'utils/common';
@@ -20,12 +18,14 @@ import {
   updateAppCode
 } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { addLog } from 'providers/ReduxStore/slices/logs';
 import { useTheme } from 'providers/Theme';
 import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
 import { buildAiVariablesPayload, buildDocsContextFromCollection } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import EmptyAppState from '../AppView/EmptyAppState';
+import { buildVariables } from '../AppView/buildVariables';
 import {
   SENTINEL,
   wrapHtml,
@@ -155,20 +155,6 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
   }
 })();
 </script>`;
-
-const buildVariables = (collection) => {
-  const env = getEnvironmentVariables(collection);
-  const global = getGlobalEnvironmentVariables({
-    globalEnvironments: collection?.globalEnvironments || [],
-    activeGlobalEnvironmentUid: collection?.activeGlobalEnvironmentUid
-  });
-  return {
-    ...global,
-    ...env,
-    ...(collection?.collectionVariables || {}),
-    ...(collection?.runtimeVariables || {})
-  };
-};
 
 const listRequestSummaries = (collection) =>
   flattenItems(collection?.items || [])
@@ -303,6 +289,7 @@ const CollectionApp = ({ item, collection }) => {
           break;
         case 'log':
           console.log('[app]', ...(data.args || []));
+          dispatch(addLog({ type: 'log', args: ['[app]', ...(data.args || [])], timestamp: new Date().toISOString() }));
           break;
         case 'setRuntimeVariable':
           if (typeof data.key === 'string' && data.key.length) {

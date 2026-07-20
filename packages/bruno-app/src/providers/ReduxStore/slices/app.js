@@ -97,6 +97,7 @@ const initialState = {
     hasCopiedItems: false // Whether clipboard has Bruno data (for UI)
   },
   systemProxyVariables: {},
+  systemProxyLastRefreshedAt: null,
   envVarSearch: {
     collection: {
       variables: { query: '', expanded: false },
@@ -210,6 +211,9 @@ export const appSlice = createSlice({
     updateSystemProxyVariables: (state, action) => {
       state.systemProxyVariables = action.payload;
     },
+    updateSystemProxyLastRefreshedAt: (state, action) => {
+      state.systemProxyLastRefreshedAt = action.payload;
+    },
     updateGenerateCode: (state, action) => {
       state.generateCode = {
         ...state.generateCode,
@@ -292,6 +296,7 @@ export const {
   removeTaskFromQueue,
   removeAllTasksFromQueue,
   updateSystemProxyVariables,
+  updateSystemProxyLastRefreshedAt,
   updateGenerateCode,
   toggleSidebarCollapse,
   toggleSidebarSearch,
@@ -397,6 +402,7 @@ export const refreshSystemProxy = () => (dispatch, getState) => {
     ipcRenderer.invoke('renderer:refresh-system-proxy')
       .then((variables) => {
         dispatch(updateSystemProxyVariables(variables));
+        dispatch(updateSystemProxyLastRefreshedAt(Date.now()));
         return variables;
       })
       .then(resolve).catch(reject);
