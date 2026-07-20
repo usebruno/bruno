@@ -11,7 +11,8 @@ const {
   parseErrorLocation,
   getSourceContextFromContent,
   adjustStackTrace,
-  buildStackFromCallSites
+  buildStackFromCallSites,
+  posixifyPath
 } = require('./error-formatter');
 const fs = require('fs');
 const path = require('path');
@@ -804,7 +805,9 @@ get {
         const result = formatErrorWithContextV2(error, 'pre-request');
 
         expect(result).not.toBeNull();
-        expect(result.filePath).toBe(bruFilePath);
+        // display paths are posixified, so the Windows path.join backslashes
+        // must be normalized before comparing
+        expect(result.filePath).toBe(posixifyPath(bruFilePath));
       });
     });
 
