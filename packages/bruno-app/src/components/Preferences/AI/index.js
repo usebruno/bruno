@@ -179,13 +179,18 @@ const AI = () => {
 
   useEffect(() => () => debouncedSave.flush(), [debouncedSave]);
 
-  const saveSecurityImmediate = useCallback((patch) => {
+  const saveSecurityImmediate = (patch) => {
     const nextSecurity = { ...formik.values.security, ...patch };
+    const nextValues = { ...formik.values, security: nextSecurity };
+
     formik.setFieldValue('security', nextSecurity);
     debouncedSave.cancel();
-    handleSaveRef.current({ ...formik.values, security: nextSecurity }).catch(() => {});
-  }, [formik, debouncedSave]);
 
+    aiPreferencesSchema
+      .validate(nextValues, { abortEarly: true })
+      .then((validated) => handleSaveRef.current(validated))
+      .catch(() => {});
+  };
   const modelsByProvider = useMemo(() => {
     const grouped = {};
     (status?.models || []).forEach((model) => {
