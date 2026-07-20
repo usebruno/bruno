@@ -95,7 +95,6 @@ test.describe('Environment Variables / Secrets tab separation', () => {
       await expect(varRow(page, 'apiToken')).toHaveCount(0);
       await expect(page.getByTestId('secret-reveal-toggle')).toHaveCount(0);
     });
-    await page.pause();
   });
 
   test('saves variables and secrets independently and persists both', async ({ page, createTmpDir }) => {
