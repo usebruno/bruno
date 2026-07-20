@@ -1,26 +1,13 @@
-import { test, expect, Page } from '../../../playwright';
-import { buildCommonLocators, openCollection, openRequest, sendRequest, closeAllCollections, waitForCollectionMount } from '../../utils/page';
-
-/**
- * Select a tab in the response pane, handling the overflow dropdown (>>) if the tab is hidden.
- */
-const selectResponsePaneTab = async (page: Page, tabName: string) => {
-  await test.step(`Select response pane tab "${tabName}"`, async () => {
-    const responsePaneTabs = page.locator('.response-pane .tabs');
-    const visibleTab = responsePaneTabs.getByRole('tab', { name: tabName });
-
-    if (await visibleTab.isVisible()) {
-      await visibleTab.click();
-      return;
-    }
-
-    const overflowButton = responsePaneTabs.locator('.more-tabs');
-    if (await overflowButton.isVisible()) {
-      await overflowButton.click();
-      await page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName }).click();
-    }
-  });
-};
+import { test, expect } from '../../../playwright';
+import {
+  buildCommonLocators,
+  openCollection,
+  openRequest,
+  sendRequest,
+  selectResponsePaneTab,
+  closeAllCollections,
+  waitForCollectionMount
+} from '../../utils/page';
 
 test.describe('Collection Default Environment', () => {
   test.afterEach(async ({ pageWithUserData: page }) => {
@@ -68,7 +55,8 @@ test.describe('Collection Default Environment', () => {
 
     await selectResponsePaneTab(page, 'Timeline');
 
-    const latestEntry = page.getByTestId('timeline-container').getByTestId('timeline-entry').first();
+    const { timeline } = buildCommonLocators(page);
+    const latestEntry = timeline.entries().first();
     await expect(latestEntry).toContainText('localhost:8081/ping');
     await expect(latestEntry).not.toContainText('{{host}}');
   });

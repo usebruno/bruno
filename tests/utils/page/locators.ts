@@ -270,7 +270,9 @@ export const buildCommonLocators = (page: Page) => ({
     items: () => page.getByTestId('timeline-item'),
     lastItem: () => page.getByTestId('timeline-item').last(),
     itemHeader: (item: Locator) => item.getByTestId('timeline-item-header'),
-    clearButton: () => page.getByRole('button', { name: 'Clear Timeline' })
+    clearButton: () => page.getByRole('button', { name: 'Clear Timeline' }),
+    container: () => page.getByTestId('timeline-container'),
+    entries: () => page.getByTestId('timeline-container').getByTestId('timeline-entry')
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),

@@ -1,13 +1,13 @@
 {
   "collections": [
     {
-      "path": "{{projectRoot}}/tests/environments/collection-default-environment/collection",
+      "path": "{{projectRoot}}/tests/environments/collection-default-environment/fixtures/collection",
       "securityConfig": {
         "jsSandboxMode": "safe"
       }
     },
     {
-      "path": "{{projectRoot}}/tests/environments/collection-default-environment/collection-missing",
+      "path": "{{projectRoot}}/tests/environments/collection-default-environment/fixtures/collection-missing",
       "securityConfig": {
         "jsSandboxMode": "safe"
       }

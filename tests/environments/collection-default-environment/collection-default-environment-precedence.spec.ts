@@ -10,7 +10,7 @@ import {
 } from '../../utils/page';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
-const collectionRoot = path.join(__dirname, 'collection');
+const collectionRoot = path.join(__dirname, 'fixtures', 'collection');
 
 test.describe('Collection Default Environment - precedence', () => {
   test('snapshot selection wins over the configured default on reopen', async ({ launchElectronApp, createTmpDir }) => {
