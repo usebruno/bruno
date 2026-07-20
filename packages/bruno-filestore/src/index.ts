@@ -74,6 +74,30 @@ export const stringifyRequestViaWorker = async (requestObj: any, options: { form
   return await fileParserWorker.stringifyRequest(requestObj, options.format);
 };
 
+export const parseFolderViaWorker = async (content: string, options: { format: CollectionFormat }): Promise<any> => {
+  return await getWorkerInstance().parseFolder(content, options.format);
+};
+
+export const stringifyFolderViaWorker = async (folderObj: any, options: { format: CollectionFormat }): Promise<string> => {
+  return await getWorkerInstance().stringifyFolder(folderObj, options.format);
+};
+
+export const parseCollectionViaWorker = async (content: string, options: { format: CollectionFormat }): Promise<any> => {
+  return await getWorkerInstance().parseCollection(content, options.format);
+};
+
+export const stringifyCollectionViaWorker = async (collectionObj: any, brunoConfig: any, options: { format: CollectionFormat }): Promise<string> => {
+  return await getWorkerInstance().stringifyCollection(collectionObj, brunoConfig, options.format);
+};
+
+export const parseEnvironmentViaWorker = async (content: string, options: { format: CollectionFormat }): Promise<any> => {
+  return await getWorkerInstance().parseEnvironment(content, options.format);
+};
+
+export const stringifyEnvironmentViaWorker = async (envObj: any, options: { format: CollectionFormat }): Promise<string> => {
+  return await getWorkerInstance().stringifyEnvironment(envObj, options.format);
+};
+
 // collection
 export const parseCollection = (content: string, options: ParseOptions = { format: DEFAULT_COLLECTION_FORMAT }): any => {
   if (options.format === 'bru') {

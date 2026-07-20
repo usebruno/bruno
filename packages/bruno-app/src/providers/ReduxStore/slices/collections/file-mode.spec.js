@@ -2,7 +2,8 @@ import reducer, {
   createCollection,
   toggleCollectionFileMode,
   updateFileContent,
-  collectionChangeFileEvent
+  collectionChangeFileEvent,
+  resetCollectionForReopen
 } from 'providers/ReduxStore/slices/collections';
 
 const COLLECTION_UID = 'col-1';
@@ -58,6 +59,32 @@ describe('createCollection', () => {
 
     expect(state.collections).toHaveLength(1);
     expect(state.collections[0].fileMode).toBe(false);
+  });
+});
+
+describe('resetCollectionForReopen', () => {
+  test('drops stale items/environments and refreshes format from the new brunoConfig', () => {
+    const state = reducer(
+      makeInitialState(),
+      resetCollectionForReopen({
+        collectionUid: COLLECTION_UID,
+        brunoConfig: { name: 'coll', format: 'bru' }
+      })
+    );
+
+    expect(state.collections[0].items).toEqual([]);
+    expect(state.collections[0].environments).toEqual([]);
+    expect(state.collections[0].format).toBe('bru');
+  });
+
+  test('does nothing for an unknown collection', () => {
+    const initialState = makeInitialState();
+    const state = reducer(
+      initialState,
+      resetCollectionForReopen({ collectionUid: 'unknown', brunoConfig: {} })
+    );
+
+    expect(state.collections[0].items).toHaveLength(1);
   });
 });
 

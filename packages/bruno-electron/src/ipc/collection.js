@@ -14,10 +14,16 @@ const {
   stringifyRequestViaWorker,
   parseCollection,
   stringifyCollection,
+  parseCollectionViaWorker,
+  stringifyCollectionViaWorker,
   parseFolder,
   stringifyFolder,
+  parseFolderViaWorker,
+  stringifyFolderViaWorker,
   stringifyEnvironment,
   parseEnvironment,
+  parseEnvironmentViaWorker,
+  stringifyEnvironmentViaWorker,
   DEFAULT_COLLECTION_FORMAT
 } = require('@usebruno/filestore');
 const { dotenvToJson } = require('@usebruno/lang');
@@ -1288,8 +1294,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
 
     await require('./mount').unmount(collectionUid).catch(() => {});
+    require('./mount').clearCollectionIndex(collectionPath);
 
-    // Clean up
+    // Clean up. collectionUid is a deterministic hash of collectionPath, so re-adding
+    // the same folder later reuses it — these caches must not resurface stale data.
+    const { clearBrunoConfig } = require('../store/bruno-config');
+    clearBrunoConfig(collectionUid);
+    const { clearRequestUidsForCollection } = require('../cache/requestUids');
+    clearRequestUidsForCollection(collectionPath);
+
     const { clearCollectionWorkspace } = require('../store/process-env');
     clearCollectionWorkspace(collectionUid);
 
@@ -2682,32 +2695,60 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  // Collection uids requesting cancellation of an in-flight migration. Checked cooperatively
+  // between file operations below; there is no way to abort mid-write.
+  const migrationCancellations = new Set();
+
+  ipcMain.handle('renderer:cancel-migrate-collection-to-yml', (event, collectionUid) => {
+    migrationCancellations.add(collectionUid);
+  });
+
   ipcMain.handle('renderer:migrate-collection-to-yml', async (event, collectionPathname, collectionUid) => {
     const format = getCollectionFormat(collectionPathname);
     if (format === 'yml') {
       throw new Error('Collection is already in YML format');
     }
 
-    // Stop the watcher during migration to avoid triggering events
+    const brunoJsonPath = path.join(collectionPathname, 'bruno.json');
+    const brunoConfig = JSON.parse(fs.readFileSync(brunoJsonPath, 'utf8'));
+
+    // Unmount: detach the file watcher before touching disk. For a file-cache (v2) mount this
+    // also stops the cache write-through that rides on the same watcher, so migration's own
+    // writes/deletes aren't double-processed as live changes. No separate git watcher exists.
     if (watcher) {
       watcher.removeWatcher(collectionPathname, mainWindow, collectionUid);
     }
+    migrationCancellations.delete(collectionUid);
 
-    // Track all written yml files so we can roll back on failure
+    // Whatever happens (success, failure, or cancel), the collection tree in Redux is stale —
+    // reload it from disk rather than patching it in place. Works for both mount modes: remount
+    // reconciles the file-cache index; the watcher fallback re-scans from scratch.
+    const reloadCollection = async (config) => {
+      try {
+        const remounted = await remountCollectionV2({ collectionUid, brunoConfig: config });
+        if (!remounted && watcher) {
+          watcher.addWatcher(mainWindow, collectionPathname, collectionUid, config);
+        }
+      } catch (reloadError) {
+        console.error('Failed to reload collection after migration:', reloadError);
+      }
+    };
+
+    const checkCancelled = () => {
+      if (migrationCancellations.has(collectionUid)) {
+        throw new Error('Migration cancelled');
+      }
+    };
+
+    // Yml files written so far, deleted on failure/cancel. bru sources are never touched until
+    // the very end, so "roll back" just means deleting what we added.
     const writtenYmlFiles = [];
 
-    const tabPathMap = {};
-
     try {
-      const brunoJsonPath = path.join(collectionPathname, 'bruno.json');
-      const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
-      const brunoConfig = JSON.parse(brunoJsonContent);
-
       const collectionBruPath = path.join(collectionPathname, 'collection.bru');
       let collectionRoot = {};
       if (fs.existsSync(collectionBruPath)) {
-        const collectionBruContent = fs.readFileSync(collectionBruPath, 'utf8');
-        collectionRoot = parseCollection(collectionBruContent, { format: 'bru' });
+        collectionRoot = parseCollection(fs.readFileSync(collectionBruPath, 'utf8'), { format: 'bru' });
       }
 
       const ymlBrunoConfig = { ...brunoConfig };
@@ -2721,14 +2762,20 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const ocYmlPath = path.join(collectionPathname, 'opencollection.yml');
       const ymlCollectionContent = stringifyCollection(collectionRoot, ymlBrunoConfig, { format: 'yml' });
-      await writeFile(ocYmlPath, ymlCollectionContent);
-      writtenYmlFiles.push(ocYmlPath);
 
       const bruFiles = searchForFiles(collectionPathname, '.bru');
       const envDirPath = path.join(collectionPathname, 'environments');
       const bruFilesToDelete = [];
 
+      // Phase 1: read → parse → convert to memory. Collect all results before touching disk.
+      // Parse/stringify runs on the filestore worker pool so the main thread stays free to
+      // process the cancel IPC (the ohm-js grammars block the event loop for hundreds of ms
+      // per file on large collections — a sync loop would swallow every cancel message).
+      const parseErrors = [];
+      const conversionPlan = []; // { ymlPath, ymlContent, bruPath }
+
       for (const bruFilePath of bruFiles) {
+        checkCancelled();
         const basename = path.basename(bruFilePath);
         const dirname = path.dirname(bruFilePath);
 
@@ -2737,101 +2784,97 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           continue;
         }
 
-        if (path.normalize(dirname) === path.normalize(envDirPath)) {
-          continue;
-        }
-
-        if (basename === 'folder.bru') {
-          const folderBruContent = fs.readFileSync(bruFilePath, 'utf8');
-          const folderData = parseFolder(folderBruContent, { format: 'bru' });
-          const ymlContent = stringifyFolder(folderData, { format: 'yml' });
-          const ymlFilePath = path.join(dirname, 'folder.yml');
-          await writeFile(ymlFilePath, ymlContent);
-          writtenYmlFiles.push(ymlFilePath);
-          bruFilesToDelete.push(bruFilePath);
-          continue;
-        }
-
-        const bruContent = fs.readFileSync(bruFilePath, 'utf8');
-        const requestData = parseRequest(bruContent, { format: 'bru' });
-        const ymlContent = stringifyRequest(requestData, { format: 'yml' });
-        const ymlFilePath = bruFilePath.replace(/\.bru$/, '.yml');
-        await writeFile(ymlFilePath, ymlContent);
-        moveRequestUid(bruFilePath, ymlFilePath);
-        tabPathMap[bruFilePath] = ymlFilePath;
-        writtenYmlFiles.push(ymlFilePath);
-        bruFilesToDelete.push(bruFilePath);
-      }
-
-      if (fs.existsSync(envDirPath)) {
-        const envBruFiles = searchForFiles(envDirPath, '.bru');
-        for (const envBruFilePath of envBruFiles) {
-          const envBruContent = fs.readFileSync(envBruFilePath, 'utf8');
-          const envData = parseEnvironment(envBruContent, { format: 'bru' });
-          const ymlContent = stringifyEnvironment(envData, { format: 'yml' });
-          const ymlFilePath = envBruFilePath.replace(/\.bru$/, '.yml');
-          await writeFile(ymlFilePath, ymlContent);
-          moveRequestUid(envBruFilePath, ymlFilePath);
-          writtenYmlFiles.push(ymlFilePath);
-          bruFilesToDelete.push(envBruFilePath);
-        }
-      }
-
-      for (const bruFile of bruFilesToDelete) {
-        fs.unlinkSync(bruFile);
-      }
-      fs.unlinkSync(brunoJsonPath);
-
-      try {
-        snapshotManager.remapCollectionTabPaths(collectionPathname, tabPathMap);
-      } catch (_) {
-      }
-
-      const { size, filesCount } = await getCollectionStats(collectionPathname);
-      ymlBrunoConfig.size = size;
-      ymlBrunoConfig.filesCount = filesCount;
-
-      try {
-        const remounted = await remountCollectionV2({ collectionUid, brunoConfig: ymlBrunoConfig });
-        if (!remounted && watcher) {
-          watcher.addWatcher(mainWindow, collectionPathname, collectionUid, ymlBrunoConfig, false, undefined, { ignoreInitial: true });
-        }
-      } catch (watcherError) {
-        console.error('Failed to re-attach watcher after migration:', watcherError);
         try {
-          if (watcher) {
-            watcher.addWatcher(mainWindow, collectionPathname, collectionUid, ymlBrunoConfig, false, undefined, { ignoreInitial: true });
+          const bruContent = await fs.promises.readFile(bruFilePath, 'utf8');
+
+          let ymlPath;
+          let ymlContent;
+          if (path.normalize(dirname) === path.normalize(envDirPath)) {
+            const envData = await parseEnvironmentViaWorker(bruContent, { format: 'bru' });
+            ymlPath = bruFilePath.replace(/\.bru$/, '.yml');
+            ymlContent = await stringifyEnvironmentViaWorker(envData, { format: 'yml' });
+          } else if (basename === 'folder.bru') {
+            const folderData = await parseFolderViaWorker(bruContent, { format: 'bru' });
+            ymlPath = path.join(dirname, 'folder.yml');
+            ymlContent = await stringifyFolderViaWorker(folderData, { format: 'yml' });
+          } else {
+            const requestData = await parseRequestViaWorker(bruContent, { format: 'bru' });
+            ymlPath = bruFilePath.replace(/\.bru$/, '.yml');
+            ymlContent = await stringifyRequestViaWorker(requestData, { format: 'yml' });
           }
-        } catch (fallbackError) {
-          console.error('Fallback watcher attach failed after migration:', fallbackError);
+
+          checkCancelled();
+          conversionPlan.push({ ymlPath, ymlContent, bruPath: bruFilePath });
+        } catch (parseError) {
+          if (parseError?.message === 'Migration cancelled') throw parseError;
+          parseErrors.push(`${bruFilePath}: ${parseError.message}`);
+        }
+      }
+
+      if (parseErrors.length > 0) {
+        throw new Error(`Migration aborted — ${parseErrors.length} file(s) failed to parse:\n${parseErrors.join('\n')}`);
+      }
+
+      // Reject collisions with pre-existing yml files before writing anything — otherwise
+      // rolling back would delete a file that predates this migration, not one it created.
+      const collisions = conversionPlan
+        .map(({ ymlPath }) => ymlPath)
+        .filter((ymlPath) => fs.existsSync(ymlPath));
+      if (fs.existsSync(ocYmlPath)) {
+        collisions.push(ocYmlPath);
+      }
+      if (collisions.length > 0) {
+        throw new Error(`Migration aborted — target yml file(s) already exist:\n${collisions.join('\n')}`);
+      }
+
+      // Phase 2: write all converted yml files (except opencollection.yml)
+      for (const { ymlPath, ymlContent, bruPath } of conversionPlan) {
+        checkCancelled();
+        await writeFile(ymlPath, ymlContent);
+        writtenYmlFiles.push(ymlPath);
+        bruFilesToDelete.push(bruPath);
+      }
+
+      // Phase 3: write opencollection.yml. Everything above is still reversible up to here —
+      // bru sources are untouched, so on failure we just delete what we wrote.
+      await writeFile(ocYmlPath, ymlCollectionContent);
+      writtenYmlFiles.push(ocYmlPath);
+
+      // Commit point: bru sources are the only things left to remove. A failure past here is
+      // reported, not rolled back — the yml output is already the authoritative collection.
+      for (const bruFile of [...bruFilesToDelete, brunoJsonPath]) {
+        try {
+          fs.unlinkSync(bruFile);
+        } catch (err) {
+          console.error(`Failed to delete ${bruFile}:`, err);
           mainWindow.webContents.send('main:display-error', {
-            message: `Collection migrated to yml, but live sync could not be re-enabled: ${fallbackError.message}. Please reopen the collection.`
+            message: `Collection migrated to yml, but "${bruFile}" could not be deleted and must be removed manually.`
           });
         }
       }
 
-      return ymlBrunoConfig;
+      try {
+        const { size, filesCount } = await getCollectionStats(collectionPathname);
+        ymlBrunoConfig.size = size;
+        ymlBrunoConfig.filesCount = filesCount;
+      } catch (statsError) {
+        console.error('Failed to compute collection stats after migration:', statsError);
+      }
+
+      await reloadCollection(ymlBrunoConfig);
+      return { brunoConfig: ymlBrunoConfig };
     } catch (error) {
       for (const ymlFile of writtenYmlFiles) {
         try {
           if (fs.existsSync(ymlFile)) {
             fs.unlinkSync(ymlFile);
           }
-        } catch (_) {
-        }
+        } catch (_) {}
       }
-
-      // Restart the watcher on the original bru collection
-      try {
-        const config = JSON.parse(fs.readFileSync(path.join(collectionPathname, 'bruno.json'), 'utf8'));
-        const remounted = await remountCollectionV2({ collectionUid, brunoConfig: config });
-        if (!remounted && watcher) {
-          watcher.addWatcher(mainWindow, collectionPathname, collectionUid, config);
-        }
-      } catch (watcherError) {
-        console.error('Failed to restart watcher after migration error:', watcherError);
-      }
+      await reloadCollection(brunoConfig);
       throw error;
+    } finally {
+      migrationCancellations.delete(collectionUid);
     }
   });
 };

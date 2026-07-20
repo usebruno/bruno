@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
-import { migrateCollectionToYml } from 'providers/ReduxStore/slices/collections/actions';
+import { migrateCollectionToYml, cancelMigrateCollectionToYml } from 'providers/ReduxStore/slices/collections/actions';
 import Modal from 'components/Modal';
 import Portal from 'components/Portal';
 import Button from 'ui/Button';
@@ -12,6 +12,10 @@ const MigrateToYmlModal = ({ collection, onClose }) => {
   const [isMigrating, setIsMigrating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
+  // Migration walks the whole collection tree on disk; kicking it off before the mount
+  // finishes races with the watcher's initial scan and can leave the tree half-loaded.
+  const isCollectionMounted = collection.mountStatus === 'mounted';
+
   const handleMigrate = () => {
     setIsMigrating(true);
     dispatch(migrateCollectionToYml(collection.uid))
@@ -20,6 +24,10 @@ const MigrateToYmlModal = ({ collection, onClose }) => {
         setIsMigrating(false);
         onClose();
       });
+  };
+
+  const handleCancelMigration = () => {
+    dispatch(cancelMigrateCollectionToYml(collection.uid));
   };
 
   const handleExportBackup = async () => {
@@ -38,16 +46,23 @@ const MigrateToYmlModal = ({ collection, onClose }) => {
     }
   };
 
+  const confirmDisabled = isMigrating ? false : (isExporting || !isCollectionMounted);
+
   return (
     <Portal>
       <StyledWrapper>
         <Modal
           size="md"
           title="Migrate to YML format"
-          confirmText="Migrate"
-          confirmDisabled={isExporting || isMigrating}
-          handleConfirm={handleMigrate}
+          confirmText={isMigrating ? 'Cancel' : 'Migrate'}
+          confirmButtonColor={isMigrating ? 'danger' : 'primary'}
+          confirmDisabled={confirmDisabled}
+          handleConfirm={isMigrating ? handleCancelMigration : handleMigrate}
           handleCancel={onClose}
+          hideCancel={isMigrating}
+          hideClose={isMigrating}
+          disableCloseOnOutsideClick={isMigrating}
+          disableEscapeKey={isMigrating}
         >
           <div>
             <p>
@@ -61,6 +76,9 @@ const MigrateToYmlModal = ({ collection, onClose }) => {
                 <li><code>bruno.json</code> will be replaced with <code>opencollection.yml</code></li>
                 <li>The collection will be reloaded after migration</li>
               </ul>
+              {!isCollectionMounted && !isMigrating && (
+                <p className="mt-3">Waiting for the collection to finish loading before migration can start…</p>
+              )}
             </div>
             <div className="backup-section mt-4">
               <div className="backup-section-head">
@@ -76,7 +94,7 @@ const MigrateToYmlModal = ({ collection, onClose }) => {
                   color="secondary"
                   variant="outline"
                   onClick={handleExportBackup}
-                  disabled={isExporting}
+                  disabled={isExporting || isMigrating}
                 >
                   {isExporting ? 'Exporting…' : 'Export Collection'}
                 </Button>

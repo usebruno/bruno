@@ -66,12 +66,11 @@ import {
   _clearScriptCollectionBaselines,
   addTransientDirectory,
   addSaveTransientRequestModal,
-  updatePathParam,
-  migrateCollectionToYmlInPlace
+  updatePathParam
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab, migrateCollectionTabsToYml } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
@@ -93,7 +92,7 @@ import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { updateSettingsSelectedTab } from './index';
+import { updateSettingsSelectedTab, resetCollectionForReopen } from './index';
 import { saveGlobalEnvironment, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
@@ -2807,48 +2806,48 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
       (c) => normalizePath(c.path) === normalizePath(pathname)
     );
 
-    if (existingCollection && isAlreadyInWorkspace) {
-      toast.success('Collection is already opened');
-      resolve();
-      return;
-    }
-
     if (existingCollection) {
-      if (state.app.sidebarCollapsed) {
-        dispatch(toggleSidebarCollapse());
-      }
+      if (isAlreadyInWorkspace) {
+        toast.success('Collection is already opened');
+      } else {
+        if (state.app.sidebarCollapsed) {
+          dispatch(toggleSidebarCollapse());
+        }
 
-      if (activeWorkspace) {
-        const workspaceCollection = {
-          name: brunoConfig.name,
-          path: pathname
-        };
+        if (activeWorkspace) {
+          const workspaceCollection = {
+            name: brunoConfig.name,
+            path: pathname
+          };
 
-        ipcRenderer
-          .invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection)
-          .then(() => {
-            toast.success('Collection added to workspace');
-          })
-          .catch((err) => {
-            console.error('Failed to add collection to workspace', err);
-            toast.error('Failed to add collection to workspace');
-          });
+          ipcRenderer
+            .invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection)
+            .then(() => {
+              toast.success('Collection added to workspace');
+            })
+            .catch((err) => {
+              console.error('Failed to add collection to workspace', err);
+              toast.error('Failed to add collection to workspace');
+            });
+        }
       }
 
       dispatch(workspaceEnvUpdateEvent({ processEnvVariables: workspaceProcessEnvVariables }));
 
       const workspacePathname = activeWorkspace?.pathname || null;
 
-      ipcRenderer.invoke('renderer:snapshot:get')
-        .then((snapshot) => hydrateSnapshotLookups(snapshot || {}))
-        .then((snapshotLookups) => hydrateCollectionTabs(
-          existingCollection,
-          dispatch,
-          restoreTabs,
-          snapshotLookups,
-          workspacePathname,
-          true
-        ))
+      // The Redux entry for this pathname may be stale (removal raced/skipped, or the folder
+      // was replaced on disk without going through remove-collection first). Drop its item tree
+      // and force a fresh watcher scan via mountCollection instead of trusting it as-is —
+      // otherwise old items linger and collide with newly-scanned ones as duplicates.
+      dispatch(resetCollectionForReopen({ collectionUid: existingCollection.uid, brunoConfig }));
+      dispatch(mountCollection({
+        collectionUid: existingCollection.uid,
+        collectionPathname: pathname,
+        brunoConfig,
+        skipTabRestore: true,
+        workspacePathname
+      }))
         .catch(() => null)
         .finally(resolve);
       return;
@@ -3548,21 +3547,22 @@ export const reopenClosedTab = ({ collectionUid } = {}) => async (dispatch) => {
 
 export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) => {
   const { ipcRenderer } = window;
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection) {
+    return Promise.reject(new Error('Collection not found'));
+  }
+
+  // Migrated files get new paths, so there's nothing meaningful to restore tabs to — close them
+  // up front and let the collection reload fresh from disk once migration settles (success,
+  // failure, or cancel all reload the same way on the main-process side).
+  dispatch(closeAllCollectionTabs({ collectionUid }));
+  dispatch(resetCollectionForReopen({ collectionUid, brunoConfig: collection.brunoConfig }));
 
   return new Promise((resolve, reject) => {
-    const state = getState();
-    const collection = findCollectionByUid(state.collections.collections, collectionUid);
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
-
-    const collectionPathname = collection.pathname;
     ipcRenderer
-      .invoke('renderer:migrate-collection-to-yml', collectionPathname, collectionUid)
-      .then((updatedBrunoConfig) => {
-        dispatch(migrateCollectionToYmlInPlace({ collectionUid, brunoConfig: updatedBrunoConfig }));
-        dispatch(migrateCollectionTabsToYml({ collectionUid }));
-
+      .invoke('renderer:migrate-collection-to-yml', collection.pathname, collectionUid)
+      .then(() => {
         dispatch(addTab({
           uid: collectionUid,
           collectionUid: collectionUid,
@@ -3578,4 +3578,9 @@ export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) =>
         reject(err);
       });
   });
+};
+
+export const cancelMigrateCollectionToYml = (collectionUid) => () => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('renderer:cancel-migrate-collection-to-yml', collectionUid);
 };
