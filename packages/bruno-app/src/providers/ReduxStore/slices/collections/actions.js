@@ -2275,8 +2275,15 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 
       switch (type) {
         case 'environment': {
-          const { environment, variable } = data;
+          const environment = findEnvironmentInCollection(collection, data.environment?.uid);
 
+          if (!environment) {
+            return reject(new Error('Environment not found'));
+          }
+
+          const variable = environment.variables.find((v) => v.name === variableName && v.enabled);
+
+          // Match script variable behavior: preserve disabled entries and create a separate enabled slot.
           const updatedVariables = variable
             ? environment.variables.map((v) => {
                 if (v.uid === variable.uid) {
@@ -2390,6 +2397,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Global environment not found'));
           }
 
+          // Match script variable behavior: preserve disabled entries and create a separate enabled slot.
           const variable = environment.variables.find((v) => v.name === variableName && v.enabled);
 
           const updatedVariables = variable

@@ -585,6 +585,30 @@ describe('renderVarInfo', () => {
       expect(scopeSelect.style.width).toBe('26ch');
       expect(result.style.width).toBe('calc(26ch + 8rem)');
     });
+
+    it('should show every ancestor folder when creating from nested folder settings', () => {
+      const parentFolder = { uid: 'folder-1', type: 'folder', name: 'parent' };
+      const childFolder = { uid: 'folder-2', type: 'folder', name: 'child' };
+      getVariableScope.mockReturnValue(null);
+      getTreePathFromCollectionToItem.mockReturnValue([parentFolder, childFolder]);
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: childFolder
+        }
+      );
+
+      const scopeSelect = result.querySelector('.var-scope-select');
+      expect(Array.from(scopeSelect.options).map((option) => option.textContent)).toEqual([
+        'Folder: parent',
+        'Folder: parent / child',
+        'Collection'
+      ]);
+      expect(scopeSelect.value).toBe('folder:folder-2');
+    });
   });
 
   describe('go to definition', () => {
@@ -596,21 +620,31 @@ describe('renderVarInfo', () => {
       expect(definitionButton.textContent).toBe('Go to definition');
     });
 
-    it('should dispatch navigation actions for request-scoped variables', () => {
-      const requestItem = { uid: 'req-1', type: 'http-request' };
+    it('should open the target request before navigating to its variable definition', () => {
+      const renderedItem = { uid: 'req-current', type: 'http-request', pathname: '/current.bru' };
+      const targetItem = { uid: 'req-target', type: 'http-request', pathname: '/target.bru' };
       getVariableScope.mockReturnValue({
         type: 'request',
         value: 'test-value',
-        data: { item: requestItem, variable: { uid: 'var-1', name: 'apiKey', value: 'test-value' } }
+        data: { item: targetItem, variable: { uid: 'var-1', name: 'apiKey', value: 'test-value' } }
       });
 
-      const { containerDiv } = setupRender({ apiKey: 'test-value' }, { uid: 'col-1' }, requestItem);
+      const { containerDiv } = setupRender({ apiKey: 'test-value' }, { uid: 'col-1' }, renderedItem);
       const definitionButton = containerDiv.querySelector('.var-definition-button');
 
       definitionButton.click();
 
-      expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({ payload: { uid: 'req-1', requestPaneTab: 'vars' } }));
-      expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({ payload: { uid: 'req-1' } }));
+      expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({
+        payload: {
+          uid: 'req-target',
+          collectionUid: 'col-1',
+          type: 'http-request',
+          pathname: '/target.bru',
+          requestPaneTab: 'vars'
+        }
+      }));
+      expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({ payload: { uid: 'req-target', requestPaneTab: 'vars' } }));
+      expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({ payload: { uid: 'req-target' } }));
     });
   });
 

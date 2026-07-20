@@ -112,18 +112,7 @@ const getCreatableScopeOptions = (collection, item) => {
   const options = [];
 
   if (item?.uid) {
-    if (item.type === 'folder') {
-      options.push({
-        key: `folder:${item.uid}`,
-        type: 'folder',
-        label: item.name ? `Folder: ${item.name}` : getScopeLabel('folder'),
-        scopeInfo: {
-          type: 'folder',
-          value: '',
-          data: { folder: item, variable: null }
-        }
-      });
-    } else {
+    if (item.type !== 'folder') {
       options.push({
         key: `request:${item.uid}`,
         type: 'request',
@@ -134,29 +123,33 @@ const getCreatableScopeOptions = (collection, item) => {
           data: { item, variable: null }
         }
       });
-
-      const folderPath = getTreePathFromCollectionToItem(collection, item)
-        .filter((pathItem) => pathItem?.type === 'folder');
-
-      folderPath.forEach((folder, index) => {
-        const nestedLabel = folderPath
-          .slice(0, index + 1)
-          .map((pathItem) => pathItem.name)
-          .filter(Boolean)
-          .join(' / ');
-
-        options.push({
-          key: `folder:${folder.uid}`,
-          type: 'folder',
-          label: nestedLabel ? `Folder: ${nestedLabel}` : getScopeLabel('folder'),
-          scopeInfo: {
-            type: 'folder',
-            value: '',
-            data: { folder, variable: null }
-          }
-        });
-      });
     }
+
+    const folderPath = getTreePathFromCollectionToItem(collection, item)
+      .filter((pathItem) => pathItem?.type === 'folder');
+
+    if (item.type === 'folder' && !folderPath.some((folder) => folder.uid === item.uid)) {
+      folderPath.push(item);
+    }
+
+    folderPath.forEach((folder, index) => {
+      const nestedLabel = folderPath
+        .slice(0, index + 1)
+        .map((pathItem) => pathItem.name)
+        .filter(Boolean)
+        .join(' / ');
+
+      options.push({
+        key: `folder:${folder.uid}`,
+        type: 'folder',
+        label: nestedLabel ? `Folder: ${nestedLabel}` : getScopeLabel('folder'),
+        scopeInfo: {
+          type: 'folder',
+          value: '',
+          data: { folder, variable: null }
+        }
+      });
+    });
   }
 
   options.push({
@@ -250,6 +243,13 @@ const goToVariableDefinition = (scopeInfo, collection, item, variableName) => {
         return;
       }
 
+      dispatch(addTab({
+        uid: targetItem.uid,
+        collectionUid: collection.uid,
+        type: targetItem.type,
+        pathname: targetItem.pathname,
+        requestPaneTab: 'vars'
+      }));
       dispatch(updateRequestPaneTab({ uid: targetItem.uid, requestPaneTab: 'vars' }));
       dispatch(focusTab({ uid: targetItem.uid }));
       break;
