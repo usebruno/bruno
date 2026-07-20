@@ -1,6 +1,11 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { openApiSpecFromDialog, openApiSpecSidebarItem } from '../../utils/page/openapi/render-spec';
+import {
+  openApiSpecFromDialog,
+  openApiSpecSidebarItem,
+  expandOperation,
+  operationExampleValue
+} from '../../utils/page/openapi/render-spec';
 import { SPEC_PREVIEW_ERRORS } from '../../../packages/bruno-app/src/components/ApiSpecPanel/constants';
 import { INVALID_EXTENSION_MESSAGE } from '../../../packages/bruno-electron/src/app/apiSpecs';
 
@@ -70,5 +75,20 @@ test.describe('API Spec Panel - open & preview validation', () => {
     // Panel opens for the valid spec (filename shown in the header) and no preview error appears
     await expect(page.getByText('openapi-simple.json')).toBeVisible();
     await expect(page.getByText(/Unable to render preview/i)).toHaveCount(0);
+  });
+
+  test('Resolve $ref schemas when rendering a spec', async ({ page, electronApp }) => {
+    const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-comprehensive.yaml');
+    await openApiSpecFromDialog(page, electronApp, openApiFile);
+    await openApiSpecSidebarItem(page, 'Comprehensive API Test Collection');
+
+    await expandOperation(page, 'get', '/users');
+    const exampleValue = operationExampleValue(page, 'get', '/users', '200');
+
+    // pagination and users[] are $ref'd to the Pagination and User component schemas;
+    // their fields only appear in the generated example if those refs resolved.
+    await expect(exampleValue).toContainText('totalPages');
+    await expect(exampleValue).toContainText('avatar');
+    await expect(exampleValue).toContainText('createdAt');
   });
 });
