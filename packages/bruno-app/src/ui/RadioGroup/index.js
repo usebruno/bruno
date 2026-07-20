@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useId, useMemo } from 'react';
 import StyledWrapper from './StyledWrapper';
 
 const RadioGroupContext = createContext(null);
@@ -6,22 +6,14 @@ const RadioGroupContext = createContext(null);
 /**
  * Radio — a single option inside a RadioGroup.
  *
- * Must be rendered inside a <RadioGroup>. Reads its checked state, name, size
- * and disabled state from the group context.
- *
- * @param {Object} props
- * @param {string} props.value       - Value this option represents (required)
- * @param {ReactNode} props.label    - Label text shown next to the control
- * @param {ReactNode} props.description - Optional secondary line under the label
- * @param {boolean} props.disabled   - Disable just this option
- * @param {string} props.className   - Additional CSS classes
- * @param {string} props.dataTestId  - Test id for the underlying input
+ * Must be rendered inside a <RadioGroup>. Reads its checked state, name and
+ * disabled state from the group context.
  */
 const Radio = ({ value, label, description, disabled = false, className = '', dataTestId }) => {
   const group = useContext(RadioGroupContext);
 
   if (!group) {
-    throw new Error('Radio must be used within a RadioGroup');
+    throw new Error('<Radio> must be rendered inside <RadioGroup>.');
   }
 
   const { value: groupValue, onChange, name, disabled: groupDisabled } = group;
@@ -59,42 +51,61 @@ const Radio = ({ value, label, description, disabled = false, className = '', da
 };
 
 /**
- * RadioGroup — groups a set of <Radio> options under a single value.
+ * RadioGroup — a controlled group of <Radio> options.
  *
- * @param {Object} props
- * @param {string} props.value        - Currently selected value (controlled)
- * @param {function} props.onChange   - (value, event) => void when selection changes
- * @param {string} props.name         - Shared input name (enables native arrow-key nav)
- * @param {ReactNode} props.label     - Optional group label
- * @param {string} props.orientation  - 'vertical' (default) | 'horizontal'
- * @param {string} props.size         - 'md' (default) | 'sm'
- * @param {boolean} props.disabled    - Disable the whole group
- * @param {string} props.className    - Additional CSS classes
- * @param {string} props.dataTestId   - Test id for the group container
- * @param {ReactNode} props.children  - <Radio> options
+ * Uses native radio inputs for keyboard navigation and accessibility. If no
+ * `name` is provided, one is generated automatically.
+ *
+ * The radiogroup always receives an accessible name. Pass `label` to render a
+ * visible label, `ariaLabelledBy` to reference an external label, or
+ * `ariaLabel` when no visible label exists.
  */
 const RadioGroup = ({
   value,
   onChange,
   name,
   label,
+  ariaLabel,
+  ariaLabelledBy,
   orientation = 'vertical',
   size = 'md',
   disabled = false,
   className = '',
   dataTestId = 'radio-group',
-  children
+  children,
+  ...rest
 }) => {
-  const contextValue = { value, onChange, name, size, disabled };
+  const generatedId = useId();
+  const groupName = name || `${generatedId}-group`;
+  const labelId = label ? `${generatedId}-label` : undefined;
+  const resolvedLabelledBy = ariaLabelledBy || labelId;
+  const resolvedLabel = resolvedLabelledBy ? undefined : ariaLabel;
+
+  if (process.env.NODE_ENV !== 'production' && !resolvedLabelledBy && !resolvedLabel) {
+    console.warn(
+      'RadioGroup is missing an accessible name. Provide `label`, `ariaLabel`, or `ariaLabelledBy`.'
+    );
+  }
+
+  const contextValue = useMemo(
+    () => ({ value, onChange, name: groupName, disabled }),
+    [value, onChange, groupName, disabled]
+  );
 
   return (
     <StyledWrapper $orientation={orientation} $size={size} className={className}>
-      {label && <div className="radio-group-label">{label}</div>}
+      {label && (
+        <div className="radio-group-label" id={labelId}>
+          {label}
+        </div>
+      )}
       <RadioGroupContext.Provider value={contextValue}>
         <div
+          {...rest}
           className="radio-group-options"
           role="radiogroup"
-          aria-label={typeof label === 'string' ? label : undefined}
+          aria-labelledby={resolvedLabelledBy}
+          aria-label={resolvedLabel}
           data-testid={dataTestId}
         >
           {children}
@@ -108,3 +119,5 @@ RadioGroup.Radio = Radio;
 
 export { Radio };
 export default RadioGroup;
+
+RadioGroupContext.displayName = 'RadioGroupContext';

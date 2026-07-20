@@ -6,7 +6,16 @@ export default {
   component: RadioGroup,
   subcomponents: { Radio },
   parameters: {
-    layout: 'padded'
+    layout: 'padded',
+    docs: {
+      description: {
+        component:
+          'Groups a set of `Radio` options under a single controlled value. '
+          + 'Supports vertical/horizontal layouts and two sizes, and always exposes '
+          + 'an accessible name via `label`, `ariaLabel`, or `ariaLabelledBy`. '
+          + 'See the props table below for the full API.'
+      }
+    }
   },
   tags: ['autodocs'],
   argTypes: {
@@ -26,7 +35,15 @@ export default {
     },
     label: {
       control: 'text',
-      description: 'Optional group label'
+      description: 'Optional visible group label (also names the group for a11y)'
+    },
+    ariaLabel: {
+      control: 'text',
+      description: 'Accessible name when no visible label is rendered'
+    },
+    ariaLabelledBy: {
+      control: 'text',
+      description: 'Id of an external element that labels the group'
     }
   }
 };

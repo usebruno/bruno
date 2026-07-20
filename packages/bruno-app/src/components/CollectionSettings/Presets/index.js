@@ -43,11 +43,12 @@ const PresetsSettings = ({ collection }) => {
       </div>
       <div className="bruno-form">
         <div className="mb-3 flex items-center">
-          <label className="settings-label flex items-center">
+          <label className="settings-label flex items-center" id="presets-request-type-label">
             Request Type
           </label>
           <RadioGroup
             name="requestType"
+            ariaLabelledBy="presets-request-type-label"
             orientation="horizontal"
             size="sm"
             value={currentPresets.requestType || DEFAULT_PRESET_REQUEST_TYPE}

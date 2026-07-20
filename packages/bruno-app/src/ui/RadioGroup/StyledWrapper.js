@@ -45,9 +45,8 @@ const StyledWrapper = styled.div`
     height: ${(props) => controlSize[props.$size]};
     min-width: ${(props) => controlSize[props.$size]};
     min-height: ${(props) => controlSize[props.$size]};
-    /* guarantee a square control (hence a circular input) regardless of layout */
+    /* keep the control square so the input stays circular regardless of layout */
     aspect-ratio: 1 / 1;
-    /* align the control with the first line of the label text */
     margin-top: 0.125rem;
   }
 
