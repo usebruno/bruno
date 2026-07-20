@@ -32,6 +32,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "3.0.15",
     "@ai-sdk/openai": "3.0.12",
+    "@apidevtools/json-schema-ref-parser": "^11.7.3",
     "@aws-sdk/credential-providers": "3.1019.0",
     "@grpc/grpc-js": "^1.13.2",
     "@grpc/proto-loader": "^0.7.13",

@@ -38,12 +38,16 @@ const MIN_RIGHT_PANE_WIDTH = 450;
  *
  * Props:
  *  - content               (string)  The spec content (YAML/JSON string)
+ *  - specFilePath          (string|undefined) Absolute path of the spec file on disk, if any.
+ *                          When set, every `$ref` (external and internal) is resolved in the main
+ *                          process, which has a real base path to resolve them against, before
+ *                          the preview ever mounts.
  *  - readOnly              (boolean) If true, editor is not editable and save icon is hidden
  *  - onSave                (fn)      Called with current editor content on save (editable mode only)
  *  - leftPaneWidth         (number|null) Persisted left pane width in px; null = use 50/50 default
  *  - onLeftPaneWidthChange (fn)      Persist the new width (called on mouseup / double-click / resize-clamp)
  */
-const SpecViewer = ({ content, readOnly, onSave, leftPaneWidth, onLeftPaneWidthChange }) => {
+const SpecViewer = ({ content, specFilePath, readOnly, onSave, leftPaneWidth, onLeftPaneWidthChange }) => {
   const { displayedTheme, theme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
@@ -75,10 +79,12 @@ const SpecViewer = ({ content, readOnly, onSave, leftPaneWidth, onLeftPaneWidthC
 
   const [swaggerReady, setSwaggerReady] = useState(false);
   const [previewError, setPreviewError] = useState(null);
+  const [specForRender, setSpecForRender] = useState(null);
   const previewTimeoutRef = useRef(null);
 
   useEffect(() => {
     setSwaggerReady(false);
+    setSpecForRender(null);
     clearTimeout(previewTimeoutRef.current);
 
     if (!content || !content.trim()) {
@@ -96,9 +102,29 @@ const SpecViewer = ({ content, readOnly, onSave, leftPaneWidth, onLeftPaneWidthC
     previewTimeoutRef.current = setTimeout(() => {
       setPreviewError(SPEC_PREVIEW_ERRORS.TIMEOUT);
     }, PREVIEW_TIMEOUT_MS);
+    let cancelled = false;
+    if (specFilePath) {
+      window.ipcRenderer.invoke('renderer:resolve-openapi-spec-refs', specFilePath)
+        .then((result) => {
+          if (cancelled) return;
+          if (result?.error) {
+            console.warn('[SpecViewer] $ref resolution failed, falling back to raw content:', result.error);
+          }
+          setSpecForRender(result?.spec || content);
+        })
+        .catch((err) => {
+          console.warn('[SpecViewer] $ref resolution IPC call failed, falling back to raw content:', err);
+          if (!cancelled) setSpecForRender(content);
+        });
+    } else {
+      setSpecForRender(content);
+    }
 
-    return () => clearTimeout(previewTimeoutRef.current);
-  }, [content]);
+    return () => {
+      cancelled = true;
+      clearTimeout(previewTimeoutRef.current);
+    };
+  }, [content, specFilePath]);
 
   const handleSwaggerComplete = useCallback(() => {
     // Double rAF: wait for one full paint cycle so Swagger is actually on screen
@@ -160,9 +186,11 @@ const SpecViewer = ({ content, readOnly, onSave, leftPaneWidth, onLeftPaneWidthC
           </div>
         ) : (
           <>
-            <div style={{ visibility: swaggerReady ? 'visible' : 'hidden', height: '100%' }}>
-              <Swagger spec={content} onComplete={handleSwaggerComplete} />
-            </div>
+            {specForRender != null && (
+              <div style={{ visibility: swaggerReady ? 'visible' : 'hidden', height: '100%' }}>
+                <Swagger spec={specForRender} onComplete={handleSwaggerComplete} />
+              </div>
+            )}
             {!swaggerReady && (
               <div
                 className="absolute inset-0 flex items-center justify-center gap-2"

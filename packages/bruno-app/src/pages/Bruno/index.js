@@ -10,6 +10,7 @@ import Sidebar from 'components/Sidebar';
 import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
 import ApiSpecPanel from 'components/ApiSpecPanel';
+import ApiSpecPanelErrorBoundary from 'components/ApiSpecPanel/ApiSpecPanelErrorBoundary';
 import TabPanelErrorBoundary from 'components/RequestTabPanel/TabPanelErrorBoundary';
 // import ErrorCapture from 'components/ErrorCapture';
 import { useSelector } from 'react-redux';
@@ -160,7 +161,9 @@ export default function Main() {
           <Sidebar />
           <section className="flex flex-grow flex-col overflow-hidden">
             {showApiSpecPage && activeApiSpecUid ? (
-              <ApiSpecPanel key={activeApiSpecUid} />
+              <ApiSpecPanelErrorBoundary key={activeApiSpecUid}>
+                <ApiSpecPanel key={activeApiSpecUid} />
+              </ApiSpecPanelErrorBoundary>
             ) : showManageWorkspacePage ? (
               <ManageWorkspace />
             ) : (

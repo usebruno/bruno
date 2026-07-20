@@ -87,6 +87,7 @@ const ApiSpecPanel = () => {
       </div>
       <SpecViewer
         content={raw}
+        specFilePath={pathname}
         onSave={(content) => dispatch(saveApiSpecToFile({ uid, content }))}
         leftPaneWidth={leftPaneWidth ?? null}
         onLeftPaneWidthChange={handleLeftPaneWidthChange}

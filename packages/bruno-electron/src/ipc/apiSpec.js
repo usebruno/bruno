@@ -6,6 +6,7 @@ const { removeApiSpecFromWorkspace } = require('../utils/workspace-config');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const { makeAxiosInstance } = require('./network/axios-instance');
 const { proxySwaggerFetch } = require('./swagger-fetch');
+const { resolveOpenApiSpecRefs } = require('./openapi-ref-resolver');
 const path = require('path');
 const fs = require('fs');
 
@@ -91,6 +92,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) 
 
   ipcMain.handle('renderer:swagger-fetch', async (event, req) => {
     return proxySwaggerFetch(req);
+  });
+
+  ipcMain.handle('renderer:resolve-openapi-spec-refs', async (event, pathname) => {
+    return resolveOpenApiSpecRefs(pathname);
   });
 
   ipcMain.handle('renderer:ensure-apispec-folder', async (event, workspacePath) => {
