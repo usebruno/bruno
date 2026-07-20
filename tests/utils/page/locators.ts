@@ -17,6 +17,7 @@ export const buildCommonLocators = (page: Page) => ({
   ai: buildAiPreferencesLocators(page),
   websocket: buildWebsocketCommonLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
+  settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
@@ -272,7 +273,9 @@ export const buildCommonLocators = (page: Page) => ({
     itemHeader: (item: Locator) => item.getByTestId('timeline-item-header'),
     clearButton: () => page.getByRole('button', { name: 'Clear Timeline' }),
     container: () => page.getByTestId('timeline-container'),
-    entries: () => page.getByTestId('timeline-container').getByTestId('timeline-entry')
+    entries: () => page.getByTestId('timeline-container').getByTestId('timeline-entry'),
+    networkButton: (item: Locator) => item.getByRole('button', { name: 'Network' }),
+    networkLogs: (item: Locator) => item.locator('.network-logs-container')
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),

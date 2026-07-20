@@ -141,6 +141,21 @@ export const remapKeybinding = async (
   await closePreferencesTab(page);
 };
 
+export const altShortcutDisplayText = (key: string) => (process.platform === 'darwin' ? `⌥ + ${key}` : `Alt + ${key}`);
+
+export const shiftEnterShortcutDisplayText = process.platform === 'darwin' ? '⇧ + ↩' : 'Shift + Enter';
+
+export const expectResponsePlaceholderShortcut = async (
+  page: Page,
+  action: string,
+  label: string,
+  shortcut: string
+) => {
+  const placeholder = page.getByTestId('response-pane-shortcut-placeholder');
+  await expect(placeholder.getByTestId(`response-placeholder-shortcut-label-${action}`)).toHaveText(label);
+  await expect(placeholder.getByTestId(`response-placeholder-shortcut-value-${action}`)).toHaveText(shortcut);
+};
+
 export const getTabIndex = async (page: Page, name: string) => {
   const tabs = page.locator('.request-tab .tab-label');
   const count = await tabs.count();
