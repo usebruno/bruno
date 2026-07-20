@@ -175,4 +175,224 @@ describe('SnapshotManager shared collection lookups', () => {
       selectedEnvironment: 'env-a'
     });
   });
+
+  it('keeps workspace-scoped getCollection results distinct when active workspace preference is applied', () => {
+    const workspaceAPath = '/workspaces/a';
+    const workspaceBPath = '/workspaces/b';
+    const sharedCollectionPath = '/collections/shared';
+
+    snapshotManager.saveSnapshot({
+      version: '0.0.1',
+      activeWorkspacePath: workspaceAPath,
+      extras: { devTools: { open: false, activeTab: '', tabs: {} } },
+      workspaces: [
+        {
+          pathname: workspaceAPath,
+          environment: '',
+          sorting: 'default',
+          collections: [sharedCollectionPath]
+        },
+        {
+          pathname: workspaceBPath,
+          environment: '',
+          sorting: 'default',
+          collections: [sharedCollectionPath]
+        }
+      ],
+      collections: [
+        {
+          pathname: sharedCollectionPath,
+          workspacePathname: workspaceAPath,
+          environment: { collection: 'env-a', global: '' },
+          environmentPath: 'env-a',
+          selectedEnvironment: 'env-a',
+          isOpen: true,
+          isMounted: true,
+          activeTab: null,
+          tabs: []
+        },
+        {
+          pathname: sharedCollectionPath,
+          workspacePathname: workspaceBPath,
+          environment: { collection: 'env-b', global: '' },
+          environmentPath: 'env-b',
+          selectedEnvironment: 'env-b',
+          isOpen: true,
+          isMounted: true,
+          activeTab: null,
+          tabs: []
+        }
+      ]
+    });
+
+    expect(snapshotManager.getCollection(sharedCollectionPath)).toMatchObject({
+      selectedEnvironment: 'env-a'
+    });
+    expect(snapshotManager.getCollection(sharedCollectionPath, workspaceAPath)).toMatchObject({
+      selectedEnvironment: 'env-a'
+    });
+    expect(snapshotManager.getCollection(sharedCollectionPath, workspaceBPath)).toMatchObject({
+      selectedEnvironment: 'env-b'
+    });
+  });
+
+  it('prefers blank active workspace collection data over a later non-active entry with environment data', () => {
+    const workspaceAPath = '/workspaces/a';
+    const workspaceBPath = '/workspaces/b';
+    const sharedCollectionPath = '/collections/shared';
+
+    snapshotManager.saveSnapshot({
+      version: '0.0.1',
+      activeWorkspacePath: workspaceAPath,
+      extras: { devTools: { open: false, activeTab: '', tabs: {} } },
+      workspaces: [
+        {
+          pathname: workspaceAPath,
+          environment: '',
+          sorting: 'default',
+          collections: [sharedCollectionPath]
+        },
+        {
+          pathname: workspaceBPath,
+          environment: '',
+          sorting: 'default',
+          collections: [sharedCollectionPath]
+        }
+      ],
+      collections: [
+        {
+          pathname: sharedCollectionPath,
+          workspacePathname: workspaceAPath,
+          environment: { collection: '', global: '' },
+          environmentPath: '',
+          selectedEnvironment: '',
+          isOpen: true,
+          isMounted: true,
+          activeTab: null,
+          tabs: []
+        },
+        {
+          pathname: sharedCollectionPath,
+          workspacePathname: workspaceBPath,
+          environment: { collection: 'env-b', global: '' },
+          environmentPath: 'env-b',
+          selectedEnvironment: 'env-b',
+          isOpen: true,
+          isMounted: true,
+          activeTab: null,
+          tabs: []
+        }
+      ]
+    });
+
+    expect(snapshotManager.getCollection(sharedCollectionPath)).toMatchObject({
+      workspacePathname: workspaceAPath,
+      selectedEnvironment: '',
+      environment: { collection: '', global: '' }
+    });
+  });
+
+  it('prefers an active workspace entry with environment data over an earlier blank active entry for the same path', () => {
+    const workspaceAPath = '/workspaces/a';
+    const sharedCollectionPath = '/collections/shared';
+
+    snapshotManager.saveSnapshot({
+      version: '0.0.1',
+      activeWorkspacePath: workspaceAPath,
+      extras: { devTools: { open: false, activeTab: '', tabs: {} } },
+      workspaces: [
+        {
+          pathname: workspaceAPath,
+          environment: '',
+          sorting: 'default',
+          collections: [sharedCollectionPath]
+        }
+      ],
+      collections: [
+        {
+          pathname: sharedCollectionPath,
+          workspacePathname: workspaceAPath,
+          environment: { collection: '', global: '' },
+          environmentPath: '',
+          selectedEnvironment: '',
+          isOpen: true,
+          isMounted: true,
+          activeTab: null,
+          tabs: []
+        },
+        {
+          pathname: sharedCollectionPath,
+          workspacePathname: workspaceAPath,
+          environment: { collection: 'env-second', global: '' },
+          environmentPath: 'env-second',
+          selectedEnvironment: 'env-second',
+          isOpen: true,
+          isMounted: true,
+          activeTab: null,
+          tabs: []
+        }
+      ]
+    });
+
+    expect(snapshotManager.getCollection(sharedCollectionPath)).toMatchObject({
+      selectedEnvironment: 'env-second',
+      environment: { collection: 'env-second', global: '' }
+    });
+  });
+
+  it('uses last-write-wins for path lookup when activeWorkspacePath is absent', () => {
+    const workspaceAPath = '/workspaces/a';
+    const workspaceBPath = '/workspaces/b';
+    const sharedCollectionPath = '/collections/shared';
+
+    snapshotManager.saveSnapshot({
+      version: '0.0.1',
+      activeWorkspacePath: null,
+      extras: { devTools: { open: false, activeTab: '', tabs: {} } },
+      workspaces: [
+        {
+          pathname: workspaceAPath,
+          environment: '',
+          sorting: 'default',
+          collections: [sharedCollectionPath]
+        },
+        {
+          pathname: workspaceBPath,
+          environment: '',
+          sorting: 'default',
+          collections: [sharedCollectionPath]
+        }
+      ],
+      collections: [
+        {
+          pathname: sharedCollectionPath,
+          workspacePathname: workspaceAPath,
+          environment: { collection: 'env-a', global: '' },
+          environmentPath: 'env-a',
+          selectedEnvironment: 'env-a',
+          isOpen: true,
+          isMounted: true,
+          activeTab: null,
+          tabs: []
+        },
+        {
+          pathname: sharedCollectionPath,
+          workspacePathname: workspaceBPath,
+          environment: { collection: 'env-b', global: '' },
+          environmentPath: 'env-b',
+          selectedEnvironment: 'env-b',
+          isOpen: true,
+          isMounted: true,
+          activeTab: null,
+          tabs: []
+        }
+      ]
+    });
+
+    expect(snapshotManager.getCollection(sharedCollectionPath)).toMatchObject({
+      workspacePathname: workspaceBPath,
+      selectedEnvironment: 'env-b',
+      environment: { collection: 'env-b', global: '' }
+    });
+  });
 });

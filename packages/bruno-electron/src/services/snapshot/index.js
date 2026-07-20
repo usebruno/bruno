@@ -683,7 +683,6 @@ class SnapshotManager {
     const activeWorkspacePath = typeof normalizedSnapshot.activeWorkspacePath === 'string'
       ? normalizeLookupKey(normalizedSnapshot.activeWorkspacePath)
       : null;
-    const activeWorkspaceEntries = new Map();
 
     normalizedSnapshot.workspaces.forEach((workspace) => {
       const normalizedPath = normalizeLookupKey(workspace.pathname);
@@ -694,12 +693,31 @@ class SnapshotManager {
       workspacesByPath[normalizedPath] = workspace;
     });
 
-    const assignCollectionLookups = (normalizedPath, collection) => {
-      collectionsByPath[normalizedPath] = collection;
-      tabsByCollectionPath[normalizedPath] = {
-        activeTab: collection.activeTab,
-        tabs: collection.tabs
-      };
+    normalizedSnapshot.collections.forEach((collection) => {
+      const normalizedPath = normalizeLookupKey(collection.pathname);
+      if (!normalizedPath) {
+        return;
+      }
+
+      const existing = collectionsByPath[normalizedPath];
+      const incomingIsActive = Boolean(
+        activeWorkspacePath && normalizeLookupKey(collection.workspacePathname || '') === activeWorkspacePath
+      );
+      const existingIsActive = Boolean(
+        existing && activeWorkspacePath && normalizeLookupKey(existing.workspacePathname || '') === activeWorkspacePath
+      );
+      const shouldWritePath = !existing
+        || (incomingIsActive && !existingIsActive)
+        || (incomingIsActive && existingIsActive && Boolean(collection.selectedEnvironment || collection.environment?.collection))
+        || (!incomingIsActive && !existingIsActive);
+
+      if (shouldWritePath) {
+        collectionsByPath[normalizedPath] = collection;
+        tabsByCollectionPath[normalizedPath] = {
+          activeTab: collection.activeTab,
+          tabs: collection.tabs
+        };
+      }
 
       const workspaceCollectionKey = buildWorkspaceCollectionLookupKey(collection.workspacePathname, collection.pathname);
       if (workspaceCollectionKey) {
@@ -709,28 +727,7 @@ class SnapshotManager {
           tabs: collection.tabs
         };
       }
-    };
-
-    normalizedSnapshot.collections.forEach((collection) => {
-      const normalizedPath = normalizeLookupKey(collection.pathname);
-      if (!normalizedPath) {
-        return;
-      }
-
-      assignCollectionLookups(normalizedPath, collection);
-
-      const isActiveWorkspaceEntry = activeWorkspacePath
-        && normalizeLookupKey(collection.workspacePathname || '') === activeWorkspacePath;
-
-      if (isActiveWorkspaceEntry) {
-        const hasData = collection.selectedEnvironment || collection.environment?.collection;
-        if (hasData || !activeWorkspaceEntries.has(normalizedPath)) {
-          activeWorkspaceEntries.set(normalizedPath, collection);
-        }
-      }
     });
-
-    activeWorkspaceEntries.forEach((collection, normalizedPath) => assignCollectionLookups(normalizedPath, collection));
 
     this._lookupCache = {
       workspacesByPath,

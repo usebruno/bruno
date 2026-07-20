@@ -166,40 +166,10 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
   const tabsByWorkspaceAndCollectionPath = {};
   const workspacesByPath = {};
 
-  const assignCollectionLookups = (path, workspaceKey, collection) => {
-    const workspacePathname = typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '';
-    const collectionEntry = {
-      pathname: collection.pathname,
-      workspacePathname,
-      environment: collection.environment,
-      environmentPath: collection.environmentPath,
-      selectedEnvironment: collection.selectedEnvironment,
-      isOpen: collection.isOpen,
-      isMounted: collection.isMounted
-    };
-    const tabsEntry = {
-      pathname: collection.pathname,
-      activeTab: collection.activeTab,
-      tabs: collection.tabs
-    };
-
-    collectionsByPath[path] = collectionEntry;
-    tabsByCollectionPath[path] = tabsEntry;
-
-    if (workspaceKey) {
-      collectionsByWorkspaceAndPath[workspaceKey] = collectionEntry;
-      tabsByWorkspaceAndCollectionPath[workspaceKey] = {
-        ...tabsEntry,
-        workspacePathname
-      };
-    }
-  };
-
   if (Array.isArray(snapshot.collections)) {
     const activeWorkspacePath = typeof snapshot.activeWorkspacePath === 'string'
       ? normalizePath(snapshot.activeWorkspacePath)
       : '';
-    const activeWorkspaceEntries = new Map();
 
     snapshot.collections.forEach((collectionEntry) => {
       if (!isObject(collectionEntry) || typeof collectionEntry.pathname !== 'string') {
@@ -212,27 +182,50 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         return;
       }
 
+      const workspacePathname = typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '';
+      const collectionLookupEntry = {
+        pathname: collection.pathname,
+        workspacePathname,
+        environment: collection.environment,
+        environmentPath: collection.environmentPath,
+        selectedEnvironment: collection.selectedEnvironment,
+        isOpen: collection.isOpen,
+        isMounted: collection.isMounted
+      };
+      const tabsEntry = {
+        pathname: collection.pathname,
+        activeTab: collection.activeTab,
+        tabs: collection.tabs
+      };
+
+      const existing = collectionsByPath[normalizedCollectionPathname];
+      const incomingIsActive = Boolean(
+        activeWorkspacePath && normalizePath(workspacePathname) === activeWorkspacePath
+      );
+      const existingIsActive = Boolean(
+        existing && activeWorkspacePath && normalizePath(existing.workspacePathname || '') === activeWorkspacePath
+      );
+      const shouldWritePath = !existing
+        || (incomingIsActive && !existingIsActive)
+        || (incomingIsActive && existingIsActive && Boolean(collection.selectedEnvironment || collection.environment?.collection))
+        || (!incomingIsActive && !existingIsActive);
+
+      if (shouldWritePath) {
+        collectionsByPath[normalizedCollectionPathname] = collectionLookupEntry;
+        tabsByCollectionPath[normalizedCollectionPathname] = tabsEntry;
+      }
+
       const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(
         collection.workspacePathname,
         collection.pathname
       );
-
-      assignCollectionLookups(normalizedCollectionPathname, workspaceCollectionKey, collection);
-
-      const isActiveWorkspaceEntry = activeWorkspacePath
-        && normalizePath(collection.workspacePathname || '') === activeWorkspacePath;
-
-      if (isActiveWorkspaceEntry) {
-        const hasData = collection.selectedEnvironment || collection.environment?.collection;
-        if (hasData || !activeWorkspaceEntries.has(normalizedCollectionPathname)) {
-          activeWorkspaceEntries.set(normalizedCollectionPathname, collection);
-        }
+      if (workspaceCollectionKey) {
+        collectionsByWorkspaceAndPath[workspaceCollectionKey] = collectionLookupEntry;
+        tabsByWorkspaceAndCollectionPath[workspaceCollectionKey] = {
+          ...tabsEntry,
+          workspacePathname
+        };
       }
-    });
-
-    activeWorkspaceEntries.forEach((collection, path) => {
-      const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(collection.workspacePathname, collection.pathname);
-      assignCollectionLookups(path, workspaceCollectionKey, collection);
     });
   }
 

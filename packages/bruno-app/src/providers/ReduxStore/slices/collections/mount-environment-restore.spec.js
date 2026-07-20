@@ -86,4 +86,73 @@ describe('mountCollection skipTabRestore behavior', () => {
       expect.anything()
     );
   });
+
+  it('restores tabs and the saved collection environment when skipTabRestore is false', async () => {
+    const store = configureStore({
+      reducer: {
+        app: (state = { preferences: { cache: { file: { enabled: false } } } }) => state,
+        collections: collectionsReducer
+      },
+      preloadedState: {
+        app: { preferences: { cache: { file: { enabled: false } } } },
+        collections: {
+          collectionSortOrder: 'default',
+          collections: [{
+            uid: 'col-yamlbased',
+            pathname: COLLECTION_PATH,
+            mountStatus: 'unmounted',
+            environments: [{ uid: ENV_UID, name: 'abhi', pathname: ENV_PATH }],
+            activeEnvironmentUid: null,
+            collapsed: false,
+            items: []
+          }],
+          tempDirectories: {}
+        }
+      }
+    });
+
+    window.ipcRenderer = {
+      invoke: jest.fn((channel) => {
+        if (channel === 'renderer:mount-collection') {
+          return Promise.resolve('/tmp/bruno-transient');
+        }
+
+        if (channel === 'renderer:snapshot:get-collection') {
+          return Promise.resolve({ environmentPath: ENV_PATH, selectedEnvironment: 'abhi' });
+        }
+
+        if (channel === 'renderer:snapshot:get-tabs') {
+          return Promise.resolve({
+            tabs: [{ type: 'http-request', accessor: 'uid', uid: 'tab-1', permanent: true }],
+            activeTab: { accessor: 'uid', value: 'tab-1' }
+          });
+        }
+
+        return Promise.resolve(null);
+      })
+    };
+
+    await store.dispatch(mountCollection({
+      collectionUid: 'col-yamlbased',
+      collectionPathname: COLLECTION_PATH,
+      brunoConfig: {},
+      skipTabRestore: false,
+      workspacePathname: WORKSPACE_PATH
+    }));
+
+    expect(store.getState().collections.collections[0]).toMatchObject({
+      mountStatus: 'mounted',
+      activeEnvironmentUid: ENV_UID
+    });
+    expect(window.ipcRenderer.invoke).toHaveBeenCalledWith(
+      'renderer:snapshot:get-tabs',
+      COLLECTION_PATH,
+      WORKSPACE_PATH
+    );
+    expect(window.ipcRenderer.invoke).toHaveBeenCalledWith(
+      'renderer:snapshot:get-collection',
+      COLLECTION_PATH,
+      WORKSPACE_PATH
+    );
+  });
 });
