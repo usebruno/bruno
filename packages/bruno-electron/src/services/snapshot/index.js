@@ -680,6 +680,10 @@ class SnapshotManager {
     const collectionsByWorkspaceAndPath = {};
     const tabsByCollectionPath = {};
     const tabsByWorkspaceAndCollectionPath = {};
+    const activeWorkspacePath = typeof normalizedSnapshot.activeWorkspacePath === 'string'
+      ? normalizeLookupKey(normalizedSnapshot.activeWorkspacePath)
+      : null;
+    const activeWorkspaceEntries = new Map();
 
     normalizedSnapshot.workspaces.forEach((workspace) => {
       const normalizedPath = normalizeLookupKey(workspace.pathname);
@@ -696,6 +700,33 @@ class SnapshotManager {
         return;
       }
 
+      collectionsByPath[normalizedPath] = collection;
+      tabsByCollectionPath[normalizedPath] = {
+        activeTab: collection.activeTab,
+        tabs: collection.tabs
+      };
+
+      const workspaceCollectionKey = buildWorkspaceCollectionLookupKey(collection.workspacePathname, collection.pathname);
+      if (workspaceCollectionKey) {
+        collectionsByWorkspaceAndPath[workspaceCollectionKey] = collection;
+        tabsByWorkspaceAndCollectionPath[workspaceCollectionKey] = {
+          activeTab: collection.activeTab,
+          tabs: collection.tabs
+        };
+      }
+
+      const isActiveWorkspaceEntry = activeWorkspacePath
+        && normalizeLookupKey(collection.workspacePathname || '') === activeWorkspacePath;
+
+      if (isActiveWorkspaceEntry) {
+        const hasData = collection.selectedEnvironment || collection.environment?.collection;
+        if (hasData || !activeWorkspaceEntries.has(normalizedPath)) {
+          activeWorkspaceEntries.set(normalizedPath, collection);
+        }
+      }
+    });
+
+    activeWorkspaceEntries.forEach((collection, normalizedPath) => {
       collectionsByPath[normalizedPath] = collection;
       tabsByCollectionPath[normalizedPath] = {
         activeTab: collection.activeTab,

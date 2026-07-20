@@ -113,3 +113,66 @@ describe('SnapshotManager.remapCollectionTabPaths', () => {
     expect(tabs.some((t) => t.pathname === `${collectionPath}/ping.bru`)).toBe(true);
   });
 });
+
+describe('SnapshotManager shared collection lookups', () => {
+  beforeEach(() => {
+    mockStoreData = {};
+  });
+
+  it('uses active workspace collection environment when a later shared collection entry is blank', () => {
+    const workspaceAPath = '/workspaces/a';
+    const workspaceBPath = '/workspaces/b';
+    const sharedCollectionPath = '/collections/shared';
+
+    snapshotManager.saveSnapshot({
+      version: '0.0.1',
+      activeWorkspacePath: workspaceAPath,
+      extras: { devTools: { open: false, activeTab: '', tabs: {} } },
+      workspaces: [
+        {
+          pathname: workspaceAPath,
+          environment: '',
+          sorting: 'default',
+          collections: [sharedCollectionPath]
+        },
+        {
+          pathname: workspaceBPath,
+          environment: '',
+          sorting: 'default',
+          collections: [sharedCollectionPath]
+        }
+      ],
+      collections: [
+        {
+          pathname: sharedCollectionPath,
+          workspacePathname: workspaceAPath,
+          environment: { collection: 'env-a', global: '' },
+          environmentPath: 'env-a',
+          selectedEnvironment: 'env-a',
+          isOpen: true,
+          isMounted: true,
+          activeTab: null,
+          tabs: []
+        },
+        {
+          pathname: sharedCollectionPath,
+          workspacePathname: workspaceBPath,
+          environment: { collection: '', global: '' },
+          environmentPath: '',
+          selectedEnvironment: '',
+          isOpen: true,
+          isMounted: true,
+          activeTab: null,
+          tabs: []
+        }
+      ]
+    });
+
+    expect(snapshotManager.getCollection(sharedCollectionPath)).toMatchObject({
+      workspacePathname: workspaceAPath,
+      environment: { collection: 'env-a', global: '' },
+      environmentPath: 'env-a',
+      selectedEnvironment: 'env-a'
+    });
+  });
+});
