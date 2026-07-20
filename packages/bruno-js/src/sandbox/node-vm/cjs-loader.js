@@ -318,9 +318,19 @@ function isModuleLinkedFromAllowedRoot(candidatePath, moduleName, additionalCont
   const segments = moduleName.split(/[/\\]/);
   if (segments.some((seg) => seg === '..')) return false;
 
+  // Look up the symlink at <root>/node_modules/<bareName>, not the full
+  // specifier. A subpath import like `require('linked-pkg/utils')` resolves
+  // to `<realpath-of-linked-pkg>/utils.js`; realpath'ing the full specifier
+  // (`.../linked-pkg/utils`) would either miss (if `utils` isn't a real
+  // subdir) or land on the wrong node when Node added `.js`, producing a
+  // spurious `..`-prefixed relative and a false rejection.
+  const isScoped = moduleName.startsWith('@');
+  const bareName = isScoped ? segments.slice(0, 2).join('/') : segments[0];
+  if (!bareName || (isScoped && segments.length < 2)) return false;
+
   for (const root of additionalContextRootsAbsolute) {
     const nodeModulesDir = path.join(root, 'node_modules');
-    const linkPath = path.join(nodeModulesDir, moduleName);
+    const linkPath = path.join(nodeModulesDir, bareName);
     // Belt-and-suspenders: after normalization the joined path must still sit
     // inside <root>/node_modules — reject anything that escaped it.
     const relToNm = path.relative(nodeModulesDir, linkPath);
