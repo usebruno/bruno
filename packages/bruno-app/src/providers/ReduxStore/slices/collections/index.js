@@ -447,6 +447,27 @@ export const collectionsSlice = createSlice({
         } else {
           collection.activeEnvironmentUid = null;
         }
+        // Any explicit selection (including "No Environment") cancels a pending default
+        // so a late-loading environment file can't re-apply the default over this choice.
+        collection.pendingDefaultEnvironment = null;
+      }
+    },
+    applyDefaultEnvironment: (state, action) => {
+      const { collectionUid, defaultEnvironmentName } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      // Never override an existing selection.
+      if (collection.activeEnvironmentUid) return;
+
+      const environment = (collection.environments || []).find((env) => env?.name === defaultEnvironmentName);
+      if (environment) {
+        collection.activeEnvironmentUid = environment.uid;
+        collection.pendingDefaultEnvironment = null;
+      } else {
+        // Environment files aren't loaded yet — remember to apply the default once the
+        // matching environment file arrives (see collectionAddEnvFileEvent).
+        collection.pendingDefaultEnvironment = defaultEnvironmentName;
       }
     },
     updateEnvironmentColor: (state, action) => {
@@ -3156,6 +3177,17 @@ export const collectionsSlice = createSlice({
             }
           }
         }
+
+        // Apply a pending default environment once its file has loaded (first open only,
+        // and only while nothing else has been selected).
+        if (
+          collection.pendingDefaultEnvironment
+          && !collection.activeEnvironmentUid
+          && environment.name === collection.pendingDefaultEnvironment
+        ) {
+          collection.activeEnvironmentUid = environment.uid;
+          collection.pendingDefaultEnvironment = null;
+        }
       }
     },
     collectionRenamedEvent: (state, action) => {
@@ -3992,6 +4024,7 @@ export const {
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,
+  applyDefaultEnvironment,
   updateEnvironmentColor,
   newItem,
   deleteItem,

@@ -35,6 +35,7 @@ import {
   createCollection as _createCollection,
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
+  applyDefaultEnvironment as _applyDefaultEnvironment,
   setCollectionDefaultEnvironment as _setCollectionDefaultEnvironment,
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
@@ -3184,11 +3185,10 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
         dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
       } else if (collectionSnapshotData?.hasSnapshotEntry === false) {
         const defaultEnvironmentName = collectionCopy?.brunoConfig?.presets?.defaultEnvironment;
-        if (defaultEnvironmentName && Array.isArray(collectionCopy?.environments)) {
-          const defaultEnvironment = collectionCopy.environments.find((env) => env?.name === defaultEnvironmentName);
-          if (defaultEnvironment) {
-            dispatch(_selectEnvironment({ environmentUid: defaultEnvironment.uid, collectionUid }));
-          }
+        if (defaultEnvironmentName && collectionUid) {
+          // Apply the default now if its environment file is already loaded; otherwise mark
+          // it pending so it's applied as soon as the file arrives (collectionAddEnvFileEvent).
+          dispatch(_applyDefaultEnvironment({ collectionUid, defaultEnvironmentName }));
         }
       }
 
