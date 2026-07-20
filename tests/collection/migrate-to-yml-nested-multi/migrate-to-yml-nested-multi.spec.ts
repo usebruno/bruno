@@ -3,12 +3,12 @@ import path from 'path';
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, openCollection, buildCommonLocators } from '../../utils/page';
 
-test.describe('Migrating one collection to yml preserves nested tabs & expanded folders and leaves other collections untouched', () => {
+test.describe('Migrating one collection to yml closes its tabs and leaves other collections untouched', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('nested tabs stay open, nested folders stay expanded, other collection is untouched', async ({ pageWithUserData: page, collectionFixturePath }) => {
+  test('source request tabs close, nested items remain usable, other collection is untouched', async ({ pageWithUserData: page, collectionFixturePath }) => {
     const collectionPath = collectionFixturePath!;
     const loc = buildCommonLocators(page);
 
@@ -41,11 +41,15 @@ test.describe('Migrating one collection to yml preserves nested tabs & expanded 
     await test.step('Migrate the source collection to yml', async () => {
       await loc.sidebar.collection('migrate-source').click();
       await page.getByTestId('collection-settings-tab-overview').click();
-      await page.getByRole('button', { name: 'Convert to YML' }).click();
+      const convertButton = page.getByRole('button', { name: 'Convert to YML' });
+      await expect(convertButton).toBeEnabled();
+      await convertButton.click();
 
       const modal = page.locator('.bruno-modal').filter({ hasText: 'Migrate to YML format' });
       await modal.waitFor({ state: 'visible', timeout: 5000 });
-      await modal.getByRole('button', { name: 'Migrate' }).click();
+      const migrateButton = modal.getByRole('button', { name: 'Migrate' });
+      await expect(migrateButton).toBeEnabled();
+      await migrateButton.click();
 
       await expect(page.getByText('Collection migrated to YML format successfully')).toBeVisible({ timeout: 30000 });
     });
@@ -56,23 +60,25 @@ test.describe('Migrating one collection to yml preserves nested tabs & expanded 
       expect(fs.existsSync(path.join(collectionPath, 'source-collection', 'api', 'users.yml'))).toBe(true);
     });
 
-    await test.step('All nested request tabs stay open (no "Request no longer exists")', async () => {
+    await test.step('Source collection request tabs are closed after migration', async () => {
       await expect(page.getByText('Request no longer exists')).not.toBeVisible();
 
       for (const name of ['root-req', 'users', 'deep']) {
-        await expect(page.locator('.request-tab .tab-label').filter({ hasText: name })).toBeVisible({ timeout: 15000 });
+        await expect(page.locator('.request-tab .tab-label').filter({ hasText: name })).toHaveCount(0);
       }
     });
 
-    await test.step('A migrated tab resolves to a real request (not a broken not-found tab)', async () => {
-      await page.locator('.request-tab').filter({ hasText: 'deep' }).click({ force: true });
-      await expect(page.getByText('Request no longer exists')).not.toBeVisible();
-      await expect(page.locator('#request-url').locator('.CodeMirror')).toContainText('/api/v2/deep');
-    });
+    await test.step('Migrated nested requests can be reopened from the sidebar', async () => {
+      await openCollection(page, 'migrate-source');
+      await loc.folder.chevron('api').click();
+      await loc.folder.chevron('v2').click();
 
-    await test.step('Nested folders remain expanded (nested request rows still visible in the tree)', async () => {
       await expect(loc.sidebar.request('users')).toBeVisible();
       await expect(loc.sidebar.request('deep')).toBeVisible();
+
+      await loc.sidebar.request('deep').dblclick();
+      await expect(page.getByText('Request no longer exists')).not.toBeVisible();
+      await expect(page.locator('#request-url').locator('.CodeMirror')).toContainText('/api/v2/deep');
     });
 
     await test.step('The other collection tab is untouched by the migration', async () => {

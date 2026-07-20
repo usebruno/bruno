@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
-import { migrateCollectionToYml, cancelMigrateCollectionToYml } from 'providers/ReduxStore/slices/collections/actions';
+import { migrateCollectionToYml } from 'providers/ReduxStore/slices/collections/actions';
 import Modal from 'components/Modal';
 import Portal from 'components/Portal';
 import Button from 'ui/Button';
@@ -17,6 +17,7 @@ const MigrateToYmlModal = ({ collection, onClose }) => {
   const isCollectionMounted = collection.mountStatus === 'mounted';
 
   const handleMigrate = () => {
+    if (isMigrating || isExporting || !isCollectionMounted) return;
     setIsMigrating(true);
     dispatch(migrateCollectionToYml(collection.uid))
       .catch(() => {})
@@ -26,12 +27,8 @@ const MigrateToYmlModal = ({ collection, onClose }) => {
       });
   };
 
-  const handleCancelMigration = () => {
-    dispatch(cancelMigrateCollectionToYml(collection.uid));
-  };
-
   const handleExportBackup = async () => {
-    if (isExporting) return;
+    if (isExporting || isMigrating) return;
     setIsExporting(true);
     try {
       const { ipcRenderer } = window;
@@ -46,18 +43,15 @@ const MigrateToYmlModal = ({ collection, onClose }) => {
     }
   };
 
-  const confirmDisabled = isMigrating ? false : (isExporting || !isCollectionMounted);
-
   return (
     <Portal>
       <StyledWrapper>
         <Modal
           size="md"
           title="Migrate to YML format"
-          confirmText={isMigrating ? 'Cancel' : 'Migrate'}
-          confirmButtonColor={isMigrating ? 'danger' : 'primary'}
-          confirmDisabled={confirmDisabled}
-          handleConfirm={isMigrating ? handleCancelMigration : handleMigrate}
+          confirmText={isMigrating ? 'Migrating…' : 'Migrate'}
+          confirmDisabled={isMigrating || isExporting || !isCollectionMounted}
+          handleConfirm={handleMigrate}
           handleCancel={onClose}
           hideCancel={isMigrating}
           hideClose={isMigrating}
