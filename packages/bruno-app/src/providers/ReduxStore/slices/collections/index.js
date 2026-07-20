@@ -311,10 +311,10 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.brunoConfig = brunoConfig;
-        // opencollection.yml carries the config once a collection is migrated to yml — derive
-        // format from its presence rather than trusting whatever format was last known, so a
-        // migration's post-reload config refresh flips this correctly without a dedicated event.
-        collection.format = brunoConfig?.opencollection ? 'yml' : brunoConfig?.format || collection.format || 'bru';
+        // Derive from the config on disk only. Do not fall back to the previous
+        // collection.format, after migrate→yml then a git revert to bru, that
+        // stale 'yml' would hide the Convert to YML button forever.
+        collection.format = brunoConfig?.opencollection ? 'yml' : brunoConfig?.format || 'bru';
       }
     },
     renameCollection: (state, action) => {
@@ -3525,6 +3525,7 @@ export const collectionsSlice = createSlice({
       }
       if (tree?.brunoConfig) {
         collection.brunoConfig = tree.brunoConfig;
+        collection.format = tree.brunoConfig?.opencollection ? 'yml' : tree.brunoConfig?.format || 'bru';
       }
       const tempDirectory = state.tempDirectories?.[collectionUid];
       if (tempDirectory) {
