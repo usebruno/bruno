@@ -182,7 +182,6 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
     if (envHasSecrets(file.data)) {
       const envSecrets = environmentSecretsStore.getEnvSecrets(collectionPath, file.data);
       _.each(envSecrets, (secret) => {
-        // Match the secret flag too: a non-secret variable can share a name with a secret.
         const variable = _.find(file.data.variables, (v) => v.name === secret.name && v.secret);
         if (variable && secret.value) {
           const decryptionResult = decryptStringSafe(secret.value);
