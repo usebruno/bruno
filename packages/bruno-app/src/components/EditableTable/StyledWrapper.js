@@ -249,6 +249,7 @@ const StyledWrapper = styled.div`
     outline: none;
     padding: 2px 2px;
     width: 100%;
+    box-sizing: border-box;
     font-size: 12px;
     cursor: pointer;
 
