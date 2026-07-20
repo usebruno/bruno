@@ -1,0 +1,16 @@
+{
+  "collections": [
+    {
+      "path": "{{projectRoot}}/tests/environments/collection-default-environment/collection",
+      "securityConfig": {
+        "jsSandboxMode": "safe"
+      }
+    },
+    {
+      "path": "{{projectRoot}}/tests/environments/collection-default-environment/collection-missing",
+      "securityConfig": {
+        "jsSandboxMode": "safe"
+      }
+    }
+  ]
+}

@@ -209,7 +209,9 @@ export const buildCommonLocators = (page: Page) => ({
     requestType: (type: 'http' | 'graphql' | 'grpc' | 'ws') =>
       page.getByTestId(`presets-request-type-${type}`),
     requestUrl: () => page.getByTestId('presets-request-url'),
-    saveBtn: () => page.getByTestId('presets-save-btn')
+    saveBtn: () => page.getByTestId('presets-save-btn'),
+    defaultEnvironment: () => page.getByTestId('presets-default-environment'),
+    defaultEnvironmentOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
