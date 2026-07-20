@@ -40,7 +40,7 @@ const BETA_FEATURES = [
     description:
       'Generate scripts, tests, and documentation directly from the request tab. Includes contextual chat, scripting autocomplete, and support for OpenAI, Anthropic, and OpenAI-compatible providers using your own API key.',
     action: { label: 'Go to AI settings', tab: 'ai' },
-    docsUrl: 'https://docs.usebruno.com/ai'
+    docsUrl: 'https://link.usebruno.com/docs/ai'
   },
   {
     id: BETA_FEATURE_IDS.FILE_CACHE,
@@ -54,7 +54,7 @@ const BETA_FEATURES = [
     label: 'Akamai EdgeGrid',
     description:
       'Sign requests with the Akamai EdgeGrid authentication scheme. Select it from the Auth type dropdown on any request, folder, or collection.',
-    docsUrl: 'https://docs.usebruno.com/auth/akamai-edgegrid'
+    docsUrl: 'https://link.usebruno.com/docs/auth'
   }
 ];
 
