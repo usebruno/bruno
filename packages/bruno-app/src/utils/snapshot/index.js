@@ -166,6 +166,35 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
   const tabsByWorkspaceAndCollectionPath = {};
   const workspacesByPath = {};
 
+  const buildCollectionLookupEntry = (collection) => ({
+    pathname: collection.pathname,
+    workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
+    environment: collection.environment,
+    environmentPath: collection.environmentPath,
+    selectedEnvironment: collection.selectedEnvironment,
+    isOpen: collection.isOpen,
+    isMounted: collection.isMounted
+  });
+
+  const buildTabLookupEntry = (collection, includeWorkspace) => ({
+    pathname: collection.pathname,
+    ...(includeWorkspace
+      ? { workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '' }
+      : {}),
+    activeTab: collection.activeTab,
+    tabs: collection.tabs
+  });
+
+  const assignCollectionLookups = (path, workspaceKey, collection) => {
+    collectionsByPath[path] = buildCollectionLookupEntry(collection);
+    tabsByCollectionPath[path] = buildTabLookupEntry(collection, false);
+
+    if (workspaceKey) {
+      collectionsByWorkspaceAndPath[workspaceKey] = buildCollectionLookupEntry(collection);
+      tabsByWorkspaceAndCollectionPath[workspaceKey] = buildTabLookupEntry(collection, true);
+    }
+  };
+
   if (Array.isArray(snapshot.collections)) {
     const activeWorkspacePath = typeof snapshot.activeWorkspacePath === 'string'
       ? normalizePath(snapshot.activeWorkspacePath)
@@ -188,40 +217,7 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         collection.pathname
       );
 
-      collectionsByPath[normalizedCollectionPathname] = {
-        pathname: collection.pathname,
-        workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-        environment: collection.environment,
-        environmentPath: collection.environmentPath,
-        selectedEnvironment: collection.selectedEnvironment,
-        isOpen: collection.isOpen,
-        isMounted: collection.isMounted
-      };
-
-      tabsByCollectionPath[normalizedCollectionPathname] = {
-        pathname: collection.pathname,
-        activeTab: collection.activeTab,
-        tabs: collection.tabs
-      };
-
-      if (workspaceCollectionKey) {
-        collectionsByWorkspaceAndPath[workspaceCollectionKey] = {
-          pathname: collection.pathname,
-          workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-          environment: collection.environment,
-          environmentPath: collection.environmentPath,
-          selectedEnvironment: collection.selectedEnvironment,
-          isOpen: collection.isOpen,
-          isMounted: collection.isMounted
-        };
-
-        tabsByWorkspaceAndCollectionPath[workspaceCollectionKey] = {
-          pathname: collection.pathname,
-          workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-          activeTab: collection.activeTab,
-          tabs: collection.tabs
-        };
-      }
+      assignCollectionLookups(normalizedCollectionPathname, workspaceCollectionKey, collection);
 
       const isActiveWorkspaceEntry = activeWorkspacePath
         && normalizePath(collection.workspacePathname || '') === activeWorkspacePath;
@@ -239,45 +235,8 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
     // workspace list itself, so that a collection's last-known state from the active
     // workspace is preferred over stale data from other workspaces.
     activeWorkspaceEntries.forEach((collection, path) => {
-      collectionsByPath[path] = {
-        pathname: collection.pathname,
-        workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-        environment: collection.environment,
-        environmentPath: collection.environmentPath,
-        selectedEnvironment: collection.selectedEnvironment,
-        isOpen: collection.isOpen,
-        isMounted: collection.isMounted
-      };
-
-      tabsByCollectionPath[path] = {
-        pathname: collection.pathname,
-        activeTab: collection.activeTab,
-        tabs: collection.tabs
-      };
-
-      const activeWorkspaceCollectionKey = getWorkspaceCollectionSnapshotKey(
-        collection.workspacePathname,
-        collection.pathname
-      );
-
-      if (activeWorkspaceCollectionKey) {
-        collectionsByWorkspaceAndPath[activeWorkspaceCollectionKey] = {
-          pathname: collection.pathname,
-          workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-          environment: collection.environment,
-          environmentPath: collection.environmentPath,
-          selectedEnvironment: collection.selectedEnvironment,
-          isOpen: collection.isOpen,
-          isMounted: collection.isMounted
-        };
-
-        tabsByWorkspaceAndCollectionPath[activeWorkspaceCollectionKey] = {
-          pathname: collection.pathname,
-          workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-          activeTab: collection.activeTab,
-          tabs: collection.tabs
-        };
-      }
+      const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(collection.workspacePathname, collection.pathname);
+      assignCollectionLookups(path, workspaceCollectionKey, collection);
     });
   }
 

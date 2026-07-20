@@ -694,12 +694,7 @@ class SnapshotManager {
       workspacesByPath[normalizedPath] = workspace;
     });
 
-    normalizedSnapshot.collections.forEach((collection) => {
-      const normalizedPath = normalizeLookupKey(collection.pathname);
-      if (!normalizedPath) {
-        return;
-      }
-
+    const assignCollectionLookups = (normalizedPath, collection) => {
       collectionsByPath[normalizedPath] = collection;
       tabsByCollectionPath[normalizedPath] = {
         activeTab: collection.activeTab,
@@ -714,6 +709,15 @@ class SnapshotManager {
           tabs: collection.tabs
         };
       }
+    };
+
+    normalizedSnapshot.collections.forEach((collection) => {
+      const normalizedPath = normalizeLookupKey(collection.pathname);
+      if (!normalizedPath) {
+        return;
+      }
+
+      assignCollectionLookups(normalizedPath, collection);
 
       const isActiveWorkspaceEntry = activeWorkspacePath
         && normalizeLookupKey(collection.workspacePathname || '') === activeWorkspacePath;
@@ -726,22 +730,7 @@ class SnapshotManager {
       }
     });
 
-    activeWorkspaceEntries.forEach((collection, normalizedPath) => {
-      collectionsByPath[normalizedPath] = collection;
-      tabsByCollectionPath[normalizedPath] = {
-        activeTab: collection.activeTab,
-        tabs: collection.tabs
-      };
-
-      const workspaceCollectionKey = buildWorkspaceCollectionLookupKey(collection.workspacePathname, collection.pathname);
-      if (workspaceCollectionKey) {
-        collectionsByWorkspaceAndPath[workspaceCollectionKey] = collection;
-        tabsByWorkspaceAndCollectionPath[workspaceCollectionKey] = {
-          activeTab: collection.activeTab,
-          tabs: collection.tabs
-        };
-      }
-    });
+    activeWorkspaceEntries.forEach((collection, normalizedPath) => assignCollectionLookups(normalizedPath, collection));
 
     this._lookupCache = {
       workspacesByPath,
