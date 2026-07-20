@@ -1,8 +1,7 @@
-import { test, expect } from '../../../playwright';
-import path from 'path';
-import fs from 'fs';
 import { Page } from '@playwright/test';
-import { importCollection, createEnvironment, closeAllCollections, addRowToActiveTab, saveEnvironment, deleteAllGlobalEnvironments } from '../../utils/page';
+import path from 'path';
+import { expect, test } from '../../../playwright';
+import { addRowToActiveTab, closeAllCollections, createEnvironment, deleteAllGlobalEnvironments, importCollection, saveEnvironment } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 const envLocators = (page: Page) => buildCommonLocators(page).environment;
@@ -76,7 +75,7 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     });
   });
 
-  test.only('Secret value does not carry its reveal-eye toggle onto the Variables tab', async ({ page, createTmpDir }) => {
+  test('Secret value does not carry its reveal-eye toggle onto the Variables tab', async ({ page, createTmpDir }) => {
     await importCollection(page, collectionFile, await createTmpDir('var-secret-eye-toggle'), {
       expectedCollectionName: 'test_collection'
     });
