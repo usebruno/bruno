@@ -1,4 +1,6 @@
 import { interpolate } from '@usebruno/common';
+import store from 'providers/ReduxStore';
+import { getVariableScope, findEnvironmentInCollection, getTreePathFromCollectionToItem } from 'utils/collections';
 import { COPY_SUCCESS_TIMEOUT, extractVariableInfo, renderVarInfo } from './brunoVarInfo';
 
 // Mock the dependencies
@@ -16,6 +18,7 @@ jest.mock('@usebruno/common', () => ({
 }));
 
 jest.mock('providers/ReduxStore', () => ({
+  __esModule: true,
   default: {
     dispatch: jest.fn(),
     getState: jest.fn()
@@ -23,14 +26,16 @@ jest.mock('providers/ReduxStore', () => ({
 }));
 
 jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
-  updateVariableInScope: jest.fn()
+  updateVariableInScope: jest.fn(),
+  openCollectionSettings: jest.fn()
 }));
 
 jest.mock('utils/collections', () => ({
   getVariableScope: jest.fn(),
   isVariableSecret: jest.fn(),
   getAllVariables: jest.fn(),
-  findEnvironmentInCollection: jest.fn()
+  findEnvironmentInCollection: jest.fn(),
+  getTreePathFromCollectionToItem: jest.fn()
 }));
 
 jest.mock('utils/common/codemirror', () => ({
@@ -38,7 +43,10 @@ jest.mock('utils/common/codemirror', () => ({
 }));
 
 jest.mock('utils/common/masked-editor', () => ({
-  MaskedEditor: jest.fn()
+  MaskedEditor: jest.fn(() => ({
+    enable: jest.fn(),
+    disable: jest.fn()
+  }))
 }));
 
 jest.mock('utils/codemirror/autocomplete', () => ({
@@ -323,6 +331,21 @@ describe('renderVarInfo', () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
 
+    store.getState.mockReturnValue({
+      globalEnvironments: {
+        globalEnvironments: [],
+        activeGlobalEnvironmentUid: null
+      }
+    });
+
+    findEnvironmentInCollection.mockReturnValue(null);
+    getTreePathFromCollectionToItem.mockReturnValue([]);
+    getVariableScope.mockReturnValue({
+      type: 'request',
+      value: 'test-value',
+      data: { item: { uid: 'req-1' }, variable: { uid: 'var-1', name: 'apiKey', value: 'test-value' } }
+    });
+
     // setup mock clipboard
     clipboardText = '';
     Object.defineProperty(navigator, 'clipboard', {
@@ -514,6 +537,80 @@ describe('renderVarInfo', () => {
 
       expect(readOnlyNote).not.toBeNull();
       expect(readOnlyNote.textContent).toBe('Generates random value on each request');
+    });
+  });
+
+  describe('new variable scope selection', () => {
+    it('should show scope selector for undefined variables with available scopes', () => {
+      getVariableScope.mockReturnValue(null);
+      getTreePathFromCollectionToItem.mockReturnValue([
+        { uid: 'folder-1', type: 'folder', name: 'parent' },
+        { uid: 'folder-2', type: 'folder', name: 'child' },
+        { uid: 'req-1', type: 'http-request' }
+      ]);
+      findEnvironmentInCollection.mockReturnValue({ uid: 'env-1', name: 'Dev', variables: [] });
+      store.getState.mockReturnValue({
+        globalEnvironments: {
+          globalEnvironments: [{ uid: 'global-1', name: 'Global', variables: [] }],
+          activeGlobalEnvironmentUid: 'global-1'
+        }
+      });
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1', activeEnvironmentUid: 'env-1' },
+          item: { uid: 'req-1', type: 'http-request' }
+        }
+      );
+
+      const scopeSelect = result.querySelector('.var-scope-select');
+      expect(scopeSelect).not.toBeNull();
+      expect(Array.from(scopeSelect.options).map((option) => option.textContent)).toEqual([
+        'Request',
+        'Folder: parent',
+        'Folder: parent / child',
+        'Collection',
+        'Environment',
+        'Global'
+      ]);
+      expect(scopeSelect.value).toBe('request:req-1');
+      expect(scopeSelect.style.width).toBe('14ch');
+      expect(result.style.width).toBe('calc(14ch + 8rem)');
+
+      scopeSelect.value = 'folder:folder-2';
+      scopeSelect.dispatchEvent(new Event('change'));
+
+      expect(scopeSelect.style.width).toBe('26ch');
+      expect(result.style.width).toBe('calc(26ch + 8rem)');
+    });
+  });
+
+  describe('go to definition', () => {
+    it('should show go to definition button for persisted variables', () => {
+      const { containerDiv } = setupRender({ apiKey: 'test-value' }, { uid: 'col-1' }, { uid: 'req-1' });
+      const definitionButton = containerDiv.querySelector('.var-definition-button');
+
+      expect(definitionButton).not.toBeNull();
+      expect(definitionButton.textContent).toBe('Go to definition');
+    });
+
+    it('should dispatch navigation actions for request-scoped variables', () => {
+      const requestItem = { uid: 'req-1', type: 'http-request' };
+      getVariableScope.mockReturnValue({
+        type: 'request',
+        value: 'test-value',
+        data: { item: requestItem, variable: { uid: 'var-1', name: 'apiKey', value: 'test-value' } }
+      });
+
+      const { containerDiv } = setupRender({ apiKey: 'test-value' }, { uid: 'col-1' }, requestItem);
+      const definitionButton = containerDiv.querySelector('.var-definition-button');
+
+      definitionButton.click();
+
+      expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({ payload: { uid: 'req-1', requestPaneTab: 'vars' } }));
+      expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({ payload: { uid: 'req-1' } }));
     });
   });
 

@@ -281,8 +281,9 @@ const GlobalStyle = createGlobalStyle`
     font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.25rem;
     margin: 0;
+    width: max-content;
     min-width: 18.1875rem;
-    max-width: 18.1875rem;
+    max-width: min(40rem, calc(100vw - 1.875rem));
     opacity: 0;
     overflow: visible;
     padding: 0.5rem;
@@ -352,9 +353,16 @@ const GlobalStyle = createGlobalStyle`
   }
 
   /* Header */
+  .CodeMirror-brunoVarInfo .bruno-var-info-container {
+    min-width: 17.1875rem;
+    max-width: min(39rem, calc(100vw - 2.875rem));
+    box-sizing: border-box;
+  }
+
   .CodeMirror-brunoVarInfo .var-info-header {
     display: flex;
     align-items: center;
+    width: 100%;
     margin-bottom: 0.375rem;
     gap: 0.375rem;
   }
@@ -371,7 +379,9 @@ const GlobalStyle = createGlobalStyle`
   }
 
   /* Scope Badge */
-  .CodeMirror-brunoVarInfo .var-scope-badge {
+  .CodeMirror-brunoVarInfo .var-scope-badge,
+  .CodeMirror-brunoVarInfo .var-scope-select,
+  .CodeMirror-brunoVarInfo .var-definition-button {
     display: inline-block;
     padding: 0.125rem 0.375rem;
     background: ${(props) => rgba(props.theme.brand, 0.07)};
@@ -381,6 +391,26 @@ const GlobalStyle = createGlobalStyle`
     color: ${(props) => props.theme.brand};
     letter-spacing: 0.03125rem;
     flex-shrink: 0;
+  }
+
+  .CodeMirror-brunoVarInfo .var-scope-select,
+  .CodeMirror-brunoVarInfo .var-definition-button {
+    cursor: pointer;
+  }
+
+  .CodeMirror-brunoVarInfo .var-scope-select {
+    min-width: 7rem;
+    max-width: min(32rem, calc(100vw - 8rem));
+    text-overflow: ellipsis;
+  }
+
+  .CodeMirror-brunoVarInfo .var-definition-button {
+    background: transparent;
+  }
+
+  .bruno-var-definition-target {
+    outline: 2px solid ${(props) => rgba(props.theme.brand, 0.35)};
+    outline-offset: -2px;
   }
 
   /* Value Container */
