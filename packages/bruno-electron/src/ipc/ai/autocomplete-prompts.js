@@ -199,27 +199,51 @@ const ensureNewlineAfterComment = (prefix, suggestion) => {
   return '\n' + suggestion;
 };
 
-const RES_API_USAGE_RE = /\bres\s*\??[.([]/;
+const RES_API_USAGE_RE = /(?<![\w$.?])res\s*\??\s*[.([]/;
+const RES_BINDING_RE = /\b(?:const|let|var)\s+res\b|[(,]\s*res\s*[,)=]|\bres\s*=>/;
+const TRAILING_MEMBER_EXPR_RE = /[\w$.?[\]()]*$/;
+const TRAILING_WORD_RE = /[\w$]+$/;
+const PRECEDING_WORD_RE = /([\w$]+)\s+$/;
+const LEADING_WORD_RE = /^[\w$]+/;
 
-const stripDisallowedApis = (suggestion, scriptType) => {
-  if (!suggestion) return suggestion;
-  if (scriptType === 'pre-request' && RES_API_USAGE_RE.test(suggestion)) return '';
+const PREFIX_TAIL_LIMIT = 512;
+const prefixTail = (prefix) => prefix.slice(-PREFIX_TAIL_LIMIT);
+
+const stripDisallowedApis = (suggestion, scriptType, prefix = '') => {
+  if (!suggestion || scriptType !== 'pre-request') return suggestion;
+  if (RES_BINDING_RE.test(prefix)) return suggestion;
+  const trailingExpr = (prefixTail(prefix).match(TRAILING_MEMBER_EXPR_RE) || [''])[0];
+  if (RES_API_USAGE_RE.test(suggestion) || RES_API_USAGE_RE.test(trailingExpr + suggestion)) return '';
   return suggestion;
 };
 
-const TRAILING_IDENTIFIER_RE = /[\w$]+$/;
-
 const stripTypedPrefixOverlap = (prefix, suggestion) => {
   if (!prefix || !suggestion) return suggestion;
-  const typed = prefix.match(TRAILING_IDENTIFIER_RE);
-  if (typed && suggestion.startsWith(typed[0])) return suggestion.slice(typed[0].length);
+  const trailingExpr = (prefixTail(prefix).match(TRAILING_MEMBER_EXPR_RE) || [''])[0];
+  for (let overlapLen = Math.min(trailingExpr.length, suggestion.length); overlapLen > 0; overlapLen--) {
+    if (trailingExpr.endsWith(suggestion.slice(0, overlapLen))) return suggestion.slice(overlapLen);
+  }
   return suggestion;
+};
+
+const duplicatesPrecedingWord = (prefix, suggestion) => {
+  if (!prefix || !suggestion) return false;
+  const tail = prefixTail(prefix);
+  const pendingWord = (tail.match(TRAILING_WORD_RE) || [''])[0];
+  if (!pendingWord) return false;
+  const beforePending = tail.slice(0, tail.length - pendingWord.length);
+  const preceding = beforePending.match(PRECEDING_WORD_RE);
+  if (!preceding) return false;
+  const head = (suggestion.match(LEADING_WORD_RE) || [''])[0];
+  if (!head) return false;
+  return (pendingWord + head).endsWith(preceding[1]);
 };
 
 const sanitizeSuggestion = ({ text, prefix, scriptType }) => {
   const cleaned = cleanSuggestion(text || '');
-  const allowed = stripDisallowedApis(cleaned, scriptType);
+  const allowed = stripDisallowedApis(cleaned, scriptType, prefix);
   const deduped = stripTypedPrefixOverlap(prefix, allowed);
+  if (duplicatesPrecedingWord(prefix, deduped)) return '';
   return ensureNewlineAfterComment(prefix, deduped);
 };
 
@@ -231,5 +255,6 @@ module.exports = {
   ensureNewlineAfterComment,
   stripDisallowedApis,
   stripTypedPrefixOverlap,
+  duplicatesPrecedingWord,
   sanitizeSuggestion
 };

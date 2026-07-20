@@ -2,22 +2,20 @@ import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { useDispatch } from 'react-redux';
 import { sendNetworkRequest } from 'utils/network/index';
-import {
-  findEnvironmentInCollection,
-  getEnvironmentVariables,
-  getGlobalEnvironmentVariables
-} from 'utils/collections';
+import { findEnvironmentInCollection } from 'utils/collections';
 import {
   responseReceived,
   appSetRuntimeVariable,
   initRunRequestEvent
 } from 'providers/ReduxStore/slices/collections';
 import { updateRequestPaneTab, setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
+import { addLog } from 'providers/ReduxStore/slices/logs';
 import { uuid } from 'utils/common';
 import { useTheme } from 'providers/Theme';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import EmptyAppState from './EmptyAppState';
+import { buildVariables } from './buildVariables';
 import {
   SENTINEL,
   wrapHtml,
@@ -147,20 +145,6 @@ const REQUEST_CTX_BOOTSTRAP = `<script>
 })();
 </script>`;
 
-const buildVariables = (collection) => {
-  const env = getEnvironmentVariables(collection);
-  const global = getGlobalEnvironmentVariables({
-    globalEnvironments: collection?.globalEnvironments || [],
-    activeGlobalEnvironmentUid: collection?.activeGlobalEnvironmentUid
-  });
-  return {
-    ...global,
-    ...env,
-    ...(collection?.collectionVariables || {}),
-    ...(collection?.runtimeVariables || {})
-  };
-};
-
 const AppView = ({ item, collection, code }) => {
   const dispatch = useDispatch();
   const { displayedTheme, theme, themeVariantLight, themeVariantDark } = useTheme();
@@ -179,7 +163,7 @@ const AppView = ({ item, collection, code }) => {
     () => findEnvironmentInCollection(collection, collection.activeEnvironmentUid),
     [collection]
   );
-  const variables = useMemo(() => buildVariables(collection), [collection]);
+  const variables = useMemo(() => buildVariables(collection, item), [collection, item]);
   const response = useMemo(() => (item.response ? projectResponse(item.response) : null), [item.response]);
   const assertionResults = useMemo(() => item.assertionResults || [], [item.assertionResults]);
   const testResults = useMemo(() => item.testResults || [], [item.testResults]);
@@ -264,6 +248,7 @@ const AppView = ({ item, collection, code }) => {
           break;
         case 'log':
           console.log('[app]', ...(data.args || []));
+          dispatch(addLog({ type: 'log', args: ['[app]', ...(data.args || [])], timestamp: new Date().toISOString() }));
           break;
         default:
           break;
