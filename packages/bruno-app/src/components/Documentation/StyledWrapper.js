@@ -9,7 +9,6 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 12px;
-    border-bottom: 1px solid ${(props) => props.theme.dropdown.separator};
     margin-bottom: 8px;
     padding-bottom: 8px;
     flex-shrink: 0;

@@ -172,43 +172,21 @@ const Documentation = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative" ref={wrapperRef}>
-      <div className="docs-tab-strip">
-        {isEditing && !isMarkdownMode && (
-          <div className="docs-toolbar-slot">
-            <WysiwygEditor.MenuBar editor={editor} />
-          </div>
-        )}
-
-        {isEditing && (
+      {isEditing && (
+        <div className="docs-tab-strip">
+          {!isMarkdownMode && (
+            <div className="docs-toolbar-slot">
+              <WysiwygEditor.MenuBar editor={editor} />
+            </div>
+          )}
           <ModeSwitch
             compact={isCompact}
             checked={isMarkdownMode}
             onChange={() => setIsMarkdownMode((prev) => !prev)}
-            rightComponent={(
-              <IconMarkdown
-                id="markdown-mode"
-                className="focus:outline-none"
-                size={18}
-                strokeWidth={1.5}
-                data-tooltip-id="docs-mode-tooltip"
-                data-tooltip-content="Markdown mode"
-              />
-            )}
-            leftComponent={(
-              <IconFileDescription
-                id="wysiwyg-mode"
-                className="focus:outline-none"
-                size={18}
-                strokeWidth={1.5}
-                data-tooltip-id="docs-mode-tooltip"
-                data-tooltip-content="WYSIWYG mode"
-              />
-            )}
             className="docs-mode-switch"
           />
-        )}
-        <Tooltip id="docs-mode-tooltip" {...DOCS_TOOLBAR_TOOLTIP_PROPS} />
-      </div>
+        </div>
+      )}
 
       {isEditing && isMarkdownMode && (
         <div className="relative flex-1 min-h-0">
