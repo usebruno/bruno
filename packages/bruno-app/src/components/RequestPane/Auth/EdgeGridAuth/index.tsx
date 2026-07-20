@@ -15,10 +15,10 @@ interface AkamaiEdgeGridAuthValues {
   accessToken?: string;
   clientToken?: string;
   clientSecret?: string;
-  nonce?: string;
-  timestamp?: string;
-  baseURL?: string;
-  headersToSign?: string;
+  baseURL?: string | null;
+  nonce?: string | null;
+  timestamp?: string | null;
+  headersToSign?: string | null;
   maxBodySize?: number | null;
 }
 
@@ -40,8 +40,8 @@ interface AkamaiEdgeGridAuthProps {
 }
 
 const FIELDS: Array<{ key: EdgeGridField; label: string; tooltip?: string; isSecret?: boolean }> = [
-  { key: 'accessToken', label: 'Access Token' },
-  { key: 'clientToken', label: 'Client Token' },
+  { key: 'accessToken', label: 'Access Token', isSecret: true },
+  { key: 'clientToken', label: 'Client Token', isSecret: true },
   { key: 'clientSecret', label: 'Client Secret', isSecret: true },
   { key: 'baseURL', label: 'Base URL', tooltip: 'Defaults to the request URL if not specified.' },
   {
@@ -80,9 +80,6 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, upd
   const edgeGridAuth: AkamaiEdgeGridAuthValues = get(request, 'auth.akamaiEdgegrid') || {};
   const requestUrl = get(request, 'url', '');
   const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning: showClientSecretWarning, warningMessage: clientSecretWarningMessage } = isSensitive(
-    edgeGridAuth?.clientSecret
-  );
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -119,9 +116,9 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, upd
   };
 
   const renderField = ({ key, label, tooltip, isSecret }: EdgeGridFieldConfig) => {
-    const showWarning = isSecret && showClientSecretWarning;
     const rawValue = key === 'baseURL' ? edgeGridAuth.baseURL || requestUrl : edgeGridAuth[key];
     const fieldValue = rawValue === null || rawValue === undefined ? '' : String(rawValue);
+    const { showWarning, warningMessage } = isSecret ? isSensitive(rawValue) : { showWarning: false, warningMessage: '' };
     return (
       <div key={key}>
         <label>
@@ -146,7 +143,7 @@ const EdgeGridAuth: React.FC<AkamaiEdgeGridAuthProps> = ({ item, collection, upd
             isCompact
           />
           {showWarning && (
-            <SensitiveFieldWarning fieldName="edgegrid-client-secret" warningMessage={clientSecretWarningMessage} />
+            <SensitiveFieldWarning fieldName={`edgegrid-${key}`} warningMessage={warningMessage} />
           )}
         </div>
       </div>

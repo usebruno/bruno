@@ -1,3 +1,5 @@
+jest.mock('providers/ReduxStore', () => ({ __esModule: true, default: { getState: () => ({}) } }));
+
 import {
   buildAiContextPayload,
   buildAiRequestContext,
@@ -197,6 +199,34 @@ describe('utils/ai', () => {
       const result = buildAiVariablesPayload(collectionWithRuntimeSecret, null);
       const v = result.find((x) => x.name === 'access_token');
       expect(v).toEqual({ name: 'access_token', value: '<redacted>', scope: 'runtime', secret: true });
+    });
+
+    it('sends the real value for a pattern-only name when redactVariables is off', () => {
+      const collectionWithRuntimeSecret = {
+        activeEnvironmentUid: null,
+        environments: [],
+        globalEnvironmentVariables: {},
+        globalEnvSecrets: [],
+        runtimeVariables: { access_token: 'real-value' }
+      };
+      const result = buildAiVariablesPayload(collectionWithRuntimeSecret, null, false);
+      const v = result.find((x) => x.name === 'access_token');
+      expect(v).toEqual({ name: 'access_token', value: 'real-value', scope: 'runtime', secret: false });
+    });
+
+    it('keeps explicitly-secret vars redacted even when redactVariables is off', () => {
+      const collectionWithExplicitSecret = {
+        activeEnvironmentUid: 'env-1',
+        environments: [
+          { uid: 'env-1', variables: [{ name: 'MY_SECRET', value: 'v', enabled: true, secret: true }] }
+        ],
+        globalEnvironmentVariables: {},
+        globalEnvSecrets: [],
+        runtimeVariables: {}
+      };
+      const result = buildAiVariablesPayload(collectionWithExplicitSecret, null, false);
+      const v = result.find((x) => x.name === 'MY_SECRET');
+      expect(v).toEqual({ name: 'MY_SECRET', value: '<redacted>', scope: 'env', secret: true });
     });
 
     it('does not duplicate a name across scopes (env wins over global)', () => {
