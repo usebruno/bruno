@@ -51,3 +51,20 @@ request:
     expect(reqVars[5]).toMatchObject({ name: 'cfg', value: 'not-json', dataType: 'object' });
   });
 });
+
+describe('parseCollection — reading the collection version', () => {
+  it('reads the version from the file as text', () => {
+    const { brunoConfig } = parseCollection('opencollection: "1.0.0"\ninfo:\n  name: c\n  version: v1.0.0\n');
+    expect(brunoConfig.version).toBe('v1.0.0');
+  });
+
+  it('turns a number version into text (2 becomes "2")', () => {
+    const { brunoConfig } = parseCollection('opencollection: "1.0.0"\ninfo:\n  name: c\n  version: 2\n');
+    expect(brunoConfig.version).toBe('2');
+  });
+
+  it('has no version when the file does not have one', () => {
+    const { brunoConfig } = parseCollection('opencollection: "1.0.0"\ninfo:\n  name: c\n');
+    expect(brunoConfig.version).toBeUndefined();
+  });
+});

@@ -22,7 +22,7 @@ import {
   IconFolder,
   IconBook,
   IconFileArrowRight,
-  IconApps
+  IconAppWindow
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
@@ -337,11 +337,8 @@ const Collection = ({ collection, searchText }) => {
     return items.sort((a, b) => a.seq - b.seq);
   };
 
-  // Standalone 'app' items sit alongside requests in the listing — both are
-  // file leaves that share the seq-based ordering.
-  const requestItems = sortItemsBySequence(
-    filter(collection.items, (i) => (isItemARequest(i) || i.type === 'app') && !i.isTransient)
-  );
+  const requestItems = sortItemsBySequence(filter(collection.items, (i) => isItemARequest(i) && !i.isTransient));
+  const appItems = sortItemsBySequence(filter(collection.items, (i) => i.type === 'app' && !i.isTransient));
   const folderItems = sortByNameThenSequence(filter(collection.items, (i) => isItemAFolder(i) && !i.isTransient));
   const showEmptyCollectionMessage = showEmptyState && !hasSearchText;
 
@@ -368,7 +365,7 @@ const Collection = ({ collection, searchText }) => {
     },
     {
       id: 'new-app',
-      leftSection: IconApps,
+      leftSection: IconAppWindow,
       label: 'New App',
       onClick: () => {
         ensureCollectionIsMounted();
@@ -566,6 +563,9 @@ const Collection = ({ collection, searchText }) => {
         {!collectionIsCollapsed ? (
           <div>
             {folderItems?.map?.((i) => {
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
+            })}
+            {appItems?.map?.((i) => {
               return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
             })}
             {requestItems?.map?.((i) => {

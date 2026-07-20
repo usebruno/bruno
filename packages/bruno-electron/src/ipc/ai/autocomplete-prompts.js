@@ -7,22 +7,30 @@
  *    instruction. Output is appended verbatim at the cursor.
  */
 
-const BRUNO_API_SUMMARY = `## Bruno runtime APIs (available inside scripts)
-
-bru:    env/global/collection/folder/request/runtime vars — get/set/has/delete,
+const API_BLOCKS = {
+  bru: `bru:    env/global/collection/folder/request/runtime vars — get/set/has/delete,
         interpolate(strOrObj), sleep(ms), sendRequest(cfg), setNextRequest(name),
-        cookies, utils.minifyJson/Xml, getEnvName, getCollectionName, cwd
-
-req:    url, method, headers, body, timeout. getUrl/setUrl, getHeader/setHeader,
-        getBody/setBody, getMethod/setMethod, getTimeout/setTimeout. Available in
-        pre-request, post-response and tests.
-
-res:    status, headers, body, responseTime. getStatus, getStatusText,
+        cookies, utils.minifyJson/Xml, getEnvName, getCollectionName, cwd`,
+  req: `req:    url, method, headers, body, timeout. getUrl/setUrl, getHeader/setHeader,
+        getBody/setBody, getMethod/setMethod, getTimeout/setTimeout.`,
+  res: `res:    status, headers, body, responseTime. getStatus, getStatusText,
         getHeader, getHeaders, getBody, getResponseTime, getSize. res('json.path')
-        for JSONPath-style queries. Available in post-response and tests.
+        for JSONPath-style queries.`,
+  test: `test/expect:  Chai-style assertions inside test("name", () => { ... }) blocks.`
+};
 
-test/expect:  Chai-style assertions inside test("name", () => { ... }) blocks.
-              Available in tests only.`;
+const API_BLOCKS_BY_SCRIPT_TYPE = {
+  'pre-request': ['bru', 'req'],
+  'post-response': ['bru', 'req', 'res'],
+  'tests': ['bru', 'req', 'res', 'test']
+};
+
+const buildApiSummary = (scriptType) => {
+  const blocks = API_BLOCKS_BY_SCRIPT_TYPE[scriptType] || Object.keys(API_BLOCKS);
+  return `## Bruno runtime APIs (available inside scripts)
+
+${blocks.map((block) => API_BLOCKS[block]).join('\n\n')}`;
+};
 
 const SCRIPT_CONTEXTS = {
   'tests': `Tests run AFTER the response. Globals: bru, req, res, test, expect. Assertions go inside test("name", () => { ... }) blocks. Don't call bru.setEnvVar / setVar — keep tests pure.`,
@@ -41,7 +49,7 @@ const buildSystemPrompt = (scriptType) => {
   const context = SCRIPT_CONTEXTS[scriptType] || '';
   return `You are an inline code-completion engine for ${label}.
 
-${BRUNO_API_SUMMARY}
+${buildApiSummary(scriptType)}
 
 ## Context for ${scriptType}
 ${context}
@@ -51,6 +59,7 @@ ${context}
 - Continue the code from the cursor marker \`<CURSOR>\` exactly where it is.
 - Output ONLY the characters that should be inserted at the cursor — no markdown, no fences, no commentary, no leading newline.
 - Match the surrounding indentation and quote style.
+- If the cursor is at the end of a \`//\` comment line and you are generating CODE (not finishing the comment's text), begin your output with a newline — anything emitted on the comment line itself would be commented out. A comment like \`// test that status is 200\` is an instruction: put the implementing code on the following line(s).
 - Stop at a natural break (end of statement, end of block) — do not rewrite code that already exists after the cursor.
 - Prefer real variable names from the provided lists over placeholders.
 - Return an empty string if you have nothing useful to add.`;
@@ -70,8 +79,11 @@ const truncateLinesFromStart = (text, maxLines) => {
   return lines.slice(0, maxLines).join('\n');
 };
 
-const formatRequestContext = (ctx) => {
+const { redactJsonBodyString, buildRedactionPolicy } = require('./context');
+
+const formatRequestContext = (ctx, security) => {
   if (!ctx) return '';
+  const policy = buildRedactionPolicy(security);
   const parts = [];
   if (ctx.url || ctx.method) {
     parts.push(`${ctx.method || 'GET'} ${ctx.url || ''}`.trim());
@@ -85,7 +97,7 @@ const formatRequestContext = (ctx) => {
   const body = ctx.body;
   if (body && body.mode && body.mode !== 'none') {
     let bodyText = '';
-    if (body.mode === 'json') bodyText = body.json || '';
+    if (body.mode === 'json') bodyText = redactJsonBodyString(body.json || '', policy);
     else if (body.mode === 'text') bodyText = body.text || '';
     else if (body.mode === 'xml') bodyText = body.xml || '';
     else if (body.mode === 'graphql') bodyText = body.graphql?.query || '';
@@ -118,7 +130,7 @@ const formatSiblingScripts = (siblings) => {
     .join('\n\n');
 };
 
-const buildUserPrompt = ({ prefix, suffix, scriptType, requestContext, variableNames, siblingScripts }) => {
+const buildUserPrompt = ({ prefix, suffix, scriptType, requestContext, variableNames, siblingScripts, security }) => {
   // Keep recent context in the prefix (last 80 lines) and a short forward window (30 lines).
   // Cloud LLMs can handle more, but trimming keeps latency low and the model focused.
   const trimmedPrefix = truncateLines(prefix || '', 80);
@@ -126,7 +138,7 @@ const buildUserPrompt = ({ prefix, suffix, scriptType, requestContext, variableN
 
   const sections = [];
 
-  const reqStr = formatRequestContext(requestContext);
+  const reqStr = formatRequestContext(requestContext, security);
   if (reqStr) sections.push(`### Request being scripted\n${reqStr}`);
 
   const varStr = formatVariableNames(variableNames);
@@ -162,9 +174,87 @@ const cleanSuggestion = (raw) => {
   return out;
 };
 
+// --- Comment-line guard ----------------------------------------------------
+// Models often ignore the "start with a newline after a comment" rule and
+// emit code directly at the cursor, which lands inside the comment. Detect
+// the case deterministically and prepend the newline ourselves.
+
+const CODE_START_RE = /^\s*(?:const\s|let\s|var\s|function[\s(]|async\s|await\s|if\s*\(|for\s*\(|while\s*\(|switch\s*\(|try\s*\{|return[\s;(]|throw\s|new\s|test\s*\(|describe\s*\(|expect\s*\(|bru\.|req\.|res[.(]|console\.|JSON\.|Object\.|Array\.|Promise\.|[{}]|[\w$]+\s*\(|[\w$]+\s*[+\-*/]?=[^=])/;
+
+// Strip string literals so `//` inside a URL ('https://…') isn't mistaken
+// for a comment marker.
+const stripStringLiterals = (line) =>
+  line.replace(/'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`/g, '""');
+
+/**
+ * If the cursor sits after a `//` comment and the suggestion starts with code,
+ * prepend a newline so the code lands on its own line instead of inside the
+ * comment. Suggestions that continue the comment's prose are left untouched.
+ */
+const ensureNewlineAfterComment = (prefix, suggestion) => {
+  if (!suggestion || /^[\r\n]/.test(suggestion)) return suggestion;
+  const lastLine = String(prefix || '').split('\n').pop();
+  if (!stripStringLiterals(lastLine).includes('//')) return suggestion;
+  if (!CODE_START_RE.test(suggestion)) return suggestion;
+  return '\n' + suggestion;
+};
+
+const RES_API_USAGE_RE = /(?<![\w$.?])res\s*\??\s*[.([]/;
+const RES_BINDING_RE = /\b(?:const|let|var)\s+res\b|[(,]\s*res\s*[,)=]|\bres\s*=>/;
+const TRAILING_MEMBER_EXPR_RE = /[\w$.?[\]()]*$/;
+const TRAILING_WORD_RE = /[\w$]+$/;
+const PRECEDING_WORD_RE = /([\w$]+)\s+$/;
+const LEADING_WORD_RE = /^[\w$]+/;
+
+const PREFIX_TAIL_LIMIT = 512;
+const prefixTail = (prefix) => prefix.slice(-PREFIX_TAIL_LIMIT);
+
+const stripDisallowedApis = (suggestion, scriptType, prefix = '') => {
+  if (!suggestion || scriptType !== 'pre-request') return suggestion;
+  if (RES_BINDING_RE.test(prefix)) return suggestion;
+  const trailingExpr = (prefixTail(prefix).match(TRAILING_MEMBER_EXPR_RE) || [''])[0];
+  if (RES_API_USAGE_RE.test(suggestion) || RES_API_USAGE_RE.test(trailingExpr + suggestion)) return '';
+  return suggestion;
+};
+
+const stripTypedPrefixOverlap = (prefix, suggestion) => {
+  if (!prefix || !suggestion) return suggestion;
+  const trailingExpr = (prefixTail(prefix).match(TRAILING_MEMBER_EXPR_RE) || [''])[0];
+  for (let overlapLen = Math.min(trailingExpr.length, suggestion.length); overlapLen > 0; overlapLen--) {
+    if (trailingExpr.endsWith(suggestion.slice(0, overlapLen))) return suggestion.slice(overlapLen);
+  }
+  return suggestion;
+};
+
+const duplicatesPrecedingWord = (prefix, suggestion) => {
+  if (!prefix || !suggestion) return false;
+  const tail = prefixTail(prefix);
+  const pendingWord = (tail.match(TRAILING_WORD_RE) || [''])[0];
+  if (!pendingWord) return false;
+  const beforePending = tail.slice(0, tail.length - pendingWord.length);
+  const preceding = beforePending.match(PRECEDING_WORD_RE);
+  if (!preceding) return false;
+  const head = (suggestion.match(LEADING_WORD_RE) || [''])[0];
+  if (!head) return false;
+  return (pendingWord + head).endsWith(preceding[1]);
+};
+
+const sanitizeSuggestion = ({ text, prefix, scriptType }) => {
+  const cleaned = cleanSuggestion(text || '');
+  const allowed = stripDisallowedApis(cleaned, scriptType, prefix);
+  const deduped = stripTypedPrefixOverlap(prefix, allowed);
+  if (duplicatesPrecedingWord(prefix, deduped)) return '';
+  return ensureNewlineAfterComment(prefix, deduped);
+};
+
 module.exports = {
   buildSystemPrompt,
   buildUserPrompt,
   STOP_SEQUENCES,
-  cleanSuggestion
+  cleanSuggestion,
+  ensureNewlineAfterComment,
+  stripDisallowedApis,
+  stripTypedPrefixOverlap,
+  duplicatesPrecedingWord,
+  sanitizeSuggestion
 };

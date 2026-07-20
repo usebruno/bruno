@@ -1,14 +1,14 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
 import { makeTabPermanent, syncTabUid } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs, saveFile } from 'providers/ReduxStore/slices/collections/actions';
 import useKeybinding from 'hooks/useKeybinding';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
-import { findItemInCollection, findItemInCollectionByPathname, hasRequestChanges, areItemsLoading } from 'utils/collections';
+import { findItemInCollection, findItemInCollectionByPathname, hasRequestChanges, areItemsLoading, isItemTransientRequest } from 'utils/collections';
 import ConfirmRequestClose from './ConfirmRequestClose';
 import ConfirmCollectionClose from './ConfirmCollectionClose';
 import ConfirmFolderClose from './ConfirmFolderClose';
@@ -16,7 +16,7 @@ import ConfirmCloseEnvironment from 'components/Environments/ConfirmCloseEnviron
 import RequestTabNotFound from './RequestTabNotFound';
 import RequestTabLoading from './RequestTabLoading';
 import SpecialTab from './SpecialTab';
-import { IconApps } from '@tabler/icons';
+import { IconAppWindow } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import MenuDropdown from 'ui/MenuDropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
@@ -202,7 +202,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const hasFolderDraft = tab.type === 'folder-settings' && folder?.draft;
   const hasEnvironmentDraft = tab.type === 'environment-settings' && collection?.environmentsDraft;
   const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
-  const hasGlobalEnvironmentDraft = tab.type === 'global-environment-settings' && globalEnvironmentDraft;
+  const hasGlobalEnvironmentDraft = (tab.type === 'global-environment-settings' || tab.type === 'workspaceEnvironments') && globalEnvironmentDraft;
 
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isActive = tab.uid === activeTabUid;
@@ -256,16 +256,20 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         if (environmentUid?.startsWith('dotenv:')) {
           window.dispatchEvent(new Event('dotenv-save'));
         } else {
-          dispatch(saveEnvironment(variables, environmentUid, collection.uid));
+          dispatch(saveEnvironment(variables, environmentUid, collection.uid))
+            .then(() => toast.success('Changes saved successfully'))
+            .catch(() => toast.error('An error occurred while saving the changes'));
         }
       }
-    } else if (tab.type === 'global-environment-settings') {
+    } else if (tab.type === 'global-environment-settings' || tab.type === 'workspaceEnvironments') {
       if (globalEnvironmentDraft) {
         const { environmentUid, variables } = globalEnvironmentDraft;
         if (environmentUid?.startsWith('dotenv:')) {
           window.dispatchEvent(new Event('dotenv-save'));
         } else {
-          dispatch(saveGlobalEnvironment({ variables, environmentUid }));
+          dispatch(saveGlobalEnvironment({ variables, environmentUid }))
+            .then(() => toast.success('Changes saved successfully'))
+            .catch(() => toast.error('An error occurred while saving the changes'));
         }
       }
     } else if (tab.type === 'folder-settings') {
@@ -275,7 +279,13 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     } else if (tab.type === 'collection-settings') {
       dispatch(saveCollectionSettings(collection.uid));
     } else if (item && item.uid) {
-      dispatch(saveRequest(tab.uid, tab.collectionUid));
+      if (hasChanges || isItemTransientRequest(item)) {
+        if (item.type === 'js' || collection.fileMode) {
+          dispatch(saveFile(item.draft?.raw ?? item.raw, tab.uid, tab.collectionUid));
+        } else {
+          dispatch(saveRequest(tab.uid, tab.collectionUid));
+        }
+      }
     }
     return false;
   }, { enabled: isActive, deps: [isActive, tab, item, collection, folder, globalEnvironmentDraft] });
@@ -479,7 +489,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         ) : tab.type === 'workspaceOverview' ? (
           <SpecialTab handleCloseClick={null} type={tab.type} />
         ) : tab.type === 'workspaceEnvironments' ? (
-          <SpecialTab handleCloseClick={null} type={tab.type} />
+          <SpecialTab handleCloseClick={null} type={tab.type} hasDraft={hasGlobalEnvironmentDraft} />
         ) : (
           <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
         )}
@@ -546,13 +556,16 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             setShowConfirmClose(false);
           }}
           onSaveAndClose={() => {
-            dispatch(saveRequest(item.uid, collection.uid))
+            const useFileSave = collection.fileMode || item.type === 'js';
+            const savePromise = useFileSave
+              ? dispatch(saveFile(item?.draft?.raw ?? item?.raw, item.uid, collection.uid))
+              : dispatch(saveRequest(item.uid, collection.uid));
+
+            savePromise
               .then(() => {
-                dispatch(
-                  closeTabs({
-                    tabUids: [tab.uid]
-                  })
-                );
+                dispatch(closeTabs({
+                  tabUids: [tab.uid]
+                }));
                 setShowConfirmClose(false);
               })
               .catch((err) => {
@@ -579,7 +592,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       >
         {item.type === 'app' ? (
           <span className="tab-method flex items-center" aria-label="App">
-            <IconApps size={14} strokeWidth={1.5} />
+            <IconAppWindow size={14} strokeWidth={1.5} />
           </span>
         ) : (
           <span className="tab-method uppercase" style={{ color: getMethodColor(method) }}>

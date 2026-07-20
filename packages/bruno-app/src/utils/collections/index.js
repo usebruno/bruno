@@ -1,6 +1,5 @@
 import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
-import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
@@ -232,6 +231,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         uid: param.uid,
         filePath: param.filePath,
         contentType: param.contentType,
+        description: param.description,
         selected: param.selected
       };
     });
@@ -498,6 +498,18 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               password: get(si.request, 'auth.wsse.password', '')
             };
             break;
+          case 'akamai-edgegrid':
+            di.request.auth.akamaiEdgegrid = {
+              accessToken: get(si.request, 'auth.akamaiEdgegrid.accessToken', ''),
+              clientToken: get(si.request, 'auth.akamaiEdgegrid.clientToken', ''),
+              clientSecret: get(si.request, 'auth.akamaiEdgegrid.clientSecret', ''),
+              nonce: get(si.request, 'auth.akamaiEdgegrid.nonce', ''),
+              timestamp: get(si.request, 'auth.akamaiEdgegrid.timestamp', ''),
+              baseURL: get(si.request, 'auth.akamaiEdgegrid.baseURL', ''),
+              headersToSign: get(si.request, 'auth.akamaiEdgegrid.headersToSign', ''),
+              maxBodySize: get(si.request, 'auth.akamaiEdgegrid.maxBodySize', null)
+            };
+            break;
           default:
             break;
         }
@@ -603,11 +615,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.version = '1';
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
-  // Save environments without runtime metadata (ephemeral/persistedValue)
-  collectionToSave.environments = (collection.environments || []).map((env) => ({
-    ...env,
-    variables: buildPersistedEnvVariables(env?.variables, { mode: 'save' })
-  }));
+  collectionToSave.environments = collection.environments || [];
 
   collectionToSave.root = {
     request: {}
@@ -717,14 +725,15 @@ export const transformRequestToSaveToFilesystem = (item) => {
     }));
   };
 
-  const appToSave = _item.app && _item.app.code && _item.app.code.length
-    ? { code: _item.app.code }
+  const appToSave = _item.app && (_item.app.enabled === true || (_item.app.code && _item.app.code.length))
+    ? { code: _item.app.code || null, enabled: _item.app.enabled === true }
     : null;
 
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
     name: _item.name,
+    description: _item.description,
     seq: _item.seq,
     settings: _item.settings,
     tags: _item.tags,
@@ -923,19 +932,19 @@ export const getCollectionItemCounts = (items = []) => {
 
 /**
  * Orders a list of collection items exactly the way the Sidebar tree renders them:
- * folders first (via `sortByNameThenSequence`), then requests ordered by `seq`. The
- * same ordering is applied recursively to every nested folder so an exported/serialized
- * tree matches the sidebar at all depths.
+ * folders first (via `sortByNameThenSequence`), then standalone apps by `seq`, then
+ * requests by `seq`. The same ordering is applied recursively to every nested folder
+ * so an exported/serialized tree matches the sidebar at all depths.
  *
- * Items that are neither folders nor requests (e.g. `js` script files) are excluded,
- * mirroring the sidebar, which only renders folders and requests. Transient items are
- * excluded too.
+ * Items that are none of folder/app/request (e.g. `js` script files) are excluded,
+ * mirroring the sidebar. Transient items are excluded too.
  */
 export const sortItemsBySidebarOrder = (items = []) => {
   const folderItems = sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient));
+  const appItems = filter(items, (i) => i.type === 'app' && !i.isTransient).sort((a, b) => a.seq - b.seq);
   const requestItems = filter(items, (i) => isItemARequest(i) && !i.isTransient).sort((a, b) => a.seq - b.seq);
 
-  return [...folderItems, ...requestItems].map((item) =>
+  return [...folderItems, ...appItems, ...requestItems].map((item) =>
     Array.isArray(item.items) ? { ...item, items: sortItemsBySidebarOrder(item.items) } : item
   );
 };
@@ -1017,6 +1026,10 @@ export const humanizeRequestAuthMode = (mode) => {
     }
     case 'apikey': {
       label = 'API Key';
+      break;
+    }
+    case 'akamai-edgegrid': {
+      label = 'Akamai EdgeGrid';
       break;
     }
   }
@@ -1105,8 +1118,14 @@ export const areItemsTheSameExceptSeqUpdate = (_item1, _item2) => {
   delete item2.draft;
 
   // get projection of both items
-  item1 = transformRequestToSaveToFilesystem(item1);
-  item2 = transformRequestToSaveToFilesystem(item2);
+  // a partial/unparseable item has no comparable request projection; treat it as
+  // changed so callers fall back to a full update instead of throwing
+  try {
+    item1 = transformRequestToSaveToFilesystem(item1);
+    item2 = transformRequestToSaveToFilesystem(item2);
+  } catch (err) {
+    return false;
+  }
 
   // delete uids from both items
   deleteUidsInItem(item1);
@@ -1260,6 +1279,10 @@ const getPathParams = (item) => {
   }
   return pathParams;
 };
+
+export const isOpenCollectionFormat = (collection) => Boolean(collection?.brunoConfig?.opencollection);
+
+export const getCollectionVersion = (collection) => collection?.brunoConfig?.version || '';
 
 export const getTotalRequestCountInCollection = (collection) => {
   let count = 0;
