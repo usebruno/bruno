@@ -166,32 +166,32 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
   const tabsByWorkspaceAndCollectionPath = {};
   const workspacesByPath = {};
 
-  const buildCollectionLookupEntry = (collection) => ({
-    pathname: collection.pathname,
-    workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-    environment: collection.environment,
-    environmentPath: collection.environmentPath,
-    selectedEnvironment: collection.selectedEnvironment,
-    isOpen: collection.isOpen,
-    isMounted: collection.isMounted
-  });
-
-  const buildTabLookupEntry = (collection, includeWorkspace) => ({
-    pathname: collection.pathname,
-    ...(includeWorkspace
-      ? { workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '' }
-      : {}),
-    activeTab: collection.activeTab,
-    tabs: collection.tabs
-  });
-
   const assignCollectionLookups = (path, workspaceKey, collection) => {
-    collectionsByPath[path] = buildCollectionLookupEntry(collection);
-    tabsByCollectionPath[path] = buildTabLookupEntry(collection, false);
+    const workspacePathname = typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '';
+    const collectionEntry = {
+      pathname: collection.pathname,
+      workspacePathname,
+      environment: collection.environment,
+      environmentPath: collection.environmentPath,
+      selectedEnvironment: collection.selectedEnvironment,
+      isOpen: collection.isOpen,
+      isMounted: collection.isMounted
+    };
+    const tabsEntry = {
+      pathname: collection.pathname,
+      activeTab: collection.activeTab,
+      tabs: collection.tabs
+    };
+
+    collectionsByPath[path] = collectionEntry;
+    tabsByCollectionPath[path] = tabsEntry;
 
     if (workspaceKey) {
-      collectionsByWorkspaceAndPath[workspaceKey] = buildCollectionLookupEntry(collection);
-      tabsByWorkspaceAndCollectionPath[workspaceKey] = buildTabLookupEntry(collection, true);
+      collectionsByWorkspaceAndPath[workspaceKey] = collectionEntry;
+      tabsByWorkspaceAndCollectionPath[workspaceKey] = {
+        ...tabsEntry,
+        workspacePathname
+      };
     }
   };
 
@@ -230,10 +230,6 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
       }
     });
 
-    // Prioritize the active workspace's collection data in the fallback collectionsByPath
-    // lookup. This mirrors the prioritization done by loadLastOpenedWorkspaces for the
-    // workspace list itself, so that a collection's last-known state from the active
-    // workspace is preferred over stale data from other workspaces.
     activeWorkspaceEntries.forEach((collection, path) => {
       const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(collection.workspacePathname, collection.pathname);
       assignCollectionLookups(path, workspaceCollectionKey, collection);
