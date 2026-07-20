@@ -6,6 +6,7 @@ const StyledWrapper = styled.div`
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    position: relative;
   }
 
   .tiptap {

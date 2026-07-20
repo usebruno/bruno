@@ -129,7 +129,7 @@ const DocsTableMenu = ({ editor }) => {
       <button type="button" className="heading-dropdown-trigger is-active" aria-label="Table options">
         <IconTableOptions size={16} strokeWidth={1.5} />
         <span>Table</span>
-        <IconCaretDown size={14} strokeWidth={1.5} />
+        <IconCaretDown size={14} strokeWidth={1.5} fill="currentColor" />
       </button>
     </MenuDropdown>
   );

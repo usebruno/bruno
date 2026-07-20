@@ -23,7 +23,7 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { Tooltip } from 'react-tooltip';
 import ToolbarStyledWrapper from './ToolbarStyledWrapper';
 import DocsTableMenu from './DocsTableMenu';
-import DocsLinkModal from './DocsLinkModal';
+
 import { DOCS_MENU_DROPDOWN_PROPS, DOCS_TOOLBAR_TOOLTIP_PROPS } from './docsToolbarUi';
 
 const HEADING_OPTIONS = [
@@ -252,8 +252,6 @@ const getToolbarFormatState = (editor, toolbarActions) => {
 const DocsToolbar = ({ editor }) => {
   const toolbarRef = useRef(null);
   const measureRef = useRef(null);
-  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
-  const [initialLinkData, setInitialLinkData] = useState({ text: '', url: '' });
 
   const handleLinkClick = useCallback((currentEditor) => {
     let selectedText = '';
@@ -276,12 +274,15 @@ const DocsToolbar = ({ editor }) => {
       selectedText = currentEditor.state.doc.textBetween(from, to, ' ');
     }
 
-    setInitialLinkData({ text: selectedText, url });
-    setIsLinkModalOpen(true);
+    // Delegate to DocsLinkPopover's edit modal (set up in WysiwygEditor)
+    if (currentEditor.brunoOpenLinkEdit) {
+      currentEditor.brunoOpenLinkEdit({ text: selectedText, url });
+    }
   }, []);
 
   useEffect(() => {
     if (editor) {
+      // Keep brunoOpenLinkModal for backward compat; it just calls handleLinkClick
       editor.brunoOpenLinkModal = () => handleLinkClick(editor);
     }
     return () => {
@@ -290,39 +291,6 @@ const DocsToolbar = ({ editor }) => {
       }
     };
   }, [editor, handleLinkClick]);
-
-  const handleLinkSubmit = useCallback(
-    ({ text, url }) => {
-      if (!editor) return;
-
-      const chain = editor.chain().focus();
-
-      // If we are currently inside a link, select the entire link first
-      if (editor.isActive('link')) {
-        chain.extendMarkRange('link');
-      }
-
-      if (!url) {
-        // If url is empty, remove the link mark but keep the text
-        chain.unsetLink().run();
-        return;
-      }
-
-      const parsedUrl = url.trim().toLowerCase();
-      if (parsedUrl.startsWith('javascript:')) {
-        return;
-      }
-
-      chain
-        .insertContent({
-          type: 'text',
-          text: text || url,
-          marks: [{ type: 'link', attrs: { href: url } }]
-        })
-        .run();
-    },
-    [editor]
-  );
 
   const actions = useMemo(() => buildToolbarActions(handleLinkClick), [handleLinkClick]);
   const [visibleCount, setVisibleCount] = useState(actions.length);
@@ -419,13 +387,13 @@ const DocsToolbar = ({ editor }) => {
         <div className="docs-toolbar-measure" ref={measureRef} aria-hidden="true">
           <div data-toolbar-part="heading" className="heading-dropdown-trigger">
             <span>{activeHeading.label}</span>
-            <IconCaretDown size={14} strokeWidth={1.5} />
+            <IconCaretDown size={14} strokeWidth={1.5} fill="currentColor" />
           </div>
           {isInTable && (
             <div data-toolbar-part="table-menu" className="heading-dropdown-trigger is-active">
               <IconTableOptions size={16} strokeWidth={1.5} />
               <span>Table</span>
-              <IconCaretDown size={14} strokeWidth={1.5} />
+              <IconCaretDown size={14} strokeWidth={1.5} fill="currentColor" />
             </div>
           )}
           {actions.map((action) => (
@@ -447,7 +415,7 @@ const DocsToolbar = ({ editor }) => {
             className={`heading-dropdown-trigger ${activeHeadingId !== 'normal' ? 'is-active' : ''}`}
           >
             <span>{activeHeading.label}</span>
-            <IconCaretDown size={14} strokeWidth={1.5} />
+            <IconCaretDown size={14} strokeWidth={1.5} fill="currentColor" />
           </button>
         </MenuDropdown>
 
@@ -480,13 +448,6 @@ const DocsToolbar = ({ editor }) => {
         )}
       </div>
       <Tooltip id="docs-toolbar-tooltip" {...DOCS_TOOLBAR_TOOLTIP_PROPS} />
-      <DocsLinkModal
-        isOpen={isLinkModalOpen}
-        onClose={() => setIsLinkModalOpen(false)}
-        onSubmit={handleLinkSubmit}
-        initialText={initialLinkData.text}
-        initialUrl={initialLinkData.url}
-      />
     </ToolbarStyledWrapper>
   );
 };
