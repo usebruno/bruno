@@ -8,7 +8,7 @@ const SensitiveFieldWarning = ({ fieldName, warningMessage }) => {
 
   return (
     <StyledWrapper>
-      <span className="m-[4px] flex items-center">
+      <span className="mr-[4px] flex items-center">
         <IconAlertTriangle id={tooltipId} className="tooltip-icon cursor-pointer" size={16} />
         <Tooltip
           anchorId={tooltipId}
