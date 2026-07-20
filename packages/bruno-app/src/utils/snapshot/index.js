@@ -167,6 +167,11 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
   const workspacesByPath = {};
 
   if (Array.isArray(snapshot.collections)) {
+    const activeWorkspacePath = typeof snapshot.activeWorkspacePath === 'string'
+      ? normalizePath(snapshot.activeWorkspacePath)
+      : '';
+    const activeWorkspaceEntries = new Map();
+
     snapshot.collections.forEach((collectionEntry) => {
       if (!isObject(collectionEntry) || typeof collectionEntry.pathname !== 'string') {
         return;
@@ -211,6 +216,62 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         };
 
         tabsByWorkspaceAndCollectionPath[workspaceCollectionKey] = {
+          pathname: collection.pathname,
+          workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
+          activeTab: collection.activeTab,
+          tabs: collection.tabs
+        };
+      }
+
+      const isActiveWorkspaceEntry = activeWorkspacePath
+        && normalizePath(collection.workspacePathname || '') === activeWorkspacePath;
+
+      if (isActiveWorkspaceEntry) {
+        const hasData = collection.selectedEnvironment || collection.environment?.collection;
+        if (hasData || !activeWorkspaceEntries.has(normalizedCollectionPathname)) {
+          activeWorkspaceEntries.set(normalizedCollectionPathname, collection);
+        }
+      }
+    });
+
+    // Prioritize the active workspace's collection data in the fallback collectionsByPath
+    // lookup. This mirrors the prioritization done by loadLastOpenedWorkspaces for the
+    // workspace list itself, so that a collection's last-known state from the active
+    // workspace is preferred over stale data from other workspaces.
+    activeWorkspaceEntries.forEach((collection, path) => {
+      collectionsByPath[path] = {
+        pathname: collection.pathname,
+        workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
+        environment: collection.environment,
+        environmentPath: collection.environmentPath,
+        selectedEnvironment: collection.selectedEnvironment,
+        isOpen: collection.isOpen,
+        isMounted: collection.isMounted
+      };
+
+      tabsByCollectionPath[path] = {
+        pathname: collection.pathname,
+        activeTab: collection.activeTab,
+        tabs: collection.tabs
+      };
+
+      const activeWorkspaceCollectionKey = getWorkspaceCollectionSnapshotKey(
+        collection.workspacePathname,
+        collection.pathname
+      );
+
+      if (activeWorkspaceCollectionKey) {
+        collectionsByWorkspaceAndPath[activeWorkspaceCollectionKey] = {
+          pathname: collection.pathname,
+          workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
+          environment: collection.environment,
+          environmentPath: collection.environmentPath,
+          selectedEnvironment: collection.selectedEnvironment,
+          isOpen: collection.isOpen,
+          isMounted: collection.isMounted
+        };
+
+        tabsByWorkspaceAndCollectionPath[activeWorkspaceCollectionKey] = {
           pathname: collection.pathname,
           workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
           activeTab: collection.activeTab,

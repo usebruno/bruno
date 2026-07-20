@@ -228,6 +228,164 @@ describe('hydrateSnapshotLookups', () => {
     });
   });
 
+  it('prioritizes active workspace collection data in collectionsByPath when later non-active entries would otherwise overwrite it', () => {
+    const collectionPath = '/collections/shared';
+
+    const snapshot = {
+      activeWorkspacePath: '/workspaces/active',
+      workspaces: [
+        {
+          pathname: '/workspaces/active',
+          sorting: 'default',
+          collections: [collectionPath]
+        },
+        {
+          pathname: '/workspaces/other',
+          sorting: 'default',
+          collections: [collectionPath]
+        }
+      ],
+      collections: [
+        {
+          pathname: collectionPath,
+          workspacePathname: '/workspaces/active',
+          environment: {
+            collection: 'env-active',
+            global: ''
+          },
+          selectedEnvironment: 'env-active',
+          isOpen: true,
+          isMounted: false
+        },
+        {
+          pathname: collectionPath,
+          workspacePathname: '/workspaces/other',
+          environment: {
+            collection: '',
+            global: ''
+          },
+          selectedEnvironment: '',
+          isOpen: false,
+          isMounted: false
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    // collectionsByPath should contain active workspace's data, not the later blank entry
+    expect(lookups.collectionsByPath[collectionPath]).toMatchObject({
+      selectedEnvironment: 'env-active',
+      environment: {
+        collection: 'env-active',
+        global: ''
+      }
+    });
+  });
+
+  it('falls back to active workspace data via collectionsByPath when workspace-scoped entry is missing', () => {
+    const collectionPath = '/collections/shared';
+    const activeWorkspacePath = '/workspaces/active';
+
+    const snapshot = {
+      activeWorkspacePath,
+      workspaces: [
+        {
+          pathname: activeWorkspacePath,
+          sorting: 'default',
+          collections: [collectionPath]
+        }
+      ],
+      collections: [
+        {
+          pathname: collectionPath,
+          workspacePathname: '',
+          environment: {
+            collection: 'env-active',
+            global: ''
+          },
+          selectedEnvironment: 'env-active',
+          isOpen: true,
+          isMounted: false
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    // There is no workspace-scoped entry for the active workspace (workspacePathname is empty),
+    // so getCollectionSnapshotFromLookups falls back to collectionsByPath.
+    // The fallback should still return the active workspace's data.
+    expect(getCollectionSnapshotFromLookups(collectionPath, lookups, activeWorkspacePath)).toMatchObject({
+      selectedEnvironment: 'env-active',
+      environment: {
+        collection: 'env-active',
+        global: ''
+      }
+    });
+  });
+
+  it('overrides workspace-scoped entry with first non-blank active workspace data when a later blank entry shares the same workspacePathname', () => {
+    const collectionPath = '/collections/shared';
+    const activeWorkspacePath = '/workspaces/active';
+
+    const snapshot = {
+      activeWorkspacePath,
+      workspaces: [
+        {
+          pathname: activeWorkspacePath,
+          sorting: 'default',
+          collections: [collectionPath]
+        }
+      ],
+      collections: [
+        {
+          pathname: collectionPath,
+          workspacePathname: activeWorkspacePath,
+          environment: {
+            collection: 'env-active',
+            global: ''
+          },
+          selectedEnvironment: 'env-active',
+          isOpen: true,
+          isMounted: false
+        },
+        {
+          pathname: collectionPath,
+          workspacePathname: activeWorkspacePath,
+          environment: {
+            collection: '',
+            global: ''
+          },
+          selectedEnvironment: '',
+          isOpen: false,
+          isMounted: false
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+    const workspaceKey = `${activeWorkspacePath}::${collectionPath}`;
+
+    // The workspace-scoped lookup should be restored to the first non-blank entry
+    expect(lookups.collectionsByWorkspaceAndPath[workspaceKey]).toMatchObject({
+      selectedEnvironment: 'env-active',
+      environment: {
+        collection: 'env-active',
+        global: ''
+      }
+    });
+
+    // collectionsByPath should also be restored
+    expect(lookups.collectionsByPath[collectionPath]).toMatchObject({
+      selectedEnvironment: 'env-active',
+      environment: {
+        collection: 'env-active',
+        global: ''
+      }
+    });
+  });
+
   it('drops legacy v4 migration tabs from snapshot lookups', () => {
     const snapshot = {
       collections: [
