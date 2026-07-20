@@ -14,10 +14,16 @@ const {
   stringifyRequestViaWorker,
   parseCollection,
   stringifyCollection,
+  parseCollectionViaWorker,
+  stringifyCollectionViaWorker,
   parseFolder,
   stringifyFolder,
+  parseFolderViaWorker,
+  stringifyFolderViaWorker,
   stringifyEnvironment,
   parseEnvironment,
+  parseEnvironmentViaWorker,
+  stringifyEnvironmentViaWorker,
   DEFAULT_COLLECTION_FORMAT
 } = require('@usebruno/filestore');
 const { dotenvToJson } = require('@usebruno/lang');
@@ -2762,14 +2768,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const bruFilesToDelete = [];
 
       // Phase 1: read → parse → convert to memory. Collect all results before touching disk.
+      // Parse/stringify runs on the filestore worker pool so the main thread stays free to
+      // process the cancel IPC (the ohm-js grammars block the event loop for hundreds of ms
+      // per file on large collections — a sync loop would swallow every cancel message).
       const parseErrors = [];
       const conversionPlan = []; // { ymlPath, ymlContent, bruPath }
 
       for (const bruFilePath of bruFiles) {
-        // readFileSync + parse below are synchronous and without a yield here, this loop
-        // never gives the event loop a turn to process a pending cancel IPC message,
-        // so checkCancelled() would never see it flip during the longest phase.
-        await new Promise((resolve) => setImmediate(resolve));
         checkCancelled();
         const basename = path.basename(bruFilePath);
         const dirname = path.dirname(bruFilePath);
@@ -2780,31 +2785,28 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
 
         try {
-          const bruContent = fs.readFileSync(bruFilePath, 'utf8');
+          const bruContent = await fs.promises.readFile(bruFilePath, 'utf8');
 
+          let ymlPath;
+          let ymlContent;
           if (path.normalize(dirname) === path.normalize(envDirPath)) {
-            const envData = parseEnvironment(bruContent, { format: 'bru' });
-            conversionPlan.push({
-              ymlPath: bruFilePath.replace(/\.bru$/, '.yml'),
-              ymlContent: stringifyEnvironment(envData, { format: 'yml' }),
-              bruPath: bruFilePath
-            });
+            const envData = await parseEnvironmentViaWorker(bruContent, { format: 'bru' });
+            ymlPath = bruFilePath.replace(/\.bru$/, '.yml');
+            ymlContent = await stringifyEnvironmentViaWorker(envData, { format: 'yml' });
           } else if (basename === 'folder.bru') {
-            const folderData = parseFolder(bruContent, { format: 'bru' });
-            conversionPlan.push({
-              ymlPath: path.join(dirname, 'folder.yml'),
-              ymlContent: stringifyFolder(folderData, { format: 'yml' }),
-              bruPath: bruFilePath
-            });
+            const folderData = await parseFolderViaWorker(bruContent, { format: 'bru' });
+            ymlPath = path.join(dirname, 'folder.yml');
+            ymlContent = await stringifyFolderViaWorker(folderData, { format: 'yml' });
           } else {
-            const requestData = parseRequest(bruContent, { format: 'bru' });
-            conversionPlan.push({
-              ymlPath: bruFilePath.replace(/\.bru$/, '.yml'),
-              ymlContent: stringifyRequest(requestData, { format: 'yml' }),
-              bruPath: bruFilePath
-            });
+            const requestData = await parseRequestViaWorker(bruContent, { format: 'bru' });
+            ymlPath = bruFilePath.replace(/\.bru$/, '.yml');
+            ymlContent = await stringifyRequestViaWorker(requestData, { format: 'yml' });
           }
+
+          checkCancelled();
+          conversionPlan.push({ ymlPath, ymlContent, bruPath: bruFilePath });
         } catch (parseError) {
+          if (parseError?.message === 'Migration cancelled') throw parseError;
           parseErrors.push(`${bruFilePath}: ${parseError.message}`);
         }
       }

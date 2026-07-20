@@ -55,13 +55,31 @@ class BruParserWorker {
     return queueForSize?.workerQueue ?? this.workerQueues[this.workerQueues.length - 1].workerQueue;
   }
 
-  private async enqueueTask({ data, taskType, format = DEFAULT_COLLECTION_FORMAT }: { data: any; taskType: 'parse' | 'stringify'; format?: CollectionFormat }): Promise<any> {
+  private async enqueueTask({
+    data,
+    taskType,
+    format = DEFAULT_COLLECTION_FORMAT,
+    brunoConfig
+  }: {
+    data: any;
+    taskType:
+      | 'parse'
+      | 'stringify'
+      | 'parseFolder'
+      | 'stringifyFolder'
+      | 'parseCollection'
+      | 'stringifyCollection'
+      | 'parseEnvironment'
+      | 'stringifyEnvironment';
+    format?: CollectionFormat;
+    brunoConfig?: any;
+  }): Promise<any> {
     const size = getSize(data);
     const workerQueue = this.getWorkerQueue(size);
     const workerScriptPath = path.join(__dirname, './workers/worker-script.js');
 
     return workerQueue.enqueue({
-      data: { data, format },
+      data: { data, format, brunoConfig },
       priority: size,
       scriptPath: workerScriptPath,
       taskType
@@ -74,6 +92,30 @@ class BruParserWorker {
 
   async stringifyRequest(data: any, format: CollectionFormat = DEFAULT_COLLECTION_FORMAT): Promise<any> {
     return this.enqueueTask({ data, taskType: 'stringify', format });
+  }
+
+  async parseFolder(data: any, format: CollectionFormat = DEFAULT_COLLECTION_FORMAT): Promise<any> {
+    return this.enqueueTask({ data, taskType: 'parseFolder', format });
+  }
+
+  async stringifyFolder(data: any, format: CollectionFormat = DEFAULT_COLLECTION_FORMAT): Promise<any> {
+    return this.enqueueTask({ data, taskType: 'stringifyFolder', format });
+  }
+
+  async parseCollection(data: any, format: CollectionFormat = DEFAULT_COLLECTION_FORMAT): Promise<any> {
+    return this.enqueueTask({ data, taskType: 'parseCollection', format });
+  }
+
+  async stringifyCollection(data: any, brunoConfig: any, format: CollectionFormat = DEFAULT_COLLECTION_FORMAT): Promise<any> {
+    return this.enqueueTask({ data, taskType: 'stringifyCollection', format, brunoConfig });
+  }
+
+  async parseEnvironment(data: any, format: CollectionFormat = DEFAULT_COLLECTION_FORMAT): Promise<any> {
+    return this.enqueueTask({ data, taskType: 'parseEnvironment', format });
+  }
+
+  async stringifyEnvironment(data: any, format: CollectionFormat = DEFAULT_COLLECTION_FORMAT): Promise<any> {
+    return this.enqueueTask({ data, taskType: 'stringifyEnvironment', format });
   }
 
   async cleanup(): Promise<void> {
