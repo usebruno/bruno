@@ -4,11 +4,6 @@ import Markdown from 'components/MarkDown';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateActivePreferencesTab } from 'providers/ReduxStore/slices/app';
 import changelogContent from './CHANGELOG.md';
-import akamaiEdgeGridImg from 'assets/changelog-v4.0.0/akamai-edgegrid-auth.png';
-import descriptionsImg from 'assets/changelog-v4.0.0/descriptions.png';
-import secretManagerImg from 'assets/changelog-v4.0.0/secret-manager.png';
-import aiImg from 'assets/changelog-v4.0.0/ai.png';
-import appsImg from 'assets/changelog-v4.0.0/apps.png';
 import StyledWrapper from './StyledWrapper';
 
 const PREFERENCE_LINKS = {
@@ -16,12 +11,7 @@ const PREFERENCE_LINKS = {
   '#preferences/cache': 'cache'
 };
 
-const content = changelogContent
-  .replace(/%AKAMAI_EDGEGRID_IMG%/g, akamaiEdgeGridImg)
-  .replace(/%DESCRIPTIONS_IMG%/g, descriptionsImg)
-  .replace(/%SECRET_MANAGER_IMG%/g, secretManagerImg)
-  .replace(/%AI_IMG%/g, aiImg)
-  .replace(/%APPS_IMG%/g, appsImg);
+const content = changelogContent;
 
 const ChangelogTab = ({ collectionUid }) => {
   const dispatch = useDispatch();

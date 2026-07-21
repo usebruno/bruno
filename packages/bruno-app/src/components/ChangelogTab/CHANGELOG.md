@@ -1,6 +1,6 @@
 ## What's New in Bruno v4.0.0
 
-Bruno v4.0.0 is our biggest release yet, with major improvements across the entire API workflow. This release introduces built-in AI assistance, reimagined Collection Docs and Playground, a redesigned Secret Manager, typed variables, Apps, faster startup for large collections, improved WebSocket workflows, and much more.
+Bruno v4.0.0 is our biggest release yet, with major improvements across the entire API workflow. This release introduces built-in AI assistance, Bruno API Docs and a reimagined Playground, a redesigned Secret Manager, typed variables, Apps, faster startup for large collections, improved WebSocket workflows, and much more.
 
 ---
 
@@ -17,7 +17,7 @@ The new AI chat sidebar stays grounded in your active request, so its responses 
 
 Bruno uses a **Bring Your Own Key (BYOK)** model, giving you control over your provider and account.
 
-![Bruno AI chat sidebar grounded in the active request](%AI_IMG%)
+![Bruno AI chat sidebar grounded in the active request](https://bruno-release-artifacts-767397862016.s3.us-east-1.amazonaws.com/ai.png)
 
 [Configure AI](#preferences/ai) [Read Docs →](https://link.usebruno.com/docs/ai)
 
@@ -50,7 +50,7 @@ Collection-level Apps can:
 
 App code and state are stored alongside your requests and collections, making them easy to share through Git.
 
-![Bruno Apps building an interactive interface on top of an API](%APPS_IMG%)
+![Bruno Apps building an interactive interface on top of an API](https://bruno-release-artifacts-767397862016.s3.us-east-1.amazonaws.com/apps.png)
 
 [Read Docs →](https://link.usebruno.com/docs/apps)
 
@@ -63,8 +63,9 @@ Secret mappings now live alongside your environments instead of being stored in 
 * Unified experience for environments and secrets
 * Improved sharing and variable precedence
 * Simpler setup for external secret providers
+* Existing secrets are automatically migrated
 
-![Redesigned Secret Manager in Bruno](%SECRET_MANAGER_IMG%)
+![Redesigned Secret Manager in Bruno](https://bruno-release-artifacts-767397862016.s3.us-east-1.amazonaws.com/secret-manager.png)
 
 [Read Docs →](https://link.usebruno.com/docs/secret-manager)
 
@@ -82,11 +83,11 @@ Descriptions support multiple lines and are preserved when importing or exportin
 
 This makes it easier to explain what each field does without relying on inline comments or separate documentation.
 
-![Description column for variables and request fields in Bruno](%DESCRIPTIONS_IMG%)
+![Description column for variables and request fields in Bruno](https://bruno-release-artifacts-767397862016.s3.us-east-1.amazonaws.com/descriptions.png)
 
-### Collection Docs Reimagined
+### Bruno API Docs
 
-Collection Docs now provide a modern, website-like documentation experience with improved navigation, richer request details, and shareable pages.
+Bruno API Docs now provide a modern, website-like documentation experience with improved navigation, richer request details, and shareable pages.
 
 * Shareable page URLs
 * Global documentation search
@@ -126,7 +127,7 @@ Bruno now includes native support for **Akamai EdgeGrid authentication**.
 
 Select Akamai EdgeGrid from the authentication type dropdown on a request, folder, or collection.
 
-![Akamai EdgeGrid authentication configuration in Bruno](%AKAMAI_EDGEGRID_IMG%)
+![Akamai EdgeGrid authentication configuration in Bruno](https://bruno-release-artifacts-767397862016.s3.us-east-1.amazonaws.com/akamai-edgegrid-auth.png)
 
 [Read Docs →](https://link.usebruno.com/docs/auth)
 
