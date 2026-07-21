@@ -19,7 +19,7 @@ Bruno uses a **Bring Your Own Key (BYOK)** model, giving you control over your p
 
 ![Bruno AI chat sidebar grounded in the active request](https://d3icksk7srk4uh.cloudfront.net/ai.png)
 
-[Configure AI](#preferences/ai) [Read Docs →](https://link.usebruno.com/docs/ai)
+[Configure AI](#preferences/ai) [Read Docs →](https://link.usebruno.com/docs/ai?version=4.0.0)
 
 ### Apps: Build Interactive Interfaces for Your APIs
 
@@ -52,7 +52,7 @@ App code and state are stored alongside your requests and collections, making th
 
 ![Bruno Apps building an interactive interface on top of an API](https://d3icksk7srk4uh.cloudfront.net/apps.png)
 
-[Read Docs →](https://link.usebruno.com/docs/apps)
+[Read Docs →](https://link.usebruno.com/docs/apps?version=4.0.0)
 
 ### Secrets Management, Fully Rebuilt
 
@@ -67,7 +67,7 @@ Secret mappings now live alongside your environments instead of being stored in 
 
 ![Redesigned Secret Manager in Bruno](https://d3icksk7srk4uh.cloudfront.net/secret-manager.png)
 
-[Read Docs →](https://link.usebruno.com/docs/secret-manager)
+[Read Docs →](https://link.usebruno.com/docs/secret-manager?version=4.0.0)
 
 ### Descriptions for Variables and Request Fields
 
@@ -99,7 +99,7 @@ Bruno API Docs now provide a modern, website-like documentation experience with 
 
 The interactive **Playground** is also much closer to the full Bruno experience. You can execute requests directly from your documentation using a redesigned application shell with broader request support.
 
-[Read Docs →](https://link.usebruno.com/docs/collection-docs)
+[Read Docs →](https://link.usebruno.com/docs/collection-docs?version=4.0.0)
 
 ### Typed Variables and Better Scripting
 
@@ -119,7 +119,7 @@ Additional scripting improvements include:
 * Variable mutations now persist by default
 * New APIs for reading and managing collection variables
 
-[Read Docs →](https://link.usebruno.com/docs/variables)
+[Read Docs →](https://link.usebruno.com/docs/variables?version=4.0.0)
 
 ### More Authentication Options <span class="badge">Beta</span>
 
@@ -129,7 +129,7 @@ Select Akamai EdgeGrid from the authentication type dropdown on a request, folde
 
 ![Akamai EdgeGrid authentication configuration in Bruno](https://d3icksk7srk4uh.cloudfront.net/akamai-edgegrid-auth.png)
 
-[Read Docs →](https://link.usebruno.com/docs/auth)
+[Read Docs →](https://link.usebruno.com/docs/auth?version=4.0.0)
 
 ### Faster Startup for Large Collections <span class="badge">Beta</span>
 
@@ -143,7 +143,7 @@ WebSocket requests now support multiple saved messages within the same connectio
 
 You can create and manage a collection of messages, then send them individually without repeatedly recreating payloads.
 
-[Read Docs →](https://link.usebruno.com/docs/websocket)
+[Read Docs →](https://link.usebruno.com/docs/websocket?version=4.0.0)
 
 ### A Better Changelog and Notification Experience
 
@@ -171,7 +171,7 @@ As part of this transition:
 
 You can migrate at your own pace without disrupting your existing workflows.
 
-[Read Docs →](https://link.usebruno.com/docs/opencollection)
+[Read Docs →](https://link.usebruno.com/docs/opencollection?version=4.0.0)
 
 ### CLI Improvements
 
@@ -183,7 +183,7 @@ The Bruno CLI now supports the redesigned Secret Manager, including native integ
 
 This release also includes JUnit reporting fixes and improved support for YAML-based gRPC collections.
 
-[Read Docs →](https://link.usebruno.com/docs/cli)
+[Read Docs →](https://link.usebruno.com/docs/cli?version=4.0.0)
 
 ### Quality Improvements Across Bruno
 
