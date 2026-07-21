@@ -12,6 +12,10 @@ runs:
       shell: ${{ inputs.shell }}
       run: npm ci --prefix packages/bruno-tests/collection
 
+    - name: Install additional-context-root-lib Dependencies
+      shell: ${{ inputs.shell }}
+      run: npm ci --prefix packages/bruno-tests/additional-context-root-lib
+
     - name: Run Local Testbench and CLI Tests
       if: inputs.shell != 'pwsh'
       shell: ${{ inputs.shell }}
