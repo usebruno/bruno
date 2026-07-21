@@ -69,40 +69,11 @@ const StyledWrapper = styled.div`
       flex-shrink: 0;
     }
 
-    .input-wrap {
-      position: relative;
-
-      .textbox {
-        padding-right: 2.25rem;
-        color: ${(props) => props.theme.text};
-        font-weight: 400;
-        font-size: ${(props) => props.theme.font.size.sm};
-        line-height: 20px;
-      }
-
-      .copy-btn {
-        position: absolute;
-        top: 50%;
-        right: 0.5rem;
-        transform: translateY(-50%);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.25rem;
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        color: ${(props) => props.theme.colors.text.muted};
-
-        &:hover:not(:disabled) {
-          color: ${(props) => props.theme.text};
-        }
-
-        &:disabled {
-          opacity: 0.5;
-          cursor: default;
-        }
-      }
+    .new-version-input {
+      color: ${(props) => props.theme.text};
+      font-weight: 400;
+      font-size: ${(props) => props.theme.font.size.sm};
+      line-height: 20px;
     }
   }
 
@@ -127,6 +98,10 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.colors.text.danger};
       font-weight: 700;
       word-break: break-all;
+   
+      .not-set {
+        font-weight: 500;
+      }
     }
 
     .new {

@@ -2,22 +2,20 @@ import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { useDispatch } from 'react-redux';
 import { sendNetworkRequest } from 'utils/network/index';
-import {
-  findEnvironmentInCollection,
-  getEnvironmentVariables,
-  getGlobalEnvironmentVariables
-} from 'utils/collections';
+import { findEnvironmentInCollection } from 'utils/collections';
 import {
   responseReceived,
   appSetRuntimeVariable,
   initRunRequestEvent
 } from 'providers/ReduxStore/slices/collections';
 import { updateRequestPaneTab, setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
+import { addLog } from 'providers/ReduxStore/slices/logs';
 import { uuid } from 'utils/common';
 import { useTheme } from 'providers/Theme';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import EmptyAppState from './EmptyAppState';
+import { buildVariables } from './buildVariables';
 import {
   SENTINEL,
   wrapHtml,
@@ -27,7 +25,7 @@ import {
   useAppWebview
 } from './webview-bridge';
 
-// Request-level ctx bootstrap. Injected into the guest so window.ctx exists
+// Request-level ctx bootstrap. Injected into the guest so window.bru exists
 // before user scripts run.
 const REQUEST_CTX_BOOTSTRAP = `<script>
 (function () {
@@ -44,43 +42,53 @@ const REQUEST_CTX_BOOTSTRAP = `<script>
   }
 
   var ctx = {
-    theme: 'light',
-    response: null,
-    assertionResults: [],
-    testResults: [],
-    variables: {},
+    theme: { name: 'light', mode: 'light', config: {} },
+    assertions: [],
+    tests: [],
+    variables: {
+      resolved: {},
+      runtime: {
+        set: function (name, value) {
+          sendToHost({ type: 'setRuntimeVariable', key: String(name), value: value });
+        }
+      }
+    },
+    http: {
+      response: null,
+      onResponseChange: null
+    },
 
     // Called once when the host delivers the initial state. ctx data arrives
     // asynchronously AFTER page load, so apps must do their first render here
-    // (or in the granular on* callbacks), not at DOMContentLoaded.
+    // (or in the on*Change callbacks), not at DOMContentLoaded.
     onInit: null,
     onThemeChange: null,
-    onResponseUpdate: null,
-    onResultsUpdate: null,
-    onVariablesUpdate: null,
+    onAssertionsChange: null,
+    onTestsChange: null,
+    onVariablesChange: null,
 
-    sendRequest: function (overrides) {
+    submitRequest: function (options) {
       return new Promise(function (resolve, reject) {
         var requestId = ++nextRequestId;
         pending.set(requestId, { resolve: resolve, reject: reject });
-        sendToHost({ type: 'sendRequest', requestId: requestId, overrides: overrides || {} });
+        sendToHost({ type: 'sendRequest', requestId: requestId, options: options || {} });
       });
-    },
-    setRuntimeVariable: function (key, value) {
-      sendToHost({ type: 'setRuntimeVariable', key: String(key), value: value });
     },
     log: function () {
       var args = Array.prototype.slice.call(arguments);
       sendToHost({ type: 'log', args: args });
     }
   };
-  window.ctx = ctx;
+
+  var bru = { ctx: ctx };
+  window.bru = bru;
 
   function applyTheme(theme) {
-    ctx.theme = theme || 'light';
+    ctx.theme = theme || { name: 'light', mode: 'light', config: {} };
+    var mode = ctx.theme.mode || 'light';
     if (document.body) {
       document.body.classList.remove('light', 'dark');
-      document.body.classList.add(ctx.theme);
+      document.body.classList.add(mode);
     }
   }
 
@@ -89,14 +97,14 @@ const REQUEST_CTX_BOOTSTRAP = `<script>
     switch (msg.type) {
       case 'state':
         applyTheme(msg.theme);
-        ctx.response = msg.response || null;
-        ctx.assertionResults = msg.assertionResults || [];
-        ctx.testResults = msg.testResults || [];
-        ctx.variables = msg.variables || {};
+        ctx.http.response = msg.response || null;
+        ctx.assertions = msg.assertionResults || [];
+        ctx.tests = msg.testResults || [];
+        ctx.variables.resolved = msg.variables || {};
         if (!initialized) {
           initialized = true;
           if (typeof ctx.onInit === 'function') {
-            try { ctx.onInit(ctx); } catch (e) { sendToHost({ type: 'log', args: ['onInit error: ' + (e && e.message)] }); }
+            try { ctx.onInit(bru); } catch (e) { sendToHost({ type: 'log', args: ['onInit error: ' + (e && e.message)] }); }
           }
         }
         break;
@@ -105,19 +113,18 @@ const REQUEST_CTX_BOOTSTRAP = `<script>
         if (typeof ctx.onThemeChange === 'function') ctx.onThemeChange(ctx.theme);
         break;
       case 'responseUpdate':
-        ctx.response = msg.response || null;
-        if (typeof ctx.onResponseUpdate === 'function') ctx.onResponseUpdate(ctx.response);
+        ctx.http.response = msg.response || null;
+        if (typeof ctx.http.onResponseChange === 'function') ctx.http.onResponseChange(ctx.http.response);
         break;
       case 'results':
-        ctx.assertionResults = msg.assertionResults || [];
-        ctx.testResults = msg.testResults || [];
-        if (typeof ctx.onResultsUpdate === 'function') {
-          ctx.onResultsUpdate({ assertionResults: ctx.assertionResults, testResults: ctx.testResults });
-        }
+        ctx.assertions = msg.assertionResults || [];
+        ctx.tests = msg.testResults || [];
+        if (typeof ctx.onAssertionsChange === 'function') ctx.onAssertionsChange(ctx.assertions);
+        if (typeof ctx.onTestsChange === 'function') ctx.onTestsChange(ctx.tests);
         break;
       case 'variables':
-        ctx.variables = msg.variables || {};
-        if (typeof ctx.onVariablesUpdate === 'function') ctx.onVariablesUpdate(ctx.variables);
+        ctx.variables.resolved = msg.variables || {};
+        if (typeof ctx.onVariablesChange === 'function') ctx.onVariablesChange(ctx.variables);
         break;
       case 'response': {
         var entry = pending.get(msg.requestId);
@@ -138,30 +145,25 @@ const REQUEST_CTX_BOOTSTRAP = `<script>
 })();
 </script>`;
 
-const buildVariables = (collection) => {
-  const env = getEnvironmentVariables(collection);
-  const global = getGlobalEnvironmentVariables({
-    globalEnvironments: collection?.globalEnvironments || [],
-    activeGlobalEnvironmentUid: collection?.activeGlobalEnvironmentUid
-  });
-  return {
-    ...global,
-    ...env,
-    ...(collection?.collectionVariables || {}),
-    ...(collection?.runtimeVariables || {})
-  };
-};
-
 const AppView = ({ item, collection, code }) => {
   const dispatch = useDispatch();
-  const { displayedTheme } = useTheme();
+  const { displayedTheme, theme, themeVariantLight, themeVariantDark } = useTheme();
   const src = useMemo(() => toDataUrl(wrapHtml(REQUEST_CTX_BOOTSTRAP, code || '')), [code]);
+
+  const themePayload = useMemo(
+    () => ({
+      name: displayedTheme === 'light' ? themeVariantLight : themeVariantDark,
+      mode: displayedTheme,
+      config: theme
+    }),
+    [displayedTheme, theme, themeVariantLight, themeVariantDark]
+  );
 
   const environment = useMemo(
     () => findEnvironmentInCollection(collection, collection.activeEnvironmentUid),
     [collection]
   );
-  const variables = useMemo(() => buildVariables(collection), [collection]);
+  const variables = useMemo(() => buildVariables(collection, item), [collection, item]);
   const response = useMemo(() => (item.response ? projectResponse(item.response) : null), [item.response]);
   const assertionResults = useMemo(() => item.assertionResults || [], [item.assertionResults]);
   const testResults = useMemo(() => item.testResults || [], [item.testResults]);
@@ -170,29 +172,28 @@ const AppView = ({ item, collection, code }) => {
   // routing through a ref lets the callbacks call the *latest* pushToGuest without
   // creating a circular useCallback dependency. Without this, the request-id reply
   // (and error reply) close over the first-render no-op pushToGuest and the guest's
-  // ctx.sendRequest() promise never resolves.
+  // bru.ctx.submitRequest() promise never resolves.
   const pushToGuestRef = useRef(() => {});
 
   const handleSendRequest = useCallback(
-    async (requestId, overrides) => {
+    async (requestId, options) => {
       const push = pushToGuestRef.current;
       try {
         // Mint a requestUid and register the run so the main process emits its
         // test/assertion/script events against an id the store recognises — this
-        // is what makes ctx.testResults / ctx.assertionResults populate.
+        // is what makes ctx.tests / ctx.assertions populate.
         const requestUid = uuid();
         const requestItem = cloneDeep(item.draft || item);
         requestItem.requestUid = requestUid;
         dispatch(initRunRequestEvent({ requestUid, itemUid: item.uid, collectionUid: collection.uid }));
 
-        // Variable overrides: accept flat keys or { variables: {...} }.
-        const flatOverrides = overrides && typeof overrides === 'object' ? { ...overrides } : {};
-        const explicitVars = flatOverrides.variables;
-        delete flatOverrides.variables;
+        const runtimeOverrides
+          = options && typeof options.runtimeVariables === 'object' && options.runtimeVariables
+            ? options.runtimeVariables
+            : {};
         const mergedRuntime = {
           ...(collection.runtimeVariables || {}),
-          ...flatOverrides,
-          ...(explicitVars && typeof explicitVars === 'object' ? explicitVars : {})
+          ...runtimeOverrides
         };
 
         const result = await sendNetworkRequest(requestItem, collection, environment, mergedRuntime);
@@ -238,7 +239,7 @@ const AppView = ({ item, collection, code }) => {
         case 'ready':
           break;
         case 'sendRequest':
-          handleSendRequest(data.requestId, data.overrides);
+          handleSendRequest(data.requestId, data.options);
           break;
         case 'setRuntimeVariable':
           if (typeof data.key === 'string' && data.key.length) {
@@ -247,6 +248,7 @@ const AppView = ({ item, collection, code }) => {
           break;
         case 'log':
           console.log('[app]', ...(data.args || []));
+          dispatch(addLog({ type: 'log', args: ['[app]', ...(data.args || [])], timestamp: new Date().toISOString() }));
           break;
         default:
           break;
@@ -262,15 +264,15 @@ const AppView = ({ item, collection, code }) => {
   // are handled by the granular effects below; using a ref avoids re-firing
   // this effect (which would be a needless full re-broadcast).
   const stateRef = useRef();
-  stateRef.current = { theme: displayedTheme, response, assertionResults, testResults, variables };
+  stateRef.current = { theme: themePayload, response, assertionResults, testResults, variables };
   useEffect(() => {
     if (!domReady) return;
     pushToGuest({ type: 'state', ...stateRef.current });
   }, [domReady, pushToGuest]);
 
   useEffect(() => {
-    pushToGuest({ type: 'theme', theme: displayedTheme });
-  }, [displayedTheme, pushToGuest]);
+    pushToGuest({ type: 'theme', theme: themePayload });
+  }, [themePayload, pushToGuest]);
 
   useEffect(() => {
     pushToGuest({ type: 'responseUpdate', response });

@@ -77,17 +77,19 @@ const EnvVarValueCell = ({
   return (
     <VarValueCell
       onCompactChange={setCompact}
-      trailingContent={variable.secret && compact ? (
+      trailingContent={variable.secret ? (
         <SecretEyeButton
           masked={masked}
+          testId="secret-reveal-toggle"
           onToggle={() => editorRef.current?.toggleVisibleSecret()}
         />
       ) : null}
       editor={(
         <div
-          className="relative flex flex-col"
+          className="flex items-center"
           onFocus={() => handleRowFocus(variable.uid)}
         >
+          {renderExtraValueContent && renderExtraValueContent(variable)}
           <MultiLineEditor
             ref={editorRef}
             theme={storedTheme}
@@ -96,7 +98,7 @@ const EnvVarValueCell = ({
             value={valueToString(variable.value, 2)}
             placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
             isSecret={variable.secret}
-            hideSecretEye={variable.secret && compact}
+            hideSecretEye={variable.secret}
             onMaskChange={setMasked}
             onChange={(newValue) => {
               formik.setFieldValue(`${actualIndex}.value`, newValue, true);
@@ -120,7 +122,6 @@ const EnvVarValueCell = ({
             }}
             onSave={handleSave}
           />
-          {renderExtraValueContent && renderExtraValueContent(variable)}
         </div>
       )}
       renderTypeSelector={!isLastEmptyRow
@@ -262,6 +263,7 @@ const EnvironmentVariablesTable = ({
 
   const prevEnvUidRef = useRef(null);
   const mountedRef = useRef(false);
+  const pendingDraftRestoreRef = useRef(false);
 
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
@@ -353,7 +355,7 @@ const EnvironmentVariablesTable = ({
       });
       return Object.keys(errors).length > 0 ? errors : {};
     },
-    onSubmit: () => {}
+    onSubmit: () => { }
   });
 
   // Restore draft values on mount or environment switch (not on external filesystem reloads)
@@ -364,7 +366,8 @@ const EnvironmentVariablesTable = ({
     prevEnvUidRef.current = environment.uid;
     mountedRef.current = true;
 
-    if ((isMount || envChanged) && hasDraftForThisEnv && draft?.variables) {
+    if ((isMount || envChanged || pendingDraftRestoreRef.current) && hasDraftForThisEnv && draft?.variables) {
+      pendingDraftRestoreRef.current = false;
       formik.setValues([
         ...draft.variables.map((v) => ({ ...v, description: v.description ?? '' })),
         {
@@ -580,6 +583,7 @@ const EnvironmentVariablesTable = ({
 
         if (otherDirty) {
           onDraftChange(cloneDeep(retainedVariables));
+          pendingDraftRestoreRef.current = true;
         } else {
           onDraftClear();
         }
@@ -843,7 +847,7 @@ const EnvironmentVariablesTable = ({
                     <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
                   </div>
                 </td>
-                <td style={{ width: columnWidths.value }}>
+                <td style={{ width: columnWidths.value }} className="overflow-hidden">
                   <EnvVarValueCell
                     variable={variable}
                     actualIndex={actualIndex}
@@ -863,7 +867,7 @@ const EnvironmentVariablesTable = ({
                     collection={_collection}
                     name={`${actualIndex}.description`}
                     value={variable.description ?? ''}
-                    placeholder={!variable.description || (typeof variable.description === 'string' && variable.description.trim() === '') ? 'Description' : ''}
+                    placeholder={isLastEmptyRow && (!variable.description || (typeof variable.description === 'string' && variable.description.trim() === '')) ? 'Description' : ''}
                     onChange={(newValue) => {
                       formik.setFieldValue(`${actualIndex}.description`, newValue, true);
                       if (isLastRow) {

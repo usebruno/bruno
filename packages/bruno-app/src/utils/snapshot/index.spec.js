@@ -221,12 +221,219 @@ describe('hydrateSnapshotLookups', () => {
 
     expect(lookups.hasWorkspaceScopedTabs).toBe(true);
 
-    // Each workspace should resolve to its own selected environment for the shared collection.
     expect(getCollectionSnapshotFromLookups(sharedCollectionPath, lookups, workspaceAPath)).toMatchObject({
       selectedEnvironment: 'env-a'
     });
     expect(getCollectionSnapshotFromLookups(sharedCollectionPath, lookups, workspaceBPath)).toMatchObject({
       selectedEnvironment: 'env-b'
+    });
+  });
+
+  it('prioritizes active workspace collection data in collectionsByPath when later non-active entries would otherwise overwrite it', () => {
+    const collectionPath = '/collections/shared';
+
+    const snapshot = {
+      activeWorkspacePath: '/workspaces/active',
+      workspaces: [
+        {
+          pathname: '/workspaces/active',
+          sorting: 'default',
+          collections: [collectionPath]
+        },
+        {
+          pathname: '/workspaces/other',
+          sorting: 'default',
+          collections: [collectionPath]
+        }
+      ],
+      collections: [
+        {
+          pathname: collectionPath,
+          workspacePathname: '/workspaces/active',
+          environment: {
+            collection: 'env-active',
+            global: ''
+          },
+          selectedEnvironment: 'env-active',
+          isOpen: true,
+          isMounted: false
+        },
+        {
+          pathname: collectionPath,
+          workspacePathname: '/workspaces/other',
+          environment: {
+            collection: '',
+            global: ''
+          },
+          selectedEnvironment: '',
+          isOpen: false,
+          isMounted: false
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    expect(lookups.collectionsByPath[collectionPath]).toMatchObject({
+      selectedEnvironment: 'env-active',
+      environment: {
+        collection: 'env-active',
+        global: ''
+      }
+    });
+  });
+
+  it('keeps workspace-scoped collection lookups distinct when active workspace preference is applied', () => {
+    const collectionPath = '/collections/shared';
+    const workspaceAPath = '/workspaces/a';
+    const workspaceBPath = '/workspaces/b';
+
+    const snapshot = {
+      activeWorkspacePath: workspaceAPath,
+      workspaces: [
+        { pathname: workspaceAPath, sorting: 'default', collections: [collectionPath] },
+        { pathname: workspaceBPath, sorting: 'default', collections: [collectionPath] }
+      ],
+      collections: [
+        {
+          pathname: collectionPath,
+          workspacePathname: workspaceAPath,
+          environment: { collection: 'env-a', global: '' },
+          selectedEnvironment: 'env-a',
+          isOpen: true,
+          isMounted: false
+        },
+        {
+          pathname: collectionPath,
+          workspacePathname: workspaceBPath,
+          environment: { collection: 'env-b', global: '' },
+          selectedEnvironment: 'env-b',
+          isOpen: true,
+          isMounted: false
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    expect(lookups.collectionsByPath[collectionPath]).toMatchObject({
+      selectedEnvironment: 'env-a'
+    });
+    expect(getCollectionSnapshotFromLookups(collectionPath, lookups, workspaceAPath)).toMatchObject({
+      selectedEnvironment: 'env-a'
+    });
+    expect(getCollectionSnapshotFromLookups(collectionPath, lookups, workspaceBPath)).toMatchObject({
+      selectedEnvironment: 'env-b'
+    });
+  });
+
+  it('prefers blank active workspace collection data over a later non-active entry with environment data', () => {
+    const collectionPath = '/collections/shared';
+
+    const snapshot = {
+      activeWorkspacePath: '/workspaces/active',
+      workspaces: [
+        { pathname: '/workspaces/active', sorting: 'default', collections: [collectionPath] },
+        { pathname: '/workspaces/other', sorting: 'default', collections: [collectionPath] }
+      ],
+      collections: [
+        {
+          pathname: collectionPath,
+          workspacePathname: '/workspaces/active',
+          environment: { collection: '', global: '' },
+          selectedEnvironment: '',
+          isOpen: true,
+          isMounted: false
+        },
+        {
+          pathname: collectionPath,
+          workspacePathname: '/workspaces/other',
+          environment: { collection: 'env-other', global: '' },
+          selectedEnvironment: 'env-other',
+          isOpen: false,
+          isMounted: false
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    expect(lookups.collectionsByPath[collectionPath]).toMatchObject({
+      selectedEnvironment: '',
+      environment: { collection: '', global: '' }
+    });
+  });
+
+  it('prefers an active workspace entry with environment data over an earlier blank active entry for the same path', () => {
+    const collectionPath = '/collections/shared';
+    const activeWorkspacePath = '/workspaces/active';
+
+    const snapshot = {
+      activeWorkspacePath,
+      workspaces: [
+        { pathname: activeWorkspacePath, sorting: 'default', collections: [collectionPath] }
+      ],
+      collections: [
+        {
+          pathname: collectionPath,
+          workspacePathname: activeWorkspacePath,
+          environment: { collection: '', global: '' },
+          selectedEnvironment: '',
+          isOpen: true,
+          isMounted: false
+        },
+        {
+          pathname: collectionPath,
+          workspacePathname: activeWorkspacePath,
+          environment: { collection: 'env-second', global: '' },
+          selectedEnvironment: 'env-second',
+          isOpen: true,
+          isMounted: false
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    expect(lookups.collectionsByPath[collectionPath]).toMatchObject({
+      selectedEnvironment: 'env-second',
+      environment: { collection: 'env-second', global: '' }
+    });
+  });
+
+  it('uses last-write-wins for collectionsByPath when activeWorkspacePath is absent', () => {
+    const collectionPath = '/collections/shared';
+
+    const snapshot = {
+      workspaces: [
+        { pathname: '/workspaces/a', sorting: 'default', collections: [collectionPath] },
+        { pathname: '/workspaces/b', sorting: 'default', collections: [collectionPath] }
+      ],
+      collections: [
+        {
+          pathname: collectionPath,
+          workspacePathname: '/workspaces/a',
+          environment: { collection: 'env-a', global: '' },
+          selectedEnvironment: 'env-a',
+          isOpen: true,
+          isMounted: false
+        },
+        {
+          pathname: collectionPath,
+          workspacePathname: '/workspaces/b',
+          environment: { collection: 'env-b', global: '' },
+          selectedEnvironment: 'env-b',
+          isOpen: true,
+          isMounted: false
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    expect(lookups.collectionsByPath[collectionPath]).toMatchObject({
+      selectedEnvironment: 'env-b',
+      environment: { collection: 'env-b', global: '' }
     });
   });
 
@@ -247,6 +454,27 @@ describe('hydrateSnapshotLookups', () => {
     const lookups = hydrateSnapshotLookups(snapshot);
 
     expect(lookups.tabsByCollectionPath['/collections/legacy'].tabs).toEqual([
+      { type: 'variables', accessor: 'type', permanent: true }
+    ]);
+  });
+
+  it('drops changelog tabs from snapshot lookups', () => {
+    const snapshot = {
+      collections: [
+        {
+          pathname: '/collections/a',
+          activeTab: { accessor: 'type', value: 'changelog' },
+          tabs: [
+            { type: 'changelog', accessor: 'pathname', permanent: true },
+            { type: 'variables', accessor: 'type', permanent: true }
+          ]
+        }
+      ]
+    };
+
+    const lookups = hydrateSnapshotLookups(snapshot);
+
+    expect(lookups.tabsByCollectionPath['/collections/a'].tabs).toEqual([
       { type: 'variables', accessor: 'type', permanent: true }
     ]);
   });
@@ -956,6 +1184,41 @@ describe('hydrateCollectionTabs', () => {
 
     await hydrateCollectionTabs(
       { uid: 'collection-uid', pathname: '/collections/legacy' },
+      dispatch,
+      restoreTabs,
+      null,
+      null,
+      true
+    );
+
+    expect(restoreTabs).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tabs: [{ type: 'variables', accessor: 'type', permanent: true }],
+        activeTab: null
+      })
+    );
+  });
+
+  it('does not restore changelog tabs from direct tab snapshots', async () => {
+    global.window.ipcRenderer.invoke.mockResolvedValue({
+      tabs: [
+        { type: 'changelog', accessor: 'pathname', permanent: true },
+        { type: 'variables', accessor: 'type', permanent: true }
+      ],
+      activeTab: {
+        accessor: 'type',
+        value: 'changelog'
+      }
+    });
+
+    const dispatch = jest.fn();
+    const restoreTabs = jest.fn((payload) => ({
+      type: 'tabs/restoreTabs',
+      payload
+    }));
+
+    await hydrateCollectionTabs(
+      { uid: 'collection-uid', pathname: '/collections/a' },
       dispatch,
       restoreTabs,
       null,

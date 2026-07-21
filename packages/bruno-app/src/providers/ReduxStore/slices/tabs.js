@@ -461,6 +461,14 @@ export const tabsSlice = createSlice({
         console.error('Tab not found!');
       }
     },
+    migrateCollectionTabsToYml: (state, action) => {
+      const { collectionUid } = action.payload;
+      state.tabs.forEach((tab) => {
+        if (tab.collectionUid === collectionUid && typeof tab.pathname === 'string') {
+          tab.pathname = tab.pathname.replace(/\.bru$/, '.yml');
+        }
+      });
+    },
     collapseRequestPane: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
       if (tab) {
@@ -551,7 +559,14 @@ export const tabsSlice = createSlice({
         state.activeTabUid = null;
       }
 
+      // Drop request tabs remapped by bru↔yml migrate that no longer match collection format
+      const staleExt = collection.format === 'yml' ? /\.bru$/i : /\.ya?ml$/i;
+
       (snapshotTabs || []).forEach((snapshotTab) => {
+        if (typeof snapshotTab.pathname === 'string' && staleExt.test(snapshotTab.pathname)) {
+          return;
+        }
+
         const tab = deserializeTab(snapshotTab, collection);
         ensureTabUid(tab);
 
@@ -635,6 +650,7 @@ export const {
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
+  migrateCollectionTabsToYml,
   collapseRequestPane,
   collapseResponsePane,
   expandRequestPane,
