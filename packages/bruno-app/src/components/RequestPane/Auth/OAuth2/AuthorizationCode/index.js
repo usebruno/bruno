@@ -4,13 +4,7 @@ import { shouldMaskValue } from 'utils/auth';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  IconCaretDown,
-  IconSettings,
-  IconKey,
-  IconHelp,
-  IconAdjustmentsHorizontal
-} from '@tabler/icons';
+import { IconCaretDown, IconSettings, IconKey, IconHelp, IconAdjustmentsHorizontal } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
@@ -22,15 +16,7 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 
-const OAuth2AuthorizationCode = ({
-  save,
-  item = {},
-  request,
-  handleRun,
-  updateAuth,
-  collection,
-  folder
-}) => {
+const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
   const { storedTheme, theme } = useTheme();
@@ -38,11 +24,7 @@ const OAuth2AuthorizationCode = ({
     backgroundColor: theme?.background?.surface0,
     color: theme?.text
   };
-  const useSystemBrowser = get(
-    preferences,
-    'request.oauth2.useSystemBrowser',
-    false
-  );
+  const useSystemBrowser = get(preferences, 'request.oauth2.useSystemBrowser', false);
   const { isSensitive } = useDetectSensitiveField(collection);
   const oAuth = get(request, 'auth.oauth2', {});
   const {
@@ -69,9 +51,7 @@ const OAuth2AuthorizationCode = ({
   const refreshTokenUrlAvailable = refreshTokenUrl?.trim() !== '';
   const isAutoRefreshDisabled = !refreshTokenUrlAvailable;
 
-  const handleSave = () => {
-    save();
-  };
+  const handleSave = () => { save(); };
 
   const handleChange = (key, value) => {
     dispatch(
@@ -159,18 +139,14 @@ const OAuth2AuthorizationCode = ({
 
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
-      <Oauth2TokenViewer
-        handleRun={handleRun}
-        collection={collection}
-        item={item}
-        url={accessTokenUrl}
-        credentialsId={credentialsId}
-      />
+      <Oauth2TokenViewer handleRun={handleRun} collection={collection} item={item} url={accessTokenUrl} credentialsId={credentialsId} />
       <div className="flex items-center gap-2.5 mt-2">
         <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
           <IconSettings size={14} className="oauth2-icon" />
         </div>
-        <span className="oauth2-section-label">Configuration</span>
+        <span className="oauth2-section-label">
+          Configuration
+        </span>
       </div>
       <div className="flex items-center gap-4 w-full" key="input-callbackUrl">
         <label className="block min-w-[140px]">Callback URL</label>
@@ -184,20 +160,13 @@ const OAuth2AuthorizationCode = ({
               onRun={handleRun}
               collection={collection}
               item={item}
-              placeholder={
-                useSystemBrowser
-                  ? 'https://oauth.usebruno.com/callback'
-                  : undefined
-              }
+              placeholder={useSystemBrowser ? 'https://oauth.usebruno.com/callback' : undefined}
               isCompact
             />
           </div>
         </div>
       </div>
-      <div
-        className="flex items-center gap-4 w-full"
-        key="input-use-system-browser"
-      >
+      <div className="flex items-center gap-4 w-full" key="input-use-system-browser">
         <label className="block min-w-[140px]"></label>
         <div className="flex items-center gap-2">
           <input
@@ -210,9 +179,7 @@ const OAuth2AuthorizationCode = ({
             className="block cursor-pointer"
             onClick={(e) => {
               e.preventDefault();
-              handleUseSystemBrowserToggle({
-                target: { checked: !useSystemBrowser }
-              });
+              handleUseSystemBrowserToggle({ target: { checked: !useSystemBrowser } });
             }}
           >
             Use system browser for OAuth
@@ -231,10 +198,7 @@ const OAuth2AuthorizationCode = ({
               {tooltip && (
                 <div className="relative group cursor-pointer inline-flex items-center">
                   <IconHelp size={16} className="text-gray-500" />
-                  <span
-                    className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 top-full mt-1 w-max p-2 text-xs rounded-md transition-opacity duration-200 z-10"
-                    style={tooltipStyle}
-                  >
+                  <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 top-full mt-1 w-max p-2 text-xs rounded-md transition-opacity duration-200 z-10" style={tooltipStyle}>
                     {tooltip}
                   </span>
                 </div>
@@ -252,48 +216,25 @@ const OAuth2AuthorizationCode = ({
                 isSecret={isSecret && shouldMaskValue(value)}
                 isCompact
               />
-              {isSecret && showWarning && (
-                <SensitiveFieldWarning
-                  fieldName={key}
-                  warningMessage={warningMessage}
-                />
-              )}
+              {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
             </div>
           </div>
         );
       })}
-      <div
-        className="flex items-center gap-4 w-full"
-        key="input-credentials-placement"
-      >
+      <div className="flex items-center gap-4 w-full" key="input-credentials-placement">
         <label className="block min-w-[140px]">Add Credentials to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
           <MenuDropdown
             items={[
-              {
-                id: 'body',
-                label: 'Request Body',
-                onClick: () => handleChange('credentialsPlacement', 'body')
-              },
-              {
-                id: 'basic_auth_header',
-                label: 'Basic Auth Header',
-                onClick: () =>
-                  handleChange('credentialsPlacement', 'basic_auth_header')
-              }
+              { id: 'body', label: 'Request Body', onClick: () => handleChange('credentialsPlacement', 'body') },
+              { id: 'basic_auth_header', label: 'Basic Auth Header', onClick: () => handleChange('credentialsPlacement', 'basic_auth_header') }
             ]}
             selectedItemId={credentialsPlacement}
             placement="bottom-end"
           >
             <div className="flex items-center justify-end token-placement-label select-none">
-              {credentialsPlacement == 'body'
-                ? 'Request Body'
-                : 'Basic Auth Header'}
-              <IconCaretDown
-                className="caret ml-1 mr-1"
-                size={14}
-                strokeWidth={2}
-              />
+              {credentialsPlacement == 'body' ? 'Request Body' : 'Basic Auth Header'}
+              <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
           </MenuDropdown>
         </div>
@@ -311,34 +252,24 @@ const OAuth2AuthorizationCode = ({
         <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
           <IconKey size={14} className="oauth2-icon" />
         </div>
-        <span className="oauth2-section-label">Token</span>
+        <span className="oauth2-section-label">
+          Token
+        </span>
       </div>
       <div className="flex items-center gap-4 w-full" key="input-token-type">
         <label className="block min-w-[140px]">Token Source</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
           <MenuDropdown
             items={[
-              {
-                id: 'access_token',
-                label: 'Access Token',
-                onClick: () => handleChange('tokenSource', 'access_token')
-              },
-              {
-                id: 'id_token',
-                label: 'ID Token',
-                onClick: () => handleChange('tokenSource', 'id_token')
-              }
+              { id: 'access_token', label: 'Access Token', onClick: () => handleChange('tokenSource', 'access_token') },
+              { id: 'id_token', label: 'ID Token', onClick: () => handleChange('tokenSource', 'id_token') }
             ]}
             selectedItemId={tokenSource}
             placement="bottom-end"
           >
             <div className="flex items-center justify-end token-placement-label select-none">
               {tokenSource === 'id_token' ? 'ID Token' : 'Access Token'}
-              <IconCaretDown
-                className="caret ml-1 mr-1"
-                size={14}
-                strokeWidth={2}
-              />
+              <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
           </MenuDropdown>
         </div>
@@ -358,83 +289,66 @@ const OAuth2AuthorizationCode = ({
           />
         </div>
       </div>
-      <div
-        className="flex items-center gap-4 w-full"
-        key="input-token-placement"
-      >
+      <div className="flex items-center gap-4 w-full" key="input-token-placement">
         <label className="block min-w-[140px]">Add token to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
           <MenuDropdown
             items={[
-              {
-                id: 'header',
-                label: 'Header',
-                onClick: () => handleChange('tokenPlacement', 'header')
-              },
-              {
-                id: 'url',
-                label: 'URL',
-                onClick: () => handleChange('tokenPlacement', 'url')
-              }
+              { id: 'header', label: 'Header', onClick: () => handleChange('tokenPlacement', 'header') },
+              { id: 'url', label: 'URL', onClick: () => handleChange('tokenPlacement', 'url') }
             ]}
             selectedItemId={tokenPlacement}
             placement="bottom-end"
           >
             <div className="flex items-center justify-end token-placement-label select-none">
               {tokenPlacement == 'url' ? 'URL' : 'Headers'}
-              <IconCaretDown
-                className="caret ml-1 mr-1"
-                size={14}
-                strokeWidth={2}
-              />
+              <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
           </MenuDropdown>
         </div>
       </div>
-      {tokenPlacement === 'header' ? (
-        <div
-          className="flex items-center gap-4 w-full"
-          key="input-token-prefix"
-          data-testid="token-header-prefix"
-        >
-          <label className="block min-w-[140px]">Header Prefix</label>
-          <div className="single-line-editor-wrapper flex-1">
-            <SingleLineEditor
-              value={oAuth['tokenHeaderPrefix'] || ''}
-              theme={storedTheme}
-              onSave={handleSave}
-              onChange={(val) => handleChange('tokenHeaderPrefix', val)}
-              onRun={handleRun}
-              collection={collection}
-              isCompact
-            />
-          </div>
-        </div>
-      ) : (
-        <div
-          className="flex items-center gap-4 w-full"
-          key="input-token-query-param-key"
-          data-testid="token-query-param-key"
-        >
-          <label className="block min-w-[140px]">Query Param Key</label>
-          <div className="single-line-editor-wrapper flex-1">
-            <SingleLineEditor
-              value={oAuth['tokenQueryKey'] || ''}
-              theme={storedTheme}
-              onSave={handleSave}
-              onChange={(val) => handleChange('tokenQueryKey', val)}
-              onRun={handleRun}
-              collection={collection}
-              isCompact
-            />
-          </div>
-        </div>
-      )}
+      {
+        tokenPlacement === 'header'
+          ? (
+              <div className="flex items-center gap-4 w-full" key="input-token-prefix" data-testid="token-header-prefix">
+                <label className="block min-w-[140px]">Header Prefix</label>
+                <div className="single-line-editor-wrapper flex-1">
+                  <SingleLineEditor
+                    value={oAuth['tokenHeaderPrefix'] || ''}
+                    theme={storedTheme}
+                    onSave={handleSave}
+                    onChange={(val) => handleChange('tokenHeaderPrefix', val)}
+                    onRun={handleRun}
+                    collection={collection}
+                    isCompact
+                  />
+                </div>
+              </div>
+            )
+          : (
+              <div className="flex items-center gap-4 w-full" key="input-token-query-param-key" data-testid="token-query-param-key">
+                <label className="block min-w-[140px]">Query Param Key</label>
+                <div className="single-line-editor-wrapper flex-1">
+                  <SingleLineEditor
+                    value={oAuth['tokenQueryKey'] || ''}
+                    theme={storedTheme}
+                    onSave={handleSave}
+                    onChange={(val) => handleChange('tokenQueryKey', val)}
+                    onRun={handleRun}
+                    collection={collection}
+                    isCompact
+                  />
+                </div>
+              </div>
+            )
+      }
       <div className="flex items-center gap-2.5 mt-4 mb-2">
         <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
           <IconAdjustmentsHorizontal size={14} className="oauth2-icon" />
         </div>
-        <span className="oauth2-section-label">Advanced Settings</span>
+        <span className="oauth2-section-label">
+          Advanced Settings
+        </span>
       </div>
 
       <div className="flex items-center gap-4 w-full mb-4">
@@ -467,18 +381,12 @@ const OAuth2AuthorizationCode = ({
           onChange={(e) => handleChange('autoFetchToken', e.target.checked)}
           className="cursor-pointer ml-1"
         />
-        <label className="block min-w-[140px]">
-          Automatically fetch token if not found
-        </label>
+        <label className="block min-w-[140px]">Automatically fetch token if not found</label>
         <div className="flex items-center gap-2">
           <div className="relative group cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />
-            <span
-              className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 text-xs rounded-md transition-opacity duration-200"
-              style={tooltipStyle}
-            >
-              Automatically fetch a new token when you try to access a resource
-              and don't have one.
+            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 text-xs rounded-md transition-opacity duration-200" style={tooltipStyle}>
+              Automatically fetch a new token when you try to access a resource and don't have one.
             </span>
           </div>
         </div>
@@ -490,27 +398,15 @@ const OAuth2AuthorizationCode = ({
           type="checkbox"
           checked={Boolean(autoRefreshToken)}
           onChange={(e) => handleChange('autoRefreshToken', e.target.checked)}
-          className={`cursor-pointer ml-1 ${
-            isAutoRefreshDisabled ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
+          className={`cursor-pointer ml-1 ${isAutoRefreshDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           disabled={isAutoRefreshDisabled}
         />
-        <label
-          className={`block min-w-[140px] ${
-            isAutoRefreshDisabled ? 'text-gray-500' : ''
-          }`}
-        >
-          Auto refresh token (with refresh URL)
-        </label>
+        <label className={`block min-w-[140px] ${isAutoRefreshDisabled ? 'text-gray-500' : ''}`}>Auto refresh token (with refresh URL)</label>
         <div className="flex items-center gap-2">
           <div className="relative group cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />
-            <span
-              className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 text-xs rounded-md transition-opacity duration-200"
-              style={tooltipStyle}
-            >
-              Automatically refresh your token using the refresh URL when it
-              expires.
+            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 text-xs rounded-md transition-opacity duration-200" style={tooltipStyle}>
+              Automatically refresh your token using the refresh URL when it expires.
             </span>
           </div>
         </div>
@@ -522,13 +418,7 @@ const OAuth2AuthorizationCode = ({
         updateAuth={updateAuth}
         handleSave={handleSave}
       />
-      <Oauth2ActionButtons
-        item={item}
-        request={request}
-        collection={collection}
-        url={accessTokenUrl}
-        credentialsId={credentialsId}
-      />
+      <Oauth2ActionButtons item={item} request={request} collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />
     </StyledWrapper>
   );
 };

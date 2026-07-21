@@ -6,10 +6,7 @@ import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import {
-  sendRequest,
-  saveRequest
-} from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { shouldMaskValue } from 'utils/auth';
 import StyledWrapper from './StyledWrapper';
 
@@ -84,12 +81,7 @@ const WsseAuth = ({ item, collection, updateAuth, request, save }) => {
           isSecret={shouldMaskValue(wsseAuth.password)}
           isCompact
         />
-        {showWarning && (
-          <SensitiveFieldWarning
-            fieldName="wsse-password"
-            warningMessage={warningMessage}
-          />
-        )}
+        {showWarning && <SensitiveFieldWarning fieldName="wsse-password" warningMessage={warningMessage} />}
       </div>
     </StyledWrapper>
   );

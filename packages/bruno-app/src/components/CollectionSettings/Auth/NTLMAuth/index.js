@@ -14,9 +14,7 @@ const NTLMAuth = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const ntlmAuth = collection.draft?.root
-    ? get(collection, 'draft.root.request.auth.ntlm', {})
-    : get(collection, 'root.request.auth.ntlm', {});
+  const ntlmAuth = collection.draft?.root ? get(collection, 'draft.root.request.auth.ntlm', {}) : get(collection, 'root.request.auth.ntlm', {});
   const { isSensitive } = useDetectSensitiveField(collection);
   const { showWarning, warningMessage } = isSensitive(ntlmAuth?.password);
 
@@ -89,12 +87,7 @@ const NTLMAuth = ({ collection }) => {
           isSecret={shouldMaskValue(ntlmAuth.password)}
           isCompact
         />
-        {showWarning && (
-          <SensitiveFieldWarning
-            fieldName="ntlm-password"
-            warningMessage={warningMessage}
-          />
-        )}
+        {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" warningMessage={warningMessage} />}
       </div>
 
       <label className="block mb-1">Domain</label>

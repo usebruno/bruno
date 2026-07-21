@@ -14,13 +14,9 @@ const BearerAuth = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const bearerToken = collection.draft?.root
-    ? get(collection, 'draft.root.request.auth.bearer.token', '')
-    : get(collection, 'root.request.auth.bearer.token', '');
+  const bearerToken = collection.draft?.root ? get(collection, 'draft.root.request.auth.bearer.token', '') : get(collection, 'root.request.auth.bearer.token', '');
   const { isSensitive } = useDetectSensitiveField(collection);
   const { showWarning, warningMessage } = isSensitive(bearerToken);
-  console.log({ bearerToken });
-  const isSecret = shouldMaskValue(bearerToken);
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
@@ -46,15 +42,10 @@ const BearerAuth = ({ collection }) => {
           onSave={handleSave}
           onChange={(val) => handleTokenChange(val)}
           collection={collection}
-          isSecret={isSecret}
+          isSecret={shouldMaskValue(bearerToken)}
           isCompact
         />
-        {showWarning && (
-          <SensitiveFieldWarning
-            fieldName="bearer-token"
-            warningMessage={warningMessage}
-          />
-        )}
+        {showWarning && <SensitiveFieldWarning fieldName="bearer-token" warningMessage={warningMessage} />}
       </div>
     </StyledWrapper>
   );

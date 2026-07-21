@@ -4,10 +4,7 @@ import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import {
-  sendRequest,
-  saveRequest
-} from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
@@ -19,9 +16,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
 
   const awsv4Auth = get(request, 'auth.awsv4', {});
   const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(
-    awsv4Auth?.secretAccessKey
-  );
+  const { showWarning, warningMessage } = isSensitive(awsv4Auth?.secretAccessKey);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -167,12 +162,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           isCompact
         />
 
-        {showWarning && (
-          <SensitiveFieldWarning
-            fieldName="awsv4-secret-access-key"
-            warningMessage={warningMessage}
-          />
-        )}
+        {showWarning && <SensitiveFieldWarning fieldName="awsv4-secret-access-key" warningMessage={warningMessage} />}
       </div>
 
       <label className="block mb-1">Session Token</label>

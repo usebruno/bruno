@@ -14,9 +14,7 @@ const WsseAuth = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const wsseAuth = collection.draft?.root
-    ? get(collection, 'draft.root.request.auth.wsse', {})
-    : get(collection, 'root.request.auth.wsse', {});
+  const wsseAuth = collection.draft?.root ? get(collection, 'draft.root.request.auth.wsse', {}) : get(collection, 'root.request.auth.wsse', {});
   const { isSensitive } = useDetectSensitiveField(collection);
   const { showWarning, warningMessage } = isSensitive(wsseAuth?.password);
 
@@ -73,12 +71,7 @@ const WsseAuth = ({ collection }) => {
           isSecret={shouldMaskValue(wsseAuth.password)}
           isCompact
         />
-        {showWarning && (
-          <SensitiveFieldWarning
-            fieldName="wsse-password"
-            warningMessage={warningMessage}
-          />
-        )}
+        {showWarning && <SensitiveFieldWarning fieldName="wsse-password" warningMessage={warningMessage} />}
       </div>
     </StyledWrapper>
   );

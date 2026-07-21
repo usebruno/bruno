@@ -3,26 +3,14 @@ import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import path from 'utils/common/path';
-import {
-  IconSettings,
-  IconShieldLock,
-  IconAdjustmentsHorizontal,
-  IconCaretDown,
-  IconChevronRight,
-  IconFile,
-  IconX,
-  IconUpload
-} from '@tabler/icons';
+import { IconSettings, IconShieldLock, IconAdjustmentsHorizontal, IconCaretDown, IconChevronRight, IconFile, IconX, IconUpload } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
 import SingleLineEditor from 'components/SingleLineEditor';
 import MultiLineEditor from 'components/MultiLineEditor';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import toast from 'react-hot-toast';
-import {
-  sendRequest,
-  browseFiles
-} from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { shouldMaskValue } from 'utils/auth';
 import StyledWrapper from './StyledWrapper';
 
@@ -53,9 +41,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
   const tokenSecretSensitive = isSensitive(oauth1.accessTokenSecret);
   const privateKeySensitive = isSensitive(oauth1.privateKey);
 
-  const handleRun = item?.uid
-    ? () => dispatch(sendRequest(item, collection.uid))
-    : undefined;
+  const handleRun = item?.uid ? () => dispatch(sendRequest(item, collection.uid)) : undefined;
   const handleSave = () => save();
 
   const handleChange = (field, value) => {
@@ -74,9 +60,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
 
   const handlePrivateKeyChange = (val) => {
     if (val && /^@file\(/.test(val.trim())) {
-      toast.error(
-        'File references should be added using the "Upload File" button below'
-      );
+      toast.error('File references should be added using the "Upload File" button below');
       return;
     }
     handleChange('privateKey', val);
@@ -132,7 +116,9 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
         <div className="flex items-center px-2.5 py-1.5 oauth1-icon-container rounded-md">
           <IconSettings size={14} className="oauth1-icon" />
         </div>
-        <span className="oauth1-section-label">Configuration</span>
+        <span className="oauth1-section-label">
+          Configuration
+        </span>
       </div>
 
       <div className="flex items-center gap-4 w-full">
@@ -166,12 +152,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
               isSecret={shouldMaskValue(oauth1.consumerSecret)}
               isCompact
             />
-            {consumerSecretSensitive.showWarning && (
-              <SensitiveFieldWarning
-                fieldName="oauth1-consumer-secret"
-                warningMessage={consumerSecretSensitive.warningMessage}
-              />
-            )}
+            {consumerSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-consumer-secret" warningMessage={consumerSecretSensitive.warningMessage} />}
           </div>
         </div>
       )}
@@ -206,12 +187,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
             isSecret={shouldMaskValue(oauth1.accessTokenSecret)}
             isCompact
           />
-          {tokenSecretSensitive.showWarning && (
-            <SensitiveFieldWarning
-              fieldName="oauth1-token-secret"
-              warningMessage={tokenSecretSensitive.warningMessage}
-            />
-          )}
+          {tokenSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-token-secret" warningMessage={tokenSecretSensitive.warningMessage} />}
         </div>
       </div>
 
@@ -220,30 +196,26 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
         <div className="flex items-center px-2.5 py-1.5 oauth1-icon-container rounded-md">
           <IconShieldLock size={14} className="oauth1-icon" />
         </div>
-        <span className="oauth1-section-label">Signature</span>
+        <span className="oauth1-section-label">
+          Signature
+        </span>
       </div>
 
       <div className="flex items-center gap-4 w-full">
         <label className="block min-w-[140px]">Signature Method</label>
         <div className="inline-flex items-center cursor-pointer oauth1-dropdown-selector">
           <MenuDropdown
-            items={Object.entries(signatureMethodLabels).map(
-              ([value, label]) => ({
-                id: value,
-                label,
-                onClick: () => handleChange('signatureMethod', value)
-              })
-            )}
+            items={Object.entries(signatureMethodLabels).map(([value, label]) => ({
+              id: value,
+              label,
+              onClick: () => handleChange('signatureMethod', value)
+            }))}
             selectedItemId={oauth1.signatureMethod}
             placement="bottom-end"
           >
             <div className="flex items-center justify-end oauth1-dropdown-label select-none">
               {signatureMethodLabels[oauth1.signatureMethod] || 'HMAC-SHA1'}
-              <IconCaretDown
-                className="caret ml-1 mr-1"
-                size={14}
-                strokeWidth={2}
-              />
+              <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
           </MenuDropdown>
         </div>
@@ -255,9 +227,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
           {isFileRef ? (
             <div className="private-key-editor-wrapper flex-1 flex items-center gap-2">
               <IconFile size={16} className="oauth1-icon flex-shrink-0" />
-              <span className="truncate flex-1" title={privateKeyValue}>
-                {fileName}
-              </span>
+              <span className="truncate flex-1" title={privateKeyValue}>{fileName}</span>
               <button
                 className="flex-shrink-0 oauth1-icon cursor-pointer"
                 onClick={handleClearFile}
@@ -281,12 +251,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
                   isSecret={shouldMaskValue(privateKeyValue)}
                   allowNewlines={true}
                 />
-                {privateKeySensitive.showWarning && (
-                  <SensitiveFieldWarning
-                    fieldName="oauth1-private-key"
-                    warningMessage={privateKeySensitive.warningMessage}
-                  />
-                )}
+                {privateKeySensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-private-key" warningMessage={privateKeySensitive.warningMessage} />}
               </div>
               <div className="flex flex-row gap-2">
                 <button
@@ -318,11 +283,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
           >
             <div className="flex items-center justify-end oauth1-dropdown-label select-none">
               {placementLabels[oauth1.placement] || 'Header'}
-              <IconCaretDown
-                className="caret ml-1 mr-1"
-                size={14}
-                strokeWidth={2}
-              />
+              <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
           </MenuDropdown>
         </div>
@@ -332,8 +293,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
         <div className="flex items-center gap-4 w-full">
           <label className="block min-w-[140px]"></label>
           <span className="text-xs opacity-60">
-            Body placement requires a form-urlencoded body. Non-form payloads
-            will be replaced with OAuth parameters.
+            Body placement requires a form-urlencoded body. Non-form payloads will be replaced with OAuth parameters.
           </span>
         </div>
       )}
@@ -349,8 +309,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
           <label
             className="block cursor-pointer"
             onClick={(e) => {
-              e.preventDefault();
-              handleChange('includeBodyHash', !oauth1.includeBodyHash);
+              e.preventDefault(); handleChange('includeBodyHash', !oauth1.includeBodyHash);
             }}
           >
             Include Body Hash
@@ -366,12 +325,12 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
         <div className="flex items-center px-2.5 py-1.5 oauth1-icon-container rounded-md">
           <IconAdjustmentsHorizontal size={14} className="oauth1-icon" />
         </div>
-        <span className="oauth1-section-label">Advanced</span>
+        <span className="oauth1-section-label">
+          Advanced
+        </span>
         <IconChevronRight
           size={14}
-          className={`oauth1-icon transition-transform ${
-            advancedOpen ? 'rotate-90' : ''
-          }`}
+          className={`oauth1-icon transition-transform ${advancedOpen ? 'rotate-90' : ''}`}
         />
       </div>
 

@@ -14,13 +14,9 @@ const AwsV4Auth = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const awsv4Auth = collection.draft?.root
-    ? get(collection, 'draft.root.request.auth.awsv4', {})
-    : get(collection, 'root.request.auth.awsv4', {});
+  const awsv4Auth = collection.draft?.root ? get(collection, 'draft.root.request.auth.awsv4', {}) : get(collection, 'root.request.auth.awsv4', {});
   const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(
-    awsv4Auth?.secretAccessKey
-  );
+  const { showWarning, warningMessage } = isSensitive(awsv4Auth?.secretAccessKey);
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
@@ -151,12 +147,7 @@ const AwsV4Auth = ({ collection }) => {
           isSecret={shouldMaskValue(awsv4Auth.secretAccessKey)}
           isCompact
         />
-        {showWarning && (
-          <SensitiveFieldWarning
-            fieldName="awsv4-secret-access-key"
-            warningMessage={warningMessage}
-          />
-        )}
+        {showWarning && <SensitiveFieldWarning fieldName="awsv4-secret-access-key" warningMessage={warningMessage} />}
       </div>
 
       <label className="block mb-1">Session Token</label>
