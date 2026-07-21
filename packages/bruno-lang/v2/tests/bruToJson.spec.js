@@ -1045,4 +1045,37 @@ headers {
       });
     });
   });
+
+  describe('auth:ntlm', () => {
+    it('should parse ntlm auth with a domain', () => {
+      const input = `
+auth:ntlm {
+  username: u
+  password: p
+  domain: d
+}`.trim();
+
+      const output = parser(input);
+      expect(output.auth.ntlm).toEqual({
+        username: 'u',
+        password: 'p',
+        domain: 'd'
+      });
+    });
+
+    it('should default domain to empty string when the domain line is absent', () => {
+      const input = `
+auth:ntlm {
+  username: u
+  password: p
+}`.trim();
+
+      const output = parser(input);
+      expect(output.auth.ntlm).toEqual({
+        username: 'u',
+        password: 'p',
+        domain: ''
+      });
+    });
+  });
 });
