@@ -13,12 +13,9 @@ import { buildAiContextPayload } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
-import WysiwygEditor from 'components/WysiwygEditor/index';
-import { IconMarkdown, IconFileDescription } from '@tabler/icons';
-import { Tooltip } from 'react-tooltip';
-import ModeSwitch from 'components/ModeSwitch/index';
+import RichTextEditor from 'ui/RichTextEditor';
+import ModeSwitch from 'components/ModeSwitch';
 import { useEditor } from '@tiptap/react';
-import { DOCS_TOOLBAR_TOOLTIP_PROPS } from 'components/WysiwygEditor/docsToolbarUi';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -71,7 +68,7 @@ const Documentation = ({ item, collection }) => {
   }, [collection.uid, dispatch, item]);
 
   const editor = useEditor({
-    extensions: WysiwygEditor.extensions,
+    extensions: RichTextEditor.extensions,
     content: docs || '',
     onUpdate: ({ editor: currentEditor, transaction }) => {
       if (isMarkdownModeRef.current) return;
@@ -176,7 +173,7 @@ const Documentation = ({ item, collection }) => {
         <div className="docs-tab-strip">
           {!isMarkdownMode && (
             <div className="docs-toolbar-slot">
-              <WysiwygEditor.MenuBar editor={editor} />
+              <RichTextEditor.MenuBar editor={editor} />
             </div>
           )}
           <ModeSwitch
@@ -215,7 +212,7 @@ const Documentation = ({ item, collection }) => {
         className={`flex flex-col flex-1 min-h-0 w-full ${isEditing && isMarkdownMode ? 'hidden' : ''}`}
         onDoubleClick={() => !isEditing && setEditing(true)}
       >
-        <WysiwygEditor editor={editor} />
+        <RichTextEditor editor={editor} />
       </section>
     </StyledWrapper>
   );

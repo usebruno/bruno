@@ -7,19 +7,19 @@ import TableRow from '@tiptap/extension-table-row';
 import TextStyle from '@tiptap/extension-text-style';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
-import DocsGapCursor from './DocsGapCursor';
-import DocsHardBreak from './DocsHardBreak';
-import DocsListKeyboard from './DocsListKeyboard';
-import { serializeTable } from './DocsMarkdownSerialize';
-import DocsTableKeyboard from './DocsTableKeyboard';
-import DocsTableView from './DocsTableView';
+import EditorGapCursor from './EditorGapCursor';
+import EditorHardBreak from './EditorHardBreak';
+import EditorListKeyboard from './EditorListKeyboard';
+import { serializeTable } from './EditorMarkdownSerialize';
+import EditorTableKeyboard from './EditorTableKeyboard';
+import EditorTableView from './EditorTableView';
 import {
   DocsBulletList,
   DocsListItem,
   DocsOrderedList,
   DocsTaskItem,
-  DocsTaskList
-} from './DocsTaskList';
+  EditorTaskList
+} from './EditorTaskList';
 
 const DocsTable = Table.extend({
   parseHTML() {
@@ -53,8 +53,8 @@ const extensions = [
     hardBreak: false,
     gapcursor: false
   }),
-  DocsHardBreak,
-  DocsListKeyboard,
+  EditorHardBreak,
+  EditorListKeyboard,
   DocsBulletList.configure({
     keepMarks: true,
     keepAttributes: false
@@ -64,12 +64,12 @@ const extensions = [
     keepAttributes: false
   }),
   DocsListItem,
-  DocsGapCursor,
-  DocsTaskList,
+  EditorGapCursor,
+  EditorTaskList,
   DocsTaskItem.configure({
     nested: true,
     HTMLAttributes: {
-      class: 'docs-task-item'
+      class: 'editor-task-item'
     }
   }),
   DocsTable.configure({
@@ -78,9 +78,9 @@ const extensions = [
     handleWidth: 8,
     cellMinWidth: 60,
     lastColumnResizable: true,
-    View: DocsTableView,
+    View: EditorTableView,
     HTMLAttributes: {
-      class: 'docs-table'
+      class: 'editor-table'
     }
   }),
   TableRow,
@@ -93,7 +93,7 @@ const extensions = [
       class: 'docs-image'
     }
   }),
-  DocsTableKeyboard,
+  EditorTableKeyboard,
   Link.configure({
     openOnClick: false,
     autolink: true,
@@ -101,7 +101,7 @@ const extensions = [
     HTMLAttributes: {
       target: '_blank',
       rel: 'noopener noreferrer nofollow',
-      class: 'docs-link'
+      class: 'editor-link'
     }
   }),
   Markdown.configure({

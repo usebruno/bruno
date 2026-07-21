@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
 import { useEditor } from '@tiptap/react';
-import WysiwygEditor from 'components/WysiwygEditor/index';
+import RichTextEditor from 'ui/RichTextEditor';
 import { isValidUrl } from 'utils/url/index';
 
 const Markdown = ({ collectionPath, onDoubleClick, content, allowHtml = true }) => {
   const editor = useEditor({
-    extensions: WysiwygEditor.extensions,
+    extensions: RichTextEditor.extensions,
     content: content || '',
     editable: false
   });
@@ -35,7 +35,7 @@ const Markdown = ({ collectionPath, onDoubleClick, content, allowHtml = true }) 
 
   return (
     <div className="h-full w-full markdown-wysiwyg-wrapper" onDoubleClick={handleOnDoubleClick} onClick={handleOnClick}>
-      <WysiwygEditor editor={editor} />
+      <RichTextEditor editor={editor} />
     </div>
   );
 };

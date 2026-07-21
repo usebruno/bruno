@@ -6,13 +6,13 @@ import TaskList from '@tiptap/extension-task-list';
 import {
   setupTaskListParser,
   updateTaskListDOM
-} from './DocsMarkdownParse';
+} from './EditorMarkdownParse';
 import {
   serializeBulletList,
   serializeListItemContent,
   serializeOrderedList,
   serializeTaskList
-} from './DocsMarkdownSerialize';
+} from './EditorMarkdownSerialize';
 
 const isTaskListElement = (node) =>
   node.getAttribute('data-type') === 'taskList'
@@ -70,7 +70,7 @@ const DocsListItem = ListItem.extend({
   }
 });
 
-const DocsTaskList = TaskList.extend({
+const EditorTaskList = TaskList.extend({
   parseHTML() {
     return [
       {
@@ -247,5 +247,5 @@ export {
   DocsListItem,
   DocsOrderedList,
   DocsTaskItem,
-  DocsTaskList
+  EditorTaskList
 };

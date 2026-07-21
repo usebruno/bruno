@@ -5,12 +5,12 @@ import { updateColumns } from '@tiptap/extension-table';
  * TipTap's default TableView wraps the table in a div, which looks like a nested
  * table in the editor and can end up in pasted/saved HTML.
  */
-class DocsTableView {
+class EditorTableView {
   constructor(node, cellMinWidth) {
     this.node = node;
     this.cellMinWidth = cellMinWidth;
     this.table = document.createElement('table');
-    this.table.className = 'docs-table';
+    this.table.className = 'editor-table';
     this.dom = this.table;
     this.colgroup = this.table.appendChild(document.createElement('colgroup'));
     updateColumns(node, this.colgroup, this.table, cellMinWidth);
@@ -35,4 +35,4 @@ class DocsTableView {
   }
 }
 
-export default DocsTableView;
+export default EditorTableView;
