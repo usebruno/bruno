@@ -167,9 +167,7 @@ As part of this transition:
 * Existing `.bru` collections will continue to work
 * We plan to support the format for at least the next 12 months
 * New features will continue to work in both BRU and YAML during the transition
-* A guided in-app migration flow is available to help you move your collections
-
-You can migrate at your own pace without disrupting your existing workflows.
+* A guided in-app migration flow will be available in the upcoming versions to help you migrate your collections
 
 [Read Docs →](https://link.usebruno.com/docs/opencollection?version=4.0.0)
 
