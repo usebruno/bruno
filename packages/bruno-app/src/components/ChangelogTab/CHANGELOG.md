@@ -17,7 +17,7 @@ The new AI chat sidebar stays grounded in your active request, so its responses 
 
 Bruno uses a **Bring Your Own Key (BYOK)** model, giving you control over your provider and account.
 
-![Bruno AI chat sidebar grounded in the active request](https://bruno-release-artifacts-767397862016.s3.us-east-1.amazonaws.com/ai.png)
+![Bruno AI chat sidebar grounded in the active request](https://d3icksk7srk4uh.cloudfront.net/ai.png)
 
 [Configure AI](#preferences/ai) [Read Docs →](https://link.usebruno.com/docs/ai)
 
@@ -50,7 +50,7 @@ Collection-level Apps can:
 
 App code and state are stored alongside your requests and collections, making them easy to share through Git.
 
-![Bruno Apps building an interactive interface on top of an API](https://bruno-release-artifacts-767397862016.s3.us-east-1.amazonaws.com/apps.png)
+![Bruno Apps building an interactive interface on top of an API](https://d3icksk7srk4uh.cloudfront.net/apps.png)
 
 [Read Docs →](https://link.usebruno.com/docs/apps)
 
@@ -65,7 +65,7 @@ Secret mappings now live alongside your environments instead of being stored in 
 * Simpler setup for external secret providers
 * Existing secrets are automatically migrated
 
-![Redesigned Secret Manager in Bruno](https://bruno-release-artifacts-767397862016.s3.us-east-1.amazonaws.com/secret-manager.png)
+![Redesigned Secret Manager in Bruno](https://d3icksk7srk4uh.cloudfront.net/secret-manager.png)
 
 [Read Docs →](https://link.usebruno.com/docs/secret-manager)
 
@@ -83,7 +83,7 @@ Descriptions support multiple lines and are preserved when importing or exportin
 
 This makes it easier to explain what each field does without relying on inline comments or separate documentation.
 
-![Description column for variables and request fields in Bruno](https://bruno-release-artifacts-767397862016.s3.us-east-1.amazonaws.com/descriptions.png)
+![Description column for variables and request fields in Bruno](https://d3icksk7srk4uh.cloudfront.net/descriptions.png)
 
 ### Bruno API Docs
 
@@ -127,7 +127,7 @@ Bruno now includes native support for **Akamai EdgeGrid authentication**.
 
 Select Akamai EdgeGrid from the authentication type dropdown on a request, folder, or collection.
 
-![Akamai EdgeGrid authentication configuration in Bruno](https://bruno-release-artifacts-767397862016.s3.us-east-1.amazonaws.com/akamai-edgegrid-auth.png)
+![Akamai EdgeGrid authentication configuration in Bruno](https://d3icksk7srk4uh.cloudfront.net/akamai-edgegrid-auth.png)
 
 [Read Docs →](https://link.usebruno.com/docs/auth)
 
