@@ -241,23 +241,26 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
     });
 
-    it('should resolve npm module from additionalContextRoots node_modules', async () => {
+    it('should not cross-resolve npm package from a sibling additionalContextRoot when required by a collection script', async () => {
+      // Package lives only in additionalRoot/node_modules — the collection has
+      // no dependency declared for it.
       const additionalRoot = path.join(testDir, 'shared');
       fs.mkdirSync(additionalRoot);
-
-      // Create a fake npm module inside shared/node_modules
       const sharedNodeModulesDir = path.join(additionalRoot, 'node_modules', 'shared-package');
       fs.mkdirSync(sharedNodeModulesDir, { recursive: true });
       fs.writeFileSync(
         path.join(sharedNodeModulesDir, 'index.js'),
-        'module.exports = { fromShared: true, version: "1.0.0" };'
+        'module.exports = { fromShared: true };'
       );
 
-      const script = `
-        const pkg = require('shared-package');
-        bru.setVar('fromShared', pkg.fromShared);
-        bru.setVar('version', pkg.version);
-      `;
+      // A COLLECTION script directly requiring `shared-package` must fail:
+      // native Node walk-up from the collection never reaches a sibling
+      // additional root's node_modules, and cross-root discovery for bare-name
+      // resolution is intentionally not implemented. The supported patterns
+      // are (a) require the package from a shared script that itself lives
+      // inside additionalRoot (see the next test), or (b) declare the dep in
+      // the collection's own package.json.
+      const script = `require('shared-package');`;
 
       const context = {
         bru: { setVar: jest.fn() },
@@ -268,10 +271,9 @@ describe('node-vm sandbox', () => {
         additionalContextRoots: [additionalRoot]
       };
 
-      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig });
-
-      expect(context.bru.setVar).toHaveBeenCalledWith('fromShared', true);
-      expect(context.bru.setVar).toHaveBeenCalledWith('version', '1.0.0');
+      await expect(
+        runScriptInNodeVm({ script, context, collectionPath, scriptingConfig })
+      ).rejects.toThrow(/Could not resolve module "shared-package"/);
     });
 
     it('should resolve npm module required by a shared script in additionalContextRoots', async () => {
