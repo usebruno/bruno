@@ -7,6 +7,7 @@ import {
   openCollection,
   openRequest as openRequestBase
 } from '../utils/page';
+import { buildCommonLocators } from '../utils/page/locators';
 
 export const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
 export const collectionName = 'kb-collection';
@@ -176,7 +177,8 @@ export const focusTabWithoutSidebarFocus = async (page: Page, tabName: string | 
   await expect(tab).toHaveClass(/active/);
 
   // Blur sidebar so focusedSidebarPath is null and RequestTab's newRequest binding is enabled.
-  const requestUrl = page.getByTestId('request-url');
+  const locators = buildCommonLocators(page);
+  const requestUrl = locators.request.urlInput();
   if (await requestUrl.isVisible().catch(() => false)) {
     await requestUrl.click();
     return;
@@ -188,9 +190,10 @@ export const focusTabWithoutSidebarFocus = async (page: Page, tabName: string | 
 };
 
 export const fillAndCreateNewRequest = async (page: Page, requestName: string) => {
-  await expect(page.getByTestId('request-name')).toBeVisible();
-  await page.getByTestId('request-name').fill(requestName);
-  await page.getByTestId('new-request-url').locator('.CodeMirror').click();
+  const locators = buildCommonLocators(page);
+  await expect(locators.request.requestNameInput()).toBeVisible();
+  await locators.request.requestNameInput().fill(requestName);
+  await locators.request.newRequestUrl().click();
   await page.keyboard.type('https://echo.usebruno.com');
-  await page.getByTestId('create-new-request-button').click();
+  await locators.modal.button('Create').click();
 };

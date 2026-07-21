@@ -20,7 +20,6 @@ import {
 
 test.describe('Shortcut Keys - New Request from active tab', () => {
   test.beforeEach(async ({ pageWithUserData: page, createTmpDir }) => {
-    await page.locator('[data-app-state="loaded"]').waitFor();
     await setupBoundActionsData(page, createTmpDir);
   });
 
