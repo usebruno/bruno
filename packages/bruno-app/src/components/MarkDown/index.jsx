@@ -34,7 +34,7 @@ const Markdown = ({ collectionPath, onDoubleClick, content, allowHtml = true }) 
   };
 
   return (
-    <div className="h-full w-full markdown-wysiwyg-wrapper" onDoubleClick={handleOnDoubleClick} onClick={handleOnClick}>
+    <div className="h-full w-full" onDoubleClick={handleOnDoubleClick} onClick={handleOnClick}>
       <RichTextEditor editor={editor} />
     </div>
   );
