@@ -75,7 +75,7 @@ const docsContentStyles = css`
   }
 
   ul[data-type='taskList'] > li,
-  li.docs-task-item,
+  li.editor-task-item,
   .task-list-item {
     display: flex;
     align-items: flex-start;
@@ -85,7 +85,7 @@ const docsContentStyles = css`
   }
 
   ul[data-type='taskList'] > li > label,
-  li.docs-task-item > label {
+  li.editor-task-item > label {
     flex: 0 0 auto;
     display: inline-flex;
     align-items: flex-start;
@@ -95,12 +95,12 @@ const docsContentStyles = css`
   }
 
   ul[data-type='taskList'] > li > label > span,
-  li.docs-task-item > label > span {
+  li.editor-task-item > label > span {
     display: none;
   }
 
   ul[data-type='taskList'] input[type='checkbox'],
-  li.docs-task-item input[type='checkbox'],
+  li.editor-task-item input[type='checkbox'],
   .task-list-item-checkbox {
     width: 14px;
     height: 14px;
@@ -111,13 +111,13 @@ const docsContentStyles = css`
   }
 
   ul[data-type='taskList'] > li > div,
-  li.docs-task-item > div {
+  li.editor-task-item > div {
     flex: 1 1 auto;
     min-width: 0;
   }
 
   ul[data-type='taskList'] > li > div > p,
-  li.docs-task-item > div > p,
+  li.editor-task-item > div > p,
   .task-list-item > p {
     margin: 0;
     line-height: 1.5;
@@ -165,7 +165,7 @@ const docsContentStyles = css`
   }
 
   img,
-  .docs-image {
+  .editor-image {
     max-width: 100%;
     height: auto;
     border-radius: 4px;
@@ -180,7 +180,7 @@ const docsContentStyles = css`
   }
 
   table,
-  table.docs-table {
+  table.editor-table {
     width: 100%;
     margin: 1rem 0;
     table-layout: fixed;
@@ -242,7 +242,7 @@ const docsContentStyles = css`
   }
 
   a,
-  .docs-link {
+  .editor-link {
     color: ${(props) => props.theme.textLink};
     text-decoration: none;
     cursor: pointer;
