@@ -17,7 +17,10 @@ const parseFolder = (ymlString: string): FolderRoot => {
     const folderRoot: FolderRoot = {
       meta: {
         name: ensureString(info?.name, 'Untitled Folder'),
-        seq: info?.seq || 1
+        // Only set seq when the source has a numeric value. Missing seq must stay absent:
+        // defaulting to 1 makes every seq-less folder look "ordered at position 1" to
+        // sortByNameThenSequence, pinning them all to slot 1 instead of alphabetical sort.
+        ...(typeof info?.seq === 'number' ? { seq: info.seq } : {})
       },
       request: {
         headers: [],

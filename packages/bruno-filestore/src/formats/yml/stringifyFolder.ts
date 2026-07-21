@@ -40,9 +40,13 @@ const stringifyFolder = (folderRoot: FolderRoot): string => {
     // info block
     const info: FolderInfo = {
       name: folderRoot.meta?.name || 'Untitled Folder',
-      type: 'folder',
-      seq: folderRoot.meta?.seq || 1
+      type: 'folder'
     };
+    // Only write seq when the folder actually has a numeric one. Defaulting to 1 would
+    // force every seq-less folder into position 1 on disk and break alphabetical fallback.
+    if (typeof folderRoot.meta?.seq === 'number') {
+      info.seq = folderRoot.meta.seq;
+    }
     ocFolder.info = info;
 
     // request defaults

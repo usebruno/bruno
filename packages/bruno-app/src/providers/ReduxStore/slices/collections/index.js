@@ -54,6 +54,13 @@ const FILE_DERIVED_FOLDER_FIELDS = [
   'root'
 ];
 
+// Derive from the config on disk only — never keep a previous collection.format.
+// After a migrate-to-yml followed by a git revert to bru, a stale 'yml' would hide
+// the "Convert to YML" action forever.
+const deriveCollectionFormat = (brunoConfig) => {
+  return brunoConfig?.opencollection ? 'yml' : brunoConfig?.format || 'bru';
+};
+
 const mergeTreeItems = (existingItems, newItems) => {
   if (!Array.isArray(existingItems) || existingItems.length === 0) return newItems;
   const existingByUid = new Map();
@@ -237,13 +244,8 @@ export const collectionsSlice = createSlice({
       // values can be 'unmounted', 'mounting', 'mounted'
       collection.mountStatus = 'unmounted';
 
-      // Add format property from brunoConfig for easy access
-      // YAML collections have 'opencollection' field, BRU collections have 'version' field
-      if (collection.brunoConfig?.opencollection) {
-        collection.format = 'yml';
-      } else {
-        collection.format = collection.brunoConfig?.format || 'bru';
-      }
+      // YAML collections have an 'opencollection' field, BRU collections a 'version' field
+      collection.format = deriveCollectionFormat(collection.brunoConfig);
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
@@ -311,46 +313,8 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.brunoConfig = brunoConfig;
+        collection.format = deriveCollectionFormat(brunoConfig);
       }
-    },
-    migrateCollectionToYmlInPlace: (state, action) => {
-      const { collectionUid, brunoConfig } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      if (!collection) {
-        return;
-      }
-
-      if (brunoConfig) {
-        collection.brunoConfig = brunoConfig;
-        if (collection.draft?.brunoConfig) {
-          collection.draft.brunoConfig = brunoConfig;
-        }
-      }
-      collection.format = 'yml';
-
-      const rewriteItemPaths = (items) => {
-        (items || []).forEach((item) => {
-          if (item.isTransient) {
-            return;
-          }
-          if (typeof item.pathname === 'string') {
-            item.pathname = item.pathname.replace(/\.bru$/, '.yml');
-          }
-          if (typeof item.filename === 'string') {
-            item.filename = item.filename.replace(/\.bru$/, '.yml');
-          }
-          if (item.items && item.items.length) {
-            rewriteItemPaths(item.items);
-          }
-        });
-      };
-      rewriteItemPaths(collection.items);
-
-      (collection.environments || []).forEach((environment) => {
-        if (typeof environment.pathname === 'string') {
-          environment.pathname = environment.pathname.replace(/\.bru$/, '.yml');
-        }
-      });
     },
     renameCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -3578,6 +3542,7 @@ export const collectionsSlice = createSlice({
       }
       if (tree?.brunoConfig) {
         collection.brunoConfig = tree.brunoConfig;
+        collection.format = deriveCollectionFormat(tree.brunoConfig);
       }
       const tempDirectory = state.tempDirectories?.[collectionUid];
       if (tempDirectory) {
@@ -3992,7 +3957,6 @@ export const {
   setCollectionSecurityConfig,
   updateCollectionVersion,
   brunoConfigUpdateEvent,
-  migrateCollectionToYmlInPlace,
   renameCollection,
   removeCollection,
   sortCollections,

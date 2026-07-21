@@ -35,6 +35,31 @@ const StyledWrapper = styled.div`
     display: flex;
     justify-content: flex-start;
   }
+
+  .migration-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .migration-progress-track {
+    height: 6px;
+    border-radius: 3px;
+    background-color: ${(props) => props.theme.background.mantle};
+    overflow: hidden;
+  }
+
+  .migration-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background-color: ${(props) => props.theme.accents.primary};
+    transition: width 0.15s ease;
+  }
+
+  .migration-progress-label {
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.muted};
+  }
 `;
 
 export default StyledWrapper;

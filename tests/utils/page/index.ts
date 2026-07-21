@@ -5,6 +5,7 @@ export * from './runner';
 export * from './locators';
 export * from './sidebar';
 export * from './mounting';
+export * from './collection/migrate-to-yml';
 export * from './preferences';
 export * from './ai';
 export * from '../snapshot';

@@ -36,7 +36,7 @@ const scheduleSave = (getState) => {
   }, DEBOUNCE_MS);
 };
 
-const flushSnapshotNow = async (getState) => {
+export const flushSnapshotNow = async (getState) => {
   try {
     const state = getState();
     const snapshot = await serializeSnapshot(state);

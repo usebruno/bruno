@@ -37,6 +37,7 @@ const menuTemplate = require('./app/menu-template');
 const { openCollection } = require('./app/collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
+const { registerYmlMigrationIpc } = require('./ipc/yml-migration');
 const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
 const registerSnapshotIpc = require('./ipc/snapshot');
@@ -510,6 +511,7 @@ app.on('ready', async () => {
   registerNetworkIpc(mainWindow);
   registerGlobalEnvironmentsIpc(mainWindow, globalEnvironmentsManager);
   registerCollectionsIpc(mainWindow, collectionWatcher);
+  registerYmlMigrationIpc(mainWindow, collectionWatcher);
   registerPreferencesIpc(mainWindow, collectionWatcher);
   registerSnapshotIpc();
   registerWorkspaceIpc(mainWindow, workspaceWatcher);

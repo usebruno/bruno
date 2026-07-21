@@ -7,6 +7,7 @@ import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
+import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
 import { buildWebsocketCommonLocators } from './websocket';
 
 export const buildCommonLocators = (page: Page) => ({
@@ -25,6 +26,7 @@ export const buildCommonLocators = (page: Page) => ({
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
+  migrateToYml: buildMigrateToYmlLocators(page),
   actions: {
     collectionActions: (collectionName: string) =>
       page.getByTestId('collections').locator('.collection-name')

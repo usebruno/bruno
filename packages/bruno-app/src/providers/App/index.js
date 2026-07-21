@@ -3,6 +3,7 @@ import { get } from 'lodash';
 import { useDispatch } from 'react-redux';
 import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
 import ConfirmAppClose from './ConfirmAppClose';
+import MigrateCollectionToYmlModal from 'components/MigrateCollectionToYmlModal';
 import useIpcEvents from './useIpcEvents';
 import useTelemetry from './useTelemetry';
 import StyledWrapper from './StyledWrapper';
@@ -61,6 +62,7 @@ export const AppProvider = (props) => {
     <AppContext.Provider {...props} value={{ version }}>
       <StyledWrapper>
         <ConfirmAppClose />
+        <MigrateCollectionToYmlModal />
         {props.children}
       </StyledWrapper>
     </AppContext.Provider>
