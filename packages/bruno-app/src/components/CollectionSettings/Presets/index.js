@@ -4,9 +4,7 @@ import StyledWrapper from './StyledWrapper';
 import { updateCollectionPresets } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { get } from 'lodash';
-import { IconApi, IconBrandGraphql, IconPlugConnected, IconCode } from '@tabler/icons';
 import Button from 'ui/Button';
-import SegmentGroup, { Segment } from 'ui/SegmentGroup';
 import { DEFAULT_PRESET_REQUEST_TYPE, PRESET_REQUEST_TYPES } from 'utils/common/constants';
 
 const PresetsSettings = ({ collection }) => {
@@ -29,8 +27,8 @@ const PresetsSettings = ({ collection }) => {
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
-  const handleRequestTypeChange = (value) => {
-    updatePresets({ requestType: value });
+  const handleRequestTypeChange = (e) => {
+    updatePresets({ requestType: e.target.value });
   };
 
   const handleRequestUrlChange = (e) => {
@@ -44,41 +42,66 @@ const PresetsSettings = ({ collection }) => {
       </div>
       <div className="bruno-form">
         <div className="mb-3 flex items-center">
-          <label className="settings-label flex items-center" id="presets-request-type-label">
+          <label className="settings-label flex items-center" htmlFor="http">
             Request Type
           </label>
-          <SegmentGroup
-            name="requestType"
-            ariaLabelledBy="presets-request-type-label"
-            size="md"
-            value={currentPresets.requestType || DEFAULT_PRESET_REQUEST_TYPE}
-            onChange={handleRequestTypeChange}
-          >
-            <Segment
+          <div className="flex items-center">
+            <input
+              id="http"
+              data-testid="presets-request-type-http"
+              className="cursor-pointer"
+              type="radio"
+              name="requestType"
+              onChange={handleRequestTypeChange}
               value={PRESET_REQUEST_TYPES.HTTP}
-              label="HTTP"
-              icon={<IconApi size={15} strokeWidth={1.5} />}
-              dataTestId="presets-request-type-http"
+              checked={(currentPresets.requestType || DEFAULT_PRESET_REQUEST_TYPE) === PRESET_REQUEST_TYPES.HTTP}
             />
-            <Segment
+            <label htmlFor="http" className="ml-1 cursor-pointer select-none">
+              HTTP
+            </label>
+
+            <input
+              id="graphql"
+              data-testid="presets-request-type-graphql"
+              className="ml-4 cursor-pointer"
+              type="radio"
+              name="requestType"
+              onChange={handleRequestTypeChange}
               value={PRESET_REQUEST_TYPES.GRAPHQL}
-              label="GraphQL"
-              icon={<IconBrandGraphql size={15} strokeWidth={1.5} />}
-              dataTestId="presets-request-type-graphql"
+              checked={(currentPresets.requestType || DEFAULT_PRESET_REQUEST_TYPE) === PRESET_REQUEST_TYPES.GRAPHQL}
             />
-            <Segment
+            <label htmlFor="graphql" className="ml-1 cursor-pointer select-none">
+              GraphQL
+            </label>
+
+            <input
+              id="grpc"
+              data-testid="presets-request-type-grpc"
+              className="ml-4 cursor-pointer"
+              type="radio"
+              name="requestType"
+              onChange={handleRequestTypeChange}
               value={PRESET_REQUEST_TYPES.GRPC}
-              label="gRPC"
-              icon={<IconCode size={15} strokeWidth={1.5} />}
-              dataTestId="presets-request-type-grpc"
+              checked={(currentPresets.requestType || DEFAULT_PRESET_REQUEST_TYPE) === PRESET_REQUEST_TYPES.GRPC}
             />
-            <Segment
+            <label htmlFor="grpc" className="ml-1 cursor-pointer select-none">
+              gRPC
+            </label>
+
+            <input
+              id="ws"
+              data-testid="presets-request-type-ws"
+              className="ml-4 cursor-pointer"
+              type="radio"
+              name="requestType"
+              onChange={handleRequestTypeChange}
               value={PRESET_REQUEST_TYPES.WS}
-              label="WebSocket"
-              icon={<IconPlugConnected size={15} strokeWidth={1.5} />}
-              dataTestId="presets-request-type-ws"
+              checked={(currentPresets.requestType || DEFAULT_PRESET_REQUEST_TYPE) === PRESET_REQUEST_TYPES.WS}
             />
-          </SegmentGroup>
+            <label htmlFor="ws" className="ml-1 cursor-pointer select-none">
+              WebSocket
+            </label>
+          </div>
         </div>
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="request-url">
