@@ -1337,18 +1337,18 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           if (item?.filename) {
             const ext = path.extname(item.filename);
             if (ext === '.bru' || ext === '.yml') {
-              return item.filename.replace(ext, `.${format}`);
+              return sanitizeName(item.filename.replace(ext, `.${format}`));
             }
-            return item.filename;
+            return sanitizeName(item.filename);
           }
-          return `${item.name}.${format}`;
+          return `${sanitizeName(item.name)}.${format}`;
         };
 
         // Recursive function to parse the collection items and create files/folders
         const parseCollectionItems = async (items = [], currentPath) => {
           await Promise.all(items.map(async (item) => {
             if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
-              let sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
+              let sanitizedFilename = getFilenameWithFormat(item, format);
               const content = await stringifyRequestViaWorker(item, { format });
               const filePath = path.join(currentPath, sanitizedFilename);
               safeWriteFileSync(filePath, content);
@@ -1371,7 +1371,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             }
             // Handle items of type 'js'
             if (item.type === 'js') {
-              let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.js`);
+              let sanitizedFilename = item?.filename ? sanitizeName(item.filename) : `${sanitizeName(item.name)}.js`;
               const filePath = path.join(currentPath, sanitizedFilename);
               safeWriteFileSync(filePath, item.fileContent);
             }
@@ -1386,7 +1386,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
           await Promise.all(environments.map(async (env) => {
             const content = await stringifyEnvironment(env, { format });
-            let sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
+            let sanitizedEnvFilename = `${sanitizeName(env.name)}.${format}`;
             const filePath = path.join(envDirPath, sanitizedEnvFilename);
             safeWriteFileSync(filePath, content);
           }));

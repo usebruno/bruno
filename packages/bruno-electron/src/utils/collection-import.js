@@ -38,7 +38,7 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
   const parseCollectionItems = async (items = [], currentPath) => {
     for (const item of items) {
       if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
-        let sanitizedFilename = sanitizeName(item.filename || `${item.name}.${format}`);
+        let sanitizedFilename = item.filename ? sanitizeName(item.filename) : `${sanitizeName(item.name)}.${format}`;
         const content = await stringifyRequestViaWorker(item, { format });
         const filePath = path.join(currentPath, sanitizedFilename);
         safeWriteFileSync(filePath, content);
@@ -61,7 +61,7 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
       }
       // Handle items of type 'js'
       if (item.type === 'js') {
-        let sanitizedFilename = sanitizeName(item.filename || `${item.name}.js`);
+        let sanitizedFilename = item.filename ? sanitizeName(item.filename) : `${sanitizeName(item.name)}.js`;
         const filePath = path.join(currentPath, sanitizedFilename);
         safeWriteFileSync(filePath, item.fileContent);
       }
@@ -76,7 +76,7 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
 
     for (const env of environments) {
       const content = await stringifyEnvironment(env, { format });
-      let sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
+      let sanitizedEnvFilename = `${sanitizeName(env.name)}.${format}`;
       const filePath = path.join(envDirPath, sanitizedEnvFilename);
       safeWriteFileSync(filePath, content);
     }

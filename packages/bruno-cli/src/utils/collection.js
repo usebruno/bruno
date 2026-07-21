@@ -575,7 +575,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath, options = {}
 
     for (const env of collection.environments) {
       const content = stringifyEnvironment(env, { format });
-      const filename = format === 'bru' ? sanitizeName(`${env.name}.bru`) : sanitizeName(`${env.name}.yml`);
+      const filename = format === 'bru' ? `${sanitizeName(env.name)}.bru` : `${sanitizeName(env.name)}.yml`;
       fs.writeFileSync(path.join(envDirPath, filename), content);
     }
   }
@@ -622,12 +622,12 @@ const processCollectionItems = async (items = [], currentPath, options = {}) => 
       // Create request file
       let sanitizedFilename;
       if (format == 'yml') {
-        sanitizedFilename = sanitizeName(item?.filename || `${item.name}.yml`);
+        sanitizedFilename = item?.filename ? sanitizeName(item.filename) : `${sanitizeName(item.name)}.yml`;
         if (!sanitizedFilename.endsWith('.yml')) {
           sanitizedFilename += '.yml';
         }
       } else {
-        sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
+        sanitizedFilename = item?.filename ? sanitizeName(item.filename) : `${sanitizeName(item.name)}.bru`;
         if (!sanitizedFilename.endsWith('.bru')) {
           sanitizedFilename += '.bru';
         }
