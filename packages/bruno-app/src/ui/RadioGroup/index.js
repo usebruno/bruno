@@ -1,15 +1,19 @@
-import React, { createContext, useContext, useId, useMemo } from 'react';
+import React, { createContext, forwardRef, useContext, useId, useMemo } from 'react';
+import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 
 const RadioGroupContext = createContext(null);
+RadioGroupContext.displayName = 'RadioGroupContext';
 
 /**
  * Radio — a single option inside a RadioGroup.
  *
  * Must be rendered inside a <RadioGroup>. Reads its checked state, name and
- * disabled state from the group context.
+ * disabled state from the group context. The ref is forwarded to the underlying
+ * <input>, and any extra props (id, required, aria-describedby, autoFocus, …)
+ * are forwarded to it too.
  */
-const Radio = ({ value, label, description, disabled = false, className = '', dataTestId }) => {
+const Radio = forwardRef(({ value, label, description, disabled = false, className = '', dataTestId, ...rest }, ref) => {
   const group = useContext(RadioGroupContext);
 
   if (!group) {
@@ -26,9 +30,11 @@ const Radio = ({ value, label, description, disabled = false, className = '', da
   };
 
   return (
-    <label className={`radio ${isDisabled ? 'disabled' : ''} ${className}`.trim()}>
+    <label className={classnames('radio', { disabled: isDisabled }, className)}>
       <span className="radio-control">
         <input
+          {...rest}
+          ref={ref}
           type="radio"
           className="radio-input"
           name={name}
@@ -48,7 +54,9 @@ const Radio = ({ value, label, description, disabled = false, className = '', da
       )}
     </label>
   );
-};
+});
+
+Radio.displayName = 'Radio';
 
 /**
  * RadioGroup — a controlled group of <Radio> options.
@@ -59,8 +67,11 @@ const Radio = ({ value, label, description, disabled = false, className = '', da
  * The radiogroup always receives an accessible name. Pass `label` to render a
  * visible label, `ariaLabelledBy` to reference an external label, or
  * `ariaLabel` when no visible label exists.
+ *
+ * The ref is forwarded to the component's root element. Additional props are
+ * forwarded to the radiogroup container.
  */
-const RadioGroup = ({
+const RadioGroup = forwardRef(({
   value,
   onChange,
   name,
@@ -74,7 +85,7 @@ const RadioGroup = ({
   dataTestId = 'radio-group',
   children,
   ...rest
-}) => {
+}, ref) => {
   const generatedId = useId();
   const groupName = name || `${generatedId}-group`;
   const labelId = label ? `${generatedId}-label` : undefined;
@@ -93,7 +104,7 @@ const RadioGroup = ({
   );
 
   return (
-    <StyledWrapper $orientation={orientation} $size={size} className={className}>
+    <StyledWrapper ref={ref} $orientation={orientation} $size={size} className={className}>
       {label && (
         <div className="radio-group-label" id={labelId}>
           {label}
@@ -113,11 +124,10 @@ const RadioGroup = ({
       </RadioGroupContext.Provider>
     </StyledWrapper>
   );
-};
+});
 
+RadioGroup.displayName = 'RadioGroup';
 RadioGroup.Radio = Radio;
 
 export { Radio };
 export default RadioGroup;
-
-RadioGroupContext.displayName = 'RadioGroupContext';
