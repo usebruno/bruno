@@ -851,8 +851,10 @@ const getVisibleVariableNames = async (page: Page): Promise<string[]> => {
 const dragVariableRow = async (page: Page, fromName: string, toName: string) => {
   await test.step(`Drag variable row "${fromName}" onto "${toName}"`, async () => {
     const common = buildCommonLocators(page);
-    await common.environment.varRow(fromName).dragTo(common.environment.varRow(toName), {
-      targetPosition: { x: 5, y: 5 }
+    await common.environment.varRow(fromName).hover();
+    await common.environment.dragHandle(fromName).dragTo(common.environment.varRow(toName), {
+      targetPosition: { x: 5, y: 5 },
+      force: true
     });
   });
 };

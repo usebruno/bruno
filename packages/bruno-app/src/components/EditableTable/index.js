@@ -3,7 +3,7 @@ import { TableVirtuoso } from 'react-virtuoso';
 import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
 import { uuid } from 'utils/common';
-import { setDragPreview } from 'utils/dragPreview';
+import { useMouseRowDrag, DRAG_ROW_KEY_ATTR } from 'hooks/useMouseRowDrag';
 import StyledWrapper from './StyledWrapper';
 
 const MIN_COLUMN_WIDTH = 80;
@@ -22,12 +22,13 @@ const findScrollParent = (element) => {
 const TableRow = React.memo(
   ({ children, item, context, ...rest }) => {
     const rowIndex = Number(rest['data-item-index']);
-    const { reorderable, reorderableRowCount, isLastEmptyRow, dragOverRow, onDragStart, onDragOver, onDrop, onDragEnd, onDragLeave, keyColumn } = context;
+    const { reorderable, reorderableRowCount, isLastEmptyRow, dragOverKey, draggingKey, keyColumn } = context;
     const isEmpty = isLastEmptyRow(item, rowIndex);
     const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount;
-    const isDragOver = canDrag && dragOverRow === rowIndex;
+    const isDragOver = canDrag && dragOverKey === item?.uid;
+    const isBeingDragged = canDrag && draggingKey === item?.uid;
     const existingClass = rest.className || '';
-    const className = isDragOver ? `${existingClass} drag-over`.trim() : existingClass;
+    const className = `${existingClass} ${isDragOver ? 'drag-over' : ''} ${isBeingDragged ? 'dragging-source' : ''}`.trim();
     const rowName = keyColumn ? item?.[keyColumn.key] : undefined;
 
     return (
@@ -35,12 +36,7 @@ const TableRow = React.memo(
         {...rest}
         className={className}
         data-row-name={rowName || undefined}
-        draggable={canDrag}
-        onDragStart={canDrag ? (e) => onDragStart(e, rowIndex, rowName) : undefined}
-        onDragOver={canDrag ? (e) => onDragOver(e, rowIndex) : undefined}
-        onDragLeave={canDrag ? (e) => onDragLeave(e, rowIndex) : undefined}
-        onDrop={canDrag ? (e) => onDrop(e, rowIndex) : undefined}
-        onDragEnd={canDrag ? onDragEnd : undefined}
+        {...(canDrag ? { [DRAG_ROW_KEY_ATTR]: item.uid } : {})}
       >
         {children}
       </tr>
@@ -75,7 +71,6 @@ const EditableTable = ({
   const [resizing, setResizing] = useState(null);
   const [tableHeight, setTableHeight] = useState(0);
   const [scrollParent, setScrollParent] = useState(null);
-  const [dragOverRow, setDragOverRow] = useState(null);
   const widths = columnWidths || {};
 
   useLayoutEffect(() => {
@@ -256,41 +251,24 @@ const EditableTable = ({
     onChange(filteredRows);
   }, [rows, onChange]);
 
-  const handleDragStart = useCallback((e, index, name) => {
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', index);
-    setDragPreview(e, name);
-  }, []);
-
-  const handleDragOver = useCallback((e, index) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOverRow((prev) => (prev === index ? prev : index));
-  }, []);
-
-  const handleDragLeave = useCallback((e, index) => {
-    if (e.currentTarget.contains(e.relatedTarget)) return;
-    setDragOverRow((prev) => (prev === index ? null : prev));
-  }, []);
-
   const reorderableRowCount = showAddRow ? rowsWithEmpty.length - 1 : rowsWithEmpty.length;
 
-  const handleDrop = useCallback((e, toIndex) => {
-    e.preventDefault();
-    setDragOverRow(null);
-    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
-    if (fromIndex === toIndex || !onReorder) return;
+  const handleRowReorder = useCallback((fromUid, toUid) => {
+    if (!onReorder) return;
     const reorderableRows = showAddRow ? rowsWithEmpty.slice(0, -1) : rowsWithEmpty;
+    const fromIndex = reorderableRows.findIndex((row) => row.uid === fromUid);
+    const toIndex = reorderableRows.findIndex((row) => row.uid === toUid);
+    if (fromIndex === -1 || toIndex === -1) return;
     const updatedOrder = [...reorderableRows];
     const [movedRow] = updatedOrder.splice(fromIndex, 1);
-    if (!movedRow) return;
     updatedOrder.splice(toIndex, 0, movedRow);
     onReorder({ updateReorderedItem: updatedOrder.map((row) => row.uid) });
   }, [onReorder, rowsWithEmpty, showAddRow]);
 
-  const handleDragEnd = useCallback(() => {
-    setDragOverRow(null);
-  }, []);
+  const { draggingKey, dragOverKey, handleDragHandleMouseDown } = useMouseRowDrag({
+    enabled: reorderable,
+    onReorder: handleRowReorder
+  });
 
   const renderCell = useCallback((column, row, rowIndex) => {
     const isEmpty = isLastEmptyRow(row, rowIndex);
@@ -352,14 +330,10 @@ const EditableTable = ({
     reorderable,
     reorderableRowCount,
     isLastEmptyRow,
-    dragOverRow,
-    keyColumn,
-    onDragStart: handleDragStart,
-    onDragOver: handleDragOver,
-    onDragLeave: handleDragLeave,
-    onDrop: handleDrop,
-    onDragEnd: handleDragEnd
-  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverRow, keyColumn, handleDragStart, handleDragOver, handleDragLeave, handleDrop, handleDragEnd]);
+    dragOverKey,
+    draggingKey,
+    keyColumn
+  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverKey, draggingKey, keyColumn]);
 
   const fixedHeaderContent = useCallback(() => (
     <tr>
@@ -403,8 +377,8 @@ const EditableTable = ({
           <td className="text-center relative">
             {reorderable && canDrag && (
               <div
-                draggable
                 className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
+                onMouseDown={(e) => handleDragHandleMouseDown(e, row.uid, keyColumn ? row[keyColumn.key] : undefined)}
               >
                 <IconGripVertical
                   size={14}
@@ -459,7 +433,7 @@ const EditableTable = ({
         )}
       </>
     );
-  }, [showCheckbox, reorderable, reorderableRowCount, isLastEmptyRow, checkboxKey, disableCheckbox, handleCheckboxChange, columns, renderCell, showDelete, handleRemoveRow]);
+  }, [showCheckbox, reorderable, reorderableRowCount, isLastEmptyRow, keyColumn, handleDragHandleMouseDown, checkboxKey, disableCheckbox, handleCheckboxChange, columns, renderCell, showDelete, handleRemoveRow]);
 
   const initialTopMostItemIndex = useRef(Math.max(0, Math.floor(initialScroll / ROW_HEIGHT))).current;
 

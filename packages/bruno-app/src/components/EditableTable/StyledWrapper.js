@@ -246,6 +246,10 @@ const StyledWrapper = styled.div`
     opacity: 1;
   }
 
+  tbody tr.dragging-source {
+    opacity: 0.4;
+  }
+
   select {
     background-color: transparent;
     color: ${(props) => props.theme.text};

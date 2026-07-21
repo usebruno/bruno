@@ -24,7 +24,7 @@ import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 import { useSortCycle } from 'hooks/useSortCycle';
 import { sortRowsByName, reorderWithinSubset } from 'utils/sortableRows';
-import { setDragPreview } from 'utils/dragPreview';
+import { useMouseRowDrag, DRAG_ROW_KEY_ATTR } from 'hooks/useMouseRowDrag';
 import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
 
 const MIN_H = 35 * 2;
@@ -44,21 +44,17 @@ const TableRow = React.memo(
   ({ children, item, style, context, ...rest }) => {
     const variable = item?.variable ?? item;
     const canDrag = !!context?.dragEnabled && item?.index !== context?.lastFormikIndex;
-    const isDragOver = canDrag && context?.dragOverUid === variable?.uid;
+    const isDragOver = canDrag && context?.dragOverKey === variable?.uid;
+    const isBeingDragged = canDrag && context?.draggingKey === variable?.uid;
 
     return (
       <tr
         key={variable?.uid}
         style={style}
         {...rest}
-        className={`${rest.className || ''} ${isDragOver ? 'drag-over' : ''}`.trim()}
+        className={`${rest.className || ''} ${isDragOver ? 'drag-over' : ''} ${isBeingDragged ? 'dragging-source' : ''}`.trim()}
         data-testid={`env-var-row-${variable?.name}`}
-        draggable={canDrag}
-        onDragStart={canDrag ? (e) => context.onDragStart(e, variable.uid, variable.name) : undefined}
-        onDragOver={canDrag ? (e) => context.onDragOver(e, variable.uid) : undefined}
-        onDragLeave={canDrag ? (e) => context.onDragLeave(e, variable.uid) : undefined}
-        onDrop={canDrag ? (e) => context.onDrop(e, variable.uid) : undefined}
-        onDragEnd={canDrag ? context.onDragEnd : undefined}
+        {...(canDrag ? { [DRAG_ROW_KEY_ATTR]: variable.uid } : {})}
       >
         {children}
       </tr>
@@ -73,7 +69,8 @@ const TableRow = React.memo(
       prevUid === nextUid
       && prevProps.children === nextProps.children
       && prevCtx.dragEnabled === nextCtx.dragEnabled
-      && prevCtx.dragOverUid === nextCtx.dragOverUid
+      && prevCtx.dragOverKey === nextCtx.dragOverKey
+      && prevCtx.draggingKey === nextCtx.draggingKey
     );
   }
 );
@@ -226,12 +223,7 @@ const EnvironmentVariablesTable = ({
   const isSearchActive = !!searchQuery?.trim();
 
   const { sortMode, cycleSortMode, SortIcon, sortLabel } = useSortCycle({ storageKey: `env-var-sort::${environment.uid}` });
-  const [dragOverUid, setDragOverUid] = useState(null);
   const dragEnabled = sortMode === 'default' && !isSecretTab && !isSearchActive;
-
-  useEffect(() => {
-    setDragOverUid(null);
-  }, [variableType]);
 
   const handleColumnWidthsChange = (id, widths) => {
     dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId: id, widths }));
@@ -410,33 +402,7 @@ const EnvironmentVariablesTable = ({
     sortOrderRef.current = buildSortOrder(formik.values, sortMode);
   }
 
-  const handleDragStart = useCallback((e, uid, name) => {
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', uid);
-    setDragPreview(e, name);
-  }, []);
-
-  const handleDragOver = useCallback((e, uid) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOverUid((prev) => (prev === uid ? prev : uid));
-  }, []);
-
-  const handleDragLeave = useCallback((e, uid) => {
-    if (e.currentTarget.contains(e.relatedTarget)) return;
-    setDragOverUid((prev) => (prev === uid ? null : prev));
-  }, []);
-
-  const handleDragEnd = useCallback(() => {
-    setDragOverUid(null);
-  }, []);
-
-  const handleDrop = useCallback((e, toUid) => {
-    e.preventDefault();
-    setDragOverUid(null);
-    const fromUid = e.dataTransfer.getData('text/plain');
-    if (!fromUid || fromUid === toUid) return;
-
+  const handleRowReorder = useCallback((fromUid, toUid) => {
     const belongsToActiveTab = (variable) => !!variable.secret === isSecretTab;
     const reordered = reorderWithinSubset(formik.values, belongsToActiveTab, fromUid, toUid);
     if (reordered !== formik.values) {
@@ -444,16 +410,21 @@ const EnvironmentVariablesTable = ({
     }
   }, [formik, isSecretTab]);
 
+  const { draggingKey, dragOverKey, handleDragHandleMouseDown, cancelDrag } = useMouseRowDrag({
+    enabled: dragEnabled,
+    onReorder: handleRowReorder
+  });
+
+  useEffect(() => {
+    cancelDrag();
+  }, [variableType, cancelDrag]);
+
   const dragContext = useMemo(() => ({
     dragEnabled,
-    dragOverUid,
-    lastFormikIndex: formik.values.length - 1,
-    onDragStart: handleDragStart,
-    onDragOver: handleDragOver,
-    onDragLeave: handleDragLeave,
-    onDrop: handleDrop,
-    onDragEnd: handleDragEnd
-  }), [dragEnabled, dragOverUid, formik.values.length, handleDragStart, handleDragOver, handleDragLeave, handleDrop, handleDragEnd]);
+    dragOverKey,
+    draggingKey,
+    lastFormikIndex: formik.values.length - 1
+  }), [dragEnabled, dragOverKey, draggingKey, formik.values.length]);
 
   // Restore draft values on mount or environment switch (not on external filesystem reloads)
   useEffect(() => {
@@ -929,7 +900,11 @@ const EnvironmentVariablesTable = ({
               <>
                 <td className="text-center relative">
                   {dragEnabled && !isLastEmptyRow && (
-                    <div data-testid="drag-handle" className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab">
+                    <div
+                      data-testid="drag-handle"
+                      className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
+                      onMouseDown={(e) => handleDragHandleMouseDown(e, variable.uid, variable.name)}
+                    >
                       <IconGripVertical size={14} className="icon-grip hidden group-hover:block" />
                       <IconMinusVertical size={14} className="icon-minus block group-hover:hidden" />
                     </div>
