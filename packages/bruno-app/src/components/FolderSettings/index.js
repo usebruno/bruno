@@ -10,7 +10,10 @@ import Vars from './Vars';
 import Documentation from './Documentation';
 import Auth from './Auth';
 import StatusDot from 'components/StatusDot';
+import SettingsAiAssist from 'components/SettingsAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
+
+const AI_TABS = ['script', 'test', 'docs'];
 
 const FolderSettings = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -79,30 +82,37 @@ const FolderSettings = ({ collection, folder }) => {
   return (
     <StyledWrapper className="flex flex-col h-full overflow-auto">
       <div className="flex flex-col h-full relative px-4 py-4">
-        <div className="flex flex-wrap items-center tabs" role="tablist">
-          <div className={getTabClassname('headers')} role="tab" data-testid="folder-settings-tab-headers" onClick={() => setTab('headers')}>
-            Headers
-            {activeHeadersCount > 0 && <sup className="ml-1 font-medium">{activeHeadersCount}</sup>}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-wrap items-center tabs" role="tablist">
+            <div className={getTabClassname('headers')} role="tab" data-testid="folder-settings-tab-headers" onClick={() => setTab('headers')}>
+              Headers
+              {activeHeadersCount > 0 && <sup className="ml-1 font-medium">{activeHeadersCount}</sup>}
+            </div>
+            <div className={getTabClassname('script')} role="tab" data-testid="folder-settings-tab-script" onClick={() => setTab('script')}>
+              Script
+              {hasScripts && <StatusDot />}
+            </div>
+            <div className={getTabClassname('test')} role="tab" data-testid="folder-settings-tab-test" onClick={() => setTab('test')}>
+              Test
+              {hasTests && <StatusDot />}
+            </div>
+            <div className={getTabClassname('vars')} role="tab" data-testid="folder-settings-tab-vars" onClick={() => setTab('vars')}>
+              Vars
+              {activeVarsCount > 0 && <sup className="ml-1 font-medium">{activeVarsCount}</sup>}
+            </div>
+            <div className={getTabClassname('auth')} role="tab" data-testid="folder-settings-tab-auth" onClick={() => setTab('auth')}>
+              Auth
+              {hasAuth && <StatusDot dataTestId="auth" />}
+            </div>
+            <div className={getTabClassname('docs')} role="tab" data-testid="folder-settings-tab-docs" onClick={() => setTab('docs')}>
+              Docs
+            </div>
           </div>
-          <div className={getTabClassname('script')} role="tab" data-testid="folder-settings-tab-script" onClick={() => setTab('script')}>
-            Script
-            {hasScripts && <StatusDot />}
-          </div>
-          <div className={getTabClassname('test')} role="tab" data-testid="folder-settings-tab-test" onClick={() => setTab('test')}>
-            Test
-            {hasTests && <StatusDot />}
-          </div>
-          <div className={getTabClassname('vars')} role="tab" data-testid="folder-settings-tab-vars" onClick={() => setTab('vars')}>
-            Vars
-            {activeVarsCount > 0 && <sup className="ml-1 font-medium">{activeVarsCount}</sup>}
-          </div>
-          <div className={getTabClassname('auth')} role="tab" data-testid="folder-settings-tab-auth" onClick={() => setTab('auth')}>
-            Auth
-            {hasAuth && <StatusDot dataTestId="auth" />}
-          </div>
-          <div className={getTabClassname('docs')} role="tab" data-testid="folder-settings-tab-docs" onClick={() => setTab('docs')}>
-            Docs
-          </div>
+          {AI_TABS.includes(tab) && (
+            <div className="flex items-center flex-shrink-0">
+              <SettingsAiAssist collection={collection} folder={folder} activeTab={tab} />
+            </div>
+          )}
         </div>
         <section className="folder-settings-content flex mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
       </div>
