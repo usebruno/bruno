@@ -282,6 +282,15 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
   }, [availableModels, selectedModel]);
 
   const requestName = aiContext?.name || activeItem?.name || 'Untitled';
+
+  const appEnabled = useMemo(() => {
+    if (aiContext?.kind !== 'request' || !activeItem) return true;
+    if (activeItem.type === 'app') return true;
+    return activeItem.draft
+      ? get(activeItem, 'draft.app.enabled', false)
+      : get(activeItem, 'app.enabled', false);
+  }, [aiContext?.kind, activeItem]);
+
   const requestMethod = useMemo(() => {
     if (aiContext?.kind === 'folder') return 'FOLDER';
     if (aiContext?.kind === 'collection') return 'ROOT';
@@ -290,14 +299,11 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
     if (activeItem.type === 'ws-request') return 'WS';
     if (activeItem.type === 'graphql-request') return 'GQL';
     if (activeItem.type === 'app') return 'APP';
-    const appOn = activeItem.draft
-      ? get(activeItem, 'draft.app.enabled', false)
-      : get(activeItem, 'app.enabled', false);
-    if (appOn) return 'APP';
+    if (appEnabled) return 'APP';
     return activeItem.draft
       ? get(activeItem, 'draft.request.method', 'GET')
       : get(activeItem, 'request.method', 'GET');
-  }, [aiContext?.kind, activeItem]);
+  }, [aiContext?.kind, activeItem, appEnabled]);
 
   // contentType drives the AI prompt, the diff target, and which entry of
   // allContent the backend treats as "active". For requests it follows the
@@ -537,7 +543,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     try {
-      await dispatch(sendAiMessage(activeTabUid, text, allContent, requestContext, selectedModel, contentType, aiVariables));
+      await dispatch(sendAiMessage(activeTabUid, text, allContent, requestContext, selectedModel, contentType, aiVariables, appEnabled));
       setProcessingStage('applying');
       setTimeout(() => setProcessingStage(null), 500);
     } catch (err) {

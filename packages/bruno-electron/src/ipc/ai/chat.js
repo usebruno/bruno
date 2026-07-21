@@ -25,8 +25,13 @@ const CONTENT_LABELS = {
   'docs': 'Documentation'
 };
 
-const buildContextMessage = (contentType, allContent, requestContext, variables, security) => {
+const APP_DISABLED_NOTICE = 'App mode is currently DISABLED for this request. The App tab is hidden and any code written to \'app\' will not be visible or runnable. Do NOT call write_content(\'app\'); instead, tell the user to open the request\'s Settings tab and turn on "Enable App" first, then ask them to run the request again.';
+
+const buildContextMessage = (contentType, allContent, requestContext, variables, security, appEnabled) => {
   const parts = [];
+  if (appEnabled === false) {
+    parts.push(`Note: ${APP_DISABLED_NOTICE}`);
+  }
   const ctx = formatRequestContext(requestContext, { includeResponse: true, security });
   if (ctx) {
     parts.push(`HTTP Request Context:\n${ctx}`);
@@ -91,7 +96,7 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
   });
 
   ipcMain.on('renderer:ai-chat-stream', async (_event, payload) => {
-    const { messages, allContent, contentType, requestContext, variables, requestId, model: modelId } = payload || {};
+    const { messages, allContent, contentType, requestContext, variables, requestId, model: modelId, appEnabled } = payload || {};
 
     const send = (channel, data) => {
       if (mainWindow?.webContents && !mainWindow.webContents.isDestroyed()) {
@@ -160,6 +165,9 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
         inputSchema: WRITE_PARAMS,
         execute: async ({ type, content }) => {
           const resolved = resolveContentType(type, effectiveType);
+          if (resolved === 'app' && appEnabled === false) {
+            return APP_DISABLED_NOTICE;
+          }
           if (!(resolved in readState)) {
             // Tolerate models that skip read_content. We still record the
             // original snapshot so the diff renders correctly, but the UI
@@ -209,7 +217,7 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
     };
 
     const allMessages = [
-      { role: 'user', content: buildContextMessage(effectiveType, normalizedContent, requestContext, variables, security) },
+      { role: 'user', content: buildContextMessage(effectiveType, normalizedContent, requestContext, variables, security, appEnabled) },
       ...messages.map((m) => ({ role: m.role, content: m.content }))
     ];
 
