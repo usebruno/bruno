@@ -27,6 +27,7 @@ import {
 } from './types';
 import { DEFAULT_COLLECTION_FORMAT } from './constants';
 import { bruRequestParseAndRedactBodyData } from './formats/bru/utils/request-parse-and-redact-body-data';
+import { redactLargeBruTextBlocks, restoreRedactedBlocks } from './formats/bru/utils/redact-large-text-blocks';
 
 // request
 export const parseRequest = (content: string, options: ParseOptions = { format: DEFAULT_COLLECTION_FORMAT }): any => {
@@ -135,6 +136,8 @@ export const parseDotEnv = (content: string): Record<string, string> => {
   return dotenvToJson(content);
 };
 
+export { redactLargeBruTextBlocks, restoreRedactedBlocks };
+export type { RedactedBlock, RedactionResult } from './formats/bru/utils/redact-large-text-blocks';
 export { BruParserWorker };
 export * from './types';
 export * from './constants';

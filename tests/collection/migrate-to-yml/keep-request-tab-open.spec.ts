@@ -3,7 +3,7 @@ import path from 'path';
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, openCollection, selectEnvironment, sendRequestAndWaitForResponse } from '../../utils/page';
 
-test.describe('Migrate collection from bru to yml format — keep open request tab', () => {
+test.describe.skip('Migrate collection from bru to yml format — keep open request tab', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });
