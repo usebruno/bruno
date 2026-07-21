@@ -74,7 +74,7 @@ const StyledWrapper = styled.div`
   .segment.active {
     color: ${(props) => props.theme.brand};
     background: ${(props) => tileBg(props.theme)};
-    box-shadow: ${(props) => (props.theme.shadow && props.theme.shadow.sm) || '0 1px 3px rgba(0, 0, 0, 0.12)'};
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
     font-weight: 500;
   }
 
