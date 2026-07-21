@@ -304,10 +304,11 @@ function loadNpmModule({
       const collectionRequire = nodeModule.createRequire(path.join(collectionPath, 'package.json'));
       resolvedPath = collectionRequire.resolve(moduleName);
     } catch {
-      // Not found in collection, continue to fallback
+      // Module not found in collection, continue to fallback
     }
   }
 
+  // Fall back to Bruno's bundled node_modules
   if (!resolvedPath) {
     try {
       resolvedPath = require.resolve(moduleName, { paths: module.paths });
@@ -343,7 +344,7 @@ function createNpmModuleRequire({
   currentModuleDir,
   localModuleCache
 }) {
-  const moduleRequire = nodeModule.createRequire(path.join(currentModuleDir, 'package.json'));
+  const moduleRequire = nodeModule.createRequire(path.join(currentModuleDir, 'index.js'));
 
   return (moduleName) => {
     // Handle relative imports within npm module
