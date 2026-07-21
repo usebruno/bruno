@@ -8,7 +8,7 @@ import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
-import { findItemInCollection, findItemInCollectionByPathname, hasRequestChanges, areItemsLoading, isItemTransientRequest } from 'utils/collections';
+import { findItemInCollection, findItemInCollectionByPathname, findParentItemInCollectionByPathname, hasRequestChanges, areItemsLoading, isItemTransientRequest, isScratchCollection } from 'utils/collections';
 import ConfirmRequestClose from './ConfirmRequestClose';
 import ConfirmCollectionClose from './ConfirmCollectionClose';
 import ConfirmFolderClose from './ConfirmFolderClose';
@@ -39,6 +39,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const [showConfirmFolderClose, setShowConfirmFolderClose] = useState(false);
   const [showConfirmEnvironmentClose, setShowConfirmEnvironmentClose] = useState(false);
   const [showConfirmGlobalEnvironmentClose, setShowConfirmGlobalEnvironmentClose] = useState(false);
+  const [newRequestTarget, setNewRequestTarget] = useState(null);
 
   const menuDropdownRef = useRef();
 
@@ -206,6 +207,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isActive = tab.uid === activeTabUid;
+  // Truthy only when a sidebar folder/collection is focused; those own the
+  // new-request shortcut (with folder targeting), so the tab handler yields to them.
+  const focusedSidebarPath = useSelector((state) => state.app.focusedSidebarPath);
+  const workspaces = useSelector((state) => state.workspaces.workspaces);
 
   // Close tab shortcut — draft-aware, only active for the focused tab
   useKeybinding('closeTab', () => {
@@ -289,6 +294,35 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     }
     return false;
   }, { enabled: isActive, deps: [isActive, tab, item, collection, folder, globalEnvironmentDraft] });
+
+  useKeybinding('newRequest', () => {
+    // console.log({tab})
+    const requestTypes = ['request', 'http-request', 'graphql-request', 'grpc-request', 'ws-request'];
+
+    // No collection in context at all (e.g. global preferences) — nothing to target.
+    if (!collection) return false;
+
+    // Only the workspace's hidden scratch collection is active (overview, workspace
+    // environments, preferences). There's no sidebar-visible collection selected, so
+    // create a transient request the user can later persist via the transient-save flow.
+    if (isScratchCollection(collection, workspaces)) {
+      setNewRequestTarget({ collectionUid: collection.uid, item: null, isTransient: true });
+      return false;
+    }
+
+    if (requestTypes.includes(tab.type)) {
+      const parentFolder = item?.pathname ? findParentItemInCollectionByPathname(collection, item.pathname) : null;
+      setNewRequestTarget({ collectionUid: collection.uid, item: parentFolder || null });
+    } else if (tab.type === 'folder-settings' && folder) {
+      setNewRequestTarget({ collectionUid: collection.uid, item: folder });
+    } else {
+      // Any other collection-scoped tab (settings, overview, runner, variables, …)
+      // creates a request at the active collection's root.
+      setNewRequestTarget({ collectionUid: collection.uid, item: null });
+    }
+
+    return false;
+  }, { enabled: isActive && !focusedSidebarPath, deps: [isActive, focusedSidebarPath, tab, item, collection, folder, workspaces] });
 
   const handleCloseEnvironmentSettings = (event) => {
     if (!collection?.environmentsDraft) {
@@ -474,6 +508,14 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             }}
           />
         )}
+        {newRequestTarget && (
+          <NewRequest
+            collectionUid={newRequestTarget.collectionUid}
+            item={newRequestTarget.item}
+            isTransient={newRequestTarget.isTransient}
+            onClose={() => setNewRequestTarget(null)}
+          />
+        )}
         {tab.type === 'folder-settings' && !folder ? (
           tab.name && isItemsLoading
             ? <RequestTabLoading handleCloseClick={handleCloseClick} name={tab.name} />
@@ -572,6 +614,14 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                 console.log('err', err);
               });
           }}
+        />
+      )}
+      {newRequestTarget && (
+        <NewRequest
+          collectionUid={newRequestTarget.collectionUid}
+          item={newRequestTarget.item}
+          isTransient={newRequestTarget.isTransient}
+          onClose={() => setNewRequestTarget(null)}
         />
       )}
       <div
