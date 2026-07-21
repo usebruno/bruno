@@ -1,0 +1,5 @@
+dist
+package-lock.json
+node_modules
+db
+.tmp-gen

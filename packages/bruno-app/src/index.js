@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './pages/index';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { SqliteProvider } from '@usebruno/sqlite/web';
 
 const rootElement = document.getElementById('root');
 
@@ -27,9 +28,11 @@ const Main = () => {
 
   return (
     <React.StrictMode>
-      <DndProvider backend={HTML5Backend}>
-        <App />
-      </DndProvider>
+      <SqliteProvider invoke={(channel, payload) => window.ipcRenderer.invoke(channel, payload)}>
+        <DndProvider backend={HTML5Backend}>
+          <App />
+        </DndProvider>
+      </SqliteProvider>
     </React.StrictMode>
   );
 };

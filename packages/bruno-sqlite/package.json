@@ -1,0 +1,38 @@
+{
+  "name": "@usebruno/sqlite",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Bruno SQLite data layer: Drizzle schema + statements (source) and the generated node/web runtime.",
+  "exports": {
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "require": "./dist/node/index.js",
+      "default": "./dist/node/index.js"
+    },
+    "./web": {
+      "types": "./dist/web/index.d.ts",
+      "import": "./dist/web/index.js",
+      "require": "./dist/web/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "migration:generate": "drizzle-kit generate && node -e \"require('@usebruno/sql-gen/generate')\" && npm run build"
+  },
+  "dependencies": {
+    "zod": "4.1.8"
+  },
+  "peerDependencies": {
+    "react": ">=17"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.17",
+    "@types/react": "19.0.0",
+    "@usebruno/sql-gen": "0.1.0",
+    "drizzle-kit": "0.31.10",
+    "drizzle-orm": "0.45.2",
+    "react": "19.0.0",
+    "typescript": "5.8.3"
+  }
+}
