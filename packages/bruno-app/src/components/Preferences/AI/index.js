@@ -179,6 +179,18 @@ const AI = () => {
 
   useEffect(() => () => debouncedSave.flush(), [debouncedSave]);
 
+  const saveSecurityImmediate = (patch) => {
+    const nextSecurity = { ...formik.values.security, ...patch };
+    const nextValues = { ...formik.values, security: nextSecurity };
+
+    formik.setFieldValue('security', nextSecurity);
+    debouncedSave.cancel();
+
+    aiPreferencesSchema
+      .validate(nextValues, { abortEarly: true })
+      .then((validated) => handleSaveRef.current(validated))
+      .catch(() => {});
+  };
   const modelsByProvider = useMemo(() => {
     const grouped = {};
     (status?.models || []).forEach((model) => {
@@ -497,12 +509,12 @@ const AI = () => {
             redactResponse={formik.values.security?.redactResponse !== false}
             customRedactedHeaders={formik.values.security?.customRedactedHeaders || []}
             customRedactedVariables={formik.values.security?.customRedactedVariables || []}
-            onToggleRedactHeaders={(next) => formik.setFieldValue('security.redactHeaders', next)}
-            onToggleRedactBody={(next) => formik.setFieldValue('security.redactBody', next)}
-            onToggleRedactVariables={(next) => formik.setFieldValue('security.redactVariables', next)}
-            onToggleRedactResponse={(next) => formik.setFieldValue('security.redactResponse', next)}
-            onChangeCustomRedactedHeaders={(next) => formik.setFieldValue('security.customRedactedHeaders', next)}
-            onChangeCustomRedactedVariables={(next) => formik.setFieldValue('security.customRedactedVariables', next)}
+            onToggleRedactHeaders={(next) => saveSecurityImmediate({ redactHeaders: next })}
+            onToggleRedactBody={(next) => saveSecurityImmediate({ redactBody: next })}
+            onToggleRedactVariables={(next) => saveSecurityImmediate({ redactVariables: next })}
+            onToggleRedactResponse={(next) => saveSecurityImmediate({ redactResponse: next })}
+            onChangeCustomRedactedHeaders={(next) => saveSecurityImmediate({ customRedactedHeaders: next })}
+            onChangeCustomRedactedVariables={(next) => saveSecurityImmediate({ customRedactedVariables: next })}
           />
         </div>
       )}
