@@ -206,6 +206,10 @@ const Wrapper = styled.div`
     opacity: 1;
   }
 
+  tbody tr.dragging-source {
+    opacity: 0.4;
+  }
+
   .column-sort-header .action-icon {
     opacity: 0.7;
 
