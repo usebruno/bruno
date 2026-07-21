@@ -45,4 +45,6 @@ const shutdown = () => {
   }
 };
 
-module.exports = { registerSqliteIpc, shutdown };
+const getStatements = () => (ipc ? ipc.statements : null);
+
+module.exports = { registerSqliteIpc, shutdown, getStatements };
