@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
-import RadioGroup, { Radio } from './index';
+import RadioGroup from './index';
 
 export default {
   title: 'Components/RadioGroup',
   component: RadioGroup,
-  subcomponents: { Radio },
   parameters: {
     layout: 'padded',
     docs: {
       description: {
         component:
-          'Groups a set of `Radio` options under a single controlled value. '
-          + 'Supports vertical/horizontal layouts and two sizes, and always exposes '
-          + 'an accessible name via `label`, `ariaLabel`, or `ariaLabelledBy`. '
+          'A controlled radio group. Pass the options via `items`. Supports '
+          + 'vertical/horizontal layouts and two sizes, and always exposes an '
+          + 'accessible name via `label`, `ariaLabel`, or `ariaLabelledBy`. '
           + 'See the props table below for the full API.'
       }
     }
@@ -48,25 +47,22 @@ export default {
   }
 };
 
-// No `name` is passed — RadioGroup auto-generates a unique one per instance so
-// stories don't collide as one native radio group on the inline Docs page.
-const Controlled = ({ initial = 'manual', children, ...props }) => {
-  const [value, setValue] = useState(initial);
-  return (
-    <RadioGroup value={value} onChange={setValue} {...props}>
-      {children}
-    </RadioGroup>
-  );
-};
+const proxyModes = [
+  { value: 'off', label: 'Off' },
+  { value: 'manual', label: 'Manual' },
+  { value: 'system', label: 'System Proxy' }
+];
+
+// State is inlined in each render (not a wrapper component) so the code panel
+// shows <RadioGroup>. No `name` is passed — RadioGroup auto-generates a unique
+// one per instance, so stories don't collide as one native radio group on the
+// inline Docs page.
 
 export const Default = {
-  render: (args) => (
-    <Controlled {...args}>
-      <Radio value="off" label="Off" />
-      <Radio value="manual" label="Manual" />
-      <Radio value="system" label="System Proxy" />
-    </Controlled>
-  ),
+  render: (args) => {
+    const [value, setValue] = useState('manual');
+    return <RadioGroup {...args} value={value} onChange={setValue} items={proxyModes} />;
+  },
   args: {
     label: 'Proxy mode',
     orientation: 'vertical',
@@ -75,13 +71,10 @@ export const Default = {
 };
 
 export const Horizontal = {
-  render: (args) => (
-    <Controlled {...args}>
-      <Radio value="off" label="Off" />
-      <Radio value="manual" label="Manual" />
-      <Radio value="system" label="System Proxy" />
-    </Controlled>
-  ),
+  render: (args) => {
+    const [value, setValue] = useState('manual');
+    return <RadioGroup {...args} value={value} onChange={setValue} items={proxyModes} />;
+  },
   args: {
     label: 'Proxy mode',
     orientation: 'horizontal'
@@ -89,53 +82,67 @@ export const Horizontal = {
 };
 
 export const WithDescriptions = {
-  render: (args) => (
-    <Controlled {...args} initial="developer">
-      <Radio value="safe" label="Safe mode" description="Scripts run in a restricted sandbox." />
-      <Radio value="developer" label="Developer mode" description="Full access to Node APIs in scripts." />
-    </Controlled>
-  ),
+  render: (args) => {
+    const [value, setValue] = useState('developer');
+    return (
+      <RadioGroup
+        {...args}
+        value={value}
+        onChange={setValue}
+        items={[
+          { value: 'safe', label: 'Safe mode', description: 'Scripts run in a restricted sandbox.' },
+          { value: 'developer', label: 'Developer mode', description: 'Full access to Node APIs in scripts.' }
+        ]}
+      />
+    );
+  },
   args: {
     label: 'JS sandbox'
   }
 };
 
 export const Sizes = {
-  render: () => (
-    <div style={{ display: 'flex', gap: '48px' }}>
-      <Controlled size="sm" label="Small">
-        <Radio value="off" label="Off" />
-        <Radio value="manual" label="Manual" />
-      </Controlled>
-      <Controlled size="md" label="Medium">
-        <Radio value="off" label="Off" />
-        <Radio value="manual" label="Manual" />
-      </Controlled>
-    </div>
-  )
+  render: () => {
+    const [value, setValue] = useState('manual');
+    const items = [
+      { value: 'off', label: 'Off' },
+      { value: 'manual', label: 'Manual' }
+    ];
+    return (
+      <div style={{ display: 'flex', gap: '48px' }}>
+        <RadioGroup size="sm" label="Small" value={value} onChange={setValue} items={items} />
+        <RadioGroup size="md" label="Medium" value={value} onChange={setValue} items={items} />
+      </div>
+    );
+  }
 };
 
 export const DisabledGroup = {
-  render: (args) => (
-    <Controlled {...args} disabled>
-      <Radio value="off" label="Off" />
-      <Radio value="manual" label="Manual" />
-      <Radio value="system" label="System Proxy" />
-    </Controlled>
-  ),
+  render: (args) => {
+    const [value, setValue] = useState('manual');
+    return <RadioGroup {...args} disabled value={value} onChange={setValue} items={proxyModes} />;
+  },
   args: {
     label: 'Proxy mode (disabled)'
   }
 };
 
 export const DisabledOption = {
-  render: (args) => (
-    <Controlled {...args}>
-      <Radio value="off" label="Off" />
-      <Radio value="manual" label="Manual" />
-      <Radio value="system" label="System Proxy (unavailable)" disabled />
-    </Controlled>
-  ),
+  render: (args) => {
+    const [value, setValue] = useState('manual');
+    return (
+      <RadioGroup
+        {...args}
+        value={value}
+        onChange={setValue}
+        items={[
+          { value: 'off', label: 'Off' },
+          { value: 'manual', label: 'Manual' },
+          { value: 'system', label: 'System Proxy (unavailable)', disabled: true }
+        ]}
+      />
+    );
+  },
   args: {
     label: 'Proxy mode'
   }

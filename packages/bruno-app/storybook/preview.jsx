@@ -29,6 +29,12 @@ const preview = {
         color: /(background|color)$/i,
         date: /Date$/i
       }
+    },
+    docs: {
+      // Adds a "Code" tab to the Canvas addon panel showing the story's source.
+      codePanel: true,
+      // Show each story's usage code by default in Docs (the "Show code" panel expanded).
+      canvas: { sourceState: 'shown' }
     }
   },
   globalTypes: {

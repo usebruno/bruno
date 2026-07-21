@@ -1,9 +1,10 @@
 import '@testing-library/jest-dom';
-import React, { useState } from 'react';
+import React, { useState, createRef } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from 'styled-components';
-import RadioGroup, { Radio } from './index';
+import RadioGroup from './index';
+import Radio from './components/Radio'; // internal building block, tested directly
 
 // Minimal theme with only the tokens RadioGroup's StyledWrapper reads.
 // `brand` must be a valid color — polished's transparentize() throws otherwise.
@@ -17,21 +18,16 @@ const theme = {
 
 const renderWithTheme = (ui) => render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
 
-const Options = () => (
-  <>
-    <Radio value="off" label="Off" />
-    <Radio value="manual" label="Manual" />
-    <Radio value="system" label="System" />
-  </>
-);
+const proxyModes = [
+  { value: 'off', label: 'Off' },
+  { value: 'manual', label: 'Manual' },
+  { value: 'system', label: 'System Proxy' }
+];
 
-// Render a RadioGroup with sensible defaults; override via `props`, and pass
-// custom `children` when a test needs specific options.
-const renderRadioGroup = (props = {}, children = <Options />) =>
+// Render the public (list) RadioGroup with sensible defaults.
+const renderRadioGroup = (props = {}) =>
   renderWithTheme(
-    <RadioGroup name="mode" ariaLabel="Mode" value="off" onChange={() => {}} {...props}>
-      {children}
-    </RadioGroup>
+    <RadioGroup label="Mode" value="manual" onChange={() => {}} items={proxyModes} {...props} />
   );
 
 describe('RadioGroup', () => {
@@ -41,7 +37,7 @@ describe('RadioGroup', () => {
     user = userEvent.setup();
   });
 
-  it('renders all options inside a radiogroup', () => {
+  it('renders all items inside a radiogroup', () => {
     renderRadioGroup();
 
     expect(screen.getByRole('radiogroup', { name: 'Mode' })).toBeInTheDocument();
@@ -57,9 +53,9 @@ describe('RadioGroup', () => {
 
   it('calls onChange with the value (and event) when an option is selected', async () => {
     const onChange = jest.fn();
-    renderRadioGroup({ onChange });
+    renderRadioGroup({ value: 'off', onChange });
 
-    await user.click(screen.getByRole('radio', { name: 'System' }));
+    await user.click(screen.getByRole('radio', { name: 'System Proxy' }));
 
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange.mock.calls[0][0]).toBe('system');
@@ -69,11 +65,7 @@ describe('RadioGroup', () => {
   it('updates selection when driven as a controlled component', async () => {
     const Controlled = () => {
       const [value, setValue] = useState('off');
-      return (
-        <RadioGroup name="mode" ariaLabel="Mode" value={value} onChange={setValue}>
-          <Options />
-        </RadioGroup>
-      );
+      return <RadioGroup label="Mode" value={value} onChange={setValue} items={proxyModes} />;
     };
     renderWithTheme(<Controlled />);
 
@@ -93,15 +85,15 @@ describe('RadioGroup', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('disables only the option marked disabled', async () => {
+  it('disables only the item marked disabled', async () => {
     const onChange = jest.fn();
-    renderRadioGroup(
-      { onChange },
-      <>
-        <Radio value="off" label="Off" />
-        <Radio value="manual" label="Manual" disabled />
-      </>
-    );
+    renderRadioGroup({
+      onChange,
+      items: [
+        { value: 'off', label: 'Off' },
+        { value: 'manual', label: 'Manual', disabled: true }
+      ]
+    });
 
     expect(screen.getByRole('radio', { name: 'Manual' })).toBeDisabled();
     expect(screen.getByRole('radio', { name: 'Off' })).toBeEnabled();
@@ -110,21 +102,21 @@ describe('RadioGroup', () => {
   });
 
   it('shares a single generated name across inputs when none is provided', () => {
-    renderRadioGroup({ name: undefined });
+    renderRadioGroup();
 
-    const [a, b, c] = screen.getAllByRole('radio');
-    expect(a.name).toBeTruthy();
-    expect(a.name).toBe(b.name);
-    expect(b.name).toBe(c.name);
+    const radios = screen.getAllByRole('radio');
+    const [first] = radios;
+    expect(first.name).toBeTruthy();
+    radios.forEach((r) => expect(r.name).toBe(first.name));
   });
 
-  it('applies dataTestId to the underlying input', () => {
-    renderRadioGroup({}, <Radio value="off" label="Off" dataTestId="mode-off" />);
+  it('applies item dataTestId to the underlying input', () => {
+    renderRadioGroup({ items: [{ value: 'off', label: 'Off', dataTestId: 'mode-off' }] });
 
     expect(screen.getByTestId('mode-off')).toBe(screen.getByRole('radio', { name: 'Off' }));
   });
 
-  it('applies dataTestId to the group container', () => {
+  it('applies dataTestId to the radiogroup container', () => {
     renderRadioGroup({ dataTestId: 'mode-group' });
 
     expect(screen.getByTestId('mode-group')).toBe(screen.getByRole('radiogroup'));
@@ -136,14 +128,30 @@ describe('RadioGroup', () => {
     expect(screen.getByRole('radiogroup')).toHaveAttribute('data-custom', 'xyz');
   });
 
+  it('forwards extra item props to the underlying input', () => {
+    renderRadioGroup({ items: [{ value: 'off', label: 'Off', id: 'mode-off-input', required: true }] });
+
+    const input = screen.getByRole('radio', { name: 'Off' });
+    expect(input).toHaveAttribute('id', 'mode-off-input');
+    expect(input).toBeRequired();
+  });
+
+  it('forwards the ref to the root element', () => {
+    const ref = createRef();
+    renderRadioGroup({ ref });
+
+    expect(ref.current).toBeInstanceOf(HTMLElement);
+    expect(ref.current).toContainElement(screen.getByRole('radiogroup'));
+  });
+
   describe('accessible name', () => {
     it('is derived from a visible label', () => {
-      renderRadioGroup({ label: 'Proxy mode', ariaLabel: undefined });
+      renderRadioGroup({ label: 'Proxy mode' });
       expect(screen.getByRole('radiogroup', { name: 'Proxy mode' })).toBeInTheDocument();
     });
 
     it('is derived from ariaLabel when no visible label is rendered', () => {
-      renderRadioGroup({ ariaLabel: 'Proxy mode' });
+      renderRadioGroup({ label: undefined, ariaLabel: 'Proxy mode' });
       expect(screen.getByRole('radiogroup', { name: 'Proxy mode' })).toBeInTheDocument();
     });
 
@@ -151,16 +159,14 @@ describe('RadioGroup', () => {
       renderWithTheme(
         <>
           <span id="ext-label">Proxy mode</span>
-          <RadioGroup name="mode" ariaLabelledBy="ext-label" value="off" onChange={() => {}}>
-            <Options />
-          </RadioGroup>
+          <RadioGroup ariaLabelledBy="ext-label" value="off" onChange={() => {}} items={proxyModes} />
         </>
       );
       expect(screen.getByRole('radiogroup', { name: 'Proxy mode' })).toBeInTheDocument();
     });
   });
 
-  it('throws if Radio is used outside a RadioGroup', () => {
+  it('throws if the internal Radio is used outside a RadioGroup', () => {
     const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => renderWithTheme(<Radio value="x" label="X" />)).toThrow(
       '<Radio> must be rendered inside <RadioGroup>.'

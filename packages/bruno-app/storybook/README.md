@@ -63,7 +63,7 @@ parameters: {
 }
 ```
 
-**Don't hardcode `name` on radio-based groups.** `RadioGroup`/`SegmentGroup` auto-generate a unique `name` per instance. On the Docs page the primary story renders twice and all stories share the DOM, so a hardcoded `name` makes separate instances collide into one native radio group (selecting in one unchecks another). Omit `name` unless you specifically want a shared native group.
+**Don't hardcode `name` on radio-based groups.** `RadioGroup`/`SegmentedControl` auto-generate a unique `name` per instance. On the Docs page the primary story renders twice and all stories share the DOM, so a hardcoded `name` makes separate instances collide into one native radio group (selecting in one unchecks another). Omit `name` unless you specifically want a shared native group.
 
 **Give overlay components room.** Dropdowns, menus, and modals open a popover that gets clipped by the short, `overflow`-hidden inline Docs preview. Render those stories in an iframe with a height:
 
@@ -71,7 +71,18 @@ parameters: {
 parameters: { docs: { story: { inline: false, height: '360px' } } }
 ```
 
-**Always give group components an accessible name.** Components like `RadioGroup`/`SegmentGroup` warn in development if they render without `label`, `ariaLabel`, or `ariaLabelledBy` — pass one in stories and real usage.
+**Always give group components an accessible name.** Components like `RadioGroup`/`SegmentedControl` warn in development if they render without `label`, `ariaLabel`, or `ariaLabelledBy` — pass one in stories and real usage. Don't fabricate a placeholder name to silence the warning; a meaningless label is worse than none (only the shared native `name` attribute is auto-generated, because it carries no human meaning).
+
+**Inline story state — don't wrap in a helper component.** For controlled components, put `useState` directly inside the story's `render` and return the component itself. Wrapping it in a `<Controlled>` helper makes the code panel show `<Controlled>` instead of the real component, because the generated source reflects the root element the `render` returns.
+
+```jsx
+export const Default = {
+  render: (args) => {
+    const [value, setValue] = useState('http');
+    return <SegmentedControl {...args} value={value} onChange={setValue} items={items} />;
+  }
+};
+```
 
 **Demo wrappers, not component chrome.** If a story needs a sized/bordered container to demonstrate behavior (e.g. width for overflow), keep it clearly a demo wrapper so it isn't mistaken for the component's own styling.
 
@@ -79,8 +90,39 @@ parameters: { docs: { story: { inline: false, height: '360px' } } }
 
 Autodocs (the Docs tab) requires `@storybook/addon-docs`, registered in `main.js` and pinned to the **same version** as the `storybook` core package — a version mismatch throws `docsParameter.renderer is not a function`. Run `npx storybook doctor` to check for mismatched Storybook packages.
 
+## Code panel
+
+`preview.jsx` turns on the source/code views that `@storybook/addon-docs` provides:
+
+```js
+docs: {
+  codePanel: true,              // a "Code" tab in the Canvas addon panel
+  canvas: { sourceState: 'shown' } // Docs "Show code" expanded by default
+}
+```
+
+The snippet reflects the root element your story's `render` returns, so follow the "inline story state" note above to keep it showing the real component. There's also a `</>` Show code button in the Canvas toolbar.
+
 ## Adding a new primitive
 
 1. Build the component under `src/ui/<Name>/` (`index.js` + `StyledWrapper.js`), following the existing conventions: `$`-prefixed transient style props, theme tokens, a `dataTestId`, forwarded refs, and forwarded `...rest`.
 2. Add `<Name>.stories.jsx` next to it with a `Components/<Name>` title, `autodocs`, `argTypes`, a clean `docs.description.component`, and a story per meaningful state.
 3. Add `<Name>.spec.jsx` (React Testing Library) for behavior and accessibility.
+
+### Group primitives (single-select)
+
+Single-select group primitives (`RadioGroup`, `SegmentedControl`) follow a specific layout: the implementation lives in a `components/` subfolder and only the data-driven **list** API is exposed publicly, keeping the compound pieces internal so a compound API can be surfaced later without a rewrite.
+
+```
+src/ui/<Name>/
+├── components/
+│   ├── <Name>Base.jsx    # compound: owns the context + renders the radiogroup
+│   ├── <Option>.jsx      # the internal option (reads context)
+│   ├── <Name>.jsx        # public list component — maps `items` → options
+│   └── StyledWrapper.js  # styling
+├── index.jsx             # exposes only the list <Name> (default export)
+├── <Name>.stories.jsx
+└── <Name>.spec.jsx
+```
+
+Consumers use the list API: `<SegmentedControl value onChange items={[{ value, label, ... }]} />`. To expose the compound API later, re-export `<Option>` / `<Name>Base` from `index.jsx`.
