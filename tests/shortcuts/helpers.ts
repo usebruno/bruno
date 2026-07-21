@@ -168,3 +168,29 @@ export const getTabIndex = async (page: Page, name: string) => {
 
   return -1;
 };
+
+/** Activate a request/special tab and clear sidebar folder/collection focus so the tab owns shortcuts. */
+export const focusTabWithoutSidebarFocus = async (page: Page, tabName: string | RegExp) => {
+  const tab = page.locator('.request-tab').filter({ has: page.getByText(tabName, { exact: true }) });
+  await tab.click();
+  await expect(tab).toHaveClass(/active/);
+
+  // Blur sidebar so focusedSidebarPath is null and RequestTab's newRequest binding is enabled.
+  const requestUrl = page.getByTestId('request-url');
+  if (await requestUrl.isVisible().catch(() => false)) {
+    await requestUrl.click();
+    return;
+  }
+
+  // Special tabs (folder/collection settings, overview) have no request URL and no other
+  // focusable element to click — blur the sidebar row directly (it's the only thing focused).
+  await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+};
+
+export const fillAndCreateNewRequest = async (page: Page, requestName: string) => {
+  await expect(page.getByTestId('request-name')).toBeVisible();
+  await page.getByTestId('request-name').fill(requestName);
+  await page.getByTestId('new-request-url').locator('.CodeMirror').click();
+  await page.keyboard.type('https://echo.usebruno.com');
+  await page.getByTestId('create-new-request-button').click();
+};
