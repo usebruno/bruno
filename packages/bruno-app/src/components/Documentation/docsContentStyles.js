@@ -151,7 +151,7 @@ const docsContentStyles = css`
     }
   }
 
-  .docs-code-block.single-line pre {
+  .editor-code-block.single-line pre {
     padding-top: 0.75rem;
     padding-right: 2.5rem;
   }
