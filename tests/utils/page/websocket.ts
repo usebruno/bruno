@@ -11,6 +11,7 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
     addButton: () => page.getByTestId('ws-add-message'),
     headers: () => page.getByTestId(/^ws-message-header-/),
     header: (index: number) => page.getByTestId(`ws-message-header-${index}`),
+    messageWrapper: (index: number) => page.getByTestId(`ws-message-${index}`),
     body: (index: number) => page.getByTestId(`ws-message-body-${index}`),
     editor: (index: number) => page.getByTestId(`ws-message-body-${index}`).locator('.CodeMirror'),
     editorPlaceholder: (index: number) =>
