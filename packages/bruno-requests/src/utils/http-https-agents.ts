@@ -59,6 +59,7 @@ type ClientCertificate = {
   keyFilePath?: string;
   pfxFilePath?: string;
   passphrase?: string;
+  disabled?: boolean;
 };
 
 type CACertificatesCount = {
@@ -268,6 +269,9 @@ const getCertsAndProxyConfig = ({
   const clientCertConfig = get(clientCertificates, 'certs', []) as ClientCertificate[];
 
   for (const clientCert of clientCertConfig) {
+    if (clientCert?.disabled) {
+      continue;
+    }
     const domain = clientCert?.domain;
     const type = clientCert?.type || 'cert';
     if (domain) {

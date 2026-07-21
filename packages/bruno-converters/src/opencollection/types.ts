@@ -208,6 +208,7 @@ export interface BrunoConfig {
       keyFilePath?: string;
       pfxFilePath?: string;
       passphrase?: string;
+      disabled?: boolean;
     }>;
   };
   scripts?: {

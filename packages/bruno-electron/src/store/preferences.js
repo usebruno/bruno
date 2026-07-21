@@ -125,7 +125,8 @@ const preferencesSchema = Yup.object().shape({
           certFilePath: Yup.string().nullable(),
           keyFilePath: Yup.string().nullable(),
           pfxFilePath: Yup.string().nullable(),
-          passphrase: Yup.string().nullable()
+          passphrase: Yup.string().nullable(),
+          disabled: Yup.boolean()
         })
       )
     }).optional()
@@ -419,6 +420,9 @@ const preferencesUtil = {
   },
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);
+  },
+  getGlobalClientCertificates: () => {
+    return get(getPreferences(), 'request.clientCertificates.certs', []);
   },
   markAsLaunched: async () => {
     const preferences = getPreferences();
