@@ -217,13 +217,42 @@ export const buildAiVariablesPayload = (collection, item, redactVariablesOverrid
   return out;
 };
 
+export const buildAiRequestsPayload = (collection) => {
+  if (!collection) return [];
+  const out = [];
+  const walk = (items, folderPath) => {
+    const ordered = sortItemsBySidebarOrder(items || []);
+    for (const item of ordered) {
+      if (item.isTransient) continue;
+      if (isItemAFolder(item)) {
+        const nested = folderPath ? `${folderPath}/${item.name || ''}` : (item.name || '');
+        walk(item.items || [], nested);
+        continue;
+      }
+      if (!isItemARequest(item)) continue;
+      const req = item.draft?.request || item.request || {};
+      out.push({
+        name: item.name || '',
+        pathname: item.pathname || '',
+        folderPath: folderPath || '',
+        type: item.type,
+        method: req.method || 'GET',
+        url: req.url || ''
+      });
+    }
+  };
+  walk(collection.items || [], '');
+  return out;
+};
+
 /**
  * Single entry point for chat + generation. Returns the same payload shape
  * for both so the backend formatters / tools behave identically.
  */
 export const buildAiContextPayload = (item, collection, redactVariablesOverride) => ({
   requestContext: buildAiRequestContext(item),
-  variables: collection ? buildAiVariablesPayload(collection, item, redactVariablesOverride) : []
+  variables: collection ? buildAiVariablesPayload(collection, item, redactVariablesOverride) : [],
+  requests: buildAiRequestsPayload(collection)
 });
 
 const summarizeDocsItems = (items = []) => {
