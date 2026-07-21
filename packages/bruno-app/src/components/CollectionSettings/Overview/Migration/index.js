@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { IconFileCode, IconTransform } from '@tabler/icons';
 import Button from 'ui/Button';
+import { areItemsLoading } from 'utils/collections';
 import MigrateToYmlModal from './MigrateToYmlModal';
 import StyledWrapper from './StyledWrapper';
 
 const Migration = ({ collection }) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const isCollectionLoading = collection.mountStatus !== 'mounted' || areItemsLoading(collection);
 
   // Only show for bru format collections
   if (collection.format !== 'bru') {
@@ -43,6 +45,8 @@ const Migration = ({ collection }) => {
               size="sm"
               color="primary"
               className="mt-2"
+              disabled={isCollectionLoading}
+              title={isCollectionLoading ? 'Wait for the collection to finish loading' : undefined}
               onClick={() => setShowConfirmModal(true)}
             >
               Convert to YML

@@ -311,46 +311,11 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.brunoConfig = brunoConfig;
+        // Derive from the config on disk only. Do not fall back to the previous
+        // collection.format, after migrate→yml then a git revert to bru, that
+        // stale 'yml' would hide the Convert to YML button forever.
+        collection.format = brunoConfig?.opencollection ? 'yml' : brunoConfig?.format || 'bru';
       }
-    },
-    migrateCollectionToYmlInPlace: (state, action) => {
-      const { collectionUid, brunoConfig } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      if (!collection) {
-        return;
-      }
-
-      if (brunoConfig) {
-        collection.brunoConfig = brunoConfig;
-        if (collection.draft?.brunoConfig) {
-          collection.draft.brunoConfig = brunoConfig;
-        }
-      }
-      collection.format = 'yml';
-
-      const rewriteItemPaths = (items) => {
-        (items || []).forEach((item) => {
-          if (item.isTransient) {
-            return;
-          }
-          if (typeof item.pathname === 'string') {
-            item.pathname = item.pathname.replace(/\.bru$/, '.yml');
-          }
-          if (typeof item.filename === 'string') {
-            item.filename = item.filename.replace(/\.bru$/, '.yml');
-          }
-          if (item.items && item.items.length) {
-            rewriteItemPaths(item.items);
-          }
-        });
-      };
-      rewriteItemPaths(collection.items);
-
-      (collection.environments || []).forEach((environment) => {
-        if (typeof environment.pathname === 'string') {
-          environment.pathname = environment.pathname.replace(/\.bru$/, '.yml');
-        }
-      });
     },
     renameCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -3419,6 +3384,20 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    // Reopening a collection whose Redux entry never got cleared (removal raced/skipped, or the
+    // folder was replaced on disk without going through remove-collection first) must not keep
+    // trusting the stale item tree — drop it so the fresh watcher scan we trigger right after
+    // rebuilds it from what's actually on disk now.
+    resetCollectionForReopen: (state, action) => {
+      const { collectionUid, brunoConfig } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      collection.items = [];
+      collection.environments = [];
+      collection.brunoConfig = brunoConfig;
+      collection.format = brunoConfig?.opencollection ? 'yml' : brunoConfig?.format || 'bru';
+    },
     resetCollectionRunner: (state, action) => {
       const { collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -3546,6 +3525,7 @@ export const collectionsSlice = createSlice({
       }
       if (tree?.brunoConfig) {
         collection.brunoConfig = tree.brunoConfig;
+        collection.format = tree.brunoConfig?.opencollection ? 'yml' : tree.brunoConfig?.format || 'bru';
       }
       const tempDirectory = state.tempDirectories?.[collectionUid];
       if (tempDirectory) {
@@ -3960,7 +3940,6 @@ export const {
   setCollectionSecurityConfig,
   updateCollectionVersion,
   brunoConfigUpdateEvent,
-  migrateCollectionToYmlInPlace,
   renameCollection,
   removeCollection,
   sortCollections,
@@ -4090,6 +4069,7 @@ export const {
   initRunRequestEvent,
   runRequestEvent,
   runFolderEvent,
+  resetCollectionForReopen,
   resetCollectionRunner,
   updateRunnerTagsDetails,
   updateRunnerConfiguration,

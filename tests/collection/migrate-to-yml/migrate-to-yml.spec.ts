@@ -35,7 +35,7 @@ test.describe('Migrate collection from bru to yml format', () => {
 
     await test.step('Verify migration section is visible for bru collection', async () => {
       await expect(page.getByText('Migrate to YML file format')).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Convert to YML' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Convert to YML' })).toBeEnabled();
     });
 
     await test.step('Click Convert to YML and confirm migration', async () => {
@@ -48,8 +48,10 @@ test.describe('Migrate collection from bru to yml format', () => {
       // Verify modal content mentions the collection name
       await expect(modal.getByText('migration-test')).toBeVisible();
 
-      // Confirm migration
-      await modal.getByRole('button', { name: 'Migrate' }).click();
+      // Confirm migration (enabled once the collection has finished loading)
+      const migrateButton = modal.getByRole('button', { name: 'Migrate' });
+      await expect(migrateButton).toBeEnabled();
+      await migrateButton.click();
     });
 
     await test.step('Wait for migration to complete and collection to reload', async () => {

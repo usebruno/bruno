@@ -34,10 +34,11 @@ test.describe('Migrate-to-YML pill in collection toolbar', () => {
       await expect(pill).toBeVisible({ timeout: 10000 });
       await expect(pill).toContainText('Migrate to YML');
       await expect(pillDismiss).toBeVisible();
+      await expect(pill.locator('.pill-main')).toBeEnabled();
     });
 
     await test.step('Clicking the pill body opens the migrate-to-yml modal without dismissing', async () => {
-      await pill.click();
+      await pill.locator('.pill-main').click();
       const migrateModal = page.locator('.bruno-modal-card', { hasText: 'Migrate to YML format' });
       await expect(migrateModal).toBeVisible();
       // Pill should still be visible — clicking the body opens the modal, it should not dismiss

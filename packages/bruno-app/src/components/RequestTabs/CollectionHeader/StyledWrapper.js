@@ -180,8 +180,12 @@ const StyledWrapper = styled.div`
     line-height: 1;
     transition: background-color 0.15s ease;
 
-    &:hover {
+    &:hover:not(.disabled) {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+    }
+
+    &.disabled {
+      opacity: 0.5;
     }
 
     .pill-main {
@@ -194,6 +198,10 @@ const StyledWrapper = styled.div`
       color: inherit;
       font: inherit;
       cursor: pointer;
+
+      &:disabled {
+        cursor: not-allowed;
+      }
     }
 
     .pill-label {

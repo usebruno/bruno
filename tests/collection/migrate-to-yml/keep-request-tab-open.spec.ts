@@ -3,12 +3,12 @@ import path from 'path';
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, openCollection, selectEnvironment, sendRequestAndWaitForResponse } from '../../utils/page';
 
-test.describe('Migrate collection from bru to yml format — keep open request tab', () => {
+test.describe('Migrate collection from bru to yml format, close open request tabs', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('should keep a request tab open during migration functional (no "Request no longer exists")', async ({ pageWithUserData: page, collectionFixturePath }) => {
+  test('should close open request tabs after migration and leave migrated requests usable', async ({ pageWithUserData: page, collectionFixturePath }) => {
     const collectionPath = collectionFixturePath!;
 
     const pageErrors: Error[] = [];
@@ -31,12 +31,14 @@ test.describe('Migrate collection from bru to yml format — keep open request t
       await overviewTab.click();
 
       const convertButton = page.getByRole('button', { name: 'Convert to YML' });
-      await expect(convertButton).toBeVisible();
+      await expect(convertButton).toBeEnabled();
       await convertButton.click();
 
       const modal = page.locator('.bruno-modal').filter({ hasText: 'Migrate to YML format' });
       await modal.waitFor({ state: 'visible', timeout: 5000 });
-      await modal.getByRole('button', { name: 'Migrate' }).click();
+      const migrateButton = modal.getByRole('button', { name: 'Migrate' });
+      await expect(migrateButton).toBeEnabled();
+      await migrateButton.click();
 
       await expect(page.getByText('Collection migrated to YML format successfully')).toBeVisible({ timeout: 30000 });
     });
@@ -46,14 +48,15 @@ test.describe('Migrate collection from bru to yml format — keep open request t
       expect(fs.existsSync(path.join(collectionPath, 'ping.bru'))).toBe(false);
     });
 
-    await test.step('The ping tab stays open and resolves to the yml request (no "Request no longer exists")', async () => {
+    await test.step('Open request tabs for the migrated collection are closed', async () => {
       await expect(page.getByText('Request no longer exists')).not.toBeVisible();
+      await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'ping' })).toHaveCount(0);
+    });
 
-      const pingTab = page.locator('.request-tab .tab-label').filter({ hasText: 'ping' });
-      await expect(pingTab).toBeVisible({ timeout: 15000 });
-      await page.locator('.request-tab').filter({ hasText: 'ping' }).click({ force: true });
+    await test.step('Reopening the migrated request works', async () => {
+      await openCollection(page, 'migration-test');
+      await page.locator('.item-name').filter({ hasText: 'ping' }).dblclick();
 
-      await expect(page.getByText('Request no longer exists')).not.toBeVisible();
       const urlContainer = page.locator('#request-url');
       await expect(urlContainer).toBeVisible();
       await expect(urlContainer.locator('.CodeMirror')).toContainText('/ping');

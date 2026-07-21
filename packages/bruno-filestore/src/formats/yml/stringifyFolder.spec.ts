@@ -45,3 +45,22 @@ describe('stringifyFolder — typed request.variables', () => {
     expect(reqVars[4].dataType).toBeUndefined();
   });
 });
+
+describe('stringifyFolder — seq', () => {
+  it('omits seq when the folder has none', () => {
+    const folderRoot = { meta: { name: 'no-seq-folder' }, docs: null } as any;
+
+    const yml = stringifyFolder(folderRoot);
+
+    expect(yml).not.toMatch(/seq:/);
+    expect(parseFolder(yml).meta?.seq).toBeUndefined();
+  });
+
+  it('preserves an explicit numeric seq', () => {
+    const folderRoot = { meta: { name: 'ordered-folder', seq: 3 }, docs: null } as any;
+
+    const yml = stringifyFolder(folderRoot);
+
+    expect(parseFolder(yml).meta?.seq).toBe(3);
+  });
+});

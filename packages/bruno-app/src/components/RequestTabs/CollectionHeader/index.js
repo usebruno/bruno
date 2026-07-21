@@ -27,7 +27,7 @@ import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections';
 import { toggleAiSidebar } from 'providers/ReduxStore/slices/chat';
 import MigrateToYmlModal from 'components/CollectionSettings/Overview/Migration/MigrateToYmlModal';
-import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
+import { findItemInCollection, findItemInCollectionByPathname, areItemsLoading } from 'utils/collections';
 import find from 'lodash/find';
 import get from 'lodash/get';
 import { addTab, focusTab, setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
@@ -192,6 +192,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const hasOpenApiSyncConfigured = collection?.brunoConfig?.openapi?.[0]?.sourceUrl;
   const hasOpenApiUpdates = hasOpenApiSyncConfigured && collectionUpdates[collection.uid]?.hasUpdates;
   const hasOpenApiError = hasOpenApiSyncConfigured && collectionUpdates[collection.uid]?.error;
+  const isCollectionLoading = collection.mountStatus !== 'mounted' || areItemsLoading(collection);
 
   // Get mounted collections for the current workspace (excluding scratch collections)
   const mountedCollections = collections.filter((c) => {
@@ -716,13 +717,14 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
               )}
               {collection.format === 'bru' && !migratePillDismissed && (
                 <div
-                  className="migrate-yml-pill"
+                  className={`migrate-yml-pill${isCollectionLoading ? ' disabled' : ''}`}
                   data-testid="migrate-yml-pill"
-                  title="Migrate this collection to YML"
+                  title={isCollectionLoading ? 'Wait for the collection to finish loading' : 'Migrate this collection to YML'}
                 >
                   <button
                     type="button"
                     className="pill-main"
+                    disabled={isCollectionLoading}
                     onClick={() => setShowMigrateModal(true)}
                   >
                     <IconTransform size={13} strokeWidth={1.5} />
