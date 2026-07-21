@@ -274,9 +274,7 @@ function executeModuleInVmContext({
  *
  * Resolution order matches standard Node.js walk-up:
  *   1. currentModuleDir/node_modules → walk up parent dirs
- *   2. collectionPath/node_modules (covers scripts whose caller sits outside
- *      the collection subtree — e.g. a shared script in an additional
- *      context root under a sibling directory)
+ *   2. collectionPath/node_modules
  *   3. Bruno's bundled node_modules (final fallback for chai/ajv/axios/etc.)
  *
  * @param {Object} options - Configuration options
