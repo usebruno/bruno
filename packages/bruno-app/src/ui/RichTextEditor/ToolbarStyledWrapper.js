@@ -1,7 +1,8 @@
 import styled from 'styled-components';
+import { transparentize } from 'polished';
 
 const ToolbarStyledWrapper = styled.div`
-  .docs-toolbar {
+  .editor-toolbar {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -11,7 +12,7 @@ const ToolbarStyledWrapper = styled.div`
     flex-shrink: 0;
   }
 
-  .docs-toolbar-measure {
+  .editor-toolbar-measure {
     position: absolute;
     visibility: hidden;
     pointer-events: none;
@@ -41,13 +42,13 @@ const ToolbarStyledWrapper = styled.div`
     }
 
     &.is-active {
-      background: ${(props) => props.theme.dropdown.hoverBg};
+      background: ${(props) => transparentize(1 - 0.12, props.theme.dropdown.selectedColor)};
       color: ${(props) => props.theme.dropdown.selectedColor};
       border-color: ${(props) => props.theme.dropdown.selectedColor};
     }
   }
 
-  .docs-toolbar-actions {
+  .editor-toolbar-actions {
     display: flex;
     align-items: center;
     gap: 2px;
@@ -78,7 +79,7 @@ const ToolbarStyledWrapper = styled.div`
     }
 
     &.is-active {
-      background: ${(props) => props.theme.dropdown.hoverBg};
+      background: ${(props) => transparentize(1 - 0.12, props.theme.dropdown.selectedColor)};
       color: ${(props) => props.theme.dropdown.selectedColor};
     }
 

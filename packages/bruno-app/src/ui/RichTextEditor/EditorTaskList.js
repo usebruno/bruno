@@ -6,13 +6,13 @@ import TaskList from '@tiptap/extension-task-list';
 import {
   setupTaskListParser,
   updateTaskListDOM
-} from './DocsMarkdownParse';
+} from './EditorMarkdownParse';
 import {
   serializeBulletList,
   serializeListItemContent,
   serializeOrderedList,
   serializeTaskList
-} from './DocsMarkdownSerialize';
+} from './EditorMarkdownSerialize';
 
 const isTaskListElement = (node) =>
   node.getAttribute('data-type') === 'taskList'
@@ -22,7 +22,7 @@ const isTaskItemElement = (node) =>
   node.getAttribute('data-type') === 'taskItem'
   || node.classList.contains('task-list-item');
 
-const DocsBulletList = BulletList.extend({
+const EditorBulletList = BulletList.extend({
   parseHTML() {
     return [
       {
@@ -40,7 +40,7 @@ const DocsBulletList = BulletList.extend({
   }
 });
 
-const DocsOrderedList = OrderedList.extend({
+const EditorOrderedList = OrderedList.extend({
   addStorage() {
     return {
       markdown: {
@@ -50,7 +50,7 @@ const DocsOrderedList = OrderedList.extend({
   }
 });
 
-const DocsListItem = ListItem.extend({
+const EditorListItem = ListItem.extend({
   parseHTML() {
     return [
       {
@@ -70,7 +70,7 @@ const DocsListItem = ListItem.extend({
   }
 });
 
-const DocsTaskList = TaskList.extend({
+const EditorTaskList = TaskList.extend({
   parseHTML() {
     return [
       {
@@ -100,7 +100,7 @@ const DocsTaskList = TaskList.extend({
   }
 });
 
-const DocsTaskItem = TaskItem.extend({
+const EditorTaskItem = TaskItem.extend({
   parseHTML() {
     return [
       {
@@ -243,9 +243,9 @@ const DocsTaskItem = TaskItem.extend({
 });
 
 export {
-  DocsBulletList,
-  DocsListItem,
-  DocsOrderedList,
-  DocsTaskItem,
-  DocsTaskList
+  EditorBulletList,
+  EditorListItem,
+  EditorOrderedList,
+  EditorTaskItem,
+  EditorTaskList
 };

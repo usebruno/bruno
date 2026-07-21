@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import { transparentize } from 'polished';
 
 const StyledModeSwitch = styled.div`
   display: flex;
@@ -12,9 +13,9 @@ const StyledModeSwitch = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px 12px;
+    padding: 2px 10px;
     font-size: 0.75rem;
-    font-weight: 500;
+    font-weight: 400;
     color: ${(props) => props.theme.colors.text.muted};
     transition: all 0.2s ease;
     cursor: pointer;
@@ -28,7 +29,7 @@ const StyledModeSwitch = styled.div`
 
     &.is-active {
       color: ${(props) => props.theme.button2.color['primary']?.bg};
-      background: ${(props) => props.theme.dropdown.hoverBg};
+      background: ${(props) => transparentize(1 - 0.12, props.theme.dropdown.selectedColor)};
     }
   }
 `;

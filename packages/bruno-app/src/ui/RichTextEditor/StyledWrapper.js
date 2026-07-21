@@ -2,7 +2,7 @@ import styled from 'styled-components';
 import docsContentStyles from 'components/Documentation/docsContentStyles';
 
 const StyledWrapper = styled.div`
-  .wysiwyg-editor-content {
+  .rich-text-editor-content {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
@@ -22,7 +22,7 @@ const StyledWrapper = styled.div`
     h4,
     h5,
     h6,
-    li:not([data-type='taskItem']):not(.docs-task-item):not(.task-list-item) {
+    li:not([data-type='taskItem']):not(.editor-task-item):not(.task-list-item) {
       min-height: 1.5em;
     }
 
@@ -63,11 +63,11 @@ const StyledWrapper = styled.div`
     }
 
     ul[data-type='taskList'] input[type='checkbox'],
-    li.docs-task-item input[type='checkbox'] {
+    li.editor-task-item input[type='checkbox'] {
       accent-color: ${(props) => props.theme.primary.solid};
     }
 
-    table.docs-table {
+    table.editor-table {
       .column-resize-handle {
         position: absolute;
         right: -2px;

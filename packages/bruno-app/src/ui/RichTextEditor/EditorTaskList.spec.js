@@ -4,14 +4,14 @@ import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';
 import Text from '@tiptap/extension-text';
 import Strike from '@tiptap/extension-strike';
-import { DocsTaskList, DocsTaskItem } from './DocsTaskList';
+import { EditorTaskList, EditorTaskItem } from './EditorTaskList';
 
-describe('DocsTaskItem NodeView edge cases', () => {
+describe('EditorTaskItem NodeView edge cases', () => {
   let editor;
 
   beforeEach(() => {
     editor = new Editor({
-      extensions: [Document, Paragraph, Text, Strike, Link, DocsTaskList, DocsTaskItem],
+      extensions: [Document, Paragraph, Text, Strike, Link, EditorTaskList, EditorTaskItem],
       content: `
         <ul data-type="taskList">
           <li data-type="taskItem" data-checked="false"><p>Hello World</p></li>

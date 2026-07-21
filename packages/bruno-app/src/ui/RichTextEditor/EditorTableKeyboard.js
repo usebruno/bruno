@@ -1,6 +1,6 @@
 import { Extension } from '@tiptap/core';
 
-const DocsTableKeyboard = Extension.create({
+const EditorTableKeyboard = Extension.create({
   name: 'docsTableKeyboard',
   priority: 1000,
   addKeyboardShortcuts() {
@@ -16,4 +16,4 @@ const DocsTableKeyboard = Extension.create({
   }
 });
 
-export default DocsTableKeyboard;
+export default EditorTableKeyboard;

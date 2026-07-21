@@ -37,7 +37,7 @@ const getListItemCount = (editor, typeName = 'listItem') => {
   return count;
 };
 
-describe('Docs markdown serialization', () => {
+describe('Editor markdown serialization', () => {
   let editor;
 
   afterEach(() => {

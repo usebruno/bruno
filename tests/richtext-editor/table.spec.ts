@@ -2,7 +2,7 @@ import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
 import { setupRequestDocs } from './utils';
 
-test.describe('Wysiwyg Docs Editor Edge Cases - Tables', () => {
+test.describe('Rich Text Editor Edge Cases - Tables', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
   });
@@ -12,7 +12,7 @@ test.describe('Wysiwyg Docs Editor Edge Cases - Tables', () => {
   });
 
   test('Table Insertion', async ({ page, createTmpDir }) => {
-    const locators = await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-table');
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-table');
 
     const prosemirror = locators.docs.proseMirror();
     await expect(prosemirror).toBeVisible();

@@ -61,21 +61,21 @@ const DocsCodeBlockExtension = CodeBlockLowlight.extend({
   }
 }).configure({ lowlight });
 
-import DocsGapCursor from './DocsGapCursor';
-import DocsHardBreak from './DocsHardBreak';
-import DocsListKeyboard from './DocsListKeyboard';
-import { serializeTable } from './DocsMarkdownSerialize';
-import DocsTableKeyboard from './DocsTableKeyboard';
-import DocsTableView from './DocsTableView';
+import EditorGapCursor from './EditorGapCursor';
+import EditorHardBreak from './EditorHardBreak';
+import EditorListKeyboard from './EditorListKeyboard';
+import { serializeTable } from './EditorMarkdownSerialize';
+import EditorTableKeyboard from './EditorTableKeyboard';
+import EditorTableView from './EditorTableView';
 import {
-  DocsBulletList,
-  DocsListItem,
-  DocsOrderedList,
-  DocsTaskItem,
-  DocsTaskList
-} from './DocsTaskList';
+  EditorBulletList,
+  EditorListItem,
+  EditorOrderedList,
+  EditorTaskItem,
+  EditorTaskList
+} from './EditorTaskList';
 
-const DocsTable = Table.extend({
+const EditorTable = Table.extend({
   parseHTML() {
     return [{ tag: 'div.tableWrapper > table' }, { tag: 'table' }];
   },
@@ -99,7 +99,7 @@ const DocsTable = Table.extend({
 });
 
 const extensions = [
-  TextStyle.configure({ types: [DocsListItem.name] }),
+  TextStyle.configure({ types: [EditorListItem.name] }),
   StarterKit.configure({
     bulletList: false,
     listItem: false,
@@ -108,35 +108,35 @@ const extensions = [
     gapcursor: false,
     codeBlock: false
   }),
-  DocsHardBreak,
-  DocsListKeyboard,
-  DocsBulletList.configure({
+  EditorHardBreak,
+  EditorListKeyboard,
+  EditorBulletList.configure({
     keepMarks: true,
     keepAttributes: false
   }),
-  DocsOrderedList.configure({
+  EditorOrderedList.configure({
     keepMarks: true,
     keepAttributes: false
   }),
-  DocsListItem,
-  DocsGapCursor,
+  EditorListItem,
+  EditorGapCursor,
   DocsCodeBlockExtension,
-  DocsTaskList,
-  DocsTaskItem.configure({
+  EditorTaskList,
+  EditorTaskItem.configure({
     nested: true,
     HTMLAttributes: {
-      class: 'docs-task-item'
+      class: 'editor-task-item'
     }
   }),
-  DocsTable.configure({
+  EditorTable.configure({
     resizable: true,
     renderWrapper: false,
     handleWidth: 8,
     cellMinWidth: 60,
     lastColumnResizable: true,
-    View: DocsTableView,
+    View: EditorTableView,
     HTMLAttributes: {
-      class: 'docs-table'
+      class: 'editor-table'
     }
   }),
   TableRow,
@@ -146,10 +146,10 @@ const extensions = [
     inline: true,
     allowBase64: true,
     HTMLAttributes: {
-      class: 'docs-image'
+      class: 'editor-image'
     }
   }),
-  DocsTableKeyboard,
+  EditorTableKeyboard,
   Link.configure({
     openOnClick: false,
     autolink: true,
@@ -157,7 +157,7 @@ const extensions = [
     HTMLAttributes: {
       target: '_blank',
       rel: 'noopener noreferrer nofollow',
-      class: 'docs-link'
+      class: 'editor-link'
     }
   }),
   Markdown.configure({

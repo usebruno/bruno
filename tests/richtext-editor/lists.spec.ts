@@ -2,7 +2,7 @@ import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
 import { setupRequestDocs } from './utils';
 
-test.describe('Wysiwyg Docs Editor Edge Cases - Lists', () => {
+test.describe('Rich Text Docs Editor Edge Cases - Lists', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
   });
@@ -12,7 +12,7 @@ test.describe('Wysiwyg Docs Editor Edge Cases - Lists', () => {
   });
 
   test('Lists Formatting', async ({ page, createTmpDir }) => {
-    const locators = await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-lists');
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-lists');
 
     const prosemirror = locators.docs.proseMirror();
     await expect(prosemirror).toBeVisible();

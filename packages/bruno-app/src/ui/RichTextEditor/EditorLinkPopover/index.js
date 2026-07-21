@@ -3,10 +3,10 @@ import { getMarkRange } from '@tiptap/core';
 import { Tooltip } from 'react-tooltip';
 import { IconEdit, IconUnlink, IconCopy, IconExternalLink } from '@tabler/icons';
 import toast from 'react-hot-toast';
-import DocsLinkEditPopover from '../DocsLinkEditPopover';
+import EditorLinkEditPopover from '../EditorLinkEditPopover';
 import StyledWrapper from './StyledWrapper';
 
-const HOVER_TOOLTIP_ID = 'docs-link-hover-tooltip';
+const HOVER_TOOLTIP_ID = 'editor-link-hover-tooltip';
 
 /**
  * Resolves link text + doc range from the TipTap document for a given anchor element.
@@ -47,14 +47,14 @@ function getRelativeCoords(anchorEl, containerEl) {
 }
 
 /**
- * DocsLinkPopover manages:
+ * EditorLinkPopover manages:
  * 1. A lightweight hover preview that appears in BOTH edit and preview modes.
  * 2. A full edit popover (edit-mode) triggered only in edit mode.
  *
  * Both are rendered INSIDE the editor's scrollable container (not a Portal),
  * so they naturally scroll with the content.
  */
-const DocsLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
+const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
   // --- Hover View Popover ---
   const [hoverOpen, setHoverOpen] = useState(false);
   const [hoverCoords, setHoverCoords] = useState({ top: 0, left: 0 });
@@ -72,7 +72,7 @@ const DocsLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
   const isEditable = editor?.isEditable ?? false;
 
   const getContainer = useCallback(() => {
-    return containerEl || editor?.view?.dom?.closest('.wysiwyg-editor-content') || document.body;
+    return containerEl || editor?.view?.dom?.closest('.rich-text-editor-content') || document.body;
   }, [containerEl, editor]);
 
   const openHoverForAnchor = useCallback((anchorEl) => {
@@ -282,7 +282,7 @@ const DocsLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
       )}
 
       {/* ── Edit popover (edit mode only) ── */}
-      <DocsLinkEditPopover
+      <EditorLinkEditPopover
         editor={editor}
         isOpen={editOpen}
         mode="edit"
@@ -304,4 +304,4 @@ const DocsLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
   );
 };
 
-export default DocsLinkPopover;
+export default EditorLinkPopover;

@@ -2,7 +2,7 @@ import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
 import { setupRequestDocs } from './utils';
 
-test.describe('Wysiwyg Docs Editor Edge Cases - Line Formatting', () => {
+test.describe('Rich Text Editor Edge Cases - Line Formatting', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
   });
@@ -12,7 +12,7 @@ test.describe('Wysiwyg Docs Editor Edge Cases - Line Formatting', () => {
   });
 
   test('Line-Level Formatting', async ({ page, createTmpDir }) => {
-    const locators = await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-line-formatting');
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-line-formatting');
 
     const prosemirror = locators.docs.proseMirror();
     await expect(prosemirror).toBeVisible();
@@ -33,7 +33,7 @@ test.describe('Wysiwyg Docs Editor Edge Cases - Line Formatting', () => {
   });
 
   test('Toolbar Tooltips visibility', async ({ page, createTmpDir }) => {
-    const locators = await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-tooltips');
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-tooltips');
 
     const boldButton = locators.docs.toolbarBtn('Bold');
     await expect(boldButton).toBeVisible();
@@ -44,7 +44,7 @@ test.describe('Wysiwyg Docs Editor Edge Cases - Line Formatting', () => {
   });
 
   test('Text Formatting and Undo/Redo', async ({ page, createTmpDir }) => {
-    const locators = await setupRequestDocs(page, createTmpDir, 'test-wysiwyg-formatting');
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-formatting');
 
     const prosemirror = locators.docs.proseMirror();
     await expect(prosemirror).toBeVisible();

@@ -1,7 +1,7 @@
 import { css } from 'styled-components';
 
 /**
- * Shared prose styles for docs preview (.markdown-body) and WYSIWYG editor (.tiptap).
+ * Shared prose styles for docs preview (.markdown-body) and Rich Text editor (.tiptap).
  * Keeps typography and table appearance consistent between edit and preview.
  */
 const docsContentStyles = css`

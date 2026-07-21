@@ -4,7 +4,7 @@ import { IconEdit, IconUnlink, IconCopy } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 
-const DocsLinkEditPopover = ({ editor, isOpen, onClose, onSubmit, onUnlink, initialText, initialUrl, mode = 'edit', isEditable = true, onPopoverMouseEnter, onPopoverMouseLeave, externalCoords }) => {
+const EditorLinkEditPopover = ({ editor, isOpen, onClose, onSubmit, onUnlink, initialText, initialUrl, mode = 'edit', isEditable = true, onPopoverMouseEnter, onPopoverMouseLeave, externalCoords }) => {
   const [currentMode, setCurrentMode] = useState(mode);
   const [text, setText] = useState(initialText || '');
   const [url, setUrl] = useState(initialUrl || '');
@@ -106,14 +106,14 @@ const DocsLinkEditPopover = ({ editor, isOpen, onClose, onSubmit, onUnlink, init
   return (
     <StyledWrapper
       ref={popoverRef}
-      data-docs-link-popover="true"
+      data-editor-link-popover="true"
       style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
       onKeyDown={handleKeyDown}
       onMouseEnter={onPopoverMouseEnter}
       onMouseLeave={onPopoverMouseLeave}
     >
       {currentMode === 'view' ? (
-        <div className="docs-link-view">
+        <div className="editor-link-view">
           <a
             href={url}
             target="_blank"
@@ -156,7 +156,7 @@ const DocsLinkEditPopover = ({ editor, isOpen, onClose, onSubmit, onUnlink, init
           </div>
         </div>
       ) : (
-        <div data-testid="docs-link-popover" className="docs-link-popover-content">
+        <div data-testid="editor-link-popover" className="editor-link-popover-content">
           <div>
             <label htmlFor="linkText">Text</label>
             <input
@@ -209,4 +209,4 @@ const DocsLinkEditPopover = ({ editor, isOpen, onClose, onSubmit, onUnlink, init
   );
 };
 
-export default DocsLinkEditPopover;
+export default EditorLinkEditPopover;

@@ -10,7 +10,7 @@ import {
   IconTrash
 } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
-import { DOCS_MENU_DROPDOWN_PROPS } from './docsToolbarUi';
+import { EDITOR_MENU_DROPDOWN_PROPS } from './editorToolbarUi';
 
 const TABLE_MENU_GROUPS = [
   {
@@ -94,7 +94,7 @@ const getTableMenuState = (editor) => {
   return { isInTable: true, disabledById };
 };
 
-const DocsTableMenu = ({ editor }) => {
+const EditorTableMenu = ({ editor }) => {
   const tableMenuState = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => getTableMenuState(currentEditor)
@@ -121,10 +121,10 @@ const DocsTableMenu = ({ editor }) => {
     <MenuDropdown
       items={menuItems}
       placement="bottom-start"
-      className="docs-table-menu"
+      className="editor-table-menu"
       showTickMark={false}
       groupStyle="select"
-      dropdownProps={DOCS_MENU_DROPDOWN_PROPS}
+      dropdownProps={EDITOR_MENU_DROPDOWN_PROPS}
     >
       <button type="button" className="heading-dropdown-trigger is-active" aria-label="Table options">
         <IconTableOptions size={16} strokeWidth={1.5} />
@@ -135,4 +135,4 @@ const DocsTableMenu = ({ editor }) => {
   );
 };
 
-export default DocsTableMenu;
+export default EditorTableMenu;

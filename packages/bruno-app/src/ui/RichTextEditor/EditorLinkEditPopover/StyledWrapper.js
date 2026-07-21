@@ -13,7 +13,7 @@ const StyledWrapper = styled.div`
   z-index: 9999;
   position: absolute;
 
-  .docs-link-popover-content {
+  .editor-link-popover-content {
     display: flex;
     flex-direction: column;
     gap: 0.625rem;
@@ -58,7 +58,7 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .docs-link-view {
+  .editor-link-view {
     display: flex;
     align-items: center;
     gap: 0.5rem;

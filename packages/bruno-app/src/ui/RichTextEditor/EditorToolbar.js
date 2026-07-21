@@ -22,9 +22,9 @@ import {
 import MenuDropdown from 'ui/MenuDropdown';
 import { Tooltip } from 'react-tooltip';
 import ToolbarStyledWrapper from './ToolbarStyledWrapper';
-import DocsTableMenu from './DocsTableMenu';
+import EditorTableMenu from './EditorTableMenu';
 
-import { DOCS_MENU_DROPDOWN_PROPS, DOCS_TOOLBAR_TOOLTIP_PROPS } from './docsToolbarUi';
+import { EDITOR_MENU_DROPDOWN_PROPS, EDITOR_TOOLBAR_TOOLTIP_PROPS } from './editorToolbarUi';
 
 const HEADING_OPTIONS = [
   { id: 'normal', label: 'Normal', level: 0 },
@@ -54,7 +54,7 @@ const ToolbarButton = ({ tooltip, Icon, isActive, disabled, onClick, showLabel =
       disabled={disabled}
       className={`toolbar-btn ${isActive ? 'is-active' : ''}`}
       aria-label={tooltip}
-      data-tooltip-id="docs-toolbar-tooltip"
+      data-tooltip-id="editor-toolbar-tooltip"
       data-tooltip-content={tooltip}
     >
       <Icon size={16} strokeWidth={1.5} />
@@ -249,7 +249,7 @@ const getToolbarFormatState = (editor, toolbarActions) => {
   };
 };
 
-const DocsToolbar = ({ editor }) => {
+const EditorToolbar = ({ editor }) => {
   const toolbarRef = useRef(null);
   const measureRef = useRef(null);
 
@@ -274,7 +274,7 @@ const DocsToolbar = ({ editor }) => {
       selectedText = currentEditor.state.doc.textBetween(from, to, ' ');
     }
 
-    // Delegate to DocsLinkPopover's edit modal (set up in WysiwygEditor)
+    // Delegate to EditorLinkPopover's edit modal (set up in RichTextEditor)
     if (currentEditor.brunoOpenLinkEdit) {
       currentEditor.brunoOpenLinkEdit({ text: selectedText, url });
     }
@@ -383,8 +383,8 @@ const DocsToolbar = ({ editor }) => {
 
   return (
     <ToolbarStyledWrapper>
-      <div className="docs-toolbar" ref={toolbarRef}>
-        <div className="docs-toolbar-measure" ref={measureRef} aria-hidden="true">
+      <div className="editor-toolbar" ref={toolbarRef}>
+        <div className="editor-toolbar-measure" ref={measureRef} aria-hidden="true">
           <div data-toolbar-part="heading" className="heading-dropdown-trigger">
             <span>{activeHeading.label}</span>
             <IconCaretDown size={14} strokeWidth={1.5} fill="currentColor" />
@@ -408,7 +408,7 @@ const DocsToolbar = ({ editor }) => {
           selectedItemId={activeHeadingId}
           placement="bottom-start"
           data-testid="docs-heading-dropdown"
-          {...DOCS_MENU_DROPDOWN_PROPS}
+          {...EDITOR_MENU_DROPDOWN_PROPS}
         >
           <button
             type="button"
@@ -419,9 +419,9 @@ const DocsToolbar = ({ editor }) => {
           </button>
         </MenuDropdown>
 
-        <DocsTableMenu editor={editor} />
+        <EditorTableMenu editor={editor} />
 
-        <div className="docs-toolbar-actions">
+        <div className="editor-toolbar-actions">
           {visibleActions.map((action) => (
             <ToolbarAction
               key={action.id}
@@ -439,7 +439,7 @@ const DocsToolbar = ({ editor }) => {
             activeItemIds={overflowActiveItemIds}
             placement="bottom-end"
             showTickMark={false}
-            dropdownProps={DOCS_MENU_DROPDOWN_PROPS}
+            dropdownProps={EDITOR_MENU_DROPDOWN_PROPS}
           >
             <button type="button" className="toolbar-btn toolbar-overflow-btn" aria-label="More formatting options">
               <IconDots size={16} strokeWidth={1.5} />
@@ -447,9 +447,9 @@ const DocsToolbar = ({ editor }) => {
           </MenuDropdown>
         )}
       </div>
-      <Tooltip id="docs-toolbar-tooltip" {...DOCS_TOOLBAR_TOOLTIP_PROPS} />
+      <Tooltip id="editor-toolbar-tooltip" {...EDITOR_TOOLBAR_TOOLTIP_PROPS} />
     </ToolbarStyledWrapper>
   );
 };
 
-export default DocsToolbar;
+export default EditorToolbar;

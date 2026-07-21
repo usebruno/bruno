@@ -26,7 +26,7 @@ const drawGapCursor = (state) => {
 /**
  * Gap cursor with a vertical caret, offset below tables when exiting downward.
  */
-const DocsGapCursor = Extension.create({
+const EditorGapCursor = Extension.create({
   name: 'docsGapCursor',
 
   addProseMirrorPlugins() {
@@ -46,4 +46,4 @@ const DocsGapCursor = Extension.create({
   }
 });
 
-export default DocsGapCursor;
+export default EditorGapCursor;

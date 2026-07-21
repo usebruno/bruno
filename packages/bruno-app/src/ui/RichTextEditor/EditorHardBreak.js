@@ -16,7 +16,7 @@ const setupSoftBreakParser = (markdownit) => {
   }
 };
 
-const DocsHardBreak = HardBreak.extend({
+const EditorHardBreak = HardBreak.extend({
   addStorage() {
     return {
       markdown: {
@@ -46,4 +46,4 @@ const DocsHardBreak = HardBreak.extend({
   }
 });
 
-export default DocsHardBreak;
+export default EditorHardBreak;

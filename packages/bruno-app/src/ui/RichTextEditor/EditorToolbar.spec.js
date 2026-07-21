@@ -4,7 +4,7 @@ import { Editor } from '@tiptap/core';
 import { ThemeProvider } from 'styled-components';
 import themes from 'themes/index';
 import extensions from './extensions';
-import DocsToolbar from './DocsToolbar';
+import EditorToolbar from './EditorToolbar';
 
 const mockTheme = themes.light;
 
@@ -17,20 +17,20 @@ const createEditor = () => {
 
 const originalResizeObserver = global.ResizeObserver;
 
-// Mock ResizeObserver for DocsToolbar
+// Mock ResizeObserver for EditorToolbar
 global.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
 };
 
-describe('DocsToolbar', () => {
+describe('EditorToolbar', () => {
   let editor;
   let offsetWidthSpy;
 
   beforeAll(() => {
     offsetWidthSpy = jest.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function () {
-      if (this.className.includes('docs-toolbar')) return 2000;
+      if (this.className.includes('editor-toolbar')) return 2000;
       return 20;
     });
   });
@@ -55,7 +55,7 @@ describe('DocsToolbar', () => {
   it('renders all toolbar buttons', () => {
     const { container } = render(
       <ThemeProvider theme={mockTheme}>
-        <DocsToolbar editor={editor} />
+        <EditorToolbar editor={editor} />
       </ThemeProvider>
     );
     expect(screen.getByLabelText('Bold')).toBeInTheDocument();
@@ -78,7 +78,7 @@ describe('DocsToolbar', () => {
   it('toggles bold format when clicking Bold button', () => {
     render(
       <ThemeProvider theme={mockTheme}>
-        <DocsToolbar editor={editor} />
+        <EditorToolbar editor={editor} />
       </ThemeProvider>
     );
     const boldButton = screen.getByLabelText('Bold');
@@ -96,7 +96,7 @@ describe('DocsToolbar', () => {
   it('toggles italic format when clicking Italic button', () => {
     render(
       <ThemeProvider theme={mockTheme}>
-        <DocsToolbar editor={editor} />
+        <EditorToolbar editor={editor} />
       </ThemeProvider>
     );
     const italicButton = screen.getByLabelText('Italic');
@@ -112,7 +112,7 @@ describe('DocsToolbar', () => {
   it('toggles strikethrough format when clicking Strikethrough button', () => {
     render(
       <ThemeProvider theme={mockTheme}>
-        <DocsToolbar editor={editor} />
+        <EditorToolbar editor={editor} />
       </ThemeProvider>
     );
     const strikeButton = screen.getByLabelText('Strikethrough');
@@ -125,7 +125,7 @@ describe('DocsToolbar', () => {
   it('toggles bullet list format when clicking Bullet list button', () => {
     render(
       <ThemeProvider theme={mockTheme}>
-        <DocsToolbar editor={editor} />
+        <EditorToolbar editor={editor} />
       </ThemeProvider>
     );
     const bulletListBtn = screen.getByLabelText('Bullet list');
@@ -140,7 +140,7 @@ describe('DocsToolbar', () => {
   it('toggles ordered list format when clicking Numbered list button', () => {
     render(
       <ThemeProvider theme={mockTheme}>
-        <DocsToolbar editor={editor} />
+        <EditorToolbar editor={editor} />
       </ThemeProvider>
     );
     const orderedListBtn = screen.getByLabelText('Numbered list');
@@ -152,7 +152,7 @@ describe('DocsToolbar', () => {
   it('toggles task list format when clicking Task list button', () => {
     render(
       <ThemeProvider theme={mockTheme}>
-        <DocsToolbar editor={editor} />
+        <EditorToolbar editor={editor} />
       </ThemeProvider>
     );
     const taskListBtn = screen.getByLabelText('Task list');
@@ -164,7 +164,7 @@ describe('DocsToolbar', () => {
   it('toggles code block when clicking Code block button', () => {
     render(
       <ThemeProvider theme={mockTheme}>
-        <DocsToolbar editor={editor} />
+        <EditorToolbar editor={editor} />
       </ThemeProvider>
     );
     const codeBlockBtn = screen.getByLabelText('Code block');
@@ -176,7 +176,7 @@ describe('DocsToolbar', () => {
   it('toggles quote when clicking Quote button', () => {
     render(
       <ThemeProvider theme={mockTheme}>
-        <DocsToolbar editor={editor} />
+        <EditorToolbar editor={editor} />
       </ThemeProvider>
     );
     const quoteBtn = screen.getByLabelText('Quote');
@@ -188,7 +188,7 @@ describe('DocsToolbar', () => {
   it('inserts a table when clicking Table button', () => {
     render(
       <ThemeProvider theme={mockTheme}>
-        <DocsToolbar editor={editor} />
+        <EditorToolbar editor={editor} />
       </ThemeProvider>
     );
     const tableBtn = screen.getByLabelText('Table');
@@ -200,7 +200,7 @@ describe('DocsToolbar', () => {
   it('calls undo/redo', () => {
     render(
       <ThemeProvider theme={mockTheme}>
-        <DocsToolbar editor={editor} />
+        <EditorToolbar editor={editor} />
       </ThemeProvider>
     );
     const undoBtn = screen.getByLabelText('Undo');
