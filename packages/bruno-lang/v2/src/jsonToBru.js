@@ -1,6 +1,17 @@
 const _ = require('lodash');
-const { indentString, getValueString, getKeyString, getValueUrl, serializeVar, serializeAnnotations, buildAnnotationsFromKVItem } = require('./utils');
+const {
+  indentString,
+  getValueString: getBaseValueString,
+  getKeyString,
+  getValueUrl,
+  serializeVar: serializeBaseVar,
+  serializeAnnotations,
+  buildAnnotationsFromKVItem
+} = require('./utils');
 const jsonToExampleBru = require('./example/jsonToBru');
+
+const getValueString = (value) => getBaseValueString(value, { escapeMultiline: true });
+const serializeVar = (item, prefix = '') => serializeBaseVar(item, prefix, { escapeMultiline: true });
 
 const enabled = (items = [], key = 'enabled') => items.filter((item) => item[key]);
 const disabled = (items = [], key = 'enabled') => items.filter((item) => !item[key]);

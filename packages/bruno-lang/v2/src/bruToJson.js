@@ -4,6 +4,7 @@ const {
   safeParseJson,
   outdentString,
   unescapeAnnotationDoubleQuotedArg,
+  unescapeMultilineValue,
   parseAnnotationMultilineTextBlock,
   applyDescriptionFromAnnotations,
   extractTypedAnnotations
@@ -506,7 +507,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return '';
   },
   multilinetextblock(_1, content, _2, _3, contentType) {
-    const multilineString = content.sourceString
+    const multilineString = unescapeMultilineValue(content.sourceString)
       .split('\n')
       .map((line) => line.slice(4))
       .join('\n');

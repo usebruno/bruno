@@ -109,16 +109,28 @@ const unescapeAnnotationDoubleQuotedArg = (value) =>
 const escapeAnnotationDoubleQuotedArg = (value) =>
   value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
-// Escapes a multiline description's own delimiter (''') so it can safely round-trip
+const multilineDelimiterRun = /'{3,}/g;
+const escapedMultilineDelimiterRun = /\\+'(?:\\'){2,}/g;
+
+// Escapes a multiline value's own delimiter (''') so it can safely round-trip
 // inside a '''...''' block. Any pre-existing \' must be doubled first so decoding
 // can tell it apart from the backslashes introduced by escaping '''.
-const escapeMultilineDescription = (value) =>
-  value.split('\\\'').join('\\\\\'').split('\'\'\'').join('\\\'\\\'\\\'');
+const escapeMultilineValue = (value) =>
+  value
+    .split('\\\'')
+    .join('\\\\\'')
+    .replace(multilineDelimiterRun, (quotes) => quotes.replace(/'/g, '\\\''));
 
-const unescapeMultilineDescription = (value) =>
-  value.split('\\\'\\\'\\\'').join('\'\'\'').split('\\\\\'').join('\\\'');
+const unescapeMultilineValue = (value) =>
+  value
+    .replace(escapedMultilineDelimiterRun, (escapedQuotes) => escapedQuotes.replace(/\\'/g, '\''))
+    .split('\\\\\'')
+    .join('\\\'');
 
-const getValueString = (value) => {
+const escapeMultilineDescription = escapeMultilineValue;
+const unescapeMultilineDescription = unescapeMultilineValue;
+
+const getValueString = (value, { escapeMultiline = false } = {}) => {
   // Handle null, undefined, and empty strings
   if (!value && value !== 0 && value !== false) {
     return '';
@@ -136,7 +148,8 @@ const getValueString = (value) => {
   }
 
   // Wrap multiline values in triple quotes with 2-space indentation
-  return `'''\n${indentString(value)}\n'''`;
+  const blockValue = escapeMultiline ? escapeMultilineValue(value) : value;
+  return `'''\n${indentString(blockValue)}\n'''`;
 };
 
 const getKeyString = (key) => {
@@ -157,7 +170,7 @@ const getValueUrl = (url) => {
   }
 
   // Wrap multiline values in triple quotes with 4-space indentation (2 levels)
-  return `'''\n${indentString(url, 2)}\n'''`;
+  return `'''\n${indentString(escapeMultilineValue(url), 2)}\n'''`;
 };
 
 const formatAnnotationArg = (strValue) => {
@@ -220,8 +233,8 @@ const extractTypedAnnotations = (rawAnnotations, result) => {
   result.value = parseValueByDataType(result.value, result.dataType);
 };
 
-const serializeVar = (item, prefix = '') => {
-  return `${serializeAnnotations(buildAnnotationsFromVariable(item))}${prefix}${item.name}: ${getValueString(item.value)}`;
+const serializeVar = (item, prefix = '', options) => {
+  return `${serializeAnnotations(buildAnnotationsFromVariable(item))}${prefix}${item.name}: ${getValueString(item.value, options)}`;
 };
 
 const applyDescriptionFromAnnotations = (result, annotations) => {
@@ -245,6 +258,8 @@ module.exports = {
   unescapeAnnotationDoubleQuotedArg,
   escapeMultilineDescription,
   unescapeMultilineDescription,
+  escapeMultilineValue,
+  unescapeMultilineValue,
   parseAnnotationMultilineTextBlock,
   getValueString,
   getKeyString,

@@ -1,4 +1,5 @@
 const stringify = require('../src/jsonToBru');
+const parse = require('../src/bruToJson');
 
 describe('jsonToBru stringify', () => {
   describe('body:ws', () => {
@@ -196,6 +197,38 @@ describe('jsonToBru stringify', () => {
         }
         "
       `);
+    });
+
+    it.each([
+      ['one delimiter', 'line1\ncontains \'\'\'\nline3', 'line1\ncontains \'\'\'\nline3'],
+      ['overlapping delimiters', 'line1\n\'\'\'\'\'\nline3', 'line1\n\'\'\'\'\'\nline3'],
+      ['multiple delimiters', 'line1\n\'\'\' and \'\'\'\nline3', 'line1\n\'\'\' and \'\'\'\nline3'],
+      ['backslash-quotes', 'line1\nit\\\'s \'\'\' here\nline3', 'line1\nit\\\'s \'\'\' here\nline3'],
+      ['CRLF newlines', 'line1\r\ncontains \'\'\'\r\nline3', 'line1\ncontains \'\'\'\nline3']
+    ])('round-trips %s in multiline request values', (_case, value, expected) => {
+      const input = {
+        meta: { name: 'triple-quote-value', type: 'http', seq: 1 },
+        http: { method: 'get', url: 'https://example.com', body: 'none' },
+        params: [{ name: 'query', value, enabled: true, type: 'query' }],
+        headers: [{ name: 'X-Test', value, enabled: true }],
+        vars: { req: [{ name: 'test-var', value, enabled: true }] }
+      };
+
+      const parsed = parse(stringify(input));
+
+      expect(parsed.params[0].value).toBe(expected);
+      expect(parsed.headers[0].value).toBe(expected);
+      expect(parsed.vars.req[0].value).toBe(expected);
+    });
+
+    it('round-trips triple quotes in a multiline URL', () => {
+      const value = 'https://example.com/search\n?q=\'\'\'';
+      const input = {
+        meta: { name: 'triple-quote-url', type: 'http', seq: 1 },
+        http: { method: 'get', url: value, body: 'none' }
+      };
+
+      expect(parse(stringify(input)).http.url).toBe(value);
     });
   });
 
