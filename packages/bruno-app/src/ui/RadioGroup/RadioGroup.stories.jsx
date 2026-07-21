@@ -48,10 +48,12 @@ export default {
   }
 };
 
+// No `name` is passed — RadioGroup auto-generates a unique one per instance so
+// stories don't collide as one native radio group on the inline Docs page.
 const Controlled = ({ initial = 'manual', children, ...props }) => {
   const [value, setValue] = useState(initial);
   return (
-    <RadioGroup value={value} onChange={setValue} name={props.name || 'demo'} {...props}>
+    <RadioGroup value={value} onChange={setValue} {...props}>
       {children}
     </RadioGroup>
   );
@@ -74,7 +76,7 @@ export const Default = {
 
 export const Horizontal = {
   render: (args) => (
-    <Controlled {...args} name="horizontal">
+    <Controlled {...args}>
       <Radio value="off" label="Off" />
       <Radio value="manual" label="Manual" />
       <Radio value="system" label="System Proxy" />
@@ -88,7 +90,7 @@ export const Horizontal = {
 
 export const WithDescriptions = {
   render: (args) => (
-    <Controlled {...args} name="descriptions" initial="developer">
+    <Controlled {...args} initial="developer">
       <Radio value="safe" label="Safe mode" description="Scripts run in a restricted sandbox." />
       <Radio value="developer" label="Developer mode" description="Full access to Node APIs in scripts." />
     </Controlled>
@@ -101,11 +103,11 @@ export const WithDescriptions = {
 export const Sizes = {
   render: () => (
     <div style={{ display: 'flex', gap: '48px' }}>
-      <Controlled name="size-sm" size="sm" label="Small">
+      <Controlled size="sm" label="Small">
         <Radio value="off" label="Off" />
         <Radio value="manual" label="Manual" />
       </Controlled>
-      <Controlled name="size-md" size="md" label="Medium">
+      <Controlled size="md" label="Medium">
         <Radio value="off" label="Off" />
         <Radio value="manual" label="Manual" />
       </Controlled>
@@ -115,7 +117,7 @@ export const Sizes = {
 
 export const DisabledGroup = {
   render: (args) => (
-    <Controlled {...args} name="disabled-group" disabled>
+    <Controlled {...args} disabled>
       <Radio value="off" label="Off" />
       <Radio value="manual" label="Manual" />
       <Radio value="system" label="System Proxy" />
@@ -128,7 +130,7 @@ export const DisabledGroup = {
 
 export const DisabledOption = {
   render: (args) => (
-    <Controlled {...args} name="disabled-option">
+    <Controlled {...args}>
       <Radio value="off" label="Off" />
       <Radio value="manual" label="Manual" />
       <Radio value="system" label="System Proxy (unavailable)" disabled />
