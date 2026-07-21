@@ -22,7 +22,7 @@ const isTaskItemElement = (node) =>
   node.getAttribute('data-type') === 'taskItem'
   || node.classList.contains('task-list-item');
 
-const DocsBulletList = BulletList.extend({
+const EditorBulletList = BulletList.extend({
   parseHTML() {
     return [
       {
@@ -40,7 +40,7 @@ const DocsBulletList = BulletList.extend({
   }
 });
 
-const DocsOrderedList = OrderedList.extend({
+const EditorOrderedList = OrderedList.extend({
   addStorage() {
     return {
       markdown: {
@@ -50,7 +50,7 @@ const DocsOrderedList = OrderedList.extend({
   }
 });
 
-const DocsListItem = ListItem.extend({
+const EditorListItem = ListItem.extend({
   parseHTML() {
     return [
       {
@@ -100,7 +100,7 @@ const EditorTaskList = TaskList.extend({
   }
 });
 
-const DocsTaskItem = TaskItem.extend({
+const EditorTaskItem = TaskItem.extend({
   parseHTML() {
     return [
       {
@@ -243,9 +243,9 @@ const DocsTaskItem = TaskItem.extend({
 });
 
 export {
-  DocsBulletList,
-  DocsListItem,
-  DocsOrderedList,
-  DocsTaskItem,
+  EditorBulletList,
+  EditorListItem,
+  EditorOrderedList,
+  EditorTaskItem,
   EditorTaskList
 };

@@ -14,14 +14,14 @@ import { serializeTable } from './EditorMarkdownSerialize';
 import EditorTableKeyboard from './EditorTableKeyboard';
 import EditorTableView from './EditorTableView';
 import {
-  DocsBulletList,
-  DocsListItem,
-  DocsOrderedList,
-  DocsTaskItem,
+  EditorBulletList,
+  EditorListItem,
+  EditorOrderedList,
+  EditorTaskItem,
   EditorTaskList
 } from './EditorTaskList';
 
-const DocsTable = Table.extend({
+const EditorTable = Table.extend({
   parseHTML() {
     return [{ tag: 'div.tableWrapper > table' }, { tag: 'table' }];
   },
@@ -45,7 +45,7 @@ const DocsTable = Table.extend({
 });
 
 const extensions = [
-  TextStyle.configure({ types: [DocsListItem.name] }),
+  TextStyle.configure({ types: [EditorListItem.name] }),
   StarterKit.configure({
     bulletList: false,
     listItem: false,
@@ -55,24 +55,24 @@ const extensions = [
   }),
   EditorHardBreak,
   EditorListKeyboard,
-  DocsBulletList.configure({
+  EditorBulletList.configure({
     keepMarks: true,
     keepAttributes: false
   }),
-  DocsOrderedList.configure({
+  EditorOrderedList.configure({
     keepMarks: true,
     keepAttributes: false
   }),
-  DocsListItem,
+  EditorListItem,
   EditorGapCursor,
   EditorTaskList,
-  DocsTaskItem.configure({
+  EditorTaskItem.configure({
     nested: true,
     HTMLAttributes: {
       class: 'editor-task-item'
     }
   }),
-  DocsTable.configure({
+  EditorTable.configure({
     resizable: true,
     renderWrapper: false,
     handleWidth: 8,
@@ -90,7 +90,7 @@ const extensions = [
     inline: true,
     allowBase64: true,
     HTMLAttributes: {
-      class: 'docs-image'
+      class: 'editor-image'
     }
   }),
   EditorTableKeyboard,
