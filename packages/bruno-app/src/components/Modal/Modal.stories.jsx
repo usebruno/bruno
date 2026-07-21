@@ -74,6 +74,28 @@ export const WithoutFooter = {
   }
 };
 
+export const DangerConfirm = {
+  render: (args) => {
+    const [open, setOpen] = useState(false);
+    return (
+      <div style={{ padding: '1rem', minHeight: 400, position: 'relative' }}>
+        <Button color="danger" onClick={() => setOpen(true)}>Delete…</Button>
+        {open && (
+          <Modal {...args} handleCancel={() => setOpen(false)} handleConfirm={() => setOpen(false)}>
+            <p>This action cannot be undone. Are you sure you want to delete this item?</p>
+          </Modal>
+        )}
+      </div>
+    );
+  },
+  args: {
+    size: 'sm',
+    title: 'Delete item',
+    confirmText: 'Delete',
+    confirmButtonColor: 'danger'
+  }
+};
+
 export const ConfirmDisabled = {
   render: (args) => {
     const [open, setOpen] = useState(false);
