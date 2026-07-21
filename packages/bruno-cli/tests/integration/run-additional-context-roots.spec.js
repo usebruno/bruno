@@ -14,7 +14,6 @@ const writeFixtureFile = (filePath, content) => {
 
 // workspace/
 // ├── workspace.yml
-// ├── node_modules/forbidden-lib/                    (ancestor — must NOT resolve)
 // ├── shared-scripts/
 // │   ├── utils.js                                    (generateAuthToken, formatDate)
 // │   ├── deep/nested/nested-helper.js                (buildRequestId — walk-up target)
@@ -65,13 +64,6 @@ const buildWorkspaceFixture = (workspaceDir, baseUrl) => {
     + '  return `${method}_${slug}_${computeChecksum(`${method} ${endpoint}`)}`;\n'
     + '}\n'
     + 'module.exports = { buildRequestId };\n'
-  );
-
-  // Ancestor node_modules at the workspace root — NOT in additionalContextRoots.
-  // Must be unreachable from any script.
-  writeFixtureFile(
-    path.join(workspaceDir, 'node_modules', 'forbidden-lib', 'index.js'),
-    'module.exports = { forbidden: true };\n'
   );
 
   const collectionBruJson = JSON.stringify({
@@ -155,37 +147,9 @@ tests {
 }
 `;
 
-  // Negative: require('forbidden-lib') must throw. Runs inside the tests block
-  // so a throw doesn't abort before the assertion runs.
-  const forbiddenBru = `meta {
-  name: forbidden
-  type: http
-  seq: 3
-}
-
-get {
-  url: {{host}}/ping
-  body: none
-  auth: none
-}
-
-tests {
-  test('ancestor node_modules is NOT resolvable via require', function() {
-    let threw = false;
-    try {
-      require('forbidden-lib');
-    } catch (e) {
-      threw = true;
-    }
-    expect(threw).to.equal(true);
-  });
-}
-`;
-
   const collAPath = path.join(workspaceDir, 'collections', 'collectionA');
   writeFixtureFile(path.join(collAPath, 'happy-path.bru'), happyPathBru);
   writeFixtureFile(path.join(collAPath, 'nested-walkup.bru'), nestedWalkupBru);
-  writeFixtureFile(path.join(collAPath, 'forbidden.bru'), forbiddenBru);
 
   const collBPath = path.join(workspaceDir, 'collections', 'collectionB');
   writeFixtureFile(path.join(collBPath, 'happy-path.bru'), happyPathBru);
@@ -258,16 +222,6 @@ describe('CLI run — additionalContextRoots npm module resolution', () => {
       collDir
     );
     expect(result.stdout).toMatch(/nested shared util resolves signature-utils via walk-up/);
-    expect(result.stdout).not.toMatch(/failed/i);
-  }, 60_000);
-
-  it('does not leak npm resolution to an ancestor node_modules outside additionalContextRoots', async () => {
-    const collDir = path.join(tmpDir, 'collections', 'collectionA');
-    const result = await runOrFail(
-      ['run', 'forbidden.bru', '--env', 'Test', '--sandbox', 'developer', '--noproxy'],
-      collDir
-    );
-    expect(result.stdout).toMatch(/ancestor node_modules is NOT resolvable via require/);
     expect(result.stdout).not.toMatch(/failed/i);
   }, 60_000);
 

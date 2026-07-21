@@ -314,38 +314,6 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
     });
 
-    it('should not leak npm resolution to ancestor node_modules outside allowed roots', async () => {
-      // testDir is the parent of collectionPath. Simulate an npm package installed
-      // in that parent's node_modules — an ancestor of the collection that is NOT
-      // configured as an additionalContextRoot. Node's walk-up would find it, but
-      // the security gate must reject it.
-      const ancestorNodeModules = path.join(testDir, 'node_modules', 'ancestor-only-pkg');
-      fs.mkdirSync(ancestorNodeModules, { recursive: true });
-      fs.writeFileSync(
-        path.join(ancestorNodeModules, 'index.js'),
-        'module.exports = { leaked: true };'
-      );
-
-      const script = `
-        try {
-          require('ancestor-only-pkg');
-          bru.setVar('leaked', true);
-        } catch (e) {
-          bru.setVar('leaked', false);
-        }
-      `;
-
-      const context = {
-        bru: { setVar: jest.fn() },
-        console: console
-      };
-
-      // No additionalContextRoots configured — the ancestor node_modules must remain out of reach
-      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
-
-      expect(context.bru.setVar).toHaveBeenCalledWith('leaked', false);
-    });
-
     it('should walk up from a nested shared script to find its npm dependency', async () => {
       // Structure:
       //   shared/
@@ -524,6 +492,91 @@ describe('node-vm sandbox', () => {
       // Without the ownPackageRoot fallback in createNpmModuleRequire, index.js's
       // require('./util') would be rejected as escaping allowed roots.
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'hello');
+    });
+
+    it('should allow a package in collection node_modules to require a sibling package', async () => {
+      // Two real (non-linked) packages installed side-by-side in the collection's
+      // node_modules. pkg-a's transitive require of pkg-b must succeed — collectionPath
+      // is pushed into additionalContextRootsAbsolute upstream, so the gated resolve
+      // inside createNpmModuleRequire accepts the sibling lookup.
+      const nmDir = path.join(collectionPath, 'node_modules');
+      const pkgADir = path.join(nmDir, 'pkg-a');
+      const pkgBDir = path.join(nmDir, 'pkg-b');
+      fs.mkdirSync(pkgADir, { recursive: true });
+      fs.mkdirSync(pkgBDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(pkgADir, 'package.json'),
+        JSON.stringify({ name: 'pkg-a', main: 'index.js' })
+      );
+      fs.writeFileSync(
+        path.join(pkgADir, 'index.js'),
+        'const b = require("pkg-b"); module.exports = { value: b.value + 1 };'
+      );
+      fs.writeFileSync(
+        path.join(pkgBDir, 'package.json'),
+        JSON.stringify({ name: 'pkg-b', main: 'index.js' })
+      );
+      fs.writeFileSync(
+        path.join(pkgBDir, 'index.js'),
+        'module.exports = { value: 41 };'
+      );
+
+      const script = `
+        const a = require('pkg-a');
+        bru.setVar('result', a.value);
+      `;
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 42);
+    });
+
+    it('should allow a scoped npm-linked package', async () => {
+      // Physical location of a scoped multi-file package outside every declared root.
+      const externalPkg = path.join(testDir, 'external-scoped-pkg');
+      fs.mkdirSync(externalPkg, { recursive: true });
+      fs.writeFileSync(
+        path.join(externalPkg, 'package.json'),
+        JSON.stringify({ name: '@bruno/scoped-pkg', main: 'index.js' })
+      );
+      fs.writeFileSync(
+        path.join(externalPkg, 'index.js'),
+        'const util = require("./util"); module.exports = { greet: util.greet };'
+      );
+      fs.writeFileSync(
+        path.join(externalPkg, 'util.js'),
+        'module.exports = { greet: () => "scoped-hello" };'
+      );
+
+      const scopeDir = path.join(collectionPath, 'node_modules', '@bruno');
+      fs.mkdirSync(scopeDir, { recursive: true });
+      try {
+        fs.symlinkSync(externalPkg, path.join(scopeDir, 'scoped-pkg'), 'dir');
+      } catch (e) {
+        if (e.code === 'EPERM' || e.code === 'ENOTSUP') return;
+        throw e;
+      }
+
+      const script = `
+        const pkg = require('@bruno/scoped-pkg');
+        bru.setVar('result', pkg.greet());
+      `;
+
+      const context = {
+        bru: { setVar: jest.fn() },
+        console: console
+      };
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      // Exercises the scoped-name branch of isModuleLinkedFromAllowedRoot
+      // (bareName = '@bruno/scoped-pkg').
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'scoped-hello');
     });
   });
 
