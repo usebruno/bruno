@@ -29,6 +29,33 @@ const config = {
       utils: path.resolve(__dirname, '../src/utils')
     };
 
+    // Storybook's default CSS rule only runs css-loader + style-loader, so the
+    // Tailwind directives in src/styles/globals.css never expand. Append
+    // postcss-loader (which reads postcss.config.js → tailwindcss + autoprefixer)
+    // to every existing CSS rule so utility classes actually apply.
+    const postcssLoader = {
+      loader: 'postcss-loader',
+      options: {
+        postcssOptions: { config: path.resolve(__dirname, '../postcss.config.js') }
+      }
+    };
+    const loaderName = (entry) => (typeof entry === 'string' ? entry : (entry && entry.loader) || '');
+    const addPostcss = (rules = []) => {
+      rules.forEach((rule) => {
+        if (!rule || typeof rule !== 'object') return;
+        if (Array.isArray(rule.oneOf)) addPostcss(rule.oneOf);
+        if (Array.isArray(rule.rules)) addPostcss(rule.rules);
+        const test = rule.test && rule.test.toString();
+        if (test && test.includes('css') && Array.isArray(rule.use)) {
+          const uses = rule.use.map(loaderName);
+          if (uses.some((u) => u.includes('css-loader')) && !uses.some((u) => u.includes('postcss-loader'))) {
+            rule.use.push(postcssLoader);
+          }
+        }
+      });
+    };
+    addPostcss(config.module.rules);
+
     return config;
   }
 };

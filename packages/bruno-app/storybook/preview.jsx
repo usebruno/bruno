@@ -2,6 +2,10 @@ import React from 'react';
 import { ThemeProvider as SCThemeProvider, createGlobalStyle } from 'styled-components';
 import themes, { themeRegistry } from 'themes/index';
 import { ThemeContext } from 'providers/Theme';
+// App global styles — Tailwind (utility classes like `flex`, `px-4`, `mr-2` used
+// throughout components) plus the `--color-*` CSS variables. Without this, any
+// component that mixes Tailwind utilities with styled-components renders unstyled.
+import '../src/styles/globals.css';
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
