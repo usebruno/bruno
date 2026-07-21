@@ -28,7 +28,7 @@ const LANGUAGES = [
   'protobuf'
 ];
 
-export const DocsCodeBlock = ({ node, updateAttributes, extension }) => {
+export const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
   const language = node.attrs.language || 'auto';
   const [copied, setCopied] = useState(false);
   const preRef = useRef(null);
@@ -61,18 +61,18 @@ export const DocsCodeBlock = ({ node, updateAttributes, extension }) => {
     });
   }, [node.textContent]);
 
-  const onDropdownCreate = (ref) => {};
+  const onDropdownCreate = (ref) => { };
 
   const isSingleLine = !node.textContent.includes('\n');
 
   return (
-    <NodeViewWrapper className={`docs-code-block relative ${isSingleLine ? 'single-line' : ''}`}>
-      <div className="docs-code-block-header absolute top-2 right-2 text-xs font-mono text-gray-500 z-10 flex items-center gap-1">
+    <NodeViewWrapper className={`editor-code-block relative ${isSingleLine ? 'single-line' : ''}`}>
+      <div className="editor-code-block-header absolute top-2 right-2 text-xs font-mono text-gray-500 z-10 flex items-center gap-1">
         {!isSingleLine && (
           <Dropdown
             onCreate={onDropdownCreate}
             icon={(
-              <div className="docs-code-block-lang-selector flex items-center gap-1 cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 px-2 py-1 rounded transition-colors duration-150">
+              <div className="editor-code-block-lang-selector flex items-center gap-1 cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 px-2 py-1 rounded transition-colors duration-150">
                 <span>{language}</span>
                 <IconChevronDown size={14} />
               </div>
@@ -99,7 +99,7 @@ export const DocsCodeBlock = ({ node, updateAttributes, extension }) => {
           </Dropdown>
         )}
         <div
-          className="docs-code-block-copy flex items-center justify-center cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 p-1 rounded transition-colors duration-150"
+          className="editor-code-block-copy flex items-center justify-center cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 p-1 rounded transition-colors duration-150"
           onClick={handleCopy}
           title="Copy code"
         >

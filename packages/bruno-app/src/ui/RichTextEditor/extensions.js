@@ -9,7 +9,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { ReactNodeViewRenderer } from '@tiptap/react';
-import { DocsCodeBlock } from './DocsCodeBlock';
+import { EditorCodeBlock } from './EditorCodeBlock';
 import { lowlight } from 'lowlight';
 import javascript from 'highlight.js/lib/languages/javascript';
 import typescript from 'highlight.js/lib/languages/typescript';
@@ -55,9 +55,9 @@ lowlight.registerLanguage('kotlin', kotlin);
 lowlight.registerLanguage('swift', swift);
 lowlight.registerLanguage('protobuf', protobuf);
 
-const DocsCodeBlockExtension = CodeBlockLowlight.extend({
+const EditorCodeBlockExtension = CodeBlockLowlight.extend({
   addNodeView() {
-    return ReactNodeViewRenderer(DocsCodeBlock);
+    return ReactNodeViewRenderer(EditorCodeBlock);
   }
 }).configure({ lowlight });
 
@@ -120,7 +120,7 @@ const extensions = [
   }),
   EditorListItem,
   EditorGapCursor,
-  DocsCodeBlockExtension,
+  EditorCodeBlockExtension,
   EditorTaskList,
   EditorTaskItem.configure({
     nested: true,
