@@ -17,7 +17,7 @@ Config lives in this folder: `main.js` (framework, addons, stories glob, webpack
 
 Stories are co-located next to the component they document and picked up by the glob in `main.js`:
 
-```
+```text
 src/**/*.stories.@(js|jsx|mjs|ts|tsx)
 ```
 
@@ -113,7 +113,7 @@ The snippet reflects the root element your story's `render` returns, so follow t
 
 Single-select group primitives (`RadioGroup`, `SegmentedControl`) follow a specific layout: the implementation lives in a `components/` subfolder and only the data-driven **list** API is exposed publicly, keeping the compound pieces internal so a compound API can be surfaced later without a rewrite.
 
-```
+```text
 src/ui/<Name>/
 ├── components/
 │   ├── <Name>Base.jsx    # compound: owns the context + renders the radiogroup
