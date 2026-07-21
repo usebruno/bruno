@@ -253,7 +253,8 @@ export const sendAiMessage = (
   model,
   contentType = 'app',
   variables = [],
-  appEnabled = true
+  appEnabled = true,
+  requests = []
 ) => async (dispatch, getState) => {
   const { ipcRenderer } = window;
 
@@ -390,6 +391,7 @@ export const sendAiMessage = (
       contentType,
       requestContext,
       variables,
+      requests,
       requestId,
       model,
       appEnabled

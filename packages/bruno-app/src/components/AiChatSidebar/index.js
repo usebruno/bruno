@@ -50,7 +50,7 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import { updateIsDragging } from 'providers/ReduxStore/slices/app';
 import { findItemInCollection, findItemInCollectionByPathname, isItemAFolder, isItemARequest } from 'utils/collections';
-import { buildAiVariablesPayload, getAiStatus } from 'utils/ai';
+import { buildAiVariablesPayload, buildAiRequestsPayload, getAiStatus } from 'utils/ai';
 
 import StyledWrapper from './StyledWrapper';
 import DiffView from './DiffView';
@@ -428,6 +428,8 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
     return buildAiVariablesPayload(collection, null);
   }, [collection, aiContext]);
 
+  const aiRequests = useMemo(() => buildAiRequestsPayload(collection), [collection]);
+
   const chatsWithMessages = useMemo(() => {
     if (!collection) return [];
     return Object.entries(allChats)
@@ -543,7 +545,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     try {
-      await dispatch(sendAiMessage(activeTabUid, text, allContent, requestContext, selectedModel, contentType, aiVariables, appEnabled));
+      await dispatch(sendAiMessage(activeTabUid, text, allContent, requestContext, selectedModel, contentType, aiVariables, appEnabled, aiRequests));
       setProcessingStage('applying');
       setTimeout(() => setProcessingStage(null), 500);
     } catch (err) {
