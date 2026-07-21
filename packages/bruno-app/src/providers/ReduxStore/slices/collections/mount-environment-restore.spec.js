@@ -1,3 +1,5 @@
+const path = require('path');
+const os = require('os');
 const { describe, it, expect } = require('@jest/globals');
 const { configureStore } = require('@reduxjs/toolkit');
 
@@ -15,10 +17,11 @@ jest.mock('react-hot-toast', () => ({
 const collectionsReducer = require('providers/ReduxStore/slices/collections').default;
 const { mountCollection } = require('providers/ReduxStore/slices/collections/actions');
 
-const COLLECTION_PATH = 'C:/Users/abhis/Documents/Bruno/Dark knight/collections/YamlBased';
-const WORKSPACE_PATH = 'C:/Users/abhis/Documents/Bruno/Dark knight';
-const ENV_PATH = `${COLLECTION_PATH}/environments/abhi.yml`;
-const ENV_UID = 'env-abhi-uid';
+const WORKSPACE_PATH = path.join(os.homedir(), 'Documents', 'Bruno', 'workspace');
+const COLLECTION_PATH = path.join(WORKSPACE_PATH, 'collections', 'YamlBased');
+const ENV_PATH = path.join(COLLECTION_PATH, 'environments', 'local.yml');
+const ENV_UID = 'env-local-uid';
+const TRANSIENT_DIR = path.join(os.tmpdir(), 'bruno-transient');
 
 describe('mountCollection skipTabRestore behavior', () => {
   it('skips tab restore but still restores the saved collection environment after mount', async () => {
@@ -35,7 +38,7 @@ describe('mountCollection skipTabRestore behavior', () => {
             uid: 'col-yamlbased',
             pathname: COLLECTION_PATH,
             mountStatus: 'unmounted',
-            environments: [{ uid: ENV_UID, name: 'abhi', pathname: ENV_PATH }],
+            environments: [{ uid: ENV_UID, name: 'local', pathname: ENV_PATH }],
             activeEnvironmentUid: null,
             collapsed: false,
             items: []
@@ -48,11 +51,11 @@ describe('mountCollection skipTabRestore behavior', () => {
     window.ipcRenderer = {
       invoke: jest.fn((channel) => {
         if (channel === 'renderer:mount-collection') {
-          return Promise.resolve('/tmp/bruno-transient');
+          return Promise.resolve(TRANSIENT_DIR);
         }
 
         if (channel === 'renderer:snapshot:get-collection') {
-          return Promise.resolve({ environmentPath: ENV_PATH, selectedEnvironment: 'abhi' });
+          return Promise.resolve({ environmentPath: ENV_PATH, selectedEnvironment: 'local' });
         }
 
         if (channel === 'renderer:snapshot:get-tabs') {
@@ -101,7 +104,7 @@ describe('mountCollection skipTabRestore behavior', () => {
             uid: 'col-yamlbased',
             pathname: COLLECTION_PATH,
             mountStatus: 'unmounted',
-            environments: [{ uid: ENV_UID, name: 'abhi', pathname: ENV_PATH }],
+            environments: [{ uid: ENV_UID, name: 'local', pathname: ENV_PATH }],
             activeEnvironmentUid: null,
             collapsed: false,
             items: []
@@ -114,11 +117,11 @@ describe('mountCollection skipTabRestore behavior', () => {
     window.ipcRenderer = {
       invoke: jest.fn((channel) => {
         if (channel === 'renderer:mount-collection') {
-          return Promise.resolve('/tmp/bruno-transient');
+          return Promise.resolve(TRANSIENT_DIR);
         }
 
         if (channel === 'renderer:snapshot:get-collection') {
-          return Promise.resolve({ environmentPath: ENV_PATH, selectedEnvironment: 'abhi' });
+          return Promise.resolve({ environmentPath: ENV_PATH, selectedEnvironment: 'local' });
         }
 
         if (channel === 'renderer:snapshot:get-tabs') {
