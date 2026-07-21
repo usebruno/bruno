@@ -63,7 +63,7 @@ const MockServerItem = React.memo(({
   const isStopping = serverState?.status === 'stopping';
 
   const ensureCollectionMounted = () => {
-    if (instance.sourceType !== 'collection' || collection?.mountStatus === 'mounted') {
+    if (instance.sourceType !== 'collection' || !collection || collection.mountStatus === 'mounted') {
       return;
     }
 
