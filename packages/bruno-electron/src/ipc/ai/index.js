@@ -12,6 +12,7 @@ const {
   clearSdkCache,
   isKnownProviderId,
   isBuiltInModelId,
+  isReasoningModel,
   validateApiKeyForProvider,
   providerLabel
 } = require('./providers');
@@ -92,6 +93,12 @@ const assertKnownProvider = (providerId) => {
 };
 
 const registerAiIpc = (mainWindow) => {
+  const broadcastStatus = (status) => {
+    if (mainWindow?.webContents && !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send('main:ai-status-changed', status);
+    }
+  };
+
   ipcMain.handle('renderer:get-ai-status', async () => buildStatus());
 
   ipcMain.handle('renderer:set-ai-api-key', async (_event, { providerId, apiKey }) => {
@@ -102,14 +109,18 @@ const registerAiIpc = (mainWindow) => {
     }
     aiKeyStore.setKey(providerId, trimmed);
     clearSdkCache();
-    return buildStatus();
+    const status = buildStatus();
+    broadcastStatus(status);
+    return status;
   });
 
   ipcMain.handle('renderer:clear-ai-api-key', async (_event, { providerId }) => {
     assertKnownProvider(providerId);
     aiKeyStore.clearKey(providerId);
     clearSdkCache();
-    return buildStatus();
+    const status = buildStatus();
+    broadcastStatus(status);
+    return status;
   });
 
   ipcMain.handle('renderer:get-ai-api-key', async (_event, { providerId }) => {
@@ -162,7 +173,7 @@ const registerAiIpc = (mainWindow) => {
         system,
         prompt,
         maxOutputTokens: maxTokens ?? 1024,
-        temperature: temperature ?? 0.3
+        ...(isReasoningModel(modelId) ? {} : { temperature: temperature ?? 0.3 })
       });
       return { text };
     } catch (err) {
@@ -344,7 +355,7 @@ const registerAiIpc = (mainWindow) => {
         model,
         system,
         maxOutputTokens: maxTokens ?? 2048,
-        temperature: temperature ?? 0.7,
+        ...(isReasoningModel(modelId) ? {} : { temperature: temperature ?? 0.7 }),
         abortSignal: controller.signal
       };
       if (messages) {

@@ -74,17 +74,17 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true }) — typed va
       await expect(envTab).toBeVisible();
 
       await expect(
-        newPage.locator('[data-testid="env-var-row-typed_num"] .type-label').first()
-      ).toHaveText('number', { timeout: 5000 });
+        newPage.locator('[data-testid="env-var-row-typed_num"] [data-testid="datatype-selector-trigger"]').first()
+      ).toHaveAttribute('data-selected-type', 'number', { timeout: 5000 });
       await expect(
-        newPage.locator('[data-testid="env-var-row-typed_bool"] .type-label').first()
-      ).toHaveText('boolean');
+        newPage.locator('[data-testid="env-var-row-typed_bool"] [data-testid="datatype-selector-trigger"]').first()
+      ).toHaveAttribute('data-selected-type', 'boolean');
       await expect(
-        newPage.locator('[data-testid="env-var-row-typed_obj"] .type-label').first()
-      ).toHaveText('object');
+        newPage.locator('[data-testid="env-var-row-typed_obj"] [data-testid="datatype-selector-trigger"]').first()
+      ).toHaveAttribute('data-selected-type', 'object');
       await expect(
-        newPage.locator('[data-testid="env-var-row-typed_str"] .type-label').first()
-      ).toHaveText('string');
+        newPage.locator('[data-testid="env-var-row-typed_str"] [data-testid="datatype-selector-trigger"]').first()
+      ).toHaveAttribute('data-selected-type', 'string');
 
       await newPage.getByTestId('responsive-tab-secrets').click();
 
@@ -93,8 +93,8 @@ test.describe.serial('bru.setEnvVar(name, value, { persist: true }) — typed va
       ).toBeVisible();
       // Reloaded with the inferred @number type — the selector shows 'number'.
       await expect(
-        newPage.locator('[data-testid="env-var-row-existing_secret"] .type-label')
-      ).toHaveText('number');
+        newPage.locator('[data-testid="env-var-row-existing_secret"] [data-testid="datatype-selector-trigger"]')
+      ).toHaveAttribute('data-selected-type', 'number');
 
       await envTab.hover();
       await envTab.getByTestId('request-tab-close-icon').click({ force: true });

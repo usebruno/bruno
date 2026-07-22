@@ -1,14 +1,15 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
 import { makeTabPermanent, syncTabUid } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs, saveFile } from 'providers/ReduxStore/slices/collections/actions';
 import useKeybinding from 'hooks/useKeybinding';
 import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
 import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
-import { findItemInCollection, findItemInCollectionByPathname, hasRequestChanges, areItemsLoading } from 'utils/collections';
+import { findItemInCollection, findItemInCollectionByPathname, hasRequestChanges, areItemsLoading, isItemTransientRequest } from 'utils/collections';
+import { resolveNewRequestTarget } from './resolveNewRequestTarget';
 import ConfirmRequestClose from './ConfirmRequestClose';
 import ConfirmCollectionClose from './ConfirmCollectionClose';
 import ConfirmFolderClose from './ConfirmFolderClose';
@@ -39,6 +40,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const [showConfirmFolderClose, setShowConfirmFolderClose] = useState(false);
   const [showConfirmEnvironmentClose, setShowConfirmEnvironmentClose] = useState(false);
   const [showConfirmGlobalEnvironmentClose, setShowConfirmGlobalEnvironmentClose] = useState(false);
+  const [newRequestTarget, setNewRequestTarget] = useState(null);
 
   const menuDropdownRef = useRef();
 
@@ -206,6 +208,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isActive = tab.uid === activeTabUid;
+  // Truthy only when a sidebar folder/collection is focused; those own the
+  // new-request shortcut (with folder targeting), so the tab handler yields to them.
+  const focusedSidebarPath = useSelector((state) => state.app.focusedSidebarPath);
 
   // Close tab shortcut — draft-aware, only active for the focused tab
   useKeybinding('closeTab', () => {
@@ -279,10 +284,24 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     } else if (tab.type === 'collection-settings') {
       dispatch(saveCollectionSettings(collection.uid));
     } else if (item && item.uid) {
-      dispatch(saveRequest(tab.uid, tab.collectionUid));
+      if (hasChanges || isItemTransientRequest(item)) {
+        if (item.type === 'js' || collection.fileMode) {
+          dispatch(saveFile(item.draft?.raw ?? item.raw, tab.uid, tab.collectionUid));
+        } else {
+          dispatch(saveRequest(tab.uid, tab.collectionUid));
+        }
+      }
     }
     return false;
   }, { enabled: isActive, deps: [isActive, tab, item, collection, folder, globalEnvironmentDraft] });
+
+  useKeybinding('newRequest', () => {
+    const target = resolveNewRequestTarget({ tab, item, collection, folder });
+    if (target) {
+      setNewRequestTarget(target);
+    }
+    return false;
+  }, { enabled: isActive && !focusedSidebarPath, deps: [isActive, focusedSidebarPath, tab, item, collection, folder] });
 
   const handleCloseEnvironmentSettings = (event) => {
     if (!collection?.environmentsDraft) {
@@ -303,6 +322,14 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     event.preventDefault();
     setShowConfirmGlobalEnvironmentClose(true);
   };
+
+  const newRequestModal = newRequestTarget ? (
+    <NewRequest
+      collectionUid={newRequestTarget.collectionUid}
+      item={newRequestTarget.item}
+      onClose={() => setNewRequestTarget(null)}
+    />
+  ) : null;
 
   if (specialTabs.includes(tab.type)) {
     return (
@@ -468,6 +495,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             }}
           />
         )}
+        {newRequestModal}
         {tab.type === 'folder-settings' && !folder ? (
           tab.name && isItemsLoading
             ? <RequestTabLoading handleCloseClick={handleCloseClick} name={tab.name} />
@@ -550,13 +578,16 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             setShowConfirmClose(false);
           }}
           onSaveAndClose={() => {
-            dispatch(saveRequest(item.uid, collection.uid))
+            const useFileSave = collection.fileMode || item.type === 'js';
+            const savePromise = useFileSave
+              ? dispatch(saveFile(item?.draft?.raw ?? item?.raw, item.uid, collection.uid))
+              : dispatch(saveRequest(item.uid, collection.uid));
+
+            savePromise
               .then(() => {
-                dispatch(
-                  closeTabs({
-                    tabUids: [tab.uid]
-                  })
-                );
+                dispatch(closeTabs({
+                  tabUids: [tab.uid]
+                }));
                 setShowConfirmClose(false);
               })
               .catch((err) => {
@@ -565,6 +596,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }}
         />
       )}
+      {newRequestModal}
       <div
         ref={tabLabelRef}
         className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}

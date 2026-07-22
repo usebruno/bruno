@@ -40,6 +40,7 @@ module.exports = runESMImports().then(() => defineConfig([
       'tests/**/*.{ts,js}',
       'playwright/**/*.{js,ts}',
       'packages/bruno-app/**/*.{js,jsx,ts}',
+      'packages/bruno-app/plugins/**/*.{js,cjs,mjs}',
       'packages/bruno-app/src/test-utils/mocks/codemirror.js',
       'packages/bruno-cli/**/*.js',
       'packages/bruno-common/**/*.ts',
@@ -93,7 +94,7 @@ module.exports = runESMImports().then(() => defineConfig([
   },
   {
     files: ['packages/bruno-app/**/*.{js,jsx,ts}'],
-    ignores: ['**/*.config.js', '**/public/**/*'],
+    ignores: ['**/*.config.js', '**/public/**/*', '**/plugins/**/*'],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -108,6 +109,19 @@ module.exports = runESMImports().then(() => defineConfig([
         ecmaFeatures: {
           jsx: true
         }
+      }
+    },
+    rules: {
+      'no-undef': 'error'
+    }
+  },
+  {
+    // Rsbuild/rspack plugins are Node build tooling (CommonJS + ESM), not browser UI.
+    files: ['packages/bruno-app/plugins/**/*.{js,cjs,mjs}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest
       }
     },
     rules: {

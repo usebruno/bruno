@@ -5,6 +5,7 @@ const {
   uidForSeed,
   defaultClassify
 } = require('../../utils/mount');
+const { sizeInMB } = require('../../utils/filesystem');
 
 const REQUEST_EXT_RE = /\.(bru|yml|yaml)$/i;
 const stripExt = (basename) => basename.replace(REQUEST_EXT_RE, '');
@@ -125,9 +126,11 @@ const buildRequestNode = (absolutePath, basename, entry, uidOverrides, uidFor) =
     type: data.type || 'http-request',
     seq: data.seq,
     tags: data.tags,
-    request: data.request,
+    request: data.request || {},
     settings: data.settings,
     examples: data.examples,
+    raw: entry.raw ?? null,
+    size: sizeInMB(entry.raw ? Buffer.byteLength(entry.raw, 'utf8') : 0),
     filename: basename,
     pathname: absolutePath,
     draft: null,
@@ -182,6 +185,9 @@ const buildTree = (collectionPath, parserResults, options = {}) => {
           hydrateRequestUuids(data, null, collectionPath);
           tree.root = data;
         }
+        if (tree.root && typeof tree.root === 'object') {
+          tree.root.pathname = path.join(collectionPath, relativePath);
+        }
       }
     } else if (cls.type === 'folder') {
       folderRoots.set(path.dirname(relativePath), entry);
@@ -195,7 +201,8 @@ const buildTree = (collectionPath, parserResults, options = {}) => {
   for (const { relativePath, entry } of requests) {
     const segments = path.dirname(relativePath).split(path.sep).filter((s) => s && s !== '.');
     const { cursor } = ensureFolder(collectionPath, tree.items, segments, uidFor);
-    cursor.push(buildRequestNode(
+    const buildNode = buildRequestNode;
+    cursor.push(buildNode(
       path.join(collectionPath, relativePath),
       path.basename(relativePath),
       entry,

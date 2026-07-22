@@ -1,8 +1,10 @@
 import { expect, test } from '../../playwright';
 import { closeAllCollections, createFolder, openCollection } from '../utils/page';
 import {
+  altShortcutDisplayText,
   closePreferencesTab,
   collectionName,
+  expectResponsePlaceholderShortcut,
   modifier,
   openFolderSettingsTab,
   openKeybindingsTab,
@@ -79,6 +81,9 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.keyboard.press('Backspace');
 
         await pressShortcut(page, 'Alt', 'KeyN');
+
+        await openRequest(page, collectionName, 'req-5', { persist: true });
+        await expectResponsePlaceholderShortcut(page, 'newRequest', 'New Request', altShortcutDisplayText('N'));
 
         await page.getByTestId('sidebar-collection-row').filter({ has: page.getByText('kb-collection', { exact: true }) }).click();
 

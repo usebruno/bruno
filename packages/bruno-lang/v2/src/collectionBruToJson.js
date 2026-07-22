@@ -1,6 +1,13 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
-const { safeParseJson, outdentString, extractTypedAnnotations } = require('./utils');
+const {
+  safeParseJson,
+  outdentString,
+  parseAnnotationMultilineTextBlock,
+  unescapeAnnotationDoubleQuotedArg,
+  applyDescriptionFromAnnotations,
+  extractTypedAnnotations
+} = require('./utils');
 
 // this is done to avoid breaking existing pairlist mapping so
 // the key is hidden and not added into the json automatically
@@ -12,7 +19,7 @@ const grammar = ohm.grammar(`Bru {
 
   // Oauth2 additional parameters
   authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
-  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams 
+  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams
   oauth2AccessTokenReqConfig = oauth2AccessTokenReqHeaders | oauth2AccessTokenReqQueryParams | oauth2AccessTokenReqBody
   oauth2RefreshTokenReqConfig = oauth2RefreshTokenReqHeaders | oauth2RefreshTokenReqQueryParams | oauth2RefreshTokenReqBody
 
@@ -33,7 +40,9 @@ const grammar = ohm.grammar(`Bru {
   annotationchar = ~("(" | ")" | " " | "\\t" | "\\r" | "\\n" | ":") any
   annotationsinglequotedargchar = ~"'" any
   annotationsinglequotedarg = "'" annotationsinglequotedargchar* "'"
-  annotationdoublequotedargchar = ~"\\"" any
+  annotationdoublequotedargchar = annotationdoublequotedargesc | annotationdoublequotedargnorm
+  annotationdoublequotedargesc = "\\\\" any
+  annotationdoublequotedargnorm = ~"\\"" any
   annotationdoublequotedarg = "\\"" annotationdoublequotedargchar* "\\""
   annotationunquotedargchar = ~")" any
   annotationunquotedarg = annotationunquotedargchar*
@@ -56,13 +65,14 @@ const grammar = ohm.grammar(`Bru {
   quoted_key_char = ~(quote_char | esc_quote_char | nl) any
   quoted_key = disable_char? quote_char (esc_quote_char | quoted_key_char)* quote_char
   key = keychar*
-  value = multilinetextblock | valuechar*
+  value = multilinetextblock | singlelinevalue
+  singlelinevalue = valuechar*
 
   // Text Blocks
   textblock = textline (~tagend nl textline)*
   textline = textchar*
   textchar = ~nl any
-  
+
   meta = "meta" dictionary
 
   auth = "auth" dictionary
@@ -127,6 +137,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true, extractTyp
     const result = { name, value, enabled };
     if (rawAnnotations && rawAnnotations.length) {
       result.annotations = rawAnnotations;
+      applyDescriptionFromAnnotations(result, rawAnnotations);
     }
     if (extractTypes) extractTypedAnnotations(rawAnnotations, result);
     return result;
@@ -188,7 +199,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString;
   },
   annotationdoublequotedarg(_open, chars, _close) {
-    return chars.sourceString;
+    return unescapeAnnotationDoubleQuotedArg(chars.sourceString);
   },
   annotationunquotedarg(chars) {
     return chars.sourceString;
@@ -197,12 +208,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return alt.ast;
   },
   annotationmultilinetextblock(_1, content, _2) {
-    const lines = content.sourceString.split('\n');
-    let minIndent = 4;
-    const dedented = lines.map((line) => (line.trim() === '' ? '' : line.substring(minIndent)));
-    if (dedented.length > 0 && dedented[0] === '') dedented.shift();
-    if (dedented.length > 0 && dedented[dedented.length - 1] === '') dedented.pop();
-    return dedented.join('\n');
+    return parseAnnotationMultilineTextBlock(content.sourceString);
   },
   annotationargscontents(alt) {
     return alt.ast;
@@ -253,6 +259,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     }
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
+  singlelinevalue(chars) {
+    return chars.sourceString?.trim() || '';
+  },
   textblock(line, _1, rest) {
     return [line.ast, ...rest.ast].join('\n');
   },
@@ -263,8 +272,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return char.sourceString;
   },
   multilinetextblock(_1, content, _2) {
-    // Join all the content between the triple quotes and trim it
-    return content.sourceString.trim();
+    return content.sourceString
+      .split(/\r\n|\r|\n/)
+      .map((line) => line.slice(4))
+      .join('\n')
+      .trim();
   },
   nl(_1, _2) {
     return '';

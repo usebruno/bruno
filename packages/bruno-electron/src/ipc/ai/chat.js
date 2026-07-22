@@ -8,7 +8,10 @@ const {
   formatResponseShape,
   formatVariablesList,
   searchVariables,
-  formatSearchVariablesResult
+  formatSearchVariablesResult,
+  formatRequestsList,
+  searchRequests,
+  formatSearchRequestsResult
 } = require('./context');
 const { getPreferences } = require('../../store/preferences');
 const { isBuiltInModelId } = require('./providers');
@@ -25,8 +28,13 @@ const CONTENT_LABELS = {
   'docs': 'Documentation'
 };
 
-const buildContextMessage = (contentType, allContent, requestContext, variables, security) => {
+const APP_DISABLED_NOTICE = 'App mode is currently DISABLED for this request. The App tab is hidden and any code written to \'app\' will not be visible or runnable. Do NOT call write_content(\'app\'); instead, tell the user to open the request\'s Settings tab and turn on "Enable App" first, then ask them to run the request again.';
+
+const buildContextMessage = (contentType, allContent, requestContext, variables, security, appEnabled, requests) => {
   const parts = [];
+  if (appEnabled === false) {
+    parts.push(`Note: ${APP_DISABLED_NOTICE}`);
+  }
   const ctx = formatRequestContext(requestContext, { includeResponse: true, security });
   if (ctx) {
     parts.push(`HTTP Request Context:\n${ctx}`);
@@ -35,6 +43,11 @@ const buildContextMessage = (contentType, allContent, requestContext, variables,
   const varsStr = formatVariablesList(variables, { security });
   if (varsStr) {
     parts.push(`Available Variables (names only — call search_variables(query) for a value):\n${varsStr}`);
+  }
+
+  const requestsStr = formatRequestsList(requests);
+  if (requestsStr) {
+    parts.push(`Requests in this collection (preview — call list_requests / search_requests for full details, use \`pathname\` with bru.ctx.runRequest):\n${requestsStr}`);
   }
 
   const activeLabel = CONTENT_LABELS[contentType] || 'Code';
@@ -80,6 +93,12 @@ const SEARCH_VARS_PARAMS = z.object({
     .optional()
     .describe('Substring to match against variable names (case-insensitive). Omit to list the first 50 variables.')
 });
+const LIST_REQUESTS_PARAMS = z.object({});
+const SEARCH_REQUESTS_PARAMS = z.object({
+  query: z
+    .string()
+    .describe('Substring to match against request name, URL, pathname, folder path (case-insensitive), or an exact HTTP method like GET/POST.')
+});
 
 const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEnabled }) => {
   ipcMain.on('renderer:ai-chat-stop', (_event, { requestId } = {}) => {
@@ -91,7 +110,7 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
   });
 
   ipcMain.on('renderer:ai-chat-stream', async (_event, payload) => {
-    const { messages, allContent, contentType, requestContext, variables, requestId, model: modelId } = payload || {};
+    const { messages, allContent, contentType, requestContext, variables, requests, requestId, model: modelId, appEnabled } = payload || {};
 
     const send = (channel, data) => {
       if (mainWindow?.webContents && !mainWindow.webContents.isDestroyed()) {
@@ -160,6 +179,9 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
         inputSchema: WRITE_PARAMS,
         execute: async ({ type, content }) => {
           const resolved = resolveContentType(type, effectiveType);
+          if (resolved === 'app' && appEnabled === false) {
+            return APP_DISABLED_NOTICE;
+          }
           if (!(resolved in readState)) {
             // Tolerate models that skip read_content. We still record the
             // original snapshot so the diff renders correctly, but the UI
@@ -205,11 +227,32 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
           const result = searchVariables(variables, query);
           return formatSearchVariablesResult(result, query, { security });
         }
+      },
+      list_requests: {
+        description: 'List every HTTP / GraphQL / gRPC / WebSocket request in this collection. Returns each request\'s name, method, url, folder path, and `pathname`. Use `pathname` — never the name — when generating code that calls `bru.ctx.runRequest(pathname)` (collection/folder-level apps) or when telling the user which file to open. Prefer search_requests when the collection is large or you already know a keyword.',
+        inputSchema: LIST_REQUESTS_PARAMS,
+        execute: async () => {
+          if (!Array.isArray(requests) || requests.length === 0) {
+            return '(No requests in this collection.)';
+          }
+          return formatSearchRequestsResult(searchRequests(requests, ''), '');
+        }
+      },
+      search_requests: {
+        description: 'Search this collection\'s requests by a case-insensitive substring matched against name / url / pathname / folder path (or an exact HTTP method like GET/POST). Returns each match\'s name, method, url, folder path, and `pathname`. Use `pathname` verbatim when generating `bru.ctx.runRequest(pathname)` calls for a collection/folder-level app.',
+        inputSchema: SEARCH_REQUESTS_PARAMS,
+        execute: async ({ query }) => {
+          if (!Array.isArray(requests) || requests.length === 0) {
+            return '(No requests in this collection.)';
+          }
+          const result = searchRequests(requests, query);
+          return formatSearchRequestsResult(result, query);
+        }
       }
     };
 
     const allMessages = [
-      { role: 'user', content: buildContextMessage(effectiveType, normalizedContent, requestContext, variables, security) },
+      { role: 'user', content: buildContextMessage(effectiveType, normalizedContent, requestContext, variables, security, appEnabled, requests) },
       ...messages.map((m) => ({ role: m.role, content: m.content }))
     ];
 
@@ -245,6 +288,7 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
         abortSignal: controller.signal
       });
 
+      let streamError = null;
       for await (const part of result.fullStream) {
         if (controller.signal.aborted) break;
         switch (part.type) {
@@ -271,10 +315,16 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
             send('main:ai-chat-tool-done', { requestId, toolName: part.toolName });
             break;
           }
+          case 'error': {
+            streamError = part.error;
+            break;
+          }
           default:
             break;
         }
       }
+
+      if (streamError) throw streamError;
 
       activeStreams.delete(requestId);
 

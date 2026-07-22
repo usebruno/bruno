@@ -89,22 +89,6 @@ Ou qualquer sistema de controle de versão de sua escolha.
 
 ![bruno](../../assets/images/version-control.png) <br /><br />
 
-### Apoiadores
-
-#### Apoiadores Gold
-
-<img src="../../assets/images/sponsors/samagata.png" width="150"/>
-
-#### Apoiadores Silver
-
-<img src="../../assets/images/sponsors/commit-company.png" width="70"/>
-
-#### Apoiadores Bronze
-
-<a href="https://zuplo.link/bruno">
-    <img src="../../assets/images/sponsors/zuplo.png" width="120"/>
-</a>
-
 ### Links Importantes 📌
 
 - [Nossa Visão de Longo Prazo](https://github.com/usebruno/bruno/discussions/269)

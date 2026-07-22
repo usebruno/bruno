@@ -490,7 +490,7 @@ const MenuDropdown = forwardRef(({
     >
       <div {...(testId && { 'data-testid': testId + '-dropdown' })}>
         {header && (
-          <div className="dropdown-header-container" onClick={handleClickOutside}>
+          <div className="dropdown-header-container">
             {header}
             <div className="dropdown-divider"></div>
           </div>

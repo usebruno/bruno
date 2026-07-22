@@ -5,14 +5,17 @@ const ToggleSwitch = ({ isOn, handleToggle, size = 'm', activeColor, ...props })
   const id = useId();
 
   return (
-    <Switch size={size} {...props}>
+    <Switch
+      size={size}
+      {...props}
+    >
       <Checkbox
         checked={isOn}
         id={id}
         type="checkbox"
         size={size}
         activeColor={activeColor}
-        onChange={handleToggle}
+        onInput={handleToggle}
       />
       <Label htmlFor={id}>
         <Inner size={size} />

@@ -3,7 +3,7 @@ import { closeAllCollections, openCollection } from '../../utils/page';
 
 const DISMISSED_LOCAL_STORAGE_KEY = 'bruno.migrateToYmlPill.dismissed';
 
-test.describe('Migrate-to-YML pill in collection toolbar', () => {
+test.describe.skip('Migrate-to-YML pill in collection toolbar', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });

@@ -67,11 +67,11 @@ import {
   addTransientDirectory,
   addSaveTransientRequestModal,
   updatePathParam,
-  toggleCollection
+  migrateCollectionToYmlInPlace
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab, migrateCollectionTabsToYml } from 'providers/ReduxStore/slices/tabs';
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
@@ -1831,7 +1831,7 @@ const DEFAULT_APP_STARTER = `<!DOCTYPE html>
   <script>
     const out = document.getElementById('out');
     document.getElementById('refresh').addEventListener('click', async () => {
-      const requests = await ctx.listRequests();
+      const requests = await bru.ctx.listRequests();
       out.textContent = requests.map(r => \`\${r.method || r.type}  \${r.name}\`).join('\\n') || '(no requests)';
     });
   </script>
@@ -3291,8 +3291,10 @@ export const mountCollection
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
 
             const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
-            if (!skipTabRestore && collection?.pathname) {
-              await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+            if (collection?.pathname) {
+              if (!skipTabRestore) {
+                await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+              }
 
               const collectionSnapshotState = await window.ipcRenderer
                 .invoke('renderer:snapshot:get-collection', collection.pathname, workspacePathname)
@@ -3557,54 +3559,18 @@ export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) =>
     }
 
     const collectionPathname = collection.pathname;
-    const uid = collection.uid;
     ipcRenderer
       .invoke('renderer:migrate-collection-to-yml', collectionPathname, collectionUid)
-      .then(async (updatedBrunoConfig) => {
-        // Remove old collection state so we can recreate it with the new yml config.
-        // openCollectionEvent requires no existing collection with the same pathname.
-        dispatch(_removeCollection({ collectionUid }));
-        dispatch(closeAllCollectionTabs({ collectionUid }));
+      .then((updatedBrunoConfig) => {
+        dispatch(migrateCollectionToYmlInPlace({ collectionUid, brunoConfig: updatedBrunoConfig }));
+        dispatch(migrateCollectionTabsToYml({ collectionUid }));
 
-        try {
-          // Reopen the collection with updated config (now yml format)
-          await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
-
-          // Mount the collection (starts the watcher and loads items)
-          await dispatch(mountCollection({
-            collectionUid: uid,
-            collectionPathname: collectionPathname,
-            brunoConfig: updatedBrunoConfig
-          }));
-        } catch (reopenError) {
-          // Files on disk are already yml; best-effort recovery so the
-          // collection doesn't disappear from the UI. openCollectionEvent is
-          // a no-op if it already succeeded, and mountCollection is what we
-          // retry when it was the failing step.
-          try {
-            await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
-            await dispatch(mountCollection({
-              collectionUid: uid,
-              collectionPathname: collectionPathname,
-              brunoConfig: updatedBrunoConfig
-            }));
-          } catch (_) { }
-          throw reopenError;
-        }
-
-        // Expand the collection in the sidebar (only if collapsed)
-        const reopenedCollection = findCollectionByUid(getState().collections.collections, uid);
-        if (reopenedCollection?.collapsed) {
-          dispatch(toggleCollection(uid));
-        }
-
-        // Reopen collection settings on the overview tab
         dispatch(addTab({
-          uid: uid,
-          collectionUid: uid,
+          uid: collectionUid,
+          collectionUid: collectionUid,
           type: 'collection-settings'
         }));
-        dispatch(updateSettingsSelectedTab({ collectionUid: uid, tab: 'overview' }));
+        dispatch(updateSettingsSelectedTab({ collectionUid: collectionUid, tab: 'overview' }));
 
         toast.success('Collection migrated to YML format successfully');
         resolve();

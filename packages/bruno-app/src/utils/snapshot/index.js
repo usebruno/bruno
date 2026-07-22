@@ -27,7 +27,8 @@ const NON_REPLACEABLE_SINGLETON_TAB_TYPES = new Set([
 ]);
 
 const IGNORED_TAB_TYPES = new Set([
-  'v4-migration'
+  'v4-migration',
+  'changelog'
 ]);
 
 export const WORKSPACE_TAB_UID_SUFFIX_BY_TYPE = {
@@ -86,7 +87,8 @@ const sanitizeSnapshotTabs = (tabsSnapshot) => {
 };
 
 export const shouldExcludeTab = (tab, transientDirectory) => {
-  return transientDirectory && tab.pathname?.startsWith(transientDirectory);
+  return IGNORED_TAB_TYPES.has(tab?.type)
+    || (transientDirectory && tab.pathname?.startsWith(transientDirectory));
 };
 
 const normalizeSnapshotPathRef = (value) => {
@@ -165,6 +167,10 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
   const workspacesByPath = {};
 
   if (Array.isArray(snapshot.collections)) {
+    const activeWorkspacePath = typeof snapshot.activeWorkspacePath === 'string'
+      ? normalizePath(snapshot.activeWorkspacePath)
+      : '';
+
     snapshot.collections.forEach((collectionEntry) => {
       if (!isObject(collectionEntry) || typeof collectionEntry.pathname !== 'string') {
         return;
@@ -176,43 +182,48 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         return;
       }
 
-      const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(
-        collection.workspacePathname,
-        collection.pathname
-      );
-
-      collectionsByPath[normalizedCollectionPathname] = {
+      const workspacePathname = typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '';
+      const collectionLookupEntry = {
         pathname: collection.pathname,
-        workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
+        workspacePathname,
         environment: collection.environment,
         environmentPath: collection.environmentPath,
         selectedEnvironment: collection.selectedEnvironment,
         isOpen: collection.isOpen,
         isMounted: collection.isMounted
       };
-
-      tabsByCollectionPath[normalizedCollectionPathname] = {
+      const tabsEntry = {
         pathname: collection.pathname,
         activeTab: collection.activeTab,
         tabs: collection.tabs
       };
 
-      if (workspaceCollectionKey) {
-        collectionsByWorkspaceAndPath[workspaceCollectionKey] = {
-          pathname: collection.pathname,
-          workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-          environment: collection.environment,
-          environmentPath: collection.environmentPath,
-          selectedEnvironment: collection.selectedEnvironment,
-          isOpen: collection.isOpen,
-          isMounted: collection.isMounted
-        };
+      const existing = collectionsByPath[normalizedCollectionPathname];
+      const incomingIsActive = Boolean(
+        activeWorkspacePath && normalizePath(workspacePathname) === activeWorkspacePath
+      );
+      const existingIsActive = Boolean(
+        existing && activeWorkspacePath && normalizePath(existing.workspacePathname || '') === activeWorkspacePath
+      );
+      const shouldWritePath = !existing
+        || (incomingIsActive && !existingIsActive)
+        || (incomingIsActive && existingIsActive && Boolean(collection.selectedEnvironment || collection.environment?.collection))
+        || (!incomingIsActive && !existingIsActive);
 
+      if (shouldWritePath) {
+        collectionsByPath[normalizedCollectionPathname] = collectionLookupEntry;
+        tabsByCollectionPath[normalizedCollectionPathname] = tabsEntry;
+      }
+
+      const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(
+        collection.workspacePathname,
+        collection.pathname
+      );
+      if (workspaceCollectionKey) {
+        collectionsByWorkspaceAndPath[workspaceCollectionKey] = collectionLookupEntry;
         tabsByWorkspaceAndCollectionPath[workspaceCollectionKey] = {
-          pathname: collection.pathname,
-          workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-          activeTab: collection.activeTab,
-          tabs: collection.tabs
+          ...tabsEntry,
+          workspacePathname
         };
       }
     });
@@ -472,6 +483,11 @@ export const serializeTab = (tab, collection) => {
     };
   }
 
+  const isEnvironmentTab = tab.type === 'environment-settings' || tab.type === 'global-environment-settings';
+  if (isEnvironmentTab && tab.tabState?.environment?.tab) {
+    serialized.environment = { tab: tab.tabState.environment.tab };
+  }
+
   return serialized;
 };
 
@@ -648,6 +664,10 @@ export const deserializeTab = (snapshotTab, collection) => {
     } else {
       tab.uid = type;
     }
+  }
+
+  if (snapshotTab.environment?.tab) {
+    tab.tabState = { environment: { tab: snapshotTab.environment.tab } };
   }
 
   return tab;
