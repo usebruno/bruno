@@ -1,7 +1,7 @@
 import { test, expect, ElectronApplication, Page } from '../../../playwright';
 import * as path from 'path';
 import * as fs from 'fs';
-import { buildCommonLocators, closeAllCollections } from '../../utils/page';
+import { buildCommonLocators, closeAllCollections, toggleOpenCollectionItem, closeOpenCollectionModal } from '../../utils/page';
 
 const writeCollection = (dir: string, name: string) => {
   fs.mkdirSync(dir, { recursive: true });
@@ -48,21 +48,9 @@ const openViaSidebar = async (page: Page) => {
 
 const openCollectionModal = (page: Page) => buildCommonLocators(page).modal.byTitle('Open Collection');
 
-const listTitles = (page: Page) => page.locator('[data-testid="selection-list"] .selection-item-title');
+const listTitles = (page: Page) => buildCommonLocators(page).openCollectionPicker.titles();
 
-const listDescriptions = (page: Page) => page.locator('[data-testid="selection-list"] .selection-item-description');
-
-const toggleCollection = (page: Page, name: string) =>
-  openCollectionModal(page)
-    .locator('[data-testid="selection-list"] li')
-    .filter({ hasText: name })
-    .getByRole('checkbox')
-    .click();
-
-const closeModal = async (page: Page) => {
-  await buildCommonLocators(page).modal.closeButton().click();
-  await expect(openCollectionModal(page)).toHaveCount(0);
-};
+const listDescriptions = (page: Page) => buildCommonLocators(page).openCollectionPicker.descriptions();
 
 test.describe('Open Collection - selection flow', () => {
   test.beforeAll(async ({ electronApp }) => {
@@ -114,7 +102,7 @@ test.describe('Open Collection - selection flow', () => {
     await expect(openCollectionModal(page)).toBeVisible();
     await expect(listTitles(page)).toHaveText('Nested JSON Collection');
 
-    await toggleCollection(page, 'Nested JSON Collection');
+    await toggleOpenCollectionItem(page, 'Nested JSON Collection');
     await locators.modal.button('Open').click();
 
     await expect(locators.sidebar.collection('Nested JSON Collection')).toBeVisible();
@@ -155,13 +143,13 @@ test.describe('Open Collection - selection flow', () => {
     await openViaSidebar(page);
 
     await expect(openCollectionModal(page)).toBeVisible();
-    await expect(page.getByTestId('selection-count')).toHaveText('2');
+    await expect(locators.openCollectionPicker.count()).toHaveText('2');
     await expect(listTitles(page)).toHaveCount(2);
 
     await expect(locators.modal.footer()).toContainText('0 of 2 selected');
     await expect(locators.modal.button('Open')).toBeDisabled();
 
-    await page.getByTestId('selection-select-all-toggle').getByRole('checkbox').click();
+    await locators.openCollectionPicker.selectAllToggle().click();
     await expect(locators.modal.footer()).toContainText('2 of 2 selected');
 
     await locators.modal.button('Open').click();
@@ -188,7 +176,7 @@ test.describe('Open Collection - selection flow', () => {
     await expect(openCollectionModal(page)).toBeVisible();
     await expect(listTitles(page)).toHaveText('Picked Collection');
 
-    await toggleCollection(page, 'Picked Collection');
+    await toggleOpenCollectionItem(page, 'Picked Collection');
     await locators.modal.button('Open').click();
 
     await expect(locators.sidebar.collection('Picked Collection')).toBeVisible();
@@ -207,7 +195,7 @@ test.describe('Open Collection - selection flow', () => {
     await expect(listTitles(page)).toHaveText('Users API');
     await expect(listDescriptions(page)).toContainText('api/v2/users');
 
-    await toggleCollection(page, 'Users API');
+    await toggleOpenCollectionItem(page, 'Users API');
     await locators.modal.button('Open').click();
 
     await expect(locators.sidebar.collection('Users API')).toBeVisible();
@@ -226,7 +214,7 @@ test.describe('Open Collection - selection flow', () => {
     await expect(openCollectionModal(page)).toBeVisible();
 
     // Check only the "Keep" collection.
-    await toggleCollection(page, 'Keep Collection');
+    await toggleOpenCollectionItem(page, 'Keep Collection');
     await expect(locators.modal.footer()).toContainText('1 of 2 selected');
 
     await locators.modal.button('Open').click();
@@ -248,7 +236,7 @@ test.describe('Open Collection - selection flow', () => {
     await expect(openCollectionModal(page)).toBeVisible();
 
     const openButton = locators.modal.button('Open');
-    const selectAll = page.getByTestId('selection-select-all-toggle').getByRole('checkbox');
+    const selectAll = locators.openCollectionPicker.selectAllToggle();
 
     await expect(locators.modal.footer()).toContainText('0 of 2 selected');
     await expect(openButton).toBeDisabled();
@@ -257,7 +245,7 @@ test.describe('Open Collection - selection flow', () => {
     await expect(locators.modal.footer()).toContainText('2 of 2 selected');
     await expect(openButton).toBeEnabled();
 
-    await closeModal(page);
+    await closeOpenCollectionModal(page);
   });
 
   test('cancelling the picker shows no modal', async ({ page, electronApp }) => {
@@ -306,10 +294,10 @@ test.describe('Open Collection - selection flow', () => {
     await expect(modal.getByText(/were skipped because their config could not be read/)).toBeVisible();
 
     // The valid collection is still listed and selectable.
-    await expect(page.getByTestId('selection-count')).toHaveText('1');
+    await expect(buildCommonLocators(page).openCollectionPicker.count()).toHaveText('1');
     await expect(listTitles(page)).toHaveText('Good Nested');
 
-    await closeModal(page);
+    await closeOpenCollectionModal(page);
   });
 
   test('search narrows the list and shows a no matching collections found message', async ({ page, electronApp, createTmpDir }) => {
@@ -324,14 +312,14 @@ test.describe('Open Collection - selection flow', () => {
     await expect(modal).toBeVisible();
     await expect(listTitles(page)).toHaveCount(2);
 
-    const search = page.getByTestId('selection-search-input');
+    const search = buildCommonLocators(page).openCollectionPicker.searchInput();
     await search.fill('payments');
     await expect(listTitles(page)).toHaveText('Payments API');
 
     await search.fill('zzzzz');
     await expect(modal.getByText('No matching collections found')).toBeVisible();
 
-    await closeModal(page);
+    await closeOpenCollectionModal(page);
   });
 
   test('reopening starts from fresh state', async ({ page, electronApp, createTmpDir }) => {
@@ -348,13 +336,9 @@ test.describe('Open Collection - selection flow', () => {
     await mockPickerPaths(electronApp, [first]);
     await openViaSidebar(page);
     await expect(openCollectionModal(page)).toBeVisible();
-    await openCollectionModal(page)
-      .locator('[data-testid="selection-list"] li')
-      .filter({ hasText: 'Reopen Alpha' })
-      .getByRole('checkbox')
-      .click();
+    await toggleOpenCollectionItem(page, 'Reopen Alpha');
     await expect(locators.modal.footer()).toContainText('1 of 2 selected');
-    await closeModal(page);
+    await closeOpenCollectionModal(page);
 
     // Second open
     await mockPickerPaths(electronApp, [second]);
@@ -367,7 +351,7 @@ test.describe('Open Collection - selection flow', () => {
 
     await expect(locators.modal.footer()).toContainText('0 of 2 selected');
 
-    await closeModal(page);
+    await closeOpenCollectionModal(page);
   });
 
   test('the sidebar empty state "Open" link opens the folder picker', async ({ page, electronApp }) => {

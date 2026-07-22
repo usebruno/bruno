@@ -551,6 +551,20 @@ const openBulkImportModal = async (page: Page, filePaths: string[]) => {
   });
 };
 
+const toggleOpenCollectionItem = async (page: Page, name: string) => {
+  await test.step(`Toggle open collection checkbox for "${name}"`, async () => {
+    await buildCommonLocators(page).openCollectionPicker.itemCheckbox(name).click();
+  });
+};
+
+const closeOpenCollectionModal = async (page: Page) => {
+  await test.step('Close the Open Collection modal', async () => {
+    const locators = buildCommonLocators(page);
+    await locators.modal.closeButton().click();
+    await locators.modal.byTitle('Open Collection').waitFor({ state: 'hidden' });
+  });
+};
+
 /**
  * Remove a specific collection from the sidebar
  * @param page - The page object
@@ -2504,6 +2518,8 @@ export {
   deleteCollectionFromOverview,
   importCollection,
   openBulkImportModal,
+  toggleOpenCollectionItem,
+  closeOpenCollectionModal,
   removeCollection,
   createFolder,
   openEnvironmentSelector,
