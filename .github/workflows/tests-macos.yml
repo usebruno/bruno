@@ -97,11 +97,17 @@ jobs:
       - name: Setup CA Certificates
         uses: ./.github/actions/ssl/macos/setup-ca-certs
 
+      - name: Setup Client Certificates
+        uses: ./.github/actions/ssl/macos/setup-client-certs
+
       - name: Run Basic SSL CLI Tests
         uses: ./.github/actions/ssl/macos/run-basic-ssl-cli-tests
 
       - name: Run Custom CA Certs CLI Tests
         uses: ./.github/actions/ssl/macos/run-custom-ca-certs-cli-tests
+
+      - name: Run Client Certs CLI Tests
+        uses: ./.github/actions/ssl/macos/run-client-certs-cli-tests
 
       - name: Run Custom CA Certs E2E Tests
         uses: ./.github/actions/ssl/macos/run-ssl-e2e-tests

@@ -1,0 +1,73 @@
+name: 'Run Client Certs CLI Tests - Windows'
+description: 'Run client-certificate (mTLS) CLI tests on Windows'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run CLI tests
+      shell: pwsh
+      run: |
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = "Stop"
+
+        $bru = "..\..\..\..\..\packages\bruno-cli\bin\bru.js"
+        $cacert = "..\..\server\certs\ca-cert.pem"
+
+        # navigate to the CLI test collections directory
+        Set-Location tests\ssl\client-certs\collections
+
+        Write-Host "client cert (pem, bru) presented"
+        # cert enabled → attached → mTLS handshake succeeds → assertions pass
+        Set-Location pem-bru
+        Start-Process -FilePath "node" -ArgumentList "$bru run .\request.bru --output junit1.xml --cacert $cacert --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul" | Out-Null
+        [xml]$xml1 = Get-Content junit1.xml
+        $testsuites1 = if ($xml1.testsuites) { $xml1.testsuites.testsuite } else { $xml1.testsuite }
+        $passCount1 = ($testsuites1 | Where-Object { $_.errors -eq "0" -and $_.failures -eq "0" } | Measure-Object).Count
+        if ($passCount1 -ne 1) { exit 1 }
+
+        Write-Host "client cert (pfx, bru) presented"
+        # pfx cert attached → mTLS handshake succeeds → assertions pass
+        Set-Location ..\pfx-bru
+        Start-Process -FilePath "node" -ArgumentList "$bru run .\request.bru --output junit2.xml --cacert $cacert --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul" | Out-Null
+        [xml]$xml2 = Get-Content junit2.xml
+        $testsuites2 = if ($xml2.testsuites) { $xml2.testsuites.testsuite } else { $xml2.testsuite }
+        $passCount2 = ($testsuites2 | Where-Object { $_.errors -eq "0" -and $_.failures -eq "0" } | Measure-Object).Count
+        if ($passCount2 -ne 1) { exit 1 }
+
+        Write-Host "client cert disabled (withheld, bru)"
+        Write-Host "request will error"
+        # cert disabled → withheld → mTLS handshake rejected → request errors
+        Set-Location ..\disabled-bru
+        Start-Process -FilePath "node" -ArgumentList "$bru run .\request.bru --output junit3.xml --cacert $cacert --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul" | Out-Null
+        # Ignore the exit code - we expect this to fail
+        [xml]$xml3 = Get-Content junit3.xml
+        $testsuites3 = if ($xml3.testsuites) { $xml3.testsuites.testsuite } else { $xml3.testsuite }
+        $errorCount3 = ($testsuites3 | Where-Object { $_.errors -eq "1" } | Measure-Object).Count
+        if ($errorCount3 -ne 1) { exit 1 }
+
+        # yml (opencollection.yml) format parity — pem/pkcs12/disabled parsed via the yml path
+
+        Write-Host "client cert (pem, yml) presented"
+        Set-Location ..\pem-yml
+        Start-Process -FilePath "node" -ArgumentList "$bru run .\request.yml --output junit4.xml --cacert $cacert --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul" | Out-Null
+        [xml]$xml4 = Get-Content junit4.xml
+        $testsuites4 = if ($xml4.testsuites) { $xml4.testsuites.testsuite } else { $xml4.testsuite }
+        $passCount4 = ($testsuites4 | Where-Object { $_.errors -eq "0" -and $_.failures -eq "0" } | Measure-Object).Count
+        if ($passCount4 -ne 1) { exit 1 }
+
+        Write-Host "client cert (pkcs12, yml) presented"
+        Set-Location ..\pfx-yml
+        Start-Process -FilePath "node" -ArgumentList "$bru run .\request.yml --output junit5.xml --cacert $cacert --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul" | Out-Null
+        [xml]$xml5 = Get-Content junit5.xml
+        $testsuites5 = if ($xml5.testsuites) { $xml5.testsuites.testsuite } else { $xml5.testsuite }
+        $passCount5 = ($testsuites5 | Where-Object { $_.errors -eq "0" -and $_.failures -eq "0" } | Measure-Object).Count
+        if ($passCount5 -ne 1) { exit 1 }
+
+        Write-Host "client cert disabled (withheld, yml)"
+        Write-Host "request will error"
+        Set-Location ..\disabled-yml
+        Start-Process -FilePath "node" -ArgumentList "$bru run .\request.yml --output junit6.xml --cacert $cacert --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul" | Out-Null
+        # Ignore the exit code - we expect this to fail
+        [xml]$xml6 = Get-Content junit6.xml
+        $testsuites6 = if ($xml6.testsuites) { $xml6.testsuites.testsuite } else { $xml6.testsuite }
+        $errorCount6 = ($testsuites6 | Where-Object { $_.errors -eq "1" } | Measure-Object).Count
+        if ($errorCount6 -ne 1) { exit 1 }
