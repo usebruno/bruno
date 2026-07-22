@@ -24,7 +24,6 @@ import MenuDropdown from 'ui/MenuDropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
 import NewRequest from 'components/Sidebar/NewRequest/index';
 import GradientCloseButton from './GradientCloseButton';
-import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
 import { getInvalidVariableNames } from 'utils/common/variables';
 import ExampleTab from '../ExampleTab';
@@ -755,9 +754,12 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   }
 
   function handleCloseSavedTabs() {
-    const items = flattenItems(collection?.items);
-    const savedTabs = items?.filter?.((item) => !hasRequestChanges(item));
-    const savedTabIds = savedTabs?.map((item) => item.uid) || [];
+    const savedTabIds = collectionRequestTabs
+      .filter((tab) => {
+        const item = findItemInCollection(resolveTabCollection(tab), tab.uid);
+        return item && !hasRequestChanges(item);
+      })
+      .map((tab) => tab.uid);
     dispatch(closeTabs({ tabUids: savedTabIds }));
   }
 
