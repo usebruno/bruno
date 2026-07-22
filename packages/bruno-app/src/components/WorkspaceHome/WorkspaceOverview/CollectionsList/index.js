@@ -14,6 +14,7 @@ import {
 } from '@tabler/icons';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { mountCollection, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { removeCollectionFromWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
@@ -76,6 +77,8 @@ const CollectionsList = ({ workspace }) => {
         environments: [],
         isGitBacked: !!wc.remote,
         isLoaded: false,
+        failedToOpen: !!wc.failedToOpen,
+        failureReason: wc.failureReason,
         gitRemoteUrl: wc.remote,
         git: { gitRootPath: null },
         brunoConfig: {},
@@ -95,6 +98,15 @@ const CollectionsList = ({ workspace }) => {
 
   const handleOpenCollectionClick = (collection, event) => {
     if (event.target.closest('.collection-menu')) {
+      return;
+    }
+
+    if (collection.failedToOpen) {
+      if (collection.failureReason === 'not-found') {
+        toast.error(`Collection "${collection.name}" could not be opened — not found at ${collection.pathname}`);
+      } else {
+        toast.error(`Collection "${collection.name}" could not be opened — no valid collection found at ${collection.pathname}`);
+      }
       return;
     }
 
@@ -155,6 +167,12 @@ const CollectionsList = ({ workspace }) => {
 
   const handleRemoveCollection = (collection) => {
     dropdownRefs.current[collection.uid]?.hide();
+    if (collection.failedToOpen) {
+      dispatch(removeCollectionFromWorkspaceAction(workspace.uid, collection.pathname))
+        .then(() => toast.success('Collection removed from workspace'))
+        .catch(() => toast.error('An error occurred while removing the collection'));
+      return;
+    }
     if (collection.isLoaded === false) {
       toast.error('Cannot remove collections that are not loaded');
       return;
@@ -312,7 +330,12 @@ const CollectionsList = ({ workspace }) => {
                       Git
                     </StatusBadge>
                   )}
-                  {!isDefaultWorkspace && collection.isLoaded === false && (
+                  {collection.failedToOpen && (
+                    <StatusBadge status="danger" size="xs">
+                      {collection.failureReason === 'not-found' ? 'Missing' : 'Failed to open'}
+                    </StatusBadge>
+                  )}
+                  {!isDefaultWorkspace && collection.isLoaded === false && !collection.failedToOpen && (
                     <StatusBadge status="warning" size="xs">Not cloned</StatusBadge>
                   )}
                 </div>

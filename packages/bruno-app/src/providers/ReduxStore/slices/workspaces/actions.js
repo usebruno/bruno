@@ -371,8 +371,12 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
         getState().collections.collections.map((c) => normalizePath(c.pathname))
       );
 
+      const unopened = updatedWorkspace.collections
+        .filter((wc) => wc.failedToOpen)
+        .map((wc) => wc.path);
+
       const collectionPaths = updatedWorkspace.collections
-        .filter((wc) => !wc.notFoundLocally)
+        .filter((wc) => !wc.notFoundLocally && !wc.failedToOpen)
         .map((wc) => wc.path)
         .filter((p) => p && !alreadyOpenCollections.includes(normalizePath(p)));
 
@@ -388,11 +392,20 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
 
         if (Array.isArray(openResult?.failed) && openResult.failed.length > 0) {
           console.warn('Some workspace collections failed to open during switch:', openResult.failed);
+          unopened.push(...openResult.failed.map((f) => f.path));
         }
 
         if (Array.isArray(openResult?.invalid) && openResult.invalid.length > 0) {
           console.warn('Some workspace collection paths were invalid during switch:', openResult.invalid);
+          unopened.push(...openResult.invalid);
         }
+      }
+
+      if (unopened.length > 0) {
+        const message = unopened.length === 1
+          ? `Collection could not be opened: ${unopened[0]}`
+          : `${unopened.length} collections could not be opened`;
+        toast.error(message);
       }
     }
 
