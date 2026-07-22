@@ -137,6 +137,10 @@ function makeAxiosInstance({
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
 
+      if (!disableCookies) {
+        saveCookies(response.config.url, response.headers);
+      }
+
       return response;
     },
     async (error) => {
