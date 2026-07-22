@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import { validateName, validateNameError } from 'utils/common/regex';
-import { loadMockResponses } from 'providers/ReduxStore/slices/mock-server';
+import { loadMockResponses } from 'providers/ReduxStore/slices/mock-server/index';
 import {
   cloneMockServerInstancePayload,
   getMockServerInstances,
@@ -17,7 +17,7 @@ import {
   resolveTabCollectionUid,
   saveMockServerInstance,
   suggestNextMockServerPort
-} from 'utils/mock-server-instances';
+} from 'utils/mock-server/mock-server-instances';
 
 const CloneMockServerModal = ({
   instance,
@@ -30,8 +30,9 @@ const CloneMockServerModal = ({
   const inputRef = useRef();
   const preferences = useSelector((state) => state.app.preferences);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
-  const mockMode = get(preferences, 'mockServer.mode', 'isolated');
-  const isSharedMode = mockMode === 'shared';
+  // const mockMode = get(preferences, 'mockServer.mode', 'isolated');
+  // const isSharedMode = mockMode === 'shared';
+  const isSharedMode = false;
   const configuredInstances = useSelector((state) => getMockServerInstances(state));
   const existingInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
   const suggestedPort = suggestNextMockServerPort(configuredInstances);

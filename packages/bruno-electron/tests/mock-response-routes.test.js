@@ -1,13 +1,13 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { saveMockResponse } = require('../src/app/mock-response-store');
+const { saveMockResponse } = require('../src/app/mock-server/mock-response-store');
 const {
   buildRouteMapFromMockResponses,
   countRouteResponses,
   extractRoutePath,
   routeMapToRouteTable
-} = require('../src/app/mock-response-routes');
+} = require('../src/app/mock-server/mock-response-routes');
 
 describe('mock-response-routes', () => {
   let workspacePath;

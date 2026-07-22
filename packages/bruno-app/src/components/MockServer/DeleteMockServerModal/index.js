@@ -2,7 +2,7 @@ import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
-import { deleteMockServerInstance } from 'utils/mock-server-instances';
+import { deleteMockServerInstance } from 'utils/mock-server/mock-server-instances';
 
 const DeleteMockServerModal = ({ instance, onClose, onDeleted }) => {
   const dispatch = useDispatch();

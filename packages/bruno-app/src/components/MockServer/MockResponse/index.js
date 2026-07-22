@@ -9,14 +9,14 @@ import {
   updateMockResponseRules
 } from 'providers/ReduxStore/slices/collections/mockResponseEditorActions';
 import { cancelResponseExampleEdit } from 'providers/ReduxStore/slices/collections';
-import { saveMockResponse, deleteMockResponse, loadMockResponses } from 'providers/ReduxStore/slices/mock-server';
+import { saveMockResponse, deleteMockResponse, loadMockResponses } from 'providers/ReduxStore/slices/mock-server/index';
 import { closeTabs, updateTabMeta, updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
-import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest } from 'utils/mock-responses';
+import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest } from 'utils/mock-server/mock-responses';
 import get from 'lodash/get';
 import {
   getMockResponseItemUid,
   mockResponseFromEditorItem
-} from 'utils/mock-responses/editor';
+} from 'utils/mock-server/mock-responses/editor';
 import ResponseExampleResponsePane from 'components/ResponseExample/ResponseExampleResponsePane';
 import MockResponseTopBar from './MockResponseTopBar';
 import MockResponseRequestPane from './MockResponseRequestPane';
@@ -42,8 +42,10 @@ const MockResponse = ({ instance, collection, responseUid }) => {
   const screenWidth = useSelector((state) => state.app.screenWidth);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
-  const isSharedMode = get(preferences, 'mockServer.mode', 'isolated') === 'shared';
-  const sharedSlug = serverState?.slug || null;
+  // const isSharedMode = get(preferences, 'mockServer.mode', 'isolated') === 'shared';
+  // const sharedSlug = serverState?.slug || null;
+  const isSharedMode = false;
+  const sharedSlug = null;
 
   const activeWorkspace = useMemo(() => (
     workspaces.find((workspace) => workspace.uid === activeWorkspaceUid) || null

@@ -2,8 +2,8 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import { IconServer2 } from '@tabler/icons';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import GradientCloseButton from '../RequestTab/GradientCloseButton';
-import StyledWrapper from '../RequestTab/StyledWrapper';
+import GradientCloseButton from '../../../RequestTabs/RequestTab/GradientCloseButton';
+import StyledWrapper from '../../../RequestTabs/RequestTab/StyledWrapper';
 
 const MockResponseTab = ({ tab }) => {
   const dispatch = useDispatch();

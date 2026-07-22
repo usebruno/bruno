@@ -11,7 +11,7 @@ const {
   readWorkspaceStore,
   saveMockResponse,
   saveMockServer
-} = require('../src/app/mock-response-store');
+} = require('../src/app/mock-server/mock-response-store');
 
 describe('mock-response-store', () => {
   let workspacePath;

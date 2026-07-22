@@ -9,8 +9,8 @@ import {
   addRequestLogEntries,
   setRouteTable,
   syncRunningMockServers
-} from 'providers/ReduxStore/slices/mock-server';
-import { isMockServerLogListening } from 'utils/mock-server-log-subscription';
+} from 'providers/ReduxStore/slices/mock-server/index';
+import { isMockServerLogListening } from 'utils/mock-server/mock-server-log-subscription';
 import {
   addTab
 } from 'providers/ReduxStore/slices/tabs';

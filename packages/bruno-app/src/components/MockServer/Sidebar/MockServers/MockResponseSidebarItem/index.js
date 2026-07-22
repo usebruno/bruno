@@ -3,12 +3,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import classnames from 'classnames';
 import { IconCopy, IconDots, IconPencil, IconServer2, IconTrash } from '@tabler/icons';
 import toast from 'react-hot-toast';
-import { deleteMockResponse, saveMockResponse } from 'providers/ReduxStore/slices/mock-server';
+import { deleteMockResponse, saveMockResponse } from 'providers/ReduxStore/slices/mock-server/index';
 import { addTab, closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
 import { removeMockResponseEditor, syncMockResponseEditorSaved } from 'providers/ReduxStore/slices/collections/mockResponseEditorActions';
-import { cloneMockResponseRecord } from 'utils/mock-responses';
-import DeleteMockResponseModal from 'components/MockResponse/DeleteMockResponseModal';
-import RenameMockResponseModal from 'components/MockResponse/RenameMockResponseModal';
+import { cloneMockResponseRecord } from 'utils/mock-server/mock-responses';
+import DeleteMockResponseModal from 'components/MockServer/MockResponse/DeleteMockResponseModal';
+import RenameMockResponseModal from 'components/MockServer/MockResponse/RenameMockResponseModal';
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
 

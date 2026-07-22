@@ -6,7 +6,7 @@ import { IconChevronRight, IconCopy, IconDots, IconPencil, IconPlayerPlay, IconP
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { startMockServer, stopMockServer, loadAllMockResponses } from 'providers/ReduxStore/slices/mock-server';
+import { startMockServer, stopMockServer, loadAllMockResponses } from 'providers/ReduxStore/slices/mock-server/index';
 import { normalizePath } from 'utils/common/path';
 import {
   getMockServerInstances,
@@ -17,8 +17,8 @@ import {
   resolveMockServerStartPayload,
   resolveMockServerWorkspacePath,
   resolveTabCollectionUid
-} from 'utils/mock-server-instances';
-import { resolveMockResponseLocation } from 'utils/mock-responses';
+} from 'utils/mock-server/mock-server-instances';
+import { resolveMockResponseLocation } from 'utils/mock-server/mock-responses';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import CloneMockServerModal from 'components/MockServer/CloneMockServerModal';
 import RenameMockServerModal from 'components/MockServer/RenameMockServerModal';
@@ -26,7 +26,7 @@ import DeleteMockServerModal from 'components/MockServer/DeleteMockServerModal';
 import MockResponseSidebarItem from './MockResponseSidebarItem';
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
-import StyledWrapper from '../ApiSpecs/StyledWrapper';
+import StyledWrapper from '../../../Sidebar/ApiSpecs/StyledWrapper';
 
 const EMPTY_RESPONSES = [];
 
@@ -93,16 +93,13 @@ const MockServerItem = React.memo(({
         ensureCollectionMounted();
       }
 
-      const mockMode = get(preferences, 'mockServer.mode', 'isolated');
-      if (mockMode !== 'shared') {
-        const portCheck = await checkMockServerPortAvailable(instance.port, workspaceInstances, {
-          excludeUid: instance.uid
-        });
-        const portError = getMockServerPortError(portCheck, instance.port);
-        if (portError) {
-          toast.error(portError);
-          return;
-        }
+      const portCheck = await checkMockServerPortAvailable(instance.port, workspaceInstances, {
+        excludeUid: instance.uid
+      });
+      const portError = getMockServerPortError(portCheck, instance.port);
+      if (portError) {
+        toast.error(portError);
+        return;
       }
 
       const payload = resolveMockServerStartPayload(instance, {

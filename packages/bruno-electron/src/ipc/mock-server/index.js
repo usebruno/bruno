@@ -1,7 +1,7 @@
 const { ipcMain } = require('electron');
 const fs = require('fs');
-const mockServer = require('../app/mock-server');
-const { buildMockResponsesFromSpec } = require('../app/mock-spec-routes');
+const mockServer = require('../../app/mock-server/mock-server');
+const { buildMockResponsesFromSpec } = require('../../app/mock-server/mock-spec-routes');
 const {
   appendMockResponses,
   cloneMockServerResponses,
@@ -14,7 +14,7 @@ const {
   saveMockResponse,
   saveMockServer,
   setMockServerResponses
-} = require('../app/mock-response-store');
+} = require('../../app/mock-server/mock-response-store');
 
 const getResponsesAndRoutes = (location) => {
   const mockServerUid = location.mockServerUid || location.collectionUid;
@@ -323,6 +323,32 @@ const registerMockServerIpc = (mainWindow) => {
         createdCount: createdResponses.length,
         responses: createdResponses
       };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  // Read-only: parses the spec and returns freshly generated responses without
+  // persisting anything. Used by "Sync with Spec" — the renderer merges these
+  // against the current responses (same shape as "Sync with Examples") and
+  // saves the merged list via the existing replace-responses handler.
+  ipcMain.handle('renderer:mock-server-load-spec-responses', async (_event, payload) => {
+    try {
+      const { specPath, generateFromSchema = true } = payload;
+
+      if (!specPath) {
+        throw new Error('API spec path is required.');
+      }
+
+      if (!fs.existsSync(specPath)) {
+        throw new Error('API spec file not found.');
+      }
+
+      const content = fs.readFileSync(specPath, 'utf8');
+      const spec = parseSpecContent(content);
+      const responses = buildMockResponsesFromSpec(spec, { generateFromSchema: Boolean(generateFromSchema) });
+
+      return { success: true, responses };
     } catch (err) {
       return { success: false, error: err.message };
     }

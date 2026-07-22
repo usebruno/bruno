@@ -61,7 +61,8 @@ const BETA_FEATURES = [
   {
     id: BETA_FEATURE_IDS.MOCK_SERVER,
     label: 'Mock Server',
-    description: 'Run a local mock server using response examples defined in your collection. Serve mock API responses for frontend development without a real backend.'
+    description: 'Run a local mock server using response examples defined in your collection. Serve mock API responses for frontend development without a real backend.',
+    noAction: true
   }
 ];
 
@@ -89,7 +90,7 @@ const Beta = ({ close }) => {
 
   const betaSchema = generateValidationSchema();
 
-  const mockServerMode = get(preferences, 'mockServer.mode', 'isolated');
+  // const mockServerMode = get(preferences, 'mockServer.mode', 'isolated');
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -118,17 +119,17 @@ const Beta = ({ close }) => {
       .catch((err) => console.log(err) && toast.error('Failed to update beta preferences'));
   }, [dispatch, preferences]);
 
-  const handleMockModeChange = (mode) => {
-    dispatch(
-      savePreferences({
-        ...preferences,
-        mockServer: {
-          ...preferences.mockServer,
-          mode
-        }
-      })
-    ).catch(() => toast.error('Failed to update mock server preferences'));
-  };
+  // const handleMockModeChange = (mode) => {
+  //   dispatch(
+  //     savePreferences({
+  //       ...preferences,
+  //       mockServer: {
+  //         ...preferences.mockServer,
+  //         mode
+  //       }
+  //     })
+  //   ).catch(() => toast.error('Failed to update mock server preferences'));
+  // };
 
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
@@ -181,6 +182,18 @@ const Beta = ({ close }) => {
               </div>
               <div className="beta-feature-description text-xs text-gray-500 dark:text-gray-400">
                 {feature.description}
+                {feature.noAction && (
+                  <div className="d-flex ml-auto">
+                    <input
+                      id={feature.id}
+                      type="checkbox"
+                      name={feature.id}
+                      checked={formik.values[feature.id]}
+                      onChange={formik.handleChange}
+                      className="mousetrap mr-0"
+                    />
+                  </div>
+                )}
               </div>
               {(feature.action || feature.docsUrl) && (
                 <div className="beta-feature-links">

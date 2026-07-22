@@ -6,9 +6,10 @@ import {
   deleteMockResponse,
   generateMockResponsesFromSpec,
   loadMockResponses,
+  loadMockResponsesFromSpec,
   saveMockResponse,
   syncMockResponsesFromExamples
-} from 'providers/ReduxStore/slices/mock-server';
+} from 'providers/ReduxStore/slices/mock-server/index';
 import { addTab, closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
 import { removeMockResponseEditor } from 'providers/ReduxStore/slices/collections/mockResponseEditorActions';
 import {
@@ -16,14 +17,16 @@ import {
   collectCollectionExamples,
   copyExampleToMockResponse,
   resolveMockResponseLocation,
-  syncMockResponsesFromExamples as mergeMockResponsesFromExamples
-} from 'utils/mock-responses';
-import { resolveInstanceSpec } from 'utils/mock-server-instances';
+  syncMockResponsesFromExamples as mergeMockResponsesFromExamples,
+  syncMockResponsesFromSpec as mergeMockResponsesFromSpec
+} from 'utils/mock-server/mock-responses';
+import { resolveInstanceSpec } from 'utils/mock-server/mock-server-instances';
 import { IconCopy, IconSearch, IconServer2, IconTrash } from '@tabler/icons';
 import CreateMockResponsePanel from '../CreateMockResponsePanel';
 import DeleteMockResponseModal from '../DeleteMockResponseModal';
 import GenerateFromSpecModal from '../GenerateFromSpecModal';
 import SyncFromExamplesModal from '../SyncFromExamplesModal';
+import SyncWithSpecModal from '../SyncWithSpecModal';
 import Button from 'ui/Button';
 import ActionIcon from 'ui/ActionIcon';
 import StyledWrapper from './StyledWrapper';
@@ -37,15 +40,19 @@ const MockResponsesList = ({ instance, collection }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [showSyncSpecModal, setShowSyncSpecModal] = useState(false);
+  const [isSyncingSpec, setIsSyncingSpec] = useState(false);
   const collections = useSelector((state) => state.collections.collections);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
   const responses = useSelector((state) => state.mockServer.mockResponses[instance.uid] || []);
   const serverState = useSelector((state) => state.mockServer.servers[instance.uid]);
-  const isSharedMode = useSelector((state) => state.app.preferences?.mockServer?.mode === 'shared');
+  // const isSharedMode = useSelector((state) => state.app.preferences?.mockServer?.mode === 'shared');
+  const isSharedMode = false;
   const mockServerPort = serverState?.port || instance.port;
-  const sharedSlug = serverState?.slug || null;
+  // const sharedSlug = serverState?.slug || null;
+  const sharedSlug = null;
 
   const resolvedCollection = useMemo(() => (
     collection || collections.find((item) => item.uid === instance.collectionUid) || null
@@ -191,6 +198,38 @@ const MockResponsesList = ({ instance, collection }) => {
     }
   };
 
+  const handleSyncWithSpec = () => {
+    if (!spec?.pathname) {
+      toast.error('Open the API spec in this workspace first.');
+      return;
+    }
+
+    setShowSyncSpecModal(true);
+  };
+
+  const handleConfirmSyncWithSpec = async () => {
+    setIsSyncingSpec(true);
+    try {
+      const { responses: specResponses } = await dispatch(loadMockResponsesFromSpec({
+        specPath: spec.pathname
+      })).unwrap();
+
+      const nextResponses = mergeMockResponsesFromSpec(responses, specResponses);
+
+      await dispatch(syncMockResponsesFromExamples({
+        ...location,
+        responses: nextResponses
+      })).unwrap();
+
+      setShowSyncSpecModal(false);
+      toast.success('Mock responses synced with spec');
+    } catch (err) {
+      toast.error(err.message || 'Failed to sync mock responses with spec');
+    } finally {
+      setIsSyncingSpec(false);
+    }
+  };
+
   const handleConfirmDelete = async () => {
     if (!deletingResponse) {
       return;
@@ -272,6 +311,19 @@ const MockResponsesList = ({ instance, collection }) => {
         />
       ) : null}
 
+      {showSyncSpecModal ? (
+        <SyncWithSpecModal
+          specName={spec?.name || instance.specName}
+          isSyncing={isSyncingSpec}
+          onClose={() => {
+            if (!isSyncingSpec) {
+              setShowSyncSpecModal(false);
+            }
+          }}
+          onConfirm={handleConfirmSyncWithSpec}
+        />
+      ) : null}
+
       <div className="actions">
         <div className="actions-toolbar">
           <CreateMockResponsePanel
@@ -302,6 +354,19 @@ const MockResponsesList = ({ instance, collection }) => {
               data-testid="mock-response-generate-from-spec-btn"
             >
               {isGenerating ? 'Generating...' : 'Generate from API Spec'}
+            </Button>
+          ) : null}
+
+          {isSpecServer && responses.length > 0 ? (
+            <Button
+              variant="outline"
+              color="secondary"
+              size="sm"
+              onClick={handleSyncWithSpec}
+              disabled={!spec?.pathname}
+              data-testid="mock-response-sync-spec-btn"
+            >
+              Sync with Spec
             </Button>
           ) : null}
         </div>

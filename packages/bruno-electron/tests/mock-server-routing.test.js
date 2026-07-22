@@ -4,7 +4,7 @@ const {
   allocateCollectionSlug,
   stripCollectionPrefix,
   buildBaseUrl
-} = require('../src/app/mock-server-routing');
+} = require('../src/app/mock-server/mock-server-routing');
 
 describe('mock-server routing', () => {
   it('builds slug from collection name', () => {

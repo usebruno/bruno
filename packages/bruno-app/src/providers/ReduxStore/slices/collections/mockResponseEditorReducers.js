@@ -2,7 +2,7 @@ import { cloneDeep } from 'lodash';
 import {
   buildMockResponseEditorItem,
   getMockResponseItemUid
-} from 'utils/mock-responses/editor';
+} from 'utils/mock-server/mock-responses/editor';
 
 const buildEditorCollection = (collection, mockServerUid, responseUid) => {
   if (collection?.uid) {

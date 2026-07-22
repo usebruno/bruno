@@ -12,7 +12,7 @@ import {
   isMockServerNameTaken,
   saveMockServerInstance,
   updateMockServerTabName
-} from 'utils/mock-server-instances';
+} from 'utils/mock-server/mock-server-instances';
 
 const RenameMockServerModal = ({ instance, onClose }) => {
   const dispatch = useDispatch();

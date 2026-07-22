@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { IconPlus } from '@tabler/icons';
 import Button from 'ui/Button';
 import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
-import { collectCollectionExamples } from 'utils/mock-responses';
+import { collectCollectionExamples } from 'utils/mock-server/mock-responses';
 import StyledWrapper from './StyledWrapper';
 
 const STATUS_CODES = [200, 201, 204, 400, 401, 403, 404, 500, 502, 503];

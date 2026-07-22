@@ -4,7 +4,7 @@ import {
   getGlobalEnvironmentVariables,
   getGlobalEnvironmentVariablesMasked
 } from 'utils/collections';
-import { resolveMockServerWorkspacePath } from 'utils/mock-server-instances';
+import { resolveMockServerWorkspacePath } from 'utils/mock-server/mock-server-instances';
 
 export const resolveMockResponseLocation = (
   instance,
@@ -140,6 +140,37 @@ export const syncMockResponsesFromExamples = (existingResponses = [], exampleEnt
     }
 
     nextResponse.uid = uuid();
+    indexByRouteKey.set(routeKey, responses.length);
+    responses.push(nextResponse);
+  }
+
+  return responses;
+};
+
+// Same shape as syncMockResponsesFromExamples: responses matching a spec endpoint+status
+// are overwritten with the freshly generated content (uid/rules kept); everything else
+// (manually created, or no longer in the spec) is left untouched.
+export const syncMockResponsesFromSpec = (existingResponses = [], specResponses = []) => {
+  const responses = [...existingResponses];
+  const indexByRouteKey = new Map(
+    responses.map((response, index) => [getMockResponseRouteKey(response), index])
+  );
+
+  for (const nextResponse of specResponses) {
+    const routeKey = getMockResponseRouteKey(nextResponse);
+    const existingIndex = indexByRouteKey.get(routeKey);
+
+    if (existingIndex !== undefined) {
+      const existing = responses[existingIndex];
+      responses[existingIndex] = {
+        ...nextResponse,
+        uid: existing.uid,
+        name: existing.name,
+        rules: existing.rules
+      };
+      continue;
+    }
+
     indexByRouteKey.set(routeKey, responses.length);
     responses.push(nextResponse);
   }

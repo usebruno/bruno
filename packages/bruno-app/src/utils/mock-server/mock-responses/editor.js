@@ -1,6 +1,6 @@
 import { cloneDeep } from 'lodash';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
-import { extractMockResponseRoutePath } from 'utils/mock-responses';
+import { extractMockResponseRoutePath } from 'utils/mock-server/mock-responses';
 
 export const MOCK_RESPONSE_ITEM_UID_PREFIX = 'mock-response-item-';
 

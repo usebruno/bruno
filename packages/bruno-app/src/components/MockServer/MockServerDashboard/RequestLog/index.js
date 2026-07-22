@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconInfoCircle } from '@tabler/icons';
-import { clearMockLog, syncMockServerState } from 'providers/ReduxStore/slices/mock-server';
-import { subscribeMockServerLog } from 'utils/mock-server-log-subscription';
+import { clearMockLog, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
+import { subscribeMockServerLog } from 'utils/mock-server/mock-server-log-subscription';
 import FilterDropdown from 'components/FilterDropdown';
 import StyledWrapper from './StyledWrapper';
 

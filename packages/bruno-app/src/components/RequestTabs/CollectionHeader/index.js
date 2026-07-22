@@ -49,7 +49,7 @@ import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
-import { getMockServerInstances, openMockServerDashboard } from 'utils/mock-server-instances';
+import { getMockServerInstances, openMockServerDashboard } from 'utils/mock-server/mock-server-instances';
 
 const MIGRATE_PILL_DISMISSED_KEY = 'bruno.migrateToYmlPill.dismissed';
 

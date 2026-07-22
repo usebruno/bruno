@@ -9,7 +9,7 @@ import StatusCode from 'components/ResponsePane/StatusCode';
 import ResponseExampleResponseContent from './ResponseExampleResponseContent';
 import ResponseExampleResponseHeaders from './ResponseExampleResponseHeaders';
 import ResponseExampleStatusInput from './ResponseExampleStatusInput';
-import MockResponseTryResult from 'components/MockResponse/MockResponseTryResult';
+import MockResponseTryResult from 'components/MockServer/MockResponse/MockResponseTryResult';
 import StyledWrapper from './StyledWrapper';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 

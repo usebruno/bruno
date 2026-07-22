@@ -21,7 +21,7 @@ import {
   saveMockServerInstance,
   suggestAvailableMockServerPort,
   updateMockServerTabName
-} from 'utils/mock-server-instances';
+} from 'utils/mock-server/mock-server-instances';
 
 const resolveSelectedSpecUid = (editingInstance, apiSpecs) => {
   if (!editingInstance) {
@@ -130,8 +130,9 @@ const CreateMockServerModal = ({
   }));
 
   const activeWorkspace = workspaces.find((workspace) => workspace.uid === activeWorkspaceUid);
-  const mockMode = get(preferences, 'mockServer.mode', 'isolated');
-  const isSharedMode = mockMode === 'shared';
+  // const mockMode = get(preferences, 'mockServer.mode', 'isolated');
+  // const isSharedMode = mockMode === 'shared';
+  const isSharedMode = false;
   const isEditing = Boolean(editingInstance);
 
   const workspaceCollections = useMemo(() => {

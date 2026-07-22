@@ -328,6 +328,18 @@ export const syncMockResponsesFromExamples = createAsyncThunk(
   }
 );
 
+export const loadMockResponsesFromSpec = createAsyncThunk(
+  'mockServer/loadResponsesFromSpec',
+  async (payload) => {
+    const result = await window.ipcRenderer.invoke('renderer:mock-server-load-spec-responses', payload);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    return { responses: result.responses || [] };
+  }
+);
+
 export const mockServerSlice = createSlice({
   name: 'mockServer',
   initialState,

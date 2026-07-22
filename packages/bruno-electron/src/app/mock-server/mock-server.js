@@ -5,7 +5,7 @@ const https = require('https');
 const net = require('net');
 const { BrowserWindow } = require('electron');
 const { v4: uuidv4 } = require('uuid');
-const { preferencesUtil, getPreferences } = require('../store/preferences');
+const { preferencesUtil, getPreferences } = require('../../store/preferences');
 const {
   buildRouteMapFromMockResponses,
   countRouteResponses,
@@ -37,7 +37,8 @@ const setMainWindow = (mainWindow) => {
   _mainWindow = mainWindow;
 };
 
-const getMockMode = () => getPreferences()?.mockServer?.mode || 'isolated';
+// const getMockMode = () => getPreferences()?.mockServer?.mode || 'isolated';
+const getMockMode = () => 'isolated'; // Hardcoded to isolated mode - shared gateway disabled
 
 const resolveMockServerLocation = (mockServerUid, location = {}) => {
   const running = collections.get(mockServerUid);
@@ -82,7 +83,8 @@ const getRouteCounts = (mockServerUid, location = {}) => {
 
 const getUsedPorts = () => {
   const ports = new Set();
-  if (gateway?.port) ports.add(gateway.port);
+  // Shared gateway disabled
+  // if (gateway?.port) ports.add(gateway.port);
   for (const { port } of isolatedServers.values()) {
     if (port) ports.add(port);
   }
@@ -90,9 +92,10 @@ const getUsedPorts = () => {
 };
 
 const isPortUsedByMockServer = (port, mockServerUid = null) => {
-  if (gateway?.port === port) {
-    return true;
-  }
+  // Shared gateway disabled
+  // if (gateway?.port === port) {
+  //   return true;
+  // }
 
   for (const [uid, isolated] of isolatedServers.entries()) {
     if (isolated.port === port && uid !== mockServerUid) {
@@ -309,9 +312,10 @@ const handleRequest = (mockServerUid, req, res) => {
   const startTime = Date.now();
   let reqPath = normalizePath(req.path);
 
-  if (collection.mode === 'shared') {
-    reqPath = normalizePath(stripCollectionPrefix(reqPath, collection.slug));
-  }
+  // Shared gateway mode disabled
+  // if (collection.mode === 'shared') {
+  //   reqPath = normalizePath(stripCollectionPrefix(reqPath, collection.slug));
+  // }
 
   const method = req.method.toUpperCase();
   const routeKey = `${method} ${reqPath}`;
@@ -529,24 +533,26 @@ const closeHttpServer = (httpServer) => new Promise((resolve) => {
   httpServer.on('close', () => clearTimeout(forceCloseTimeout));
 });
 
-const ensureSharedGateway = async () => {
-  if (gateway) return gateway;
+// Shared gateway disabled - only isolated mode supported
+// const ensureSharedGateway = async () => {
+//   if (gateway) return gateway;
+//
+//   const app = createGatewayApp();
+//   const port = await suggestPort(DEFAULT_GATEWAY_PORT);
+//   const httpServer = await listenOnPort(app, port);
+//
+//   gateway = { app, httpServer, port };
+//   return gateway;
+// };
 
-  const app = createGatewayApp();
-  const port = await suggestPort(DEFAULT_GATEWAY_PORT);
-  const httpServer = await listenOnPort(app, port);
-
-  gateway = { app, httpServer, port };
-  return gateway;
-};
-
-const registerSlug = (mockServerUid, slug) => {
-  slugToCollectionUid.set(slug, mockServerUid);
-};
-
-const unregisterSlug = (slug) => {
-  slugToCollectionUid.delete(slug);
-};
+// Shared gateway disabled
+// const registerSlug = (mockServerUid, slug) => {
+//   slugToCollectionUid.set(slug, mockServerUid);
+// };
+//
+// const unregisterSlug = (slug) => {
+//   slugToCollectionUid.delete(slug);
+// };
 
 const buildRouteMapForSource = async ({
   mockServerUid,
@@ -595,26 +601,28 @@ const start = async ({
     collectionPath,
     workspacePath
   });
-  const slug = mode === 'shared'
-    ? allocateCollectionSlug(serverName || collectionName, mockServerUid, slugToCollectionUid)
-    : null;
+  // Shared gateway mode disabled - only isolated mode supported
+  // const slug = mode === 'shared'
+  //   ? allocateCollectionSlug(serverName || collectionName, mockServerUid, slugToCollectionUid)
+  //   : null;
+  const slug = null;
 
   let resolvedPort = Number(port) || DEFAULT_GATEWAY_PORT;
 
-  if (mode === 'shared') {
-    const sharedGateway = await ensureSharedGateway();
-    resolvedPort = sharedGateway.port;
-    registerSlug(mockServerUid, slug);
-  } else {
-    resolvedPort = await resolveIsolatedPort(resolvedPort, mockServerUid);
+  // if (mode === 'shared') {
+  //   const sharedGateway = await ensureSharedGateway();
+  //   resolvedPort = sharedGateway.port;
+  //   registerSlug(mockServerUid, slug);
+  // } else {
+  resolvedPort = await resolveIsolatedPort(resolvedPort, mockServerUid);
 
-    const app = express();
-    applyMockMiddleware(app);
-    app.all('*', (req, res) => handleRequest(mockServerUid, req, res));
+  const app = express();
+  applyMockMiddleware(app);
+  app.all('*', (req, res) => handleRequest(mockServerUid, req, res));
 
-    const httpServer = await listenOnPort(app, resolvedPort);
-    isolatedServers.set(mockServerUid, { httpServer, port: resolvedPort });
-  }
+  const httpServer = await listenOnPort(app, resolvedPort);
+  isolatedServers.set(mockServerUid, { httpServer, port: resolvedPort });
+  // }
 
   const baseUrl = buildBaseUrl({ mode, port: resolvedPort, slug });
 
@@ -681,22 +689,24 @@ const stop = async (mockServerUid) => {
     globalDelay: 0
   });
 
-  if (collection.mode === 'shared') {
-    unregisterSlug(collection.slug);
-  } else {
-    const isolated = isolatedServers.get(mockServerUid);
-    if (isolated?.httpServer) {
-      await closeHttpServer(isolated.httpServer);
-    }
-    isolatedServers.delete(mockServerUid);
+  // Shared gateway mode disabled
+  // if (collection.mode === 'shared') {
+  //   unregisterSlug(collection.slug);
+  // } else {
+  const isolated = isolatedServers.get(mockServerUid);
+  if (isolated?.httpServer) {
+    await closeHttpServer(isolated.httpServer);
   }
+  isolatedServers.delete(mockServerUid);
+  // }
 
   collections.delete(mockServerUid);
 
-  if (gateway && collections.size === 0 && isolatedServers.size === 0) {
-    await closeHttpServer(gateway.httpServer);
-    gateway = null;
-  }
+  // Shared gateway disabled
+  // if (gateway && collections.size === 0 && isolatedServers.size === 0) {
+  //   await closeHttpServer(gateway.httpServer);
+  //   gateway = null;
+  // }
 
   emitStatusChanged(mockServerUid, {
     status: 'stopped',

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
-import { startMockServer, stopMockServer, refreshMockRoutes, updateMockDelay, syncMockServerState } from 'providers/ReduxStore/slices/mock-server';
+import { startMockServer, stopMockServer, refreshMockRoutes, updateMockDelay, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
 import { IconRefresh, IconCopy, IconCheck, IconSettings } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
@@ -21,9 +21,9 @@ import {
   resolveMockServerStartPayload,
   resolveMockServerWorkspacePath,
   updateMockServerTabName
-} from 'utils/mock-server-instances';
-import MockResponsesList from 'components/MockResponse/MockResponsesList';
-import { resolveMockResponseCollection, resolveMockResponseLocation } from 'utils/mock-responses';
+} from 'utils/mock-server/mock-server-instances';
+import MockResponsesList from 'components/MockServer/MockResponse/MockResponsesList';
+import { resolveMockResponseCollection, resolveMockResponseLocation } from 'utils/mock-server/mock-responses';
 import StyledWrapper from './StyledWrapper';
 
 const MockServerLogCount = ({ mockServerUid }) => {
@@ -51,7 +51,7 @@ const MockServerDashboard = ({ instance, collection }) => {
 
   const preferences = useSelector((state) => state.app.preferences);
   const collections = useSelector((state) => state.collections.collections);
-  const mockMode = useSelector((state) => get(state.app.preferences, 'mockServer.mode', 'isolated'));
+  // const mockMode = useSelector((state) => get(state.app.preferences, 'mockServer.mode', 'isolated'));
   const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
@@ -89,7 +89,8 @@ const MockServerDashboard = ({ instance, collection }) => {
   const isRunning = serverState.status === 'running';
   const isStarting = serverState.status === 'starting';
   const isStopping = serverState.status === 'stopping';
-  const isSharedMode = mockMode === 'shared';
+  // const isSharedMode = mockMode === 'shared';
+  const isSharedMode = false;
   const baseUrl = isRunning ? serverState.baseUrl : null;
   const activePort = isRunning ? serverState.port : storedInstance.port;
   const activeDelay = isRunning ? (serverState.globalDelay || 0) : (storedInstance.globalDelay || 0);

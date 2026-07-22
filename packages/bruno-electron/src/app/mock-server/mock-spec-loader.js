@@ -4,7 +4,7 @@ const jsyaml = require('js-yaml');
 const { app } = require('electron');
 const axios = require('axios');
 const { parseCollection } = require('@usebruno/filestore');
-const { getCollectionFormat } = require('../utils/filesystem');
+const { getCollectionFormat } = require('../../utils/filesystem');
 
 const parseSpec = (content) => {
   try {

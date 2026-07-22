@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { IconPlus, IconServer } from '@tabler/icons';
 import SidebarSection from 'components/Sidebar/SidebarSection';
-import MockServers from 'components/Sidebar/MockServers';
+import MockServers from 'components/MockServer/Sidebar/MockServers';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import ActionIcon from 'ui/ActionIcon';
 

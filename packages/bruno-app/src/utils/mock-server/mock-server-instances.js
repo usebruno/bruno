@@ -9,7 +9,7 @@ import {
   removeMockServerInstance,
   stopMockServer,
   upsertMockServerInstance
-} from 'providers/ReduxStore/slices/mock-server';
+} from 'providers/ReduxStore/slices/mock-server/index';
 
 export const DEFAULT_MOCK_SERVER_PORT = 4000;
 

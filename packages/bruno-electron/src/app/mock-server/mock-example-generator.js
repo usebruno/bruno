@@ -3,7 +3,7 @@ const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { openApiToBruno } = require('@usebruno/converters');
 const { parseRequest, stringifyRequestViaWorker } = require('@usebruno/filestore');
-const { searchForRequestFiles, getCollectionFormat, writeFile } = require('../utils/filesystem');
+const { searchForRequestFiles, getCollectionFormat, writeFile } = require('../../utils/filesystem');
 const { normalizeUrlPath } = require('./mock-server-routing');
 const { loadCollectionOpenApiSpec } = require('./mock-spec-loader');
 
