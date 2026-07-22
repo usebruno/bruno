@@ -33,7 +33,7 @@ async function hashFile(filePath) {
 
 /**
  * Download url to the disk cache via streams. Returns cache path + content hash.
- * Never buffers the full response in memory.
+ * Never has the entire file buffer in memory
  *
  * @param {string} url
  * @returns {Promise<{ cachePath: string, hash: string }>}
