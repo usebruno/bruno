@@ -1831,7 +1831,7 @@ const DEFAULT_APP_STARTER = `<!DOCTYPE html>
   <script>
     const out = document.getElementById('out');
     document.getElementById('refresh').addEventListener('click', async () => {
-      const requests = await ctx.listRequests();
+      const requests = await bru.ctx.listRequests();
       out.textContent = requests.map(r => \`\${r.method || r.type}  \${r.name}\`).join('\\n') || '(no requests)';
     });
   </script>
@@ -3294,8 +3294,10 @@ export const mountCollection
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
 
             const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
-            if (!skipTabRestore && collection?.pathname) {
-              await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+            if (collection?.pathname) {
+              if (!skipTabRestore) {
+                await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+              }
 
               const collectionSnapshotState = await window.ipcRenderer
                 .invoke('renderer:snapshot:get-collection', collection.pathname, workspacePathname)

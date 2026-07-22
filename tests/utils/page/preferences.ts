@@ -14,7 +14,20 @@ export const buildPreferencesLocators = (page: Page) => ({
   /** General tab — "Save Delay (in ms)" input */
   autoSaveIntervalInput: () => page.getByLabel('Save Delay (in ms)'),
   /** The Preferences editor tab (used to close it) */
-  preferencesTab: () => page.locator('.request-tab').filter({ hasText: 'Preferences' })
+  preferencesTab: () => page.locator('.request-tab').filter({ hasText: 'Preferences' }),
+
+  /** Locators for the System Proxy panel */
+  systemProxy: buildSystemProxyModeLocators(page)
+
+});
+
+const buildSystemProxyModeLocators = (page: Page) => ({
+  /** Returns the locator for the System Proxy mode radio button */
+  systemProxyMode: () => page.getByRole('radio', { name: 'System Proxy' }),
+  /** The "Refresh" button in the System Proxy panel */
+  systemProxyRefreshButton: () => page.getByTestId('system-proxy-refresh-button'),
+  /** The "Last refreshed at <timestamp>" label in the System Proxy panel */
+  systemProxyLastRefreshedLabel: () => page.getByTestId('system-proxy-last-refreshed')
 });
 
 /**

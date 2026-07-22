@@ -23,6 +23,7 @@ const theme = {
   },
   button2: {
     color: {
+      primary: { bg: '#6366f1', text: '#ffffff', border: '#6366f1' },
       danger: { bg: '#ef4444', text: '#ffffff', border: '#ef4444' }
     }
   },

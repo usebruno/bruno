@@ -714,7 +714,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   </ActionIcon>
                 </ToolHint>
               )}
-              {collection.format === 'bru' && !migratePillDismissed && (
+              {/* {collection.format === 'bru' && !migratePillDismissed && (
                 <div
                   className="migrate-yml-pill"
                   data-testid="migrate-yml-pill"
@@ -738,7 +738,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                     <IconX size={12} strokeWidth={2} />
                   </button>
                 </div>
-              )}
+              )} */}
               {/* OpenAPI Sync - standalone only when configured and beta enabled */}
               {hasOpenApiSyncConfigured && (
                 <ToolHint
