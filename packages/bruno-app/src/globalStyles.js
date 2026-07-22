@@ -281,8 +281,9 @@ const GlobalStyle = createGlobalStyle`
     font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.25rem;
     margin: 0;
+    width: max-content;
     min-width: 18.1875rem;
-    max-width: 18.1875rem;
+    max-width: min(40rem, calc(100vw - 1.875rem));
     opacity: 0;
     overflow: visible;
     padding: 0.5rem;
@@ -352,9 +353,16 @@ const GlobalStyle = createGlobalStyle`
   }
 
   /* Header */
+  .CodeMirror-brunoVarInfo .bruno-var-info-container {
+    min-width: 17.1875rem;
+    max-width: min(39rem, calc(100vw - 2.875rem));
+    box-sizing: border-box;
+  }
+
   .CodeMirror-brunoVarInfo .var-info-header {
     display: flex;
     align-items: center;
+    width: 100%;
     margin-bottom: 0.375rem;
     gap: 0.375rem;
   }
@@ -371,7 +379,9 @@ const GlobalStyle = createGlobalStyle`
   }
 
   /* Scope Badge */
-  .CodeMirror-brunoVarInfo .var-scope-badge {
+  .CodeMirror-brunoVarInfo .var-scope-badge,
+  .CodeMirror-brunoVarInfo .var-scope-select,
+  .CodeMirror-brunoVarInfo .var-definition-button {
     display: inline-block;
     padding: 0.125rem 0.375rem;
     background: ${(props) => rgba(props.theme.brand, 0.07)};
@@ -381,6 +391,26 @@ const GlobalStyle = createGlobalStyle`
     color: ${(props) => props.theme.brand};
     letter-spacing: 0.03125rem;
     flex-shrink: 0;
+  }
+
+  .CodeMirror-brunoVarInfo .var-scope-select,
+  .CodeMirror-brunoVarInfo .var-definition-button {
+    cursor: pointer;
+  }
+
+  .CodeMirror-brunoVarInfo .var-scope-select {
+    min-width: 7rem;
+    max-width: min(32rem, calc(100vw - 8rem));
+    text-overflow: ellipsis;
+  }
+
+  .CodeMirror-brunoVarInfo .var-definition-button {
+    background: transparent;
+  }
+
+  .bruno-var-definition-target {
+    outline: 2px solid ${(props) => rgba(props.theme.brand, 0.35)};
+    outline-offset: -2px;
   }
 
   /* Value Container */
@@ -393,6 +423,12 @@ const GlobalStyle = createGlobalStyle`
     overflow-x: hidden;
     min-width: 17.3125rem;
     max-height: 13.1875rem;
+    transition: border-color 0.15s, background-color 0.15s;
+  }
+
+  .CodeMirror-brunoVarInfo .var-value-container:has(.CodeMirror-focused) {
+    border-color: ${(props) => props.theme.input.focusBorder};
+    background: ${(props) => props.theme.input.bg};
   }
 
   /* Value Display (Read-only) */
@@ -412,25 +448,26 @@ const GlobalStyle = createGlobalStyle`
   /* Value Editor (CodeMirror) */
   .CodeMirror-brunoVarInfo .var-value-editor {
     width: 100%;
-    min-width: 17.1875rem;
-    max-width: 17.1875rem;
+    min-width: 0;
+    max-width: none;
     max-height: 11.125rem;
     position: relative;
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror {
+    width: 100%;
     height: 100%;
     min-height: 1.75rem;
     max-height: 11.125rem;
+    box-sizing: border-box;
     font-size: ${(props) => props.theme.font.size.base};
     font-family: Inter, sans-serif;
     font-weight: 400;
     line-height: 1.25rem;
-    border: 1px solid ${(props) => props.theme.input.focusBorder};
-    border-radius: ${(props) => props.theme.border.radius.base};
-    background: ${(props) => props.theme.dropdown.hoverBg};
+    border: none;
+    border-radius: 0;
+    background: transparent;
     color: ${(props) => props.theme.dropdown.color};
-    transition: border-color 0.15s;
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-scroll {
@@ -441,13 +478,14 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-focused {
-    background: ${(props) => props.theme.input.bg};
-    border-color: ${(props) => props.theme.input.focusBorder};
+    background: transparent;
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-lines {
-    padding: 0.375rem 1.5rem 0.375rem 0.5rem;
-    max-width: 13.1875rem;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.375rem 3rem 0.375rem 0.5rem;
+    max-width: none;
     font-family: Inter, sans-serif;
     font-weight: 400;
     line-height: 1.25rem;
@@ -470,7 +508,7 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-line {
     padding: 0;
-    max-width: 13.1875rem;
+    max-width: none;
     line-height: 1.25rem;
     font-size: ${(props) => props.theme.font.size.base};
     font-family: Inter, sans-serif;
@@ -484,14 +522,15 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-sizer {
     margin-left: 0 !important;
     margin-bottom: 0 !important;
-    max-width: 13.1875rem !important;
+    max-width: none !important;
   }
 
   /* Editable value display (shows interpolated value, click to edit) */
   .CodeMirror-brunoVarInfo .var-value-editable-display {
-    width: 17.1875rem;
-    max-width: 13.1875rem;
-    padding: 0.375rem 1.5rem 0.375rem 0.5rem;
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+    padding: 0.375rem 3rem 0.375rem 0.5rem;
     font-size: ${(props) => props.theme.font.size.base};
     font-family: Inter, sans-serif;
     font-weight: 400;
