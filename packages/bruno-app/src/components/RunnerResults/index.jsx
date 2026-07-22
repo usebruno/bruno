@@ -411,7 +411,7 @@ export default function RunnerResults({ collection }) {
                         {item.displayName}
                       </span>
                       {item.status !== 'error' && item.status !== 'skipped' && item.status !== 'completed' ? (
-                        <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
+                        <IconRefresh className="loading-icon ml-1" size={18} strokeWidth={1.5} />
                       ) : item.responseReceived?.status ? (
                         <span className="text-xs link cursor-pointer" onClick={() => setSelectedItem(item)}>
                           <span className="mr-1">{item.responseReceived?.status}</span>
