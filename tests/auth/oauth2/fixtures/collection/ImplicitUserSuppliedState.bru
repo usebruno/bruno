@@ -1,0 +1,25 @@
+meta {
+  name: ImplicitUserSuppliedState
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{localhost}}
+  body: none
+  auth: oauth2
+}
+
+auth:oauth2 {
+  grant_type: implicit
+  callback_url: bruno://app/oauth2/callback
+  authorization_url: {{host}}/realms/{{realm}}/protocol/openid-connect/auth
+  client_id: bruno
+  scope: openid
+  state: brunoUserState
+  credentials_id: credentials
+  token_source: access_token
+  token_placement: header
+  token_header_prefix: Bearer
+  auto_fetch_token: true
+}

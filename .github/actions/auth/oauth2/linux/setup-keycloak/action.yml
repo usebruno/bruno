@@ -1,0 +1,68 @@
+name: 'Setup Keycloak - Linux'
+description: 'Provision and start a Keycloak IdP (realm imported) for the OAuth2 e2e tests on Linux'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check for existing Java 21
+      id: check-java
+      shell: bash
+      run: |
+        set -uo pipefail
+        if command -v java > /dev/null 2>&1 && java -version 2>&1 | grep -q 'version "21'; then
+          echo "Java 21 already available:"
+          java -version
+          echo "present=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "Java 21 not found; will install via setup-java."
+          echo "present=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Setup Java 21 (Temurin)
+      if: steps.check-java.outputs.present != 'true'
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+
+    - name: Verify Java 21 is active
+      shell: bash
+      run: |
+        set -euo pipefail
+        java -version
+        java -version 2>&1 | grep -q 'version "21' || {
+          echo "::error::Expected Java 21 to be active"; exit 1;
+        }
+
+    - name: Download and start Keycloak
+      shell: bash
+      env:
+        KEYCLOAK_VERSION: 26.3.3
+        KC_BOOTSTRAP_ADMIN_USERNAME: admin
+        KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      run: |
+        set -euo pipefail
+
+        curl -fsSL -o /tmp/keycloak.zip \
+          "https://github.com/keycloak/keycloak/releases/download/${KEYCLOAK_VERSION}/keycloak-${KEYCLOAK_VERSION}.zip"
+        unzip -q /tmp/keycloak.zip -d /tmp
+        KC_HOME="/tmp/keycloak-${KEYCLOAK_VERSION}"
+
+        mkdir -p "${KC_HOME}/data/import"
+        cp "${GITHUB_WORKSPACE}/tests/auth/oauth2/fixtures/keycloak/realm-export.json" \
+          "${KC_HOME}/data/import/realm-export.json"
+
+        nohup "${KC_HOME}/bin/kc.sh" start-dev --http-port=8090 --import-realm \
+          > /tmp/keycloak.log 2>&1 &
+
+        echo "Waiting for Keycloak (realm bruno) on :8090 ..."
+        for i in $(seq 1 60); do
+          if curl -fsS http://localhost:8090/realms/bruno/.well-known/openid-configuration > /dev/null 2>&1; then
+            echo "Keycloak is ready."
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "::error::Keycloak did not become ready in time"
+        tail -n 100 /tmp/keycloak.log || true
+        exit 1
