@@ -406,6 +406,8 @@ const prepareRequest = async (item = {}, collection = {}) => {
       axiosRequest.headers['content-type'] = contentType;
 
       if (filePath) {
+        // Normalize to POSIX format for cross-platform compatibility
+        filePath = path.posix.normalize(filePath.replace(/\\/g, '/'));
         if (!path.isAbsolute(filePath)) {
           filePath = path.join(collectionPath, filePath);
         }

@@ -26,6 +26,8 @@ const createFormData = (data, collectionPath) => {
       const filePaths = value || [];
       filePaths.forEach((filePath) => {
         let trimmedFilePath = filePath.trim();
+        // Normalize to POSIX format for cross-platform compatibility
+        trimmedFilePath = path.posix.normalize(trimmedFilePath.replace(/\\/g, '/'));
         if (!path.isAbsolute(trimmedFilePath)) {
           trimmedFilePath = path.join(collectionPath, trimmedFilePath);
         }
