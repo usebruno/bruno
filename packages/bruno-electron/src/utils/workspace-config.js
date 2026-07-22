@@ -569,7 +569,7 @@ const getCollectionFailureReason = (collectionPath) => {
       return 'not-found';
     }
   } catch (err) {
-    return 'not-found';
+    return err.code === 'ENOENT' || err.code === 'ENOTDIR' ? 'not-found' : 'invalid';
   }
   return 'invalid';
 };

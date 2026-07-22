@@ -61,7 +61,7 @@ const CollectionsList = ({ workspace }) => {
         (c) => normalizePath(c.pathname) === normalizePath(wc.path)
       );
 
-      if (loadedCollection) {
+      if (loadedCollection && !wc.failedToOpen) {
         return {
           ...loadedCollection,
           isGitBacked: !!wc.remote,
