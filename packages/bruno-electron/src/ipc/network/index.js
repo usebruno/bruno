@@ -2137,12 +2137,14 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         deleteCancelToken(cancelTokenUid);
-        mainWindow.webContents.send('main:run-folder-event', {
-          type: 'testrun-ended',
-          collectionUid,
-          folderUid,
-          runCompletionTime: new Date().toISOString()
-        });
+        if (!stopRunnerExecution) {
+          mainWindow.webContents.send('main:run-folder-event', {
+            type: 'testrun-ended',
+            collectionUid,
+            folderUid,
+            runCompletionTime: new Date().toISOString()
+          });
+        }
       } catch (error) {
         console.log('error', error);
         deleteCancelToken(cancelTokenUid);
