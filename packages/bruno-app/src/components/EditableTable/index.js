@@ -246,6 +246,54 @@ const EditableTable = ({
     onChange(result);
   }, [rowsWithEmpty, hasAnyValue, onChange, showAddRow]);
 
+  // Handle smart paste into the key (Name) field:
+  // Parses "key=value" pairs (separated by "&" or newlines) and fills both Name and Value.
+  const handleKeyFieldPaste = useCallback((e, rowUid, keyColumn) => {
+    const text = e.clipboardData?.getData('text');
+    if (!text) return;
+
+    const segments = text.split(/[&\n]+/).map((s) => s.trim()).filter(Boolean);
+    if (!segments.some((s) => /[=:]/.test(s))) return; // fall back to default browser paste
+
+    const valueColumn = columns.find((col) => !col.isKeyField);
+    if (!valueColumn) return;
+
+    const decodeSafe = (v) => {
+      try {
+        return decodeURIComponent(v);
+      } catch {
+        return v;
+      }
+    };
+
+    e.preventDefault();
+
+    const pairs = segments.map((s) => {
+      const [, name = s, value = ''] = s.match(/^([^=:]*)[=:](.*)$/) || [];
+      return { name: decodeSafe(name.trim()), value: decodeSafe(value.trim()) };
+    });
+
+    const rowIndex = rowsWithEmpty.findIndex((r) => r.uid === rowUid);
+    if (rowIndex === -1) return;
+
+    const existingRows = showAddRow ? rowsWithEmpty.slice(0, -1) : rowsWithEmpty;
+
+    const newPairRows = pairs.map((pair, i) =>
+      i === 0 && rowIndex < existingRows.length
+        ? { ...existingRows[rowIndex], [keyColumn.key]: pair.name, [valueColumn.key]: pair.value, [checkboxKey]: true }
+        : { uid: uuid(), [checkboxKey]: true, ...defaultRow, [keyColumn.key]: pair.name, [valueColumn.key]: pair.value }
+    );
+
+    const result = [...existingRows.slice(0, rowIndex), ...newPairRows, ...existingRows.slice(rowIndex + 1)];
+
+    if (showAddRow) {
+      emptyRowUidRef.current = uuid();
+      result.push({ uid: emptyRowUidRef.current, [checkboxKey]: true, ...defaultRow });
+    }
+
+    onChange(result);
+  }, [rowsWithEmpty, columns, onChange, checkboxKey, defaultRow, showAddRow]);
+
   const handleCheckboxChange = useCallback((rowUid, checked) => {
     handleValueChange(rowUid, checkboxKey, checked);
   }, [handleValueChange, checkboxKey]);
@@ -338,11 +386,12 @@ const EditableTable = ({
           readOnly={column.readOnly}
           placeholder={!value ? column.placeholder || column.name : ''}
           onChange={(e) => handleValueChange(row.uid, column.key, e.target.value)}
+          onPaste={column.isKeyField ? (e) => handleKeyFieldPaste(e, row.uid, column) : undefined}
         />
         {errorIcon}
       </div>
     );
-  }, [isLastEmptyRow, getRowError, handleValueChange]);
+  }, [isLastEmptyRow, getRowError, handleValueChange, handleKeyFieldPaste]);
 
   const keyColumn = useMemo(() => columns.find((col) => col.isKeyField), [columns]);
 
