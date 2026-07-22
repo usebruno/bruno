@@ -4,7 +4,7 @@ import { closeAllCollections, openCollection, selectRequestPaneTab } from '../..
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Import Postman Collection with binary body mode', () => {
-  test.afterAll(async ({ page }) => {
+  test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
@@ -45,20 +45,20 @@ test.describe('Import Postman Collection with binary body mode', () => {
       await locators.sidebar.request('Binary body mode').click();
       await expect(locators.request.pane()).toBeVisible();
       await selectRequestPaneTab(page, 'Body');
-      await expect(locators.request.bodyModeSelector()).toContainText('File / Binary');
+      await expect(locators.request.bodyModeLabel()).toContainText('File / Binary');
       await expect(locators.request.pane().getByText('binary-payload.bin')).toBeVisible();
     });
 
     await test.step('Verify example is imported and preserves the binary body mode', async () => {
-      const chevronIcon = page.getByTestId('request-item-chevron');
-      await expect(chevronIcon).toBeVisible();
-      await chevronIcon.click();
+      const examplesToggle = locators.sidebar.requestExamplesToggle('Binary body mode');
+      await expect(examplesToggle).toBeVisible();
+      await examplesToggle.click();
       const example = locators.sidebar.request('Binary upload example');
       await expect(example).toBeVisible();
       await example.click();
       const examplePane = locators.request.pane();
       await expect(examplePane).toBeVisible();
-      await expect(examplePane.locator('.selected-body-mode')).toContainText('File / Binary');
+      await expect(locators.request.exampleBodyModeLabel()).toContainText('File / Binary');
       await expect(examplePane.getByText('binary-payload.bin')).toBeVisible();
     });
   });
