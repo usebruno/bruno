@@ -26,8 +26,11 @@ const createFormData = (data, collectionPath) => {
       const filePaths = value || [];
       filePaths.forEach((filePath) => {
         let trimmedFilePath = filePath.trim();
-        // Normalize to POSIX format for cross-platform compatibility
-        trimmedFilePath = path.posix.normalize(trimmedFilePath.replace(/\\/g, '/'));
+        // Normalize Windows separators when running on POSIX, without breaking UNC paths on Windows
+        if (path.sep === '/') {
+          trimmedFilePath = trimmedFilePath.replace(/\\/g, '/');
+        }
+        trimmedFilePath = path.normalize(trimmedFilePath);
         if (!path.isAbsolute(trimmedFilePath)) {
           trimmedFilePath = path.join(collectionPath, trimmedFilePath);
         }
