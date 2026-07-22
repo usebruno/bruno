@@ -53,7 +53,10 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
     const sourceUrl = item.rawUrl || request.url;
     const { har, rawUrl, encodedUrl, unhash } = await buildHar({
       request: {
-        method: request.method,
+        // HTTP methods are case-sensitive on the wire (RFC 7231); the request
+        // executor uppercases the method before sending, so the generated
+        // snippet must match or servers reject the verbatim lowercase verb.
+        method: (request.method || 'GET').toUpperCase(),
         url: sourceUrl,
         params: request.params,
         pathParams: [],
