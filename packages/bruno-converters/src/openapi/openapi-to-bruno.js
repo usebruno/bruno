@@ -28,6 +28,17 @@ const getSchemaPropertyExampleValue = (prop, propName, parentExample = {}) => {
   return '';
 };
 
+// Converts an example or default value into Bruno parameter entries.
+// Respects OAS default serialization: query/cookie default to explode:true (one entry per item),
+// path/header default to explode:false (comma-joined single entry).
+const paramEntriesFromValue = (val, paramIn) => {
+  const explodeByDefault = paramIn === 'query' || paramIn === 'cookie';
+  if (Array.isArray(val) && explodeByDefault) {
+    return val.map((item) => ({ value: String(item), enabled: true }));
+  }
+  return [{ value: String(val), enabled: true }];
+};
+
 /**
  * Extracts parameter entries based on OpenAPI parameter schema
  * For enum parameters, creates multiple entries (one per enum value)
@@ -65,11 +76,7 @@ const getParameterEntries = (param) => {
 
     // If there's a default at array level, use it
     if (arrayDefault) {
-      entries.push({
-        value: JSON.stringify(arrayDefault),
-        enabled: true
-      });
-      return entries;
+      return paramEntriesFromValue(arrayDefault, param.in);
     }
 
     // Otherwise, create entries for each enum value in items
@@ -87,41 +94,36 @@ const getParameterEntries = (param) => {
     return entries;
   }
 
-  // For non-enum cases, return single entry with comprehensive value extraction
-  // Merges HEAD's detailed handling with MERGE_HEAD's broader example sources
-  let value = '';
-  let enabled = param.required || false;
-
-  // Priority 1: Top-level param examples (from upstream, mutually exclusive per spec)
+  // Priority 1: Top-level param examples (mutually exclusive per spec)
   if (param.example !== undefined) {
-    value = String(param.example);
-    enabled = true;
-  } else if (param.examples) {
+    return paramEntriesFromValue(param.example, param.in);
+  }
+
+  if (param.examples) {
     const firstExample = Object.values(param.examples)[0];
     if (firstExample?.value !== undefined) {
-      value = String(firstExample.value);
-      enabled = true;
+      return paramEntriesFromValue(firstExample.value, param.in);
     }
   }
 
-  // Priority 2: schema.default (from HEAD, handles array defaults with JSON.stringify)
-  if (value === '' && schema.default !== undefined) {
-    if (schema.type === 'array' && Array.isArray(schema.default)) {
-      value = JSON.stringify(schema.default);
-    } else {
-      value = String(schema.default);
-    }
-    enabled = true;
+  // Priority 2: schema.default
+  if (schema.default !== undefined) {
+    return paramEntriesFromValue(schema.default, param.in);
   }
 
-  // Priority 3: schema.example (from upstream)
-  if (value === '' && schema.example !== undefined) {
-    value = String(schema.example);
-    enabled = true;
+  // Priority 3: schema.example
+  if (schema.example !== undefined) {
+    return paramEntriesFromValue(schema.example, param.in);
   }
 
-  // Priority 4: Array type handling (merged from both sides)
-  if (value === '' && schema.type === 'array' && schema.items) {
+  // Priority 4: schema.examples (OAS 3.1+)
+  if (Array.isArray(schema.examples) && schema.examples.length > 0) {
+    return paramEntriesFromValue(schema.examples[0], param.in);
+  }
+
+  // Priority 5: Array type handling (items-based fallback)
+  if (schema.type === 'array' && schema.items) {
+    let value;
     if (schema.items.example !== undefined) {
       value = String(schema.items.example);
     } else if (schema.items.enum && schema.items.enum.length > 0) {
@@ -129,33 +131,30 @@ const getParameterEntries = (param) => {
     } else if (schema.items.default !== undefined) {
       value = String(schema.items.default);
     } else {
-      value = '[]';
+      value = '';
     }
-    enabled = param.required || false;
+    return [{ value, enabled: param.required || false }];
   }
 
-  // Priority 5: schema.examples (OAS 3.1+, from upstream)
-  if (value === '' && Array.isArray(schema.examples) && schema.examples.length > 0) {
-    value = String(schema.examples[0]);
-    enabled = true;
+  // Priority 6: schema.minimum fallback for numeric types
+  if (schema.minimum !== undefined) {
+    return [
+      {
+        value: String(schema.minimum),
+        enabled: param.required || false
+      }
+    ];
   }
 
-  // Priority 6: schema.minimum fallback for numeric types (from upstream)
-  if (value === '' && schema.minimum !== undefined) {
-    value = String(schema.minimum);
-    enabled = param.required || false;
+  // Priority 7: Edge cases
+  let enabled = param.required || false;
+  if (schema.nullable === true && !param.required) {
+    enabled = false;
+  } else if (param.allowEmptyValue === true && !param.required) {
+    enabled = false;
   }
 
-  // Priority 7: Edge cases (from HEAD)
-  if (value === '') {
-    if (schema.nullable === true && !param.required) {
-      enabled = false;
-    } else if (param.allowEmptyValue === true && !param.required) {
-      enabled = false;
-    }
-  }
-
-  return [{ value, enabled }];
+  return [{ value: '', enabled }];
 };
 
 const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
