@@ -1239,10 +1239,11 @@ export const getEnvironmentVariables = (collection) => {
   if (collection) {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment) {
-      each(environment.variables, (variable) => {
-        if (variable.name && variable.enabled) {
-          variables[variable.name] = variable.value;
-        }
+      // Apply secrets last so a secret wins over a plain variable of the same name,
+      // regardless of their order in the array.
+      const enabledVars = (environment.variables || []).filter((v) => v.name && v.enabled);
+      [...enabledVars.filter((v) => !v.secret), ...enabledVars.filter((v) => v.secret)].forEach((variable) => {
+        variables[variable.name] = variable.value;
       });
     }
   }
@@ -1726,7 +1727,11 @@ export const getVariableScope = (variableName, collection, item) => {
   if (collection.activeEnvironmentUid) {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment && environment.variables) {
-      const envVar = environment.variables.find((v) => v.name === variableName && v.enabled);
+      // A name can exist as both a plain variable and a secret. The secret takes
+      // precedence (matching interpolation), so the resolved value and the secret
+      // flag stay in sync instead of coming from different entries.
+      const envVars = environment.variables.filter((v) => v.name === variableName && v.enabled);
+      const envVar = envVars.find((v) => v.secret) || envVars[0];
       if (envVar) {
         return {
           type: 'environment',

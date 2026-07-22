@@ -3303,8 +3303,10 @@ export const mountCollection
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
 
             const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
-            if (!skipTabRestore && collection?.pathname) {
-              await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+            if (collection?.pathname) {
+              if (!skipTabRestore) {
+                await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+              }
 
               const collectionSnapshotState = await window.ipcRenderer
                 .invoke('renderer:snapshot:get-collection', collection.pathname, workspacePathname)

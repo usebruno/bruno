@@ -76,7 +76,7 @@ const parseGlobalEnvironmentFile = async (pathname, workspacePath, workspaceUid)
   if (envHasSecrets(file.data)) {
     const envSecrets = environmentSecretsStore.getEnvSecrets(workspacePath, file.data);
     _.each(envSecrets, (secret) => {
-      const variable = _.find(file.data.variables, (v) => v.name === secret.name);
+      const variable = _.find(file.data.variables, (v) => v.name === secret.name && v.secret);
       if (variable && secret.value) {
         const decryptionResult = decryptStringSafe(secret.value);
         variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);
