@@ -1,9 +1,13 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@rsbuild/core';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginBabel } from '@rsbuild/plugin-babel';
 import { pluginStyledComponents } from '@rsbuild/plugin-styled-components';
 import { pluginSass } from '@rsbuild/plugin-sass';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [
@@ -39,7 +43,13 @@ export default defineConfig({
           },
         },
         rules: [
-          { test: /\.md$/, type: 'asset/source' }
+          { test: /\.md$/, type: 'asset/source' },
+          {
+            // Fix swagger-client's file:// $ref resolver failure at build time (BRU-3939).
+            test: /[\\/]swagger-client[\\/]es[\\/]resolver[\\/]utils[\\/]options\.js$/,
+            enforce: 'pre',
+            use: [{ loader: path.resolve(__dirname, './patches/swagger-resolver-base-loader.cjs') }]
+          }
         ]
       },
       ignoreWarnings: [
