@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { IconPlus, IconApi, IconBrandGraphql, IconPlugConnected, IconCode } from '@tabler/icons';
 import ActionIcon from 'ui/ActionIcon/index';
+import ToolHint from 'components/ToolHint';
 import Dropdown from 'components/Dropdown';
 import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
@@ -196,15 +197,17 @@ const CreateTransientRequest = ({ collectionUid }) => {
   }
 
   const IconButton = (
-    <ActionIcon
-      onClick={handleLeftClick}
-      onContextMenu={handleRightClick}
-      aria-label="New Transient Request"
-      size="lg"
-      style={{ marginBottom: '3px' }}
-    >
-      <IconPlus size={18} strokeWidth={1.5} />
-    </ActionIcon>
+    <ToolHint text="Create a request" toolhintId="NewTransientRequest" place="bottom">
+      <ActionIcon
+        onClick={handleLeftClick}
+        onContextMenu={handleRightClick}
+        aria-label="New Transient Request"
+        size="lg"
+        style={{ marginBottom: '3px' }}
+      >
+        <IconPlus size={18} strokeWidth={1.5} />
+      </ActionIcon>
+    </ToolHint>
   );
 
   return (
