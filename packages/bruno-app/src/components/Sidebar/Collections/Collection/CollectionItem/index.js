@@ -19,12 +19,14 @@ import {
   IconSettings,
   IconInfoCircle,
   IconTerminal2,
-  IconAppWindow
+  IconAppWindow,
+  IconEyeOff
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
+import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest, updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { toggleCollectionItem, addResponseExample, deleteItem } from 'providers/ReduxStore/slices/collections';
+import { getCollectionRelativePath, addPathToIgnoreList } from 'utils/collections/ignore';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
 import { copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
@@ -354,6 +356,21 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   let indents = range(item.depth);
 
+  const handleIgnoreFolder = () => {
+    const relativePath = getCollectionRelativePath(collectionPathname, item.pathname);
+    if (!relativePath) return;
+
+    const brunoConfig = addPathToIgnoreList(collection?.brunoConfig, relativePath);
+    dispatch(updateBrunoConfig(brunoConfig, collectionUid))
+      .then(() => {
+        // Remove the folder from the sidebar immediately; bruno.json keeps it
+        // ignored on subsequent loads.
+        dispatch(deleteItem({ itemUid: item.uid, collectionUid }));
+        toast.success(`Ignored folder: ${relativePath}`);
+      })
+      .catch(() => toast.error('Failed to ignore folder'));
+  };
+
   // Build menu items for MenuDropdown
   const buildMenuItems = () => {
     const items = [];
@@ -482,6 +499,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
             const folderCwd = item.pathname || collectionPathname;
             await openDevtoolsAndSwitchToTerminal(dispatch, folderCwd);
           }
+        },
+        {
+          id: 'ignore-folder',
+          leftSection: IconEyeOff,
+          label: 'Ignore Folder',
+          onClick: handleIgnoreFolder
         }
       );
     }
