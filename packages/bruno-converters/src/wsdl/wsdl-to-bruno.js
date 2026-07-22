@@ -205,27 +205,29 @@ class WSDLParser {
    * Parse WSDL types section (XSD schemas)
    */
   parseTypes(typesNode) {
-    if (!typesNode) return;
+    if (!typesNode) {
+      return;
+    }
 
-    const schemas = this.getArray(typesNode['xsd:schema'] || typesNode.schema);
+    const schemas = this.getArray(this.getXsdNode(typesNode, 'schema'));
 
     for (const schema of schemas) {
       const targetNamespace = schema.targetNamespace || '';
 
       // Parse complex types FIRST (so they can be referenced by elements)
-      const complexTypes = this.getArray(schema['xsd:complexType'] || schema.complexType);
+      const complexTypes = this.getArray(this.getXsdNode(schema, 'complexType'));
       for (const complexType of complexTypes) {
         this.parseComplexType(complexType, targetNamespace);
       }
 
       // Parse simple types
-      const simpleTypes = this.getArray(schema['xsd:simpleType'] || schema.simpleType);
+      const simpleTypes = this.getArray(this.getXsdNode(schema, 'simpleType'));
       for (const simpleType of simpleTypes) {
         this.parseSimpleType(simpleType, targetNamespace);
       }
 
       // Parse elements LAST (so they can reference complex types)
-      const elements = this.getArray(schema['xsd:element'] || schema.element);
+      const elements = this.getArray(this.getXsdNode(schema, 'element'));
       for (const element of elements) {
         this.parseElement(element, targetNamespace);
       }
@@ -250,34 +252,34 @@ class WSDLParser {
     };
 
     // Handle inline complex type (recursively parse children)
-    if (element['xsd:complexType'] || element.complexType) {
-      const complexType = element['xsd:complexType'] || element.complexType;
+    const complexType = this.getXsdNode(element, 'complexType');
+    if (complexType) {
       // Recursively parse sequence/choice/all children as elements
-      if (complexType['xsd:sequence'] || complexType.sequence) {
-        const sequence = complexType['xsd:sequence'] || complexType.sequence;
-        const children = this.getArray(sequence['xsd:element'] || sequence.element);
+      const sequence = this.getXsdNode(complexType, 'sequence');
+      if (sequence) {
+        const children = this.getArray(this.getXsdNode(sequence, 'element'));
         for (const child of children) {
           // Recursively parse child element
           parsedElement.elements.push(this.parseElementInline(child, namespace));
         }
       }
-      if (complexType['xsd:choice'] || complexType.choice) {
-        const choice = complexType['xsd:choice'] || complexType.choice;
-        const children = this.getArray(choice['xsd:element'] || choice.element);
+      const choice = this.getXsdNode(complexType, 'choice');
+      if (choice) {
+        const children = this.getArray(this.getXsdNode(choice, 'element'));
         for (const child of children) {
           parsedElement.elements.push(this.parseElementInline(child, namespace));
         }
       }
-      if (complexType['xsd:all'] || complexType.all) {
-        const all = complexType['xsd:all'] || complexType.all;
-        const children = this.getArray(all['xsd:element'] || all.element);
+      const all = this.getXsdNode(complexType, 'all');
+      if (all) {
+        const children = this.getArray(this.getXsdNode(all, 'element'));
         for (const child of children) {
           parsedElement.elements.push(this.parseElementInline(child, namespace));
         }
       }
       // Parse attributes
-      if (complexType['xsd:attribute'] || complexType.attribute) {
-        const attributes = this.getArray(complexType['xsd:attribute'] || complexType.attribute);
+      const attributes = this.getArray(this.getXsdNode(complexType, 'attribute'));
+      if (attributes.length > 0) {
         for (const attr of attributes) {
           parsedElement.attributes.push({
             name: attr.name,
@@ -292,13 +294,13 @@ class WSDLParser {
     }
 
     // Handle inline simple type
-    if (element['xsd:simpleType'] || element.simpleType) {
-      const simpleType = element['xsd:simpleType'] || element.simpleType;
+    const simpleType = this.getXsdNode(element, 'simpleType');
+    if (simpleType) {
       parsedElement.simpleType = this.parseSimpleTypeContent(simpleType);
     }
 
     // Handle referenced complex type - resolve it immediately
-    if (element.type && !element['xsd:complexType'] && !element['xsd:simpleType']) {
+    if (element.type && !this.getXsdNode(element, 'complexType') && !this.getXsdNode(element, 'simpleType')) {
       const typeName = element.type.replace(/^.*:/, '');
       const complexType = this.findComplexTypeByName(typeName, namespace);
       if (complexType) {
@@ -327,32 +329,32 @@ class WSDLParser {
       elements: []
     };
     // Inline complex type
-    if (element['xsd:complexType'] || element.complexType) {
-      const complexType = element['xsd:complexType'] || element.complexType;
-      if (complexType['xsd:sequence'] || complexType.sequence) {
-        const sequence = complexType['xsd:sequence'] || complexType.sequence;
-        const children = this.getArray(sequence['xsd:element'] || sequence.element);
+    const complexType = this.getXsdNode(element, 'complexType');
+    if (complexType) {
+      const sequence = this.getXsdNode(complexType, 'sequence');
+      if (sequence) {
+        const children = this.getArray(this.getXsdNode(sequence, 'element'));
         for (const child of children) {
           parsedElement.elements.push(this.parseElementInline(child, namespace));
         }
       }
-      if (complexType['xsd:choice'] || complexType.choice) {
-        const choice = complexType['xsd:choice'] || complexType.choice;
-        const children = this.getArray(choice['xsd:element'] || choice.element);
+      const choice = this.getXsdNode(complexType, 'choice');
+      if (choice) {
+        const children = this.getArray(this.getXsdNode(choice, 'element'));
         for (const child of children) {
           parsedElement.elements.push(this.parseElementInline(child, namespace));
         }
       }
-      if (complexType['xsd:all'] || complexType.all) {
-        const all = complexType['xsd:all'] || complexType.all;
-        const children = this.getArray(all['xsd:element'] || all.element);
+      const all = this.getXsdNode(complexType, 'all');
+      if (all) {
+        const children = this.getArray(this.getXsdNode(all, 'element'));
         for (const child of children) {
           parsedElement.elements.push(this.parseElementInline(child, namespace));
         }
       }
       // Parse attributes
-      if (complexType['xsd:attribute'] || complexType.attribute) {
-        const attributes = this.getArray(complexType['xsd:attribute'] || complexType.attribute);
+      const attributes = this.getArray(this.getXsdNode(complexType, 'attribute'));
+      if (attributes.length > 0) {
         for (const attr of attributes) {
           parsedElement.attributes.push({
             name: attr.name,
@@ -366,12 +368,12 @@ class WSDLParser {
       }
     }
     // Inline simple type
-    if (element['xsd:simpleType'] || element.simpleType) {
-      const simpleType = element['xsd:simpleType'] || element.simpleType;
+    const simpleType = this.getXsdNode(element, 'simpleType');
+    if (simpleType) {
       parsedElement.simpleType = this.parseSimpleTypeContent(simpleType);
     }
     // Referenced complex type
-    if (element.type && !element['xsd:complexType'] && !element['xsd:simpleType']) {
+    if (element.type && !this.getXsdNode(element, 'complexType') && !this.getXsdNode(element, 'simpleType')) {
       const typeName = element.type.replace(/^.*:/, '');
       const complexType = this.findComplexTypeByName(typeName, namespace);
       if (complexType) {
@@ -425,26 +427,26 @@ class WSDLParser {
    */
   parseComplexTypeContent(complexType, target) {
     // Parse sequence
-    if (complexType['xsd:sequence'] || complexType.sequence) {
-      const sequence = complexType['xsd:sequence'] || complexType.sequence;
+    const sequence = this.getXsdNode(complexType, 'sequence');
+    if (sequence) {
       this.parseSequence(sequence, target);
     }
 
     // Parse choice
-    if (complexType['xsd:choice'] || complexType.choice) {
-      const choice = complexType['xsd:choice'] || complexType.choice;
+    const choice = this.getXsdNode(complexType, 'choice');
+    if (choice) {
       this.parseChoice(choice, target);
     }
 
     // Parse all
-    if (complexType['xsd:all'] || complexType.all) {
-      const all = complexType['xsd:all'] || complexType.all;
+    const all = this.getXsdNode(complexType, 'all');
+    if (all) {
       this.parseAll(all, target);
     }
 
     // Parse attributes
-    if (complexType['xsd:attribute'] || complexType.attribute) {
-      const attributes = this.getArray(complexType['xsd:attribute'] || complexType.attribute);
+    const attributes = this.getArray(this.getXsdNode(complexType, 'attribute'));
+    if (attributes.length > 0) {
       for (const attr of attributes) {
         target.attributes.push({
           name: attr.name,
@@ -458,16 +460,16 @@ class WSDLParser {
     }
 
     // Handle simple content with extension
-    if (complexType['xsd:simpleContent'] || complexType.simpleContent) {
-      const simpleContent = complexType['xsd:simpleContent'] || complexType.simpleContent;
-      if (simpleContent['xsd:extension'] || simpleContent.extension) {
-        const extension = simpleContent['xsd:extension'] || simpleContent.extension;
+    const simpleContent = this.getXsdNode(complexType, 'simpleContent');
+    if (simpleContent) {
+      const extension = this.getXsdNode(simpleContent, 'extension');
+      if (extension) {
         target.baseType = extension.base;
 
         // Parse attributes from extension
-        if (extension['xsd:attribute'] || extension.attribute) {
-          const attributes = this.getArray(extension['xsd:attribute'] || extension.attribute);
-          for (const attr of attributes) {
+        const extAttributes = this.getArray(this.getXsdNode(extension, 'attribute'));
+        if (extAttributes.length > 0) {
+          for (const attr of extAttributes) {
             target.attributes.push({
               name: attr.name,
               type: attr.type,
@@ -482,10 +484,10 @@ class WSDLParser {
     }
 
     // Handle complex content with extension
-    if (complexType['xsd:complexContent'] || complexType.complexContent) {
-      const complexContent = complexType['xsd:complexContent'] || complexType.complexContent;
-      if (complexContent['xsd:extension'] || complexContent.extension) {
-        const extension = complexContent['xsd:extension'] || complexContent.extension;
+    const complexContent = this.getXsdNode(complexType, 'complexContent');
+    if (complexContent) {
+      const extension = this.getXsdNode(complexContent, 'extension');
+      if (extension) {
         target.baseType = extension.base;
 
         // Parse content from extension
@@ -498,7 +500,7 @@ class WSDLParser {
    * Parse sequence content
    */
   parseSequence(sequence, target) {
-    const elements = this.getArray(sequence['xsd:element'] || sequence.element);
+    const elements = this.getArray(this.getXsdNode(sequence, 'element'));
     for (const element of elements) {
       // Use parseElementInline to properly handle inline complex types and attributes
       const parsedElement = this.parseElementInline(element, target.namespace || '');
@@ -510,7 +512,7 @@ class WSDLParser {
    * Parse choice content
    */
   parseChoice(choice, target) {
-    const elements = this.getArray(choice['xsd:element'] || choice.element);
+    const elements = this.getArray(this.getXsdNode(choice, 'element'));
     for (const element of elements) {
       // Use parseElementInline to properly handle inline complex types and attributes
       const parsedElement = this.parseElementInline(element, target.namespace || '');
@@ -523,7 +525,7 @@ class WSDLParser {
    * Parse all content
    */
   parseAll(all, target) {
-    const elements = this.getArray(all['xsd:element'] || all.element);
+    const elements = this.getArray(this.getXsdNode(all, 'element'));
     for (const element of elements) {
       // Use parseElementInline to properly handle inline complex types and attributes
       const parsedElement = this.parseElementInline(element, target.namespace || '');
@@ -549,14 +551,14 @@ class WSDLParser {
    * Parse simple type content
    */
   parseSimpleTypeContent(simpleType) {
-    if (simpleType['xsd:restriction'] || simpleType.restriction) {
-      const restriction = simpleType['xsd:restriction'] || simpleType.restriction;
+    const restriction = this.getXsdNode(simpleType, 'restriction');
+    if (restriction) {
       return {
         base: restriction.base,
-        enumeration: this.getArray(restriction['xsd:enumeration'] || restriction.enumeration),
-        pattern: restriction['xsd:pattern'] || restriction.pattern,
-        minLength: restriction['xsd:minLength'] || restriction.minLength,
-        maxLength: restriction['xsd:maxLength'] || restriction.maxLength
+        enumeration: this.getArray(this.getXsdNode(restriction, 'enumeration')),
+        pattern: this.getXsdNode(restriction, 'pattern'),
+        minLength: this.getXsdNode(restriction, 'minLength'),
+        maxLength: this.getXsdNode(restriction, 'maxLength')
       };
     }
     return {};
@@ -660,8 +662,8 @@ class WSDLParser {
    * Extract service address from port
    */
   extractAddress(port) {
-    // Try different address formats
-    const address = port['soap:address'] || port['wsdl:address'] || port.address;
+    // Try different address formats (SOAP 1.1, SOAP 1.2, and generic)
+    const address = port['soap:address'] || port['soap12:address'] || port['wsdl:address'] || port.address;
     if (address && address.location) {
       return address.location;
     }
@@ -675,6 +677,13 @@ class WSDLParser {
     if (!item) return [];
     return Array.isArray(item) ? item : [item];
   }
+
+  /**
+   * Helper to get XSD node (handles both xsd: and xs: prefixes)
+   */
+  getXsdNode(parent, nodeName) {
+    return parent[`xsd:${nodeName}`] || parent[`xs:${nodeName}`] || parent[nodeName];
+  }
 }
 
 /**
@@ -684,6 +693,34 @@ class XMLSampleGenerator {
   constructor(wsdlData) {
     this.wsdlData = wsdlData;
     this.visitedTypes = new Set();
+    this.namespaceCounter = 0;
+    this.namespacePrefixes = new Map();
+  }
+
+  /**
+   * Get or create namespace prefix
+   */
+  getNamespacePrefix(namespace) {
+    if (!namespace) return '';
+
+    // Check if we already have a prefix for this namespace
+    if (this.namespacePrefixes.has(namespace)) {
+      return this.namespacePrefixes.get(namespace);
+    }
+
+    // Find existing prefix in WSDL namespaces
+    for (const [prefix, ns] of this.wsdlData.namespaces) {
+      if (ns === namespace && prefix !== '') {
+        this.namespacePrefixes.set(namespace, prefix);
+        return prefix;
+      }
+    }
+
+    // Create new prefix (tns, tns1, tns2, etc.)
+    const prefix = this.namespaceCounter === 0 ? 'tns' : `tns${this.namespaceCounter}`;
+    this.namespaceCounter++;
+    this.namespacePrefixes.set(namespace, prefix);
+    return prefix;
   }
 
   /**
@@ -695,7 +732,7 @@ class XMLSampleGenerator {
       return `<!-- Element ${elementName} not found -->`;
     }
 
-    return this.generateElementSample(element, 0);
+    return this.generateElementSample(element, true);
   }
 
   /**
@@ -717,37 +754,55 @@ class XMLSampleGenerator {
       }
     }
 
+    let count = 0;
+    for (const [key] of this.wsdlData.elements) {
+      console.log(`  ${key}`);
+      count++;
+      if (count >= 3) break;
+    }
     return null;
   }
 
   /**
    * Generate sample for an element
    */
-  generateElementSample(element) {
+  generateElementSample(element, isRoot = false) {
     let xml = '';
 
-    // Add comments for optional/repetition elements
-    const minOccurs = parseInt(element.minOccurs) || 1;
-    const maxOccurs = element.maxOccurs || '1';
+    // Add comments for optional/repetition elements (not for root)
+    if (!isRoot) {
+      const minOccurs = parseInt(element.minOccurs) || 1;
+      const maxOccurs = element.maxOccurs || '1';
 
-    if (minOccurs === 0) {
-      xml += `<!--Optional:-->`;
+      if (minOccurs === 0) {
+        xml += `<!--Optional:-->`;
+      }
+
+      if (maxOccurs === 'unbounded' || (typeof maxOccurs === 'number' && maxOccurs > 1)) {
+        xml += `<!--${this.getRepetitionText(minOccurs, maxOccurs)}-->`;
+      }
     }
 
-    if (maxOccurs === 'unbounded' || (typeof maxOccurs === 'number' && maxOccurs > 1)) {
-      xml += `<!--${this.getRepetitionText(minOccurs, maxOccurs)}-->`;
-    }
+    // Generate namespace prefix
+    const nsPrefix = element.namespace ? this.getNamespacePrefix(element.namespace) : '';
+    const elementName = nsPrefix ? `${nsPrefix}:${element.name}` : element.name;
 
     // Generate attributes
-    const attributes = this.generateAttributes(element);
+    let attributes = this.generateAttributes(element);
+
+    // Add namespace declaration for root element
+    if (isRoot && element.namespace) {
+      const xmlnsDecl = ` xmlns:${nsPrefix}="${element.namespace}"`;
+      attributes = xmlnsDecl + attributes;
+    }
 
     // Generate element content
     if (this.isSimpleType(element)) {
-      xml += `<${element.name}${attributes}>${this.getSampleValue(element)}</${element.name}>`;
+      xml += `<${elementName}${attributes}>${this.getSampleValue(element)}</${elementName}>`;
     } else {
-      xml += `<${element.name}${attributes}>`;
+      xml += `<${elementName}${attributes}>`;
       xml += this.generateComplexContent(element);
-      xml += `</${element.name}>`;
+      xml += `</${elementName}>`;
     }
 
     return xml;
@@ -867,9 +922,12 @@ class XMLSampleGenerator {
       for (const child of element.elements) {
         xml += this.generateElementSample(child);
       }
+      // Elements already populated (either inline or from referenced type resolution)
+      // Don't process referenced type again
+      return xml;
     }
 
-    // Handle referenced complex type - this is the key fix
+    // Handle referenced complex type ONLY if elements weren't already populated
     if (element.type) {
       const complexType = this.findComplexType(element.type);
       if (complexType) {
@@ -877,7 +935,7 @@ class XMLSampleGenerator {
       } else {
         // If we can't find the complex type, try to find it as an element
         const elementType = this.findElement(element.type.replace(/^.*:/, ''), '');
-        if (elementType) {
+        if (elementType && elementType !== element) {
           xml += this.generateElementSample(elementType);
         }
       }
@@ -960,24 +1018,47 @@ const generateSOAPEnvelope = (operation, wsdlData) => {
   }
 
   const part = message.parts[0];
-  const elementName = part.element || part.type || '';
-
-  if (!elementName) {
-    return '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><!-- No element found --></soap:Body></soap:Envelope>';
-  }
-
-  // Extract element name and namespace
-  let name, namespace;
-  if (elementName.includes(':')) {
-    [namespace, name] = elementName.split(':');
-  } else {
-    name = elementName;
-    namespace = '';
-  }
-
-  // Generate XML sample
   const generator = new XMLSampleGenerator(wsdlData);
-  const xmlSample = generator.generateSample(name, namespace);
+  let xmlSample = '';
+
+  // Handle element reference (preferred in WSDL)
+  if (part.element) {
+    const elementName = part.element;
+    let name, namespace;
+    if (elementName.includes(':')) {
+      const [namespacePrefix, elementLocalName] = elementName.split(':');
+      name = elementLocalName;
+      namespace = wsdlData.namespaces.get(namespacePrefix) || namespacePrefix;
+    } else {
+      name = elementName;
+      namespace = '';
+    }
+    xmlSample = generator.generateSample(name, namespace);
+  } else if (part.type) {
+    // Handle type reference (RPC-style)
+    const typeName = part.type;
+    let name, namespace;
+    if (typeName.includes(':')) {
+      const [namespacePrefix, typeLocalName] = typeName.split(':');
+      name = typeLocalName;
+      namespace = wsdlData.namespaces.get(namespacePrefix) || namespacePrefix;
+    } else {
+      name = typeName;
+      namespace = '';
+    }
+
+    // For RPC-style, wrap the type content in the part name element
+    const complexType = generator.findComplexType(name);
+    if (complexType) {
+      const content = generator.generateComplexTypeSample(complexType);
+      xmlSample = `<${part.name}>${content}</${part.name}>`;
+    } else {
+      // Simple type
+      xmlSample = `<${part.name}>?</${part.name}>`;
+    }
+  } else {
+    return '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><!-- No element or type found --></soap:Body></soap:Envelope>';
+  }
 
   return `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body>${xmlSample}</soap:Body></soap:Envelope>`;
 };
