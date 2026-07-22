@@ -181,8 +181,6 @@ export const syncMockResponsesFromSpec = (existingResponses = [], specResponses 
 export const buildMockServerTryUrl = ({
   port,
   requestUrl,
-  sharedSlug,
-  isSharedMode,
   params = []
 }) => {
   let path = extractMockResponseRoutePath(requestUrl);
@@ -195,26 +193,16 @@ export const buildMockServerTryUrl = ({
     path += path.includes('?') ? `&${query}` : `?${query}`;
   }
 
-  const base = `http://localhost:${port}`;
-
-  if (isSharedMode && sharedSlug) {
-    return `${base}/${sharedSlug}${path === '/' ? '' : path}`;
-  }
-
-  return `${base}${path}`;
+  return `http://localhost:${port}${path}`;
 };
 
 export const buildMockServerTryRequest = ({
   port,
-  request,
-  sharedSlug,
-  isSharedMode
+  request
 }) => {
   const url = buildMockServerTryUrl({
     port,
     requestUrl: request?.url,
-    sharedSlug,
-    isSharedMode,
     params: request?.params
   });
   const method = (request?.method || 'GET').toUpperCase();

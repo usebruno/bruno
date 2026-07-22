@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import get from 'lodash/get';
 import toast from 'react-hot-toast';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
@@ -28,11 +27,7 @@ const CloneMockServerModal = ({
 }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
-  const preferences = useSelector((state) => state.app.preferences);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
-  // const mockMode = get(preferences, 'mockServer.mode', 'isolated');
-  // const isSharedMode = mockMode === 'shared';
-  const isSharedMode = false;
   const configuredInstances = useSelector((state) => getMockServerInstances(state));
   const existingInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
   const suggestedPort = suggestNextMockServerPort(configuredInstances);
@@ -60,7 +55,7 @@ const CloneMockServerModal = ({
         .max(65535, 'Port must be 65535 or less')
         .required('Port is required')
         .test('duplicate-port', 'This port is already used by another mock server', (value) => (
-          isSharedMode || !isMockServerPortTaken(configuredInstances, value)
+          !isMockServerPortTaken(configuredInstances, value)
         ))
     }),
     onSubmit: async (values) => {
@@ -151,32 +146,26 @@ const CloneMockServerModal = ({
             ) : null}
           </div>
 
-          {!isSharedMode ? (
-            <div className="mt-4">
-              <label htmlFor="mock-server-clone-port" className="block font-medium">
-                Port
-              </label>
-              <input
-                id="mock-server-clone-port"
-                type="number"
-                name="port"
-                className="block textbox w-full mt-2"
-                min={1}
-                max={65535}
-                value={formik.values.port}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                data-testid="mock-server-clone-port-input"
-              />
-              {formik.touched.port && formik.errors.port ? (
-                <div className="text-red-500 mt-1">{formik.errors.port}</div>
-              ) : null}
-            </div>
-          ) : (
-            <div className="mt-4 text-xs opacity-70">
-              Shared gateway mode uses a single port for all mock servers.
-            </div>
-          )}
+          <div className="mt-4">
+            <label htmlFor="mock-server-clone-port" className="block font-medium">
+              Port
+            </label>
+            <input
+              id="mock-server-clone-port"
+              type="number"
+              name="port"
+              className="block textbox w-full mt-2"
+              min={1}
+              max={65535}
+              value={formik.values.port}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              data-testid="mock-server-clone-port-input"
+            />
+            {formik.touched.port && formik.errors.port ? (
+              <div className="text-red-500 mt-1">{formik.errors.port}</div>
+            ) : null}
+          </div>
 
           <p className="text-xs opacity-70 mt-4">
             Clones mock responses and server settings. The clone starts stopped.

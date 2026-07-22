@@ -92,8 +92,6 @@ const Beta = ({ close }) => {
 
   const betaSchema = generateValidationSchema();
 
-  // const mockServerMode = get(preferences, 'mockServer.mode', 'isolated');
-
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: generateInitialValues(),
@@ -120,18 +118,6 @@ const Beta = ({ close }) => {
     )
       .catch((err) => console.log(err) && toast.error('Failed to update beta preferences'));
   }, [dispatch, preferences]);
-
-  // const handleMockModeChange = (mode) => {
-  //   dispatch(
-  //     savePreferences({
-  //       ...preferences,
-  //       mockServer: {
-  //         ...preferences.mockServer,
-  //         mode
-  //       }
-  //     })
-  //   ).catch(() => toast.error('Failed to update mock server preferences'));
-  // };
 
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
@@ -223,39 +209,6 @@ const Beta = ({ close }) => {
             </div>
           ))}
         </div>
-
-        {/* {formik.values[BETA_FEATURE_IDS.MOCK_SERVER] && (
-          <div className="mock-server-settings mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="section-header mb-3">Mock Server</div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Choose how mock servers listen on localhost. Isolated mode uses one port per collection. Shared gateway uses one port for all collections with a collection slug prefix in the URL.
-            </p>
-            <div className="space-y-2">
-              <label className="flex items-center select-none">
-                <input
-                  type="radio"
-                  name="mockServerMode"
-                  value="isolated"
-                  checked={mockServerMode === 'isolated'}
-                  onChange={() => handleMockModeChange('isolated')}
-                  className="mr-2"
-                />
-                Isolated (default)
-              </label>
-              <label className="flex items-center select-none">
-                <input
-                  type="radio"
-                  name="mockServerMode"
-                  value="shared"
-                  checked={mockServerMode === 'shared'}
-                  onChange={() => handleMockModeChange('shared')}
-                  className="mr-2"
-                />
-                Shared gateway
-              </label>
-            </div>
-          </div>
-        )} */}
 
         {!hasAnyBetaFeatures && (
           <div className="no-features-message">

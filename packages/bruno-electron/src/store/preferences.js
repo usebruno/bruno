@@ -146,7 +146,6 @@ const preferencesSchema = Yup.object().shape({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
   }),
   mockServer: Yup.object({
-    mode: Yup.string().oneOf(['isolated', 'shared']),
     instances: Yup.array().of(Yup.object({
       uid: Yup.string().required(),
       name: Yup.string().required(),

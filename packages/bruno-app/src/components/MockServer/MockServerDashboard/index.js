@@ -4,7 +4,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import { startMockServer, stopMockServer, refreshMockRoutes, updateMockDelay, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
 import { IconRefresh, IconCopy, IconCheck, IconSettings } from '@tabler/icons';
 import toast from 'react-hot-toast';
-import get from 'lodash/get';
 import { validateName, validateNameError } from 'utils/common/regex';
 import RouteTable from './RouteTable';
 import RequestLog from './RequestLog';
@@ -44,14 +43,9 @@ const MockServerDashboard = ({ instance, collection }) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState(instance.name);
-  const [portDraft, setPortDraft] = useState(String(instance.port ?? ''));
   const [delayDraft, setDelayDraft] = useState(instance.globalDelay || 0);
   const [portError, setPortError] = useState(null);
-  const [showAdvancedPort, setShowAdvancedPort] = useState(false);
-
-  const preferences = useSelector((state) => state.app.preferences);
   const collections = useSelector((state) => state.collections.collections);
-  // const mockMode = useSelector((state) => get(state.app.preferences, 'mockServer.mode', 'isolated'));
   const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
@@ -89,19 +83,20 @@ const MockServerDashboard = ({ instance, collection }) => {
   const isRunning = serverState.status === 'running';
   const isStarting = serverState.status === 'starting';
   const isStopping = serverState.status === 'stopping';
-  // const isSharedMode = mockMode === 'shared';
-  const isSharedMode = false;
   const baseUrl = isRunning ? serverState.baseUrl : null;
   const activePort = isRunning ? serverState.port : storedInstance.port;
   const activeDelay = isRunning ? (serverState.globalDelay || 0) : (storedInstance.globalDelay || 0);
 
   useEffect(() => {
     setNameDraft(storedInstance.name);
-    setPortDraft(String(activePort ?? ''));
     setDelayDraft(activeDelay);
-  }, [storedInstance.name, activePort, activeDelay]);
+  }, [storedInstance.name, activeDelay]);
 
-  const validatePortDraft = async (value = portDraft) => {
+  useEffect(() => {
+    validatePort(activePort);
+  }, [activePort]);
+
+  const validatePort = async (value = activePort) => {
     const trimmed = String(value).trim();
 
     if (!trimmed) {
@@ -139,22 +134,10 @@ const MockServerDashboard = ({ instance, collection }) => {
   });
 
   const handleStart = async () => {
-    if (!isSharedMode) {
-      const isValidPort = await validatePortDraft();
-      if (!isValidPort) {
-        toast.error(portError || 'Fix the port before starting the mock server');
-        return;
-      }
-
-      const nextPort = Number(String(portDraft).trim());
-      if (nextPort !== Number(storedInstance.port)) {
-        try {
-          await persistInstance({ port: nextPort });
-        } catch {
-          toast.error('Failed to save mock server port');
-          return;
-        }
-      }
+    const isValidPort = await validatePort(activePort);
+    if (!isValidPort) {
+      toast.error(portError || 'Fix the port before starting the mock server');
+      return;
     }
 
     try {
@@ -162,10 +145,7 @@ const MockServerDashboard = ({ instance, collection }) => {
       const result = await dispatch(startMockServer(payload)).unwrap();
       await dispatch(syncMockServerState(location));
 
-      const message = result.examplesGenerated
-        ? `Mock server started at ${result.baseUrl}. Generated ${result.examplesGenerated} example(s).`
-        : `Mock server started at ${result.baseUrl}`;
-      toast.success(message);
+      toast.success(`Mock server started at ${result.baseUrl}`);
     } catch (err) {
       toast.error(err.message || 'Failed to start mock server');
     }
@@ -231,35 +211,6 @@ const MockServerDashboard = ({ instance, collection }) => {
     }
   };
 
-  const handlePortBlur = async () => {
-    const trimmed = String(portDraft).trim();
-
-    if (!trimmed) {
-      setPortDraft(String(storedInstance.port));
-      setPortError(null);
-      return;
-    }
-
-    const nextPort = Number(trimmed);
-    if (nextPort === Number(storedInstance.port)) {
-      setPortError(null);
-      return;
-    }
-
-    const isValidPort = await validatePortDraft(trimmed);
-    if (!isValidPort) {
-      return;
-    }
-
-    try {
-      await persistInstance({ port: nextPort });
-      setPortError(null);
-    } catch {
-      toast.error('Failed to save mock server port');
-      setPortDraft(String(storedInstance.port));
-    }
-  };
-
   const handleDelayChange = (event) => {
     setDelayDraft(Number(event.target.value) || 0);
   };
@@ -296,7 +247,7 @@ const MockServerDashboard = ({ instance, collection }) => {
 
   const statusDotClass = isRunning ? 'running' : isStarting ? 'starting' : isStopping ? 'stopping' : serverState.status === 'error' ? 'error' : '';
   const statusLabel = isRunning
-    ? (isSharedMode ? `Running at ${serverState.baseUrl}` : `Running on port ${serverState.port}`)
+    ? `Running on port ${serverState.port}`
     : isStarting
       ? 'Starting...'
       : isStopping
@@ -340,15 +291,6 @@ const MockServerDashboard = ({ instance, collection }) => {
     return collection?.name || 'Collection';
   }, [apiSpecs, collection?.name, instance]);
 
-  const sourcePath = useMemo(() => {
-    if (instance.sourceType !== 'spec') {
-      return collection?.pathname || null;
-    }
-
-    const spec = resolveInstanceSpec(instance, apiSpecs);
-    return spec?.pathname || instance.specPath || null;
-  }, [apiSpecs, collection?.pathname, instance]);
-
   return (
     <StyledWrapper className="flex flex-col h-full relative px-4 py-4 overflow-hidden" data-testid="mock-server-dashboard" data-mock-server-uid={mockServerUid}>
       {settingsOpen && (
@@ -386,11 +328,6 @@ const MockServerDashboard = ({ instance, collection }) => {
           <div className="text-xs opacity-70 mt-1" data-testid="mock-server-source-label">
             Source: {sourceLabel}
           </div>
-          {/* {sourcePath ? (
-            <div className="text-xs opacity-60 mt-1 break-all" data-testid="mock-server-source-path">
-              {sourcePath}
-            </div>
-          ) : null} */}
         </div>
         <button
           className="action-btn refresh-btn"
@@ -421,12 +358,6 @@ const MockServerDashboard = ({ instance, collection }) => {
           </div>
         )}
 
-        {isRunning && isSharedMode && (
-          <div className="text-xs opacity-70 mt-1" data-testid="mock-server-shared-url-hint">
-            Shared mode: append route paths to the base URL, e.g. {baseUrl}/products
-          </div>
-        )}
-
         <div className="server-controls">
           <div className="control-group">
             <label htmlFor="mock-server-delay-input">Delay (ms)</label>
@@ -442,43 +373,6 @@ const MockServerDashboard = ({ instance, collection }) => {
               data-testid="mock-server-delay-input"
             />
           </div>
-
-          {/* {!isSharedMode ? (
-            <div className="control-group control-group-advanced">
-              <button
-                type="button"
-                className="advanced-toggle"
-                onClick={() => setShowAdvancedPort((value) => !value)}
-                data-testid="mock-server-advanced-port-toggle"
-              >
-                {showAdvancedPort ? 'Hide port' : 'Port settings'}
-              </button>
-              {showAdvancedPort ? (
-                <div className="advanced-port-field">
-                  <label htmlFor="mock-server-port-input">Port</label>
-                  <input
-                    id="mock-server-port-input"
-                    type="number"
-                    value={portDraft}
-                    onChange={(event) => {
-                      setPortDraft(event.target.value);
-                      if (portError) {
-                        setPortError(null);
-                      }
-                    }}
-                    onBlur={handlePortBlur}
-                    disabled={isRunning || isStarting || isStopping}
-                    min={1}
-                    max={65535}
-                    data-testid="mock-server-port-input"
-                  />
-                  {portError ? (
-                    <div className="field-error" data-testid="mock-server-port-error">{portError}</div>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          ) : null} */}
 
           {!isRunning && !isStopping ? (
             <button

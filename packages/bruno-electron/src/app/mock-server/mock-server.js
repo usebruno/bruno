@@ -5,20 +5,14 @@ const https = require('https');
 const net = require('net');
 const { BrowserWindow } = require('electron');
 const { v4: uuidv4 } = require('uuid');
-const { preferencesUtil, getPreferences } = require('../../store/preferences');
+const { preferencesUtil } = require('../../store/preferences');
 const {
   buildRouteMapFromMockResponses,
   countRouteResponses,
-  extractRoutePath,
   routeMapToRouteTable
 } = require('./mock-response-routes');
 const { buildRequestContext, evaluateResponseCandidates } = require('./mock-rule-matcher');
-const {
-  DEFAULT_GATEWAY_PORT,
-  allocateCollectionSlug,
-  stripCollectionPrefix,
-  buildBaseUrl
-} = require('./mock-server-routing');
+const { DEFAULT_GATEWAY_PORT } = require('./mock-server-routing');
 
 const MAX_LOG_ENTRIES = 500;
 const LOG_FLUSH_MS = 300;
@@ -28,17 +22,12 @@ const LOCALHOST_IPV4 = '127.0.0.1';
 const collections = new Map();
 const pendingLogBroadcasts = new Map();
 let logFlushTimer = null;
-const slugToCollectionUid = new Map();
 const isolatedServers = new Map();
-let gateway = null;
 let _mainWindow = null;
 
 const setMainWindow = (mainWindow) => {
   _mainWindow = mainWindow;
 };
-
-// const getMockMode = () => getPreferences()?.mockServer?.mode || 'isolated';
-const getMockMode = () => 'isolated'; // Hardcoded to isolated mode - shared gateway disabled
 
 const resolveMockServerLocation = (mockServerUid, location = {}) => {
   const running = collections.get(mockServerUid);
@@ -83,8 +72,6 @@ const getRouteCounts = (mockServerUid, location = {}) => {
 
 const getUsedPorts = () => {
   const ports = new Set();
-  // Shared gateway disabled
-  // if (gateway?.port) ports.add(gateway.port);
   for (const { port } of isolatedServers.values()) {
     if (port) ports.add(port);
   }
@@ -92,11 +79,6 @@ const getUsedPorts = () => {
 };
 
 const isPortUsedByMockServer = (port, mockServerUid = null) => {
-  // Shared gateway disabled
-  // if (gateway?.port === port) {
-  //   return true;
-  // }
-
   for (const [uid, isolated] of isolatedServers.entries()) {
     if (isolated.port === port && uid !== mockServerUid) {
       return true;
@@ -269,15 +251,6 @@ const normalizePath = (reqPath) => {
   return p;
 };
 
-const resolveSharedCollectionUid = (reqPath) => {
-  const normalized = normalizePath(reqPath);
-  const segments = normalized.split('/').filter(Boolean);
-  if (!segments.length) return null;
-
-  const slug = segments[0].toLowerCase();
-  return slugToCollectionUid.get(slug) || null;
-};
-
 const logRequest = (collection, mockServerUid, data) => {
   const entry = {
     uid: uuidv4(),
@@ -310,13 +283,7 @@ const handleRequest = (mockServerUid, req, res) => {
   }
 
   const startTime = Date.now();
-  let reqPath = normalizePath(req.path);
-
-  // Shared gateway mode disabled
-  // if (collection.mode === 'shared') {
-  //   reqPath = normalizePath(stripCollectionPrefix(reqPath, collection.slug));
-  // }
-
+  const reqPath = normalizePath(req.path);
   const method = req.method.toUpperCase();
   const routeKey = `${method} ${reqPath}`;
 
@@ -442,26 +409,6 @@ const applyMockMiddleware = (app) => {
   app.use(express.text({ type: '*/*', limit: '10mb' }));
 };
 
-const createGatewayApp = () => {
-  const app = express();
-  applyMockMiddleware(app);
-
-  app.all('*', (req, res) => {
-    const mockServerUid = resolveSharedCollectionUid(req.path);
-    if (!mockServerUid) {
-      res.status(404).json({
-        error: 'Unknown mock collection',
-        hint: 'Use /{collection-slug}/{route-path} when shared gateway mode is enabled'
-      });
-      return;
-    }
-
-    handleRequest(mockServerUid, req, res);
-  });
-
-  return app;
-};
-
 const tryMockRequest = ({ url, method = 'GET', headers = {}, body = null }) => new Promise((resolve, reject) => {
   let parsedUrl;
 
@@ -533,43 +480,6 @@ const closeHttpServer = (httpServer) => new Promise((resolve) => {
   httpServer.on('close', () => clearTimeout(forceCloseTimeout));
 });
 
-// Shared gateway disabled - only isolated mode supported
-// const ensureSharedGateway = async () => {
-//   if (gateway) return gateway;
-//
-//   const app = createGatewayApp();
-//   const port = await suggestPort(DEFAULT_GATEWAY_PORT);
-//   const httpServer = await listenOnPort(app, port);
-//
-//   gateway = { app, httpServer, port };
-//   return gateway;
-// };
-
-// Shared gateway disabled
-// const registerSlug = (mockServerUid, slug) => {
-//   slugToCollectionUid.set(slug, mockServerUid);
-// };
-//
-// const unregisterSlug = (slug) => {
-//   slugToCollectionUid.delete(slug);
-// };
-
-const buildRouteMapForSource = async ({
-  mockServerUid,
-  sourceType,
-  collectionPath,
-  workspacePath
-}) => ({
-  routeMap: buildRouteMapFromMockResponses({
-    mockServerUid,
-    collectionPath,
-    sourceType,
-    workspacePath
-  }),
-  examplesGenerated: 0,
-  filesUpdated: 0
-});
-
 const start = async ({
   mockServerUid,
   serverName,
@@ -594,26 +504,14 @@ const start = async ({
     await stop(mockServerUid);
   }
 
-  const mode = getMockMode();
-  const { routeMap, examplesGenerated, filesUpdated } = await buildRouteMapForSource({
+  const routeMap = buildRouteMapFromMockResponses({
     mockServerUid,
     sourceType,
     collectionPath,
     workspacePath
   });
-  // Shared gateway mode disabled - only isolated mode supported
-  // const slug = mode === 'shared'
-  //   ? allocateCollectionSlug(serverName || collectionName, mockServerUid, slugToCollectionUid)
-  //   : null;
-  const slug = null;
 
   let resolvedPort = Number(port) || DEFAULT_GATEWAY_PORT;
-
-  // if (mode === 'shared') {
-  //   const sharedGateway = await ensureSharedGateway();
-  //   resolvedPort = sharedGateway.port;
-  //   registerSlug(mockServerUid, slug);
-  // } else {
   resolvedPort = await resolveIsolatedPort(resolvedPort, mockServerUid);
 
   const app = express();
@@ -622,9 +520,8 @@ const start = async ({
 
   const httpServer = await listenOnPort(app, resolvedPort);
   isolatedServers.set(mockServerUid, { httpServer, port: resolvedPort });
-  // }
 
-  const baseUrl = buildBaseUrl({ mode, port: resolvedPort, slug });
+  const baseUrl = `http://localhost:${resolvedPort}`;
 
   const collectionState = {
     mockServerUid,
@@ -632,8 +529,6 @@ const start = async ({
     collectionPath,
     workspacePath,
     collectionName: serverName || collectionName,
-    mode,
-    slug,
     port: resolvedPort,
     baseUrl,
     routeMap: null,
@@ -652,25 +547,16 @@ const start = async ({
     status: 'running',
     port: resolvedPort,
     baseUrl,
-    slug,
-    mode,
     routeCount,
     exampleCount,
-    globalDelay,
-    examplesGenerated,
-    filesUpdated
+    globalDelay
   });
 
   return {
     port: resolvedPort,
     baseUrl,
-    slug,
-    mode,
     routeCount,
-    exampleCount,
-    examplesGenerated,
-    filesUpdated,
-    requestedPort: Number(port) || DEFAULT_GATEWAY_PORT
+    exampleCount
   };
 };
 
@@ -682,38 +568,23 @@ const stop = async (mockServerUid) => {
     status: 'stopping',
     port: collection.port,
     baseUrl: collection.baseUrl,
-    slug: collection.slug,
-    mode: collection.mode,
     routeCount: 0,
     exampleCount: 0,
     globalDelay: 0
   });
 
-  // Shared gateway mode disabled
-  // if (collection.mode === 'shared') {
-  //   unregisterSlug(collection.slug);
-  // } else {
   const isolated = isolatedServers.get(mockServerUid);
   if (isolated?.httpServer) {
     await closeHttpServer(isolated.httpServer);
   }
   isolatedServers.delete(mockServerUid);
-  // }
 
   collections.delete(mockServerUid);
-
-  // Shared gateway disabled
-  // if (gateway && collections.size === 0 && isolatedServers.size === 0) {
-  //   await closeHttpServer(gateway.httpServer);
-  //   gateway = null;
-  // }
 
   emitStatusChanged(mockServerUid, {
     status: 'stopped',
     port: null,
     baseUrl: null,
-    slug: null,
-    mode: getMockMode(),
     routeCount: 0,
     exampleCount: 0,
     globalDelay: 0
@@ -733,8 +604,6 @@ const getStatus = (mockServerUid, location = {}) => {
       status: 'stopped',
       port: null,
       baseUrl: null,
-      slug: null,
-      mode: getMockMode(),
       routeCount: counts.routeCount,
       exampleCount: counts.exampleCount,
       globalDelay: 0
@@ -745,8 +614,6 @@ const getStatus = (mockServerUid, location = {}) => {
     status: 'running',
     port: collection.port,
     baseUrl: collection.baseUrl,
-    slug: collection.slug,
-    mode: collection.mode,
     routeCount: collection.routeMap.size,
     exampleCount: countRouteResponses(collection.routeMap),
     globalDelay: collection.globalDelay
@@ -818,7 +685,6 @@ module.exports = {
   clearLog,
   suggestPort,
   checkPortAvailable,
-  getMockMode,
   getRunningMockServerUids,
   reloadRoutesFromStore,
   tryMockRequest

@@ -48,11 +48,7 @@ const MockResponsesList = ({ instance, collection }) => {
   const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
   const responses = useSelector((state) => state.mockServer.mockResponses[instance.uid] || []);
   const serverState = useSelector((state) => state.mockServer.servers[instance.uid]);
-  // const isSharedMode = useSelector((state) => state.app.preferences?.mockServer?.mode === 'shared');
-  const isSharedMode = false;
   const mockServerPort = serverState?.port || instance.port;
-  // const sharedSlug = serverState?.slug || null;
-  const sharedSlug = null;
 
   const resolvedCollection = useMemo(() => (
     collection || collections.find((item) => item.uid === instance.collectionUid) || null
@@ -260,8 +256,6 @@ const MockResponsesList = ({ instance, collection }) => {
       const url = buildMockServerTryUrl({
         port: mockServerPort,
         requestUrl: response.request?.url,
-        sharedSlug,
-        isSharedMode,
         params: response.request?.params
       });
       await navigator.clipboard.writeText(url);

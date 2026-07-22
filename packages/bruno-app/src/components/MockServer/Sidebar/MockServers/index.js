@@ -4,7 +4,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import classnames from 'classnames';
 import { IconChevronRight, IconCopy, IconDots, IconPencil, IconPlayerPlay, IconPlayerStop, IconSettings, IconTrash } from '@tabler/icons';
 import toast from 'react-hot-toast';
-import get from 'lodash/get';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { startMockServer, stopMockServer, loadAllMockResponses } from 'providers/ReduxStore/slices/mock-server/index';
 import { normalizePath } from 'utils/common/path';
@@ -45,7 +44,6 @@ const MockServerItem = React.memo(({
   workspaceCollections,
   activeWorkspace,
   apiSpecs,
-  preferences,
   workspaces,
   location,
   onEditSettings,
@@ -109,10 +107,7 @@ const MockServerItem = React.memo(({
       });
       const result = await dispatch(startMockServer(payload)).unwrap();
 
-      const message = result.examplesGenerated
-        ? `Mock server started at ${result.baseUrl}. Generated ${result.examplesGenerated} example(s).`
-        : `Mock server started at ${result.baseUrl}`;
-      toast.success(message);
+      toast.success(`Mock server started at ${result.baseUrl}`);
     } catch (err) {
       toast.error(err.message || 'Failed to start mock server');
     }
@@ -244,7 +239,6 @@ const MockServers = () => {
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
-  const preferences = useSelector((state) => state.app.preferences);
 
   const activeWorkspace = workspaces.find((workspace) => workspace.uid === activeWorkspaceUid);
 
@@ -355,7 +349,6 @@ const MockServers = () => {
               workspaceCollections={workspaceCollections}
               activeWorkspace={activeWorkspace}
               apiSpecs={apiSpecs}
-              preferences={preferences}
               workspaces={workspaces}
               location={location}
               key={instance.uid}

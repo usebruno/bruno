@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import get from 'lodash/get';
 import toast from 'react-hot-toast';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
@@ -121,7 +120,6 @@ const CreateMockServerModal = ({
   const inputRef = useRef();
   const [showAdvancedPort, setShowAdvancedPort] = useState(Boolean(editingInstance));
   const [portError, setPortError] = useState(null);
-  const preferences = useSelector((state) => state.app.preferences);
   const collections = useSelector((state) => state.collections.collections);
   const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => ({
@@ -130,9 +128,6 @@ const CreateMockServerModal = ({
   }));
 
   const activeWorkspace = workspaces.find((workspace) => workspace.uid === activeWorkspaceUid);
-  // const mockMode = get(preferences, 'mockServer.mode', 'isolated');
-  // const isSharedMode = mockMode === 'shared';
-  const isSharedMode = false;
   const isEditing = Boolean(editingInstance);
 
   const workspaceCollections = useMemo(() => {
@@ -234,7 +229,7 @@ const CreateMockServerModal = ({
         return;
       }
 
-      if (!isSharedMode && showAdvancedPort) {
+      if (showAdvancedPort) {
         const portCheck = await checkMockServerPortAvailable(values.port, configuredInstances, {
           excludeUid: editingInstance?.uid
         });
@@ -306,7 +301,7 @@ const CreateMockServerModal = ({
   }, []);
 
   useEffect(() => {
-    if (isSharedMode || isEditing) {
+    if (isEditing) {
       return;
     }
 
@@ -323,7 +318,7 @@ const CreateMockServerModal = ({
     return () => {
       cancelled = true;
     };
-  }, [isSharedMode, isEditing, configuredInstances, editingInstance?.uid]);
+  }, [isEditing, configuredInstances, editingInstance?.uid]);
 
   const handleConfirm = async () => {
     if (portError) {
@@ -504,46 +499,40 @@ const CreateMockServerModal = ({
             </button>
             {showAdvancedPort ? (
               <>
-                {!isSharedMode ? (
-                  <>
-                    <label htmlFor="mock-server-port" className="block font-medium mt-2">
-                      Port
-                    </label>
-                    <input
-                      id="mock-server-port"
-                      type="number"
-                      name="port"
-                      className="block textbox w-full mt-2"
-                      min={1}
-                      max={65535}
-                      value={formik.values.port}
-                      onChange={(event) => {
-                        formik.handleChange(event);
-                        if (portError) {
-                          setPortError(null);
-                        }
-                      }}
-                      onBlur={async (event) => {
-                        formik.handleBlur(event);
-                        const portCheck = await checkMockServerPortAvailable(event.target.value, configuredInstances, {
-                          excludeUid: editingInstance?.uid
-                        });
-                        setPortError(getMockServerPortError(portCheck, event.target.value));
-                      }}
-                      data-testid="mock-server-port-input"
-                    />
-                    {portError ? (
-                      <div className="text-red-500 mt-1">{portError}</div>
-                    ) : null}
-                    {formik.touched.port && formik.errors.port ? (
-                      <div className="text-red-500 mt-1">{formik.errors.port}</div>
-                    ) : null}
-                  </>
-                ) : (
-                  <div className="text-xs mt-2 opacity-70">
-                    Shared gateway mode uses a single port for all mock servers. Configure it in Preferences &gt; Beta.
-                  </div>
-                )}
+                <>
+                  <label htmlFor="mock-server-port" className="block font-medium mt-2">
+                    Port
+                  </label>
+                  <input
+                    id="mock-server-port"
+                    type="number"
+                    name="port"
+                    className="block textbox w-full mt-2"
+                    min={1}
+                    max={65535}
+                    value={formik.values.port}
+                    onChange={(event) => {
+                      formik.handleChange(event);
+                      if (portError) {
+                        setPortError(null);
+                      }
+                    }}
+                    onBlur={async (event) => {
+                      formik.handleBlur(event);
+                      const portCheck = await checkMockServerPortAvailable(event.target.value, configuredInstances, {
+                        excludeUid: editingInstance?.uid
+                      });
+                      setPortError(getMockServerPortError(portCheck, event.target.value));
+                    }}
+                    data-testid="mock-server-port-input"
+                  />
+                  {portError ? (
+                    <div className="text-red-500 mt-1">{portError}</div>
+                  ) : null}
+                  {formik.touched.port && formik.errors.port ? (
+                    <div className="text-red-500 mt-1">{formik.errors.port}</div>
+                  ) : null}
+                </>
                 <label htmlFor="mock-server-delay" className="block font-medium mt-4">
                   Response delay (ms)
                 </label>
@@ -564,11 +553,9 @@ const CreateMockServerModal = ({
                 ) : null}
               </>
             ) : (
-              !isSharedMode ? (
-                <div className="text-xs mt-2 opacity-70">
-                  Bruno will pick the next available port automatically when you start the server.
-                </div>
-              ) : null
+              <div className="text-xs mt-2 opacity-70">
+                Bruno will pick the next available port automatically when you start the server.
+              </div>
             )}
           </div>
         </form>

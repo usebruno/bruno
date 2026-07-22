@@ -42,7 +42,7 @@ const registerMockServerIpc = (mainWindow) => {
       const port = await mockServer.suggestPort(startPort, {
         additionalUsedPorts: payload.additionalUsedPorts || []
       });
-      return { success: true, port, mode: mockServer.getMockMode() };
+      return { success: true, port };
     } catch (err) {
       return { success: false, error: err.message };
     }

@@ -12,7 +12,6 @@ import { cancelResponseExampleEdit } from 'providers/ReduxStore/slices/collectio
 import { saveMockResponse, deleteMockResponse, loadMockResponses } from 'providers/ReduxStore/slices/mock-server/index';
 import { closeTabs, updateTabMeta, updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest } from 'utils/mock-server/mock-responses';
-import get from 'lodash/get';
 import {
   getMockResponseItemUid,
   mockResponseFromEditorItem
@@ -42,10 +41,6 @@ const MockResponse = ({ instance, collection, responseUid }) => {
   const screenWidth = useSelector((state) => state.app.screenWidth);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
-  // const isSharedMode = get(preferences, 'mockServer.mode', 'isolated') === 'shared';
-  // const sharedSlug = serverState?.slug || null;
-  const isSharedMode = false;
-  const sharedSlug = null;
 
   const activeWorkspace = useMemo(() => (
     workspaces.find((workspace) => workspace.uid === activeWorkspaceUid) || null
@@ -316,9 +311,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     try {
       const result = await tryMockResponseRequest({
         port: mockServerPort,
-        request: example.request,
-        sharedSlug,
-        isSharedMode
+        request: example.request
       });
 
       setTryResult(result);
