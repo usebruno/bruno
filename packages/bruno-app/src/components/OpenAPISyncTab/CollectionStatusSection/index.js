@@ -9,7 +9,7 @@ import {
   IconInfoCircle,
   IconLoader2
 } from '@tabler/icons';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import Button from 'ui/Button';
 import StatusBadge from 'ui/StatusBadge';
 import Modal from 'components/Modal';
