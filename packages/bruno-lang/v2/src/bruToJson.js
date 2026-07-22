@@ -794,7 +794,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     const username = usernameKey ? usernameKey.value : '';
     const password = passwordKey ? passwordKey.value : '';
-    const domain = passwordKey ? domainKey.value : '';
+    const domain = domainKey ? domainKey.value : '';
 
     return {
       auth: {
