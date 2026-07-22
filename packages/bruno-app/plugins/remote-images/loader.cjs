@@ -65,7 +65,7 @@ async function ensureCachedImage(url) {
 
   await fs.promises.mkdir(CACHE_DIR, { recursive: true });
 
-  const tmpPath = `${cachePath}.${process.pid}.tmp`;
+  const tmpPath = `${cachePath}.${process.pid}.${crypto.randomBytes(6).toString('hex')}.tmp`;
   const hash = crypto.createHash('md5');
 
   try {
@@ -81,9 +81,25 @@ async function ensureCachedImage(url) {
     );
 
     const shortHash = hash.digest('hex').slice(0, 16);
-    await fs.promises.rename(tmpPath, cachePath);
-    await fs.promises.writeFile(hashPath, shortHash);
-    return { cachePath, hash: shortHash };
+
+    try {
+      await fs.promises.rename(tmpPath, cachePath);
+      await fs.promises.writeFile(hashPath, shortHash);
+      return { cachePath, hash: shortHash };
+    } catch (err) {
+      if (err && (err.code === 'EEXIST' || err.code === 'EPERM')) {
+        await fs.promises.rm(tmpPath, { force: true }).catch(() => {});
+        let existingHash;
+        try {
+          existingHash = (await fs.promises.readFile(hashPath, 'utf8')).trim();
+        } catch {
+          existingHash = (await hashFile(cachePath)).slice(0, 16);
+          await fs.promises.writeFile(hashPath, existingHash).catch(() => {});
+        }
+        return { cachePath, hash: existingHash };
+      }
+      throw err;
+    }
   } catch (err) {
     await fs.promises.rm(tmpPath, { force: true }).catch(() => {});
     throw err;
