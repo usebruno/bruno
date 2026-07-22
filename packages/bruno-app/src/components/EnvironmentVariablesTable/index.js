@@ -393,18 +393,6 @@ const EnvironmentVariablesTable = ({
     setPinnedData({ query: '', uids: new Set() });
   }, [savedValuesJson]);
 
-  // Keep the trailing empty "add new" row's secret flag in sync with the active
-  // tab, so typing into it creates a variable of the correct type. The empty row
-  // is filtered out of save/draft, so this never affects persisted data.
-  useEffect(() => {
-    const lastIndex = formik.values.length - 1;
-    const last = formik.values[lastIndex];
-    const isEmpty = !last?.name || (typeof last.name === 'string' && last.name.trim() === '');
-    if (last && isEmpty && !!last.secret !== isSecretTab) {
-      formik.setFieldValue(`${lastIndex}.secret`, isSecretTab, false);
-    }
-  }, [isSecretTab, formik.values]);
-
   // Sync modified state
   useEffect(() => {
     const currentValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
