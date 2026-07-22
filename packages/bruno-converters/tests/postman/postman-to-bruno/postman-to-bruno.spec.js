@@ -1584,6 +1584,36 @@ describe('postman-collection binary body import', () => {
     expect(body.file[0].contentType).toBe('image/png');
   });
 
+  it('should resolve application/octet-stream for a .bin file', async () => {
+    const collectionWithBinUpload = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with bin upload',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'bin upload',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'file',
+              file: { src: './binary-payload.bin' }
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithBinUpload);
+    const body = brunoCollection.items[0].request.body;
+
+    expect(body.file[0].filePath).toBe('./binary-payload.bin');
+    expect(body.file[0].contentType).toBe('application/octet-stream');
+  });
+
   it('should not throw when mode: file has no src', async () => {
     const collectionWithMissingSrc = {
       info: {
