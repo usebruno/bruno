@@ -6,6 +6,7 @@ import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/
 import { get } from 'lodash';
 import Button from 'ui/Button';
 import Dropdown from 'components/Dropdown';
+import Help from 'components/Help';
 import { IconCaretDown, IconFilePlus, IconWorld } from '@tabler/icons';
 import { DEFAULT_PRESET_REQUEST_TYPE, PRESET_REQUEST_TYPES } from 'utils/common/constants';
 
@@ -77,7 +78,12 @@ const PresetsSettings = ({ collection }) => {
             <p className="preset-section-subtitle">Applied when a new request is created in this collection.</p>
 
             <div className="preset-field">
-              <label className="preset-field-label">Request Type</label>
+              <div className="preset-field-label-row">
+                <label className="preset-field-label">Request Type</label>
+                <Help icon="info" placement="right" width={280}>
+                  New requests start with this type selected.
+                </Help>
+              </div>
               <div className="flex items-center">
                 <input
                   id="http"
@@ -127,11 +133,15 @@ const PresetsSettings = ({ collection }) => {
                 />
                 <label htmlFor="ws" className="ml-1 cursor-pointer select-none">WebSocket</label>
               </div>
-              <p className="preset-field-hint">New requests start with this type selected.</p>
             </div>
 
             <div className="preset-field">
-              <label className="preset-field-label" htmlFor="request-url">Base URL</label>
+              <div className="preset-field-label-row">
+                <label className="preset-field-label" htmlFor="request-url">Base URL</label>
+                <Help icon="info" placement="right" width={280}>
+                  Pre-fills the URL field of new requests. It is not prepended to request URLs when sending.
+                </Help>
+              </div>
               <input
                 id="request-url"
                 data-testid="presets-request-url"
@@ -146,7 +156,6 @@ const PresetsSettings = ({ collection }) => {
                 onChange={handleRequestUrlChange}
                 value={currentPresets.requestUrl || ''}
               />
-              <p className="preset-field-hint">Pre-fills the URL field of new requests. It is not prepended to request URLs when sending.</p>
             </div>
           </div>
         </div>
@@ -161,7 +170,12 @@ const PresetsSettings = ({ collection }) => {
             <p className="preset-section-subtitle">Applied when this collection is opened.</p>
 
             <div className="preset-field">
-              <label className="preset-field-label" htmlFor="default-environment">Environment</label>
+              <div className="preset-field-label-row">
+                <label className="preset-field-label" htmlFor="default-environment">Environment</label>
+                <Help icon="info" placement="right" width={280}>
+                  Auto-selected the first time this collection is opened, when no environment has been chosen yet. It is not a fallback for requests sent without an environment.
+                </Help>
+              </div>
               <div className="default-env-dropdown">
                 <Dropdown onCreate={(ref) => (defaultEnvDropdownRef.current = ref)} icon={defaultEnvTrigger} placement="bottom-start" sameWidth>
                   <div
@@ -181,10 +195,6 @@ const PresetsSettings = ({ collection }) => {
                   ))}
                 </Dropdown>
               </div>
-              <p className="preset-field-hint">
-                Auto-selected the first time this collection is opened, when no environment has been chosen yet.
-                It is not a fallback for requests sent without an environment.
-              </p>
             </div>
           </div>
         </div>

@@ -51,18 +51,20 @@ const StyledWrapper = styled.div`
   .preset-field {
     margin-top: 1rem;
 
-    .preset-field-label {
-      display: block;
-      font-weight: 500;
+    .preset-field-label-row {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
       margin-bottom: 0.375rem;
+
+      /* the Help info icon */
+      svg {
+        color: ${(props) => props.theme.colors.text.muted};
+      }
     }
 
-    .preset-field-hint {
-      font-size: ${(props) => props.theme.font.size.xs};
-      color: ${(props) => props.theme.colors.text.muted};
-      margin-top: 0.375rem;
-      max-width: 520px;
-      line-height: 1.4;
+    .preset-field-label {
+      font-weight: 500;
     }
   }
 
