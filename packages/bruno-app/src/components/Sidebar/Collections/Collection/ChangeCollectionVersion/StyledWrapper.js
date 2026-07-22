@@ -10,7 +10,7 @@ export const ModalTitle = styled.div`
 const StyledWrapper = styled.div`
   max-width: 100%;
   .subheader {
-    margin-bottom: 0.5rem;
+    margin-bottom: 4px;
     color: ${(props) => props.theme.colors.text.muted};
     font-weight: 400;
     font-size: ${(props) => props.theme.font.size.base};
@@ -32,7 +32,7 @@ const StyledWrapper = styled.div`
       display: flex;
       align-items: flex-start;
       gap: 1rem;
-      padding: 1rem;
+      padding: 12px 8px;
     }
 
     .version-col {
@@ -40,7 +40,7 @@ const StyledWrapper = styled.div`
       min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 2px;
     }
 
     .col-label {
@@ -51,6 +51,11 @@ const StyledWrapper = styled.div`
     }
 
     .current-value {
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      width: 100%;
+      height:28px;
       color: ${(props) => props.theme.text};
       font-weight: 400;
       font-size: ${(props) => props.theme.font.size.sm};
@@ -74,6 +79,7 @@ const StyledWrapper = styled.div`
       font-weight: 400;
       font-size: ${(props) => props.theme.font.size.sm};
       line-height: 20px;
+      height:28px;
     }
   }
 
@@ -82,7 +88,7 @@ const StyledWrapper = styled.div`
     align-items: center;
     flex-wrap: wrap;
     gap: 0.25rem;
-    padding: 0.625rem 1rem;
+    padding: 4px 8px;
     border-top: 1px solid ${(props) => props.theme.border.border1};
     background-color: ${(props) => props.theme.background.mantle};
     color: ${(props) => props.theme.text};
