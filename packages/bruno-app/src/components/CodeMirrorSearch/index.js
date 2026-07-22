@@ -148,7 +148,31 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
       editor.addLineClass(currentLine, 'wrap', 'cm-search-line-highlight');
       searchLineHighlight.current = currentLine;
 
-      editor.scrollIntoView(matches[matchIndex].from, 100);
+      // previous line of code
+      // editor.scrollIntoView(matches[matchIndex].from, 100);
+
+      // This is the part we are fixing for issue #7875.
+      // Before, CodeMirror only scrolled enough to make the match visible,
+      // which often placed the result near the bottom of the JSON viewport.
+      // Now we calculate the matched line position and force it closer to
+      // the vertical centre, giving users better JSON context above and below.
+      const activeMatch = matches[matchIndex];
+      const scroller = editor.getScrollerElement();
+      const lineHeight = editor.defaultTextHeight();
+
+      // CodeMirror's heightAtLine gives us the vertical position of the line
+      // inside the full editor document, not just the visible screen.
+      const matchTop = editor.heightAtLine(activeMatch.from.line, 'local');
+
+      // We subtract half the viewport height, then add a few line heights so
+      // the highlighted line is visually centred instead of being too high.
+      const targetScrollTop = Math.max(
+        0,
+        matchTop - scroller.clientHeight / 2 + lineHeight * 3
+      );
+      // my line of work ends here
+      editor.scrollTo(null, targetScrollTop);
+
       editor.setSelection(matches[matchIndex].from, matches[matchIndex].to);
     } catch (e) {
       console.error('Search error:', e);
