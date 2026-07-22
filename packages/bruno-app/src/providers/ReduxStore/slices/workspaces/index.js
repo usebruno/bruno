@@ -38,10 +38,16 @@ export const workspacesSlice = createSlice({
     },
 
     updateWorkspace: (state, action) => {
-      const { uid, ...updates } = action.payload;
+      const { uid, newUid, ...updates } = action.payload;
       const workspace = state.workspaces.find((w) => w.uid === uid);
       if (workspace) {
         Object.assign(workspace, updates);
+        if (newUid) {
+          if (state.activeWorkspaceUid === uid) {
+            state.activeWorkspaceUid = newUid;
+          }
+          workspace.uid = newUid;
+        }
       }
     },
 

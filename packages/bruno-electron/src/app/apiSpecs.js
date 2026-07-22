@@ -28,7 +28,7 @@ const prepareWorkspaceConfigForClient = (workspaceConfig, isDefault) => {
   if (isDefault) {
     return {
       ...workspaceConfig,
-      name: DEFAULT_WORKSPACE_NAME,
+      name: workspaceConfig.name || DEFAULT_WORKSPACE_NAME,
       type: 'default'
     };
   }
