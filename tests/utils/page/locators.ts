@@ -68,9 +68,14 @@ export const buildCommonLocators = (page: Page) => ({
     list: () => page.getByTestId('selection-list'),
     titles: () => page.getByTestId('selection-list').locator('.selection-item-title'),
     descriptions: () => page.getByTestId('selection-list').locator('.selection-item-description'),
-    item: (name: string) => page.getByTestId('selection-list').locator('li').filter({ hasText: name }),
+    item: (name: string) =>
+      page.getByTestId('selection-list').getByRole('listitem').filter({
+        has: page.getByText(name, { exact: true })
+      }),
     itemCheckbox: (name: string) =>
-      page.getByTestId('selection-list').locator('li').filter({ hasText: name }).getByRole('checkbox'),
+      page.getByTestId('selection-list').getByRole('listitem').filter({
+        has: page.getByText(name, { exact: true })
+      }).getByRole('checkbox'),
     count: () => page.getByTestId('selection-count'),
     selectAllToggle: () => page.getByTestId('selection-select-all-toggle').getByRole('checkbox'),
     searchInput: () => page.getByTestId('selection-search-input')
