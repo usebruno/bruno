@@ -1525,6 +1525,65 @@ describe('postman-collection binary body import', () => {
     });
   });
 
+  it('should infer contentType from the file extension of src', async () => {
+    const collectionWithKnownExtension = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with known extension',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'json upload',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'file',
+              file: { src: './payload.json' }
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithKnownExtension);
+    const body = brunoCollection.items[0].request.body;
+
+    expect(body.file[0].contentType).toBe('application/json');
+  });
+
+  it('should infer image/png for a .png file', async () => {
+    const collectionWithPngUpload = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with png upload',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'png upload',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'file',
+              file: { src: './avatar.png' }
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithPngUpload);
+    const body = brunoCollection.items[0].request.body;
+
+    expect(body.file[0].filePath).toBe('./avatar.png');
+    expect(body.file[0].contentType).toBe('image/png');
+  });
+
   it('should not throw when mode: file has no src', async () => {
     const collectionWithMissingSrc = {
       info: {
