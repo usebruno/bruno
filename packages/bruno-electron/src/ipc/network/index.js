@@ -59,6 +59,18 @@ const saveCookies = (url, headers) => {
   }
 };
 
+/**
+ * Returns whether global and request-level settings allow cookie storage.
+ */
+const shouldStoreCookiesForRequest = (request) =>
+  preferencesUtil.shouldStoreCookies() && request.settings?.storeCookies !== false;
+
+/**
+ * Returns whether global and request-level settings allow cookie sending.
+ */
+const shouldSendCookiesForRequest = (request) =>
+  preferencesUtil.shouldSendCookies() && request.settings?.sendCookies !== false;
+
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
 
@@ -160,7 +172,9 @@ const configureRequest = async (
     requestMaxRedirects,
     httpsAgentRequestFields,
     interpolationOptions,
-    followRedirects
+    followRedirects,
+    storeCookies: shouldStoreCookiesForRequest(request),
+    sendCookies: shouldSendCookiesForRequest(request)
   });
 
   if (request.ntlmConfig) {
@@ -326,7 +340,7 @@ const configureRequest = async (
   request.timeout = resolvedSettings.timeout;
 
   // add cookies to request
-  if (preferencesUtil.shouldSendCookies()) {
+  if (shouldSendCookiesForRequest(request)) {
     const cookieString = getCookieStringForUrl(request.url);
     if (cookieString && typeof cookieString === 'string' && cookieString.length) {
       const existingCookieHeaderName = Object.keys(request.headers).find(
@@ -1085,7 +1099,7 @@ const registerNetworkIpc = (mainWindow) => {
       response.responseTime = responseTime;
 
       // save cookies
-      if (preferencesUtil.shouldStoreCookies()) {
+      if (shouldStoreCookiesForRequest(request)) {
         saveCookies(request.url, response.headers);
       }
 
@@ -1870,7 +1884,7 @@ const registerNetworkIpc = (mainWindow) => {
               response.headers.delete('request-duration');
 
               // save cookies
-              if (preferencesUtil.shouldStoreCookies()) {
+              if (shouldStoreCookiesForRequest(request)) {
                 saveCookies(request.url, response.headers);
               }
 
@@ -1910,7 +1924,7 @@ const registerNetworkIpc = (mainWindow) => {
                 error.response.dataBuffer = dataBuffer;
 
                 // save cookies (4XX/5XX responses can also set cookies)
-                if (preferencesUtil.shouldStoreCookies()) {
+                if (shouldStoreCookiesForRequest(request)) {
                   saveCookies(request.url, error.response.headers);
                 }
 

@@ -6,6 +6,54 @@ const { setupProxyAgents } = require('./proxy-util');
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
+const SENSITIVE_REDIRECT_HEADERS = new Set(['authorization', 'proxy-authorization', 'cookie']);
+
+/**
+ * Parses a Cookie header into name-value pairs.
+ */
+const parseCookieHeader = (value) => value.split(';').reduce((cookies, cookie) => {
+  const [name, ...rest] = cookie.split('=');
+  if (name && name.trim()) {
+    cookies[name.trim()] = rest.join('=').trim();
+  }
+  return cookies;
+}, {});
+
+/**
+ * Removes credentials copied from the previous request when a redirect crosses origins.
+ */
+const stripSensitiveHeadersOnCrossOriginRedirect = (headers, sourceUrl, redirectUrl) => {
+  if (new globalThis.URL(sourceUrl).origin === new globalThis.URL(redirectUrl).origin) {
+    return;
+  }
+
+  Object.keys(headers).forEach((name) => {
+    if (SENSITIVE_REDIRECT_HEADERS.has(name.toLowerCase())) {
+      delete headers[name];
+    }
+  });
+};
+
+/**
+ * Merges matching jar cookies into one case-insensitive Cookie header.
+ * Jar values take precedence on name collisions, matching initial request behavior.
+ */
+const mergeCookieHeader = (headers, cookieString) => {
+  const cookieHeaderNames = Object.keys(headers).filter((name) => name.toLowerCase() === 'cookie');
+  const existingCookieString = cookieHeaderNames
+    .map((name) => headers[name])
+    .filter((value) => typeof value === 'string')
+    .join('; ');
+  const mergedCookies = {
+    ...parseCookieHeader(existingCookieString),
+    ...parseCookieHeader(cookieString)
+  };
+
+  cookieHeaderNames.forEach((name) => delete headers[name]);
+  headers[cookieHeaderNames[0] || 'cookie'] = Object.entries(mergedCookies)
+    .map(([name, value]) => `${name}=${value}`)
+    .join('; ');
+};
 
 const saveCookies = (url, headers) => {
   if (headers['set-cookie']) {
@@ -26,6 +74,8 @@ const createRedirectConfig = (error, redirectUrl) => {
     url: redirectUrl,
     headers: { ...error.config.headers }
   };
+
+  stripSensitiveHeadersOnCrossOriginRedirect(requestConfig.headers, error.config.url, redirectUrl);
 
   const statusCode = error.response.status;
   const originalMethod = (error.config.method || 'get').toLowerCase();
@@ -75,6 +125,8 @@ const createRedirectConfig = (error, redirectUrl) => {
 function makeAxiosInstance({
   requestMaxRedirects = 5,
   disableCookies,
+  storeCookies = true,
+  sendCookies = true,
   followRedirects = true,
   proxyMode,
   proxyConfig,
@@ -120,10 +172,10 @@ function makeAxiosInstance({
     }
 
     // Add cookies to request if available and not disabled
-    if (!disableCookies) {
+    if (!disableCookies && sendCookies) {
       const cookieString = getCookieStringForUrl(config.url);
       if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-        config.headers['cookie'] = cookieString;
+        mergeCookieHeader(config.headers, cookieString);
       }
     }
 
@@ -147,7 +199,7 @@ function makeAxiosInstance({
 
         if (redirectResponseCodes.includes(error.response.status)) {
           if (!followRedirects) {
-            if (!disableCookies) {
+            if (!disableCookies && storeCookies) {
               saveCookies(error.config.url, error.response.headers);
             }
 
@@ -173,7 +225,7 @@ function makeAxiosInstance({
             redirectUrl = URL.resolve(error.config.url, locationHeader);
           }
 
-          if (!disableCookies) {
+          if (!disableCookies && storeCookies) {
             saveCookies(error.config.url, error.response.headers);
           }
 
@@ -188,13 +240,6 @@ function makeAxiosInstance({
             interpolationOptions,
             disableCache
           });
-
-          if (!disableCookies) {
-            const cookieString = getCookieStringForUrl(redirectUrl);
-            if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-              requestConfig.headers['cookie'] = cookieString;
-            }
-          }
 
           return instance(requestConfig);
         }

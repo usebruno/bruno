@@ -565,6 +565,14 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     }
 
+    if (settings.storeCookies !== undefined) {
+      parsedSettings.storeCookies = toBool(settings.storeCookies);
+    }
+
+    if (settings.sendCookies !== undefined) {
+      parsedSettings.sendCookies = toBool(settings.sendCookies);
+    }
+
     // Parse timeout as number or inherit
     if (settings.timeout !== undefined) {
       if (settings.timeout === 'inherit') {
@@ -588,6 +596,14 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     if (parsedSettings.maxRedirects !== undefined) {
       _settings.maxRedirects = parsedSettings.maxRedirects;
+    }
+
+    if (parsedSettings.storeCookies !== undefined) {
+      _settings.storeCookies = parsedSettings.storeCookies;
+    }
+
+    if (parsedSettings.sendCookies !== undefined) {
+      _settings.sendCookies = parsedSettings.sendCookies;
     }
 
     if (keepAliveInterval) {

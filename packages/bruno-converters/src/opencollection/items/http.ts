@@ -103,11 +103,17 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
   };
 
   if (ocRequest.settings) {
+    const ocSettings = ocRequest.settings as HttpRequestSettings & {
+      storeCookies?: boolean;
+      sendCookies?: boolean;
+    };
     const settings: BrunoHttpItemSettings = {
       encodeUrl: typeof ocRequest.settings.encodeUrl === 'boolean' ? ocRequest.settings.encodeUrl : true,
       timeout: typeof ocRequest.settings.timeout === 'number' ? ocRequest.settings.timeout : 0,
       followRedirects: typeof ocRequest.settings.followRedirects === 'boolean' ? ocRequest.settings.followRedirects : true,
-      maxRedirects: typeof ocRequest.settings.maxRedirects === 'number' ? ocRequest.settings.maxRedirects : 5
+      maxRedirects: typeof ocRequest.settings.maxRedirects === 'number' ? ocRequest.settings.maxRedirects : 5,
+      storeCookies: typeof ocSettings.storeCookies === 'boolean' ? ocSettings.storeCookies : true,
+      sendCookies: typeof ocSettings.sendCookies === 'boolean' ? ocSettings.sendCookies : true
     };
     brunoItem.settings = settings;
   }
@@ -219,11 +225,16 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
     ocRequest.runtime = runtime;
   }
 
-  const settings: HttpRequestSettings = {
+  const settings: HttpRequestSettings & {
+    storeCookies?: boolean;
+    sendCookies?: boolean;
+  } = {
     encodeUrl: typeof brunoSettings?.encodeUrl === 'boolean' ? brunoSettings.encodeUrl : true,
     timeout: typeof brunoSettings?.timeout === 'number' ? brunoSettings.timeout : 0,
     followRedirects: typeof brunoSettings?.followRedirects === 'boolean' ? brunoSettings.followRedirects : true,
-    maxRedirects: typeof brunoSettings?.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5
+    maxRedirects: typeof brunoSettings?.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5,
+    storeCookies: brunoSettings?.storeCookies !== false,
+    sendCookies: brunoSettings?.sendCookies !== false
   };
   ocRequest.settings = settings;
 

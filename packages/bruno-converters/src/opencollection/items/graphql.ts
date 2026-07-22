@@ -77,6 +77,10 @@ export const fromOpenCollectionGraphqlItem = (item: GraphQLRequest): BrunoItem =
 
   const settings = item.settings;
   if (settings) {
+    const cookieSettings = settings as GraphQLRequestSettings & {
+      storeCookies?: boolean;
+      sendCookies?: boolean;
+    };
     brunoItem.settings = {};
     if (settings.encodeUrl !== undefined) {
       (brunoItem.settings as Record<string, unknown>).encodeUrl = settings.encodeUrl;
@@ -90,6 +94,8 @@ export const fromOpenCollectionGraphqlItem = (item: GraphQLRequest): BrunoItem =
     if (settings.maxRedirects !== undefined) {
       (brunoItem.settings as Record<string, unknown>).maxRedirects = settings.maxRedirects;
     }
+    (brunoItem.settings as Record<string, unknown>).storeCookies = cookieSettings.storeCookies !== false;
+    (brunoItem.settings as Record<string, unknown>).sendCookies = cookieSettings.sendCookies !== false;
   }
 
   if (info.tags?.length) {
@@ -177,11 +183,16 @@ export const toOpenCollectionGraphqlItem = (item: BrunoItem): GraphQLRequest => 
     ocRequest.runtime = runtime;
   }
 
-  const settings: GraphQLRequestSettings = {
+  const settings: GraphQLRequestSettings & {
+    storeCookies?: boolean;
+    sendCookies?: boolean;
+  } = {
     encodeUrl: typeof brunoSettings.encodeUrl === 'boolean' ? brunoSettings.encodeUrl : true,
     timeout: typeof brunoSettings.timeout === 'number' ? brunoSettings.timeout : 0,
     followRedirects: typeof brunoSettings.followRedirects === 'boolean' ? brunoSettings.followRedirects : true,
-    maxRedirects: typeof brunoSettings.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5
+    maxRedirects: typeof brunoSettings.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5,
+    storeCookies: brunoSettings.storeCookies !== false,
+    sendCookies: brunoSettings.sendCookies !== false
   };
   ocRequest.settings = settings;
 
