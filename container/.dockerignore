@@ -1,0 +1,5 @@
+.dockerignore
+node_modules/
+*.md
+*.log
+*.tmp
