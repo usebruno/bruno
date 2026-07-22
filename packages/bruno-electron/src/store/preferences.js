@@ -47,7 +47,8 @@ const defaultPreferences = {
     responsePaneOrientation: 'horizontal'
   },
   beta: {
-    'openapi-sync': false
+    'openapi-sync': false,
+    'tabs-across-collections': false
   },
   onboarding: {
     hasLaunchedBefore: false,
@@ -141,7 +142,8 @@ const preferencesSchema = Yup.object().shape({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
   }),
   beta: Yup.object({
-    'openapi-sync': Yup.boolean()
+    'openapi-sync': Yup.boolean(),
+    'tabs-across-collections': Yup.boolean()
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean(),
