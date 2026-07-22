@@ -1434,6 +1434,132 @@ describe('postman-collection formdata import', () => {
   });
 });
 
+describe('postman-collection binary body import', () => {
+  it('should import a request with mode: file and preserve the file path', async () => {
+    const collectionWithBinaryBody = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with binary body',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'binary upload',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'file',
+              file: { src: './binary-payload.bin' }
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithBinaryBody);
+    const body = brunoCollection.items[0].request.body;
+
+    expect(body.mode).toBe('file');
+    expect(body.file).toHaveLength(1);
+    expect(body.file[0]).toMatchObject({
+      selected: true,
+      filePath: './binary-payload.bin',
+      contentType: 'application/octet-stream'
+    });
+  });
+
+  it('should import a Postman example with mode: file in originalRequest', async () => {
+    const collectionWithBinaryExample = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with binary example',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'binary upload',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'file',
+              file: { src: './binary-payload.bin' }
+            }
+          },
+          response: [
+            {
+              name: 'Binary upload example',
+              originalRequest: {
+                method: 'POST',
+                header: [],
+                url: { raw: 'https://example.com/upload' },
+                body: {
+                  mode: 'file',
+                  file: { src: './example-payload.bin' }
+                }
+              },
+              status: 'Created',
+              code: 201,
+              header: [],
+              body: ''
+            }
+          ]
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithBinaryExample);
+    const examples = brunoCollection.items[0].examples;
+
+    expect(examples).toHaveLength(1);
+    const exampleBody = examples[0].request.body;
+    expect(exampleBody.mode).toBe('file');
+    expect(exampleBody.file).toHaveLength(1);
+    expect(exampleBody.file[0]).toMatchObject({
+      selected: true,
+      filePath: './example-payload.bin',
+      contentType: 'application/octet-stream'
+    });
+  });
+
+  it('should not throw when mode: file has no src', async () => {
+    const collectionWithMissingSrc = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with missing src',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'binary upload without file',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'file'
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithMissingSrc);
+    const body = brunoCollection.items[0].request.body;
+
+    expect(body.mode).toBe('file');
+    expect(body.file).toHaveLength(1);
+    expect(body.file[0]).toMatchObject({
+      selected: true,
+      filePath: '',
+      contentType: 'application/octet-stream'
+    });
+  });
+});
+
 const expectedOutput = {
   name: 'simple collection',
   uid: 'mockeduuidvalue123456',
