@@ -406,8 +406,11 @@ const prepareRequest = async (item = {}, collection = {}) => {
       axiosRequest.headers['content-type'] = contentType;
 
       if (filePath) {
-        // Normalize to POSIX format for cross-platform compatibility
-        filePath = path.posix.normalize(filePath.replace(/\\/g, '/'));
+        // Normalize Windows separators when running on POSIX, without breaking UNC paths on Windows
+        if (path.sep === '/') {
+          filePath = filePath.replace(/\\/g, '/');
+        }
+        filePath = path.normalize(filePath);
         if (!path.isAbsolute(filePath)) {
           filePath = path.join(collectionPath, filePath);
         }
