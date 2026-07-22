@@ -15,12 +15,18 @@ runs:
       shell: ${{ inputs.shell }}
       run: npm ci --prefix packages/bruno-tests/collection
 
+    # E2E_WEB_SERVER=build serves a production web build instead of the dev
+    # server, whose watcher/compile stalls left Electron launches hanging on CI.
     - name: Run Playwright Tests (Ubuntu)
       if: inputs.os == 'ubuntu'
       shell: bash
+      env:
+        E2E_WEB_SERVER: build
       run: xvfb-run dbus-run-session -- npm run test:e2e
 
     - name: Run Playwright Tests
       if: inputs.os != 'ubuntu'
       shell: ${{ inputs.shell }}
+      env:
+        E2E_WEB_SERVER: build
       run: npm run test:e2e

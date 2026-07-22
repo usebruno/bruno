@@ -45,7 +45,13 @@ export default defineConfig({
 
   webServer: [
     {
-      command: 'npm run dev:web',
+      // E2E_WEB_SERVER=build serves a production build instead of the dev
+      // server. CI sets it because the dev server's watcher/compile work can
+      // leave it unresponsive under parallel Electron load (observed on
+      // Windows runners: launches hang loading localhost:3000 until teardown).
+      command: process.env.E2E_WEB_SERVER === 'build'
+        ? 'npm run build --workspace=packages/bruno-app && npm run preview --workspace=packages/bruno-app'
+        : 'npm run dev:web',
       url: 'http://localhost:3000',
       reuseExistingServer: !process.env.CI,
       timeout: 10 * 60 * 1000
