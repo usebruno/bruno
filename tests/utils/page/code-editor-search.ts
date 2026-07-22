@@ -110,3 +110,80 @@ export const closeCodeEditorSearchBar = async (page: Page, editorId: string) => 
   const loc = buildCodeEditorSearchLocators(page, editorId);
   await loc.searchBar().waitFor({ state: 'hidden' });
 };
+
+/**
+ * Set the cursor position in the editor. Pass `focus: true` to also focus the editor
+ * so that a subsequent Cmd+F picks up the cursor position.
+ */
+export const setCodeEditorCursor = async (
+  page: Page,
+  editorId: string,
+  pos: { line: number; ch: number },
+  focus = false
+) => {
+  const cm = page.getByTestId(editorId).locator('.CodeMirror').first();
+  await cm.evaluate(
+    (el: any, { pos, focus }: { pos: { line: number; ch: number }; focus: boolean }) => {
+      if (el.CodeMirror) {
+        el.CodeMirror.setCursor(pos);
+        if (focus) el.CodeMirror.focus();
+      }
+    },
+    { pos, focus }
+  );
+};
+
+/**
+ * Set a text selection in the editor and focus it so that Cmd+F pre-fills with the selected text.
+ */
+export const setCodeEditorSelection = async (
+  page: Page,
+  editorId: string,
+  from: { line: number; ch: number },
+  to: { line: number; ch: number }
+) => {
+  const cm = page.getByTestId(editorId).locator('.CodeMirror').first();
+  await cm.evaluate(
+    (el: any, { from, to }: { from: { line: number; ch: number }; to: { line: number; ch: number } }) => {
+      if (el.CodeMirror) {
+        el.CodeMirror.setSelection(from, to);
+        el.CodeMirror.focus();
+      }
+    },
+    { from, to }
+  );
+};
+
+/**
+ * Scroll the editor so that the given line is visible.
+ */
+export const scrollCodeEditorToLine = async (page: Page, editorId: string, line: number) => {
+  const cm = page.getByTestId(editorId).locator('.CodeMirror').first();
+  await cm.evaluate((el: any, line: number) => {
+    if (el.CodeMirror) {
+      el.CodeMirror.scrollTo(null, el.CodeMirror.heightAtLine(line, 'local'));
+    }
+  }, line);
+};
+
+/**
+ * Returns the current vertical scroll position (px) of the editor.
+ */
+export const getCodeEditorScrollTop = async (page: Page, editorId: string): Promise<number> => {
+  const cm = page.getByTestId(editorId).locator('.CodeMirror').first();
+  return cm.evaluate((el: any) => el.CodeMirror?.getScrollInfo().top ?? 0);
+};
+
+/**
+ * Append text at the end of the last line of the editor (simulates an inline edit).
+ */
+export const appendTextToCodeEditor = async (page: Page, editorId: string, text: string) => {
+  const cm = page.getByTestId(editorId).locator('.CodeMirror').first();
+  await cm.evaluate((el: any, text: string) => {
+    if (el.CodeMirror) {
+      const lastLine = el.CodeMirror.lastLine();
+      const lastCh = el.CodeMirror.getLine(lastLine).length;
+      el.CodeMirror.replaceRange(text, { line: lastLine, ch: lastCh });
+    }
+  }, text);
+};

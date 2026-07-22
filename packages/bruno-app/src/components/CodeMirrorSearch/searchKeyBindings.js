@@ -8,9 +8,9 @@
  * @param {(update: object, cb?: () => void) => void} opts.setState
  * @param {{ current: object | null }} opts.searchBarRef
  * @param {() => boolean} opts.isSearchBarVisible
- * @param {boolean} opts.readOnly
+ * @param {() => boolean} opts.isReadOnly - read at invocation time so a readOnly prop change after mount is respected
  */
-export function buildSearchKeyBindings({ setState, searchBarRef, isSearchBarVisible, readOnly }) {
+export function buildSearchKeyBindings({ setState, searchBarRef, isSearchBarVisible, isReadOnly }) {
   const openSearch = (cm) => {
     const selected = cm.getSelection();
     const cursor = cm.getCursor('from');
@@ -23,14 +23,13 @@ export function buildSearchKeyBindings({ setState, searchBarRef, isSearchBarVisi
     });
   };
 
-  const openReplace = readOnly
-    ? false
-    : () => {
-        setState({ searchBarVisible: true }, () => {
-          searchBarRef.current?.focus();
-          searchBarRef.current?.openReplace();
-        });
-      };
+  const openReplace = () => {
+    if (isReadOnly()) return;
+    setState({ searchBarVisible: true }, () => {
+      searchBarRef.current?.focus();
+      searchBarRef.current?.openReplace();
+    });
+  };
 
   return {
     'Cmd-F': openSearch,

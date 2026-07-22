@@ -8,7 +8,12 @@ import {
   setCodeEditorContent,
   openCodeEditorSearchBar,
   openCodeEditorReplaceBar,
-  closeCodeEditorSearchBar
+  closeCodeEditorSearchBar,
+  setCodeEditorCursor,
+  setCodeEditorSelection,
+  scrollCodeEditorToLine,
+  getCodeEditorScrollTop,
+  appendTextToCodeEditor
 } from '../utils/page';
 import process from 'node:process';
 
@@ -62,242 +67,293 @@ test.describe.serial('CodeEditor Search/Replace', () => {
 
   test('Cmd+F opens the search bar', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openCodeEditorSearchBar(page, EDITOR_ID);
-    await expect(loc.searchBar()).toBeVisible();
+    await test.step('Open search bar via Cmd+F', async () => {
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+    });
+    await test.step('Search bar is visible', async () => {
+      await expect(loc.searchBar()).toBeVisible();
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('Escape closes the search bar', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openCodeEditorSearchBar(page, EDITOR_ID);
-    await page.keyboard.press('Escape');
-    await expect(loc.searchBar()).toBeHidden();
+    await test.step('Open search bar', async () => {
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+    });
+    await test.step('Press Escape', async () => {
+      await page.keyboard.press('Escape');
+    });
+    await test.step('Search bar is hidden', async () => {
+      await expect(loc.searchBar()).toBeHidden();
+    });
   });
 
   test('close button closes the search bar', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openCodeEditorSearchBar(page, EDITOR_ID);
-    await loc.searchCloseBtn().click();
-    await expect(loc.searchBar()).toBeHidden();
+    await test.step('Open search bar', async () => {
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+    });
+    await test.step('Click close button', async () => {
+      await loc.searchCloseBtn().click();
+    });
+    await test.step('Search bar is hidden', async () => {
+      await expect(loc.searchBar()).toBeHidden();
+    });
   });
 
   test('search input is auto-focused on open', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openCodeEditorSearchBar(page, EDITOR_ID);
-    await expect(loc.searchInput()).toBeFocused();
+    await test.step('Open search bar', async () => {
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+    });
+    await test.step('Search input has focus', async () => {
+      await expect(loc.searchInput()).toBeFocused();
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('Cmd+F with text selected pre-fills the search input', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openPreRequestScriptEditor(page, EDITOR_ID);
-    await loc.codeMirror().evaluate((el: any) => {
-      if (el.CodeMirror) {
-        el.CodeMirror.setSelection({ line: 0, ch: 3 }, { line: 0, ch: 10 });
-        el.CodeMirror.focus();
-      }
+    await test.step('Select text in editor and open search bar', async () => {
+      await openPreRequestScriptEditor(page, EDITOR_ID);
+      await setCodeEditorSelection(page, EDITOR_ID, { line: 0, ch: 3 }, { line: 0, ch: 10 });
+      await page.keyboard.press(`${cmdKey}+f`);
+      await loc.searchBar().waitFor({ state: 'visible' });
     });
-    await page.keyboard.press(`${cmdKey}+f`);
-    await loc.searchBar().waitFor({ state: 'visible' });
-    await expect(loc.searchInput()).toHaveValue('Section');
-    await expectMatchCount(page, '1 / 200');
+    await test.step('Search input is pre-filled with selected text and shows 1 match', async () => {
+      await expect(loc.searchInput()).toHaveValue('Section');
+      await expectMatchCount(page, '1 / 200');
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('typing finds all matches in the document', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openCodeEditorSearchBar(page, EDITOR_ID);
-    await loc.searchInput().fill('lorem');
-    await expect(loc.matchCount()).toContainText('/ 400', { timeout: 1500 });
+    await test.step('Open search bar and type "lorem"', async () => {
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('lorem');
+    });
+    await test.step('Match count shows 400 results', async () => {
+      await expect(loc.matchCount()).toContainText('/ 400', { timeout: 1500 });
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('unknown term shows 0 results', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openCodeEditorSearchBar(page, EDITOR_ID);
-    await loc.searchInput().fill('xyznothere');
-    await expect(loc.matchCount()).toHaveText('0 results', { timeout: 1500 });
+    await test.step('Open search bar and type unknown term', async () => {
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('xyznothere');
+    });
+    await test.step('Match count shows 0 results', async () => {
+      await expect(loc.matchCount()).toHaveText('0 results', { timeout: 1500 });
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('clearing the search input resets match count', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openCodeEditorSearchBar(page, EDITOR_ID);
-    await loc.searchInput().fill('lorem');
-    await expectMatchCount(page, '1 / 400');
-    await loc.searchInput().fill('');
-    await expect(loc.matchCount()).toHaveText('0 results', { timeout: 1500 });
+    await test.step('Search for "lorem" and confirm matches', async () => {
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('lorem');
+      await expectMatchCount(page, '1 / 400');
+    });
+    await test.step('Clear the input', async () => {
+      await loc.searchInput().fill('');
+    });
+    await test.step('Match count resets to 0 results', async () => {
+      await expect(loc.matchCount()).toHaveText('0 results', { timeout: 1500 });
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('Enter navigates to next match', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openCodeEditorSearchBar(page, EDITOR_ID);
-    await loc.searchInput().fill('Section');
-    await expectMatchCount(page, '1 / 200');
-    await page.keyboard.press('Enter');
-    await expectMatchCount(page, '2 / 200');
-    await page.keyboard.press('Enter');
-    await expectMatchCount(page, '3 / 200');
+    await test.step('Search for "Section" and confirm first match', async () => {
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('Section');
+      await expectMatchCount(page, '1 / 200');
+    });
+    await test.step('Press Enter twice to advance to match 3', async () => {
+      await page.keyboard.press('Enter');
+      await expectMatchCount(page, '2 / 200');
+      await page.keyboard.press('Enter');
+      await expectMatchCount(page, '3 / 200');
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('Shift+Enter goes to previous match and wraps from 1 to last', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openCodeEditorSearchBar(page, EDITOR_ID);
-    await loc.searchInput().fill('Section');
-    await expectMatchCount(page, '1 / 200');
-    await page.keyboard.press('Shift+Enter');
-    await expectMatchCount(page, '200 / 200');
+    await test.step('Search for "Section" and confirm first match', async () => {
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('Section');
+      await expectMatchCount(page, '1 / 200');
+    });
+    await test.step('Shift+Enter wraps to last match', async () => {
+      await page.keyboard.press('Shift+Enter');
+      await expectMatchCount(page, '200 / 200');
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('Next/Prev buttons wrap around', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openCodeEditorSearchBar(page, EDITOR_ID);
-    await loc.searchInput().fill('lorem');
-    await expectMatchCount(page, '1 / 400');
-    await loc.searchPrevBtn().click();
-    await expectMatchCount(page, '400 / 400');
-    await loc.searchNextBtn().click();
-    await expectMatchCount(page, '1 / 400');
+    await test.step('Search for "lorem" and confirm first match', async () => {
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('lorem');
+      await expectMatchCount(page, '1 / 400');
+    });
+    await test.step('Prev wraps to last match, Next wraps back to first', async () => {
+      await loc.searchPrevBtn().click();
+      await expectMatchCount(page, '400 / 400');
+      await loc.searchNextBtn().click();
+      await expectMatchCount(page, '1 / 400');
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('search anchors to cursor position when opened mid-document', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openPreRequestScriptEditor(page, EDITOR_ID);
-    await loc.codeMirror().evaluate((el: any) => {
-      if (el.CodeMirror) {
-        el.CodeMirror.setCursor({ line: 500, ch: 0 });
-        el.CodeMirror.focus();
-      }
+    await test.step('Position cursor at line 500 and open search bar', async () => {
+      await openPreRequestScriptEditor(page, EDITOR_ID);
+      await setCodeEditorCursor(page, EDITOR_ID, { line: 500, ch: 0 }, true);
+      await page.keyboard.press(`${cmdKey}+f`);
+      await loc.searchBar().waitFor({ state: 'visible' });
+      await setCodeEditorCursor(page, EDITOR_ID, { line: 500, ch: 0 });
     });
-    await page.keyboard.press(`${cmdKey}+f`);
-    await loc.searchBar().waitFor({ state: 'visible' });
-    await loc.codeMirror().evaluate((el: any) => {
-      if (el.CodeMirror) el.CodeMirror.setCursor({ line: 500, ch: 0 });
+    await test.step('First match is anchored at Section 101', async () => {
+      await loc.searchInput().fill('Section');
+      await expectMatchCount(page, '101 / 200');
     });
-    await loc.searchInput().fill('Section');
-    await expectMatchCount(page, '101 / 200');
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('reopening restores previous search text and resumes from cursor at close', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openCodeEditorSearchBar(page, EDITOR_ID);
-    await loc.searchInput().fill('Section');
-    await expectMatchCount(page, '1 / 200');
-    await page.keyboard.press('Enter');
-    await page.keyboard.press('Enter');
-    await expectMatchCount(page, '3 / 200');
-    await closeCodeEditorSearchBar(page, EDITOR_ID);
-
-    await page.keyboard.press(`${cmdKey}+f`);
-    await loc.searchBar().waitFor({ state: 'visible' });
-    // Text is preserved; match resumes from Section 3 where the cursor was left
-    await expect(loc.searchInput()).toHaveValue('Section');
-    await expectMatchCount(page, '3 / 200');
+    await test.step('Search and navigate to match 3, then close', async () => {
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('Section');
+      await expectMatchCount(page, '1 / 200');
+      await page.keyboard.press('Enter');
+      await page.keyboard.press('Enter');
+      await expectMatchCount(page, '3 / 200');
+      await closeCodeEditorSearchBar(page, EDITOR_ID);
+    });
+    await test.step('Reopen — text is preserved and match resumes from Section 3', async () => {
+      await page.keyboard.press(`${cmdKey}+f`);
+      await loc.searchBar().waitFor({ state: 'visible' });
+      await expect(loc.searchInput()).toHaveValue('Section');
+      await expectMatchCount(page, '3 / 200');
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('reopening after moving cursor starts from the new cursor position', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openCodeEditorSearchBar(page, EDITOR_ID);
-    await loc.searchInput().fill('Section');
-    await expectMatchCount(page, '1 / 200');
-    await closeCodeEditorSearchBar(page, EDITOR_ID);
-
-    // Simulate scroll + click somewhere else in the document, cursor moves to Section 101 (line 500)
-    await loc.codeMirror().evaluate((el: any) => {
-      if (el.CodeMirror) {
-        el.CodeMirror.setCursor({ line: 500, ch: 0 });
-        el.CodeMirror.focus();
-      }
+    await test.step('Search and close, leaving cursor at start', async () => {
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('Section');
+      await expectMatchCount(page, '1 / 200');
+      await closeCodeEditorSearchBar(page, EDITOR_ID);
     });
-    await page.keyboard.press(`${cmdKey}+f`);
-    await loc.searchBar().waitFor({ state: 'visible' });
-    await expectMatchCount(page, '101 / 200');
+    await test.step('Move cursor to line 500 and reopen', async () => {
+      await setCodeEditorCursor(page, EDITOR_ID, { line: 500, ch: 0 }, true);
+      await page.keyboard.press(`${cmdKey}+f`);
+      await loc.searchBar().waitFor({ state: 'visible' });
+    });
+    await test.step('First match anchors to new cursor position (Section 101)', async () => {
+      await expectMatchCount(page, '101 / 200');
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('reopening the search bar does not scroll away from the current viewport', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    // Search, navigate to a match, then close — leaving the match text selected in the editor
-    await openCodeEditorSearchBar(page, EDITOR_ID);
-    await loc.searchInput().fill('Section');
-    await expectMatchCount(page, '1 / 200');
-    await closeCodeEditorSearchBar(page, EDITOR_ID);
-
-    // Scroll to the middle of the document without moving the cursor
-    await loc.codeMirror().evaluate((el: any) => {
-      if (el.CodeMirror) {
-        el.CodeMirror.scrollTo(null, el.CodeMirror.heightAtLine(500, 'local'));
-      }
+    await test.step('Search and close, leaving a match selected', async () => {
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('Section');
+      await expectMatchCount(page, '1 / 200');
+      await closeCodeEditorSearchBar(page, EDITOR_ID);
     });
-    const scrollBefore = await loc.codeMirror().evaluate((el: any) => el.CodeMirror?.getScrollInfo().top ?? 0);
-
-    // Reopen — previously this would re-detect the selected match text and scroll back to it
-    await page.keyboard.press(`${cmdKey}+f`);
-    await loc.searchBar().waitFor({ state: 'visible' });
-    const scrollAfter = await loc.codeMirror().evaluate((el: any) => el.CodeMirror?.getScrollInfo().top ?? 0);
-    expect(Math.abs(scrollAfter - scrollBefore)).toBeLessThan(50);
-
+    await test.step('Scroll to line 500 and record scroll position', async () => {
+      await scrollCodeEditorToLine(page, EDITOR_ID, 500);
+    });
+    const scrollBefore = await getCodeEditorScrollTop(page, EDITOR_ID);
+    await test.step('Reopen — scroll position is preserved', async () => {
+      await page.keyboard.press(`${cmdKey}+f`);
+      await loc.searchBar().waitFor({ state: 'visible' });
+      const scrollAfter = await getCodeEditorScrollTop(page, EDITOR_ID);
+      expect(Math.abs(scrollAfter - scrollBefore)).toBeLessThan(50);
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('case-sensitive toggle halves matches for mixed-case term', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openCodeEditorSearchBar(page, EDITOR_ID);
-    await loc.searchInput().fill('lorem');
-    await expectMatchCount(page, '1 / 400');
-    await loc.searchCaseBtn().click();
-    await expectMatchCount(page, '1 / 200');
-    await loc.searchCaseBtn().click();
-    await expectMatchCount(page, '1 / 400');
+    await test.step('Search for "lorem" (case-insensitive) — 400 matches', async () => {
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('lorem');
+      await expectMatchCount(page, '1 / 400');
+    });
+    await test.step('Enable case-sensitive — 200 matches', async () => {
+      await loc.searchCaseBtn().click();
+      await expectMatchCount(page, '1 / 200');
+    });
+    await test.step('Disable case-sensitive — back to 400 matches', async () => {
+      await loc.searchCaseBtn().click();
+      await expectMatchCount(page, '1 / 400');
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('replace single replaces current match and advances to next', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await setCodeEditorContent(page, EDITOR_ID, 'foo bar foo baz foo');
-    await openCodeEditorReplaceBar(page, EDITOR_ID);
-    await loc.searchInput().fill('foo');
-    await expectMatchCount(page, '1 / 3');
-    await loc.replaceInput().fill('qux');
-    await loc.replaceBtn().click();
-    await expectMatchCount(page, '1 / 2');
+    await test.step('Set up content and search for "foo"', async () => {
+      await setCodeEditorContent(page, EDITOR_ID, 'foo bar foo baz foo');
+      await openCodeEditorReplaceBar(page, EDITOR_ID);
+      await loc.searchInput().fill('foo');
+      await expectMatchCount(page, '1 / 3');
+    });
+    await test.step('Replace first match with "qux" — advances to next', async () => {
+      await loc.replaceInput().fill('qux');
+      await loc.replaceBtn().click();
+      await expectMatchCount(page, '1 / 2');
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
   });
 
   test('replace all replaces every match', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await setCodeEditorContent(page, EDITOR_ID, 'foo bar foo baz foo');
-    await openCodeEditorReplaceBar(page, EDITOR_ID);
-    await loc.searchInput().fill('foo');
-    await expectMatchCount(page, '1 / 3');
-    await loc.replaceInput().fill('qux');
-    await loc.replaceAllBtn().click();
-    await expect(loc.matchCount()).toHaveText('0 results', { timeout: 1500 });
+    await test.step('Set up content and search for "foo"', async () => {
+      await setCodeEditorContent(page, EDITOR_ID, 'foo bar foo baz foo');
+      await openCodeEditorReplaceBar(page, EDITOR_ID);
+      await loc.searchInput().fill('foo');
+      await expectMatchCount(page, '1 / 3');
+    });
+    await test.step('Replace all with "qux" — no matches remain', async () => {
+      await loc.replaceInput().fill('qux');
+      await loc.replaceAllBtn().click();
+      await expect(loc.matchCount()).toHaveText('0 results', { timeout: 1500 });
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
     await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);
   });
 
   test('match count updates when the document is edited while search is open', async ({ page }) => {
     const loc = buildCommonLocators(page).codeEditorSearch(EDITOR_ID);
-    await openPreRequestScriptEditor(page, EDITOR_ID);
-    await setCodeEditorContent(page, EDITOR_ID, 'foo bar baz');
-    await openCodeEditorSearchBar(page, EDITOR_ID);
-    await loc.searchInput().fill('foo');
-    await expectMatchCount(page, '1 / 1');
-    await loc.codeMirror().evaluate((el: any) => {
-      if (el.CodeMirror) {
-        const lastLine = el.CodeMirror.lastLine();
-        const lastCh = el.CodeMirror.getLine(lastLine).length;
-        el.CodeMirror.replaceRange(' foo', { line: lastLine, ch: lastCh });
-      }
+    await test.step('Set content to "foo bar baz" and search for "foo"', async () => {
+      await openPreRequestScriptEditor(page, EDITOR_ID);
+      await setCodeEditorContent(page, EDITOR_ID, 'foo bar baz');
+      await openCodeEditorSearchBar(page, EDITOR_ID);
+      await loc.searchInput().fill('foo');
+      await expectMatchCount(page, '1 / 1');
     });
-    await expectMatchCount(page, '1 / 2');
+    await test.step('Append " foo" to the document — match count updates to 2', async () => {
+      await appendTextToCodeEditor(page, EDITOR_ID, ' foo');
+      await expectMatchCount(page, '1 / 2');
+    });
     await closeCodeEditorSearchBar(page, EDITOR_ID);
     await setCodeEditorContent(page, EDITOR_ID, LARGE_DOC);
   });

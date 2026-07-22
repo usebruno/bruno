@@ -195,6 +195,13 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
   }));
 
   useEffect(() => {
+    // If setSearch/focusAtCursor pre-populated an index for a specific text but the debounce
+    // hasn't settled to that text yet, skip this stale fire. The next fire (once debounce
+    // catches up) will honour the pre-populated index correctly.
+    if (initialIndexRef.current && debouncedSearchText !== initialIndexRef.current.forText) {
+      return;
+    }
+
     if (initialIndexRef.current && initialIndexRef.current.forText === debouncedSearchText) {
       // Pre-populated index still matches — honour it and consume it.
       const idx = initialIndexRef.current.idx;
@@ -324,7 +331,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     searchCacheKey.current = '';
     doSearch(debouncedSearchText, 0);
     setTimeout(() => inputRef.current?.focus(), 0);
-  }, [editor, replaceText, debouncedSearchText, doSearch]);
+  }, [editor, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
 
   const isDebouncing = searchText !== debouncedSearchText;
   const isReplaceDisabled = isDebouncing || !searchText.trim() || matchCount === 0;
@@ -369,7 +376,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
                 }
               }}
             />
-            <span className="searchbar-result-count" data-testid="codemirror-search-result-count">{matchCount > 0 ? `${matchIndex + 1} / ${matchCount}` : '0 results'}</span>
+            <span className="searchbar-result-count" data-testid="codemirror-search-result-count">{isDebouncing ? '...' : matchCount > 0 ? `${matchIndex + 1} / ${matchCount}` : '0 results'}</span>
             <ToolHint text="Regex search" toolhintId="searchbar-regex-toolhint" place="top">
               <button type="button" className={`searchbar-icon-btn ${regex ? 'active' : ''}`} onClick={handleToggleRegex} data-testid="codemirror-search-regex-btn"><IconRegex size={16} /></button>
             </ToolHint>

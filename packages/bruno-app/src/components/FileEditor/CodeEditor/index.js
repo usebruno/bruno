@@ -77,7 +77,7 @@ export default class CodeEditor extends React.Component {
           setState: (update, cb) => this.setState(update, cb),
           searchBarRef: this.searchBarRef,
           isSearchBarVisible: () => this.state.searchBarVisible,
-          readOnly: this.props.readOnly
+          isReadOnly: () => this.props.readOnly
         }),
         'Tab': function (cm) {
           cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()

@@ -107,7 +107,7 @@ class CodeEditor extends React.Component {
           setState: (update, cb) => this.setState(update, cb),
           searchBarRef: this.searchBarRef,
           isSearchBarVisible: () => this.state.searchBarVisible,
-          readOnly: this.props.readOnly
+          isReadOnly: () => this.props.readOnly
         }),
         'Cmd-Enter': runShortcut,
         'Ctrl-Enter': runShortcut,
