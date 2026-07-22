@@ -148,6 +148,8 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
                 type: 'pem',
                 certificateFilePath: cert.certFilePath,
                 privateKeyFilePath: cert.keyFilePath,
+                ...(cert.name ? { name: cert.name } : {}),
+                ...(cert.enabled === false ? { enabled: false } : {}),
                 ...(cert.passphrase && { passphrase: cert.passphrase })
               };
               return pemCert;
@@ -156,6 +158,8 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
                 domain: cert.domain,
                 type: 'pkcs12',
                 pkcs12FilePath: cert.pfxFilePath,
+                ...(cert.name ? { name: cert.name } : {}),
+                ...(cert.enabled === false ? { enabled: false } : {}),
                 ...(cert.passphrase && { passphrase: cert.passphrase })
               };
               return pkcs12Cert;

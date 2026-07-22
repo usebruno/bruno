@@ -14,6 +14,7 @@ import { updateCollectionClientCertificates } from 'providers/ReduxStore/slices/
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import get from 'lodash/get';
 import Button from 'ui/Button';
+import { normalizeDomain, disableOtherCertsOnSameDomain } from './cert-utils';
 
 const ClientCertSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -29,6 +30,7 @@ const ClientCertSettings = ({ collection }) => {
 
   const formik = useFormik({
     initialValues: {
+      name: '',
       domain: '',
       type: 'cert',
       certFilePath: '',
@@ -57,34 +59,25 @@ const ClientCertSettings = ({ collection }) => {
       passphrase: Yup.string()
     }),
     onSubmit: (values) => {
-      let relevantValues = {};
-      if (values.type === 'cert') {
-        relevantValues = {
-          domain: values.domain?.trim(),
-          type: values.type,
-          certFilePath: values.certFilePath,
-          keyFilePath: values.keyFilePath,
-          passphrase: values.passphrase
-        };
-      } else {
-        relevantValues = {
-          domain: values.domain?.trim(),
-          type: values.type,
-          pfxFilePath: values.pfxFilePath,
-          passphrase: values.passphrase
-        };
-      }
-
-      // Add the new cert to the existing certs in draft
-      const updatedCerts = [...clientCertConfig, relevantValues];
-      const clientCertificates = {
+      const newCert = {
+        name: values.name?.trim(),
+        domain: values.domain?.trim(),
+        type: values.type,
+        passphrase: values.passphrase,
         enabled: true,
-        certs: updatedCerts
+        ...(values.type === 'cert'
+          ? { certFilePath: values.certFilePath, keyFilePath: values.keyFilePath }
+          : { pfxFilePath: values.pfxFilePath })
       };
+
+      const certs = [
+        ...disableOtherCertsOnSameDomain(clientCertConfig, normalizeDomain(newCert.domain)),
+        newCert
+      ];
 
       dispatch(updateCollectionClientCertificates({
         collectionUid: collection.uid,
-        clientCertificates
+        clientCertificates: { enabled: true, certs }
       }));
 
       formik.resetForm();
@@ -129,15 +122,24 @@ const ClientCertSettings = ({ collection }) => {
   };
 
   const handleRemove = (indexToRemove) => {
-    const updatedCerts = clientCertConfig.filter((cert, index) => index !== indexToRemove);
-    const clientCertificates = {
-      enabled: true,
-      certs: updatedCerts
-    };
+    dispatch(updateCollectionClientCertificates({
+      collectionUid: collection.uid,
+      clientCertificates: {
+        enabled: true,
+        certs: clientCertConfig.filter((_, index) => index !== indexToRemove)
+      }
+    }));
+  };
+
+  const handleToggleEnabled = (indexToToggle) => {
+    const nextEnabled = clientCertConfig[indexToToggle].enabled === false;
+    const domain = normalizeDomain(clientCertConfig[indexToToggle].domain);
+    const certs = (nextEnabled ? disableOtherCertsOnSameDomain(clientCertConfig, domain, indexToToggle) : clientCertConfig)
+      .map((cert, i) => i === indexToToggle ? { ...cert, enabled: nextEnabled } : cert);
 
     dispatch(updateCollectionClientCertificates({
       collectionUid: collection.uid,
-      clientCertificates
+      clientCertificates: { enabled: true, certs }
     }));
   };
 
@@ -153,10 +155,21 @@ const ClientCertSettings = ({ collection }) => {
           ? 'No client certificates added'
           : clientCertConfig.map((clientCert, index) => (
               <li key={`client-cert-${index}`} className="flex items-center available-certificates p-2 rounded-lg mb-2">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={clientCert.enabled !== false}
+                    onChange={() => handleToggleEnabled(index)}
+                    className="cert-enabled-checkbox"
+                    aria-label={`Toggle ${clientCert.name || clientCert.domain} certificate`}
+                  />
+                </label>
                 <div className="flex items-center w-full justify-between">
                   <div className="flex w-full items-center">
                     <IconWorld className="mr-2" size={18} strokeWidth={1.5} />
-                    {clientCert.domain}
+                    <span className="certificate-name">
+                      {clientCert.name ? `${clientCert.name} - ${clientCert.domain}` : clientCert.domain}
+                    </span>
                   </div>
                   <div className="flex w-full items-center">
                     <IconCertificate className="mr-2 flex-shrink-0" size={18} strokeWidth={1.5} />
@@ -172,6 +185,20 @@ const ClientCertSettings = ({ collection }) => {
 
       <h1 className="font-medium mt-8 mb-2">Add Client Certificate</h1>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
+        <div className="mb-3 flex items-center">
+          <label className="settings-label" htmlFor="name">
+            Name
+          </label>
+          <input
+            id="name"
+            type="text"
+            name="name"
+            placeholder="Optional label"
+            className="block textbox non-passphrase-input"
+            onChange={formik.handleChange}
+            value={formik.values.name || ''}
+          />
+        </div>
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="domain">
             Domain
