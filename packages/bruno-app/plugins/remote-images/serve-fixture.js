@@ -36,11 +36,16 @@ function parsePort(argv) {
 }
 
 function createServer() {
+  const fixturesRoot = path.resolve(FIXTURES_DIR);
+
   return http.createServer((req, res) => {
     const urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
-    const safe = path.normalize(urlPath).replace(/^(\.\.[/\\])+/, '');
-    const filePath = path.join(FIXTURES_DIR, safe);
-    if (!filePath.startsWith(FIXTURES_DIR)) {
+    // Strip leading separators so path.join/resolve stay under fixturesRoot
+    // (path.join(root, '/ai.png') would otherwise resolve to '/ai.png').
+    const relative = path.normalize(urlPath).replace(/^([/\\])+/, '').replace(/^(\.\.[/\\])+/, '');
+    const filePath = path.resolve(fixturesRoot, relative);
+    const inRoot = filePath === fixturesRoot || filePath.startsWith(fixturesRoot + path.sep);
+    if (!inRoot) {
       res.writeHead(403);
       res.end('Forbidden');
       return;

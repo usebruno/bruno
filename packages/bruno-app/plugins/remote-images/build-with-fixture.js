@@ -39,7 +39,12 @@ function run(command, args, env) {
 }
 
 async function rmrf(target) {
-  await fs.promises.rm(target, { recursive: true, force: true });
+  await fs.promises.rm(target, {
+    recursive: true,
+    force: true,
+    maxRetries: 5,
+    retryDelay: 100
+  });
 }
 
 async function copyDir(src, dest) {

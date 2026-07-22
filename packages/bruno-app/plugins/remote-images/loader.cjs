@@ -10,7 +10,8 @@ const { findRemoteImageUrls, assetFilenameFromHash, buildModuleSource } = requir
 const CACHE_DIR = path.join(process.cwd(), 'node_modules/.cache/bruno-remote-images');
 
 function cachePathsForUrl(url) {
-  const cacheKey = Buffer.from(url).toString('base64url');
+  // Fixed-length key — base64url(url) can exceed Windows MAX_PATH for long URLs.
+  const cacheKey = crypto.createHash('sha256').update(url).digest('hex');
   return {
     cacheKey,
     cachePath: path.join(CACHE_DIR, cacheKey),
