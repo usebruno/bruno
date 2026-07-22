@@ -11,8 +11,8 @@ const baseRequest = (overrides: any = {}) => ({
 });
 
 describe('buildHar — basic HAR shape', () => {
-  it('returns a HAR-shaped object for a minimal GET', () => {
-    const { har } = buildHar({ request: baseRequest(), shouldInterpolate: false });
+  it('returns a HAR-shaped object for a minimal GET', async () => {
+    const { har } = await buildHar({ request: baseRequest(), shouldInterpolate: false });
     expect(har).toEqual(
       expect.objectContaining({
         method: 'GET',
@@ -28,22 +28,22 @@ describe('buildHar — basic HAR shape', () => {
     expect(Array.isArray(har.headers)).toBe(true);
   });
 
-  it('throws "invalid request url" for inputs that are not URLs', () => {
-    expect(() => buildHar({ request: baseRequest({ url: '' }), shouldInterpolate: false })).toThrow('invalid request url');
-    expect(() => buildHar({ request: baseRequest({ url: 'not a url' }), shouldInterpolate: false })).toThrow('invalid request url');
-    expect(() => buildHar({ request: baseRequest({ url: 'http://' }), shouldInterpolate: false })).toThrow('invalid request url');
+  it('throws "invalid request url" for inputs that are not URLs', async () => {
+    await expect(buildHar({ request: baseRequest({ url: '' }), shouldInterpolate: false })).rejects.toThrow('invalid request url');
+    await expect(buildHar({ request: baseRequest({ url: 'not a url' }), shouldInterpolate: false })).rejects.toThrow('invalid request url');
+    await expect(buildHar({ request: baseRequest({ url: 'http://' }), shouldInterpolate: false })).rejects.toThrow('invalid request url');
   });
 
-  it('accepts URLs with %XX sequences, brackets, OData parens (encoding handled internally)', () => {
-    expect(() => buildHar({ request: baseRequest({ url: 'https://example.com/list%5B1%5D' }), shouldInterpolate: false })).not.toThrow();
-    expect(() => buildHar({ request: baseRequest({ url: 'https://example.com/odata/Products(123)/Categories(456)' }), shouldInterpolate: false })).not.toThrow();
-    expect(() => buildHar({ request: baseRequest({ url: 'https://example.com/path%20with%20spaces' }), shouldInterpolate: false })).not.toThrow();
+  it('accepts URLs with %XX sequences, brackets, OData parens (encoding handled internally)', async () => {
+    await expect(buildHar({ request: baseRequest({ url: 'https://example.com/list%5B1%5D' }), shouldInterpolate: false })).resolves.toBeDefined();
+    await expect(buildHar({ request: baseRequest({ url: 'https://example.com/odata/Products(123)/Categories(456)' }), shouldInterpolate: false })).resolves.toBeDefined();
+    await expect(buildHar({ request: baseRequest({ url: 'https://example.com/path%20with%20spaces' }), shouldInterpolate: false })).resolves.toBeDefined();
   });
 });
 
 describe('buildHar — encodeUrl toggle (PR #5507 content-blind contract)', () => {
-  it('OFF: rawUrl matches user-typed URL (path-param substitution happens upstream for Generate Code)', () => {
-    const { rawUrl } = buildHar({
+  it('OFF: rawUrl matches user-typed URL (path-param substitution happens upstream for Generate Code)', async () => {
+    const { rawUrl } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/api?name=John Doe',
         params: [{ name: 'name', value: 'John Doe', type: 'query', enabled: true }],
@@ -54,8 +54,8 @@ describe('buildHar — encodeUrl toggle (PR #5507 content-blind contract)', () =
     expect(rawUrl).toBe('https://example.com/api?name=John Doe');
   });
 
-  it('ON: encodedUrl applies encodeUrl() (path encoded, query encoded)', () => {
-    const { encodedUrl } = buildHar({
+  it('ON: encodedUrl applies encodeUrl() (path encoded, query encoded)', async () => {
+    const { encodedUrl } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/api?name=John Doe',
         params: [{ name: 'name', value: 'John Doe', type: 'query', enabled: true }],
@@ -66,8 +66,8 @@ describe('buildHar — encodeUrl toggle (PR #5507 content-blind contract)', () =
     expect(encodedUrl).toBe('https://example.com/api?name=John%20Doe');
   });
 
-  it('ON: pre-encoded inputs INTENTIONALLY double-encode (PR #5507)', () => {
-    const { encodedUrl } = buildHar({
+  it('ON: pre-encoded inputs INTENTIONALLY double-encode (PR #5507)', async () => {
+    const { encodedUrl } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/api?name=John%20Doe',
         params: [{ name: 'name', value: 'John%20Doe', type: 'query', enabled: true }],
@@ -79,11 +79,11 @@ describe('buildHar — encodeUrl toggle (PR #5507 content-blind contract)', () =
     expect(encodedUrl).toContain('John%2520Doe');
   });
 
-  it('ON: # in URL is encoded as %23 (Option C — # is data, not a fragment delimiter)', () => {
+  it('ON: # in URL is encoded as %23 (Option C — # is data, not a fragment delimiter)', async () => {
     // encodeUrl treats `#` as a regular byte and encodes it via
     // encodeURIComponent in the query-value pipeline. To keep `#section` as a
     // literal fragment, toggle OFF (OFF preserves the URL byte-for-byte).
-    const { encodedUrl } = buildHar({
+    const { encodedUrl } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/api?tag=test#section',
         params: [{ name: 'tag', value: 'test#section', type: 'query', enabled: true }],
@@ -96,8 +96,8 @@ describe('buildHar — encodeUrl toggle (PR #5507 content-blind contract)', () =
 });
 
 describe('buildHar — auth → headers translation', () => {
-  it('basic auth → Authorization: Basic <base64>', () => {
-    const { har } = buildHar({
+  it('basic auth → Authorization: Basic <base64>', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ auth: { mode: 'basic', basic: { username: 'alice', password: 'pw' } } }),
       shouldInterpolate: false
     });
@@ -106,16 +106,16 @@ describe('buildHar — auth → headers translation', () => {
     expect(auth?.value).toBe(`Basic ${Buffer.from('alice:pw').toString('base64')}`);
   });
 
-  it('bearer auth → Authorization: Bearer <token>', () => {
-    const { har } = buildHar({
+  it('bearer auth → Authorization: Bearer <token>', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ auth: { mode: 'bearer', bearer: { token: 'tk-123' } } }),
       shouldInterpolate: false
     });
     expect(har.headers).toContainEqual({ name: 'Authorization', value: 'Bearer tk-123' });
   });
 
-  it('apikey in header → custom header name + value', () => {
-    const { har } = buildHar({
+  it('apikey in header → custom header name + value', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         auth: { mode: 'apikey', apikey: { key: 'X-API-Key', value: 'secret', placement: 'header' } }
       }),
@@ -124,8 +124,8 @@ describe('buildHar — auth → headers translation', () => {
     expect(har.headers).toContainEqual({ name: 'X-API-Key', value: 'secret' });
   });
 
-  it('apikey with placement=queryparams → goes into queryString, NOT headers', () => {
-    const { har } = buildHar({
+  it('apikey with placement=queryparams → goes into queryString, NOT headers', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         auth: { mode: 'apikey', apikey: { key: 'api_key', value: 'secret', placement: 'queryparams' } }
       }),
@@ -135,8 +135,8 @@ describe('buildHar — auth → headers translation', () => {
     expect(har.headers.find((h) => h.name === 'api_key')).toBeUndefined();
   });
 
-  it('oauth2 header placement with no stored credentials falls back to <access_token>', () => {
-    const { har } = buildHar({
+  it('oauth2 header placement with no stored credentials falls back to <access_token>', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         auth: { mode: 'oauth2', oauth2: { tokenPlacement: 'header', accessTokenUrl: 'https://x/token', credentialsId: 'creds' } }
       }),
@@ -145,8 +145,8 @@ describe('buildHar — auth → headers translation', () => {
     expect(har.headers).toContainEqual({ name: 'Authorization', value: 'Bearer <access_token>' });
   });
 
-  it('oauth2 header placement looks up actual access token from oauth2Credentials', () => {
-    const { har } = buildHar({
+  it('oauth2 header placement looks up actual access token from oauth2Credentials', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         auth: {
           mode: 'oauth2',
@@ -164,16 +164,16 @@ describe('buildHar — auth → headers translation', () => {
 
   it.each(['oauth1', 'digest', 'ntlm', 'awsv4', 'wsse', 'none', 'inherit'])(
     'auth mode "%s" → no Authorization header (runtime-only or curl-flag-only)',
-    (mode) => {
-      const { har } = buildHar({ request: baseRequest({ auth: { mode } }), shouldInterpolate: false });
+    async (mode) => {
+      const { har } = await buildHar({ request: baseRequest({ auth: { mode } }), shouldInterpolate: false });
       expect(har.headers.find((h) => h.name === 'Authorization')).toBeUndefined();
     }
   );
 
   // ---- Phase B: oauth2 detail + apikey edge cases + inherit contract -----
 
-  it('oauth2 with custom tokenHeaderPrefix=OAuth → "OAuth <token>"', () => {
-    const { har } = buildHar({
+  it('oauth2 with custom tokenHeaderPrefix=OAuth → "OAuth <token>"', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         auth: {
           mode: 'oauth2',
@@ -189,8 +189,8 @@ describe('buildHar — auth → headers translation', () => {
     expect(har.headers).toContainEqual({ name: 'Authorization', value: 'OAuth tk-real' });
   });
 
-  it('oauth2 with empty tokenHeaderPrefix="" → bare token, no leading space', () => {
-    const { har } = buildHar({
+  it('oauth2 with empty tokenHeaderPrefix="" → bare token, no leading space', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         auth: {
           mode: 'oauth2',
@@ -206,8 +206,8 @@ describe('buildHar — auth → headers translation', () => {
     expect(har.headers).toContainEqual({ name: 'Authorization', value: 'bare-tk' });
   });
 
-  it('oauth2 with tokenPlacement=url → no Authorization header (URL placement is the runtime/snippet caller\'s responsibility)', () => {
-    const { har } = buildHar({
+  it('oauth2 with tokenPlacement=url → no Authorization header (URL placement is the runtime/snippet caller\'s responsibility)', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         auth: {
           mode: 'oauth2',
@@ -219,8 +219,8 @@ describe('buildHar — auth → headers translation', () => {
     expect(har.headers.find((h) => h.name === 'Authorization')).toBeUndefined();
   });
 
-  it('oauth2 implicit grant uses authorizationUrl (not accessTokenUrl) for credential lookup', () => {
-    const { har } = buildHar({
+  it('oauth2 implicit grant uses authorizationUrl (not accessTokenUrl) for credential lookup', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         auth: {
           mode: 'oauth2',
@@ -241,8 +241,8 @@ describe('buildHar — auth → headers translation', () => {
     expect(har.headers).toContainEqual({ name: 'Authorization', value: 'Bearer implicit-tk' });
   });
 
-  it('oauth2 credentialsId defaults to "credentials" when not specified', () => {
-    const { har } = buildHar({
+  it('oauth2 credentialsId defaults to "credentials" when not specified', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         auth: {
           mode: 'oauth2',
@@ -258,8 +258,8 @@ describe('buildHar — auth → headers translation', () => {
     expect(har.headers).toContainEqual({ name: 'Authorization', value: 'Bearer default-id-tk' });
   });
 
-  it('oauth2 missing oauth2Credentials array → falls back to <access_token> placeholder', () => {
-    const { har } = buildHar({
+  it('oauth2 missing oauth2Credentials array → falls back to <access_token> placeholder', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         auth: {
           mode: 'oauth2',
@@ -271,8 +271,8 @@ describe('buildHar — auth → headers translation', () => {
     expect(har.headers).toContainEqual({ name: 'Authorization', value: 'Bearer <access_token>' });
   });
 
-  it('apikey with placement=queryparams AND empty key → not added to queryString', () => {
-    const { har } = buildHar({
+  it('apikey with placement=queryparams AND empty key → not added to queryString', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         auth: { mode: 'apikey', apikey: { key: '', value: 'secret', placement: 'queryparams' } }
       }),
@@ -281,8 +281,8 @@ describe('buildHar — auth → headers translation', () => {
     expect(har.queryString).toEqual([]);
   });
 
-  it('apikey with placement=queryparams AND empty value → not added to queryString', () => {
-    const { har } = buildHar({
+  it('apikey with placement=queryparams AND empty value → not added to queryString', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         auth: { mode: 'apikey', apikey: { key: 'api_key', value: '', placement: 'queryparams' } }
       }),
@@ -291,8 +291,8 @@ describe('buildHar — auth → headers translation', () => {
     expect(har.queryString).toEqual([]);
   });
 
-  it('apikey with placement=header AND empty key → no header added', () => {
-    const { har } = buildHar({
+  it('apikey with placement=header AND empty key → no header added', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         auth: { mode: 'apikey', apikey: { key: '', value: 'secret', placement: 'header' } }
       }),
@@ -301,8 +301,8 @@ describe('buildHar — auth → headers translation', () => {
     expect(har.headers).toEqual(expect.not.arrayContaining([expect.objectContaining({ name: '' })]));
   });
 
-  it('basic auth with empty username/password → still emits Authorization with base64 of ":"', () => {
-    const { har } = buildHar({
+  it('basic auth with empty username/password → still emits Authorization with base64 of ":"', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ auth: { mode: 'basic', basic: { username: '', password: '' } } }),
       shouldInterpolate: false
     });
@@ -310,8 +310,8 @@ describe('buildHar — auth → headers translation', () => {
     expect(auth?.value).toBe(`Basic ${Buffer.from(':').toString('base64')}`);
   });
 
-  it('bearer with missing token → "Bearer " with empty string', () => {
-    const { har } = buildHar({
+  it('bearer with missing token → "Bearer " with empty string', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ auth: { mode: 'bearer' } }),
       shouldInterpolate: false
     });
@@ -326,8 +326,8 @@ describe('buildHar — header ordering when request + auth produce same name', (
   // is intentionally not opinionated about dedup since the layering ambiguity
   // (which copy wins?) is collection-tree-specific.
 
-  it('request.headers Authorization survives alongside auth-generated Authorization', () => {
-    const { har } = buildHar({
+  it('request.headers Authorization survives alongside auth-generated Authorization', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         headers: [{ name: 'Authorization', value: 'Custom token', enabled: true }],
         auth: { mode: 'bearer', bearer: { token: 'tk-from-auth' } }
@@ -342,8 +342,8 @@ describe('buildHar — header ordering when request + auth produce same name', (
 });
 
 describe('buildHar — headers finalization (default content-type, lowercase, enabled-only)', () => {
-  it('lowercases header names and filters disabled', () => {
-    const { har } = buildHar({
+  it('lowercases header names and filters disabled', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         headers: [
           { name: 'X-Custom', value: 'v1', enabled: true },
@@ -356,7 +356,7 @@ describe('buildHar — headers finalization (default content-type, lowercase, en
     expect(har.headers.find((h) => h.name === 'x-disabled')).toBeUndefined();
   });
 
-  it('appends default content-type for body mode if none is set', () => {
+  it('appends default content-type for body mode if none is set', async () => {
     const cases: Array<[string, string]> = [
       ['json', 'application/json'],
       ['xml', 'application/xml'],
@@ -365,13 +365,13 @@ describe('buildHar — headers finalization (default content-type, lowercase, en
       ['formUrlEncoded', 'application/x-www-form-urlencoded']
     ];
     for (const [mode, contentType] of cases) {
-      const { har } = buildHar({ request: baseRequest({ body: { mode } }), shouldInterpolate: false });
+      const { har } = await buildHar({ request: baseRequest({ body: { mode } }), shouldInterpolate: false });
       expect(har.headers).toContainEqual({ name: 'Content-Type', value: contentType });
     }
   });
 
-  it('does NOT override an explicit content-type header', () => {
-    const { har } = buildHar({
+  it('does NOT override an explicit content-type header', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         body: { mode: 'json' },
         headers: [{ name: 'Content-Type', value: 'application/vnd.api+json', enabled: true }]
@@ -385,8 +385,8 @@ describe('buildHar — headers finalization (default content-type, lowercase, en
 });
 
 describe('buildHar — query string assembly', () => {
-  it('includes only enabled query-type params', () => {
-    const { har } = buildHar({
+  it('includes only enabled query-type params', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         params: [
           { name: 'a', value: '1', type: 'query', enabled: true },
@@ -403,8 +403,8 @@ describe('buildHar — query string assembly', () => {
     ]);
   });
 
-  it('preserves insertion order (no alphabetical sort)', () => {
-    const { har } = buildHar({
+  it('preserves insertion order (no alphabetical sort)', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         params: [
           { name: 'z', value: 'last', type: 'query', enabled: true },
@@ -419,8 +419,8 @@ describe('buildHar — query string assembly', () => {
 });
 
 describe('buildHar — body / postData', () => {
-  it('formUrlEncoded → mimeType + text (URL-encoded form) + params array', () => {
-    const { har } = buildHar({
+  it('formUrlEncoded → mimeType + text (URL-encoded form) + params array', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         body: {
           mode: 'formUrlEncoded',
@@ -440,11 +440,11 @@ describe('buildHar — body / postData', () => {
     ]);
   });
 
-  it('formUrlEncoded with duplicate names → preserves both entries in text and params', () => {
+  it('formUrlEncoded with duplicate names → preserves both entries in text and params', async () => {
     // Regression canary: serializing to a plain object would collapse duplicates
     // (`{tag: '1', tag: '2'}` → only the last survives). Real APIs use repeated
     // field names for array-shaped form values; both occurrences must round-trip.
-    const { har } = buildHar({
+    const { har } = await buildHar({
       request: baseRequest({
         body: {
           mode: 'formUrlEncoded',
@@ -465,8 +465,8 @@ describe('buildHar — body / postData', () => {
     ]);
   });
 
-  it('json → mimeType + text (JSON string)', () => {
-    const { har } = buildHar({
+  it('json → mimeType + text (JSON string)', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'json', json: '{"hello":"world"}' } }),
       shouldInterpolate: false
     });
@@ -474,8 +474,8 @@ describe('buildHar — body / postData', () => {
     expect(har.postData.text).toBe('{"hello":"world"}');
   });
 
-  it('multipartForm → params with optional fileName for type=file', () => {
-    const { har } = buildHar({
+  it('multipartForm → params with optional fileName for type=file', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         body: {
           mode: 'multipartForm',
@@ -497,8 +497,8 @@ describe('buildHar — body / postData', () => {
   // Each mode is tested for (a) correct mimeType, (b) correct postData shape,
   // (c) reasonable behavior on empty / missing / disabled inputs.
 
-  it('text → mimeType=text/plain, raw body in postData.text', () => {
-    const { har } = buildHar({
+  it('text → mimeType=text/plain, raw body in postData.text', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'text', text: 'hello world' } }),
       shouldInterpolate: false
     });
@@ -506,9 +506,9 @@ describe('buildHar — body / postData', () => {
     expect(har.postData.text).toBe('hello world');
   });
 
-  it('xml → mimeType=application/xml, raw body in postData.text', () => {
+  it('xml → mimeType=application/xml, raw body in postData.text', async () => {
     const xmlBody = '<note><body>hi</body></note>';
-    const { har } = buildHar({
+    const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'xml', xml: xmlBody } }),
       shouldInterpolate: false
     });
@@ -516,9 +516,9 @@ describe('buildHar — body / postData', () => {
     expect(har.postData.text).toBe(xmlBody);
   });
 
-  it('sparql → mimeType=application/sparql-query, raw body in postData.text', () => {
+  it('sparql → mimeType=application/sparql-query, raw body in postData.text', async () => {
     const sparqlBody = 'SELECT ?s WHERE { ?s ?p ?o } LIMIT 10';
-    const { har } = buildHar({
+    const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'sparql', sparql: sparqlBody } }),
       shouldInterpolate: false
     });
@@ -526,9 +526,9 @@ describe('buildHar — body / postData', () => {
     expect(har.postData.text).toBe(sparqlBody);
   });
 
-  it('graphql → mimeType=application/json, postData.text is JSON.stringify of body.graphql', () => {
+  it('graphql → mimeType=application/json, postData.text is JSON.stringify of body.graphql', async () => {
     const graphql = { query: 'query Q { me { id } }', variables: { foo: 'bar' } };
-    const { har } = buildHar({
+    const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'graphql', graphql } }),
       shouldInterpolate: false
     });
@@ -536,8 +536,8 @@ describe('buildHar — body / postData', () => {
     expect(har.postData.text).toBe(JSON.stringify(graphql));
   });
 
-  it('file → mimeType from selected file, text=filePath, params has fileName + contentType', () => {
-    const { har } = buildHar({
+  it('file → mimeType from selected file, text=filePath, params has fileName + contentType', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         body: {
           mode: 'file',
@@ -556,8 +556,8 @@ describe('buildHar — body / postData', () => {
     ]);
   });
 
-  it('file with no `selected` flag → falls back to first entry', () => {
-    const { har } = buildHar({
+  it('file with no `selected` flag → falls back to first entry', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         body: {
           mode: 'file',
@@ -572,8 +572,8 @@ describe('buildHar — body / postData', () => {
     expect(har.postData.text).toBe('/tmp/first.txt');
   });
 
-  it('file with empty file[] → octet-stream fallback, empty text, empty params', () => {
-    const { har } = buildHar({
+  it('file with empty file[] → octet-stream fallback, empty text, empty params', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'file', file: [] } }),
       shouldInterpolate: false
     });
@@ -582,8 +582,8 @@ describe('buildHar — body / postData', () => {
     expect(har.postData.params).toEqual([]);
   });
 
-  it('formUrlEncoded with empty [] → empty text + empty params, no error', () => {
-    const { har } = buildHar({
+  it('formUrlEncoded with empty [] → empty text + empty params, no error', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'formUrlEncoded', formUrlEncoded: [] } }),
       shouldInterpolate: false
     });
@@ -592,16 +592,16 @@ describe('buildHar — body / postData', () => {
     expect(har.postData.params).toEqual([]);
   });
 
-  it('formUrlEncoded with missing array → treated as empty', () => {
-    const { har } = buildHar({
+  it('formUrlEncoded with missing array → treated as empty', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'formUrlEncoded' } }),
       shouldInterpolate: false
     });
     expect(har.postData.params).toEqual([]);
   });
 
-  it('formUrlEncoded with disabled entries → filtered from text + params', () => {
-    const { har } = buildHar({
+  it('formUrlEncoded with disabled entries → filtered from text + params', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         body: {
           mode: 'formUrlEncoded',
@@ -621,8 +621,8 @@ describe('buildHar — body / postData', () => {
     ]);
   });
 
-  it('multipartForm with empty [] → empty params, no error', () => {
-    const { har } = buildHar({
+  it('multipartForm with empty [] → empty params, no error', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'multipartForm', multipartForm: [] } }),
       shouldInterpolate: false
     });
@@ -630,16 +630,16 @@ describe('buildHar — body / postData', () => {
     expect(har.postData.params).toEqual([]);
   });
 
-  it('multipartForm with missing array → treated as empty', () => {
-    const { har } = buildHar({
+  it('multipartForm with missing array → treated as empty', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'multipartForm' } }),
       shouldInterpolate: false
     });
     expect(har.postData.params).toEqual([]);
   });
 
-  it('multipartForm with disabled entries → filtered out', () => {
-    const { har } = buildHar({
+  it('multipartForm with disabled entries → filtered out', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         body: {
           mode: 'multipartForm',
@@ -654,8 +654,8 @@ describe('buildHar — body / postData', () => {
     expect(har.postData.params).toEqual([{ name: 'kept', value: 'a' }]);
   });
 
-  it('multipartForm type=file → fileName populated only on file entries', () => {
-    const { har } = buildHar({
+  it('multipartForm type=file → fileName populated only on file entries', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         body: {
           mode: 'multipartForm',
@@ -674,14 +674,14 @@ describe('buildHar — body / postData', () => {
 });
 
 describe('buildHar — interpolation', () => {
-  it('URL {{var}} tokens are hashed (not substituted) — caller owns URL interpolation', () => {
+  it('URL {{var}} tokens are hashed (not substituted) — caller owns URL interpolation', async () => {
     // URL interpolation is intentionally NOT done inside buildHar. The caller
     // (e.g. GenerateCodeItem in bruno-app, or the runtime adapter) is the only
     // place that knows whether the user wants templates resolved in the URL.
     // buildHar's job is to keep the URL parseable through encoding via
     // patternHasher hashing — the returned `unhash` lets the caller restore
     // the original `{{var}}` text at the end of their pipeline.
-    const { har, unhash } = buildHar({
+    const { har, unhash } = await buildHar({
       request: baseRequest({ url: 'https://{{host}}/api/{{path}}' }),
       variables: { host: 'example.com', path: 'users' },
       shouldInterpolate: true
@@ -694,8 +694,8 @@ describe('buildHar — interpolation', () => {
     expect(unhash(har.url)).toContain('{{path}}');
   });
 
-  it('shouldInterpolate=true substitutes {{var}} in headers and body (json)', () => {
-    const { har } = buildHar({
+  it('shouldInterpolate=true substitutes {{var}} in headers and body (json)', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         headers: [{ name: 'X-Token', value: '{{token}}', enabled: true }],
         body: { mode: 'json', json: '{"user":"{{user}}"}' }
@@ -707,8 +707,8 @@ describe('buildHar — interpolation', () => {
     expect(har.postData.text).toContain('"user": "alice"');
   });
 
-  it('shouldInterpolate=false hashes {{var}} so the URL survives parsing, exposes unhash()', () => {
-    const { har, unhash } = buildHar({
+  it('shouldInterpolate=false hashes {{var}} so the URL survives parsing, exposes unhash()', async () => {
+    const { har, unhash } = await buildHar({
       request: baseRequest({ url: 'https://{{host}}/api?key={{secret}}', params: [{ name: 'key', value: '{{secret}}', type: 'query', enabled: true }] }),
       shouldInterpolate: false
     });
@@ -722,35 +722,35 @@ describe('buildHar — interpolation', () => {
 });
 
 describe('buildHar — regression: known issues map to single fixes', () => {
-  it('path with %20 (issue #6268) — no throw, URL passes the soft gate', () => {
-    expect(() => buildHar({
+  it('path with %20 (issue #6268) — no throw, URL passes the soft gate', async () => {
+    await expect(buildHar({
       request: baseRequest({ url: 'https://example.com/api/v1/roles/test%20-%20test' }),
       shouldInterpolate: false
-    })).not.toThrow();
+    })).resolves.toBeDefined();
   });
 
-  it('square brackets in path (issue #7653) — no throw, URL passes the soft gate', () => {
-    expect(() => buildHar({
+  it('square brackets in path (issue #7653) — no throw, URL passes the soft gate', async () => {
+    await expect(buildHar({
       request: baseRequest({ url: 'https://example.com/list[1]' }),
       shouldInterpolate: false
-    })).not.toThrow();
+    })).resolves.toBeDefined();
   });
 
-  it('JSON-shaped array values (issue #7913) — no throw, URL passes the soft gate', () => {
-    expect(() => buildHar({
+  it('JSON-shaped array values (issue #7913) — no throw, URL passes the soft gate', async () => {
+    await expect(buildHar({
       request: baseRequest({
         url: 'https://example.com/api?testArray=[[1, 2, 3], ["a", "b"]]',
         params: [{ name: 'testArray', value: '[[1, 2, 3], ["a", "b"]]', type: 'query', enabled: true }]
       }),
       shouldInterpolate: false
-    })).not.toThrow();
+    })).resolves.toBeDefined();
   });
 
-  it('path-param substitution (toggle ON) — built-in capability for runtime (issue #7356)', () => {
+  it('path-param substitution (toggle ON) — built-in capability for runtime (issue #7356)', async () => {
     // For Generate Code today, GenerateCodeItem pre-substitutes path params; buildHar
     // sees no `:id` to act on. But the capability is here for the future runtime
     // adoption (see Architectural pivot — Phase C in fixings/url-encoding-fix.md).
-    const { rawUrl, encodedUrl } = buildHar({
+    const { rawUrl, encodedUrl } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/users/:id/profile',
         pathParams: [{ name: 'id', value: 'aaa/bbb', type: 'path', enabled: true }],
@@ -769,8 +769,8 @@ describe('buildHar — regression: known issues map to single fixes', () => {
     expect(encodedUrl).not.toContain('aaa%252Fbbb');
   });
 
-  it('path-param substitution (toggle OFF) — value passed raw', () => {
-    const { rawUrl, encodedUrl, har } = buildHar({
+  it('path-param substitution (toggle OFF) — value passed raw', async () => {
+    const { rawUrl, encodedUrl, har } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/users/:id/profile',
         pathParams: [{ name: 'id', value: 'aaa/bbb', type: 'path', enabled: true }],
@@ -783,8 +783,8 @@ describe('buildHar — regression: known issues map to single fixes', () => {
     expect(har.url).toBe('https://example.com/users/aaa/bbb/profile');
   });
 
-  it('OData-style path param (Foo(:productId)) substitutes correctly', () => {
-    const { rawUrl } = buildHar({
+  it('OData-style path param (Foo(:productId)) substitutes correctly', async () => {
+    const { rawUrl } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/odata/Products(:productId)',
         pathParams: [{ name: 'productId', value: 'ABC123', type: 'path', enabled: true }],
@@ -797,14 +797,14 @@ describe('buildHar — regression: known issues map to single fixes', () => {
 });
 
 describe('buildHar — does not mutate caller inputs', () => {
-  it('caller\'s request object is not mutated by buildHar', () => {
+  it('caller\'s request object is not mutated by buildHar', async () => {
     const request = baseRequest({
       url: 'https://example.com/api?q=1',
       params: [{ name: 'q', value: '1', type: 'query', enabled: true }],
       headers: [{ name: 'X-A', value: 'a', enabled: true }]
     });
     const before = JSON.stringify(request);
-    buildHar({ request, shouldInterpolate: true, variables: { foo: 'bar' } });
+    await buildHar({ request, shouldInterpolate: true, variables: { foo: 'bar' } });
     expect(JSON.stringify(request)).toBe(before);
   });
 });
@@ -845,11 +845,11 @@ describe('buildHar — path-param encoding matrix (toggle ON, issue #7356)', () 
     { name: 'unreserved chars only (no encoding)', input: 'a-b_c.d~e', expectedSegment: 'a-b_c.d~e' }
   ];
 
-  it.each(cases)('encodes path-param value $name: "$input" → "$expectedSegment"', ({ input, expectedSegment }) => {
+  it.each(cases)('encodes path-param value $name: "$input" → "$expectedSegment"', async ({ input, expectedSegment }) => {
     // har.url is what reaches the wire. For toggle ON the user expects the
     // path-param value to be percent-encoded once (matching encodeURIComponent
     // semantics).
-    const { har } = buildHar({
+    const { har } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/users/:id',
         pathParams: [{ name: 'id', value: input, type: 'path', enabled: true }],
@@ -900,8 +900,8 @@ describe('buildHar — path-param substitution matrix (toggle OFF)', () => {
     { name: 'unreserved chars only', input: 'a-b_c.d~e' }
   ];
 
-  it.each(cases)('passes path-param value through raw $name: "$input"', ({ input }) => {
-    const { rawUrl } = buildHar({
+  it.each(cases)('passes path-param value through raw $name: "$input"', async ({ input }) => {
+    const { rawUrl } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/users/:id',
         pathParams: [{ name: 'id', value: input, type: 'path', enabled: true }],
@@ -1023,13 +1023,13 @@ describe('buildHar — query encoding matrix (mirror e2e fixtures)', () => {
       params: params.map((p) => ({ ...p, type: 'query', enabled: true }))
     });
 
-    it('ON: encodedUrl runs encodeUrl() (encoded form)', () => {
-      const { encodedUrl } = buildHar({ request: requestWithEnabled(true), shouldInterpolate: false });
+    it('ON: encodedUrl runs encodeUrl() (encoded form)', async () => {
+      const { encodedUrl } = await buildHar({ request: requestWithEnabled(true), shouldInterpolate: false });
       expect(encodedUrl).toBe(encoded);
     });
 
-    it('OFF: rawUrl preserves user-typed URL byte-for-byte', () => {
-      const { rawUrl } = buildHar({ request: requestWithEnabled(false), shouldInterpolate: false });
+    it('OFF: rawUrl preserves user-typed URL byte-for-byte', async () => {
+      const { rawUrl } = await buildHar({ request: requestWithEnabled(false), shouldInterpolate: false });
       expect(rawUrl).toBe(raw);
     });
   });
@@ -1085,16 +1085,16 @@ describe('buildHar — path encoding matrix (mirror e2e fixtures)', () => {
   ];
 
   describe.each(cases)('$name', ({ url, encoded, raw }) => {
-    it('ON: encodedUrl applies encodeUrl()', () => {
-      const { encodedUrl } = buildHar({
+    it('ON: encodedUrl applies encodeUrl()', async () => {
+      const { encodedUrl } = await buildHar({
         request: baseRequest({ url, settings: { encodeUrl: true } }),
         shouldInterpolate: false
       });
       expect(encodedUrl).toBe(encoded);
     });
 
-    it('OFF: rawUrl preserves user-typed URL byte-for-byte', () => {
-      const { rawUrl } = buildHar({
+    it('OFF: rawUrl preserves user-typed URL byte-for-byte', async () => {
+      const { rawUrl } = await buildHar({
         request: baseRequest({ url, settings: { encodeUrl: false } }),
         shouldInterpolate: false
       });
@@ -1110,8 +1110,8 @@ describe('buildHar — path encoding matrix (mirror e2e fixtures)', () => {
 // the rendered query string is `har.queryString`.
 
 describe('buildHar — bracket-key query regression (post_ids[], key[a][b])', () => {
-  it('post_ids[]=8647 — har.queryString length 1, har.url has no `?`', () => {
-    const { har } = buildHar({
+  it('post_ids[]=8647 — har.queryString length 1, har.url has no `?`', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         url: 'https://meta.discourse.org/t/173975/posts.json?post_ids%5B%5D=8647',
         params: [{ name: 'post_ids[]', value: '8647', type: 'query', enabled: true }]
@@ -1124,8 +1124,8 @@ describe('buildHar — bracket-key query regression (post_ids[], key[a][b])', ()
     expect(har.queryString[0]).toEqual({ name: 'post_ids[]', value: '8647' });
   });
 
-  it('key[a][b]=nested — Rails-style nested brackets, no phantom duplicate', () => {
-    const { har } = buildHar({
+  it('key[a][b]=nested — Rails-style nested brackets, no phantom duplicate', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/api?key[a][b]=nested',
         params: [{ name: 'key[a][b]', value: 'nested', type: 'query', enabled: true }]
@@ -1137,8 +1137,8 @@ describe('buildHar — bracket-key query regression (post_ids[], key[a][b])', ()
     expect(har.queryString[0]).toEqual({ name: 'key[a][b]', value: 'nested' });
   });
 
-  it('repeated array keys ids[]=1&ids[]=2&ids[]=3 → 3 distinct entries preserved in order', () => {
-    const { har } = buildHar({
+  it('repeated array keys ids[]=1&ids[]=2&ids[]=3 → 3 distinct entries preserved in order', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/api?ids[]=1&ids[]=2&ids[]=3',
         params: [
@@ -1157,12 +1157,12 @@ describe('buildHar — bracket-key query regression (post_ids[], key[a][b])', ()
     ]);
   });
 
-  it('# in URL with a query: encodeUrl folds # into the query value as %23, then strip removes the whole query', () => {
+  it('# in URL with a query: encodeUrl folds # into the query value as %23, then strip removes the whole query', async () => {
     // Option C contract: encodeUrl no longer splits on `#`. The `#section`
     // chunk is parsed as part of the query value, encoded to `%23section`,
     // and then stripped along with the rest of `?q=1%23section` by
     // stripQueryStringFromUrl. Net result: har.url is just origin + path.
-    const { har } = buildHar({
+    const { har } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/api?q=1#section',
         params: [{ name: 'q', value: '1#section', type: 'query', enabled: true }]
@@ -1172,19 +1172,19 @@ describe('buildHar — bracket-key query regression (post_ids[], key[a][b])', ()
     expect(har.url).toBe('https://example.com/api');
   });
 
-  it('# in URL with NO query: encodeUrl encodes # to %23 in the path; strip is a no-op (no `?` to strip)', () => {
+  it('# in URL with NO query: encodeUrl encodes # to %23 in the path; strip is a no-op (no `?` to strip)', async () => {
     // Option C: `#` lands inside the path encoding pipeline because encodeUrl
     // no longer splits on `#`. encodePathSegments encodes it to `%23` via
     // encodeURIComponent. stripQueryStringFromUrl does nothing (no `?`).
-    const { har } = buildHar({
+    const { har } = await buildHar({
       request: baseRequest({ url: 'https://example.com/api#section' }),
       shouldInterpolate: false
     });
     expect(har.url).toBe('https://example.com/api%23section');
   });
 
-  it('strips queries the same way regardless of bracket presence (multi-param sanity check)', () => {
-    const { har } = buildHar({
+  it('strips queries the same way regardless of bracket presence (multi-param sanity check)', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/api?a=1&b=2&c=3',
         params: [
@@ -1207,9 +1207,9 @@ describe('buildHar — bracket-key query regression (post_ids[], key[a][b])', ()
 // which URL each field carries.
 
 describe('buildHar — rawUrl vs encodedUrl invariants', () => {
-  it('OFF: rawUrl equals user-typed URL byte-for-byte', () => {
+  it('OFF: rawUrl equals user-typed URL byte-for-byte', async () => {
     const url = 'https://example.com/api?name=John Doe&path=/x/y';
-    const { rawUrl } = buildHar({
+    const { rawUrl } = await buildHar({
       request: baseRequest({
         url,
         params: [
@@ -1223,9 +1223,9 @@ describe('buildHar — rawUrl vs encodedUrl invariants', () => {
     expect(rawUrl).toBe(url);
   });
 
-  it('ON: encodedUrl differs from rawUrl when input has non-unreserved chars', () => {
+  it('ON: encodedUrl differs from rawUrl when input has non-unreserved chars', async () => {
     const url = 'https://example.com/api?name=John Doe';
-    const { rawUrl, encodedUrl } = buildHar({
+    const { rawUrl, encodedUrl } = await buildHar({
       request: baseRequest({
         url,
         params: [{ name: 'name', value: 'John Doe', type: 'query', enabled: true }],
@@ -1237,9 +1237,9 @@ describe('buildHar — rawUrl vs encodedUrl invariants', () => {
     expect(encodedUrl).toContain('John%20Doe');
   });
 
-  it('ON: encodedUrl equals rawUrl when input is already unreserved-only (encoding is a no-op)', () => {
+  it('ON: encodedUrl equals rawUrl when input is already unreserved-only (encoding is a no-op)', async () => {
     const url = 'https://example.com/api/foo/bar?a=1&b=2';
-    const { rawUrl, encodedUrl } = buildHar({
+    const { rawUrl, encodedUrl } = await buildHar({
       request: baseRequest({
         url,
         params: [
@@ -1253,8 +1253,8 @@ describe('buildHar — rawUrl vs encodedUrl invariants', () => {
     expect(encodedUrl).toBe(rawUrl);
   });
 
-  it('encodedUrl applies Option C — # becomes %23', () => {
-    const { encodedUrl } = buildHar({
+  it('encodedUrl applies Option C — # becomes %23', async () => {
+    const { encodedUrl } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/api?q=aaa#bbb',
         params: [{ name: 'q', value: 'aaa#bbb', type: 'query', enabled: true }],
@@ -1266,11 +1266,11 @@ describe('buildHar — rawUrl vs encodedUrl invariants', () => {
     expect(encodedUrl).not.toContain('#bbb');
   });
 
-  it('rawUrl includes literal {{var}} when shouldInterpolate=false (hashed internally, restored by unhash)', () => {
+  it('rawUrl includes literal {{var}} when shouldInterpolate=false (hashed internally, restored by unhash)', async () => {
     // While processing, `{{baseUrl}}` is replaced by a URL-safe hash so
     // parsing/encoding work. buildHar exposes `unhash` which, when applied
     // to the final string output, restores the literal `{{baseUrl}}` form.
-    const { rawUrl, unhash } = buildHar({
+    const { rawUrl, unhash } = await buildHar({
       request: baseRequest({
         url: 'https://{{baseUrl}}/api?q=1',
         params: [{ name: 'q', value: '1', type: 'query', enabled: true }]
@@ -1282,8 +1282,8 @@ describe('buildHar — rawUrl vs encodedUrl invariants', () => {
     expect(restored).toContain('{{baseUrl}}');
   });
 
-  it('rawUrl and encodedUrl both reflect path-param substitution from pathParams[]', () => {
-    const { rawUrl, encodedUrl } = buildHar({
+  it('rawUrl and encodedUrl both reflect path-param substitution from pathParams[]', async () => {
+    const { rawUrl, encodedUrl } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/users/:id',
         pathParams: [{ name: 'id', value: 'aaa bbb', type: 'path', enabled: true }],
@@ -1301,8 +1301,8 @@ describe('buildHar — rawUrl vs encodedUrl invariants', () => {
 // ---- Phase D: interpolation edge cases + defensive inputs --------------
 
 describe('buildHar — interpolation edge cases', () => {
-  it('{{?prompt}} variables in URL survive verbatim through unhash (not substituted at HAR-build time)', () => {
-    const { unhash, rawUrl } = buildHar({
+  it('{{?prompt}} variables in URL survive verbatim through unhash (not substituted at HAR-build time)', async () => {
+    const { unhash, rawUrl } = await buildHar({
       request: baseRequest({ url: 'https://example.com/api?q={{?Prompt Var}}' }),
       shouldInterpolate: false
     });
@@ -1311,8 +1311,8 @@ describe('buildHar — interpolation edge cases', () => {
     expect(unhash(rawUrl)).toContain('{{?Prompt Var}}');
   });
 
-  it('missing variable {{undefined_var}} passes through as literal placeholder when shouldInterpolate=true', () => {
-    const { har } = buildHar({
+  it('missing variable {{undefined_var}} passes through as literal placeholder when shouldInterpolate=true', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         headers: [{ name: 'X-Foo', value: '{{undefined_var}}', enabled: true }]
       }),
@@ -1323,8 +1323,8 @@ describe('buildHar — interpolation edge cases', () => {
     expect(header?.value).toContain('{{undefined_var}}');
   });
 
-  it('shouldInterpolate=true resolves headers with {{var}}', () => {
-    const { har } = buildHar({
+  it('shouldInterpolate=true resolves headers with {{var}}', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         headers: [{ name: 'X-Token', value: '{{token}}', enabled: true }]
       }),
@@ -1334,8 +1334,8 @@ describe('buildHar — interpolation edge cases', () => {
     expect(har.headers).toContainEqual({ name: 'X-Token', value: 'tk-resolved' });
   });
 
-  it('shouldInterpolate=true resolves body text with {{var}} (text mode)', () => {
-    const { har } = buildHar({
+  it('shouldInterpolate=true resolves body text with {{var}} (text mode)', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'text', text: 'hello {{name}}' } }),
       variables: { name: 'world' },
       shouldInterpolate: true
@@ -1343,8 +1343,8 @@ describe('buildHar — interpolation edge cases', () => {
     expect(har.postData.text).toBe('hello world');
   });
 
-  it('shouldInterpolate=true resolves body xml with {{var}}', () => {
-    const { har } = buildHar({
+  it('shouldInterpolate=true resolves body xml with {{var}}', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'xml', xml: '<u>{{name}}</u>' } }),
       variables: { name: 'alice' },
       shouldInterpolate: true
@@ -1352,8 +1352,8 @@ describe('buildHar — interpolation edge cases', () => {
     expect(har.postData.text).toBe('<u>alice</u>');
   });
 
-  it('shouldInterpolate=true resolves body sparql with {{var}}', () => {
-    const { har } = buildHar({
+  it('shouldInterpolate=true resolves body sparql with {{var}}', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ body: { mode: 'sparql', sparql: 'SELECT ?{{var}} WHERE { ?s ?p ?o }' } }),
       variables: { var: 'x' },
       shouldInterpolate: true
@@ -1361,8 +1361,8 @@ describe('buildHar — interpolation edge cases', () => {
     expect(har.postData.text).toBe('SELECT ?x WHERE { ?s ?p ?o }');
   });
 
-  it('shouldInterpolate=true resolves formUrlEncoded values with {{var}}', () => {
-    const { har } = buildHar({
+  it('shouldInterpolate=true resolves formUrlEncoded values with {{var}}', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         body: {
           mode: 'formUrlEncoded',
@@ -1375,8 +1375,8 @@ describe('buildHar — interpolation edge cases', () => {
     expect(har.postData.text).toBe('role=admin');
   });
 
-  it('shouldInterpolate=true resolves multipartForm values with {{var}}', () => {
-    const { har } = buildHar({
+  it('shouldInterpolate=true resolves multipartForm values with {{var}}', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         body: {
           mode: 'multipartForm',
@@ -1389,8 +1389,8 @@ describe('buildHar — interpolation edge cases', () => {
     expect(har.postData.params).toContainEqual({ name: 'caption', value: 'hello' });
   });
 
-  it('shouldInterpolate=true resolves auth fields (basic password)', () => {
-    const { har } = buildHar({
+  it('shouldInterpolate=true resolves auth fields (basic password)', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         auth: { mode: 'basic', basic: { username: 'u', password: '{{pw}}' } }
       }),
@@ -1403,33 +1403,33 @@ describe('buildHar — interpolation edge cases', () => {
 });
 
 describe('buildHar — defensive / robustness', () => {
-  it('empty headers array → still adds default content-type for body mode', () => {
-    const { har } = buildHar({
+  it('empty headers array → still adds default content-type for body mode', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ headers: [], body: { mode: 'json', json: '{}' } }),
       shouldInterpolate: false
     });
     expect(har.headers).toContainEqual({ name: 'Content-Type', value: 'application/json' });
   });
 
-  it('malformed auth (missing .basic.username) → empty string substituted, no throw', () => {
-    const { har } = buildHar({
+  it('malformed auth (missing .basic.username) → empty string substituted, no throw', async () => {
+    const { har } = await buildHar({
       request: baseRequest({ auth: { mode: 'basic', basic: {} } }),
       shouldInterpolate: false
     });
     expect(har.headers.find((h) => h.name === 'Authorization')).toBeDefined();
   });
 
-  it('encoded-only-once for unreserved-chars-only path (no-op encoding)', () => {
+  it('encoded-only-once for unreserved-chars-only path (no-op encoding)', async () => {
     const url = 'https://example.com/api/users/abc-123_.~/profile';
-    const { encodedUrl } = buildHar({
+    const { encodedUrl } = await buildHar({
       request: baseRequest({ url, settings: { encodeUrl: true } }),
       shouldInterpolate: false
     });
     expect(encodedUrl).toBe(url);
   });
 
-  it('missing body → har.postData is undefined / empty (no throw)', () => {
-    const { har } = buildHar({
+  it('missing body → har.postData is undefined / empty (no throw)', async () => {
+    const { har } = await buildHar({
       request: { method: 'GET', url: 'https://example.com/api', params: [], headers: [], auth: { mode: 'none' } } as any,
       shouldInterpolate: false
     });
@@ -1437,8 +1437,8 @@ describe('buildHar — defensive / robustness', () => {
     expect(har.method).toBe('GET');
   });
 
-  it('disabled query params filtered before stripping/encoding (do not leak into queryString)', () => {
-    const { har } = buildHar({
+  it('disabled query params filtered before stripping/encoding (do not leak into queryString)', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         url: 'https://example.com/api?keep=yes&drop=no',
         params: [
@@ -1453,8 +1453,8 @@ describe('buildHar — defensive / robustness', () => {
     expect(names).not.toContain('drop');
   });
 
-  it('headers with disabled flag false → not present in har.headers', () => {
-    const { har } = buildHar({
+  it('headers with disabled flag false → not present in har.headers', async () => {
+    const { har } = await buildHar({
       request: baseRequest({
         headers: [
           { name: 'X-Keep', value: 'on', enabled: true },
@@ -1476,10 +1476,10 @@ describe('buildHar — defensive / robustness', () => {
  * encoding contracts). `b` variants test pre-encoded URL-bar input.
  */
 describe('buildHar — # encoding scenarios (decision-tree coverage)', () => {
-  it('Scenario 1: # at fragment position (/docs/api#authentication) — anchor for SPA/static docs', () => {
+  it('Scenario 1: # at fragment position (/docs/api#authentication) — anchor for SPA/static docs', async () => {
     const url = 'https://example.com/docs/api#authentication';
-    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
-    const on = buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
+    const off = await buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = await buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
 
     // OFF: snippet shows the literal `#authentication` (user intent preserved)
     expect(off.rawUrl).toBe('https://example.com/docs/api#authentication');
@@ -1487,10 +1487,10 @@ describe('buildHar — # encoding scenarios (decision-tree coverage)', () => {
     expect(on.encodedUrl).toBe('https://example.com/docs/api%23authentication');
   });
 
-  it('Scenario 2: # inside a query value (?query=aaa#bbb)', () => {
+  it('Scenario 2: # inside a query value (?query=aaa#bbb)', async () => {
     const url = 'http://localhost:6000/request-echo?query=aaa#bbb';
-    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
-    const on = buildHar({
+    const off = await buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = await buildHar({
       request: baseRequest({
         url,
         params: [{ name: 'query', value: 'aaa#bbb', type: 'query', enabled: true }],
@@ -1503,12 +1503,12 @@ describe('buildHar — # encoding scenarios (decision-tree coverage)', () => {
     expect(on.encodedUrl).toBe('http://localhost:6000/request-echo?query=aaa%23bbb');
   });
 
-  it('Scenario 2b: pre-encoded query (?query=aaa%23bbb) — ON double-encodes %23 → %2523', () => {
+  it('Scenario 2b: pre-encoded query (?query=aaa%23bbb) — ON double-encodes %23 → %2523', async () => {
     // Pre-encoded URL bar — `%23` is in the typed input. Per PR #5507's
     // content-blind contract, ON mode re-encodes content-blindly so `%23`
     // becomes `%2523` (one more encoding pass). OFF preserves byte-for-byte.
     const url = 'https://example.com/api?query=aaa%23bbb';
-    const off = buildHar({
+    const off = await buildHar({
       request: baseRequest({
         url,
         params: [{ name: 'query', value: 'aaa%23bbb', type: 'query', enabled: true }],
@@ -1516,7 +1516,7 @@ describe('buildHar — # encoding scenarios (decision-tree coverage)', () => {
       }),
       shouldInterpolate: false
     });
-    const on = buildHar({
+    const on = await buildHar({
       request: baseRequest({
         url,
         params: [{ name: 'query', value: 'aaa%23bbb', type: 'query', enabled: true }],
@@ -1529,80 +1529,80 @@ describe('buildHar — # encoding scenarios (decision-tree coverage)', () => {
     expect(on.encodedUrl).toBe('https://example.com/api?query=aaa%2523bbb');
   });
 
-  it('Scenario 3: # in path-param value with trailing path (:id=john#doe, /users/:id/profile)', () => {
+  it('Scenario 3: # in path-param value with trailing path (:id=john#doe, /users/:id/profile)', async () => {
     // The trailing /profile demonstrates the "silent data loss" case in OFF mode:
     // axios on the wire treats `#doe/profile` as a fragment and strips it, so the
     // server only sees `/users/john`. ON mode encodes `#` to `%23`, preserving
     // both the value AND the /profile suffix on the wire.
     const url = 'https://example.com/users/:id/profile';
     const pathParams = [{ name: 'id', value: 'john#doe', type: 'path', enabled: true }];
-    const off = buildHar({ request: baseRequest({ url, pathParams, settings: { encodeUrl: false } }), shouldInterpolate: false });
-    const on = buildHar({ request: baseRequest({ url, pathParams, settings: { encodeUrl: true } }), shouldInterpolate: false });
+    const off = await buildHar({ request: baseRequest({ url, pathParams, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = await buildHar({ request: baseRequest({ url, pathParams, settings: { encodeUrl: true } }), shouldInterpolate: false });
 
     expect(off.rawUrl).toBe('https://example.com/users/john#doe/profile');
     expect(on.encodedUrl).toBe('https://example.com/users/john%23doe/profile');
   });
 
-  it('Scenario 4: # in semantic path with trailing data (/issues/#1234)', () => {
+  it('Scenario 4: # in semantic path with trailing data (/issues/#1234)', async () => {
     const url = 'https://example.com/issues/#1234';
-    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
-    const on = buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
+    const off = await buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = await buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
 
     expect(off.rawUrl).toBe('https://example.com/issues/#1234');
     expect(on.encodedUrl).toBe('https://example.com/issues/%231234');
   });
 
-  it('Scenario 4b: pre-encoded issue tracker path (/issues/%231234) — idempotent path encoding', () => {
+  it('Scenario 4b: pre-encoded issue tracker path (/issues/%231234) — idempotent path encoding', async () => {
     // Pre-encoded URL bar with `%23` in the path. Path-side encoding is
     // idempotent (decode-then-encode via safeDecodeURIComponent), so ON mode
     // keeps `%231234` exactly — it does NOT double-encode like the query side.
     // This is the key asymmetry between path and query encoding contracts.
     const url = 'https://example.com/issues/%231234';
-    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
-    const on = buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
+    const off = await buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = await buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
 
     expect(off.rawUrl).toBe('https://example.com/issues/%231234');
     expect(on.encodedUrl).toBe('https://example.com/issues/%231234');
   });
 
-  it('Scenario 5: SPA hash-router URL (/#/dashboard/settings)', () => {
+  it('Scenario 5: SPA hash-router URL (/#/dashboard/settings)', async () => {
     const url = 'https://yourapp.com/#/dashboard/settings';
-    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
-    const on = buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
+    const off = await buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = await buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
 
     expect(off.rawUrl).toBe('https://yourapp.com/#/dashboard/settings');
     // Each path segment is independently encoded; the standalone `#` becomes `%23`
     expect(on.encodedUrl).toBe('https://yourapp.com/%23/dashboard/settings');
   });
 
-  it('Scenario 7: # directly in path (browser-address-bar style)', () => {
+  it('Scenario 7: # directly in path (browser-address-bar style)', async () => {
     // Same shape as Scenario 1 but with the # following a path segment with no
     // trailing slash. Behaves identically — # is data in ON, fragment in OFF.
     const url = 'http://localhost:6000/request-echo/hash#tag';
-    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
-    const on = buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
+    const off = await buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = await buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
 
     expect(off.rawUrl).toBe('http://localhost:6000/request-echo/hash#tag');
     expect(on.encodedUrl).toBe('http://localhost:6000/request-echo/hash%23tag');
   });
 
-  it('Scenario 7b: pre-encoded direct path (/path/hash%23tag) — idempotent path encoding', () => {
+  it('Scenario 7b: pre-encoded direct path (/path/hash%23tag) — idempotent path encoding', async () => {
     // Mirror of 4b for the typed-in-address-bar case. Same idempotent
     // path-side encoding contract: `%23` survives ON mode without becoming `%2523`.
     const url = 'http://localhost:6000/request-echo/hash%23tag';
-    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
-    const on = buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
+    const off = await buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = await buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
 
     expect(off.rawUrl).toBe('http://localhost:6000/request-echo/hash%23tag');
     expect(on.encodedUrl).toBe('http://localhost:6000/request-echo/hash%23tag');
   });
 
-  it('Scenario 8: OAuth-style fragment (/callback#access_token=...&token_type=Bearer)', () => {
+  it('Scenario 8: OAuth-style fragment (/callback#access_token=...&token_type=Bearer)', async () => {
     // OAuth implicit-flow callback. The entire token payload after `#` is treated
     // as one path segment by encodeUrl, so `#`, `=`, and `&` all get encoded.
     const url = 'https://myapp.com/callback#access_token=abc123&token_type=Bearer';
-    const off = buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
-    const on = buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
+    const off = await buildHar({ request: baseRequest({ url, settings: { encodeUrl: false } }), shouldInterpolate: false });
+    const on = await buildHar({ request: baseRequest({ url, settings: { encodeUrl: true } }), shouldInterpolate: false });
 
     expect(off.rawUrl).toBe('https://myapp.com/callback#access_token=abc123&token_type=Bearer');
     expect(on.encodedUrl).toBe('https://myapp.com/callback%23access_token%3Dabc123%26token_type%3DBearer');

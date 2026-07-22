@@ -183,11 +183,27 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   };
 
+  // Which sidebar section an item belongs to. The sidebar renders these three
+  // sections in order (folders → apps → requests), each sorted by seq independently.
+  const getSidebarSection = (i) => {
+    if (isItemAFolder(i)) return 'folder';
+    if (i?.type === 'app') return 'app';
+    return 'request';
+  };
+
   const canItemBeDropped = ({ draggedItem, targetItem, dropType }) => {
     const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
     const { uid: draggedItemUid, pathname: draggedItemPathname, sourceCollectionUid } = draggedItem;
 
     if (draggedItemUid === targetItemUid) return false;
+
+    // The sidebar renders items grouped by section (folders → apps → requests) and
+    // sorts each section by seq independently. An 'adjacent' drop between two different
+    // sections could never move the item across sections visually, so reject it.
+    // 'inside' drops on a folder are unaffected (that's a directory move, not a reorder).
+    if (dropType === 'adjacent' && getSidebarSection(draggedItem) !== getSidebarSection(targetItem)) {
+      return false;
+    }
 
     // For cross-collection moves, we allow the drop
     if (sourceCollectionUid !== collectionUid) {
@@ -224,6 +240,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
       const dropType = determineDropType(monitor);
       if (!dropType) return;
+      if (!canItemBeDropped({ draggedItem, targetItem: item, dropType })) return;
 
       await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }));
       setDropType(null);
@@ -561,11 +578,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i) && !i.isTransient));
-  // Standalone 'app' items live alongside requests in the folder listing.
-  const requestItems = sortItemsBySequence(
-    filter(item.items, (i) => (isItemARequest(i) || i.type === 'app') && !i.isTransient)
-  );
-  const showEmptyFolderMessage = isFolder && !hasSearchText && !folderItems?.length && !requestItems?.length;
+  const appItems = sortItemsBySequence(filter(item.items, (i) => i.type === 'app' && !i.isTransient));
+  const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i) && !i.isTransient));
+  const showEmptyFolderMessage
+    = isFolder && !hasSearchText && !folderItems?.length && !appItems?.length && !requestItems?.length;
 
   const emptyFolderMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: item.uid });
 
@@ -762,6 +778,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         <div>
           {folderItems && folderItems.length
             ? folderItems.map((i) => {
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
+              })
+            : null}
+          {appItems && appItems.length
+            ? appItems.map((i) => {
                 return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
               })
             : null}

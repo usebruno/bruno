@@ -3,7 +3,7 @@ import path from 'path';
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, openCollection, buildCommonLocators } from '../../utils/page';
 
-test.describe('Migrating one collection to yml preserves nested tabs & expanded folders and leaves other collections untouched', () => {
+test.describe.skip('Migrating one collection to yml preserves nested tabs & expanded folders and leaves other collections untouched', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });

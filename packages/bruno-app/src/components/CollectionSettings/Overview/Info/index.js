@@ -175,7 +175,7 @@ const Info = ({ collection }) => {
           </div>
           {showGenerateDocumentationModal && <GenerateDocumentation collectionUid={collection.uid} onClose={() => setShowGenerateDocumentationModal(false)} />}
 
-          <Migration collection={collection} />
+          {/* <Migration collection={collection} /> */}
         </div>
       </div>
     </StyledWrapper>
