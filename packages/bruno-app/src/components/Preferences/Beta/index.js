@@ -10,6 +10,8 @@ import get from 'lodash/get';
 // Commented out while there are no active beta features. Re-enable this import when
 // adding a beta feature its keys are then referenced as BETA_FEATURE_IDS.MY_FEATURE in the BETA_FEATURES array.
 import { IconArrowRight, IconExternalLink } from '@tabler/icons';
+import ToggleSwitch from 'components/ToggleSwitch';
+
 import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
 
 /**
@@ -62,7 +64,7 @@ const BETA_FEATURES = [
     id: BETA_FEATURE_IDS.MOCK_SERVER,
     label: 'Mock Server',
     description: 'Run a local mock server using response examples defined in your collection. Serve mock API responses for frontend development without a real backend.',
-    noAction: true
+    toggle: true
   }
 ];
 
@@ -180,17 +182,15 @@ const Beta = ({ close }) => {
                   {feature.label}
                 </span>
               </div>
-              <div className="beta-feature-description text-xs text-gray-500 dark:text-gray-400">
+              <div className="beta-feature-description text-xs text-gray-500 dark:text-gray-400 flex">
                 {feature.description}
-                {feature.noAction && (
-                  <div className="d-flex ml-auto">
-                    <input
-                      id={feature.id}
-                      type="checkbox"
-                      name={feature.id}
-                      checked={formik.values[feature.id]}
-                      onChange={formik.handleChange}
-                      className="mousetrap mr-0"
+                {feature.toggle && (
+                  <div className="ml-auto">
+                    <ToggleSwitch
+                      size="xs"
+                      isOn={formik.values[feature.id]}
+                      handleToggle={() => formik.setFieldValue(feature.id, !formik.values[feature.id])}
+                      data-testid="mock-server-beta-toggle"
                     />
                   </div>
                 )}
