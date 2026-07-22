@@ -387,6 +387,17 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';
   }
 
+  // interpolate vars for edgegrid auth
+  if (request.edgeGridConfig) {
+    request.edgeGridConfig.accessToken = _interpolate(request.edgeGridConfig.accessToken) || '';
+    request.edgeGridConfig.clientToken = _interpolate(request.edgeGridConfig.clientToken) || '';
+    request.edgeGridConfig.clientSecret = _interpolate(request.edgeGridConfig.clientSecret) || '';
+    request.edgeGridConfig.nonce = _interpolate(request.edgeGridConfig.nonce) || '';
+    request.edgeGridConfig.timestamp = _interpolate(request.edgeGridConfig.timestamp) || '';
+    request.edgeGridConfig.baseURL = _interpolate(request.edgeGridConfig.baseURL) || '';
+    request.edgeGridConfig.headersToSign = _interpolate(request.edgeGridConfig.headersToSign) || '';
+  }
+
   // interpolate vars for oauth1config auth
   if (request.oauth1config) {
     request.oauth1config.consumerKey = _interpolate(request.oauth1config.consumerKey) || '';

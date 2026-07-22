@@ -7,6 +7,7 @@ import {
   openCollection,
   openRequest as openRequestBase
 } from '../utils/page';
+import { buildCommonLocators } from '../utils/page/locators';
 
 export const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
 export const collectionName = 'kb-collection';
@@ -141,6 +142,21 @@ export const remapKeybinding = async (
   await closePreferencesTab(page);
 };
 
+export const altShortcutDisplayText = (key: string) => (process.platform === 'darwin' ? `⌥ + ${key}` : `Alt + ${key}`);
+
+export const shiftEnterShortcutDisplayText = process.platform === 'darwin' ? '⇧ + ↩' : 'Shift + Enter';
+
+export const expectResponsePlaceholderShortcut = async (
+  page: Page,
+  action: string,
+  label: string,
+  shortcut: string
+) => {
+  const placeholder = page.getByTestId('response-pane-shortcut-placeholder');
+  await expect(placeholder.getByTestId(`response-placeholder-shortcut-label-${action}`)).toHaveText(label);
+  await expect(placeholder.getByTestId(`response-placeholder-shortcut-value-${action}`)).toHaveText(shortcut);
+};
+
 export const getTabIndex = async (page: Page, name: string) => {
   const tabs = page.locator('.request-tab .tab-label');
   const count = await tabs.count();
@@ -152,4 +168,32 @@ export const getTabIndex = async (page: Page, name: string) => {
   }
 
   return -1;
+};
+
+/** Activate a request/special tab and clear sidebar folder/collection focus so the tab owns shortcuts. */
+export const focusTabWithoutSidebarFocus = async (page: Page, tabName: string | RegExp) => {
+  const tab = page.locator('.request-tab').filter({ has: page.getByText(tabName, { exact: true }) });
+  await tab.click();
+  await expect(tab).toHaveClass(/active/);
+
+  // Blur sidebar so focusedSidebarPath is null and RequestTab's newRequest binding is enabled.
+  const locators = buildCommonLocators(page);
+  const requestUrl = locators.request.urlInput();
+  if (await requestUrl.isVisible().catch(() => false)) {
+    await requestUrl.click();
+    return;
+  }
+
+  // Special tabs (folder/collection settings, overview) have no request URL and no other
+  // focusable element to click — blur the sidebar row directly (it's the only thing focused).
+  await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+};
+
+export const fillAndCreateNewRequest = async (page: Page, requestName: string) => {
+  const locators = buildCommonLocators(page);
+  await expect(locators.request.requestNameInput()).toBeVisible();
+  await locators.request.requestNameInput().fill(requestName);
+  await locators.request.newRequestUrl().click();
+  await page.keyboard.type('https://echo.usebruno.com');
+  await locators.modal.button('Create').click();
 };

@@ -422,7 +422,7 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'changelog') {
-    return <ChangelogTab />;
+    return <ChangelogTab collectionUid={focusedTab.collectionUid} />;
   }
 
   if (focusedTab.type === 'workspaceOverview') {

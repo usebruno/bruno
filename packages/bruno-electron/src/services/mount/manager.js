@@ -31,7 +31,7 @@ const hydrateEnvironments = (collectionPath, environments) => {
     try {
       const envSecrets = getEnvSecretsStore().getEnvSecrets(collectionPath, env);
       for (const secret of envSecrets || []) {
-        const variable = env.variables.find((v) => v.name === secret.name);
+        const variable = env.variables.find((v) => v.name === secret.name && v.secret);
         if (variable && secret.value) {
           const decrypted = decryptStringSafe(secret.value);
           variable.value = decrypted.value;
@@ -97,23 +97,42 @@ class MountManager {
     };
     this.#mounts.set(collectionUid, entry);
 
+    await this.#coldLoad(collectionUid, entry);
+    return tempDirectoryPath;
+  }
+
+  async remount({ collectionUid, brunoConfig }) {
+    const entry = this.#mounts.get(collectionUid);
+    if (!entry) return false;
+
+    if (brunoConfig) entry.brunoConfig = brunoConfig;
+
+    // the caller tore the watcher down (e.g. yml migration rewrote every file);
+    // clear it before re-reconciling the cache against disk and re-attaching
+    const collectionWatcher = require('../../app/collection-watcher');
+    collectionWatcher.removeWatcher(entry.collectionPath, entry.win, collectionUid);
+
+    await this.#coldLoad(collectionUid, entry);
+    return true;
+  }
+
+  async #coldLoad(collectionUid, entry) {
     entry.emit.loading(true);
     try {
-      entry.state = this.#getIndex().entries(collectionPath);
+      entry.state = this.#getIndex().entries(entry.collectionPath);
       await this.#reconcile(entry);
       await this.#emitTree(collectionUid, entry);
 
       // skip the startup walk (already done) and stage live edits into the cache
       const collectionWatcher = require('../../app/collection-watcher');
-      collectionWatcher.addWatcher(entry.win, collectionPath, collectionUid, brunoConfig, false, false, {
+      collectionWatcher.addWatcher(entry.win, entry.collectionPath, collectionUid, entry.brunoConfig, false, false, {
         ignoreInitial: true,
         fileIndex: this.#getIndex()
       });
-      collectionWatcher.addTempDirectoryWatcher(entry.win, tempDirectoryPath, collectionUid, collectionPath);
+      collectionWatcher.addTempDirectoryWatcher(entry.win, entry.tempDirectoryPath, collectionUid, entry.collectionPath);
     } finally {
       entry.emit.loading(false);
     }
-    return tempDirectoryPath;
   }
 
   async unmount(collectionUid) {

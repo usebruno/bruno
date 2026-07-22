@@ -19,8 +19,8 @@ const StyledWrapper = styled.div`
   }
 
   .CodeMirror-placeholder {
-    color: ${(props) => props.theme.text} !important;
-    opacity: 0.5 !important;
+    color: ${(props) => props.theme.codemirror.placeholder.color} !important;
+    opacity: ${(props) => props.theme.codemirror.placeholder.opacity} !important;
   }
 
   .CodeMirror-linenumber {
