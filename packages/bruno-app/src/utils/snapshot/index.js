@@ -167,6 +167,10 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
   const workspacesByPath = {};
 
   if (Array.isArray(snapshot.collections)) {
+    const activeWorkspacePath = typeof snapshot.activeWorkspacePath === 'string'
+      ? normalizePath(snapshot.activeWorkspacePath)
+      : '';
+
     snapshot.collections.forEach((collectionEntry) => {
       if (!isObject(collectionEntry) || typeof collectionEntry.pathname !== 'string') {
         return;
@@ -178,43 +182,48 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         return;
       }
 
-      const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(
-        collection.workspacePathname,
-        collection.pathname
-      );
-
-      collectionsByPath[normalizedCollectionPathname] = {
+      const workspacePathname = typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '';
+      const collectionLookupEntry = {
         pathname: collection.pathname,
-        workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
+        workspacePathname,
         environment: collection.environment,
         environmentPath: collection.environmentPath,
         selectedEnvironment: collection.selectedEnvironment,
         isOpen: collection.isOpen,
         isMounted: collection.isMounted
       };
-
-      tabsByCollectionPath[normalizedCollectionPathname] = {
+      const tabsEntry = {
         pathname: collection.pathname,
         activeTab: collection.activeTab,
         tabs: collection.tabs
       };
 
-      if (workspaceCollectionKey) {
-        collectionsByWorkspaceAndPath[workspaceCollectionKey] = {
-          pathname: collection.pathname,
-          workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-          environment: collection.environment,
-          environmentPath: collection.environmentPath,
-          selectedEnvironment: collection.selectedEnvironment,
-          isOpen: collection.isOpen,
-          isMounted: collection.isMounted
-        };
+      const existing = collectionsByPath[normalizedCollectionPathname];
+      const incomingIsActive = Boolean(
+        activeWorkspacePath && normalizePath(workspacePathname) === activeWorkspacePath
+      );
+      const existingIsActive = Boolean(
+        existing && activeWorkspacePath && normalizePath(existing.workspacePathname || '') === activeWorkspacePath
+      );
+      const shouldWritePath = !existing
+        || (incomingIsActive && !existingIsActive)
+        || (incomingIsActive && existingIsActive && Boolean(collection.selectedEnvironment || collection.environment?.collection))
+        || (!incomingIsActive && !existingIsActive);
 
+      if (shouldWritePath) {
+        collectionsByPath[normalizedCollectionPathname] = collectionLookupEntry;
+        tabsByCollectionPath[normalizedCollectionPathname] = tabsEntry;
+      }
+
+      const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(
+        collection.workspacePathname,
+        collection.pathname
+      );
+      if (workspaceCollectionKey) {
+        collectionsByWorkspaceAndPath[workspaceCollectionKey] = collectionLookupEntry;
         tabsByWorkspaceAndCollectionPath[workspaceCollectionKey] = {
-          pathname: collection.pathname,
-          workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-          activeTab: collection.activeTab,
-          tabs: collection.tabs
+          ...tabsEntry,
+          workspacePathname
         };
       }
     });

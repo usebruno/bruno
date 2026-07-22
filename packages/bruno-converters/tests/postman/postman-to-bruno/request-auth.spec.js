@@ -39,7 +39,8 @@ describe('Request Authentication', () => {
       apikey: null,
       oauth2: null,
       oauth1: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -79,7 +80,8 @@ describe('Request Authentication', () => {
       apikey: null,
       oauth2: null,
       digest: null,
-      oauth1: null
+      oauth1: null,
+      ntlm: null
     });
   });
 
@@ -120,7 +122,8 @@ describe('Request Authentication', () => {
       apikey: null,
       oauth2: null,
       digest: null,
-      oauth1: null
+      oauth1: null,
+      ntlm: null
     });
   });
 
@@ -161,12 +164,12 @@ describe('Request Authentication', () => {
     // Check folder first
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'inherit',
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
     // Then check request
     expect(result.items[0].items[0].request.auth).toEqual({
       mode: 'inherit',
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
   });
 
@@ -209,7 +212,8 @@ describe('Request Authentication', () => {
       apikey: null,
       oauth2: null,
       digest: null,
-      oauth1: null
+      oauth1: null,
+      ntlm: null
     });
   });
 
@@ -255,19 +259,19 @@ describe('Request Authentication', () => {
     // Check Folder Level 1
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'inherit',
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
 
     // Check Folder Level 2
     expect(result.items[0].items[0].root.request.auth).toEqual({
       mode: 'inherit',
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
 
     // Check the Request
     expect(result.items[0].items[0].items[0].request.auth).toEqual({
       mode: 'inherit',
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
   });
 
@@ -318,19 +322,19 @@ describe('Request Authentication', () => {
       mode: 'bearer',
       basic: null,
       bearer: { token: 'folder1Token' }, // Explicitly set
-      awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
 
     // Check Folder Level 2
     expect(result.items[0].items[0].root.request.auth).toEqual({
       mode: 'inherit', // Inherits from Folder 1
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
 
     // Check the Request
     expect(result.items[0].items[0].items[0].request.auth).toEqual({
       mode: 'inherit', // Inherits from Folder 1
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
   });
 
@@ -376,6 +380,7 @@ describe('Request Authentication', () => {
       apikey: null,
       oauth2: null,
       digest: null,
+      ntlm: null,
       oauth1: {
         consumerKey: 'consumer_key',
         consumerSecret: 'consumer_secret',
@@ -565,19 +570,19 @@ describe('Request Authentication', () => {
     // Check Folder Level 1
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'none', // Explicitly "No Auth"
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
 
     // Check Folder Level 2
     expect(result.items[0].items[0].root.request.auth).toEqual({
       mode: 'inherit', // Inherits from Folder 1
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
 
     // Check the Request
     expect(result.items[0].items[0].items[0].request.auth).toEqual({
       mode: 'inherit', // Inherits from Folder 1
-      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null
+      basic: null, bearer: null, awsv4: null, apikey: null, oauth2: null, digest: null, oauth1: null, ntlm: null
     });
   });
 
