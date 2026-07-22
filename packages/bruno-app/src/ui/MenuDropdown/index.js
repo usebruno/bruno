@@ -495,7 +495,7 @@ const MenuDropdown = forwardRef(({
             <div className="dropdown-divider"></div>
           </div>
         )}
-        <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown}>
+        <div role="menu" tabIndex={-1} onKeyDown={handleMenuKeyDown} style={{ overflowY: 'auto', maxHeight: 'calc(50vh - 40px)' }}>
           {renderMenuContent()}
         </div>
         {footer && (
