@@ -3,17 +3,28 @@ const { sortItemsBySidebarOrder } = require('../collections/index');
 
 const folder = (name, seq, items = []) => ({ uid: name, type: 'folder', name, seq, items });
 const request = (name, seq) => ({ uid: name, type: 'http-request', name, seq, request: { method: 'GET', url: '' } });
+const app = (name, seq) => ({ uid: name, type: 'app', name, seq });
 
 const names = (items) => items.map((i) => i.name);
 
 describe('sortItemsBySidebarOrder', () => {
-  describe('Grouping order (folders → requests)', () => {
-    it('places folders first, then requests, then files regardless of input order', () => {
+  describe('Grouping order (folders → apps → requests)', () => {
+    it('places folders first, then apps, then requests regardless of input order', () => {
       const result = sortItemsBySidebarOrder([
         request('req', 1),
+        app('appA', 1),
         folder('dir', 1)
       ]);
-      expect(names(result)).toEqual(['dir', 'req']);
+      expect(names(result)).toEqual(['dir', 'appA', 'req']);
+    });
+
+    it('orders apps by seq', () => {
+      const result = sortItemsBySidebarOrder([
+        app('c', 3),
+        app('a', 1),
+        app('b', 2)
+      ]);
+      expect(names(result)).toEqual(['a', 'b', 'c']);
     });
 
     it('orders folders by seq (via sortByNameThenSequence)', () => {
@@ -38,10 +49,12 @@ describe('sortItemsBySidebarOrder', () => {
       const result = sortItemsBySidebarOrder([
         request('reqB', 2),
         folder('folderB', 2),
+        app('appB', 2),
         request('reqA', 1),
+        app('appA', 1),
         folder('folderA', 1)
       ]);
-      expect(names(result)).toEqual(['folderA', 'folderB', 'reqA', 'reqB']);
+      expect(names(result)).toEqual(['folderA', 'folderB', 'appA', 'appB', 'reqA', 'reqB']);
     });
   });
 
@@ -64,16 +77,19 @@ describe('sortItemsBySidebarOrder', () => {
   });
 
   describe('Filtering', () => {
-    it('excludes transient folders and requests', () => {
+    it('excludes transient folders, apps and requests', () => {
       const transientReq = { ...request('ghost', 5), isTransient: true };
       const transientFolder = { ...folder('ghostDir', 5), isTransient: true };
+      const transientApp = { ...app('ghostApp', 5), isTransient: true };
       const result = sortItemsBySidebarOrder([
         transientFolder,
         folder('real', 1),
+        transientApp,
+        app('realApp', 1),
         transientReq,
         request('realReq', 1)
       ]);
-      expect(names(result)).toEqual(['real', 'realReq']);
+      expect(names(result)).toEqual(['real', 'realApp', 'realReq']);
     });
   });
 

@@ -35,7 +35,7 @@ const ConfirmFolderClose = ({ folder, onCancel, onCloseWithoutSave, onSaveAndClo
           </Button>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" color="secondary" variant="ghost" onClick={onCancel}>
+          <Button color="secondary" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
           <Button onClick={onSaveAndClose}>

@@ -36,8 +36,8 @@ const buildHtmlDocument = (collectionName, escapedYamlContent) => `<!DOCTYPE htm
         body { margin: 0; padding: 0; }
         #opencollection-container { width: 100vw; height: 100vh; }
     </style>
-    <link rel="stylesheet" href="${CDN_BASE_URL}/docs/index.css">
-    <script src="${CDN_BASE_URL}/docs/index.js"></script>
+    <link rel="stylesheet" href="${CDN_BASE_URL}/api-docs/api-docs.css">
+    <script src="${CDN_BASE_URL}/api-docs/api-docs.js"></script>
 </head>
 <body>
     <div id="opencollection-container"></div>
@@ -232,7 +232,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
               </div>
 
               <p className="note m-0">
-                The generated file loads OpenCollection's JavaScript and CSS files from a CDN, which requires an internet connection.
+                The generated file loads Bruno's JavaScript and CSS files from a CDN, which requires an internet connection.
               </p>
             </div>
           )}

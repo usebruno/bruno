@@ -52,6 +52,26 @@ describe('jsonToBru stringify', () => {
       expect(output).toMatch(new RegExp(`keepAliveInterval: ${input.settings.keepAliveInterval}`));
       expect(output).toMatch(new RegExp(`timeout: ${input.settings.timeout}`));
     });
+
+    it('serializes falsy content to an empty content block', () => {
+      const input = {
+        body: {
+          mode: 'ws',
+          ws: [
+            {
+              content: '',
+              name: 'message 1'
+            }
+          ]
+        }
+      };
+
+      const output = stringify(input);
+
+      // Content block is emitted but empty (no '{}' fallback).
+      expect(output).toMatch(/content: '''\s*'''/);
+      expect(output).not.toContain('{}');
+    });
   });
 
   describe('body:multipart-form file values', () => {
