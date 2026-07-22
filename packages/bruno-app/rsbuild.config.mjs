@@ -6,7 +6,7 @@ import { pluginSass } from '@rsbuild/plugin-sass';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginRemoteImages } from './plugins/remote-images/index.mjs';
 
-const remoteImageDomains = (process.env.BRUNO_REMOTE_IMAGE_DOMAINS || '')
+const remoteImageDomains = (process.env.BRUNO_REMOTE_IMAGE_DOMAINS || 'd3icksk7srk4uh.cloudfront.net')
   .split(',')
   .map((d) => d.trim())
   .filter(Boolean);

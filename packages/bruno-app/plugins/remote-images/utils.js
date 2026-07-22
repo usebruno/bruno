@@ -86,10 +86,9 @@ function assetFilenameFromHash(hash, url) {
  * @returns {string}
  */
 function assetFilenameFor(content, url) {
-  const hash =
-    typeof content === 'string'
-      ? content
-      : crypto.createHash('md5').update(content).digest('hex').slice(0, 16);
+  const hash = typeof content === 'string'
+    ? content
+    : crypto.createHash('md5').update(content).digest('hex').slice(0, 16);
   return assetFilenameFromHash(hash, url);
 }
 

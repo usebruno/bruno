@@ -80,7 +80,6 @@ describe('remote-images utils', () => {
       const source = 'code `x` and ${y} ![a](http://xyz.com/a.png)';
       const map = new Map([['http://xyz.com/a.png', 'static/media/a.png']]);
       const out = buildModuleSource(source, map);
-      // eslint-disable-next-line no-new-func -- evaluate the export expression shape
       const fn = new Function(`${out.replace('export default', 'return')}`);
       expect(fn()).toBe('code `x` and ${y} ![a](static/media/a.png)');
     });
