@@ -50,6 +50,7 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
   const dispatch = useDispatch();
   const allCollections = useSelector((state) => state.collections.collections || []);
   const [showAllCollections, setShowAllCollections] = useState(false);
+  const [deleteFolder, setDeleteFolder] = useState(false);
 
   const allDrafts = useMemo(() => {
     const requestDrafts = [];
@@ -111,15 +112,30 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
     = allDrafts.collectionDrafts.length > 0 || allDrafts.folderDrafts.length > 0 || allDrafts.requestDrafts.length > 0;
 
   const handleCloseAllCollections = () => {
-    const removalPromises = collectionUids.map((uid) => dispatch(removeCollection(uid)));
+    const removalPromises = collectionUids.map((uid) => dispatch(removeCollection(uid, { deleteFolder })));
 
-    Promise.all(removalPromises)
-      .then(() => {
-        toast.success('Closed all collections');
-      })
-      .catch((error) => {
-        console.error('Error closing collections:', error);
-        toast.error('An error occurred while closing collections');
+    Promise.allSettled(removalPromises)
+      .then((results) => {
+        const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+        const failures = results.filter((r) => r.status === 'rejected');
+
+        if (failures.length === 0) {
+          toast.success(deleteFolder ? 'Closed all collections and moved folders to trash' : 'Closed all collections');
+          return;
+        }
+
+        failures.forEach(({ reason }) => {
+          console.error('Error closing collection:', reason);
+          toast.error(reason?.message || 'An error occurred while closing a collection');
+        });
+
+        if (succeeded > 0) {
+          toast.success(
+            deleteFolder
+              ? `Closed ${succeeded} of ${results.length} collections and moved folders to trash`
+              : `Closed ${succeeded} of ${results.length} collections`
+          );
+        }
       })
       .finally(() => {
         onClose();
@@ -225,10 +241,26 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
                 </div>
               </div>
 
-              <div className="flex justify-between mt-6">
+              <label className="mt-6 flex items-start gap-2 cursor-pointer text-sm select-none">
+                <input
+                  type="checkbox"
+                  data-testid="remove-collections-drafts-delete-folder-checkbox"
+                  checked={deleteFolder}
+                  onChange={(e) => setDeleteFolder(e.target.checked)}
+                  className="mt-1"
+                />
+                <span>
+                  Also delete folders from disk
+                  <span className="block text-xs text-gray-500 mt-0.5">
+                    Folders will be moved to your system trash.
+                  </span>
+                </span>
+              </label>
+
+              <div className="flex justify-between mt-4">
                 <div>
                   <Button color="danger" onClick={handleDiscard}>
-                    Discard and Close
+                    {deleteFolder ? 'Discard and Delete' : 'Discard and Close'}
                   </Button>
                 </div>
                 <div>
@@ -236,7 +268,7 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
                     Cancel
                   </Button>
                   <Button onClick={handleSave}>
-                    Save and Close
+                    {deleteFolder ? 'Save and Delete' : 'Save and Close'}
                   </Button>
                 </div>
               </div>
@@ -252,15 +284,36 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
                   </>
                 )}
               </div>
-              <div className="mt-4 text-xs text-gray-500">
-                Collections will be removed from the current workspace but will still be available in the file system and can be re-opened later.
-              </div>
+
+              <label className="mt-4 flex items-start gap-2 cursor-pointer text-sm select-none">
+                <input
+                  type="checkbox"
+                  data-testid="remove-collections-delete-folder-checkbox"
+                  checked={deleteFolder}
+                  onChange={(e) => setDeleteFolder(e.target.checked)}
+                  className="mt-1"
+                />
+                <span>
+                  Also delete {hasMultipleCollections ? 'folders' : 'folder'} from disk
+                  <span className="block text-xs text-gray-500 mt-0.5">
+                    {hasMultipleCollections ? 'Folders' : 'Folder'} will be moved to your system trash.
+                  </span>
+                </span>
+              </label>
+
+              {!deleteFolder && (
+                <div className="mt-4 text-xs text-gray-500">
+                  Collections will be removed from the current workspace but will still be available in the file system and can be re-opened later.
+                </div>
+              )}
               <div className="flex justify-end mt-6">
                 <Button className="mr-2" color="secondary" variant="ghost" onClick={handleCancel} data-testid="modal-close-button">
                   Cancel
                 </Button>
-                <Button color="warning" onClick={handleCloseAllCollections}>
-                  {hasMultipleCollections ? 'Close All' : 'Close'}
+                <Button color={deleteFolder ? 'danger' : 'warning'} onClick={handleCloseAllCollections}>
+                  {deleteFolder
+                    ? (hasMultipleCollections ? 'Close All and Delete' : 'Close and Delete')
+                    : (hasMultipleCollections ? 'Close All' : 'Close')}
                 </Button>
               </div>
             </>
