@@ -1,0 +1,52 @@
+name: 'Run Client Certs CLI Tests - macOS'
+description: 'Run client-certificate (mTLS) CLI tests on macOS'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run CLI tests
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        BRU=../../../../../packages/bruno-cli/bin/bru.js
+        CACERT=../../server/certs/ca-cert.pem
+
+        # navigate to the CLI test collections directory
+        cd tests/ssl/client-certs/collections
+
+        echo "client cert (pem, bru) presented"
+        # cert enabled → attached → mTLS handshake succeeds → assertions pass
+        cd pem-bru
+        node "$BRU" run ./request.bru --output junit1.xml --cacert "$CACERT" --ignore-truststore --format junit
+        xmllint --xpath 'count(//testsuite[@errors="0" and @failures="0"])' junit1.xml | grep -q "^1$" || exit 1
+
+        echo "client cert (pfx, bru) presented"
+        # pfx cert attached → mTLS handshake succeeds → assertions pass
+        cd ../pfx-bru
+        node "$BRU" run ./request.bru --output junit2.xml --cacert "$CACERT" --ignore-truststore --format junit
+        xmllint --xpath 'count(//testsuite[@errors="0" and @failures="0"])' junit2.xml | grep -q "^1$" || exit 1
+
+        echo "client cert disabled (withheld, bru)"
+        echo "request will error"
+        # cert disabled → withheld → mTLS handshake rejected → request errors
+        cd ../disabled-bru
+        node "$BRU" run ./request.bru --output junit3.xml --cacert "$CACERT" --ignore-truststore --format junit 2>/dev/null || true
+        xmllint --xpath 'count(//testsuite[@errors="1"])' junit3.xml | grep -q "^1$" || exit 1
+
+        # yml (opencollection.yml) format parity — pem/pkcs12/disabled parsed via the yml path
+
+        echo "client cert (pem, yml) presented"
+        cd ../pem-yml
+        node "$BRU" run ./request.yml --output junit4.xml --cacert "$CACERT" --ignore-truststore --format junit
+        xmllint --xpath 'count(//testsuite[@errors="0" and @failures="0"])' junit4.xml | grep -q "^1$" || exit 1
+
+        echo "client cert (pkcs12, yml) presented"
+        cd ../pfx-yml
+        node "$BRU" run ./request.yml --output junit5.xml --cacert "$CACERT" --ignore-truststore --format junit
+        xmllint --xpath 'count(//testsuite[@errors="0" and @failures="0"])' junit5.xml | grep -q "^1$" || exit 1
+
+        echo "client cert disabled (withheld, yml)"
+        echo "request will error"
+        cd ../disabled-yml
+        node "$BRU" run ./request.yml --output junit6.xml --cacert "$CACERT" --ignore-truststore --format junit 2>/dev/null || true
+        xmllint --xpath 'count(//testsuite[@errors="1"])' junit6.xml | grep -q "^1$" || exit 1
