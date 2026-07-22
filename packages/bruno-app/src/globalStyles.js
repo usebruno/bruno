@@ -342,6 +342,30 @@ const GlobalStyle = createGlobalStyle`
     font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.text};
   }
+  .CodeMirror-info {
+    padding: 4px 8px !important;
+    background-color: ${(props) => props.theme.infoTip.bg} !important;
+    border: 1px solid ${(props) => props.theme.infoTip.border} !important;
+    box-shadow: ${(props) => props.theme.infoTip.boxShadow} !important;
+    border-radius: ${(props) => props.theme.border.radius.sm} !important;
+    color: ${(props) => props.theme.text} !important;
+    max-width: 320px !important;
+    max-height: 240px !important;
+    overflow-y: auto !important;
+  }
+
+  .CodeMirror-info a {
+    color: ${(props) => props.theme.text} !important;
+  }
+
+  .CodeMirror-info .type-name-pill,
+  .CodeMirror-info .info-description {
+    color: ${(props) => props.theme.colors.text.muted} !important;
+  }
+
+  .CodeMirror-info .info-description a {
+    color: ${(props) => props.theme.textLink} !important;
+  }
 
   .CodeMirror-lint-message-warning {
     color: ${(props) => props.theme.status.warning.text};

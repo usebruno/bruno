@@ -60,6 +60,7 @@ require('codemirror-graphql/mode');
 require('utils/codemirror/brunoVarInfo');
 require('utils/codemirror/javascript-lint');
 require('utils/codemirror/autocomplete');
+require('utils/codemirror/codeMirrorInfoFontSize');
 
 const TransientRequestModalsRenderer = ({ modals }) => {
   if (modals.length === 0) {
