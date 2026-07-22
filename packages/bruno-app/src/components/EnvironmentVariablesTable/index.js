@@ -68,16 +68,18 @@ const EnvVarValueCell = ({
 }) => {
   const editorRef = useRef(null);
   const [compact, setCompact] = useState(true);
-  const [masked, setMasked] = useState(variable.secret);
+
+  const showAsSecret = variable.secret && !isLastEmptyRow;
+  const [masked, setMasked] = useState(showAsSecret);
 
   useEffect(() => {
-    setMasked(variable.secret);
-  }, [variable.secret]);
+    setMasked(showAsSecret);
+  }, [showAsSecret]);
 
   return (
     <VarValueCell
       onCompactChange={setCompact}
-      trailingContent={variable.secret ? (
+      trailingContent={showAsSecret ? (
         <SecretEyeButton
           masked={masked}
           testId="secret-reveal-toggle"
@@ -97,8 +99,8 @@ const EnvVarValueCell = ({
             name={`${actualIndex}.value`}
             value={valueToString(variable.value, 2)}
             placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
-            isSecret={variable.secret}
-            hideSecretEye={variable.secret}
+            isSecret={showAsSecret}
+            hideSecretEye={showAsSecret}
             onMaskChange={setMasked}
             onChange={(newValue) => {
               formik.setFieldValue(`${actualIndex}.value`, newValue, true);
@@ -853,6 +855,7 @@ const EnvironmentVariablesTable = ({
                     actualIndex={actualIndex}
                     isLastRow={isLastRow}
                     isLastEmptyRow={isLastEmptyRow}
+                    isSecretTab={isSecretTab}
                     storedTheme={storedTheme}
                     collection={_collection}
                     formik={formik}
