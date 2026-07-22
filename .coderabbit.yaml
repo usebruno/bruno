@@ -36,6 +36,20 @@ reviews:
         - Avoid relying on Unix-only signals (e.g., `SIGKILL`) without Windows fallbacks
         - Use `os.tmpdir()` instead of hardcoding `/tmp`
         - Environment variable access should handle platform differences (e.g., `HOME` vs `USERPROFILE`)
+    - path: 'packages/bruno-app/**/*.{js,jsx,ts,tsx}'
+      instructions: |
+        bruno-app is being migrated to TypeScript incrementally. When reviewing changes here:
+        - If the PR adds a **new** file as `.js`/`.jsx`, flag it and suggest `.ts`/`.tsx` instead,
+          unless the PR description gives a clear reason (e.g. it's deliberately a near-identical
+          copy of an existing JS sibling for a diff-driven change).
+        - If a PR renames an existing `.js`/`.jsx` file to `.ts`/`.tsx` **and** changes its logic
+          in the same diff, flag it — conversions should be their own standalone, minimal-diff
+          commit/PR (rename only), separate from behavioral changes.
+        - When a file is converted to TypeScript, flag use of `any` used as a shortcut rather than
+          a genuinely unknown/dynamic type — prefer modeling the real shape (reuse types from
+          `@usebruno/schema-types` where applicable).
+        - Do not ask for unrelated `.js` files to be converted as part of an unrelated PR — that
+          contradicts the incremental, file-at-a-time migration approach.
     - path: 'tests/**/**.*'
       instructions: |
         Review the following e2e test code written using the Playwright test library. Ensure that:
