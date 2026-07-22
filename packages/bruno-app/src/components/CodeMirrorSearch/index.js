@@ -163,6 +163,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, onClose }, ref) => {
     focus: () => {
       if (inputRef.current) {
         inputRef.current.focus();
+        inputRef.current.select();
       }
     }
   }));
