@@ -1,6 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { isValidHtml } from 'utils/common/index';
-import { escapeHtml, isValidHtmlSnippet } from 'utils/response/index';
+import { escapeHtml } from 'utils/response/index';
 
 const HtmlPreview = React.memo(({ data, baseUrl }) => {
   const webviewContainerRef = useRef(null);
@@ -31,7 +30,7 @@ const HtmlPreview = React.memo(({ data, baseUrl }) => {
     return () => mutationObserver.disconnect();
   }, []);
 
-  if (isValidHtml(data) || isValidHtmlSnippet(data)) {
+  const renderHtmlPreview = (data, baseUrl, isDragging, webviewContainerRef) => {
     const htmlContent = data.includes('<head>')
       ? data.replace('<head>', `<head><base href="${escapeHtml(baseUrl)}">`)
       : `<head><base href="${escapeHtml(baseUrl)}"></head>${data}`;
@@ -52,7 +51,7 @@ const HtmlPreview = React.memo(({ data, baseUrl }) => {
         />
       </div>
     );
-  }
+  };
 
   // For all other data types, render safely as formatted text
   let displayContent = '';
@@ -60,18 +59,12 @@ const HtmlPreview = React.memo(({ data, baseUrl }) => {
     displayContent = String(data);
   } else if (typeof data === 'object') {
     displayContent = JSON.stringify(data, null);
-  } else if (typeof data === 'string') {
-    displayContent = data;
   } else {
     displayContent = String(data);
   }
 
   return (
-    <pre
-      className="bg-white font-mono text-[13px] whitespace-pre-wrap break-words overflow-auto overflow-x-hidden p-4 text-[#24292f] w-full max-w-full h-full box-border relative"
-    >
-      {displayContent}
-    </pre>
+    <>{renderHtmlPreview(displayContent, baseUrl, isDragging, webviewContainerRef)}</>
   );
 });
 

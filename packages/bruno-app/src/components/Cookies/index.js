@@ -9,11 +9,12 @@ import ModifyCookieModal from 'components/Cookies/ModifyCookieModal/index';
 import StyledWrapper from './StyledWrapper';
 import moment from 'moment';
 import { Tooltip } from 'react-tooltip';
+import Button from 'ui/Button';
 
 const ClearDomainCookiesModal = ({ onClose, domain, onClear }) => (
   <Modal onClose={onClose} handleCancel={onClose} title="Clear Domain Cookies" hideFooter={true}>
     <div className="flex items-center font-normal">
-      <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
+      <IconAlertTriangle size={32} strokeWidth={1.5} className="warning-icon" />
       <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
     </div>
     <div className="font-normal mt-4">
@@ -22,14 +23,14 @@ const ClearDomainCookiesModal = ({ onClose, domain, onClear }) => (
 
     <div className="flex justify-between mt-6">
       <div>
-        <button className="btn btn-sm btn-close" onClick={onClose}>
+        <Button color="secondary" variant="ghost" onClick={onClose}>
           Close
-        </button>
+        </Button>
       </div>
       <div>
-        <button className="btn btn-sm btn-danger" onClick={onClear}>
+        <Button color="danger" onClick={onClear}>
           Clear All
-        </button>
+        </Button>
       </div>
     </div>
   </Modal>
@@ -38,7 +39,7 @@ const ClearDomainCookiesModal = ({ onClose, domain, onClear }) => (
 const DeleteCookieModal = ({ onClose, cookieName, onDelete }) => (
   <Modal onClose={onClose} handleCancel={onClose} title="Delete Cookie" hideFooter={true}>
     <div className="flex items-center font-normal">
-      <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
+      <IconAlertTriangle size={32} strokeWidth={1.5} className="warning-icon" />
       <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
     </div>
     <div className="font-normal mt-4">
@@ -47,14 +48,14 @@ const DeleteCookieModal = ({ onClose, cookieName, onDelete }) => (
 
     <div className="flex justify-between mt-6">
       <div>
-        <button className="btn btn-sm btn-close" onClick={onClose}>
+        <Button color="secondary" variant="ghost" onClick={onClose}>
           Close
-        </button>
+        </Button>
       </div>
       <div>
-        <button className="btn btn-sm btn-danger" onClick={onDelete}>
+        <Button color="danger" onClick={onDelete}>
           Delete
-        </button>
+        </Button>
       </div>
     </div>
   </Modal>
@@ -137,18 +138,20 @@ const CollectionProperties = ({ onClose }) => {
               value={searchText || ''}
               onChange={(e) => setSearchText(e.target.value)}
               className="block textbox non-passphrase-input ml-auto font-normal"
+              autoFocus
             />
-            <button
+            <Button
               type="submit"
-              className="submit btn btn-sm btn-secondary flex items-center gap-1 mx-4 font-medium"
+              size="sm"
+              className="mx-4"
+              icon={<IconCirclePlus strokeWidth={1.5} size={16} />}
               onClick={(e) => {
                 e.stopPropagation();
                 handleAddCookie();
               }}
             >
-              <IconCirclePlus strokeWidth={1.5} size={16} />
               <span>Add Cookie</span>
-            </button>
+            </Button>
           </StyledWrapper>
         ) : null}
       >
@@ -156,27 +159,28 @@ const CollectionProperties = ({ onClose }) => {
           {!cookies || !cookies.length ? (
             // No cookies found
             <div className="flex items-center justify-center flex-col">
-              <IconCookieOff size={48} strokeWidth={1.5} className="text-gray-500" />
+              <IconCookieOff size={48} strokeWidth={1.5} className="empty-icon" />
               <h2 className="text-lg font-medium mt-4">No cookies found</h2>
-              <p className="text-gray-500 mt-2">Add cookies to get started</p>
-              <button
+              <p className="empty-text mt-2">Add cookies to get started</p>
+              <Button
                 type="submit"
-                className="submit btn btn-sm btn-secondary flex items-center gap-1 mt-8"
+                size="sm"
+                className="mt-8"
+                icon={<IconCirclePlus strokeWidth={1.5} size={16} />}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleAddCookie();
                 }}
               >
-                <IconCirclePlus strokeWidth={1.5} size={16} />
-                <span>Add Cookie</span>
-              </button>
+                Add Cookie
+              </Button>
             </div>
           ) : cookies.length && !filteredCookies.length ? (
             // No search results
             <div className="flex items-center justify-center flex-col">
               <IconSearch size={48} />
               <h2 className="text-lg font-medium mt-4">No search results</h2>
-              <p className="text-gray-500 mt-2">Try a different search term</p>
+              <p className="empty-text mt-2">Try a different search term</p>
             </div>
           ) : (
             // Show cookies list
@@ -187,14 +191,14 @@ const CollectionProperties = ({ onClose }) => {
                     <Accordion.Header index={i} className="flex items-center">
                       <div className="flex items-center">
                         <span>{domainWithCookies.domain}</span>
-                        <span className="ml-2 text-xs dark:text-gray-300 text-gray-500">
+                        <span className="domain-count ml-2 text-xs">
                           ({domainWithCookies.cookies.length}{' '}
                           {domainWithCookies.cookies.length === 1 ? 'cookie' : 'cookies'})
                         </span>
                         <div className="ml-auto flex items-center gap-2">
                           <button
                             type="submit"
-                            className="flex items-center gap-1 text-gray-500 hover:text-gray-950 dark:text-white dark:hover:text-gray-300"
+                            className="action-button flex items-center gap-1"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleAddCookie(domainWithCookies.domain);
@@ -207,7 +211,7 @@ const CollectionProperties = ({ onClose }) => {
                               e.stopPropagation();
                               handleClearDomainCookies(domainWithCookies.domain);
                             }}
-                            className="text-gray-950 dark:text-white dark:hover:hover:text-red-600 hover:text-red-600  mr-2"
+                            className="action-button-danger mr-2"
                           >
                             <IconTrash strokeWidth={1.5} size={16} />
                           </button>
@@ -218,7 +222,7 @@ const CollectionProperties = ({ onClose }) => {
                       <div className="flex items-center justify-between">
                         <table className="w-full">
                           <thead>
-                            <tr className="text-left border-b border-gray-200 dark:border-neutral-600 text-gray-700 dark:text-gray-300">
+                            <tr className="text-left">
                               <th className="py-2 px-4 font-medium w-32">Name</th>
                               <th className="py-2 px-4 font-medium w-52">Value</th>
                               <th className="py-2 px-4 font-medium">Path</th>
@@ -230,7 +234,7 @@ const CollectionProperties = ({ onClose }) => {
                           </thead>
                           <tbody>
                             {domainWithCookies.cookies.map((cookie) => (
-                              <tr key={cookie.key} className="border-b border-gray-200 dark:border-neutral-600 last:border-none">
+                              <tr key={cookie.key}>
                                 <td className="py-2 px-4 truncate">
                                   <span id={`cookie-key-${cookie.key}`}>{cookie.key}</span>
                                   <Tooltip
@@ -271,8 +275,7 @@ const CollectionProperties = ({ onClose }) => {
                                         e.stopPropagation();
                                         handleEditCookie(domainWithCookies.domain, cookie);
                                       }}
-                                      className="text-gray-700  hover:text-gray-950
-                                    dark:text-white dark:hover:text-gray-300"
+                                      className="edit-button"
                                     >
                                       <IconEdit strokeWidth={1.5} size={16} />
                                     </button>
@@ -281,7 +284,7 @@ const CollectionProperties = ({ onClose }) => {
                                         e.stopPropagation();
                                         handleDeleteCookie(domainWithCookies.domain, cookie.path, cookie.key);
                                       }}
-                                      className="text-gray-950 dark:text-white dark:hover:hover:text-red-600  hover:text-red-600"
+                                      className="delete-button"
                                     >
                                       <IconTrash strokeWidth={1.5} size={16} />
                                     </button>

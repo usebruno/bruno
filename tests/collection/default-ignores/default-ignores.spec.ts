@@ -1,7 +1,7 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
 import * as fs from 'fs';
-import { closeAllCollections, openCollectionAndAcceptSandbox } from '../../utils/page';
+import { closeAllCollections, openCollection } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Default ignores for node_modules and .git', () => {
@@ -84,7 +84,7 @@ get {
     await expect(locators.sidebar.collection('Node Modules Ignore Test')).toBeVisible({ timeout: 30000 });
 
     // Accept the sandbox mode
-    await openCollectionAndAcceptSandbox(page, 'Node Modules Ignore Test', 'safe');
+    await openCollection(page, 'Node Modules Ignore Test');
 
     // Verify only the real request is visible
     await expect(locators.sidebar.request('Real Request')).toBeVisible({ timeout: 10000 });
@@ -171,7 +171,7 @@ get {
     await expect(locators.sidebar.collection('Git Ignore Test')).toBeVisible({ timeout: 30000 });
 
     // Accept the sandbox mode
-    await openCollectionAndAcceptSandbox(page, 'Git Ignore Test', 'safe');
+    await openCollection(page, 'Git Ignore Test');
 
     // Verify only the real request is visible
     await expect(locators.sidebar.request('Real Git Request')).toBeVisible({ timeout: 10000 });

@@ -30,14 +30,13 @@ test.describe('OpenAPI Newline Handling', () => {
     // select a location
     await page.locator('#collection-location').fill(await createTmpDir('newline-test'));
     await locationModal.getByRole('button', { name: 'Import' }).click();
+    await locationModal.waitFor({ state: 'hidden' });
 
     // verify the collection was imported successfully
     await expect(page.locator('#sidebar-collection-name').getByText('Newline Test Collection')).toBeVisible();
 
     // configure the collection settings
     await page.locator('#sidebar-collection-name').getByText('Newline Test Collection').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // verify that all requests were imported correctly despite newlines in operation names
     // the parser should clean up the operation names and create valid request names

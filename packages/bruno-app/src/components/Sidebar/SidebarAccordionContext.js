@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 
 const SidebarAccordionContext = createContext();
 
@@ -12,6 +12,7 @@ export const useSidebarAccordion = () => {
 
 export const SidebarAccordionProvider = ({ children, defaultExpanded = ['collections'] }) => {
   const [expandedSections, setExpandedSections] = useState(new Set(defaultExpanded));
+  const dropdownContainerRef = useRef(null);
 
   const toggleSection = useCallback((sectionId) => {
     setExpandedSections((prev) => {
@@ -52,10 +53,13 @@ export const SidebarAccordionProvider = ({ children, defaultExpanded = ['collect
         toggleSection,
         setSectionExpanded,
         isExpanded,
-        getExpandedCount
+        getExpandedCount,
+        dropdownContainerRef
       }}
     >
-      {children}
+      <div ref={dropdownContainerRef}>
+        {children}
+      </div>
     </SidebarAccordionContext.Provider>
   );
 };

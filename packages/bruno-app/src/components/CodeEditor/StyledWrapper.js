@@ -19,8 +19,8 @@ const StyledWrapper = styled.div`
   }
 
   .CodeMirror-placeholder {
-    color: ${(props) => props.theme.text} !important;
-    opacity: 0.5 !important;
+    color: ${(props) => props.theme.codemirror.placeholder.color} !important;
+    opacity: ${(props) => props.theme.codemirror.placeholder.opacity} !important;
   }
 
   .CodeMirror-linenumber {
@@ -36,13 +36,22 @@ const StyledWrapper = styled.div`
 
   /* Style line numbers when there's a lint issue */
   .CodeMirror-lint-line-error .CodeMirror-linenumber {
-    color: #d32f2f !important;
+    color: ${(props) => props.theme.colors.text.danger} !important;
     text-decoration: underline;
   }
 
   .CodeMirror-lint-line-warning .CodeMirror-linenumber {
-    color: #f57c00 !important;
+    color: ${(props) => props.theme.colors.text.warning} !important;
     text-decoration: underline;
+  }
+
+  .cm-ghost-text-ai {
+    opacity: 0.45;
+    color: ${(props) => props.theme.colors.text.muted};
+    font-style: italic;
+    pointer-events: none;
+    user-select: none;
+    white-space: pre;
   }
 
   /* Removes the glow outline around the folded json */
@@ -116,7 +125,7 @@ const StyledWrapper = styled.div`
     span.cm-atom {
       color: ${(props) => props.theme.codemirror.tokens.atom} !important;
     }
-    span.cm-variable {
+    span.cm-variable, span.cm-variable-2 {
       color: ${(props) => props.theme.codemirror.tokens.variable} !important;
     }
     span.cm-keyword {
@@ -128,14 +137,20 @@ const StyledWrapper = styled.div`
     span.cm-operator {
       color: ${(props) => props.theme.codemirror.tokens.operator} !important;
     }
+    span.cm-tag {
+      color: ${(props) => props.theme.codemirror.tokens.tag} !important;
+    }
+    span.cm-tag.cm-bracket {
+      color: ${(props) => props.theme.codemirror.tokens.tagBracket} !important;
+    }
   }
 
   /* Variable validation colors */
   .cm-variable-valid {
-    color: #5fad89 !important; /* Soft sage */
+    color: ${(props) => props.theme.codemirror.variable.valid} !important;
   }
   .cm-variable-invalid {
-    color: #d17b7b !important; /* Soft coral */
+    color: ${(props) => props.theme.codemirror.variable.invalid} !important;
   }
 
   .CodeMirror-search-hint {
@@ -145,12 +160,44 @@ const StyledWrapper = styled.div`
   
   //matching bracket fix
   .CodeMirror-matchingbracket {
-    background: #5cc0b48c !important;
-    text-decoration:unset;
+    background: ${(props) => props.theme.status.success.background} !important;
+    text-decoration: unset;
+  }
+
+  .CodeMirror-nonmatchingbracket {
+    color: ${(props) => props.theme.colors.text.danger} !important;
+    background: ${(props) => props.theme.status.danger.background} !important;
+    text-decoration: unset;
   }
 
   .cm-search-line-highlight {
     background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
+  }
+
+  @keyframes cm-error-line-flash {
+    0%, 60% {
+      background-color: ${(props) => props.theme.status.danger.background};
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  .CodeMirror .cm-error-line-flash {
+    background-color: transparent;
+    animation: cm-error-line-flash 3s ease-in-out;
+  }
+
+  .CodeMirror .cm-error-line-flash-gutter {
+    color: ${(props) => props.theme.colors.text.danger} !important;
+    font-weight: 600;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .CodeMirror .cm-error-line-flash {
+      animation: none;
+      background-color: ${(props) => props.theme.status.danger.background};
+    }
   }
 
   .cm-search-match {

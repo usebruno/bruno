@@ -1,4 +1,4 @@
-import React, { useRef, forwardRef } from 'react';
+import React from 'react';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
@@ -7,7 +7,7 @@ import { IconCaretDown, IconSettings, IconKey, IconAdjustmentsHorizontal, IconHe
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
 import AdditionalParams from '../AdditionalParams/index';
@@ -16,8 +16,6 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const dropdownTippyRef = useRef();
-  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const { isSensitive } = useDetectSensitiveField(collection);
   const oAuth = get(request, 'auth.oauth2', {});
 
@@ -34,6 +32,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
     refreshTokenUrl,
     autoRefreshToken,
     autoFetchToken,
+    tokenSource,
     additionalParameters
   } = oAuth;
 
@@ -41,24 +40,6 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
   const isAutoRefreshDisabled = !refreshTokenUrlAvailable;
 
   const handleSave = () => { save(); };
-
-  const TokenPlacementIcon = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
-        {tokenPlacement == 'url' ? 'URL' : 'Headers'}
-        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
-      </div>
-    );
-  });
-
-  const CredentialsPlacementIcon = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
-        {credentialsPlacement == 'body' ? 'Request Body' : 'Basic Auth Header'}
-        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
-      </div>
-    );
-  });
 
   const handleChange = (key, value) => {
     dispatch(
@@ -80,6 +61,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
           refreshTokenUrl,
           autoRefreshToken,
           autoFetchToken,
+          tokenSource,
           additionalParameters,
           [key]: value
         }
@@ -91,10 +73,10 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
       <Oauth2TokenViewer handleRun={handleRun} collection={collection} item={item} url={accessTokenUrl} credentialsId={credentialsId} />
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconSettings size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium">
+        <span className="oauth2-section-label">
           Configuration
         </span>
       </div>
@@ -116,6 +98,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                 collection={collection}
                 item={item}
                 isSecret={isSecret}
+                isCompact
               />
               {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}
             </div>
@@ -125,35 +108,46 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
       <div className="flex items-center gap-4 w-full" key="input-credentials-placement">
         <label className="block min-w-[140px]">Add Credentials to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
-          <Dropdown onCreate={onDropdownCreate} icon={<CredentialsPlacementIcon />} placement="bottom-end">
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('credentialsPlacement', 'body');
-              }}
-            >
-              Request Body
+          <MenuDropdown
+            items={[
+              { id: 'body', label: 'Request Body', onClick: () => handleChange('credentialsPlacement', 'body') },
+              { id: 'basic_auth_header', label: 'Basic Auth Header', onClick: () => handleChange('credentialsPlacement', 'basic_auth_header') }
+            ]}
+            selectedItemId={credentialsPlacement}
+            placement="bottom-end"
+          >
+            <div className="flex items-center justify-end token-placement-label select-none">
+              {credentialsPlacement == 'body' ? 'Request Body' : 'Basic Auth Header'}
+              <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('credentialsPlacement', 'basic_auth_header');
-              }}
-            >
-              Basic Auth Header
-            </div>
-          </Dropdown>
+          </MenuDropdown>
         </div>
       </div>
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconKey size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium text-gray-800 dark:text-gray-200">
+        <span className="oauth2-section-label">
           Token
         </span>
+      </div>
+      <div className="flex items-center gap-4 w-full" key="input-token-type">
+        <label className="block min-w-[140px]">Token Source</label>
+        <div className="inline-flex items-center cursor-pointer token-placement-selector">
+          <MenuDropdown
+            items={[
+              { id: 'access_token', label: 'Access Token', onClick: () => handleChange('tokenSource', 'access_token') },
+              { id: 'id_token', label: 'ID Token', onClick: () => handleChange('tokenSource', 'id_token') }
+            ]}
+            selectedItemId={tokenSource}
+            placement="bottom-end"
+          >
+            <div className="flex items-center justify-end token-placement-label select-none">
+              {tokenSource === 'id_token' ? 'ID Token' : 'Access Token'}
+              <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
+            </div>
+          </MenuDropdown>
+        </div>
       </div>
       <div className="flex items-center gap-4 w-full" key="input-token-name">
         <label className="block min-w-[140px]">Token ID</label>
@@ -166,38 +160,32 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
             onRun={handleRun}
             collection={collection}
             item={item}
+            isCompact
           />
         </div>
       </div>
       <div className="flex items-center gap-4 w-full" key="input-token-placement">
         <label className="block min-w-[140px]">Add token to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector w-fit">
-          <Dropdown onCreate={onDropdownCreate} icon={<TokenPlacementIcon />} placement="bottom-end">
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('tokenPlacement', 'header');
-              }}
-            >
-              Header
+          <MenuDropdown
+            items={[
+              { id: 'header', label: 'Header', onClick: () => handleChange('tokenPlacement', 'header') },
+              { id: 'url', label: 'URL', onClick: () => handleChange('tokenPlacement', 'url') }
+            ]}
+            selectedItemId={tokenPlacement}
+            placement="bottom-end"
+          >
+            <div className="flex items-center justify-end token-placement-label select-none">
+              {tokenPlacement == 'url' ? 'URL' : 'Headers'}
+              <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('tokenPlacement', 'url');
-              }}
-            >
-              URL
-            </div>
-          </Dropdown>
+          </MenuDropdown>
         </div>
       </div>
       {
         tokenPlacement === 'header'
           ? (
-              <div className="flex items-center gap-4 w-full" key="input-token-prefix">
+              <div className="flex items-center gap-4 w-full" key="input-token-prefix" data-testid="token-header-prefix">
                 <label className="block min-w-[140px]">Header Prefix</label>
                 <div className="single-line-editor-wrapper flex-1">
                   <SingleLineEditor
@@ -207,13 +195,14 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                     onChange={(val) => handleChange('tokenHeaderPrefix', val)}
                     onRun={handleRun}
                     collection={collection}
+                    isCompact
                   />
                 </div>
               </div>
             )
           : (
-              <div className="flex items-center gap-4 w-full" key="input-token-query-param-key">
-                <label className="block font-medium min-w-[140px]">Query Param Key</label>
+              <div className="flex items-center gap-4 w-full" key="input-token-query-param-key" data-testid="token-query-param-key">
+                <label className="block min-w-[140px]">Query Param Key</label>
                 <div className="single-line-editor-wrapper flex-1">
                   <SingleLineEditor
                     value={oAuth['tokenQueryKey'] || ''}
@@ -222,16 +211,17 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                     onChange={(val) => handleChange('tokenQueryKey', val)}
                     onRun={handleRun}
                     collection={collection}
+                    isCompact
                   />
                 </div>
               </div>
             )
       }
       <div className="flex items-center gap-2.5 mt-4 mb-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconAdjustmentsHorizontal size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium text-gray-800 dark:text-gray-200">
+        <span className="oauth2-section-label">
           Advanced Settings
         </span>
       </div>
@@ -246,15 +236,16 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
             onChange={(val) => handleChange('refreshTokenUrl', val)}
             collection={collection}
             item={item}
+            isCompact
           />
         </div>
       </div>
 
       <div className="flex items-center gap-2.5 mt-4">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconSettings size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium">Settings</span>
+        <span className="oauth2-section-label">Settings</span>
       </div>
 
       {/* Automatically Fetch Token */}

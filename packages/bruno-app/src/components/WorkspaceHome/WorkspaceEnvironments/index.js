@@ -1,66 +1,54 @@
-import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
-import CreateEnvironment from './CreateEnvironment';
+import React, { useState, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { updateTabState } from 'providers/ReduxStore/slices/tabs';
 import EnvironmentList from './EnvironmentList';
 import StyledWrapper from './StyledWrapper';
-import { IconFileAlert } from '@tabler/icons';
-import ImportEnvironmentModal from 'components/Environments/Common/ImportEnvironmentModal';
 import ExportEnvironmentModal from 'components/Environments/Common/ExportEnvironmentModal';
 
-const DefaultTab = ({ setTab }) => (
-  <div className="empty-state">
-    <IconFileAlert size={48} strokeWidth={1.5} />
-    <div className="title">No Environments</div>
-    <div className="actions">
-      <button className="shared-button" onClick={() => setTab('create')}>
-        Create Environment
-      </button>
-      <button className="shared-button" onClick={() => setTab('import')}>
-        Import Environment
-      </button>
-    </div>
-  </div>
-);
-
 const WorkspaceEnvironments = ({ workspace }) => {
+  const dispatch = useDispatch();
   const [isModified, setIsModified] = useState(false);
-  const [selectedEnvironment, setSelectedEnvironment] = useState(null);
-  const [tab, setTab] = useState('default');
   const [showExportModal, setShowExportModal] = useState(false);
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
 
-  if (!globalEnvironments || !globalEnvironments.length) {
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const persistedEnvUid = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.envUid);
+
+  // Remember which environment the user last viewed in this tab (via tabState) so navigating away and back preserves it.
+  const selectedEnvironment = useMemo(() => {
+    const environments = globalEnvironments || [];
+    if (!environments.length) return null;
     return (
-      <StyledWrapper>
-        {tab === 'create' ? (
-          <CreateEnvironment onClose={() => setTab('default')} />
-        ) : tab === 'import' ? (
-          <ImportEnvironmentModal type="global" onClose={() => setTab('default')} />
-        ) : (
-          <DefaultTab setTab={setTab} />
-        )}
-      </StyledWrapper>
+      environments.find((env) => env.uid === persistedEnvUid)
+      || environments.find((env) => env.uid === activeGlobalEnvironmentUid)
+      || environments[0]
     );
-  }
+  }, [globalEnvironments, persistedEnvUid, activeGlobalEnvironmentUid]);
+
+  const setSelectedEnvironment = (env) => {
+    if (!activeTabUid || !env?.uid) return;
+    dispatch(updateTabState({ uid: activeTabUid, tabState: { envUid: env.uid } }));
+  };
 
   return (
     <StyledWrapper>
       <EnvironmentList
-        environments={globalEnvironments}
+        environments={globalEnvironments || []}
         activeEnvironmentUid={activeGlobalEnvironmentUid}
         selectedEnvironment={selectedEnvironment}
         setSelectedEnvironment={setSelectedEnvironment}
         isModified={isModified}
         setIsModified={setIsModified}
         collection={null}
+        workspace={workspace}
         setShowExportModal={setShowExportModal}
       />
       {showExportModal && (
         <ExportEnvironmentModal
           onClose={() => setShowExportModal(false)}
-          environments={globalEnvironments}
+          environments={globalEnvironments || []}
           environmentType="global"
         />
       )}

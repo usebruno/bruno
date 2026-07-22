@@ -1,25 +1,44 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import get from 'lodash/get';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { setCollectionHeaders } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import SingleLineEditor from 'components/SingleLineEditor';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import BulkEditor from 'components/BulkEditor/index';
+import Button from 'ui/Button';
+import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const Headers = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const headers = collection.draft?.root
     ? get(collection, 'draft.root.request.headers', [])
     : get(collection, 'root.request.headers', []);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+  const wrapperRef = useRef(null);
+  const [scroll, setScroll] = usePersistedState({ key: `collection-headers-scroll-${collection.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.collection-settings-content', onChange: setScroll, initialValue: scroll });
+
+  // Get column widths from Redux
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const collectionHeadersWidths = focusedTab?.tableColumnWidths?.['collection-headers'] || {};
+
+  const handleColumnWidthsChange = (tableId, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
+  };
 
   const toggleBulkEditMode = () => {
     setIsBulkEditMode(!isBulkEditMode);
@@ -31,14 +50,37 @@ const Headers = ({ collection }) => {
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
+  const getRowError = useCallback((row, index, key) => {
+    if (key === 'name') {
+      if (!row.name || row.name.trim() === '') return null;
+      if (!headerNameRegex.test(row.name)) {
+        return 'Header name cannot contain spaces or newlines';
+      }
+    }
+    if (key === 'value') {
+      if (!row.value) return null;
+      if (!headerValueRegex.test(row.value)) {
+        return 'Header value cannot contain newlines';
+      }
+    }
+    return null;
+  }, []);
+
+  const descriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    onSave: handleSave,
+    collection,
+    nameFromRowIndex: true
+  });
+
   const columns = [
     {
       key: 'name',
       name: 'Name',
       isKeyField: true,
       placeholder: 'Name',
-      width: '30%',
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      width: '20%',
+      render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -46,7 +88,7 @@ const Headers = ({ collection }) => {
           onChange={(newValue) => onChange(newValue.replace(/[\r\n]/g, ''))}
           autocomplete={headerAutoCompleteList}
           collection={collection}
-          placeholder={isLastEmptyRow ? 'Name' : ''}
+          placeholder={!value ? 'Name' : ''}
         />
       )
     },
@@ -54,7 +96,7 @@ const Headers = ({ collection }) => {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange }) => (
         <SingleLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -62,10 +104,11 @@ const Headers = ({ collection }) => {
           onChange={onChange}
           collection={collection}
           autocomplete={MimeTypes}
-          placeholder={isLastEmptyRow ? 'Value' : ''}
+          placeholder={!value ? 'Value' : ''}
         />
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
@@ -91,25 +134,31 @@ const Headers = ({ collection }) => {
   }
 
   return (
-    <StyledWrapper className="h-full w-full">
+    <StyledWrapper className="h-full w-full" ref={wrapperRef}>
       <div className="text-xs mb-4 text-muted">
         Add request headers that will be sent with every request in this collection.
       </div>
       <EditableTable
+        tableId="collection-headers"
+        testId="collection-headers"
         columns={columns}
         rows={headers}
         onChange={handleHeadersChange}
         defaultRow={defaultRow}
+        getRowError={getRowError}
+        columnWidths={collectionHeadersWidths}
+        onColumnWidthsChange={(widths) => handleColumnWidthsChange('collection-headers', widths)}
+        initialScroll={scroll}
       />
       <div className="flex justify-end mt-2">
-        <button className="text-link select-none" onClick={toggleBulkEditMode}>
+        <button className="text-link select-none" data-testid="bulk-edit-toggle" onClick={toggleBulkEditMode}>
           Bulk Edit
         </button>
       </div>
       <div className="mt-6">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+        <Button type="submit" size="sm" onClick={handleSave}>
           Save
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );

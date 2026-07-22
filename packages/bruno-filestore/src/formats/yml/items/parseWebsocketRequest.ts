@@ -1,28 +1,21 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
 import type { WebSocketRequest as BrunoWebSocketRequest } from '@usebruno/schema-types/requests/websocket';
-import type { WebSocketRequest, WebSocketMessage } from '@opencollection/types/requests/websocket';
+import type { WebSocketRequest, WebSocketMessage, WebSocketMessageVariant } from '@opencollection/types/requests/websocket';
 import { toBrunoAuth } from '../common/auth';
 import { toBrunoHttpHeaders } from '../common/headers';
 import { toBrunoVariables } from '../common/variables';
 import { toBrunoScripts } from '../common/scripts';
-import { uuid } from '../../../utils';
+import { uuid, ensureString } from '../../../utils';
 
-interface WebSocketRequestWithSettings extends WebSocketRequest {
-  settings?: {
-    timeout?: number;
-    keepAliveInterval?: number;
-  };
-}
-
-const parseWebsocketRequest = (ocRequest: WebSocketRequestWithSettings): BrunoItem => {
+const parseWebsocketRequest = (ocRequest: WebSocketRequest): BrunoItem => {
   const info = ocRequest.info;
   const websocket = ocRequest.websocket;
   const runtime = ocRequest.runtime;
 
   const brunoRequest: BrunoWebSocketRequest = {
-    url: websocket?.url || '',
+    url: ensureString(websocket?.url),
     headers: toBrunoHttpHeaders(websocket?.headers) || [],
-    auth: toBrunoAuth(runtime?.auth),
+    auth: toBrunoAuth(websocket?.auth),
     body: {
       mode: 'ws',
       ws: []
@@ -42,13 +35,26 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequestWithSettings): BrunoIt
 
   // message
   if (websocket?.message) {
-    const message = websocket.message as WebSocketMessage;
-    if (message.data?.trim().length) {
-      brunoRequest.body.ws = [{
-        name: '',
-        type: message.type || 'text',
-        content: message.data
-      }];
+    if (Array.isArray(websocket.message)) {
+      // multiple messages: WebSocketMessageVariant[]
+      const variants = websocket.message as WebSocketMessageVariant[];
+      brunoRequest.body.ws = variants.map((variant, index) => ({
+        name: variant.title || `message ${index + 1}`,
+        type: variant.message?.type || 'text',
+        content: ensureString(variant.message?.data),
+        selected: variant.selected || false
+      }));
+    } else {
+      // single message uses flat WebSocketMessage
+      const message = websocket.message as WebSocketMessage;
+      const messageData = ensureString(message.data);
+      if (messageData.trim().length) {
+        brunoRequest.body.ws = [{
+          name: '',
+          type: message.type || 'text',
+          content: messageData
+        }];
+      }
     }
   }
 
@@ -95,7 +101,7 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequestWithSettings): BrunoIt
     uid: uuid(),
     type: 'ws-request',
     seq: info?.seq || 1,
-    name: info?.name || 'Untitled Request',
+    name: ensureString(info?.name, 'Untitled Request'),
     tags: info?.tags || [],
     request: brunoRequest,
     settings: wsSettings as any,
@@ -106,6 +112,14 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequestWithSettings): BrunoIt
     filename: null,
     pathname: null
   };
+
+  // description
+  if (info?.description) {
+    const desc = typeof info.description === 'string' ? info.description : (info.description as any)?.content || '';
+    if (desc.trim().length) {
+      brunoItem.description = desc;
+    }
+  }
 
   return brunoItem;
 };

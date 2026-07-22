@@ -6,6 +6,12 @@ const lastCharacter = /[^.\s<>:"/\\|?*\x00-\x1F]$/; // no dot, space and `invali
 
 export const variableNameRegex = /^[\w-.]*$/;
 
+// HTTP header name should not contain spaces, newlines, or control characters
+export const headerNameRegex = /^[^\s\r\n]*$/;
+
+// HTTP header value should not contain newlines
+export const headerValueRegex = /^[^\r\n]*$/;
+
 export const sanitizeName = (name) => {
   name = name
     .replace(invalidCharacters, '-') // replace invalid characters with hyphens
@@ -39,17 +45,17 @@ export const validateNameError = (name) => {
   }
 
   if (!firstCharacter.test(name[0])) {
-    return 'Invalid first character.';
+    return `Special characters aren't allowed in the name. Invalid character '${name[0]}'.`;
   }
 
   for (let i = 1; i < name.length - 1; i++) {
     if (!middleCharacters.test(name[i])) {
-      return `Invalid character '${name[i]}' at position ${i + 1}.`;
+      return `Special characters aren't allowed in the name. Invalid character '${name[i]}'.`;
     }
   }
 
   if (!lastCharacter.test(name[name.length - 1])) {
-    return 'Invalid last character.';
+    return `Special characters aren't allowed in the name. Invalid character '${name[name.length - 1]}'.`;
   }
 
   return '';

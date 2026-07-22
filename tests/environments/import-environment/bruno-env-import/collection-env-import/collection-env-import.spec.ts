@@ -1,6 +1,7 @@
 import { test, expect } from '../../../../../playwright';
 import path from 'path';
 import fs from 'fs';
+import { buildCommonLocators } from '../../../../utils/page/locators';
 
 test.describe.serial('Collection Environment Import Tests', () => {
   test('should import single collection environment', async ({ pageWithUserData: page }) => {
@@ -20,6 +21,7 @@ test.describe.serial('Collection Environment Import Tests', () => {
 
     await test.step('Navigate to collection environment import', async () => {
       // Open environment import
+      await page.getByTestId('environment-selector-trigger').hover();
       await page.getByTestId('environment-selector-trigger').click();
       await page.getByTestId('env-tab-collection').click();
       await expect(page.getByTestId('env-tab-collection')).toHaveClass(/active/);
@@ -39,16 +41,23 @@ test.describe.serial('Collection Environment Import Tests', () => {
     });
 
     await test.step('Verify imported environment and variables', async () => {
-      // The environment settings modal should now be visible with the imported environment
-      const envModal = page.locator('.bruno-modal').filter({ hasText: 'Environments' });
-      await expect(envModal).toBeVisible();
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+      await expect(envTab).toBeVisible();
 
-      // Verify imported variables
-      await expect(page.getByRole('row', { name: 'host' }).getByRole('cell').nth(1)).toBeVisible();
-      await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
+      const locators = buildCommonLocators(page);
+      await expect(locators.environment.varRowValueCell('host')).toBeVisible();
+      const hostDesc = locators.environment.varRowDescriptionEditor('host');
+      await expect(hostDesc.locator('.CodeMirror-line').first()).toHaveText('Single-line host desc');
 
-      // Close modal
-      await page.getByText('×').click();
+      await page.getByTestId('responsive-tab-secrets').click();
+      await expect(locators.environment.varRowValueCell('secretToken')).toBeVisible();
+
+      const secretDesc = locators.environment.varRowDescriptionEditor('secretToken');
+      await expect(secretDesc.locator('.CodeMirror-line').nth(0)).toHaveText('Secret line one');
+      await expect(secretDesc.locator('.CodeMirror-line').nth(1)).toHaveText('Secret line two');
+
+      await envTab.hover();
+      await envTab.getByTestId('request-tab-close-icon').click({ force: true });
     });
 
     await test.step('Clean up after test', async () => {
@@ -76,7 +85,10 @@ test.describe.serial('Collection Environment Import Tests', () => {
 
     await test.step('Navigate to collection environment import', async () => {
       // Open environment import
+
+      await page.getByTestId('environment-selector-trigger').hover();
       await page.getByTestId('environment-selector-trigger').click();
+
       await page.getByTestId('env-tab-collection').click();
       await expect(page.getByTestId('env-tab-collection')).toHaveClass(/active/);
       await page.getByText('Import', { exact: true }).click();
@@ -93,16 +105,14 @@ test.describe.serial('Collection Environment Import Tests', () => {
       const fileChooser = await fileChooserPromise;
       await fileChooser.setFiles(multiEnvFile);
 
-      // The environment settings modal should now be visible with the imported environments
-      const envModal = page.locator('.bruno-modal').filter({ hasText: 'Environments' });
-      await expect(envModal).toBeVisible();
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+      await expect(envTab).toBeVisible();
     });
 
     await test.step('Verify both environments are available in selector', async () => {
-      // Check that both environments are available in the selector
-      await page.getByText('×').click(); // Close environment settings modal
-
       await page.waitForTimeout(500);
+
+      await page.getByTestId('environment-selector-trigger').hover();
       await page.getByTestId('environment-selector-trigger').click();
 
       await page.waitForTimeout(300);
@@ -116,17 +126,23 @@ test.describe.serial('Collection Environment Import Tests', () => {
       await expect(page.locator('.current-environment')).toContainText('prod');
 
       // Verify prod environment variables by opening settings again
+      await page.getByTestId('environment-selector-trigger').hover();
       await page.getByTestId('environment-selector-trigger').click();
       await page.getByText('Configure', { exact: true }).click();
-      const envModal = page.locator('.bruno-modal').filter({ hasText: 'Environments' });
-      await expect(envModal).toBeVisible();
+
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+      await expect(envTab).toBeVisible();
 
       // Verify prod environment variables
-      await expect(page.getByRole('row', { name: 'host' }).getByRole('cell').nth(1)).toBeVisible();
-      await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
+      const locators = buildCommonLocators(page);
+      await expect(locators.environment.varRowValueCell('host')).toBeVisible();
 
-      // Close modal
-      await page.getByText('×').click();
+      // secretToken was imported as a secret, so it lives on the Secrets tab, not Variables.
+      await page.getByTestId('responsive-tab-secrets').click();
+      await expect(locators.environment.varRowValueCell('secretToken')).toBeVisible();
+
+      await envTab.hover();
+      await envTab.getByTestId('request-tab-close-icon').click({ force: true });
     });
 
     await test.step('Clean up after test', async () => {

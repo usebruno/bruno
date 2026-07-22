@@ -2,6 +2,12 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   max-width: 800px;
+  position: relative;
+
+  .markdown-body {
+    height: auto !important;
+    overflow-y: visible !important;
+  }
 
   div.tabs {
     div.tab {
@@ -9,7 +15,7 @@ const StyledWrapper = styled.div`
       border: none;
       border-bottom: solid 2px transparent;
       margin-right: ${(props) => props.theme.tabs.marginRight};
-      color: var(--color-tab-inactive);
+      color: ${(props) => props.theme.colors.text.subtext0};
       cursor: pointer;
 
       &:focus,
@@ -19,6 +25,10 @@ const StyledWrapper = styled.div`
       &:target {
         outline: none !important;
         box-shadow: none !important;
+      }
+
+      &:hover {
+        color: ${(props) => props.theme.tabs.active.color} !important;
       }
 
       &.active {

@@ -5,10 +5,13 @@
  *  LICENSE file in the root directory of this source tree.
  */
 
-import React from 'react';
-import { isEqual, escapeRegExp } from 'lodash';
+import React, { createRef } from 'react';
+import { useSelector } from 'react-redux';
+import { debounce, isEqual } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
-import { setupAutoComplete } from 'utils/codemirror/autocomplete';
+import { setupAutoComplete, showRootHints } from 'utils/codemirror/autocomplete';
+import { setupAiAutocomplete } from 'utils/codemirror/aiGhostText';
+import { buildAutocompleteContext } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
@@ -16,7 +19,16 @@ import stripJsonComments from 'strip-json-comments';
 import { getAllVariables } from 'utils/collections';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
-import CodeMirrorSearch from 'components/CodeMirrorSearch';
+import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
+import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
+import {
+  applyEditorState,
+  captureEditorState,
+  getDocKey,
+  readPersistedEditorState,
+  writePersistedEditorState
+} from './state-persistence';
+import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 
 const CodeMirror = require('codemirror');
 window.jsonlint = jsonlint;
@@ -24,7 +36,7 @@ window.JSHINT = JSHINT;
 
 const TAB_SIZE = 2;
 
-export default class CodeEditor extends React.Component {
+class CodeEditor extends React.Component {
   constructor(props) {
     super(props);
 
@@ -34,6 +46,7 @@ export default class CodeEditor extends React.Component {
     this.cachedValue = props.value || '';
     this.variables = {};
     this.searchResultsCountElementId = 'search-results-count';
+    this.searchBarRef = createRef();
 
     this.lintOptions = {
       esversion: 11,
@@ -47,8 +60,24 @@ export default class CodeEditor extends React.Component {
     };
   }
 
+  // Thin wrapper around the pure getDocKey helper from state-persistence.js.
+  // Kept on the class so the rest of the lifecycle code reads naturally.
+  _getDocKey() {
+    return getDocKey(this.props);
+  }
+
   componentDidMount() {
     const variables = getAllVariables(this.props.collection, this.props.item);
+    /**
+     * No-op. We claim Cmd-Enter / Ctrl-Enter here only to suppress CodeMirror's
+     * sublime keymap default (insertLineAfter), which would otherwise insert a
+     * newline. sendRequest dispatch is owned by Mousetrap — the editor input has
+     * the `mousetrap` class (added below) so the global
+     * useKeybinding('sendRequest', …) in RequestTabPanel handles it, and only
+     * in request tabs. Falling through with CodeMirror.Pass when onRun is absent
+     * would re-introduce the newline in collection/folder-level editors.
+     */
+    const runShortcut = () => {};
 
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
@@ -73,46 +102,32 @@ export default class CodeEditor extends React.Component {
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
-        'Cmd-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Ctrl-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
         'Cmd-F': (cm) => {
-          if (!this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: true });
-          }
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+          });
         },
         'Ctrl-F': (cm) => {
-          if (!this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: true });
-          }
+          this.setState({ searchBarVisible: true }, () => {
+            this.searchBarRef.current?.focus();
+          });
         },
-        'Cmd-H': 'replace',
-        'Ctrl-H': 'replace',
+        'Cmd-H': this.props.readOnly ? false : 'replace',
+        'Ctrl-H': this.props.readOnly ? false : 'replace',
+        'Cmd-Enter': runShortcut,
+        'Ctrl-Enter': runShortcut,
         'Tab': function (cm) {
           cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
             ? cm.execCommand('indentMore')
             : cm.replaceSelection('  ', 'end');
         },
         'Shift-Tab': 'indentLess',
-        'Ctrl-Space': 'autocomplete',
-        'Cmd-Space': 'autocomplete',
+        'Ctrl-Space': (cm) => {
+          showRootHints(cm, this.props.showHintsFor);
+        },
+        'Cmd-Space': (cm) => {
+          showRootHints(cm, this.props.showHintsFor);
+        },
         'Ctrl-Y': 'foldAll',
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
@@ -190,10 +205,62 @@ export default class CodeEditor extends React.Component {
     });
 
     if (editor) {
+      // CM5 was constructed with props.value, so the editor already shows the
+      // right content. Read this tab's previously persisted view state from
+      // localStorage and apply it on top — restores folds, cursor, selection,
+      // undo history, and scroll position.
+      const docKey = getDocKey(this.props);
+      this._currentDocKey = docKey;
+      this.cachedValue = editor.getValue();
+      applyEditorState(
+        editor,
+        readPersistedEditorState({ scope: this.props.persistenceScope, key: docKey }),
+        this.cachedValue
+      );
+
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
-      editor.on('scroll', this.onScroll);
+
+      // Persist view state immediately when the user folds or unfolds — without
+      // this, a fold only gets saved on the next tab switch / unmount. That
+      // makes the persistence feel "delayed" or random, especially across
+      // sub-tab switches that don't change the docKey or unmount the editor.
+      // Debounced so rapid fold/unfold (e.g. Cmd-Y to fold all) doesn't write
+      // to localStorage on every event.
+      this._persistViewStateDebounced = debounce(() => {
+        if (!this.editor || !this._currentDocKey) return;
+        writePersistedEditorState({
+          scope: this.props.persistenceScope,
+          key: this._currentDocKey,
+          state: captureEditorState(this.editor)
+        });
+      }, 250);
+      editor.on('fold', this._persistViewStateDebounced);
+      editor.on('unfold', this._persistViewStateDebounced);
+
       editor.scrollTo(null, this.props.initialScroll);
+      this._lastScrollTop = this.props.initialScroll || 0;
+      editor.on('scroll', () => {
+        const wrapper = editor.getWrapperElement();
+        if (wrapper && wrapper.offsetParent === null) return;
+        this._lastScrollTop = editor.getScrollInfo().top;
+        if (this.props.onScroll && typeof this.props.onScroll === 'function') {
+          this.props.onScroll(this._lastScrollTop);
+        }
+      });
+
+      // For editors inside a scroll container (e.g. the WebSocket message list),
+      // stop the browser from scrolling that container on focus. Otherwise a
+      // click shifts the content mid-click, landing the cursor on the wrong line
+      // and jumping the editor. preventScroll keeps CodeMirror's own scrolling.
+      if (this.props.containScroll) {
+        const inputField = editor.getInputField();
+        if (inputField && typeof inputField.focus === 'function') {
+          const nativeFocus = inputField.focus.bind(inputField);
+          inputField.focus = (options) => nativeFocus({ ...(options || {}), preventScroll: true });
+        }
+      }
+
       this.addOverlay();
 
       const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
@@ -209,10 +276,36 @@ export default class CodeEditor extends React.Component {
         autoCompleteOptions
       );
 
+      // AI ghost-text autocomplete (script editors only). Stays inert until
+      // the user has both enabled AI and configured a provider.
+      if (this.props.scriptType) {
+        this.aiAutocompleteCleanup = setupAiAutocomplete(editor, {
+          scriptType: this.props.scriptType,
+          isEnabled: () => {
+            const ai = this.props.aiPreferences;
+            return Boolean(ai?.enabled) && ai?.autocomplete?.enabled !== false;
+          },
+          getTriggerMode: () => this.props.aiPreferences?.autocomplete?.triggerMode || 'debounced',
+          getContext: () => buildAutocompleteContext({
+            item: this.props.item,
+            collection: this.props.collection,
+            scriptType: this.props.scriptType
+          })
+        });
+      }
+
       setupLinkAware(editor);
 
       // Setup lint error tooltip on line number hover
       this.cleanupLintErrorTooltip = setupLintErrorTooltip(editor);
+
+      // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
+      const cmInput = editor.getInputField();
+      if (cmInput) {
+        cmInput.classList.add('mousetrap');
+      }
+
+      this.cleanupResizeRefresh = setupCodeMirrorResizeRefresh(editor, this._node);
     }
   }
 
@@ -228,9 +321,52 @@ export default class CodeEditor extends React.Component {
       this.editor.options.jump.schema = this.props.schema;
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
-    if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      this.cachedValue = this.props.value;
-      this.editor.setValue(this.props.value);
+    if (this.editor) {
+      // Two distinct update paths:
+      //   1. Doc key changed → tab switch → snapshot outgoing state, load new content, restore incoming state
+      //   2. Same doc, value changed → external content update → setValue (view state resets)
+      const newDocKey = getDocKey(this.props);
+      const docKeyChanged = newDocKey !== this._currentDocKey;
+
+      if (docKeyChanged) {
+        // Path 1 — tab switch.
+        // Snapshot the outgoing tab's view state to localStorage so a future
+        // visit can restore it. Then setValue the incoming content and apply
+        // any view state previously persisted for the incoming tab.
+        if (this._currentDocKey) {
+          writePersistedEditorState({
+            scope: this.props.persistenceScope,
+            key: this._currentDocKey,
+            state: captureEditorState(this.editor)
+          });
+        }
+        this.cachedValue = String(this?.props?.value ?? '');
+        this.editor.setValue(String(this.props.value) || '');
+        this._currentDocKey = newDocKey;
+        applyEditorState(
+          this.editor,
+          readPersistedEditorState({ scope: this.props.persistenceScope, key: newDocKey }),
+          this.cachedValue
+        );
+        // setValue resets the editor's mode-overlay state — re-apply the
+        // brunovariables overlay and re-evaluate lint config for the new content.
+        this.addOverlay();
+        this.editor.setOption(
+          'lint',
+          this.props.mode && this.editor.getValue().trim().length > 0 ? this.lintOptions : false
+        );
+      } else if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue) {
+        // Path 2 — same tab, new external value (e.g. a fresh response arrived
+        // while this tab was active). Update content; view state resets because
+        // line positions no longer correspond to anything. Invalidate the
+        // persisted snapshot too, since the saved cursor/folds/history reflect
+        // the prior content.
+        const cursor = this.editor.getCursor();
+        this.cachedValue = String(this?.props?.value ?? '');
+        this.editor.setValue(String(this.props.value) || '');
+        this.editor.setCursor(cursor);
+        writePersistedEditorState({ scope: this.props.persistenceScope, key: this._currentDocKey, state: null });
+      }
     }
 
     if (this.editor) {
@@ -275,12 +411,39 @@ export default class CodeEditor extends React.Component {
 
   componentWillUnmount() {
     if (this.editor) {
+      if (this.props.onScroll) {
+        this.props.onScroll(this._lastScrollTop);
+      }
+
+      // Snapshot view state to localStorage before tearing down the editor so
+      // the next mount of a CodeEditor with this docKey can restore folds,
+      // cursor, selection, undo history, and scroll position.
+      if (this._currentDocKey) {
+        writePersistedEditorState({
+          scope: this.props.persistenceScope,
+          key: this._currentDocKey,
+          state: captureEditorState(this.editor)
+        });
+      }
+
+      this.aiAutocompleteCleanup?.();
       this.editor?._destroyLinkAware?.();
       this.editor.off('change', this._onEdit);
-      this.editor.off('scroll', this.onScroll);
+
+      // Tear down the debounced fold-persistence listener. Cancel any pending
+      // call so it can't fire after we've already snapshotted state above.
+      if (this._persistViewStateDebounced) {
+        this.editor.off('fold', this._persistViewStateDebounced);
+        this.editor.off('unfold', this._persistViewStateDebounced);
+        this._persistViewStateDebounced.cancel?.();
+      }
 
       // Clean up lint error tooltip
       this.cleanupLintErrorTooltip?.();
+      this.cleanupResizeRefresh?.();
+
+      const wrapper = this.editor.getWrapperElement();
+      wrapper?.parentNode?.removeChild(wrapper);
 
       this.editor = null;
     }
@@ -298,6 +461,10 @@ export default class CodeEditor extends React.Component {
         fontSize={this.props.fontSize}
       >
         <CodeMirrorSearch
+          ref={(node) => {
+            if (!node) return;
+            this.searchBarRef.current = node;
+          }}
           visible={this.state.searchBarVisible}
           editor={this.editor}
           onClose={() => this.setState({ searchBarVisible: false })}
@@ -325,8 +492,6 @@ export default class CodeEditor extends React.Component {
     this.editor.setOption('mode', 'brunovariables');
   };
 
-  onScroll = (event) => this.props.onScroll?.(event);
-
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
       this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
@@ -337,3 +502,20 @@ export default class CodeEditor extends React.Component {
     }
   };
 }
+
+const CodeEditorWithPersistenceScope = React.forwardRef((props, ref) => {
+  const persistenceScope = usePersistenceScope();
+  const aiPreferences = useSelector((state) => state.app.preferences?.ai);
+  return (
+    <CodeEditor
+      {...props}
+      persistenceScope={persistenceScope}
+      aiPreferences={aiPreferences}
+      ref={ref}
+    />
+  );
+});
+
+CodeEditorWithPersistenceScope.displayName = 'CodeEditor';
+
+export default CodeEditorWithPersistenceScope;

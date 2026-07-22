@@ -7,21 +7,13 @@ const Wrapper = styled.div`
     background: transparent;
 
     .auth-mode-label {
-      color: ${(props) => props.theme.colors.text.yellow};
-    }
+      color: ${(props) => props.theme.primary.text};
 
-    .dropdown-item {
-      padding: 0.2rem 0.6rem !important;
+      .caret {
+        color: rgb(140, 140, 140);
+        fill: rgb(140, 140, 140);
+      }
     }
-
-    .label-item {
-      padding: 0.2rem 0.6rem !important;
-    }
-  }
-
-  .caret {
-    color: rgb(140, 140, 140);
-    fill: rgb(140 140 140);
   }
 `;
 

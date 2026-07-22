@@ -4,49 +4,42 @@ const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
-  flex: 1;
-  position: relative;
+  height: 100%;
 
-  .ws-message-header {
-    .font-medium {
-      color: ${(props) => props.theme.text};
-    }
-    
-    button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-      
-      &:hover {
-        transform: scale(1.1);
-      }
-      
-      &:active {
-        transform: scale(0.95);
-      }
+  .messages-container {
+    flex: 1;
+    overflow-y: auto;
+    isolation: isolate;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+
+    p {
+      color: ${(props) => props.theme.colors.text.muted};
+      font-size: 13px;
     }
   }
 
-  .add-message-btn-container {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding-top: 8px;
-    background: ${(props) => props.theme.bg || '#fff'};
-    z-index: 15;
-    border-top: 1px solid ${(props) => props.theme.border || 'rgba(0, 0, 0, 0.1)'};
-    
-    .add-message-btn {
-      width: 100%;
-    }
-  }
+  .add-message-link {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.875rem;
+    color: ${(props) => props.theme.primary.text};
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 4px 0;
 
-  .CodeMirror {
-    border-top: 0;
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
+    &:hover {
+      opacity: 0.8;
+    }
   }
 `;
 

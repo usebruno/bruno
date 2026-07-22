@@ -12,12 +12,16 @@ const QueryResponse = ({
   dataBuffer,
   disableRunEventListener,
   headers,
-  error
+  error,
+  hideResultTypeSelector,
+  docKey
 }) => {
   const { initialFormat, initialTab } = useInitialResponseFormat(dataBuffer, headers);
   const previewFormatOptions = useResponsePreviewFormatOptions(dataBuffer, headers);
   const [selectedFormat, setSelectedFormat] = useState('raw');
   const [selectedTab, setSelectedTab] = useState('editor');
+  const [filter, setFilter] = useState('');
+  const [filterExpanded, setFilterExpanded] = useState(false);
 
   useEffect(() => {
     if (initialFormat !== null && initialTab !== null) {
@@ -27,20 +31,24 @@ const QueryResponse = ({
   }, [initialFormat, initialTab]);
   return (
     <StyledWrapper>
-      <div className="flex items-center justify-end p-2">
-        <QueryResultTypeSelector
-          formatOptions={previewFormatOptions}
-          formatValue={selectedFormat}
-          onFormatChange={(newFormat) => {
-            setSelectedFormat(newFormat);
-          }}
-          onPreviewTabSelect={() => {
-            setSelectedTab((prev) => prev === 'editor' ? 'preview' : 'editor');
-          }}
-          selectedTab={selectedTab}
-        />
-      </div>
-      <div className={classnames('flex-1 query-response-content', selectedTab === 'editor' ? 'px-2 py-1' : '')}>
+      {!hideResultTypeSelector && (
+        <div className="flex items-center justify-end p-2 result-type-selector">
+
+          <QueryResultTypeSelector
+            formatOptions={previewFormatOptions}
+            formatValue={selectedFormat}
+            onFormatChange={(newFormat) => {
+              setSelectedFormat(newFormat);
+            }}
+            onPreviewTabSelect={() => {
+              setSelectedTab((prev) => prev === 'editor' ? 'preview' : 'editor');
+            }}
+            selectedTab={selectedTab}
+            isActiveTab={true}
+          />
+        </div>
+      )}
+      <div className={classnames('flex-1 result-content', selectedTab === 'editor' ? 'px-2 py-1' : '')}>
         <QueryResult
           item={item}
           collection={collection}
@@ -51,6 +59,11 @@ const QueryResponse = ({
           error={error}
           selectedFormat={selectedFormat}
           selectedTab={selectedTab}
+          filter={filter}
+          filterExpanded={filterExpanded}
+          onFilterChange={setFilter}
+          onFilterExpandChange={setFilterExpanded}
+          docKey={docKey}
         />
       </div>
     </StyledWrapper>

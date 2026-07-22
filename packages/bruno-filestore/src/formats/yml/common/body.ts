@@ -7,10 +7,12 @@ import type {
   MultipartFormBody,
   MultipartFormEntry,
   FileBody,
-  FileBodyEntry
+  FileBodyVariant
 } from '@opencollection/types/requests/http';
+import type { FileEntry as BrunoFileEntry } from '@usebruno/schema-types/common/file';
+
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
-import { uuid } from '../../../utils';
+import { uuid, ensureString } from '../../../utils';
 
 export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefined): HttpRequestBody | undefined => {
   if (!body) {
@@ -81,6 +83,10 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
           value: entry.value || (entry.type === 'file' ? [] : '')
         };
 
+        if (entry?.contentType?.trim().length) {
+          multipartEntry.contentType = entry.contentType;
+        }
+
         if (entry?.description?.trim().length) {
           multipartEntry.description = entry.description;
         }
@@ -99,12 +105,18 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
       return multipartBody;
 
     case 'file':
-      const fileEntries: FileBodyEntry[] = body.file?.map((file): FileBodyEntry => {
-        return {
+      const fileEntries: FileBodyVariant[] = body.file?.map((file): FileBodyVariant => {
+        const fileEntry: FileBodyVariant = {
           filePath: file.filePath || '',
           contentType: file.contentType || '',
           selected: file.selected ?? false
         };
+
+        if (file?.description?.trim().length) {
+          fileEntry.description = file.description;
+        }
+
+        return fileEntry;
       }) || [];
 
       const fileBody: FileBody = {
@@ -175,8 +187,8 @@ export const toBrunoBody = (body: HttpRequestBody | null | undefined): BrunoHttp
       brunoBody.formUrlEncoded = body.data?.map((entry): BrunoKeyValue => {
         const formEntry: BrunoKeyValue = {
           uid: uuid(),
-          name: entry.name || '',
-          value: entry.value || '',
+          name: ensureString(entry.name),
+          value: ensureString(entry.value),
           enabled: entry.disabled !== true
         };
 
@@ -198,9 +210,9 @@ export const toBrunoBody = (body: HttpRequestBody | null | undefined): BrunoHttp
         const multipartEntry: any = {
           uid: uuid(),
           type: entry.type,
-          name: entry.name || '',
-          value: entry.value || (entry.type === 'file' ? [] : ''),
-          contentType: null,
+          name: ensureString(entry.name),
+          value: entry.type === 'file' ? (entry.value || []) : ensureString(entry.value),
+          contentType: entry.contentType || null,
           enabled: entry.disabled !== true
         };
 
@@ -218,12 +230,22 @@ export const toBrunoBody = (body: HttpRequestBody | null | undefined): BrunoHttp
 
     case 'file':
       brunoBody.mode = 'file';
-      brunoBody.file = body.data?.map((file): any => ({
-        uid: uuid(),
-        filePath: file.filePath || '',
-        contentType: file.contentType || '',
-        selected: file.selected ?? false
-      })) || [];
+      brunoBody.file = body.data?.map((file): BrunoFileEntry => {
+        const fileEntry: BrunoFileEntry = {
+          uid: uuid(),
+          filePath: file.filePath || '',
+          contentType: file.contentType || '',
+          selected: file.selected ?? false
+        };
+
+        const fileWithDescription = file as FileBodyVariant;
+        const desc = typeof fileWithDescription.description === 'string'
+          ? fileWithDescription.description
+          : (fileWithDescription.description as { content?: string } | undefined)?.content;
+        if (desc && desc.trim().length) fileEntry.description = desc;
+
+        return fileEntry;
+      }) || [];
       break;
 
     default:

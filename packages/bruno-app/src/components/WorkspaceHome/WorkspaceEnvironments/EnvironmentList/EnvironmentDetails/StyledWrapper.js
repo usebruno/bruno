@@ -12,12 +12,12 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px 8px 20px;
+    padding: 9px 20px 8px 20px;
     flex-shrink: 0;
     
     .title {
-      font-size: 13px;
-      font-weight: 600;
+      font-size: ${(props) => props.theme.font.size.base};
+      font-weight: 500;
       color: ${(props) => props.theme.text};
       margin: 0;
     }
@@ -81,52 +81,114 @@ const StyledWrapper = styled.div`
     .title-error {
       position: absolute;
       top: 100%;
-      left: 0;
+      left: 20px;
       margin-top: 4px;
       padding: 4px 8px;
       font-size: 11px;
       color: ${(props) => props.theme.colors.text.danger};
-      background: ${(props) => `${props.theme.colors.text.danger}15`};
+      background: ${(props) => props.theme.bg};
+      border: 1px solid ${(props) => props.theme.colors.text.danger};
       border-radius: 4px;
       white-space: nowrap;
     }
     
     .actions {
       display: flex;
+      align-items: center;
       gap: 2px;
-      
-      button {
-        display: inline-flex;
+    }
+  }
+
+  .tabs-container {
+    padding: 0 20px;
+    flex-shrink: 0;
+
+    /* Float the unsaved dot into the tab's right margin so the tab (and its active underline)
+       stays as wide as the label. The overflow dropdown portals outside this container, so its
+       dot stays inline. */
+    .tab {
+      position: relative;
+      /* Extra room after the label so the floated dot sits close to its own tab and clear of the next. */
+      margin-right: 1.75rem;
+    }
+
+    .env-tab-draft-indicator {
+      position: absolute;
+      left: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      margin-left: 0.375rem;
+      display: inline-flex;
+    }
+
+    .env-search-container {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+
+      .search-input-wrapper {
+        position: relative;
+        display: flex;
         align-items: center;
-        justify-content: center;
-        width: 28px;
-        height: 28px;
-        padding: 0;
-        color: ${(props) => props.theme.colors.text.muted};
-        background: transparent;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        
-        &:hover {
-          background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-          color: ${(props) => props.theme.text};
+
+        .search-icon {
+          position: absolute;
+          left: 8px;
+          color: ${(props) => props.theme.colors.text.muted};
+          pointer-events: none;
         }
-        
-        &:last-child:hover {
-          color: ${(props) => props.theme.colors.text.danger};
+
+        .search-input {
+          width: 200px;
+          padding: 5px 32px 5px 32px;
+          border: 1px solid ${(props) => props.theme.input.border};
+          border-radius: ${(props) => props.theme.border.radius.sm};
+          background: ${(props) => props.theme.input.bg};
+          color: ${(props) => props.theme.text};
+          font-size: ${(props) => props.theme.font.size.base};
+          outline: none;
+          transition: border-color 0.15s ease;
+
+          &:focus {
+            border-color: ${(props) => props.theme.input.focusBorder};
+          }
+
+          &::placeholder {
+            color: ${(props) => props.theme.input.placeholder.color};
+            opacity: ${(props) => props.theme.input.placeholder.opacity};
+          }
+        }
+
+        .clear-search {
+          position: absolute;
+          right: 1px;
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: ${(props) => props.theme.colors.text.muted};
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          border-radius: ${(props) => props.theme.border.radius.sm};
+          transition: all 0.15s ease;
+
+          &:hover {
+            color: ${(props) => props.theme.text};
+            background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+          }
         }
       }
     }
   }
-  
+
   .content {
     flex: 1;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     padding: 0 20px 20px 20px;
+    margin-top: 16px;
   }
 `;
 

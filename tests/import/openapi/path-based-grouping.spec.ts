@@ -34,14 +34,13 @@ test.describe('OpenAPI Path-Based Grouping', () => {
     // Select a location and import
     await page.locator('#collection-location').fill(await createTmpDir('path-grouping-test'));
     await locationModal.getByRole('button', { name: 'Import' }).click();
+    await locationModal.waitFor({ state: 'hidden' });
 
     // Verify the collection was imported successfully
     await expect(page.locator('#sidebar-collection-name').getByText('Path Grouping Test API')).toBeVisible();
 
     // Configure the collection settings
     await page.locator('#sidebar-collection-name').getByText('Path Grouping Test API').click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Verify path-based folder structure was created
     // Should have 'users' and 'products' folders

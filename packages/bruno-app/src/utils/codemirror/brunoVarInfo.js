@@ -6,8 +6,9 @@
  *  LICENSE file at https://github.com/graphql/codemirror-graphql/tree/v0.8.3
  */
 
-import { interpolate } from '@usebruno/common';
-import { getVariableScope, isVariableSecret, getAllVariables } from 'utils/collections';
+import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
+import { toDisplayString } from '@usebruno/common/utils';
+import { getVariableScope, isVariableSecret, getAllVariables, findCollectionByUid, findItemInCollectionByItemUid } from 'utils/collections';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
 import store from 'providers/ReduxStore';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
@@ -73,14 +74,17 @@ const getScopeLabel = (scopeType) => {
     'request': 'Request',
     'runtime': 'Runtime',
     'process.env': 'Process Env',
-    'undefined': 'Undefined'
+    'dynamic': 'Dynamic',
+    'oauth2': 'OAuth2',
+    'undefined': 'Undefined',
+    'pathParam': 'Path Param'
   };
   return labels[scopeType] || scopeType;
 };
 
 // Get the masked display text based on the value length
 const getMaskedDisplay = (value) => {
-  const contentLength = (value || '').length;
+  const contentLength = (value === undefined || value === null ? '' : String(value)).length;
   return contentLength > 0 ? '*'.repeat(contentLength) : '';
 };
 
@@ -88,9 +92,20 @@ const getMaskedDisplay = (value) => {
 const updateValueDisplay = (valueDisplay, value, isSecret, isMasked, isRevealed) => {
   if ((isSecret || isMasked) && !isRevealed) {
     valueDisplay.textContent = getMaskedDisplay(value);
-  } else {
-    valueDisplay.textContent = value || '';
+    return;
   }
+
+  if (typeof value === 'object') {
+    valueDisplay.textContent = value === null ? 'null' : toDisplayString(value, String(value));
+    return;
+  }
+
+  if (typeof value === 'undefined' || value === undefined) {
+    valueDisplay.textContent = '';
+    return;
+  }
+
+  valueDisplay.textContent = value;
 };
 
 // Check if the raw value contains references to secret variables
@@ -118,10 +133,11 @@ const containsSecretVariableReferences = (rawValue, collection, item) => {
   return false;
 };
 
-const getCopyButton = (variableValue, onCopyCallback) => {
+const getCopyButton = (getVariableValue, onCopyCallback) => {
   const copyButton = document.createElement('button');
 
   copyButton.className = 'copy-button';
+  copyButton.setAttribute('data-testid', 'var-info-copy-button');
   copyButton.innerHTML = COPY_ICON_SVG_TEXT;
   copyButton.type = 'button';
 
@@ -136,8 +152,13 @@ const getCopyButton = (variableValue, onCopyCallback) => {
       return;
     }
 
+    // Resolve the latest value at click time so edits/saves are reflected.
+    const valueToCopy = typeof getVariableValue === 'function' ? getVariableValue() : getVariableValue;
+
+    const valueStr = toDisplayString(valueToCopy, String(valueToCopy));
+
     navigator.clipboard
-      .writeText(variableValue)
+      .writeText(valueStr)
       .then(() => {
         isCopied = true;
         copyButton.innerHTML = CHECKMARK_ICON_SVG_TEXT;
@@ -178,13 +199,40 @@ export const renderVarInfo = (token, options) => {
   const collection = options.collection;
   const item = options.item;
 
-  // Check if this is a process.env variable (starts with "process.env.")
+  // Check if this is a dynamic/faker variable (starts with "$")
   let scopeInfo;
-  if (variableName.startsWith('process.env.')) {
+  if (variableName.startsWith('$oauth2.')) {
+    // OAuth2 token variable - look up in variables object
+    const oauth2Value = get(options.variables, variableName);
+    scopeInfo = {
+      type: 'oauth2',
+      value: oauth2Value !== undefined ? oauth2Value : '',
+      data: null,
+      isValidOAuth2Variable: oauth2Value !== undefined
+    };
+  } else if (variableName.startsWith('$')) {
+    const fakerKeyword = variableName.substring(1); // Remove the $ prefix
+    const fakerFunction = mockDataFunctions[fakerKeyword];
+    const isTimeBased = timeBasedDynamicVars.has(fakerKeyword);
+    scopeInfo = {
+      type: 'dynamic',
+      value: '',
+      data: null,
+      isValidDynamicVariable: !!fakerFunction,
+      isTimeBased
+    };
+  } else if (variableName.startsWith('process.env.')) {
+    // Check if this is a process.env variable (starts with "process.env.")
     scopeInfo = {
       type: 'process.env',
       value: variableValue || '',
       data: null
+    };
+  } else if (token.string.startsWith('/:')) {
+    scopeInfo = {
+      type: 'pathParam',
+      value: variableValue || '',
+      data: { item }
     };
   } else {
     // Detect variable scope
@@ -192,7 +240,7 @@ export const renderVarInfo = (token, options) => {
 
     // If variable doesn't exist in any scope, determine scope based on context
     if (!scopeInfo) {
-      if (item) {
+      if (item && item.uid) {
         // Determine if item is a folder or request
         const isFolder = item.type === 'folder';
 
@@ -229,11 +277,13 @@ export const renderVarInfo = (token, options) => {
     }
   }
 
-  // Check if variable is read-only (process.env, runtime, and undefined variables cannot be edited)
-  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'undefined';
+  // Check if a runtime variable exists with the same name (even if scope is detected as collection/folder/environment)
+  const hasRuntimeVariable = collection && collection.runtimeVariables && collection.runtimeVariables[variableName];
+  // Check if variable is read-only (process.env, runtime, dynamic/faker, oauth2, and undefined variables cannot be edited)
+  const isReadOnly = scopeInfo.type === 'process.env' || scopeInfo.type === 'runtime' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || scopeInfo.type === 'undefined' || hasRuntimeVariable;
 
-  // Get raw value from scope
-  const rawValue = scopeInfo.value || '';
+  // `??` preserves typed falsy values (false / 0); `||` would clobber them to ''.
+  const rawValue = scopeInfo.value ?? '';
 
   // Check if variable should be masked:
   const isSecret = scopeInfo.type !== 'undefined' ? isVariableSecret(scopeInfo) : false;
@@ -251,13 +301,17 @@ export const renderVarInfo = (token, options) => {
 
   const varName = document.createElement('span');
   varName.className = 'var-name';
+  varName.setAttribute('data-testid', 'var-info-name');
   varName.textContent = variableName;
 
   const scopeBadge = document.createElement('span');
   scopeBadge.className = 'var-scope-badge';
+  scopeBadge.setAttribute('data-testid', 'var-info-scope-badge');
 
+  // Check if a runtime variable exists - if so, show Runtime scope (even if detected as collection/folder/environment)
+  const displayScopeType = hasRuntimeVariable ? 'runtime' : (scopeInfo ? scopeInfo.type : 'Unknown');
   // Show scope label with indication if it's a new variable
-  const scopeLabel = scopeInfo ? getScopeLabel(scopeInfo.type) : 'Unknown';
+  const scopeLabel = getScopeLabel(displayScopeType);
   const isNewVariable = scopeInfo && scopeInfo.data && scopeInfo.data.variable === null;
   scopeBadge.textContent = isNewVariable ? `${scopeLabel}` : scopeLabel;
 
@@ -265,17 +319,50 @@ export const renderVarInfo = (token, options) => {
   header.appendChild(scopeBadge);
   into.appendChild(header);
 
-  // Check if variable name is valid (only for non-process.env variables)
-  const isValidVariableName = scopeInfo.type === 'process.env' || variableNameRegex.test(variableName);
+  // Check if variable name is valid
+  const isValidVariableName = scopeInfo.type === 'process.env' || scopeInfo.type === 'dynamic' || scopeInfo.type === 'oauth2' || variableNameRegex.test(variableName);
 
   // Show warning if variable name is invalid
   if (!isValidVariableName) {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
     warningNote.textContent = 'Invalid variable name! Variables must only contain alpha-numeric characters, "-", "_", "."';
     into.appendChild(warningNote);
 
     // Don't show value or any other content for invalid variable names
+    return into;
+  }
+
+  // Show warning for invalid dynamic variable (starts with $ but not a valid dynamic function)
+  if (scopeInfo.type === 'dynamic' && !scopeInfo.isValidDynamicVariable) {
+    const warningNote = document.createElement('div');
+    warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
+    warningNote.textContent = `Unknown dynamic variable "${variableName}". Check the variable name.`;
+    into.appendChild(warningNote);
+    return into;
+  }
+
+  // For valid dynamic variables, show appropriate read-only note based on type
+  if (scopeInfo.type === 'dynamic' && scopeInfo.isValidDynamicVariable) {
+    const readOnlyNote = document.createElement('div');
+    readOnlyNote.className = 'var-readonly-note';
+    readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
+    readOnlyNote.textContent = scopeInfo.isTimeBased
+      ? 'Generates current timestamp on each request'
+      : 'Generates random value on each request';
+    into.appendChild(readOnlyNote);
+    return into;
+  }
+
+  // Show warning for invalid OAuth2 variable (token not found)
+  if (scopeInfo.type === 'oauth2' && !scopeInfo.isValidOAuth2Variable) {
+    const warningNote = document.createElement('div');
+    warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
+    warningNote.textContent = `OAuth2 token not found. Make sure you have fetched the token with the correct Token ID.`;
+    into.appendChild(warningNote);
     return into;
   }
 
@@ -291,12 +378,14 @@ export const renderVarInfo = (token, options) => {
     // Create display element (shows interpolated value by default)
     const valueDisplay = document.createElement('div');
     valueDisplay.className = 'var-value-editable-display';
+    valueDisplay.setAttribute('data-testid', 'var-info-value-editable');
     // Mask the displayed value if it contains secrets or references to secrets
     updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, false);
 
     // Create container for CodeMirror (hidden by default)
     const editorContainer = document.createElement('div');
     editorContainer.className = 'var-value-editor';
+    editorContainer.setAttribute('data-testid', 'var-info-value-editor');
     editorContainer.style.display = 'none'; // Hidden initially
 
     // Detect current theme from DOM
@@ -306,9 +395,10 @@ export const renderVarInfo = (token, options) => {
     // Get all variables for syntax highlighting (but prevent recursive tooltips)
     const allVariables = collection ? getAllVariables(collection, item) : {};
 
-    // Create CodeMirror instance
+    const editorInitialValue = typeof rawValue === 'string' ? rawValue : JSON.stringify(rawValue, null, 2);
+
     const cmEditor = CodeMirror(editorContainer, {
-      value: typeof rawValue === 'string' ? rawValue : String(rawValue), // Use raw value (e.g., {{echo-host}} not resolved value) (ensure it's always a string for CodeMirror) #usebruno/bruno/#6265
+      value: editorInitialValue,
       mode: 'brunovariables',
       theme: cmTheme,
       lineWrapping: true,
@@ -338,9 +428,14 @@ export const renderVarInfo = (token, options) => {
       maskedEditor.enable();
     }
 
-    // Store original value for comparison and track editing state
-    let originalValue = rawValue;
+    // Use the editor-formatted string so a no-op blur on a typed value doesn't dispatch.
+    let originalValue = editorInitialValue;
     let isEditing = false;
+    // Latest resolved value and mask state used by the copy button, eye toggle, and
+    // error-revert path. Updated after each successful save so subsequent redraws
+    // reflect the saved state. `??` preserves falsy-but-valid values like 0 / false.
+    let currentInterpolatedValue = variableValue ?? '';
+    let currentShouldMaskValue = shouldMaskValue;
 
     cmEditor.setOption('extraKeys', {
       'Enter': (cm) => {
@@ -376,6 +471,7 @@ export const renderVarInfo = (token, options) => {
     if (shouldMaskValue || isMasked) {
       const toggleButton = document.createElement('button');
       toggleButton.className = 'secret-toggle-button';
+      toggleButton.setAttribute('data-testid', 'var-info-secret-toggle');
       toggleButton.innerHTML = EYE_ICON_SVG;
       toggleButton.type = 'button';
 
@@ -387,8 +483,8 @@ export const renderVarInfo = (token, options) => {
         // Update icon
         toggleButton.innerHTML = isRevealed ? EYE_OFF_ICON_SVG : EYE_ICON_SVG;
 
-        // Update display mode
-        updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, isRevealed);
+        // Update display mode using live state so post-save values/masking are reflected.
+        updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
 
         // Update editor mode
         if (maskedEditor) {
@@ -406,8 +502,9 @@ export const renderVarInfo = (token, options) => {
       iconsContainer.appendChild(toggleButton);
     }
 
-    // Copy button (copy actual value, not masked)
-    const copyButton = getCopyButton(variableValue || '', () => {
+    // Copy button (copy actual value, not masked). Uses a getter so it always
+    // reflects the latest saved value, not the value captured at popup creation.
+    const copyButton = getCopyButton(() => currentInterpolatedValue, () => {
       // Refocus the editor if it's currently in edit mode
       if (isEditing) {
         setTimeout(() => {
@@ -426,23 +523,30 @@ export const renderVarInfo = (token, options) => {
       if (isEditing) return;
 
       isEditing = true;
-      valueDisplay.style.display = 'none';
+
+      // Stage editor off-visual first to avoid a visible resize/text flash.
       editorContainer.style.display = 'block';
+      editorContainer.style.visibility = 'hidden';
 
       // Focus the editor and ensure proper sizing
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         cmEditor.refresh();
+
+        // Adjust height based on content before revealing editor
+        const sizer = cmEditor.getWrapperElement().querySelector('.CodeMirror-sizer');
+        const contentHeight = sizer ? sizer.clientHeight : cmEditor.getScrollInfo().height;
+        editorContainer.style.height = `${calculateEditorHeight(contentHeight)}rem`;
+
+        // Swap display only after editor layout is ready
+        valueDisplay.style.display = 'none';
+        editorContainer.style.visibility = 'visible';
         cmEditor.focus();
 
         // Set cursor to end of content
         const lineCount = cmEditor.lineCount();
         const lastLine = cmEditor.getLine(lineCount - 1);
         cmEditor.setCursor(lineCount - 1, lastLine ? lastLine.length : 0);
-
-        // Adjust height based on content
-        const contentHeight = cmEditor.getScrollInfo().height;
-        editorContainer.style.height = `${calculateEditorHeight(contentHeight)}rem`;
-      }, 0);
+      });
     });
 
     // Save on blur and return to display mode
@@ -451,6 +555,7 @@ export const renderVarInfo = (token, options) => {
 
       // Switch back to display mode
       editorContainer.style.display = 'none';
+      editorContainer.style.visibility = 'visible';
       editorContainer.style.height = `${EDITOR_MIN_HEIGHT}rem`; // Reset to minimum height
       valueDisplay.style.display = 'block';
       isEditing = false;
@@ -461,18 +566,34 @@ export const renderVarInfo = (token, options) => {
         dispatch(updateVariableInScope(variableName, newValue, scopeInfo, collection.uid))
           .then(() => {
             originalValue = newValue;
-            // Re-interpolate the new value to show the resolved value in display
+
+            // Re-fetch scopeInfo to get the updated variable reference after save
+            const state = store.getState();
+            const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
+            if (collection) {
+              const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
+              const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
+              if (updatedScopeInfo) {
+                scopeInfo = updatedScopeInfo;
+              }
+            }
+
+            // Re-interpolate the new value to show the resolved value in display.
+            // Use `??` so falsy-but-valid values (0 / false / '') survive the assignment.
             const interpolatedValue = interpolate(newValue, allVariables);
-            // Check if the NEW value contains secret references
+            currentInterpolatedValue = interpolatedValue ?? '';
+            // Check if the NEW value contains secret references and update live mask state
             const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
-            const newShouldMask = isSecret || newHasSecretRefs;
-            updateValueDisplay(valueDisplay, interpolatedValue, newShouldMask, isMasked, isRevealed);
+            currentShouldMaskValue = isSecret || newHasSecretRefs;
+            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
           })
           .catch((err) => {
             console.error('Failed to update variable:', err);
-            // Revert on error
+            // Revert on error to the last good state — currentInterpolatedValue and
+            // currentShouldMaskValue still hold pre-attempt values since the success
+            // block above never ran.
             cmEditor.setValue(originalValue);
-            updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, isRevealed);
+            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
           });
       }
     });
@@ -487,6 +608,7 @@ export const renderVarInfo = (token, options) => {
 
     const valueDisplay = document.createElement('div');
     valueDisplay.className = 'var-value-display';
+    valueDisplay.setAttribute('data-testid', 'var-info-value-display');
     // For read-only variables, still check if they reference secrets
     updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, false);
 
@@ -498,6 +620,7 @@ export const renderVarInfo = (token, options) => {
     if (shouldMaskValue || isMasked) {
       const toggleButton = document.createElement('button');
       toggleButton.className = 'secret-toggle-button';
+      toggleButton.setAttribute('data-testid', 'var-info-secret-toggle');
       toggleButton.innerHTML = EYE_ICON_SVG;
       toggleButton.type = 'button';
 
@@ -524,16 +647,25 @@ export const renderVarInfo = (token, options) => {
     if (scopeInfo.type === 'process.env') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
-    } else if (scopeInfo.type === 'runtime') {
+    } else if (scopeInfo.type === 'runtime' || hasRuntimeVariable) {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'Set by scripts (read-only)';
+      into.appendChild(readOnlyNote);
+    } else if (scopeInfo.type === 'oauth2') {
+      const readOnlyNote = document.createElement('div');
+      readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
+      readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'undefined') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'No active environment';
       into.appendChild(readOnlyNote);
     }
@@ -590,8 +722,10 @@ if (!SERVER_RENDERED) {
     }
 
     const box = target.getBoundingClientRect();
+    let point = { left: e.clientX, top: e.clientY };
 
-    const onMouseMove = function () {
+    const onMouseMove = function (moveEvent) {
+      point = { left: moveEvent.clientX, top: moveEvent.clientY };
       clearTimeout(state.hoverTimeout);
       state.hoverTimeout = setTimeout(onHover, hoverTime);
     };
@@ -607,7 +741,7 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(document, 'mousemove', onMouseMove);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       state.hoverTimeout = undefined;
-      onMouseHover(cm, box);
+      onMouseHover(cm, box, point);
     };
 
     const hoverTime = getHoverTime(cm);
@@ -617,74 +751,119 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
   }
 
-  function onMouseHover(cm, box) {
-    const pos = cm.coordsChar({
+  function onMouseHover(cm, box, point) {
+    const pos = cm.coordsChar(point || {
       left: (box.left + box.right) / 2,
       top: (box.top + box.bottom) / 2
     });
 
     const state = cm.state.brunoVarInfo;
     const options = state.options;
-    let token = cm.getTokenAt(pos, true);
 
-    if (token) {
-      const line = cm.getLine(pos.line);
+    const line = cm.getLine(pos.line);
+    if (!line) return;
 
-      // Find the opening {{ before the cursor
-      let start = token.start;
-      while (start > 0 && !line.substring(start - 2, start).includes('{{')) {
-        // Stop if we encounter }} - we've gone past the start of our variable
-        if (line.substring(start - 2, start) === '}}') {
-          break;
+    // ---------- 1) MODE: Double-Brace Variable {{ ... }} ----------
+    // We check this first as it's the most common variable type.
+    if (line.includes('{{') && line.includes('}}')) {
+      // Check if the cursor is roughly between a '{{' to the left and '}}' to the right
+      if (line.lastIndexOf('{{', pos.ch) !== -1 && line.indexOf('}}', pos.ch) !== -1) {
+        let start = pos.ch;
+        let end = pos.ch;
+
+        // Scan LEFT to find the nearest '{{'
+        while (start > 0) {
+          const leftTwo = line.substring(start - 2, start);
+          if (leftTwo === '{{') {
+            start -= 2;
+            break;
+          }
+          // If we hit a '}}' while looking for '{{', the cursor is outside a pair
+          if (leftTwo === '}}') break;
+          start--;
         }
-        start--;
-      }
-      if (line.substring(start - 2, start) === '{{') {
-        start = start - 2;
-      }
 
-      // Find the closing }} after the cursor
-      let end = token.end;
-      while (end < line.length && !line.substring(end, end + 2).includes('}}')) {
-        // Stop if we encounter {{ - we've gone past the end of our variable
-        if (line.substring(end, end + 2) === '{{') {
-          break;
+        // Validate we actually found a '{{'
+        if (start >= 0 && line.substring(start, start + 2) === '{{') {
+          // Scan RIGHT to find the nearest '}}'
+          while (end < line.length) {
+            const rightTwo = line.substring(end, end + 2);
+            if (rightTwo === '}}') {
+              end += 2;
+              break;
+            }
+            // If we hit another '{{' before a closing '}}', the structure is invalid
+            if (rightTwo === '{{') {
+              end = line.length + 1;
+              break;
+            }
+            end++;
+          }
+
+          // Validate the final string and show popup
+          if (end <= line.length && line.substring(end - 2, end) === '}}') {
+            const fullVariableString = line.substring(start, end);
+            const inner = fullVariableString.slice(2, -2).trim();
+
+            if (inner) {
+              const token = { string: fullVariableString, start, end };
+              const brunoVarInfo = renderVarInfo(token, options);
+              if (brunoVarInfo) {
+                showPopup(cm, box, brunoVarInfo);
+                return; // EXIT: We found a variable, don't look for path params
+              }
+            }
+          }
         }
-        end++;
       }
-      if (line.substring(end, end + 2) === '}}') {
-        end = end + 2;
-      }
+    }
 
-      // Extract the full variable string including {{ and }}
-      const fullVariableString = line.substring(start, end);
+    // ---------- 2) MODE: Path Parameter /:varName ----------
+    // If we didn't return from the brace logic, check if cursor is on a path param
+    const pathParamStart = line.substring(0, pos.ch + 1).lastIndexOf('/:');
 
-      // Only use the expanded string if it looks like a complete variable
-      if (fullVariableString.startsWith('{{') && fullVariableString.endsWith('}}')) {
-        token = {
-          ...token,
-          string: fullVariableString,
-          start: start,
-          end: end
-        };
+    if (pathParamStart !== -1) {
+      let pathValueEnd = pathParamStart + 2;
+
+      // Path params end at the next URL separator (/, ?, &, =) or end of line
+      const separators = ['/', '?', '&', '='];
+      while (pathValueEnd < line.length && !separators.includes(line[pathValueEnd])) {
+        pathValueEnd++;
       }
 
-      const brunoVarInfo = renderVarInfo(token, options);
-      if (brunoVarInfo) {
-        showPopup(cm, box, brunoVarInfo);
+      // Check if cursor is actually inside the detected /:param range
+      if (pos.ch >= pathParamStart && pos.ch < pathValueEnd) {
+        const fullVariableString = line.substring(pathParamStart, pathValueEnd);
+
+        // Ensure it's not just "/:" but has a name (e.g., "/:id")
+        if (fullVariableString.length > 2) {
+          const token = {
+            string: fullVariableString,
+            start: pathParamStart,
+            end: pathValueEnd
+          };
+          const brunoVarInfo = renderVarInfo(token, options);
+          if (brunoVarInfo) {
+            showPopup(cm, box, brunoVarInfo);
+            return; // EXIT: Popup shown
+          }
+        }
       }
     }
   }
 
   function showPopup(cm, box, brunoVarInfo) {
-    // If there's already an active popup, remove it first
-    if (activePopup && activePopup.parentNode) {
+    // If there's already an active popup, hide it first to ensure listeners are cleaned up
+    if (activePopup && typeof activePopup._hidePopup === 'function') {
+      activePopup._hidePopup({ immediate: true });
+    } else if (activePopup && activePopup.parentNode) {
       activePopup.parentNode.removeChild(activePopup);
       activePopup = null;
     }
 
     const popup = document.createElement('div');
     popup.className = 'CodeMirror-brunoVarInfo';
+    popup.setAttribute('data-testid', 'var-info-popup');
     popup.appendChild(brunoVarInfo);
     document.body.appendChild(popup);
 
@@ -732,20 +911,53 @@ if (!SERVER_RENDERED) {
     popup.style.left = `${leftPos / 16}rem`;
 
     let popupTimeout;
+    let isPinned = false;
+    let isHidden = false;
 
     const onMouseOverPopup = function () {
       clearTimeout(popupTimeout);
     };
 
     const onMouseOut = function () {
+      if (isPinned) {
+        return;
+      }
       clearTimeout(popupTimeout);
       popupTimeout = setTimeout(hidePopup, 500);
     };
 
-    const hidePopup = function () {
+    const onPopupClick = function (e) {
+      if (!popup.contains(e.target)) {
+        return;
+      }
+      isPinned = true;
+      clearTimeout(popupTimeout);
+    };
+
+    const onDocumentClick = function (e) {
+      if (popup.contains(document.activeElement)) {
+        return;
+      }
+
+      if (!popup.contains(e.target)) {
+        isPinned = false;
+        hidePopup();
+      }
+    };
+
+    const hidePopup = function (options = {}) {
+      if (isHidden) {
+        return;
+      }
+      isHidden = true;
+
+      const { immediate = false } = options;
+      clearTimeout(popupTimeout);
       CodeMirror.off(popup, 'mouseover', onMouseOverPopup);
       CodeMirror.off(popup, 'mouseout', onMouseOut);
+      CodeMirror.off(popup, 'click', onPopupClick);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
+      CodeMirror.off(document, 'click', onDocumentClick);
       CodeMirror.off(cm, 'change', onEditorChange);
 
       // Cleanup CodeMirror and MaskedEditor instances
@@ -775,6 +987,13 @@ if (!SERVER_RENDERED) {
         activePopup = null;
       }
 
+      if (immediate) {
+        if (popup.parentNode) {
+          popup.parentNode.removeChild(popup);
+        }
+        return;
+      }
+
       if (popup.style.opacity) {
         popup.style.opacity = 0;
         setTimeout(function () {
@@ -789,12 +1008,19 @@ if (!SERVER_RENDERED) {
 
     // Hide popup when user types in the main editor
     const onEditorChange = function () {
-      hidePopup();
+      if (!isPinned) {
+        hidePopup();
+      }
     };
+
+    // Allow replacing existing popup with full cleanup
+    popup._hidePopup = hidePopup;
 
     CodeMirror.on(popup, 'mouseover', onMouseOverPopup);
     CodeMirror.on(popup, 'mouseout', onMouseOut);
+    CodeMirror.on(popup, 'click', onPopupClick);
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
+    CodeMirror.on(document, 'click', onDocumentClick);
     CodeMirror.on(cm, 'change', onEditorChange);
   }
 }

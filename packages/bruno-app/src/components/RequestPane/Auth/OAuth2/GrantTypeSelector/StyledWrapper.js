@@ -1,10 +1,20 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const Wrapper = styled.div`
+  .oauth2-icon-container {
+    background-color: ${(props) => rgba(props.theme.primary.solid, 0.1)};
+  }
+
+  .oauth2-icon {
+    color: ${(props) => props.theme.primary.text};
+  }
+
   font-size: ${(props) => props.theme.font.size.base};
 
   .grant-type-mode-selector {
-    padding: 0.5rem 0px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    padding: 0.2rem 0px;
     border-radius: 3px;
     border: solid 1px ${(props) => props.theme.input.border};
     background-color: ${(props) => props.theme.input.bg};
@@ -28,7 +38,7 @@ const Wrapper = styled.div`
 
     .grant-type-label {
       width: fit-content;
-      color: ${(props) => props.theme.colors.text.yellow};
+      color: ${(props) => props.theme.primary.text};
       justify-content: space-between;
       padding: 0 0.5rem;
     }

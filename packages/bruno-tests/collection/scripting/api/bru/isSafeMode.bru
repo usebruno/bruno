@@ -1,0 +1,22 @@
+meta {
+  name: isSafeMode
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: inherit
+}
+
+script:pre-request {
+   test("bru.isSafeMode() returns true in safe mode", function() {
+      expect(bru.isSafeMode()).to.be.false;
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

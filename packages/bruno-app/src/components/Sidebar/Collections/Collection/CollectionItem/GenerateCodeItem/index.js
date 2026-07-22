@@ -95,8 +95,13 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
   // interpolate the path params
   const finalUrl = interpolateUrlPathParams(
     interpolatedUrl,
-    requestData.params
+    requestData.params,
+    variables
   );
+
+  // Raw URL: path params resolved via string replacement (no new URL() encoding),
+  // preserving the user's original encoding choices for snippet generation.
+  const rawUrl = interpolateUrlPathParams(interpolatedUrl, requestData.params, variables, { raw: true });
 
   // Get the full language object based on current preferences
   const selectedLanguage = useMemo(() => {
@@ -110,14 +115,17 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
   // Resolve auth inheritance
   const resolvedRequest = resolveInheritedAuth(item, collection);
 
-  // Create the final item for code generation
+  // requestData.request contains either the normal request or example request data.
+  // We explicitly set auth from resolvedRequest to ensure inherited auth
+  // (from folders/collection) is resolved correctly in generated code.
   const finalItem = {
     ...item,
     request: {
-      ...resolvedRequest,
       ...requestData.request,
+      auth: resolvedRequest.auth,
       url: finalUrl
-    }
+    },
+    rawUrl
   };
 
   // Update modal title based on mode

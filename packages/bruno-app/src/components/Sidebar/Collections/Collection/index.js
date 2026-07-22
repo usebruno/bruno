@@ -1,4 +1,4 @@
-import React, { useState, forwardRef, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
@@ -18,65 +18,110 @@ import {
   IconFoldDown,
   IconX,
   IconSettings,
-  IconTerminal2
+  IconTerminal2,
+  IconFolder,
+  IconBook,
+  IconFileArrowRight,
+  IconAppWindow
 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
+import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection, setSelectedCollections, toggleCollectionSelection, clearCollectionSelection, setLastClickedCollectionIndex } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
-import { hideApiSpecPage, hideHomePage } from 'providers/ReduxStore/slices/app';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
+import NewApp from 'components/Sidebar/NewApp';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
+import MoveToWorkspace from './MoveToWorkspace';
+import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest } from 'utils/collections';
+import { isItemAFolder, isItemARequest, areItemsLoading } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection';
-import { areItemsLoading } from 'utils/collections';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
+import GenerateDocumentation from './GenerateDocumentation';
 import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
 import { sortByNameThenSequence } from 'utils/common/index';
+import { getRevealInFolderLabel } from 'utils/common/platform';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import BulkActionsDropdown from './BulkActions';
 import RemoveCollectionsModal from '../RemoveCollectionsModal';
+import ActionIcon from 'ui/ActionIcon';
+import MenuDropdown from 'ui/MenuDropdown';
+import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
+import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
+import useKeybinding from 'hooks/useKeybinding';
+
+// Delay before showing empty collection state (ms)
+// This prevents flicker from race condition between loading state and item batch updates
+const EMPTY_STATE_DELAY_MS = 300;
 
 const Collection = ({ collection, searchText, collectionIndex, allCollections }) => {
+  const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
+  const [showNewAppModal, setShowNewAppModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
   const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
   const [showShareCollectionModal, setShowShareCollectionModal] = useState(false);
+  const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
+  const [showMoveToWorkspaceModal, setShowMoveToWorkspaceModal] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [showBulkActionsDropdown, setShowBulkActionsDropdown] = useState(false);
   const [bulkActionsPosition, setBulkActionsPosition] = useState({ x: 0, y: 0 });
   const [collectionsToRemove, setCollectionsToRemove] = useState([]);
+  const [showEmptyState, setShowEmptyState] = useState(false);
   const dispatch = useDispatch();
-  const isLoading = areItemsLoading(collection);
+  const isLoading = collection.isLoading;
   const collectionRef = useRef(null);
+  // Only count persisted requests and folders; transients and file items
+  // (bruno.json, .js scripts) don't affect empty state
+  const itemCount = collection.items?.filter((i) => !i.isTransient && (isItemARequest(i) || isItemAFolder(i) || i.type === 'app')).length || 0;
 
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const selectedCollections = useSelector((state) => state.collections.selectedCollections);
   const lastClickedIndex = useSelector((state) => state.collections.lastClickedCollectionIndex);
   const isSelected = selectedCollections.includes(collection.uid);
-  const menuDropdownTippyRef = useRef();
-  const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
+  const menuDropdownRef = useRef(null);
+  const onMenuDropdownCreate = (ref) => (menuDropdownRef.current = ref);
   const MenuIcon = forwardRef((_props, ref) => {
     return (
       <div ref={ref} className="pr-2">
         <IconDots size={22} />
       </div>
     );
-  });
+  };
+
+
+  // 'Move into Workspace' is available for collections opened from outside the current workspace.
+  const activeWorkspace = useSelector((state) =>
+    state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid)
+  );
+  const isMoveToWorkspaceVisible = isPathExternalToBasePath(activeWorkspace?.pathname, collection.pathname);
+
+  // Open the OpenAPI Sync tab
+  const openOpenAPISyncTab = () => {
+    ensureCollectionIsMounted();
+    dispatch(
+      addTab({
+        uid: uuid(),
+        collectionUid: collection.uid,
+        type: 'openapi-sync'
+      })
+    );
+  };
 
   const handleRun = () => {
     dispatch(
@@ -148,11 +193,15 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
 
     if (collection.collapsed) {
       dispatch(toggleCollection(collection.uid));
+      // Set default jsSandboxMode to 'safe' if not present and save to disk
+      if (!collection.securityConfig?.jsSandboxMode) {
+        dispatch(saveCollectionSecurityConfig(collection.uid, {
+          jsSandboxMode: 'safe'
+        }));
+      }
     }
 
     if (!isChevronClick) {
-      dispatch(hideHomePage()); // @TODO Playwright tests are often stuck on home page, rather than collection settings tab. Revisit for a proper fix.
-      dispatch(hideApiSpecPage());
       dispatch(
         addTab({
           uid: collection.uid,
@@ -190,7 +239,7 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
     }
 
     // Otherwise, show the regular menu dropdown
-    const _menuDropdown = menuDropdownTippyRef.current;
+    const _menuDropdown = menuDropdownRef.current;
     if (_menuDropdown) {
       let menuDropdownBehavior = 'show';
       if (_menuDropdown.state.isShown) {
@@ -214,8 +263,14 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
     );
   };
 
+  const handleShowInFolder = () => {
+    dispatch(showInFolder(collection.pathname)).catch((error) => {
+      console.error('Error opening the folder', error);
+      toast.error('Error opening the folder');
+    });
+  };
+
   const handlePasteItem = () => {
-    menuDropdownTippyRef.current.hide();
     dispatch(pasteItem(collection.uid, null))
       .then(() => {
         toast.success('Item pasted successfully');
@@ -225,25 +280,35 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
       });
   };
 
-  // Keyboard shortcuts handler for collection
-  const handleKeyDown = (e) => {
-    // Detect Mac by checking both metaKey and platform
-    const isMac = navigator.userAgent?.includes('Mac') || navigator.platform?.startsWith('Mac');
-    const isModifierPressed = isMac ? e.metaKey : e.ctrlKey;
+  // Sidebar shortcuts — only active when this collection has keyboard focus
+  useKeybinding('cloneItem', () => {
+    setShowCloneCollectionModalOpen(true);
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
-    if (isModifierPressed && e.key.toLowerCase() === 'v') {
-      e.preventDefault();
-      e.stopPropagation();
-      handlePasteItem();
-    }
-  };
+  useKeybinding('renameItem', () => {
+    setShowRenameCollectionModal(true);
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
+  useKeybinding('pasteItem', () => {
+    handlePasteItem();
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
+
+  useKeybinding('newRequest', () => {
+    setShowNewRequestModal(true);
+    return false;
+  }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
   const handleFocus = () => {
     setIsKeyboardFocused(true);
+    dispatch(setFocusedSidebarPath(collection.pathname));
   };
 
   const handleBlur = () => {
     setIsKeyboardFocused(false);
+    dispatch(setFocusedSidebarPath(null));
   };
 
   const isCollectionItem = (itemType) => {
@@ -304,6 +369,21 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
     }
   }, [isCollectionFocused]);
 
+  // Debounce showing empty state to prevent flicker
+  // Race condition: isLoading can become false before items batch arrives from IPC
+  useEffect(() => {
+    const isMounted = collection.mountStatus === 'mounted';
+    const hasItems = itemCount > 0;
+
+    if (hasItems || isLoading || !isMounted) {
+      setShowEmptyState(false);
+      return;
+    }
+
+    const timer = setTimeout(() => setShowEmptyState(true), EMPTY_STATE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [itemCount, isLoading, collection.mountStatus]);
+
   if (searchText && searchText.length) {
     if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
       return null;
@@ -323,21 +403,174 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
     return items.sort((a, b) => a.seq - b.seq);
   };
 
-  const requestItems = sortItemsBySequence(filter(collection.items, (i) => isItemARequest(i)));
-  const folderItems = sortByNameThenSequence(filter(collection.items, (i) => isItemAFolder(i)));
+  const requestItems = sortItemsBySequence(filter(collection.items, (i) => isItemARequest(i) && !i.isTransient));
+  const appItems = sortItemsBySequence(filter(collection.items, (i) => i.type === 'app' && !i.isTransient));
+  const folderItems = sortByNameThenSequence(filter(collection.items, (i) => isItemAFolder(i) && !i.isTransient));
+  const showEmptyCollectionMessage = showEmptyState && !hasSearchText;
+
+  const emptyStateMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: null });
+
+  const menuItems = [
+    {
+      id: 'new-request',
+      leftSection: IconFilePlus,
+      label: 'New Request',
+      onClick: () => {
+        ensureCollectionIsMounted();
+        setShowNewRequestModal(true);
+      }
+    },
+    {
+      id: 'new-folder',
+      leftSection: IconFolderPlus,
+      label: 'New Folder',
+      onClick: () => {
+        ensureCollectionIsMounted();
+        setShowNewFolderModal(true);
+      }
+    },
+    {
+      id: 'new-app',
+      leftSection: IconAppWindow,
+      label: 'New App',
+      onClick: () => {
+        ensureCollectionIsMounted();
+        setShowNewAppModal(true);
+      }
+    },
+    {
+      id: 'run',
+      leftSection: IconPlayerPlay,
+      label: 'Run',
+      onClick: () => {
+        ensureCollectionIsMounted();
+        handleRun();
+      }
+    },
+    {
+      id: 'clone',
+      leftSection: IconCopy,
+      label: 'Clone',
+      testId: 'clone-collection',
+      onClick: () => {
+        setShowCloneCollectionModalOpen(true);
+      }
+    },
+    {
+      id: 'sync-openapi',
+      leftSection: OpenAPISyncIcon,
+      label: 'OpenAPI',
+      onClick: openOpenAPISyncTab
+    },
+    ...(hasCopiedItems
+      ? [
+          {
+            id: 'paste',
+            leftSection: IconClipboard,
+            label: 'Paste',
+            onClick: handlePasteItem
+          }
+        ]
+      : []),
+    {
+      id: 'rename',
+      leftSection: IconEdit,
+      label: 'Rename',
+      onClick: () => {
+        setShowRenameCollectionModal(true);
+      }
+    },
+    {
+      id: 'share',
+      leftSection: IconShare,
+      label: 'Share',
+      onClick: () => {
+        ensureCollectionIsMounted();
+        setShowShareCollectionModal(true);
+      }
+    },
+    {
+      id: 'generate-docs',
+      leftSection: IconBook,
+      label: 'Generate Docs',
+      onClick: () => {
+        ensureCollectionIsMounted();
+        setShowGenerateDocumentationModal(true);
+      }
+    },
+    {
+      id: 'collapse',
+      leftSection: IconFoldDown,
+      label: 'Collapse',
+      onClick: handleCollapseFullCollection
+    },
+    {
+      id: 'show-in-folder',
+      leftSection: IconFolder,
+      label: getRevealInFolderLabel(),
+      onClick: handleShowInFolder
+    },
+    {
+      id: 'divider-1',
+      type: 'divider'
+    },
+    {
+      id: 'settings',
+      leftSection: IconSettings,
+      label: 'Settings',
+      onClick: viewCollectionSettings
+    },
+    {
+      id: 'terminal',
+      leftSection: IconTerminal2,
+      label: 'Open in Terminal',
+      onClick: async () => {
+        const collectionCwd = collection.pathname;
+        await openDevtoolsAndSwitchToTerminal(dispatch, collectionCwd);
+      }
+    },
+    ...(isMoveToWorkspaceVisible
+      ? [
+          {
+            id: 'move-to-workspace',
+            leftSection: IconFileArrowRight,
+            label: 'Move into Workspace',
+            testId: 'move-collection-to-workspace',
+            onClick: () => {
+              setShowMoveToWorkspaceModal(true);
+            }
+          }
+        ]
+      : []),
+    {
+      id: 'remove',
+      leftSection: IconX,
+      label: 'Remove',
+      onClick: () => {
+        setShowRemoveCollectionModal(true);
+      }
+    }
+  ];
 
   return (
     <StyledWrapper className="flex flex-col" id={`collection-${collection.name.replace(/\s+/g, '-').toLowerCase()}`}>
       {showNewRequestModal && <NewRequest collectionUid={collection.uid} onClose={() => setShowNewRequestModal(false)} />}
       {showNewFolderModal && <NewFolder collectionUid={collection.uid} onClose={() => setShowNewFolderModal(false)} />}
+      {showNewAppModal && <NewApp collectionUid={collection.uid} onClose={() => setShowNewAppModal(false)} />}
       {showRenameCollectionModal && (
         <RenameCollection collectionUid={collection.uid} onClose={() => setShowRenameCollectionModal(false)} />
       )}
       {showRemoveCollectionModal && (
         <RemoveCollection collectionUid={collection.uid} onClose={() => setShowRemoveCollectionModal(false)} />
       )}
+      {showMoveToWorkspaceModal && (
+        <MoveToWorkspace collectionUid={collection.uid} onClose={() => setShowMoveToWorkspaceModal(false)} />
+      )}
       {showShareCollectionModal && (
         <ShareCollection collectionUid={collection.uid} onClose={() => setShowShareCollectionModal(false)} />
+      )}
+      {showGenerateDocumentationModal && (
+        <GenerateDocumentation collectionUid={collection.uid} onClose={() => setShowGenerateDocumentationModal(false)} />
       )}
       {showCloneCollectionModalOpen && (
         <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
@@ -361,7 +594,6 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
           drag(drop(node));
         }}
         tabIndex={0}
-        onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         onBlur={handleBlur}
         data-testid="sidebar-collection-row"
@@ -372,160 +604,36 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
           onDoubleClick={handleDoubleClick}
           onContextMenu={handleRightClick}
         >
-          <IconChevronRight
-            size={16}
-            strokeWidth={2}
-            className={`chevron-icon ${iconClassName}`}
-            style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
-            onClick={handleCollectionCollapse}
-            onDoubleClick={handleCollectionDoubleClick}
-          />
+          <ActionIcon style={{ width: 16, minWidth: 16 }}>
+            <IconChevronRight
+              size={16}
+              strokeWidth={2}
+              className={`chevron-icon ${iconClassName}`}
+              style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
+              onClick={handleCollectionCollapse}
+              onDoubleClick={handleCollectionDoubleClick}
+            />
+          </ActionIcon>
           <div className="ml-1 w-full" id="sidebar-collection-name" title={collection.name}>
             {collection.name}
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
-        <div className="collection-actions" data-testid="collection-actions">
-          <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
-            <div
-              className="dropdown-item"
-              onClick={(_e) => {
-                menuDropdownTippyRef.current.hide();
-                ensureCollectionIsMounted();
-                setShowNewRequestModal(true);
-              }}
+        <div>
+          <div className="pr-2">
+            <MenuDropdown
+              ref={menuDropdownRef}
+              items={menuItems}
+              placement="bottom-start"
+              appendTo={dropdownContainerRef?.current || document.body}
+              popperOptions={{ strategy: 'fixed' }}
+              data-testid="collection-actions"
             >
-              <span className="dropdown-icon">
-                <IconFilePlus size={16} strokeWidth={2} />
-              </span>
-              New Request
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={(_e) => {
-                menuDropdownTippyRef.current.hide();
-                ensureCollectionIsMounted();
-                setShowNewFolderModal(true);
-              }}
-            >
-              <span className="dropdown-icon">
-                <IconFolderPlus size={16} strokeWidth={2} />
-              </span>
-              New Folder
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={(_e) => {
-                menuDropdownTippyRef.current.hide();
-                ensureCollectionIsMounted();
-                handleRun();
-              }}
-            >
-              <span className="dropdown-icon">
-                <IconPlayerPlay size={16} strokeWidth={2} />
-              </span>
-              Run
-            </div>
-            <div
-              className="dropdown-item"
-              data-testid="clone-collection"
-              onClick={(_e) => {
-                menuDropdownTippyRef.current.hide();
-                setShowCloneCollectionModalOpen(true);
-              }}
-            >
-              <span className="dropdown-icon">
-                <IconCopy size={16} strokeWidth={2} />
-              </span>
-              Clone
-            </div>
-            {hasCopiedItems && (
-              <div
-                className="dropdown-item"
-                onClick={handlePasteItem}
-              >
-                <span className="dropdown-icon">
-                  <IconClipboard size={16} strokeWidth={2} />
-                </span>
-                Paste
-              </div>
-            )}
-            <div
-              className="dropdown-item"
-              onClick={(_e) => {
-                menuDropdownTippyRef.current.hide();
-                setShowRenameCollectionModal(true);
-              }}
-            >
-              <span className="dropdown-icon">
-                <IconEdit size={16} strokeWidth={2} />
-              </span>
-              Rename
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={(_e) => {
-                menuDropdownTippyRef.current.hide();
-                ensureCollectionIsMounted();
-                setShowShareCollectionModal(true);
-              }}
-            >
-              <span className="dropdown-icon">
-                <IconShare size={16} strokeWidth={2} />
-              </span>
-              Share
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={(_e) => {
-                menuDropdownTippyRef.current.hide();
-                handleCollapseFullCollection();
-              }}
-            >
-              <span className="dropdown-icon">
-                <IconFoldDown size={16} strokeWidth={2} />
-              </span>
-              Collapse
-            </div>
-            <div className="dropdown-separator"></div>
-            <div
-              className="dropdown-item"
-              onClick={(_e) => {
-                menuDropdownTippyRef.current.hide();
-                viewCollectionSettings();
-              }}
-            >
-              <span className="dropdown-icon">
-                <IconSettings size={16} strokeWidth={2} />
-              </span>
-              Settings
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={async (_e) => {
-                menuDropdownTippyRef.current.hide();
-                const collectionCwd = collection.pathname;
-                await openDevtoolsAndSwitchToTerminal(dispatch, collectionCwd);
-              }}
-            >
-              <span className="dropdown-icon">
-                <IconTerminal2 size={16} strokeWidth={2} />
-              </span>
-              Open in Terminal
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={(_e) => {
-                menuDropdownTippyRef.current.hide();
-                setShowRemoveCollectionModal(true);
-              }}
-            >
-              <span className="dropdown-icon">
-                <IconX size={16} strokeWidth={2} />
-              </span>
-              Remove
-            </div>
-          </Dropdown>
+              <ActionIcon className="collection-actions">
+                <IconDots size={18} />
+              </ActionIcon>
+            </MenuDropdown>
+          </div>
         </div>
       </div>
       <div>
@@ -534,9 +642,30 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
             {folderItems?.map?.((i) => {
               return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
             })}
+            {appItems?.map?.((i) => {
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
+            })}
             {requestItems?.map?.((i) => {
               return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
             })}
+            {showEmptyCollectionMessage ? (
+              <div className="empty-collection-message">
+                <div className="indent-block" style={{ width: 16, minWidth: 16, height: '100%' }}>
+                  &nbsp;
+                </div>
+                <div style={{ paddingLeft: 8 }}>
+                  <MenuDropdown
+                    data-testid="add-request-cta"
+                    items={emptyStateMenuItems}
+                    placement="bottom-start"
+                    appendTo={dropdownContainerRef?.current || document.body}
+                    popperOptions={{ strategy: 'fixed' }}
+                  >
+                    <button className="ml-1 add-request-link">+ Add request</button>
+                  </MenuDropdown>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>

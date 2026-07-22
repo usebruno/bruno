@@ -73,14 +73,16 @@ const checkConnection = (host, port) =>
  */
 function makeAxiosInstance({
   proxyMode = 'off',
+  proxyModeReason = '',
   proxyConfig = {},
   requestMaxRedirects = 5,
   httpsAgentRequestFields = {},
-  interpolationOptions = {}
+  interpolationOptions = {},
+  followRedirects = true
 } = {}) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
-    transformRequest: function transformRequest(data, headers) {
+    transformRequest: function (data, headers) {
       const contentType = headers?.['Content-Type'] || headers?.['content-type'] || '';
       const hasJSONContentType = contentType.includes('json');
       if (typeof data === 'string' && hasJSONContentType) {
@@ -94,10 +96,14 @@ function makeAxiosInstance({
     },
     proxy: false,
     maxRedirects: 0,
-    headers: {
-      'User-Agent': `bruno-runtime/${version}`
-    }
+    headers: {}
   });
+
+  // Extend common headers with User-Agent rather than replacing the object.
+  // axios.create() preserves defaults.headers.common = { Accept: 'application/json, text/plain, */*' }.
+  // Assigning a new object (= { 'User-Agent': ... }) would nuke that default, causing servers that
+  // rely on content-negotiation to receive requests with no Accept header.
+  instance.defaults.headers.common['User-Agent'] = `bruno-runtime/${version}`;
 
   instance.interceptors.request.use(async (config) => {
     const url = URL.parse(config.url);
@@ -120,27 +126,11 @@ function makeAxiosInstance({
       message: `Current time is ${new Date().toISOString()}`
     });
 
-    // Add request method and headers
+    // Add request method line
     timeline.push({
       timestamp: new Date(),
       type: 'request',
       message: `${config.method.toUpperCase()} ${config.url}`
-    });
-
-    Object.entries(config.headers).forEach(([key, value]) => {
-      // See https://github.com/usebruno/bruno/issues/1693
-      // Axios adds 'Content-Type': 'application/x-www-form-urlencoded for requests with no body
-      // Bruno sets content-type: false for no body requests so that axios doesn't add the default content-type header
-      // Hence we skip content-type if it's false
-      if (key.toLowerCase() === 'content-type' && value === false) {
-        return;
-      }
-
-      timeline.push({
-        timestamp: new Date(),
-        type: 'requestHeader',
-        message: `${key}: ${value}`
-      });
     });
 
     // Add request data if available
@@ -165,9 +155,48 @@ function makeAxiosInstance({
           callback(null, ip, useIpv6 ? 6 : 4);
         });
       };
+    } else {
+      delete config.lookup;
     }
 
     config.headers['request-start-time'] = Date.now();
+
+    /**
+      Apply header deletions requested via req.deleteHeader() in pre-request scripts.
+      Using set(name, null) rather than delete(): the axios http adapter guards its
+      own defaults (User-Agent, Accept-Encoding) with set(..., false) which only
+      skips writing when the key already exists. delete() removes the key entirely,
+      so the guard misses and the adapter re-adds the default. null keeps the key
+      present (blocking the guard) while toJSON() omits null values from the wire.
+     */
+    const headersToDelete = config.__headersToDelete;
+    let deleteConnection = false;
+
+    if (headersToDelete && Array.isArray(headersToDelete)) {
+      headersToDelete.forEach((headerName) => {
+        const lower = headerName.toLowerCase();
+        if (lower === 'host') return;
+        if (lower === 'connection') {
+          // Handled after setupProxyAgents to avoid being overwritten by keepAlive:true.
+          deleteConnection = true;
+          return;
+        }
+        config.headers.set(headerName, null);
+      });
+      delete config.__headersToDelete;
+    }
+
+    // Log request headers AFTER deletion so the timeline reflects what is actually sent.
+    // Skip null values (headers marked for deletion) and false values (e.g. content-type
+    // suppressed for no-body requests — see https://github.com/usebruno/bruno/issues/1693).
+    Object.entries(config.headers).forEach(([key, value]) => {
+      if (value === null || value === false) return;
+      timeline.push({
+        timestamp: new Date(),
+        type: 'requestHeader',
+        message: `${key}: ${value}`
+      });
+    });
 
     const agentOptions = {
       ...httpsAgentRequestFields,
@@ -175,25 +204,24 @@ function makeAxiosInstance({
     };
 
     try {
-      // Now call setupProxyAgents and pass the timeline
-      setupProxyAgents({
+      // Now call setupProxyAgents and pass the timeline (async - may perform PAC resolution)
+      await setupProxyAgents({
         requestConfig: config,
-        proxyMode: proxyMode, // 'on', 'off', or 'system', depending on your settings
-        proxyConfig: proxyConfig,
+        proxyMode,
+        proxyModeReason,
+        proxyConfig,
         httpsAgentRequestFields: agentOptions,
-        interpolationOptions: interpolationOptions, // Provide your interpolation options
+        interpolationOptions,
         timeline
       });
     } catch (err) {
-      if (err.timeline) {
-        timeline = err.timeline;
-      }
       timeline.push({
         timestamp: new Date(),
         type: 'error',
         message: `Error setting up proxy agents: ${err?.message}`
       });
     }
+
     config.metadata.timeline = timeline;
     return config;
   });
@@ -242,7 +270,7 @@ function makeAxiosInstance({
       response.timeline = timeline;
       return response;
     },
-    (error) => {
+    async (error) => {
       const config = error.config;
       const timeline = config?.metadata?.timeline || [];
       timeline?.push({
@@ -277,6 +305,14 @@ function makeAxiosInstance({
           // Attach the timeline to the response
           error.response.timeline = timeline;
 
+          if (!followRedirects) {
+            if (preferencesUtil.shouldStoreCookies()) {
+              saveCookies(error.config.url, error.response.headers);
+            }
+
+            return Promise.reject(error);
+          }
+
           if (redirectCount >= requestMaxRedirects) {
             const errorResponseData = error.response.data;
             timeline?.push({
@@ -291,6 +327,12 @@ function makeAxiosInstance({
           redirectCount++;
 
           const locationHeader = error.response.headers.location;
+
+          if (!locationHeader) {
+            error.response.timeline = timeline;
+            return Promise.reject(error);
+          }
+
           let redirectUrl = locationHeader;
 
           // Handle relative URLs by resolving them against the original request URL
@@ -381,9 +423,10 @@ function makeAxiosInstance({
           }
 
           try {
-            setupProxyAgents({
+            await setupProxyAgents({
               requestConfig,
               proxyMode,
+              proxyModeReason,
               proxyConfig,
               httpsAgentRequestFields,
               interpolationOptions,

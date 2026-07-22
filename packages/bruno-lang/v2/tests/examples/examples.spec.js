@@ -122,6 +122,14 @@ describe('Examples functionality', () => {
 
       expect(output).toEqual(expected);
     });
+
+    it('should parse swapped status/statusText from pre-fix Postman imports', () => {
+      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'bruToJson-swapped-status.bru'), 'utf8');
+      const expected = require('./fixtures/json/bruToJson-swapped-status.json');
+      const output = bruToJson(input);
+
+      expect(output).toEqual(expected);
+    });
   });
 
   describe('jsonToBru conversion', () => {
@@ -243,6 +251,51 @@ example {
 
       expect(output).toEqual(expected);
     });
+
+    it('should handle examples without description', () => {
+      const jsonInput = {
+        meta: {
+          name: 'Test API',
+          type: 'http'
+        },
+        http: {
+          url: 'https://api.example.com/test',
+          method: 'get'
+        },
+        examples: [
+          {
+            name: 'Example Request',
+            request: {
+              url: 'https://api.example.com/example',
+              method: 'get'
+            }
+          }
+        ]
+      };
+
+      const expected = `meta {
+  name: Test API
+  type: http
+}
+
+get {
+  url: https://api.example.com/test
+}
+
+example {
+  name: Example Request
+  
+  request: {
+    url: https://api.example.com/example
+    method: get
+  }
+}
+`;
+
+      const output = jsonToBru(jsonInput);
+
+      expect(output).toEqual(expected);
+    });
   });
 
   describe('Complex examples with auth', () => {
@@ -306,6 +359,48 @@ example {
         const output = jsonToBru(jsonInput);
         expect(output).toEqual(expected);
       });
+    });
+  });
+
+  describe('Examples with multiline descriptions', () => {
+    it('should parse examples with multiline descriptions', () => {
+      const input = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'examples-multiline-description.bru'), 'utf8');
+      const expected = require('./fixtures/json/examples-multiline-description.json');
+      const output = bruToJson(input);
+
+      expect(output).toEqual(expected);
+    });
+
+    it('should convert examples with multiline descriptions to BRU format', () => {
+      const jsonInput = require('./fixtures/json/examples-multiline-description.json');
+      const expected = fs.readFileSync(path.join(__dirname, 'fixtures', 'bru', 'examples-multiline-description.bru'), 'utf8');
+      const output = jsonToBru(jsonInput);
+
+      expect(output).toEqual(expected);
+    });
+
+    it('should parse example without description field', () => {
+      const bruInput = `meta {
+  name: Test API
+  type: http
+}
+
+example {
+  name: Example Request
+  
+  request: {
+    url: https://api.example.com/example
+    method: get
+  }
+}
+`;
+
+      const output = bruToJson(bruInput);
+
+      expect(output.examples).toBeDefined();
+      expect(output.examples).toHaveLength(1);
+      expect(output.examples[0].name).toBe('Example Request');
+      expect(output.examples[0].description).toBeUndefined();
     });
   });
 

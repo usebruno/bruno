@@ -1,13 +1,51 @@
-const { cloneDeep } = require('lodash');
+const { cloneDeep, isEqual } = require('lodash');
 const xmlFormat = require('xml-formatter');
 const { interpolate: _interpolate } = require('@usebruno/common');
-const { sendRequest } = require('@usebruno/requests').scripting;
-const { jar: createCookieJar } = require('@usebruno/requests').cookies;
+const { createSendRequest } = require('@usebruno/requests').scripting;
+const { jar: createCookieJar, getCookiesForUrl } = require('@usebruno/requests').cookies;
+const CookieList = require('./cookie-list');
 
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, oauth2CredentialVariables, collectionName, promptVariables) {
+  /**
+   * @param {object} options - Single options object (destructured)
+   * @property {string} options.runtime - The runtime environment ('quickjs' or 'nodevm')
+   * @property {object} [options.envVariables={}] - Environment variables
+   * @property {object} [options.runtimeVariables={}] - Runtime variables
+   * @property {object} [options.processEnvVars={}] - Process environment variables (deep cloned)
+   * @property {string} [options.collectionPath] - Path to the collection
+   * @property {object} [options.collectionVariables={}] - Collection-level variables
+   * @property {object} [options.folderVariables={}] - Folder-level variables
+   * @property {object} [options.requestVariables={}] - Request-level variables
+   * @property {object} [options.globalEnvironmentVariables={}] - Global environment variables
+   * @property {object} [options.oauth2CredentialVariables={}] - OAuth2 credential variables
+   * @property {string} [options.collectionName] - Name of the collection
+   * @property {object} [options.promptVariables={}] - Prompt variables
+   * @property {object} [options.certsAndProxyConfig] - Configuration for bru.sendRequest (proxy, certs, TLS)
+   * @property {string} [options.certsAndProxyConfig.collectionPath] - Path to the collection
+   * @property {object} [options.certsAndProxyConfig.options] - TLS and proxy options
+   * @property {object} [options.certsAndProxyConfig.clientCertificates] - Client certificate configuration
+   * @property {object} [options.certsAndProxyConfig.collectionLevelProxy] - Collection-level proxy settings
+   * @property {object} [options.certsAndProxyConfig.systemProxyConfig] - System proxy configuration
+   * @property {string} [options.requestUrl] - The URL of the current request (used for cookie access)
+   */
+  constructor({
+    runtime,
+    envVariables,
+    runtimeVariables,
+    processEnvVars,
+    collectionPath,
+    collectionVariables,
+    folderVariables,
+    requestVariables,
+    globalEnvironmentVariables,
+    oauth2CredentialVariables,
+    collectionName,
+    promptVariables,
+    certsAndProxyConfig,
+    requestUrl
+  }) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.promptVariables = promptVariables || {};
@@ -19,52 +57,32 @@ class Bru {
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
-    this.sendRequest = sendRequest;
-    this.cookies = {
-      jar: () => {
-        const cookieJar = createCookieJar();
-
-        return {
-          getCookie: (url, cookieName, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.getCookie(interpolatedUrl, cookieName, callback);
-          },
-
-          getCookies: (url, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.getCookies(interpolatedUrl, callback);
-          },
-
-          setCookie: (url, nameOrCookieObj, valueOrCallback, maybeCallback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.setCookie(interpolatedUrl, nameOrCookieObj, valueOrCallback, maybeCallback);
-          },
-
-          setCookies: (url, cookiesArray, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.setCookies(interpolatedUrl, cookiesArray, callback);
-          },
-
-          // Clear entire cookie jar
-          clear: (callback) => {
-            return cookieJar.clear(callback);
-          },
-
-          // Delete cookies for a specific URL/domain
-          deleteCookies: (url, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.deleteCookies(interpolatedUrl, callback);
-          },
-
-          deleteCookie: (url, cookieName, callback) => {
-            const interpolatedUrl = this.interpolate(url);
-            return cookieJar.deleteCookie(interpolatedUrl, cookieName, callback);
-          }
-        };
-      }
+    // Set by the host-side __bruSetScope global at the top of each segment's IIFE.
+    this._currentScope = null;
+    this.scriptedRequestEntries = [];
+    this.sendRequest = (...args) => {
+      const scopeSnapshot = this._currentScope ? { ...this._currentScope } : null;
+      const send = createSendRequest(certsAndProxyConfig, {
+        onComplete: (entry) =>
+          this._recordScriptedRequest({ source: 'sendRequest', scope: scopeSnapshot, ...entry })
+      });
+      return send(...args);
     };
-    // Holds variables that are marked as persistent by scripts
-    this.persistentEnvVariables = {};
+    this.runtime = runtime;
+    this.requestUrl = requestUrl;
+    this.cookies = new CookieList({
+      getUrl: () => this.interpolate(this.requestUrl),
+      interpolate: (str) => this.interpolate(str),
+      createCookieJar,
+      getCookiesForUrl
+    });
+    // Dirty flags — set by mutators so runtimes can skip IPC/disk writes for unchanged scopes
+    this._envDirty = false;
+    this._globalEnvDirty = false;
+    this._collVarsDirty = false;
+    this._runtimeVarsDirty = false;
+    // Holds credential IDs to be reset after script execution
+    this.oauth2CredentialsToReset = [];
     this.runner = {
       skipRequest: () => {
         this.skipRequest = true;
@@ -151,6 +169,16 @@ class Bru {
     return this.collectionPath;
   }
 
+  _recordScriptedRequest(entry) {
+    // Prefer scope passed in by the caller (snapshot at call time). Fall back to
+    // _currentScope for callers that don't supply one (e.g. bru.runRequest).
+    const { scope: providedScope, ...rest } = entry;
+    const scope = providedScope !== undefined
+      ? providedScope
+      : (this._currentScope ? { ...this._currentScope } : null);
+    this.scriptedRequestEntries.push({ ...rest, scope });
+  }
+
   getEnvName() {
     return this.envVariables.__name__;
   }
@@ -167,7 +195,7 @@ class Bru {
     return this.interpolate(this.envVariables[key]);
   }
 
-  setEnvVar(key, value, options = {}) {
+  setEnvVar(key, value) {
     if (!key) {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
@@ -178,24 +206,43 @@ class Bru {
       );
     }
 
-    // When persist is true, only string values are allowed
-    if (options?.persist && typeof value !== 'string') {
-      throw new Error(`Persistent environment variables must be strings. Received ${typeof value} for key "${key}".`);
-    }
-
-    this.envVariables[key] = value;
-
-    if (options?.persist) {
-      this.persistentEnvVariables[key] = value;
-    } else {
-      if (this.persistentEnvVariables[key]) {
-        delete this.persistentEnvVariables[key];
-      }
+    // Deep-equal compare so object/array writes that mutate in place
+    // (e.g. `const c = bru.getEnvVar('cfg'); c.port = 4000; bru.setEnvVar('cfg', c);`)
+    // still flip the dirty flag — strict `!==` returned false for same-reference writes.
+    if (!Object.hasOwn(this.envVariables, key) || !isEqual(this.envVariables[key], value)) {
+      this.envVariables[key] = value;
+      this._envDirty = true;
     }
   }
 
   deleteEnvVar(key) {
-    delete this.envVariables[key];
+    if (key === '__name__') return;
+    if (Object.hasOwn(this.envVariables, key)) {
+      delete this.envVariables[key];
+      this._envDirty = true;
+    }
+  }
+
+  getAllEnvVars() {
+    const vars = Object.assign({}, this.envVariables);
+    delete vars.__name__;
+    return vars;
+  }
+
+  deleteAllEnvVars() {
+    // Iterate via Object.keys (own enumerable) so a user-set `hasOwnProperty` var
+    // can't shadow Object.prototype.hasOwnProperty and crash the loop.
+    let removed = false;
+    for (const key of Object.keys(this.envVariables)) {
+      if (key === '__name__') continue;
+      delete this.envVariables[key];
+      removed = true;
+    }
+    if (removed) this._envDirty = true;
+  }
+
+  hasGlobalEnvVar(key) {
+    return Object.hasOwn(this.globalEnvironmentVariables, key);
   }
 
   getGlobalEnvVar(key) {
@@ -207,11 +254,52 @@ class Bru {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
-    this.globalEnvironmentVariables[key] = value;
+    if (!Object.hasOwn(this.globalEnvironmentVariables, key) || !isEqual(this.globalEnvironmentVariables[key], value)) {
+      this.globalEnvironmentVariables[key] = value;
+      this._globalEnvDirty = true;
+    }
+  }
+
+  deleteGlobalEnvVar(key) {
+    if (Object.hasOwn(this.globalEnvironmentVariables, key)) {
+      delete this.globalEnvironmentVariables[key];
+      this._globalEnvDirty = true;
+    }
+  }
+
+  getAllGlobalEnvVars() {
+    return Object.assign({}, this.globalEnvironmentVariables);
+  }
+
+  deleteAllGlobalEnvVars() {
+    const keys = Object.keys(this.globalEnvironmentVariables);
+    if (!keys.length) return;
+    for (const key of keys) {
+      delete this.globalEnvironmentVariables[key];
+    }
+    this._globalEnvDirty = true;
   }
 
   getOauth2CredentialVar(key) {
     return this.interpolate(this.oauth2CredentialVariables[key]);
+  }
+
+  resetOauth2Credential(credentialId) {
+    if (!credentialId || typeof credentialId !== 'string') {
+      throw new Error('credentialId must be a non-empty string');
+    }
+
+    if (!this.oauth2CredentialsToReset.includes(credentialId)) {
+      this.oauth2CredentialsToReset.push(credentialId);
+    }
+
+    // Remove matching credential variables so subsequent getOauth2CredentialVar() calls return undefined
+    const prefix = `$oauth2.${credentialId}.`;
+    for (const key of Object.keys(this.oauth2CredentialVariables)) {
+      if (key.startsWith(prefix)) {
+        delete this.oauth2CredentialVariables[key];
+      }
+    }
   }
 
   hasVar(key) {
@@ -230,7 +318,10 @@ class Bru {
       );
     }
 
-    this.runtimeVariables[key] = this.interpolate(value);
+    if (!Object.hasOwn(this.runtimeVariables, key) || !isEqual(this.runtimeVariables[key], value)) {
+      this.runtimeVariables[key] = value;
+      this._runtimeVarsDirty = true;
+    }
   }
 
   getVar(key) {
@@ -245,19 +336,69 @@ class Bru {
   }
 
   deleteVar(key) {
-    delete this.runtimeVariables[key];
+    if (Object.hasOwn(this.runtimeVariables, key)) {
+      delete this.runtimeVariables[key];
+      this._runtimeVarsDirty = true;
+    }
   }
 
   deleteAllVars() {
-    for (let key in this.runtimeVariables) {
-      if (this.runtimeVariables.hasOwnProperty(key)) {
-        delete this.runtimeVariables[key];
-      }
+    const keys = Object.keys(this.runtimeVariables);
+    if (!keys.length) return;
+    for (const key of keys) {
+      delete this.runtimeVariables[key];
     }
+    this._runtimeVarsDirty = true;
+  }
+
+  getAllVars() {
+    return Object.assign({}, this.runtimeVariables);
   }
 
   getCollectionVar(key) {
     return this.interpolate(this.collectionVariables[key]);
+  }
+
+  setCollectionVar(key, value) {
+    if (!key) {
+      throw new Error('Creating a variable without specifying a name is not allowed.');
+    }
+
+    if (variableNameRegex.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters!`
+        + ' Names must only contain alpha-numeric characters, "-", "_", "."'
+      );
+    }
+
+    if (!Object.hasOwn(this.collectionVariables, key) || !isEqual(this.collectionVariables[key], value)) {
+      this.collectionVariables[key] = value;
+      this._collVarsDirty = true;
+    }
+  }
+
+  hasCollectionVar(key) {
+    return Object.hasOwn(this.collectionVariables, key);
+  }
+
+  deleteCollectionVar(key) {
+    if (Object.hasOwn(this.collectionVariables, key)) {
+      delete this.collectionVariables[key];
+      this._collVarsDirty = true;
+    }
+  }
+
+  deleteAllCollectionVars() {
+    const keys = Object.keys(this.collectionVariables);
+    if (!keys.length) return;
+    for (const key of keys) {
+      delete this.collectionVariables[key];
+    }
+    this._collVarsDirty = true;
+  }
+
+  getAllCollectionVars() {
+    return Object.assign({}, this.collectionVariables);
   }
 
   getFolderVar(key) {
@@ -278,6 +419,10 @@ class Bru {
 
   getCollectionName() {
     return this.collectionName;
+  }
+
+  isSafeMode() {
+    return this.runtime === 'quickjs';
   }
 }
 

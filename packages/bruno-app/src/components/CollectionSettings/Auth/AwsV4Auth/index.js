@@ -123,19 +123,20 @@ const AwsV4Auth = ({ collection }) => {
 
   return (
     <StyledWrapper className="mt-2 w-full">
-      <label className="block font-medium mb-2">Access Key ID</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Access Key ID</label>
+      <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={awsv4Auth.accessKeyId || ''}
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handleAccessKeyIdChange(val)}
           collection={collection}
+          isCompact
         />
       </div>
 
-      <label className="block font-medium mb-2">Secret Access Key</label>
-      <div className="single-line-editor-wrapper mb-2 flex items-center">
+      <label className="block mb-1">Secret Access Key</label>
+      <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
           value={awsv4Auth.secretAccessKey || ''}
           theme={storedTheme}
@@ -143,51 +144,56 @@ const AwsV4Auth = ({ collection }) => {
           onChange={(val) => handleSecretAccessKeyChange(val)}
           collection={collection}
           isSecret={true}
+          isCompact
         />
         {showWarning && <SensitiveFieldWarning fieldName="awsv4-secret-access-key" warningMessage={warningMessage} />}
       </div>
 
-      <label className="block font-medium mb-2">Session Token</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Session Token</label>
+      <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={awsv4Auth.sessionToken || ''}
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handleSessionTokenChange(val)}
           collection={collection}
+          isCompact
         />
       </div>
 
-      <label className="block font-medium mb-2">Service</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Service</label>
+      <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={awsv4Auth.service || ''}
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handleServiceChange(val)}
           collection={collection}
+          isCompact
         />
       </div>
 
-      <label className="block font-medium mb-2">Region</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Region</label>
+      <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={awsv4Auth.region || ''}
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handleRegionChange(val)}
           collection={collection}
+          isCompact
         />
       </div>
 
-      <label className="block font-medium mb-2">Profile Name</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Profile Name</label>
+      <div className="single-line-editor-wrapper">
         <SingleLineEditor
           value={awsv4Auth.profileName || ''}
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handleProfileNameChange(val)}
           collection={collection}
+          isCompact
         />
       </div>
     </StyledWrapper>

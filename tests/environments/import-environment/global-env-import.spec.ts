@@ -28,8 +28,6 @@ test.describe('Global Environment Import Tests', () => {
 
     // Configure collection
     await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Import global environment
     await page.getByTestId('environment-selector-trigger').click();
@@ -47,21 +45,31 @@ test.describe('Global Environment Import Tests', () => {
     // Wait for import to complete and global environment settings modal to open
     await expect(page.locator('.current-environment')).toContainText('Test Global Environment');
 
-    // The global environment settings modal should now be visible with the imported environment
-    const globalEnvSettingsModal = page.locator('.bruno-modal').filter({ hasText: 'Global Environments' });
-    await expect(globalEnvSettingsModal).toBeVisible();
+    const envTab = page.locator('.request-tab').filter({ hasText: 'Global Environments' });
+    await expect(envTab).toBeVisible();
 
-    // Verify imported variables in Test Global Environment settings
-    await expect(globalEnvSettingsModal.locator('input[name="0.name"]')).toHaveValue('host');
-    await expect(globalEnvSettingsModal.locator('input[name="1.name"]')).toHaveValue('userId');
-    await expect(globalEnvSettingsModal.locator('input[name="2.name"]')).toHaveValue('apiKey');
-    await expect(globalEnvSettingsModal.locator('input[name="3.name"]')).toHaveValue('postTitle');
-    await expect(globalEnvSettingsModal.locator('input[name="4.name"]')).toHaveValue('postBody');
-    await expect(globalEnvSettingsModal.locator('input[name="5.name"]')).toHaveValue('secretApiToken');
-    await expect(globalEnvSettingsModal.locator('input[name="5.secret"]')).toBeChecked();
-    await page.getByText('×').click();
+    // Environment variables table uses react-virtuoso (virtual scroll),
+    // so only visible rows are in the DOM. Verify first visible batch,
+    // then scroll to reveal the rest.
+    const variablesTable = page.locator('.table-container');
+    const envNameInputs = variablesTable.locator('input[name$=".name"]');
+    await expect(envNameInputs.nth(0)).toHaveValue('host');
+    await expect(envNameInputs.nth(1)).toHaveValue('userId');
+    await expect(envNameInputs.nth(2)).toHaveValue('apiKey');
 
-    // Test GET request with global environment
+    // Scroll the virtualized table to reveal remaining rows
+    await variablesTable.evaluate((el) => el.scrollTop = el.scrollHeight);
+    await page.waitForTimeout(500);
+
+    await expect(variablesTable.locator('input[name$=".name"][value="postTitle"]')).toBeVisible();
+    await expect(variablesTable.locator('input[name$=".name"][value="postBody"]')).toBeVisible();
+    await expect(variablesTable.locator('input[name$=".name"][value="secretApiToken"]')).toHaveCount(0);
+    await page.getByTestId('responsive-tab-secrets').click();
+    await expect(page.getByTestId('env-var-row-secretApiToken')).toBeVisible();
+
+    await envTab.hover();
+    await envTab.getByTestId('request-tab-close-icon').click({ force: true });
+
     await page.locator('#collection-environment-test-collection .collection-item-name').first().click();
     await expect(page.locator('#request-url .CodeMirror-line')).toContainText('{{host}}/posts/{{userId}}');
     await page.locator('[data-testid="send-arrow-icon"]').click();

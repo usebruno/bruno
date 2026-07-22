@@ -120,6 +120,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         <div className="flex flex-grow justify-end items-center">
           {hasScriptError && !showScriptErrorCard && (
             <ScriptErrorIcon
+              className="mr-2"
               itemUid={item.uid}
               onClick={() => setShowScriptErrorCard(true)}
             />
@@ -129,11 +130,12 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           <ResponseSize size={size} />
         </div>
       </div>
-      <section className="flex flex-col flex-grow overflow-auto">
+      <section className="flex flex-col pt-3 flex-grow overflow-auto">
         {hasScriptError && showScriptErrorCard && (
           <ScriptError
             item={item}
             onClose={() => setShowScriptErrorCard(false)}
+            collection={collection}
           />
         )}
         <div className="flex-1">

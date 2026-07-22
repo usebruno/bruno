@@ -34,9 +34,9 @@ const StyledWrapper = styled.button`
 
   ${(props) => variants[props.$variant] || variants.subtle}
 
-  svg {
-    stroke: currentColor;
-  }
+  ${(props) => props.$color && css`
+    color: ${props.$color};
+  `}
 
   &:disabled {
     opacity: 0.5;

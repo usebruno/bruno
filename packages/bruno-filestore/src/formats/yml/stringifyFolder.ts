@@ -1,6 +1,7 @@
 import type { FolderRoot } from '@usebruno/schema-types/collection/folder';
 import type { Folder, FolderInfo } from '@opencollection/types/collection/item';
 import type { Variable } from '@opencollection/types/common/variables';
+import type { Action } from '@opencollection/types/common/actions';
 import type { Scripts } from '@opencollection/types/common/scripts';
 import type { Auth } from '@opencollection/types/common/auth';
 import type { HttpRequestHeader } from '@opencollection/types/requests/http';
@@ -8,6 +9,7 @@ import type { RequestDefaults } from '@opencollection/types/common/request-defau
 import { toOpenCollectionAuth } from './common/auth';
 import { toOpenCollectionHttpHeaders } from './common/headers';
 import { toOpenCollectionVariables } from './common/variables';
+import { toOpenCollectionActions } from './common/actions';
 import { toOpenCollectionScripts } from './common/scripts';
 import { stringifyYml } from './utils';
 
@@ -16,6 +18,7 @@ const hasRequestDefaults = (folderRoot: FolderRoot): boolean => {
 
   return Boolean((requestDefaults?.headers?.length)
     || (requestDefaults?.vars?.req?.length)
+    || (requestDefaults?.vars?.res?.length)
     || hasRequestScripts(folderRoot)
     || hasRequestAuth(folderRoot));
 };
@@ -67,6 +70,14 @@ const stringifyFolder = (folderRoot: FolderRoot): string => {
         const ocVariables: Variable[] | undefined = toOpenCollectionVariables(folderRoot.request?.vars);
         if (ocVariables) {
           ocFolder.request.variables = ocVariables;
+        }
+      }
+
+      // actions (post-response variables)
+      if (folderRoot.request?.vars?.res?.length) {
+        const ocActions: Action[] | undefined = toOpenCollectionActions(folderRoot.request?.vars?.res);
+        if (ocActions) {
+          (ocFolder.request as any).actions = ocActions;
         }
       }
 

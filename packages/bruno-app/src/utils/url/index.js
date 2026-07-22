@@ -1,6 +1,15 @@
 import find from 'lodash/find';
 
 import { interpolate } from '@usebruno/common';
+import { version as appVersion } from '../../../package.json';
+
+/**
+ * Tags a docs URL with the running app version, e.g. /docs/ai -> /docs/ai?version=2.0.0.
+ */
+export const getDocsUrlWithVersion = (url) => {
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}version=${appVersion}`;
+};
 
 const hasLength = (str) => {
   if (!str || !str.length) {
@@ -10,6 +19,24 @@ const hasLength = (str) => {
   str = str.trim();
 
   return str.length > 0;
+};
+
+const hasResolvablePathParamValue = (pathParam) => {
+  if (!pathParam || pathParam.enabled === false) {
+    return false;
+  }
+
+  const { value } = pathParam;
+
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof value === 'string' && !hasLength(value)) {
+    return false;
+  }
+
+  return true;
 };
 
 export const parsePathParams = (url) => {
@@ -53,7 +80,7 @@ export const parsePathParams = (url) => {
       return;
     }
 
-    const paramRegex = /[:](\w+)/g;
+    const paramRegex = /[:]([a-zA-Z_]\w*)/g;
     let match;
     while ((match = paramRegex.exec(segment))) {
       if (!match[1]) continue;
@@ -73,7 +100,10 @@ export const splitOnFirst = (str, char) => {
     return [str];
   }
 
-  let index = str.indexOf(char);
+  // Mask {{ }} template variables so their contents don't interfere with the search
+  const masked = str.replace(/\{\{.*?\}\}/g, (match) => '_'.repeat(match.length));
+  const index = masked.indexOf(char);
+
   if (index === -1) {
     return [str];
   }
@@ -90,6 +120,15 @@ export const isValidUrl = (url) => {
   }
 };
 
+export const isHttpUrl = (url) => {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 export const interpolateUrl = ({ url, variables }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;
@@ -98,16 +137,22 @@ export const interpolateUrl = ({ url, variables }) => {
   return interpolate(url, variables);
 };
 
-export const interpolateUrlPathParams = (url, params) => {
+export const interpolateUrlPathParams = (url, params, variables = {}, options = {}) => {
+  const substituteValue = (value) => {
+    const v = value == null ? '' : String(value);
+    return options.encodeUrl ? encodeURIComponent(v) : v;
+  };
+
   const getInterpolatedBasePath = (pathname, params) => {
-    return pathname
+    let replacedPathname = pathname
       .split('/')
       .map((segment) => {
         // traditional path parameters
         if (segment.startsWith(':')) {
           const name = segment.slice(1);
           const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
-          return pathParam ? pathParam.value : segment;
+          return hasResolvablePathParamValue(pathParam) ? substituteValue(pathParam.value) : segment;
+          // return pathParam ? substituteValue(pathParam.value) : segment;
         }
 
         // for OData-style parameters (parameters inside parentheses)
@@ -119,7 +164,7 @@ export const interpolateUrlPathParams = (url, params) => {
           return segment;
         }
 
-        const regex = /[:](\w+)/g;
+        const regex = /[:]([a-zA-Z_]\w*)/g;
         let match;
         let result = segment;
         while ((match = regex.exec(segment))) {
@@ -130,20 +175,38 @@ export const interpolateUrlPathParams = (url, params) => {
           if (!name) continue;
 
           const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
-          if (pathParam) {
-            result = result.replace(':' + match[1], pathParam.value);
+          if (hasResolvablePathParamValue(pathParam)) {
+            result = result.replace(':' + match[1], substituteValue(pathParam.value));
           }
         }
         return result;
       })
       .join('/');
-  };
 
-  let uri;
+    return interpolate(replacedPathname, variables);
+  };
 
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     url = `http://${url}`;
   }
+
+  // When raw is true, resolve :params via pure string manipulation without
+  // passing through new URL(), which would percent-encode characters like spaces.
+  // This preserves the user's original encoding choices for snippet generation.
+  if (options.raw) {
+    const enabledPathParams = (params || []).filter((p) => p.enabled !== false && p.type === 'path');
+    if (enabledPathParams.length === 0) return url;
+
+    const separatorIdx = url.search(/[?#]/);
+    const pathPart = separatorIdx >= 0 ? url.substring(0, separatorIdx) : url;
+    const rest = separatorIdx >= 0 ? url.substring(separatorIdx) : '';
+
+    // resolvedPath includes the origin (scheme + host) since pathPart is the full URL before ?/#
+    const resolvedPath = getInterpolatedBasePath(pathPart, enabledPathParams);
+    return `${resolvedPath}${rest}`;
+  }
+
+  let uri;
 
   try {
     uri = new URL(url);

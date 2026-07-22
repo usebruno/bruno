@@ -1,4 +1,5 @@
 import { Page, expect, test } from '../../../playwright';
+import { buildSandboxLocators } from './locators';
 
 /**
  * Builds locators for the runner results view
@@ -11,8 +12,14 @@ export const buildRunnerLocators = (page: Page) => ({
   failedButton: () => page.locator('button').filter({ hasText: /^Failed/ }),
   skippedButton: () => page.locator('button').filter({ hasText: /^Skipped/ }),
   resetButton: () => page.getByRole('button', { name: 'Reset' }),
-  runCollectionButton: () => page.getByRole('button', { name: 'Run Collection' }),
-  runAgainButton: () => page.getByRole('button', { name: 'Run Again' })
+  runCollectionButton: () => page.getByTestId('runner-run-button'),
+  runAgainButton: () => page.getByRole('button', { name: 'Run Again' }),
+  configPanel: () => page.getByTestId('runner-config-panel'),
+  configCounter: () => page.getByTestId('runner-config-counter'),
+  selectAllButton: () => page.getByTestId('runner-select-all'),
+  configResetButton: () => page.getByTestId('runner-config-reset'),
+  requestItems: () => page.getByTestId('runner-request-item'),
+  delayInput: () => page.getByTestId('runner-delay-input')
 });
 
 /**
@@ -32,6 +39,39 @@ export const getRunnerResultCounts = async (page: Page) => {
 };
 
 /**
+ * Opens the runner tab for a collection without starting a run
+ * @param page - The Playwright page object
+ * @param collectionName - The name of the collection to open the runner for
+ * @returns void
+ */
+export const openRunnerTab = async (page: Page, collectionName: string) => {
+  await test.step(`Open runner tab for "${collectionName}"`, async () => {
+    const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName });
+    await collectionContainer.waitFor({ state: 'visible' });
+
+    // Re-hover on each poll: CSS `:hover` reveals `.collection-actions`, but sidebar
+    // re-renders can shift the row out from under a one-shot hover().
+    const actionsContainer = collectionContainer.locator('.collection-actions');
+    await expect(async () => {
+      await collectionContainer.hover();
+      await expect(actionsContainer).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
+
+    const icon = actionsContainer.locator('.icon');
+    await icon.waitFor({ state: 'visible', timeout: 5000 });
+    await icon.click();
+
+    const runMenuItem = page.getByText('Run', { exact: true });
+    await runMenuItem.waitFor({ state: 'visible' });
+    await runMenuItem.click();
+
+    // Wait for the config panel to load
+    const locators = buildRunnerLocators(page);
+    await locators.configPanel().waitFor({ state: 'visible', timeout: 10000 });
+  });
+};
+
+/**
  * Runs a collection by clicking the Run menu item and handling the runner tab
  * Includes logic to reset existing results if present
  * @param page - The Playwright page object
@@ -44,10 +84,14 @@ export const runCollection = async (page: Page, collectionName: string) => {
     const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName });
     await collectionContainer.waitFor({ state: 'visible' });
 
-    // Open collection actions menu - wait for the actions container to be actionable
+    // Open collection actions menu - hover first to reveal the hidden actions button
+    // Re-hover on each poll: CSS `:hover` reveals `.collection-actions`, but sidebar
+    // re-renders can shift the row out from under a one-shot hover().
     const actionsContainer = collectionContainer.locator('.collection-actions');
-    await actionsContainer.waitFor({ state: 'visible' });
-    await actionsContainer.hover();
+    await expect(async () => {
+      await collectionContainer.hover();
+      await expect(actionsContainer).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
 
     const icon = actionsContainer.locator('.icon');
     await icon.waitFor({ state: 'visible', timeout: 5000 });
@@ -79,17 +123,64 @@ export const runCollection = async (page: Page, collectionName: string) => {
 };
 
 /**
- * Builds locators for sandbox mode settings
+ * Runs a specific folder within a collection by navigating to it in the sidebar,
+ * opening its context menu, and clicking "Run" followed by "Recursive Run".
  * @param page - The Playwright page object
- * @returns Object with locators for sandbox elements
+ * @param collectionName - The name of the collection containing the folder
+ * @param folderPath - Array of folder names forming the path (e.g. ['scripting', 'api', 'bru', 'cookies'])
  */
-export const buildSandboxLocators = (page: Page) => ({
-  sandboxModeSelector: () => page.getByTestId('sandbox-mode-selector'),
-  safeModeRadio: () => page.getByLabel('Safe Mode'),
-  developerModeRadio: () => page.getByLabel('Developer Mode(use only if'),
-  jsSandboxHeading: () => page.getByText('JavaScript Sandbox'),
-  saveButton: () => page.getByRole('button', { name: 'Save' })
-});
+export const runFolder = async (page: Page, collectionName: string, folderPath: string[]) => {
+  await test.step(`Run folder "${folderPath.join('/')}" in "${collectionName}"`, async () => {
+    // Scope to the specific collection by its DOM id (collection-<name-kebab>)
+    const collectionId = `collection-${collectionName.replace(/\s+/g, '-').toLowerCase()}`;
+    const collectionContainer = page.locator(`#${collectionId}`);
+    await collectionContainer.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Walk down the folder path, scoping each step to the previous folder's container.
+    // Each CollectionItem renders as a StyledWrapper div containing:
+    //   - div.collection-item-name (the row with chevron, name, menu)
+    //   - div (children container when expanded)
+    // We scope to the parent wrapper so the next folder lookup is unambiguous.
+    let scope = collectionContainer;
+    for (const folderName of folderPath) {
+      const row = scope.locator('.collection-item-name').filter({ hasText: folderName }).first();
+      await row.waitFor({ state: 'visible', timeout: 5000 });
+
+      // Click the chevron to expand (skip if already expanded)
+      const chevron = row.getByTestId('folder-chevron');
+      const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+      if (!isExpanded) {
+        await chevron.click();
+      }
+
+      // Scope to this folder's wrapper (parent of the row) for the next iteration
+      scope = row.locator('..');
+    }
+
+    // The target folder row is the last one we found — hover to reveal menu
+    const targetRow = scope.locator('.collection-item-name').filter({ hasText: folderPath[folderPath.length - 1] }).first();
+    await targetRow.hover();
+
+    // Click the menu icon
+    const menuIcon = targetRow.locator('.menu-icon');
+    await menuIcon.waitFor({ state: 'visible', timeout: 5000 });
+    await menuIcon.click();
+
+    // Click "Run" in the dropdown
+    const runMenuItem = page.locator('.dropdown-item').filter({ hasText: 'Run' });
+    await runMenuItem.waitFor({ state: 'visible' });
+    await runMenuItem.click();
+
+    // In the RunCollectionItem modal, click "Recursive Run"
+    const recursiveRunButton = page.getByRole('button', { name: 'Recursive Run' });
+    await recursiveRunButton.waitFor({ state: 'visible', timeout: 5000 });
+    await recursiveRunButton.click();
+
+    // Wait for the run to complete
+    const runnerLocators = buildRunnerLocators(page);
+    await runnerLocators.runAgainButton().waitFor({ timeout: 2 * 60 * 1000 });
+  });
+};
 
 /**
  * Sets up the JavaScript sandbox mode for a collection
@@ -126,25 +217,13 @@ export const setSandboxMode = async (page: Page, collectionName: string, mode: '
 
     if (mode === 'developer') {
       await sandboxLocators.developerModeRadio().waitFor({ state: 'visible', timeout: 5000 });
-      await sandboxLocators.developerModeRadio().check();
+      await sandboxLocators.developerModeRadio().click();
     } else {
-      // For safe mode, check if developer mode is currently selected
-      const developerModeChecked = await sandboxLocators.developerModeRadio().isChecked().catch(() => false);
-
-      if (developerModeChecked) {
-        // Click the Developer Mode label text inside the security settings form
-        const securityForm = page.locator('div').filter({ hasText: 'JavaScript Sandbox' }).locator('..').first();
-        const developerLabel = securityForm.locator('label').filter({ hasText: /^Developer Mode/ }).first();
-        await developerLabel.waitFor({ state: 'visible', timeout: 5000 });
-        await developerLabel.click();
-      }
-
-      // Ensure Safe Mode radio is visible and check it
       await sandboxLocators.safeModeRadio().waitFor({ state: 'visible', timeout: 5000 });
-      await sandboxLocators.safeModeRadio().check();
+      await sandboxLocators.safeModeRadio().click();
     }
 
-    await sandboxLocators.saveButton().click();
+    await page.keyboard.press('Escape');
   });
 };
 

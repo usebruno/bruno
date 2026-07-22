@@ -1,16 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, forwardRef, useImperativeHandle, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { IconBookmark } from '@tabler/icons';
 import { addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
-import { uuid } from 'utils/common';
+import { uuid, formatResponse } from 'utils/common';
 import toast from 'react-hot-toast';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 import { getBodyType } from 'utils/responseBodyProcessor';
 import { getInitialExampleName } from 'utils/collections/index';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
+import ActionIcon from 'ui/ActionIcon/index';
 
 const getTitleText = ({ isResponseTooLarge, isStreamingResponse }) => {
   if (isStreamingResponse) {
@@ -24,32 +25,25 @@ const getTitleText = ({ isResponseTooLarge, isStreamingResponse }) => {
   return 'Save current response as example';
 };
 
-const ResponseBookmark = ({ item, collection, responseSize, children }) => {
+const ResponseBookmark = forwardRef(({ item, collection, responseSize, children }, ref) => {
   const dispatch = useDispatch();
   const [showSaveResponseExampleModal, setShowSaveResponseExampleModal] = useState(false);
   const response = item.response || {};
+  const elementRef = useRef(null);
 
   const isResponseTooLarge = responseSize >= 5 * 1024 * 1024; // 5 MB
   const isStreamingResponse = response.stream;
-  const isDisabled = isResponseTooLarge || isStreamingResponse;
+  const isDisabled = isResponseTooLarge || isStreamingResponse ? true : false;
+
+  useImperativeHandle(ref, () => ({
+    click: () => elementRef.current?.click(),
+    isDisabled
+  }), [isDisabled]);
 
   // Only show for HTTP requests
   if (item.type !== 'http-request') {
     return null;
   }
-
-  const handleKeyDown = (e) => {
-    if (isDisabled) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
-
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleSaveClick(e);
-    }
-  };
 
   const handleSaveClick = (e) => {
     if (!response || response.error) {
@@ -89,7 +83,7 @@ const ResponseBookmark = ({ item, collection, responseSize, children }) => {
     const contentType = contentTypeHeader?.value?.toLowerCase() || '';
 
     const bodyType = getBodyType(contentType);
-    const content = response.data;
+    const content = formatResponse(response.data, response.dataBuffer, bodyType);
 
     const exampleData = {
       name: name,
@@ -118,7 +112,7 @@ const ResponseBookmark = ({ item, collection, responseSize, children }) => {
     }));
 
     // Save the request
-    await dispatch(saveRequest(item.uid, collection.uid));
+    await dispatch(saveRequest(item.uid, collection.uid, true));
 
     // Task middleware will track this and open the example in a new tab once the file is reloaded
     dispatch(insertTaskIntoQueue({
@@ -141,24 +135,21 @@ const ResponseBookmark = ({ item, collection, responseSize, children }) => {
   return (
     <>
       <div
-        role={!!children ? 'button' : undefined}
-        tabIndex={isDisabled ? -1 : 0}
-        aria-disabled={isDisabled}
-        onKeyDown={handleKeyDown}
+        ref={elementRef}
         onClick={handleSaveClick}
         title={
           !children ? disabledMessage : (isDisabled ? disabledMessage : null)
         }
         className={classnames({
-          'opacity-50 cursor-not-allowed': isDisabled
+          'opacity-50 cursor-not-allowed': isDisabled && !children
         })}
         data-testid="response-bookmark-btn"
       >
         {children ?? (
           <StyledWrapper className="flex items-center">
-            <button className="p-1">
+            <ActionIcon className="p-1" disabled={isDisabled}>
               <IconBookmark size={16} strokeWidth={2} />
-            </button>
+            </ActionIcon>
           </StyledWrapper>
         )}
       </div>
@@ -172,6 +163,8 @@ const ResponseBookmark = ({ item, collection, responseSize, children }) => {
       />
     </>
   );
-};
+});
+
+ResponseBookmark.displayName = 'ResponseBookmark';
 
 export default ResponseBookmark;

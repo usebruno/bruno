@@ -1,12 +1,12 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
 import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
-import type { GrpcRequest, GrpcMetadata } from '@opencollection/types/requests/grpc';
+import type { GrpcRequest, GrpcMetadata, GrpcMessageVariant } from '@opencollection/types/requests/grpc';
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import { toBrunoAuth } from '../common/auth';
 import { toBrunoVariables } from '../common/variables';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
-import { isNonEmptyString, uuid } from '../../../utils';
+import { isNonEmptyString, uuid, ensureString } from '../../../utils';
 
 const toBrunoGrpcMetadata = (metadata: GrpcMetadata[] | null | undefined): BrunoKeyValue[] | undefined => {
   if (!metadata?.length) {
@@ -16,10 +16,17 @@ const toBrunoGrpcMetadata = (metadata: GrpcMetadata[] | null | undefined): Bruno
   const brunoMetadata = metadata.map((meta: GrpcMetadata): BrunoKeyValue => {
     const brunoMeta: BrunoKeyValue = {
       uid: uuid(),
-      name: meta.name || '',
-      value: meta.value || '',
+      name: ensureString(meta.name),
+      value: ensureString(meta.value),
       enabled: meta.disabled !== true
     };
+
+    if (meta.description) {
+      const desc = typeof meta.description === 'string' ? meta.description : (meta.description as any)?.content || '';
+      if (desc.trim().length) {
+        brunoMeta.description = desc;
+      }
+    }
 
     return brunoMeta;
   });
@@ -33,12 +40,12 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
   const runtime = ocRequest.runtime;
 
   const brunoRequest: BrunoGrpcRequest = {
-    url: grpc?.url || '',
-    method: grpc?.method || '',
+    url: ensureString(grpc?.url),
+    method: ensureString(grpc?.method),
     methodType: grpc?.methodType || '',
     protoPath: grpc?.protoFilePath || null,
     headers: toBrunoGrpcMetadata(grpc?.metadata) || [],
-    auth: toBrunoAuth(runtime?.auth),
+    auth: toBrunoAuth(grpc?.auth),
     body: {
       mode: 'grpc',
       grpc: []
@@ -57,10 +64,16 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
   };
 
   // message
-  if (isNonEmptyString(grpc?.message)) {
+  const rawMessage = grpc?.message;
+  if (Array.isArray(rawMessage)) {
+    brunoRequest.body.grpc = (rawMessage as GrpcMessageVariant[]).map(({ title, message }, index) => ({
+      name: title || `message ${index + 1}`,
+      content: ensureString(message)
+    }));
+  } else if (isNonEmptyString(rawMessage)) {
     brunoRequest.body.grpc = [{
       name: '',
-      content: grpc?.message as string
+      content: rawMessage as string
     }];
   }
 
@@ -98,7 +111,7 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
     uid: uuid(),
     type: 'grpc-request',
     seq: info?.seq || 1,
-    name: info?.name || 'Untitled Request',
+    name: ensureString(info?.name, 'Untitled Request'),
     tags: info?.tags || [],
     request: brunoRequest,
     settings: {},
@@ -109,6 +122,14 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
     filename: null,
     pathname: null
   };
+
+  // description
+  if (info?.description) {
+    const desc = typeof info.description === 'string' ? info.description : (info.description as any)?.content || '';
+    if (desc.trim().length) {
+      brunoItem.description = desc;
+    }
+  }
 
   return brunoItem;
 };

@@ -5,9 +5,10 @@ import { toBrunoAuth } from '../common/auth';
 import { toBrunoHttpHeaders } from '../common/headers';
 import { toBrunoParams } from '../common/params';
 import { toBrunoVariables } from '../common/variables';
+import { toBrunoPostResponseVariables } from '../common/actions';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
-import { uuid } from '../../../utils';
+import { uuid, ensureString } from '../../../utils';
 
 const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
   const info = ocRequest.info;
@@ -15,11 +16,11 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
   const runtime = ocRequest.runtime;
 
   const brunoRequest: BrunoHttpRequest = {
-    url: graphql?.url || '',
-    method: graphql?.method || 'POST',
+    url: ensureString(graphql?.url),
+    method: ensureString(graphql?.method, 'POST'),
     headers: toBrunoHttpHeaders(graphql?.headers) || [],
     params: toBrunoParams(graphql?.params) || [],
-    auth: toBrunoAuth(runtime?.auth),
+    auth: toBrunoAuth(graphql?.auth),
     body: {
       mode: 'graphql',
       json: null,
@@ -29,8 +30,8 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
       formUrlEncoded: [],
       multipartForm: [],
       graphql: {
-        query: (graphql?.body as GraphQLBody)?.query || null,
-        variables: (graphql?.body as GraphQLBody)?.variables || null
+        query: (graphql?.body as GraphQLBody)?.query || '',
+        variables: (graphql?.body as GraphQLBody)?.variables || ''
       },
       file: []
     },
@@ -61,9 +62,13 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
     brunoRequest.tests = scripts.tests;
   }
 
-  // variables
+  // variables (pre-request from variables, post-response from actions)
   const variables = toBrunoVariables(runtime?.variables);
-  brunoRequest.vars = variables;
+  const postResponseVars = toBrunoPostResponseVariables(runtime?.actions);
+  brunoRequest.vars = {
+    req: variables.req,
+    res: postResponseVars
+  };
 
   // assertions
   const assertions = toBrunoAssertions(runtime?.assertions);
@@ -81,7 +86,7 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
     uid: uuid(),
     type: 'graphql-request',
     seq: info?.seq || 1,
-    name: info?.name || 'Untitled Request',
+    name: ensureString(info?.name, 'Untitled Request'),
     tags: info?.tags || [],
     request: brunoRequest,
     settings: null,
@@ -92,6 +97,14 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
     filename: null,
     pathname: null
   };
+
+  // description
+  if (info?.description) {
+    const desc = typeof info.description === 'string' ? info.description : (info.description as any)?.content || '';
+    if (desc.trim().length) {
+      brunoItem.description = desc;
+    }
+  }
 
   // settings
   if (ocRequest.settings) {

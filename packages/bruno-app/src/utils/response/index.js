@@ -93,80 +93,73 @@ const isLikelyText = (buffer) => {
 };
 
 /**
- * Helper to detect if snippet is valid HTML
+ * Helper to detect SVG content from text buffer
+ * SVG files may start with XML declaration, comments, or whitespace before the <svg tag
+ * @param {Buffer} buffer - The data buffer to analyze
+ * @returns {boolean} - true if buffer contains SVG content
  */
-export const isValidHtmlSnippet = (snippet) => {
-  if (!snippet || typeof snippet !== 'string') {
-    return false;
+const isSvgContent = (buffer) => {
+  const length = buffer.length;
+  if (length < 4 || buffer[0] !== 0x3C) return false;
+
+  // Fast path: <svg
+  if (buffer[1] === 0x73 && buffer[2] === 0x76 && buffer[3] === 0x67) {
+    return true;
   }
 
-  const trimmed = snippet.trim();
+  // Slow path: <?xml or <!DOCTYPE or <!--
+  if (buffer[1] !== 0x3F && buffer[1] !== 0x21) return false;
 
-  // Check for XML declaration
-  if (trimmed.startsWith('<?xml')) {
-    return false;
+  // Search for <svg in first 512 bytes
+  const limit = Math.min(512, length - 3);
+  for (let i = 2; i < limit; i++) {
+    if (buffer[i] === 0x3C && buffer[i + 1] === 0x73
+      && buffer[i + 2] === 0x76 && buffer[i + 3] === 0x67) {
+      return true;
+    }
   }
 
-  // Check for XML namespaces
-  if (/xmlns(:\w+)?=/.test(trimmed)) {
-    return false;
-  }
+  return false;
+};
 
-  // Extract all tag names from the snippet
-  const tagMatches = trimmed.matchAll(/<\s*\/?([a-zA-Z][a-zA-Z0-9]*)/g);
-  const tags = [...tagMatches].map((match) => match[1].toLowerCase());
-
-  if (tags.length === 0) {
-    return false; // No tags found
-  }
-
-  // Define recognized HTML tags
-  const validHtmlTags = new Set([
-    'a', 'abbr', 'address', 'area', 'article', 'aside', 'audio',
-    'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button',
-    'canvas', 'caption', 'cite', 'code', 'col', 'colgroup',
-    'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt',
-    'em', 'embed',
-    'fieldset', 'figcaption', 'figure', 'footer', 'form',
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html',
-    'i', 'iframe', 'img', 'input', 'ins',
-    'kbd',
-    'label', 'legend', 'li', 'link',
-    'main', 'map', 'mark', 'meta', 'meter',
-    'nav', 'noscript',
-    'object', 'ol', 'optgroup', 'option', 'output',
-    'p', 'param', 'picture', 'pre', 'progress',
-    'q',
-    'rp', 'rt', 'ruby',
-    's', 'samp', 'script', 'section', 'select', 'slot', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 'sup', 'svg',
-    'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track',
-    'u', 'ul',
-    'var', 'video',
-    'wbr'
-  ]);
-
-  // Check if all tags are valid HTML tags
-  const allTagsValid = tags.every((tag) => validHtmlTags.has(tag));
-
-  if (!allTagsValid) {
-    return false; // Contains non-HTML tags
+/**
+ * Decode only the first N bytes from a Base64 string
+ * Returns an empty buffer for invalid/missing input
+ */
+const decodeBase64Head = (base64, byteCount) => {
+  // Validate input is a non-empty string
+  if (!base64 || typeof base64 !== 'string') {
+    return Buffer.alloc(0);
   }
 
   try {
-    // Parse with DOMParser
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(trimmed, 'text/html');
+    // Safely remove data URL prefix (e.g., "data:image/png;base64,")
+    const prefixMatch = base64.match(/^data:[^;]*;base64,/);
+    const cleanedBase64 = prefixMatch ? base64.slice(prefixMatch[0].length) : base64;
 
-    // Check for parsing errors
-    const parseError = doc.querySelector('parsererror');
-    if (parseError) {
-      return false;
+    // Return empty buffer if nothing left after stripping prefix
+    if (!cleanedBase64) {
+      return Buffer.alloc(0);
     }
 
-    // HTML parser is lenient; if we reach here with valid tags, consider it valid
-    return true;
+    // How many base64 chars needed to reconstruct "byteCount" bytes
+    const neededChars = Math.ceil(byteCount / 3) * 4;
+
+    // Slice only required chars
+    let slice = cleanedBase64.slice(0, neededChars);
+
+    // Sanitize: remove any non-base64 characters (whitespace, invalid chars)
+    slice = slice.replace(/[^A-Za-z0-9+/=]/g, '');
+
+    // Pad to valid base64 length (must be multiple of 4)
+    const padLength = (4 - (slice.length % 4)) % 4;
+    slice = slice + '='.repeat(padLength);
+
+    // Decode and trim to requested bytes
+    return Buffer.from(slice, 'base64').subarray(0, byteCount);
   } catch (error) {
-    return false;
+    // On any decoding error, return an empty buffer
+    return Buffer.alloc(0);
   }
 };
 
@@ -196,6 +189,10 @@ export const detectContentTypeFromBuffer = (buffer) => {
   if (bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
     return 'image/webp';
   }
+  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70
+    && bytes[8] === 0x61 && bytes[9] === 0x76 && bytes[10] === 0x69 && bytes[11] === 0x66) {
+    return 'image/avif';
+  }
   if (bytes[0] === 0x42 && bytes[1] === 0x4D) {
     return 'image/bmp';
   }
@@ -206,7 +203,9 @@ export const detectContentTypeFromBuffer = (buffer) => {
   if (bytes[0] === 0x00 && bytes[1] === 0x00 && bytes[2] === 0x01 && bytes[3] === 0x00) {
     return 'image/x-icon';
   }
-
+  if (bytes[0] === 0x3C && bytes[1] === 0x73 && bytes[2] === 0x76 && bytes[3] === 0x67 && bytes[4] === 0x20) {
+    return 'image/svg+xml';
+  }
   // PDF
   if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
     return 'application/pdf';
@@ -251,10 +250,29 @@ export const detectContentTypeFromBuffer = (buffer) => {
     return 'application/gzip';
   }
 
-  // Check if it's likely text (UTF-8)
-  if (isLikelyText(buffer.slice(0, Math.min(512, buffer.length)))) {
-    return 'text/plain';
+  return null;
+};
+
+/**
+ * Main: detect from base64 string
+ */
+export const detectContentTypeFromBase64 = (base64) => {
+  if (!base64) return null;
+
+  // 1. Decode first 12 bytes (magic numbers)
+  const magicHead = decodeBase64Head(base64, 12);
+
+  const magicType = detectContentTypeFromBuffer(magicHead);
+  if (magicType) return magicType;
+
+  // 2. If not binary → decode up to 512 bytes for text detection
+  const textHead = decodeBase64Head(base64, 512);
+
+  if (isSvgContent(textHead)) {
+    return 'image/svg+xml';
   }
+
+  if (isLikelyText(textHead)) return 'text/plain';
 
   return null;
 };

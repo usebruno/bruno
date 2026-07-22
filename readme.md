@@ -3,7 +3,7 @@
 
 ### Bruno - Opensource IDE for exploring and testing APIs.
 
-[![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
+[![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%2Fbruno)
 [![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
 [![X](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=x)](https://twitter.com/use_bruno)
@@ -43,7 +43,8 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 
 📢 Watch our recent talk at India FOSS 3.0 Conference [here](https://www.youtube.com/watch?v=7bSMFpbcPiY)
 
-![bruno](assets/images/landing-2.png) <br /><br />
+![bruno](assets/images/landing-2-dark.png#gh-light-mode-only)
+![bruno](assets/images/landing-2-light.png#gh-dark-mode-only) <br /><br />
 
 ## Commercial Versions ✨
 
@@ -55,6 +56,8 @@ You can explore our [paid versions](https://www.usebruno.com/pricing) to see if 
 ## Table of Contents
 
 - [Installation](#installation)
+- [Bruno CLI](#bruno-cli)
+- [Run with Docker](#run-with-docker)
 - [Features](#features)
   - [Run across multiple platforms 🖥️](#run-across-multiple-platforms-%EF%B8%8F)
   - [Collaborate via Git 👩‍💻🧑‍💻](#collaborate-via-git-%E2%80%8D%E2%80%8D)
@@ -108,6 +111,46 @@ echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebr
   | sudo tee /etc/apt/sources.list.d/bruno.list
 sudo apt update && sudo apt install bruno
 ```
+
+## Bruno CLI
+
+The **Bruno CLI** lets you run your API collections from the command line, which is ideal for automated testing and CI/CD pipelines. Install it from npm using the package manager of your choice:
+
+```sh
+npm install -g @usebruno/cli
+```
+
+Navigate to the directory containing your collection and run it:
+
+```sh
+# Run every request in the collection
+bru run
+
+# Run a single request
+bru run request.bru
+
+# Run a folder against a specific environment
+bru run folder --env Local
+```
+
+For the full command reference, see the [Bruno CLI documentation](https://docs.usebruno.com/bru-cli/overview).
+
+## Run with Docker
+
+Official Docker images for the **Bruno CLI** let you run API collections in CI/CD pipelines and locally without installing Node.js or npm on the host. Images are published to both [Docker Hub](https://hub.docker.com/r/usebruno/cli) and the [GitHub Container Registry](https://ghcr.io/usebruno/cli) on every CLI release, with `alpine` and `debian` variants for `linux/amd64` and `linux/arm64`.
+
+```sh
+# Pull from Docker Hub
+docker pull usebruno/cli:latest
+
+# Or pull from the GitHub Container Registry
+docker pull ghcr.io/usebruno/cli:latest
+
+# Run a collection by mounting the current directory
+docker run -v $(pwd):/bruno usebruno/cli run
+```
+
+For variants, tag matrix, environment files, and CI examples (GitHub Actions, GitLab CI, Jenkins), see the full [Bruno CLI Docker documentation](https://docs.usebruno.com/bru-cli/docker).
 
 ## Features
 

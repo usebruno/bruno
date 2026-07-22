@@ -1,7 +1,8 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  height: 100%;
+  flex: 1 1 0%;
+  min-height: 0;
 
   .overview-layout {
     display: flex;
@@ -67,17 +68,16 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 5px;
     padding: 4px 8px;
-    border: 1px solid ${(props) => props.theme.workspace.accent};
+    border: 1px solid ${(props) => props.theme.brand};
     border-radius: ${(props) => props.theme.border.radius.base};
     background: transparent;
-    color: ${(props) => props.theme.workspace.accent};
+    color: ${(props) => props.theme.brand};
     font-size: ${(props) => props.theme.font.size.sm};
-    font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
 
     &:hover {
-      background: ${(props) => props.theme.workspace.accent}14;
+      background: ${(props) => props.theme.brand}10;
     }
   }
 

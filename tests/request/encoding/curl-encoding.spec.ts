@@ -1,106 +1,85 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createUntitledRequest } from '../../utils/page';
+import { openCollection } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Code Generation URL Encoding', () => {
-  test.afterEach(async ({ page }) => {
-    try {
-      const modalCloseButton = page.locator('[data-test-id="modal-close-button"]');
-      if (await modalCloseButton.isVisible()) {
-        await modalCloseButton.click();
-        await modalCloseButton.waitFor({ state: 'hidden' });
-      }
-    } catch (e) {}
+  test.describe('when encodeUrl is true', () => {
+    test('should encode unencoded URL (spaces to %20)', async ({ pageWithUserData: page }) => {
+      const { sidebar, request, modal } = buildCommonLocators(page);
 
-    await closeAllCollections(page);
-  });
+      await openCollection(page, 'encoding-test');
+      await sidebar.request('encode-url-unencoded').click();
 
-  test('Should generate code with proper URL encoding for unencoded input', async ({
-    page,
-    createTmpDir
-  }) => {
-    // Use plus icon button in new workspace UI
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
-    await page.getByLabel('Name').fill('unencoded-test-collection');
-    const locationInput = page.getByLabel('Location');
-    if (await locationInput.isVisible()) {
-      await locationInput.fill(await createTmpDir('unencoded-test-collection'));
-    }
-    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
+      await request.generateCodeButton().click();
+      await expect(page.getByRole('dialog')).toBeVisible();
 
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'unencoded-test-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'unencoded-test-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+      const codeEditor = page.locator('.editor-content .CodeMirror').first();
+      await expect(codeEditor).toBeVisible();
 
-    // Create a new request using the new dropdown flow
-    await createUntitledRequest(page, {
-      requestType: 'HTTP',
-      url: 'http://base.source?name=John Doe'
+      const generatedCode = await codeEditor.textContent();
+      expect(generatedCode).toContain('http://base.source?name=John%20Doe');
+
+      await modal.closeButton().click();
+      await modal.closeButton().waitFor({ state: 'hidden' });
     });
 
-    // Find the untitled request and click on it
-    await page.locator('.item-name').filter({ hasText: /^Untitled/ }).first().click();
+    test('should double-encode pre-encoded URL (%20 to %2520)', async ({ pageWithUserData: page }) => {
+      const { sidebar, request, modal } = buildCommonLocators(page);
 
-    await page.locator('#send-request .infotip').first().click();
+      await openCollection(page, 'encoding-test');
+      await sidebar.request('encode-url-preencoded').click();
 
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.getByRole('dialog').locator('.bruno-modal-header-title')).toContainText('Generate Code');
+      await request.generateCodeButton().click();
+      await expect(page.getByRole('dialog')).toBeVisible();
 
-    const codeEditor = page.locator('.editor-content .CodeMirror').first();
-    await expect(codeEditor).toBeVisible();
+      const codeEditor = page.locator('.editor-content .CodeMirror').first();
+      await expect(codeEditor).toBeVisible();
 
-    const generatedCode = await codeEditor.textContent();
+      const generatedCode = await codeEditor.textContent();
+      expect(generatedCode).toContain('http://base.source?name=John%2520Doe');
 
-    expect(generatedCode).toContain('http://base.source/?name=John%20Doe');
-
-    await page.locator('[data-test-id="modal-close-button"]').click();
-
-    await page.locator('[data-test-id="modal-close-button"]').waitFor({ state: 'hidden' });
+      await modal.closeButton().click();
+      await modal.closeButton().waitFor({ state: 'hidden' });
+    });
   });
 
-  test('Should generate code with proper URL encoding for encoded input', async ({
-    page,
-    createTmpDir
-  }) => {
-    // Use plus icon button in new workspace UI
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
-    await page.getByLabel('Name').fill('encoded-test-collection');
-    const locationInput = page.getByLabel('Location');
-    if (await locationInput.isVisible()) {
-      await locationInput.fill(await createTmpDir('encoded-test-collection'));
-    }
-    await page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }).click();
+  test.describe('when encodeUrl is false', () => {
+    test('should preserve unencoded URL as-is (spaces kept)', async ({ pageWithUserData: page }) => {
+      const { sidebar, request, modal } = buildCommonLocators(page);
 
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'encoded-test-collection' })).toBeVisible();
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'encoded-test-collection' }).click();
-    await page.getByLabel('Safe Mode').check();
-    await page.getByRole('button', { name: 'Save' }).click();
+      await openCollection(page, 'encoding-test');
+      await sidebar.request('raw-url-unencoded').click();
 
-    // Create a new request using the new dropdown flow
-    await createUntitledRequest(page, {
-      requestType: 'HTTP',
-      url: 'http://base.source?name=John%20Doe'
+      await request.generateCodeButton().click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+
+      const codeEditor = page.locator('.editor-content .CodeMirror').first();
+      await expect(codeEditor).toBeVisible();
+
+      const generatedCode = await codeEditor.textContent();
+      expect(generatedCode).toContain('http://base.source?name=John Doe');
+
+      await modal.closeButton().click();
+      await modal.closeButton().waitFor({ state: 'hidden' });
     });
 
-    // Find the untitled request and click on it
-    await page.locator('.item-name').filter({ hasText: /^Untitled/ }).first().click();
+    test('should preserve pre-encoded URL as-is', async ({ pageWithUserData: page }) => {
+      const { sidebar, request, modal } = buildCommonLocators(page);
 
-    await page.locator('#send-request .infotip').first().click();
+      await openCollection(page, 'encoding-test');
+      await sidebar.request('raw-url-preencoded').click();
 
-    await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.getByRole('dialog').locator('.bruno-modal-header-title')).toContainText('Generate Code');
+      await request.generateCodeButton().click();
+      await expect(page.getByRole('dialog')).toBeVisible();
 
-    const codeEditor = page.locator('.editor-content .CodeMirror').first();
-    await expect(codeEditor).toBeVisible();
+      const codeEditor = page.locator('.editor-content .CodeMirror').first();
+      await expect(codeEditor).toBeVisible();
 
-    const generatedCode = await codeEditor.textContent();
+      const generatedCode = await codeEditor.textContent();
+      expect(generatedCode).toContain('http://base.source?name=John%20Doe');
 
-    expect(generatedCode).toContain('http://base.source/?name=John%20Doe');
-
-    await page.locator('[data-test-id="modal-close-button"]').click();
-
-    await page.locator('[data-test-id="modal-close-button"]').waitFor({ state: 'hidden' });
+      await modal.closeButton().click();
+      await modal.closeButton().waitFor({ state: 'hidden' });
+    });
   });
 });

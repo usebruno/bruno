@@ -1,13 +1,17 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import get from 'lodash/get';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { moveAssertion, setRequestAssertions } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import SingleLineEditor from 'components/SingleLineEditor';
 import AssertionOperator from './AssertionOperator';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const unaryOperators = [
   'isEmpty',
@@ -54,7 +58,20 @@ const isUnaryOperator = (operator) => unaryOperators.includes(operator);
 const Assertions = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const wrapperRef = useRef(null);
+  const [scroll, setScroll] = usePersistedState({ key: `request-assert-scroll-${item.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const assertions = item.draft ? get(item, 'draft.request.assertions') : get(item, 'request.assertions');
+
+  // Get column widths from Redux
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const assertionsWidths = focusedTab?.tableColumnWidths?.['assertions'] || {};
+
+  const handleColumnWidthsChange = (tableId, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
+  };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
@@ -75,13 +92,22 @@ const Assertions = ({ item, collection }) => {
     }));
   }, [dispatch, collection.uid, item.uid]);
 
+  const descriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    onRun: handleRun,
+    collection,
+    item,
+    nameFromRowIndex: true
+  });
+
   const columns = [
     {
       key: 'name',
       name: 'Expr',
       isKeyField: true,
       placeholder: 'Expr',
-      width: '30%'
+      width: '20%'
     },
     {
       key: 'operator',
@@ -125,7 +151,7 @@ const Assertions = ({ item, collection }) => {
       key: 'value',
       name: 'Value',
       width: '30%',
-      render: ({ row, value, onChange, isLastEmptyRow }) => {
+      render: ({ row, value, onChange }) => {
         const { operator, value: assertionValue } = parseAssertionOperator(value);
 
         if (isUnaryOperator(operator)) {
@@ -141,28 +167,35 @@ const Assertions = ({ item, collection }) => {
             onRun={handleRun}
             collection={collection}
             item={item}
-            placeholder={isLastEmptyRow ? 'Value' : ''}
+            placeholder={!value ? 'Value' : ''}
           />
         );
       }
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
     name: '',
     value: 'eq ',
-    operator: 'eq'
+    operator: 'eq',
+    description: ''
   };
 
   return (
-    <StyledWrapper className="w-full">
+    <StyledWrapper className="w-full" ref={wrapperRef}>
       <EditableTable
+        tableId="assertions"
         columns={columns}
         rows={assertions || []}
         onChange={handleAssertionsChange}
         defaultRow={defaultRow}
         reorderable={true}
         onReorder={handleAssertionDrag}
+        testId="assertions-table"
+        columnWidths={assertionsWidths}
+        onColumnWidthsChange={(widths) => handleColumnWidthsChange('assertions', widths)}
+        initialScroll={scroll}
       />
     </StyledWrapper>
   );

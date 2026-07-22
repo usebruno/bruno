@@ -1,56 +1,128 @@
-import { IconChevronDown, IconChevronUp, IconTrash, IconWand } from '@tabler/icons';
+import { IconTrash, IconSend, IconChevronRight, IconChevronDown } from '@tabler/icons';
 import CodeEditor from 'components/CodeEditor/index';
 import ToolHint from 'components/ToolHint/index';
 import { get } from 'lodash';
-import invert from 'lodash/invert';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
-import React, { useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { autoDetectLang } from 'utils/codemirror/lang-detect';
-import { toastError } from 'utils/common/error';
-import { prettifyJsonString } from 'utils/common/index';
-import xmlFormat from 'xml-formatter';
+import { queueWsMessage, isWsConnectionActive, connectWS } from 'utils/network/index';
+import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collections/index';
+import toast from 'react-hot-toast';
 import WSRequestBodyMode from '../BodyMode/index';
+import StyledWrapper from './StyledWrapper';
 
-export const TYPE_BY_DECODER = {
-  base64: 'binary',
-  json: 'json',
-  xml: 'xml'
+const codemirrorMode = {
+  text: 'application/text',
+  xml: 'application/xml',
+  json: 'application/ld+json'
 };
 
-export const DECODER_BY_TYPE = invert(TYPE_BY_DECODER);
+// Maps stored type to display mode
+const typeToMode = (type) => {
+  switch (type) {
+    case 'json': return 'json';
+    case 'xml': return 'xml';
+    default: return 'text';
+  }
+};
 
 export const SingleWSMessage = ({
   message,
   item,
   collection,
   index,
-  methodType,
-  isCollapsed,
-  onToggleCollapse,
   handleRun,
-  canClientSendMultipleMessages
+  isExpanded,
+  onToggle,
+  isNew,
+  onNewRendered,
+  isSelected,
+  onSelect,
+  paneHeight
 }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
+  const collections = useSelector((state) => state.collections.collections);
 
   const { name, content, type } = message;
-  const [messageFormat, setMessageFormat] = useState(autoDetectLang(content));
+  const displayMode = typeToMode(type);
+  const displayName = name || `message ${index + 1}`;
 
-  const onUpdateMessageType = (type) => {
-    setMessageFormat(type);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(displayName);
+  const labelTooltipId = `ws-msg-label-${message.uid ?? index}`;
 
+  // Auto-focus the name input when this is a newly created message
+  useEffect(() => {
+    if (isNew) {
+      setIsEditing(true);
+      setEditValue(displayName);
+      onNewRendered();
+    }
+  }, [isNew]);
+
+  const saveName = (value) => {
+    const trimmed = value.trim() || `message ${index + 1}`;
     const currentMessages = [...(body.ws || [])];
-
     currentMessages[index] = {
       ...currentMessages[index],
-      type: DECODER_BY_TYPE[type]
+      name: trimmed
     };
+    dispatch(updateRequestBody({
+      content: currentMessages,
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    }));
+    setIsEditing(false);
+  };
 
+  const handleNameKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      saveName(editValue);
+    } else if (e.key === 'Escape') {
+      setEditValue(displayName);
+      setIsEditing(false);
+    } else if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      saveName(editValue);
+      dispatch(saveRequest(item.uid, collection.uid));
+    }
+  };
+
+  const handleNameBlur = () => {
+    saveName(editValue);
+  };
+
+  const handleNameClick = useCallback((e) => {
+    e.stopPropagation();
+    setEditValue(displayName);
+    setIsEditing(true);
+  }, [displayName, onToggle]);
+
+  const fontSize = get(preferences, 'font.codeFontSize', 14);
+  const lineHeight = fontSize * 1.5;
+
+  const HEADER_ALLOWANCE = 44;
+  const maxEditorHeight = paneHeight
+    ? Math.max(160, paneHeight - HEADER_ALLOWANCE)
+    : Math.round((typeof window !== 'undefined' ? window.innerHeight : 900) * 0.6);
+  const editorHeight = useMemo(() => {
+    const lineCount = (content || '').split('\n').length;
+    const lines = lineCount + 1;
+    const contentHeight = lines * lineHeight + 10;
+    return `${Math.min(contentHeight, maxEditorHeight)}px`;
+  }, [content, lineHeight, maxEditorHeight]);
+
+  const onUpdateMessageType = (newMode) => {
+    const currentMessages = [...(body.ws || [])];
+    currentMessages[index] = {
+      ...currentMessages[index],
+      type: typeToMode(newMode)
+    };
     dispatch(updateRequestBody({
       content: currentMessages,
       itemUid: item.uid,
@@ -60,13 +132,11 @@ export const SingleWSMessage = ({
 
   const onEdit = (value) => {
     const currentMessages = [...(body.ws || [])];
-
     currentMessages[index] = {
-      name: name ? name : `message ${index + 1}`,
-      type: DECODER_BY_TYPE[messageFormat],
+      ...currentMessages[index],
+      name: name || `message ${index + 1}`,
       content: value
     };
-
     dispatch(updateRequestBody({
       content: currentMessages,
       itemUid: item.uid,
@@ -78,9 +148,7 @@ export const SingleWSMessage = ({
 
   const onDeleteMessage = () => {
     const currentMessages = [...(body.ws || [])];
-
     currentMessages.splice(index, 1);
-
     dispatch(updateRequestBody({
       content: currentMessages,
       itemUid: item.uid,
@@ -88,102 +156,111 @@ export const SingleWSMessage = ({
     }));
   };
 
-  const getContainerHeight
-    = canClientSendMultipleMessages && body.ws.length > 1 ? `${isCollapsed ? '' : 'h-80'}` : 'h-full';
+  const onSendMessage = useCallback(async () => {
+    try {
+      const col = findCollectionByUid(collections, collection.uid);
+      const environment = findEnvironmentInCollection(col, col?.activeEnvironmentUid);
 
-  let codeType = messageFormat;
-  if (TYPE_BY_DECODER[type]) {
-    codeType = TYPE_BY_DECODER[type];
-  }
-
-  const codemirrorMode = {
-    text: 'application/text',
-    xml: 'application/xml',
-    json: 'application/ld+json'
-  };
-
-  const onPrettify = () => {
-    if (codeType === 'json') {
-      try {
-        const prettyBodyJson = prettifyJsonString(content);
-        const currentMessages = [...(body.ws || [])];
-        currentMessages[index] = {
-          ...currentMessages[index],
-          name: name ? name : `message ${index + 1}`,
-          content: prettyBodyJson
-        };
-        dispatch(updateRequestBody({
-          content: currentMessages,
-          itemUid: item.uid,
-          collectionUid: collection.uid
-        }));
-      } catch (e) {
-        toastError(new Error('Unable to prettify. Invalid JSON format.'));
+      // Auto-connect if not already connected
+      const connectionStatus = await isWsConnectionActive(item.uid);
+      if (!connectionStatus.isActive) {
+        await connectWS(item, col, environment, col?.runtimeVariables, { connectOnly: true });
       }
-    }
 
-    if (codeType === 'xml') {
-      try {
-        const prettyBodyXML = xmlFormat(content, { collapseContent: true });
-
-        const currentMessages = [...(body.ws || [])];
-        currentMessages[index] = {
-          ...currentMessages[index],
-          name: name ? name : `message ${index + 1}`,
-          content: prettyBodyXML
-        };
-
-        dispatch(updateRequestBody({
-          content: currentMessages,
-          itemUid: item.uid,
-          collectionUid: collection.uid
-        }));
-      } catch (e) {
-        toastError(new Error('Unable to prettify. Invalid XML format.'));
+      const result = await queueWsMessage(item, col, environment, col?.runtimeVariables, index);
+      if (!result.success) {
+        toast.error(result.error || 'Failed to send message');
       }
+    } catch (err) {
+      toast.error(err.message || 'Failed to send message');
     }
-  };
+  }, [collections]);
 
   return (
-    <div
-      className={`flex flex-col mb-3 border border-neutral-200 dark:border-neutral-800 rounded-md overflow-hidden ${getContainerHeight} relative`}
+    <StyledWrapper
+      className={!isSelected ? 'disabled' : ''}
+      data-testid={`ws-message-${index}`}
+      onMouseUpCapture={(e) => {
+        if (isSelected || e.target.closest('.hover-action-btn.delete')) return;
+        onSelect();
+      }}
     >
       <div
-        className="ws-message-header flex items-center justify-between px-3 py-2 bg-neutral-100 dark:bg-neutral-700 cursor-pointer"
-        onClick={onToggleCollapse}
+        className="accordion-header"
+        data-testid={`ws-message-header-${index}`}
+        role="button"
+        tabIndex={0}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.target !== e.currentTarget) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
       >
-        <div className="flex items-center gap-2">
-          {isCollapsed ? (
-            <IconChevronDown size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+        <div className="accordion-left">
+          {isExpanded ? (
+            <IconChevronDown size={14} strokeWidth={2} />
           ) : (
-            <IconChevronUp size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
+            <IconChevronRight size={14} strokeWidth={2} />
           )}
-        </div>
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <WSRequestBodyMode mode={messageFormat} onModeChange={onUpdateMessageType} />
-          <ToolHint text="Prettify" toolhintId={`prettify-msg-${index}`}>
-            <button
-              onClick={onPrettify}
-              className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
+          {isEditing ? (
+            <input
+              ref={(node) => node?.focus()}
+              className="name-input"
+              data-testid={`ws-message-name-input-${index}`}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={handleNameKeyDown}
+              onBlur={handleNameBlur}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <ToolHint
+              text={displayName}
+              toolhintId={labelTooltipId}
+              className="message-label-anchor"
+              place="bottom-start"
+              positionStrategy="fixed"
+              tooltipTestId="ws-message-name-tooltip"
+              tooltipStyle={{ maxWidth: '320px', whiteSpace: 'normal', wordBreak: 'break-word' }}
             >
-              <IconWand size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
-            </button>
-          </ToolHint>
-
-          {index > 0 && (
-            <ToolHint text="Delete this message" toolhintId={`delete-msg-${index}`}>
-              <button
-                onClick={onDeleteMessage}
-                className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
+              <span
+                className="message-label"
+                data-testid={`ws-message-label-${index}`}
+                onClick={(e) => e.stopPropagation()}
+                onDoubleClick={handleNameClick}
               >
-                <IconTrash size={16} strokeWidth={1.5} className="text-zinc-700 dark:text-zinc-300" />
-              </button>
+                {displayName}
+              </span>
             </ToolHint>
           )}
         </div>
+        <div className="accordion-actions" onClick={(e) => e.stopPropagation()}>
+          <div className="hover-actions">
+            <ToolHint text="Send" toolhintId={`send-msg-${index}`} place="bottom">
+              <button onClick={onSendMessage} className="hover-action-btn" data-testid={`ws-send-msg-${index}`}>
+                <IconSend size={14} strokeWidth={1.5} />
+              </button>
+            </ToolHint>
+            {(body.ws || []).length > 1 && (
+              <ToolHint text="Delete" toolhintId={`delete-msg-${index}`} place="bottom">
+                <button onClick={onDeleteMessage} className="hover-action-btn delete" data-testid={`ws-delete-msg-${index}`}>
+                  <IconTrash size={14} strokeWidth={1.5} />
+                </button>
+              </ToolHint>
+            )}
+          </div>
+          <WSRequestBodyMode mode={displayMode} onModeChange={onUpdateMessageType} />
+        </div>
       </div>
-      {!isCollapsed && (
-        <div className={`flex ${body.ws.length === 1 || !canClientSendMultipleMessages ? 'h-full' : 'h-80'} relative`}>
+      {isExpanded && (
+        <div
+          className="accordion-body"
+          data-testid={`ws-message-body-${index}`}
+          style={{ height: editorHeight }}
+        >
           <CodeEditor
             collection={collection}
             theme={displayedTheme}
@@ -193,11 +270,13 @@ export const SingleWSMessage = ({
             onEdit={onEdit}
             onRun={handleRun}
             onSave={onSave}
-            mode={codemirrorMode[codeType] ?? 'text/plain'}
+            mode={codemirrorMode[displayMode] ?? 'text/plain'}
             enableVariableHighlighting={true}
+            docKey={`${item.uid}:ws-msg:${message.uid ?? index}`}
+            containScroll={true}
           />
         </div>
       )}
-    </div>
+    </StyledWrapper>
   );
 };

@@ -13,6 +13,9 @@ const STATIC_API_HINTS = {
     'req.timeout',
     'req.getUrl()',
     'req.setUrl(url)',
+    'req.getHost()',
+    'req.getPath()',
+    'req.getQueryString()',
     'req.getMethod()',
     'req.getAuthMode()',
     'req.setMethod(method)',
@@ -20,6 +23,8 @@ const STATIC_API_HINTS = {
     'req.getHeaders()',
     'req.setHeader(name, value)',
     'req.setHeaders(data)',
+    'req.deleteHeader(name)',
+    'req.deleteHeaders(data)',
     'req.getBody()',
     'req.setBody(data)',
     'req.setMaxRedirects(maxRedirects)',
@@ -27,9 +32,33 @@ const STATIC_API_HINTS = {
     'req.setTimeout(timeout)',
     'req.getExecutionMode()',
     'req.getName()',
+    'req.getPathParams()',
     'req.getTags()',
     'req.disableParsingResponseJson()',
-    'req.onFail(function(err) {})'
+    'req.onFail(function(err) {})',
+    'req.headerList',
+    'req.headerList.get(name)',
+    'req.headerList.one(name)',
+    'req.headerList.all()',
+    'req.headerList.count()',
+    'req.headerList.has(name)',
+    'req.headerList.has(name, value)',
+    'req.headerList.find(fn)',
+    'req.headerList.filter(fn)',
+    'req.headerList.indexOf(item)',
+    'req.headerList.each(fn)',
+    'req.headerList.map(fn)',
+    'req.headerList.reduce(fn, initialValue)',
+    'req.headerList.toObject()',
+    'req.headerList.toString()',
+    'req.headerList.toJSON()',
+    'req.headerList.add(headerObj)',
+    'req.headerList.upsert(headerObj)',
+    'req.headerList.remove(predicate)',
+    'req.headerList.clear()',
+    'req.headerList.populate(items)',
+    'req.headerList.repopulate(items)',
+    'req.headerList.assimilate(source, prune)'
   ],
   res: [
     'res',
@@ -50,7 +79,23 @@ const STATIC_API_HINTS = {
     'res.getSize().header',
     'res.getSize().body',
     'res.getSize().total',
-    'res.getUrl()'
+    'res.getUrl()',
+    'res.headerList',
+    'res.headerList.get(name)',
+    'res.headerList.one(name)',
+    'res.headerList.all()',
+    'res.headerList.count()',
+    'res.headerList.has(name)',
+    'res.headerList.has(name, value)',
+    'res.headerList.find(fn)',
+    'res.headerList.filter(fn)',
+    'res.headerList.indexOf(item)',
+    'res.headerList.each(fn)',
+    'res.headerList.map(fn)',
+    'res.headerList.reduce(fn, initialValue)',
+    'res.headerList.toObject()',
+    'res.headerList.toString()',
+    'res.headerList.toJSON()'
   ],
   bru: [
     'bru',
@@ -61,29 +106,64 @@ const STATIC_API_HINTS = {
     'bru.getEnvVar(key)',
     'bru.getFolderVar(key)',
     'bru.getCollectionVar(key)',
+    'bru.setCollectionVar(key, value)',
+    'bru.hasCollectionVar(key)',
+    'bru.deleteCollectionVar(key)',
+    'bru.deleteAllCollectionVars()',
+    'bru.getAllCollectionVars()',
     'bru.setEnvVar(key, value)',
-    'bru.setEnvVar(key, value, options)',
     'bru.deleteEnvVar(key)',
+    'bru.getAllEnvVars()',
+    'bru.deleteAllEnvVars()',
     'bru.hasVar(key)',
     'bru.getVar(key)',
     'bru.setVar(key,value)',
     'bru.deleteVar(key)',
     'bru.deleteAllVars()',
+    'bru.getAllVars()',
     'bru.setNextRequest(requestName)',
     'bru.getRequestVar(key)',
     'bru.runRequest(requestPathName)',
+    'bru.sendRequest(requestConfig)',
+    'bru.sendRequest(requestConfig, callback)',
     'bru.getAssertionResults()',
     'bru.getTestResults()',
     'bru.sleep(ms)',
     'bru.getCollectionName()',
+    'bru.isSafeMode()',
+    'bru.getOauth2CredentialVar(key)',
+    'bru.hasGlobalEnvVar(key)',
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
+    'bru.deleteGlobalEnvVar(key)',
+    'bru.getAllGlobalEnvVars()',
+    'bru.deleteAllGlobalEnvVars()',
     'bru.runner',
     'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
     'bru.runner.stopExecution()',
     'bru.interpolate(str)',
     'bru.cookies',
+    'bru.cookies.get(name)',
+    'bru.cookies.has(name)',
+    'bru.cookies.has(name, value)',
+    'bru.cookies.one(name)',
+    'bru.cookies.all()',
+    'bru.cookies.count()',
+    'bru.cookies.idx(index)',
+    'bru.cookies.indexOf(item)',
+    'bru.cookies.find(fn)',
+    'bru.cookies.filter(fn)',
+    'bru.cookies.each(fn)',
+    'bru.cookies.map(fn)',
+    'bru.cookies.reduce(fn, initialValue)',
+    'bru.cookies.toObject()',
+    'bru.cookies.toString()',
+    'bru.cookies.add(cookieObj)',
+    'bru.cookies.upsert(cookieObj)',
+    'bru.cookies.remove(name)',
+    'bru.cookies.delete(name)',
+    'bru.cookies.clear()',
     'bru.cookies.jar()',
     'bru.cookies.jar().getCookie(url, name, callback)',
     'bru.cookies.jar().getCookies(url, callback)',
@@ -93,17 +173,21 @@ const STATIC_API_HINTS = {
     'bru.cookies.jar().clear(callback)',
     'bru.cookies.jar().deleteCookies(url, callback)',
     'bru.cookies.jar().deleteCookie(url, name, callback)',
+    'bru.cookies.jar().hasCookie(url, name, callback)',
     'bru.utils',
     'bru.utils.minifyJson(json)',
-    'bru.utils.minifyXml(xml)'
+    'bru.utils.minifyXml(xml)',
+    'bru.resetOauth2Credential(credentialId)'
   ]
 };
 
 // Mock data functions - prefixed with $
 const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map((key) => `$${key}`);
 
-// Constants for word pattern matching
-const WORD_PATTERN = /[\w.$-/]/;
+// Constants for word pattern matching.
+// `-` is placed last so it is a literal hyphen, not a range operator — `$-/`
+// would otherwise match `( ) % & ' * + ,`
+const WORD_PATTERN = /[\w.$/-]/;
 const VARIABLE_PATTERN = /\{\{([\w$.-]*)$/;
 const NON_CHARACTER_KEYS = /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/;
 
@@ -294,9 +378,14 @@ const calculateWordReplacementPositions = (cursor, start, end, word) => {
  * @returns {string} The determined context
  */
 const determineWordContext = (word) => {
-  if (word.startsWith('req') || word.startsWith('res') || word.startsWith('bru')) {
+  const isApiHint = Object.keys(STATIC_API_HINTS).some(
+    (apiRoot) => apiRoot.toLowerCase().startsWith(word.toLowerCase()) || word.toLowerCase().startsWith(apiRoot.toLowerCase())
+  );
+
+  if (isApiHint) {
     return 'api';
   }
+
   return 'anyword';
 };
 
@@ -380,40 +469,48 @@ const getCurrentWordWithContext = (cm) => {
  * @returns {string[]} Array of suggestion segments
  */
 const extractNextSegmentSuggestions = (filteredHints, currentInput) => {
-  const suggestions = new Set();
+  const prefixMatches = new Set();
+  const substringMatches = new Set();
+  const lowerInput = currentInput.toLowerCase();
 
   filteredHints.forEach((hint) => {
-    if (!hint.toLowerCase().startsWith(currentInput.toLowerCase())) {
-      return;
-    }
+    const lowerHint = hint.toLowerCase();
 
-    // Handle exact match case
-    if (hint.toLowerCase() === currentInput.toLowerCase()) {
-      suggestions.add(hint.substring(hint.lastIndexOf('.') + 1));
-      return;
-    }
+    // For prefix matches, use the original progressive logic
+    if (lowerHint.startsWith(lowerInput)) {
+      // Handle exact match case
+      if (lowerHint === lowerInput) {
+        prefixMatches.add(hint.substring(hint.lastIndexOf('.') + 1));
+        return;
+      }
 
-    const inputLength = currentInput.length;
+      const inputLength = currentInput.length;
 
-    if (currentInput.endsWith('.')) {
-      // Show next segment after the dot
-      const afterDot = hint.substring(inputLength);
-      const nextDot = afterDot.indexOf('.');
-      const segment = nextDot === -1 ? afterDot : afterDot.substring(0, nextDot);
-      suggestions.add(segment);
-    } else {
-      // Show complete current segment
-      const lastDotInInput = currentInput.lastIndexOf('.');
-      const currentSegmentStart = lastDotInInput + 1;
-      const nextDotAfterInput = hint.indexOf('.', currentSegmentStart);
-      const segment = nextDotAfterInput === -1
-        ? hint.substring(currentSegmentStart)
-        : hint.substring(currentSegmentStart, nextDotAfterInput);
-      suggestions.add(segment);
+      if (currentInput.endsWith('.')) {
+        // Show next segment after the dot
+        const afterDot = hint.substring(inputLength);
+        const nextDot = afterDot.indexOf('.');
+        const segment = nextDot === -1 ? afterDot : afterDot.substring(0, nextDot);
+        prefixMatches.add(segment);
+      } else {
+        // Show complete current segment
+        const lastDotInInput = currentInput.lastIndexOf('.');
+        const currentSegmentStart = lastDotInInput + 1;
+        const nextDotAfterInput = hint.indexOf('.', currentSegmentStart);
+        const segment
+          = nextDotAfterInput === -1
+            ? hint.substring(currentSegmentStart)
+            : hint.substring(currentSegmentStart, nextDotAfterInput);
+        prefixMatches.add(segment);
+      }
+    } else if (lowerHint.includes(lowerInput)) {
+      // For substring matches (search within words), suggest the complete hint
+      substringMatches.add(hint);
     }
   });
 
-  return Array.from(suggestions).sort();
+  // Return prefix matches first, then substring matches
+  return [...Array.from(prefixMatches).sort(), ...Array.from(substringMatches).sort()];
 };
 
 /**
@@ -469,8 +566,9 @@ const filterHintsByContext = (categorizedHints, currentWord, context, showHintsF
 
   const allowedHints = getAllowedHintsByContext(categorizedHints, context, showHintsFor);
 
+  const lowerWord = currentWord.toLowerCase();
   const filtered = allowedHints.filter((hint) => {
-    return hint.toLowerCase().startsWith(currentWord.toLowerCase());
+    return hint.toLowerCase().includes(lowerWord);
   });
 
   const hintParts = getHintParts(filtered, currentWord);
@@ -511,6 +609,34 @@ const createStandardHintList = (filteredHints, from, to) => {
     from,
     to
   };
+};
+
+/**
+ * Show root-level API hints when the editor is empty
+ * @param {Object} cm - CodeMirror instance
+ * @param {string[]} showHintsFor - Array of hint types to show (e.g., ['req', 'res', 'bru'])
+ * @returns {boolean} True if hints were shown, false otherwise
+ */
+export const showRootHints = (cm, showHintsFor = []) => {
+  const wordInfo = getCurrentWordWithContext(cm);
+  // If user is currently typing a word, let handleKeyupForAutocomplete
+  // handle it instead of showing root hints.
+  if (wordInfo) {
+    return false;
+  }
+
+  const hints = Object.keys(STATIC_API_HINTS).filter((rootHint) => showHintsFor.includes(rootHint));
+
+  if (hints.length === 0) return false;
+
+  const cursor = cm.getCursor();
+  const hintList = createStandardHintList(hints, cursor, cursor);
+
+  cm.showHint({
+    hint: () => hintList,
+    completeSingle: false
+  });
+  return true;
 };
 
 /**
@@ -624,7 +750,8 @@ const handleKeyupForAutocomplete = (cm, event, options) => {
   const hints = getAutoCompleteHints(cm, allVariables, anywordAutocompleteHints, options);
 
   if (!hints) {
-    if (cm.state.completionActive) {
+    const wordInfo = getCurrentWordWithContext(cm);
+    if (cm.state.completionActive && wordInfo) {
       cm.state.completionActive.close();
     }
     return;
@@ -672,6 +799,9 @@ export const setupAutoComplete = (editor, options = {}) => {
     }
   };
 };
+
+// Exported for testing
+export { extractNextSegmentSuggestions, WORD_PATTERN };
 
 // Initialize autocomplete command if not already present
 if (!CodeMirror.commands.autocomplete) {

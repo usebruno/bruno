@@ -19,6 +19,6 @@ test.describe('Invalid OpenAPI - Missing Info Section', () => {
     await expect(errorMessage).toBeVisible({ timeout: 10000 });
 
     // Cleanup: close any open modals
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
   });
 });

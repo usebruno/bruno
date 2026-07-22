@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconPlus, IconFolder, IconFileImport } from '@tabler/icons';
-import { importCollectionInWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
-import { openCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { IconPlus, IconFolder, IconDownload } from '@tabler/icons';
+import { importCollection, openCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
+import { setIsCreatingCollection, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
-import CreateCollection from 'components/Sidebar/CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
+import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
+import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
+import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
+import PostmanPackageReport from 'components/Sidebar/PostmanPackageReport';
+import usePostmanPackagePrompt from 'hooks/usePostmanPackagePrompt';
+import Button from 'ui/Button';
 import CollectionsList from './CollectionsList';
 import WorkspaceDocs from '../WorkspaceDocs';
 import StyledWrapper from './StyledWrapper';
@@ -13,15 +18,24 @@ import StyledWrapper from './StyledWrapper';
 const WorkspaceOverview = ({ workspace }) => {
   const dispatch = useDispatch();
   const { globalEnvironments } = useSelector((state) => state.globalEnvironments);
+  const { sidebarCollapsed, isCreatingCollection } = useSelector((state) => state.app);
 
-  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
+  const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
+  const [importData, setImportData] = useState(null);
+  const [showCloneGitModal, setShowCloneGitModal] = useState(false);
+  const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
+  const { postmanPackagePrompt, clearPostmanPackagePrompt, handleImportResolved } = usePostmanPackagePrompt();
 
   const workspaceCollectionsCount = workspace?.collections?.length || 0;
 
   const workspaceEnvironmentsCount = globalEnvironments?.length || 0;
 
   const handleCreateCollection = async () => {
+    if (isCreatingCollection) {
+      return;
+    }
+
     if (!workspace?.pathname) {
       toast.error('Workspace path not found');
       return;
@@ -30,7 +44,10 @@ const WorkspaceOverview = ({ workspace }) => {
     try {
       const { ipcRenderer } = window;
       await ipcRenderer.invoke('renderer:ensure-collections-folder', workspace.pathname);
-      setCreateCollectionModalOpen(true);
+      if (sidebarCollapsed) {
+        dispatch(toggleSidebarCollapse());
+      }
+      dispatch(setIsCreatingCollection(true));
     } catch (error) {
       console.error('Error ensuring collections folder exists:', error);
       toast.error('Error preparing workspace for collection creation');
@@ -48,24 +65,77 @@ const WorkspaceOverview = ({ workspace }) => {
     setImportCollectionModalOpen(true);
   };
 
-  const handleImportCollectionSubmit = ({ rawData, type }) => {
+  const handleImportCollectionSubmit = ({ rawData, type, repositoryUrl, ...rest }) => {
     setImportCollectionModalOpen(false);
-    dispatch(importCollectionInWorkspace(rawData, workspace.uid, undefined, type)).catch((err) => {
-      console.error(err);
-      toast.error('An error occurred while importing the collection');
-    });
+
+    if (type === 'git-repository') {
+      setGitRepositoryUrl(repositoryUrl);
+      setShowCloneGitModal(true);
+      return;
+    }
+
+    setImportData({ rawData, type, ...rest });
+    setImportCollectionLocationModalOpen(true);
+  };
+
+  const handleImportCollectionLocation = (convertedCollection, collectionLocation, options = {}) => {
+    const importAction = options.isZipImport
+      ? importCollectionFromZip(convertedCollection.zipFilePath, collectionLocation)
+      : importCollection(convertedCollection, collectionLocation, options);
+
+    dispatch(importAction)
+      .then((importedItem) => {
+        setImportCollectionLocationModalOpen(false);
+        setImportData(null);
+        handleImportResolved(convertedCollection, importedItem);
+      });
+  };
+
+  const handleCloseGitModal = () => {
+    setShowCloneGitModal(false);
+    setGitRepositoryUrl(null);
   };
 
   return (
     <StyledWrapper>
-      {createCollectionModalOpen && (
-        <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} />
-      )}
-
       {importCollectionModalOpen && (
         <ImportCollection
           onClose={() => setImportCollectionModalOpen(false)}
           handleSubmit={handleImportCollectionSubmit}
+        />
+      )}
+
+      {importCollectionLocationModalOpen && importData && (importData.type !== 'multiple' && importData.type !== 'bulk') && (
+        <ImportCollectionLocation
+          rawData={importData.rawData}
+          format={importData.type}
+          sourceUrl={importData.sourceUrl}
+          filePath={importData.filePath}
+          rawContent={importData.rawContent}
+          onClose={() => setImportCollectionLocationModalOpen(false)}
+          handleSubmit={handleImportCollectionLocation}
+        />
+      )}
+      {importCollectionLocationModalOpen && importData && (importData.type === 'multiple' || importData.type === 'bulk') && (
+        <BulkImportCollectionLocation
+          importData={importData}
+          onClose={() => setImportCollectionLocationModalOpen(false)}
+          handleSubmit={handleImportCollectionLocation}
+        />
+      )}
+      {showCloneGitModal && (
+        <CloneGitRepository
+          onClose={handleCloseGitModal}
+          onFinish={handleCloseGitModal}
+          collectionRepositoryUrl={gitRepositoryUrl}
+        />
+      )}
+      {postmanPackagePrompt && (
+        <PostmanPackageReport
+          key={postmanPackagePrompt.collectionPath}
+          report={postmanPackagePrompt.report}
+          collectionPath={postmanPackagePrompt.collectionPath}
+          onClose={clearPostmanPackagePrompt}
         />
       )}
 
@@ -85,18 +155,31 @@ const WorkspaceOverview = ({ workspace }) => {
           <div className="quick-actions-section">
             <div className="section-title">Quick Actions</div>
             <div className="quick-actions-buttons">
-              <button className="quick-action-btn" onClick={handleCreateCollection}>
-                <IconPlus size={14} strokeWidth={1.5} />
-                <span>Create Collection</span>
-              </button>
-              <button className="quick-action-btn" onClick={handleOpenCollection}>
-                <IconFolder size={14} strokeWidth={1.5} />
-                <span>Open Collection</span>
-              </button>
-              <button className="quick-action-btn" onClick={handleImportCollection}>
-                <IconFileImport size={14} strokeWidth={1.5} />
-                <span>Import Collection</span>
-              </button>
+              <Button
+                color="light"
+                size="sm"
+                icon={<IconPlus size={14} strokeWidth={1.5} />}
+                onClick={handleCreateCollection}
+                disabled={isCreatingCollection}
+              >
+                Create Collection
+              </Button>
+              <Button
+                color="light"
+                size="sm"
+                icon={<IconFolder size={14} strokeWidth={1.5} />}
+                onClick={handleOpenCollection}
+              >
+                Open Collection
+              </Button>
+              <Button
+                color="light"
+                size="sm"
+                icon={<IconDownload size={14} strokeWidth={1.5} />}
+                onClick={handleImportCollection}
+              >
+                Import Collection
+              </Button>
             </div>
           </div>
 

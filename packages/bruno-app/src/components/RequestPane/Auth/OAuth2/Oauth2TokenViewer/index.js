@@ -54,7 +54,7 @@ const TokenSection = ({ title, token }) => {
             <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={() => handleCopy(token)}
-                className="p-1 bg-indigo-100 dark:hover:bg-indigo-200 rounded"
+                className="p-1 oauth2-copy-button rounded"
                 title="Copy token"
               >
                 {copied

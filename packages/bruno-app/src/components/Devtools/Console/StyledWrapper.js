@@ -13,7 +13,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 16px;
+    padding: 0 8px;
     background: ${(props) => props.theme.console.headerBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
     flex-shrink: 0;
@@ -30,7 +30,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
+    padding: 4px 8px;
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
@@ -38,8 +38,6 @@ const StyledWrapper = styled.div`
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: ${(props) => props.theme.font.size.sm};
-    font-weight: 500;
-    border-radius: 4px 4px 0 0;
 
     &:hover {
       background: ${(props) => props.theme.console.buttonHoverBg};
@@ -47,9 +45,9 @@ const StyledWrapper = styled.div`
     }
 
     &.active {
-      color: ${(props) => props.theme.console.checkboxColor};
-      border-bottom-color: ${(props) => props.theme.console.checkboxColor};
-      background: ${(props) => props.theme.console.contentBg};
+      color: ${(props) => props.theme.primary.strong};
+      border-bottom-color: ${(props) => props.theme.primary.strong};
+      background: ${(props) => props.theme.background.mantle};
     }
   }
 
@@ -144,10 +142,42 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 4px;
-    margin-right: 8px;
-    padding-right: 8px;
-    border-right: 1px solid ${(props) => props.theme.console.border};
   }
+
+  .details-panel-wrapper {
+    position: relative;
+    flex-shrink: 0;
+    height: 100%;
+    display: flex;
+  }
+
+  div.details-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    cursor: col-resize;
+    background-color: transparent;
+    width: 6px;
+    position: absolute;
+    left: -3px;
+    top: 0;
+    z-index: 10;
+    transition: opacity 0.2s ease;
+
+    div.drag-request-border {
+      width: 1px;
+      height: 100%;
+      border-left: solid 1px ${(props) => props.theme.sidebar.dragbar.border};
+    }
+
+    &:hover div.drag-request-border {
+      width: 1px;
+      height: 100%;
+      border-left: solid 1px ${(props) => props.theme.sidebar.dragbar.activeBorder};
+    }
+  }
+
 
   .action-controls {
     display: flex;
@@ -159,23 +189,21 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     background: transparent;
     border: none;
     border-radius: 4px;
-    color: ${(props) => props.theme.console.buttonColor};
+    color: ${(props) => props.theme.text};
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-      background: ${(props) => props.theme.console.buttonHoverBg};
-      color: ${(props) => props.theme.console.buttonHoverColor};
+      background: ${(props) => props.theme.background.surface0};
     }
 
     &.close-button:hover {
-      background: #e81123;
-      color: white;
+      background: ${(props) => props.theme.background.surface0};
     }
   }
 
@@ -187,19 +215,17 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 8px;
+    padding: 2px 8px;
     background: transparent;
-    border: 1px solid ${(props) => props.theme.console.border};
-    border-radius: 4px;
-    color: ${(props) => props.theme.console.buttonColor};
+    border: 1px solid ${(props) => props.theme.border.border0};
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    color: ${(props) => props.theme.text};
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: ${(props) => props.theme.font.size.sm};
 
     &:hover {
-      background: ${(props) => props.theme.console.buttonHoverBg};
-      color: ${(props) => props.theme.console.buttonHoverColor};
-      border-color: ${(props) => props.theme.console.border};
+      background: ${(props) => props.theme.background.surface0};
     }
 
     .filter-summary {
@@ -232,7 +258,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
+    padding: 4px 12px;
     background: ${(props) => props.theme.console.dropdownHeaderBg};
     border-bottom: 1px solid ${(props) => props.theme.console.border};
     font-size: ${(props) => props.theme.font.size.sm};
@@ -263,7 +289,7 @@ const StyledWrapper = styled.div`
   .filter-option {
     display: flex;
     align-items: center;
-    padding: 6px 12px;
+    padding: 4px 12px;
     cursor: pointer;
     transition: background-color 0.2s ease;
 
@@ -324,20 +350,6 @@ const StyledWrapper = styled.div`
 
   .logs-container {
     padding: 8px 0;
-  }
-    
-  .method-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 500;
-    color: white;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    min-width: 45px;
   }
 
   .log-entry {

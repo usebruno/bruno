@@ -1,5 +1,5 @@
 import { test, expect } from '../../playwright';
-import { closeAllCollections, createCollection, createUntitledRequest } from '../utils/page/actions';
+import { closeAllCollections, createCollection, createRequest } from '../utils/page/actions';
 
 test.describe('Large Response Crash/High Memory Usage Prevention', () => {
   // Increase timeout to 1 minute for all tests in this describe block, default is 30 seconds.
@@ -13,13 +13,13 @@ test.describe('Large Response Crash/High Memory Usage Prevention', () => {
 
   test('Show appropriate warning for responses over 10MB', async ({ page, createTmpDir }) => {
     const collectionName = 'size-warning-test';
+    const requestName = 'large-response';
 
-    // Create collection
-    await createCollection(page, collectionName, await createTmpDir(collectionName), { openWithSandboxMode: 'safe' });
+    // Create collection (auto-opens the collection)
+    await createCollection(page, collectionName, await createTmpDir(collectionName));
 
-    // Create request using the new dropdown flow
-    await createUntitledRequest(page, {
-      requestType: 'HTTP',
+    // Create request using the dialog/modal flow
+    await createRequest(page, requestName, collectionName, {
       url: 'https://samples.json-format.com/employees/json/employees_50MB.json'
     });
 

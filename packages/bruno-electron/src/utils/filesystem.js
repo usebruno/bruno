@@ -5,6 +5,18 @@ const { dialog } = require('electron');
 const isValidPathname = require('is-valid-path');
 const os = require('os');
 
+const DEFAULT_GITIGNORE = [
+  '# Secrets',
+  '.env*',
+  '',
+  '# Dependencies',
+  'node_modules',
+  '',
+  '# OS files',
+  '.DS_Store',
+  'Thumbs.db'
+].join('\n');
+
 const exists = async (p) => {
   try {
     await fsPromises.access(p);
@@ -36,6 +48,15 @@ const isDirectory = (dirPath) => {
   } catch (_) {
     return false;
   }
+};
+
+const isValidCollectionDirectory = (dirPath) => {
+  if (!isDirectory(dirPath)) {
+    return false;
+  }
+  const brunoJsonPath = path.join(dirPath, 'bruno.json');
+  const opencollectionYmlPath = path.join(dirPath, 'opencollection.yml');
+  return fs.existsSync(brunoJsonPath) || fs.existsSync(opencollectionYmlPath);
 };
 
 const hasSubDirectories = (dir) => {
@@ -80,6 +101,34 @@ const writeFile = async (pathname, content, isBinary = false) => {
   } catch (err) {
     console.error(`Error writing file at ${pathname}:`, err);
     return Promise.reject(err);
+  }
+};
+
+// Per-path async mutex for file writes. Callers that perform read-modify-write
+// against the same file from multiple async chains (e.g. two scripted variable
+// writes racing on the same environment file) wrap the whole critical section in
+// withFileLock(absPath, ...) so the second writer reads the post-first-write state.
+// Without this, `fs.readFileSync` outside the lock can capture pre-A state while
+// A is still flushing, and B then overwrites A. Lock entries are cleaned up once
+// the queue for a path drains.
+const _pathLocks = new Map();
+const withFileLock = async (pathname, fn) => {
+  // Canonicalize so callers passing `/foo/./bar.env` and `/foo/bar.env` (or
+  // trailing slashes / `..` segments) share a single lock. Does NOT normalize
+  // symlinks or filesystem case-insensitivity — callers passing semantically
+  // equivalent but different strings beyond that get separate locks.
+  const key = path.resolve(pathname);
+  const prior = _pathLocks.get(key) || Promise.resolve();
+  // Errors from a prior writer must not block subsequent writers; the next caller
+  // gets its own try/catch.
+  const next = prior.catch(() => {}).then(() => fn());
+  _pathLocks.set(key, next);
+  try {
+    return await next;
+  } finally {
+    if (_pathLocks.get(key) === next) {
+      _pathLocks.delete(key);
+    }
   }
 };
 
@@ -383,6 +432,37 @@ const removePath = async (source) => {
   }
 };
 
+/**
+ * Move a collection directory from source to destination.
+ * Uses fs-extra's move for cross-device compatibility.
+ */
+const moveCollectionDirectory = async (source, destination) => {
+  const needsWindowsSafeMove = isWindowsOS() && !isWSLPath(source) && hasSubDirectories(source);
+  if (!needsWindowsSafeMove) {
+    await fs.move(source, destination, { overwrite: false });
+    return;
+  }
+
+  const tempDir = path.join(os.tmpdir(), `temp-collection-${Date.now()}`);
+  try {
+    await fs.copy(source, tempDir);
+    await fs.remove(source);
+    await fs.move(tempDir, destination, { overwrite: false });
+    await fs.remove(tempDir);
+  } catch (error) {
+    // restore the source if the windows safe move left files in the temp dir
+    if (fs.pathExistsSync(tempDir) && !fs.pathExistsSync(source)) {
+      try {
+        await fs.copy(tempDir, source);
+        await fs.remove(tempDir);
+      } catch (err) {
+        console.error('Failed to restore collection directory to its original path:', err);
+      }
+    }
+    throw error;
+  }
+};
+
 // Recursively gets paths.
 const getPaths = async (source) => {
   let paths = [];
@@ -421,14 +501,21 @@ const isDotEnvFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
 
-  return dirname === collectionPath && basename === '.env';
+  return path.normalize(dirname) === path.normalize(collectionPath) && basename === '.env';
+};
+
+const isValidDotEnvFilename = (filename) => {
+  if (!filename || typeof filename !== 'string') return false;
+  const basename = path.basename(filename);
+  if (basename !== filename) return false;
+  return basename === '.env' || (basename.startsWith('.env.') && /^\.env\.[a-zA-Z0-9._-]+$/.test(basename));
 };
 
 const isBrunoConfigFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
 
-  return dirname === collectionPath && basename === 'bruno.json';
+  return path.normalize(dirname) === path.normalize(collectionPath) && basename === 'bruno.json';
 };
 
 const isBruEnvironmentConfig = (pathname, collectionPath) => {
@@ -436,26 +523,59 @@ const isBruEnvironmentConfig = (pathname, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
   const basename = path.basename(pathname);
 
-  return dirname === envDirectory && hasBruExtension(basename);
+  return path.normalize(dirname) === path.normalize(envDirectory) && hasBruExtension(basename);
 };
 
 const isCollectionRootBruFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
 
-  return dirname === collectionPath && basename === 'collection.bru';
+  return path.normalize(dirname) === path.normalize(collectionPath) && basename === 'collection.bru';
 };
 
+const scanForBrunoFiles = async (dir) => {
+  const brunoFolders = [];
+
+  const scanDir = (currentDir) => {
+    const files = fs.readdirSync(currentDir);
+
+    if (files && files.length) {
+      files.forEach((file) => {
+        const fullPath = path.join(currentDir, file);
+        const stat = fs.statSync(fullPath);
+
+        if (stat.isDirectory()) {
+          if (['node_modules', '.git'].includes(file)) {
+            return;
+          }
+          scanDir(fullPath);
+        } else if ((file === 'bruno.json' || file === 'opencollection.yml') && !brunoFolders.includes(currentDir)) {
+          brunoFolders.push(currentDir);
+        }
+      });
+    }
+  };
+
+  scanDir(dir);
+  return brunoFolders;
+};
+
+const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
+
 module.exports = {
+  DEFAULT_GITIGNORE,
+  posixifyPath,
   isValidPathname,
   exists,
   isSymbolicLink,
   isFile,
   isDirectory,
+  isValidCollectionDirectory,
   normalizeAndResolvePath,
   isWSLPath,
   normalizeWSLPath,
   writeFile,
+  withFileLock,
   hasJsonExtension,
   hasBruExtension,
   hasRequestExtension,
@@ -476,12 +596,15 @@ module.exports = {
   safeWriteFileSync,
   copyPath,
   removePath,
+  moveCollectionDirectory,
   getPaths,
   isLargeFile,
   generateUniqueName,
   getCollectionFormat,
   isDotEnvFile,
+  isValidDotEnvFilename,
   isBrunoConfigFile,
   isBruEnvironmentConfig,
-  isCollectionRootBruFile
+  isCollectionRootBruFile,
+  scanForBrunoFiles
 };

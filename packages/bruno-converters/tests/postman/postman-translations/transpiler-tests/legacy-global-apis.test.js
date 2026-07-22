@@ -1,4 +1,4 @@
-import translateCode from '../../../../src/utils/jscode-shift-translator.js';
+import translateCode from '../../../../src/utils/postman-to-bruno-translator';
 
 describe('Legacy Postman API Translation', () => {
   describe('handleLegacyGlobalAPIs - No Conflicts', () => {
@@ -293,6 +293,57 @@ describe('Legacy Postman API Translation', () => {
       `;
 
       expect(result).toEqual(expected);
+    });
+  });
+
+  describe('responseCode translations', () => {
+    test('should translate responseCode.code', () => {
+      const input = 'const status = responseCode.code;';
+      const result = translateCode(input);
+      expect(result).toBe('const status = res.getStatus();');
+    });
+
+    test('should translate responseCode.name', () => {
+      const input = 'const statusName = responseCode.name;';
+      const result = translateCode(input);
+      expect(result).toBe('const statusName = res.statusText;');
+    });
+
+    test('should translate responseCode.code in conditional', () => {
+      const input = 'if (responseCode.code === 200) { console.log("Success"); }';
+      const result = translateCode(input);
+      expect(result).toBe('if (res.getStatus() === 200) { console.log("Success"); }');
+    });
+
+    test('should translate both responseCode.code and responseCode.name together', () => {
+      const input = `
+        const code = responseCode.code;
+        const name = responseCode.name;
+        console.log(code, name);
+      `;
+      const result = translateCode(input);
+      expect(result).toContain('const code = res.getStatus();');
+      expect(result).toContain('const name = res.statusText;');
+    });
+  });
+
+  describe('postman.getResponseHeader translations', () => {
+    test('should translate postman.getResponseHeader', () => {
+      const input = 'postman.getResponseHeader("Content-Type");';
+      const result = translateCode(input);
+      expect(result).toBe('res.getHeader("Content-Type");');
+    });
+
+    test('should translate postman.getResponseHeader in assignment', () => {
+      const input = 'const contentType = postman.getResponseHeader("Content-Type");';
+      const result = translateCode(input);
+      expect(result).toBe('const contentType = res.getHeader("Content-Type");');
+    });
+
+    test('should translate postman.getResponseHeader with variable argument', () => {
+      const input = 'const headerName = "Authorization"; const value = postman.getResponseHeader(headerName);';
+      const result = translateCode(input);
+      expect(result).toContain('res.getHeader(headerName)');
     });
   });
 });

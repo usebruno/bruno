@@ -2,10 +2,11 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   div.CodeMirror {
-    height: calc(100vh - 4rem);
+    height: calc(100vh - 9rem);
     background: ${(props) => props.theme.codemirror.bg};
     border: solid 1px ${(props) => props.theme.codemirror.border};
     font-family: ${(props) => (props.font ? props.font : 'default')};
+    font-size: ${(props) => props.theme.font.size.base};
     line-break: anywhere;
   }
 
@@ -55,10 +56,21 @@ const StyledWrapper = styled.div`
   }
 
   .cm-variable-valid {
-    color: green;
+    color: ${(props) => props.theme.codemirror.variable.valid};
   }
   .cm-variable-invalid {
-    color: red;
+    color: ${(props) => props.theme.codemirror.variable.invalid};
+  }
+
+  .CodeMirror-matchingbracket {
+    background: ${(props) => props.theme.status.success.background} !important;
+    text-decoration: unset;
+  }
+
+  .CodeMirror-nonmatchingbracket {
+    color: ${(props) => props.theme.colors.text.danger} !important;
+    background: ${(props) => props.theme.status.danger.background} !important;
+    text-decoration: unset;
   }
 `;
 

@@ -48,11 +48,22 @@ yarn-error.log*
 bruno.iml
 .idea
 .vscode
+.cursor
+.codex
+.agents
+.agent
+skills-lock.json
 
 # Playwright
 /blob-report/
 
+# Benchmark results (generated at runtime)
+tests/benchmarks/results/
+/benchmark-report/
+
 # Development plan files
+CLAUDE.local.md
+AGENTS.md
 *.plan.md
 
 # packages dist

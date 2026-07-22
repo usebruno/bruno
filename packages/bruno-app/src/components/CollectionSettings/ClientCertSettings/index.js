@@ -13,6 +13,7 @@ import { useDispatch } from 'react-redux';
 import { updateCollectionClientCertificates } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import get from 'lodash/get';
+import Button from 'ui/Button';
 
 const ClientCertSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -180,6 +181,7 @@ const ClientCertSettings = ({ collection }) => {
               <span className="protocol-placeholder">
                 <span className="protocol-https">https://</span>
                 <span className="protocol-grpcs">grpcs://</span>
+                <span className="protocol-wss">wss://</span>
               </span>
             </div>
             <input
@@ -373,13 +375,13 @@ const ClientCertSettings = ({ collection }) => {
           ) : null}
         </div>
         <div className="mt-6 flex flex-row gap-2 items-center">
-          <button type="submit" className="submit btn btn-sm btn-secondary" data-testid="add-client-cert">
+          <Button type="submit" size="sm" data-testid="add-client-cert">
             Add
-          </button>
+          </Button>
           <div className="h-4 border-l border-gray-600"></div>
-          <button type="button" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+          <Button type="button" size="sm" onClick={handleSave}>
             Save
-          </button>
+          </Button>
         </div>
       </form>
     </StyledWrapper>

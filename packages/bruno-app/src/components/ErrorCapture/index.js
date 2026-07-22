@@ -34,23 +34,36 @@ class ErrorBoundary extends Component {
 
 const serializeArgs = (args) => {
   return args.map((arg) => {
+    const seen = new WeakSet();
+
+    const replacer = (key, value) => {
+      if (typeof value === 'object' && value !== null) {
+        if (seen.has(value)) {
+          return '[Circular Reference]';
+        }
+        seen.add(value);
+
+        if (value instanceof Error || Object.prototype.toString.call(value) === '[object Error]' || (typeof value.message === 'string' && typeof value.stack === 'string')) {
+          const error = {};
+          Object.getOwnPropertyNames(value).forEach((prop) => {
+            error[prop] = value[prop];
+          });
+          return error;
+        }
+      }
+      return value;
+    };
+
     try {
       if (arg === null) return 'null';
       if (arg === undefined) return 'undefined';
       if (typeof arg === 'string' || typeof arg === 'number' || typeof arg === 'boolean') {
         return arg;
       }
-      if (arg instanceof Error) {
-        return {
-          __type: 'Error',
-          name: arg.name,
-          message: arg.message,
-          stack: arg.stack
-        };
-      }
+
       if (typeof arg === 'object') {
         try {
-          return JSON.parse(JSON.stringify(arg));
+          return JSON.parse(JSON.stringify(arg, replacer));
         } catch {
           return String(arg);
         }

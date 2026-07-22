@@ -1,19 +1,26 @@
 import React, { useRef, useEffect, useState, forwardRef } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import get from 'lodash/get';
+import path from 'utils/common/path';
 import { IconCaretDown } from '@tabler/icons';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { postmanToBruno } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
+import { processOpenCollection } from 'utils/importers/opencollection';
 import { wsdlToBruno } from '@usebruno/converters';
 import { toastError } from 'utils/common/error';
+import { addLog } from 'providers/ReduxStore/slices/logs';
+import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import Help from 'components/Help';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
+import { showImportIssuesToast } from 'components/Toast/ImportIssuesToast';
+import { DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 
 // Extract collection name from raw data
 const getCollectionName = (format, rawData) => {
@@ -36,39 +43,55 @@ const getCollectionName = (format, rawData) => {
       return rawData.name || 'Insomnia Collection';
     case 'bruno':
       return rawData.name || 'Bruno Collection';
+    case 'opencollection':
+      return rawData.info?.name || 'OpenCollection';
     case 'wsdl':
       return 'WSDL Collection';
+    case 'bruno-zip':
+      return rawData.collectionName || 'Bruno Collection';
     default:
       return 'Collection';
   }
 };
 
 // Convert raw data to Bruno collection format
-const convertCollection = async (format, rawData, groupingType) => {
+// Returns { collection, issues } where issues tracks items that were skipped or degraded
+const convertCollection = async (format, rawData, groupingType, collectionFormat) => {
   try {
     let collection;
+    let issues = [];
 
     switch (format) {
       case 'openapi':
-        collection = convertOpenapiToBruno(rawData, { groupBy: groupingType });
+        collection = convertOpenapiToBruno(rawData, { groupBy: groupingType, collectionFormat });
         break;
       case 'wsdl':
         collection = await wsdlToBruno(rawData);
         break;
-      case 'postman':
-        collection = await postmanToBruno(rawData);
+      case 'postman': {
+        const result = await postmanToBruno(rawData);
+        collection = result.collection;
+        issues = result.issues || [];
         break;
+      }
       case 'insomnia':
         collection = convertInsomniaToBruno(rawData);
         break;
       case 'bruno':
         collection = await processBrunoCollection(rawData);
         break;
+      case 'opencollection':
+        collection = await processOpenCollection(rawData);
+        break;
+      case 'bruno-zip':
+        // ZIP doesn't need conversion
+        collection = rawData;
+        break;
       default:
         throw new Error('Unknown collection format');
     }
 
-    return collection;
+    return { collection, issues };
   } catch (err) {
     console.error('Conversion error:', err);
     toastError(err, 'Failed to convert collection');
@@ -77,23 +100,41 @@ const convertCollection = async (format, rawData, groupingType) => {
 };
 
 const groupingOptions = [
-  { value: 'tags', label: 'Tags', description: 'Group requests by OpenAPI tags', testId: 'grouping-option-tags' },
+  { value: 'tags', label: 'Tags', description: 'Group requests by OpenAPI/Swagger tags', testId: 'grouping-option-tags' },
   { value: 'path', label: 'Paths', description: 'Group requests by URL path structure', testId: 'grouping-option-path' }
 ];
 
-const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) => {
+const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format, sourceUrl, filePath, rawContent }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
   const [groupingType, setGroupingType] = useState('tags');
+  const [collectionFormat, setCollectionFormat] = useState(DEFAULT_COLLECTION_FORMAT);
+  const [showFileFormat, setShowFileFormat] = useState(false);
+  const [enableCheckForSpecUpdates, setEnableCheckForSpecUpdates] = useState(false);
   const dropdownTippyRef = useRef();
+  const optionsDropdownTippyRef = useRef();
   const isOpenApi = format === 'openapi';
+  const isZipImport = format === 'bruno-zip';
+  const isOpenApiFromUrl = isOpenApi && !!sourceUrl && !filePath;
+  const isOpenApiFromFile = isOpenApi && !!filePath && !sourceUrl;
+  const isSwagger2 = isOpenApi && rawData?.swagger && String(rawData.swagger).startsWith('2');
+  const showCheckForSpecUpdatesOption = isOpenApiFromUrl || isOpenApiFromFile;
+
+  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const preferences = useSelector((state) => state.app.preferences);
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  const isDefaultWorkspace = !activeWorkspace || activeWorkspace.type === 'default';
+
+  const defaultLocation = isDefaultWorkspace
+    ? get(preferences, 'general.defaultLocation', '')
+    : (activeWorkspace?.pathname ? path.join(activeWorkspace.pathname, 'collections') : '');
 
   const collectionName = getCollectionName(format, rawData);
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      collectionLocation: ''
+      collectionLocation: defaultLocation
     },
     validationSchema: Yup.object({
       collectionLocation: Yup.string()
@@ -102,14 +143,76 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
         .required('Location is required')
     }),
     onSubmit: async (values) => {
-      const convertedCollection = await convertCollection(format, rawData, groupingType);
-      handleSubmit(convertedCollection, values.collectionLocation);
+      const { collection: convertedCollection, issues } = await convertCollection(format, rawData, groupingType, collectionFormat);
+      const options = { format: collectionFormat };
+
+      if (showCheckForSpecUpdatesOption && enableCheckForSpecUpdates) {
+        const syncSourceUrl = sourceUrl || filePath; // URL or absolute path (backend converts to relative)
+        const baseBrunoConfig = {
+          version: convertedCollection.version || '1',
+          name: convertedCollection.name || 'Untitled Collection',
+          type: 'collection',
+          ignore: ['node_modules', '.git']
+        };
+
+        convertedCollection.brunoConfig = {
+          ...baseBrunoConfig,
+          ...convertedCollection.brunoConfig,
+          openapi: [
+            {
+              sourceUrl: syncSourceUrl,
+              groupBy: groupingType,
+              autoCheck: true,
+              autoCheckInterval: 5
+            }
+          ]
+        };
+
+        options.rawOpenAPISpec = rawContent || rawData;
+      }
+
+      handleSubmit(convertedCollection, values.collectionLocation, options);
+
+      if (issues && issues.length > 0) {
+        // Show toast with copy/report actions
+        showImportIssuesToast(issues);
+
+        // Log each issue to Bruno's internal console
+        const skipped = issues.filter((i) => i.severity === 'error').length;
+        const warnings = issues.filter((i) => i.severity === 'warning').length;
+        const parts = [];
+        if (skipped > 0) parts.push(`skipped ${skipped} item(s)`);
+        if (warnings > 0) parts.push(`${warnings} warning(s)`);
+        const timestamp = new Date().toISOString();
+        dispatch(addLog({ type: 'warn', args: [`Import: ${collectionName} — ${parts.join(', ')}`], timestamp }));
+        issues.forEach((issue) => {
+          const logType = issue.severity === 'error' ? 'error' : 'warn';
+          const logArgs = [`[${issue.path}] ${issue.message}`];
+          if (issue.sourceItem) logArgs.push(issue.sourceItem);
+          dispatch(addLog({ type: logType, args: logArgs, timestamp }));
+        });
+      }
     }
   });
 
   const onDropdownCreate = (ref) => {
     dropdownTippyRef.current = ref;
   };
+
+  const onOptionsDropdownCreate = (ref) => {
+    optionsDropdownTippyRef.current = ref;
+  };
+
+  const ImportOptions = forwardRef((props, ref) => {
+    return (
+      <div ref={ref} className="flex items-center text-link cursor-pointer">
+        <button className="btn-advanced" type="button">
+          Options
+        </button>
+        <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
+      </div>
+    );
+  });
 
   const GroupingDropdownIcon = forwardRef((props, ref) => {
     const selectedOption = groupingOptions.find((option) => option.value === groupingType);
@@ -141,92 +244,174 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, rawData, format }) =>
     }
   }, [inputRef]);
 
-  const onSubmit = () => formik.handleSubmit();
+  const onSubmit = async () => {
+    if (isZipImport) {
+      const errors = await formik.validateForm();
+      if (Object.keys(errors).length > 0) {
+        formik.setTouched({ collectionLocation: true });
+        return;
+      }
+      const collectionLocation = formik.values.collectionLocation;
+      handleSubmit(rawData, collectionLocation, { format: collectionFormat, isZipImport: true });
+    } else {
+      formik.handleSubmit();
+    }
+  };
 
   return (
-    <StyledWrapper>
-      <Modal
-        size="sm"
-        title="Import Collection"
-        confirmText="Import"
-        handleConfirm={onSubmit}
-        handleCancel={onClose}
-        dataTestId="import-collection-location-modal"
-      >
-        <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
-          <div>
-            <label htmlFor="collectionName" className="block font-medium">
-              Name
-            </label>
-            <div className="mt-2">{collectionName}</div>
-
-            <>
-              <label htmlFor="collectionLocation" className="font-medium mt-4 flex items-center">
-                Location
-                <Help>
-                  <p>Bruno stores your collections on your computer's filesystem.</p>
-                  <p className="mt-2">Choose the location where you want to store this collection.</p>
-                </Help>
-              </label>
-              <input
-                id="collection-location"
-                type="text"
-                name="collectionLocation"
-                className="block textbox mt-2 w-full cursor-pointer"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                value={formik.values.collectionLocation || ''}
-                onClick={browse}
-                onChange={(e) => {
-                  formik.setFieldValue('collectionLocation', e.target.value);
-                }}
-              />
-            </>
-            {formik.touched.collectionLocation && formik.errors.collectionLocation ? (
-              <div className="text-red-500">{formik.errors.collectionLocation}</div>
-            ) : null}
-
-            <div className="mt-1">
-              <span className="text-link cursor-pointer hover:underline" onClick={browse}>
-                Browse
-              </span>
-            </div>
-          </div>
-
-          {isOpenApi && (
-            <div className="mt-4 flex gap-4 items-center">
-              <div>
-                <label htmlFor="groupingType" className="block font-medium mt-4">
-                  Folder arrangement
-                </label>
-                <p className="text-gray-600 dark:text-gray-400 mt-1 mb-2">
-                  Select whether to create folders according to the spec's paths or tags.
-                </p>
-              </div>
-              <div className="relative">
-                <Dropdown onCreate={onDropdownCreate} icon={<GroupingDropdownIcon />} placement="bottom-start">
-                  {groupingOptions.map((option) => (
-                    <div
-                      key={option.value}
-                      className="dropdown-item"
-                      data-testid={option.testId}
-                      onClick={() => {
-                        dropdownTippyRef?.current?.hide();
-                        setGroupingType(option.value);
-                      }}
-                    >
-                      {option.label}
-                    </div>
-                  ))}
+    <Portal>
+      <StyledWrapper>
+        <Modal
+          size="md"
+          title="Import Collection"
+          confirmText="Import"
+          handleConfirm={onSubmit}
+          handleCancel={onClose}
+          dataTestId="import-collection-location-modal"
+          footerLeft={
+            !isZipImport ? (
+              <div className="advanced-options flex">
+                <Dropdown onCreate={onOptionsDropdownCreate} icon={<ImportOptions />} placement="bottom-start">
+                  <div
+                    className="dropdown-item"
+                    data-testid="show-file-format-toggle"
+                    onClick={() => {
+                      optionsDropdownTippyRef?.current?.hide();
+                      setShowFileFormat(!showFileFormat);
+                    }}
+                  >
+                    {showFileFormat ? 'Hide File Format' : 'Show File Format'}
+                  </div>
                 </Dropdown>
               </div>
+            ) : null
+          }
+        >
+          <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
+            <div>
+              <label htmlFor="collectionName" className="block font-medium">
+                Name
+              </label>
+              <div className="mt-2">{collectionName}</div>
+
+              <>
+                <label htmlFor="collectionLocation" className="font-medium mt-4 flex items-center">
+                  Location
+                  <Help>
+                    <p>Bruno stores your collections on your computer's filesystem.</p>
+                    <p className="mt-2">Choose the location where you want to store this collection.</p>
+                  </Help>
+                </label>
+                <input
+                  id="collection-location"
+                  type="text"
+                  name="collectionLocation"
+                  className="block textbox mt-2 w-full cursor-pointer"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  value={formik.values.collectionLocation || ''}
+                  onClick={browse}
+                  onChange={(e) => {
+                    formik.setFieldValue('collectionLocation', e.target.value);
+                  }}
+                />
+              </>
+              {formik.touched.collectionLocation && formik.errors.collectionLocation ? (
+                <div className="text-red-500">{formik.errors.collectionLocation}</div>
+              ) : null}
+
+              <div className="mt-1">
+                <span
+                  data-testid="import-collection-browse-link"
+                  className="text-link cursor-pointer hover:underline"
+                  onClick={browse}
+                >
+                  Browse
+                </span>
+              </div>
+
+              {showFileFormat && !isZipImport && (
+                <div className="mt-4">
+                  <label htmlFor="format" className="flex items-center font-medium">
+                    File Format
+                    <Help width="300">
+                      <p>Choose the file format for storing requests in this collection.</p>
+                      <p className="mt-2">
+                        <strong>OpenCollection (YAML):</strong> Industry-standard YAML format (.yml files)
+                      </p>
+                      <p className="mt-1">
+                        <strong>BRU:</strong> Bruno's native file format (.bru files)
+                      </p>
+                    </Help>
+                  </label>
+                  <select
+                    id="format"
+                    name="format"
+                    className="block textbox mt-2 w-full"
+                    value={collectionFormat}
+                    onChange={(e) => setCollectionFormat(e.target.value)}
+                  >
+                    <option value="yml">OpenCollection (YAML)</option>
+                    <option value="bru">BRU Format (.bru)</option>
+                  </select>
+                </div>
+              )}
             </div>
-          )}
-        </form>
-      </Modal>
-    </StyledWrapper>
+
+            {isOpenApi && (
+              <div className="mt-4 flex gap-4 items-center justify-between">
+                <div>
+                  <label htmlFor="groupingType" className="block font-medium">
+                    Folder arrangement
+                  </label>
+                  <p className="text-muted text-xs mt-1 mb-2">
+                    Select whether to create folders according to the spec's paths or tags.
+                  </p>
+                </div>
+                <div className="relative">
+                  <Dropdown onCreate={onDropdownCreate} icon={<GroupingDropdownIcon />} placement="bottom-start">
+                    {groupingOptions.map((option) => (
+                      <div
+                        key={option.value}
+                        className="dropdown-item"
+                        data-testid={option.testId}
+                        onClick={() => {
+                          dropdownTippyRef?.current?.hide();
+                          setGroupingType(option.value);
+                        }}
+                      >
+                        {option.label}
+                      </div>
+                    ))}
+                  </Dropdown>
+                </div>
+              </div>
+            )}
+            {showCheckForSpecUpdatesOption && (
+              <div className={`mt-4 ${isSwagger2 ? 'opacity-50 pointer-events-none' : ''}`}>
+                <label className={`flex items-center gap-2 ${isSwagger2 ? '' : 'cursor-pointer'}`}>
+                  <input
+                    type="checkbox"
+                    checked={isSwagger2 ? false : enableCheckForSpecUpdates}
+                    onChange={(e) => setEnableCheckForSpecUpdates(e.target.checked)}
+                    disabled={isSwagger2}
+                    className={`checkbox ${isSwagger2 ? '' : 'cursor-pointer'}`}
+                  />
+                  <span className="font-medium">Check for Spec Updates</span>
+                </label>
+                <p className="text-muted text-xs mt-1">
+                  {isSwagger2
+                    ? 'OpenAPI Sync is not supported for Swagger 2.0 specs.'
+                    : 'Stay notified of spec changes and sync your collection with the spec.'}
+                </p>
+              </div>
+            )}
+          </form>
+        </Modal>
+      </StyledWrapper>
+    </Portal>
   );
 };
 

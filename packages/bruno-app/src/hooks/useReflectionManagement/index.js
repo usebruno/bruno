@@ -27,7 +27,7 @@ export default function useReflectionManagement(item, collectionUid) {
 
     const cachedMethods = reflectionCache[url];
     if (!isManualRefresh && cachedMethods && !isLoadingMethods) {
-      return { methods: cachedMethods, error: null };
+      return { methods: cachedMethods, error: null, fromCache: true };
     }
 
     setIsLoadingMethods(true);
@@ -44,7 +44,7 @@ export default function useReflectionManagement(item, collectionUid) {
         [url]: methods
       }));
 
-      return { methods, error: null };
+      return { methods, error: null, fromCache: false };
     } catch (error) {
       console.error('Error loading gRPC methods:', error);
       return { methods: [], error };

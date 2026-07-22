@@ -36,7 +36,8 @@
     "api-scripting"
   ],
   "scripts": {
-    "test": "node --experimental-vm-modules $(npx which jest)"
+    "test": "node --experimental-vm-modules $(npx which jest)",
+    "test:ci": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js"
   },
   "files": [
     "src",
@@ -46,27 +47,28 @@
     "package.json"
   ],
   "dependencies": {
-    "@aws-sdk/credential-providers": "3.750.0",
+    "@aws-sdk/credential-providers": "3.1019.0",
     "@usebruno/common": "0.1.0",
     "@usebruno/converters": "^0.1.0",
     "@usebruno/filestore": "^0.1.0",
     "@usebruno/js": "0.12.0",
     "@usebruno/lang": "0.12.0",
     "@usebruno/requests": "^0.1.0",
-    "aws4-axios": "^3.3.0",
-    "axios": "^1.8.3",
+    "aws4-axios": "^3.3.15",
+    "axios": "1.16.0",
     "axios-ntlm": "^1.4.2",
     "chai": "^4.3.7",
     "chalk": "^3.0.0",
+    "cli-table3": "^0.6.5",
     "decomment": "^0.9.5",
-    "form-data": "^4.0.0",
+    "form-data": "4.0.4",
     "fs-extra": "^10.1.0",
     "http-proxy-agent": "^7.0.0",
     "https-proxy-agent": "^7.0.2",
     "iconv-lite": "^0.6.3",
     "js-yaml": "^4.1.1",
-    "lodash": "^4.17.21",
-    "qs": "^6.11.0",
+    "lodash": "4.18.1",
+    "qs": "^6.14.1",
     "socks-proxy-agent": "^8.0.2",
     "xmlbuilder": "^15.1.1",
     "yargs": "^17.6.2"

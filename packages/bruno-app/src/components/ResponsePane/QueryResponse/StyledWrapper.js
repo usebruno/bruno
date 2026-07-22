@@ -6,10 +6,10 @@ const StyledWrapper = styled.div`
   height: 100%;
   width: 100%;
   border-radius: 4px;
-  border: 1px solid ${(props) => props.theme.console.border};
+  border: 1px solid ${(props) => props.theme.table.border};
 
-  .query-response-content {
-    border-top: 1px solid ${(props) => props.theme.console.border};
+  .result-type-selector {
+    border-bottom: 1px solid ${(props) => props.theme.table.border};
   }
 `;
 

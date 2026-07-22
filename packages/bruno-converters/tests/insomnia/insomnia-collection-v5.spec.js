@@ -7,6 +7,28 @@ describe('insomnia-collection', () => {
 
     expect(brunoCollection).toMatchObject(expectedOutput);
   });
+
+  it('should import v5 empty mimeType bodies as Bruno text bodies', async () => {
+    const brunoCollection = insomniaToBruno(insomniaCollectionWithEmptyMimeTypeBody);
+
+    expect(brunoCollection.items[0].request.body).toMatchObject({
+      mode: 'text',
+      text: 'line1\nline2\n{{base_url}}',
+      json: null,
+      xml: null
+    });
+  });
+
+  it('should ignore v5 empty raw bodies when mimeType is blank', async () => {
+    const brunoCollection = insomniaToBruno(insomniaCollectionWithEmptyMimeTypeAndEmptyTextBody);
+
+    expect(brunoCollection.items[0].request.body).toMatchObject({
+      mode: 'none',
+      text: null,
+      json: null,
+      xml: null
+    });
+  });
 });
 
 const insomniaCollection = `
@@ -33,6 +55,9 @@ collection:
           isPrivate: false
           sortKey: -1744194421965
         method: GET
+        parameters:
+          - name: date
+            value: 2022-10-28
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -127,7 +152,14 @@ const expectedOutput = {
             },
             headers: [],
             method: 'GET',
-            params: [],
+            params: [
+              {
+                enabled: true,
+                name: 'date',
+                type: 'query',
+                value: '2022-10-28'
+              }
+            ],
             url: 'https://testbench-sanity.usebruno.com/ping'
           },
           seq: 1,
@@ -183,3 +215,30 @@ const expectedOutput = {
   uid: 'mockeduuidvalue123456',
   version: '1'
 };
+
+const insomniaCollectionWithEmptyMimeTypeBody = `
+type: collection.insomnia.rest/5.0
+name: Text Body Workspace
+collection:
+  - url: https://example.com/raw
+    name: Raw Text Body
+    method: POST
+    body:
+      mimeType: ""
+      text: |-
+        line1
+        line2
+        {{ base_url }}
+`;
+
+const insomniaCollectionWithEmptyMimeTypeAndEmptyTextBody = `
+type: collection.insomnia.rest/5.0
+name: Empty Text Body Workspace
+collection:
+  - url: https://example.com/raw-empty
+    name: Empty Raw Text Body
+    method: POST
+    body:
+      mimeType: ""
+      text: ""
+`;

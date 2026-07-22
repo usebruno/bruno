@@ -1,0 +1,23 @@
+meta {
+  name: Multiline Description Test
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://api.example.com/test
+}
+
+example {
+  name: Test Example
+  description: '''
+    This is a multiline description.
+    It spans multiple lines.
+    And should be parsed correctly.
+  '''
+  
+  request: {
+    url: https://api.example.com/test
+    method: get
+  }
+}

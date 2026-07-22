@@ -14,36 +14,34 @@ const ResponseExampleBodyMode = ({ item, collection, exampleUid, body, bodyMode,
       // Initialize the new body structure based on the selected mode
       let newBody = { mode: value };
 
-      // Preserve existing data for the new mode if it exists
-      if (body) {
-        switch (value) {
-          case 'json':
-            newBody.json = body.json || '';
-            break;
-          case 'text':
-            newBody.text = body.text || '';
-            break;
-          case 'xml':
-            newBody.xml = body.xml || '';
-            break;
-          case 'sparql':
-            newBody.sparql = body.sparql || '';
-            break;
-          case 'formUrlEncoded':
-            newBody.formUrlEncoded = body.formUrlEncoded || [];
-            break;
-          case 'multipartForm':
-            newBody.multipartForm = body.multipartForm || [];
-            break;
-          case 'file':
-            newBody.file = body.file || { name: '', data: '' };
-            break;
-          case 'none':
-            // No additional data needed for 'none' mode
-            break;
-          default:
-            break;
-        }
+      // Initialize body content based on selected mode
+      switch (value) {
+        case 'json':
+          newBody.json = body?.json || '';
+          break;
+        case 'text':
+          newBody.text = body?.text || '';
+          break;
+        case 'xml':
+          newBody.xml = body?.xml || '';
+          break;
+        case 'sparql':
+          newBody.sparql = body?.sparql || '';
+          break;
+        case 'formUrlEncoded':
+          newBody.formUrlEncoded = body?.formUrlEncoded || [];
+          break;
+        case 'multipartForm':
+          newBody.multipartForm = body?.multipartForm || [];
+          break;
+        case 'file':
+          newBody.file = Array.isArray(body?.file) ? body.file : [];
+          break;
+        case 'none':
+          // No additional data needed for 'none' mode
+          break;
+        default:
+          break;
       }
 
       dispatch(updateResponseExampleRequest({

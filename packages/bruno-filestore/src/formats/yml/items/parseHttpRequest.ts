@@ -6,9 +6,11 @@ import { toBrunoHttpHeaders } from '../common/headers';
 import { toBrunoParams } from '../common/params';
 import { toBrunoBody } from '../common/body';
 import { toBrunoVariables } from '../common/variables';
+import { toBrunoPostResponseVariables } from '../common/actions';
 import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
-import { uuid } from '../../../utils';
+import { toBrunoApp } from '../common/app';
+import { uuid, ensureString } from '../../../utils';
 
 const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
   const info = ocRequest.info;
@@ -16,11 +18,11 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
   const runtime = ocRequest.runtime;
 
   const brunoRequest: BrunoHttpRequest = {
-    url: http?.url || '',
-    method: http?.method || 'GET',
+    url: ensureString(http?.url),
+    method: ensureString(http?.method, 'GET'),
     headers: toBrunoHttpHeaders(http?.headers) || [],
     params: toBrunoParams(http?.params) || [],
-    auth: toBrunoAuth(runtime?.auth),
+    auth: toBrunoAuth(http?.auth),
     body: toBrunoBody(http?.body as HttpRequestBody) || {
       mode: 'none',
       json: null,
@@ -59,9 +61,13 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
     brunoRequest.tests = scripts.tests;
   }
 
-  // variables
+  // variables (pre-request from variables, post-response from actions)
   const variables = toBrunoVariables(runtime?.variables);
-  brunoRequest.vars = variables;
+  const postResponseVars = toBrunoPostResponseVariables(runtime?.actions);
+  brunoRequest.vars = {
+    req: variables.req,
+    res: postResponseVars
+  };
 
   // assertions
   const assertions = toBrunoAssertions(runtime?.assertions);
@@ -74,15 +80,19 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
     brunoRequest.docs = ocRequest.docs;
   }
 
+  // app
+  const app = toBrunoApp((ocRequest as any).app);
+
   // bruno item
   const brunoItem: BrunoItem = {
     uid: uuid(),
     type: 'http-request',
     seq: info?.seq || 1,
-    name: info?.name || 'Untitled Request',
+    name: ensureString(info?.name, 'Untitled Request'),
     tags: info?.tags || [],
     request: brunoRequest,
     settings: null,
+    app,
     fileContent: null,
     root: null,
     items: [],
@@ -90,6 +100,14 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
     filename: null,
     pathname: null
   };
+
+  // description
+  if (info?.description) {
+    const desc = typeof info.description === 'string' ? info.description : (info.description as any)?.content || '';
+    if (desc.trim().length) {
+      brunoItem.description = desc;
+    }
+  }
 
   // settings
   if (ocRequest.settings) {
@@ -130,7 +148,7 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
       const brunoExample: any = {
         uid: uuid(),
         itemUid: uuid(),
-        name: example.name || 'Untitled Example',
+        name: ensureString(example.name, 'Untitled Example'),
         type: 'http-request',
         request: null,
         response: null
@@ -146,8 +164,8 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
 
       if (example.request) {
         brunoExample.request = {
-          url: example.request.url || '',
-          method: example.request.method || 'GET',
+          url: ensureString(example.request.url),
+          method: ensureString(example.request.method, 'GET'),
           headers: toBrunoHttpHeaders(example.request.headers) || [],
           params: toBrunoParams(example.request.params) || [],
           body: toBrunoBody(example.request.body) || {
@@ -166,7 +184,8 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
 
       if (example.response) {
         brunoExample.response = {
-          status: example.response.status !== undefined ? String(example.response.status) : null,
+          status: typeof example.response.status === 'number' ? example.response.status
+            : example.response.status !== undefined ? Number(example.response.status) : null,
           statusText: example.response.statusText || null,
           headers: toBrunoHttpHeaders(example.response.headers) || [],
           body: null

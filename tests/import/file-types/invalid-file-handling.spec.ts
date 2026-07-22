@@ -18,10 +18,10 @@ test.describe('Invalid File Handling', () => {
     // Wait for the loader to disappear
     await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
 
-    const hasError = await page.getByText('Failed to parse the file – ensure it is valid JSON or YAML').first().isVisible();
-    expect(hasError).toBe(true);
+    // Use auto-retrying assertion instead of snapshot isVisible() check
+    await expect(page.getByText('Failed to parse the file – ensure it is valid JSON or YAML').first()).toBeVisible();
 
     // Cleanup: close any open modals
-    await page.locator('[data-test-id="modal-close-button"]').click();
+    await page.getByTestId('modal-close-button').click();
   });
 });

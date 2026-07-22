@@ -6,6 +6,7 @@ import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button';
 
 const ExportEnvironmentModal = ({ onClose, environments = [], environmentType }) => {
   const dispatch = useDispatch();
@@ -242,22 +243,26 @@ const ExportEnvironmentModal = ({ onClose, environments = [], environmentType })
 
             {/* Export Actions */}
             <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-              <button
+              <Button
                 type="button"
-                className="btn btn-sm btn-cancel mt-2 flex items-center"
+                size="sm"
+                color="secondary"
+                variant="ghost"
                 onClick={onClose}
                 disabled={isExporting}
+                className="mt-2 mr-2"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="btn btn-sm btn-secondary mt-2 flex items-center"
+                size="sm"
                 onClick={handleExport}
                 disabled={isExporting || selectedCount === 0}
+                className="mt-2"
               >
                 {isExporting ? 'Exporting...' : `Export ${selectedCount || ''} Environment${selectedCount !== 1 ? 's' : ''}`}
-              </button>
+              </Button>
             </div>
           </div>
         </Modal>

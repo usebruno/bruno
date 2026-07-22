@@ -2,7 +2,7 @@ import { find, map, filter, cloneDeep, each, concat } from 'lodash';
 import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
-import { parsePathParams, splitOnFirst, interpolateUrlPathParams } from 'utils/url';
+import { parsePathParams, splitOnFirst } from 'utils/url';
 import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
 
 export const addResponseExample = (state, action) => {
@@ -22,7 +22,7 @@ export const addResponseExample = (state, action) => {
   }
 
   // Ensure body always has a mode field (default to 'none' if not present)
-  const requestBody = item.draft.request.body || {};
+  const requestBody = cloneDeep(item.draft.request.body || {});
   if (!requestBody.mode) {
     requestBody.mode = 'none';
   }
@@ -41,7 +41,7 @@ export const addResponseExample = (state, action) => {
       body: requestBody
     },
     response: {
-      status: String(example.status ?? ''),
+      status: example.status ? Number(example.status) : null,
       statusText: String(example.statusText ?? (example.status ? (statusCodePhraseMap[Number(example.status)] ?? '') : '')),
       headers: (example.headers || []).map((header) => ({
         uid: uuid(),
@@ -329,11 +329,11 @@ export const setResponseExampleHeaders = (state, action) => {
   const example = item.draft.examples.find((e) => e.uid === exampleUid);
   if (!example) return;
 
-  example.response.headers = map(headers, ({ name = '', value = '', enabled = true }) => ({
-    uid: uuid(),
+  example.response.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+    uid: uid || uuid(),
     name: name,
     value: value,
-    description: '',
+    description,
     enabled: enabled
   }));
 };
@@ -717,7 +717,13 @@ export const updateResponseExampleResponse = (state, action) => {
   const example = item.draft.examples.find((e) => e.uid === exampleUid);
   if (!example) return;
 
-  example.response = { ...example.response, ...response };
+  // Ensure status is a number if provided
+  const processedResponse = { ...response };
+  if (processedResponse.status !== undefined) {
+    processedResponse.status = processedResponse.status ? Number(processedResponse.status) : null;
+  }
+
+  example.response = { ...example.response, ...processedResponse };
 };
 
 export const updateResponseExampleDetails = (state, action) => {
@@ -921,11 +927,11 @@ export const setResponseExampleRequestHeaders = (state, action) => {
   const example = item.draft.examples.find((e) => e.uid === exampleUid);
   if (!example) return;
 
-  example.request.headers = map(headers, ({ name = '', value = '', enabled = true }) => ({
-    uid: uuid(),
+  example.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+    uid: uid || uuid(),
     name: name,
     value: value,
-    description: '',
+    description,
     enabled: enabled
   }));
 };
@@ -950,14 +956,36 @@ export const setResponseExampleParams = (state, action) => {
   const example = item.draft.examples.find((e) => e.uid === exampleUid);
   if (!example) return;
 
-  example.request.params = map(params, ({ name = '', value = '', enabled = true, type = 'query' }) => ({
-    uid: uuid(),
+  example.request.params = map(params, ({ uid, name = '', value = '', description = '', enabled = true, type = 'query' }) => ({
+    uid: uid || uuid(),
     name: name,
     value: value,
-    description: '',
+    description,
     enabled: enabled,
     type: type
   }));
+
+  // Update URL when query parameters change
+  const queryParams = filter(example.request.params, (p) => p.enabled && p.type === 'query');
+  const query = stringifyQueryParams(queryParams);
+
+  if (!example.request.url) {
+    example.request.url = '';
+  }
+
+  const parts = splitOnFirst(example.request.url, '?');
+
+  if (!query || !query.length) {
+    if (parts.length) {
+      example.request.url = parts[0];
+    }
+  } else {
+    if (!parts.length) {
+      example.request.url += '?' + query;
+    } else {
+      example.request.url = parts[0] + '?' + query;
+    }
+  }
 };
 
 // Response Example Body Types
@@ -1297,7 +1325,7 @@ export const updateResponseExampleStatusCode = (state, action) => {
     example.response = {};
   }
 
-  example.response.status = String(statusCode ?? '');
+  example.response.status = statusCode ? Number(statusCode) : null;
 };
 
 export const updateResponseExampleStatusText = (state, action) => {

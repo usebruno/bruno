@@ -30,6 +30,16 @@ class MultiLineEditor extends Component {
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */
     const variables = getAllVariables(this.props.collection, this.props.item);
+    /**
+     * No-op. We claim Cmd-Enter / Ctrl-Enter here only to suppress CodeMirror's
+     * sublime keymap default (insertLineAfter), which would otherwise insert a
+     * newline. sendRequest dispatch is owned by Mousetrap — the editor input has
+     * the `mousetrap` class (added below) so the global
+     * useKeybinding('sendRequest', …) in RequestTabPanel handles it, and only
+     * in request tabs. Falling through with CodeMirror.Pass when onRun is absent
+     * would re-introduce the newline in collection/folder-level editors.
+     */
+    const runShortcut = () => {};
 
     this.editor = CodeMirror(this.editorRef.current, {
       lineWrapping: false,
@@ -45,28 +55,10 @@ class MultiLineEditor extends Component {
       readOnly: this.props.readOnly,
       tabindex: 0,
       extraKeys: {
-        'Ctrl-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Cmd-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
         'Cmd-F': () => {},
         'Ctrl-F': () => {},
+        'Cmd-Enter': runShortcut,
+        'Ctrl-Enter': runShortcut,
         // Tabbing disabled to make tabindex work
         'Tab': false,
         'Shift-Tab': false
@@ -90,14 +82,29 @@ class MultiLineEditor extends Component {
 
     setupLinkAware(this.editor);
 
+    // Add mousetrap calss so Mousetrap captures shortcuts even when Codemirror is focused
+    const cmInput = this.editor.getInputField();
+    if (cmInput) {
+      cmInput.classList.add('mousetrap');
+    }
+
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
+    this.editor.on('blur', this._onBlur);
     this.addOverlay(variables);
 
     // Initialize masking if this is a secret field
-    this.setState({ maskInput: this.props.isSecret });
+    this.setState({ maskInput: this.props.isSecret }, () => {
+      this.props.onMaskChange?.(this.state.maskInput);
+    });
     this._enableMaskedEditor(this.props.isSecret);
   }
+
+  _onBlur = () => {
+    if (this.editor) {
+      this.editor.setCursor(this.editor.getCursor());
+    }
+  };
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
@@ -105,6 +112,7 @@ class MultiLineEditor extends Component {
       if (this.props.onChange) {
         this.props.onChange(this.cachedValue);
       }
+      requestAnimationFrame(() => this.editor?.refresh());
     }
   };
 
@@ -154,17 +162,29 @@ class MultiLineEditor extends Component {
       this.editor.setOption('readOnly', this.props.readOnly);
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
+      const cursor = this.editor.getCursor();
       this.cachedValue = String(this.props.value);
       this.editor.setValue(String(this.props.value) || '');
+      this.editor.setCursor(cursor);
+      // Re-apply masking after setValue() since it destroys all CodeMirror marks
+      if (this.maskedEditor && this.maskedEditor.isEnabled()) {
+        this.maskedEditor.update();
+      }
+      requestAnimationFrame(() => this.editor?.refresh());
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
       // If the secret flag has changed, update the editor to reflect the change
       this._enableMaskedEditor(this.props.isSecret);
       // also set the maskInput flag to the new value
-      this.setState({ maskInput: this.props.isSecret });
+      this.setState({ maskInput: this.props.isSecret }, () => {
+        this.props.onMaskChange?.(this.state.maskInput);
+      });
     }
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
       this.editor.setOption('readOnly', this.props.readOnly || false);
+    }
+    if (this.props.placeholder !== prevProps.placeholder && this.editor) {
+      this.editor.setOption('placeholder', this.props.placeholder);
     }
     this.ignoreChangeEvent = false;
   }
@@ -180,7 +200,11 @@ class MultiLineEditor extends Component {
       this.maskedEditor.destroy();
       this.maskedEditor = null;
     }
-    this.editor.getWrapperElement().remove();
+    if (this.editor) {
+      this.editor.off('change', this._onEdit);
+      this.editor.off('blur', this._onBlur);
+      this.editor.getWrapperElement().remove();
+    }
   }
 
   addOverlay = (variables) => {
@@ -193,9 +217,11 @@ class MultiLineEditor extends Component {
    * @brief Toggle the visibility of the secret value
    */
   toggleVisibleSecret = () => {
-    const isVisible = !this.state.maskInput;
-    this.setState({ maskInput: isVisible });
-    this._enableMaskedEditor(isVisible);
+    const maskInput = !this.state.maskInput;
+    this.setState({ maskInput }, () => {
+      this._enableMaskedEditor(maskInput);
+      this.props.onMaskChange?.(maskInput);
+    });
   };
 
   /**
@@ -204,7 +230,7 @@ class MultiLineEditor extends Component {
    */
   secretEye = (isSecret) => {
     return isSecret === true ? (
-      <button className="mx-2" onClick={() => this.toggleVisibleSecret()}>
+      <button className="mx-2" data-testid="secret-reveal-toggle" onClick={() => this.toggleVisibleSecret()}>
         {this.state.maskInput === true ? (
           <IconEyeOff size={18} strokeWidth={2} />
         ) : (
@@ -216,10 +242,11 @@ class MultiLineEditor extends Component {
 
   render() {
     const wrapperClass = `multi-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`;
+    const testId = this.props.testId ?? (this.props.name ? `test-multiline-editor-${this.props.name}` : undefined);
     return (
-      <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
+      <div data-testid={testId} className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
         <StyledWrapper ref={this.editorRef} className={wrapperClass} />
-        {this.secretEye(this.props.isSecret)}
+        {!this.props.hideSecretEye && this.secretEye(this.props.isSecret)}
       </div>
     );
   }

@@ -15,6 +15,27 @@ describe('Item Schema Validation', () => {
     expect(isValid).toBeTruthy();
   });
 
+  it('item schema accepts arbitrary non-empty tag strings (opencollection allows any chars)', async () => {
+    const validItem = {
+      uid: uuid(),
+      name: 'A Folder',
+      type: 'folder',
+      tags: ['tag_1', 'Äiti-123 test', 'Pets & Dogs', 'R&D', '&', 'tag🔥name']
+    };
+
+    const isValid = await itemSchema.validate(validItem);
+    expect(isValid).toBeTruthy();
+
+    const invalidItem = {
+      uid: uuid(),
+      name: 'A Folder',
+      type: 'folder',
+      tags: ['']
+    };
+
+    await expect(itemSchema.validate(invalidItem)).rejects.toThrow('tag must not be empty');
+  });
+
   it('item schema must throw an error if name is missing', async () => {
     const item = {
       uid: uuid(),

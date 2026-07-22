@@ -1,6 +1,5 @@
 import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
-import { buildPersistedEnvVariables } from 'utils/environments';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
@@ -115,6 +114,9 @@ export const findParentItemInCollectionByPathname = (collection, pathname) => {
 };
 
 export const findItemInCollection = (collection, itemUid) => {
+  if (!collection || !collection.items) {
+    return null;
+  }
   let flattenedItems = flattenItems(collection.items);
 
   return findItem(flattenedItems, itemUid);
@@ -178,6 +180,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         name: header.name,
         value: header.value,
         description: header.description,
+        annotations: header.annotations,
         enabled: header.enabled
       };
     });
@@ -190,6 +193,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         name: param.name,
         value: param.value,
         description: param.description,
+        annotations: param.annotations,
         type: param.type,
         enabled: param.enabled
       };
@@ -227,6 +231,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         uid: param.uid,
         filePath: param.filePath,
         contentType: param.contentType,
+        description: param.description,
         selected: param.selected
       };
     });
@@ -280,9 +285,19 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
+  const normalizeFilenameToBru = (filename) => {
+    if (!filename) return filename;
+    return filename.replace(/\.(yml|yaml)$/i, '.bru');
+  };
+
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
+        return;
+      }
+
+      // Skip transient requests
+      if (si.isTransient) {
         return;
       }
 
@@ -292,7 +307,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         uid: si.uid,
         type: si.type,
         name: si.name,
-        filename: si.filename,
+        filename: isItemARequest(si) ? normalizeFilenameToBru(si.filename) : si.filename,
         seq: si.seq,
         settings: si.settings,
         tags: si.tags,
@@ -369,6 +384,25 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               username: get(si.request, 'auth.ntlm.username', ''),
               password: get(si.request, 'auth.ntlm.password', ''),
               domain: get(si.request, 'auth.ntlm.domain', '')
+            };
+            break;
+          case 'oauth1':
+            di.request.auth.oauth1 = {
+              consumerKey: get(si.request, 'auth.oauth1.consumerKey', ''),
+              consumerSecret: get(si.request, 'auth.oauth1.consumerSecret', ''),
+              accessToken: get(si.request, 'auth.oauth1.accessToken', ''),
+              accessTokenSecret: get(si.request, 'auth.oauth1.accessTokenSecret', ''),
+              callbackUrl: get(si.request, 'auth.oauth1.callbackUrl', ''),
+              verifier: get(si.request, 'auth.oauth1.verifier', ''),
+              signatureMethod: get(si.request, 'auth.oauth1.signatureMethod', 'HMAC-SHA1'),
+              privateKey: get(si.request, 'auth.oauth1.privateKey', ''),
+              privateKeyType: get(si.request, 'auth.oauth1.privateKeyType', 'text'),
+              timestamp: get(si.request, 'auth.oauth1.timestamp', ''),
+              nonce: get(si.request, 'auth.oauth1.nonce', ''),
+              version: get(si.request, 'auth.oauth1.version', '1.0'),
+              realm: get(si.request, 'auth.oauth1.realm', ''),
+              placement: get(si.request, 'auth.oauth1.placement', 'header'),
+              includeBodyHash: get(si.request, 'auth.oauth1.includeBodyHash', false)
             };
             break;
           case 'oauth2':
@@ -462,6 +496,18 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             di.request.auth.wsse = {
               username: get(si.request, 'auth.wsse.username', ''),
               password: get(si.request, 'auth.wsse.password', '')
+            };
+            break;
+          case 'akamai-edgegrid':
+            di.request.auth.akamaiEdgegrid = {
+              accessToken: get(si.request, 'auth.akamaiEdgegrid.accessToken', ''),
+              clientToken: get(si.request, 'auth.akamaiEdgegrid.clientToken', ''),
+              clientSecret: get(si.request, 'auth.akamaiEdgegrid.clientSecret', ''),
+              nonce: get(si.request, 'auth.akamaiEdgegrid.nonce', ''),
+              timestamp: get(si.request, 'auth.akamaiEdgegrid.timestamp', ''),
+              baseURL: get(si.request, 'auth.akamaiEdgegrid.baseURL', ''),
+              headersToSign: get(si.request, 'auth.akamaiEdgegrid.headersToSign', ''),
+              maxBodySize: get(si.request, 'auth.akamaiEdgegrid.maxBodySize', null)
             };
             break;
           default:
@@ -569,11 +615,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.version = '1';
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
-  // Save environments without runtime metadata (ephemeral/persistedValue)
-  collectionToSave.environments = (collection.environments || []).map((env) => ({
-    ...env,
-    variables: buildPersistedEnvVariables(env?.variables, { mode: 'save' })
-  }));
+  collectionToSave.environments = collection.environments || [];
 
   collectionToSave.root = {
     request: {}
@@ -657,14 +699,46 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 export const transformRequestToSaveToFilesystem = (item) => {
   const _item = item.draft ? item.draft : item;
 
+  // Standalone app items have no request, emit only what the filestore needs.
+  if (_item.type === 'app') {
+    return {
+      uid: _item.uid,
+      type: 'app',
+      name: _item.name,
+      seq: _item.seq,
+      tags: _item.tags,
+      settings: _item.settings,
+      app: { code: _item.app?.code || '' }
+    };
+  }
+
+  // Transform examples to ensure status is a number
+  const transformExamples = (examples = []) => {
+    return map(examples, (example) => ({
+      ...example,
+      response: example.response ? {
+        ...example.response,
+        status: example.response.status !== undefined && example.response.status !== null
+          ? Number(example.response.status)
+          : null
+      } : example.response
+    }));
+  };
+
+  const appToSave = _item.app && (_item.app.enabled === true || (_item.app.code && _item.app.code.length))
+    ? { code: _item.app.code || null, enabled: _item.app.enabled === true }
+    : null;
+
   const itemToSave = {
     uid: _item.uid,
     type: _item.type,
     name: _item.name,
+    description: _item.description,
     seq: _item.seq,
     settings: _item.settings,
     tags: _item.tags,
-    examples: _item.examples || [],
+    app: appToSave,
+    examples: transformExamples(_item.examples || []),
     request: {
       method: _item.request.method,
       url: _item.request.url,
@@ -700,6 +774,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
         name: param.name,
         value: param.value,
         description: param.description,
+        annotations: param.annotations,
         type: param.type,
         enabled: param.enabled
       });
@@ -712,6 +787,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -736,10 +812,11 @@ export const transformRequestToSaveToFilesystem = (item) => {
   if (itemToSave.request.body.mode === 'ws') {
     itemToSave.request.body = {
       ...itemToSave.request.body,
-      ws: itemToSave.request.body.ws.map(({ name, content, type }, index) => ({
+      ws: itemToSave.request.body.ws.map(({ name, content, type, selected }, index) => ({
         name: name ? name : `message ${index + 1}`,
         type,
-        content: replaceTabsWithSpaces(content)
+        content: replaceTabsWithSpaces(content),
+        selected: selected || false
       }))
     };
   }
@@ -768,6 +845,7 @@ export const transformCollectionRootToSave = (collection) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -778,6 +856,10 @@ export const transformCollectionRootToSave = (collection) => {
 export const transformFolderRootToSave = (folder) => {
   const _folder = folder.draft ? folder.draft : folder.root;
   const folderRootToSave = {
+    meta: {
+      name: folder.name,
+      seq: folder.seq
+    },
     docs: _folder.docs,
     request: {
       auth: _folder?.request?.auth,
@@ -794,6 +876,7 @@ export const transformFolderRootToSave = (folder) => {
       name: header.name,
       value: header.value,
       description: header.description,
+      annotations: header.annotations,
       enabled: header.enabled
     });
   });
@@ -830,6 +913,40 @@ export const isItemARequest = (item) => {
 
 export const isItemAFolder = (item) => {
   return !item.hasOwnProperty('request') && item.type === 'folder';
+};
+
+/**
+ * Counts the folders and requests in a collection's item tree, recursively at every
+ * depth. Used to summarise a collection (e.g. in the Generate Documentation modal).
+ *
+ * @param {Array} items - The collection's `items` tree.
+ * @returns {{ folderCount: number, requestCount: number }}
+ */
+export const getCollectionItemCounts = (items = []) => {
+  const flattened = flattenItems(items);
+  return {
+    folderCount: flattened.filter(isItemAFolder).length,
+    requestCount: flattened.filter(isItemARequest).length
+  };
+};
+
+/**
+ * Orders a list of collection items exactly the way the Sidebar tree renders them:
+ * folders first (via `sortByNameThenSequence`), then standalone apps by `seq`, then
+ * requests by `seq`. The same ordering is applied recursively to every nested folder
+ * so an exported/serialized tree matches the sidebar at all depths.
+ *
+ * Items that are none of folder/app/request (e.g. `js` script files) are excluded,
+ * mirroring the sidebar. Transient items are excluded too.
+ */
+export const sortItemsBySidebarOrder = (items = []) => {
+  const folderItems = sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient));
+  const appItems = filter(items, (i) => i.type === 'app' && !i.isTransient).sort((a, b) => a.seq - b.seq);
+  const requestItems = filter(items, (i) => isItemARequest(i) && !i.isTransient).sort((a, b) => a.seq - b.seq);
+
+  return [...folderItems, ...appItems, ...requestItems].map((item) =>
+    Array.isArray(item.items) ? { ...item, items: sortItemsBySidebarOrder(item.items) } : item
+  );
 };
 
 export const humanizeRequestBodyMode = (mode) => {
@@ -895,6 +1012,10 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'NTLM';
       break;
     }
+    case 'oauth1': {
+      label = 'OAuth 1.0';
+      break;
+    }
     case 'oauth2': {
       label = 'OAuth 2.0';
       break;
@@ -905,6 +1026,10 @@ export const humanizeRequestAuthMode = (mode) => {
     }
     case 'apikey': {
       label = 'API Key';
+      break;
+    }
+    case 'akamai-edgegrid': {
+      label = 'Akamai EdgeGrid';
       break;
     }
   }
@@ -955,6 +1080,7 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.file'), (param) => (param.uid = uuid()));
+  each(get(item, 'request.body.ws'), (msg) => (msg.uid = uuid()));
   each(get(item, 'request.assertions'), (assertion) => (assertion.uid = uuid()));
 
   return item;
@@ -992,8 +1118,14 @@ export const areItemsTheSameExceptSeqUpdate = (_item1, _item2) => {
   delete item2.draft;
 
   // get projection of both items
-  item1 = transformRequestToSaveToFilesystem(item1);
-  item2 = transformRequestToSaveToFilesystem(item2);
+  // a partial/unparseable item has no comparable request projection; treat it as
+  // changed so callers fall back to a full update instead of throwing
+  try {
+    item1 = transformRequestToSaveToFilesystem(item1);
+    item2 = transformRequestToSaveToFilesystem(item2);
+  } catch (err) {
+    return false;
+  }
 
   // delete uids from both items
   deleteUidsInItem(item1);
@@ -1055,6 +1187,16 @@ export const hasExampleChanges = (_item, exampleUid) => {
 
 export const getDefaultRequestPaneTab = (item) => {
   if (item.type === 'http-request') {
+    // If no params are enabled and body mode is set, default to 'body' tab
+    // This provides better UX for POST/PUT requests with a body
+    const request = item.draft?.request || item.request;
+    const params = request?.params || [];
+    const bodyMode = request?.body?.mode;
+    const hasEnabledParams = params.some((p) => p.enabled);
+
+    if (!hasEnabledParams && bodyMode && bodyMode !== 'none') {
+      return 'body';
+    }
     return 'params';
   }
 
@@ -1097,10 +1239,11 @@ export const getEnvironmentVariables = (collection) => {
   if (collection) {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment) {
-      each(environment.variables, (variable) => {
-        if (variable.name && variable.value && variable.enabled) {
-          variables[variable.name] = variable.value;
-        }
+      // Apply secrets last so a secret wins over a plain variable of the same name,
+      // regardless of their order in the array.
+      const enabledVars = (environment.variables || []).filter((v) => v.name && v.enabled);
+      [...enabledVars.filter((v) => !v.secret), ...enabledVars.filter((v) => v.secret)].forEach((variable) => {
+        variables[variable.name] = variable.value;
       });
     }
   }
@@ -1138,10 +1281,14 @@ const getPathParams = (item) => {
   return pathParams;
 };
 
+export const isOpenCollectionFormat = (collection) => Boolean(collection?.brunoConfig?.opencollection);
+
+export const getCollectionVersion = (collection) => collection?.brunoConfig?.version || '';
+
 export const getTotalRequestCountInCollection = (collection) => {
   let count = 0;
   each(collection.items, (item) => {
-    if (isItemARequest(item)) {
+    if (isItemARequest(item) && !item.isTransient) {
       count++;
     } else if (isItemAFolder(item)) {
       count += getTotalRequestCountInCollection(item);
@@ -1159,7 +1306,14 @@ export const getAllVariables = (collection, item) => {
   const pathParams = getPathParams(item);
   const { globalEnvironmentVariables = {} } = collection;
 
-  const { processEnvVariables = {}, runtimeVariables = {}, promptVariables = {} } = collection;
+  const { processEnvVariables = {}, runtimeVariables = {}, promptVariables = {}, workspaceProcessEnvVariables = {} } = collection;
+
+  // Merge workspace and collection processEnvVariables (collection takes priority)
+  const mergedProcessEnvVariables = {
+    ...workspaceProcessEnvVariables,
+    ...processEnvVariables
+  };
+
   const mergedVariables = {
     ...folderVariables,
     ...requestVariables,
@@ -1201,21 +1355,25 @@ export const getAllVariables = (collection, item) => {
     maskedEnvVariables: uniqueMaskedVariables,
     process: {
       env: {
-        ...processEnvVariables
+        ...mergedProcessEnvVariables
       }
     }
   };
 };
 
 // Merge headers from collection, folders, and request
-export const mergeHeaders = (collection, request, requestTreePath) => {
+export const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
+  const { includeDisabledHeaders = false } = options;
   let headers = new Map();
+  let disabledHeaders = new Map();
 
   // Add collection headers first
   const collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       headers.set(header.name, header);
+    } else if (header.name?.length > 0) {
+      disabledHeaders.set(header.name, header);
     }
   });
 
@@ -1227,6 +1385,8 @@ export const mergeHeaders = (collection, request, requestTreePath) => {
         folderHeaders.forEach((header) => {
           if (header.enabled) {
             headers.set(header.name, header);
+          } else if (header.name?.length > 0) {
+            disabledHeaders.set(header.name, header);
           }
         });
       }
@@ -1238,11 +1398,16 @@ export const mergeHeaders = (collection, request, requestTreePath) => {
   requestHeaders.forEach((header) => {
     if (header.enabled) {
       headers.set(header.name, header);
+    } else if (header.name?.length > 0) {
+      disabledHeaders.set(header.name, header);
     }
   });
 
   // Convert Map back to array
-  return Array.from(headers.values());
+  return [
+    ...Array.from(headers.values()),
+    ...(includeDisabledHeaders ? Array.from(disabledHeaders.values()) : [])
+  ];
 };
 
 export const maskInputValue = (value) => {
@@ -1443,7 +1608,7 @@ export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags })
   }
 
   const requestTypes = ['http-request', 'graphql-request'];
-  requestItems = requestItems.filter((request) => requestTypes.includes(request.type));
+  requestItems = requestItems.filter((request) => requestTypes.includes(request.type) && !request.isTransient);
 
   if (tags && tags.include && tags.exclude) {
     const includeTags = tags.include ? tags.include : [];
@@ -1471,7 +1636,7 @@ export const transformExampleToDraft = (example, newExample) => {
     exampleToDraft.description = newExample.description;
   }
   if (newExample.status) {
-    exampleToDraft.response.status = String(newExample.status);
+    exampleToDraft.response.status = Number(newExample.status);
   }
   if (newExample.statusText) {
     exampleToDraft.response.statusText = newExample.statusText;
@@ -1562,7 +1727,11 @@ export const getVariableScope = (variableName, collection, item) => {
   if (collection.activeEnvironmentUid) {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment && environment.variables) {
-      const envVar = environment.variables.find((v) => v.name === variableName && v.enabled);
+      // A name can exist as both a plain variable and a secret. The secret takes
+      // precedence (matching interpolation), so the resolved value and the secret
+      // flag stay in sync instead of coming from different entries.
+      const envVars = environment.variables.filter((v) => v.name === variableName && v.enabled);
+      const envVar = envVars.find((v) => v.secret) || envVars[0];
       if (envVar) {
         return {
           type: 'environment',
@@ -1588,7 +1757,7 @@ export const getVariableScope = (variableName, collection, item) => {
 
   // 5. Check Global Environment Variables
   const { globalEnvironmentVariables = {} } = collection;
-  if (globalEnvironmentVariables && globalEnvironmentVariables[variableName]) {
+  if (variableName in globalEnvironmentVariables) {
     return {
       type: 'global',
       value: globalEnvironmentVariables[variableName],
@@ -1598,7 +1767,7 @@ export const getVariableScope = (variableName, collection, item) => {
 
   // 6. Check Runtime Variables (set during request execution via scripts)
   const { runtimeVariables = {} } = collection;
-  if (runtimeVariables && runtimeVariables[variableName]) {
+  if (variableName in runtimeVariables) {
     return {
       type: 'runtime',
       value: runtimeVariables[variableName],
@@ -1682,4 +1851,43 @@ export const generateUniqueRequestName = async (collection, baseName = 'Untitled
   const nextNumber = lastElement.number + 1;
 
   return `${baseName}${nextNumber}`;
+};
+
+export const isItemTransientRequest = (item) => {
+  return isItemARequest(item) && item?.isTransient;
+};
+
+/**
+ * Recursively filter out transient items from a collection's items array.
+ * Used for collection runner, exports, and other operations that shouldn't include transient requests.
+ * @param {Array} items - The items array to filter
+ * @returns {Array} A new array with transient items removed
+ */
+export const filterTransientItems = (items) => {
+  if (!items || !Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .filter((item) => !item?.isTransient)
+    .map((item) => {
+      if (item.items && item.items.length > 0) {
+        return {
+          ...item,
+          items: filterTransientItems(item.items)
+        };
+      }
+      return item;
+    });
+};
+
+/**
+ * Checks if a collection is a scratch collection for any workspace
+ * @param {Object} collection - The collection to check
+ * @param {Array} workspaces - Array of workspace objects
+ * @returns {boolean} True if the collection is a scratch collection
+ */
+export const isScratchCollection = (collection, workspaces) => {
+  if (!collection || !workspaces) return false;
+  return workspaces.some((w) => w.scratchCollectionUid === collection.uid);
 };

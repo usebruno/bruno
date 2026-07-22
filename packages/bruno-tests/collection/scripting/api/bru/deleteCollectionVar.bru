@@ -1,0 +1,32 @@
+meta {
+  name: deleteCollectionVar
+  type: http
+  seq: 27
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setCollectionVar("testDeleteCollectionVar", "to-be-deleted");
+}
+
+script:post-response {
+  bru.deleteCollectionVar("testDeleteCollectionVar");
+}
+
+tests {
+  test("should delete collection var", function() {
+    const val = bru.getCollectionVar("testDeleteCollectionVar");
+    expect(val).to.be.undefined;
+  });
+
+  test("should not throw when deleting non-existent key", function() {
+    expect(function() {
+      bru.deleteCollectionVar("non-existent-key");
+    }).to.not.throw();
+  });
+}

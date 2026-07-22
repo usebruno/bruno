@@ -14,8 +14,8 @@ const StyledWrapper = styled.div`
     display: none;
   }
 
-  /* When any parent has class 'vertical-layout', show buttons and hide dropdown */
-  .vertical-layout & {
+  /* When right side is expandible, show buttons and hide dropdown */
+  .expandable & {
     .actions-dropdown {
       display: none;
     }

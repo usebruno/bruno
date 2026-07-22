@@ -1,282 +1,164 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
 import jsyaml from 'js-yaml';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
+import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid, sanitizeTag, sanitizeTags } from '../common';
+import { swagger2ToBruno } from './swagger2-to-bruno';
+import {
+  ensureUrl,
+  BODY_TYPE_HANDLERS,
+  getExampleFromSchema,
+  createBrunoExample,
+  groupRequestsByTags,
+  groupRequestsByPath
+} from './openapi-common';
 
-// Content type patterns for matching MIME type variants
-// These patterns handle structured types with many variants (e.g., application/ld+json, application/vnd.api+json)
-// MIME types can contain: letters, numbers, hyphens, dots, and plus signs
-const CONTENT_TYPE_PATTERNS = {
-  // Matches: application/json, application/ld+json, application/vnd.api+json, text/json, etc.
-  // Pattern: type/([base]+)?suffix where suffix is json
-  JSON: /^[\w\-.+]+\/([\w\-.+]+\+)?json$/,
-  // Matches: application/xml, text/xml, application/atom+xml, application/rss+xml, application/xhtml+xml, etc.
-  // Pattern: type/([base]+)?suffix where suffix is xml
-  XML: /^[\w\-.+]+\/([\w\-.+]+\+)?xml$/,
-  // Matches: text/html
-  // Pattern: type/([base]+)?suffix where suffix is html
-  HTML: /^[\w\-.+]+\/([\w\-.+]+\+)?html$/
+const getContentLevelExample = (bodyContent) => {
+  if (bodyContent.example !== undefined) return bodyContent.example;
+  const firstExample = Object.values(bodyContent.examples ?? {})[0];
+  return firstExample?.value;
 };
 
-const ensureUrl = (url) => {
-  // removing multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
-  return url.replace(/([^:])\/{2,}/g, '$1/');
-};
-
-const getStatusText = (statusCode) => {
-  const statusTexts = {
-    100: 'Continue',
-    101: 'Switching Protocols',
-    102: 'Processing',
-    103: 'Early Hints',
-    200: 'OK',
-    201: 'Created',
-    202: 'Accepted',
-    203: 'Non-Authoritative Information',
-    204: 'No Content',
-    205: 'Reset Content',
-    206: 'Partial Content',
-    207: 'Multi-Status',
-    208: 'Already Reported',
-    226: 'IM Used',
-    300: 'Multiple Choice',
-    301: 'Moved Permanently',
-    302: 'Found',
-    303: 'See Other',
-    304: 'Not Modified',
-    305: 'Use Proxy',
-    306: 'unused',
-    307: 'Temporary Redirect',
-    308: 'Permanent Redirect',
-    400: 'Bad Request',
-    401: 'Unauthorized',
-    402: 'Payment Required',
-    403: 'Forbidden',
-    404: 'Not Found',
-    405: 'Method Not Allowed',
-    406: 'Not Acceptable',
-    407: 'Proxy Authentication Required',
-    408: 'Request Timeout',
-    409: 'Conflict',
-    410: 'Gone',
-    411: 'Length Required',
-    412: 'Precondition Failed',
-    413: 'Payload Too Large',
-    414: 'URI Too Long',
-    415: 'Unsupported Media Type',
-    416: 'Range Not Satisfiable',
-    417: 'Expectation Failed',
-    418: 'I\'m a teapot',
-    421: 'Misdirected Request',
-    422: 'Unprocessable Entity',
-    423: 'Locked',
-    424: 'Failed Dependency',
-    425: 'Too Early',
-    426: 'Upgrade Required',
-    428: 'Precondition Required',
-    429: 'Too Many Requests',
-    431: 'Request Header Fields Too Large',
-    451: 'Unavailable For Legal Reasons',
-    500: 'Internal Server Error',
-    501: 'Not Implemented',
-    502: 'Bad Gateway',
-    503: 'Service Unavailable',
-    504: 'Gateway Timeout',
-    505: 'HTTP Version Not Supported',
-    506: 'Variant Also Negotiates',
-    507: 'Insufficient Storage',
-    508: 'Loop Detected',
-    510: 'Not Extended',
-    511: 'Network Authentication Required'
-  };
-  return statusTexts[statusCode] || 'Unknown';
+// Extract a representative value from a schema property (used for request body properties)
+// Priority: prop.example > parentExample[propName] > prop.default > prop.enum[0] > ''
+const getSchemaPropertyExampleValue = (prop, propName, parentExample = {}) => {
+  if (prop.example !== undefined) return String(prop.example);
+  if (parentExample[propName] !== undefined) return String(parentExample[propName]);
+  if (prop.default !== undefined) return String(prop.default);
+  if (prop.enum && prop.enum.length > 0) return String(prop.enum[0]);
+  return '';
 };
 
 /**
- * Determines the body type based on content-type from OpenAPI spec
- * Uses pattern matching to handle various MIME type variants (e.g., application/ld+json, application/vnd.api+json)
- * @param {string} contentType - The content-type from OpenAPI spec (object key, e.g., "application/json")
- * @returns {string} - The body type (json, xml, html, text)
+ * Extracts parameter entries based on OpenAPI parameter schema
+ * For enum parameters, creates multiple entries (one per enum value)
+ * Handles enum, default, constant, nullable, and array types per Swagger spec
+ * @param {Object} param - The OpenAPI parameter object
+ * @returns {Array} - Array of objects with value and enabled properties
  */
-const getBodyTypeFromContentType = (contentType) => {
-  if (!contentType || typeof contentType !== 'string') {
-    return 'text';
+const getParameterEntries = (param) => {
+  const schema = param.schema || {};
+  const entries = [];
+
+  // Handle enum parameters - create entry for each enum value
+  if (schema.enum && Array.isArray(schema.enum) && schema.enum.length > 0) {
+    const defaultValue = schema.default !== undefined ? String(schema.default) : null;
+
+    schema.enum.forEach((enumValue) => {
+      const valueStr = String(enumValue);
+      // Enable only if it matches the default value, or if it's the first value and required
+      const isDefault = defaultValue !== null && valueStr === defaultValue;
+      const enabled = isDefault || (defaultValue === null && schema.enum.indexOf(enumValue) === 0 && !!param.required);
+
+      entries.push({
+        value: valueStr,
+        enabled: enabled
+      });
+    });
+
+    return entries;
   }
 
-  // Normalize: lowercase (object keys may vary in case, but shouldn't have parameters or whitespace)
-  const normalizedContentType = contentType.toLowerCase();
+  // Handle array type with items schema that has enum
+  if (schema.type === 'array' && schema.items && schema.items.enum && Array.isArray(schema.items.enum) && schema.items.enum.length > 0) {
+    const defaultValue = schema.items.default !== undefined ? String(schema.items.default) : null;
+    const arrayDefault = schema.default !== undefined && Array.isArray(schema.default) ? schema.default : null;
 
-  if (CONTENT_TYPE_PATTERNS.JSON.test(normalizedContentType)) {
-    return 'json';
-  } else if (CONTENT_TYPE_PATTERNS.XML.test(normalizedContentType)) {
-    return 'xml';
-  } else if (CONTENT_TYPE_PATTERNS.HTML.test(normalizedContentType)) {
-    return 'html';
+    // If there's a default at array level, use it
+    if (arrayDefault) {
+      entries.push({
+        value: JSON.stringify(arrayDefault),
+        enabled: true
+      });
+      return entries;
+    }
+
+    // Otherwise, create entries for each enum value in items
+    schema.items.enum.forEach((enumValue) => {
+      const valueStr = String(enumValue);
+      const isDefault = defaultValue !== null && valueStr === defaultValue;
+      const enabled = isDefault || (defaultValue === null && schema.items.enum.indexOf(enumValue) === 0 && !!param.required);
+
+      entries.push({
+        value: valueStr,
+        enabled: enabled
+      });
+    });
+
+    return entries;
   }
 
-  return 'text';
-};
+  // For non-enum cases, return single entry with comprehensive value extraction
+  // Merges HEAD's detailed handling with MERGE_HEAD's broader example sources
+  let value = '';
+  let enabled = param.required || false;
 
-const buildEmptyJsonBody = (bodySchema, visited = new Map()) => {
-  // Check for circular references
-  if (visited.has(bodySchema)) {
-    return {};
+  // Priority 1: Top-level param examples (from upstream, mutually exclusive per spec)
+  if (param.example !== undefined) {
+    value = String(param.example);
+    enabled = true;
+  } else if (param.examples) {
+    const firstExample = Object.values(param.examples)[0];
+    if (firstExample?.value !== undefined) {
+      value = String(firstExample.value);
+      enabled = true;
+    }
   }
 
-  // Add this schema to visited map
-  visited.set(bodySchema, true);
-
-  let _jsonBody = {};
-  each(bodySchema.properties || {}, (prop, name) => {
-    if (prop.type === 'object') {
-      _jsonBody[name] = buildEmptyJsonBody(prop, visited);
-    } else if (prop.type === 'array') {
-      if (prop.items && prop.items.type === 'object') {
-        _jsonBody[name] = [buildEmptyJsonBody(prop.items, visited)];
-      } else {
-        _jsonBody[name] = [];
-      }
-    } else if (prop.type === 'integer') {
-      _jsonBody[name] = 0;
-    } else if (prop.type === 'boolean') {
-      _jsonBody[name] = false;
+  // Priority 2: schema.default (from HEAD, handles array defaults with JSON.stringify)
+  if (value === '' && schema.default !== undefined) {
+    if (schema.type === 'array' && Array.isArray(schema.default)) {
+      value = JSON.stringify(schema.default);
     } else {
-      _jsonBody[name] = '';
+      value = String(schema.default);
     }
-  });
-  return _jsonBody;
-};
-
-/**
- * Extracts or generates an example value from an OpenAPI schema
- * Handles objects, arrays, primitives, and explicit examples
- * @param {Object} schema - The OpenAPI schema object
- * @returns {*} - The example value (object, array, or primitive)
- */
-const getExampleFromSchema = (schema) => {
-  // Check for explicit example first
-  if (schema.example !== undefined) {
-    return schema.example;
+    enabled = true;
   }
 
-  // Handle different schema types
-  if (schema.type === 'object' || (schema.properties && !schema.type)) {
-    // Handle object type or schema with properties (even if type is not explicitly set)
-    return buildEmptyJsonBody(schema);
-  } else if (schema.type === 'array') {
-    if (schema.items) {
-      // If items are objects (either by type or by having properties), create array with one example object
-      if (schema.items.type === 'object' || schema.items.properties) {
-        return [buildEmptyJsonBody(schema.items)];
-      }
-      // For primitive array items, return array with default value
-      if (schema.items.type === 'integer' || schema.items.type === 'number') {
-        return [0];
-      } else if (schema.items.type === 'boolean') {
-        return [false];
-      } else if (schema.items.type === 'string') {
-        return [''];
-      }
-    }
-    return [];
-  } else {
-    // For primitive types, use default values
-    if (schema.type === 'integer' || schema.type === 'number') {
-      return 0;
-    } else if (schema.type === 'boolean') {
-      return false;
-    }
-    return '';
-  }
-};
-
-/**
- * Populates request body in Bruno example from a value
- * Uses pattern matching to handle various MIME type variants
- * @param {Object} params - Parameters object
- * @param {Object} params.body - The Bruno request body object to populate
- * @param {*} params.requestBodyValue - The request body value to set
- * @param {string} params.contentType - Content type (e.g., 'application/json', 'application/ld+json')
- */
-const populateRequestBody = ({ body, requestBodyValue, contentType }) => {
-  if (!requestBodyValue || !contentType || typeof contentType !== 'string') return;
-
-  // Normalize: lowercase (content types from OpenAPI spec object keys may vary in case)
-  const normalizedContentType = contentType.toLowerCase();
-
-  if (CONTENT_TYPE_PATTERNS.JSON.test(normalizedContentType)) {
-    body.mode = 'json';
-    body.json = typeof requestBodyValue === 'object' ? JSON.stringify(requestBodyValue, null, 2) : requestBodyValue;
-  } else if (normalizedContentType === 'application/x-www-form-urlencoded') {
-    body.mode = 'formUrlEncoded';
-    // Handle form data if needed
-  } else if (normalizedContentType === 'multipart/form-data') {
-    body.mode = 'multipartForm';
-    // Handle multipart form data if needed
-  } else if (normalizedContentType === 'text/plain') {
-    body.mode = 'text';
-    body.text = typeof requestBodyValue === 'object' ? JSON.stringify(requestBodyValue) : String(requestBodyValue);
-  } else if (CONTENT_TYPE_PATTERNS.XML.test(normalizedContentType)) {
-    body.mode = 'xml';
-    body.xml = typeof requestBodyValue === 'object' ? JSON.stringify(requestBodyValue) : String(requestBodyValue);
-  }
-};
-
-/**
- * Creates a Bruno example from OpenAPI example data
- * @param {Object} params - Parameters object
- * @param {Object} params.brunoRequestItem - The base Bruno request item
- * @param {*} params.exampleValue - The example value (object, array, or primitive)
- * @param {string} params.exampleName - Name of the example
- * @param {string} params.exampleDescription - Description of the example
- * @param {string|number} params.statusCode - HTTP status code (for response examples)
- * @param {string} params.contentType - Content type (e.g., 'application/json')
- * @param {*} [params.requestBodyValue] - Optional request body value to populate in the example
- * @param {string} [params.requestBodyContentType] - Optional request body content type
- * @returns {Object} Bruno example object
- */
-const createBrunoExample = ({ brunoRequestItem, exampleValue, exampleName, exampleDescription, statusCode, contentType, requestBodyValue = null, requestBodyContentType = null }) => {
-  const brunoExample = {
-    uid: uuid(),
-    itemUid: brunoRequestItem.uid,
-    name: exampleName,
-    description: exampleDescription,
-    type: 'http-request',
-    request: {
-      url: brunoRequestItem.request.url,
-      method: brunoRequestItem.request.method,
-      headers: [...brunoRequestItem.request.headers],
-      params: [...brunoRequestItem.request.params],
-      body: { ...brunoRequestItem.request.body }
-    },
-    response: {
-      status: String(statusCode),
-      statusText: getStatusText(statusCode),
-      headers: contentType ? [
-        {
-          uid: uuid(),
-          name: 'Content-Type',
-          value: contentType,
-          description: '',
-          enabled: true
-        }
-      ] : [],
-      body: {
-        type: getBodyTypeFromContentType(contentType),
-        content: typeof exampleValue === 'object' ? JSON.stringify(exampleValue, null, 2) : exampleValue
-      }
-    }
-  };
-
-  // Populate request body if provided
-  if (requestBodyValue !== null) {
-    populateRequestBody({ body: brunoExample.request.body, requestBodyValue, contentType: requestBodyContentType });
+  // Priority 3: schema.example (from upstream)
+  if (value === '' && schema.example !== undefined) {
+    value = String(schema.example);
+    enabled = true;
   }
 
-  return brunoExample;
+  // Priority 4: Array type handling (merged from both sides)
+  if (value === '' && schema.type === 'array' && schema.items) {
+    if (schema.items.example !== undefined) {
+      value = String(schema.items.example);
+    } else if (schema.items.enum && schema.items.enum.length > 0) {
+      value = String(schema.items.enum[0]);
+    } else if (schema.items.default !== undefined) {
+      value = String(schema.items.default);
+    } else {
+      value = '[]';
+    }
+    enabled = param.required || false;
+  }
+
+  // Priority 5: schema.examples (OAS 3.1+, from upstream)
+  if (value === '' && Array.isArray(schema.examples) && schema.examples.length > 0) {
+    value = String(schema.examples[0]);
+    enabled = true;
+  }
+
+  // Priority 6: schema.minimum fallback for numeric types (from upstream)
+  if (value === '' && schema.minimum !== undefined) {
+    value = String(schema.minimum);
+    enabled = param.required || false;
+  }
+
+  // Priority 7: Edge cases (from HEAD)
+  if (value === '') {
+    if (schema.nullable === true && !param.required) {
+      enabled = false;
+    } else if (param.allowEmptyValue === true && !param.required) {
+      enabled = false;
+    }
+  }
+
+  return [{ value, enabled }];
 };
 
-const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
+const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
   let _operationObject = request.operationObject;
 
   let operationName = _operationObject.summary || _operationObject.operationId || _operationObject.description;
@@ -312,7 +194,9 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
     uid: uuid(),
     name: operationName,
     type: 'http-request',
+    tags: sanitizeTags(request.operationObject.tags || [], options),
     request: {
+      docs: _operationObject.description,
       url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
@@ -339,32 +223,105 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
     }
   };
 
+  // If the operation has its own servers, override baseUrl via request vars
+  // Only the first server is used; Bruno supports a single baseUrl per request
+  if (request.servers && request.servers.length > 0) {
+    const serverVarPairs = extractServerVars(request.servers[0]);
+    brunoRequestItem.request.vars = {
+      req: serverVarPairs.map((sv) => ({
+        uid: uuid(),
+        name: sv.name,
+        value: sv.value,
+        enabled: true,
+        local: false
+      })),
+      res: []
+    };
+  }
+
   each(_operationObject.parameters || [], (param) => {
-    if (param.in === 'query') {
-      brunoRequestItem.request.params.push({
-        uid: uuid(),
-        name: param.name,
-        value: '',
-        description: param.description || '',
-        enabled: param.required,
-        type: 'query'
+    // Check if parameter schema is an object type with properties
+    // If so, expand the properties into individual parameters
+    const isObjectSchema = param.schema && param.schema.properties;
+
+    if (isObjectSchema) {
+      // Expand object schema properties into individual parameters
+      const schemaExample = param.schema.example || {};
+
+      each(param.schema.properties, (prop, propName) => {
+        const isRequired = Array.isArray(param.schema.required) && param.schema.required.includes(propName);
+
+        // Create a temporary parameter object for getParameterEntries
+        // Enrich property with parent example context if property lacks its own example
+        // Use child-level example only; drop parent-level example/examples to avoid
+        // object-level values leaking into scalar child parameters
+        const propSchema = (prop.example === undefined && schemaExample[propName] !== undefined)
+          ? { ...prop, example: schemaExample[propName] }
+          : prop;
+        const tempParam = { ...param, example: undefined, examples: undefined, name: propName, schema: propSchema, required: isRequired };
+        const entries = getParameterEntries(tempParam);
+
+        entries.forEach((entry) => {
+          if (param.in === 'query' || param.in === 'querystring') {
+            brunoRequestItem.request.params.push({
+              uid: uuid(),
+              name: propName,
+              value: entry.value,
+              description: prop.description || '',
+              enabled: entry.enabled,
+              type: 'query'
+            });
+          } else if (param.in === 'path') {
+            brunoRequestItem.request.params.push({
+              uid: uuid(),
+              name: propName,
+              value: entry.value,
+              description: prop.description || '',
+              enabled: entry.enabled,
+              type: 'path'
+            });
+          } else if (param.in === 'header') {
+            brunoRequestItem.request.headers.push({
+              uid: uuid(),
+              name: propName,
+              value: entry.value,
+              description: prop.description || '',
+              enabled: entry.enabled
+            });
+          }
+        });
       });
-    } else if (param.in === 'path') {
-      brunoRequestItem.request.params.push({
-        uid: uuid(),
-        name: param.name,
-        value: '',
-        description: param.description || '',
-        enabled: param.required,
-        type: 'path'
-      });
-    } else if (param.in === 'header') {
-      brunoRequestItem.request.headers.push({
-        uid: uuid(),
-        name: param.name,
-        value: '',
-        description: param.description || '',
-        enabled: param.required
+    } else {
+      const entries = getParameterEntries(param);
+
+      entries.forEach((entry) => {
+        if (param.in === 'query' || param.in === 'querystring') {
+          brunoRequestItem.request.params.push({
+            uid: uuid(),
+            name: param.name,
+            value: entry.value,
+            description: param.description || '',
+            enabled: entry.enabled,
+            type: 'query'
+          });
+        } else if (param.in === 'path') {
+          brunoRequestItem.request.params.push({
+            uid: uuid(),
+            name: param.name,
+            value: entry.value,
+            description: param.description || '',
+            enabled: entry.enabled,
+            type: 'path'
+          });
+        } else if (param.in === 'header') {
+          brunoRequestItem.request.headers.push({
+            uid: uuid(),
+            name: param.name,
+            value: entry.value,
+            description: param.description || '',
+            enabled: entry.enabled
+          });
+        }
       });
     }
   });
@@ -372,7 +329,6 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
   // Handle explicit no-auth case where security: [] on the operation
   if (Array.isArray(_operationObject.security) && _operationObject.security.length === 0) {
     brunoRequestItem.request.auth.mode = 'inherit';
-    return brunoRequestItem;
   }
 
   let auth = null;
@@ -479,56 +435,26 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
 
   // TODO: handle allOf/anyOf/oneOf
   if (_operationObject.requestBody) {
-    let content = get(_operationObject, 'requestBody.content', {});
-    let mimeType = Object.keys(content)[0];
-    let body = content[mimeType] || {};
-    let bodySchema = body.schema;
+    const content = get(_operationObject, 'requestBody.content', {});
+    const mimeType = Object.keys(content)[0];
+    const bodyContent = content[mimeType] || {};
+    let bodySchema = bodyContent.schema;
+
+    if (bodySchema?.example === undefined) {
+      const contentExample = getContentLevelExample(bodyContent);
+      if (contentExample !== undefined) {
+        bodySchema = { ...bodySchema, example: contentExample };
+      }
+    }
 
     // Normalize: lowercase (object keys may vary in case)
     const normalizedMimeType = typeof mimeType === 'string' ? mimeType.toLowerCase() : '';
 
-    if (CONTENT_TYPE_PATTERNS.JSON.test(normalizedMimeType)) {
-      brunoRequestItem.request.body.mode = 'json';
-      if (bodySchema && bodySchema.type === 'object') {
-        let _jsonBody = buildEmptyJsonBody(bodySchema);
-        brunoRequestItem.request.body.json = JSON.stringify(_jsonBody, null, 2);
-      }
-      if (bodySchema && bodySchema.type === 'array') {
-        brunoRequestItem.request.body.json = JSON.stringify([buildEmptyJsonBody(bodySchema.items)], null, 2);
-      }
-    } else if (normalizedMimeType === 'application/x-www-form-urlencoded') {
-      brunoRequestItem.request.body.mode = 'formUrlEncoded';
-      if (bodySchema && bodySchema.type === 'object') {
-        each(bodySchema.properties || {}, (prop, name) => {
-          brunoRequestItem.request.body.formUrlEncoded.push({
-            uid: uuid(),
-            name: name,
-            value: '',
-            description: prop.description || '',
-            enabled: true
-          });
-        });
-      }
-    } else if (normalizedMimeType === 'multipart/form-data') {
-      brunoRequestItem.request.body.mode = 'multipartForm';
-      if (bodySchema && bodySchema.type === 'object') {
-        each(bodySchema.properties || {}, (prop, name) => {
-          brunoRequestItem.request.body.multipartForm.push({
-            uid: uuid(),
-            type: 'text',
-            name: name,
-            value: '',
-            description: prop.description || '',
-            enabled: true
-          });
-        });
-      }
-    } else if (normalizedMimeType === 'text/plain') {
-      brunoRequestItem.request.body.mode = 'text';
-      brunoRequestItem.request.body.text = '';
-    } else if (CONTENT_TYPE_PATTERNS.XML.test(normalizedMimeType)) {
-      brunoRequestItem.request.body.mode = 'xml';
-      brunoRequestItem.request.body.xml = '';
+    // Find matching handler for this content type
+    const handler = BODY_TYPE_HANDLERS.find((h) => h.match(normalizedMimeType));
+    if (handler) {
+      brunoRequestItem.request.body.mode = handler.mode;
+      handler.handle(brunoRequestItem.request.body, bodySchema);
     }
   }
 
@@ -566,7 +492,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
      * @param {*} params.responseExampleValue - The response example value
      * @param {string} params.exampleName - Name of the example
      * @param {string} params.exampleDescription - Description of the example
-     * @param {string|number} params.statusCode - HTTP status code
+     * @param {number} params.statusCode - HTTP status code
      * @param {string} params.responseContentType - Response content type
      * @param {string} [params.responseExampleKey] - Optional response example key for matching
      */
@@ -588,7 +514,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
           exampleDescription,
           statusCode,
           contentType: responseContentType,
-          requestBodyValue: matchingRequestBodyExample.value,
+          requestBodySchema: matchingRequestBodyExample.schema,
           requestBodyContentType: matchingRequestBodyExample.contentType
         }));
       } else if (requestBodyExamplesWithKeys.length > 0) {
@@ -603,7 +529,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
             exampleDescription: combinedExampleDescription,
             statusCode,
             contentType: responseContentType,
-            requestBodyValue: rbExample.value,
+            requestBodySchema: rbExample.schema,
             requestBodyContentType: rbExample.contentType
           }));
         });
@@ -617,7 +543,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
           exampleDescription,
           statusCode,
           contentType: responseContentType,
-          requestBodyValue: rbExample.value,
+          requestBodySchema: rbExample.schema,
           requestBodyContentType: rbExample.contentType
         }));
       } else {
@@ -638,32 +564,32 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
         if (content.examples) {
           // Multiple request body examples
           Object.entries(content.examples).forEach(([exampleKey, example]) => {
+            const exampleValue = example.value !== undefined ? example.value : example;
             requestBodyExamples.push({
               key: exampleKey,
-              value: example.value !== undefined ? example.value : example,
+              schema: { example: exampleValue }, // Wrap in schema format for BODY_TYPE_HANDLERS
               summary: example.summary,
               description: example.description,
               contentType: contentType
             });
           });
         } else if (content.example !== undefined) {
-          // Single request body example - convert to unified structure
+          // Single request body example - wrap in schema-like object
           requestBodyExamples.push({
-            key: null, // No key for single example
-            value: content.example,
+            key: null,
+            schema: { example: content.example }, // Wrap in schema format for BODY_TYPE_HANDLERS
             summary: null,
             description: null,
             contentType: contentType
           });
         } else if (content.schema) {
-          // Schema-based request body - convert to unified structure
+          // Schema-based request body - pass schema directly
           requestBodyExamples.push({
-            key: null, // No key for schema
-            value: getExampleFromSchema(content.schema),
+            key: null,
+            schema: content.schema,
             summary: null,
             description: null,
-            contentType: contentType,
-            isSchema: true
+            contentType: contentType
           });
         }
       });
@@ -742,6 +668,15 @@ const transformOpenapiRequestItem = (request, usedNames = new Set()) => {
   return brunoRequestItem;
 };
 
+// Helper function to validate $ref
+const isValidRef = (ref) => {
+  if (typeof ref !== 'string') {
+    return false;
+  }
+
+  return ref.startsWith('#/components/');
+};
+
 const resolveRefs = (spec, components = spec?.components, cache = new Map()) => {
   if (!spec || typeof spec !== 'object') {
     return spec;
@@ -755,7 +690,10 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
     return spec.map((item) => resolveRefs(item, components, cache));
   }
 
-  if ('$ref' in spec) {
+  // Only treat as a JSON reference if it passes all validation checks
+  const isRef = isValidRef(spec.$ref);
+
+  if (isRef) {
     const refPath = spec.$ref;
 
     if (cache.has(refPath)) {
@@ -792,156 +730,52 @@ const resolveRefs = (spec, components = spec?.components, cache = new Map()) => 
   return resolved;
 };
 
-const groupRequestsByTags = (requests) => {
-  let _groups = {};
-  let ungrouped = [];
-  each(requests, (request) => {
-    let tags = request.operationObject.tags || [];
-    if (tags.length > 0) {
-      let tag = tags[0].trim(); // take first tag and trim whitespace
-
-      if (tag) {
-        if (!_groups[tag]) {
-          _groups[tag] = [];
-        }
-        _groups[tag].push(request);
-      } else {
-        ungrouped.push(request);
-      }
-    } else {
-      ungrouped.push(request);
-    }
-  });
-
-  let groups = Object.keys(_groups).map((groupName) => {
-    return {
-      name: groupName,
-      requests: _groups[groupName]
-    };
-  });
-
-  return [groups, ungrouped];
-};
-
-const groupRequestsByPath = (requests) => {
-  const pathGroups = {};
-
-  // Group requests by their path segments
-  requests.forEach((request) => {
-    // Use original path for grouping to preserve {id} format
-    const pathToUse = request.originalPath || request.path;
-    const pathSegments = pathToUse.split('/').filter((segment) => segment !== '');
-
-    if (pathSegments.length === 0) {
-      // Handle root path or paths with only parameters
-      const groupName = 'Root';
-      if (!pathGroups[groupName]) {
-        pathGroups[groupName] = {
-          name: groupName,
-          requests: [],
-          subGroups: {}
-        };
-      }
-      pathGroups[groupName].requests.push(request);
-      return;
-    }
-
-    // Use the first segment as the main group
-    let groupName = pathSegments[0];
-
-    if (!pathGroups[groupName]) {
-      pathGroups[groupName] = {
-        name: groupName,
-        requests: [],
-        subGroups: {}
-      };
-    }
-
-    // If there's only one meaningful segment, add to main group
-    if (pathSegments.length <= 1) {
-      pathGroups[groupName].requests.push(request);
-    } else {
-      // For deeper paths, create sub-groups
-      let currentGroup = pathGroups[groupName];
-      for (let i = 1; i < pathSegments.length; i++) {
-        let subGroupName = pathSegments[i];
-
-        if (!currentGroup.subGroups[subGroupName]) {
-          currentGroup.subGroups[subGroupName] = {
-            name: subGroupName,
-            requests: [],
-            subGroups: {}
-          };
-        }
-        currentGroup = currentGroup.subGroups[subGroupName];
-      }
-      currentGroup.requests.push(request);
-    }
-  });
-
-  // Convert the nested structure to Bruno folder format
-  const buildFolderStructure = (group) => {
-    // Create a new usedNames set for each folder/subfolder scope
-    const localUsedNames = new Set();
-    const items = group.requests.map((req) => transformOpenapiRequestItem(req, localUsedNames));
-
-    // Add sub-folders
-    const subFolders = [];
-    Object.values(group.subGroups).forEach((subGroup) => {
-      const subFolderItems = buildFolderStructure(subGroup);
-      if (subFolderItems.length > 0) {
-        subFolders.push({
-          uid: uuid(),
-          name: subGroup.name,
-          type: 'folder',
-          items: subFolderItems
-        });
-      }
-    });
-
-    return [...items, ...subFolders];
-  };
-
-  const folders = Object.values(pathGroups).map((group) => ({
-    uid: uuid(),
-    name: group.name,
-    type: 'folder',
-    items: buildFolderStructure(group)
-  }));
-
-  return folders;
-};
-
 const getDefaultUrl = (serverObject) => {
   let url = serverObject.url;
   if (serverObject.variables) {
     each(serverObject.variables, (variable, variableName) => {
-      let sub = variable.default || (variable.enum ? variable.enum[0] : `{{${variableName}}}`);
-      url = url.replace(`{${variableName}}`, sub);
+      let sub = variable.default !== undefined ? variable.default : (variable.enum ? variable.enum[0] : `{{${variableName}}}`);
+      url = url.replaceAll(`{${variableName}}`, sub);
     });
   }
   return url.endsWith('/') ? url.slice(0, -1) : url;
 };
 
+// Extract { name, value } pairs from an OpenAPI server object.
+// Converts {varName} to {{varName}} for template URLs and includes variable defaults.
+const extractServerVars = (server) => {
+  const vars = [];
+  if (server.variables && Object.keys(server.variables).length > 0) {
+    let baseUrlTemplate = server.url;
+    each(server.variables, (variable, variableName) => {
+      baseUrlTemplate = baseUrlTemplate.replaceAll(`{${variableName}}`, `{{${variableName}}}`);
+    });
+    baseUrlTemplate = baseUrlTemplate.endsWith('/') ? baseUrlTemplate.slice(0, -1) : baseUrlTemplate;
+    vars.push({ name: 'baseUrl', value: baseUrlTemplate });
+    each(server.variables, (variable, variableName) => {
+      let value = variable.default !== undefined ? variable.default : (variable.enum ? variable.enum[0] : '');
+      vars.push({ name: variableName, value: String(value) });
+    });
+  } else {
+    vars.push({ name: 'baseUrl', value: getDefaultUrl(server) });
+  }
+  return vars;
+};
+
 const getSecurity = (apiSpec) => {
   let defaultSchemes = apiSpec.security || [];
-
   let securitySchemes = get(apiSpec, 'components.securitySchemes', {});
-  if (Object.keys(securitySchemes) === 0) {
-    return {
-      supported: []
-    };
-  }
+
+  const hasSchemes = Object.keys(securitySchemes).length > 0;
 
   return {
-    supported: defaultSchemes.map((scheme) => {
-      var schemeName = Object.keys(scheme)[0];
-      return securitySchemes[schemeName];
-    }),
+    supported: hasSchemes
+      ? defaultSchemes
+          .map((scheme) => securitySchemes[Object.keys(scheme)[0]])
+          .filter(Boolean)
+      : [],
     schemes: securitySchemes,
-    getScheme: (schemeName) => {
-      return securitySchemes[schemeName];
-    }
+    getScheme: (schemeName) => securitySchemes[schemeName]
   };
 };
 
@@ -976,59 +810,75 @@ export const parseOpenApiCollection = (data, options = {}) => {
     // Currently parsing of openapi spec is "do your best", that is
     // allows "invalid" openapi spec
 
-    // Assumes v3 if not defined. v2 is not supported yet
-    if (collectionData.openapi && !collectionData.openapi.startsWith('3')) {
-      throw new Error('Only OpenAPI v3 is supported currently.');
-      return;
-    }
-
     brunoCollection.name = collectionData.info?.title?.trim() || 'Untitled Collection';
 
     let servers = collectionData.servers || [];
 
     // Create environments based on the servers
     servers.forEach((server, index) => {
-      let baseUrl = getDefaultUrl(server);
-      let environmentName = server.description ? server.description : `Environment ${index + 1}`;
+      let environmentName = server.name || server.description || `Environment ${index + 1}`;
+      const serverVars = extractServerVars(server);
+      const variables = serverVars.map((sv) => ({
+        uid: uuid(),
+        name: sv.name,
+        value: sv.value,
+        type: 'text',
+        enabled: true,
+        secret: false
+      }));
 
       brunoCollection.environments.push({
         uid: uuid(),
         name: environmentName,
-        variables: [
-          {
-            uid: uuid(),
-            name: 'baseUrl',
-            value: baseUrl,
-            type: 'text',
-            enabled: true,
-            secret: false
-          }
-        ]
+        variables
       });
     });
 
     let securityConfig = getSecurity(collectionData);
 
+    // Merge path-item parameters with operation parameters.
+    // Operation parameters override path-item parameters with the same name+in combination.
+    const mergeParams = (pathParams, operationParams) => {
+      const overrides = new Set(operationParams.map((p) => `${p.name}:${p.in}`));
+      const inheritedParams = pathParams.filter((p) => !overrides.has(`${p.name}:${p.in}`));
+      return [...inheritedParams, ...operationParams];
+    };
+
     let allRequests = Object.entries(collectionData.paths)
-      .map(([path, methods]) => {
-        return Object.entries(methods)
+      .map(([path, pathItemObject]) => {
+        // Extract path-item level parameters (per OpenAPI spec, these apply to all operations under this path)
+        const pathItemParams = pathItemObject.parameters || [];
+
+        return Object.entries(pathItemObject)
           .filter(([method, op]) => {
             return ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'].includes(
               method.toLowerCase()
             );
           })
-          .map(([method, operationObject]) => {
-            return {
-              method: method,
-              path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
-              originalPath: path, // Keep original path for grouping
-              operationObject: operationObject,
-              global: {
-                server: '{{baseUrl}}',
-                security: securityConfig
-              }
-            };
-          });
+          .reduce((requests, [method, operationObject]) => {
+            const variants = Array.isArray(operationObject['x-bruno-variants']) ? operationObject['x-bruno-variants'] : [];
+            const operations = [operationObject, ...variants.filter((variant) => variant && typeof variant === 'object')];
+
+            operations.forEach((operation) => {
+              const operationObjectCleaned = { ...operation };
+              delete operationObjectCleaned['x-bruno-variants'];
+              const mergedParams = mergeParams(pathItemParams, operationObjectCleaned.parameters || []);
+
+              requests.push({
+                method: method,
+                path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
+                originalPath: path, // Keep original path for grouping
+                operationObject: { ...operationObjectCleaned, parameters: mergedParams },
+                global: {
+                  server: '{{baseUrl}}',
+                  security: securityConfig
+                },
+                servers: operationObjectCleaned.servers || pathItemObject.servers || null
+              });
+            });
+
+            return requests;
+          }, []);
       })
       .reduce((acc, val) => acc.concat(val), []); // flatten
 
@@ -1036,10 +886,10 @@ export const parseOpenApiCollection = (data, options = {}) => {
     const groupingType = options.groupBy || 'tags';
 
     if (groupingType === 'path') {
-      brunoCollection.items = groupRequestsByPath(allRequests);
+      brunoCollection.items = groupRequestsByPath(allRequests, transformOpenapiRequestItem, options);
     } else {
       // Default tag-based grouping
-      let [groups, ungroupedRequests] = groupRequestsByTags(allRequests);
+      let [groups, ungroupedRequests] = groupRequestsByTags(allRequests, options);
       let brunoFolders = groups.map((group) => {
         return {
           uid: uuid(),
@@ -1060,11 +910,11 @@ export const parseOpenApiCollection = (data, options = {}) => {
               name: group.name
             }
           },
-          items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames))
+          items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames, options))
         };
       });
 
-      let ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames));
+      let ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames, options));
       let brunoCollectionItems = brunoFolders.concat(ungroupedItems);
       brunoCollection.items = brunoCollectionItems;
     }
@@ -1179,11 +1029,17 @@ export const openApiToBruno = (openApiSpecification, options = {}) => {
     if (typeof openApiSpecification !== 'object') {
       openApiSpecification = jsyaml.load(openApiSpecification);
     }
+    if (openApiSpecification.swagger && String(openApiSpecification.swagger).startsWith('2')) {
+      return swagger2ToBruno(openApiSpecification, options);
+    }
 
     const collection = parseOpenApiCollection(openApiSpecification, options);
+
     const transformedCollection = transformItemsInCollection(collection);
+
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
     const validatedCollection = validateSchema(hydratedCollection);
+
     return validatedCollection;
   } catch (err) {
     console.error('Error converting OpenAPI to Bruno:', err);

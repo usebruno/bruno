@@ -5,7 +5,6 @@ import {
   createEnvironment,
   addEnvironmentVariables,
   saveEnvironment,
-  closeEnvironmentPanel,
   sendRequest,
   expectResponseContains,
   removeCollection
@@ -22,8 +21,7 @@ test.describe('Collection Environment Create Tests', () => {
 
     await test.step('Import collection', async () => {
       await importCollection(page, collectionFile, await createTmpDir('env-test'), {
-        expectedCollectionName: 'test_collection',
-        openWithSandboxMode: 'safe'
+        expectedCollectionName: 'test_collection'
       });
     });
 
@@ -39,7 +37,6 @@ test.describe('Collection Environment Create Tests', () => {
       ]);
 
       await saveEnvironment(page);
-      await closeEnvironmentPanel(page);
       await expect(locators.environment.currentEnvironment()).toContainText('Test Environment');
     });
 

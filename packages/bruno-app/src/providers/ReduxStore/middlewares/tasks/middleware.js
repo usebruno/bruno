@@ -2,9 +2,9 @@ import get from 'lodash/get';
 import each from 'lodash/each';
 import filter from 'lodash/filter';
 import { createListenerMiddleware } from '@reduxjs/toolkit';
-import { removeTaskFromQueue, hideHomePage } from 'providers/ReduxStore/slices/app';
+import { removeTaskFromQueue } from 'providers/ReduxStore/slices/app';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { collectionAddFileEvent, collectionChangeFileEvent } from 'providers/ReduxStore/slices/collections';
+import { collectionAddFileEvent, collectionChangeFileEvent, collectionLoadedFromTree } from 'providers/ReduxStore/slices/collections';
 import { findCollectionByUid, findItemInCollectionByPathname, getDefaultRequestPaneTab, findItemInCollectionByItemUid } from 'utils/collections/index';
 import { taskTypes } from './utils';
 
@@ -25,28 +25,53 @@ taskMiddleware.startListening({
 
     const openRequestTasks = filter(state.app.taskQueue, { type: taskTypes.OPEN_REQUEST });
     each(openRequestTasks, (task) => {
-      if (collectionUid === task.collectionUid) {
-        const collection = findCollectionByUid(state.collections.collections, collectionUid);
-        if (collection && collection.mountStatus === 'mounted' && !collection.isLoading) {
-          const item = findItemInCollectionByPathname(collection, task.itemPathname);
-          if (item) {
-            listenerApi.dispatch(
-              addTab({
-                uid: item.uid,
-                collectionUid: collection.uid,
-                requestPaneTab: getDefaultRequestPaneTab(item)
-              })
-            );
-            listenerApi.dispatch(hideHomePage());
-          }
-        }
+      if (collectionUid !== task.collectionUid) return;
+      const collection = findCollectionByUid(state.collections.collections, collectionUid);
+      if (!collection || collection.mountStatus !== 'mounted' || collection.isLoading) return;
+      const item = findItemInCollectionByPathname(collection, task.itemPathname);
+      if (!item) return;
+      listenerApi.dispatch(
+        addTab({
+          uid: item.uid,
+          collectionUid: collection.uid,
+          type: item.type,
+          pathname: item.pathname,
+          requestPaneTab: getDefaultRequestPaneTab(item),
+          preview: task?.preview ?? true,
+          ...(item.isTransient ? { isTransient: true } : {})
+        })
+      );
+      listenerApi.dispatch(removeTaskFromQueue({ taskUid: task.uid }));
+    });
+  }
+});
 
-        listenerApi.dispatch(
-          removeTaskFromQueue({
-            taskUid: task.uid
-          })
-        );
-      }
+// v2 tree push also acts as a signal for queued OPEN_REQUEST tasks.
+taskMiddleware.startListening({
+  actionCreator: collectionLoadedFromTree,
+  effect: (action, listenerApi) => {
+    const state = listenerApi.getState();
+    const collectionUid = get(action, 'payload.collectionUid');
+
+    const openRequestTasks = filter(state.app.taskQueue, { type: taskTypes.OPEN_REQUEST });
+    each(openRequestTasks, (task) => {
+      if (collectionUid !== task.collectionUid) return;
+      const collection = findCollectionByUid(state.collections.collections, collectionUid);
+      if (!collection || collection.mountStatus !== 'mounted' || collection.isLoading) return;
+      const item = findItemInCollectionByPathname(collection, task.itemPathname);
+      if (!item) return;
+      listenerApi.dispatch(
+        addTab({
+          uid: item.uid,
+          collectionUid: collection.uid,
+          type: item.type,
+          pathname: item.pathname,
+          requestPaneTab: getDefaultRequestPaneTab(item),
+          preview: task?.preview ?? true,
+          ...(item.isTransient ? { isTransient: true } : {})
+        })
+      );
+      listenerApi.dispatch(removeTaskFromQueue({ taskUid: task.uid }));
     });
   }
 });
@@ -75,12 +100,13 @@ taskMiddleware.startListening({
             if (example) {
               listenerApi.dispatch(addTab({
                 uid: example.uid,
-                exampleUid: example.uid,
                 collectionUid: collection.uid,
                 type: 'response-example',
-                itemUid: item.uid
+                itemUid: item.uid,
+                pathname: item.pathname,
+                exampleName: example.name,
+                exampleIndex: task.exampleIndex
               }));
-              listenerApi.dispatch(hideHomePage());
             }
           }
         }

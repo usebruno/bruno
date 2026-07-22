@@ -5,10 +5,9 @@ import ToolHint from 'components/ToolHint/index';
 
 const StyledSessionList = styled.div`
   .session-list-item {
-    padding: 10px 12px;
+    padding: 2px 6px;
     cursor: pointer;
     border-bottom: 1px solid ${(props) => props.theme.border || 'rgba(255, 255, 255, 0.05)'};
-    transition: all 0.2s;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -24,7 +23,8 @@ const StyledSessionList = styled.div`
 
     &.active {
       background: ${(props) => props.theme.sidebarActive || 'rgba(59, 142, 234, 0.12)'};
-      border-left: 2px solid ${(props) => props.theme.brandColor || '#3b8eea'};
+      border-left: 2px solid ${(props) => props.theme.primary.subtle};
+      padding-left: 4px;
     }
 
     &:last-child {
@@ -113,7 +113,7 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
 
   return (
     <StyledSessionList>
-      {sessions.map((session) => {
+      {sessions.map((session, idx) => {
         const { name } = getSessionDisplayInfo(session);
         return (
           <ToolHint
@@ -125,6 +125,7 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
           >
             <div
               className={`session-list-item ${activeSessionId === session.sessionId ? 'active' : ''}`}
+              data-testid={`session-list-${idx}`}
               onClick={() => onSelectSession(session.sessionId)}
             >
               <div className="session-name">
@@ -133,6 +134,7 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
               </div>
               <div
                 className="session-close-btn"
+                data-testid={`session-close-${idx}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onCloseSession(session.sessionId);

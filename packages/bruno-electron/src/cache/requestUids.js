@@ -49,9 +49,33 @@ const getExampleUid = (pathname, index) => {
   return uid;
 };
 
+/**
+ * Syncs the example UID cache with the current state of examples being saved.
+ * This ensures the cache stays consistent when examples are added, deleted, or reordered.
+ *
+ * @param {string} pathname - The file path of the request
+ * @param {Array} examples - The examples array being saved (each with a uid property)
+ */
+const syncExampleUidsCache = (pathname, examples = []) => {
+  // Clear all existing cache entries for this pathname
+  for (const key of exampleUids.keys()) {
+    if (key.startsWith(`${pathname}-`)) {
+      exampleUids.delete(key);
+    }
+  }
+
+  // Rebuild cache with current example UIDs at their new indices
+  examples.forEach((example, index) => {
+    if (example.uid) {
+      exampleUids.set(`${pathname}-${index}`, example.uid);
+    }
+  });
+};
+
 module.exports = {
   getRequestUid,
   moveRequestUid,
   deleteRequestUid,
-  getExampleUid
+  getExampleUid,
+  syncExampleUidsCache
 };

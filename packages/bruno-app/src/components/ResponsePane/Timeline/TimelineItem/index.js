@@ -1,86 +1,227 @@
-import { useState } from 'react';
-import Network from './Network/index';
-import Request from './Request/index';
-import Response from './Response/index';
+import { useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { IconChevronDown, IconChevronRight } from '@tabler/icons';
 import Method from './Common/Method/index';
 import Status from './Common/Status/index';
 import { RelativeTime } from './Common/Time/index';
+import Network from './Network/index';
+import Request from './Request/index';
+import Response from './Response/index';
+import StyledWrapper from './StyledWrapper';
+import { usePersistedState } from 'hooks/usePersistedState/index';
+import { flattenItems } from 'utils/collections/index';
+import { getRelativePath } from 'utils/common/path';
+import { addTab, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
+import { getBadge } from '../entryMeta';
 
-const TimelineItem = ({ timestamp, request, response, item, collection, isOauth2, hideTimestamp = false }) => {
-  const [isCollapsed, _toggleCollapse] = useState(false);
+const findFolderByScopeFile = (collection, sourceFile) => {
+  if (!collection?.pathname || !sourceFile) return null;
+  const dir = sourceFile.replace(/\/folder\.(?:bru|yml)$/, '');
+  if (!dir || dir === sourceFile) return null;
+  return flattenItems(collection.items || []).find(
+    (i) => i.type === 'folder' && getRelativePath(collection.pathname, i.pathname) === dir
+  ) || null;
+};
+
+const TimelineItem = ({
+  timestamp,
+  request,
+  response,
+  error,
+  item,
+  collection,
+  isOauth2,
+  hideTimestamp = false,
+  source,
+  scope,
+  phase
+}) => {
+  const dispatch = useDispatch();
+  const [isExpanded, _toggleExpand] = usePersistedState({
+    key: `timeline-${timestamp}`,
+    default: false
+  });
   const [activeTab, setActiveTab] = useState('request');
-  const toggleCollapse = () => _toggleCollapse((prev) => !prev);
-  const { method, status, statusCode, statusText, url = '' } = request || {};
-  const { status: responseStatus, statusCode: responseStatusCode, statusText: responseStatusText } = response || {};
-  const showNetworkLogs = response.timeline && response.timeline.length > 0;
+  // CodeMirror reads its size on mount and stays blank if hidden. Lazy-mount
+  // each tab on first visit and keep it mounted, toggling display only.
+  const [visitedTabs, setVisitedTabs] = useState({ request: true });
+  const toggleExpand = () => _toggleExpand((prev) => !prev);
+  const handleRowKeyDown = (ev) => {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      toggleExpand();
+    }
+  };
+
+  useEffect(() => {
+    if (isExpanded) setVisitedTabs({ [activeTab]: true });
+  }, [isExpanded]);
+
+  const handleTabClick = (id) => {
+    setActiveTab(id);
+    setVisitedTabs((v) => (v[id] ? v : { ...v, [id]: true }));
+  };
+
+  const { method, url = '' } = request || {};
+  // Main-request entries use `status`; scripted entries use `statusCode`.
+  const { status, statusCode, statusText } = response || {};
+  const numericCode = typeof statusCode === 'number'
+    ? statusCode
+    : typeof status === 'number'
+      ? status
+      : null;
+  const code = numericCode != null
+    ? numericCode
+    : (statusText || (error ? 'Error' : undefined));
+  const showNetworkLogs = response?.timeline && response.timeline.length > 0;
+  const badge = getBadge({ source, isOauth2 });
+
+  const isMainOrOauth = !source || source === 'main' || isOauth2;
+  const scopeType = scope?.type || (isMainOrOauth ? null : 'request');
+  const requestExt = collection?.format === 'yml' ? '.yml' : '.bru';
+  const scopeFile = scope?.sourceFile
+    || (scopeType === 'request' ? (item?.filename || (item?.name ? `${item.name}${requestExt}` : null)) : null);
+  const sourceFile = isMainOrOauth ? null : scopeFile;
+
+  const folderForScope = scopeType === 'folder'
+    ? findFolderByScopeFile(collection, scope?.sourceFile)
+    : null;
+  const navTarget = (() => {
+    if (!collection?.uid) return null;
+    if (scopeType === 'collection') return { kind: 'collection' };
+    if (scopeType === 'folder' && folderForScope?.uid) return { kind: 'folder', uid: folderForScope.uid };
+    if (scopeType === 'request' && item?.uid) return { kind: 'request', uid: item.uid };
+    return null;
+  })();
+  const canNavigate = !!navTarget;
+  const handleNavigate = (ev) => {
+    ev?.preventDefault?.();
+    ev?.stopPropagation?.();
+    if (!navTarget) return;
+    // Collection settings expect tab 'tests' (plural); folder settings expect 'test' (singular).
+    const isTestsPhase = phase === 'tests';
+    const scriptPaneTab = phase || 'pre-request';
+    if (navTarget.kind === 'collection') {
+      dispatch(addTab({ uid: collection.uid, collectionUid: collection.uid, type: 'collection-settings' }));
+      if (isTestsPhase) {
+        dispatch(updateSettingsSelectedTab({ collectionUid: collection.uid, tab: 'tests' }));
+      } else {
+        dispatch(updateSettingsSelectedTab({ collectionUid: collection.uid, tab: 'script' }));
+        dispatch(updateScriptPaneTab({ uid: collection.uid, scriptPaneTab }));
+      }
+    } else if (navTarget.kind === 'folder') {
+      dispatch(addTab({ uid: navTarget.uid, collectionUid: collection.uid, type: 'folder-settings' }));
+      if (isTestsPhase) {
+        dispatch(updatedFolderSettingsSelectedTab({ collectionUid: collection.uid, folderUid: navTarget.uid, tab: 'test' }));
+      } else {
+        dispatch(updatedFolderSettingsSelectedTab({ collectionUid: collection.uid, folderUid: navTarget.uid, tab: 'script' }));
+        dispatch(updateScriptPaneTab({ uid: navTarget.uid, scriptPaneTab }));
+      }
+    } else if (navTarget.kind === 'request') {
+      dispatch(addTab({ uid: navTarget.uid, collectionUid: collection.uid, type: 'request' }));
+      if (isTestsPhase) {
+        dispatch(updateRequestPaneTab({ uid: navTarget.uid, requestPaneTab: 'tests' }));
+      } else {
+        dispatch(updateRequestPaneTab({ uid: navTarget.uid, requestPaneTab: 'script' }));
+        dispatch(updateScriptPaneTab({ uid: navTarget.uid, scriptPaneTab }));
+      }
+    }
+  };
+
+  const tabs = [
+    { id: 'request', label: 'Request' },
+    { id: 'response', label: 'Response' },
+    ...(showNetworkLogs ? [{ id: 'network', label: 'Network' }] : [])
+  ];
 
   return (
-    <div className={`border-b-2 ${isOauth2 ? 'border-indigo-700/50' : 'border-amber-700/50'} py-2`}>
-      <div className="oauth-request-item-header relative cursor-pointer" onClick={toggleCollapse}>
-        <div className="flex justify-between items-center min-w-0">
-          <div className="flex items-center space-x-2 min-w-0">
-            <Status statusCode={responseStatus || responseStatusCode} statusText={responseStatusText} />
+    <StyledWrapper>
+      <div className={`tl-row-wrap ${isOauth2 ? 'tl-row-wrap--oauth2' : ''}`} data-testid="timeline-entry">
+        <div
+          className={`tl-row ${isExpanded ? 'is-expanded' : ''}`}
+          role="button"
+          tabIndex={0}
+          aria-expanded={isExpanded}
+          onClick={toggleExpand}
+          onKeyDown={handleRowKeyDown}
+          data-testid="timeline-item-header"
+        >
+          <div className="tl-col-chev">
+            {isExpanded ? <IconChevronDown size={14} strokeWidth={2} /> : <IconChevronRight size={14} strokeWidth={2} />}
+          </div>
+          <div className="tl-col-status">
+            <Status statusCode={code} />
+          </div>
+          <div className="tl-col-method">
             <Method method={method} />
-            <Status statusCode={status || statusCode} statusText={statusText} />
-            {isOauth2 ? <pre className="opacity-50">[oauth2.0]</pre> : null}
-            {!hideTimestamp && (
-              <>
-                <pre className="opacity-70">[{new Date(timestamp).toISOString()}]</pre>
-                <span className="text-gray-400 flex-shrink-0 overflow-hidden text-ellipsis whitespace-nowrap">
-                  <RelativeTime timestamp={timestamp} />
-                </span>
-              </>
-            )}
           </div>
+          <div className="tl-col-url" title={url} data-testid="timeline-url">{url}</div>
+          <div className="tl-col-badge">
+            <span className={badge.badgeClass} data-testid={`timeline-badge-${badge.kind}`}>{badge.badgeLabel}</span>
+          </div>
+          {!hideTimestamp && (
+            <div className="tl-col-time">
+              <RelativeTime timestamp={timestamp} />
+            </div>
+          )}
         </div>
-        <div className="truncate mt-1">{url}</div>
+
+        {isExpanded && (
+          <div className="tl-detail" data-testid="timeline-detail">
+            <div className="tl-header">
+              <div className="tl-header-url" title={`${method || ''} ${url}`}>
+                <span className="tl-header-url-method">{method}</span>
+                <span className="tl-header-url-text">{url}</span>
+              </div>
+              {sourceFile && (
+                <a
+                  className={`tl-header-src${canNavigate ? '' : ' is-disabled'}`}
+                  href="#"
+                  title={canNavigate ? `Open ${sourceFile}` : sourceFile}
+                  onClick={canNavigate ? handleNavigate : (ev) => ev.preventDefault()}
+                  data-testid="timeline-source-link"
+                >
+                  <span className="tl-header-src-file" data-testid="timeline-source-file">{sourceFile}</span>
+                  <span className="tl-header-src-icon">↗</span>
+                </a>
+              )}
+            </div>
+
+            <div className="tl-tabs">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  className={`tl-tab ${activeTab === tab.id ? 'is-active' : ''}`}
+                  onClick={() => handleTabClick(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="tl-panel">
+              {visitedTabs.request && (
+                <div style={{ display: activeTab === 'request' ? 'block' : 'none' }}>
+                  <Request request={request} item={item} collection={collection} />
+                </div>
+              )}
+              {visitedTabs.response && (
+                <div style={{ display: activeTab === 'response' ? 'block' : 'none' }}>
+                  <Response response={response} item={item} collection={collection} />
+                </div>
+              )}
+              {showNetworkLogs && visitedTabs.network && (
+                <div style={{ display: activeTab === 'network' ? 'block' : 'none' }}>
+                  <Network logs={response?.timeline} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
-      {isCollapsed && (
-        <div className="overflow-hidden">
-          {/* Tabs */}
-          <div className="tabs-switcher flex mb-4">
-            <button
-              className={`mr-4 ${activeTab === 'request' ? 'active' : 'text-gray-400'}`}
-              onClick={() => setActiveTab('request')}
-            >
-              Request
-            </button>
-            <button
-              className={`mr-4 ${activeTab === 'response' ? 'active' : 'text-gray-400'}`}
-              onClick={() => setActiveTab('response')}
-            >
-              Response
-            </button>
-            {showNetworkLogs && (
-              <button
-                className={`${activeTab === 'networkLogs' ? 'active' : 'text-gray-400'}`}
-                onClick={() => setActiveTab('networkLogs')}
-              >
-                Network Logs
-              </button>
-            )}
-          </div>
-
-          {/* Tab Content */}
-          <div className="tab-content break-all">
-            {/* Request Tab */}
-            {activeTab === 'request' && (
-              <Request request={request} item={item} collection={collection} />
-            )}
-
-            {/* Response Tab */}
-            {activeTab === 'response' && (
-              <Response response={response} item={item} collection={collection} />
-            )}
-
-            {/* Network Logs Tab */}
-            {activeTab === 'networkLogs' && showNetworkLogs && (
-              <Network logs={response?.timeline} />
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+    </StyledWrapper>
   );
 };
 

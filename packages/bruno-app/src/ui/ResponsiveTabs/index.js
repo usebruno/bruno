@@ -1,17 +1,19 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import classnames from 'classnames';
-import Dropdown from 'components/Dropdown';
-import { IconChevronDown } from '@tabler/icons';
+import MenuDropdown from 'ui/MenuDropdown';
+import { IconChevronsRight } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const DROPDOWN_WIDTH = 60;
 const CALCULATION_DELAY_DEFAULT = 20;
 const CALCULATION_DELAY_EXTENDED = 150;
+const GAP_BETWEEN_LEFT_AND_RIGHT_CONTENT = 80;
+const EXPANDABLE_HYSTERESIS = 20; // Buffer to prevent flickering at boundary
 
-// Compare two tab arrays by their keys
-const areTabArraysEqual = (a, b) => {
-  if (a.length !== b.length) return false;
-  return a.every((tab, index) => tab.key === b[index].key);
+// Compare two key arrays for equality
+const areKeysEqual = (prevKeys, newKeys) => {
+  if (prevKeys.length !== newKeys.length) return false;
+  return prevKeys.every((key, i) => key === newKeys[i]);
 };
 
 const ResponsiveTabs = ({
@@ -20,19 +22,22 @@ const ResponsiveTabs = ({
   onTabSelect,
   rightContent,
   rightContentRef,
-  delayedTabs = []
+  delayedTabs = [],
+  rightContentExpandedWidth, // Optional: width of the expandable element when expanded
+  expandableElementIndex = -1 // Optional: index of the expandable child element (-1 means last child)
 }) => {
-  const [visibleTabs, setVisibleTabs] = useState([]);
-  const [overflowTabs, setOverflowTabs] = useState([]);
+  const [visibleTabKeys, setVisibleTabKeys] = useState([]);
+  const [overflowTabKeys, setOverflowTabKeys] = useState([]);
+  const [rightSideExpandable, setRightSideExpandable] = useState(false);
 
   const tabsContainerRef = useRef(null);
   const tabRefsMap = useRef({});
-  const dropdownTippyRef = useRef(null);
+  const menuDropdownRef = useRef(null);
 
   const handleTabSelect = useCallback(
     (tabKey) => {
       onTabSelect(tabKey);
-      dropdownTippyRef.current?.hide();
+      menuDropdownRef.current?.hide();
     },
     [onTabSelect]
   );
@@ -74,10 +79,59 @@ const ResponsiveTabs = ({
       }
     }
 
-    // Only update state if arrays actually changed (prevents infinite loops)
-    setVisibleTabs((prev) => (areTabArraysEqual(prev, visible) ? prev : visible));
-    setOverflowTabs((prev) => (areTabArraysEqual(prev, overflow) ? prev : overflow));
-  }, [tabs, activeTab, rightContentRef]);
+    // Extract keys and update state only if changed (prevents infinite loops)
+    const visibleKeys = visible.map((t) => t.key);
+    const overflowKeys = overflow.map((t) => t.key);
+
+    setVisibleTabKeys((prev) => {
+      return areKeysEqual(prev, visibleKeys) ? prev : visibleKeys;
+    });
+    setOverflowTabKeys((prev) => {
+      return areKeysEqual(prev, overflowKeys) ? prev : overflowKeys;
+    });
+
+    // Only calculate expandibility if rightContentExpandedWidth is provided
+    if (rightContentExpandedWidth && rightContentRef?.current) {
+      const leftContentWidth = currentWidth + (overflow.length ? DROPDOWN_WIDTH : 0);
+
+      // Calculate total expanded width by summing children widths
+      // and replacing the expandable element's current width with its expanded width
+      const children = rightContentRef.current.children;
+      const childrenCount = children.length;
+
+      if (childrenCount > 0) {
+        // Resolve the expandable element index (-1 means last child)
+        const targetIndex = expandableElementIndex < 0 ? childrenCount + expandableElementIndex : expandableElementIndex;
+        const validTargetIndex = Math.max(0, Math.min(targetIndex, childrenCount - 1));
+
+        let totalExpandedWidth = 0;
+        for (let i = 0; i < childrenCount; i++) {
+          if (i === validTargetIndex) {
+            // Use the expanded width for the expandable element
+            totalExpandedWidth += rightContentExpandedWidth;
+          } else {
+            // Use the current width for other elements
+            totalExpandedWidth += children[i].offsetWidth;
+          }
+        }
+
+        const availableSpace = containerWidth - leftContentWidth - GAP_BETWEEN_LEFT_AND_RIGHT_CONTENT;
+
+        // Use hysteresis to prevent flickering at boundary
+        // When expanded: only collapse if significantly less space available
+        // When collapsed: expand when there's enough space
+        setRightSideExpandable((prev) => {
+          if (prev) {
+            // Currently expanded - only collapse if space drops below threshold minus hysteresis
+            return availableSpace > totalExpandedWidth - EXPANDABLE_HYSTERESIS;
+          } else {
+            // Currently collapsed - expand if there's enough space
+            return availableSpace > totalExpandedWidth;
+          }
+        });
+      }
+    }
+  }, [tabs, activeTab, rightContentRef, rightContentExpandedWidth, expandableElementIndex]);
 
   // Recalculate on tab/activeTab changes
   useEffect(() => {
@@ -89,7 +143,7 @@ const ResponsiveTabs = ({
     return () => clearTimeout(timeoutId);
   }, [calculateTabVisibility, activeTab, delayedTabs]);
 
-  // Recalculate on container resize only (not rightContent to avoid feedback loops)
+  // Recalculate on container resize only
   useEffect(() => {
     let frameId = null;
 
@@ -138,31 +192,15 @@ const ResponsiveTabs = ({
     }
   }, []);
 
-  const renderTab = (tab, isInDropdown = false) => {
+  const renderTab = (tab) => {
     const isActive = tab.key === activeTab;
-
-    if (isInDropdown) {
-      return (
-        <div
-          key={tab.key}
-          role="tab"
-          aria-selected={isActive}
-          className={classnames('dropdown-item', { active: isActive })}
-          onClick={() => handleTabSelect(tab.key)}
-        >
-          <span className="flex items-center gap-1">
-            {tab.label}
-            {tab.indicator}
-          </span>
-        </div>
-      );
-    }
 
     return (
       <div
         key={tab.key}
         role="tab"
         aria-selected={isActive}
+        data-testid={`responsive-tab-${tab.key}`}
         className={classnames('tab select-none', tab.key, { active: isActive })}
         onClick={() => handleTabSelect(tab.key)}
       >
@@ -171,6 +209,30 @@ const ResponsiveTabs = ({
       </div>
     );
   };
+
+  const rightContentClassName = classnames('flex justify-end items-center', {
+    expandable: rightSideExpandable
+  });
+
+  // Map stored keys to fresh tab objects from props (ensures indicators stay up-to-date)
+  const visibleTabs = visibleTabKeys.map((key) => tabs.find((t) => t.key === key)).filter(Boolean);
+  const overflowTabs = overflowTabKeys.map((key) => tabs.find((t) => t.key === key)).filter(Boolean);
+
+  // Convert overflow tabs to MenuDropdown items format
+  const overflowMenuItems = useMemo(() => {
+    return overflowTabs.map((tab) => ({
+      id: tab.key,
+      label: (
+        <span className="flex items-center gap-1">
+          {tab.label}
+          {tab.indicator}
+        </span>
+      ),
+      ariaLabel: typeof tab.label === 'string' ? tab.label : tab.key,
+      onClick: () => handleTabSelect(tab.key),
+      className: classnames({ active: tab.key === activeTab })
+    }));
+  }, [overflowTabs, activeTab, handleTabSelect]);
 
   return (
     <StyledWrapper ref={tabsContainerRef} role="tablist" className="tabs flex items-center justify-between gap-6">
@@ -194,25 +256,21 @@ const ResponsiveTabs = ({
 
         {/* Overflow dropdown */}
         {overflowTabs.length > 0 && (
-          <Dropdown
+          <MenuDropdown
+            ref={menuDropdownRef}
+            items={overflowMenuItems}
             placement="bottom-start"
-            onCreate={(instance) => (dropdownTippyRef.current = instance)}
-            icon={(
-              <div className="more-tabs select-none flex items-center cursor-pointer gap-1">
-                <span>More</span>
-                <IconChevronDown size={14} strokeWidth={2} />
-              </div>
-            )}
+            selectedItemId={activeTab}
           >
-            <div style={{ minWidth: '150px' }}>
-              {overflowTabs.map((tab) => renderTab(tab, true))}
+            <div className="more-tabs select-none flex items-center cursor-pointer gap-1">
+              <IconChevronsRight size={18} strokeWidth={2} />
             </div>
-          </Dropdown>
+          </MenuDropdown>
         )}
       </div>
 
       {rightContent && (
-        <div className="flex justify-end items-center">
+        <div className={rightContentClassName}>
           {rightContent}
         </div>
       )}

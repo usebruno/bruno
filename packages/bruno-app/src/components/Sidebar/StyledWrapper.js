@@ -125,15 +125,6 @@ const Wrapper = styled.div`
       border-left: solid 1px ${(props) => props.theme.sidebar.dragbar.activeBorder};
     }
   }
-
-  .second-tab-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    color: ${(props) => props.theme.sidebar.muted};
-  }
 `;
 
 export default Wrapper;

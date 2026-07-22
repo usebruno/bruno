@@ -53,7 +53,6 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    color: ${(props) => props.theme.workspace.accent};
     flex-shrink: 0;
   }
 
@@ -85,6 +84,28 @@ const StyledWrapper = styled.div`
     text-overflow: ellipsis;
   }
 
+  .collection-remote {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.colors.text.muted};
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    svg {
+      flex-shrink: 0;
+      opacity: 0.85;
+    }
+  }
+
   .collection-menu {
     flex-shrink: 0;
     color: ${(props) => props.theme.colors.text.muted};
@@ -97,25 +118,6 @@ const StyledWrapper = styled.div`
 
   .collection-dropdown {
     min-width: 120px;
-  }
-
-  .dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    cursor: pointer;
-    transition: background 0.15s ease;
-    color: ${(props) => props.theme.text};
-    font-size: ${(props) => props.theme.font.size.sm};
-
-    &:hover {
-      background: ${(props) => props.theme.listItem.hoverBg};
-    }
-
-    &.dropdown-item-danger {
-      color: ${(props) => props.theme.colors.text.danger};
-    }
   }
 `;
 

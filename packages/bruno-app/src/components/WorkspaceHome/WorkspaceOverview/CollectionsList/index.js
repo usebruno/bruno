@@ -1,16 +1,30 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconBox, IconTrash, IconEdit, IconShare, IconDots } from '@tabler/icons';
-import { removeCollectionFromWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
+import {
+  IconBox,
+  IconTrash,
+  IconEdit,
+  IconShare,
+  IconDots,
+  IconX,
+  IconFolder,
+  IconBrandGit,
+  IconUnlink,
+  IconCopy
+} from '@tabler/icons';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { hideHomePage } from 'providers/ReduxStore/slices/app';
-import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { getRevealInFolderLabel } from 'utils/common/platform';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
-import Modal from 'components/Modal';
 import RenameCollection from 'components/Sidebar/Collections/Collection/RenameCollection';
+import RemoveCollection from 'components/Sidebar/Collections/Collection/RemoveCollection';
+import DeleteCollection from 'components/Sidebar/Collections/Collection/DeleteCollection';
 import ShareCollection from 'components/ShareCollection';
 import Dropdown from 'components/Dropdown';
+import StatusBadge from 'ui/StatusBadge';
+import ConnectGitRemote from './ConnectGitRemote';
+import RemoveGitRemote from './RemoveGitRemote';
 import StyledWrapper from './StyledWrapper';
 
 const CollectionsList = ({ workspace }) => {
@@ -18,17 +32,30 @@ const CollectionsList = ({ workspace }) => {
   const { collections } = useSelector((state) => state.collections);
   const dropdownRefs = useRef({});
 
-  const [collectionToRemove, setCollectionToRemove] = useState(null);
   const [renameCollectionModalOpen, setRenameCollectionModalOpen] = useState(false);
+  const [removeCollectionModalOpen, setRemoveCollectionModalOpen] = useState(false);
+  const [deleteCollectionModalOpen, setDeleteCollectionModalOpen] = useState(false);
   const [shareCollectionModalOpen, setShareCollectionModalOpen] = useState(false);
   const [selectedCollectionUid, setSelectedCollectionUid] = useState(null);
+  const [gitTarget, setGitTarget] = useState(null);
+  const [showConnectGitModal, setShowConnectGitModal] = useState(false);
+  const [showRemoveGitModal, setShowRemoveGitModal] = useState(false);
+
+  const isDefaultWorkspace = workspace?.type === 'default';
 
   const workspaceCollections = useMemo(() => {
     if (!workspace.collections || workspace.collections.length === 0) {
       return [];
     }
 
-    return workspace.collections.map((wc) => {
+    const filteredCollections = workspace.collections.filter((wc) => {
+      if (workspace.scratchTempDirectory) {
+        return normalizePath(wc.path) !== normalizePath(workspace.scratchTempDirectory);
+      }
+      return true;
+    });
+
+    return filteredCollections.map((wc) => {
       const loadedCollection = collections.find(
         (c) => normalizePath(c.pathname) === normalizePath(wc.path)
       );
@@ -64,36 +91,7 @@ const CollectionsList = ({ workspace }) => {
         }
       };
     });
-  }, [workspace.collections, collections]);
-
-  const isInternalCollection = (collection) => {
-    if (!workspace.pathname || !collection.pathname) return false;
-    const workspaceCollectionsFolder = normalizePath(`${workspace.pathname}/collections`);
-    const collectionPath = normalizePath(collection.pathname);
-    return collectionPath.startsWith(workspaceCollectionsFolder);
-  };
-
-  const getCollectionWorkspaceInfo = (collection) => {
-    if (Object.prototype.hasOwnProperty.call(collection, 'isGitBacked')) {
-      return {
-        isGitBacked: collection.isGitBacked,
-        gitRemoteUrl: collection.gitRemoteUrl,
-        isLoaded: collection.isLoaded !== false,
-        isInternal: isInternalCollection(collection)
-      };
-    }
-
-    const workspaceCollection = workspace.collections?.find(
-      (wc) => normalizePath(collection.pathname) === normalizePath(wc.path)
-    );
-
-    return {
-      isGitBacked: !!workspaceCollection?.remote,
-      gitRemoteUrl: workspaceCollection?.remote,
-      isLoaded: true,
-      isInternal: isInternalCollection(collection)
-    };
-  };
+  }, [workspace.collections, workspace.scratchTempDirectory, collections]);
 
   const handleOpenCollectionClick = (collection, event) => {
     if (event.target.closest('.collection-menu')) {
@@ -116,8 +114,6 @@ const CollectionsList = ({ workspace }) => {
         brunoConfig: collection.brunoConfig
       })
     );
-
-    dispatch(hideHomePage());
 
     dispatch(
       addTab({
@@ -159,58 +155,71 @@ const CollectionsList = ({ workspace }) => {
 
   const handleRemoveCollection = (collection) => {
     dropdownRefs.current[collection.uid]?.hide();
-    setCollectionToRemove(collection);
+    if (collection.isLoaded === false) {
+      toast.error('Cannot remove collections that are not loaded');
+      return;
+    }
+    setSelectedCollectionUid(collection.uid);
+    setRemoveCollectionModalOpen(true);
   };
 
-  const confirmRemoveCollection = async () => {
-    if (!collectionToRemove) return;
+  const handleDeleteCollection = (collection) => {
+    dropdownRefs.current[collection.uid]?.hide();
+    if (collection.isLoaded === false) {
+      toast.error('Cannot delete collections that are not loaded');
+      return;
+    }
+    setSelectedCollectionUid(collection.uid);
+    setDeleteCollectionModalOpen(true);
+  };
 
+  const handleShowInFolder = (collection) => {
+    dropdownRefs.current[collection.uid]?.hide();
+    dispatch(showInFolder(collection.pathname)).catch((error) => {
+      console.error('Error opening the folder', error);
+      toast.error('Error opening the folder');
+    });
+  };
+
+  const handleConnectGit = (collection) => {
+    dropdownRefs.current[collection.uid]?.hide();
+    if (collection.isLoaded === false) {
+      toast.error('Cannot connect a Git remote to a collection that is not present locally');
+      return;
+    }
+    setGitTarget({
+      path: collection.pathname,
+      name: collection.name,
+      remoteUrl: collection.gitRemoteUrl || ''
+    });
+    setShowConnectGitModal(true);
+  };
+
+  const handleRemoveGit = (collection) => {
+    dropdownRefs.current[collection.uid]?.hide();
+    setGitTarget({
+      path: collection.pathname,
+      name: collection.name,
+      remoteUrl: collection.gitRemoteUrl || ''
+    });
+    setShowRemoveGitModal(true);
+  };
+
+  const handleCopyGitUrl = async (collection) => {
+    dropdownRefs.current[collection.uid]?.hide();
+    if (!collection.gitRemoteUrl) return;
     try {
-      const collectionInfo = getCollectionWorkspaceInfo(collectionToRemove);
-      const isDelete = collectionInfo.isInternal && !collectionInfo.isGitBacked;
-
-      await dispatch(removeCollectionFromWorkspaceAction(workspace.uid, collectionToRemove.pathname));
-
-      if (isDelete) {
-        toast.success(`Deleted "${collectionToRemove.name}" collection`);
-      } else {
-        toast.success(`Removed "${collectionToRemove.name}" from workspace`);
-      }
-
-      setCollectionToRemove(null);
-    } catch (error) {
-      console.error('Error removing collection:', error);
-      toast.error(error.message || 'Failed to remove collection from workspace');
+      await navigator.clipboard.writeText(collection.gitRemoteUrl);
+      toast.success('Git URL copied');
+    } catch (e) {
+      toast.error('Failed to copy URL');
     }
   };
 
-  const renderRemoveModal = () => {
-    if (!collectionToRemove) return null;
-
-    const collectionInfo = getCollectionWorkspaceInfo(collectionToRemove);
-    const isDelete = collectionInfo.isInternal && !collectionInfo.isGitBacked;
-
-    return (
-      <Modal
-        size="sm"
-        title={isDelete ? 'Delete Collection' : 'Remove Collection'}
-        handleCancel={() => setCollectionToRemove(null)}
-        handleConfirm={confirmRemoveCollection}
-        confirmText={isDelete ? 'Delete' : 'Remove'}
-        cancelText="Cancel"
-        style="new"
-      >
-        <p className="text-gray-600 dark:text-gray-300">
-          Are you sure you want to {isDelete ? 'delete' : 'remove'}{' '}
-          <strong>"{collectionToRemove.name}"</strong>?
-        </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
-          {isDelete
-            ? 'This will permanently delete the collection files from the workspace collections folder.'
-            : 'This will remove the collection from the workspace. The collection files will not be deleted.'}
-        </p>
-      </Modal>
-    );
+  const closeGitModals = () => {
+    setShowConnectGitModal(false);
+    setShowRemoveGitModal(false);
+    setGitTarget(null);
   };
 
   return (
@@ -220,6 +229,27 @@ const CollectionsList = ({ workspace }) => {
           collectionUid={selectedCollectionUid}
           onClose={() => {
             setRenameCollectionModalOpen(false);
+            setSelectedCollectionUid(null);
+          }}
+        />
+      )}
+
+      {removeCollectionModalOpen && selectedCollectionUid && (
+        <RemoveCollection
+          collectionUid={selectedCollectionUid}
+          onClose={() => {
+            setRemoveCollectionModalOpen(false);
+            setSelectedCollectionUid(null);
+          }}
+        />
+      )}
+
+      {deleteCollectionModalOpen && selectedCollectionUid && (
+        <DeleteCollection
+          collectionUid={selectedCollectionUid}
+          workspaceUid={workspace.uid}
+          onClose={() => {
+            setDeleteCollectionModalOpen(false);
             setSelectedCollectionUid(null);
           }}
         />
@@ -235,16 +265,30 @@ const CollectionsList = ({ workspace }) => {
         />
       )}
 
-      {renderRemoveModal()}
+      {showConnectGitModal && gitTarget && (
+        <ConnectGitRemote
+          collectionPath={gitTarget.path}
+          collectionName={gitTarget.name}
+          initialUrl={gitTarget.remoteUrl}
+          onClose={closeGitModals}
+        />
+      )}
+
+      {showRemoveGitModal && gitTarget && (
+        <RemoveGitRemote
+          collectionPath={gitTarget.path}
+          collectionName={gitTarget.name}
+          remoteUrl={gitTarget.remoteUrl}
+          onClose={closeGitModals}
+        />
+      )}
 
       <div className="collections-list">
         {workspaceCollections.length === 0 ? (
           <div className="empty-state">
             <IconBox size={32} strokeWidth={1.5} className="empty-icon" />
             <h3 className="empty-title">No collections yet</h3>
-            <p className="empty-description">
-              Create your first collection or open an existing one to get started.
-            </p>
+            <p className="empty-description">Create your first collection or open an existing one to get started.</p>
           </div>
         ) : (
           workspaceCollections.map((collection, index) => (
@@ -259,8 +303,26 @@ const CollectionsList = ({ workspace }) => {
                     <IconBox size={18} strokeWidth={1.5} />
                   </div>
                   <div className="collection-name">{collection.name}</div>
+                  {!isDefaultWorkspace && collection.isGitBacked && (
+                    <StatusBadge
+                      status="info"
+                      size="xs"
+                      leftSection={<IconBrandGit size={11} strokeWidth={2} />}
+                    >
+                      Git
+                    </StatusBadge>
+                  )}
+                  {!isDefaultWorkspace && collection.isLoaded === false && (
+                    <StatusBadge status="warning" size="xs">Not cloned</StatusBadge>
+                  )}
                 </div>
                 <div className="collection-path">{collection.pathname}</div>
+                {!isDefaultWorkspace && collection.isGitBacked && collection.gitRemoteUrl && (
+                  <div className="collection-remote" title={collection.gitRemoteUrl}>
+                    <IconBrandGit size={12} strokeWidth={1.75} />
+                    <span>{collection.gitRemoteUrl}</span>
+                  </div>
+                )}
               </div>
               <div className="collection-menu">
                 <Dropdown
@@ -291,14 +353,74 @@ const CollectionsList = ({ workspace }) => {
                       <span>Share</span>
                     </div>
                     <div
-                      className="dropdown-item dropdown-item-danger"
+                      className="dropdown-item"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShowInFolder(collection);
+                      }}
+                    >
+                      <IconFolder size={16} strokeWidth={1.5} />
+                      <span>{getRevealInFolderLabel()}</span>
+                    </div>
+                    {!isDefaultWorkspace && (
+                      <>
+                        {collection.isGitBacked && (
+                          <div
+                            className="dropdown-item"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyGitUrl(collection);
+                            }}
+                          >
+                            <IconCopy size={16} strokeWidth={1.5} />
+                            <span>Copy Git URL</span>
+                          </div>
+                        )}
+                        {!collection.isGitBacked && collection.isLoaded !== false && (
+                          <div
+                            className="dropdown-item"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleConnectGit(collection);
+                            }}
+                          >
+                            <IconBrandGit size={16} strokeWidth={1.5} />
+                            <span>Connect to Git</span>
+                          </div>
+                        )}
+                        {collection.isGitBacked && (
+                          <div
+                            className="dropdown-item"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveGit(collection);
+                            }}
+                          >
+                            <IconUnlink size={16} strokeWidth={1.5} />
+                            <span>Remove Git Remote</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    <div
+                      className="dropdown-item"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRemoveCollection(collection);
                       }}
                     >
-                      <IconTrash size={16} strokeWidth={1.5} />
+                      <IconX size={16} strokeWidth={1.5} />
                       <span>Remove</span>
+                    </div>
+                    <div
+                      className="dropdown-item delete-item"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteCollection(collection);
+                      }}
+                    >
+                      <IconTrash size={16} strokeWidth={1.5} />
+                      <span>Delete</span>
                     </div>
                   </div>
                 </Dropdown>

@@ -176,7 +176,8 @@ test.describe.serial('Edit Response Examples', () => {
       await page.getByTestId('response-example-edit-btn').click();
       await page.getByTestId('response-example-name-input').clear();
       await page.getByTestId('response-example-name-input').fill('Keyboard Shortcut Test');
-      await page.keyboard.press('Meta+s');
+      const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+      await page.keyboard.press(saveShortcut);
       await expect(page.getByTestId('response-example-title')).toHaveText('edit-example / Keyboard Shortcut Test');
     });
   });

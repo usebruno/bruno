@@ -8,11 +8,13 @@ const CollectionSearch = ({ searchText, setSearchText }) => {
       <input
         type="text"
         name="search"
+        data-testid="sidebar-search-input"
         placeholder="Search requests..."
         id="search"
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
+        autoFocus
         spellCheck="false"
         value={searchText}
         onChange={(e) => setSearchText(e.target.value.toLowerCase())}

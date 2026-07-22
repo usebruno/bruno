@@ -1,24 +1,43 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
+import find from 'lodash/find';
 import { updateCollectionDocs, deleteCollectionDraft } from 'providers/ReduxStore/slices/collections';
+import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
-import { useState } from 'react';
+import { useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
+import AIAssist from 'components/AIAssist';
+import { buildAiVariablesPayload, buildDocsContextFromCollection } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import { IconEdit, IconX, IconFileText } from '@tabler/icons';
+import Button from 'ui/Button/index';
+import ActionIcon from 'ui/ActionIcon/index';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
-  const [isEditing, setIsEditing] = useState(false);
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const isEditing = focusedTab?.docsEditing || false;
   const docs = collection.draft?.root ? get(collection, 'draft.root.docs', '') : get(collection, 'root.docs', '');
   const preferences = useSelector((state) => state.app.preferences);
+  const docsContext = useMemo(() => buildDocsContextFromCollection(collection), [collection]);
+  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, null), [collection]);
+
+  // StyledWrapper has overflow-y: auto — use null selector.
+  // Preview mode: hook tracks wrapper scroll. Edit mode: CodeEditor's onScroll/initialScroll.
+  const wrapperRef = useRef(null);
+  const [scroll, setScroll] = usePersistedState({ key: `collection-docs-scroll-${collection.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, onChange: setScroll, enabled: !isEditing, initialValue: scroll });
 
   const toggleViewMode = () => {
-    setIsEditing((prev) => !prev);
+    dispatch(updateDocsEditing({ uid: activeTabUid, docsEditing: !isEditing }));
   };
 
   const onEdit = (value) => {
@@ -46,7 +65,7 @@ const Docs = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="h-full w-full relative flex flex-col">
+    <StyledWrapper className="h-full w-full relative flex flex-col" ref={wrapperRef}>
       <div className="flex flex-row w-full justify-between items-center mb-4">
         <div className="text-lg font-medium flex items-center gap-2">
           <IconFileText size={20} strokeWidth={1.5} />
@@ -55,33 +74,38 @@ const Docs = ({ collection }) => {
         <div className="flex flex-row gap-2 items-center justify-center">
           {isEditing ? (
             <>
-              <div className="editing-mode" role="tab" onClick={handleDiscardChanges}>
-                <IconX className="cursor-pointer" size={20} strokeWidth={1.5} />
-              </div>
-              <button type="submit" className="submit btn btn-sm btn-secondary" onClick={onSave}>
+              <Button type="button" color="secondary" onClick={handleDiscardChanges}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={onSave}>
                 Save
-              </button>
+              </Button>
             </>
           ) : (
-            <div className="editing-mode" role="tab" onClick={toggleViewMode}>
-              <IconEdit className="cursor-pointer" size={20} strokeWidth={1.5} />
-            </div>
+            <ActionIcon className="editing-mode" onClick={toggleViewMode}>
+              <IconEdit className="cursor-pointer" size={16} strokeWidth={1.5} />
+            </ActionIcon>
           )}
         </div>
       </div>
       {isEditing ? (
-        <CodeEditor
-          collection={collection}
-          theme={displayedTheme}
-          value={docs}
-          onEdit={onEdit}
-          onSave={onSave}
-          mode="application/text"
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
-        />
+        <div className="relative flex-1 min-h-0">
+          <CodeEditor
+            collection={collection}
+            theme={displayedTheme}
+            value={docs}
+            onEdit={onEdit}
+            onSave={onSave}
+            mode="application/text"
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+            initialScroll={scroll}
+            onScroll={setScroll}
+          />
+          <AIAssist scriptType="docs" currentScript={docs || ''} docsContext={docsContext} variables={aiVariables} onApply={onEdit} />
+        </div>
       ) : (
-        <div className="h-full overflow-auto pl-1">
+        <div className="pl-1">
           <div className="h-[1px] min-h-[500px]">
             {
               docs?.length > 0

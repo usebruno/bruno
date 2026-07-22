@@ -1,0 +1,74 @@
+meta {
+  name: node-os
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  const os = require('node:os');
+
+  test("os.platform and os.arch", function() {
+    expect(['darwin', 'linux', 'win32']).to.include(os.platform());
+    expect(['x64', 'arm64', 'arm', 'ia32']).to.include(os.arch());
+  });
+
+  test("os.type and os.release", function() {
+    expect(os.type()).to.be.a('string');
+    expect(os.release()).to.be.a('string');
+  });
+
+  test("os.hostname, os.homedir, os.tmpdir", function() {
+    expect(os.hostname()).to.be.a('string');
+    expect(os.homedir()).to.be.a('string').with.length.greaterThan(0);
+    expect(os.tmpdir()).to.be.a('string').with.length.greaterThan(0);
+  });
+
+  test("os.cpus", function() {
+    const cpus = os.cpus();
+    expect(cpus).to.be.an('array').with.length.greaterThan(0);
+    expect(cpus[0]).to.have.property('model');
+  });
+
+  test("os.totalmem and os.freemem", function() {
+    expect(os.totalmem()).to.be.a('number').greaterThan(0);
+    expect(os.freemem()).to.be.a('number').greaterThan(0);
+  });
+
+  test("os.uptime", function() {
+    expect(os.uptime()).to.be.a('number').greaterThan(0);
+  });
+
+  test("os.loadavg", function() {
+    const load = os.loadavg();
+    expect(load).to.be.an('array').with.lengthOf(3);
+  });
+
+  test("os.networkInterfaces", function() {
+    expect(os.networkInterfaces()).to.be.an('object');
+  });
+
+  test("os.userInfo", function() {
+    const info = os.userInfo();
+    expect(info.username).to.be.a('string');
+    expect(info.homedir).to.be.a('string');
+  });
+
+  test("os.EOL and os.constants", function() {
+    expect(['\n', '\r\n']).to.include(os.EOL);
+    expect(os.constants).to.have.property('signals');
+  });
+}

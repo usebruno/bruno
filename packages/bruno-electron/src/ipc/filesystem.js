@@ -1,5 +1,6 @@
-const { ipcMain } = require('electron');
+const { ipcMain, dialog } = require('electron');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
 const {
   browseDirectory,
@@ -8,6 +9,7 @@ const {
   isFile,
   isDirectory
 } = require('../utils/filesystem');
+const { findUniqueFolderName } = require('../utils/collection-import');
 
 const registerFilesystemIpc = (mainWindow) => {
   ipcMain.handle('renderer:browse-directory', async (event, pathname, request) => {
@@ -24,6 +26,15 @@ const registerFilesystemIpc = (mainWindow) => {
     } catch (error) {
       throw error;
     }
+  });
+
+  ipcMain.handle('renderer:browse-pac-file', async () => {
+    const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [{ name: 'PAC Files', extensions: ['pac', 'js'] }]
+    });
+    if (!filePaths || filePaths.length === 0) return null;
+    return pathToFileURL(filePaths[0]).href;
   });
 
   ipcMain.handle('renderer:exists-sync', async (_, filePath) => {
@@ -46,6 +57,14 @@ const registerFilesystemIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:is-directory', async (_, pathname) => {
     return isDirectory(pathname);
+  });
+
+  ipcMain.handle('renderer:find-unique-folder-name', async (_, baseName, location) => {
+    try {
+      return await findUniqueFolderName(baseName, location);
+    } catch (error) {
+      throw error;
+    }
   });
 };
 

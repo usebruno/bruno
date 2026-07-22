@@ -21,20 +21,32 @@ const Wrapper = styled.div`
       padding: 6px 10px;
 
       &:nth-child(1) {
-        width: 30%;
-      }
-
-      &:nth-child(2) {
-        width: 45%;
-      }
-
-      &:nth-child(3) {
         width: 25%;
       }
 
+      &:nth-child(2) {
+        width: 20%;
+      }
+
+      &:nth-child(3) {
+        width: 10%;
+      }
+
       &:nth-child(4) {
+        width: 35%;
+      }
+
+      &:nth-child(5) {
         width: 70px;
       }
+    }
+
+
+    thead td div {
+      max-width: 100px;
+      text-overflow: ellipsis; 
+      overflow: hidden;   
+      white-space: nowrap;
     }
   }
 
@@ -59,6 +71,7 @@ const Wrapper = styled.div`
     cursor: pointer;
     position: relative;
     top: 1px;
+    accent-color: ${(props) => props.theme.primary.solid};
   }
 `;
 

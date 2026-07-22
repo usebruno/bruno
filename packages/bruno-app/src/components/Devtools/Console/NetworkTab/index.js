@@ -1,129 +1,49 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
+import { usePersistedState } from 'hooks/usePersistedState';
 import { useSelector, useDispatch } from 'react-redux';
 import {
-  IconFilter,
-  IconChevronDown,
-  IconNetwork
+  IconNetwork,
+  IconArrowUp,
+  IconArrowDown
 } from '@tabler/icons';
 import {
-  updateNetworkFilter,
-  toggleAllNetworkFilters,
   setSelectedRequest
 } from 'providers/ReduxStore/slices/logs';
+import { useResizableColumns } from 'hooks/useResizableColumns';
 import StyledWrapper from './StyledWrapper';
+import { sortRequests } from './utils';
+
+const COLUMNS = [
+  { key: 'method', label: 'Method', width: 80, align: 'left' },
+  { key: 'status', label: 'Status', width: 70, align: 'left' },
+  { key: 'domain', label: 'Domain', width: 180, align: 'left' },
+  { key: 'path', label: 'Path', width: 300, align: 'left' },
+  { key: 'time', label: 'Time', width: 110, align: 'left' },
+  { key: 'duration', label: 'Duration', width: 100, align: 'right' },
+  { key: 'size', label: 'Size', width: 80, align: 'right' }
+];
 
 const MethodBadge = ({ method }) => {
-  const getMethodColor = (method) => {
-    switch (method?.toUpperCase()) {
-      case 'GET': return '#10b981';
-      case 'POST': return '#8b5cf6';
-      case 'PUT': return '#f59e0b';
-      case 'DELETE': return '#ef4444';
-      case 'PATCH': return '#06b6d4';
-      case 'HEAD': return '#6b7280';
-      case 'OPTIONS': return '#84cc16';
-      default: return '#6b7280';
-    }
-  };
+  const methodLower = method?.toLowerCase() || 'get';
 
   return (
-    <span
-      className="method-badge"
-      style={{ backgroundColor: getMethodColor(method) }}
-    >
+    <span className={`method-badge ${methodLower}`}>
       {method?.toUpperCase() || 'GET'}
     </span>
   );
 };
 
 const StatusBadge = ({ status, statusCode }) => {
-  const getStatusColor = (code) => {
-    if (code >= 200 && code < 300) return '#10b981';
-    if (code >= 300 && code < 400) return '#f59e0b';
-    if (code >= 400 && code < 500) return '#ef4444';
-    if (code >= 500) return '#dc2626';
-    return '#6b7280';
-  };
-
   const displayStatus = statusCode || status;
 
   return (
-    <span
-      className="status-badge"
-      style={{ color: getStatusColor(statusCode) }}
-    >
+    <span className="status-badge">
       {displayStatus}
     </span>
   );
 };
 
-const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggleAll }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  const allFiltersEnabled = Object.values(filters).every((f) => f);
-  const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  return (
-    <div className="filter-dropdown" ref={dropdownRef}>
-      <button
-        className="filter-dropdown-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        title="Filter requests by method"
-      >
-        <IconFilter size={16} strokeWidth={1.5} />
-        <span className="filter-summary">
-          {activeFilters.length === Object.keys(filters).length ? 'All' : `${activeFilters.length}/${Object.keys(filters).length}`}
-        </span>
-        <IconChevronDown size={14} strokeWidth={1.5} />
-      </button>
-
-      {isOpen && (
-        <div className="filter-dropdown-menu right">
-          <div className="filter-dropdown-header">
-            <span>Filter by Method</span>
-            <button
-              className="filter-toggle-all"
-              onClick={() => onToggleAll(!allFiltersEnabled)}
-            >
-              {allFiltersEnabled ? 'Hide All' : 'Show All'}
-            </button>
-          </div>
-
-          <div className="filter-dropdown-options">
-            {Object.keys(filters).map((method) => (
-              <label key={method} className="filter-option">
-                <input
-                  type="checkbox"
-                  checked={filters[method]}
-                  onChange={(e) => onFilterToggle(method, e.target.checked)}
-                />
-                <div className="filter-option-content">
-                  <MethodBadge method={method} />
-                  <span className="filter-option-label">{method}</span>
-                  <span className="filter-option-count">({requestCounts[method] || 0})</span>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const RequestRow = ({ request, isSelected, onClick }) => {
+const RequestRow = ({ request, isSelected, onClick, gridTemplateColumns }) => {
   const { data } = request;
   const { request: req, response: res, timestamp } = data;
 
@@ -177,6 +97,9 @@ const RequestRow = ({ request, isSelected, onClick }) => {
     <div
       className={`request-row ${isSelected ? 'selected' : ''}`}
       onClick={onClick}
+      style={{ gridTemplateColumns }}
+      data-testid="network-request-row"
+
     >
       <div className="request-method">
         <MethodBadge method={req?.method} />
@@ -211,12 +134,27 @@ const RequestRow = ({ request, isSelected, onClick }) => {
 
 const NetworkTab = () => {
   const dispatch = useDispatch();
+  const [sortConfig, setSortConfig] = usePersistedState({ key: 'devtools-network-sort', default: { key: null, direction: null } });
+  const [savedColWidths, setSavedColWidths] = usePersistedState({ key: 'devtools-network-col-widths', default: null });
+
+  const {
+    containerRef,
+    gridTemplateColumns,
+    separatorPositions,
+    resizingIdx,
+    handleResizeStart
+  } = useResizableColumns({
+    defaultWidths: COLUMNS.map((c) => c.width),
+    initialWidths: savedColWidths,
+    minColWidth: 60,
+    onResizeEnd: setSavedColWidths
+  });
+
   const { networkFilters, selectedRequest } = useSelector((state) => state.logs);
   const collections = useSelector((state) => state.collections.collections);
 
   const allRequests = useMemo(() => {
     const requests = [];
-
     collections.forEach((collection) => {
       if (collection.timeline) {
         collection.timeline
@@ -230,7 +168,6 @@ const NetworkTab = () => {
           });
       }
     });
-
     return requests.sort((a, b) => a.timestamp - b.timestamp);
   }, [collections]);
 
@@ -241,25 +178,20 @@ const NetworkTab = () => {
     });
   }, [allRequests, networkFilters]);
 
-  const requestCounts = useMemo(() => {
-    return allRequests.reduce((counts, request) => {
-      const method = request.data?.request?.method?.toUpperCase() || 'GET';
-      counts[method] = (counts[method] || 0) + 1;
-      return counts;
-    }, {});
-  }, [allRequests]);
+  const handleRequestClick = (request) => dispatch(setSelectedRequest(request));
 
-  const handleFilterToggle = (method, enabled) => {
-    dispatch(updateNetworkFilter({ method, enabled }));
+  const handleHeaderClick = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key !== key) return { key, direction: 'asc' };
+      if (prev.direction === 'asc') return { key, direction: 'desc' };
+      return { key: null, direction: null };
+    });
   };
 
-  const handleToggleAllFilters = (enabled) => {
-    dispatch(toggleAllNetworkFilters(enabled));
-  };
-
-  const handleRequestClick = (request) => {
-    dispatch(setSelectedRequest(request));
-  };
+  const sortedRequests = useMemo(
+    () => sortRequests(filteredRequests, sortConfig.key, sortConfig.direction),
+    [filteredRequests, sortConfig]
+  );
 
   return (
     <StyledWrapper>
@@ -271,27 +203,49 @@ const NetworkTab = () => {
             <span>Requests will appear here as you make API calls</span>
           </div>
         ) : (
-          <div className="requests-container">
-            <div className="requests-header">
-              <div>Method</div>
-              <div>Status</div>
-              <div>Domain</div>
-              <div>Path</div>
-              <div>Time</div>
-              <div className="text-right">Duration</div>
-              <div className="text-right">Size</div>
+          <div className={`requests-container${resizingIdx !== null ? ' is-resizing' : ''}`}>
+            <div className="requests-header" style={{ gridTemplateColumns }}>
+              {COLUMNS.map((col) => (
+                <div
+                  key={col.key}
+                  className={`header-cell${col.align === 'right' ? ' text-right' : ''}`}
+                  onClick={() => handleHeaderClick(col.key)}
+                  data-testid={`network-header-${col.key}`}
+                >
+                  <span title={col.label}>{col.label}</span>
+                  {sortConfig.key === col.key && (
+                    sortConfig.direction === 'asc'
+                      ? <IconArrowUp size={14} strokeWidth={2} data-testid="sort-icon-asc" />
+                      : <IconArrowDown size={14} strokeWidth={2} data-testid="sort-icon-desc" />
+                  )}
+                </div>
+              ))}
             </div>
 
-            <div className="requests-list">
-              {filteredRequests.map((request, index) => (
+            <div ref={containerRef} className="requests-list">
+              {sortedRequests.map((request, index) => (
                 <RequestRow
                   key={`${request.collectionUid}-${request.itemUid}-${request.timestamp}-${index}`}
                   request={request}
-                  isSelected={selectedRequest?.timestamp === request.timestamp && selectedRequest?.itemUid === request.itemUid}
+                  isSelected={
+                    selectedRequest?.timestamp === request.timestamp
+                    && selectedRequest?.itemUid === request.itemUid
+                  }
                   onClick={() => handleRequestClick(request)}
+                  gridTemplateColumns={gridTemplateColumns}
                 />
               ))}
             </div>
+
+            {separatorPositions.map((left, i) => (
+              <div
+                key={i}
+                className={`col-separator${resizingIdx === i ? ' resizing' : ''}`}
+                style={{ left }}
+                onMouseDown={(e) => handleResizeStart(e, i)}
+                data-testid={`network-col-separator-${i}`}
+              />
+            ))}
           </div>
         )}
       </div>

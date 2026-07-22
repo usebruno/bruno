@@ -11,6 +11,7 @@ import moment from 'moment';
 import 'moment-timezone';
 import { Tooltip } from 'react-tooltip';
 import { isEmpty } from 'lodash';
+import StyledWrapper from './StyledWrapper';
 
 const removeEmptyValues = (obj) => {
   return Object.fromEntries(Object.entries(obj).filter(([_, value]) => value !== null && value !== undefined));
@@ -225,145 +226,147 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
         </div>
       )}
     >
-      <form onSubmit={(e) => e.preventDefault()} className="px-2">
-        {isRawMode ? (
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <label className="block">Set-Cookie String</label>
-              <IconInfoCircle id="cookie-raw-info" size={16} strokeWidth={1.5} className="text-gray-400" />
-              <Tooltip
-                anchorId="cookie-raw-info"
-                className="tooltip-mod"
-                html="Key, Path, and Domain are immutable properties and cannot be modified for existing cookies"
+      <StyledWrapper>
+        <form onSubmit={(e) => e.preventDefault()} className="px-2">
+          {isRawMode ? (
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <label className="block">Set-Cookie String</label>
+                <IconInfoCircle id="cookie-raw-info" size={16} strokeWidth={1.5} className="info-icon" />
+                <Tooltip
+                  anchorId="cookie-raw-info"
+                  className="tooltip-mod"
+                  html="Key, Path, and Domain are immutable properties and cannot be modified for existing cookies"
+                />
+              </div>
+              <textarea
+                value={cookieString}
+                onChange={(e) => setCookieString(e.target.value)}
+                className="block textbox w-full h-24"
+                placeholder="key=value; key2=value2"
               />
             </div>
-            <textarea
-              value={cookieString}
-              onChange={(e) => setCookieString(e.target.value)}
-              className="block textbox w-full h-24"
-              placeholder="key=value; key2=value2"
-            />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block mb-1">
-                  Domain<span className="text-red-600">*</span>{' '}
-                </label>
-                <input
-                  type="text"
-                  name="domain"
-                  // Auto-focus if its add-new i.e. when domain prop is empty
-                  autoFocus={!domain && !formik.values.domain}
-                  value={formik.values.domain}
-                  onChange={formik.handleChange}
-                  className="block textbox non-passphrase-input w-full disabled:opacity-50"
-                  disabled={!!cookie}
-                />
-                {formik.touched.domain && formik.errors.domain && (
-                  <div className="text-red-500 mt-1">{formik.errors.domain}</div>
-                )}
-              </div>
-              <div>
-                <label className="block mb-1">Path</label>
-                <input
-                  type="text"
-                  name="path"
-                  value={formik.values.path}
-                  onChange={formik.handleChange}
-                  className="block textbox non-passphrase-input w-full disabled:opacity-50"
-                  disabled={!!cookie}
-                />
-                {formik.touched.path && formik.errors.path && (
-                  <div className="text-red-500 mt-1">{formik.errors.path}</div>
-                )}
-              </div>
-              <div>
-                <label className="block mb-1">
-                  Key<span className="text-red-600">*</span>{' '}
-                </label>
-                <input
-                  type="text"
-                  name="key"
-                  // Auto focus when add-for-domain i.e. if domain is already prefilled
-                  autoFocus={!!domain && !formik.values.key}
-                  value={formik.values.key}
-                  onChange={formik.handleChange}
-                  className="block textbox non-passphrase-input w-full disabled:opacity-50"
-                  disabled={!!cookie}
-                />
-                {formik.touched.key && formik.errors.key && (
-                  <div className="text-red-500 mt-1">{formik.errors.key}</div>
-                )}
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-1">
+                    Domain<span className="required-asterisk">*</span>{' '}
+                  </label>
+                  <input
+                    type="text"
+                    name="domain"
+                    // Auto-focus if its add-new i.e. when domain prop is empty
+                    autoFocus={!domain && !formik.values.domain}
+                    value={formik.values.domain}
+                    onChange={formik.handleChange}
+                    className="block textbox non-passphrase-input w-full disabled:opacity-50"
+                    disabled={!!cookie}
+                  />
+                  {formik.touched.domain && formik.errors.domain && (
+                    <div className="error-message mt-1">{formik.errors.domain}</div>
+                  )}
+                </div>
+                <div>
+                  <label className="block mb-1">Path</label>
+                  <input
+                    type="text"
+                    name="path"
+                    value={formik.values.path}
+                    onChange={formik.handleChange}
+                    className="block textbox non-passphrase-input w-full disabled:opacity-50"
+                    disabled={!!cookie}
+                  />
+                  {formik.touched.path && formik.errors.path && (
+                    <div className="error-message mt-1">{formik.errors.path}</div>
+                  )}
+                </div>
+                <div>
+                  <label className="block mb-1">
+                    Key<span className="required-asterisk">*</span>{' '}
+                  </label>
+                  <input
+                    type="text"
+                    name="key"
+                    // Auto focus when add-for-domain i.e. if domain is already prefilled
+                    autoFocus={!!domain && !formik.values.key}
+                    value={formik.values.key}
+                    onChange={formik.handleChange}
+                    className="block textbox non-passphrase-input w-full disabled:opacity-50"
+                    disabled={!!cookie}
+                  />
+                  {formik.touched.key && formik.errors.key && (
+                    <div className="error-message mt-1">{formik.errors.key}</div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block mb-1">
+                    Value<span className="required-asterisk">*</span>{' '}
+                  </label>
+                  <input
+                    type="text"
+                    name="value"
+                    // Auto-focus when its in edit mode i.e. cookie prop is present
+                    autoFocus={!!cookie}
+                    value={formik.values.value}
+                    onChange={formik.handleChange}
+                    className="block textbox non-passphrase-input w-full"
+                  />
+                  {formik.touched.value && formik.errors.value && (
+                    <div className="error-message mt-1">{formik.errors.value}</div>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <label className="block mb-1">
-                  Value<span className="text-red-600">*</span>{' '}
-                </label>
-                <input
-                  type="text"
-                  name="value"
-                  // Auto-focus when its in edit mode i.e. cookie prop is present
-                  autoFocus={!!cookie}
-                  value={formik.values.value}
-                  onChange={formik.handleChange}
-                  className="block textbox non-passphrase-input w-full"
-                />
-                {formik.touched.value && formik.errors.value && (
-                  <div className="text-red-500 mt-1">{formik.errors.value}</div>
-                )}
+              {/* Date Picker */}
+              <div className="w-full flex items-end">
+                <div>
+                  <label className="block mb-1">Expiration ({moment.tz.guess()})</label>
+                  <input
+                    type="datetime-local"
+                    name="expires"
+                    value={formik.values.expires}
+                    onChange={(e) => {
+                      formik.handleChange(e);
+                    }}
+                    className="block textbox non-passphrase-input w-full"
+                    min={moment().format(moment.HTML5_FMT.DATETIME_LOCAL)}
+                  />
+                  {formik.touched.expires && formik.errors.expires && (
+                    <div className="error-message mt-1">{formik.errors.expires}</div>
+                  )}
+                </div>
+
+                {/* Checkboxes */}
+                <div className="flex space-x-4 ml-auto">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="secure"
+                      checked={formik.values.secure}
+                      onChange={formik.handleChange}
+                      className="mr-2"
+                    />
+                    <span>Secure</span>
+                  </label>
+
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="httpOnly"
+                      checked={formik.values.httpOnly}
+                      onChange={formik.handleChange}
+                      className="mr-2"
+                    />
+                    <span>HTTP Only</span>
+                  </label>
+                </div>
               </div>
             </div>
-
-            {/* Date Picker */}
-            <div className="w-full flex items-end">
-              <div>
-                <label className="block mb-1">Expiration ({moment.tz.guess()})</label>
-                <input
-                  type="datetime-local"
-                  name="expires"
-                  value={formik.values.expires}
-                  onChange={(e) => {
-                    formik.handleChange(e);
-                  }}
-                  className="block textbox non-passphrase-input w-full"
-                  min={moment().format(moment.HTML5_FMT.DATETIME_LOCAL)}
-                />
-                {formik.touched.expires && formik.errors.expires && (
-                  <div className="text-red-500 mt-1">{formik.errors.expires}</div>
-                )}
-              </div>
-
-              {/* Checkboxes */}
-              <div className="flex space-x-4 ml-auto">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="secure"
-                    checked={formik.values.secure}
-                    onChange={formik.handleChange}
-                    className="mr-2"
-                  />
-                  <span>Secure</span>
-                </label>
-
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="httpOnly"
-                    checked={formik.values.httpOnly}
-                    onChange={formik.handleChange}
-                    className="mr-2"
-                  />
-                  <span>HTTP Only</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        )}
-      </form>
+          )}
+        </form>
+      </StyledWrapper>
     </Modal>
   );
 };

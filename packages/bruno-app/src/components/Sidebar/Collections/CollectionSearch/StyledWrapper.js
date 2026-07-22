@@ -30,13 +30,12 @@ const StyledWrapper = styled.div`
     }
 
     &:hover {
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-      border-color: ${(props) => props.theme.sidebar.muted}40;
+      border-color: ${(props) => props.theme.input.border};
     }
 
     &:focus {
-      background: ${(props) => props.theme.sidebar.bg};
-      border-color: ${(props) => props.theme.sidebar.muted}80;
+      background: ${(props) => props.theme.input.bg};
+      border-color: ${(props) => props.theme.input.border};
     }
   }
 

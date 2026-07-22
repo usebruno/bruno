@@ -12,8 +12,12 @@ const StyledWrapper = styled.div`
     }
 
     .more-tabs {
-      color: var(--color-tab-inactive) !important;
+      color: ${(props) => props.theme.colors.text.subtext0} !important;
       border-bottom: solid 2px transparent;
+
+      &:hover {
+        color: ${(props) => props.theme.tabs.active.color} !important;
+      }
     }
 
     .tab {
@@ -24,11 +28,12 @@ const StyledWrapper = styled.div`
       border: none;
       border-bottom: solid 2px transparent;
       margin-right: ${(props) => props.theme.tabs.marginRight};
-      color: var(--color-tab-inactive);
+      color: ${(props) => props.theme.colors.text.subtext0};
       cursor: pointer;
       white-space: nowrap;
       vertical-align: middle;
       flex-shrink: 0;
+      font-size: ${(props) => props.theme.font.size.sm};
 
       &:focus,
       &:active,
@@ -39,6 +44,10 @@ const StyledWrapper = styled.div`
         box-shadow: none !important;
       }
 
+      &:hover {
+        color: ${(props) => props.theme.tabs.active.color} !important;
+      }
+
       &.active {
         font-weight: ${(props) => props.theme.tabs.active.fontWeight} !important;
         color: ${(props) => props.theme.tabs.active.color} !important;
@@ -47,6 +56,20 @@ const StyledWrapper = styled.div`
 
       .content-indicator {
         color: ${(props) => props.theme.text};
+      }
+
+      .tab-count {
+        font-size: 11px;
+        font-weight: 600;
+        min-width: 18px;
+        height: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        padding: 0 5px;
+        background: ${(props) => props.theme.colors.text.muted}20;
+        color: ${(props) => props.theme.colors.text.muted};
       }
 
       sup {

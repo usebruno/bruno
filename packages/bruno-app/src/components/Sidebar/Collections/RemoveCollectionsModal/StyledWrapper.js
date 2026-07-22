@@ -25,7 +25,7 @@ const StyledWrapper = styled.div`
     display: inline-flex;
     align-items: center;
     padding: 6px 12px;
-    background-color: ${(props) => props.theme.requestTabs.active.bg};
+    background-color: ${(props) => props.theme.background.surface2};
     border: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
     border-radius: 4px;
     font-size: ${(props) => props.theme.font.size.sm};

@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
 .tab-container {
-  background-color: ${(props) => props.theme.grpc.tabNav.container.bg};
+  background-color: ${(props) => props.theme.dropdown.separator};
 }
 .tab-button {
   background-color: ${(props) => props.theme.grpc.tabNav.button.inactive.bg};

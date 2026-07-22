@@ -7,6 +7,7 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
   let failedRequests = 0;
   let errorRequests = 0;
   let skippedRequests = 0;
+  let skippedByBail = 0;
   let totalAssertions = 0;
   let passedAssertions = 0;
   let failedAssertions = 0;
@@ -23,18 +24,23 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
   for (const result of results || []) {
     const { status, testResults, assertionResults, preRequestTestResults, postResponseTestResults } = result;
     totalRequests += 1;
-    totalTests += Number(testResults?.length) || 0;
+    totalTests += Number(testResults?.filter((r) => !r.isScriptError).length) || 0;
     totalAssertions += Number(assertionResults?.length) || 0;
-    totalPreRequestTests += Number(preRequestTestResults?.length) || 0;
-    totalPostResponseTests += Number(postResponseTestResults?.length) || 0;
+    totalPreRequestTests += Number(preRequestTestResults?.filter((r) => !r.isScriptError).length) || 0;
+    totalPostResponseTests += Number(postResponseTestResults?.filter((r) => !r.isScriptError).length) || 0;
 
     if (status === 'skipped') {
       skippedRequests += 1;
+      if (result.skipReason === 'bail') skippedByBail += 1;
       continue;
     }
 
     let anyFailed = false;
     for (const testResult of testResults || []) {
+      if (testResult.isScriptError) {
+        anyFailed = true;
+        continue;
+      }
       if (testResult.status === 'pass') {
         passedTests += 1;
       } else {
@@ -51,6 +57,10 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
       }
     }
     for (const preRequestTestResult of preRequestTestResults || []) {
+      if (preRequestTestResult.isScriptError) {
+        anyFailed = true;
+        continue;
+      }
       if (preRequestTestResult.status === 'pass') {
         passedPreRequestTests += 1;
       } else {
@@ -59,6 +69,10 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
       }
     }
     for (const postResponseTestResult of postResponseTestResults || []) {
+      if (postResponseTestResult.isScriptError) {
+        anyFailed = true;
+        continue;
+      }
       if (postResponseTestResult.status === 'pass') {
         passedPostResponseTests += 1;
       } else {
@@ -82,6 +96,7 @@ export const getRunnerSummary = (results: T_RunnerRequestExecutionResult[]): T_R
     failedRequests,
     errorRequests,
     skippedRequests,
+    skippedByBail,
     totalAssertions,
     passedAssertions,
     failedAssertions,

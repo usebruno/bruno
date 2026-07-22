@@ -1,7 +1,7 @@
-import React, { useRef, forwardRef } from 'react';
+import React, { forwardRef, useRef } from 'react';
 import styled from 'styled-components';
 import { IconDots, IconDownload, IconEraser, IconBookmark, IconCopy, IconLayoutColumns, IconLayoutRows } from '@tabler/icons';
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
 import ResponseDownload from '../ResponseDownload';
 import ResponseBookmark from '../ResponseBookmark';
 import ResponseClear from '../ResponseClear';
@@ -16,11 +16,11 @@ const StyledMenuIcon = styled.button`
   height: 1.25rem;
   width: 1.5rem;
   border: 1px solid ${(props) => props.theme.workspace.border};
-  color: ${(props) => props.theme.codemirror.variable.info.iconColor};
+  color: ${(props) => props.theme.dropdown.iconColor};
   border-radius: 4px;
 
   &:hover {
-    background-color: ${(props) => props.theme.workspace.button.bg};
+    border-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.hoverBorder} !important;
     color: ${(props) => props.theme.text};
   }
 `;
@@ -37,88 +37,136 @@ const MenuIcon = forwardRef((props, ref) => (
 
 MenuIcon.displayName = 'MenuIcon';
 
-const ResponsePaneActions = ({ item, collection, responseSize }) => {
+const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, selectedTab, data, dataBuffer }) => {
   const { orientation } = useResponseLayoutToggle();
-  const dropdownTippyRef = useRef();
 
-  const onDropdownCreate = (ref) => {
-    dropdownTippyRef.current = ref;
-  };
+  // Refs to access child component imperative handles (click, isDisabled)
+  const bookmarkButtonRef = useRef(null);
+  const downloadButtonRef = useRef(null);
+  const clearButtonRef = useRef(null);
+  const copyButtonRef = useRef(null);
+  const layoutToggleButtonRef = useRef(null);
 
-  const closeDropdown = () => {
-    if (dropdownTippyRef.current) {
-      dropdownTippyRef.current.hide();
+  /**
+   * GQL response actions missing with Save response - because their is schema validation missing for saving GQL response will undo once example
+   * scehem is updated
+   */
+  const gqlMenuItems = [
+    {
+      id: 'copy-response',
+      label: 'Copy response',
+      leftSection: IconCopy,
+      get disabled() {
+        return copyButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => copyButtonRef.current?.click()
+    },
+    {
+      id: 'download-response',
+      label: 'Download response',
+      leftSection: IconDownload,
+      get disabled() {
+        return downloadButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => downloadButtonRef.current?.click()
+    },
+    {
+      id: 'clear-response',
+      label: 'Clear response',
+      leftSection: IconEraser,
+      get disabled() {
+        return clearButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => clearButtonRef.current?.click()
+    },
+    {
+      id: 'change-layout',
+      label: 'Change layout',
+      leftSection: orientation === 'vertical' ? IconLayoutColumns : IconLayoutRows,
+      get disabled() {
+        return layoutToggleButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => layoutToggleButtonRef.current?.click()
     }
-  };
+  ];
 
-  if (item.type !== 'http-request') {
+  const menuItems = [
+    {
+      id: 'copy-response',
+      label: 'Copy response',
+      leftSection: IconCopy,
+      get disabled() {
+        return copyButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => copyButtonRef.current?.click()
+    },
+    {
+      id: 'save-response',
+      label: 'Save response',
+      leftSection: IconBookmark,
+      get disabled() {
+        return bookmarkButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => bookmarkButtonRef.current?.click()
+    },
+    {
+      id: 'download-response',
+      label: 'Download response',
+      leftSection: IconDownload,
+      get disabled() {
+        return downloadButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => downloadButtonRef.current?.click()
+    },
+    {
+      id: 'clear-response',
+      label: 'Clear response',
+      leftSection: IconEraser,
+      get disabled() {
+        return clearButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => clearButtonRef.current?.click()
+    },
+    {
+      id: 'change-layout',
+      label: 'Change layout',
+      leftSection: orientation === 'vertical' ? IconLayoutColumns : IconLayoutRows,
+      get disabled() {
+        return layoutToggleButtonRef.current?.isDisabled ?? false;
+      },
+      onClick: () => layoutToggleButtonRef.current?.click()
+    }
+  ];
+
+  if (!['http-request', 'graphql-request'].includes(item.type)) {
     return null;
   }
 
   return (
     <StyledWrapper className="response-pane-actions-wrapper">
       <div className="actions-dropdown">
-        <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon data-testid="response-actions-menu" />} placement="bottom-end">
-
-          {/* Response Copy */}
-          <ResponseCopy item={item}>
-            <div className="dropdown-item" onClick={closeDropdown}>
-              <span className="dropdown-icon">
-                <IconCopy size={16} strokeWidth={1.5} />
-              </span>
-              <span>Copy response</span>
-            </div>
-          </ResponseCopy>
-
-          {/* Response Save as Example */}
-          <ResponseBookmark item={item} collection={collection} responseSize={responseSize}>
-            <div className="dropdown-item" onClick={closeDropdown}>
-              <span className="dropdown-icon">
-                <IconBookmark size={16} strokeWidth={1.5} />
-              </span>
-              <span>Save response</span>
-            </div>
-          </ResponseBookmark>
-
-          {/* Response Download */}
-          <ResponseDownload item={item}>
-            <div className="dropdown-item" onClick={closeDropdown}>
-              <span className="dropdown-icon">
-                <IconDownload size={16} strokeWidth={1.5} />
-              </span>
-              Download response
-            </div>
-          </ResponseDownload>
-
-          {/* Response Clear */}
-          <ResponseClear item={item} collection={collection}>
-            <div className="dropdown-item" onClick={closeDropdown}>
-              <span className="dropdown-icon">
-                <IconEraser size={16} strokeWidth={1.5} />
-              </span>
-              Clear response
-            </div>
-          </ResponseClear>
-
-          {/* Response Layout Toggle */}
-          <ResponseLayoutToggle>
-            <div className="dropdown-item" onClick={closeDropdown}>
-              <span className="dropdown-icon">
-                {orientation === 'vertical' ? <IconLayoutColumns size={16} strokeWidth={1.5} /> : <IconLayoutRows size={16} strokeWidth={1.5} />}
-              </span>
-              <span>Change layout</span>
-            </div>
-          </ResponseLayoutToggle>
-        </Dropdown>
+        <MenuDropdown
+          items={item.type !== 'graphql-request' ? menuItems : gqlMenuItems}
+          placement="bottom-end"
+          data-testid="response-actions-menu"
+        >
+          <MenuIcon />
+        </MenuDropdown>
       </div>
       <div className="actions-buttons flex items-center gap-[2px]">
-        <ResponseCopy item={item} />
-        <ResponseBookmark item={item} collection={collection} responseSize={responseSize} />
-        <ResponseDownload item={item} />
-        <ResponseClear item={item} collection={collection} />
-        <ResponseLayoutToggle />
+        <ResponseCopy
+          ref={copyButtonRef}
+          item={item}
+          selectedFormat={selectedFormat}
+          selectedTab={selectedTab}
+          data={data}
+          dataBuffer={dataBuffer}
+        />
+        {item.type !== 'graphql-request' && <ResponseBookmark ref={bookmarkButtonRef} item={item} collection={collection} responseSize={responseSize} />}
+        <ResponseDownload ref={downloadButtonRef} item={item} />
+        <ResponseClear ref={clearButtonRef} item={item} collection={collection} />
+        <ResponseLayoutToggle ref={layoutToggleButtonRef} />
       </div>
-
     </StyledWrapper>
   );
 };

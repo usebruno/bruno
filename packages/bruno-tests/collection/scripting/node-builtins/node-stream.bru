@@ -1,0 +1,72 @@
+meta {
+  name: node-stream
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  const stream = require('node:stream');
+  const { Readable, Writable, Transform, Duplex, pipeline } = stream;
+
+  test("stream module exports", function() {
+    expect(stream.Readable).to.be.a('function');
+    expect(stream.Writable).to.be.a('function');
+    expect(stream.Transform).to.be.a('function');
+    expect(stream.Duplex).to.be.a('function');
+    expect(stream.pipeline).to.be.a('function');
+  });
+
+  test("Readable.from creates readable stream", function() {
+    const readable = Readable.from(['hello', ' ', 'bruno']);
+    expect(readable).to.be.an('object');
+    expect(readable.read).to.be.a('function');
+    expect(readable.on).to.be.a('function');
+  });
+
+  test("Writable stream can be created", function() {
+    const chunks = [];
+    const writable = new Writable({
+      write(chunk, enc, cb) { chunks.push(chunk); cb(); }
+    });
+    expect(writable).to.be.an('object');
+    expect(writable.write).to.be.a('function');
+    expect(writable.end).to.be.a('function');
+  });
+
+  test("Transform stream can be created", function() {
+    const transform = new Transform({
+      transform(chunk, enc, cb) { cb(null, chunk.toString().toUpperCase()); }
+    });
+    expect(transform).to.be.an('object');
+    expect(transform.write).to.be.a('function');
+    expect(transform.read).to.be.a('function');
+  });
+
+  test("Duplex stream can be created", function() {
+    const duplex = new Duplex({
+      read() {},
+      write(chunk, enc, cb) { cb(); }
+    });
+    expect(duplex).to.be.an('object');
+    expect(duplex.read).to.be.a('function');
+    expect(duplex.write).to.be.a('function');
+  });
+
+  test("pipeline is a function", function() {
+    expect(pipeline).to.be.a('function');
+  });
+}

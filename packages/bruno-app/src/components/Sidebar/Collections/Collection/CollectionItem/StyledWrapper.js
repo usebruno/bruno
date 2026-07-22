@@ -4,19 +4,20 @@ const Wrapper = styled.div`
   position: relative;
   .menu-icon {
     color: ${(props) => props.theme.sidebar.dropdownIcon.color};
+    visibility: hidden;
 
     .dropdown {
       div[aria-expanded='true'] {
         visibility: visible;
       }
       div[aria-expanded='false'] {
-        visibility: hidden;
+        visibility: visible;
       }
     }
   }
 
   .indent-block {
-    border-right: ${(props) => props.theme.sidebar.collection.item.indentBorder};
+    border-right: 1px solid ${(props) => props.theme.sidebar.collection.item.indentBorder};
   }
 
   .collection-item-name {
@@ -24,6 +25,11 @@ const Wrapper = styled.div`
     cursor: pointer;
     user-select: none;
     position: relative;
+
+    /* Default: menu icon hidden, shown on hover/focus states (see consolidated rule below) */
+    .collection-item-menu-icon {
+      visibility: hidden;
+    }
 
     /* Common styles for drop indicators */
     &::before,
@@ -49,7 +55,7 @@ const Wrapper = styled.div`
     /* Drop target styles */
     &.drop-target {
       background-color: ${(props) => props.theme.dragAndDrop.hoverBg};
-      
+
       &::before,
       &::after {
         opacity: 0;
@@ -93,15 +99,15 @@ const Wrapper = styled.div`
       overflow: hidden;
     }
 
+    /* Single source of truth for hover/focus states: background and menu icon visibility */
     &:hover,
-    &.item-hovered {
+    &.item-hovered,
+    &.item-keyboard-focused {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-      .menu-icon {
-        .dropdown {
-          div[aria-expanded='false'] {
-            visibility: visible;
-          }
-        }
+      .menu-icon,
+      .collection-item-menu-icon {
+        visibility: visible;
+        background-color: transparent !important;
       }
     }
 
@@ -127,7 +133,7 @@ const Wrapper = styled.div`
       }
 
       .indent-block {
-        border-right: ${(props) => props.theme.sidebar.collection.item.active.indentBorder} !important;
+        border-right: 1px solid ${(props) => props.theme.sidebar.collection.item.indentBorder} !important;
       }
     }
 
@@ -143,11 +149,24 @@ const Wrapper = styled.div`
     }
 
     div.dropdown-item.delete-item {
-      color: ${(props) => props.theme.colors.danger};
+      color: ${(props) => props.theme.colors.text.danger};
       &:hover {
         background-color: ${(props) => props.theme.colors.bg.danger} !important;
         color: white;
       }
+    }
+  }
+
+  .empty-folder-message {
+    display: flex;
+    align-items: center;
+    height: 1.6rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.sidebar.muted};
+
+    .add-request-link {
+      color: ${(props) => props.theme.textLink};
+      cursor: pointer;
     }
   }
 

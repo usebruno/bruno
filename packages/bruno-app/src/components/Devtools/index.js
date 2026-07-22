@@ -1,6 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
+import { darken } from 'polished';
 import Console from './Console';
+import { useTheme } from 'providers/Theme';
 
 const MIN_DEVTOOLS_HEIGHT = 150;
 const MAX_DEVTOOLS_HEIGHT = window.innerHeight * 0.7;
@@ -10,6 +12,9 @@ const Devtools = ({ mainSectionRef }) => {
   const isDevtoolsOpen = useSelector((state) => state.logs.isConsoleOpen);
   const [devtoolsHeight, setDevtoolsHeight] = useState(DEFAULT_DEVTOOLS_HEIGHT);
   const [isResizingDevtools, setIsResizingDevtools] = useState(false);
+  const { theme } = useTheme();
+
+  const dragHandleColor = useMemo(() => darken(0.1, theme.primary.subtle), [theme.primary.subtle]);
 
   const handleDevtoolsResizeStart = useCallback((e) => {
     e.preventDefault();
@@ -68,15 +73,15 @@ const Devtools = ({ mainSectionRef }) => {
       <div
         onMouseDown={handleDevtoolsResizeStart}
         style={{
-          height: '4px',
+          height: '2px',
           cursor: 'row-resize',
-          backgroundColor: isResizingDevtools ? '#0078d4' : 'transparent',
+          backgroundColor: isResizingDevtools ? dragHandleColor : 'transparent',
           transition: 'background-color 0.2s ease',
           zIndex: 20,
           position: 'relative'
         }}
-        onMouseEnter={(e) => e.target.style.backgroundColor = '#0078d4'}
-        onMouseLeave={(e) => e.target.style.backgroundColor = isResizingDevtools ? '#0078d4' : 'transparent'}
+        onMouseEnter={(e) => e.target.style.backgroundColor = dragHandleColor}
+        onMouseLeave={(e) => e.target.style.backgroundColor = isResizingDevtools ? dragHandleColor : 'transparent'}
       />
       <div style={{ height: `${devtoolsHeight}px`, overflow: 'hidden', position: 'relative' }}>
         <Console />

@@ -1,4 +1,4 @@
-import translateCode from '../../../../src/utils/jscode-shift-translator';
+import translateCode from '../../../../src/utils/postman-to-bruno-translator';
 
 describe('Combined API Features Translation', () => {
   // Basic translation test
@@ -93,13 +93,17 @@ describe('Combined API Features Translation', () => {
     expect(translatedCode).not.toContain('pm.test("Auth flow works", function() {');
     expect(translatedCode).not.toContain('pm.expect(response.authenticated).to.be.true;');
     expect(translatedCode).not.toContain('pm.environment.set("userId", response.user.id);');
-    expect(translatedCode).not.toContain('pm.collectionVariables.set("sessionId", response.session.id);');
     expect(translatedCode).toContain('const token = bru.getEnvVar("authToken");');
     expect(translatedCode).toContain('test("Auth flow works", function() {');
     expect(translatedCode).toContain('const response = res.getBody();');
     expect(translatedCode).toContain('expect(response.authenticated).to.be.true;');
     expect(translatedCode).toContain('bru.setEnvVar("userId", response.user.id);');
-    expect(translatedCode).toContain('bru.setVar("sessionId", response.session.id);');
+  });
+
+  it('should translate pm.collectionVariables.set in a combined code block', () => {
+    const code = 'pm.collectionVariables.set("sessionId", response.session.id);';
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toBe('bru.setCollectionVar("sessionId", response.session.id);');
   });
 
   // Nested expressions
@@ -112,7 +116,7 @@ describe('Combined API Features Translation', () => {
   it('should handle more complex nested expressions', () => {
     const code = 'pm.collectionVariables.set("fullPath", pm.environment.get("baseUrl") + pm.variables.get("endpoint"));';
     const translatedCode = translateCode(code);
-    expect(translatedCode).toBe('bru.setVar("fullPath", bru.getEnvVar("baseUrl") + bru.getVar("endpoint"));');
+    expect(translatedCode).toBe('bru.setCollectionVar("fullPath", bru.getEnvVar("baseUrl") + bru.getVar("endpoint"));');
   });
 
   // Unrelated code
@@ -347,14 +351,18 @@ describe('Combined API Features Translation', () => {
 
     const translatedCode = translateCode(code);
 
-    expect(translatedCode).toBe(`
-        function processResponse() {
-            test("Status code is 200", function() { expect(res.getStatus()).to.equal(200); });
-            bru.setEnvVar("userId", res.getBody().userId);
-            bru.setVar("token", res.getBody().token);
-            bru.setVar("sessionId", res.getBody().sessionId);
-        }
-        `);
+    expect(translatedCode).toContain('test("Status code is 200", function() { expect(res.getStatus()).to.equal(200); });');
+    expect(translatedCode).toContain('bru.setEnvVar("userId", res.getBody().userId);');
+    expect(translatedCode).toContain('bru.setVar("token", res.getBody().token);');
+  });
+
+  it('should translate pm.collectionVariables alias set inside functions', () => {
+    const code = `
+        const tempCollVars = pm.collectionVariables;
+        tempCollVars.set("sessionId", "value");
+        `;
+    const translatedCode = translateCode(code);
+    expect(translatedCode).toContain('bru.setCollectionVar("sessionId", "value");');
   });
 
   it('should nested pm commands', () => {
@@ -366,7 +374,7 @@ describe('Combined API Features Translation', () => {
         `;
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe(`
-        bru.getVar(bru.getEnvVar('key'))
+        bru.getCollectionVar(bru.getEnvVar('key'))
         test("Status code is 200", function() {
             expect(res.getStatus()).to.equal(200);
         });

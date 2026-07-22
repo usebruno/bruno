@@ -8,7 +8,7 @@ const Wrapper = styled.div`
     background: transparent;
     border: none;
     cursor: pointer;
-    color: ${(props) => props.theme.codemirror.variable.info.iconColor};
+    color: ${(props) => props.theme.dropdown.iconColor};
     border-radius: 4px;
 
     &:hover {

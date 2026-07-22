@@ -1,27 +1,45 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import get from 'lodash/get';
 import InfoTip from 'components/InfoTip';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import {
   moveQueryParam,
   updatePathParam,
   setQueryParams
 } from 'providers/ReduxStore/slices/collections';
-import MultiLineEditor from 'components/MultiLineEditor';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
+import MultiLineEditor from 'components/MultiLineEditor';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import BulkEditor from '../../BulkEditor';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
   const queryParams = params.filter((param) => param.type === 'query');
   const pathParams = params.filter((param) => param.type === 'path');
 
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+  const wrapperRef = useRef(null);
+  const [scroll, setScroll] = usePersistedState({ key: `request-params-scroll-${item.uid}`, default: 0 });
+  useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
+
+  // Get column widths from Redux
+  const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
+  const queryParamsWidths = focusedTab?.tableColumnWidths?.['query-params'] || {};
+  const pathParamsWidths = focusedTab?.tableColumnWidths?.['path-params'] || {};
+
+  const handleColumnWidthsChange = (tableId, widths) => {
+    dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
+  };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
@@ -35,16 +53,21 @@ const QueryParams = ({ item, collection }) => {
     }));
   }, [dispatch, collection.uid, item.uid]);
 
-  const handlePathParamChange = useCallback((rowUid, key, value) => {
-    const pathParam = pathParams.find((p) => p.uid === rowUid);
-    if (pathParam) {
-      dispatch(updatePathParam({
-        pathParam: { ...pathParam, [key]: value },
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      }));
-    }
-  }, [dispatch, pathParams, item.uid, collection.uid]);
+  const handlePathParamChange = useCallback(
+    (rowUid, key, value) => {
+      const pathParam = pathParams.find((p) => p.uid === rowUid);
+      if (pathParam) {
+        dispatch(
+          updatePathParam({
+            pathParam: { ...pathParam, [key]: value },
+            itemUid: item.uid,
+            collectionUid: collection.uid
+          })
+        );
+      }
+    },
+    [dispatch, pathParams, item.uid, collection.uid]
+  );
 
   const handleQueryParamDrag = useCallback(({ updateReorderedItem }) => {
     dispatch(moveQueryParam({
@@ -58,19 +81,36 @@ const QueryParams = ({ item, collection }) => {
     setIsBulkEditMode(!isBulkEditMode);
   };
 
+  const descriptionColumnQuery = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    onRun: handleRun,
+    collection,
+    item
+  });
+
+  const descriptionColumnPath = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    onRun: handleRun,
+    collection,
+    item,
+    onDescriptionChange: (newValue, { row }) => handlePathParamChange(row.uid, 'description', newValue)
+  });
+
   const queryColumns = [
     {
       key: 'name',
       name: 'Name',
       isKeyField: true,
       placeholder: 'Name',
-      width: '30%'
+      width: '20%'
     },
     {
       key: 'value',
       name: 'Value',
       placeholder: 'Value',
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
+      render: ({ value, onChange }) => (
         <MultiLineEditor
           value={value || ''}
           theme={storedTheme}
@@ -80,10 +120,11 @@ const QueryParams = ({ item, collection }) => {
           collection={collection}
           item={item}
           variablesAutocomplete={true}
-          placeholder={isLastEmptyRow ? 'Value' : ''}
+          placeholder={!value ? 'Value' : ''}
         />
       )
-    }
+    },
+    descriptionColumnQuery
   ];
 
   const pathColumns = [
@@ -91,7 +132,7 @@ const QueryParams = ({ item, collection }) => {
       key: 'name',
       name: 'Name',
       isKeyField: true,
-      width: '30%',
+      width: '20%',
       readOnly: true
     },
     {
@@ -109,7 +150,8 @@ const QueryParams = ({ item, collection }) => {
           item={item}
         />
       )
-    }
+    },
+    descriptionColumnPath
   ];
 
   const defaultQueryRow = {
@@ -134,26 +176,33 @@ const QueryParams = ({ item, collection }) => {
   }
 
   return (
-    <StyledWrapper className="w-full flex flex-col">
-      <div className="flex-1 mt-2">
-        <div className="mb-1 title text-xs">Query</div>
+    <StyledWrapper className="w-full flex flex-col" ref={wrapperRef}>
+      <div className="flex-1">
+        <div className="mb-3 title text-xs">
+          <span>Query</span>
+        </div>
         <EditableTable
+          tableId="query-params"
+          testId="query-params-table"
           columns={queryColumns}
           rows={queryParams || []}
           onChange={handleQueryParamsChange}
           defaultRow={defaultQueryRow}
           reorderable={true}
           onReorder={handleQueryParamDrag}
+          columnWidths={queryParamsWidths}
+          onColumnWidthsChange={(widths) => handleColumnWidthsChange('query-params', widths)}
+          initialScroll={scroll}
         />
-        <div className="flex justify-end mt-2">
+        <div className="bulk-edit-bar flex justify-end mt-2">
           <button className="btn-action text-link select-none" onClick={toggleBulkEditMode}>
             Bulk Edit
           </button>
         </div>
 
-        <div className="mb-2 title text-xs flex items-stretch">
+        <div className="mb-3 title text-xs flex items-stretch">
           <span>Path</span>
-          <InfoTip infotipId="path-param-InfoTip">
+          <InfoTip className="tooltip-mod" infotipId="path-param-InfoTip">
             <div>
               Path variables are automatically added whenever the
               <code className="font-mono mx-2">:name</code>
@@ -166,6 +215,8 @@ const QueryParams = ({ item, collection }) => {
         </div>
         {pathParams && pathParams.length > 0 ? (
           <EditableTable
+            tableId="path-params"
+            testId="path-params-table"
             columns={pathColumns}
             rows={pathParams}
             onChange={() => {}}
@@ -173,6 +224,9 @@ const QueryParams = ({ item, collection }) => {
             showCheckbox={false}
             showDelete={false}
             showAddRow={false}
+            columnWidths={pathParamsWidths}
+            onColumnWidthsChange={(widths) => handleColumnWidthsChange('path-params', widths)}
+            initialScroll={scroll}
           />
         ) : (
           <div className="title pr-2 py-3 mt-2 text-xs"></div>

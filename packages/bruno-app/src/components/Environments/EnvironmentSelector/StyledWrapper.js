@@ -9,6 +9,7 @@ const Wrapper = styled.div`
     border: 1px solid ${(props) => props.theme.app.collection.toolbar.environmentSelector.border};
     line-height: 1rem;
     transition: all 0.15s ease;
+    height: 24px;
 
     &:hover {
       border-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.hoverBorder};
@@ -33,8 +34,7 @@ const Wrapper = styled.div`
     }
 
     .env-separator {
-      color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.separator};
-      margin: 0 0.35rem;
+      background-color: ${(props) => props.theme.app.collection.toolbar.environmentSelector.separator};
     }
 
     .env-text-inactive {
@@ -65,35 +65,6 @@ const Wrapper = styled.div`
     overflow: hidden;
   }
 
-  .tippy-box .tippy-content {
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-
-    .dropdown-item {
-      display: flex;
-      align-items: center;
-      padding: 0.35rem 0.6rem;
-      cursor: pointer;
-      font-size: ${(props) => props.theme.font.size.base};
-      color: ${(props) => props.theme.dropdown.primaryText};
-
-      &:hover:not(:disabled) {
-        background-color: ${(props) => props.theme.dropdown.hoverBg};
-      }
-
-      &.active {
-        background-color: ${(props) => props.theme.dropdown.selectedBg};
-        color: ${(props) => props.theme.dropdown.selectedColor};
-      }
-
-      &.no-environment {
-        color: ${(props) => props.theme.dropdown.mutedText};
-      }
-    }
-  }
-
   .configure-button {
     position: absolute;
     bottom: 0;
@@ -103,13 +74,13 @@ const Wrapper = styled.div`
     border-top: 0.0625rem solid ${(props) => props.theme.dropdown.separator};
     z-index: 10;
     margin: 0;
-    
+
     &:hover {
       background-color: ${(props) => props.theme.dropdown.bg + ' !important'};
     }
 
     button {
-      color: ${(props) => props.theme.dropdown.primaryText};
+      color: ${(props) => props.theme.text};
       display: flex;
       align-items: center;
       justify-content: center;
@@ -119,8 +90,8 @@ const Wrapper = styled.div`
   }
 
   .tab-button {
-    color: var(--color-tab-inactive);
-    font-size: ${(props) => props.theme.font.size.base};
+    color: ${(props) => props.theme.colors.text.subtext0};
+    font-size: ${(props) => props.theme.font.size.sm};
 
     .tab-content-wrapper {
       position: relative;
@@ -146,10 +117,14 @@ const Wrapper = styled.div`
     overflow: hidden;
   }
 
+  .no-environment {
+    color: ${(props) => props.theme.colors.text.subtext0};
+  }
+
   .environment-list {
     flex: 1;
     overflow-y: auto;
-    max-height: calc(75vh - 8rem); 
+    max-height: calc(75vh - 8rem);
     padding-bottom: 2.625rem;
   }
 
@@ -170,7 +145,7 @@ const Wrapper = styled.div`
     min-height: 12.5rem;
 
     h3 {
-      color: ${(props) => props.theme.dropdown.primaryText};
+      color: ${(props) => props.theme.text};
       font-size: 1rem;
       font-weight: 500;
       margin-bottom: 0.5rem;
@@ -178,7 +153,7 @@ const Wrapper = styled.div`
     }
 
     p {
-      color: ${(props) => props.theme.dropdown.primaryText};
+      color: ${(props) => props.theme.text};
       opacity: 0.75;
       font-size: ${(props) => props.theme.font.size.xs};
       line-height: 1.5;
@@ -194,9 +169,9 @@ const Wrapper = styled.div`
     }
 
     .space-y-2 > button {
-      border: 0.0625rem solid ${(props) => props.theme.dropdown.primaryText};
+      border: 0.0625rem solid ${(props) => props.theme.text};
       background: transparent;
-      color: ${(props) => props.theme.dropdown.primaryText};
+      color: ${(props) => props.theme.text};
       padding: 0.5rem 1rem;
       border-radius: 0.375rem;
       width: 100%;
@@ -224,7 +199,7 @@ const Wrapper = styled.div`
     align-items: center;
     justify-content: center;
     padding: 2rem 1rem;
-    color: ${(props) => props.theme.dropdown.primaryText};
+    color: ${(props) => props.theme.text};
     font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.5;
     text-align: center;
@@ -232,7 +207,7 @@ const Wrapper = styled.div`
 
     svg {
       margin: 0 auto 1rem auto;
-      color: ${(props) => props.theme.dropdown.primaryText};
+      color: ${(props) => props.theme.text};
       opacity: 0.5;
     }
   }

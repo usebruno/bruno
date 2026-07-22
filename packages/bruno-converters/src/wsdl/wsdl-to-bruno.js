@@ -8,7 +8,7 @@ const generateUID = () => {
   return result;
 };
 
-import { get, each, filter } from 'lodash';
+import { get, each } from 'lodash';
 import { collectionSchema } from '@usebruno/schema';
 
 // --- Inlined from src/common/index.js ---

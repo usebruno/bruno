@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactJson from 'react-json-view';
-import ErrorAlert from 'ui/ErrorAlert/index';
+import ErrorBanner from 'ui/ErrorBanner';
 
 const JsonPreview = ({ data, displayedTheme }) => {
   // Helper function to validate and parse JSON data
@@ -29,16 +29,16 @@ const JsonPreview = ({ data, displayedTheme }) => {
 
   // Show error if parsing failed
   if (jsonData.error) {
-    return <ErrorAlert title="Cannot preview as JSON" message={jsonData.error} />;
+    return <ErrorBanner errors={[{ title: 'Cannot preview as JSON', message: jsonData.error }]} />;
   }
 
   // Validate that data can be rendered as JSON tree
   if (jsonData.data === null || jsonData.data === undefined) {
-    return <ErrorAlert title="Cannot preview as JSON" message="Data is null or undefined. Expected a valid JSON object or array." />;
+    return <ErrorBanner errors={[{ title: 'Cannot preview as JSON', message: 'Data is null or undefined. Expected a valid JSON object or array.' }]} />;
   }
 
   if (typeof jsonData.data !== 'object') {
-    return <ErrorAlert title="Cannot preview as JSON" message="Data cannot be rendered as a JSON tree. Expected a JSON object or array." />;
+    return <ErrorBanner errors={[{ title: 'Cannot preview as JSON', message: 'Data cannot be rendered as a JSON tree. Expected a JSON object or array.' }]} />;
   }
 
   return (

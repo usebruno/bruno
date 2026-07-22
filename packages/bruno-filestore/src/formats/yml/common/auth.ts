@@ -6,11 +6,26 @@ import type {
   AuthBearer,
   AuthDigest,
   AuthNTLM,
+  AuthOAuth1,
   AuthWsse
 } from '@opencollection/types/common/auth';
-import type { Auth as BrunoAuth } from '@usebruno/schema-types/common/auth';
+import type { Auth as BrunoAuth, AuthOauth1 as BrunoAuthOauth1 } from '@usebruno/schema-types/common/auth';
 import { isString } from '../../../utils';
 import { toOpenCollectionOAuth2, toBrunoOAuth2 } from './auth-oauth2';
+
+// EdgeGrid is a Bruno-specific auth mode that is not part of the OpenCollection spec,
+// so its shape is defined locally and serialized using the same field names as Bruno.
+interface AkamaiEdgeGridAuthValues {
+  type: 'akamai-edgegrid';
+  accessToken?: string;
+  clientToken?: string;
+  clientSecret?: string;
+  baseURL?: string | null;
+  nonce?: string | null;
+  timestamp?: string | null;
+  headersToSign?: string | null;
+  maxBodySize?: number | null;
+}
 
 const buildAwsV4Auth = (config?: BrunoAuth['awsv4']): AuthAwsV4 => {
   const auth: AuthAwsV4 = { type: 'awsv4' };
@@ -115,6 +130,54 @@ const buildApiKeyAuth = (config?: BrunoAuth['apikey']): AuthApiKey => {
   return auth;
 };
 
+const buildEdgeGridAuth = (config?: BrunoAuth['akamaiEdgegrid']): AkamaiEdgeGridAuthValues => {
+  const auth: AkamaiEdgeGridAuthValues = { type: 'akamai-edgegrid' };
+
+  if (!config) {
+    return auth;
+  }
+
+  if (isString(config.accessToken)) auth.accessToken = config.accessToken;
+  if (isString(config.clientToken)) auth.clientToken = config.clientToken;
+  if (isString(config.clientSecret)) auth.clientSecret = config.clientSecret;
+  if (isString(config.nonce)) auth.nonce = config.nonce;
+  if (isString(config.timestamp)) auth.timestamp = config.timestamp;
+  if (isString(config.baseURL)) auth.baseURL = config.baseURL;
+  if (isString(config.headersToSign)) auth.headersToSign = config.headersToSign;
+  if (typeof config.maxBodySize === 'number') auth.maxBodySize = config.maxBodySize;
+
+  return auth;
+};
+
+const buildOAuth1Auth = (config?: BrunoAuth['oauth1']): AuthOAuth1 => {
+  const auth: AuthOAuth1 = { type: 'oauth1' };
+
+  if (!config) {
+    return auth;
+  }
+
+  if (isString(config.consumerKey)) auth.consumerKey = config.consumerKey;
+  if (isString(config.consumerSecret)) auth.consumerSecret = config.consumerSecret;
+  if (isString(config.accessToken)) auth.accessToken = config.accessToken;
+  if (isString(config.accessTokenSecret)) auth.accessTokenSecret = config.accessTokenSecret;
+  if (isString(config.callbackUrl)) auth.callbackUrl = config.callbackUrl;
+  if (isString(config.verifier)) auth.verifier = config.verifier;
+  if (isString(config.signatureMethod)) auth.signatureMethod = config.signatureMethod;
+  if (isString(config.privateKey)) {
+    auth.privateKey = config.privateKeyType === 'file'
+      ? { type: 'file' as const, value: config.privateKey }
+      : { type: 'text' as const, value: config.privateKey };
+  }
+  if (isString(config.timestamp)) auth.timestamp = config.timestamp;
+  if (isString(config.nonce)) auth.nonce = config.nonce;
+  if (isString(config.version)) auth.version = config.version;
+  if (isString(config.realm)) auth.realm = config.realm;
+  if (isString(config.placement)) auth.placement = config.placement as AuthOAuth1['placement'];
+  if (typeof config.includeBodyHash === 'boolean') auth.includeBodyHash = config.includeBodyHash;
+
+  return auth;
+};
+
 export const toOpenCollectionAuth = (auth?: BrunoAuth | null): Auth | undefined => {
   if (!auth || auth.mode === 'none') {
     return undefined;
@@ -139,8 +202,12 @@ export const toOpenCollectionAuth = (auth?: BrunoAuth | null): Auth | undefined 
       return buildWsseAuth(auth.wsse);
     case 'apikey':
       return buildApiKeyAuth(auth.apikey);
+    case 'oauth1':
+      return buildOAuth1Auth(auth.oauth1);
     case 'oauth2':
       return toOpenCollectionOAuth2(auth.oauth2);
+    case 'akamai-edgegrid':
+      return buildEdgeGridAuth(auth.akamaiEdgegrid) as unknown as Auth;
     default:
       console.warn(`toOpenCollectionAuth failed: Unsupported auth mode "${auth.mode}".`);
       return undefined;
@@ -157,7 +224,8 @@ export const toBrunoAuth = (auth: Auth | null | undefined): BrunoAuth | null => 
     ntlm: null,
     oauth2: null,
     wsse: null,
-    apikey: null
+    apikey: null,
+    akamaiEdgegrid: null
   };
 
   if (!auth) {
@@ -166,6 +234,22 @@ export const toBrunoAuth = (auth: Auth | null | undefined): BrunoAuth | null => 
 
   if (auth === 'inherit') {
     brunoAuth.mode = 'inherit';
+    return brunoAuth;
+  }
+
+  if ((auth as unknown as AkamaiEdgeGridAuthValues).type === 'akamai-edgegrid') {
+    const edgegrid = auth as unknown as AkamaiEdgeGridAuthValues;
+    brunoAuth.mode = 'akamai-edgegrid';
+    brunoAuth.akamaiEdgegrid = {
+      accessToken: edgegrid.accessToken || '',
+      clientToken: edgegrid.clientToken || '',
+      clientSecret: edgegrid.clientSecret || '',
+      nonce: edgegrid.nonce || '',
+      timestamp: edgegrid.timestamp || '',
+      baseURL: edgegrid.baseURL || '',
+      headersToSign: edgegrid.headersToSign || '',
+      maxBodySize: typeof edgegrid.maxBodySize === 'number' ? edgegrid.maxBodySize : null
+    };
     return brunoAuth;
   }
 
@@ -193,7 +277,7 @@ export const toBrunoAuth = (auth: Auth | null | undefined): BrunoAuth | null => 
     case 'bearer':
       brunoAuth.mode = 'bearer';
       brunoAuth.bearer = {
-        token: auth.token || null
+        token: auth.token || ''
       };
       break;
 
@@ -228,6 +312,27 @@ export const toBrunoAuth = (auth: Auth | null | undefined): BrunoAuth | null => 
         key: auth.key || null,
         value: auth.value || null,
         placement: auth.placement === 'query' ? 'queryparams' : (auth.placement === 'header' ? 'header' : null)
+      };
+      break;
+
+    case 'oauth1':
+      brunoAuth.mode = 'oauth1';
+      brunoAuth.oauth1 = {
+        consumerKey: auth.consumerKey || null,
+        consumerSecret: auth.consumerSecret || null,
+        accessToken: auth.accessToken || null,
+        accessTokenSecret: auth.accessTokenSecret || null,
+        callbackUrl: auth.callbackUrl || null,
+        verifier: auth.verifier || null,
+        signatureMethod: (auth.signatureMethod as BrunoAuthOauth1['signatureMethod']) || 'HMAC-SHA1',
+        privateKey: (typeof auth.privateKey === 'object' && auth.privateKey ? auth.privateKey.value : auth.privateKey) || null,
+        privateKeyType: (typeof auth.privateKey === 'object' && auth.privateKey ? auth.privateKey.type : 'text') as BrunoAuthOauth1['privateKeyType'],
+        timestamp: auth.timestamp || null,
+        nonce: auth.nonce || null,
+        version: auth.version || '1.0',
+        realm: auth.realm || null,
+        placement: (auth.placement as BrunoAuthOauth1['placement']) || 'header',
+        includeBodyHash: auth.includeBodyHash || false
       };
       break;
 

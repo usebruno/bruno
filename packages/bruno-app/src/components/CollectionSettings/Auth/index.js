@@ -8,10 +8,13 @@ import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
 import WsseAuth from './WsseAuth';
 import ApiKeyAuth from './ApiKeyAuth/';
+import EdgeGridAuth from './EdgeGridAuth';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import OAuth2 from './OAuth2';
 import NTLMAuth from './NTLMAuth';
+import OAuth1 from './Oauth1';
+import Button from 'ui/Button';
 
 const Auth = ({ collection }) => {
   const authMode = collection.draft?.root ? get(collection, 'draft.root.request.auth.mode') : get(collection, 'root.request.auth.mode');
@@ -36,6 +39,9 @@ const Auth = ({ collection }) => {
       case 'ntlm': {
         return <NTLMAuth collection={collection} />;
       }
+      case 'oauth1': {
+        return <OAuth1 collection={collection} />;
+      }
       case 'oauth2': {
         return <OAuth2 collection={collection} />;
       }
@@ -44,6 +50,9 @@ const Auth = ({ collection }) => {
       }
       case 'apikey': {
         return <ApiKeyAuth collection={collection} />;
+      }
+      case 'akamai-edgegrid': {
+        return <EdgeGridAuth collection={collection} />;
       }
     }
   };
@@ -59,9 +68,9 @@ const Auth = ({ collection }) => {
       </div>
       {getAuthView()}
       <div className="mt-6">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+        <Button type="submit" size="sm" onClick={handleSave}>
           Save
-        </button>
+        </Button>
       </div>
     </StyledWrapper>
   );

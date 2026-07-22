@@ -1,6 +1,7 @@
 const os = require('os');
 const fs = require('fs');
 const xmlbuilder = require('xmlbuilder');
+const { stripExtension } = require('../utils/filesystem');
 
 const makeJUnitOutput = async (results, outputPath) => {
   const output = {
@@ -15,9 +16,11 @@ const makeJUnitOutput = async (results, outputPath) => {
     const testCount = result.testResults ? result.testResults.length : 0;
     const postResponseTestCount = result.postResponseTestResults ? result.postResponseTestResults.length : 0;
     const totalTests = assertionTestCount + preRequestTestCount + testCount + postResponseTestCount;
+    const classname = stripExtension(result.path);
 
     const suite = {
       '@name': result.name,
+      '@file': result.test.filename,
       '@errors': 0,
       '@failures': 0,
       '@skipped': 0,
@@ -33,7 +36,7 @@ const makeJUnitOutput = async (results, outputPath) => {
       const testcase = {
         '@name': `${assertion.lhsExpr} ${assertion.rhsExpr}`,
         '@status': assertion.status,
-        '@classname': result.request.url,
+        '@classname': classname,
         '@time': (result.runDuration / totalTests).toFixed(3)
       };
 
@@ -51,7 +54,7 @@ const makeJUnitOutput = async (results, outputPath) => {
       const testcase = {
         '@name': test.description,
         '@status': test.status,
-        '@classname': result.request.url,
+        '@classname': classname,
         '@time': (result.runDuration / totalTests).toFixed(3)
       };
 
@@ -69,7 +72,7 @@ const makeJUnitOutput = async (results, outputPath) => {
       const testcase = {
         '@name': test.description,
         '@status': test.status,
-        '@classname': result.request.url,
+        '@classname': classname,
         '@time': (result.runDuration / totalTests).toFixed(3)
       };
 
@@ -87,7 +90,7 @@ const makeJUnitOutput = async (results, outputPath) => {
       const testcase = {
         '@name': test.description,
         '@status': test.status,
-        '@classname': result.request.url,
+        '@classname': classname,
         '@time': (result.runDuration / totalTests).toFixed(3)
       };
 
@@ -109,7 +112,7 @@ const makeJUnitOutput = async (results, outputPath) => {
         {
           '@name': 'Test suite has no errors',
           '@status': 'fail',
-          '@classname': result.request.url,
+          '@classname': classname,
           '@time': result.runDuration.toFixed(3),
           'error': [{ '@type': 'error', '@message': result.error }]
         }

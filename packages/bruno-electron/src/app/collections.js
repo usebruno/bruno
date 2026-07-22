@@ -4,17 +4,35 @@ const { dialog, ipcMain } = require('electron');
 const Yup = require('yup');
 const { isDirectory, getCollectionStats, normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
-const { transformBrunoConfigAfterRead } = require('../utils/transfomBrunoConfig');
+const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { parseCollection } = require('@usebruno/filestore');
+
+// Track scratch collection paths (temp directories for workspace scratch requests)
+const scratchCollectionPaths = new Set();
+
+// Register a scratch collection path
+const registerScratchCollectionPath = (scratchPath) => {
+  scratchCollectionPaths.add(path.normalize(scratchPath));
+};
 
 // todo: bruno.json config schema validation errors must be propagated to the UI
 const configSchema = Yup.object({
   name: Yup.string().max(256, 'name must be 256 characters or less').required('name is required'),
   type: Yup.string().oneOf(['collection']).required('type is required'),
-  // For BRU format collections
-  version: Yup.string().oneOf(['1']).notRequired(),
+  version: Yup.string().notRequired(),
   // For YAML format collections (opencollection)
-  opencollection: Yup.string().notRequired()
+  opencollection: Yup.string().notRequired(),
+  // OpenAPI sync configuration (array, one entry per synced spec)
+  openapi: Yup.array().of(
+    Yup.object({
+      sourceUrl: Yup.string().notRequired(),
+      lastSyncDate: Yup.string().notRequired(),
+      specHash: Yup.string().notRequired(),
+      groupBy: Yup.string().oneOf(['tags', 'path']).notRequired(),
+      autoCheck: Yup.boolean().notRequired(),
+      autoCheckInterval: Yup.number().notRequired()
+    })
+  ).notRequired()
 });
 
 const readConfigFile = async (pathname) => {
@@ -22,7 +40,7 @@ const readConfigFile = async (pathname) => {
     const jsonData = fs.readFileSync(pathname, 'utf8');
     return JSON.parse(jsonData);
   } catch (err) {
-    return Promise.reject(new Error('Unable to parse json in bruno.json'));
+    return Promise.reject(new Error(`Unable to parse json in bruno.json in ${pathname}`));
   }
 };
 
@@ -30,7 +48,7 @@ const validateSchema = async (config) => {
   try {
     await configSchema.validate(config);
   } catch (err) {
-    return Promise.reject(new Error('bruno.json format is invalid'));
+    return Promise.reject(new Error('bruno.json format is invalid in ' + config?.name));
   }
 };
 
@@ -98,53 +116,116 @@ const openCollectionDialog = async (win, watcher) => {
 };
 
 const openCollection = async (win, watcher, collectionPath, options = {}) => {
-  if (!watcher.hasWatcher(collectionPath)) {
+  // If watcher already exists, collection is already loaded in the app
+  // Just send the collection info so frontend can add to workspace if needed
+  if (watcher.hasWatcher(collectionPath)) {
     try {
       let brunoConfig = await getCollectionConfigFile(collectionPath);
       const uid = generateUidBasedOnHash(collectionPath);
-
-      // Always ensure node_modules and .git are ignored, regardless of user config
-      // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
-      const defaultIgnores = ['node_modules', '.git'];
-      const userIgnores = brunoConfig.ignore || [];
-      brunoConfig.ignore = [...new Set([...defaultIgnores, ...userIgnores])];
-
-      // Transform the config to add existence checks for protobuf files and import paths
       brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
-
       const { size, filesCount } = await getCollectionStats(collectionPath);
       brunoConfig.size = size;
       brunoConfig.filesCount = filesCount;
-
       win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
-      ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
+      return {
+        path: collectionPath,
+        opened: true,
+        alreadyOpen: true,
+        uid
+      };
     } catch (err) {
       if (!options.dontSendDisplayErrors) {
         win.webContents.send('main:display-error', {
           message: err.message || 'An error occurred while opening the local collection'
         });
       }
+      return {
+        path: collectionPath,
+        opened: false,
+        error: err.message || 'An error occurred while opening the local collection'
+      };
     }
-  } else {
-    win.webContents.send('main:collection-already-opened', collectionPath);
+  }
+
+  try {
+    let brunoConfig = await getCollectionConfigFile(collectionPath);
+    const uid = generateUidBasedOnHash(collectionPath);
+
+    // Always ensure node_modules and .git are ignored, regardless of user config
+    const defaultIgnores = ['node_modules', '.git'];
+    const userIgnores = brunoConfig.ignore || [];
+    brunoConfig.ignore = [...new Set([...defaultIgnores, ...userIgnores])];
+
+    brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
+
+    const { size, filesCount } = await getCollectionStats(collectionPath);
+    brunoConfig.size = size;
+    brunoConfig.filesCount = filesCount;
+
+    win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+    ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
+    return {
+      path: collectionPath,
+      opened: true,
+      alreadyOpen: false,
+      uid
+    };
+  } catch (err) {
+    if (!options.dontSendDisplayErrors) {
+      win.webContents.send('main:display-error', {
+        message: err.message || 'An error occurred while opening the local collection'
+      });
+    }
+    return {
+      path: collectionPath,
+      opened: false,
+      error: err.message || 'An error occurred while opening the local collection'
+    };
   }
 };
 
 const openCollectionsByPathname = async (win, watcher, collectionPaths, options = {}) => {
+  const seenPaths = new Set();
+  const result = {
+    opened: [],
+    failed: [],
+    invalid: []
+  };
+
   for (const collectionPath of collectionPaths) {
     const resolvedPath = path.isAbsolute(collectionPath)
       ? collectionPath
       : normalizeAndResolvePath(collectionPath);
+
+    const normalizedPath = path.normalize(resolvedPath);
+    if (seenPaths.has(normalizedPath)) {
+      continue;
+    }
+    seenPaths.add(normalizedPath);
+
     if (isDirectory(resolvedPath)) {
-      await openCollection(win, watcher, resolvedPath, options);
+      const openResult = await openCollection(win, watcher, resolvedPath, options);
+      if (openResult?.opened) {
+        result.opened.push(openResult.path);
+      } else {
+        result.failed.push({
+          path: resolvedPath,
+          error: openResult?.error || 'Failed to open collection'
+        });
+      }
     } else {
       console.error(`Cannot open unknown folder: "${resolvedPath}"`);
+      result.invalid.push(resolvedPath);
     }
   }
+
+  return result;
 };
 
 module.exports = {
+  getCollectionConfigFile,
   openCollection,
   openCollectionDialog,
-  openCollectionsByPathname
+  openCollectionsByPathname,
+  registerScratchCollectionPath
 };

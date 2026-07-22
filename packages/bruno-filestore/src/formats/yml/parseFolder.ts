@@ -4,8 +4,9 @@ import { parseYml } from './utils';
 import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
 import { toBrunoVariables } from './common/variables';
+import { toBrunoPostResponseVariables } from './common/actions';
 import { toBrunoScripts } from './common/scripts';
-import { isNonEmptyString } from '../../utils';
+import { ensureString } from '../../utils';
 
 const parseFolder = (ymlString: string): FolderRoot => {
   try {
@@ -15,18 +16,12 @@ const parseFolder = (ymlString: string): FolderRoot => {
 
     const folderRoot: FolderRoot = {
       meta: {
-        name: info?.name || 'Untitled Folder',
+        name: ensureString(info?.name, 'Untitled Folder'),
         seq: info?.seq || 1
       },
-      request: null,
-      docs: null
-    };
-
-    // request defaults
-    if (ocFolder.request) {
-      folderRoot.request = {
+      request: {
         headers: [],
-        auth: null,
+        auth: toBrunoAuth(ocFolder.request?.auth),
         script: {
           req: null,
           res: null
@@ -36,36 +31,39 @@ const parseFolder = (ymlString: string): FolderRoot => {
           res: []
         },
         tests: null
-      };
+      },
+      docs: null
+    };
+
+    if (ocFolder.request) {
+      const folderRequest = folderRoot.request!;
 
       // headers
       const headers = toBrunoHttpHeaders(ocFolder.request.headers);
       if (headers) {
-        folderRoot.request.headers = headers;
-      }
-
-      // auth
-      const auth = toBrunoAuth(ocFolder.request.auth);
-      if (auth) {
-        folderRoot.request.auth = auth;
+        folderRequest.headers = headers;
       }
 
       // variables
       const variables = toBrunoVariables(ocFolder.request.variables);
-      folderRoot.request.vars = variables;
+      const postResponseVars = toBrunoPostResponseVariables((ocFolder.request as any).actions);
+      folderRequest.vars = {
+        req: variables.req,
+        res: postResponseVars
+      };
 
       // scripts
       const scripts = toBrunoScripts(ocFolder.request.scripts);
-      if (scripts?.script && folderRoot.request.script) {
+      if (scripts?.script && folderRequest.script) {
         if (scripts.script.req) {
-          folderRoot.request.script.req = scripts.script.req;
+          folderRequest.script.req = scripts.script.req;
         }
         if (scripts.script.res) {
-          folderRoot.request.script.res = scripts.script.res;
+          folderRequest.script.res = scripts.script.res;
         }
       }
       if (scripts?.tests) {
-        folderRoot.request.tests = scripts.tests;
+        folderRequest.tests = scripts.tests;
       }
     }
 

@@ -30,11 +30,11 @@ const StyledWrapper = styled.div`
     box-shadow: none;
     transition: border-color ease-in-out 0.1s;
     border-radius: 3px;
-    background-color: ${(props) => props.theme.modal.input.bg};
-    border: 1px solid ${(props) => props.theme.modal.input.border};
+    background-color: ${(props) => props.theme.input.bg};
+    border: 1px solid ${(props) => props.theme.input.border};
 
     &:focus {
-      border: solid 1px ${(props) => props.theme.modal.input.focusBorder} !important;
+      border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
       outline: none !important;
     }
   }
@@ -48,32 +48,37 @@ const StyledWrapper = styled.div`
   }
 
   .protocol-https,
-  .protocol-grpcs {
+  .protocol-grpcs,
+  .protocol-wss {
     position: absolute;
     right: 8px;
     top: 0;
     bottom: 0;
-    transition: transform 0.3s ease-in-out;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   .protocol-https {
-    animation: slideUpDown 6s infinite;
+    animation: slideUpDown 9s infinite;
     transform: translateY(0);
   }
 
   .protocol-grpcs {
-    animation: slideUpDown 6s infinite 3s;
+    animation: slideUpDown 9s infinite 3s;
+    transform: translateY(100%);
+  }
+
+  .protocol-wss {
+    animation: slideUpDown 9s infinite 6s;
     transform: translateY(100%);
   }
 
   @keyframes slideUpDown {
-    0%, 45% {
+    0%, 30% {
       transform: translateY(0);
     }
-    50%, 95% {
+    33.33%, 97% {
       transform: translateY(100%);
     }
     100% {

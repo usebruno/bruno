@@ -15,6 +15,8 @@ import StyledWrapper from './StyledWrapper';
  * @param {string} props.title - Title attribute (falls back to label or aria-label)
  * @param {string} [props.ariaLabel] - Accessibility label (falls back to label or title)
  * @param {string} props.colorOnHover - Color to apply to icon on hover/focus (e.g., 'red', '#ef4444', 'var(--color-danger)')
+ * @param {string} props.color - Color to override the default variant color (e.g., 'red', '#ef4444', 'var(--color-text)')
+ * @param {Object} props.style - Style object to override the default variant style (e.g., 'width: 16px; min-width: 16px;')
  * @param {Object} props...rest - Other props passed to the underlying element
  */
 const ActionIcon = ({
@@ -27,6 +29,8 @@ const ActionIcon = ({
   label,
   'aria-label': ariaLabel,
   colorOnHover,
+  color,
+  style,
   ...rest
 }) => {
   // Build className array and filter out empty strings
@@ -38,10 +42,12 @@ const ActionIcon = ({
       $variant={variant}
       $size={size}
       $colorOnHover={colorOnHover}
+      $color={color}
       disabled={disabled}
       className={classNames}
       title={label}
       aria-label={ariaLabel}
+      style={style}
       {...rest}
     >
       {children}

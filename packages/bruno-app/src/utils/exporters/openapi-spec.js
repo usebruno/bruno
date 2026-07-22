@@ -3,8 +3,9 @@ import { interpolate } from '@usebruno/common';
 import { isValidUrl } from 'utils/url/index';
 const xml2js = require('xml2js');
 
-export const exportApiSpec = ({ variables, items, name }) => {
-  items = items.filter((item) => !['grpc-request'].includes(item.type));
+export const exportApiSpec = ({ variables, items, name, environments }) => {
+  // Filter only include http-request and graphql-request items that aren't transient
+  items = items.filter((item) => ['http-request', 'graphql-request'].includes(item.type) && !item.isTransient);
 
   const components = {
     schemas: {},
@@ -22,17 +23,65 @@ export const exportApiSpec = ({ variables, items, name }) => {
     });
   };
 
-  const addUrlToServersList = (url) => {
-    if (!servers?.find((s) => s?.url === url)) {
-      servers.push({ url });
+  const templateVarRegex = /\{\{([^}]+)\}\}/g;
+
+  // Build an OpenAPI server entry from a URL (supports {{var}} templates)
+  const buildServerEntry = (url, vars, description) => {
+    const cleanedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+    const matches = [...cleanedUrl.matchAll(templateVarRegex)];
+    const entry = {};
+
+    if (matches.length > 0) {
+      entry.url = cleanedUrl.replace(templateVarRegex, '{$1}');
+      const serverVariables = {};
+
+      // each match m is an array where m[0] is the full match (e.g. {{protocol}}) and m[1] is the capture group (e.g. protocol).
+      matches.forEach((m) => {
+        const varName = m[1];
+        serverVariables[varName] = { default: vars[varName] !== undefined ? String(vars[varName]) : '' };
+      });
+      if (Object.keys(serverVariables).length > 0) {
+        entry.variables = serverVariables;
+      }
+    } else {
+      entry.url = cleanedUrl;
     }
+
+    if (description) entry.description = description;
+    return entry;
   };
+
+  // Collect all baseUrl sources: collection variables + each environment
+  // Each source becomes a self-contained server entry in the OpenAPI spec.
+  // On import, each server entry maps to a separate Bruno environment.
+  const baseUrlSources = [];
+
+  // Add collection-level baseUrl if present
+  const collectionBaseUrl = variables?.baseUrl || '';
+  if (collectionBaseUrl) {
+    baseUrlSources.push({ baseUrl: collectionBaseUrl, description: 'Base Server', vars: variables });
+  }
+
+  // Add each environment that defines its own baseUrl
+  if (environments && environments.length > 0) {
+    for (const env of environments) {
+      const envVars = getEnabledVarsAsObject(env.variables);
+      if (envVars.baseUrl) {
+        baseUrlSources.push({ baseUrl: envVars.baseUrl, description: env.name, vars: envVars });
+      }
+    }
+  }
+
+  // Build root server entries
+  for (const source of baseUrlSources) {
+    servers.push(buildServerEntry(source.baseUrl, source.vars, source.description));
+  }
 
   const extractTagFromDepth = (item) => {
     const { pathname, depth } = item;
     if (!pathname) return;
 
-    const parts = pathname.split('\\');
+    const parts = pathname.split(/[\\/]/);
     const baseDepth = parts.length - depth;
     if (depth === 1) return '';
 
@@ -41,14 +90,68 @@ export const exportApiSpec = ({ variables, items, name }) => {
     return parts[tagIndex];
   };
 
+  const componentIds = new Set();
+
+  const getComponentId = (item) => {
+    const baseId = String(item?.name || 'request')
+      .replace(/[^a-zA-Z0-9._-]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .toLowerCase() || 'request';
+    let componentId = baseId;
+    let suffix = 1;
+
+    while (componentIds.has(componentId)) {
+      componentId = `${baseId}_${suffix}`;
+      suffix += 1;
+    }
+    componentIds.add(componentId);
+
+    return componentId;
+  };
+
+  // Resolve a raw request URL to a path and optional operation-level server override.
+  // Checks for request-level baseUrl overrides (vars.req), then {{baseUrl}} placeholder,
+  // then known baseUrl sources. Falls back to full resolution for unknown URLs.
+  const resolveRequestUrl = (rawUrl, requestVars) => {
+    // Request has a baseUrl override in vars.req — export as operation-level server
+    if (rawUrl.startsWith('{{baseUrl}}') && requestVars) {
+      const baseUrlOverride = requestVars.find((v) => v.name === 'baseUrl' && v.enabled);
+      if (baseUrlOverride) {
+        const reqVarsMap = {};
+        requestVars.filter((v) => v.enabled).forEach((v) => { reqVarsMap[v.name] = v.value; });
+        const path = rawUrl.slice('{{baseUrl}}'.length) || '/';
+        return { url: interpolate(path, reqVarsMap), operationLevelServer: buildServerEntry(baseUrlOverride.value, reqVarsMap) };
+      }
+    }
+
+    // URL uses {{baseUrl}} placeholder — strip it and resolve remaining path
+    if (rawUrl.startsWith('{{baseUrl}}')) {
+      const path = rawUrl.slice('{{baseUrl}}'.length) || '/';
+      return { url: interpolate(path, {}), operationLevelServer: null };
+    }
+
+    // URL matches a known baseUrl value directly (e.g. user typed template vars inline)
+    for (const source of baseUrlSources) {
+      if (rawUrl.startsWith(source.baseUrl)) {
+        const rawPath = rawUrl.slice(source.baseUrl.length);
+        const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+        return { url: interpolate(path, {}), operationLevelServer: null };
+      }
+    }
+
+    // Unknown URL — resolve fully and add operation-level server override
+    const resolvedUrl = interpolate(rawUrl, variables);
+    if (isValidUrl(resolvedUrl)) {
+      const urlDetails = new URL(resolvedUrl);
+      return { url: urlDetails.pathname, operationLevelServer: buildServerEntry(urlDetails.origin, variables) };
+    }
+
+    return { url: rawUrl, operationLevelServer: null };
+  };
+
   const generatePaths = () => {
     const _items = items.map((item) => {
-      let url = interpolate(item?.request?.url, variables);
-      if (isValidUrl(url)) {
-        let urlDetails = new URL(url);
-        urlDetails?.pathname && (url = urlDetails?.pathname);
-        urlDetails?.origin && addUrlToServersList(urlDetails?.origin);
-      }
+      const { url, operationLevelServer } = resolveRequestUrl(item?.request?.url || '', item?.request?.vars?.req);
       const { request } = item;
       const { method, params = [], headers = [], body, auth } = request || {};
 
@@ -58,26 +161,43 @@ export const exportApiSpec = ({ variables, items, name }) => {
 
       const pathMatches = url.match(pathParamsRegex) || [];
 
+      // Build known path param names from the params array
+      const knownPathParamNames = new Set(
+        params?.filter((p) => p?.type === 'path').map((p) => p?.name) || []
+      );
+
       const parameters = [
-        ...params?.map((param) => ({
+        // Query params (exclude path-type params to avoid duplication)
+        ...params?.filter((p) => p?.type !== 'path').map((param) => ({
           name: param?.name,
           in: 'query',
-          description: '',
+          description: param?.description || '',
           required: param?.enabled,
           example: param?.value
         })),
         ...headers?.map((header) => ({
           name: header?.name,
           in: 'header',
-          description: '',
+          description: header?.description || '',
           required: header?.enabled,
           example: header?.value
         })),
-        ...pathMatches?.map((path) => ({
-          name: path.slice(1, path.length - 1),
+        // Path params from the params array (have values from Bruno)
+        ...params?.filter((p) => p?.type === 'path').map((param) => ({
+          name: param?.name,
           in: 'path',
-          required: true
-        }))
+          required: true,
+          example: param?.value
+        })),
+        // Path params from URL regex that aren't already in the params array
+        ...pathMatches
+          ?.map((path) => path.slice(1, path.length - 1))
+          .filter((name) => !knownPathParamNames.has(name))
+          .map((name) => ({
+            name,
+            in: 'path',
+            required: true
+          }))
       ];
 
       const pathBody = {
@@ -98,21 +218,29 @@ export const exportApiSpec = ({ variables, items, name }) => {
 
       // BODY
 
-      let schemaId = `${item?.name?.split(' ').join('_').toLowerCase()}`;
-      let securitySchemaId = `${item?.name?.split(' ').join('_').toLowerCase()}`;
-      let requestBodyId = `${item?.name?.split(' ').join('_').toLowerCase()}`;
+      let componentId;
+      const getItemComponentId = () => {
+        if (!componentId) {
+          componentId = getComponentId(item);
+        }
+
+        return componentId;
+      };
       if (body?.mode) {
         switch (body?.mode) {
           case 'json':
             if (!body?.json) break;
             try {
+              const componentId = getItemComponentId();
               const parsedJson = JSON.parse(body.json);
-              components.schemas[schemaId] = generateProperyShape(parsedJson);
-              components.requestBodies[requestBodyId] = {
+              const schema = generateProperyShape(parsedJson);
+              schema.example = parsedJson;
+              components.schemas[componentId] = schema;
+              components.requestBodies[componentId] = {
                 content: {
                   'application/json': {
                     schema: {
-                      $ref: `#/components/schemas/${schemaId}`
+                      $ref: `#/components/schemas/${componentId}`
                     }
                   }
                 },
@@ -120,19 +248,20 @@ export const exportApiSpec = ({ variables, items, name }) => {
                 required: true
               };
               pathBody['requestBody'] = {
-                $ref: `#/components/requestBodies/${requestBodyId}`
+                $ref: `#/components/requestBodies/${componentId}`
               };
             } catch (error) {
               addWarning(`Failed to parse JSON in request body: ${error.message}`, item?.name);
-              components.schemas[schemaId] = {
+              const componentId = getItemComponentId();
+              components.schemas[componentId] = {
                 type: 'object',
                 properties: {}
               };
-              components.requestBodies[requestBodyId] = {
+              components.requestBodies[componentId] = {
                 content: {
                   'application/json': {
                     schema: {
-                      $ref: `#/components/schemas/${schemaId}`
+                      $ref: `#/components/schemas/${componentId}`
                     }
                   }
                 },
@@ -140,7 +269,7 @@ export const exportApiSpec = ({ variables, items, name }) => {
                 required: true
               };
               pathBody['requestBody'] = {
-                $ref: `#/components/requestBodies/${requestBodyId}`
+                $ref: `#/components/requestBodies/${componentId}`
               };
             }
             break;
@@ -152,12 +281,15 @@ export const exportApiSpec = ({ variables, items, name }) => {
                 addWarning('Failed to parse XML in request body', item?.name);
                 break;
               }
-              components.schemas[schemaId] = generateProperyShape(jsonResult);
-              components.requestBodies[requestBodyId] = {
+              const componentId = getItemComponentId();
+              const xmlSchema = generateProperyShape(jsonResult);
+              xmlSchema.example = jsonResult;
+              components.schemas[componentId] = xmlSchema;
+              components.requestBodies[componentId] = {
                 content: {
                   'application/xml': {
                     schema: {
-                      $ref: `#/components/schemas/${schemaId}`
+                      $ref: `#/components/schemas/${componentId}`
                     }
                   }
                 },
@@ -165,24 +297,29 @@ export const exportApiSpec = ({ variables, items, name }) => {
                 required: true
               };
               pathBody['requestBody'] = {
-                $ref: `#/components/requestBodies/${requestBodyId}`
+                $ref: `#/components/requestBodies/${componentId}`
               };
             } catch (error) {
               addWarning(`Failed to parse XML in request body: ${error.message}`, item?.name);
             }
             break;
           case 'multipartForm':
-            if (!body?.multipartForm) return;
-            let multipartFormToKeyValue = body?.multipartForm.reduce((acc, f) => {
-              acc[f?.name] = f.value;
-              return acc;
-            }, {});
-            components.schemas[schemaId] = generateProperyShape(multipartFormToKeyValue);
-            components.requestBodies[requestBodyId] = {
+            if (!body?.multipartForm) break;
+            const multipartFormComponentId = getItemComponentId();
+            {
+              const multipartFormProps = {};
+              body.multipartForm.forEach((f) => {
+                const prop = generateProperyShape(f.value);
+                if (f.description) prop.description = f.description;
+                multipartFormProps[f.name] = prop;
+              });
+              components.schemas[multipartFormComponentId] = { type: 'object', properties: multipartFormProps };
+            }
+            components.requestBodies[multipartFormComponentId] = {
               content: {
-                'multipart/form-data:': {
+                'multipart/form-data': {
                   schema: {
-                    $ref: `#/components/schemas/${schemaId}`
+                    $ref: `#/components/schemas/${multipartFormComponentId}`
                   }
                 }
               },
@@ -190,20 +327,26 @@ export const exportApiSpec = ({ variables, items, name }) => {
               required: true
             };
             pathBody['requestBody'] = {
-              $ref: `#/components/requestBodies/${requestBodyId}`
+              $ref: `#/components/requestBodies/${multipartFormComponentId}`
             };
+            break;
           case 'formUrlEncoded':
-            if (!body?.formUrlEncoded) return;
-            let formUrlEncodedToKeyValue = body?.formUrlEncoded.reduce((acc, f) => {
-              acc[f?.name] = f.value;
-              return acc;
-            }, {});
-            components.schemas[schemaId] = generateProperyShape(formUrlEncodedToKeyValue);
-            components.requestBodies[requestBodyId] = {
+            if (!body?.formUrlEncoded) break;
+            const formUrlEncodedComponentId = getItemComponentId();
+            {
+              const formUrlEncodedProps = {};
+              body.formUrlEncoded.forEach((f) => {
+                const prop = generateProperyShape(f.value);
+                if (f.description) prop.description = f.description;
+                formUrlEncodedProps[f.name] = prop;
+              });
+              components.schemas[formUrlEncodedComponentId] = { type: 'object', properties: formUrlEncodedProps };
+            }
+            components.requestBodies[formUrlEncodedComponentId] = {
               content: {
-                'application/x-www-form-urlencoded:': {
+                'application/x-www-form-urlencoded': {
                   schema: {
-                    $ref: `#/components/schemas/${schemaId}`
+                    $ref: `#/components/schemas/${formUrlEncodedComponentId}`
                   }
                 }
               },
@@ -211,10 +354,11 @@ export const exportApiSpec = ({ variables, items, name }) => {
               required: true
             };
             pathBody['requestBody'] = {
-              $ref: `#/components/requestBodies/${requestBodyId}`
+              $ref: `#/components/requestBodies/${formUrlEncodedComponentId}`
             };
+            break;
           case 'text':
-            if (!body?.text) return;
+            if (!body?.text) break;
             pathBody['requestBody'] = {
               content: {
                 'text/plain': {
@@ -224,6 +368,7 @@ export const exportApiSpec = ({ variables, items, name }) => {
                 }
               }
             };
+            break;
           default:
             break;
         }
@@ -234,109 +379,98 @@ export const exportApiSpec = ({ variables, items, name }) => {
       if (auth?.mode) {
         switch (auth?.mode) {
           case 'basic':
-            components.securitySchemes[securitySchemaId] = {
+            componentId = getItemComponentId();
+            components.securitySchemes[componentId] = {
               type: 'http',
               scheme: 'basic'
             };
             pathBody['security'] = {
-              [securitySchemaId]: []
+              [componentId]: []
             };
             break;
           case 'bearer':
-            components.securitySchemes[securitySchemaId] = {
+            componentId = getItemComponentId();
+            components.securitySchemes[componentId] = {
               type: 'http',
               scheme: 'bearer'
             };
             pathBody['security'] = {
-              [securitySchemaId]: []
+              [componentId]: []
             };
             break;
-          case 'oauth2':
+          case 'oauth2': {
             if (!auth?.oauth2?.grantType) break;
+            componentId = getItemComponentId();
             const { authorizationUrl, accessTokenUrl, callbackUrl, scope } = auth?.oauth2;
+            const scopes = scope ? { [scope]: '' } : {};
             switch (auth?.oauth2?.grantType) {
               case 'authorization_code':
-                components.securitySchemes[securitySchemaId] = {
+                components.securitySchemes[componentId] = {
                   type: 'oauth2',
                   flows: {
                     authorizationCode: {
                       authorizationUrl,
                       tokenUrl: accessTokenUrl,
-                      ...(scope.length > 0
-                        ? {
-                            scopes: {
-                              [scope]: ''
-                            }
-                          }
-                        : {})
+                      scopes
                     }
                   }
                 };
                 pathBody['security'] = {
-                  [securitySchemaId]: []
+                  [componentId]: []
                 };
                 break;
               case 'password':
-                components.securitySchemes[securitySchemaId] = {
+                components.securitySchemes[componentId] = {
                   type: 'oauth2',
                   flows: {
                     password: {
                       tokenUrl: accessTokenUrl,
-                      ...(scope.length > 0
-                        ? {
-                            scopes: {
-                              [scope]: ''
-                            }
-                          }
-                        : {})
+                      scopes
                     }
                   }
                 };
                 pathBody['security'] = {
-                  [securitySchemaId]: []
+                  [componentId]: []
                 };
                 break;
               case 'client_credentials':
-                components.securitySchemes[securitySchemaId] = {
+                components.securitySchemes[componentId] = {
                   type: 'oauth2',
                   flows: {
                     password: {
                       tokenUrl: accessTokenUrl,
-                      ...(scope.length > 0
-                        ? {
-                            scopes: {
-                              [scope]: ''
-                            }
-                          }
-                        : {})
+                      scopes
                     }
                   }
                 };
                 pathBody['security'] = {
-                  [securitySchemaId]: []
+                  [componentId]: []
                 };
                 break;
             }
             break;
+          }
           case 'awsv4':
-            components.securitySchemes[securitySchemaId] = {
+            componentId = getItemComponentId();
+            components.securitySchemes[componentId] = {
               'type': 'apiKey',
               'name': 'Authorization',
               'in': 'header',
               'x-amazon-apigateway-authtype': 'awsSigv4'
             };
             pathBody['security'] = {
-              [securitySchemaId]: []
+              [componentId]: []
             };
             break;
           case 'digest':
-            components.securitySchemes[securitySchemaId] = {
+            componentId = getItemComponentId();
+            components.securitySchemes[componentId] = {
               type: 'digest',
               scheme: 'digest',
               description: 'Digest Authentication'
             };
             pathBody['security'] = {
-              [securitySchemaId]: []
+              [componentId]: []
             };
             break;
           default:
@@ -347,7 +481,8 @@ export const exportApiSpec = ({ variables, items, name }) => {
       return {
         url,
         method: method.toLowerCase(),
-        data: pathBody
+        data: pathBody,
+        operationLevelServer
       };
     });
 
@@ -355,7 +490,24 @@ export const exportApiSpec = ({ variables, items, name }) => {
       if (!acc[item?.url]) {
         acc[item?.url] = {};
       }
-      acc[item?.url][item?.method] = item?.data;
+      const operation = item?.data;
+
+      if (item?.operationLevelServer) {
+        // Add operation-level server override inside the operation object (not path-item level)
+        // so the import can read it back from operationObject.servers
+        operation.servers = [item.operationLevelServer];
+      }
+
+      let operationObject = acc[item?.url][item?.method];
+
+      if (operationObject) {
+        operationObject['x-bruno-variants'] = [
+          ...(operationObject['x-bruno-variants'] || []),
+          operation
+        ];
+      } else {
+        acc[item?.url][item?.method] = operation;
+      }
       return acc;
     }, {});
   };
@@ -395,6 +547,17 @@ const generateInfoSection = (name) => {
     title: name,
     version: '1.0.0'
   };
+};
+
+// Convert env variable array to { name: value } object (only enabled vars)
+const getEnabledVarsAsObject = (variables = []) => {
+  const result = {};
+  variables.forEach((v) => {
+    if (v.name && v.enabled) {
+      result[v.name] = v.value;
+    }
+  });
+  return result;
 };
 
 const generateProperyShape = (obj) => {

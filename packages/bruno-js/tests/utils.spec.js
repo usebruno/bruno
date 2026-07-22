@@ -1,5 +1,12 @@
 const { describe, it, expect } = require('@jest/globals');
-const { evaluateJsExpression, internalExpressionCache: cache, createResponseParser, cleanJson } = require('../src/utils');
+const {
+  evaluateJsExpression,
+  evaluateJsTemplateLiteral,
+  internalExpressionCache: cache,
+  createResponseParser,
+  cleanJson,
+  cleanCircularJson
+} = require('../src/utils');
 
 describe('utils', () => {
   describe('expression evaluation', () => {
@@ -211,6 +218,127 @@ describe('utils', () => {
       };
 
       expect(cleanJson(input)).toEqual(input);
+    });
+
+    it('replaces circular references with [Circular Reference]', () => {
+      const obj = { a: 1 };
+      obj.self = obj;
+      expect(cleanJson(obj)).toEqual({ a: 1, self: '[Circular Reference]' });
+    });
+
+    it('serializes Error instances with all own properties', () => {
+      const err = new Error('oops');
+      const out = cleanJson(err);
+      expect(out).toMatchObject({ message: 'oops', name: 'Error' });
+      expect(typeof out.stack).toBe('string');
+    });
+
+    it('serializes Error with extra own properties (code, cause)', () => {
+      const err = new Error('failed');
+      err.code = 'ERR_FAILED';
+      err.cause = new Error('root cause');
+      const out = cleanJson(err);
+      expect(out.message).toBe('failed');
+      expect(out.code).toBe('ERR_FAILED');
+      expect(out.cause).toMatchObject({ message: 'root cause', name: 'Error' });
+      expect(typeof out.cause.stack).toBe('string');
+    });
+
+    it('serializes Error subclasses', () => {
+      const err = new TypeError('type oops');
+      const out = cleanJson(err);
+      expect(out).toMatchObject({ message: 'type oops', name: 'TypeError' });
+      expect(typeof out.stack).toBe('string');
+    });
+
+    it('serializes duck-typed error-like objects (message + stack strings)', () => {
+      const fake = { message: 'fake', stack: 'at line 1' };
+      const out = cleanJson(fake);
+      expect(out).toEqual(fake);
+    });
+
+    it('does not treat plain objects with non-string message/stack as errors', () => {
+      const notError = { message: 123, stack: 'at line 1' };
+      const out = cleanJson(notError);
+      expect(out).toEqual(notError);
+      const notError2 = { message: 'ok', stack: 456 };
+      const out2 = cleanJson(notError2);
+      expect(out2).toEqual(notError2);
+    });
+
+    it('serializes nested Error inside object', () => {
+      const input = { err: new Error('nested'), id: 1 };
+      const out = cleanJson(input);
+      expect(out.id).toBe(1);
+      expect(out.err).toMatchObject({ message: 'nested', name: 'Error' });
+      expect(typeof out.err.stack).toBe('string');
+    });
+
+    it('handles circular ref and Error in same structure', () => {
+      const err = new Error('cycle');
+      const obj = { err, ref: null };
+      obj.ref = obj;
+      const out = cleanJson(obj);
+      expect(out.err).toMatchObject({ message: 'cycle' });
+      expect(out.ref).toBe('[Circular Reference]');
+    });
+  });
+
+  describe('cleanCircularJson', () => {
+    it('returns primitives and plain objects as-is', () => {
+      expect(cleanCircularJson(1)).toBe(1);
+      expect(cleanCircularJson('x')).toBe('x');
+      expect(cleanCircularJson({ a: 1 })).toEqual({ a: 1 });
+    });
+
+    it('replaces circular references with [Circular Reference]', () => {
+      const obj = { a: 1 };
+      obj.self = obj;
+      expect(cleanCircularJson(obj)).toEqual({ a: 1, self: '[Circular Reference]' });
+    });
+
+    it('handles deeply nested circular ref', () => {
+      const obj = { level: 1, child: null };
+      obj.child = { level: 2, back: obj };
+      const out = cleanCircularJson(obj);
+      expect(out.level).toBe(1);
+      expect(out.child.level).toBe(2);
+      expect(out.child.back).toBe('[Circular Reference]');
+    });
+  });
+
+  describe('evaluateJsTemplateLiteral', () => {
+    it('returns non-string or empty input as-is', () => {
+      expect(evaluateJsTemplateLiteral(null)).toBe(null);
+      expect(evaluateJsTemplateLiteral('')).toBe('');
+      expect(evaluateJsTemplateLiteral(42)).toBe(42);
+    });
+
+    it('parses boolean and null literals', () => {
+      expect(evaluateJsTemplateLiteral('true')).toBe(true);
+      expect(evaluateJsTemplateLiteral('false')).toBe(false);
+      expect(evaluateJsTemplateLiteral('null')).toBe(null);
+      expect(evaluateJsTemplateLiteral('undefined')).toBe(undefined);
+    });
+
+    it('parses quoted strings', () => {
+      expect(evaluateJsTemplateLiteral('"hello"')).toBe('hello');
+      expect(evaluateJsTemplateLiteral('\'world\'')).toBe('world');
+    });
+
+    it('parses numbers', () => {
+      expect(evaluateJsTemplateLiteral('42')).toBe(42);
+      expect(evaluateJsTemplateLiteral('3.14')).toBe(3.14);
+    });
+
+    it('evaluates template literal with context', () => {
+      const context = { res: { data: { name: 'Bruno' } } };
+      expect(evaluateJsTemplateLiteral('${res.data.name}', context)).toBe('Bruno');
+    });
+
+    it('keeps large numbers as string (safe integer limit)', () => {
+      const big = '9007199254740993';
+      expect(evaluateJsTemplateLiteral(big)).toBe(big);
     });
   });
 });

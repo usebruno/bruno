@@ -25,15 +25,13 @@ const template = [
           }
         ]
       },
+      { type: 'separator' },
       {
-        label: 'Preferences',
-        accelerator: 'CommandOrControl+,',
+        label: 'Quit',
         click() {
-          ipcMain.emit('main:open-preferences');
+          ipcMain.emit('main:start-quit-flow');
         }
       },
-      { type: 'separator' },
-      { role: 'quit' },
       {
         label: 'Force Quit',
         click() {
@@ -62,9 +60,30 @@ const template = [
     submenu: [
       { role: 'toggledevtools' },
       { type: 'separator' },
-      { role: 'resetzoom' },
-      { role: 'zoomin' },
-      { role: 'zoomout' },
+      {
+        label: 'Actual Size',
+        accelerator: 'CommandOrControl+0',
+        registerAccelerator: false,
+        click() {
+          ipcMain.emit('menu:reset-zoom');
+        }
+      },
+      {
+        label: 'Zoom In',
+        accelerator: 'CommandOrControl+Plus',
+        registerAccelerator: false,
+        click() {
+          ipcMain.emit('menu:zoom-in');
+        }
+      },
+      {
+        label: 'Zoom Out',
+        accelerator: 'CommandOrControl+-',
+        registerAccelerator: false,
+        click() {
+          ipcMain.emit('menu:zoom-out');
+        }
+      },
       { type: 'separator' },
       { role: 'togglefullscreen' }
     ]

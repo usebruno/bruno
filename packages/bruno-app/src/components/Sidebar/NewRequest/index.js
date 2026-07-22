@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback, forwardRef, useState } from 'react';
+import get from 'lodash/get';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
@@ -21,6 +22,7 @@ import Help from 'components/Help';
 import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useTheme } from 'styled-components';
+import Button from 'ui/Button';
 
 const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
@@ -29,6 +31,11 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
   const storedTheme = useTheme();
 
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
+  const collectionPresets = get(
+    collection,
+    collection?.draft?.brunoConfig ? 'draft.brunoConfig.presets' : 'brunoConfig.presets',
+    {}
+  );
   const [curlRequestTypeDetected, setCurlRequestTypeDetected] = useState(null);
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
 
@@ -69,13 +76,41 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
 
   const [isEditing, toggleEditing] = useState(false);
 
+  const getRequestType = (collectionPresets) => {
+    if (!collectionPresets || !collectionPresets.requestType) {
+      return 'http-request';
+    }
+
+    // Note: Why different labels for the same thing?
+    // http-request and graphql-request are used inside the app's json representation of a request
+    // http and graphql are used in Bru DSL as well as collection exports
+    // We need to eventually standardize the app's DSL to use the same labels as bru DSL
+    if (collectionPresets.requestType === 'http') {
+      return 'http-request';
+    }
+
+    if (collectionPresets.requestType === 'graphql') {
+      return 'graphql-request';
+    }
+
+    if (collectionPresets.requestType === 'grpc') {
+      return 'grpc-request';
+    }
+
+    if (collectionPresets.requestType === 'ws') {
+      return 'ws-request';
+    }
+
+    return 'http-request';
+  };
+
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       requestName: '',
       filename: '',
-      requestType: 'http-request',
-      requestUrl: '',
+      requestType: getRequestType(collectionPresets),
+      requestUrl: collectionPresets.requestUrl || '',
       requestMethod: 'GET',
       curlCommand: ''
     },
@@ -281,12 +316,6 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
           <form
             className="bruno-form"
             onSubmit={formik.handleSubmit}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                formik.handleSubmit();
-              }
-            }}
           >
             <div>
               <label htmlFor="requestName" className="block font-medium">
@@ -468,10 +497,11 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                   </label>
                   <div className="flex items-center mt-2 ">
                     {!['grpc-request', 'ws-request'].includes(formik.values.requestType) ? (
-                      <div className="flex items-center h-full method-selector-container w-1/5">
+                      <div className="flex items-center h-full method-selector-container">
                         <HttpMethodSelector
                           method={formik.values.requestMethod}
                           onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)}
+                          showCaret
                         />
                       </div>
                     ) : null}
@@ -481,6 +511,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       className="flex px-2 items-center flex-grow input-container h-full min-w-0"
                     >
                       <SingleLineEditor
+                        onRun={() => formik.handleSubmit()}
                         onPaste={handlePaste}
                         placeholder="Request URL"
                         value={formik.values.requestUrl || ''}
@@ -560,16 +591,12 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                 </Dropdown>
               </div>
               <div className="flex justify-end">
-                <span className="mr-2">
-                  <button type="button" onClick={onClose} className="btn btn-md btn-close">
-                    Cancel
-                  </button>
-                </span>
-                <span>
-                  <button type="submit" className="submit btn btn-md btn-secondary">
-                    Create
-                  </button>
-                </span>
+                <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
+                  Cancel
+                </Button>
+                <Button type="submit" data-testid="create-new-request-button">
+                  Create
+                </Button>
               </div>
             </div>
           </form>

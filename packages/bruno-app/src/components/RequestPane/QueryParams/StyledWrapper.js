@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   div.title {
-    color: var(--color-tab-inactive);
+    color: ${(props) => props.theme.colors.text.subtext0};
   }
   table {
     width: 100%;
@@ -36,6 +36,14 @@ const Wrapper = styled.div`
     &:hover span {
       text-decoration: underline;
     }
+  }
+
+  .bulk-edit-bar {
+    position: sticky;
+    bottom: 0;
+    background: ${(props) => props.theme.bg};
+    padding-top: 8px;
+    padding-bottom: 4px;
   }
 
   input[type='text'] {

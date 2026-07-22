@@ -5,9 +5,7 @@ const StyledWrapper = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
-    background: ${(props) => props.theme.requestTabPanel.card.bg};
-    border-bottom: 1px solid ${(props) => props.theme.requestTabPanel.card.border};
+    background: ${(props) => props.theme.modal.bg};
     gap: 12px;
     flex-shrink: 0;
   }
@@ -45,6 +43,8 @@ const StyledWrapper = styled.div`
     cursor: pointer;
     transition: all 0.2s ease;
     appearance: none;
+    outline: none;
+    box-shadow: none;
 
     &:hover {
       border-color: ${(props) => props.theme.input.focusBorder};

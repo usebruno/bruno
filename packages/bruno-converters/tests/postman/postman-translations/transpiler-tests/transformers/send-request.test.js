@@ -1,4 +1,4 @@
-import translateCode from '../../../../../src/utils/jscode-shift-translator';
+import translateCode from '../../../../../src/utils/postman-to-bruno-translator';
 
 describe('Send Request Translation', () => {
   describe('Raw Body Mode', () => {

@@ -1,9 +1,9 @@
-import React, { useRef, forwardRef, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { IconCaretDown, IconSettings, IconKey, IconHelp, IconAdjustmentsHorizontal } from '@tabler/icons';
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
 import SingleLineEditor from 'components/SingleLineEditor';
 import Wrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
@@ -12,13 +12,14 @@ import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
 import AdditionalParams from '../AdditionalParams/index';
 import { getAllVariables } from 'utils/collections/index';
 import { interpolate } from '@usebruno/common';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
+import toast from 'react-hot-toast';
 
 const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, collection, folder }) => {
   const dispatch = useDispatch();
+  const preferences = useSelector((state) => state.app.preferences);
+  const useSystemBrowser = get(preferences, 'request.oauth2.useSystemBrowser', false);
   const { storedTheme } = useTheme();
-  const dropdownTippyRef = useRef();
-  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-
   const oAuth = get(request, 'auth.oauth2', {});
   const {
     callbackUrl,
@@ -30,22 +31,14 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
     tokenPlacement,
     tokenHeaderPrefix,
     tokenQueryKey,
-    autoFetchToken
+    autoFetchToken,
+    tokenSource
   } = oAuth;
 
   const interpolatedAuthUrl = useMemo(() => {
     const variables = getAllVariables(collection, item);
     return interpolate(authorizationUrl, variables);
   }, [collection, item, authorizationUrl]);
-
-  const TokenPlacementIcon = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="flex items-center justify-end token-placement-label select-none">
-        {tokenPlacement == 'url' ? 'URL' : 'Headers'}
-        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
-      </div>
-    );
-  });
 
   const handleSave = () => { save(); };
 
@@ -67,6 +60,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
           tokenHeaderPrefix,
           tokenQueryKey,
           autoFetchToken,
+          tokenSource,
           [key]: value
         }
       })
@@ -77,16 +71,77 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
     handleChange('autoFetchToken', e.target.checked);
   };
 
+  const handleUseSystemBrowserToggle = (e) => {
+    const newValue = e.target.checked;
+    dispatch(
+      savePreferences({
+        ...preferences,
+        request: {
+          ...preferences.request,
+          oauth2: {
+            ...preferences.request.oauth2,
+            useSystemBrowser: newValue
+          }
+        }
+      })
+    )
+      .then(() => {
+        toast.success('Preference updated successfully');
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error('Failed to update preference');
+      });
+  };
+
   return (
     <Wrapper className="mt-2 flex w-full gap-4 flex-col">
       <Oauth2TokenViewer handleRun={handleRun} collection={collection} item={item} url={authorizationUrl} credentialsId={credentialsId} />
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconSettings size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconSettings size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium">
+        <span className="oauth2-section-label">
           Configuration
         </span>
+      </div>
+      <div className="flex items-center gap-4 w-full" key="input-callbackUrl">
+        <label className="block min-w-[140px]">Callback URL</label>
+        <div className="flex flex-col gap-1 w-full">
+          <div className="oauth2-input-wrapper flex-1 flex items-center">
+            <SingleLineEditor
+              value={callbackUrl}
+              theme={storedTheme}
+              onSave={handleSave}
+              onChange={(val) => handleChange('callbackUrl', val)}
+              onRun={handleRun}
+              collection={collection}
+              item={item}
+              placeholder={useSystemBrowser ? 'https://oauth.usebruno.com/callback' : undefined}
+              isCompact
+            />
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-4 w-full" key="input-use-system-browser">
+        <label className="block min-w-[140px]"></label>
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={Boolean(useSystemBrowser)}
+            onChange={handleUseSystemBrowserToggle}
+            className="cursor-pointer"
+          />
+          <label
+            className="block cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              handleUseSystemBrowserToggle({ target: { checked: !useSystemBrowser } });
+            }}
+          >
+            Use system browser for OAuth
+          </label>
+        </div>
       </div>
       {inputsConfig.map((input) => {
         const { key, label, isSecret } = input;
@@ -103,6 +158,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
                 collection={collection}
                 item={item}
                 isSecret={isSecret}
+                isCompact
               />
             </div>
           </div>
@@ -110,12 +166,31 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
       })}
 
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconKey size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconKey size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium text-gray-800 dark:text-gray-200">
+        <span className="oauth2-section-label">
           Token
         </span>
+      </div>
+
+      <div className="flex items-center gap-4 w-full" key="input-token-type">
+        <label className="block min-w-[140px]">Token Source</label>
+        <div className="inline-flex items-center cursor-pointer token-placement-selector">
+          <MenuDropdown
+            items={[
+              { id: 'access_token', label: 'Access Token', onClick: () => handleChange('tokenSource', 'access_token') },
+              { id: 'id_token', label: 'ID Token', onClick: () => handleChange('tokenSource', 'id_token') }
+            ]}
+            selectedItemId={tokenSource}
+            placement="bottom-end"
+          >
+            <div className="flex items-center justify-end token-placement-label select-none">
+              {tokenSource === 'id_token' ? 'ID Token' : 'Access Token'}
+              <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
+            </div>
+          </MenuDropdown>
+        </div>
       </div>
 
       <div className="flex items-center gap-4 w-full" key="input-token-name">
@@ -129,6 +204,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
             onRun={handleRun}
             collection={collection}
             item={item}
+            isCompact
           />
         </div>
       </div>
@@ -136,31 +212,24 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
       <div className="flex items-center gap-4 w-full" key="input-token-placement">
         <label className="block min-w-[140px]">Add Token to</label>
         <div className="inline-flex items-center cursor-pointer token-placement-selector">
-          <Dropdown onCreate={onDropdownCreate} icon={<TokenPlacementIcon />} placement="bottom-end">
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('tokenPlacement', 'header');
-              }}
-            >
-              Headers
+          <MenuDropdown
+            items={[
+              { id: 'header', label: 'Headers', onClick: () => handleChange('tokenPlacement', 'header') },
+              { id: 'url', label: 'URL', onClick: () => handleChange('tokenPlacement', 'url') }
+            ]}
+            selectedItemId={tokenPlacement}
+            placement="bottom-end"
+          >
+            <div className="flex items-center justify-end token-placement-label select-none">
+              {tokenPlacement == 'url' ? 'URL' : 'Headers'}
+              <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
             </div>
-            <div
-              className="dropdown-item"
-              onClick={() => {
-                dropdownTippyRef.current.hide();
-                handleChange('tokenPlacement', 'url');
-              }}
-            >
-              URL
-            </div>
-          </Dropdown>
+          </MenuDropdown>
         </div>
       </div>
 
       {tokenPlacement == 'header' ? (
-        <div className="flex items-center gap-4 w-full" key="input-token-header-prefix">
+        <div className="flex items-center gap-4 w-full" key="input-token-header-prefix" data-testid="token-header-prefix">
           <label className="block min-w-[140px]">Header Prefix</label>
           <div className="oauth2-input-wrapper flex-1">
             <SingleLineEditor
@@ -171,11 +240,12 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
               onRun={handleRun}
               collection={collection}
               item={item}
+              isCompact
             />
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-4 w-full" key="input-token-query-key">
+        <div className="flex items-center gap-4 w-full" key="input-token-query-key" data-testid="token-query-param-key">
           <label className="block min-w-[140px]">URL Query Key</label>
           <div className="oauth2-input-wrapper flex-1">
             <SingleLineEditor
@@ -186,16 +256,17 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
               onRun={handleRun}
               collection={collection}
               item={item}
+              isCompact
             />
           </div>
         </div>
       )}
 
       <div className="flex items-center gap-2.5 mt-2">
-        <div className="flex items-center px-2.5 py-1.5 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-md">
-          <IconAdjustmentsHorizontal size={14} className="text-indigo-500 dark:text-indigo-400" />
+        <div className="flex items-center px-2.5 py-1.5 oauth2-icon-container rounded-md">
+          <IconAdjustmentsHorizontal size={14} className="oauth2-icon" />
         </div>
-        <span className="font-medium">
+        <span className="oauth2-section-label">
           Advanced Options
         </span>
       </div>

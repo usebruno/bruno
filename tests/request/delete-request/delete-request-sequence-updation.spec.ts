@@ -10,7 +10,7 @@ test.describe('Delete Request Sequence Updation', () => {
     const collectionName = 'test-collection';
 
     // Create a collection
-    await createCollection(page, collectionName, await createTmpDir(collectionName), { openWithSandboxMode: 'safe' });
+    await createCollection(page, collectionName, await createTmpDir(collectionName));
 
     // Create request-a
     await createRequest(page, 'request-a', collectionName);

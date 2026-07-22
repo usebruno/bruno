@@ -1,16 +1,28 @@
 import path from 'path';
-import { test, expect, errors } from '../../playwright';
+import { test, expect, errors, closeElectronApp } from '../../playwright';
+import { waitForReadyPage } from '../utils/page';
+
+const initUserDataPath = path.join(__dirname, 'init-user-data-fresh');
 
 const env = {
   DISABLE_SAMPLE_COLLECTION_IMPORT: 'false'
 };
 
+// Helper to dismiss welcome modal if visible
+async function dismissWelcomeModalIfVisible(page: any) {
+  const welcomeModal = page.getByTestId('welcome-modal');
+  const isVisible = await welcomeModal.isVisible().catch(() => false);
+  if (isVisible) {
+    await page.getByRole('button', { name: 'Skip' }).click();
+    await expect(welcomeModal).not.toBeVisible();
+  }
+}
+
 test.describe('Onboarding', () => {
-  test('should create sample collection on first launch', async ({ launchElectronApp, createTmpDir }) => {
-    // Use a fresh app instance to avoid contamination from previous tests
-    const userDataPath = await createTmpDir('onboarding-fresh');
-    const app = await launchElectronApp({ userDataPath, dotEnv: env });
-    const page = await app.firstWindow();
+  test('should create sample collection on first launch', async ({ launchElectronApp }) => {
+    const app = await launchElectronApp({ initUserDataPath, dotEnv: env });
+    const page = await waitForReadyPage(app);
+    await dismissWelcomeModalIfVisible(page);
 
     // Verify sample collection appears in sidebar
     const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
@@ -18,9 +30,6 @@ test.describe('Onboarding', () => {
 
     // Click on the sample collection to open it
     await sampleCollection.click();
-    const modeSaveButton = page.getByRole('button', { name: 'Save' });
-    await expect(modeSaveButton).toBeVisible();
-    await modeSaveButton.click();
 
     // Verify the sample request is visible and clickable
     const request = page.locator('.collection-item-name').getByText('Get Users');
@@ -31,22 +40,20 @@ test.describe('Onboarding', () => {
     await expect(page.locator('#request-url')).toContainText('https://jsonplaceholder.typicode.com/users');
 
     // Clean up
-    await app.close();
+    await closeElectronApp(app);
   });
 
   test('should not create duplicate collections on subsequent launches', async ({ launchElectronApp, createTmpDir }) => {
     // Use a fresh app instance to avoid contamination from previous tests
     const userDataPath = await createTmpDir('duplicate-collections');
-    const app = await launchElectronApp({ userDataPath, dotEnv: env });
-    const page = await app.firstWindow();
+    const app = await launchElectronApp({ userDataPath, initUserDataPath, dotEnv: env });
+    const page = await waitForReadyPage(app);
+    await dismissWelcomeModalIfVisible(page);
 
     // First launch - verify sample collection is created
     const sampleCollection = page.locator('#sidebar-collection-name').getByText('Sample API Collection');
     await expect(sampleCollection).toBeVisible();
     await sampleCollection.click();
-    const modeSaveButton = page.getByRole('button', { name: 'Save' });
-    await expect(modeSaveButton).toBeVisible();
-    await modeSaveButton.click();
 
     // Verify the sample request
     const request = page.locator('.collection-item-name').getByText('Get Users');
@@ -57,11 +64,11 @@ test.describe('Onboarding', () => {
     await expect(page.locator('#request-url')).toContainText('https://jsonplaceholder.typicode.com/users');
 
     // Close the first app instance
-    await app.close();
+    await closeElectronApp(app);
 
     // Restart app - should not create sample collection again
     const newApp = await launchElectronApp({ userDataPath, dotEnv: env });
-    const newPage = await newApp.firstWindow();
+    const newPage = await waitForReadyPage(newApp);
 
     // Verify only one sample collection exists
     const sampleCollections = newPage.locator('#sidebar-collection-name').getByText('Sample API Collection');
@@ -77,13 +84,14 @@ test.describe('Onboarding', () => {
     await expect(newPage.locator('#request-url')).toContainText('https://jsonplaceholder.typicode.com/users');
 
     // Clean up
-    await newApp.close();
+    await closeElectronApp(newApp);
   });
 
   test('should not recreate sample collection after user deletes it', async ({ launchElectronApp, reuseOrLaunchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('first-launch');
-    const app = await launchElectronApp({ userDataPath, dotEnv: env });
-    const page = await app.firstWindow();
+    const app = await launchElectronApp({ userDataPath, initUserDataPath, dotEnv: env });
+    const page = await waitForReadyPage(app);
+    await dismissWelcomeModalIfVisible(page);
 
     // First launch - sample collection should be created
     const sampleCollection = page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'Sample API Collection' });
@@ -98,19 +106,27 @@ test.describe('Onboarding', () => {
     await expect(removeOption).toBeVisible();
     await removeOption.click();
 
-    // Confirm removal in the modal
-    const removeModal = page.getByRole('dialog').filter({ has: page.getByText('Remove Collection') });
-    await removeModal.getByRole('button', { name: 'Remove' }).click();
+    // Wait for modal to appear - could be either regular remove or drafts confirmation
+    const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
+    await removeModal.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
+    const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
+
+    if (hasDiscardButton) {
+      // Drafts modal - click "Discard All and Remove"
+      await page.getByRole('button', { name: 'Discard All and Remove' }).click();
+    } else {
+      // Regular modal - click the submit button
+      await page.locator('.bruno-modal-footer .submit').click();
+    }
 
     // Verify collection is closed (no longer visible in sidebar)
     await expect(sampleCollection).not.toBeVisible();
 
     // Restart app - sample collection should NOT be recreated
     const newApp = await reuseOrLaunchElectronApp({ userDataPath, dotEnv: env });
-    const newPage = await newApp.firstWindow();
-
-    // Wait for the app to be loaded / onboarding to be completed
-    await newPage.locator('[data-app-state="loaded"]').waitFor();
+    const newPage = await waitForReadyPage(newApp);
 
     // Sample collection should not appear since it's no longer first launch
     const sampleCollections = newPage.locator('#sidebar-collection-name').getByText('Sample API Collection');

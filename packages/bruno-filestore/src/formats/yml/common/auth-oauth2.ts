@@ -88,7 +88,8 @@ const buildPkce = (pkce?: boolean | null): OAuth2PKCE | undefined => {
     return undefined;
   }
 
-  return { enabled: Boolean(pkce) };
+  // If pkce is false, set disabled: true; if true, return empty object (enabled by default)
+  return pkce ? {} : { disabled: true };
 };
 
 const buildTokenConfig = (oauth: BrunoOAuth2): OAuth2TokenConfig | undefined => {
@@ -112,6 +113,8 @@ const buildTokenConfig = (oauth: BrunoOAuth2): OAuth2TokenConfig | undefined => 
       query: oauth.tokenQueryKey as string
     };
   }
+
+  tokenConfig.source = oauth.tokenSource || 'access_token';
 
   return Object.keys(tokenConfig).length > 0 ? tokenConfig : undefined;
 };
@@ -142,13 +145,16 @@ const buildClientCredentialsFlow = (oauth: BrunoOAuth2): OAuth2ClientCredentials
   isNonEmptyString(oauth.scope) && (flow.scope = oauth.scope);
 
   const accessTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.token);
-  if (accessTokenRequest) {
-    flow.additionalParameters = { accessTokenRequest };
-  }
-
   const refreshTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.refresh);
-  if (refreshTokenRequest) {
-    flow.additionalParameters = { refreshTokenRequest };
+
+  if (accessTokenRequest || refreshTokenRequest) {
+    flow.additionalParameters = {};
+    if (accessTokenRequest) {
+      flow.additionalParameters.accessTokenRequest = accessTokenRequest;
+    }
+    if (refreshTokenRequest) {
+      flow.additionalParameters.refreshTokenRequest = refreshTokenRequest;
+    }
   }
 
   const tokenConfig = buildTokenConfig(oauth);
@@ -178,13 +184,16 @@ const buildResourceOwnerPasswordFlow = (oauth: BrunoOAuth2): OAuth2ResourceOwner
   isNonEmptyString(oauth.scope) && (flow.scope = oauth.scope);
 
   const accessTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.token);
-  if (accessTokenRequest) {
-    flow.additionalParameters = { accessTokenRequest };
-  }
-
   const refreshTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.refresh);
-  if (refreshTokenRequest) {
-    flow.additionalParameters = { refreshTokenRequest };
+
+  if (accessTokenRequest || refreshTokenRequest) {
+    flow.additionalParameters = {};
+    if (accessTokenRequest) {
+      flow.additionalParameters.accessTokenRequest = accessTokenRequest;
+    }
+    if (refreshTokenRequest) {
+      flow.additionalParameters.refreshTokenRequest = refreshTokenRequest;
+    }
   }
 
   const tokenConfig = buildTokenConfig(oauth);
@@ -211,18 +220,20 @@ const buildAuthorizationCodeFlow = (oauth: BrunoOAuth2): OAuth2AuthorizationCode
   if (credentials) flow.credentials = credentials;
 
   const authorizationRequest = mapAdditionalParameters(oauth.additionalParameters?.authorization);
-  if (authorizationRequest) {
-    flow.additionalParameters = { authorizationRequest };
-  }
-
   const accessTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.token);
-  if (accessTokenRequest) {
-    flow.additionalParameters = { accessTokenRequest };
-  }
-
   const refreshTokenRequest = mapAdditionalParameters(oauth.additionalParameters?.refresh);
-  if (refreshTokenRequest) {
-    flow.additionalParameters = { refreshTokenRequest };
+
+  if (authorizationRequest || accessTokenRequest || refreshTokenRequest) {
+    flow.additionalParameters = {};
+    if (authorizationRequest) {
+      flow.additionalParameters.authorizationRequest = authorizationRequest;
+    }
+    if (accessTokenRequest) {
+      flow.additionalParameters.accessTokenRequest = accessTokenRequest;
+    }
+    if (refreshTokenRequest) {
+      flow.additionalParameters.refreshTokenRequest = refreshTokenRequest;
+    }
   }
 
   isNonEmptyString(oauth.scope) && (flow.scope = oauth.scope);
@@ -344,6 +355,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
     tokenPlacement: null,
     tokenHeaderPrefix: null,
     tokenQueryKey: null,
+    tokenSource: 'access_token',
     refreshTokenUrl: null,
     autoRefreshToken: false, // Default to false
     autoFetchToken: true, // Default to true
@@ -362,6 +374,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
       // token config
       if (oauth.tokenConfig?.id) brunoOAuth.credentialsId = oauth.tokenConfig.id;
+      if (oauth.tokenConfig?.source) brunoOAuth.tokenSource = oauth.tokenConfig.source || 'access_token';
       if (oauth.tokenConfig?.placement) {
         if ('header' in oauth.tokenConfig.placement) {
           brunoOAuth.tokenPlacement = 'header';
@@ -407,6 +420,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
       // token config
       if (oauth.tokenConfig?.id) brunoOAuth.credentialsId = oauth.tokenConfig.id;
+      if (oauth.tokenConfig?.source) brunoOAuth.tokenSource = oauth.tokenConfig.source || 'access_token';
       if (oauth.tokenConfig?.placement) {
         if ('header' in oauth.tokenConfig.placement) {
           brunoOAuth.tokenPlacement = 'header';
@@ -453,6 +467,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
       // token config
       if (oauth.tokenConfig?.id) brunoOAuth.credentialsId = oauth.tokenConfig.id;
+      if (oauth.tokenConfig?.source) brunoOAuth.tokenSource = oauth.tokenConfig.source || 'access_token';
       if (oauth.tokenConfig?.placement) {
         if ('header' in oauth.tokenConfig.placement) {
           brunoOAuth.tokenPlacement = 'header';
@@ -501,6 +516,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
       // token config
       if (oauth.tokenConfig?.id) brunoOAuth.credentialsId = oauth.tokenConfig.id;
+      if (oauth.tokenConfig?.source) brunoOAuth.tokenSource = oauth.tokenConfig.source || 'access_token';
       if (oauth.tokenConfig?.placement) {
         if ('header' in oauth.tokenConfig.placement) {
           brunoOAuth.tokenPlacement = 'header';
@@ -540,8 +556,9 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
 
   if (brunoOAuth.grantType === 'authorization_code' && oauth.flow === 'authorization_code') {
     const authCodeFlow = oauth as OAuth2AuthorizationCodeFlow;
-    if (authCodeFlow.pkce?.enabled !== undefined) {
-      brunoOAuth.pkce = authCodeFlow.pkce.enabled;
+    if (authCodeFlow.pkce !== undefined) {
+      // If pkce.disabled is true, set pkce to false; otherwise set to true
+      brunoOAuth.pkce = !authCodeFlow.pkce.disabled;
     }
   }
 

@@ -1,0 +1,53 @@
+name: 'Run Unit Tests'
+description: 'Setup dependencies and run unit tests for all packages'
+inputs:
+  shell:
+    description: 'Shell to use (bash, pwsh)'
+    required: false
+    default: 'bash'
+runs:
+  using: 'composite'
+  steps:
+    - name: Test Package bruno-js
+      shell: ${{ inputs.shell }}
+      run: npm run test:ci --workspace=packages/bruno-js
+
+    - name: Test Package bruno-cli
+      shell: ${{ inputs.shell }}
+      run: npm run test:ci --workspace=packages/bruno-cli
+
+    - name: Test Package bruno-query
+      shell: ${{ inputs.shell }}
+      run: npm run test --workspace=packages/bruno-query
+
+    - name: Test Package bruno-lang
+      shell: ${{ inputs.shell }}
+      run: npm run test --workspace=packages/bruno-lang
+
+    - name: Test Package bruno-schema
+      shell: ${{ inputs.shell }}
+      run: npm run test --workspace=packages/bruno-schema
+
+    - name: Test Package bruno-app
+      shell: ${{ inputs.shell }}
+      run: npm run test --workspace=packages/bruno-app
+
+    - name: Test Package bruno-common
+      shell: ${{ inputs.shell }}
+      run: npm run test --workspace=packages/bruno-common
+
+    - name: Test Package bruno-converters
+      shell: ${{ inputs.shell }}
+      run: npm run test:ci --workspace=packages/bruno-converters
+
+    - name: Test Package bruno-electron
+      shell: ${{ inputs.shell }}
+      run: npm run test:ci --workspace=packages/bruno-electron
+
+    - name: Test Package bruno-requests
+      shell: ${{ inputs.shell }}
+      run: npm run test --workspace=packages/bruno-requests
+
+    - name: Test Package bruno-filestore
+      shell: ${{ inputs.shell }}
+      run: npm run test --workspace=packages/bruno-filestore

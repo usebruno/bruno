@@ -1,0 +1,54 @@
+meta {
+  name: url
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  test("URL parsing", function() {
+    const url = new URL('https://user:pass@example.com:8080/path?foo=bar#hash');
+    expect(url.protocol).to.equal('https:');
+    expect(url.hostname).to.equal('example.com');
+    expect(url.port).to.equal('8080');
+    expect(url.pathname).to.equal('/path');
+    expect(url.search).to.equal('?foo=bar');
+    expect(url.hash).to.equal('#hash');
+    expect(url.username).to.equal('user');
+    expect(url.password).to.equal('pass');
+    expect(url.origin).to.equal('https://example.com:8080');
+  });
+
+  test("URL modification", function() {
+    const url = new URL('https://example.com');
+    url.pathname = '/api/v1';
+    url.searchParams.set('key', 'value');
+    expect(url.toString()).to.equal('https://example.com/api/v1?key=value');
+  });
+
+  test("URLSearchParams", function() {
+    const params = new URLSearchParams('foo=1&bar=2&foo=3');
+    expect(params.get('foo')).to.equal('1');
+    expect(params.getAll('foo')).to.deep.equal(['1', '3']);
+    expect(params.has('bar')).to.equal(true);
+    expect(params.has('missing')).to.equal(false);
+
+    params.set('bar', 'updated');
+    params.delete('foo');
+    params.append('new', 'value');
+    expect(params.toString()).to.equal('bar=updated&new=value');
+  });
+}

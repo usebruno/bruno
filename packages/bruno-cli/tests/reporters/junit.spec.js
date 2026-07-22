@@ -23,6 +23,9 @@ describe('makeJUnitOutput', () => {
       {
         description: 'description provided',
         name: 'Tests/Suite A',
+        test: {
+          filename: 'Tests/Suite A.bru'
+        },
         request: {
           method: 'GET',
           url: 'https://ima.test'
@@ -48,6 +51,9 @@ describe('makeJUnitOutput', () => {
           url: 'https://imanother.test'
         },
         name: 'Tests/Suite B',
+        test: {
+          filename: 'Tests/Suite B.bru'
+        },
         testResults: [
           {
             lhsExpr: 'res.status',
@@ -79,6 +85,9 @@ describe('makeJUnitOutput', () => {
     expect(junit.testsuites.testsuite[0]['@name']).toBe('Tests/Suite A');
     expect(junit.testsuites.testsuite[1]['@name']).toBe('Tests/Suite B');
 
+    expect(junit.testsuites.testsuite[0]['@file']).toBe('Tests/Suite A.bru');
+    expect(junit.testsuites.testsuite[1]['@file']).toBe('Tests/Suite B.bru');
+
     expect(junit.testsuites.testsuite[0]['@tests']).toBe(2);
     expect(junit.testsuites.testsuite[1]['@tests']).toBe(2);
 
@@ -94,11 +103,44 @@ describe('makeJUnitOutput', () => {
     expect(failcase.failure[0]['@type']).toBe('failure');
   });
 
+  it('should use the request path as the testcase classname instead of the request url', () => {
+    const results = [
+      {
+        name: '1st API',
+        path: 'f1/1st API.bru',
+        test: {
+          filename: 'f1/1st API.bru'
+        },
+        request: {
+          method: 'GET',
+          url: 'https://ima.test'
+        },
+        testResults: [
+          {
+            description: 'Status is 200',
+            status: 'pass'
+          }
+        ],
+        runDuration: 1.2345678
+      }
+    ];
+
+    makeJUnitOutput(results, '/tmp/testfile.xml');
+
+    const junit = xmlbuilder.create.mock.calls[0][0];
+    const testcase = junit.testsuites.testsuite[0].testcase[0];
+
+    expect(testcase['@classname']).toBe('f1/1st API');
+  });
+
   it('should handle request errors', () => {
     const results = [
       {
         description: 'description provided',
         name: 'Tests/Suite A',
+        test: {
+          filename: 'Tests/Suite A.bru'
+        },
         request: {
           method: 'GET',
           url: 'https://ima.test'
@@ -124,6 +166,7 @@ describe('makeJUnitOutput', () => {
     expect(junit.testsuites).toBeDefined;
     expect(junit.testsuites.testsuite.length).toBe(1);
     expect(junit.testsuites.testsuite[0].testcase.length).toBe(1);
+    expect(junit.testsuites.testsuite[0]['@file']).toBe('Tests/Suite A.bru');
 
     const failcase = junit.testsuites.testsuite[0].testcase[0];
 
@@ -137,6 +180,9 @@ describe('makeJUnitOutput', () => {
     const results = [
       {
         name: 'Tests/Suite A',
+        test: {
+          filename: 'Tests/Suite A.bru'
+        },
         request: {
           method: 'GET',
           url: 'https://ima.test'
@@ -176,6 +222,7 @@ describe('makeJUnitOutput', () => {
     expect(junit.testsuites).toBeDefined;
     expect(junit.testsuites.testsuite.length).toBe(1);
     expect(junit.testsuites.testsuite[0].testcase.length).toBe(4);
+    expect(junit.testsuites.testsuite[0]['@file']).toBe('Tests/Suite A.bru');
     expect(junit.testsuites.testsuite[0]['@tests']).toBe(4);
 
     const testcase1 = junit.testsuites.testsuite[0].testcase[0];

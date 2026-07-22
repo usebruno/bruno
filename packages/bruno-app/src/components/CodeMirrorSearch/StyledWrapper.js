@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   .bruno-search-bar {
@@ -9,15 +10,15 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     flex-wrap: nowrap;
-    padding: 0 2px;
-    min-height: 36px;
-    background: ${(props) => props.theme.sidebar.search.bg} !important;
-    border-radius: 4px;
-    border: 1px solid ${(props) => props.theme.sidebar.search.bg} !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    gap: 0;
+    padding: 1px 3px;
     width: auto;
-    min-width: 180px;
     max-width: 320px;
+    min-height: 22px;
+    background: ${(props) => props.theme.background.base};
+    color: ${(props) => props.theme.text.base};
+    border: solid 1px ${(props) => props.theme.border.border2};
+    border-radius: ${(props) => props.theme.border.radius.sm};
   }
 
   .bruno-search-bar input {
@@ -38,7 +39,7 @@ const StyledWrapper = styled.div`
     padding: 0 1px;
     margin: 0 1px;
     cursor: pointer;
-    color: #aaa;
+    color: ${(props) => props.theme.colors.text.subtext1};
     border-radius: 3px;
     height: 18px;
     width: 18px;
@@ -51,27 +52,14 @@ const StyledWrapper = styled.div`
     min-width: 28px;
     text-align: center;
     font-size: ${(props) => props.theme.font.size.xs};
-    color: #aaa;
+    color: ${(props) => props.theme.colors.text.subtext1};
     margin: 0 8px 0 1px; 
     white-space: nowrap;
   }
 
-  .bruno-search-bar.compact {
-    background: ${(props) => props.theme.codemirror.bg};
-    color: ${(props) => props.theme.codemirror.text || props.theme.text};
-    border: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    border-radius: 4px;
-    padding: 1px 3px;
-    min-height: 22px;
-    display: flex;
-    align-items: center;
-    gap: 0;
-  }
-
   .bruno-search-bar input {
     background: transparent;
-    color: inherit;
+    color: ${(props) => props.theme.colors.text.subtext2};
     border: none;
     outline: none;
     font-size: ${(props) => props.theme.font.size.base};
@@ -92,7 +80,9 @@ const StyledWrapper = styled.div`
   }
 
   .searchbar-icon-btn.active {
-    color: #f39c12 !important;
+    color: ${(props) => props.theme.brand};
+    background-color: ${(props) => rgba(props.theme.brand, 0.1)};
+    font-weight: 500;
   }
 `;
 

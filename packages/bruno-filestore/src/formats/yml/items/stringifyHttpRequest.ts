@@ -5,13 +5,16 @@ import type { Auth } from '@opencollection/types/common/auth';
 import type { Scripts } from '@opencollection/types/common/scripts';
 import type { Variable } from '@opencollection/types/common/variables';
 import type { Assertion } from '@opencollection/types/common/assertions';
+import type { Action } from '@opencollection/types/common/actions';
 import type { HttpRequestParam, HttpRequestBody } from '@opencollection/types/requests/http';
 import { stringifyYml } from '../utils';
+import { toOpenCollectionApp, OpenCollectionApp } from '../common/app';
 import { toOpenCollectionAuth } from '../common/auth';
 import { toOpenCollectionHttpHeaders, toOpenCollectionResponseHeaders } from '../common/headers';
 import { toOpenCollectionParams } from '../common/params';
 import { toOpenCollectionBody } from '../common/body';
 import { toOpenCollectionVariables } from '../common/variables';
+import { toOpenCollectionActions } from '../common/actions';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
 import { isNumber, isNonEmptyString } from '../../../utils';
@@ -31,6 +34,9 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     }
     if (item.tags?.length) {
       info.tags = item.tags;
+    }
+    if (isNonEmptyString(item.description)) {
+      info.description = item.description;
     }
     ocRequest.info = info;
 
@@ -56,6 +62,12 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     const body: HttpRequestBody | undefined = toOpenCollectionBody(brunoRequest.body);
     if (body) {
       http.body = body;
+    }
+
+    // auth
+    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
+    if (auth) {
+      http.auth = auth;
     }
 
     ocRequest.http = http;
@@ -85,10 +97,11 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
       hasRuntime = true;
     }
 
-    // auth
-    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
-    if (auth) {
-      runtime.auth = auth;
+    // actions (from post-response variables)
+    const resVars = brunoRequest.vars?.res;
+    const actions: Action[] | undefined = toOpenCollectionActions(resVars);
+    if (actions) {
+      runtime.actions = actions;
       hasRuntime = true;
     }
 
@@ -165,8 +178,9 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
         if (example.response) {
           ocExample.response = {};
 
-          if (example.response.status !== undefined && example.response.status !== null && isNumber(example.response.status)) {
-            ocExample.response.status = Number(example.response.status);
+          const statusNum = Number(example.response.status);
+          if (Number.isInteger(statusNum) && statusNum > 0) {
+            ocExample.response.status = statusNum;
           }
 
           if (isNonEmptyString(example.response.statusText)) {
@@ -179,9 +193,12 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
           }
 
           if (example.response.body && example.response.body.type && example.response.body.content !== undefined) {
+            const content = example.response.body.content;
+            const contentString = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+
             ocExample.response.body = {
               type: example.response.body.type as 'json' | 'text' | 'xml' | 'html' | 'binary',
-              data: String(example.response.body.content || '')
+              data: contentString
             };
           }
         }
@@ -197,6 +214,12 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     // docs
     if (isNonEmptyString(brunoRequest.docs)) {
       ocRequest.docs = brunoRequest.docs;
+    }
+
+    // app
+    const app: OpenCollectionApp | undefined = toOpenCollectionApp(item.app);
+    if (app) {
+      (ocRequest as any).app = app;
     }
 
     return stringifyYml(ocRequest);

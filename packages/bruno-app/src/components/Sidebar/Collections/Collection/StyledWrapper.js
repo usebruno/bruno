@@ -11,44 +11,28 @@ const Wrapper = styled.div`
     .rotate-90 {
       transform: rotateZ(90deg);
     }
+    .collection-actions {
+      visibility: hidden;
+    }
+
+    /* Single source of truth for hover/focus states: background and menu icon visibility */
+    &:hover,
+    &:focus-within,
+    &.collection-keyboard-focused {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      .collection-actions {
+        visibility: visible;
+        background-color: transparent !important;
+      }
+    }
 
     &.item-hovered {
       border-top: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
       border-bottom: 2px solid transparent;
-      .collection-actions {
-        .dropdown {
-          div[aria-expanded='false'] {
-            visibility: visible;
-          }
-        }
-      }
-    }
-
-    .collection-actions {
-      .dropdown {
-        div[aria-expanded='true'] {
-          visibility: visible;
-        }
-        div[aria-expanded='false'] {
-          visibility: hidden;
-        }
-      }
-
-      svg {
-        height: 22px;
-        color: ${(props) => props.theme.sidebar.dropdownIcon.color};
-      }
     }
 
     &:hover {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-      .collection-actions {
-        .dropdown {
-          div[aria-expanded='false'] {
-            visibility: visible;
-          }
-        }
-      }
     }
 
     div.tippy-box {
@@ -96,10 +80,11 @@ const Wrapper = styled.div`
     }
 
     &.collection-keyboard-focused {
-      background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg};
+      border-top: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
+      border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
       outline: none;
 
-      &:hover {
+       &:hover {
         background: ${(props) => props.theme.sidebar.collection.item.keyboardFocusBg} !important;
       }
     }
@@ -115,6 +100,23 @@ const Wrapper = styled.div`
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
+  }
+
+  .indent-block {
+    border-right: 1px solid ${(props) => props.theme.sidebar.collection.item.indentBorder};
+  }
+
+  .empty-collection-message {
+    display: flex;
+    align-items: center;
+    height: 1.6rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.sidebar.muted};
+
+    .add-request-link {
+      color: ${(props) => props.theme.textLink};
+      cursor: pointer;
+    }
   }
 `;
 

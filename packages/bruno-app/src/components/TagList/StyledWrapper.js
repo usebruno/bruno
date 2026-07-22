@@ -26,8 +26,8 @@ const StyledWrapper = styled.div`
     cursor: default;
 
     &:has(.tag-remove:hover) {
-      background-color: ${(props) => props.theme.requestTabs.active.bg};
-      border-color: ${(props) => props.theme.requestTabs.active.border || props.theme.requestTabs.bottomBorder};
+      background-color: ${(props) => props.theme.background.surface2};
+      border-color: ${(props) => props.theme.requestTabs.bottomBorder};
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       transform: translateY(-1px);
     }
@@ -66,14 +66,12 @@ const StyledWrapper = styled.div`
     opacity: 0.7;
 
     &:hover {
-      background-color: ${(props) => props.theme.danger};
-      color: white;
+      color: ${(props) => props.theme.text};
       opacity: 1;
-      transform: scale(1.1);
     }
 
     &:focus-visible {
-      outline: 2px solid ${(props) => props.theme.danger};
+      outline: 2px solid ${(props) => props.theme.text};
       outline-offset: 1px;
     }
   }

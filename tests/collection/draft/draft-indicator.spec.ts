@@ -1,7 +1,7 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, openCollectionAndAcceptSandbox } from '../../utils/page';
+import { closeAllCollections, createCollection } from '../../utils/page';
 
-test.describe('Draft indicator in collection and folder settings', () => {
+test.describe.serial('Draft indicator in collection and folder settings', () => {
   test.afterAll(async ({ page }) => {
     // cleanup: close all collections
     await closeAllCollections(page);
@@ -12,9 +12,6 @@ test.describe('Draft indicator in collection and folder settings', () => {
 
     // Create a new collection
     await createCollection(page, collectionName, await createTmpDir());
-
-    // Open collection settings by clicking on the collection name
-    await openCollectionAndAcceptSandbox(page, collectionName);
 
     // Verify the collection settings tab is open
     await expect(page.locator('.request-tab .tab-label').filter({ hasText: 'Collection' })).toBeVisible();
@@ -196,8 +193,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     const varNameInput = varRow.locator('input[type="text"]');
     await varNameInput.click();
     await varNameInput.fill('testVar');
-
-    const varValueEditor = varRow.locator('.CodeMirror');
+    const varValueEditor = varRow.getByTestId(/^test-multiline-editor-\d+\.value$/);
     await varValueEditor.click();
     await page.keyboard.type('testValue');
 
@@ -218,7 +214,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
 
     // Create a folder in the collection
     const collection = page.locator('.collection-name').filter({ hasText: collectionName });
-    await collection.locator('.collection-actions').hover();
+    await collection.hover(); // Hover on collection to reveal action buttons
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
 
@@ -311,7 +307,7 @@ test.describe('Draft indicator in collection and folder settings', () => {
     await varNameInput.click();
     await varNameInput.fill('folderVar');
 
-    const folderVarValueEditor = varRow.locator('.CodeMirror');
+    const folderVarValueEditor = varRow.getByTestId(/^test-multiline-editor-\d+\.value$/);
     await folderVarValueEditor.click();
     await page.keyboard.type('folderValue');
 

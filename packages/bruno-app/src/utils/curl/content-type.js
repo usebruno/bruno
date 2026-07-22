@@ -6,6 +6,11 @@ const normalizeContentType = (contentType) => {
   return contentType.toLowerCase();
 };
 
+export const isNDJsonLikeContentType = (contentType) => {
+  const normalized = normalizeContentType(contentType);
+  return normalized.includes('application/x-ndjson') || normalized.includes('application/ndjson');
+};
+
 export const isJsonLikeContentType = (contentType) => {
   const normalized = normalizeContentType(contentType);
 
@@ -25,5 +30,5 @@ export const isPlainTextContentType = (contentType) => {
 };
 
 export const isStructuredContentType = (contentType) => {
-  return isJsonLikeContentType(contentType) || isXmlLikeContentType(contentType) || isPlainTextContentType(contentType);
+  return isNDJsonLikeContentType(contentType) || isJsonLikeContentType(contentType) || isXmlLikeContentType(contentType) || isPlainTextContentType(contentType);
 };

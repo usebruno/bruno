@@ -13,6 +13,7 @@ import Help from 'components/Help';
 import Dropdown from 'components/Dropdown';
 import { IconCaretDown } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
+import Button from 'ui/Button';
 
 const NewFolder = ({ collectionUid, item, onClose }) => {
   const dispatch = useDispatch();
@@ -103,6 +104,7 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
                 formik.setFieldValue('folderName', e.target.value);
                 !isEditing && formik.setFieldValue('directoryName', sanitizeName(e.target.value));
               }}
+              data-testid="new-folder-input"
               value={formik.values.folderName || ''}
             />
             {formik.touched.folderName && formik.errors.folderName ? (
@@ -181,19 +183,12 @@ const NewFolder = ({ collectionUid, item, onClose }) => {
                 </Dropdown>
               </div>
               <div className="flex justify-end">
-                <span className="mr-2">
-                  <button type="button" onClick={onClose} className="btn btn-md btn-close">
-                    Cancel
-                  </button>
-                </span>
-                <span>
-                  <button
-                    type="submit"
-                    className="submit btn btn-md btn-secondary"
-                  >
-                    Create
-                  </button>
-                </span>
+                <Button type="button" color="secondary" variant="ghost" onClick={onClose} className="mr-2">
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Create
+                </Button>
               </div>
             </div>
           </form>

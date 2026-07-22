@@ -10,12 +10,15 @@ const StyledWrapper = styled.div`
     .CodeMirror {
       height: 100%;
       font-size: ${(props) => props.theme.font.size.sm};
+      background: ${(props) => props.theme.modal.bg};
       line-height: 1.5;
       padding: 0;
+      background: transparent !important;
+      border: none;
 
       .CodeMirror-gutters {
-        background: ${(props) => props.theme.codemirror.gutter.bg};
-        border-right: 1px solid ${(props) => props.theme.codemirror.border};
+        background: transparent !important;
+        border-right: none;
       }
 
       .CodeMirror-linenumber {

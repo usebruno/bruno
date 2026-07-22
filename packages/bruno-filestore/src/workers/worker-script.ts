@@ -2,6 +2,7 @@ import { parentPort } from 'node:worker_threads';
 import { parseBruRequest, stringifyBruRequest } from '../formats/bru';
 import { parseYmlItem, stringifyYmlItem } from '../formats/yml';
 import { CollectionFormat } from '../types';
+import { DEFAULT_COLLECTION_FORMAT } from '../constants';
 
 interface WorkerMessage {
   taskType: 'parse' | 'stringify';
@@ -14,7 +15,7 @@ interface WorkerMessage {
 parentPort?.on('message', async (message: WorkerMessage) => {
   try {
     const { taskType, data: messageData } = message;
-    const { data, format = 'bru' } = messageData;
+    const { data, format = DEFAULT_COLLECTION_FORMAT } = messageData;
     let result: any;
 
     if (taskType === 'parse') {

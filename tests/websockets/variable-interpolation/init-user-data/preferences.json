@@ -3,8 +3,10 @@
   "lastOpenedCollections": [
     "{{projectRoot}}/tests/websockets/variable-interpolation/fixtures/collection"
   ],
-  "beta": {
-    "websocket": true
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
   }
 }
-

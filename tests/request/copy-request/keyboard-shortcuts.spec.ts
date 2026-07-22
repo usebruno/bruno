@@ -1,17 +1,17 @@
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, createCollection } from '../../utils/page';
 
-test.describe('Copy and Paste with Keyboard Shortcuts', () => {
+test.describe.serial('Copy and Paste with Keyboard Shortcuts', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });
 
   test('should copy and paste request using keyboard shortcuts', async ({ page, createTmpDir }) => {
-    await createCollection(page, 'keyboard-test', await createTmpDir('keyboard-test'), { openWithSandboxMode: 'safe' });
+    await createCollection(page, 'keyboard-test', await createTmpDir('keyboard-test'));
     const collection = page.locator('.collection-name').filter({ hasText: 'keyboard-test' });
 
     // Create a request
-    await collection.locator('.collection-actions').hover();
+    await collection.hover();
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Request' }).click();
     await page.getByPlaceholder('Request Name').fill('test-request');
@@ -34,7 +34,7 @@ test.describe('Copy and Paste with Keyboard Shortcuts', () => {
     await page.keyboard.press(`${modifier}+KeyC`);
 
     // Verify copy success (toast message)
-    await expect(page.getByText(/copied to clipboard/i).first()).toBeVisible();
+    await expect(page.getByText(/Request copied/i).first()).toBeVisible();
 
     // Focus the collection to paste
     await collection.click();
@@ -54,7 +54,7 @@ test.describe('Copy and Paste with Keyboard Shortcuts', () => {
     const collection = page.locator('.collection-name').filter({ hasText: 'keyboard-test' });
 
     // Create a folder
-    await collection.locator('.collection-actions').hover();
+    await collection.hover();
     await collection.locator('.collection-actions .icon').click();
     await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
     await page.locator('#folder-name').fill('test-folder');
@@ -75,7 +75,7 @@ test.describe('Copy and Paste with Keyboard Shortcuts', () => {
     await page.keyboard.press(`${modifier}+KeyC`);
 
     // Verify copy success
-    await expect(page.getByText(/copied to clipboard/i).first()).toBeVisible();
+    await expect(page.getByText(/Folder copied/i).first()).toBeVisible();
 
     // Focus the collection to paste
     await collection.click();

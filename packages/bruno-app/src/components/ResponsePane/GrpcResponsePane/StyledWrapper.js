@@ -3,8 +3,22 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   height: 100%;
   overflow: hidden;
-  background: ${(props) => props.theme.bg};
   border-radius: 4px;
+
+  .response-pane-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    padding: 0 1rem;
+    margin-top: 1rem;
+  }
+
+  .response-tab-content {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
 
   div.tabs {
     div.tab {
@@ -12,7 +26,7 @@ const StyledWrapper = styled.div`
       border: none;
       border-bottom: solid 2px transparent;
       margin-right: ${(props) => props.theme.tabs.marginRight};
-      color: var(--color-tab-inactive);
+      color: ${(props) => props.theme.colors.text.subtext0};
       cursor: pointer;
 
       &:focus,

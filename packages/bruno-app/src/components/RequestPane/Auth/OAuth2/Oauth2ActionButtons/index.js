@@ -1,18 +1,40 @@
-import { useMemo, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useMemo, useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
-import { cloneDeep, find } from 'lodash';
-import { IconLoader2 } from '@tabler/icons';
+import { cloneDeep, find, get } from 'lodash';
+import { IconLoader2, IconX } from '@tabler/icons';
 import { interpolate } from '@usebruno/common';
-import { fetchOauth2Credentials, clearOauth2Cache, refreshOauth2Credentials } from 'providers/ReduxStore/slices/collections/actions';
+import { fetchOauth2Credentials, clearOauth2Cache, refreshOauth2Credentials, cancelOauth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } from 'providers/ReduxStore/slices/collections/actions';
+import { responseReceived } from 'providers/ReduxStore/slices/collections';
+import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import { getAllVariables } from 'utils/collections/index';
+import { formatIpcError } from 'utils/common/error';
+import Button from 'ui/Button';
 
 const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, credentialsId }) => {
   const { uid: collectionUid } = collection;
 
   const dispatch = useDispatch();
+  const preferences = useSelector((state) => state.app.preferences);
   const [fetchingToken, toggleFetchingToken] = useState(false);
   const [refreshingToken, toggleRefreshingToken] = useState(false);
+  const [fetchingAuthorizationCode, toggleFetchingAuthorizationCode] = useState(false);
+
+  const useSystemBrowser = get(preferences, 'request.oauth2.useSystemBrowser', false);
+
+  // Check for pending authorization when component mounts or when fetching starts
+  useEffect(() => {
+    if (useSystemBrowser && fetchingToken) {
+      const getRequestStatus = async () => {
+        try {
+          toggleFetchingAuthorizationCode(await dispatch(isOauth2AuthorizationRequestInProgress()));
+        } catch (err) {
+          console.error('Error checking pending authorization:', err);
+        }
+      };
+      getRequestStatus();
+    }
+  }, [useSystemBrowser, fetchingToken, dispatch]);
 
   const interpolatedAccessTokenUrl = useMemo(() => {
     const variables = getAllVariables(collection, item);
@@ -21,6 +43,23 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
 
   const credentialsData = find(collection?.oauth2Credentials, (creds) => creds?.url == interpolatedAccessTokenUrl && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId);
   const creds = credentialsData?.credentials || {};
+
+  const showOauth2Error = (errorMessage) => {
+    dispatch(
+      responseReceived({
+        itemUid: item.uid,
+        collectionUid,
+        response: {
+          error: errorMessage,
+          isError: true,
+          status: 'Error',
+          size: 0,
+          duration: 0
+        }
+      })
+    );
+    dispatch(updateResponsePaneTab({ uid: item.uid, responsePaneTab: 'response' }));
+  };
 
   const handleFetchOauth2Credentials = async () => {
     let requestCopy = cloneDeep(request);
@@ -35,13 +74,12 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
         forceGetToken: true
       }));
 
-      toggleFetchingToken(false);
-
       // Check if the result contains error or if access_token is missing
       if (!result || !result.access_token) {
         const errorMessage = result?.error || 'No access token received from authorization server';
         console.error(errorMessage);
         toast.error(errorMessage);
+        showOauth2Error(errorMessage);
         return;
       }
 
@@ -49,8 +87,16 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
     } catch (error) {
       console.error('could not fetch the token!');
       console.error(error);
+      // Don't show error toast for user cancellation
+      if (error?.message && error.message.includes('cancelled by user')) {
+        return;
+      }
+      const errorMessage = formatIpcError(error) || 'An error occurred while fetching token!';
+      toast.error(errorMessage);
+      showOauth2Error(errorMessage);
+    } finally {
       toggleFetchingToken(false);
-      toast.error(error?.message || 'An error occurred while fetching token!');
+      toggleFetchingAuthorizationCode(false);
     }
   };
 
@@ -81,7 +127,8 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
     } catch (error) {
       console.error(error);
       toggleRefreshingToken(false);
-      toast.error(error?.message || 'An error occurred while refreshing token!');
+      const errorMessage = formatIpcError(error) || 'An error occurred while refreshing token!';
+      toast.error(errorMessage);
     }
   };
 
@@ -95,29 +142,64 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
       });
   };
 
+  const handleCancelAuthorization = async () => {
+    try {
+      const result = await dispatch(cancelOauth2AuthorizationRequest());
+      if (result.success && result.cancelled) {
+        toast.error('Authorization cancelled');
+        toggleFetchingToken(false);
+        toggleFetchingAuthorizationCode(false);
+      }
+    } catch (err) {
+      console.error('Error cancelling authorization:', err);
+      toast.error('Failed to cancel authorization');
+    }
+  };
+
   return (
-    <div className="flex flex-row gap-4 mt-4">
-      <button
+    <div className="flex flex-row gap-2 mt-4">
+      <Button
+        size="sm"
+        color="secondary"
         onClick={handleFetchOauth2Credentials}
-        className="submit btn btn-sm btn-secondary w-fit flex flex-row"
         disabled={fetchingToken || refreshingToken}
+        loading={fetchingToken}
       >
-        Get Access Token{fetchingToken ? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ''}
-      </button>
+        Get Access Token
+      </Button>
       {creds?.refresh_token
         ? (
-            <button
+            <Button
+              size="sm"
+              color="secondary"
               onClick={handleRefreshAccessToken}
-              className="submit btn btn-sm btn-secondary w-fit flex flex-row"
               disabled={fetchingToken || refreshingToken}
+              loading={refreshingToken}
             >
-              Refresh Token{refreshingToken ? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ''}
-            </button>
+              Refresh Token
+            </Button>
           )
         : null}
-      <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
+      {useSystemBrowser && fetchingAuthorizationCode
+        ? (
+            <Button
+              size="sm"
+              color="secondary"
+              onClick={handleCancelAuthorization}
+              icon={<IconX size={16} />}
+              iconPosition="left"
+            >
+              Cancel Authorization
+            </Button>
+          ) : null}
+      <Button
+        size="sm"
+        color="secondary"
+        variant="ghost"
+        onClick={handleClearCache}
+      >
         Clear Cache
-      </button>
+      </Button>
     </div>
   );
 };

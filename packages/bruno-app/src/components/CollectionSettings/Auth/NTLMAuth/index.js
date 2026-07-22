@@ -64,19 +64,20 @@ const NTLMAuth = ({ collection }) => {
 
   return (
     <StyledWrapper className="mt-2 w-full">
-      <label className="block font-medium mb-2">Username</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <label className="block mb-1">Username</label>
+      <div className="single-line-editor-wrapper mb-3">
         <SingleLineEditor
           value={ntlmAuth.username || ''}
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handleUsernameChange(val)}
           collection={collection}
+          isCompact
         />
       </div>
 
-      <label className="block font-medium mb-2">Password</label>
-      <div className="single-line-editor-wrapper flex items-center">
+      <label className="block mb-1">Password</label>
+      <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
           value={ntlmAuth.password || ''}
           theme={storedTheme}
@@ -84,11 +85,12 @@ const NTLMAuth = ({ collection }) => {
           onChange={(val) => handlePasswordChange(val)}
           collection={collection}
           isSecret={true}
+          isCompact
         />
         {showWarning && <SensitiveFieldWarning fieldName="ntlm-password" warningMessage={warningMessage} />}
       </div>
 
-      <label className="block font-medium mb-2">Domain</label>
+      <label className="block mb-1">Domain</label>
       <div className="single-line-editor-wrapper">
         <SingleLineEditor
           value={ntlmAuth.domain || ''}
@@ -96,6 +98,7 @@ const NTLMAuth = ({ collection }) => {
           onSave={handleSave}
           onChange={(val) => handleDomainChange(val)}
           collection={collection}
+          isCompact
         />
       </div>
     </StyledWrapper>

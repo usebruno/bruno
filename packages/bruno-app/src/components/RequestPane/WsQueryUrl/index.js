@@ -1,4 +1,5 @@
-import { IconArrowRight, IconDeviceFloppy, IconPlugConnected, IconPlugConnectedX } from '@tabler/icons';
+import { IconDeviceFloppy, IconPlugConnected, IconPlugConnectedX } from '@tabler/icons';
+import SendButton from 'components/RequestPane/SendButton';
 import classnames from 'classnames';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { requestUrlChanged } from 'providers/ReduxStore/slices/collections';
@@ -11,6 +12,7 @@ import { isMacOS } from 'utils/common/platform';
 import { hasRequestChanges } from 'utils/collections';
 import { closeWsConnection, getWsConnectionStatus } from 'utils/network/index';
 import StyledWrapper from './StyledWrapper';
+import ToolHint from 'components/ToolHint';
 import { interpolateUrl } from 'utils/url';
 import { getAllVariables } from 'utils/collections';
 import useDebounce from 'hooks/useDebounce';
@@ -123,9 +125,9 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   return (
     <StyledWrapper>
       <div className="flex items-center h-full">
-        <div className="flex items-center input-container flex-1 w-full input-container pr-2 h-full relative">
-          <div className="flex items-center justify-center w-16">
-            <span className="text-xs font-bold method-ws">WS</span>
+        <div className="flex items-center input-container flex-1 min-w-0 h-full relative">
+          <div className="flex items-center justify-center px-[10px]">
+            <span className="text-xs font-medium method-ws">WS</span>
           </div>
           <SingleLineEditor
             value={url}
@@ -138,64 +140,65 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             collection={collection}
             item={item}
           />
-          <div className="flex items-center h-full mr-2 cursor-pointer">
-            <div
-              className="infotip mr-3"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!hasChanges) return;
-                onSave();
-              }}
-            >
-              <IconDeviceFloppy
-                color={hasChanges ? theme.colors.text.yellow : theme.requestTabs.icon.color}
-                strokeWidth={1.5}
-                size={22}
-                className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
-              />
-              <span className="infotip-text text-xs">
-                Save <span className="shortcut">({saveShortcut})</span>
-              </span>
-            </div>
+          <div className="flex items-center h-full cursor-pointer gap-3 mx-3">
+            <ToolHint text={`Save (${saveShortcut})`} toolhintId="ws-save-request" place="top" positionStrategy="fixed">
+              <div
+                className="flex items-center"
+                data-testid="save-request-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!hasChanges) return;
+                  onSave();
+                }}
+              >
+                <IconDeviceFloppy
+                  color={hasChanges ? theme.draftColor : theme.requestTabs.icon.color}
+                  strokeWidth={1.5}
+                  size={20}
+                  className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
+                />
+              </div>
+            </ToolHint>
 
             {connectionStatus === 'connected' && (
-              <div className="connection-controls relative flex items-center h-full gap-3 mr-3">
-                <div className="infotip" onClick={(e) => handleDisconnect(e, true)}>
-                  <IconPlugConnectedX
-                    color={theme.colors.text.danger}
-                    strokeWidth={1.5}
-                    size={22}
-                    className="cursor-pointer"
-                  />
-                  <span className="infotip-text text-xs">Close Connection</span>
-                </div>
+              <div className="connection-controls relative flex items-center h-full">
+                <ToolHint text="Close Connection" toolhintId="ws-close-connection" place="top" positionStrategy="fixed">
+                  <div className="flex items-center" onClick={(e) => handleDisconnect(e, true)} data-testid="ws-disconnect-button">
+                    <IconPlugConnectedX
+                      color={theme.colors.text.danger}
+                      strokeWidth={1.5}
+                      size={20}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                </ToolHint>
               </div>
             )}
 
             {connectionStatus !== 'connected' && (
-              <div className="connection-controls relative flex items-center h-full gap-3 mr-3">
-                <div className="infotip" onClick={handleConnect}>
-                  <IconPlugConnected
-                    className={classnames('cursor-pointer', {
-                      'animate-pulse': connectionStatus === CONNECTION_STATUS.CONNECTING
-                    })}
-                    color={theme.colors.text.green}
-                    strokeWidth={1.5}
-                    size={22}
-                  />
-                  <span className="infotip-text text-xs">Connect</span>
-                </div>
+              <div className="connection-controls relative flex items-center h-full">
+                <ToolHint text="Connect" toolhintId="ws-connect" place="top" positionStrategy="fixed">
+                  <div className="flex items-center" onClick={handleConnect} data-testid="ws-connect-button">
+                    <IconPlugConnected
+                      className={classnames('cursor-pointer', {
+                        'animate-pulse': connectionStatus === CONNECTION_STATUS.CONNECTING
+                      })}
+                      color={theme.colors.text.green}
+                      strokeWidth={1.5}
+                      size={20}
+                    />
+                  </div>
+                </ToolHint>
               </div>
             )}
-
-            <div data-testid="run-button" className="cursor-pointer" onClick={handleRunClick}>
-              <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
-            </div>
           </div>
+          {connectionStatus === CONNECTION_STATUS.CONNECTED && <div className="connection-status-strip"></div>}
         </div>
+        <SendButton
+          onSend={handleRunClick}
+          testId="run-button"
+        />
       </div>
-
-      {connectionStatus === CONNECTION_STATUS.CONNECTED && <div className="connection-status-strip"></div>}
     </StyledWrapper>
   );
 };

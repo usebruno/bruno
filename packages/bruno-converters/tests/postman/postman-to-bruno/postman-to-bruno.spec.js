@@ -4,7 +4,7 @@ import { invalidVariableCharacterRegex } from '../../../src/constants';
 
 describe('postman-collection', () => {
   it('should correctly import a valid Postman collection file', async () => {
-    const brunoCollection = await postmanToBruno(postmanCollection);
+    const { collection: brunoCollection } = await postmanToBruno(postmanCollection);
     expect(brunoCollection).toMatchObject(expectedOutput);
   });
 
@@ -55,7 +55,7 @@ describe('postman-collection', () => {
       item: []
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithFalsyVars);
 
     expect(brunoCollection.root.request.vars.req).toEqual([
       {
@@ -125,7 +125,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithFalsyVars);
 
     expect(brunoCollection.items.map((item) => item.request.url)).toEqual([
       'https://httpbin.org/api/v1/resource'
@@ -178,7 +178,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithFalsyVars);
 
     expect(brunoCollection.items.map((item) => item.request.url)).toEqual([
       'https://httpbin.org/api/v1/resource/'
@@ -231,11 +231,48 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithFalsyVars);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithFalsyVars);
 
     expect(brunoCollection.items.map((item) => item.request.url)).toEqual([
       'https://httpbin.org/api//resource'
     ]);
+  });
+
+  it('should convert non-string variable values to strings', async () => {
+    const collectionWithNonStringVars = {
+      info: {
+        name: 'Non-String Variable Demo',
+        _postman_id: 'abcd1234-5678-90ef-ghij-1234567890ab',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      variable: [
+        { key: 'timeout', value: 5000 },
+        { key: 'enabled', value: true },
+        { key: 'user', value: { id: 1, name: 'Alice' } }
+      ],
+      item: [
+        {
+          name: 'Sample Request',
+          request: {
+            method: 'GET',
+            url: {
+              raw: 'https://postman-echo.com/get',
+              protocol: 'https',
+              host: ['postman-echo', 'com'],
+              path: ['get']
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNonStringVars);
+    const vars = brunoCollection.root.request.vars.req;
+
+    expect(vars).toHaveLength(3);
+    expect(vars[0]).toMatchObject({ name: 'timeout', value: '5000' });
+    expect(vars[1]).toMatchObject({ name: 'enabled', value: 'true' });
+    expect(vars[2]).toMatchObject({ name: 'user', value: '{"id":1,"name":"Alice"}' });
   });
 
   it('should handle empty variables', async () => {
@@ -249,7 +286,7 @@ describe('postman-collection', () => {
       item: []
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithEmptyVars);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithEmptyVars);
     expect(brunoCollection.root.request.vars.req).toEqual([]);
   });
 
@@ -311,7 +348,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithSettings);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithSettings);
 
     // Test request with all settings
     const requestWithAllSettings = brunoCollection.items[0];
@@ -365,7 +402,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithUndefinedAuthType);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithUndefinedAuthType);
 
     // Collection level auth should default to 'none'
     expect(brunoCollection.root.request.auth).toEqual({
@@ -374,6 +411,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -385,6 +423,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -420,7 +459,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithNullAuthType);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNullAuthType);
 
     // Collection level auth should default to 'none'
     expect(brunoCollection.root.request.auth).toEqual({
@@ -429,6 +468,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -465,7 +505,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithUnexpectedAuthType);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithUnexpectedAuthType);
 
     // Collection level auth should default to 'none'
     expect(brunoCollection.root.request.auth).toEqual({
@@ -474,6 +514,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -485,6 +526,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -520,7 +562,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithRequestUndefinedAuthType);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithRequestUndefinedAuthType);
 
     // Collection level auth should default to 'none'
     expect(brunoCollection.root.request.auth).toEqual({
@@ -529,6 +571,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -540,6 +583,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -580,7 +624,7 @@ describe('postman-collection', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(collectionWithFolderUnexpectedAuthType);
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithFolderUnexpectedAuthType);
 
     // Folder auth should default to 'none'
     expect(brunoCollection.items[0].root.request.auth).toEqual({
@@ -589,6 +633,7 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
@@ -600,9 +645,515 @@ describe('postman-collection', () => {
       bearer: null,
       awsv4: null,
       apikey: null,
+      oauth1: null,
       oauth2: null,
       digest: null
     });
+  });
+
+  it('should skip headers where both key and value are null, and coalesce partial nulls', async () => {
+    const collectionWithNullHeaders = {
+      info: {
+        _postman_id: 'test-null-headers',
+        name: 'collection with null headers',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with null headers',
+          request: {
+            method: 'GET',
+            header: [
+              { key: 'Content-Type', value: 'application/json' },
+              { key: null, value: null },
+              { key: null, value: 'somevalue' },
+              { key: 'X-Custom', value: null }
+            ],
+            url: { raw: 'https://example.com/api' }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNullHeaders);
+    const headers = brunoCollection.items[0].request.headers;
+
+    expect(headers).toHaveLength(3);
+    expect(headers[0].name).toBe('Content-Type');
+    expect(headers[0].value).toBe('application/json');
+    expect(headers[1].name).toBe('');
+    expect(headers[1].value).toBe('somevalue');
+    expect(headers[2].name).toBe('X-Custom');
+    expect(headers[2].value).toBe('');
+  });
+
+  it('should skip urlencoded params where both key and value are null', async () => {
+    const collectionWithNullUrlencoded = {
+      info: {
+        _postman_id: 'test-null-urlencoded',
+        name: 'collection with null urlencoded',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with null urlencoded',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/api' },
+            body: {
+              mode: 'urlencoded',
+              urlencoded: [
+                { key: 'field1', value: 'value1' },
+                { key: null, value: null },
+                { key: null, value: 'partialvalue' },
+                { key: 'field2', value: null }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNullUrlencoded);
+    const formUrlEncoded = brunoCollection.items[0].request.body.formUrlEncoded;
+
+    expect(formUrlEncoded).toHaveLength(3);
+    expect(formUrlEncoded[0].name).toBe('field1');
+    expect(formUrlEncoded[0].value).toBe('value1');
+    expect(formUrlEncoded[1].name).toBe('');
+    expect(formUrlEncoded[1].value).toBe('partialvalue');
+    expect(formUrlEncoded[2].name).toBe('field2');
+    expect(formUrlEncoded[2].value).toBe('');
+  });
+
+  it('should skip formdata params where both key and value are null', async () => {
+    const collectionWithNullFormdata = {
+      info: {
+        _postman_id: 'test-null-formdata',
+        name: 'collection with null formdata',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with null formdata',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/api' },
+            body: {
+              mode: 'formdata',
+              formdata: [
+                { key: 'field1', value: 'value1', type: 'text' },
+                { key: null, value: null, type: 'text' },
+                { key: 'field2', value: null, type: 'text' }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNullFormdata);
+    const multipartForm = brunoCollection.items[0].request.body.multipartForm;
+
+    expect(multipartForm).toHaveLength(2);
+    expect(multipartForm[0].name).toBe('field1');
+    expect(multipartForm[0].value).toBe('value1');
+    expect(multipartForm[1].name).toBe('field2');
+    expect(multipartForm[1].value).toBe('');
+  });
+
+  it('should skip query params where both key and value are null', async () => {
+    const collectionWithNullQueryParams = {
+      info: {
+        _postman_id: 'test-null-query-params',
+        name: 'collection with null query params',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with null query params',
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              raw: 'https://example.com/api?search=test',
+              protocol: 'https',
+              host: ['example', 'com'],
+              path: ['api'],
+              query: [
+                { key: 'search', value: 'test' },
+                { key: null, value: null },
+                { key: null, value: 'somevalue' },
+                { key: 'emptyval', value: null }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNullQueryParams);
+    const params = brunoCollection.items[0].request.params;
+
+    // Fully-null entry should be skipped
+    expect(params).toHaveLength(3);
+
+    // Normal param preserved as-is
+    expect(params[0].name).toBe('search');
+    expect(params[0].value).toBe('test');
+    expect(params[0].type).toBe('query');
+
+    // Null key normalized to empty string, value preserved
+    expect(params[1].name).toBe('');
+    expect(params[1].value).toBe('somevalue');
+    expect(params[1].type).toBe('query');
+
+    // Key preserved, null value normalized to empty string
+    expect(params[2].name).toBe('emptyval');
+    expect(params[2].value).toBe('');
+    expect(params[2].type).toBe('query');
+  });
+
+  it('should convert numeric values to strings in headers, params, and body fields', async () => {
+    const collectionWithNumericValues = {
+      info: {
+        _postman_id: 'test-numeric-values',
+        name: 'collection with numeric values',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with numeric values',
+          request: {
+            method: 'POST',
+            header: [
+              { key: 'X-Account-Id', value: 0 },
+              { key: 'X-Retry-Count', value: 3 }
+            ],
+            url: {
+              raw: 'https://example.com/api/:accountId',
+              protocol: 'https',
+              host: ['example', 'com'],
+              path: ['api', ':accountId'],
+              query: [
+                { key: 'limit', value: 100 },
+                { key: 'offset', value: 0 }
+              ],
+              variable: [
+                { key: 'accountId', value: 0 }
+              ]
+            },
+            body: {
+              mode: 'urlencoded',
+              urlencoded: [
+                { key: 'timeout', value: 5000 }
+              ]
+            }
+          }
+        },
+        {
+          name: 'request with numeric multipart form values',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'formdata',
+              formdata: [
+                { key: 'retries', value: 3, type: 'text' },
+                { key: 'priority', value: 0, type: 'text' }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNumericValues);
+    const item = brunoCollection.items[0];
+
+    // Headers should have string values
+    expect(item.request.headers[0].value).toBe('0');
+    expect(item.request.headers[1].value).toBe('3');
+
+    // Query params should have string values
+    const queryParams = item.request.params.filter((p) => p.type === 'query');
+    expect(queryParams[0].value).toBe('100');
+    expect(queryParams[1].value).toBe('0');
+
+    // Path params should have string values
+    const pathParams = item.request.params.filter((p) => p.type === 'path');
+    expect(pathParams[0].value).toBe('0');
+
+    // Form URL-encoded should have string values
+    expect(item.request.body.formUrlEncoded[0].value).toBe('5000');
+
+    // Multipart form should have string values
+    const multipartItem = brunoCollection.items[1];
+    expect(multipartItem.request.body.multipartForm[0].value).toBe('3');
+    expect(multipartItem.request.body.multipartForm[1].value).toBe('0');
+  });
+
+  it('should convert numeric values to strings in example request and response fields', async () => {
+    const collectionWithNumericExamples = {
+      info: {
+        _postman_id: 'test-numeric-examples',
+        name: 'collection with numeric example values',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with numeric example',
+          request: {
+            method: 'GET',
+            header: [],
+            url: { raw: 'https://example.com/api' }
+          },
+          response: [
+            {
+              name: 'Example with numerics',
+              originalRequest: {
+                method: 'GET',
+                header: [
+                  { key: 'X-Account-Id', value: 42 }
+                ],
+                url: {
+                  raw: 'https://example.com/api/:id?page=1',
+                  protocol: 'https',
+                  host: ['example', 'com'],
+                  path: ['api', ':id'],
+                  query: [
+                    { key: 'page', value: 1 }
+                  ],
+                  variable: [
+                    { key: 'id', value: 99 }
+                  ]
+                },
+                body: {
+                  mode: 'urlencoded',
+                  urlencoded: [
+                    { key: 'retries', value: 3 }
+                  ]
+                }
+              },
+              status: 'OK',
+              code: 200,
+              header: [
+                { key: 'X-RateLimit-Remaining', value: 0 }
+              ],
+              body: '{"ok": true}'
+            }
+          ]
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNumericExamples);
+    const example = brunoCollection.items[0].examples[0];
+
+    // Example request headers
+    expect(example.request.headers[0].value).toBe('42');
+
+    // Example request query params
+    const queryParams = example.request.params.filter((p) => p.type === 'query');
+    expect(queryParams[0].value).toBe('1');
+
+    // Example request path params
+    const pathParams = example.request.params.filter((p) => p.type === 'path');
+    expect(pathParams[0].value).toBe('99');
+
+    // Example request form URL-encoded
+    expect(example.request.body.formUrlEncoded[0].value).toBe('3');
+
+    // Example response headers
+    expect(example.response.headers[0].value).toBe('0');
+  });
+
+  it('should convert numeric auth values to strings (array-backed v2.1 format)', async () => {
+    const collectionWithNumericAuth = {
+      info: {
+        _postman_id: 'test-numeric-auth',
+        name: 'collection with numeric auth values',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with numeric bearer token',
+          request: {
+            method: 'GET',
+            header: [],
+            url: { raw: 'https://example.com/api' },
+            auth: {
+              type: 'bearer',
+              bearer: [
+                { key: 'token', value: 123 }
+              ]
+            }
+          }
+        },
+        {
+          name: 'request with numeric apikey values',
+          request: {
+            method: 'GET',
+            header: [],
+            url: { raw: 'https://example.com/api' },
+            auth: {
+              type: 'apikey',
+              apikey: [
+                { key: 'key', value: 456 },
+                { key: 'value', value: 789 }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNumericAuth);
+
+    // Bearer token should be stringified
+    expect(brunoCollection.items[0].request.auth.mode).toBe('bearer');
+    expect(brunoCollection.items[0].request.auth.bearer.token).toBe('123');
+
+    // API key fields should be stringified
+    expect(brunoCollection.items[1].request.auth.mode).toBe('apikey');
+    expect(brunoCollection.items[1].request.auth.apikey.key).toBe('456');
+    expect(brunoCollection.items[1].request.auth.apikey.value).toBe('789');
+  });
+
+  it('should convert numeric auth values to strings (object-backed format)', async () => {
+    const collectionWithObjectAuth = {
+      info: {
+        _postman_id: 'test-object-auth',
+        name: 'collection with object-backed auth',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with object-backed basic auth',
+          request: {
+            method: 'GET',
+            header: [],
+            url: { raw: 'https://example.com/api' },
+            auth: {
+              type: 'basic',
+              basic: {
+                username: 12345,
+                password: 67890
+              }
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithObjectAuth);
+
+    expect(brunoCollection.items[0].request.auth.mode).toBe('basic');
+    expect(brunoCollection.items[0].request.auth.basic.username).toBe('12345');
+    expect(brunoCollection.items[0].request.auth.basic.password).toBe('67890');
+  });
+
+  it('should parse string headers in request header arrays', async () => {
+    const collectionWithStringHeaders = {
+      info: {
+        _postman_id: 'test-string-headers',
+        name: 'collection with string headers',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with string headers',
+          request: {
+            method: 'GET',
+            header: [
+              'Content-Type: application/json',
+              { key: 'X-Custom', value: 'test' },
+              'Authorization: Bearer token123'
+            ],
+            url: { raw: 'https://example.com/api' }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithStringHeaders);
+    const headers = brunoCollection.items[0].request.headers;
+
+    expect(headers).toHaveLength(3);
+    expect(headers[0].name).toBe('Content-Type');
+    expect(headers[0].value).toBe('application/json');
+    expect(headers[1].name).toBe('X-Custom');
+    expect(headers[1].value).toBe('test');
+    expect(headers[2].name).toBe('Authorization');
+    expect(headers[2].value).toBe('Bearer token123');
+  });
+
+  it('should parse a single concatenated string as the header field', async () => {
+    const collectionWithConcatenatedHeaders = {
+      info: {
+        _postman_id: 'test-concat-headers',
+        name: 'collection with concatenated header string',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with concatenated header',
+          request: {
+            method: 'GET',
+            header: 'Content-Type: application/json\r\nHost: example.com',
+            url: { raw: 'https://example.com/api' }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithConcatenatedHeaders);
+    const headers = brunoCollection.items[0].request.headers;
+
+    expect(headers).toHaveLength(2);
+    expect(headers[0].name).toBe('Content-Type');
+    expect(headers[0].value).toBe('application/json');
+    expect(headers[1].name).toBe('Host');
+    expect(headers[1].value).toBe('example.com');
+  });
+
+  it('should unwrap and import a Postman collection with { collection: { ... } } envelope', async () => {
+    const wrappedCollection = {
+      collection: { ...postmanCollection }
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(wrappedCollection);
+    expect(brunoCollection).toMatchObject(expectedOutput);
+  });
+
+  it('should handle string headers with no value', async () => {
+    const collectionWithNoValueHeader = {
+      info: {
+        _postman_id: 'test-no-value-header',
+        name: 'collection with no-value string header',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with no-value header',
+          request: {
+            method: 'GET',
+            header: ['X-No-Value'],
+            url: { raw: 'https://example.com/api' }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithNoValueHeader);
+    const headers = brunoCollection.items[0].request.headers;
+
+    expect(headers).toHaveLength(1);
+    expect(headers[0].name).toBe('X-No-Value');
+    expect(headers[0].value).toBe('');
   });
 });
 
@@ -665,6 +1216,215 @@ const postmanCollection = {
 // │   └── request (GET)
 // └── request (GET)
 
+describe('postman-collection formdata import', () => {
+  it('should import formdata with type: file correctly', async () => {
+    const collectionWithFileFormdata = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with file formdata',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with file',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'formdata',
+              formdata: [
+                {
+                  key: 'myFile',
+                  type: 'file',
+                  src: ['/path/to/file1.txt', '/path/to/file2.txt'],
+                  disabled: false
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithFileFormdata);
+    const multipartForm = brunoCollection.items[0].request.body.multipartForm;
+
+    expect(multipartForm).toHaveLength(1);
+    expect(multipartForm[0].type).toBe('file');
+    expect(multipartForm[0].name).toBe('myFile');
+    expect(multipartForm[0].value).toEqual(['/path/to/file1.txt', '/path/to/file2.txt']);
+    expect(multipartForm[0].enabled).toBe(true);
+  });
+
+  it('should import formdata with type: default and src field as file', async () => {
+    const collectionWithDefaultTypeAndSrc = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with default type formdata',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with default type',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'formdata',
+              formdata: [
+                {
+                  key: 'myFile',
+                  type: 'default',
+                  src: '/path/to/file.txt',
+                  disabled: false
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithDefaultTypeAndSrc);
+    const multipartForm = brunoCollection.items[0].request.body.multipartForm;
+
+    expect(multipartForm).toHaveLength(1);
+    expect(multipartForm[0].type).toBe('file');
+    expect(multipartForm[0].name).toBe('myFile');
+    expect(multipartForm[0].value).toEqual(['/path/to/file.txt']);
+    expect(multipartForm[0].enabled).toBe(true);
+  });
+
+  it('should import formdata with type: default and value array as text', async () => {
+    const collectionWithDefaultTypeAndValueArray = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with default type and value array',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with default type',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'formdata',
+              formdata: [
+                {
+                  key: 'myField',
+                  type: 'default',
+                  value: ['some', 'text'],
+                  disabled: false
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithDefaultTypeAndValueArray);
+    const multipartForm = brunoCollection.items[0].request.body.multipartForm;
+
+    expect(multipartForm).toHaveLength(1);
+    expect(multipartForm[0].type).toBe('text');
+    expect(multipartForm[0].name).toBe('myField');
+    expect(multipartForm[0].value).toBe('sometext');
+    expect(multipartForm[0].enabled).toBe(true);
+  });
+
+  it('should preserve contentType when importing formdata', async () => {
+    const collectionWithContentType = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with contentType',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with contentType',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'formdata',
+              formdata: [
+                {
+                  key: 'myFile',
+                  type: 'file',
+                  src: '/path/to/file.json',
+                  contentType: 'application/json',
+                  disabled: false
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithContentType);
+    const multipartForm = brunoCollection.items[0].request.body.multipartForm;
+
+    expect(multipartForm).toHaveLength(1);
+    expect(multipartForm[0].type).toBe('file');
+    expect(multipartForm[0].contentType).toBe('application/json');
+  });
+
+  it('should handle mixed file and text fields in formdata', async () => {
+    const collectionWithMixedFormdata = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with mixed formdata',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'request with mixed fields',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'formdata',
+              formdata: [
+                {
+                  key: 'textField',
+                  type: 'text',
+                  value: 'hello world',
+                  disabled: false
+                },
+                {
+                  key: 'fileField',
+                  type: 'file',
+                  src: '/path/to/file.txt',
+                  disabled: true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithMixedFormdata);
+    const multipartForm = brunoCollection.items[0].request.body.multipartForm;
+
+    expect(multipartForm).toHaveLength(2);
+    expect(multipartForm[0].type).toBe('text');
+    expect(multipartForm[0].value).toBe('hello world');
+    expect(multipartForm[0].enabled).toBe(true);
+    expect(multipartForm[1].type).toBe('file');
+    expect(multipartForm[1].value).toEqual(['/path/to/file.txt']);
+    expect(multipartForm[1].enabled).toBe(false);
+  });
+});
+
 const expectedOutput = {
   name: 'simple collection',
   uid: 'mockeduuidvalue123456',
@@ -690,6 +1450,7 @@ const expectedOutput = {
               bearer: null,
               awsv4: null,
               apikey: null,
+              oauth1: null,
               oauth2: null,
               digest: null
             },
@@ -719,6 +1480,7 @@ const expectedOutput = {
             bearer: null,
             awsv4: null,
             apikey: null,
+            oauth1: null,
             oauth2: null,
             digest: null
           },
@@ -743,6 +1505,7 @@ const expectedOutput = {
           bearer: null,
           awsv4: null,
           apikey: null,
+          oauth1: null,
           oauth2: null,
           digest: null
         },
@@ -773,6 +1536,7 @@ const expectedOutput = {
         bearer: null,
         awsv4: null,
         apikey: null,
+        oauth1: null,
         oauth2: null,
         digest: null
       },

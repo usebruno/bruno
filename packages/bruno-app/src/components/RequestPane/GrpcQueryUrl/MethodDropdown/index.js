@@ -9,6 +9,8 @@ import {
 import SearchInput from 'components/SearchInput/index';
 import { search } from 'fast-fuzzy';
 import React, { forwardRef, useEffect, useRef, useState } from 'react';
+import { useTheme } from 'providers/Theme';
+import StyledWrapper from './StyledWrapper';
 
 const MethodDropdown = ({
   grpcMethods,
@@ -16,6 +18,7 @@ const MethodDropdown = ({
   onMethodSelect,
   onMethodDropdownCreate
 }) => {
+  const { theme } = useTheme();
   const [searchText, setSearchText] = useState('');
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const searchInputRef = useRef();
@@ -58,32 +61,26 @@ const MethodDropdown = ({
   const getIconForMethodType = (type) => {
     switch (type) {
       case 'unary':
-        return <IconGrpcUnary size={20} strokeWidth={2} />;
+        return <IconGrpcUnary size={20} strokeWidth={2} color={theme.request.methods.get} />;
       case 'client-streaming':
-        return <IconGrpcClientStreaming size={20} strokeWidth={2} />;
+        return <IconGrpcClientStreaming size={20} strokeWidth={2} color={theme.request.methods.post} />;
       case 'server-streaming':
-        return <IconGrpcServerStreaming size={20} strokeWidth={2} />;
+        return <IconGrpcServerStreaming size={20} strokeWidth={2} color={theme.request.methods.put} />;
       case 'bidi-streaming':
-        return <IconGrpcBidiStreaming size={20} strokeWidth={2} />;
+        return <IconGrpcBidiStreaming size={20} strokeWidth={2} color={theme.colors.text.purple} />;
       default:
-        return <IconGrpcUnary size={20} strokeWidth={2} />;
+        return <IconGrpcUnary size={20} strokeWidth={2} color={theme.request.methods.get} />;
     }
   };
 
   const MethodsDropdownIcon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-center ml-2 cursor-pointer select-none" data-testid="grpc-method-dropdown-trigger">
-        {selectedGrpcMethod && <div className="mr-2">{getIconForMethodType(selectedGrpcMethod.type)}</div>}
-        <span className="text-xs">
-          {selectedGrpcMethod ? (
-            <span className="dark:text-neutral-300 text-neutral-700 text-nowrap" data-testid="selected-grpc-method-name">
-              {selectedGrpcMethod.path.split('.').at(-1) || selectedGrpcMethod.path}
-            </span>
-          ) : (
-            <span className="dark:text-neutral-300 text-neutral-700 text-nowrap">Select Method </span>
-          )}
+      <div ref={ref} className="method-dropdown-trigger" data-testid="grpc-method-dropdown-trigger">
+        {selectedGrpcMethod && <div className="method-dropdown-trigger-icon">{getIconForMethodType(selectedGrpcMethod.type)}</div>}
+        <span className="method-dropdown-trigger-text" data-testid="selected-grpc-method-name">
+          {selectedGrpcMethod ? (selectedGrpcMethod.path.split('.').at(-1) || selectedGrpcMethod.path) : 'Select Method'}
         </span>
-        <IconChevronDown className="caret ml-1" size={14} strokeWidth={2} />
+        <IconChevronDown className="method-dropdown-caret" size={14} strokeWidth={2} />
       </div>
     );
   });
@@ -145,76 +142,75 @@ const MethodDropdown = ({
   }
 
   return (
-    <div className="flex items-center h-full mr-2" data-testid="grpc-methods-dropdown">
-      <Dropdown onCreate={onMethodDropdownCreate} icon={<MethodsDropdownIcon />} placement="bottom-end" style={{ maxWidth: 'unset' }} onShow={handleDropdownShow}>
-        <SearchInput
-          searchText={searchText}
-          setSearchText={setSearchText}
-          placeholder="Search"
-          ref={searchInputRef}
-          onKeyDown={handleKeyDown}
-          onBlur={focusSearchInput}
-          onChange={handleSearchChange}
-          className="mt-2 mb-3 "
-          data-testid="grpc-methods-search-input"
-        />
-        <div ref={listRef} className="max-h-96 overflow-y-auto w-96 min-w-60" data-testid="grpc-methods-list">
-          {Object.entries(groupedMethods).map(([serviceName, methods], serviceIndex) => (
-            <div key={serviceIndex} className="service-group mb-2" onKeyDown={handleKeyDown} tabIndex={0}>
-              <div className="service-header px-3 py-1 bg-neutral-100 dark:bg-neutral-800 font-medium truncate sticky top-0 z-10">
-                {serviceName || 'Default Service'}
-              </div>
-              <div className="service-methods">
-                {methods.map((method, methodIndex) => {
-                  const globalMethodIndex
-                    = Object.values(groupedMethods)
-                      .slice(0, serviceIndex)
-                      .reduce((acc, group) => acc + group.length, 0) + methodIndex;
-                  return (
-                    <div
-                      key={`${serviceIndex}-${methodIndex}`}
-                      className={`py-2 px-3 w-full border-l-2 transition-all duration-200 relative group ${
-                        selectedGrpcMethod && selectedGrpcMethod.path === method.path
-                          ? 'border-yellow-500 bg-yellow-500/20 dark:bg-yellow-900/20'
-                          : 'border-transparent hover:bg-black/5 dark:hover:bg-white/5'
-                      } ${focusedIndex === globalMethodIndex
-                        ? 'bg-black/5 dark:bg-white/5' : ''}`}
-                      onClick={() => handleGrpcMethodSelect(method)}
-                      data-index={globalMethodIndex}
-                      data-testid="grpc-method-item"
-                    >
-                      <div className="flex items-center">
-                        <div className="text-xs mr-3 text-gray-500">
-                          {getIconForMethodType(method.type)}
-                        </div>
-                        <div className="flex flex-col flex-1">
-                          <div className="font-medium text-gray-900 dark:text-gray-100">
-                            {method.methodName}
+    <StyledWrapper>
+      <div className="method-dropdown-container" data-testid="grpc-methods-dropdown">
+        <Dropdown onCreate={onMethodDropdownCreate} icon={<MethodsDropdownIcon />} placement="bottom-end" style={{ maxWidth: 'unset' }} onShow={handleDropdownShow}>
+          <SearchInput
+            searchText={searchText}
+            setSearchText={setSearchText}
+            placeholder="Search"
+            ref={searchInputRef}
+            onKeyDown={handleKeyDown}
+            onBlur={focusSearchInput}
+            onChange={handleSearchChange}
+            className="mt-2 mb-3"
+            data-testid="grpc-methods-search-input"
+          />
+          <div ref={listRef} className="method-dropdown-list" data-testid="grpc-methods-list">
+            {Object.entries(groupedMethods).map(([serviceName, methods], serviceIndex) => (
+              <div key={serviceIndex} className="method-dropdown-service-group" onKeyDown={handleKeyDown} tabIndex={0}>
+                <div className="method-dropdown-service-header">
+                  {serviceName || 'Default Service'}
+                </div>
+                <div>
+                  {methods.map((method, methodIndex) => {
+                    const globalMethodIndex
+                      = Object.values(groupedMethods)
+                        .slice(0, serviceIndex)
+                        .reduce((acc, group) => acc + group.length, 0) + methodIndex;
+                    const isSelected = selectedGrpcMethod && selectedGrpcMethod.path === method.path;
+                    const isFocused = focusedIndex === globalMethodIndex;
+                    return (
+                      <div
+                        key={`${serviceIndex}-${methodIndex}`}
+                        className={`method-dropdown-method-item ${
+                          isSelected ? 'method-dropdown-method-item--selected' : ''
+                        } ${isFocused ? 'method-dropdown-method-item--focused' : ''}`}
+                        onClick={() => handleGrpcMethodSelect(method)}
+                        data-index={globalMethodIndex}
+                        data-testid="grpc-method-item"
+                      >
+                        <div className="method-dropdown-method-content">
+                          <div className="method-dropdown-method-icon">
+                            {getIconForMethodType(method.type)}
                           </div>
-                          <div className="text-xs text-gray-500">
-                            {method.type}
+                          <div className="method-dropdown-method-details">
+                            <div className="method-dropdown-method-name">
+                              {method.methodName}
+                            </div>
+                            <div className="method-dropdown-method-type">
+                              {method.type}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
 
-          {filteredMethods.length === 0 && (
-            <div className="py-2 px-3 w-full transition-all duration-200 relative group">
-              <div className="flex items-center">
-                <div className="text-xs mr-3 text-gray-500">
+            {filteredMethods.length === 0 && (
+              <div className="method-dropdown-empty-state">
+                <div className="method-dropdown-empty-state-text">
                   No methods found for the search term
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-      </Dropdown>
-    </div>
+            )}
+          </div>
+        </Dropdown>
+      </div>
+    </StyledWrapper>
   );
 };
 

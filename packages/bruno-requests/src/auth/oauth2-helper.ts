@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, ResponseType } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, ResponseType } from 'axios';
 import qs from 'qs';
 import debug from 'debug';
 
@@ -27,6 +27,7 @@ export interface OAuth2Config {
   credentialsId?: string;
   autoRefreshToken?: boolean;
   autoFetchToken?: boolean;
+  tokenSource?: 'access_token' | 'id_token';
   additionalParameters?: {
     token?: AdditionalParameter[];
   };
@@ -107,7 +108,7 @@ const safeParseJSONBuffer = (data: any) => {
 /**
  * Fetches an OAuth2 token using client credentials grant
  */
-const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config) => {
+const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config, axiosInstance?: AxiosInstance) => {
   const {
     accessTokenUrl,
     clientId,
@@ -145,7 +146,8 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config) => {
   }
 
   if (credentialsPlacement === 'basic_auth_header') {
-    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret!}`).toString('base64')}`;
+    const secret = clientSecret ?? '';
+    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
   }
 
   if (credentialsPlacement !== 'basic_auth_header') {
@@ -166,7 +168,8 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config) => {
   debug('oauth2')(JSON.stringify(requestConfig, null, 2));
 
   try {
-    const response = await axios(requestConfig);
+    const httpClient = axiosInstance || axios;
+    const response = await httpClient(requestConfig);
     const parsedData = safeParseJSONBuffer(response.data);
 
     if (parsedData && typeof parsedData === 'object') {
@@ -196,7 +199,7 @@ const fetchTokenClientCredentials = async (oauth2Config: OAuth2Config) => {
 /**
  * Fetches an OAuth2 token using password grant
  */
-const fetchTokenPassword = async (oauth2Config: OAuth2Config) => {
+const fetchTokenPassword = async (oauth2Config: OAuth2Config, axiosInstance?: AxiosInstance) => {
   const {
     accessTokenUrl,
     clientId,
@@ -246,7 +249,8 @@ const fetchTokenPassword = async (oauth2Config: OAuth2Config) => {
   }
 
   if (credentialsPlacement === 'basic_auth_header') {
-    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${clientSecret!}`).toString('base64')}`;
+    const secret = clientSecret ?? '';
+    requestConfig.headers['Authorization'] = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
   }
 
   if (credentialsPlacement !== 'basic_auth_header') {
@@ -267,7 +271,8 @@ const fetchTokenPassword = async (oauth2Config: OAuth2Config) => {
   debug('oauth2')(JSON.stringify(requestConfig, null, 2));
 
   try {
-    const response = await axios(requestConfig);
+    const httpClient = axiosInstance || axios;
+    const response = await httpClient(requestConfig);
     const parsedData = safeParseJSONBuffer(response.data);
 
     if (parsedData && typeof parsedData === 'object') {
@@ -311,12 +316,13 @@ const isTokenExpired = (credentials: any): boolean => {
 /**
  * Manages OAuth2 token retrieval and storage
  */
-export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: TokenStore, verbose: string): Promise<string | null> => {
+export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: TokenStore, verbose: string, axiosInstance?: AxiosInstance): Promise<string | null> => {
   const {
     grantType,
     accessTokenUrl,
     credentialsId = 'default',
-    autoFetchToken = true
+    autoFetchToken = true,
+    tokenSource = 'access_token'
   } = oauth2Config;
 
   if (verbose) {
@@ -342,7 +348,7 @@ export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: Tok
     // Check if token is expired
     if (!isTokenExpired(existingToken)) {
       // Token is valid, use it
-      return existingToken.access_token;
+      return tokenSource === 'id_token' ? existingToken.id_token : existingToken.access_token;
     } else {
       // Token is expired
       if (autoFetchToken) {
@@ -350,7 +356,7 @@ export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: Tok
         await tokenStore.deleteCredential({ url: accessTokenUrl, credentialsId });
       } else {
         // Return expired token if autoFetchToken is disabled
-        return existingToken.access_token;
+        return tokenSource === 'id_token' ? existingToken.id_token : existingToken.access_token;
       }
     }
   } else {
@@ -365,9 +371,9 @@ export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: Tok
   let tokenResponse;
 
   if (grantType === 'client_credentials') {
-    tokenResponse = await fetchTokenClientCredentials(oauth2Config);
+    tokenResponse = await fetchTokenClientCredentials(oauth2Config, axiosInstance);
   } else if (grantType === 'password') {
-    tokenResponse = await fetchTokenPassword(oauth2Config);
+    tokenResponse = await fetchTokenPassword(oauth2Config, axiosInstance);
   } else {
     throw new Error(`Unsupported grant type: ${grantType}`);
   }
@@ -389,5 +395,5 @@ export const getOAuth2Token = async (oauth2Config: OAuth2Config, tokenStore: Tok
     console.warn('OAuth2: Failed to save token to store, but proceeding with token');
   }
 
-  return tokenResponse.access_token;
+  return tokenSource === 'id_token' ? tokenResponse.id_token : tokenResponse.access_token;
 };

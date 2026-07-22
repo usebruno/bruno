@@ -29,6 +29,15 @@ const tokenStore = {
     return false;
   },
 
+  // Delete all credentials for a given credentialsId (all URLs)
+  deleteCredentialById(credentialsId) {
+    if (this.credentials[credentialsId]) {
+      delete this.credentials[credentialsId];
+      return true;
+    }
+    return false;
+  },
+
   // Get all stored OAuth2 credentials
   getAllCredentials() {
     const result = [];

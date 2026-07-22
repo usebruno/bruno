@@ -5,15 +5,20 @@ import {
   createEnvironment,
   addEnvironmentVariables,
   saveEnvironment,
-  closeEnvironmentPanel,
   sendRequest,
   expectResponseContains,
-  closeAllCollections
+  closeAllCollections,
+  deleteAllGlobalEnvironments
 } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Global Environment Create Tests', () => {
   test.setTimeout(60000);
+
+  test.afterEach(async ({ page }) => {
+    await deleteAllGlobalEnvironments(page);
+    await closeAllCollections(page);
+  });
 
   test('should import collection and create global environment for request usage', async ({
     page,
@@ -24,8 +29,7 @@ test.describe('Global Environment Create Tests', () => {
 
     await test.step('Import collection', async () => {
       await importCollection(page, collectionFile, await createTmpDir('global-env-test'), {
-        expectedCollectionName: 'test_collection',
-        openWithSandboxMode: 'safe'
+        expectedCollectionName: 'test_collection'
       });
     });
 
@@ -41,7 +45,6 @@ test.describe('Global Environment Create Tests', () => {
       ]);
 
       await saveEnvironment(page);
-      await closeEnvironmentPanel(page);
       await expect(locators.environment.currentEnvironment()).toContainText('Test Global Environment');
     });
 
@@ -58,10 +61,6 @@ test.describe('Global Environment Create Tests', () => {
         '"body": "This is a global test post body with environment variables"',
         '"apiToken": "global-secret-token-12345"'
       ]);
-    });
-
-    await test.step('Cleanup', async () => {
-      await closeAllCollections(page);
     });
   });
 });

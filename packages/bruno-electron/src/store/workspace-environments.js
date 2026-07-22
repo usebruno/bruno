@@ -1,13 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const _ = require('lodash');
-const yaml = require('js-yaml');
 const { parseEnvironment, stringifyEnvironment } = require('@usebruno/filestore');
-const { writeFile, createDirectory } = require('../utils/filesystem');
+const { parseValueByDataType } = require('@usebruno/common/utils');
+const { writeFile, createDirectory, withFileLock } = require('../utils/filesystem');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { decryptStringSafe } = require('../utils/encryption');
 const EnvironmentSecretsStore = require('./env-secrets');
-const { generateYamlContent } = require('../utils/workspace-config');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -72,10 +71,10 @@ class GlobalEnvironmentsManager {
     if (this.envHasSecrets(environment)) {
       const envSecrets = environmentSecretsStore.getEnvSecrets(workspacePath, environment);
       _.each(envSecrets, (secret) => {
-        const variable = _.find(environment.variables, (v) => v.name === secret.name);
+        const variable = _.find(environment.variables, (v) => v.name === secret.name && v.secret);
         if (variable && secret.value) {
           const decryptionResult = decryptStringSafe(secret.value);
-          variable.value = decryptionResult.value;
+          variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);
         }
       });
     }
@@ -93,8 +92,7 @@ class GlobalEnvironmentsManager {
 
       if (!fs.existsSync(environmentsDir)) {
         return {
-          globalEnvironments: [],
-          activeGlobalEnvironmentUid: null
+          globalEnvironments: []
         };
       }
 
@@ -114,65 +112,15 @@ class GlobalEnvironmentsManager {
         }
       }
 
-      const activeGlobalEnvironmentUid = await this.getActiveGlobalEnvironmentUid(workspacePath);
-
       return {
-        globalEnvironments: environments,
-        activeGlobalEnvironmentUid
+        globalEnvironments: environments
       };
     } catch (error) {
       throw error;
     }
   }
 
-  async getActiveGlobalEnvironmentUid(workspacePath) {
-    try {
-      if (!workspacePath) {
-        return null;
-      }
-
-      const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
-
-      if (!fs.existsSync(workspaceFilePath)) {
-        return null;
-      }
-
-      const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
-      const workspaceConfig = yaml.load(yamlContent);
-
-      return workspaceConfig.activeEnvironmentUid || null;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  async setActiveGlobalEnvironmentUid(workspacePath, environmentUid) {
-    try {
-      if (!workspacePath) {
-        throw new Error('Workspace path is required');
-      }
-
-      const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
-
-      if (!fs.existsSync(workspaceFilePath)) {
-        throw new Error('Invalid workspace: workspace.yml not found');
-      }
-
-      const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
-      const workspaceConfig = yaml.load(yamlContent);
-
-      workspaceConfig.activeEnvironmentUid = environmentUid;
-
-      const yamlOutput = generateYamlContent(workspaceConfig);
-
-      await writeFile(workspaceFilePath, yamlOutput);
-      return true;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async createGlobalEnvironment(workspacePath, { uid, name, variables }) {
+  async createGlobalEnvironment(workspacePath, { uid, name, variables, color }) {
     try {
       if (!workspacePath) {
         throw new Error('Workspace path is required');
@@ -192,7 +140,8 @@ class GlobalEnvironmentsManager {
 
       const environment = {
         name: name,
-        variables: variables || []
+        variables: variables || [],
+        color
       };
 
       if (this.envHasSecrets(environment)) {
@@ -205,14 +154,15 @@ class GlobalEnvironmentsManager {
       return {
         uid: generateUidBasedOnHash(environmentFilePath),
         name,
-        variables
+        variables,
+        color
       };
     } catch (error) {
       throw error;
     }
   }
 
-  async saveGlobalEnvironment(workspacePath, { environmentUid, variables }) {
+  async saveGlobalEnvironment(workspacePath, { environmentUid, variables, color }) {
     try {
       if (!workspacePath) {
         throw new Error('Workspace path is required');
@@ -229,12 +179,21 @@ class GlobalEnvironmentsManager {
         variables: variables
       };
 
-      if (this.envHasSecrets(environment)) {
-        environmentSecretsStore.storeEnvSecrets(workspacePath, environment);
+      if (color) {
+        environment.color = color;
       }
 
-      const content = await stringifyEnvironment(environment, { format: 'yml' });
-      await writeFile(envFile.filePath, content);
+      // Serialize concurrent writes per env file. Two rapid scripted
+      // bru.setGlobalEnvVar() persist calls can otherwise overlap and the
+      // second writer's stringify+write can land before the first, dropping it.
+      await withFileLock(envFile.filePath, async () => {
+        if (this.envHasSecrets(environment)) {
+          environmentSecretsStore.storeEnvSecrets(workspacePath, environment);
+        }
+
+        const content = await stringifyEnvironment(environment, { format: 'yml' });
+        await writeFile(envFile.filePath, content);
+      });
 
       return true;
     } catch (error) {
@@ -302,24 +261,32 @@ class GlobalEnvironmentsManager {
 
       fs.unlinkSync(envFile.filePath);
 
-      const activeGlobalEnvironmentUid = await this.getActiveGlobalEnvironmentUid(workspacePath);
-      if (activeGlobalEnvironmentUid === environmentUid) {
-        await this.setActiveGlobalEnvironmentUid(workspacePath, null);
-      }
-
       return true;
     } catch (error) {
       throw error;
     }
   }
 
-  async selectGlobalEnvironment(workspacePath, { environmentUid }) {
+  async updateGlobalEnvironmentColor(workspacePath, environmentUid, color) {
     try {
       if (!workspacePath) {
         throw new Error('Workspace path is required');
       }
 
-      await this.setActiveGlobalEnvironmentUid(workspacePath, environmentUid);
+      const envFile = this.findEnvironmentFileByUid(workspacePath, environmentUid);
+
+      if (!envFile) {
+        throw new Error(`Environment file not found for uid: ${environmentUid}`);
+      }
+
+      await withFileLock(envFile.filePath, async () => {
+        const environment = await this.parseEnvironmentFile(envFile.filePath, workspacePath);
+        environment.color = color;
+
+        const content = stringifyEnvironment(environment, { format: 'yml' });
+        await writeFile(envFile.filePath, content);
+      });
+
       return true;
     } catch (error) {
       throw error;
@@ -346,8 +313,8 @@ class GlobalEnvironmentsManager {
     return this.deleteGlobalEnvironment(workspacePath, params);
   }
 
-  async selectGlobalEnvironmentByPath(workspacePath, params) {
-    return this.selectGlobalEnvironment(workspacePath, params);
+  async updateGlobalEnvironmentColorByPath(workspacePath, { environmentUid, color }) {
+    return this.updateGlobalEnvironmentColor(workspacePath, environmentUid, color);
   }
 }
 

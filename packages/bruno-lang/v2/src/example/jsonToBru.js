@@ -38,7 +38,8 @@ const jsonToExampleBru = (json) => {
   }
 
   if (description) {
-    bru += `description: ${description}\n`;
+    const descriptionValue = getValueString(description);
+    bru += `description: ${descriptionValue}\n`;
   }
 
   // Request block

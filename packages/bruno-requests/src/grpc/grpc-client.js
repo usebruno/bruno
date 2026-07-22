@@ -90,33 +90,56 @@ const processGrpcMetadata = (metadata) => {
   });
 };
 
+// Unix socket: unix:/path, unix:///path, unix-abstract:name
+const isUnixSocket = (str) => {
+  if (!str) return false;
+  return str.startsWith('unix:') || str.startsWith('unix-abstract:');
+};
+
+// Windows named pipe: \\.\pipe\name or //./pipe/name
+const isWindowsNamedPipe = (str) => {
+  if (!str) return false;
+  return str.startsWith('\\\\.\\pipe\\')
+    || str.startsWith('//./pipe/')
+    || str.toLowerCase().startsWith('\\\\.\\pipe\\')
+    || str.toLowerCase().startsWith('//./pipe/');
+};
+
+const normalizeWindowsNamedPipe = (pipePath) => {
+  if (pipePath.startsWith('//./pipe/')) {
+    return pipePath.replace('//./pipe/', '\\\\.\\pipe\\');
+  }
+  return pipePath;
+};
+
+// Parse gRPC URL into components, handling TCP, Unix sockets, and Windows named pipes
 const getParsedGrpcUrlObject = (url) => {
-  const isUnixSocket = (str) => str.startsWith('unix:');
-  // const isXdsUrl = str => str.startsWith('xds:');
-  // By default, secure protocol grpcs is set if not specified, localhost is set to insecure (grpc://)
   const addProtocolIfMissing = (str) => {
     if (str.includes('://')) return str;
-
-    // For localhost, default to insecure (grpc://) for local development
     if (str.includes('localhost') || str.includes('127.0.0.1')) {
       return `grpc://${str}`;
     }
-
-    // For other hosts, default to secure
     return `grpcs://${str}`;
   };
   const removeTrailingSlash = (str) => (str.endsWith('/') ? str.slice(0, -1) : str);
 
-  if (!url) return { host: '', path: '' };
-  if (isUnixSocket(url)) return { host: url, path: '' };
-  // if (isXdsUrl(url)) return { host: url, path: '' }; /* TODO: add xds support, https://www.npmjs.com/package/@grpc/grpc-js-xds */
+  if (!url) return { host: '', path: '', protocol: '', isLocalTransport: false };
+
+  if (isUnixSocket(url)) {
+    return { host: url, path: '', protocol: 'unix', isLocalTransport: true };
+  }
+
+  if (isWindowsNamedPipe(url)) {
+    return { host: normalizeWindowsNamedPipe(url), path: '', protocol: 'pipe', isLocalTransport: true };
+  }
 
   const urlObj = new URL(addProtocolIfMissing(url.toLowerCase()));
 
   return {
     host: urlObj.host,
     protocol: urlObj.protocol.replace(':', ''),
-    path: removeTrailingSlash(urlObj.pathname)
+    path: removeTrailingSlash(urlObj.pathname),
+    isLocalTransport: false
   };
 };
 
@@ -127,13 +150,21 @@ const getParsedGrpcUrlObject = (url) => {
  * @param {string} collectionUid - The collection UID
  * @param {Object} rpc - The gRPC object
  */
-const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc) => {
+const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc, onComplete) => {
+  let completed = false;
+  const complete = () => {
+    if (completed) return;
+    completed = true;
+    if (typeof onComplete === 'function') onComplete();
+  };
+
   rpc.on('status', (status, res) => {
     const statusWithMetadata = {
       ...status,
       metadata: processGrpcMetadata(status.metadata.getMap ? status.metadata.getMap() : status.metadata)
     };
     callback('grpc:status', requestId, collectionUid, { status: statusWithMetadata, res });
+    complete();
   });
 
   rpc.on('error', (error) => {
@@ -142,12 +173,12 @@ const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc) => {
       metadata: processGrpcMetadata(error.metadata.getMap ? error.metadata.getMap() : error.metadata)
     };
     callback('grpc:error', requestId, collectionUid, { error: errorWithMetadata });
+    complete();
   });
 
   rpc.on('end', (res) => {
     callback('grpc:server-end-stream', requestId, collectionUid, { res });
-    const channel = rpc?.call?.channel;
-    if (channel) channel.close();
+    complete();
   });
 
   rpc.on('data', (res) => {
@@ -156,9 +187,7 @@ const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc) => {
 
   rpc.on('cancel', (res) => {
     callback('grpc:server-cancel-stream', requestId, collectionUid, { res });
-
-    const channel = rpc?.call?.channel;
-    if (channel) channel.close();
+    complete();
   });
 
   rpc.on('metadata', (metadata) => {
@@ -211,12 +240,29 @@ class GrpcClient {
       services = await client.listServices('*', callOptions);
       return { client, services, callOptions };
     } catch (e) {
+      // Close the failed v1 client's channel to prevent subchannel leaks
+      this.#closeReflectionClient(client);
       console.warn(`gRPC reflection v1 failed:`, e);
     }
 
     client = makeClient('v1alpha');
     services = await client.listServices('*', callOptions);
     return { client, services, callOptions };
+  }
+
+  /**
+   * Close a GrpcReflection client's underlying gRPC channel.
+   * GrpcReflection doesn't expose a close() method, so we access the
+   * internal gRPC service client directly.
+   */
+  #closeReflectionClient(reflectionClient) {
+    try {
+      if (reflectionClient?.client && typeof reflectionClient.client.close === 'function') {
+        reflectionClient.client.close();
+      }
+    } catch (e) {
+      // Ignore close errors
+    }
   }
 
   /**
@@ -257,7 +303,12 @@ class GrpcClient {
   #getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, passphrase, pfx, verifyOptions }) {
     const securedProtocols = ['grpcs', 'https'];
     try {
-      const { protocol } = getParsedGrpcUrlObject(url);
+      const { protocol, isLocalTransport } = getParsedGrpcUrlObject(url);
+
+      if (isLocalTransport) {
+        return ChannelCredentials.createInsecure();
+      }
+
       const isSecureConnection = securedProtocols.some((sp) => protocol === sp);
       if (!isSecureConnection) {
         return ChannelCredentials.createInsecure();
@@ -297,6 +348,66 @@ class GrpcClient {
   }
 
   /**
+   * Resolve proxy target and channel options for HTTP CONNECT proxying.
+   * @grpc/grpc-js supports HTTP proxies via channel options.
+   * SOCKS and HTTPS proxy protocols are not supported.
+   *
+   * When proxyConfig is an object (even with null proxyUrl), @grpc/grpc-js's
+   * built-in env var proxy (http_proxy/https_proxy) is disabled
+   * so that Bruno has full control over proxy behavior.
+   *
+   * @param {string} originalHost - The original gRPC server host:port
+   * @param {Object} [proxyConfig] - Proxy configuration. Pass undefined to leave env var proxy enabled.
+   * @param {string|null} proxyConfig.proxyUrl - The HTTP proxy URL, or null for no proxy
+   * @returns {{ targetHost: string, proxyChannelOptions: Object }}
+   */
+  #resolveProxyTarget(originalHost, proxyConfig) {
+    // When proxyConfig is not provided (undefined), don't touch env var proxy
+    if (proxyConfig === undefined || proxyConfig === null) {
+      return { targetHost: originalHost, proxyChannelOptions: {} };
+    }
+
+    // Bruno is managing proxy — disable @grpc/grpc-js built-in env var proxy
+    // so that http_proxy/https_proxy env vars don't interfere.
+    // Use a local subchannel pool so that old proxy subchannels don't persist
+    // in the global pool and retry against stale proxy addresses.
+    const baseOptions = {
+      'grpc.enable_http_proxy': 0,
+      'grpc.use_local_subchannel_pool': 1
+    };
+
+    if (!proxyConfig.proxyUrl) {
+      return { targetHost: originalHost, proxyChannelOptions: baseOptions };
+    }
+
+    // Don't proxy local transports
+    if (isUnixSocket(originalHost) || isWindowsNamedPipe(originalHost)) {
+      return { targetHost: originalHost, proxyChannelOptions: baseOptions };
+    }
+
+    // We replicate what @grpc/grpc-js's internal mapProxyName() does:
+    // redirect the channel target to the proxy and set http_connect_target/creds
+    // so that getProxiedConnection() performs the HTTP CONNECT handshake.
+    // These channel options are marked "internal" in channel-options.ts, but
+    // there is no public programmatic proxy API — the only alternative is
+    // setting process-wide env vars (http_proxy), which is racy.
+    const proxyUrl = new URL(proxyConfig.proxyUrl);
+    const proxyChannelOptions = {
+      ...baseOptions,
+      'grpc.http_connect_target': `dns:${originalHost}`,
+      'grpc.default_authority': originalHost
+    };
+
+    if (proxyUrl.username) {
+      proxyChannelOptions['grpc.http_connect_creds']
+        = `${decodeURIComponent(proxyUrl.username)}:${decodeURIComponent(proxyUrl.password)}`;
+    }
+
+    const targetHost = `${proxyUrl.hostname}:${proxyUrl.port || 80}`;
+    return { targetHost, proxyChannelOptions };
+  }
+
+  /**
    * Get method from the path
    */
   #getMethodFromPath(path) {
@@ -316,10 +427,11 @@ class GrpcClient {
    * @param {string} [options.collectionUid] - Collection UID
    * @param {Object} [options.certificates] - Certificate configuration
    * @param {Object} [options.verifyOptions] - Additional options for verifying the server certificate
+   * @param {string[]} [options.includeDirs] - Include directories for proto file resolution
    * @returns {Promise<boolean>} Whether methods were successfully refreshed
    * @private
    */
-  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions }) {
+  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions, includeDirs = [], proxyConfig }) {
     try {
       // Try reflection first if no proto path is specified
       if (!protoPath) {
@@ -332,15 +444,16 @@ class GrpcClient {
           passphrase: certificates.passphrase,
           pfx: certificates.pfx,
           verifyOptions,
-          sendEvent: () => {} // No-op for refresh
+          sendEvent: () => {}, // No-op for refresh
+          proxyConfig
         });
         return true;
       }
 
       // Try proto file if available
       if (protoPath) {
-        const absoluteProtoPath = nodePath.join(collectionPath, protoPath);
-        await this.loadMethodsFromProtoFile(absoluteProtoPath, []);
+        const absoluteProtoPath = nodePath.resolve(collectionPath, protoPath);
+        await this.loadMethodsFromProtoFile(absoluteProtoPath, includeDirs);
         return true;
       }
 
@@ -396,8 +509,9 @@ class GrpcClient {
         this.eventCallback('grpc:response', requestId, collectionUid, { error, res });
       }
     );
+    this.#addConnection(requestId, { rpc, client });
 
-    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc);
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, () => this.#removeConnection(requestId));
   }
 
   #handleClientStreamingResponse({ client, requestId, requestPath, method, metadata, collectionUid }) {
@@ -410,9 +524,9 @@ class GrpcClient {
         this.eventCallback('grpc:response', requestId, collectionUid, { error, res });
       }
     );
-    this.#addConnection(requestId, rpc);
+    this.#addConnection(requestId, { rpc, client });
 
-    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc);
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, () => this.#removeConnection(requestId));
   }
 
   #handleServerStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid }) {
@@ -427,9 +541,9 @@ class GrpcClient {
         this.eventCallback('grpc:response', requestId, collectionUid, { error, res });
       }
     );
-    this.#addConnection(requestId, rpc);
+    this.#addConnection(requestId, { rpc, client });
 
-    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc);
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, () => this.#removeConnection(requestId));
   }
 
   #handleBidiStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid }) {
@@ -439,9 +553,9 @@ class GrpcClient {
       method.responseDeserialize,
       metadata
     );
-    this.#addConnection(requestId, rpc);
+    this.#addConnection(requestId, { rpc, client });
 
-    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc);
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, () => this.#removeConnection(requestId));
   }
 
   /**
@@ -463,6 +577,9 @@ class GrpcClient {
    * @param {string} [params.pfx] - The PFX/P12 certificate data
    * @param {Object} [params.verifyOptions] - Additional options for verifying the server certificate
    * @param {import('@grpc/grpc-js').ChannelOptions} [params.channelOptions] - Additional options for the gRPC channel
+   * @param {string[]} [params.includeDirs] - Include directories for proto file resolution
+   * @param {Object} [params.proxyConfig] - HTTP proxy configuration
+   * @param {string} params.proxyConfig.proxyUrl - The HTTP proxy URL
    */
   async startConnection({
     request,
@@ -473,7 +590,9 @@ class GrpcClient {
     passphrase,
     pfx,
     verifyOptions,
-    channelOptions = {}
+    channelOptions = {},
+    includeDirs = [],
+    proxyConfig
   }) {
     const credentials = this.#getChannelCredentials({
       url: request.url,
@@ -509,7 +628,9 @@ class GrpcClient {
           passphrase,
           pfx
         },
-        verifyOptions
+        verifyOptions,
+        includeDirs,
+        proxyConfig
       });
 
       if (!refreshSuccess) {
@@ -524,8 +645,23 @@ class GrpcClient {
       }
     }
 
+    // Extract user-agent from headers if provided (case-insensitive)
+    // Set it as grpc.primary_user_agent channel option to prepend to the default user-agent
+    const userAgentKey = Object.keys(request.headers).find(
+      (key) => key.toLowerCase() === 'user-agent'
+    );
+    const userAgentValue = userAgentKey ? request.headers[userAgentKey] : null;
+
+    // Resolve proxy target and channel options
+    const { targetHost, proxyChannelOptions } = this.#resolveProxyTarget(host, proxyConfig);
+
+    const mergedChannelOptions = { ...channelOptions, ...proxyChannelOptions };
+    if (userAgentValue && !channelOptions?.['grpc.primary_user_agent']) {
+      mergedChannelOptions['grpc.primary_user_agent'] = userAgentValue;
+    }
+
     const Client = makeGenericClientConstructor({});
-    const client = new Client(host, credentials, channelOptions);
+    const client = new Client(targetHost, credentials, mergedChannelOptions);
     if (!client) {
       throw new Error('Failed to create client');
     }
@@ -535,6 +671,7 @@ class GrpcClient {
       messages = messages.map(({ content }) => safeJsonParse(content, 'message content'));
     } catch (parseError) {
       console.error('Failed to parse gRPC message content:', parseError);
+      client.close();
       this.eventCallback('grpc:error', request.uid, collection.uid, {
         error: parseError
       });
@@ -567,9 +704,10 @@ class GrpcClient {
    * @param {Object|string} body - The message body to send, can be a JSON object or a string
    */
   sendMessage(requestId, collectionUid, body) {
-    const connection = this.activeConnections.get(requestId);
+    const entry = this.activeConnections.get(requestId);
+    const rpc = entry?.rpc;
 
-    if (connection) {
+    if (rpc) {
       let parsedBody;
 
       // Parse the body if it's a string, with error handling
@@ -588,7 +726,7 @@ class GrpcClient {
         parsedBody = body;
       }
 
-      connection.write(parsedBody, (error) => {
+      rpc.write(parsedBody, (error) => {
         if (error) {
           this.eventCallback('grpc:error', requestId, collectionUid, { error });
         }
@@ -608,9 +746,27 @@ class GrpcClient {
     passphrase,
     pfx,
     verifyOptions,
-    sendEvent
+    sendEvent,
+    channelOptions = {},
+    proxyConfig
   }) {
     const { host, path } = getParsedGrpcUrlObject(request.url);
+
+    // Extract user-agent from headers if provided (case-insensitive)
+    // Set it as grpc.primary_user_agent channel option to prepend to the default user-agent
+    const userAgentKey = Object.keys(request.headers).find(
+      (key) => key.toLowerCase() === 'user-agent'
+    );
+    const userAgentValue = userAgentKey ? request.headers[userAgentKey] : null;
+
+    // Resolve proxy target and channel options
+    const { targetHost, proxyChannelOptions } = this.#resolveProxyTarget(host, proxyConfig);
+
+    const mergedChannelOptions = { ...channelOptions, ...proxyChannelOptions };
+    if (userAgentValue && !channelOptions?.['grpc.primary_user_agent']) {
+      mergedChannelOptions['grpc.primary_user_agent'] = userAgentValue;
+    }
+
     const metadata = new Metadata();
     Object.entries(request.headers).forEach(([name, value]) => {
       metadata.add(name, value);
@@ -625,8 +781,10 @@ class GrpcClient {
       verifyOptions
     });
 
+    let reflectionClient = null;
     try {
-      const { client, services, callOptions } = await this.#getReflectionClient(host, credentials, metadata, {});
+      const { client, services, callOptions } = await this.#getReflectionClient(targetHost, credentials, metadata, mergedChannelOptions);
+      reflectionClient = client;
 
       const methods = [];
       for (const service of services) {
@@ -654,6 +812,8 @@ class GrpcClient {
       console.error('Error in gRPC reflection:', error);
       sendEvent('grpc:error', request.uid, collectionUid, { error });
       throw error;
+    } finally {
+      this.#closeReflectionClient(reflectionClient);
     }
   }
 
@@ -673,19 +833,34 @@ class GrpcClient {
   }
 
   end(requestId) {
-    const connection = this.activeConnections.get(requestId);
-    if (connection && typeof connection.end === 'function') {
-      connection.end();
-      this.#removeConnection(requestId);
+    const entry = this.activeConnections.get(requestId);
+    if (!entry) return;
+
+    // Only signal end of client messages — don't close the channel.
+    // The response stream may still be active. The channel is closed
+    // when the stream fully completes (via onComplete → #removeConnection).
+    if (entry.rpc && typeof entry.rpc.end === 'function') {
+      entry.rpc.end();
     }
   }
 
   cancel(requestId) {
-    const connection = this.activeConnections.get(requestId);
-    if (connection && typeof connection.cancel === 'function') {
-      connection.cancel();
-      this.#removeConnection(requestId);
+    this.#cancelAndCloseConnection(requestId);
+  }
+
+  /**
+   * Cancel an existing connection's RPC and then close it.
+   * @param {string} requestId - The request ID
+   * @private
+   */
+  #cancelAndCloseConnection(requestId) {
+    const entry = this.activeConnections.get(requestId);
+    if (!entry) return;
+
+    if (entry.rpc && typeof entry.rpc.cancel === 'function') {
+      entry.rpc.cancel();
     }
+    this.#removeConnection(requestId);
   }
 
   /**
@@ -703,18 +878,14 @@ class GrpcClient {
   clearAllConnections() {
     const connectionIds = this.getActiveConnectionIds();
 
-    this.activeConnections.forEach((connection) => {
-      if (typeof connection.cancel === 'function') {
-        connection.cancel();
-      }
-    });
+    for (const id of connectionIds) {
+      this.#cancelAndCloseConnection(id);
+    }
 
-    this.activeConnections.clear();
-
-    // Emit an event with empty active connection IDs
+    // Emit once if there were connections (individual calls already emitted,
+    // but ensure clean state)
     if (connectionIds.length > 0) {
       this.eventCallback('grpc:connections-changed', {
-        type: 'cleared',
         activeConnectionIds: []
       });
     }
@@ -773,16 +944,18 @@ class GrpcClient {
   /**
    * Add a connection to the active connections map and emit an event
    * @param {string} requestId - The request ID
-   * @param {Object} connection - The connection object
+   * @param {Object} rpc - The gRPC call object
+   * @param {Object} client - The gRPC client instance (used to close the channel)
    * @private
    */
-  #addConnection(requestId, connection) {
-    this.activeConnections.set(requestId, connection);
+  #addConnection(requestId, { rpc, client }) {
+    // Cancel and close any existing connection to prevent channel leaks
+    this.#cancelAndCloseConnection(requestId);
+
+    this.activeConnections.set(requestId, { rpc, client });
 
     // Emit an event with all active connection IDs
     this.eventCallback('grpc:connections-changed', {
-      type: 'added',
-      requestId,
       activeConnectionIds: this.getActiveConnectionIds()
     });
   }
@@ -793,16 +966,19 @@ class GrpcClient {
    * @private
    */
   #removeConnection(requestId) {
-    if (this.activeConnections.has(requestId)) {
-      this.activeConnections.delete(requestId);
+    const entry = this.activeConnections.get(requestId);
+    if (!entry) return;
 
-      // Emit an event with all active connection IDs
-      this.eventCallback('grpc:connections-changed', {
-        type: 'removed',
-        requestId,
-        activeConnectionIds: this.getActiveConnectionIds()
-      });
+    // Close the client channel to destroy subchannels and stop reconnect timers
+    if (entry.client && typeof entry.client.close === 'function') {
+      entry.client.close();
     }
+    this.activeConnections.delete(requestId);
+
+    // Emit an event with all active connection IDs
+    this.eventCallback('grpc:connections-changed', {
+      activeConnectionIds: this.getActiveConnectionIds()
+    });
   }
 
   /**
@@ -815,12 +991,19 @@ class GrpcClient {
     const { url, method, methodType = 'unary', body, headers, protoPath } = request;
     const useReflection = !protoPath;
     const parts = [];
-    const { host, path } = getParsedGrpcUrlObject(url);
+    const { host, path, protocol } = getParsedGrpcUrlObject(url);
     const { ca, cert, key } = certificates;
 
     parts.push('grpcurl');
 
-    if (url.startsWith('grpcs://') || url.startsWith('https://')) {
+    if (protocol === 'unix') {
+      parts.push('-plaintext');
+      parts.push('-unix');
+      parts.push('-authority localhost');
+    } else if (protocol === 'pipe') {
+      console.warn('Windows named pipes are not directly supported by grpcurl');
+      parts.push('-plaintext');
+    } else if (url.startsWith('grpcs://') || url.startsWith('https://')) {
       if (ca) {
         /**
          * Instead of using certificate that relies on CN, use SANs
@@ -867,7 +1050,17 @@ class GrpcClient {
       }
     }
 
-    parts.push(host);
+    if (protocol === 'unix') {
+      let socketPath = url;
+      if (url.startsWith('unix:///')) {
+        socketPath = url.slice(7);
+      } else if (url.startsWith('unix:')) {
+        socketPath = url.slice(5);
+      }
+      parts.push(socketPath);
+    } else {
+      parts.push(host);
+    }
 
     parts.push(path.slice(1) + (path ? '/' : '') + (method.startsWith('/') ? method.slice(1) : method));
 

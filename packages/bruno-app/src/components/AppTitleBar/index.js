@@ -1,33 +1,64 @@
 import React from 'react';
-import { IconCheck, IconChevronDown, IconFolder, IconHome, IconPin, IconPinned, IconPlus } from '@tabler/icons';
+import { IconCheck, IconChevronDown, IconFolder, IconHome, IconPin, IconPinned, IconPlus, IconDownload, IconSettings, IconMinus, IconSquare, IconX, IconCopy } from '@tabler/icons';
 import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { savePreferences, showHomePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { savePreferences, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { closeConsole, openConsole } from 'providers/ReduxStore/slices/logs';
-import { openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import { createWorkspaceWithUniqueName, openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
+import { focusTab } from 'providers/ReduxStore/slices/tabs';
+import get from 'lodash/get';
 
 import Bruno from 'components/Bruno';
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
 import IconSidebarToggle from 'components/Icons/IconSidebarToggle';
 import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
+import ImportWorkspace from 'components/WorkspaceSidebar/ImportWorkspace';
 
 import IconBottombarToggle from 'components/Icons/IconBottombarToggle/index';
+import AppMenu from './AppMenu';
 import StyledWrapper from './StyledWrapper';
-import { toTitleCase } from 'utils/common/index';
 import ResponseLayoutToggle from 'components/ResponsePane/ResponseLayoutToggle';
+import { isMacOS, isWindowsOS, isLinuxOS } from 'utils/common/platform';
+import classNames from 'classnames';
+
+const getOsClass = () => {
+  if (isMacOS()) return 'os-mac';
+  if (isWindowsOS()) return 'os-windows';
+  if (isLinuxOS()) return 'os-linux';
+  return 'os-other';
+};
+
+// Helper to get display name for workspace
+export const getWorkspaceDisplayName = (name) => {
+  if (!name) return 'Untitled Workspace';
+  return name;
+};
 
 const AppTitleBar = () => {
   const dispatch = useDispatch();
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
+  const osClass = getOsClass();
+  const isWindows = osClass === 'os-windows';
+  const isLinux = osClass === 'os-linux';
+  const showWindowControls = isWindows || isLinux;
 
   // Listen for fullscreen changes
   useEffect(() => {
     const { ipcRenderer } = window;
     if (!ipcRenderer) return;
+
+    ipcRenderer.invoke('renderer:window-is-fullscreen')
+      .then((fullscreen) => {
+        setIsFullScreen(fullscreen);
+      })
+      .catch((error) => {
+        console.error('Error getting initial fullscreen state:', error);
+      });
 
     const removeEnterFullScreenListener = ipcRenderer.on('main:enter-full-screen', () => {
       setIsFullScreen(true);
@@ -43,6 +74,46 @@ const AppTitleBar = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!showWindowControls) return;
+    const { ipcRenderer } = window;
+    if (!ipcRenderer) return;
+
+    ipcRenderer.invoke('renderer:window-is-maximized')
+      .then((maximized) => {
+        setIsMaximized(maximized);
+      })
+      .catch((error) => {
+        console.error('Error getting initial maximized state:', error);
+      });
+
+    const removeMaximizedListener = ipcRenderer.on('main:window-maximized', () => {
+      setIsMaximized(true);
+    });
+
+    const removeUnmaximizedListener = ipcRenderer.on('main:window-unmaximized', () => {
+      setIsMaximized(false);
+    });
+
+    return () => {
+      removeMaximizedListener();
+      removeUnmaximizedListener();
+    };
+  }, [showWindowControls]);
+
+  const handleMinimize = useCallback(() => {
+    window.ipcRenderer?.send('renderer:window-minimize');
+  }, []);
+
+  const handleMaximize = useCallback(() => {
+    window.ipcRenderer?.send('renderer:window-maximize');
+    // State will be updated via IPC events from main process (main:window-maximized/main:window-unmaximized)
+  }, []);
+
+  const handleClose = useCallback(() => {
+    window.ipcRenderer?.send('renderer:window-close');
+  }, []);
+
   // Get workspace info
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const preferences = useSelector((state) => state.app.preferences);
@@ -56,36 +127,62 @@ const AppTitleBar = () => {
   }, [workspaces, preferences]);
 
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
+  const [importWorkspaceModalOpen, setImportWorkspaceModalOpen] = useState(false);
 
   const WorkspaceName = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="workspace-name-container" {...props}>
-        <span className="workspace-name">{toTitleCase(activeWorkspace?.name) || 'Default Workspace'}</span>
+        <span data-testid="workspace-name" className={classNames('workspace-name', { 'italic text-muted': !activeWorkspace?.name })}>{getWorkspaceDisplayName(activeWorkspace?.name)}</span>
         <IconChevronDown size={14} stroke={1.5} className="chevron-icon" />
       </div>
     );
   });
 
   const handleHomeClick = () => {
-    dispatch(showHomePage());
+    const scratchCollectionUid = activeWorkspace?.scratchCollectionUid;
+    if (scratchCollectionUid) {
+      dispatch(focusTab({ uid: `${scratchCollectionUid}-overview` }));
+    }
   };
 
   const handleWorkspaceSwitch = (workspaceUid) => {
+    if (workspaceUid === activeWorkspaceUid) return;
+
     dispatch(switchWorkspace(workspaceUid));
-    toast.success(`Switched to ${workspaces.find((w) => w.uid === workspaceUid)?.name}`);
+    toast.success(`Switched to ${getWorkspaceDisplayName(workspaces.find((w) => w.uid === workspaceUid)?.name)}`);
   };
 
   const handleOpenWorkspace = async () => {
     try {
-      await dispatch(openWorkspaceDialog());
-      toast.success('Workspace opened successfully');
+      const result = await dispatch(openWorkspaceDialog());
+      if (result) {
+        toast.success('Workspace opened successfully');
+      }
     } catch (error) {
       toast.error(error.message || 'Failed to open workspace');
     }
   };
 
-  const handleCreateWorkspace = () => {
-    setCreateWorkspaceModalOpen(true);
+  const handleCreateWorkspace = useCallback(async () => {
+    const defaultLocation = get(preferences, 'general.defaultLocation', '');
+    if (!defaultLocation) {
+      setCreateWorkspaceModalOpen(true);
+      return;
+    }
+
+    try {
+      await dispatch(createWorkspaceWithUniqueName(defaultLocation));
+    } catch (error) {
+      toast.error(error?.message || 'Failed to create workspace');
+    }
+  }, [preferences, dispatch]);
+
+  const handleManageWorkspaces = () => {
+    dispatch(showManageWorkspacePage());
+  };
+
+  const handleImportWorkspace = () => {
+    setImportWorkspaceModalOpen(true);
   };
 
   const handlePinWorkspace = useCallback((workspaceUid, e) => {
@@ -115,7 +212,7 @@ const AppTitleBar = () => {
 
       return {
         id: workspace.uid,
-        label: toTitleCase(workspace.name),
+        label: getWorkspaceDisplayName(workspace.name),
         onClick: () => handleWorkspaceSwitch(workspace.uid),
         className: `workspace-item ${isActive ? 'active' : ''}`,
         rightSection: (
@@ -127,11 +224,7 @@ const AppTitleBar = () => {
                 label={isPinned ? 'Unpin workspace' : 'Pin workspace'}
                 size="sm"
               >
-                {isPinned ? (
-                  <IconPinned size={14} stroke={1.5} />
-                ) : (
-                  <IconPin size={14} stroke={1.5} />
-                )}
+                {isPinned ? <IconPinned size={14} stroke={1.5} /> : <IconPin size={14} stroke={1.5} />}
               </ActionIcon>
             )}
             {isActive && <IconCheck size={16} stroke={1.5} className="check-icon" />}
@@ -154,27 +247,38 @@ const AppTitleBar = () => {
         leftSection: IconFolder,
         label: 'Open workspace',
         onClick: handleOpenWorkspace
+      },
+      {
+        id: 'import-workspace',
+        leftSection: IconDownload,
+        label: 'Import workspace',
+        onClick: handleImportWorkspace
+      },
+      {
+        id: 'manage-workspaces',
+        leftSection: IconSettings,
+        label: 'Manage workspaces',
+        onClick: handleManageWorkspaces
       }
     );
 
     return items;
-  }, [sortedWorkspaces, activeWorkspaceUid, preferences, handlePinWorkspace]);
+  }, [sortedWorkspaces, activeWorkspaceUid, preferences, handlePinWorkspace, handleCreateWorkspace]);
 
   return (
-    <StyledWrapper className={`app-titlebar ${isFullScreen ? 'fullscreen' : ''}`}>
+    <StyledWrapper className={`app-titlebar ${osClass} ${isFullScreen ? 'fullscreen' : ''}`}>
       {createWorkspaceModalOpen && (
         <CreateWorkspace onClose={() => setCreateWorkspaceModalOpen(false)} />
       )}
+      {importWorkspaceModalOpen && (
+        <ImportWorkspace onClose={() => setImportWorkspaceModalOpen(false)} />
+      )}
 
       <div className="titlebar-content">
-        {/* Left section: Home + Workspace */}
         <div className="titlebar-left">
-          <ActionIcon
-            onClick={handleHomeClick}
-            label="Home"
-            size="lg"
-            className="home-button"
-          >
+          {showWindowControls && <AppMenu />}
+
+          <ActionIcon onClick={handleHomeClick} label="Home" size="lg" className="home-button">
             <IconHome size={16} stroke={1.5} />
           </ActionIcon>
 
@@ -197,27 +301,55 @@ const AppTitleBar = () => {
 
         {/* Right section: Action buttons */}
         <div className="titlebar-right">
-          {/* Toggle sidebar */}
-          <ActionIcon
-            onClick={handleToggleSidebar}
-            label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-            size="lg"
-            data-testid="toggle-sidebar-button"
-          >
-            <IconSidebarToggle collapsed={sidebarCollapsed} size={16} strokeWidth={1.5} />
-          </ActionIcon>
+          <div className="titlebar-actions">
+            {/* Toggle sidebar */}
+            <ActionIcon
+              onClick={handleToggleSidebar}
+              label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+              size="lg"
+              data-testid="toggle-sidebar-button"
+            >
+              <IconSidebarToggle collapsed={sidebarCollapsed} size={16} strokeWidth={1.5} />
+            </ActionIcon>
 
-          {/* Toggle devtools */}
-          <ActionIcon
-            onClick={handleToggleDevtools}
-            label={isConsoleOpen ? 'Hide devtools' : 'Show devtools'}
-            size="lg"
-            data-testid="toggle-devtools-button"
-          >
-            <IconBottombarToggle collapsed={!isConsoleOpen} size={16} strokeWidth={1.5} />
-          </ActionIcon>
+            {/* Toggle devtools */}
+            <ActionIcon
+              onClick={handleToggleDevtools}
+              label={isConsoleOpen ? 'Hide devtools' : 'Show devtools'}
+              size="lg"
+              data-testid="toggle-devtools-button"
+            >
+              <IconBottombarToggle collapsed={!isConsoleOpen} size={16} strokeWidth={1.5} />
+            </ActionIcon>
 
-          <ResponseLayoutToggle />
+            <ResponseLayoutToggle />
+          </div>
+
+          {showWindowControls && (
+            <div className="window-controls">
+              <button
+                className="window-control-btn minimize"
+                onClick={handleMinimize}
+                aria-label="Minimize"
+              >
+                <IconMinus size={16} stroke={1} />
+              </button>
+              <button
+                className="window-control-btn maximize"
+                onClick={handleMaximize}
+                aria-label={isMaximized ? 'Restore' : 'Maximize'}
+              >
+                {isMaximized ? <IconCopy size={14} stroke={1} /> : <IconSquare size={14} stroke={1} />}
+              </button>
+              <button
+                className="window-control-btn close"
+                onClick={handleClose}
+                aria-label="Close"
+              >
+                <IconX size={16} stroke={1} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </StyledWrapper>

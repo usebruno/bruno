@@ -1,7 +1,42 @@
-import { test, expect, Page } from '../../../playwright';
-import { buildCommonLocators } from './locators';
+import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
+import process from 'node:process';
+import * as path from 'path';
+import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
+import { waitForCollectionMount } from './mounting';
+import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
 
 type SandboxMode = 'safe' | 'developer';
+
+type CollectionFormat = 'bru' | 'yml';
+
+type WaitForAppReadyOptions = {
+  timeout?: number;
+};
+
+/**
+ * Wait for the Electron app to have a ready, loaded window.
+ * Handles cases where the first window is slow to appear.
+ */
+const waitForReadyPage = (
+  app: ElectronApplication,
+  options: WaitForAppReadyOptions = {}
+) => waitForReadyPageImpl(app, options);
+
+/**
+ * Dismiss all import issues toasts (they use infinite duration and persist across tests).
+ * @param page - The page object
+ * @returns void
+ */
+const dismissImportIssuesToasts = async (page: Page) => {
+  await test.step('Dismiss import issues toasts', async () => {
+    const toasts = page.getByTestId('import-issues-toast');
+    while (await toasts.count() > 0) {
+      const toast = toasts.first();
+      await toast.getByTestId('import-issues-toast-close').click();
+      await expect(toast).not.toBeVisible({ timeout: 5000 });
+    }
+  });
+};
 
 /**
  * Close all collections
@@ -13,13 +48,37 @@ const closeAllCollections = async (page) => {
     const numberOfCollections = await page.locator('[data-testid="collections"] .collection-name').count();
 
     for (let i = 0; i < numberOfCollections; i++) {
-      await page.locator('[data-testid="collections"] .collection-name').first().locator('.collection-actions').click();
-      await page.locator('.dropdown-item').getByText('Remove').click();
-      // Wait for the remove collection modal to be visible
-      await page.locator('.bruno-modal-header-title', { hasText: 'Remove Collection' }).waitFor({ state: 'visible' });
-      await page.locator('.bruno-modal-footer .submit').click();
-      // Wait for the remove collection modal to be hidden
-      await page.locator('.bruno-modal-header-title', { hasText: 'Remove Collection' }).waitFor({ state: 'hidden' });
+      const firstCollection = page.locator('[data-testid="collections"] .collection-name').first();
+      await firstCollection.scrollIntoViewIfNeeded();
+
+      const removeMenuItem = page.locator('.dropdown-item').getByText('Remove');
+      await expect(async () => {
+        await firstCollection.hover();
+        await firstCollection.locator('.collection-actions .icon').click({ force: true });
+        await expect(removeMenuItem).toBeVisible({ timeout: 2000 });
+      }).toPass({ timeout: 15000 });
+      await removeMenuItem.click();
+
+      // Wait for modal to appear - could be either regular remove or drafts confirmation
+      const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
+      await removeModal.waitFor({ state: 'visible', timeout: 5000 });
+
+      // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
+      const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
+
+      if (hasDiscardButton) {
+        // Drafts modal - the modal animates in and the footer can shift mid-frame,
+        // causing Playwright's "element is stable" actionability check to fail
+        // intermittently on slower machines. Use force to skip the stability check;
+        // visibility is already verified above via waitFor.
+        await page.getByRole('button', { name: 'Discard All and Remove' }).click({ force: true });
+      } else {
+        // Regular modal - click the submit button
+        await page.locator('.bruno-modal-footer .submit').click();
+      }
+
+      // Wait for modal to close
+      await removeModal.waitFor({ state: 'hidden', timeout: 5000 });
     }
 
     // Wait until no collections are left open (check sidebar only)
@@ -31,26 +90,12 @@ const closeAllCollections = async (page) => {
  * Open a collection from the sidebar and accept the JavaScript Sandbox modal
  * @param page - The page object
  * @param collectionName - The name of the collection to open
- * @param sandboxMode - The mode to accept the sandbox modal
  * @returns void
  */
-const openCollectionAndAcceptSandbox = async (page, collectionName: string, sandboxMode: 'safe' | 'developer' = 'safe') => {
-  await test.step(`Open collection "${collectionName}" and accept sandbox "${sandboxMode}" mode`, async () => {
+const openCollection = async (page: Page, collectionName: string) => {
+  await test.step(`Open collection "${collectionName}"`, async () => {
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
-
-    const sandboxModal = page
-      .locator('.bruno-modal-card')
-      .filter({ has: page.locator('.bruno-modal-header-title', { hasText: 'JavaScript Sandbox' }) });
-
-    const modeLabel = sandboxMode === 'safe' ? 'Safe Mode' : 'Developer Mode';
-    await sandboxModal.getByLabel(modeLabel).check();
-    await sandboxModal.locator('.bruno-modal-footer .submit').click();
-    await sandboxModal.waitFor({ state: 'detached' });
   });
-};
-
-type CreateCollectionOptions = {
-  openWithSandboxMode?: 'safe' | 'developer';
 };
 
 /**
@@ -62,31 +107,91 @@ type CreateCollectionOptions = {
  *
  * @returns void
  */
-const createCollection = async (page, collectionName: string, collectionLocation: string, options: CreateCollectionOptions = {}) => {
-  await test.step(`Create collection "${collectionName}"`, async () => {
+const createCollection = async (
+  page,
+  collectionName: string,
+  collectionLocation: string,
+  format: CollectionFormat = 'yml'
+) => {
+  await test.step(`Create ${format} collection "${collectionName}"`, async () => {
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
 
-    const createCollectionModal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Collection' });
+    // Wait for inline creator to appear, then click the cog button to open advanced modal
+    const inlineCreator = page.locator('.inline-collection-creator');
+    await inlineCreator.waitFor({ state: 'visible', timeout: 5000 });
+    await inlineCreator.locator('.cog-btn').click();
 
-    await createCollectionModal.getByLabel('Name').fill(collectionName);
+    const createCollectionModal = page.locator('.bruno-modal-card').filter({ hasText: 'Create Collection' });
+    await createCollectionModal.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Fill location FIRST — some modals auto-derive the name from the path,
+    // so filling name after location ensures it isn't overwritten.
+    //
+    // The location input is `readOnly={true}` as a React prop and is a
+    // controlled input via formik. Two implications:
+    //   1. Removing `readonly` via DOM attribute is racy — the next React
+    //      render restores the prop. The modal's mount-effect focuses the
+    //      name field at +50ms, which can trigger that re-render between
+    //      our DOM tweak and the `fill()`, leaving the input read-only and
+    //      the fill silently no-ops.
+    //   2. Even if writable, controlled inputs require firing an `input`
+    //      event so the onChange handler runs and updates formik state.
+    // Use the native value setter (the React-controlled-input pattern) to
+    // bypass both. Then verify the value stuck so we fail loudly here
+    // instead of opaquely at the modal-hidden wait when Yup validation
+    // silently rejects an empty location.
     const locationInput = createCollectionModal.getByLabel('Location');
     if (await locationInput.isVisible()) {
-      await locationInput.fill(collectionLocation);
+      await locationInput.evaluate((el, value) => {
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+        setter?.call(el, value);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }, collectionLocation);
+      await expect(locationInput).toHaveValue(collectionLocation);
     }
+    const nameInput = createCollectionModal.getByLabel('Name');
+    await nameInput.clear();
+    await nameInput.fill(collectionName);
+    // Verify the name is correct before creating
+    await expect(nameInput).toHaveValue(collectionName, { timeout: 2000 });
+
+    if (format) {
+      const advancedBtn = createCollectionModal.locator('.advanced-options .btn-advanced');
+      const showFileFormatToggle = page.getByTestId('show-file-format-toggle');
+      const formatSelect = createCollectionModal.locator('#format');
+
+      await expect(async () => {
+        if (!(await formatSelect.isVisible())) {
+          await advancedBtn.click();
+          await showFileFormatToggle.click({ timeout: 2000 });
+        }
+        await expect(formatSelect).toBeVisible({ timeout: 2000 });
+      }).toPass({ timeout: 15000 });
+
+      await formatSelect.selectOption(format);
+    }
+
     await createCollectionModal.getByRole('button', { name: 'Create', exact: true }).click();
 
-    await createCollectionModal.waitFor({ state: 'detached' });
-
-    if (options.openWithSandboxMode != undefined) {
-      await openCollectionAndAcceptSandbox(page, collectionName, options.openWithSandboxMode);
-    }
+    // The modal closes via `onClose()` in the form's `onSubmit` success path,
+    // which only runs after Yup validation passes — so this waitFor is the
+    // signal that the form actually submitted
+    await createCollectionModal.waitFor({ state: 'hidden', timeout: 5000 });
+    await expect(page.locator('.bruno-modal-backdrop')).toHaveCount(0);
+    // Wait for the collection name to appear in the sidebar before proceeding
+    await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).waitFor({ state: 'visible', timeout: 5000 });
+    await openCollection(page, collectionName);
   });
 };
 
+const STANDARD_HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD', 'TRACE', 'CONNECT'];
+
 type CreateRequestOptions = {
   url?: string;
+  method?: string;
   inFolder?: boolean;
+  requestType?: 'http' | 'graphql' | 'ws' | 'grpc';
 };
 
 type CreateUntitledRequestOptions = {
@@ -126,7 +231,7 @@ const createUntitledRequest = async (
     if (url) {
       await page.locator('#request-url .CodeMirror').click();
       await page.locator('#request-url textarea').fill(url);
-      await page.locator('#send-request').getByTitle('Save Request').click();
+      await page.locator('#request-actions').getByTestId('save-request-button').click();
       await page.waitForTimeout(200);
     }
 
@@ -139,7 +244,8 @@ const createUntitledRequest = async (
       await tagInput.press('Enter');
       await page.waitForTimeout(200);
       await expect(page.locator('.tag-item', { hasText: tag })).toBeVisible();
-      await page.keyboard.press('Meta+s');
+      const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+      await page.keyboard.press(saveShortcut);
       await page.waitForTimeout(200);
     }
 
@@ -148,6 +254,77 @@ const createUntitledRequest = async (
     await expect(page.getByText('New request created!')).toBeVisible({ timeout: 2000 }).catch(() => {
       // Toast might have already disappeared, that's okay
     });
+  });
+};
+
+type CreateTransientRequestOptions = {
+  requestType?: 'HTTP' | 'GraphQL' | 'gRPC' | 'WebSocket';
+};
+
+/**
+ * Create a transient request using the + icon button in the tabs area
+ * Based on the CreateTransientRequest component behavior
+ * @param page - The page object
+ * @param options - Optional settings (requestType)
+ * @returns void
+ */
+const createTransientRequest = async (
+  page: Page,
+  options: CreateTransientRequestOptions = {}
+) => {
+  const { requestType = 'HTTP' } = options;
+
+  await test.step(`Create transient ${requestType} request`, async () => {
+    // Find the + icon button (ActionIcon with aria-label="New Transient Request")
+    const createButton = page.getByRole('button', { name: 'New Transient Request' });
+    await createButton.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Click the + icon to open the dropdown
+    await createButton.click({
+      button: 'right'
+    });
+
+    // Wait for dropdown to be visible
+    await page.locator('.dropdown-item').first().waitFor({ state: 'visible' });
+
+    // Select the request type from dropdown
+    // The dropdown items have both icon and label, we match by the label text
+    await page.locator('.dropdown-item').filter({ hasText: requestType }).click();
+
+    // Wait for the request tab to be active (transient requests show as "Untitled X")
+    await page.locator('.request-tab.active').waitFor({ state: 'visible' });
+    await expect(page.locator('.request-tab.active')).toContainText('Untitled');
+    await page.waitForTimeout(300);
+  });
+};
+
+/**
+ * Fill the URL field in the currently active request
+ * Works with HTTP, GraphQL, gRPC, and WebSocket requests
+ * @param page - The page object
+ * @param url - The URL to fill
+ * @returns void
+ */
+const fillRequestUrl = async (page: Page, url: string) => {
+  await test.step(`Fill request URL: ${url}`, async () => {
+    // HTTP/GraphQL requests use #request-url
+    // gRPC/WebSocket don't have a specific ID, so we need to find the CodeMirror in the active request pane
+    const httpGraphqlUrl = page.locator('#request-url .CodeMirror');
+    const grpcWsUrl = page.locator('.input-container .CodeMirror').first();
+
+    // Try HTTP/GraphQL selector first
+    const isHttpOrGraphql = await httpGraphqlUrl.isVisible().catch(() => false);
+
+    if (isHttpOrGraphql) {
+      await httpGraphqlUrl.click();
+      await page.locator('#request-url textarea').fill(url);
+    } else {
+      // Fall back to generic selector for gRPC/WebSocket
+      await grpcWsUrl.click();
+      await page.locator('.input-container textarea').first().fill(url);
+    }
+
+    await page.waitForTimeout(200);
   });
 };
 
@@ -165,22 +342,49 @@ const createRequest = async (
   parentName: string,
   options: CreateRequestOptions = {}
 ) => {
-  const { url, inFolder = false } = options;
+  const { url, method, inFolder = false, requestType = 'http' } = options;
   const parentType = inFolder ? 'folder' : 'collection';
+  const hasMethodSelector = requestType === 'http' || requestType === 'graphql';
 
-  await test.step(`Create request "${requestName}" in ${parentType} "${parentName}"`, async () => {
+  await test.step(`Create ${requestType.toUpperCase()} request "${requestName}" in ${parentType} "${parentName}"`, async () => {
     const locators = buildCommonLocators(page);
 
     if (inFolder) {
       await locators.sidebar.folder(parentName).hover();
       await locators.actions.collectionItemActions(parentName).click();
     } else {
-      await locators.sidebar.collection(parentName).hover();
-      await locators.actions.collectionActions(parentName).click();
+      const collectionRow = locators.sidebar.collection(parentName);
+      const collectionAction = locators.actions.collectionActions(parentName);
+      // Re-hover on each poll: CSS `:hover` reveals `.collection-actions`, but sidebar
+      // re-renders (e.g. workspace snapshot hydration) can shift the row out from under a one-shot hover().
+      await expect(async () => {
+        await collectionRow.hover();
+        await expect(collectionAction).toBeVisible({ timeout: 1000 });
+      }).toPass({ timeout: 10000 });
+      await collectionAction.click();
     }
 
     await locators.dropdown.item('New Request').click();
+
+    // The modal defaults to HTTP; switch the radio for the other three types.
+    if (requestType !== 'http') {
+      await page.getByTestId(`${requestType}-request`).click();
+    }
+
     await page.getByPlaceholder('Request Name').fill(requestName);
+
+    if (method && hasMethodSelector) {
+      await page.locator('.bruno-modal .method-selector').click();
+      const isStandardMethod = STANDARD_HTTP_METHODS.includes(method.toUpperCase());
+      if (isStandardMethod) {
+        await locators.modal.newRequestMethodOption(method).click();
+      } else {
+        await locators.modal.newRequestMethodOption('add-custom').click();
+        await page.locator('.bruno-modal .method-selector input').fill(method);
+        await page.keyboard.press('Enter');
+      }
+      await page.waitForTimeout(200);
+    }
 
     if (url) {
       await page.locator('#new-request-url .CodeMirror').click();
@@ -217,10 +421,47 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
     const collectionWrapper = collectionContainer.locator('..');
     const request = collectionWrapper.locator('.collection-item-name').filter({ hasText: requestName });
 
+    await request.hover();
     await request.locator('.menu-icon').click();
     await locators.dropdown.item('Delete').click();
     await locators.modal.button('Delete').click();
     await expect(request).not.toBeVisible();
+  });
+};
+
+/**
+ * Delete a collection permanently from disk via the workspace overview page
+ * @param page - The page object
+ * @param collectionName - The name of the collection to delete
+ * @returns void
+ */
+const deleteCollectionFromOverview = async (page: Page, collectionName: string) => {
+  await test.step(`Delete collection "${collectionName}" from workspace overview`, async () => {
+    // Navigate to workspace overview
+    await page.locator('.home-button').click();
+    const overviewTab = page.locator('.request-tab').filter({ hasText: 'Overview' });
+    await overviewTab.click();
+
+    // Find the collection card and open its menu
+    const collectionCard = page.locator('.collection-card').filter({ hasText: collectionName });
+    await collectionCard.waitFor({ state: 'visible', timeout: 5000 });
+    await collectionCard.locator('.collection-menu').click();
+
+    // Click Delete from the dropdown
+    await page.locator('.dropdown-item').filter({ hasText: 'Delete' }).click();
+
+    // Wait for delete confirmation modal
+    const deleteModal = page.locator('.bruno-modal').filter({ hasText: 'Delete Collection' });
+    await deleteModal.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Type 'delete' to confirm
+    await deleteModal.locator('#delete-confirm-input').fill('delete');
+
+    // Click the Delete button
+    await deleteModal.getByRole('button', { name: 'Delete', exact: true }).click();
+
+    // Wait for modal to close
+    await deleteModal.waitFor({ state: 'hidden', timeout: 10000 });
   });
 };
 
@@ -234,7 +475,8 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
  */
 type ImportCollectionOptions = {
   expectedCollectionName?: string;
-  openWithSandboxMode?: SandboxMode;
+  expectIssues?: boolean;
+  sidebarTimeout?: number;
 };
 
 const importCollection = async (
@@ -275,13 +517,37 @@ const importCollection = async (
     if (options.expectedCollectionName) {
       await expect(
         page.locator('#sidebar-collection-name').filter({ hasText: options.expectedCollectionName })
-      ).toBeVisible();
-
-      // Configure sandbox mode if requested
-      if (options.openWithSandboxMode) {
-        await openCollectionAndAcceptSandbox(page, options.expectedCollectionName, options.openWithSandboxMode);
-      }
+      ).toBeVisible({ timeout: options.sidebarTimeout ?? 5000 });
     }
+
+    // Wait for import issues toast if expected
+    if (options.expectIssues) {
+      await expect(locators.import.issuesToast()).toBeVisible({ timeout: 10000 });
+    }
+
+    if (options.expectedCollectionName) {
+      await openCollection(page, options.expectedCollectionName);
+    }
+  });
+};
+
+/**
+ * Open the Bulk Import modal by importing multiple files at once.
+ * Selecting more than one file routes the import flow to the Bulk Import modal
+ * (instead of the single-collection location modal).
+ * @param page - The page object
+ * @param filePaths - Absolute paths of the files to import (must be 2 or more)
+ */
+const openBulkImportModal = async (page: Page, filePaths: string[]) => {
+  await test.step('Open the Bulk Import modal', async () => {
+    const locators = buildCommonLocators(page);
+
+    await locators.plusMenu.button().click();
+    await locators.plusMenu.importCollection().click();
+    await expect(locators.import.modal()).toBeVisible();
+
+    await locators.import.fileInput().setInputFiles(filePaths);
+    await expect(locators.import.bulkModal()).toBeVisible();
   });
 };
 
@@ -302,10 +568,23 @@ const removeCollection = async (page: Page, collectionName: string) => {
     await collectionRow.locator('.collection-actions .icon').click();
     await locators.dropdown.item('Remove').click();
 
-    // Wait for and confirm modal
-    await locators.modal.title('Remove Collection').waitFor({ state: 'visible' });
-    await locators.modal.button('Remove').click();
-    await locators.modal.title('Remove Collection').waitFor({ state: 'hidden' });
+    // Wait for modal to appear - could be either regular remove or drafts confirmation
+    const removeModal = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' });
+    await removeModal.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Check if it's the drafts confirmation modal (has "Discard All and Remove" button)
+    const hasDiscardButton = await page.getByRole('button', { name: 'Discard All and Remove' }).isVisible().catch(() => false);
+
+    if (hasDiscardButton) {
+      // Drafts modal - click "Discard All and Remove"
+      await page.getByRole('button', { name: 'Discard All and Remove' }).click();
+    } else {
+      // Regular modal - click Remove button
+      await locators.modal.button('Remove').click();
+    }
+
+    // Wait for modal to close
+    await removeModal.waitFor({ state: 'hidden', timeout: 5000 });
 
     // Verify collection is removed
     await expect(
@@ -340,9 +619,23 @@ const createFolder = async (
     }
 
     await locators.dropdown.item('New Folder').click();
-    await page.getByPlaceholder('Folder Name').fill(folderName);
+    await page.getByTestId('new-folder-input').fill(folderName);
     await locators.modal.button('Create').click();
     await expect(locators.sidebar.folder(folderName)).toBeVisible();
+  });
+};
+
+/**
+ * Expand a folder in the sidebar so its child requests/subfolders become visible.
+ * No-op if the folder is already expanded.
+ */
+const expandFolder = async (page: Page, folderName: string) => {
+  await test.step(`Expand folder "${folderName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const chevron = locators.folder.chevron(folderName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (!isExpanded) await chevron.click();
   });
 };
 
@@ -370,6 +663,31 @@ const openEnvironmentSelector = async (page: Page, type: EnvironmentType = 'coll
 };
 
 /**
+ * Open the configuration tab for the currently active environment (collection or global).
+ * Combines opening the env selector dropdown + clicking the "configure" button + waiting
+ * for the resulting env config tab to appear. Use this when the test needs to interact
+ * with the env variable rows (read a value, toggle the secret eye, etc.).
+ * @param page - The page object
+ * @param type - The type of environment configuration tab to open
+ */
+const openEnvironmentConfigTab = async (page: Page, type: EnvironmentType = 'collection') => {
+  await test.step(`Open ${type} environment configuration tab`, async () => {
+    await openEnvironmentSelector(page, type);
+
+    const locators = buildCommonLocators(page);
+    // `waitFor` + `dispatchEvent` keeps the click stable when the dropdown is mid-transition;
+    // the menu item briefly intercepts pointer events during the open animation.
+    await locators.environment.configureButton().waitFor({ state: 'visible' });
+    await locators.environment.configureButton().dispatchEvent('click');
+
+    const envTab = type === 'global'
+      ? locators.environment.globalEnvTab()
+      : locators.environment.collectionEnvTab();
+    await expect(envTab).toBeVisible();
+  });
+};
+
+/**
  * Create a new environment
  * @param page - The page object
  * @param environmentName - The name of the environment
@@ -382,14 +700,48 @@ const createEnvironment = async (
   type: EnvironmentType = 'collection'
 ) => {
   await test.step(`Create ${type} environment "${environmentName}"`, async () => {
+    const locators = buildCommonLocators(page);
     await openEnvironmentSelector(page, type);
 
-    await page.locator('button[id="create-env"]').click();
+    // Environment selector shows the create button only in empty state.
+    // If environments already exist, open settings and use the sidebar create action.
+    const canCreateFromSelectorEmptyState = await locators.environment.createEnvButton().isVisible().catch(() => false);
 
-    const nameInput = page.locator('input[name="name"]');
-    await expect(nameInput).toBeVisible();
-    await nameInput.fill(environmentName);
-    await page.getByRole('button', { name: 'Create' }).click();
+    if (canCreateFromSelectorEmptyState) {
+      await locators.environment.createEnvButton().click();
+
+      await expect(locators.environment.createModal()).toBeVisible();
+      const nameInput = locators.environment.createModalNameInput();
+      await expect(nameInput).toBeVisible();
+      await nameInput.fill(environmentName);
+      await locators.environment.createModalCreateButton().click();
+    } else {
+      await locators.environment.configureButton().waitFor({ state: 'visible' });
+      await locators.environment.configureButton().dispatchEvent('click');
+
+      const envTab = type === 'global'
+        ? locators.environment.globalEnvTab()
+        : locators.environment.collectionEnvTab();
+      await expect(envTab).toBeVisible();
+
+      await locators.environment.settingsCreateButton().click();
+
+      const inlineNameInput = locators.environment.settingsCreateNameInput();
+      await expect(inlineNameInput).toBeVisible();
+      await inlineNameInput.fill(environmentName);
+      await inlineNameInput.press('Enter');
+    }
+
+    const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
+    await expect(page.locator('.request-tab').filter({ hasText: tabLabel })).toBeVisible();
+
+    await expect(locators.environment.selector()).toBeVisible();
+    await locators.environment.selector().click();
+    if (type === 'global') {
+      await locators.environment.globalTab().click();
+    }
+    await locators.environment.envOption(environmentName).click();
+    await expect(page.locator('.current-environment')).toContainText(environmentName);
   });
 };
 
@@ -397,47 +749,32 @@ type EnvironmentVariable = {
   name: string;
   value: string;
   isSecret?: boolean;
+  dataType?: 'number' | 'boolean' | 'object';
 };
 
 /**
- * Add an environment variable to the currently open environment
+ * Add an environment variable to the currently open environment. Variables and
+ * secrets live on separate tabs, so a secret is routed to the Secrets tab and a
+ * plain variable to the Variables tab before the row is added.
  * @param page - The page object
  * @param variable - The variable to add (name, value, and optional secret flag)
- * @param index - The index of the variable (0-based)
  * @returns void
  */
-const addEnvironmentVariable = async (
-  page: Page,
-  variable: EnvironmentVariable,
-  index: number
-) => {
-  await test.step(`Add environment variable "${variable.name}"`, async () => {
-    const addButton = page.locator('button[data-testid="add-variable"]');
-    await addButton.waitFor({ state: 'visible' });
-    await addButton.click();
+const addEnvironmentVariable = async (page: Page, variable: EnvironmentVariable) => {
+  await test.step(`Add environment ${variable.isSecret ? 'secret' : 'variable'} "${variable.name}"`, async () => {
+    const tab = variable.isSecret
+      ? page.getByTestId('responsive-tab-secrets')
+      : page.getByTestId('responsive-tab-variables');
+    await tab.click();
+    await expect(tab).toHaveClass(/active/);
 
-    // Wait for the new row to be added and the name input to be visible
-    const nameInput = page.locator(`input[name="${index}.name"]`);
-    await nameInput.waitFor({ state: 'visible' });
-    await nameInput.fill(variable.name);
-
-    // Wait for the CodeMirror editor in the row to be ready
-    const variableRow = page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) });
-    const codeMirror = variableRow.locator('.CodeMirror');
-    await codeMirror.waitFor({ state: 'visible' });
-    await codeMirror.click();
-    await page.keyboard.type(variable.value);
-
-    if (variable.isSecret) {
-      const secretCheckbox = page.locator(`input[name="${index}.secret"]`);
-      await secretCheckbox.waitFor({ state: 'visible' });
-      await secretCheckbox.check();
-    }
+    await addRowToActiveTab(page, variable.name, variable.value, variable.dataType);
   });
 };
 
 /**
- * Add multiple environment variables to the currently open environment
+ * Add multiple environment variables to the currently open environment. Each entry
+ * is routed to the Variables or Secrets tab based on its `isSecret` flag.
  * @param page - The page object
  * @param variables - Array of variables to add
  * @returns void
@@ -445,7 +782,82 @@ const addEnvironmentVariable = async (
 const addEnvironmentVariables = async (page: Page, variables: EnvironmentVariable[]) => {
   await test.step(`Add ${variables.length} environment variables`, async () => {
     for (let i = 0; i < variables.length; i++) {
-      await addEnvironmentVariable(page, variables[i], i);
+      await addEnvironmentVariable(page, variables[i]);
+    }
+  });
+};
+
+/**
+ * Add a variable or secret to whichever environment tab (Variables / Secrets) is
+ * currently active. The active tab determines the row's type, so select the tab
+ * before calling. When `dataType` is given, its type is set via the DataTypeSelector.
+ * @param page - The page object
+ * @param name - The variable/secret name
+ * @param value - The variable/secret value
+ * @param dataType - Optional non-string dataType to assign (default `string`)
+ * @returns void
+ */
+const addRowToActiveTab = async (
+  page: Page,
+  name: string,
+  value: string,
+  dataType?: 'number' | 'boolean' | 'object'
+) => {
+  await test.step(`Add row "${name}" to the active environment tab`, async () => {
+    const nameInput = page.locator('input[placeholder="Name"]').last();
+    await nameInput.waitFor({ state: 'visible' });
+    await nameInput.fill(name);
+
+    const row = page.getByTestId(`env-var-row-${name}`);
+    await row.waitFor({ state: 'visible' });
+
+    const codeMirror = row.getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first();
+    await codeMirror.scrollIntoViewIfNeeded();
+    await codeMirror.click();
+    if (dataType) {
+      await expect(codeMirror).toHaveClass(/CodeMirror-focused/);
+      await page.keyboard.insertText(value);
+
+      const { dataTypeSelector } = buildCommonLocators(page);
+      await codeMirror.hover();
+      await dataTypeSelector.typeLabel(row).click();
+      await dataTypeSelector.menuItem(dataType).click();
+      await expect(dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', dataType);
+    } else {
+      await page.keyboard.type(value);
+    }
+  });
+};
+
+/**
+ * Delete every global environment in the workspace. Global environments persist at
+ * the workspace level (closeAllCollections does not remove them), so call this to keep
+ * tests isolated. Deletes the currently-selected environment first, since a tab with
+ * unsaved changes blocks switching to another env via the list.
+ * @param page - The page object
+ * @returns void
+ */
+const deleteAllGlobalEnvironments = async (page: Page) => {
+  await test.step('Delete all global environments', async () => {
+    await page.getByTestId('environment-selector-trigger').click();
+    await page.getByTestId('env-tab-global').click();
+    await page.getByTestId('configure-env').click();
+
+    const envItems = page.locator('.environment-item');
+    const deleteBtn = page.locator('button[title="Delete"]');
+    const modal = page.locator('.bruno-modal').filter({ hasText: 'Delete Environment' });
+
+    await page.locator('.environments-container').first().waitFor({ state: 'visible' }).catch(() => { });
+
+    while (true) {
+      if ((await deleteBtn.count()) === 0) {
+        if ((await envItems.count()) === 0) break;
+        await envItems.first().click();
+        await deleteBtn.waitFor({ state: 'visible' });
+      }
+      await deleteBtn.first().click();
+      await modal.getByRole('button', { name: 'Delete', exact: true }).click();
+      await modal.waitFor({ state: 'hidden' });
     }
   });
 };
@@ -457,18 +869,22 @@ const addEnvironmentVariables = async (page: Page, variables: EnvironmentVariabl
  */
 const saveEnvironment = async (page: Page) => {
   await test.step('Save environment', async () => {
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByTestId('save-all-env').click();
   });
 };
 
 /**
- * Close the environment modal/panel
+ * Close the environment tab
  * @param page - The page object
+ * @param type - The type of environment tab to close
  * @returns void
  */
-const closeEnvironmentPanel = async (page: Page) => {
-  await test.step('Close environment panel', async () => {
-    await page.getByText('×').click();
+const closeEnvironmentPanel = async (page: Page, type: EnvironmentType = 'collection') => {
+  await test.step('Close environment tab', async () => {
+    const tabLabel = type === 'collection' ? 'Environments' : 'Global Environments';
+    const envTab = page.locator('.request-tab').filter({ hasText: tabLabel });
+    await envTab.hover();
+    await envTab.getByTestId('request-tab-close-icon').click({ force: true });
   });
 };
 
@@ -509,7 +925,7 @@ const selectEnvironment = async (
  */
 const sendRequest = async (
   page: Page,
-  expectedStatusCode?: number | string,
+  expectedStatusCode?: number,
   timeout: number = 30000
 ) => {
   await test.step('Send request', async () => {
@@ -545,38 +961,184 @@ const sendRequest = async (
 * @param collectionName - The name of the collection
 * @param requestName - The name of the request
 */
-const openRequest = async (page: Page, collectionName: string, requestName: string) => {
+const openRequest = async (page: Page, collectionName: string, requestName: string, { persist = false } = {}) => {
   await test.step(`Navigate to collection "${collectionName}" and open request "${requestName}"`, async () => {
     const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
     await collectionContainer.click();
     const collectionWrapper = collectionContainer.locator('..');
     const request = collectionWrapper.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName });
-    await request.click();
+    if (!persist) {
+      await request.click();
+    } else {
+      await request.dblclick();
+    }
   });
 };
 /**
- * Open a request within a folder
+ * Open a folder's settings tab by clicking on it in the sidebar
  * @param page - The page object
+ * @param collectionName - The name of the collection
  * @param folderName - The name of the folder
- * @param requestName - The name of the request
+ * @param options - Optional settings (persist: double-click to make tab permanent)
  * @returns void
  */
-const openFolderRequest = async (page: Page, folderName: string, requestName: string) => {
-  await test.step(`Open request "${requestName}" in folder "${folderName}"`, async () => {
+const openfolder = async (page: Page, collectionName: string, folderName: string, { persist = false } = {}) => {
+  await test.step(`Open folder "${folderName}" in collection "${collectionName}"`, async () => {
+    const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
+    await collectionContainer.click();
+    const collectionWrapper = collectionContainer.locator('..');
+    const folder = collectionWrapper.getByTestId('sidebar-collection-item-row').filter({ hasText: folderName });
+    if (!persist) {
+      await folder.click();
+    } else {
+      await folder.dblclick();
+    }
+  });
+};
+
+/**
+ * Select a tab in the folder settings pane
+ * @param page - The page object
+ * @param tabName - The tab name key (e.g. 'auth', 'headers', 'docs', 'script', 'vars', 'test')
+ * @returns void
+ */
+const selectfolderPaneTab = async (page: Page, tabName: string) => {
+  await test.step(`Select folder pane tab "${tabName}"`, async () => {
     const locators = buildCommonLocators(page);
-    await locators.sidebar.folderRequest(folderName, requestName).click();
-    await expect(locators.tabs.activeRequestTab()).toContainText(requestName);
+    const tab = locators.paneTabs.folderSettingsTab(tabName.toLowerCase());
+    await tab.click();
+    await expect(tab).toContainClass('active');
+  });
+};
+
+/**
+ * Select a sub-tab in the folder script pane (Pre Request or Post Response)
+ * @param page - The page object
+ * @param tabName - 'pre-request' or 'post-response'
+ * @returns void
+ */
+const selectFolderScriptPaneTab = async (page: Page, tabName: 'pre-request' | 'post-response') => {
+  await test.step(`Select folder script pane tab "${tabName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const tab = locators.paneTabs.folderScriptTab(tabName);
+    await tab.click();
+    await expect(tab).toContainClass('active');
+  });
+};
+
+/**
+ * Open a collection's settings tab by clicking on it in the sidebar
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param options - Optional settings (persist: double-click to make tab permanent)
+ * @returns void
+ */
+const openCollectionSettings = async (page: Page, collectionName: string, { persist = false } = {}) => {
+  await test.step(`Open collection settings for "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const collection = locators.sidebar.collection(collectionName);
+    if (!persist) {
+      await collection.click();
+    } else {
+      await collection.dblclick();
+    }
+  });
+};
+
+/**
+ * Select a tab in the collection settings pane
+ * @param page - The page object
+ * @param tabName - The tab name key (e.g. 'auth', 'headers', 'overview', 'script', 'vars')
+ * @returns void
+ */
+const selectCollectionPaneTab = async (page: Page, tabName: string) => {
+  await test.step(`Select collection pane tab "${tabName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const tab = locators.paneTabs.collectionSettingsTab(tabName.toLowerCase());
+    await tab.click();
+    await expect(tab).toContainClass('active');
+  });
+};
+
+/**
+ * Select a sub-tab in the collection script pane (Pre Request or Post Response)
+ * @param page - The page object
+ * @param tabName - 'pre-request' or 'post-response'
+ * @returns void
+ */
+const selectCollectionScriptPaneTab = async (page: Page, tabName: 'pre-request' | 'post-response') => {
+  await test.step(`Select collection script pane tab "${tabName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const tab = locators.paneTabs.tabTrigger(tabName);
+    await tab.click();
+    await expect(tab).toContainClass('active');
+  });
+};
+
+/**
+ * Focus the folder settings tab in the tab bar after restore
+ * @param page - The page object
+ * @param folderName - The name of the folder
+ * @param options - Optional timeout in milliseconds
+ * @returns void
+ */
+const focusFolderSettingsTab = async (page: Page, folderName: string, { timeout = 10000 } = {}) => {
+  await test.step(`Focus folder settings tab "${folderName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const tab = locators.tabs.folderTab(folderName);
+    await expect(tab).toBeVisible({ timeout });
+    await tab.click({ force: true });
+  });
+};
+
+/**
+ * Focus the collection settings tab in the tab bar after restore
+ * @param page - The page object
+ * @param options - Optional timeout in milliseconds
+ * @returns void
+ */
+const focusCollectionSettingsTab = async (page: Page, { timeout = 10000 } = {}) => {
+  await test.step('Focus collection settings tab', async () => {
+    const locators = buildCommonLocators(page);
+    const tab = locators.tabs.collectionSettingsTab();
+    await expect(tab).toBeVisible({ timeout });
+    await tab.click({ force: true });
+  });
+};
+
+/**
+ * Open a request within a folder
+ * Expand a folder in the sidebar and open a nested request.
+ * Clicks collection → folder → request explicitly to ensure the tree is expanded.
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param folderName - The name of the folder
+ * @param requestName - The name of the request
+ */
+const openFolderRequest = async (page: Page, collectionName: string, folderName: string, requestName: string) => {
+  await test.step(`Open folder request "${requestName}" in "${folderName}"`, async () => {
+    const { sidebar, tabs } = buildCommonLocators(page);
+    const collectionRow = sidebar.collectionRow(collectionName);
+    await collectionRow.click();
+    const collectionWrapper = collectionRow.locator('..');
+    const folder = collectionWrapper.locator('.collection-item-name').filter({ has: page.getByText(folderName, { exact: true }) });
+    await folder.waitFor({ state: 'visible' });
+    await folder.click();
+    const request = collectionWrapper.locator('.collection-item-name').filter({ has: page.getByText(requestName, { exact: true }) });
+    await request.waitFor({ state: 'visible' });
+    await request.click();
+    await expect(tabs.activeRequestTab()).toContainText(requestName);
   });
 };
 
 /**
 * Send a request and wait for the response
  * @param page - The page object
- * @param expectedStatusCode - The expected status code (default: '200')
+ * @param expectedStatusCode - The expected status code (default: 200)
  * @param options - The options for sending the request (default: { timeout: 15000 })
  */
 const sendRequestAndWaitForResponse = async (page: Page,
-  expectedStatusCode: string = '200',
+  expectedStatusCode: number = 200,
   options: {
     ignoreCase?: boolean;
     timeout?: number;
@@ -584,7 +1146,7 @@ const sendRequestAndWaitForResponse = async (page: Page,
   } = { timeout: 15000 }) => {
   await test.step(`Send request and wait for status code ${expectedStatusCode}`, async () => {
     await page.getByTestId('send-arrow-icon').click();
-    await expect(page.getByTestId('response-status-code')).toContainText(expectedStatusCode, options);
+    await expect(page.getByTestId('response-status-code')).toContainText(String(expectedStatusCode), options);
   });
 };
 
@@ -596,34 +1158,86 @@ const sendRequestAndWaitForResponse = async (page: Page,
 const switchResponseFormat = async (page: Page, format: string) => {
   await test.step(`Switch response format to ${format}`, async () => {
     const responseFormatTab = page.getByTestId('format-response-tab');
+    await responseFormatTab.waitFor({ state: 'visible', timeout: 15000 });
     await responseFormatTab.click();
-    await page.getByTestId('format-response-tab-dropdown').getByText(format).click();
+    // Wait for dropdown to be visible before clicking the format option
+    const dropdown = page.getByTestId('format-response-tab-dropdown');
+    try {
+      await dropdown.waitFor({ state: 'visible', timeout: 15000 });
+    } catch {
+      // If the dropdown didn't appear, try clicking the tab again before failing
+      await responseFormatTab.click();
+      await dropdown.waitFor({ state: 'visible', timeout: 15000 });
+    }
+    await dropdown.getByText(format).click();
   });
 };
 
 /**
- * Switch to the preview tab
- * @param page - The page object
+ * Set the response pane's preview/editor mode idempotently.
+ *
+ * The underlying `preview-response-tab` element is a `<ToggleSwitch>` that
+ * flips between editor and preview on click — it has no "set to X" semantics.
+ * It also lives inside the dropdown that `format-response-tab` opens, so it's
+ * not interactable until that dropdown is visible. Naively clicking it twice
+ * (once per call) loses state if any click misses the toggle window, leaving
+ * downstream asserts looking at the wrong mode (e.g. expecting CodeMirror
+ * lines while preview is showing).
+ *
+ * Strategy: open the dropdown, read the toggle's current state from its
+ * `title` attribute (which reflects `selectedTab` in the source), and click
+ * only when the current state differs from the desired one.
+ */
+const setResponsePreviewMode = async (page: Page, mode: 'editor' | 'preview') => {
+  const responseFormatTab = page.getByTestId('format-response-tab');
+  await responseFormatTab.click();
+  const dropdown = page.getByTestId('format-response-tab-dropdown');
+  await dropdown.waitFor({ state: 'visible', timeout: 5000 });
+  const toggle = dropdown.getByTestId('preview-response-tab');
+  // The toggle's `title` reflects current state (`Turn off|on Preview Mode`).
+  // Wait until it's actually one of those values — `getAttribute` returns
+  // `null` if read before React flushes props to DOM, which would mislead
+  // the state check below into thinking we're already in editor mode and
+  // skip the toggle click, leaving us stuck in preview.
+  await expect(toggle).toHaveAttribute('title', /^Turn (off|on) Preview Mode$/);
+  const isPreview = (await toggle.getAttribute('title')) === 'Turn off Preview Mode';
+  const wantPreview = mode === 'preview';
+  if (isPreview !== wantPreview) {
+    await toggle.click();
+  } else {
+    // Already in the desired mode — close the dropdown so subsequent
+    // interactions (format selection, asserts) aren't shadowed by it.
+    await responseFormatTab.click();
+  }
+
+  const responsePane = page.getByTestId('response-pane');
+  await responsePane.click({
+    position: {
+      x: 0,
+      y: 0
+    }
+  });
+  // Confirm the dropdown actually closed before returning. Otherwise a
+  // subsequent format-selector click can land in a half-open state and
+  // miss the next interaction.
+  await dropdown.waitFor({ state: 'hidden', timeout: 5000 });
+};
+
+/**
+ * Switch the response pane into preview mode (idempotent).
  */
 const switchToPreviewTab = async (page: Page) => {
   await test.step('Switch to preview tab', async () => {
-    const responseFormatTab = page.getByTestId('format-response-tab');
-    await responseFormatTab.click();
-    const previewTab = page.getByTestId('preview-response-tab');
-    await previewTab.click();
+    await setResponsePreviewMode(page, 'preview');
   });
 };
 
 /**
- * Switch to the editor tab
- * @param page - The page object
+ * Switch the response pane into editor mode (idempotent).
  */
 const switchToEditorTab = async (page: Page) => {
   await test.step('Switch to editor tab', async () => {
-    const responseFormatTab = page.getByTestId('format-response-tab');
-    await responseFormatTab.click();
-    const previewTab = page.getByTestId('preview-response-tab');
-    await previewTab.click();
+    await setResponsePreviewMode(page, 'editor');
   });
 };
 
@@ -636,30 +1250,181 @@ const getResponseBody = async (page: Page): Promise<string> => {
   return await page.locator('.response-pane').innerText();
 };
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const trySelectPaneTabOnce = async (page: Page, paneSelector: string, tabName: string) => {
+  const pane = page.locator(paneSelector);
+  const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
+
+  if (await visibleTab.isVisible().catch(() => false)) {
+    try {
+      await visibleTab.click({ timeout: 2000 });
+      await expect(visibleTab).toContainClass('active', { timeout: 500 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const overflowButton = pane.locator('.tabs .more-tabs');
+  if (!(await overflowButton.isVisible().catch(() => false))) {
+    return false;
+  }
+
+  try {
+    await overflowButton.click({ force: true, timeout: 1000 });
+  } catch {
+    return false;
+  }
+
+  const dropdownItem = page
+    .getByRole('menuitem', { name: new RegExp(escapeRegExp(tabName), 'i') })
+    .first();
+
+  if (await dropdownItem.isVisible({ timeout: 1500 }).catch(() => false)) {
+    try {
+      await dropdownItem.click({ force: true, timeout: 2000 });
+      await expect(visibleTab).toContainClass('active', { timeout: 500 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const fallbackDropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName }).first();
+  if (await fallbackDropdownItem.isVisible({ timeout: 1500 }).catch(() => false)) {
+    try {
+      await fallbackDropdownItem.click({ force: true, timeout: 2000 });
+      await expect(visibleTab).toContainClass('active', { timeout: 500 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+};
+
+const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) => {
+  await test.step(`Select tab "${tabName}" in ${paneSelector}`, async () => {
+    const pane = page.locator(paneSelector);
+    await expect(pane).toBeVisible();
+    await expect(pane.locator('.tabs')).toBeVisible();
+
+    // await expect
+    //   .poll(
+    //     async () => trySelectPaneTabOnce(page, paneSelector, tabName),
+    //     {
+    //       message: `Tab "${tabName}" not found in visible tabs or overflow dropdown`,
+    //       timeout: 8000,
+    //       intervals: [100, 150, 200, 250]
+    //     }
+    //   )
+    //   .toBe(true);
+
+    const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
+    const overflowButton = pane.locator('.tabs .more-tabs');
+
+    // ResponsiveTabs recalculates layout via ResizeObserver/rAF, so the tab or
+    // the overflow trigger can detach mid-click. Retry the whole sequence so a
+    // mid-action remount doesn't fail the test.
+    await expect(async () => {
+      if (await visibleTab.isVisible()) {
+        await visibleTab.click({ timeout: 2000 });
+        await expect(visibleTab).toContainClass('active', { timeout: 2000 });
+        return;
+      }
+
+      if (await overflowButton.isVisible()) {
+        await overflowButton.click({ timeout: 2000 });
+
+        const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
+        await dropdownItem.waitFor({ state: 'visible', timeout: 2000 });
+        await dropdownItem.click({ force: true, timeout: 2000 });
+        await expect(visibleTab).toContainClass('active', { timeout: 2000 });
+        return;
+      }
+
+      throw new Error(`Tab "${tabName}" not found in visible tabs or overflow dropdown`);
+    }).toPass({ timeout: 15000 });
+  });
+};
+
+const selectResponsePaneTab = async (page: Page, tabName: string) => {
+  await selectPaneTab(page, '[data-testid="response-pane"]', tabName);
+};
+
 const selectRequestPaneTab = async (page: Page, tabName: string) => {
-  await test.step(`Select request pane tab "${tabName}"`, async () => {
-    const visibleTab = page.locator('.tabs').getByRole('tab', { name: tabName });
-    const overflowButton = page.locator('.tabs .more-tabs');
+  await selectPaneTab(page, '[data-testid="request-pane"] > .px-4', tabName);
+};
 
-    // Check if tab is directly visible
-    if (await visibleTab.isVisible()) {
-      await visibleTab.click();
-      return;
+const selectRequestBodyMode = async (page: Page, mode: string) => {
+  await test.step(`Select request body mode "${mode}"`, async () => {
+    await selectRequestPaneTab(page, 'Body');
+    const locators = buildCommonLocators(page);
+    await locators.request.bodyModeSelector().click();
+    await locators.dropdown.item(mode).click();
+  });
+};
+
+const mockBrowseFiles = async (electronApp: ElectronApplication, filePaths: string[]) => {
+  await electronApp.evaluate(({ dialog }, selectedPaths: string[]) => {
+    const originalShowOpenDialog = dialog.showOpenDialog;
+    dialog.showOpenDialog = async (...args) => {
+      dialog.showOpenDialog = originalShowOpenDialog;
+      return {
+        canceled: false,
+        filePaths: selectedPaths
+      };
+    };
+  }, filePaths);
+};
+
+const addMultipartFileToLastRow = async (page: Page, electronApp: ElectronApplication, filePath: string) => {
+  await test.step(`Add multipart file "${path.basename(filePath)}"`, async () => {
+    await mockBrowseFiles(electronApp, [filePath]);
+
+    const table = buildCommonLocators(page).table('multipart-form-table');
+    // The last row is the empty "add" row. Capture its index now, because once
+    // we set a file the table appends a new empty row — so `.last()` would jump
+    // to that new row instead of staying on the one we just filled.
+    let rowIndex = (await table.allRows().count()) - 1;
+    const targetRow = table.allRows().nth(rowIndex);
+
+    if (rowIndex < 0) {
+      rowIndex = 0;
     }
 
-    // Check if there's an overflow dropdown
-    if (await overflowButton.isVisible()) {
-      await overflowButton.click();
+    await expect(targetRow.getByTestId('multipart-file-upload')).toBeVisible();
+    await targetRow.getByTestId('multipart-file-upload').click();
+    const specificRow = table.allRows().nth(rowIndex);
+    await expect(specificRow.locator('.file-value-cell')).toBeVisible({ timeout: 10000 });
+    const inlineChip = specificRow.getByTestId('multipart-file-chip').filter({ hasText: path.basename(filePath) });
+    const summary = specificRow.getByTestId('multipart-file-summary');
+    await expect(inlineChip.or(summary)).toBeVisible();
+  });
+};
 
-      // Wait for dropdown to appear and click the tab
-      const dropdownTab = page.locator('.tippy-content').getByRole('tab', { name: tabName });
-      await expect(dropdownTab).toBeVisible();
-      await dropdownTab.click();
-      return;
+const removeFirstMultipartFile = async (page: Page) => {
+  await test.step('Remove first multipart file', async () => {
+    const table = buildCommonLocators(page).table('multipart-form-table');
+    const firstRow = table.allRows().first();
+    await expect(firstRow.locator('.file-value-cell')).toBeVisible();
+
+    const inlineRemove = firstRow.getByTestId('multipart-file-chip-remove').first();
+    const summary = firstRow.getByTestId('multipart-file-summary');
+
+    if (await inlineRemove.count() > 0) {
+      await inlineRemove.click();
+    } else {
+      await expect(summary).toBeVisible();
+      await summary.click();
+      const overflowRemove = page.getByTestId('multipart-file-overflow-remove').first();
+      await expect(overflowRemove).toBeVisible();
+      await overflowRemove.click();
     }
-
-    // If neither found, fail with a helpful message
-    throw new Error(`Tab "${tabName}" not found in visible tabs or overflow dropdown`);
+    await expect(firstRow.locator('.file-value-cell')).toHaveCount(0);
+    await expect(firstRow.locator('.value-cell')).toBeVisible();
   });
 };
 
@@ -678,46 +1443,1154 @@ const expectResponseContains = async (page: Page, texts: string[]) => {
   });
 };
 
-// Create a action to click a response action
+// Map button testIds to menu item IDs
+const buttonToMenuItemMap: Record<string, string> = {
+  'response-copy-btn': 'copy-response',
+  'response-bookmark-btn': 'save-response',
+  'response-download-btn': 'download-response',
+  'response-clear-btn': 'clear-response',
+  'response-layout-toggle-btn': 'change-layout'
+};
+
+// Click a response action - handles both visible buttons and menu items
 const clickResponseAction = async (page: Page, actionTestId: string) => {
-  const actionButton = await page.getByTestId(actionTestId).first();
+  const actionButton = page.getByTestId(actionTestId).first();
   if (await actionButton.isVisible()) {
     await actionButton.click();
   } else {
-    const menu = await page.getByTestId('response-actions-menu');
+    // Open the menu dropdown (wait for response pane to fully render)
+    const menu = page.getByTestId('response-actions-menu');
+    await menu.waitFor({ state: 'visible', timeout: 15000 });
     await menu.click();
-    await actionButton.click();
+
+    // Click the corresponding menu item
+    const menuItemId = buttonToMenuItemMap[actionTestId];
+    if (menuItemId) {
+      await page.locator(`[role="menuitem"][data-item-id="${menuItemId}"]`).click();
+    } else {
+      throw new Error(`Unknown action testId: ${actionTestId}. Add mapping to buttonToMenuItemMap.`);
+    }
   }
 };
 
+type AssertionInput = {
+  expr: string;
+  value: string;
+  operator?: string;
+};
+
+/**
+ * Add an assertion to the current request (adds to the last empty row)
+ * @param page - The page object
+ * @param assertion - The assertion to add (expr, value, optional operator)
+ * @returns The row index where the assertion was added
+ */
+const addAssertion = async (page: Page, assertion: AssertionInput): Promise<number> => {
+  const operator = assertion.operator || 'eq';
+
+  return await test.step(`Add assertion: ${assertion.expr} ${operator} ${assertion.value}`, async () => {
+    const locators = buildCommonLocators(page);
+    const table = locators.assertionsTable();
+
+    // Ensure assertions table is visible
+    await expect(table.container()).toBeVisible();
+
+    // Find the last row (which is the empty row for adding new assertions)
+    const rowCount = await table.allRows().count();
+    const targetRowIndex = rowCount - 1; // Last row is the empty row
+
+    // Wait for the row to exist
+    await expect(table.row(targetRowIndex)).toBeVisible();
+
+    // Fill in the expression
+    const exprInput = table.rowExprInput(targetRowIndex);
+    await expect(exprInput).toBeVisible({ timeout: 2000 });
+    await exprInput.click();
+    await page.keyboard.type(assertion.expr);
+
+    // The component creates a new empty row when the key field is filled
+    await expect(table.allRows()).toHaveCount(rowCount + 1);
+
+    // Fill in the value first (defaults to 'eq value')
+    const valueInput = table.rowValueInput(targetRowIndex);
+    await valueInput.click();
+    await page.keyboard.type(assertion.value);
+
+    // Select the operator from dropdown (if provided and not default 'eq')
+    // This will update the value field to combine operator + value
+    if (assertion.operator && assertion.operator !== 'eq') {
+      const operatorSelect = table.rowOperatorSelect(targetRowIndex);
+      await operatorSelect.selectOption(assertion.operator);
+    }
+
+    // Wait for the assertion to be fully processed
+    // Verify the expression was actually saved by checking the input value
+    const exprInputAfter = table.rowExprInput(targetRowIndex);
+    await expect(exprInputAfter).toHaveValue(assertion.expr, { timeout: 2000 });
+
+    return targetRowIndex;
+  });
+};
+
+/**
+ * Edit an assertion at a specific row index
+ * @param page - The page object
+ * @param rowIndex - The row index of the assertion to edit
+ * @param assertion - The assertion data to update (expr, value, optional operator)
+ * @returns void
+ */
+const editAssertion = async (page: Page, rowIndex: number, assertion: AssertionInput) => {
+  const operator = assertion.operator || 'eq';
+
+  await test.step(`Edit assertion at row ${rowIndex}: ${assertion.expr} ${operator} ${assertion.value}`, async () => {
+    const locators = buildCommonLocators(page);
+    const table = locators.assertionsTable();
+
+    // Ensure assertions table is visible
+    await expect(table.container()).toBeVisible();
+
+    // Wait for the row to exist
+    await expect(table.row(rowIndex)).toBeVisible();
+
+    // Update the expression
+    const exprInput = table.rowExprInput(rowIndex);
+    await expect(exprInput).toBeVisible({ timeout: 2000 });
+    await exprInput.click();
+    // Clear the input and type new value - use triple-click to select all (works cross-platform)
+    await exprInput.click({ clickCount: 3 });
+    await page.keyboard.press('Backspace'); // Clear selection
+    await page.keyboard.type(assertion.expr);
+
+    // Update the operator from dropdown (if provided)
+    if (assertion.operator) {
+      const operatorSelect = table.rowOperatorSelect(rowIndex);
+      await operatorSelect.selectOption(assertion.operator);
+    }
+
+    // Update the value (just the value, operator is already selected)
+    // The value cell contains a SingleLineEditor, so we need to click and type
+    const valueInput = table.rowValueInput(rowIndex);
+    await valueInput.click({ clickCount: 3 });
+    await page.keyboard.press('Backspace'); // Clear selection
+    await page.keyboard.type(assertion.value);
+  });
+};
+
+/**
+ * Delete an assertion from the current request by row index
+ * @param page - The page object
+ * @param rowIndex - The row index of the assertion to delete
+ * @returns void
+ */
+const deleteAssertion = async (page: Page, rowIndex: number) => {
+  await test.step(`Delete assertion at row ${rowIndex}`, async () => {
+    const locators = buildCommonLocators(page);
+    const table = locators.assertionsTable();
+
+    await expect(table.container()).toBeVisible();
+
+    const initialRowCount = await table.allRows().count();
+    const deleteButton = table.rowDeleteButton(rowIndex);
+
+    await deleteButton.click();
+    await expect(table.allRows()).toHaveCount(initialRowCount - 1);
+  });
+};
+
+/**
+ * Save the current request and verify success toast
+ * @param page - The page object
+ * @returns void
+ */
+const saveRequest = async (page: Page) => {
+  await test.step('Save request', async () => {
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await page.keyboard.press(saveShortcut);
+    await expect(page.getByText('Request saved successfully').last()).toBeVisible({ timeout: 3000 });
+    await page.waitForTimeout(200);
+  });
+};
+
+/**
+ * Click the gRPC "Add Message" button to append a new message to the request
+ * @param page - The page object
+ */
+const addGrpcMessage = async (page: Page) => {
+  await test.step('Add gRPC message', async () => {
+    const locators = buildGrpcCommonLocators(page);
+    await locators.request.addMessageButton().click();
+  });
+};
+
+/**
+ * Click the "Generate sample" button on a gRPC message to populate it with a sample payload
+ * @param page - The page object
+ * @param index - The 0-based index of the message (default: 0)
+ */
+const generateGrpcSampleMessage = async (page: Page, index: number = 0) => {
+  await test.step(`Generate sample for gRPC message #${index}`, async () => {
+    const locators = buildGrpcCommonLocators(page);
+    await locators.request.regenerateMessage(index).click();
+  });
+};
+
+/**
+ * Open the gRPC method dropdown and select a method by name
+ * @param page - The page object
+ * @param methodName - The name of the gRPC method to select (e.g. "BidiHello")
+ */
+const selectGrpcMethod = async (page: Page, methodName: string) => {
+  await test.step(`Select gRPC method "${methodName}"`, async () => {
+    const locators = buildGrpcCommonLocators(page);
+    await locators.method.dropdownTrigger().click();
+    await locators.method.dropdown().waitFor({ state: 'visible', timeout: 5000 });
+    await locators.method.item(methodName).first().click();
+    await expect(locators.method.selectedName()).toContainText(methodName);
+  });
+};
+
+/**
+ * Close all open request tabs using the right-click context menu
+ * @param page - The page object
+ * @returns void
+ */
+const closeAllTabs = async (page: Page) => {
+  await test.step('Close all tabs', async () => {
+    // Find actual request tabs (those with .tab-method, not Overview/Environments)
+    const requestTabLabel = page.locator('.request-tab').filter({ has: page.locator('.tab-method') }).locator('.tab-label').first();
+    if (!(await requestTabLabel.isVisible().catch(() => false))) {
+      return; // No request tabs to close
+    }
+
+    // Right-click on the tab label to open context menu
+    await requestTabLabel.click({ button: 'right' });
+
+    // Wait for the dropdown menu to appear
+    const dropdown = page.locator('.tippy-box.dropdown');
+    await dropdown.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Click "Close All" menu item
+    await dropdown.locator('[role="menuitem"][data-item-id="close-all"]').click();
+
+    // Handle "Unsaved Transient Requests" modal if it appears
+    const discardAllButton = page.getByRole('button', { name: 'Discard All' });
+    if (await discardAllButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await discardAllButton.click();
+    }
+
+    const saveTransientModal = page.getByTestId('save-transient-request-modal');
+    if (await saveTransientModal.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await saveTransientModal.getByRole('button', { name: 'Cancel' }).click();
+      await expect(saveTransientModal).toBeHidden();
+    }
+  });
+};
+
+// Switch to an already-open request tab by its label (e.g. transient tabs are "Untitled N").
+const switchToOpenTab = async (page: Page, label: string) => {
+  await test.step(`Switch to tab "${label}"`, async () => {
+    const tab = page.getByTestId('request-tab').filter({ has: page.getByText(label, { exact: true }) });
+    await tab.click();
+    await expect(tab).toHaveAttribute('aria-selected', 'true');
+  });
+};
+
+/**
+ * Create a new workspace via the title bar dropdown inline rename flow
+ * @param page - The page object
+ * @param workspaceName - The name of the workspace to create
+ * @returns void
+ */
+const createWorkspace = async (page: Page, workspaceName: string) => {
+  await test.step(`Create workspace "${workspaceName}"`, async () => {
+    await page.locator('.workspace-name-container').click();
+    await page.locator('.dropdown-item').filter({ hasText: 'Create workspace' }).click();
+
+    const renameInput = page.locator('.workspace-name-input');
+    await expect(renameInput).toBeVisible({ timeout: 5000 });
+    await renameInput.fill(workspaceName);
+    await renameInput.press('Enter');
+
+    await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('workspace-name')).toHaveText(workspaceName, { timeout: 5000 });
+  });
+};
+
+/**
+ * Switch to an existing workspace via the title bar dropdown
+ * @param page - The page object
+ * @param workspaceName - The name of the workspace to switch to
+ * @returns void
+ */
+const switchWorkspace = async (page: Page, workspaceName: string) => {
+  await test.step(`Switch to workspace "${workspaceName}"`, async () => {
+    await page.locator('.workspace-name-container').click();
+    await page.locator('.workspace-item, .dropdown-item').filter({ hasText: workspaceName }).click();
+    await expect(page.getByTestId('workspace-name')).toHaveText(workspaceName, { timeout: 5000 });
+  });
+};
+
+/**
+ * Navigate to a Script sub-tab (pre-request / post-response)
+ * @param page - The page object
+ * @param subTab - The sub-tab to select
+ */
+const selectScriptSubTab = async (page: Page, subTab: 'pre-request' | 'post-response') => {
+  await test.step(`Select Script sub-tab "${subTab}"`, async () => {
+    await selectRequestPaneTab(page, 'Script');
+    const trigger = buildCommonLocators(page).paneTabs.tabTrigger(subTab);
+    await trigger.click();
+    await expect(trigger).toContainClass('active');
+  });
+};
+
+/**
+ * Clear and type into a CodeMirror editor identified by test ID
+ * @param page - The page object
+ * @param editorTestId - The test ID of the editor container
+ * @param newContent - The content to type
+ */
+const editCodeMirrorEditor = async (page: Page, editorTestId: string, newContent: string) => {
+  await test.step(`Edit CodeMirror editor "${editorTestId}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const editor = locators.codeMirror.byTestId(editorTestId);
+    await editor.waitFor({ state: 'visible' });
+    const textarea = editor.locator('textarea[tabindex="0"]');
+    await textarea.focus();
+    const selectAll = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
+    await page.keyboard.press(selectAll);
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type(newContent, { delay: 5 });
+  });
+};
+
+/**
+ * Add a pre-request script (navigates to Script > Pre Request and replaces editor content)
+ * @param page - The page object
+ * @param content - The script content to add
+ */
+const addPreRequestScript = async (page: Page, content: string) => {
+  await test.step('Add pre-request script', async () => {
+    await selectScriptSubTab(page, 'pre-request');
+    await editCodeMirrorEditor(page, 'pre-request-script-editor', content);
+  });
+};
+
+/**
+ * Add a post-response script (navigates to Script > Post Response and replaces editor content)
+ * @param page - The page object
+ * @param content - The script content to add
+ */
+const addPostResponseScript = async (page: Page, content: string) => {
+  await test.step('Add post-response script', async () => {
+    await selectScriptSubTab(page, 'post-response');
+    await editCodeMirrorEditor(page, 'post-response-script-editor', content);
+  });
+};
+
+/**
+ * Add a test script (navigates to Tests tab and replaces editor content)
+ * @param page - The page object
+ * @param content - The test script content to add
+ */
+const addTestScript = async (page: Page, content: string) => {
+  await test.step('Add test script', async () => {
+    await selectRequestPaneTab(page, 'Tests');
+    await editCodeMirrorEditor(page, 'test-script-editor', content);
+  });
+};
+
+/**
+ * Add a script to a folder's Settings → Script tab.
+ * @param page - The page object
+ * @param folderName - The folder to target (must be visible in the sidebar)
+ * @param phase - Which phase to write: 'pre-request' or 'post-response'
+ * @param content - The script content to add
+ */
+const addFolderScript = async (
+  page: Page,
+  folderName: string,
+  phase: 'pre-request' | 'post-response',
+  content: string
+) => {
+  await test.step(`Add ${phase} script on folder "${folderName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    await locators.sidebar.folder(folderName).first().dblclick();
+    await locators.paneTabs.folderSettingsTab('script').click();
+    await locators.paneTabs.tabTrigger(phase).click();
+    await editCodeMirrorEditor(page, `folder-${phase}-script-editor`, content);
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await page.keyboard.press(saveShortcut);
+    await page.waitForTimeout(400);
+  });
+};
+
+/**
+ * Add a script to a collection's Settings → Script tab.
+ * @param page - The page object
+ * @param collectionName - The collection to target
+ * @param phase - Which phase to write: 'pre-request' or 'post-response'
+ * @param content - The script content to add
+ */
+const addCollectionScript = async (
+  page: Page,
+  collectionName: string,
+  phase: 'pre-request' | 'post-response',
+  content: string
+) => {
+  await test.step(`Add ${phase} script on collection "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    await locators.sidebar.collection(collectionName).hover();
+    await locators.actions.collectionActions(collectionName).click();
+    await locators.dropdown.item('Settings').click();
+    await locators.paneTabs.collectionSettingsTab('script').click();
+    await locators.paneTabs.tabTrigger(phase).click();
+    await editCodeMirrorEditor(page, `collection-${phase}-script-editor`, content);
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await page.keyboard.press(saveShortcut);
+    await page.waitForTimeout(400);
+  });
+};
+
+/**
+ * Click send and wait for at least one error card to appear.
+ * @param page - The page object
+ */
+const sendAndWaitForErrorCard = async (page: Page) => {
+  await test.step('Send request and wait for error card', async () => {
+    const { request } = buildCommonLocators(page);
+    const scriptErrorLocators = buildScriptErrorLocators(page);
+    await request.sendButton().click();
+    await scriptErrorLocators.card().waitFor({ state: 'visible', timeout: 15000 });
+  });
+};
+
+/**
+ * Click send and wait for a response status code to appear.
+ * Used for requests that succeed at HTTP level but may have post-response/test errors.
+ * @param page - The page object
+ */
+const sendAndWaitForResponse = async (page: Page) => {
+  await test.step('Send request and wait for response', async () => {
+    const { request, response } = buildCommonLocators(page);
+    await request.sendButton().click();
+    await response.statusCode().waitFor({ state: 'visible', timeout: 15000 });
+  });
+};
+
+const fieldEditor = (page: Page, labelText: string) =>
+  page
+    .locator('label')
+    .filter({ hasText: new RegExp(`^${escapeRegExp(labelText)}$`) })
+    .locator('..')
+    .locator('.single-line-editor-wrapper .CodeMirror');
+
+/**
+ * Open the auth mode dropdown and pick a mode by its visible label.
+ * @param page - The page object
+ * @param modeLabel - Dropdown item text (e.g. 'Bearer Token', 'Basic Auth')
+ */
+const selectAuthMode = async (page: Page, modeLabel: string) => {
+  await page.locator('.auth-mode-label').click();
+  await page.locator('.dropdown-item').filter({ hasText: modeLabel }).click();
+};
+
+/**
+ * Type into a single-line CodeMirror editor identified by its sibling label.
+ * @param page - The page object
+ * @param labelText - Exact label text next to the editor
+ * @param value - The text to type
+ */
+const typeIntoField = async (page: Page, labelText: string, value: string) => {
+  await fieldEditor(page, labelText).click();
+  await page.keyboard.type(value);
+};
+
+/**
+ * Read the current value of a single-line CodeMirror editor identified by its sibling label.
+ * @param page - The page object
+ * @param labelText - Exact label text next to the editor
+ */
+const readField = async (page: Page, labelText: string): Promise<string> => {
+  const editor = fieldEditor(page, labelText).first();
+  await editor.waitFor({ state: 'visible' });
+  return editor.evaluate((el: any) => (el as any).CodeMirror?.getValue() ?? '');
+};
+
+const openFolderSettings = async (page: Page, collectionName: string, folderName = 'api') => {
+  await test.step(`Open folder settings for "${folderName}" in collection "${collectionName}"`, async () => {
+    const collectionRow = page.locator('#sidebar-collection-name').filter({ hasText: collectionName });
+    await expect(collectionRow).toBeVisible();
+
+    const folderRow = page
+      .getByTestId('collections')
+      .locator('.collection-item-name')
+      .filter({ hasText: folderName });
+    if (!(await folderRow.isVisible().catch(() => false))) {
+      await collectionRow.click();
+      await expect(folderRow).toBeVisible();
+    }
+
+    await folderRow.dblclick();
+    await expect(page.locator('.request-tab .tab-label').filter({ hasText: folderName })).toBeVisible();
+  });
+};
+
+const setTableRowDescriptionValue = async (rowLocator: Locator, value: string) => {
+  const descCell = rowLocator.getByTestId('column-description');
+  await descCell.evaluate((el: any, val: string) => {
+    const cmEl = el.querySelector('.CodeMirror');
+    if (!cmEl) throw new Error('No CodeMirror in description cell');
+    const cm = (cmEl as any).CodeMirror;
+    if (!cm) throw new Error('CodeMirror instance not found');
+    cm.setValue(val);
+  }, value);
+};
+
+const createExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, description: string = '') => {
+  const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
+
+  await requestRow.hover();
+  await requestRow.locator('..').locator('.menu-icon').click({ force: true });
+  await page.locator('.dropdown-item').filter({ hasText: 'Create Example' }).click();
+
+  const exampleInput = page.getByTestId('create-example-name-input');
+  await expect(exampleInput).toBeVisible();
+  await exampleInput.clear();
+  await exampleInput.fill(exampleName);
+  const descriptionInput = page.getByTestId('create-example-description-input');
+  await descriptionInput.clear();
+  await descriptionInput.fill(description);
+  await page.getByRole('button', { name: 'Create Example' }).click();
+  await expect(page.locator('text=Create Response Example')).not.toBeAttached();
+};
+
+const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {
+  const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
+  const requestBranch = requestRow.locator('..');
+  const exampleRow = requestBranch
+    .locator('.collection-item-name')
+    .filter({ has: page.locator('.example-icon') })
+    .getByText(exampleName, { exact: true })
+    .nth(index);
+
+  if (!(await exampleRow.isVisible())) {
+    await requestRow.getByTestId('request-item-chevron').click();
+  }
+
+  await expect(exampleRow).toBeVisible();
+  await exampleRow.click();
+};
+
+/**
+ * Open the Generate Code dialog and return the visible snippet text.
+ * @param page - The page object
+ * @returns The text content of the generated code snippet
+ */
+const getGeneratedSnippet = async (page: Page): Promise<string> => {
+  return await test.step('Open Generate Code dialog and read snippet', async () => {
+    const { request } = buildCommonLocators(page);
+
+    await request.generateCodeButton().click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+
+    const codeEditor = page.locator('.editor-content .CodeMirror').first();
+    await expect(codeEditor).toBeVisible();
+
+    return (await codeEditor.textContent()) ?? '';
+  });
+};
+
+/**
+ * Close the Generate Code dialog and wait for it to disappear.
+ * @param page - The page object
+ * @returns void
+ */
+const closeGenerateCodeDialog = async (page: Page) => {
+  await test.step('Close Generate Code dialog', async () => {
+    const { modal } = buildCommonLocators(page);
+    await modal.closeButton().click();
+    await modal.closeButton().waitFor({ state: 'hidden' });
+  });
+};
+
+/**
+ * Open a request inside a folder by exact request name.
+ * @param page - The page object
+ * @param folderName - The name of the folder containing the request
+ * @param requestName - The exact name of the request to open
+ * @returns void
+ */
+const openRequestInFolder = async (page: Page, folderName: string, requestName: string) => {
+  await test.step(`Open request "${requestName}" in folder "${folderName}"`, async () => {
+    const { sidebar } = buildCommonLocators(page);
+    await sidebar.folder(folderName).click();
+
+    const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
+    const escapedName = requestName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const requestRow = folderWrapper.locator('.collection-item-name').filter({
+      has: page.locator('.item-name').filter({ hasText: new RegExp(`^${escapedName}$`) })
+    });
+    await requestRow.click();
+  });
+};
+
+/**
+ * Toggle the URL encoding setting on the current request idempotently.
+ * @param page - The page object
+ * @param enabled - Whether URL encoding should be enabled
+ * @returns void
+ */
+const setUrlEncoding = async (page: Page, enabled: boolean) => {
+  await test.step(`Set URL encoding ${enabled ? 'ON' : 'OFF'}`, async () => {
+    await selectRequestPaneTab(page, 'Settings');
+    const toggle = page.getByTestId('encode-url-toggle');
+    await expect(toggle).toBeVisible();
+    const current = (await toggle.getAttribute('aria-checked')) === 'true';
+    if (current !== enabled) {
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-checked', String(enabled));
+    }
+  });
+};
+
+type DialogOptions = {
+  showOpenDialog: () => Promise<{ canceled: boolean; filePaths: string[] }>;
+};
+
+const openWorkspaceFromDialog = async (app: any, page: any, targetPath: string) => {
+  await app.evaluate(
+    ({ dialog }: { dialog: DialogOptions }, workspacePath: string) => {
+      dialog.showOpenDialog = () =>
+        Promise.resolve({ canceled: false, filePaths: [workspacePath] });
+    },
+    targetPath
+  );
+
+  await page.getByTestId('workspace-menu').click();
+  await page.locator('.dropdown-item').filter({ hasText: 'Open workspace' }).click();
+};
+
+/**
+ * Trigger "Generate Docs" from a collection's sidebar context menu and capture
+ * the generated HTML documentation.
+ *
+ * The GenerateDocumentation modal hands the file to `FileSaver.saveAs`, which
+ * builds an in-memory Blob and saves it via an `<a download>` click rather than
+ * an Electron IPC write. Electron doesn't surface that as a Playwright
+ * `download` event, so instead we intercept it in the renderer: `URL.createObjectURL`
+ * gives us the Blob's content, and overriding the anchor click captures the
+ * suggested file name while suppressing the real save (no file leaks to disk).
+ *
+ * @param page - The page object
+ * @param collectionName - The name of the collection to generate docs for
+ * @returns The generated HTML content and the download's suggested file name
+ */
+const generateCollectionDocs = async (
+  page: Page,
+  collectionName: string,
+  beforeGenerate?: () => Promise<void>
+): Promise<{ content: string; fileName: string }> => {
+  return await test.step(`Generate docs for collection "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    // Make sure the collection has finished mounting before interacting — on a
+    // cold start the row (and its hover-revealed actions icon) isn't ready yet,
+    // so this keeps the helper self-sufficient for any caller.
+    await waitForCollectionMount(page, collectionName);
+
+    // Open the collection's context menu and click "Generate Docs"
+    await locators.sidebar.collection(collectionName).hover();
+    const collectionAction = locators.actions.collectionActions(collectionName);
+    await expect(collectionAction).toBeVisible({ timeout: 2000 });
+    await collectionAction.click();
+    await locators.generateDocs.menuItem().click();
+
+    // Wait for the Generate Documentation modal to reach its ready (non-loading)
+    // state — the confirm button reads "Loading..." while the collection's items
+    // are still mounting and only becomes "Generate" once they are ready.
+    const modal = locators.generateDocs.modal();
+    await expect(modal).toBeVisible({ timeout: 5000 });
+    const generateButton = locators.generateDocs.generateButton();
+    await expect(generateButton).toBeEnabled({ timeout: 10000 });
+
+    // Let the caller interact with the modal (e.g. toggle environment selection)
+    // after it is ready and before the docs are generated.
+    if (beforeGenerate) {
+      await beforeGenerate();
+    }
+
+    // Arm the renderer-side interception before the save fires. `file-saver`
+    // (v2) reads the Blob through `URL.createObjectURL` and then triggers the
+    // save by dispatching a synthetic click on a detached `<a download>` (via
+    // `setTimeout(…, 0)`), so both points are intercepted. Each is exposed as a
+    // promise to absorb that deferred dispatch without a race.
+    await page.evaluate(() => {
+      const w = window as any;
+      const originalCreate = URL.createObjectURL.bind(URL);
+      const originalDispatch = HTMLAnchorElement.prototype.dispatchEvent;
+
+      w.__docsContent = new Promise<string>((resolve) => {
+        URL.createObjectURL = function (obj: Blob | MediaSource) {
+          if (obj instanceof Blob) {
+            obj.text().then(resolve);
+          }
+          return originalCreate(obj as Blob);
+        };
+      });
+
+      w.__docsFileName = new Promise<string>((resolve) => {
+        HTMLAnchorElement.prototype.dispatchEvent = function (this: HTMLAnchorElement, event: Event) {
+          if (this.download && event && event.type === 'click') {
+            resolve(this.download);
+            // Suppress the actual save — the Blob content is already captured.
+            return true;
+          }
+          return originalDispatch.call(this, event);
+        };
+      });
+    });
+
+    await generateButton.click();
+
+    const content = await page.evaluate(() => (window as any).__docsContent as Promise<string>);
+    const fileName = await page.evaluate(() => (window as any).__docsFileName as Promise<string>);
+
+    // The modal closes itself on the success path.
+    await expect(modal).toBeHidden({ timeout: 5000 });
+
+    return { content, fileName };
+  });
+};
+
+/**
+ * Toggle the "Enable App" request setting idempotently (Settings tab).
+ * Enabling exposes the App tab and the Request/App/File view-mode toggle.
+ * @param page - The page object
+ * @param enabled - Whether apps should be enabled for the request
+ */
+const setAppEnabled = async (page: Page, enabled: boolean) => {
+  await test.step(`Set Enable App ${enabled ? 'ON' : 'OFF'}`, async () => {
+    await selectRequestPaneTab(page, 'Settings');
+    const toggle = page.getByTestId('enable-app-toggle');
+    await expect(toggle).toBeVisible();
+    const current = (await toggle.getAttribute('aria-checked')) === 'true';
+    if (current !== enabled) {
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-checked', String(enabled));
+    }
+  });
+};
+
+/**
+ * Set the request's app code. Enables apps in the request settings (the App
+ * tab is hidden otherwise), opens the App tab and writes the editor value
+ * directly via the CodeMirror API (avoids auto-close-bracket corruption when
+ * typing HTML/JS char-by-char). The app view must not be active (editor visible).
+ * @param page - The page object
+ * @param code - The HTML/JS app code
+ */
+const setAppCode = async (page: Page, code: string) => {
+  await setAppEnabled(page, true);
+  await test.step('Set app code', async () => {
+    await selectRequestPaneTab(page, 'App');
+    const editor = appCodeEditor(page);
+    await editor.waitFor({ state: 'visible' });
+    await editor.evaluate((el, val) => {
+      const cm = (el as any).CodeMirror;
+      if (cm) cm.setValue(val);
+    }, code);
+  });
+};
+
+/**
+ * The CodeMirror element of the request-level App-tab editor.
+ * @param page - The page object
+ */
+const appCodeEditor = (page: Page) => page.getByTestId('app-code-editor').locator('.CodeMirror').first();
+
+/**
+ * Read the app code currently loaded in the App-tab editor (via the CodeMirror API).
+ * @param page - The page object
+ * @returns The editor's current value
+ */
+const readAppEditor = (page: Page): Promise<string | undefined> =>
+  appCodeEditor(page).evaluate((el) => (el as any).CodeMirror?.getValue());
+
+/**
+ * The App tab of the request pane tab bar.
+ * @param page - The page object
+ */
+const requestPaneAppTab = (page: Page) => page.getByTestId('responsive-tab-app');
+
+/**
+ * Open the request pane's tab overflow dropdown if it is present. Tabs that
+ * don't fit the pane width land there instead of the visible tab row.
+ * @param page - The page object
+ */
+const openRequestPaneTabOverflow = async (page: Page) => {
+  const overflowButton = page.locator('[data-testid="request-pane"] .tabs .more-tabs');
+  if (await overflowButton.isVisible()) {
+    await overflowButton.click();
+  }
+};
+
+/**
+ * A tab entry inside the request pane's overflow dropdown.
+ * @param page - The page object
+ * @param label - The tab label to match (exact match via regex recommended)
+ */
+const requestPaneOverflowTabItem = (page: Page, label: string | RegExp) =>
+  page.locator('.tippy-box .dropdown-item').filter({ hasText: label });
+
+/**
+ * The keep-alive preview slot of the ACTIVE tab. The AppPreviewKeepAlive
+ * overlay keeps app views of background tabs mounted (hidden) and the Electron
+ * instance is shared across tests in a worker, so bare app-view lookups can
+ * match a stale slot from another test. Always scope through the active slot.
+ * @param page - The page object
+ */
+const activeAppPreviewSlot = (page: Page) => page.locator('.app-preview-slot.active');
+
+/**
+ * The app view of the ACTIVE tab (see activeAppPreviewSlot).
+ * @param page - The page object
+ */
+const activeAppView = (page: Page) => activeAppPreviewSlot(page).getByTestId('app-view');
+
+/**
+ * Open the app view via the App tab's "Preview" button. Asserts the app view
+ * takes over the request/response area.
+ * @param page - The page object
+ */
+const previewApp = async (page: Page) => {
+  await test.step('Preview app (App tab button)', async () => {
+    await selectRequestPaneTab(page, 'App');
+    await page.getByTestId('app-preview-btn').click();
+    await expect(activeAppView(page)).toBeVisible({ timeout: 5000 });
+  });
+};
+
+/**
+ * Exit app mode via the app view's "Exit to editor" button.
+ * @param page - The page object
+ */
+const exitApp = async (page: Page) => {
+  await test.step('Exit app mode', async () => {
+    await activeAppView(page).getByTestId('app-exit-button').click();
+    await expect(activeAppView(page)).toHaveCount(0, { timeout: 5000 });
+  });
+};
+
+/**
+ * Switch the active request's view mode using the collection toolbar toggle.
+ * @param page - The page object
+ * @param mode - 'request' | 'app' | 'file'
+ */
+const selectViewMode = async (page: Page, mode: 'request' | 'app' | 'file') => {
+  await test.step(`Switch view mode to "${mode}"`, async () => {
+    await page.getByTestId(`view-mode-${mode}`).click();
+  });
+};
+
+/**
+ * Read the decoded HTML the app webview is loading (its data: URL src).
+ * Useful for asserting the injected ctx bootstrap and user code.
+ * @param page - The page object
+ * @returns The decoded HTML document string
+ */
+const getAppWebviewHtml = async (page: Page): Promise<string> => {
+  const webview = activeAppView(page).locator('webview');
+  await webview.waitFor({ state: 'attached', timeout: 5000 });
+  const src = await webview.getAttribute('src');
+  if (!src) return '';
+  const comma = src.indexOf(',');
+  return decodeURIComponent(src.slice(comma + 1));
+};
+
+/**
+ * Create a standalone (collection-level or folder-level) app via the sidebar
+ * context menu. Opens the new tab once created.
+ * @param page - The page object
+ * @param appName - Name to give the new app
+ * @param parent - Either `{ collectionName }` for a collection-level app,
+ *                 or `{ collectionName, folderName }` for a folder-level app.
+ */
+const createApp = async (
+  page: Page,
+  appName: string,
+  parent: { collectionName: string; folderName?: string }
+) => {
+  await test.step(`Create app "${appName}" in ${parent.folderName ? `folder "${parent.folderName}"` : `collection "${parent.collectionName}"`}`, async () => {
+    const locators = buildCommonLocators(page);
+
+    if (parent.folderName) {
+      const collectionScope = locators.sidebar.collectionScope(parent.collectionName);
+      const folderRow = collectionScope.locator('.collection-item-name').filter({ hasText: parent.folderName });
+      await folderRow.hover();
+      await folderRow.locator('.menu-icon').click();
+    } else {
+      await locators.sidebar.collection(parent.collectionName).hover();
+      const collectionAction = locators.actions.collectionActions(parent.collectionName);
+      await expect(collectionAction).toBeVisible({ timeout: 2000 });
+      await collectionAction.click();
+    }
+
+    await page.locator('.tippy-box:visible .dropdown-item').filter({ hasText: 'New App' }).click();
+
+    const modal = page.locator('.bruno-modal').filter({ hasText: 'New App' });
+    await expect(modal).toBeVisible({ timeout: 5000 });
+    await modal.locator('input[name="appName"]').fill(appName);
+    await modal.getByRole('button', { name: 'Create', exact: true }).click();
+    await expect(modal).toBeHidden({ timeout: 5000 });
+  });
+};
+
+/**
+ * Switch the CollectionApp tab between Code and Preview views.
+ * @param page - The page object
+ * @param view - 'code' | 'preview'
+ */
+const selectAppView = async (page: Page, view: 'code' | 'preview') => {
+  await test.step(`Switch collection app to "${view}"`, async () => {
+    // Scope through the active keep-alive slot — hidden slots of background
+    // app tabs (possibly from earlier tests in the shared Electron) also
+    // render this toggle.
+    await activeAppPreviewSlot(page).getByTestId(`collection-app-view-${view}`).click();
+  });
+};
+
+/**
+ * Rename a websocket message by double-clicking its label and typing a new name.
+ * @param page - The page object
+ * @param index - The zero-based index of the message in the list
+ * @param name - The new message name
+ */
+const renameWsMessage = async (page: Page, index: number, name: string) => {
+  await test.step(`Rename websocket message ${index} to "${name}"`, async () => {
+    const { websocket } = buildCommonLocators(page);
+    await websocket.message.label(index).dblclick();
+    const nameInput = websocket.message.nameInput(index);
+    await expect(nameInput).toBeVisible();
+    await nameInput.selectText();
+    await page.keyboard.type(name);
+    await nameInput.press('Enter');
+  });
+};
+
+/**
+ * Scroll a row inside a react-virtuoso table (request/folder/collection vars or
+ * env vars — both rendered with the `table-container` className) into view so it
+ * mounts in the DOM. Virtuoso only keeps rows near the viewport mounted and can
+ * restore a persisted scroll position, so reset to the top first — retried, to
+ * beat that restore — then walk down until `target` mounts.
+ */
+const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
+  if (await target.count()) {
+    await target.scrollIntoViewIfNeeded().catch(() => { });
+    return;
+  }
+
+  const scroll = (toTop: boolean) => page.evaluate((toTop) => {
+    let moved = false;
+    document.querySelectorAll('.table-container').forEach((el) => {
+      const before = el.scrollTop;
+      el.scrollTop = toTop ? 0 : el.scrollTop + el.clientHeight * 0.7 + 80;
+      if (el.scrollTop !== before) moved = true;
+    });
+    return moved;
+  }, toTop);
+
+  for (let i = 0; i < 5; i++) {
+    await scroll(true);
+    await page.waitForTimeout(120);
+    if (await target.count()) {
+      await target.scrollIntoViewIfNeeded().catch(() => { });
+      return;
+    }
+  }
+
+  for (let i = 0; i < 40; i++) {
+    if (await target.count()) break;
+    if (!(await scroll(false))) break;
+    await page.waitForTimeout(120);
+  }
+  await target.scrollIntoViewIfNeeded().catch(() => { });
+};
+
+/**
+ * Set the active request's URL and save it. Typed char-by-char so CodeMirror
+ * tokenizes `{{var}}` references (vs. a bulk fill that skips tokenization).
+ * @param page - The page object
+ * @param url - The URL to type into the request URL editor
+ */
+const setRequestUrlAndSave = async (page: Page, url: string) => {
+  await test.step(`Set request URL: ${url}`, async () => {
+    const { request } = buildCommonLocators(page);
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await request.urlInput().click();
+    await page.keyboard.type(url);
+    await page.keyboard.press(saveShortcut);
+  });
+};
+
+/**
+ * Hover a `{{var}}` token in the URL editor and return its (visible) info tooltip.
+ * @param page - The page object
+ * @param varName - The variable name inside the braces
+ * @param state - Highlight class to match: 'valid' (known) or 'invalid' (unknown); omit to match either
+ * @returns The tooltip popup locator
+ */
+const openUrlVarTooltip = async (
+  page: Page,
+  varName: string,
+  state?: 'valid' | 'invalid'
+): Promise<Locator> => {
+  const { request, varInfoPopup } = buildCommonLocators(page);
+  // Dismiss any previously-open tooltip first.
+  await page.mouse.move(0, 0);
+  await request.urlVariableToken(varName, state).hover();
+
+  const tooltip = varInfoPopup.all().first();
+  await expect(tooltip).toBeVisible();
+  return tooltip;
+};
+
+/**
+ * Returns true if the element is on top at its centre (not hidden behind a header),
+ * i.e. the topmost element at its centre is inside a dropdown/tippy container.
+ * @param locator - The dropdown item locator
+ * @returns Whether the item is the topmost element at its own centre
+ */
+const elementIsInsideDropdown = async (locator: Locator) => {
+  const box = await locator.boundingBox();
+  expect(box, 'dropdown item should have a layout box').not.toBeNull();
+  const x = box!.x + box!.width / 2;
+  const y = box!.y + box!.height / 2;
+  return locator.page().evaluate(
+    ({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest('.tippy-box, .dropdown')),
+    { x, y }
+  );
+};
+
+/**
+* Open the System Proxy panel in the Preferences dialog and wait for the refresh button to be visible.
+* @param page - The page object
+*/
+
+const openSystemProxyPanel = async (page: Page) => {
+  await openPreferences(page);
+  await selectPreferencesTab(page, 'Proxy');
+
+  const systemProxyLocators = buildPreferencesLocators(page).systemProxy;
+  await systemProxyLocators.systemProxyMode().click();
+  await systemProxyLocators.systemProxyRefreshButton().waitFor({ state: 'visible' });
+};
+
 export {
+  waitForReadyPage,
+  setRequestUrlAndSave,
+  openUrlVarTooltip,
+  scrollVirtuosoRowIntoView,
+  dismissImportIssuesToasts,
   closeAllCollections,
-  openCollectionAndAcceptSandbox,
+  openCollection,
   createCollection,
   createRequest,
   createUntitledRequest,
+  createTransientRequest,
+  fillRequestUrl,
   deleteRequest,
+  deleteCollectionFromOverview,
   importCollection,
+  openBulkImportModal,
   removeCollection,
   createFolder,
   openEnvironmentSelector,
+  openEnvironmentConfigTab,
   createEnvironment,
   addEnvironmentVariable,
   addEnvironmentVariables,
+  addRowToActiveTab,
+  deleteAllGlobalEnvironments,
   saveEnvironment,
   closeEnvironmentPanel,
   selectEnvironment,
   sendRequest,
   openRequest,
+  openfolder,
   openFolderRequest,
+  selectfolderPaneTab,
+  selectFolderScriptPaneTab,
+  openCollectionSettings,
+  selectCollectionPaneTab,
+  selectCollectionScriptPaneTab,
+  focusFolderSettingsTab,
+  focusCollectionSettingsTab,
   getResponseBody,
   expectResponseContains,
   selectRequestPaneTab,
+  selectRequestBodyMode,
+  selectResponsePaneTab,
+  mockBrowseFiles,
+  addMultipartFileToLastRow,
+  removeFirstMultipartFile,
   sendRequestAndWaitForResponse,
   switchResponseFormat,
   switchToPreviewTab,
   switchToEditorTab,
-  clickResponseAction
+  clickResponseAction,
+  addAssertion,
+  editAssertion,
+  deleteAssertion,
+  saveRequest,
+  addGrpcMessage,
+  generateGrpcSampleMessage,
+  selectGrpcMethod,
+  closeAllTabs,
+  switchToOpenTab,
+  createWorkspace,
+  switchWorkspace,
+  selectScriptSubTab,
+  editCodeMirrorEditor,
+  addPreRequestScript,
+  addPostResponseScript,
+  addTestScript,
+  addFolderScript,
+  addCollectionScript,
+  expandFolder,
+  sendAndWaitForErrorCard,
+  sendAndWaitForResponse,
+  selectAuthMode,
+  typeIntoField,
+  readField,
+  createExampleFromSidebar,
+  openExampleFromSidebar,
+  openWorkspaceFromDialog,
+  getGeneratedSnippet,
+  closeGenerateCodeDialog,
+  openRequestInFolder,
+  setUrlEncoding,
+  generateCollectionDocs,
+  openFolderSettings,
+  setTableRowDescriptionValue,
+  setAppCode,
+  setAppEnabled,
+  readAppEditor,
+  requestPaneAppTab,
+  openRequestPaneTabOverflow,
+  requestPaneOverflowTabItem,
+  activeAppPreviewSlot,
+  activeAppView,
+  previewApp,
+  exitApp,
+  selectViewMode,
+  getAppWebviewHtml,
+  createApp,
+  selectAppView,
+  renameWsMessage,
+  elementIsInsideDropdown,
+  openSystemProxyPanel
 };
 
-export type { SandboxMode, EnvironmentType, EnvironmentVariable, CreateCollectionOptions, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions };
+export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

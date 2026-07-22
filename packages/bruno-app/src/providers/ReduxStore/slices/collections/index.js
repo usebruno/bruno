@@ -1,6 +1,6 @@
 import { parseQueryParams, buildQueryString as stringifyQueryParams } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
-import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex } from 'lodash';
+import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex, pick } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import { hexy as hexdump } from 'hexy';
 import {
@@ -18,12 +18,78 @@ import {
   isItemARequest
 } from 'utils/collections';
 import { parsePathParams, splitOnFirst } from 'utils/url';
+import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
 import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
+import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
+
+const FILE_DERIVED_REQUEST_FIELDS = [
+  'name',
+  'type',
+  'seq',
+  'tags',
+  'request',
+  'settings',
+  'examples',
+  'raw',
+  'filename',
+  'pathname',
+  'partial',
+  'loading',
+  'size',
+  'error',
+  'isTransient'
+];
+
+const FILE_DERIVED_FOLDER_FIELDS = [
+  'name',
+  'filename',
+  'pathname',
+  'seq',
+  'type',
+  'root'
+];
+
+const mergeTreeItems = (existingItems, newItems) => {
+  if (!Array.isArray(existingItems) || existingItems.length === 0) return newItems;
+  const existingByUid = new Map();
+  for (const item of existingItems) {
+    if (item && item.uid) existingByUid.set(item.uid, item);
+  }
+
+  return newItems.map((newItem) => {
+    const existing = existingByUid.get(newItem.uid);
+    if (!existing) return newItem;
+
+    if (newItem.type === 'folder') {
+      const merged = { ...existing, ...pick(newItem, FILE_DERIVED_FOLDER_FIELDS) };
+      merged.items = mergeTreeItems(existing.items, newItem.items || []);
+      return merged;
+    }
+
+    // seq-only change (reorder) — keep everything else, including the draft
+    if (areItemsTheSameExceptSeqUpdate(existing, newItem)) {
+      const merged = { ...existing, seq: newItem.seq };
+      if (merged.draft) {
+        merged.draft = { ...merged.draft, seq: newItem.seq };
+        if (areItemsTheSameExceptSeqUpdate(merged.draft, newItem)) {
+          merged.draft = null;
+        }
+      }
+      return merged;
+    }
+
+    const merged = { ...existing, ...pick(newItem, FILE_DERIVED_REQUEST_FIELDS) };
+    // only drop the draft if it matches what's on disk — user may still be typing
+    const draftMatchesFile = existing.draft && areItemsTheSameExceptSeqUpdate(existing.draft, newItem);
+    merged.draft = draftMatchesFile ? null : (existing.draft || null);
+    return merged;
+  });
+};
 
 // gRPC status code meanings
 const grpcStatusCodes = {
@@ -66,12 +132,60 @@ const wsStatusCodes = {
   1015: 'TLS_HANDSHAKE'
 };
 
+/**
+ * Preserves UIDs from existing array items when merging with new data.
+ * UIDs are matched by position to keep React keys stable after file reloads.
+ */
+const preserveUidsAtPaths = (existing, updated, paths) => {
+  if (!existing || !updated) return updated;
+
+  const merged = cloneDeep(updated);
+
+  paths.forEach((path) => {
+    const newArray = get(merged, path);
+    const existingArray = get(existing, path, []);
+
+    if (Array.isArray(newArray) && newArray.length) {
+      set(
+        merged,
+        path,
+        newArray.map((item, i) => (existingArray[i]?.uid ? { ...item, uid: existingArray[i].uid } : item))
+      );
+    }
+  });
+
+  return merged;
+};
+
+// Paths containing arrays with UIDs that need preservation
+const REQUEST_UID_PATHS = [
+  'params',
+  'headers',
+  'vars.req',
+  'vars.res',
+  'assertions',
+  'body.formUrlEncoded',
+  'body.multipartForm',
+  'body.file',
+  'body.ws'
+];
+
+const ROOT_UID_PATHS = ['request.headers', 'request.vars.req', 'request.vars.res'];
+
+const mergeRequestWithPreservedUids = (existingRequest, newRequest) =>
+  preserveUidsAtPaths(existingRequest, newRequest, REQUEST_UID_PATHS);
+
+const mergeRootWithPreservedUids = (existingRoot, newRoot) =>
+  preserveUidsAtPaths(existingRoot, newRoot, ROOT_UID_PATHS);
+
 const initialState = {
   collections: [],
   collectionSortOrder: 'default',
   activeConnections: [],
   selectedCollections: [], // Array of selected collection UIDs for multi-selection
-  lastClickedCollectionIndex: null // Index of last clicked collection for shift-select
+  lastClickedCollectionIndex: null, // Index of last clicked collection for shift-select
+  tempDirectories: {},
+  saveTransientRequestModals: []
 };
 
 const initiatedGrpcResponse = {
@@ -106,6 +220,8 @@ const initiatedWsResponse = {
   trailers: []
 };
 
+// Properties prefixed with `_` (e.g. `_scriptEnvBaseline`) are transient runtime state —
+// never persisted to disk or included in exports.
 export const collectionsSlice = createSlice({
   name: 'collections',
   initialState,
@@ -115,6 +231,7 @@ export const collectionsSlice = createSlice({
       const collection = action.payload;
 
       collection.settingsSelectedTab = 'overview';
+      collection.fileMode = false;
       collection.folderLevelSettingsSelectedTab = {};
       collection.allTags = []; // Initialize collection-level tags
 
@@ -172,6 +289,24 @@ export const collectionsSlice = createSlice({
         collection.securityConfig = action.payload.securityConfig;
       }
     },
+    updateCollectionVersion: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        const version = action.payload.version;
+        const applyVersion = (target) => {
+          if (!target) return;
+          if (version) {
+            target.version = version;
+          } else {
+            delete target.version;
+          }
+        };
+        collection.brunoConfig = collection.brunoConfig || {};
+        applyVersion(collection.brunoConfig);
+        // Keep any unsaved brunoConfig draft in sync so a later settings-save can't wipe it.
+        applyVersion(collection.draft?.brunoConfig);
+      }
+    },
     brunoConfigUpdateEvent: (state, action) => {
       const { collectionUid, brunoConfig } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -179,6 +314,45 @@ export const collectionsSlice = createSlice({
       if (collection) {
         collection.brunoConfig = brunoConfig;
       }
+    },
+    migrateCollectionToYmlInPlace: (state, action) => {
+      const { collectionUid, brunoConfig } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) {
+        return;
+      }
+
+      if (brunoConfig) {
+        collection.brunoConfig = brunoConfig;
+        if (collection.draft?.brunoConfig) {
+          collection.draft.brunoConfig = brunoConfig;
+        }
+      }
+      collection.format = 'yml';
+
+      const rewriteItemPaths = (items) => {
+        (items || []).forEach((item) => {
+          if (item.isTransient) {
+            return;
+          }
+          if (typeof item.pathname === 'string') {
+            item.pathname = item.pathname.replace(/\.bru$/, '.yml');
+          }
+          if (typeof item.filename === 'string') {
+            item.filename = item.filename.replace(/\.bru$/, '.yml');
+          }
+          if (item.items && item.items.length) {
+            rewriteItemPaths(item.items);
+          }
+        });
+      };
+      rewriteItemPaths(collection.items);
+
+      (collection.environments || []).forEach((environment) => {
+        if (typeof environment.pathname === 'string') {
+          environment.pathname = environment.pathname.replace(/\.bru$/, '.yml');
+        }
+      });
     },
     renameCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -277,6 +451,18 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateEnvironmentColor: (state, action) => {
+      const { environmentUid, color, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const environment = findEnvironmentInCollection(collection, environmentUid);
+
+        if (environment) {
+          environment.color = color;
+        }
+      }
+    },
     newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -328,51 +514,51 @@ export const collectionsSlice = createSlice({
       }
     },
     scriptEnvironmentUpdateEvent: (state, action) => {
-      const { collectionUid, envVariables, runtimeVariables, persistentEnvVariables } = action.payload;
+      const { collectionUid, envVariables, requestUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        const activeEnvironmentUid = collection.activeEnvironmentUid;
-        const activeEnvironment = findEnvironmentInCollection(collection, activeEnvironmentUid);
+        const activeEnvironment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
 
         if (activeEnvironment) {
-          forOwn(envVariables, (value, key) => {
-            const variable = find(activeEnvironment.variables, (v) => v.name === key);
-            const isPersistent = persistentEnvVariables && persistentEnvVariables[key] !== undefined;
+          const draft = collection.environmentsDraft;
+          if (draft && draft.environmentUid === activeEnvironment.uid && draft.variables) {
+            const baseline = {};
+            activeEnvironment.variables.forEach((v) => {
+              if (v.enabled) baseline[v.name] = v.value;
+            });
+            collection._scriptEnvBaseline = baseline;
 
-            if (variable) {
-              // For updates coming from scripts, treat them as ephemeral overlays unless they are persistent.
-              if (variable.value !== value) {
-                /*
-                 Overlay (persist: false): keep new value in Redux for UI and mark ephemeral
-                 so it isn't written to disk. persistedValue stores the previous on-disk value;
-                 save/persist uses that base unless the key is explicitly persisted.
-                */
-                const previousValue = variable.value;
-                variable.value = value;
-                variable.ephemeral = !isPersistent;
-                if (variable.persistedValue === undefined) {
-                  variable.persistedValue = previousValue;
-                }
-              }
+            activeEnvironment.variables = cloneDeep(draft.variables);
+            collection.environmentsDraft = null;
+          }
+
+          activeEnvironment.variables = applyScriptEnvVars(
+            activeEnvironment.variables,
+            envVariables,
+            collection._scriptEnvBaseline,
+            { skipKeys: ['__name__'] }
+          );
+
+          // Re-infer dataType only for vars the script actually modified — otherwise a no-op
+          // script re-write would clobber a user's in-progress draft type change.
+          const modifiedKeys = getScriptModifiedKeys(envVariables, collection._scriptEnvBaseline, { skipKeys: ['__name__'] });
+          activeEnvironment.variables.forEach((v) => {
+            if (!modifiedKeys.has(v.name)) return;
+            const inferred = getDataTypeFromValue(envVariables[v.name]);
+            if (inferred === 'string') {
+              delete v.dataType;
             } else {
-              // __name__ is a private variable used to store the name of the environment
-              // this is not a user defined variable and hence should not be updated
-              if (key !== '__name__') {
-                activeEnvironment.variables.push({
-                  name: key,
-                  value,
-                  secret: false,
-                  enabled: true,
-                  type: 'text',
-                  uid: uuid(),
-                  ephemeral: !isPersistent
-                });
-              }
+              v.dataType = inferred;
             }
           });
         }
-
+      }
+    },
+    runtimeVariablesUpdateEvent: (state, action) => {
+      const { collectionUid, runtimeVariables } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
         collection.runtimeVariables = runtimeVariables;
       }
     },
@@ -384,8 +570,45 @@ export const collectionsSlice = createSlice({
         collection.processEnvVariables = processEnvVariables;
       }
     },
+    workspaceEnvUpdateEvent: (state, action) => {
+      const { processEnvVariables } = action.payload;
+      state.collections.forEach((collection) => {
+        collection.workspaceProcessEnvVariables = processEnvVariables;
+      });
+    },
+    setDotEnvVariables: (state, action) => {
+      const { collectionUid, variables, exists, filename = '.env' } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        if (!collection.dotEnvFiles) {
+          collection.dotEnvFiles = [];
+        }
+
+        const existingIndex = collection.dotEnvFiles.findIndex((f) => f.filename === filename);
+        if (existingIndex >= 0) {
+          if (exists) {
+            collection.dotEnvFiles[existingIndex] = { filename, variables, exists };
+          } else {
+            collection.dotEnvFiles.splice(existingIndex, 1);
+          }
+        } else if (exists) {
+          collection.dotEnvFiles.push({ filename, variables, exists });
+        }
+
+        collection.dotEnvFiles.sort((a, b) => {
+          if (a.filename === '.env') return -1;
+          if (b.filename === '.env') return 1;
+          return a.filename.localeCompare(b.filename);
+        });
+
+        const mainEnvFile = collection.dotEnvFiles.find((f) => f.filename === '.env');
+        collection.dotEnvVariables = mainEnvFile?.variables || [];
+        collection.dotEnvExists = mainEnvFile?.exists || false;
+      }
+    },
     requestCancelled: (state, action) => {
-      const { itemUid, collectionUid } = action.payload;
+      const { itemUid, collectionUid, seq, timestamp } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -396,7 +619,7 @@ export const collectionsSlice = createSlice({
 
             const startTimestamp = item.requestSent.timestamp;
             item.response.duration = startTimestamp ? Date.now() - startTimestamp : item.response.duration;
-            item.response.data = [{ type: 'info', timestamp: Date.now(), message: 'Connection Closed' }].concat(item.response.data);
+            item.response.data = [{ type: 'info', timestamp: Date.now(), seq: seq, message: 'Connection Closed' }].concat(item.response.data);
           } else {
             item.response = null;
             item.requestUid = null;
@@ -421,10 +644,12 @@ export const collectionsSlice = createSlice({
             collection.timeline = [];
           }
 
+          const timelineRequest = action.payload.requestSent || item.requestSent || item.request;
+
           // Ensure timestamp is a number (milliseconds since epoch)
-          const timestamp = item?.requestSent?.timestamp instanceof Date
-            ? item.requestSent.timestamp.getTime()
-            : item?.requestSent?.timestamp || Date.now();
+          const timestamp = timelineRequest?.timestamp instanceof Date
+            ? timelineRequest.timestamp.getTime()
+            : timelineRequest?.timestamp || Date.now();
 
           // Append the new timeline entry with numeric timestamp
           collection.timeline.push({
@@ -432,9 +657,10 @@ export const collectionsSlice = createSlice({
             collectionUid: collection.uid,
             folderUid: null,
             itemUid: item.uid,
+            requestUid: item.requestUid,
             timestamp: timestamp,
             data: {
-              request: item.requestSent || item.request,
+              request: timelineRequest,
               response: action.payload.response,
               timestamp: timestamp
             }
@@ -613,6 +839,10 @@ export const collectionsSlice = createSlice({
             return;
           }
           item.response = null;
+          item.assertionResults = [];
+          item.preRequestTestResults = [];
+          item.postResponseTestResults = [];
+          item.testResults = [];
         }
       }
     },
@@ -643,6 +873,9 @@ export const collectionsSlice = createSlice({
           item.request = item.draft.request;
           if (item.draft.settings) {
             item.settings = item.draft.settings;
+          }
+          if (item.draft.app) {
+            item.app = item.draft.app;
           }
           item.draft = null;
         }
@@ -696,6 +929,24 @@ export const collectionsSlice = createSlice({
         folder.draft = null;
       }
     },
+    setEnvironmentsDraft: (state, action) => {
+      const { collectionUid, environmentUid, variables } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        // Reset the draft when switching environments; otherwise update variables in place.
+        if (!collection.environmentsDraft || collection.environmentsDraft.environmentUid !== environmentUid) {
+          collection.environmentsDraft = { environmentUid, variables };
+        } else {
+          collection.environmentsDraft.variables = variables;
+        }
+      }
+    },
+    clearEnvironmentsDraft: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.environmentsDraft = null;
+      }
+    },
     newEphemeralHttpRequest: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -735,6 +986,7 @@ export const collectionsSlice = createSlice({
           uid: action.payload.uid,
           name: action.payload.requestName,
           type: action.payload.requestType,
+          isTransient: false,
           request: {
             url: action.payload.requestUrl,
             method: action.payload.requestMethod,
@@ -756,6 +1008,13 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.collapsed = !collection.collapsed;
+      }
+    },
+    expandCollection: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload);
+
+      if (collection) {
+        collection.collapsed = false;
       }
     },
     toggleCollectionItem: (state, action) => {
@@ -886,6 +1145,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.auth.mode = 'ntlm';
               item.draft.request.auth.ntlm = action.payload.content;
               break;
+            case 'oauth1':
+              item.draft.request.auth.mode = 'oauth1';
+              item.draft.request.auth.oauth1 = action.payload.content;
+              break;
             case 'oauth2':
               item.draft.request.auth.mode = 'oauth2';
               item.draft.request.auth.oauth2 = action.payload.content;
@@ -897,6 +1160,10 @@ export const collectionsSlice = createSlice({
             case 'apikey':
               item.draft.request.auth.mode = 'apikey';
               item.draft.request.auth.apikey = action.payload.content;
+              break;
+            case 'akamai-edgegrid':
+              item.draft.request.auth.mode = 'akamai-edgegrid';
+              item.draft.request.auth.akamaiEdgegrid = action.payload.content;
               break;
           }
         }
@@ -941,11 +1208,12 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       const existingOtherParams = item.draft.request.params?.filter((p) => p.type !== 'query') || [];
-      const newQueryParams = map(params, ({ uid, name = '', value = '', description = '', type = 'query', enabled = true }) => ({
+      const newQueryParams = map(params, ({ uid, name = '', value = '', description = '', annotations = null, type = 'query', enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         type,
         enabled
       }));
@@ -1090,6 +1358,12 @@ export const collectionsSlice = createSlice({
           if (param) {
             param.name = action.payload.pathParam.name;
             param.value = action.payload.pathParam.value;
+            if ('description' in action.payload.pathParam) {
+              param.description = action.payload.pathParam.description;
+            }
+            if ('enabled' in action.payload.pathParam) {
+              param.enabled = action.payload.pathParam.enabled;
+            }
           }
         }
       }
@@ -1187,11 +1461,12 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.headers = map(action.payload.headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+      item.draft.request.headers = map(action.payload.headers, ({ uid, name = '', value = '', description = '', annotations = null, enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         enabled
       }));
     },
@@ -1215,11 +1490,12 @@ export const collectionsSlice = createSlice({
         collection.draft.root.request = {};
       }
 
-      collection.draft.root.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+      collection.draft.root.request.headers = map(headers, ({ uid, name = '', value = '', description = '', annotations = null, enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         enabled
       }));
     },
@@ -1242,11 +1518,12 @@ export const collectionsSlice = createSlice({
       if (!folder.draft.request) {
         folder.draft.request = {};
       }
-      folder.draft.request.headers = map(headers, ({ uid, name = '', value = '', description = '', enabled = true }) => ({
+      folder.draft.request.headers = map(headers, ({ uid, name = '', value = '', description = '', annotations = null, enabled = true }) => ({
         uid: uid || uuid(),
         name,
         value,
         description,
+        annotations,
         enabled
       }));
     },
@@ -1420,13 +1697,14 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.body.multipartForm = map(params, ({ uid, name = '', value = '', contentType = '', type = 'text', enabled = true }) => ({
+      item.draft.request.body.multipartForm = map(params, ({ uid, name = '', value = '', contentType = '', type = 'text', enabled = true, description = '' }) => ({
         uid: uid || uuid(),
         name,
         value,
         contentType,
         type,
-        enabled
+        enabled,
+        description
       }));
     },
     moveMultipartFormParam: (state, action) => {
@@ -1460,12 +1738,14 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           item.draft.request.body.file = item.draft.request.body.file || [];
+          const shouldSelectNewFile = !item.draft.request.body.file.some((p) => p.selected);
 
           item.draft.request.body.file.push({
             uid: uuid(),
             filePath: '',
             contentType: '',
-            selected: false
+            description: '',
+            selected: shouldSelectNewFile
           });
         }
       }
@@ -1487,12 +1767,18 @@ export const collectionsSlice = createSlice({
             const contentType = mime.contentType(path.extname(action.payload.param.filePath));
             param.filePath = action.payload.param.filePath;
             param.contentType = action.payload.param.contentType || contentType || '';
-            param.selected = action.payload.param.selected;
+            param.description = action.payload.param.description ?? param.description ?? '';
 
-            item.draft.request.body.file = item.draft.request.body.file.map((p) => {
-              p.selected = p.uid === param.uid;
-              return p;
-            });
+            if (typeof action.payload.param.selected === 'boolean') {
+              param.selected = action.payload.param.selected;
+
+              if (param.selected) {
+                item.draft.request.body.file = item.draft.request.body.file.map((p) => {
+                  p.selected = p.uid === param.uid;
+                  return p;
+                });
+              }
+            }
           }
         }
       }
@@ -1529,8 +1815,14 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          item.draft.request.auth = {};
-          item.draft.request.auth.mode = action.payload.mode;
+          const newMode = action.payload.mode;
+          const savedAuth = get(item, 'request.auth');
+          const savedMode = get(savedAuth, 'mode');
+          if (newMode === savedMode) {
+            item.draft.request.auth = cloneDeep(savedAuth);
+          } else {
+            item.draft.request.auth = { mode: newMode };
+          }
         }
       }
     },
@@ -1771,12 +2063,13 @@ export const collectionsSlice = createSlice({
       if (!item.draft) {
         item.draft = cloneDeep(item);
       }
-      item.draft.request.assertions = map(assertions, ({ uid, name = '', value = '', operator = 'eq', enabled = true }) => ({
+      item.draft.request.assertions = map(assertions, ({ uid, name = '', value = '', operator = 'eq', enabled = true, description = '' }) => ({
         uid: uid || uuid(),
         name,
         value,
         operator,
-        enabled
+        enabled,
+        description
       }));
     },
     moveAssertion: (state, action) => {
@@ -1906,11 +2199,14 @@ export const collectionsSlice = createSlice({
         item.draft = cloneDeep(item);
       }
       item.draft.request.vars = item.draft.request.vars || {};
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', description = '', enabled = true, local = false, dataType, annotations }) => ({
         uid: uid || uuid(),
         name,
         value,
+        description,
         enabled,
+        ...(dataType && dataType !== 'string' ? { dataType } : {}),
+        ...(annotations?.length ? { annotations } : {}),
         ...(type === 'response' ? { local } : {})
       }));
       if (type === 'request') {
@@ -1959,8 +2255,14 @@ export const collectionsSlice = createSlice({
             root: cloneDeep(collection.root)
           };
         }
-        set(collection, 'draft.root.request.auth', {});
-        set(collection, 'draft.root.request.auth.mode', action.payload.mode);
+        const newMode = action.payload.mode;
+        const savedAuth = get(collection, 'root.request.auth');
+        const savedMode = get(savedAuth, 'mode');
+        if (newMode === savedMode) {
+          set(collection, 'draft.root.request.auth', cloneDeep(savedAuth));
+        } else {
+          set(collection, 'draft.root.request.auth', { mode: newMode });
+        }
       }
     },
     updateCollectionAuth: (state, action) => {
@@ -1990,6 +2292,9 @@ export const collectionsSlice = createSlice({
           case 'ntlm':
             set(collection, 'draft.root.request.auth.ntlm', action.payload.content);
             break;
+          case 'oauth1':
+            set(collection, 'draft.root.request.auth.oauth1', action.payload.content);
+            break;
           case 'oauth2':
             set(collection, 'draft.root.request.auth.oauth2', action.payload.content);
             break;
@@ -1998,6 +2303,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'apikey':
             set(collection, 'draft.root.request.auth.apikey', action.payload.content);
+            break;
+          case 'akamai-edgegrid':
+            set(collection, 'draft.root.request.auth.akamaiEdgegrid', action.payload.content);
             break;
         }
       }
@@ -2080,6 +2388,22 @@ export const collectionsSlice = createSlice({
           collection.draft.brunoConfig = cloneDeep(collection.brunoConfig);
         }
         set(collection, 'draft.brunoConfig.clientCertificates', action.payload.clientCertificates);
+      }
+    },
+    updateCollectionPresets: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root),
+            brunoConfig: cloneDeep(collection.brunoConfig)
+          };
+        }
+        if (!collection.draft.brunoConfig) {
+          collection.draft.brunoConfig = cloneDeep(collection.brunoConfig);
+        }
+        set(collection, 'draft.brunoConfig.presets', action.payload.presets);
       }
     },
     updateCollectionProtobuf: (state, action) => {
@@ -2235,11 +2559,16 @@ export const collectionsSlice = createSlice({
       if (!folder.draft) {
         folder.draft = cloneDeep(folder.root);
       }
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+
+      const mappedVars = map(vars, ({ uid, name = '', value = '', description = '', enabled = true, local = false, dataType, annotations }) => ({
+
         uid: uid || uuid(),
         name,
         value,
+        description,
         enabled,
+        ...(dataType && dataType !== 'string' ? { dataType } : {}),
+        ...(annotations?.length ? { annotations } : {}),
         ...(type === 'response' ? { local } : {})
       }));
       if (type === 'request') {
@@ -2282,7 +2611,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (!collection) return;
 
-      const folder = collection ? findItemInCollection(collection, action.payload.itemUid) : null;
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (!folder) return;
 
       if (folder) {
@@ -2307,8 +2636,14 @@ export const collectionsSlice = createSlice({
           case 'ntlm':
             set(folder, 'draft.request.auth.ntlm', action.payload.content);
             break;
+          case 'oauth1':
+            set(folder, 'draft.request.auth.oauth1', action.payload.content);
+            break;
           case 'apikey':
             set(folder, 'draft.request.auth.apikey', action.payload.content);
+            break;
+          case 'akamai-edgegrid':
+            set(folder, 'draft.request.auth.akamaiEdgegrid', action.payload.content);
             break;
           case 'awsv4':
             set(folder, 'draft.request.auth.awsv4', action.payload.content);
@@ -2470,11 +2805,14 @@ export const collectionsSlice = createSlice({
           root: cloneDeep(collection.root)
         };
       }
-      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, local = false }) => ({
+      const mappedVars = map(vars, ({ uid, name = '', value = '', description = '', enabled = true, local = false, dataType, annotations }) => ({
         uid: uid || uuid(),
         name,
         value,
+        description,
         enabled,
+        ...(dataType && dataType !== 'string' ? { dataType } : {}),
+        ...(annotations?.length ? { annotations } : {}),
         ...(type === 'response' ? { local } : {})
       }));
       if (type === 'request') {
@@ -2483,6 +2821,39 @@ export const collectionsSlice = createSlice({
         set(collection, 'draft.root.request.vars.res', mappedVars);
       }
     },
+    scriptUpdateCollectionVars: (state, action) => {
+      const { collectionUid, vars } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      // Preserve description/annotations/secret/type and any other per-var metadata via `...rest`
+      // — earlier this reducer cherry-picked only {uid, name, value, enabled, dataType} which
+      // wiped those fields whenever a script touched any collection var.
+      const mappedVars = map(vars, ({ uid, name = '', value = '', enabled = true, dataType, ...rest }) => {
+        const out = { ...rest, uid: uid || uuid(), name, value, enabled };
+        if (dataType && dataType !== 'string') out.dataType = dataType;
+        return out;
+      });
+
+      set(collection, 'root.request.vars.req', mappedVars);
+
+      if (collection.draft?.root) {
+        set(collection, 'draft.root.request.vars.req', mappedVars);
+      }
+    },
+    setScriptCollVarBaseline: (state, action) => {
+      const { collectionUid, baseline } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      collection._scriptCollVarBaseline = baseline;
+    },
+    _clearScriptCollectionBaselines: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      delete collection._scriptEnvBaseline;
+      delete collection._scriptCollVarBaseline;
+    },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
       const isCollectionRoot = file.meta.collectionRoot ? true : false;
@@ -2490,7 +2861,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
       if (isCollectionRoot) {
         if (collection) {
-          collection.root = file.data;
+          collection.root = mergeRootWithPreservedUids(collection.root, file.data);
         }
         return;
       }
@@ -2502,7 +2873,7 @@ export const collectionsSlice = createSlice({
           if (file?.data?.meta?.name) {
             folderItem.name = file?.data?.meta?.name;
           }
-          folderItem.root = file.data;
+          folderItem.root = mergeRootWithPreservedUids(folderItem.root, file.data);
           if (file?.data?.meta?.seq) {
             folderItem.seq = file.data?.meta?.seq;
           }
@@ -2512,6 +2883,10 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         const dirname = path.dirname(file.meta.pathname);
+
+        const tempDirectory = state.tempDirectories?.[file.meta.collectionUid];
+        const isTransientFile = tempDirectory && file.meta.pathname.startsWith(tempDirectory);
+
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
@@ -2525,9 +2900,13 @@ export const collectionsSlice = createSlice({
               name: directoryName,
               collapsed: true,
               type: 'folder',
+              isTransient: isTransientFile,
               items: []
             };
             currentSubItems.push(childItem);
+          } else if (isTransientFile && !childItem.isTransient) {
+            // Update existing folder to be transient if the file is transient
+            childItem.isTransient = true;
           }
           currentSubItems = childItem.items;
         }
@@ -2542,9 +2921,10 @@ export const collectionsSlice = createSlice({
             currentItem.type = file.data.type;
             currentItem.seq = file.data.seq;
             currentItem.tags = file.data.tags;
-            currentItem.request = file.data.request;
+            currentItem.request = mergeRequestWithPreservedUids(currentItem.request, file.data.request);
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
+            currentItem.raw = file.data.raw;
             currentItem.settings = file.data.settings;
             currentItem.examples = file.data.examples;
             currentItem.draft = null;
@@ -2552,6 +2932,7 @@ export const collectionsSlice = createSlice({
             currentItem.loading = file.loading;
             currentItem.size = file.size;
             currentItem.error = file.error;
+            currentItem.isTransient = isTransientFile;
           } else {
             currentSubItems.push({
               uid: file.data.uid,
@@ -2562,13 +2943,16 @@ export const collectionsSlice = createSlice({
               request: file.data.request,
               settings: file.data.settings,
               examples: file.data.examples,
+              app: file.data.app,
               filename: file.meta.name,
               pathname: file.meta.pathname,
+              raw: file.data.raw,
               draft: null,
               partial: file.partial,
               loading: file.loading,
               size: file.size,
-              error: file.error
+              error: file.error,
+              isTransient: isTransientFile
             });
           }
         }
@@ -2580,6 +2964,10 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, dir.meta.collectionUid);
 
       if (collection) {
+        // Check if this directory is in a temp directory (transient request)
+        const tempDirectory = state.tempDirectories?.[dir.meta.collectionUid];
+        const isTransientDir = tempDirectory && dir.meta.pathname.startsWith(tempDirectory);
+
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dir.meta.pathname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
@@ -2595,9 +2983,13 @@ export const collectionsSlice = createSlice({
               filename: directoryName,
               collapsed: true,
               type: 'folder',
+              isTransient: isTransientDir,
               items: []
             };
             currentSubItems.push(childItem);
+          } else if (isTransientDir && !childItem.isTransient) {
+            // Update existing folder to be transient if the directory is transient
+            childItem.isTransient = true;
           }
           currentSubItems = childItem.items;
         }
@@ -2611,7 +3003,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
       if (isCollectionRoot) {
         if (collection) {
-          collection.root = file.data;
+          collection.root = mergeRootWithPreservedUids(collection.root, file.data);
         }
         return;
       }
@@ -2626,7 +3018,7 @@ export const collectionsSlice = createSlice({
           if (file?.data?.meta?.seq) {
             folderItem.seq = file?.data?.meta?.seq;
           }
-          folderItem.root = file.data;
+          folderItem.root = mergeRootWithPreservedUids(folderItem.root, file.data);
         }
         return;
       }
@@ -2635,28 +3027,60 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, file.data.uid);
 
         if (item) {
-          // whenever a user attempts to sort a req within the same folder
-          // the seq is updated, but everything else remains the same
-          // we don't want to lose the draft in this case
-          if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
-            item.seq = file.data.seq;
-            if (item?.draft) {
-              item.draft.seq = file.data.seq;
-            }
-            if (item?.draft && areItemsTheSameExceptSeqUpdate(item?.draft, file.data)) {
-              item.draft = null;
+          item.partial = file.partial;
+          item.error = file.error;
+          item.loading = file.loading;
+          if (item.request) {
+            if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
+              // whenever a user attempts to sort a req within the same folder
+              // the seq is updated, but everything else remains the same
+              // we don't want to lose the draft in this case
+              item.seq = file.data.seq;
+              item.raw = file.data.raw;
+              if (item?.draft) {
+                item.draft.seq = file.data.seq;
+              }
+              if (item?.draft && areItemsTheSameExceptSeqUpdate(item?.draft, file.data)) {
+                item.draft = null;
+              }
+            } else {
+              item.name = file.data.name;
+              item.type = file.data.type;
+              item.seq = file.data.seq;
+              item.tags = file.data.tags;
+              item.request = mergeRequestWithPreservedUids(item.request, file.data.request);
+              item.settings = file.data.settings;
+              item.examples = file.data.examples;
+              item.app = file.data.app ? { ...file.data.app } : null;
+              item.filename = file.meta.name;
+              item.pathname = file.meta.pathname;
+              item.raw = file.data.raw;
+              item.size = file.size;
+              // Only clear draft if it matches the file content
+              // This preserves characters typed during autosave
+              // The raw comparison is guarded so an undefined === undefined match
+              // (when neither side has raw content) does not wipe a genuine draft
+              const draftRawMatchesFile = item.draft?.raw !== undefined && item.draft.raw === file.data.raw;
+              if (item.draft && (areItemsTheSameExceptSeqUpdate(item.draft, file.data) || draftRawMatchesFile)) {
+                item.draft = null;
+              }
             }
           } else {
             item.name = file.data.name;
             item.type = file.data.type;
             item.seq = file.data.seq;
             item.tags = file.data.tags;
-            item.request = file.data.request;
+            item.request = mergeRequestWithPreservedUids(item.request, file.data.request);
             item.settings = file.data.settings;
             item.examples = file.data.examples;
+            item.app = file.data.app ? { ...file.data.app } : null;
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
-            item.draft = null;
+            item.raw = file.data.raw;
+            item.size = file.size;
+            if (!item.draft || item.draft.raw === file.data.raw) {
+              item.draft = null;
+            }
           }
         }
       }
@@ -2695,22 +3119,11 @@ export const collectionsSlice = createSlice({
         const existingEnv = collection.environments.find((e) => e.uid === environment.uid);
 
         if (existingEnv) {
-          const prevEphemerals = (existingEnv.variables || []).filter((v) => v.ephemeral);
           existingEnv.name = environment.name;
+          existingEnv.pathname = environment.pathname;
           existingEnv.variables = environment.variables;
-          /*
-           Apply temporary (ephemeral) values only to variables that actually exist in the file. This prevents deleted temporaries from “popping back” after a save. If a variable is present in the file, we temporarily override the UI value while also remembering the on-disk value in persistedValue for future saves.
-          */
-          prevEphemerals.forEach((ev) => {
-            const target = existingEnv.variables?.find((v) => v.name === ev.name);
-            if (target) {
-              if (target.value !== ev.value) {
-                if (target.persistedValue === undefined) target.persistedValue = target.value;
-                target.value = ev.value;
-              }
-              target.ephemeral = true;
-            }
-          });
+          existingEnv.color = environment.color;
+          existingEnv.externalSecrets = environment.externalSecrets;
         } else {
           collection.environments.push(environment);
           collection.environments.sort((a, b) => a.name.localeCompare(b.name));
@@ -2720,14 +3133,6 @@ export const collectionsSlice = createSlice({
             collection.lastAction = null;
             if (lastAction.payload === environment.name) {
               collection.activeEnvironmentUid = environment.uid;
-              // Persist the selection to the UI state snapshot
-              const { ipcRenderer } = window;
-              if (ipcRenderer) {
-                ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
-                  type: 'COLLECTION_ENVIRONMENT',
-                  data: { collectionPath: collection?.pathname, environmentName: environment.name }
-                });
-              }
             }
           }
         }
@@ -2754,6 +3159,9 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
 
+      delete collection._scriptEnvBaseline;
+      delete collection._scriptCollVarBaseline;
+
       const item = findItemInCollection(collection, itemUid);
       if (!item) return;
 
@@ -2767,6 +3175,9 @@ export const collectionsSlice = createSlice({
       item.preRequestScriptErrorMessage = null;
       item.postResponseScriptErrorMessage = null;
       item.testScriptErrorMessage = null;
+      item.preRequestScriptErrorContext = null;
+      item.postResponseScriptErrorContext = null;
+      item.testScriptErrorContext = null;
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -2780,14 +3191,17 @@ export const collectionsSlice = createSlice({
 
           if (type === 'pre-request-script-execution') {
             item.preRequestScriptErrorMessage = action.payload.errorMessage;
+            item.preRequestScriptErrorContext = action.payload.errorContext || null;
           }
 
           if (type === 'post-response-script-execution') {
             item.postResponseScriptErrorMessage = action.payload.errorMessage;
+            item.postResponseScriptErrorContext = action.payload.errorContext || null;
           }
 
           if (type === 'test-script-execution') {
             item.testScriptErrorMessage = action.payload.errorMessage;
+            item.testScriptErrorContext = action.payload.errorContext || null;
           }
 
           if (type === 'request-queued') {
@@ -2807,6 +3221,39 @@ export const collectionsSlice = createSlice({
               item.requestState = 'sending';
               item.cancelTokenUid = cancelTokenUid;
             }
+
+            // If response was already received (race condition: responseReceived fired before
+            // request-sent arrived), retroactively update the timeline entry that was created
+            // with the raw item.request fallback so it has the actual sent request data.
+            if (item.requestState === 'received' && Array.isArray(collection.timeline)) {
+              for (let i = collection.timeline.length - 1; i >= 0; i--) {
+                const entry = collection.timeline[i];
+                if (entry.itemUid === item.uid && entry.requestUid === requestUid && entry.type === 'request') {
+                  entry.data.request = requestSent;
+                  if (requestSent.timestamp) {
+                    entry.timestamp = requestSent.timestamp;
+                    entry.data.timestamp = requestSent.timestamp;
+                  }
+                  break;
+                }
+              }
+            }
+          }
+
+          if (type === 'scripted-request') {
+            const { phase, source, scope, timestamp, data } = action.payload;
+            if (!collection.timeline) collection.timeline = [];
+            collection.timeline.push({
+              type: 'scripted-request',
+              collectionUid,
+              itemUid,
+              requestUid,
+              phase,
+              source,
+              scope: scope || null,
+              timestamp,
+              data
+            });
           }
 
           if (type === 'assertion-results') {
@@ -2844,6 +3291,9 @@ export const collectionsSlice = createSlice({
         // todo
         // get startedAt and endedAt from the runner and display it in the UI
         if (type === 'testrun-started') {
+          delete collection._scriptEnvBaseline;
+          delete collection._scriptCollVarBaseline;
+
           const info = collection.runnerResult.info;
           info.collectionUid = collectionUid;
           info.folderUid = folderUid;
@@ -2864,6 +3314,12 @@ export const collectionsSlice = createSlice({
         }
 
         if (type === 'request-queued') {
+          // Folder runs reuse the same collection across N requests; clear baselines
+          // per request so request N's script-update doesn't diff against request N-1's
+          // pre-flush snapshot.
+          delete collection._scriptEnvBaseline;
+          delete collection._scriptCollVarBaseline;
+
           collection.runnerResult.items.push({
             uid: request.uid,
             status: 'queued'
@@ -2911,23 +3367,57 @@ export const collectionsSlice = createSlice({
 
         if (type === 'runner-request-skipped') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
-          item.status = 'skipped';
-          item.responseReceived = action.payload.responseReceived;
+          if (item) {
+            item.status = 'skipped';
+            item.responseReceived = action.payload.responseReceived;
+          }
         }
 
         if (type === 'post-response-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.postResponseScriptErrorMessage = action.payload.errorMessage;
+          item.postResponseScriptErrorContext = action.payload.errorContext || null;
         }
 
         if (type === 'test-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.testScriptErrorMessage = action.payload.errorMessage;
+          item.testScriptErrorContext = action.payload.errorContext || null;
         }
 
         if (type === 'pre-request-script-execution') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.preRequestScriptErrorMessage = action.payload.errorMessage;
+          item.preRequestScriptErrorContext = action.payload.errorContext || null;
+        }
+
+        if (type === 'scripted-request') {
+          const { phase, source, scope, timestamp, data } = action.payload;
+          const runnerItem = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          if (runnerItem) {
+            if (!runnerItem.scriptedRequestEntries) runnerItem.scriptedRequestEntries = [];
+            runnerItem.scriptedRequestEntries.push({
+              phase,
+              source,
+              scope: scope || null,
+              timestamp,
+              data
+            });
+          }
+        }
+
+        if (type === 'oauth2-debug') {
+          const { url, credentialsId, debugInfo } = action.payload;
+          const runnerItem = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          if (runnerItem) {
+            if (!runnerItem.oauth2DebugEntries) runnerItem.oauth2DebugEntries = [];
+            runnerItem.oauth2DebugEntries.push({
+              url,
+              credentialsId,
+              debugInfo: debugInfo?.data || debugInfo,
+              timestamp: Date.now()
+            });
+          }
         }
       }
     },
@@ -2959,9 +3449,10 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
         collection.runnerConfiguration = {
+          ...collection.runnerConfiguration,
           selectedRequestItems: selectedRequestItems || [],
           requestItemsOrder: requestItemsOrder || [],
-          delay: delay
+          ...(delay !== undefined && { delay })
         };
       }
     },
@@ -2979,6 +3470,39 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateAppCode: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, action.payload.itemUid);
+      // Accept both request-attached apps and standalone 'app' items.
+      if (item && (isItemARequest(item) || item.type === 'app')) {
+        if (!item.draft) {
+          item.draft = cloneDeep(item);
+        }
+        item.draft.app = item.draft.app || {};
+        item.draft.app.code = action.payload.code;
+      }
+    },
+    toggleAppMode: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, action.payload.itemUid);
+      if (item && isItemARequest(item)) {
+        if (!item.draft) {
+          item.draft = cloneDeep(item);
+        }
+        item.draft.app = item.draft.app || {};
+        item.draft.app.enabled = action.payload.enabled;
+      }
+    },
+    appSetRuntimeVariable: (state, action) => {
+      const { collectionUid, key, value } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      collection.runtimeVariables = { ...(collection.runtimeVariables || {}), [key]: value };
+    },
     updateFolderDocs: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
@@ -2991,8 +3515,58 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    toggleCollectionFileMode: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        collection.fileMode = !collection.fileMode;
+      }
+    },
+    updateFileContent: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.raw = action.payload.content;
+        }
+      }
+    },
+    collectionLoadedFromTree: (state, action) => {
+      const { collectionUid, tree } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      collection.items = mergeTreeItems(collection.items, tree?.items || []);
+      collection.environments = tree?.environments || [];
+      if (tree?.root !== undefined) {
+        collection.root = tree.root;
+      }
+      if (tree?.brunoConfig) {
+        collection.brunoConfig = tree.brunoConfig;
+      }
+      const tempDirectory = state.tempDirectories?.[collectionUid];
+      if (tempDirectory) {
+        const annotateTransient = (items) => {
+          for (const item of items) {
+            if (item.pathname && item.pathname.startsWith(tempDirectory)) {
+              item.isTransient = true;
+            }
+            if (item.type === 'folder' && Array.isArray(item.items)) {
+              annotateTransient(item.items);
+            }
+          }
+        };
+        annotateTransient(collection.items);
+      }
+      addDepth(collection.items);
+    },
     collectionAddOauth2CredentialsByUrl: (state, action) => {
-      const { collectionUid, folderUid, itemUid, url, credentials, credentialsId, debugInfo } = action.payload;
+      const { collectionUid, folderUid, itemUid, url, credentials, credentialsId, debugInfo, executionMode } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
 
@@ -3022,6 +3596,10 @@ export const collectionsSlice = createSlice({
 
       collection.oauth2Credentials = filteredOauth2Credentials;
 
+      // Runner runs snapshot oauth onto the runner item via 'oauth2-debug';
+      // skip the shared timeline push so it doesn't leak into the standalone view.
+      if (executionMode === 'runner') return;
+
       if (!collection.timeline) {
         collection.timeline = [];
       }
@@ -3046,7 +3624,8 @@ export const collectionsSlice = createSlice({
       }
     },
 
-    collectionClearOauth2CredentialsByUrl: (state, action) => {
+    // Clears a specific credential matching url + collectionUid + credentialsId (used by UI "Clear OAuth2 Cache")
+    collectionClearOauth2CredentialsByUrlAndCredentialsId: (state, action) => {
       const { collectionUid, url, credentialsId } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (!collection) return;
@@ -3056,21 +3635,23 @@ export const collectionsSlice = createSlice({
         const filteredOauth2Credentials = filter(
           collectionOauth2Credentials,
           (creds) =>
-            !(creds.url === url && creds.collectionUid === collectionUid)
+            !(creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId)
         );
         collection.oauth2Credentials = filteredOauth2Credentials;
       }
     },
 
-    collectionGetOauth2CredentialsByUrl: (state, action) => {
-      const { collectionUid, url, credentialsId } = action.payload;
+    // Clears all credentials matching credentialsId regardless of URL (used by script bru.resetOauth2Credential)
+    collectionClearOauth2CredentialsByCredentialsId: (state, action) => {
+      const { collectionUid, credentialsId } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
-      const oauth2Credential = find(
-        collection?.oauth2Credentials || [],
-        (creds) =>
-          creds.url === url && creds.collectionUid === collectionUid && creds.credentialsId === credentialsId
-      );
-      return oauth2Credential;
+      if (!collection) return;
+
+      if (collection.oauth2Credentials) {
+        collection.oauth2Credentials = collection.oauth2Credentials.filter(
+          (creds) => creds.credentialsId !== credentialsId
+        );
+      }
     },
 
     updateFolderAuthMode: (state, action) => {
@@ -3081,26 +3662,35 @@ export const collectionsSlice = createSlice({
         if (!folder.draft) {
           folder.draft = cloneDeep(folder.root);
         }
-        set(folder, 'draft.request.auth', {});
-        set(folder, 'draft.request.auth.mode', action.payload.mode);
+        const newMode = action.payload.mode;
+        const savedAuth = get(folder, 'root.request.auth');
+        const savedMode = get(savedAuth, 'mode');
+        if (newMode === savedMode) {
+          set(folder, 'draft.request.auth', cloneDeep(savedAuth));
+        } else {
+          set(folder, 'draft.request.auth', { mode: newMode });
+        }
       }
     },
     streamDataReceived: (state, action) => {
-      const { itemUid, collectionUid, data } = action.payload;
+      const { itemUid, collectionUid, seq, timestamp, data } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (data.data) {
           item.response.data ||= [];
-          item.response.data = [{
+          item.response.data.push({
             type: 'incoming',
+            seq,
             message: data.data,
             messageHexdump: hexdump(data.data),
-            timestamp: Date.now()
-          }].concat(item.response.data);
+            timestamp: timestamp || Date.now()
+          });
         }
-        item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
+        if (data.dataBuffer) {
+          item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
+        }
         item.response.size = data.data?.length + (item.response.size || 0);
       }
     },
@@ -3223,7 +3813,8 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             message: eventData.message,
             type: eventData.type,
-            timestamp: eventData.timestamp
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
           });
           break;
 
@@ -3239,7 +3830,8 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             message: `Connected to ${eventData.url}`,
             type: 'info',
-            timestamp: eventData.timestamp
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
           });
           break;
 
@@ -3255,7 +3847,8 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             type: code !== 1000 ? 'info' : 'error',
             message: reason.trim().length ? ['Closed:', reason.trim()].join(' ') : 'Closed',
-            timestamp
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
           });
           break;
 
@@ -3270,7 +3863,8 @@ export const collectionsSlice = createSlice({
           updatedResponse.responses.push({
             type: 'error',
             message: errorDetails || 'WebSocket error occurred',
-            timestamp
+            timestamp: eventData.timestamp,
+            seq: eventData.seq
           });
 
           break;
@@ -3314,6 +3908,26 @@ export const collectionsSlice = createSlice({
       state.lastClickedCollectionIndex = action.payload;
     },
 
+    addTransientDirectory: (state, action) => {
+      state.tempDirectories[action.payload.collectionUid] = action.payload.pathname;
+    },
+    addSaveTransientRequestModal: (state, action) => {
+      const { item, collection } = action.payload;
+      // Avoid duplicates - check if this item is already in the array
+      const exists = state.saveTransientRequestModals.some((modal) => modal.item.uid === item.uid);
+      if (!exists) {
+        state.saveTransientRequestModals.push({ item, collection });
+      }
+    },
+    removeSaveTransientRequestModal: (state, action) => {
+      const { itemUid } = action.payload;
+      state.saveTransientRequestModals = state.saveTransientRequestModals.filter(
+        (modal) => modal.item.uid !== itemUid
+      );
+    },
+    clearAllSaveTransientRequestModals: (state) => {
+      state.saveTransientRequestModals = [];
+    },
     /* Response Example Actions */
     addResponseExample: exampleReducers.addResponseExample,
     cloneResponseExample: exampleReducers.cloneResponseExample,
@@ -3364,8 +3978,11 @@ export const {
   createCollection,
   updateCollectionMountStatus,
   updateCollectionLoadingState,
+  collectionLoadedFromTree,
   setCollectionSecurityConfig,
+  updateCollectionVersion,
   brunoConfigUpdateEvent,
+  migrateCollectionToYmlInPlace,
   renameCollection,
   removeCollection,
   sortCollections,
@@ -3375,12 +3992,16 @@ export const {
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,
+  updateEnvironmentColor,
   newItem,
   deleteItem,
   renameItem,
   cloneItem,
   scriptEnvironmentUpdateEvent,
+  runtimeVariablesUpdateEvent,
   processEnvUpdateEvent,
+  workspaceEnvUpdateEvent,
+  setDotEnvVariables,
   requestCancelled,
   responseReceived,
   runGrpcRequestEvent,
@@ -3394,9 +4015,12 @@ export const {
   saveFolderDraft,
   deleteCollectionDraft,
   deleteFolderDraft,
+  setEnvironmentsDraft,
+  clearEnvironmentsDraft,
   newEphemeralHttpRequest,
   collapseFullCollection,
   toggleCollection,
+  expandCollection,
   toggleCollectionItem,
   requestUrlChanged,
   updateItemSettings,
@@ -3464,6 +4088,9 @@ export const {
   updateCollectionVar,
   deleteCollectionVar,
   setCollectionVars,
+  scriptUpdateCollectionVars,
+  setScriptCollVarBaseline,
+  _clearScriptCollectionBaselines,
   updateCollectionAuthMode,
   updateCollectionAuth,
   updateCollectionRequestScript,
@@ -3472,6 +4099,7 @@ export const {
   updateCollectionDocs,
   updateCollectionProxy,
   updateCollectionClientCertificates,
+  updateCollectionPresets,
   updateCollectionProtobuf,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,
@@ -3489,11 +4117,16 @@ export const {
   updateRunnerConfiguration,
   updateRequestDocs,
   updateFolderDocs,
+  toggleCollectionFileMode,
+  updateFileContent,
+  updateAppCode,
+  toggleAppMode,
+  appSetRuntimeVariable,
   moveCollection,
   streamDataReceived,
   collectionAddOauth2CredentialsByUrl,
-  collectionClearOauth2CredentialsByUrl,
-  collectionGetOauth2CredentialsByUrl,
+  collectionClearOauth2CredentialsByUrlAndCredentialsId,
+  collectionClearOauth2CredentialsByCredentialsId,
   updateFolderAuth,
   updateFolderAuthMode,
   addRequestTag,
@@ -3539,8 +4172,12 @@ export const {
   deleteResponseExampleRequestHeader,
   moveResponseExampleRequestHeader,
   setResponseExampleRequestHeaders,
-  setResponseExampleParams
+  setResponseExampleParams,
   /* Response Example Actions - End */
+  addTransientDirectory,
+  addSaveTransientRequestModal,
+  removeSaveTransientRequestModal,
+  clearAllSaveTransientRequestModals
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

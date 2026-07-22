@@ -2,7 +2,8 @@ import { execSync } from 'child_process';
 import { test, expect } from '../../../playwright';
 import { Page, ElectronApplication } from '@playwright/test';
 import path from 'path';
-import { openCollectionAndAcceptSandbox } from '../../utils/page/actions';
+import { waitForReadyPage } from '../../utils/page';
+import { openCollection } from '../../utils/page/actions';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 /**
@@ -10,8 +11,7 @@ import { buildCommonLocators } from '../../utils/page/locators';
  */
 const restartAppAndGetLocators = async (restartApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>): Promise<{ app: ElectronApplication; page: Page; locators: ReturnType<typeof buildCommonLocators> }> => {
   const app = await restartApp();
-  const page = await app.firstWindow();
-  await page.locator('[data-app-state="loaded"]').waitFor();
+  const page = await waitForReadyPage(app);
   const locators = buildCommonLocators(page);
   return { app, page, locators };
 };
@@ -99,7 +99,7 @@ test.describe.skip('Close All Collections', () => {
     });
 
     await test.step('Create unsaved changes', async () => {
-      await openCollectionAndAcceptSandbox(page, 'collection 1');
+      await openCollection(page, 'collection 1');
       await newLocators.sidebar.request('test-request').click();
 
       const urlContainer = page.locator('#request-url');
@@ -129,7 +129,7 @@ test.describe.skip('Close All Collections', () => {
       const { page: restartedPage, locators: restartedLocators } = await restartAppAndGetLocators(restartApp);
 
       await expect(restartedLocators.sidebar.collection('collection 1')).toBeVisible();
-      await openCollectionAndAcceptSandbox(restartedPage, 'collection 1');
+      await openCollection(restartedPage, 'collection 1');
       await restartedLocators.sidebar.request('test-request').click();
 
       const urlContainerAfterReopen = restartedPage.locator('#request-url');
@@ -148,7 +148,7 @@ test.describe.skip('Close All Collections', () => {
     });
 
     await test.step('Create unsaved changes', async () => {
-      await openCollectionAndAcceptSandbox(page, 'collection 1');
+      await openCollection(page, 'collection 1');
       await newLocators.sidebar.request('test-request').click();
 
       const urlContainer = page.locator('#request-url');
@@ -177,7 +177,7 @@ test.describe.skip('Close All Collections', () => {
       const { page: restartedPage, locators: restartedLocators } = await restartAppAndGetLocators(restartApp);
 
       await expect(restartedLocators.sidebar.collection('collection 1')).toBeVisible();
-      await openCollectionAndAcceptSandbox(restartedPage, 'collection 1');
+      await openCollection(restartedPage, 'collection 1');
       await restartedLocators.sidebar.request('test-request').click();
 
       const urlContainerAfterReopen = restartedPage.locator('#request-url');

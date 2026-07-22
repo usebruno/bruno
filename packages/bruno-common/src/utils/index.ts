@@ -1,11 +1,16 @@
 export {
+  hasExplicitScheme,
   encodeUrl,
   parseQueryParams,
-  buildQueryString
+  buildQueryString,
+  stripOrigin,
+  safeDecodeURIComponent
 } from './url';
 
 export {
-  buildFormUrlEncodedPayload
+  buildFormUrlEncodedPayload,
+  isFormData,
+  extractBoundaryFromContentType
 } from './form-data';
 
 export {
@@ -18,3 +23,33 @@ export {
   extractPromptVariables,
   extractPromptVariablesFromString
 } from './prompt-variables';
+
+export {
+  jsonToDotenv,
+  DotenvVariable
+} from './jsonToDotenv';
+
+export {
+  parseValueByDataType,
+  getDataTypeFromValue,
+  validateDataTypeValue,
+  valueToString,
+  BrunoVariableDataType,
+  BRUNO_VARIABLE_DATATYPES,
+  isBrunoVariableDataType
+} from './datatype';
+
+export {
+  toDisplayString
+} from './string';
+
+export {
+  MAX_BODY_SIZE_DEFAULT,
+  isStrPresent,
+  makeEdgeGridTimestamp,
+  makeEdgeGridNonce,
+  canonicalizeHeaders,
+  base64HmacSha256,
+  base64Sha256,
+  makeContentHash
+} from './edgegrid';

@@ -1,6 +1,26 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep } = require('lodash');
-const FormData = require('form-data');
+const { isFormData } = require('@usebruno/common').utils;
+
+const hasResolvablePathParamValue = (pathParam) => {
+  if (!pathParam || pathParam.enabled === false) {
+    return false;
+  }
+
+  const { value } = pathParam;
+
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof value === 'string' && value.trim() === '') {
+    return false;
+  }
+
+  return true;
+};
+
+const isBinaryRequestBody = (data) => Buffer.isBuffer(data) || typeof data?.pipe === 'function';
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -72,14 +92,17 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     delete request.headers[key];
     request.headers[_interpolate(key)] = _interpolate(value);
   });
+  if (request.apiKeyHeaderName) {
+    request.apiKeyHeaderName = _interpolate(request.apiKeyHeaderName);
+  }
 
   const contentType = getContentType(request.headers);
+  const isGraphqlRequest = request.mode === 'graphql';
 
-  if (isGrpcRequest) {
+  // gRPC: interpolate entire body (JSON message template and any other keys).
+  if (isGrpcRequest && request.body) {
     const jsonDoc = JSON.stringify(request.body);
-    const parsed = _interpolate(jsonDoc, {
-      escapeJSONStrings: true
-    });
+    const parsed = _interpolate(jsonDoc, { escapeJSONStrings: true });
     request.body = JSON.parse(parsed);
   }
   // Interpolate WebSocket message body
@@ -87,15 +110,11 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (isWsRequest && request.body && request.body.ws && Array.isArray(request.body.ws)) {
     request.body.ws.forEach((message) => {
       if (message && message.content) {
-        // Try to detect if content is JSON for proper escaping
         let isJson = false;
         try {
           JSON.parse(message.content);
           isJson = true;
-        } catch (e) {
-          // Not JSON, treat as regular string
-        }
-
+        } catch (e) {}
         message.content = _interpolate(message.content, {
           escapeJSONStrings: isJson
         });
@@ -103,12 +122,19 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     });
   }
 
-  if (typeof contentType === 'string') {
+  // GraphQL: interpolate query and variables in place. We do not stringify the whole body and interpolate that, because variables is a JSON string. Full-body stringify would nest it and double-escape any {{var}} inside.
+  if (isGraphqlRequest && request.data && typeof request.data === 'object') {
+    request.data.query = _interpolate(request.data.query, { escapeJSONStrings: true });
+    request.data.variables = _interpolate(request.data.variables, { escapeJSONStrings: true });
+  }
+
+  if (typeof contentType === 'string' && !isGraphqlRequest) {
     /*
-      We explicitly avoid interpolating buffer values because the file content is read as a buffer object in raw body mode.
-      Even if the selected file's content type is JSON, this prevents the buffer object from being interpolated.
+      We explicitly avoid interpolating binary payloads because raw file bodies can be represented as
+      buffers or streams depending on size. Even if the selected file's content type is JSON, the
+      transport object itself must not be interpolated.
     */
-    if (contentType.includes('json') && !Buffer.isBuffer(request.data)) {
+    if (contentType.includes('json') && !isBinaryRequestBody(request.data)) {
       if (typeof request.data === 'string') {
         if (request.data.length) {
           request.data = _interpolate(request.data, {
@@ -131,12 +157,14 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
           value: _interpolate(d?.value)
         }));
       }
-    } else if (contentType === 'multipart/form-data') {
-      if (Array.isArray(request?.data) && !(request.data instanceof FormData)) {
+    } else if (contentType.startsWith('multipart/')) {
+      if (request?.data && typeof request.data === 'string') {
+        request.data = _interpolate(request.data);
+      } else if (Array.isArray(request?.data) && !isFormData(request.data)) {
         try {
           request.data = request?.data?.map((d) => ({
             ...d,
-            value: _interpolate(d?.value)
+            value: Array.isArray(d?.value) ? d.value.map((v) => _interpolate(v)) : _interpolate(d?.value)
           }));
         } catch (err) {}
       }
@@ -170,7 +198,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         if (path.startsWith(':')) {
           const paramName = path.slice(1);
           const existingPathParam = request.pathParams.find((param) => param.name === paramName);
-          if (!existingPathParam) {
+          if (!hasResolvablePathParamValue(existingPathParam)) {
             return '/' + path;
           }
           return '/' + existingPathParam.value;
@@ -182,7 +210,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         // 2. EntitySet(Key1=value1,Key2=value2)
         // 3. Function(param=value)
         if (/^[A-Za-z0-9_.-]+\([^)]*\)$/.test(path)) {
-          const paramRegex = /[:](\w+)/g;
+          const paramRegex = /[:]([a-zA-Z_]\w*)/g;
           let match;
           let result = path;
           while ((match = paramRegex.exec(path))) {
@@ -191,7 +219,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
               name = name.replace(/^[('"`]+/, '');
               if (name) {
                 const existingPathParam = request.pathParams.find((param) => param.name === name);
-                if (existingPathParam) {
+                if (hasResolvablePathParamValue(existingPathParam)) {
                   result = result.replace(':' + match[1], existingPathParam.value);
                 }
               }
@@ -357,6 +385,33 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
     request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
     request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';
+  }
+
+  // interpolate vars for edgegrid auth
+  if (request.edgeGridConfig) {
+    request.edgeGridConfig.accessToken = _interpolate(request.edgeGridConfig.accessToken) || '';
+    request.edgeGridConfig.clientToken = _interpolate(request.edgeGridConfig.clientToken) || '';
+    request.edgeGridConfig.clientSecret = _interpolate(request.edgeGridConfig.clientSecret) || '';
+    request.edgeGridConfig.nonce = _interpolate(request.edgeGridConfig.nonce) || '';
+    request.edgeGridConfig.timestamp = _interpolate(request.edgeGridConfig.timestamp) || '';
+    request.edgeGridConfig.baseURL = _interpolate(request.edgeGridConfig.baseURL) || '';
+    request.edgeGridConfig.headersToSign = _interpolate(request.edgeGridConfig.headersToSign) || '';
+  }
+
+  // interpolate vars for oauth1config auth
+  if (request.oauth1config) {
+    request.oauth1config.consumerKey = _interpolate(request.oauth1config.consumerKey) || '';
+    request.oauth1config.consumerSecret = _interpolate(request.oauth1config.consumerSecret) || '';
+    request.oauth1config.accessToken = _interpolate(request.oauth1config.accessToken) || '';
+    request.oauth1config.accessTokenSecret = _interpolate(request.oauth1config.accessTokenSecret) || '';
+    request.oauth1config.callbackUrl = _interpolate(request.oauth1config.callbackUrl) || '';
+    request.oauth1config.verifier = _interpolate(request.oauth1config.verifier) || '';
+    request.oauth1config.signatureMethod = _interpolate(request.oauth1config.signatureMethod) || request.oauth1config.signatureMethod || 'HMAC-SHA1';
+    request.oauth1config.privateKey = _interpolate(request.oauth1config.privateKey) || '';
+    request.oauth1config.timestamp = _interpolate(request.oauth1config.timestamp) || '';
+    request.oauth1config.nonce = _interpolate(request.oauth1config.nonce) || '';
+    request.oauth1config.version = _interpolate(request.oauth1config.version) || '';
+    request.oauth1config.realm = _interpolate(request.oauth1config.realm) || '';
   }
 
   if (request?.auth) delete request.auth;

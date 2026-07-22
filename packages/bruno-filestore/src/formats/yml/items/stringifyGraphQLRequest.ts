@@ -5,6 +5,7 @@ import type { Auth } from '@opencollection/types/common/auth';
 import type { Scripts } from '@opencollection/types/common/scripts';
 import type { Variable } from '@opencollection/types/common/variables';
 import type { Assertion } from '@opencollection/types/common/assertions';
+import type { Action } from '@opencollection/types/common/actions';
 import type { HttpRequestParam, HttpRequestHeader } from '@opencollection/types/requests/http';
 import { stringifyYml } from '../utils';
 import { isNonEmptyString, isNumber } from '../../../utils';
@@ -12,6 +13,7 @@ import { toOpenCollectionAuth } from '../common/auth';
 import { toOpenCollectionHttpHeaders } from '../common/headers';
 import { toOpenCollectionParams } from '../common/params';
 import { toOpenCollectionVariables } from '../common/variables';
+import { toOpenCollectionActions } from '../common/actions';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
 
@@ -30,6 +32,9 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
     }
     if (item.tags?.length) {
       info.tags = item.tags;
+    }
+    if (isNonEmptyString(item.description)) {
+      info.description = item.description;
     }
     ocRequest.info = info;
 
@@ -71,6 +76,12 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
       }
     }
 
+    // auth (in graphql block, not runtime)
+    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
+    if (auth) {
+      graphql.auth = auth;
+    }
+
     ocRequest.graphql = graphql;
 
     // runtime block
@@ -98,10 +109,11 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
       hasRuntime = true;
     }
 
-    // auth
-    const auth: Auth | undefined = toOpenCollectionAuth(brunoRequest.auth);
-    if (auth) {
-      runtime.auth = auth;
+    // actions (from post-response variables)
+    const resVars = brunoRequest.vars?.res;
+    const actions: Action[] | undefined = toOpenCollectionActions(resVars);
+    if (actions) {
+      runtime.actions = actions;
       hasRuntime = true;
     }
 

@@ -1,0 +1,31 @@
+meta {
+  name: getAllCollectionVars
+  type: http
+  seq: 29
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setCollectionVar("testCollectionA", "valueA");
+  bru.setCollectionVar("testCollectionB", "valueB");
+}
+
+tests {
+  test("should return all collection vars", function() {
+    const vars = bru.getAllCollectionVars();
+    expect(vars.testCollectionA).to.equal("valueA");
+    expect(vars.testCollectionB).to.equal("valueB");
+  });
+
+  test("should return a shallow copy", function() {
+    const vars = bru.getAllCollectionVars();
+    vars.testCollectionA = "mutated";
+    const vars2 = bru.getAllCollectionVars();
+    expect(vars2.testCollectionA).to.equal("valueA");
+  });
+}

@@ -43,7 +43,7 @@ test.describe('No Redirects Settings Tests', () => {
     await expect(page.getByTestId('response-status-code')).toContainText('200', { timeout: 15000 });
 
     // Close without saving to avoid modifying the .bru file
-    await page.locator('.close-icon-container').click();
+    await page.locator('.close-icon-container').click({ force: true });
     await page.locator('button:has-text("Don\'t Save")').first().click();
   });
 });

@@ -1,11 +1,11 @@
 import React from 'react';
 import { Tooltip as ReactToolHint } from 'react-tooltip';
-import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
 
 const ToolHint = ({
   text,
   toolhintId,
+  tooltipId,
   anchorSelect,
   children,
   tooltipStyle = {},
@@ -15,13 +15,15 @@ const ToolHint = ({
   positionStrategy,
   theme = null,
   className = '',
-  delayShow = 200
+  delayShow = 200,
+  dataTestId,
+  tooltipTestId
 }) => {
   const { theme: contextTheme } = useTheme();
   const appliedTheme = theme || contextTheme;
 
-  const toolhintBackgroundColor = appliedTheme?.sidebar.badge.bg || 'black';
-  const toolhintTextColor = appliedTheme?.text || 'white';
+  const toolhintBackgroundColor = appliedTheme?.background.surface0;
+  const toolhintTextColor = appliedTheme?.text;
 
   const combinedToolhintStyle = {
     ...tooltipStyle,
@@ -32,29 +34,31 @@ const ToolHint = ({
     color: toolhintTextColor
   };
 
-  const toolhintProps_final = anchorSelect
-    ? { anchorSelect }
-    : { anchorId: toolhintId };
+  const usesExternalAnchor = Boolean(tooltipId || anchorSelect);
+  const toolhintProps_final = tooltipId
+    ? { id: tooltipId }
+    : anchorSelect
+      ? { anchorSelect }
+      : { anchorId: toolhintId };
 
   return (
     <>
-      {!anchorSelect && <span id={toolhintId} className={className}>{children}</span>}
-      {anchorSelect && children}
-
-      <StyledWrapper theme={appliedTheme}>
-        <ReactToolHint
-          {...toolhintProps_final}
-          content={anchorSelect ? undefined : text}
-          className="toolhint"
-          offset={offset}
-          place={place}
-          hidden={hidden}
-          positionStrategy={positionStrategy}
-          noArrow={true}
-          delayShow={delayShow}
-          style={combinedToolhintStyle}
-        />
-      </StyledWrapper>
+      {!usesExternalAnchor && <span id={toolhintId} className={className} data-testid={dataTestId}>{children}</span>}
+      {usesExternalAnchor && children}
+      <ReactToolHint
+        {...toolhintProps_final}
+        content={usesExternalAnchor ? undefined : text}
+        render={tooltipTestId ? ({ content }) => <span data-testid={tooltipTestId}>{content}</span> : undefined}
+        className="toolhint"
+        offset={offset}
+        place={place}
+        hidden={hidden}
+        positionStrategy={positionStrategy}
+        noArrow={true}
+        delayShow={delayShow}
+        style={combinedToolhintStyle}
+        opacity={1}
+      />
     </>
   );
 };

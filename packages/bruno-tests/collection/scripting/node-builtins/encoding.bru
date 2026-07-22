@@ -1,0 +1,54 @@
+meta {
+  name: encoding
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  // Skip in safe mode - these tests require developer sandbox
+  if (bru.isSafeMode()) {
+    bru.runner.skipRequest();
+    return;
+  }
+}
+
+tests {
+  test("TextEncoder", function() {
+    const encoder = new TextEncoder();
+    const encoded = encoder.encode('hello');
+    expect(encoded).to.be.instanceOf(Uint8Array);
+    expect(encoded.length).to.equal(5);
+    expect(encoded[0]).to.equal(104); // 'h'
+  });
+
+  test("TextDecoder", function() {
+    const decoder = new TextDecoder('utf-8');
+    const decoded = decoder.decode(new Uint8Array([104, 101, 108, 108, 111]));
+    expect(decoded).to.equal('hello');
+  });
+
+  test("TextDecoder with utf-16le", function() {
+    const decoder = new TextDecoder('utf-16le');
+    const decoded = decoder.decode(new Uint8Array([104, 0, 105, 0]));
+    expect(decoded).to.equal('hi');
+  });
+
+  test("btoa and atob", function() {
+    expect(btoa('hello bruno')).to.equal('aGVsbG8gYnJ1bm8=');
+    expect(atob('aGVsbG8gYnJ1bm8=')).to.equal('hello bruno');
+  });
+
+  test("base64 roundtrip with binary data", function() {
+    const binary = String.fromCharCode(0, 1, 255, 254);
+    const encoded = btoa(binary);
+    const decoded = atob(encoded);
+    expect(decoded.charCodeAt(0)).to.equal(0);
+    expect(decoded.charCodeAt(2)).to.equal(255);
+  });
+}

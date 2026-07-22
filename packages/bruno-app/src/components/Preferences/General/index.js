@@ -1,5 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import get from 'lodash/get';
+import debounce from 'lodash/debounce';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
@@ -10,7 +11,7 @@ import toast from 'react-hot-toast';
 import path from 'utils/common/path';
 import { IconTrash } from '@tabler/icons';
 
-const General = ({ close }) => {
+const General = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
   const inputFileCaCertificateRef = useRef();
@@ -46,8 +47,8 @@ const General = ({ close }) => {
         .test('isNumber', 'Save Delay must be a number', (value) => {
           return value === undefined || !isNaN(value);
         })
-        .test('isValidInterval', 'Save Delay must be at least 100ms', (value) => {
-          return value === undefined || Number(value) >= 100;
+        .test('isValidInterval', 'Save Delay must be at least 500ms', (value) => {
+          return value === undefined || Number(value) >= 500;
         })
     }).test('intervalRequired', 'Save Delay is required when Auto Save is enabled', (value) => {
       // If autosave is enabled, interval must be provided
@@ -56,7 +57,10 @@ const General = ({ close }) => {
       }
       return true;
     }),
-    defaultCollectionLocation: Yup.string().max(1024)
+    oauth2: Yup.object({
+      useSystemBrowser: Yup.boolean()
+    }),
+    defaultLocation: Yup.string().max(1024)
   });
 
   const formik = useFormik({
@@ -76,7 +80,10 @@ const General = ({ close }) => {
         enabled: get(preferences, 'autoSave.enabled', false),
         interval: get(preferences, 'autoSave.interval', 1000)
       },
-      defaultCollectionLocation: get(preferences, 'general.defaultCollectionLocation', '')
+      oauth2: {
+        useSystemBrowser: get(preferences, 'request.oauth2.useSystemBrowser', false)
+      },
+      defaultLocation: get(preferences, 'general.defaultLocation', '')
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
@@ -89,7 +96,7 @@ const General = ({ close }) => {
     }
   });
 
-  const handleSave = (newPreferences) => {
+  const handleSave = useCallback((newPreferences) => {
     dispatch(
       savePreferences({
         ...preferences,
@@ -104,22 +111,45 @@ const General = ({ close }) => {
           },
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
-          sendCookies: newPreferences.sendCookies
+          sendCookies: newPreferences.sendCookies,
+          oauth2: {
+            useSystemBrowser: newPreferences.oauth2.useSystemBrowser
+          }
         },
         autoSave: {
           enabled: newPreferences.autoSave.enabled,
           interval: newPreferences.autoSave.interval
         },
         general: {
-          defaultCollectionLocation: newPreferences.defaultCollectionLocation
+          defaultLocation: newPreferences.defaultLocation
         }
       }))
-      .then(() => {
-        toast.success('Preferences saved successfully');
-        close();
-      })
       .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
-  };
+  }, [dispatch, preferences]);
+
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
+  const debouncedSave = useCallback(
+    debounce((values) => {
+      preferencesSchema.validate(values, { abortEarly: true })
+        .then((validatedValues) => {
+          handleSaveRef.current(validatedValues);
+        })
+        .catch((error) => {
+        });
+    }, 500),
+    []
+  );
+
+  useEffect(() => {
+    if (formik.dirty && formik.isValid) {
+      debouncedSave(formik.values);
+    }
+    return () => {
+      debouncedSave.flush();
+    };
+  }, [formik.values, formik.dirty, formik.isValid, debouncedSave]);
 
   const addCaCertificate = (e) => {
     const filePath = window?.ipcRenderer?.getFilePath(e?.target?.files?.[0]);
@@ -136,19 +166,20 @@ const General = ({ close }) => {
     dispatch(browseDirectory())
       .then((dirPath) => {
         if (typeof dirPath === 'string') {
-          formik.setFieldValue('defaultCollectionLocation', dirPath);
+          formik.setFieldValue('defaultLocation', dirPath);
         }
       })
       .catch((error) => {
-        formik.setFieldValue('defaultCollectionLocation', '');
+        formik.setFieldValue('defaultLocation', '');
         console.error(error);
       });
   };
 
   return (
-    <StyledWrapper>
+    <StyledWrapper className="w-full">
+      <div className="section-header">General Settings</div>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="flex items-center my-2">
+        <div className="flex items-center mb-2">
           <input
             id="sslVerification"
             type="checkbox"
@@ -202,7 +233,7 @@ const General = ({ close }) => {
               disabled={formik.values.customCaCertificate.enabled ? false : true}
               onClick={() => inputFileCaCertificateRef.current.click()}
             >
-              select file
+              Select File
               <input
                 id="caCertFilePath"
                 type="file"
@@ -256,6 +287,19 @@ const General = ({ close }) => {
           />
           <label className="block ml-2 select-none" htmlFor="sendCookies">
             Send Cookies automatically
+          </label>
+        </div>
+        <div className="flex items-center mt-2">
+          <input
+            id="oauth2.useSystemBrowser"
+            type="checkbox"
+            name="oauth2.useSystemBrowser"
+            checked={formik.values.oauth2.useSystemBrowser}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="oauth2.useSystemBrowser">
+            Use System Browser for OAuth2 Authorization
           </label>
         </div>
         <div className="flex flex-col mt-6">
@@ -315,40 +359,39 @@ const General = ({ close }) => {
           <div className="text-red-500">{formik.errors.autoSave.interval}</div>
         )}
         <div className="flex flex-col mt-6">
-          <label className="block select-none default-collection-location-label" htmlFor="defaultCollectionLocation">
-            Default Collection Location
+          <label className="block select-none default-location-label" htmlFor="defaultLocation">
+            Default Location
           </label>
+          <p className="text-muted mt-1 text-xs">
+            Used as the default location for new workspaces and collections
+          </p>
           <input
             type="text"
-            name="defaultCollectionLocation"
-            id="defaultCollectionLocation"
-            className="block textbox mt-2 w-full cursor-pointer default-collection-location-input"
+            name="defaultLocation"
+            id="defaultLocation"
+            className="block textbox mt-2 w-full cursor-pointer default-location-input"
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck="false"
+            readOnly={true}
             onChange={formik.handleChange}
-            value={formik.values.defaultCollectionLocation || ''}
+            value={formik.values.defaultLocation || ''}
             onClick={browseDefaultLocation}
             placeholder="Click to browse for default location"
           />
           <div className="mt-1">
             <span
-              className="text-link cursor-pointer hover:underline default-collection-location-browse"
+              className="text-link cursor-pointer hover:underline default-location-browse"
               onClick={browseDefaultLocation}
             >
               Browse
             </span>
           </div>
         </div>
-        {formik.touched.defaultCollectionLocation && formik.errors.defaultCollectionLocation ? (
-          <div className="text-red-500">{formik.errors.defaultCollectionLocation}</div>
+        {formik.touched.defaultLocation && formik.errors.defaultLocation ? (
+          <div className="text-red-500">{formik.errors.defaultLocation}</div>
         ) : null}
-        <div className="mt-10">
-          <button type="submit" className="submit btn btn-sm btn-secondary">
-            Save
-          </button>
-        </div>
       </form>
     </StyledWrapper>
   );
