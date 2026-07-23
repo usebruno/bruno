@@ -3,6 +3,7 @@ import { usePersistedState } from 'hooks/usePersistedState';
 import { useSelector, useDispatch } from 'react-redux';
 import ReactJson from 'react-json-view';
 import { useTheme } from 'providers/Theme';
+import { clearTimeline } from 'providers/ReduxStore/slices/collections';
 import {
   IconX,
   IconTrash,
@@ -464,6 +465,12 @@ const Console = () => {
     dispatch(clearLogs());
   };
 
+  const handleClearNetworkTimeline = () => {
+    collections.forEach((collection) => {
+      dispatch(clearTimeline({ collectionUid: collection.uid }));
+    });
+  };
+
   const handleClearDebugErrors = () => {
     dispatch(clearDebugErrors());
   };
@@ -553,6 +560,15 @@ const Console = () => {
                 onFilterToggle={handleNetworkFilterToggle}
                 onToggleAll={handleToggleAllNetworkFilters}
               />
+            </div>
+            <div className="action-controls">
+              <button
+                className="control-button"
+                onClick={handleClearNetworkTimeline}
+                title="Clear network logs"
+              >
+                <IconTrash size={16} strokeWidth={1.5} />
+              </button>
             </div>
           </div>
         );
