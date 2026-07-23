@@ -125,6 +125,15 @@ const Wrapper = styled.div`
       border-left: solid 1px ${(props) => props.theme.sidebar.dragbar.activeBorder};
     }
   }
+
+  &.sidebar-on-right {
+    order: 2;
+
+    div.sidebar-drag-handle {
+      left: -3px;
+      right: auto;
+    }
+  }
 `;
 
 export default Wrapper;
