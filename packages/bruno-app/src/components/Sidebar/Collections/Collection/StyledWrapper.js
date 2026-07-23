@@ -94,6 +94,19 @@ const Wrapper = styled.div`
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
+
+    input.collection-name-input {
+      background: transparent;
+      border: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
+      border-radius: 2px;
+      color: inherit;
+      font-size: inherit;
+      font-family: inherit;
+      outline: none;
+      width: 100%;
+      padding: 0 2px;
+      line-height: 1;
+    }
   }
 
   .indent-block {

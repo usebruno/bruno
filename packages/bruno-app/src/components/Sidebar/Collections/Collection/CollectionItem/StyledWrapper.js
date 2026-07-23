@@ -99,6 +99,19 @@ const Wrapper = styled.div`
       overflow: hidden;
     }
 
+    input.item-name-input {
+      background: transparent;
+      border: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
+      border-radius: 2px;
+      color: inherit;
+      font-size: inherit;
+      font-family: inherit;
+      outline: none;
+      width: 100%;
+      padding: 0 2px;
+      line-height: 1;
+    }
+
     /* Single source of truth for hover/focus states: background and menu icon visibility */
     &:hover,
     &.item-hovered,
