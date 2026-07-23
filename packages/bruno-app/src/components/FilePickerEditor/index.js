@@ -40,7 +40,9 @@ const FilePickerEditor = ({
   const hasMissingFiles = status === 'ready' && missingPaths.length > 0;
 
   // title is shown when hovering over the button
-  const title = filenames.map((v) => `- ${v}`).join('\n');
+  const title = filenames.length > 1
+    ? filenames.map((v) => `- ${v}`).join('\n')
+    : filenames[0] ?? '';
 
   const browse = () => {
     if (readOnly) return;
@@ -100,7 +102,6 @@ const FilePickerEditor = ({
       <StyledWrapper>
         <div
           className={`file-picker-selected ${readOnly ? 'read-only' : ''} ${hasMissingFiles ? 'has-warning' : ''}`}
-          title={title}
           onClick={!readOnly ? browse : undefined}
         >
           {hasMissingFiles ? (
@@ -112,7 +113,7 @@ const FilePickerEditor = ({
           ) : (
             <IconFile size={16} className="file-icon" />
           )}
-          <span className="file-name">
+          <span className="file-name" title={title}>
             {renderButtonText(filenames)}
           </span>
           {!readOnly && (
@@ -132,7 +133,8 @@ const FilePickerEditor = ({
               place="bottom-end"
             >
               <div className="warning-tooltip" data-testid="file-picker-warning-tooltip">
-                The file above is not in the given directory, please upload it again.
+                <IconAlertTriangleFilled size={14} />
+                <span>The file above is not in the given directory, please upload it again.</span>
               </div>
             </Tooltip>
           )}
