@@ -9,13 +9,20 @@ async function resizeSidebar(page: any, targetWidth: number) {
   const dragHandle = page.getByTestId('sidebar-drag-handle');
   await expect(dragHandle).toBeVisible({ timeout: 10000 });
 
-  const handleBox = await dragHandle.boundingBox();
-  expect(handleBox).not.toBeNull();
+  await dragHandle.dispatchEvent('mousedown', { button: 0 });
+  await page.waitForTimeout(100);
 
-  await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(targetWidth, handleBox!.y + handleBox!.height / 2, { steps: 20 });
-  await page.mouse.up();
+  // Mouse move and up on document (React attaches these listeners to document)
+  await page.evaluate((width) => {
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: width, clientY: 100 }));
+  }, targetWidth);
+  await page.waitForTimeout(100);
+
+  await page.evaluate((width) => {
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: width, clientY: 100 }));
+  }, targetWidth);
+
+  await page.waitForTimeout(100);
 }
 
 /**
