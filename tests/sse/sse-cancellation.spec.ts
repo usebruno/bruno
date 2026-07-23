@@ -6,7 +6,7 @@ test.describe('SSE Connection Cancellation', () => {
     await page.request.post('http://localhost:8081/api/sse/reset');
   });
 
-  test('should close previous SSE connection when resending request', async ({ pageWithUserData: page }) => {
+  test('should close previous SSE connection when resending request', { tag: '@smoke' }, async ({ pageWithUserData: page }) => {
     await page.locator('#sidebar-collection-name').click();
 
     await page.getByTestId('sidebar-collection-item-row').filter({ hasText: 'sse-stream-request' }).click();

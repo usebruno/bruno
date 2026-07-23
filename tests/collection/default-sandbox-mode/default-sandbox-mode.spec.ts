@@ -3,7 +3,7 @@ import { createCollection, openCollection } from '../../utils/page/actions';
 import { buildSandboxLocators } from '../../utils/page/locators';
 
 test.describe('Default JavaScript Sandbox Mode', () => {
-  test('should set jsSandboxMode to safe by default when creating a new collection', async ({ page, createTmpDir }) => {
+  test('should set jsSandboxMode to safe by default when creating a new collection', { tag: '@smoke' }, async ({ page, createTmpDir }) => {
     const collectionName = 'test-sandbox-collection';
 
     await createCollection(page, collectionName, await createTmpDir());

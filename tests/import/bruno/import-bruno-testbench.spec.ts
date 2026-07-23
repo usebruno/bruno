@@ -7,7 +7,7 @@ test.describe('Import Bruno Testbench Collection', () => {
     await closeAllCollections(page);
   });
 
-  test('Import Bruno Testbench collection successfully', async ({ page, createTmpDir }) => {
+  test('Import Bruno Testbench collection successfully', { tag: '@smoke' }, async ({ page, createTmpDir }) => {
     const brunoFile = path.resolve(__dirname, 'fixtures', 'bruno-testbench.json');
 
     await importCollection(page, brunoFile, await createTmpDir('bruno-testbench-test'), {

@@ -53,7 +53,7 @@ test.describe('Create collection', () => {
     await createCollectionModal.getByRole('button', { name: 'Cancel' }).click();
   });
 
-  test('Create collection and add a simple HTTP request', async ({ page, createTmpDir }) => {
+  test('Create collection and add a simple HTTP request', { tag: '@smoke' }, async ({ page, createTmpDir }) => {
     const collectionName = 'test-collection';
     const requestName = 'ping';
 
