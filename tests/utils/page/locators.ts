@@ -252,6 +252,7 @@ export const buildCommonLocators = (page: Page) => ({
   response: {
     statusCode: () => page.getByTestId('response-status-code'),
     pane: () => page.locator('.response-pane'),
+    errorMessage: () => page.getByTestId('response-pane').locator('.error'),
     copyButton: () => page.locator('button[title="Copy response to clipboard"]'),
     body: () => page.locator('.response-pane'),
     editorContainer: () => page.locator('.response-pane .editor-container'),
@@ -263,7 +264,12 @@ export const buildCommonLocators = (page: Page) => ({
     jsonTreeLine: () => page.locator('.response-pane .object-content'),
     // Tests-tab summary line ("Tests (N), Passed: X, Failed: Y") and failure rows.
     testSummary: () => page.locator('.test-summary').filter({ hasText: 'Tests' }),
-    testFailures: () => page.locator('.test-result-item .test-failure')
+    testFailures: () => page.locator('.test-result-item .test-failure'),
+    assertionResults: {
+      rows: () => page.locator('.test-result-item'),
+      passed: () => page.locator('.test-result-item').filter({ has: page.locator('.test-success') }),
+      failed: () => page.locator('.test-result-item').filter({ has: page.locator('.test-failure') })
+    }
   },
   timeline: {
     items: () => page.getByTestId('timeline-item'),

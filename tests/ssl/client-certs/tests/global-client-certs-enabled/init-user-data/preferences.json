@@ -1,0 +1,31 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": ["{{projectRoot}}/tests/ssl/client-certs/tests/global-client-certs-enabled/fixtures/collection"],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    },
+    "request": {
+      "sslVerification": true,
+      "customCaCertificate": {
+        "enabled": true,
+        "filePath": "{{projectRoot}}/tests/ssl/client-certs/server/certs/ca-cert.pem"
+      },
+      "keepDefaultCaCertificates": {
+        "enabled": true
+      },
+      "clientCertificates": {
+        "certs": [
+          {
+            "domain": "localhost",
+            "type": "cert",
+            "certFilePath": "{{projectRoot}}/tests/ssl/client-certs/server/certs/client-cert.pem",
+            "keyFilePath": "{{projectRoot}}/tests/ssl/client-certs/server/certs/client-key.pem",
+            "passphrase": ""
+          }
+        ]
+      }
+    }
+  }
+}
