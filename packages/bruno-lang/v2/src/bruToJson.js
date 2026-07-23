@@ -1254,16 +1254,134 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   }
 });
 
-const parser = (input) => {
+const matchAndBuildAst = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    let ast = sem(match).ast;
-
-    return ast;
+    return sem(match).ast;
   } else {
     throw new Error(match.message);
   }
+};
+
+/**
+ * Performance: ohm matches the grammar character-by-character over the whole
+ * file, including large opaque body/script/docs/tests content — which the
+ * grammar just returns verbatim via outdentString(textblock.sourceString).
+ * That content can be >99% of a request file and dominates parse time.
+ *
+ * So before handing the file to ohm we replace each text block's content with
+ * a short sentinel, parse the resulting (tiny) skeleton, then splice the real
+ * content back into the AST. This is faithful to the grammar: ohm's
+ * `tagend = nl "}"` requires the closing brace at column 0, which is exactly
+ * the boundary the pre-pass uses, and `"{" nl* textblock` means the captured
+ * sourceString is the content after the run of newlines following `{`.
+ *
+ * Safety: if anything is unexpected — the skeleton fails to parse, or a
+ * sentinel did not land as a standalone value (e.g. a text-block opener nested
+ * inside an `example` block, whose content ohm treats as opaque) — we fall
+ * back to a full parse of the original input. Output is therefore never wrong,
+ * only (in those rare cases) as slow as before.
+ */
+
+// Text-block openers whose action is outdentString(textblock.sourceString).
+// Deliberately excludes dictionary blocks (meta/headers/auth/vars/params/
+// body:grpc/body:ws/body:form-*/body:file) and `example` (re-parsed content).
+// Longest-first so `body` cannot shadow `body:json` etc.
+const TEXT_BLOCK_OPENERS = [
+  'body:graphql:vars',
+  'body:json',
+  'body:text',
+  'body:xml',
+  'body:sparql',
+  'body:graphql',
+  'script:pre-request',
+  'script:post-response',
+  'body',
+  'tests',
+  'docs'
+].sort((a, b) => b.length - a.length);
+
+const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const TEXT_BLOCK_REGEX = new RegExp(
+  `(^|\\n)((?:${TEXT_BLOCK_OPENERS.map(escapeRegExp).join('|')})[ \\t]*\\{)((?:\\r?\\n)+)([\\s\\S]*?)(\\r?\\n\\})`,
+  'g'
+);
+
+const SENTINEL_DELIM = String.fromCharCode(0); // NUL — never present in .bru content
+
+const extractTextBlocks = (input) => {
+  const blocks = new Map();
+  let index = 0;
+  const skeleton = input.replace(TEXT_BLOCK_REGEX, (_match, before, opener, _newlines, content, close) => {
+    // NUL-delimited sentinel: a NUL byte never appears in .bru content, so it
+    // cannot collide with a real value and survives outdentString and ohm
+    // matching unchanged (it is a single, unindented line).
+    const sentinel = `${SENTINEL_DELIM}${index++}${SENTINEL_DELIM}`;
+    blocks.set(sentinel, outdentString(content));
+    return `${before}${opener}\n${sentinel}${close}`;
+  });
+  return { skeleton, blocks };
+};
+
+const spliceTextBlocks = (node, blocks, stats) => {
+  if (Array.isArray(node)) {
+    for (let i = 0; i < node.length; i++) {
+      const value = node[i];
+      if (typeof value === 'string') {
+        if (blocks.has(value)) {
+          node[i] = blocks.get(value);
+          stats.replaced++;
+        }
+      } else if (value && typeof value === 'object') {
+        spliceTextBlocks(value, blocks, stats);
+      }
+    }
+  } else if (node && typeof node === 'object') {
+    for (const key of Object.keys(node)) {
+      const value = node[key];
+      if (typeof value === 'string') {
+        if (blocks.has(value)) {
+          node[key] = blocks.get(value);
+          stats.replaced++;
+        }
+      } else if (value && typeof value === 'object') {
+        spliceTextBlocks(value, blocks, stats);
+      }
+    }
+  }
+  return node;
+};
+
+const parser = (input) => {
+  // Non-string input (e.g. a Buffer) is handled by ohm directly, as before.
+  if (typeof input !== 'string') {
+    return matchAndBuildAst(input);
+  }
+
+  const { skeleton, blocks } = extractTextBlocks(input);
+
+  // No hoistable text blocks — nothing to gain, parse directly.
+  if (blocks.size === 0) {
+    return matchAndBuildAst(input);
+  }
+
+  try {
+    const ast = matchAndBuildAst(skeleton);
+    const stats = { replaced: 0 };
+    spliceTextBlocks(ast, blocks, stats);
+
+    // Every sentinel must have been replaced as a standalone value. If not,
+    // a sentinel leaked into an unexpected position — bail to a full parse.
+    if (stats.replaced === blocks.size) {
+      return ast;
+    }
+  } catch (err) {
+    // fall through to the full parse below
+  }
+
+  return matchAndBuildAst(input);
 };
 
 module.exports = parser;
