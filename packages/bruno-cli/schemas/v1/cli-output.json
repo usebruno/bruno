@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usebruno.com/schemas/v1/cli-output.json",
+  "x-source": "hand-authored",
+  "x-bruno-contract-version": 1,
+  "x-source-note": "Wire shape of every envelope emitted by the bru CLI in JSON mode. Every line of NDJSON from `bru run --json` matches this. One-shot commands (bru ls --json, bru get --json) emit a single instance.",
+  "title": "Bruno CLI JSON envelope",
+  "type": "object",
+  "required": ["version", "kind", "ok"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "JSON contract version. Bumps on breaking changes only.",
+      "minimum": 1
+    },
+    "kind": {
+      "type": "string",
+      "description": "Identifies the schema of `data`. <noun>.<verb> for resource ops; <noun>.<phase> for events.",
+      "examples": [
+        "introspect",
+        "ls",
+        "schema",
+        "request.get",
+        "folder.get",
+        "environment.get",
+        "collection.get",
+        "run.start",
+        "request.start",
+        "request.response",
+        "assertion.result",
+        "test.result",
+        "request.end",
+        "run.end",
+        "error"
+      ]
+    },
+    "ok": {
+      "type": "boolean",
+      "description": "False indicates a failure event or an error envelope."
+    },
+    "data": {
+      "description": "kind-specific payload. Use bru schema cli-output --kind=<kind> for per-kind shapes (planned in a follow-up)."
+    },
+    "error": {
+      "type": "object",
+      "description": "Present on stderr error envelopes (kind=\"error\"). Absent on success envelopes.",
+      "required": ["code", "name", "message"],
+      "additionalProperties": true,
+      "properties": {
+        "code": {
+          "type": "integer",
+          "description": "Process exit code. Maps to EXIT_STATUS in @usebruno/cli."
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Stable machine-readable slug for this error category. Branch on this, not on `message`."
+        },
+        "message": { "type": "string" },
+        "hint": { "type": "string" },
+        "docs_url": { "type": "string", "format": "uri" },
+        "details": {}
+      }
+    },
+    "meta": {
+      "type": "object",
+      "description": "Non-essential context. Agents may ignore.",
+      "additionalProperties": true,
+      "properties": {
+        "cli_version": { "type": "string" },
+        "collection_path": { "type": "string" },
+        "elapsed_ms": { "type": "number" }
+      }
+    }
+  }
+}

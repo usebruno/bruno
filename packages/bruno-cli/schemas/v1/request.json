@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usebruno.com/schemas/v1/request.json",
+  "x-source": "hand-authored",
+  "x-bruno-contract-version": 1,
+  "x-source-note": "Mirrors the shape produced by @usebruno/filestore parseRequest(). itemSchema in @usebruno/schema uses Yup.lazy() for recursive items which the @sodaru/yup-to-json-schema converter cannot handle; hand-authored is the path of least surprise. Top-level fields are named; deeply-nested values stay permissive (additionalProperties: true) to avoid rejecting valid bruno-lang output during v1.",
+  "title": "Bruno request",
+  "type": "object",
+  "required": ["type", "name", "request"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["http-request", "graphql-request", "grpc-request", "ws-request"]
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "seq": { "type": "number" },
+    "settings": { "type": "object", "additionalProperties": true },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "request": {
+      "type": "object",
+      "required": ["method", "url"],
+      "additionalProperties": true,
+      "properties": {
+        "method": {
+          "type": "string",
+          "description": "HTTP method or protocol-specific verb (GET/POST/.../QUERY for HTTP, etc.)"
+        },
+        "url": { "type": "string" },
+        "headers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "name": { "type": "string" },
+              "value": { "type": "string" },
+              "description": { "type": ["string", "null"] },
+              "enabled": { "type": "boolean" }
+            }
+          }
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "name": { "type": "string" },
+              "value": { "type": "string" },
+              "type": { "type": "string", "enum": ["query", "path"] },
+              "enabled": { "type": "boolean" }
+            }
+          }
+        },
+        "auth": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": ["none", "inherit", "basic", "bearer", "digest", "wsse", "apikey", "awsv4", "ntlm", "oauth2"]
+            }
+          }
+        },
+        "body": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": ["none", "json", "text", "xml", "formUrlEncoded", "multipartForm", "graphql", "sparql", "file"]
+            },
+            "json": { "type": ["string", "null"] },
+            "text": { "type": ["string", "null"] },
+            "xml": { "type": ["string", "null"] },
+            "sparql": { "type": ["string", "null"] },
+            "formUrlEncoded": { "type": ["array", "null"] },
+            "multipartForm": { "type": ["array", "null"] },
+            "graphql": { "type": ["object", "null"] },
+            "file": { "type": ["array", "null"] }
+          }
+        },
+        "script": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "req": { "type": "string", "description": "Pre-request script body" },
+            "res": { "type": "string", "description": "Post-response script body" }
+          }
+        },
+        "vars": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "req": { "type": "array" },
+            "res": { "type": "array" }
+          }
+        },
+        "assertions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "name": { "type": "string" },
+              "value": { "type": "string" },
+              "enabled": { "type": "boolean" },
+              "operator": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "tests": { "type": "string", "description": "Test script body" },
+        "docs": { "type": "string" }
+      }
+    },
+    "examples": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    }
+  },
+  "additionalProperties": true
+}
