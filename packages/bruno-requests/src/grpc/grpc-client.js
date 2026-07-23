@@ -112,6 +112,45 @@ const normalizeWindowsNamedPipe = (pipePath) => {
   return pipePath;
 };
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '::1']);
+
+/**
+ * Decide whether a gRPC request should use TLS.
+ *
+ * Precedence (in order):
+ * 1. Unix sockets / Windows named pipes → always insecure (transport can't do TLS).
+ * 2. Explicit `grpc://` or `http://` scheme in the raw URL → insecure (user opt-out).
+ * 3. Explicit `grpcs://` or `https://` scheme → follow `sslVerification`.
+ * 4. No scheme, loopback host (localhost/127.0.0.1/0.0.0.0/::1) → insecure (dev backward compat).
+ * 5. No scheme, remote host → follow `sslVerification`.
+ *
+ * @param {string} url - The raw gRPC URL (as the user typed it, pre-interpolation-safe).
+ * @param {boolean} sslVerification - The global sslVerification preference; `true` means user wants TLS with verification.
+ * @returns {boolean} true → attempt TLS credentials, false → plaintext.
+ */
+const resolveGrpcUseTls = (url, sslVerification = true) => {
+  if (!url) return false;
+
+  if (isUnixSocket(url) || isWindowsNamedPipe(url)) return false;
+
+  const trimmed = url.trim().toLowerCase();
+  const schemeMatch = trimmed.match(/^([a-z][-+.\w]{0,24}):\/\//);
+  if (schemeMatch) {
+    const scheme = schemeMatch[1];
+    if (scheme === 'grpcs' || scheme === 'https') return Boolean(sslVerification);
+    return false; // grpc://, http://, and any other explicit scheme → plaintext
+  }
+
+  // No scheme: infer from host
+  const hostSegment = trimmed.split('/')[0];
+  const hostname = hostSegment.startsWith('[')
+    ? hostSegment.slice(1, hostSegment.indexOf(']'))
+    : hostSegment.split(':')[0];
+  if (LOOPBACK_HOSTS.has(hostname)) return false;
+
+  return Boolean(sslVerification);
+};
+
 // Parse gRPC URL into components, handling TCP, Unix sockets, and Windows named pipes
 const getParsedGrpcUrlObject = (url) => {
   const addProtocolIfMissing = (str) => {
@@ -300,17 +339,18 @@ class GrpcClient {
    * @param {VerifyOptions} verifyOptions - Additional options for verifying the server certificate
    * @returns {import('@grpc/grpc-js').ChannelCredentials} The gRPC channel credentials
    */
-  #getChannelCredentials({ url, rootCertificate, privateKey, certificateChain, passphrase, pfx, verifyOptions }) {
-    const securedProtocols = ['grpcs', 'https'];
+  #getChannelCredentials({ url, useTls, rootCertificate, privateKey, certificateChain, passphrase, pfx, verifyOptions }) {
     try {
-      const { protocol, isLocalTransport } = getParsedGrpcUrlObject(url);
+      const { isLocalTransport } = getParsedGrpcUrlObject(url);
 
       if (isLocalTransport) {
         return ChannelCredentials.createInsecure();
       }
 
-      const isSecureConnection = securedProtocols.some((sp) => protocol === sp);
-      if (!isSecureConnection) {
+      const shouldUseTls = typeof useTls === 'boolean'
+        ? useTls
+        : resolveGrpcUseTls(url, verifyOptions?.rejectUnauthorized !== false);
+      if (!shouldUseTls) {
         return ChannelCredentials.createInsecure();
       }
 
@@ -431,7 +471,7 @@ class GrpcClient {
    * @returns {Promise<boolean>} Whether methods were successfully refreshed
    * @private
    */
-  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions, includeDirs = [], proxyConfig }) {
+  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions, useTls, includeDirs = [], proxyConfig }) {
     try {
       // Try reflection first if no proto path is specified
       if (!protoPath) {
@@ -444,6 +484,7 @@ class GrpcClient {
           passphrase: certificates.passphrase,
           pfx: certificates.pfx,
           verifyOptions,
+          useTls,
           sendEvent: () => {}, // No-op for refresh
           proxyConfig
         });
@@ -590,12 +631,14 @@ class GrpcClient {
     passphrase,
     pfx,
     verifyOptions,
+    useTls,
     channelOptions = {},
     includeDirs = [],
     proxyConfig
   }) {
     const credentials = this.#getChannelCredentials({
       url: request.url,
+      useTls,
       rootCertificate,
       privateKey,
       certificateChain,
@@ -629,6 +672,7 @@ class GrpcClient {
           pfx
         },
         verifyOptions,
+        useTls,
         includeDirs,
         proxyConfig
       });
@@ -746,6 +790,7 @@ class GrpcClient {
     passphrase,
     pfx,
     verifyOptions,
+    useTls,
     sendEvent,
     channelOptions = {},
     proxyConfig
@@ -773,6 +818,7 @@ class GrpcClient {
     });
     const credentials = this.#getChannelCredentials({
       url: request.url,
+      useTls,
       rootCertificate,
       privateKey,
       certificateChain,
@@ -987,12 +1033,15 @@ class GrpcClient {
    * @param {Object} options.certificates - Certificate configuration
    * @returns {string} The generated grpcurl command
    */
-  generateGrpcurlCommand({ request, collectionPath = '', shell = 'bash', certificates = {} }) {
+  generateGrpcurlCommand({ request, collectionPath = '', shell = 'bash', certificates = {}, useTls, sslVerification = true }) {
     const { url, method, methodType = 'unary', body, headers, protoPath } = request;
     const useReflection = !protoPath;
     const parts = [];
     const { host, path, protocol } = getParsedGrpcUrlObject(url);
     const { ca, cert, key } = certificates;
+    const shouldUseTls = typeof useTls === 'boolean'
+      ? useTls
+      : resolveGrpcUseTls(url, sslVerification);
 
     parts.push('grpcurl');
 
@@ -1003,7 +1052,10 @@ class GrpcClient {
     } else if (protocol === 'pipe') {
       console.warn('Windows named pipes are not directly supported by grpcurl');
       parts.push('-plaintext');
-    } else if (url.startsWith('grpcs://') || url.startsWith('https://')) {
+    } else if (shouldUseTls) {
+      if (!sslVerification) {
+        parts.push('-insecure');
+      }
       if (ca) {
         /**
          * Instead of using certificate that relies on CN, use SANs
@@ -1074,4 +1126,4 @@ class GrpcClient {
   }
 }
 
-export { GrpcClient };
+export { GrpcClient, resolveGrpcUseTls };

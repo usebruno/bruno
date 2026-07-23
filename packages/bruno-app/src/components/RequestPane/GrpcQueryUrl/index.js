@@ -27,6 +27,7 @@ import useProtoFileManagement from 'hooks/useProtoFileManagement/index';
 import MethodDropdown from './MethodDropdown';
 import ProtoFileDropdown from './ProtoFileDropdown';
 import ToolHint from 'components/ToolHint';
+import TlsIndicator from 'components/RequestPane/TlsIndicator';
 
 const STREAMING_METHOD_TYPES = ['client-streaming', 'server-streaming', 'bidi-streaming'];
 const CLIENT_STREAMING_METHOD_TYPES = ['client-streaming', 'bidi-streaming'];
@@ -298,6 +299,9 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   return (
     <StyledWrapper className="flex items-center relative" data-testid="grpc-query-url-container">
+      <div className="flex items-center h-full pl-2 pr-1">
+        <TlsIndicator size={18} />
+      </div>
       <div className="flex items-center h-full method-selector-container">
         <div className="flex items-center justify-center h-full px-[10px]" data-testid="grpc-method-indicator">
           <span className="text-xs font-medium" style={{ color: theme.request.grpc }}>gRPC</span>

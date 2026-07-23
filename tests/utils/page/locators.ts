@@ -174,6 +174,20 @@ export const buildCommonLocators = (page: Page) => ({
     },
     pane: () => page.getByTestId('request-pane')
   },
+  // Shared SSL/TLS verification toggle rendered inside the URL bar for both
+  // HTTP and gRPC panes. Bound to preferences.request.sslVerification:
+  //   enabled  → IconLock       (icon-tabler-lock,      opacity 1)
+  //   disabled → IconLockOpen   (icon-tabler-lock-open, opacity 0.55)
+  tlsIndicator: {
+    root: () => page.getByTestId('tls-indicator'),
+    // The svg the component actually renders — use for opacity assertions.
+    icon: () => page.getByTestId('tls-indicator').locator('svg').first(),
+    enabledIcon: () => page.getByTestId('tls-indicator').locator('.icon-tabler-lock').first(),
+    disabledIcon: () => page.getByTestId('tls-indicator').locator('.icon-tabler-lock-open').first(),
+    // The react-tooltip popup that renders on hover. Content varies with state:
+    // "SSL/TLS verification enabled — click to disable" / "disabled — click to enable".
+    tooltip: () => page.locator('.toolhint')
+  },
   // The variable-info popup shown when hovering a `{{var}}` token in an editor.
   varInfoPopup: {
     all: () => page.getByTestId('var-info-popup'),

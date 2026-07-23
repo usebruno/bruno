@@ -1,0 +1,23 @@
+{
+  "version": "1",
+  "name": "TlsIndicatorTests",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "protobuf": {
+    "protoFiles": [
+      {
+        "path": "./protos/echo.proto",
+        "type": "file"
+      }
+    ],
+    "importPaths": [
+      {
+        "path": ".",
+        "enabled": true
+      }
+    ]
+  }
+}
