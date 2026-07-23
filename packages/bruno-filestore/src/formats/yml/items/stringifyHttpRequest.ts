@@ -142,13 +142,7 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
       settings.maxRedirects = 5;
     }
 
-    if (httpSettings?.forwardAuthorizationHeader === true) {
-      settings.forwardAuthorizationHeader = true;
-    } else if (httpSettings?.forwardAuthorizationHeader === false) {
-      settings.forwardAuthorizationHeader = false;
-    } else {
-      settings.forwardAuthorizationHeader = true;
-    }
+    settings.forwardAuthorizationHeader = httpSettings?.forwardAuthorizationHeader ?? true;
 
     ocRequest.settings = settings;
 
