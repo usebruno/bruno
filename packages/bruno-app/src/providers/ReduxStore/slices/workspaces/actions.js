@@ -636,7 +636,9 @@ export const switchWorkspace = (workspaceUid) => {
           workspace.pathname || null
         );
         return dispatch(hydrateCollectionWithUiStateSnapshot(
-          collectionSnapshotState ? { pathname: collection.pathname, ...collectionSnapshotState } : null
+          collectionSnapshotState
+            ? { pathname: collection.pathname, ...collectionSnapshotState, hasSnapshotEntry: true }
+            : { pathname: collection.pathname, hasSnapshotEntry: false }
         ));
       }));
 

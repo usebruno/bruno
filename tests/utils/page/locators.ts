@@ -210,7 +210,9 @@ export const buildCommonLocators = (page: Page) => ({
     requestType: (type: 'http' | 'graphql' | 'grpc' | 'ws') =>
       page.getByTestId(`presets-request-type-${type}`),
     requestUrl: () => page.getByTestId('presets-request-url'),
-    saveBtn: () => page.getByTestId('presets-save-btn')
+    saveBtn: () => page.getByTestId('presets-save-btn'),
+    defaultEnvironment: () => page.getByTestId('presets-default-environment'),
+    defaultEnvironmentOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
@@ -269,9 +271,11 @@ export const buildCommonLocators = (page: Page) => ({
     items: () => page.getByTestId('timeline-item'),
     lastItem: () => page.getByTestId('timeline-item').last(),
     itemHeader: (item: Locator) => item.getByTestId('timeline-item-header'),
+    clearButton: () => page.getByRole('button', { name: 'Clear Timeline' }),
+    container: () => page.getByTestId('timeline-container'),
+    entries: () => page.getByTestId('timeline-container').getByTestId('timeline-entry'),
     networkButton: (item: Locator) => item.getByRole('button', { name: 'Network' }),
-    networkLogs: (item: Locator) => item.locator('.network-logs-container'),
-    clearButton: () => page.getByRole('button', { name: 'Clear Timeline' })
+    networkLogs: (item: Locator) => item.locator('.network-logs-container')
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),

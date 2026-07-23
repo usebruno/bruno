@@ -61,7 +61,8 @@ const hasRequestScripts = (collectionRoot: any): boolean => {
 
 const hasPresets = (brunoConfig: any): boolean => {
   return brunoConfig?.presets?.requestType?.length
-    || brunoConfig?.presets?.requestUrl?.length;
+    || brunoConfig?.presets?.requestUrl?.length
+    || brunoConfig?.presets?.defaultEnvironment?.length;
 };
 
 const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
@@ -241,6 +242,7 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
       }
 
       if (hasPresets(brunoConfig)) {
+        const presetsExtension: any = {};
         const presetsRequest: any = {};
         if (brunoConfig.presets.requestType?.length) {
           presetsRequest.type = brunoConfig.presets.requestType;
@@ -248,9 +250,13 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
         if (brunoConfig.presets.requestUrl?.length) {
           presetsRequest.url = brunoConfig.presets.requestUrl;
         }
-        brunoExtension.presets = {
-          request: presetsRequest
-        };
+        if (Object.keys(presetsRequest).length) {
+          presetsExtension.request = presetsRequest;
+        }
+        if (brunoConfig.presets.defaultEnvironment?.length) {
+          presetsExtension.defaultEnvironment = brunoConfig.presets.defaultEnvironment;
+        }
+        brunoExtension.presets = presetsExtension;
       }
 
       oc.extensions.bruno = brunoExtension;

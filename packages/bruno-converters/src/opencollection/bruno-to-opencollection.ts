@@ -161,13 +161,16 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
   }
 
   const presets = brunoConfig?.presets;
-  if (presets?.requestType || presets?.requestUrl) {
+  if (presets?.requestType || presets?.requestUrl || presets?.defaultEnvironment) {
     brunoExtension.presets = {};
     if (presets.requestType) {
       brunoExtension.presets.requestType = presets.requestType;
     }
     if (presets.requestUrl) {
       brunoExtension.presets.requestUrl = presets.requestUrl;
+    }
+    if (presets.defaultEnvironment) {
+      brunoExtension.presets.defaultEnvironment = presets.defaultEnvironment;
     }
   }
 

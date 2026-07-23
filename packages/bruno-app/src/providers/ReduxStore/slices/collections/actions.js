@@ -35,6 +35,7 @@ import {
   createCollection as _createCollection,
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
+  applyDefaultEnvironment as _applyDefaultEnvironment,
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
   moveCollection,
@@ -3143,10 +3144,21 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
       const collectionUid = collectionCopy?.uid;
 
       // update selected environment
+      // Precedence:
+      //   1. The environment saved in the ui-state-snapshot always wins.
+      //   2. The collection's configured default environment (brunoConfig.presets.defaultEnvironment)
+      //      is applied ONLY the first time a collection is opened/imported.
       const environment = findCollectionEnvironmentFromSnapshot(collectionCopy, collectionSnapshotData);
 
       if (environment) {
         dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
+      } else if (collectionSnapshotData?.hasSnapshotEntry === false) {
+        const defaultEnvironmentName = collectionCopy?.brunoConfig?.presets?.defaultEnvironment;
+        if (defaultEnvironmentName && collectionUid) {
+          // Apply the default now if its environment file is already loaded; otherwise mark
+          // it pending so it's applied as soon as the file arrives (collectionAddEnvFileEvent).
+          dispatch(_applyDefaultEnvironment({ collectionUid, defaultEnvironmentName }));
+        }
       }
 
       // todo: add any other redux state that you want to save
@@ -3300,7 +3312,9 @@ export const mountCollection
                 .invoke('renderer:snapshot:get-collection', collection.pathname, workspacePathname)
                 .catch(() => null);
               await dispatch(hydrateCollectionWithUiStateSnapshot(
-                collectionSnapshotState ? { pathname: collection.pathname, ...collectionSnapshotState } : null
+                collectionSnapshotState
+                  ? { pathname: collection.pathname, ...collectionSnapshotState, hasSnapshotEntry: true }
+                  : { pathname: collection.pathname, hasSnapshotEntry: false }
               ));
             }
           })
