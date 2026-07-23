@@ -5,7 +5,7 @@ import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
 import { toBrunoVariables } from './common/variables';
 import { toBrunoPostResponseVariables } from './common/actions';
-import { toBrunoScripts } from './common/scripts';
+import { toBrunoScripts, applyBrunoScripts } from './common/scripts';
 import { ensureString } from '../../utils';
 import type { BrunoPresetsExtension } from '../../types';
 
@@ -196,14 +196,9 @@ const parseCollection = (ymlString: string): ParsedCollection => {
 
       // scripts
       const scripts = toBrunoScripts(oc.request.scripts);
-      if (scripts?.script && collectionRoot.request.script) {
-        if (scripts.script.req) {
-          collectionRoot.request.script.req = scripts.script.req;
-        }
-        if (scripts.script.res) {
-          collectionRoot.request.script.res = scripts.script.res;
-        }
-      }
+      applyBrunoScripts(collectionRoot.request, scripts);
+
+      // tests
       if (scripts?.tests) {
         collectionRoot.request.tests = scripts.tests;
       }

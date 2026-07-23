@@ -13,48 +13,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StatusDot from 'components/StatusDot';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
+import { getPhasesByRequestType } from '@usebruno/common';
 
-const getScriptPhases = (protocol = 'http') => {
-  if (protocol === 'grpc') {
-    return [
-      {
-        key: 'before-invoke',
-        label: 'Before Invoke',
-        field: 'req',
-        hints: ['req', 'bru']
-      },
-      {
-        key: 'on-message',
-        label: 'On Message',
-        field: 'stream',
-        hints: ['req', 'stream', 'bru']
-      },
-      {
-        key: 'after-response',
-        label: 'After Response',
-        field: 'res',
-        hints: ['req', 'res', 'bru']
-      }
-    ];
-  }
-
-  return [
-    {
-      key: 'pre-request',
-      label: 'Pre Request',
-      field: 'req',
-      hints: ['req', 'bru']
-    },
-    {
-      key: 'post-response',
-      label: 'Post Response',
-      field: 'res',
-      hints: ['req', 'res', 'bru']
-    }
-  ];
-};
-
-const Script = ({ item, collection, protocol = 'http' }) => {
+const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
 
   const editorRefs = useRef({});
@@ -67,7 +28,7 @@ const Script = ({ item, collection, protocol = 'http' }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  const SCRIPT_PHASES = useMemo(() => getScriptPhases(protocol), [protocol]);
+  const SCRIPT_PHASES = useMemo(() => getPhasesByRequestType(item?.type), [item?.type]);
 
   const getEditorRef = (phaseKey) => {
     return (editorRefs.current[phaseKey] ??= { current: null });
@@ -80,8 +41,8 @@ const Script = ({ item, collection, protocol = 'http' }) => {
   };
 
   const getDefaultTab = () => {
-    const hasFirstScript = getScript(SCRIPT_PHASES[0].field);
-    return hasFirstScript ? SCRIPT_PHASES[0].key : SCRIPT_PHASES[1]?.key;
+    const hasFirstScript = getScript(SCRIPT_PHASES[0].FIELD);
+    return hasFirstScript ? SCRIPT_PHASES[0].SCRIPT_TYPE : SCRIPT_PHASES[1]?.SCRIPT_TYPE;
   };
 
   const activeTab = scriptPaneTab || getDefaultTab();
@@ -93,7 +54,7 @@ const Script = ({ item, collection, protocol = 'http' }) => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      const activePhase = SCRIPT_PHASES.find((p) => p.key === activeTab);
+      const activePhase = SCRIPT_PHASES.find(({ SCRIPT_TYPE }) => SCRIPT_TYPE === activeTab);
       if (!activePhase) return;
 
       const editorRef = getEditorRef(activeTab);
@@ -109,12 +70,12 @@ const Script = ({ item, collection, protocol = 'http' }) => {
     return () => clearTimeout(timer);
   }, [activeTab, SCRIPT_PHASES]);
 
-  SCRIPT_PHASES.forEach((phase) => {
+  SCRIPT_PHASES.forEach(({ SCRIPT_TYPE }) => {
     useFocusErrorLine({
       uid: item.uid,
-      editorRef: getEditorRef(phase.key),
-      scriptPhase: phase.key,
-      isVisible: activeTab === phase.key
+      editorRef: getEditorRef(SCRIPT_TYPE),
+      scriptPhase: SCRIPT_TYPE,
+      isVisible: activeTab === SCRIPT_TYPE
     });
   });
 
@@ -138,39 +99,39 @@ const Script = ({ item, collection, protocol = 'http' }) => {
     dispatch(updateScriptPaneTab({ uid: item.uid, scriptPaneTab: tab }));
   };
 
-  const renderEditor = (phase) => {
-    const value = getScript(phase.field);
+  const renderEditor = ({ SCRIPT_TYPE, FIELD, HINTS }) => {
+    const value = getScript(FIELD);
 
     return (
       <div className="relative h-full">
         <CodeEditor
-          ref={getEditorRef(phase.key)}
+          ref={getEditorRef(SCRIPT_TYPE)}
           collection={collection}
           item={item}
-          protocol={protocol}
-          docKey={`script:${phase.key}`}
+          requestType={item?.type}
+          docKey={`script:${SCRIPT_TYPE}`}
           value={value || ''}
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
           mode="javascript"
-          onEdit={(val) => onScriptEdit(phase.field, val)}
+          onEdit={(val) => onScriptEdit(FIELD, val)}
           onRun={onRun}
           onSave={onSave}
-          showHintsFor={phase.hints}
-          scriptType={phase.key}
-          initialScroll={scrollMap?.[phase.key] || 0}
+          showHintsFor={HINTS}
+          scriptType={SCRIPT_TYPE}
+          initialScroll={scrollMap?.[SCRIPT_TYPE] || 0}
           onScroll={(pos) =>
             setScrollMap({
               ...scrollMap,
-              [phase.key]: pos
+              [SCRIPT_TYPE]: pos
             })}
         />
         <AIAssist
-          scriptType={phase.key}
+          scriptType={SCRIPT_TYPE}
           currentScript={value || ''}
           requestContext={requestContext}
-          onApply={(val) => onScriptEdit(phase.field, val)}
+          onApply={(val) => onScriptEdit(FIELD, val)}
         />
       </div>
     );
@@ -181,16 +142,16 @@ const Script = ({ item, collection, protocol = 'http' }) => {
       <Tabs value={activeTab} onValueChange={onScriptTabChange}>
         <TabsList>
           {SCRIPT_PHASES.map((phase) => {
-            const value = getScript(phase.field);
+            const value = getScript(phase.FIELD);
             const hasScript = value && value.trim().length > 0;
 
             return (
-              <TabsTrigger key={phase.key} value={phase.key}>
-                {phase.label}
+              <TabsTrigger key={phase.SCRIPT_TYPE} value={phase.SCRIPT_TYPE}>
+                {phase.LABEL}
                 {hasScript && (
                   <StatusDot
                     type={
-                      item?.[`${phase.key}ScriptErrorMessage`]
+                      item?.[`${phase.SCRIPT_TYPE}ScriptErrorMessage`]
                         ? 'error'
                         : 'default'
                     }
@@ -201,16 +162,18 @@ const Script = ({ item, collection, protocol = 'http' }) => {
           })}
         </TabsList>
 
-        {SCRIPT_PHASES.map((phase) => (
-          <TabsContent
-            key={phase.key}
-            value={phase.key}
-            className="mt-2"
-            dataTestId={`${phase.key}-script-editor`}
-          >
-            {activeTab === phase.key ? renderEditor(phase) : null}
-          </TabsContent>
-        ))}
+        {SCRIPT_PHASES.map((phase) => {
+          return (
+            <TabsContent
+              key={phase.SCRIPT_TYPE}
+              value={phase.SCRIPT_TYPE}
+              className="mt-2"
+              dataTestId={`${phase.SCRIPT_TYPE}-script-editor`}
+            >
+              {activeTab === phase.SCRIPT_TYPE ? renderEditor(phase) : null}
+            </TabsContent>
+          );
+        })}
       </Tabs>
     </div>
   );

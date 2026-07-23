@@ -1,6 +1,7 @@
 const { cleanJson, cleanCircularJson } = require('../../../utils');
 const { marshallToVm } = require('../utils');
 const { createPropertyListBridge } = require('../utils/property-list-bridge');
+const addBrunoGrpcShimToContext = require('./bruno-grpc');
 
 const addBruShimToContext = (vm, bru) => {
   const bruObject = vm.newObject();
@@ -519,6 +520,11 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'runner', bruRunnerObject);
   vm.setProp(vm.global, 'bru', bruObject);
   bruObject.dispose();
+
+  // gRPC-only, phase-aware `bru.grpc.*` namespace (methods auto-discovered from grpc-script-api).
+  if (bru.grpc) {
+    addBrunoGrpcShimToContext(vm, bru.grpc);
+  }
 
   vm.evalCode(`
     // sendRequest with callback: normalize error.status (axios uses error.response.status) so

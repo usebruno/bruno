@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { getPhasesByRequestType } from '@usebruno/common';
 import { IconX, IconChevronDown, IconChevronRight, IconExternalLink } from '@tabler/icons';
 import ErrorBanner from 'ui/ErrorBanner';
 import CodeSnippet from 'components/CodeSnippet';
@@ -210,80 +211,53 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
 };
 
 const ScriptError = ({ item, collection, onClose }) => {
-  const preRequestError = item?.preRequestScriptErrorMessage;
-  const onMessageError = item?.onMessageScriptErrorMessage;
-  const postResponseError = item?.postResponseScriptErrorMessage;
-  const testScriptError = item?.testScriptErrorMessage;
+  // One error descriptor per phase: ERROR_STATE_KEY → `<key>Message`/`<key>Context`,
+  // SCRIPT_TYPE → tab to open, LABEL → card title.
+  const scriptErrors = getPhasesByRequestType(item?.type)
+    .map(({ LABEL, SCRIPT_TYPE, ERROR_STATE_KEY }) => ({
+      title: `${LABEL.replace(/\s+/g, '-')} Script Error`,
+      scriptPhase: SCRIPT_TYPE,
+      message: item?.[`${ERROR_STATE_KEY}Message`],
+      errorContext: item?.[`${ERROR_STATE_KEY}Context`]
+    }))
+    .filter((error) => error.message);
 
-  if (!preRequestError && !onMessageError && !postResponseError && !testScriptError) return null;
+  if (item?.testScriptErrorMessage) {
+    scriptErrors.push({
+      title: 'Test Script Error',
+      scriptPhase: 'test',
+      message: item.testScriptErrorMessage,
+      errorContext: item?.testScriptErrorContext
+    });
+  }
 
-  const preRequestContext = item?.preRequestScriptErrorContext;
-  const onMessageContext = item?.onMessageScriptErrorContext;
-  const postResponseContext = item?.postResponseScriptErrorContext;
-  const testContext = item?.testScriptErrorContext;
+  if (!scriptErrors.length) return null;
 
-  const hasAnyContext = preRequestContext || onMessageContext || postResponseContext || testContext;
-
-  const isGrpc = item?.type === 'grpc-request';
-  const preRequestTitle = isGrpc ? 'Before Invoke Script Error' : 'Pre-Request Script Error';
-  const postResponseTitle = isGrpc ? 'After Response Script Error' : 'Post-Response Script Error';
-
-  // If no error context available for any error, fall back to ErrorBanner
-  if (!hasAnyContext) {
-    const errors = [];
-    if (preRequestError) errors.push({ title: preRequestTitle, message: preRequestError });
-    if (onMessageError) errors.push({ title: 'On-Message Script Error', message: onMessageError });
-    if (postResponseError) errors.push({ title: postResponseTitle, message: postResponseError });
-    if (testScriptError) errors.push({ title: 'Test Script Error', message: testScriptError });
-    return <ErrorBanner errors={errors} onClose={onClose} className="mb-2" />;
+  // If no error has context, fall back to a compact ErrorBanner
+  if (!scriptErrors.some((error) => error.errorContext)) {
+    return (
+      <ErrorBanner
+        errors={scriptErrors.map(({ title, message }) => ({ title, message }))}
+        onClose={onClose}
+        className="mb-2"
+      />
+    );
   }
 
   return (
     <div className="mb-2 flex flex-col gap-2">
-      {preRequestError && (
+      {scriptErrors.map(({ scriptPhase, title, message, errorContext }) => (
         <ScriptErrorCard
-          title={preRequestTitle}
-          message={preRequestError}
-          errorContext={preRequestContext}
+          key={scriptPhase}
+          title={title}
+          message={message}
+          errorContext={errorContext}
           item={item}
           collection={collection}
-          scriptPhase="pre-request"
+          scriptPhase={scriptPhase}
           onClose={onClose}
         />
-      )}
-      {onMessageError && (
-        <ScriptErrorCard
-          title="On-Message Script Error"
-          message={onMessageError}
-          errorContext={onMessageContext}
-          item={item}
-          collection={collection}
-          scriptPhase="on-message"
-          onClose={onClose}
-        />
-      )}
-      {postResponseError && (
-        <ScriptErrorCard
-          title={postResponseTitle}
-          message={postResponseError}
-          errorContext={postResponseContext}
-          item={item}
-          collection={collection}
-          scriptPhase="post-response"
-          onClose={onClose}
-        />
-      )}
-      {testScriptError && (
-        <ScriptErrorCard
-          title="Test Script Error"
-          message={testScriptError}
-          errorContext={testContext}
-          item={item}
-          collection={collection}
-          scriptPhase="test"
-          onClose={onClose}
-        />
-      )}
+      ))}
     </div>
   );
 };

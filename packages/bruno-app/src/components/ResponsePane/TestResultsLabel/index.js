@@ -1,30 +1,18 @@
 import React from 'react';
-import { IconCircleCheck, IconCircleX } from '@tabler/icons';
+import { getPhasesByRequestType } from '@usebruno/common';
 
-const TestResultsLabel = ({ results, assertionResults, preRequestTestResults, postResponseTestResults }) => {
-  results = results || [];
-  assertionResults = assertionResults || [];
-  preRequestTestResults = preRequestTestResults || [];
-  postResponseTestResults = postResponseTestResults || [];
+const BASE_RESULT_KEYS = ['testResults', 'assertionResults'];
 
-  if (!results.length && !assertionResults.length && !preRequestTestResults.length && !postResponseTestResults.length) {
+const TestResultsLabel = ({ item }) => {
+  const resultKeys = [...BASE_RESULT_KEYS, ...getPhasesByRequestType(item?.type).map((phase) => phase.TEST_RESULTS_KEY)];
+  const allResults = resultKeys.flatMap((key) => item?.[key] || []);
+
+  if (!allResults.length) {
     return 'Tests';
   }
 
-  const numberOfTests = results.length;
-  const numberOfFailedTests = results.filter((result) => result.status === 'fail').length;
-
-  const numberOfAssertions = assertionResults.length;
-  const numberOfFailedAssertions = assertionResults.filter((result) => result.status === 'fail').length;
-
-  const numberOfPreRequestTests = preRequestTestResults.length;
-  const numberOfFailedPreRequestTests = preRequestTestResults.filter((result) => result.status === 'fail').length;
-
-  const numberOfPostResponseTests = postResponseTestResults.length;
-  const numberOfFailedPostResponseTests = postResponseTestResults.filter((result) => result.status === 'fail').length;
-
-  const totalNumberOfTests = numberOfTests + numberOfAssertions + numberOfPreRequestTests + numberOfPostResponseTests;
-  const totalNumberOfFailedTests = numberOfFailedTests + numberOfFailedAssertions + numberOfFailedPreRequestTests + numberOfFailedPostResponseTests;
+  const totalNumberOfTests = allResults.length;
+  const totalNumberOfFailedTests = allResults.filter((result) => result.status === 'fail').length;
 
   return (
     <div className="flex items-center">

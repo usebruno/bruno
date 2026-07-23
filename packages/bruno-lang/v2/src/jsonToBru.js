@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const { getPhasesByRequestType, REQUEST_TYPES } = require('@usebruno/common');
 
 const { indentString, getValueString, getKeyString, getValueUrl, serializeAnnotations, serializeVar } = require('./utils');
 const jsonToExampleBru = require('./example/jsonToBru');
@@ -733,28 +734,18 @@ ${indentString(body.sparql)}
     bru += '\n}\n\n';
   }
 
-  if (script && script.req && script.req.length) {
-    bru += `script:pre-request {
-${indentString(script.req)}
+  if (script) {
+    const requestType = grpc ? REQUEST_TYPES.GRPC : REQUEST_TYPES.HTTP;
+    for (const { FIELD, BRU_TYPE } of getPhasesByRequestType(requestType)) {
+      const code = script[FIELD];
+      if (code && code.length) {
+        bru += `script:${BRU_TYPE} {
+${indentString(code)}
 }
 
 `;
-  }
-
-  if (script && script.stream && script.stream.length) {
-    bru += `script:on-message {
-${indentString(script.stream)}
-}
-
-`;
-  }
-
-  if (script && script.res && script.res.length) {
-    bru += `script:post-response {
-${indentString(script.res)}
-}
-
-`;
+      }
+    }
   }
 
   if (tests && tests.length) {

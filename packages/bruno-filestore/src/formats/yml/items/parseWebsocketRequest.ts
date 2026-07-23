@@ -4,7 +4,7 @@ import type { WebSocketRequest, WebSocketMessage, WebSocketMessageVariant } from
 import { toBrunoAuth } from '../common/auth';
 import { toBrunoHttpHeaders } from '../common/headers';
 import { toBrunoVariables } from '../common/variables';
-import { toBrunoScripts } from '../common/scripts';
+import { toBrunoScripts, applyBrunoScripts } from '../common/scripts';
 import { uuid, ensureString } from '../../../utils';
 
 const parseWebsocketRequest = (ocRequest: WebSocketRequest): BrunoItem => {
@@ -60,14 +60,9 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequest): BrunoItem => {
 
   // scripts
   const scripts = toBrunoScripts(runtime?.scripts);
-  if (scripts?.script && brunoRequest.script) {
-    if (scripts.script.req) {
-      brunoRequest.script.req = scripts.script.req;
-    }
-    if (scripts.script.res) {
-      brunoRequest.script.res = scripts.script.res;
-    }
-  }
+  applyBrunoScripts(brunoRequest, scripts);
+
+  // tests
   if (scripts?.tests) {
     brunoRequest.tests = scripts.tests;
   }

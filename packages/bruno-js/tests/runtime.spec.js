@@ -119,7 +119,7 @@ describe('runtime', () => {
               `;
 
         const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-        const result = await runtime.runRequestScript(script, { ...baseRequest }, {}, {}, '.', null, process.env);
+        const result = await runtime.runHttpPreRequestScript(script, { ...baseRequest }, {}, {}, '.', null, process.env);
         expect(result.runtimeVariables.validation).toBeTruthy();
       });
     });
@@ -165,7 +165,7 @@ describe('runtime', () => {
               `;
 
         const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-        const result = await runtime.runResponseScript(
+        const result = await runtime.runHttpPostResponseScript(
           script,
           { ...baseRequest },
           { ...baseResponse },
@@ -190,7 +190,7 @@ describe('runtime', () => {
       `;
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
 
-      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
+      const result = await runtime.runHttpPreRequestScript(script, {}, {}, {}, '.', null, process.env);
 
       expect(result.envVariables.number).toBe(42);
       expect(result.persistentEnvVariables.number).toBe(42);
@@ -206,7 +206,7 @@ describe('runtime', () => {
       const script = `bru.setEnvVar('api_key', 'abc123', {persist: true});`;
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
 
-      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
+      const result = await runtime.runHttpPreRequestScript(script, {}, {}, {}, '.', null, process.env);
 
       expect(result.envVariables.api_key).toBe('abc123');
     });
@@ -220,7 +220,7 @@ describe('runtime', () => {
       `;
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
 
-      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
+      const result = await runtime.runHttpPreRequestScript(script, {}, {}, {}, '.', null, process.env);
 
       expect(result.envVariables.number).toBe(42);
       expect(result.envVariables.boolean).toBe(true);
@@ -232,7 +232,7 @@ describe('runtime', () => {
       const script = `bru.setEnvVar('number', 42);`;
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
 
-      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
+      const result = await runtime.runHttpPreRequestScript(script, {}, {}, {}, '.', null, process.env);
 
       expect(result.envVariables.number).toBe(42);
     });
@@ -244,7 +244,7 @@ describe('runtime', () => {
 
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
 
-      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
+      const result = await runtime.runHttpPreRequestScript(script, {}, {}, {}, '.', null, process.env);
 
       expect(result.runtimeVariables.title).toBe('{{$randomFirstName}}');
     });
@@ -367,7 +367,7 @@ describe('runtime', () => {
         // res.setBody() inside node-vm creates a cross-realm object whose
         // constructor is the VM's Object, not the host's Object
         const scriptRuntime = new ScriptRuntime({ runtime: 'nodevm' });
-        await scriptRuntime.runResponseScript(
+        await scriptRuntime.runHttpPostResponseScript(
           `res.setBody({ id: 2, name: 'updated' });`,
           { ...baseRequest },
           response,

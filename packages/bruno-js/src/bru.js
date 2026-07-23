@@ -1,9 +1,10 @@
 const { cloneDeep } = require('lodash');
 const xmlFormat = require('xml-formatter');
-const { interpolate: _interpolate } = require('@usebruno/common');
+const { interpolate: _interpolate, REQUEST_TYPES } = require('@usebruno/common');
 const { createSendRequest } = require('@usebruno/requests').scripting;
 const { jar: createCookieJar, getCookiesForUrl } = require('@usebruno/requests').cookies;
 const CookieList = require('./cookie-list');
+const buildGrpcScriptApi = require('./grpc-script-api');
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -44,7 +45,10 @@ class Bru {
     collectionName,
     promptVariables,
     certsAndProxyConfig,
-    requestUrl
+    requestUrl,
+    request,
+    phaseType,
+    phaseData
   }) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
@@ -135,6 +139,14 @@ class Bru {
         throw new TypeError('minifyXml expects a string');
       }
     };
+
+    // gRPC-only namespace: `bru.grpc.request.*` / `bru.grpc.response.*`.
+    if (request?.type === REQUEST_TYPES.GRPC) {
+      const grpc = buildGrpcScriptApi({ phaseType, request, phaseData });
+      if (grpc) {
+        this.grpc = grpc;
+      }
+    }
   }
 
   interpolate = (strOrObj) => {

@@ -14,11 +14,10 @@ import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
  * @typedef {Object} TestsProps
  * @property {Object} item - The request item (http or grpc).
  * @property {Object} collection - The collection the item belongs to.
- * @property {'http' | 'grpc'} [protocol] - Request protocol; defaults to 'http'.
  */
 
 /** @param {TestsProps} props */
-const Tests = ({ item, collection, protocol = 'http' }) => {
+const Tests = ({ item, collection }) => {
   const dispatch = useDispatch();
   const testsEditorRef = useRef(null);
   const tests = item.draft ? get(item, 'draft.request.tests') : get(item, 'request.tests');
@@ -54,7 +53,7 @@ const Tests = ({ item, collection, protocol = 'http' }) => {
         ref={testsEditorRef}
         collection={collection}
         item={item}
-        protocol={protocol}
+        requestType={item?.type}
         docKey="tests"
         value={tests || ''}
         theme={displayedTheme}
