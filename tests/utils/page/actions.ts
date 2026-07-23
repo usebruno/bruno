@@ -833,30 +833,6 @@ const addRowToActiveTab = async (
 };
 
 /**
- * Add a second row that intentionally reuses an existing name. addRowToActiveTab keys its value
- * locator by row testid, which is ambiguous once a name repeats, so this targets the newly-named
- * row explicitly.
- * @param page - The page object
- * @param name - The (already-present) name to reuse
- * @param value - The value to type into the new row
- * @returns void
- */
-const addDuplicateRow = async (page: Page, name: string, value: string) => {
-  await test.step(`Add duplicate row "${name}" to the active environment tab`, async () => {
-    const env = buildCommonLocators(page).environment;
-    const nameInput = env.addRowNameInput();
-    await nameInput.waitFor({ state: 'visible' });
-    await nameInput.fill(name);
-    // Wait for the duplicate row to render before resolving `.last()`, else it can bind to the
-    // pre-existing twin and type the value into the wrong row.
-    await expect(env.varRow(name)).toHaveCount(2);
-    const editor = env.varRow(name).last().getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first();
-    await editor.click();
-    await page.keyboard.type(value);
-  });
-};
-
-/**
  * Delete every global environment in the workspace. Global environments persist at
  * the workspace level (closeAllCollections does not remove them), so call this to keep
  * tests isolated. Deletes the currently-selected environment first, since a tab with
@@ -2539,7 +2515,6 @@ export {
   addEnvironmentVariable,
   addEnvironmentVariables,
   addRowToActiveTab,
-  addDuplicateRow,
   deleteAllGlobalEnvironments,
   saveEnvironment,
   closeEnvironmentPanel,

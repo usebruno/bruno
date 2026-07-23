@@ -6,6 +6,12 @@ import { buildCommonLocators } from '../../utils/page/locators';
 
 const envLocators = (page: Page) => buildCommonLocators(page).environment;
 
+// Mirrors DUPLICATE_SECRET_NAMES_ERROR in packages/bruno-app/src/utils/environments.js.
+const DUPLICATE_SECRET_TOAST = 'Duplicate secret names are not allowed';
+const toastByMessage = (page: Page, message: string) => buildCommonLocators(page).toast.byMessage(message);
+const varErrors = (page: Page) => envLocators(page).varErrors();
+const varNameInput = (page: Page, name: string) => envLocators(page).varRow(name).last().getByTestId('env-var-name-input');
+
 const variablesTab = (page: Page) => envLocators(page).variablesTab();
 const secretsTab = (page: Page) => envLocators(page).secretsTab();
 const collectionEnvTab = (page: Page) => envLocators(page).collectionEnvTab();
@@ -417,6 +423,59 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     });
   });
 
+  test('blocks saving two secrets that share a name', async ({ page, createTmpDir }) => {
+    await importCollection(page, collectionFile, await createTmpDir('secret-duplicate-name'), {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, 'Duplicate Secret Env', 'collection');
+
+    await test.step('Add two secrets with the same name on the Secrets tab', async () => {
+      await secretsTab(page).click();
+      await addRowToActiveTab(page, 'apiToken', 'first-value');
+      // A second row reusing the name a duplicate is defined by its name, so only the name is filled.
+      await envLocators(page).addRowNameInput().fill('apiToken');
+    });
+
+    await test.step('The duplicate row is flagged inline', async () => {
+      await expect(varErrors(page)).toHaveCount(1);
+    });
+
+    await test.step('Saving is blocked with an error and no success toast', async () => {
+      await saveEnvironment(page);
+      await expect(toastByMessage(page, DUPLICATE_SECRET_TOAST)).toBeVisible();
+      await expect(toastByMessage(page, 'Changes saved successfully')).toHaveCount(0);
+    });
+
+    await test.step('Renaming the duplicate to a unique name clears the error and lets it save', async () => {
+      await varNameInput(page, 'apiToken').fill('apiTokenBackup');
+      await expect(varErrors(page)).toHaveCount(0);
+      await saveEnvironment(page);
+      await expect(toastByMessage(page, 'Changes saved successfully').last()).toBeVisible();
+    });
+  });
+
+  test('still allows duplicate names on the Variables tab', async ({ page, createTmpDir }) => {
+    await importCollection(page, collectionFile, await createTmpDir('variable-duplicate-name'), {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, 'Duplicate Variable Env', 'collection');
+
+    await test.step('Add two variables with the same name on the Variables tab', async () => {
+      await expect(variablesTab(page)).toHaveClass(/active/);
+      await addRowToActiveTab(page, 'host', 'first-value');
+      await envLocators(page).addRowNameInput().fill('host');
+      await expect(varRow(page, 'host')).toHaveCount(2);
+    });
+
+    await test.step('No duplicate-name error is shown and the save succeeds', async () => {
+      await expect(varErrors(page)).toHaveCount(0);
+      await saveEnvironment(page);
+      await expect(toastByMessage(page, 'Changes saved successfully').last()).toBeVisible();
+    });
+  });
+
   test('keeps unsaved variable and secret drafts after navigating to the collection overview and back', async ({ page, createTmpDir }) => {
     await importCollection(page, collectionFile, await createTmpDir('var-secret-draft-persist'), {
       expectedCollectionName: 'test_collection'
@@ -809,6 +868,38 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     await test.step('The plain variable kept its own value (not overwritten by the secret)', async () => {
       await variablesTab(page).click();
       await expect(varRowValueLine(page, SHARED_KEY)).toHaveText(PLAIN_VALUE);
+    });
+  });
+
+  test('blocks saving two secrets that share a name', async ({ page, createTmpDir }) => {
+    await importCollection(page, collectionFile, await createTmpDir('global-secret-duplicate-name'), {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, 'Global Duplicate Secret Env', 'global');
+
+    await test.step('Add two secrets with the same name on the Secrets tab', async () => {
+      await secretsTab(page).click();
+      await addRowToActiveTab(page, 'apiToken', 'first-value');
+      // A second row reusing the name a duplicate is defined by its name, so only the name is filled.
+      await envLocators(page).addRowNameInput().fill('apiToken');
+    });
+
+    await test.step('The duplicate row is flagged inline', async () => {
+      await expect(varErrors(page)).toHaveCount(1);
+    });
+
+    await test.step('Saving is blocked with an error and no success toast', async () => {
+      await saveEnvironment(page);
+      await expect(toastByMessage(page, DUPLICATE_SECRET_TOAST)).toBeVisible();
+      await expect(toastByMessage(page, 'Changes saved successfully')).toHaveCount(0);
+    });
+
+    await test.step('Renaming the duplicate to a unique name clears the error and lets it save', async () => {
+      await varNameInput(page, 'apiToken').fill('apiTokenBackup');
+      await expect(varErrors(page)).toHaveCount(0);
+      await saveEnvironment(page);
+      await expect(toastByMessage(page, 'Changes saved successfully').last()).toBeVisible();
     });
   });
 });
