@@ -52,9 +52,14 @@ jobs:
           check_run: false
 
   e2e-test:
-    name: Playwright E2E Tests (Linux)
+    name: Playwright E2E Tests (Linux) ${{ matrix.shard }}/${{ matrix.shardTotal }}
     timeout-minutes: 240
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shardTotal: [4]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v6
 
@@ -81,10 +86,41 @@ jobs:
         uses: ./.github/actions/tests/run-e2e-tests
         with:
           os: ubuntu
+          shard: ${{ matrix.shard }}/${{ matrix.shardTotal }}
 
-      - name: Upload Playwright Report
+      - name: Upload blob report
         uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}
+        with:
+          name: blob-report-linux-${{ matrix.shard }}
+          path: blob-report/
+          retention-days: 7
+
+  e2e-test-report:
+    name: Merge Playwright Reports (Linux)
+    if: ${{ !cancelled() }}
+    needs: [e2e-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node Dependencies
+        uses: ./.github/actions/common/setup-node-deps
+        with:
+          skip-build: 'true'
+
+      - name: Download blob reports
+        uses: actions/download-artifact@v6
+        with:
+          path: all-blob-reports
+          pattern: blob-report-linux-*
+          merge-multiple: true
+
+      - name: Merge into HTML report
+        run: npx playwright merge-reports --config=playwright.merge.config.ts ./all-blob-reports
+
+      - name: Upload merged Playwright report
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report-linux
           path: playwright-report/
