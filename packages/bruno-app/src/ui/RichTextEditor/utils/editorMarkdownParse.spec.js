@@ -1,4 +1,4 @@
-import { normalizeTaskListMarkdown } from './EditorMarkdownParse';
+import { normalizeTaskListMarkdown } from './editorMarkdownParse';
 
 describe('EditorMarkdownParse', () => {
   it('normalizes task list markdown', () => {
