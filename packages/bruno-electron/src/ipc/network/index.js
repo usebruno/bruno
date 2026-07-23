@@ -39,7 +39,12 @@ const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { easterEggResponse } = require('../../utils/woof');
-const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
+const {
+  buildFormUrlEncodedPayload,
+  isFormUrlEncodedContentType,
+  isFormData,
+  extractBoundaryFromContentType
+} = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
@@ -628,7 +633,7 @@ const registerNetworkIpc = (mainWindow) => {
     // stringify the request url encoded params
     const contentTypeHeader = Object.keys(request.headers).find((name) => name.toLowerCase() === 'content-type');
 
-    if (contentTypeHeader && request.headers[contentTypeHeader] === 'application/x-www-form-urlencoded') {
+    if (contentTypeHeader && isFormUrlEncodedContentType(request.headers[contentTypeHeader])) {
       if (Array.isArray(request.data)) {
         request.data = buildFormUrlEncodedPayload(request.data);
       } else if (typeof request.data !== 'string') {
