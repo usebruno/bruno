@@ -9,6 +9,7 @@ const {
   extractTypedAnnotations
 } = require('./utils');
 const parseExample = require('./example/bruToJson');
+const { SCRIPTING_PHASES } = require('@usebruno/common');
 
 // `.bru` script block type (BRU_TYPE) -> store field, from the shared registry.
 const FIELD_BY_BRU_TYPE = Object.fromEntries(SCRIPTING_PHASES.map((phase) => [phase.BRU_TYPE, phase.FIELD]));
@@ -877,35 +878,14 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         oauth2:
           grantTypeKey?.value && grantTypeKey?.value == 'password'
             ? {
-              grantType: grantTypeKey ? grantTypeKey.value : '',
-              accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
-              refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
-              username: usernameKey ? usernameKey.value : '',
-              password: passwordKey ? passwordKey.value : '',
-              clientId: clientIdKey ? clientIdKey.value : '',
-              clientSecret: clientSecretKey ? clientSecretKey.value : '',
-              scope: scopeKey ? scopeKey.value : '',
-              credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
-              credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
-              tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
-              tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
-              tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
-              tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
-              autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
-              autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
-            }
-            : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
-              ? {
                 grantType: grantTypeKey ? grantTypeKey.value : '',
-                callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
-                authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
                 accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
                 refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
+                username: usernameKey ? usernameKey.value : '',
+                password: passwordKey ? passwordKey.value : '',
                 clientId: clientIdKey ? clientIdKey.value : '',
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
                 scope: scopeKey ? scopeKey.value : '',
-                state: stateKey ? stateKey.value : '',
-                pkce: pkceKey ? safeParseJson(pkceKey?.value) ?? false : false,
                 credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
                 credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
                 tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
@@ -915,14 +895,18 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
                 autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
               }
-              : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
-                ? {
+            : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
+              ? {
                   grantType: grantTypeKey ? grantTypeKey.value : '',
+                  callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                  authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
                   accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
                   refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
                   clientId: clientIdKey ? clientIdKey.value : '',
                   clientSecret: clientSecretKey ? clientSecretKey.value : '',
                   scope: scopeKey ? scopeKey.value : '',
+                  state: stateKey ? stateKey.value : '',
+                  pkce: pkceKey ? safeParseJson(pkceKey?.value) ?? false : false,
                   credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
                   credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
                   tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
@@ -932,21 +916,38 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                   autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
                   autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
                 }
-                : grantTypeKey?.value && grantTypeKey?.value == 'implicit'
-                  ? {
+              : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
+                ? {
                     grantType: grantTypeKey ? grantTypeKey.value : '',
-                    callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
-                    authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
+                    accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                    refreshTokenUrl: refreshTokenUrlKey ? refreshTokenUrlKey.value : '',
                     clientId: clientIdKey ? clientIdKey.value : '',
+                    clientSecret: clientSecretKey ? clientSecretKey.value : '',
                     scope: scopeKey ? scopeKey.value : '',
-                    state: stateKey ? stateKey.value : '',
+                    credentialsPlacement: credentialsPlacementKey?.value ? credentialsPlacementKey.value : 'body',
                     credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
                     tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
                     tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                     tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
                     tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
-                    autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true
+                    autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true,
+                    autoRefreshToken: autoRefreshTokenKey ? safeParseJson(autoRefreshTokenKey?.value) ?? false : false
                   }
+                : grantTypeKey?.value && grantTypeKey?.value == 'implicit'
+                  ? {
+                      grantType: grantTypeKey ? grantTypeKey.value : '',
+                      callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                      authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
+                      clientId: clientIdKey ? clientIdKey.value : '',
+                      scope: scopeKey ? scopeKey.value : '',
+                      state: stateKey ? stateKey.value : '',
+                      credentialsId: credentialsIdKey?.value ? credentialsIdKey.value : 'credentials',
+                      tokenSource: tokenSourceKey?.value ? tokenSourceKey.value : 'access_token',
+                      tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
+                      tokenHeaderPrefix: tokenHeaderPrefixKey?.value ? tokenHeaderPrefixKey.value : '',
+                      tokenQueryKey: tokenQueryKeyKey?.value ? tokenQueryKeyKey.value : 'access_token',
+                      autoFetchToken: autoFetchTokenKey ? safeParseJson(autoFetchTokenKey?.value) ?? true : true
+                    }
                   : {}
       }
     };
