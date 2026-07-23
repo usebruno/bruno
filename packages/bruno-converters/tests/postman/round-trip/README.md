@@ -113,9 +113,8 @@ preserved — rather than by `JSON.stringify` or reference equality. Two reasons
 ### `normalizeAuth` — array-backed → map
 
 Postman's v2.1 auth is an array of `{key, value, type}`. We collapse it to a plain `{key: value}` map so
-that (a) param ordering doesn't matter and (b) the `type` tag (always `'string'`/`'any'`, never
-semantically meaningful) doesn't create false diffs. Missing auth normalizes to `null` so "no auth"
-compares equal on both sides.
+that (a) param ordering doesn't matter and (b) the `type` tag is ignored because it is not semantically meaningful. 
+Missing auth normalizes to `null` so "no auth" compares equal on both sides.
 
 ### `absent === ""` collapse
 
