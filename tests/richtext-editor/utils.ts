@@ -13,7 +13,7 @@ export const setupRequestDocs = async (page: any, createTmpDir: any, collectionN
   await locators.dropdown.item('New Request').click();
   await page.getByTestId('request-name').fill('test-req');
   await locators.modal.button('Create').click();
-
+  await locators.modal.backdrop().waitFor({ state: 'hidden' });
   await expect(locators.tabs.requestTab('test-req')).toBeVisible();
 
   await page.waitForSelector('.request-pane');
