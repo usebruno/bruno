@@ -1,13 +1,14 @@
 import { Page } from '@playwright/test';
 import path from 'path';
 import { expect, test } from '../../../playwright';
-import { addRowToActiveTab, closeAllCollections, createEnvironment, deleteAllGlobalEnvironments, importCollection, saveEnvironment } from '../../utils/page';
+import { addRowToActiveTab, closeAllCollections, createEnvironment, deleteAllGlobalEnvironments, importCollection, openCollection, saveEnvironment } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 const envLocators = (page: Page) => buildCommonLocators(page).environment;
 
 const variablesTab = (page: Page) => envLocators(page).variablesTab();
 const secretsTab = (page: Page) => envLocators(page).secretsTab();
+const collectionEnvTab = (page: Page) => envLocators(page).collectionEnvTab();
 const varRow = (page: Page, name: string) => envLocators(page).varRow(name);
 const varRowValueLine = (page: Page, name: string) => envLocators(page).varRowValueLine(name);
 const saveTab = (page: Page) => envLocators(page).saveTab();
@@ -372,6 +373,91 @@ test.describe('Environment Variables / Secrets tab separation', () => {
       await expect(varRow(page, 'host')).toBeVisible();
     });
   });
+
+  test('a secret keeps its own value when a plain variable shares its name', async ({
+    page,
+    createTmpDir
+  }) => {
+    const ENV_NAME = 'Collision Env';
+    const SHARED_KEY = 'token';
+    const PLAIN_VALUE = 'plain-variable-value';
+    const SECRET_VALUE = 'super-secret-value-98765';
+
+    const collectionDir = await createTmpDir('var-secret-name-collision');
+    await importCollection(page, collectionFile, collectionDir, {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, ENV_NAME, 'collection');
+
+    await test.step('Add a plain variable and a secret that share the name `token`', async () => {
+      await expect(variablesTab(page)).toHaveClass(/active/);
+      await addRowToActiveTab(page, SHARED_KEY, PLAIN_VALUE);
+      await expect(varRowValueLine(page, SHARED_KEY)).toHaveText(PLAIN_VALUE);
+
+      await secretsTab(page).click();
+      await addRowToActiveTab(page, SHARED_KEY, SECRET_VALUE);
+      await expect(varRow(page, SHARED_KEY)).toBeVisible();
+    });
+
+    await test.step('Save both tabs at once', async () => {
+      await saveEnvironment(page);
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+    });
+
+    await test.step('The secret still reveals its own value (not blanked)', async () => {
+      await secretsTab(page).click();
+      await expect(varRow(page, SHARED_KEY)).toBeVisible();
+      await envLocators(page).varRowEyeToggle(SHARED_KEY).click();
+      await expect(envLocators(page).varRowValueEditor(SHARED_KEY)).toContainText(SECRET_VALUE);
+    });
+
+    await test.step('The plain variable kept its own value (not overwritten by the secret)', async () => {
+      await variablesTab(page).click();
+      await expect(varRowValueLine(page, SHARED_KEY)).toHaveText(PLAIN_VALUE);
+    });
+  });
+
+  test('keeps unsaved variable and secret drafts after navigating to the collection overview and back', async ({ page, createTmpDir }) => {
+    await importCollection(page, collectionFile, await createTmpDir('var-secret-draft-persist'), {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, 'Draft Persist Env', 'collection');
+
+    await test.step('Add an unsaved variable on the Variables tab', async () => {
+      await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
+      await expect(varRow(page, 'host')).toBeVisible();
+    });
+
+    await test.step('Add an unsaved secret on the Secrets tab', async () => {
+      await secretsTab(page).click();
+      await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
+      await expect(varRow(page, 'apiToken')).toBeVisible();
+    });
+
+    await test.step('Navigate to the collection overview, then back to the environment tab', async () => {
+      // Env-var edits are written to the draft on a 300ms debounce, and the editor unmounts when its
+      // tab loses focus — wait for the draft to commit before navigating away (mirrors the snapshot suite).
+      await expect(tabDraftIcon(page)).toBeVisible();
+      await page.waitForTimeout(500);
+
+      await openCollection(page, 'test_collection');
+      await collectionEnvTab(page).click();
+    });
+
+    await test.step('The unsaved variable draft is restored on the Variables tab', async () => {
+      await variablesTab(page).click();
+      await expect(varRow(page, 'host')).toBeVisible();
+      await expect(varRow(page, 'apiToken')).toHaveCount(0);
+    });
+
+    await test.step('The unsaved secret draft is restored on the Secrets tab', async () => {
+      await secretsTab(page).click();
+      await expect(varRow(page, 'apiToken')).toBeVisible();
+      await expect(varRow(page, 'host')).toHaveCount(0);
+    });
+  });
 });
 
 test.describe('Global Environment Variables / Secrets tab separation', () => {
@@ -681,6 +767,49 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     await test.step('The variable on the Variables tab is untouched', async () => {
       await variablesTab(page).click();
       await expect(varRow(page, 'host')).toBeVisible();
+    });
+  });
+
+  test('a secret keeps its own value when a plain variable shares its name', async ({
+    page,
+    createTmpDir
+  }) => {
+    const ENV_NAME = 'Global Collision Env';
+    const SHARED_KEY = 'token';
+    const PLAIN_VALUE = 'plain-variable-value';
+    const SECRET_VALUE = 'super-secret-value-98765';
+
+    await importCollection(page, collectionFile, await createTmpDir('global-var-secret-name-collision'), {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, ENV_NAME, 'global');
+
+    await test.step('Add a plain variable and a secret that share the name `token`', async () => {
+      await expect(variablesTab(page)).toHaveClass(/active/);
+      await addRowToActiveTab(page, SHARED_KEY, PLAIN_VALUE);
+      await expect(varRowValueLine(page, SHARED_KEY)).toHaveText(PLAIN_VALUE);
+
+      await secretsTab(page).click();
+      await addRowToActiveTab(page, SHARED_KEY, SECRET_VALUE);
+      await expect(varRow(page, SHARED_KEY)).toBeVisible();
+    });
+
+    await test.step('Save both tabs at once', async () => {
+      await saveEnvironment(page);
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+    });
+
+    await test.step('The secret still reveals its own value (not blanked)', async () => {
+      await secretsTab(page).click();
+      await expect(varRow(page, SHARED_KEY)).toBeVisible();
+      await envLocators(page).varRowEyeToggle(SHARED_KEY).click();
+      await expect(envLocators(page).varRowValueEditor(SHARED_KEY)).toContainText(SECRET_VALUE);
+    });
+
+    await test.step('The plain variable kept its own value (not overwritten by the secret)', async () => {
+      await variablesTab(page).click();
+      await expect(varRowValueLine(page, SHARED_KEY)).toHaveText(PLAIN_VALUE);
     });
   });
 });

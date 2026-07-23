@@ -252,7 +252,9 @@ export const sendAiMessage = (
   requestContext,
   model,
   contentType = 'app',
-  variables = []
+  variables = [],
+  appEnabled = true,
+  requests = []
 ) => async (dispatch, getState) => {
   const { ipcRenderer } = window;
 
@@ -389,8 +391,10 @@ export const sendAiMessage = (
       contentType,
       requestContext,
       variables,
+      requests,
       requestId,
-      model
+      model,
+      appEnabled
     });
   });
 };
