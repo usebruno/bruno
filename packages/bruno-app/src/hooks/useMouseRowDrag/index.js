@@ -2,6 +2,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 export const DRAG_ROW_KEY_ATTR = 'data-drag-row-key';
 
+const movePreviewTo = (preview, x, y) => {
+  preview.style.transform = `translate(${(x + 12) / 16}rem, ${(y + 12) / 16}rem)`;
+};
+
+const findRowKeyAt = (overlay, x, y) => {
+  overlay.style.pointerEvents = 'none';
+  const target = document.elementFromPoint(x, y);
+  overlay.style.pointerEvents = 'auto';
+  const row = target?.closest?.(`[${DRAG_ROW_KEY_ATTR}]`);
+  return row?.getAttribute(DRAG_ROW_KEY_ATTR) ?? null;
+};
+
 export const useMouseRowDrag = ({ enabled, onReorder }) => {
   const [draggingKey, setDraggingKey] = useState(null);
   const [dragOverKey, setDragOverKey] = useState(null);
@@ -24,18 +36,15 @@ export const useMouseRowDrag = ({ enabled, onReorder }) => {
       top: 0;
       left: 0;
       z-index: 10000;
-      padding: 4px 10px;
-      border-radius: 4px;
+      padding: 0.25rem 0.625rem;
+      border-radius: 0.25rem;
       background: rgba(30, 30, 30, 0.9);
       color: #fff;
-      font-size: 12px;
+      font-size: 0.75rem;
       white-space: nowrap;
       pointer-events: none;
     `;
-    const movePreviewTo = (x, y) => {
-      preview.style.transform = `translate(${x + 12}px, ${y + 12}px)`;
-    };
-    movePreviewTo(e.clientX, e.clientY);
+    movePreviewTo(preview, e.clientX, e.clientY);
 
     document.body.appendChild(overlay);
     document.body.appendChild(preview);
@@ -44,18 +53,9 @@ export const useMouseRowDrag = ({ enabled, onReorder }) => {
 
     setDraggingKey(key);
 
-    const findRowKeyAt = (x, y) => {
-      overlay.style.pointerEvents = 'none';
-      const target = document.elementFromPoint(x, y);
-      overlay.style.pointerEvents = 'auto';
-      const row = target?.closest?.(`[${DRAG_ROW_KEY_ATTR}]`);
-      return row?.getAttribute(DRAG_ROW_KEY_ATTR) ?? null;
-    };
-
     const handleMouseMove = (moveEvent) => {
-      movePreviewTo(moveEvent.clientX, moveEvent.clientY);
-      const hoveredKey = findRowKeyAt(moveEvent.clientX, moveEvent.clientY);
-      setDragOverKey((prev) => (prev === hoveredKey ? prev : hoveredKey));
+      movePreviewTo(preview, moveEvent.clientX, moveEvent.clientY);
+      setDragOverKey(findRowKeyAt(overlay, moveEvent.clientX, moveEvent.clientY));
     };
 
     const cleanup = () => {
@@ -68,7 +68,7 @@ export const useMouseRowDrag = ({ enabled, onReorder }) => {
     };
 
     const handleMouseUp = (upEvent) => {
-      const toKey = findRowKeyAt(upEvent.clientX, upEvent.clientY);
+      const toKey = findRowKeyAt(overlay, upEvent.clientX, upEvent.clientY);
       cleanup();
       setDraggingKey(null);
       setDragOverKey(null);

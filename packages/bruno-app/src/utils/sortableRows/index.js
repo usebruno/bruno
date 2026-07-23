@@ -4,9 +4,9 @@ export const sortRowsByName = (rows, mode, getName = defaultGetName) => {
   if (mode !== 'asc' && mode !== 'desc') {
     return rows;
   }
+  const direction = mode === 'desc' ? -1 : 1;
   const compare = (a, b) => (getName(a) || '').localeCompare(getName(b) || '', undefined, { sensitivity: 'base', numeric: true });
-  const sorted = [...rows].sort(compare);
-  return mode === 'desc' ? sorted.reverse() : sorted;
+  return [...rows].sort((a, b) => compare(a, b) * direction);
 };
 
 export const reconcileEditsToRealOrder = (realRows, editedDisplayRows) => {

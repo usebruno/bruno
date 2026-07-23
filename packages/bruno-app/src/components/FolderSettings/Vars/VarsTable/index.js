@@ -14,10 +14,8 @@ import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 import { setFolderVars, moveFolderVar } from 'providers/ReduxStore/slices/collections/index';
-import { useSortableEditableTableRows } from 'hooks/useSortableEditableTableRows';
-import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
 
-const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0, hasDraft }) => {
+const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0, isDraft }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -46,13 +44,6 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0, hasDr
     dispatch(moveFolderVar({ type: varType, collectionUid: collection.uid, folderUid: folder.uid, updateReorderedItem }));
   }, [dispatch, varType, collection.uid, folder.uid]);
 
-  const { displayRows, handleChange, reorderable, cycleSortMode, SortIcon, sortLabel } = useSortableEditableTableRows({
-    storageKey: `folder-vars-sort::${folder.uid}::${varType}`,
-    rows: vars || [],
-    onChange: handleVarsChange,
-    hasDraft
-  });
-
   const getRowError = useCallback((row, index, key) => {
     if (key !== 'name') return null;
     if (!row.name || row.name.trim() === '') return null;
@@ -73,9 +64,9 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0, hasDr
   const columns = [
     {
       key: 'name',
-      name: <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} testId={`column-sort-toggle-folder-${varType}`} />,
-      onHeaderClick: cycleSortMode,
+      name: 'Name',
       isKeyField: true,
+      sortable: true,
       placeholder: 'Name',
       width: '25%'
     },
@@ -135,10 +126,12 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0, hasDr
         tableId="folder-vars"
         testId={`folder-vars-${varType === 'response' ? 'res' : 'req'}`}
         columns={columns}
-        rows={displayRows}
-        onChange={handleChange}
-        reorderable={reorderable}
+        rows={vars || []}
+        onChange={handleVarsChange}
+        reorderable
         onReorder={handleReorder}
+        sortStorageKey={`folder-vars-sort::${folder.uid}::${varType}`}
+        isDraft={isDraft}
         defaultRow={defaultRow}
         getRowError={getRowError}
         columnWidths={folderVarsWidths}
