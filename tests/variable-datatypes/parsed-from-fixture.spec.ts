@@ -115,7 +115,7 @@ const SLOW_RENDER_TIMEOUT_MS = 15_000;
 const expectTypeLabel = async (row: Locator, label: string) => {
   await scrollVirtuosoRowIntoView(row.page(), row);
   const { dataTypeSelector } = buildCommonLocators(row.page());
-  await expect(dataTypeSelector.typeLabel(row)).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
+  await expect(dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', label, { timeout: SLOW_RENDER_TIMEOUT_MS });
 };
 
 /**
@@ -126,13 +126,15 @@ const expectTypeLabel = async (row: Locator, label: string) => {
 const changeRowDataType = async (page: Page, row: Locator, newType: string) => {
   const { dataTypeSelector } = buildCommonLocators(page);
   const trigger = dataTypeSelector.typeLabel(row);
+  // Hover the row first so the compact overlay's pointer-events become 'auto'.
+  await row.hover();
   await trigger.click();
 
   const menuItem = dataTypeSelector.menuItem(newType);
   await expect(menuItem).toBeVisible();
   await menuItem.click();
 
-  await expect(trigger).toHaveText(newType);
+  await expect(trigger).toHaveAttribute('data-selected-type', newType);
   // Let the dispatched Redux mutation propagate before the caller saves.
   await page.waitForTimeout(300);
 };
@@ -267,12 +269,18 @@ const openEnvironmentSettings = async (page: Page, type: 'collection' | 'global'
   await expect(locators.tabs.activeRequestTab()).toContainText(tabTitle);
 };
 
-/** Assert the DataTypeSelector inside an env-var row reports the expected label. */
-const expectEnvVarTypeLabel = async (page: Page, name: string, label: string) => {
+/**
+ * Assert the DataTypeSelector inside an env-var row reports the expected label.
+ * Variables and secrets render on separate tabs in the env editor, so activate
+ * the tab that owns this var before asserting (pass `{ secret: true }` for
+ * secret rows, which live on the Secrets tab).
+ */
+const expectEnvVarTypeLabel = async (page: Page, name: string, label: string, { secret = false } = {}) => {
   const { environment, dataTypeSelector } = buildCommonLocators(page);
+  await (secret ? environment.secretsTab() : environment.variablesTab()).click();
   const row = environment.varRow(name);
   await scrollVirtuosoRowIntoView(page, row);
-  await expect(dataTypeSelector.typeLabel(row)).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
+  await expect(dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', label, { timeout: SLOW_RENDER_TIMEOUT_MS });
 };
 
 /**
@@ -288,14 +296,14 @@ const runSecretDataTypeLabelAssertions = async (page: Page, collectionName: stri
   await selectEnvironment(page, 'variables', 'global');
 
   await openEnvironmentSettings(page, 'collection');
-  await expectEnvVarTypeLabel(page, 'env_secret_num', 'number');
-  await expectEnvVarTypeLabel(page, 'env_secret_bool', 'boolean');
-  await expectEnvVarTypeLabel(page, 'env_secret_obj', 'object');
+  await expectEnvVarTypeLabel(page, 'env_secret_num', 'number', { secret: true });
+  await expectEnvVarTypeLabel(page, 'env_secret_bool', 'boolean', { secret: true });
+  await expectEnvVarTypeLabel(page, 'env_secret_obj', 'object', { secret: true });
 
   await openEnvironmentSettings(page, 'global');
-  await expectEnvVarTypeLabel(page, 'glob_secret_num', 'number');
-  await expectEnvVarTypeLabel(page, 'glob_secret_bool', 'boolean');
-  await expectEnvVarTypeLabel(page, 'glob_secret_obj', 'object');
+  await expectEnvVarTypeLabel(page, 'glob_secret_num', 'number', { secret: true });
+  await expectEnvVarTypeLabel(page, 'glob_secret_bool', 'boolean', { secret: true });
+  await expectEnvVarTypeLabel(page, 'glob_secret_obj', 'object', { secret: true });
 };
 
 /**
@@ -501,11 +509,11 @@ const runDataTypeSelectorTests = (
     await openRequestInCollection(page, collectionName);
     await selectRequestPaneTab(page, 'Params');
     const queryTable = buildCommonLocators(page).table('query-params');
-    await expect(queryTable.container().locator('.type-label')).toHaveCount(0);
+    await expect(queryTable.container().getByTestId('datatype-selector-trigger')).toHaveCount(0);
 
     await selectRequestPaneTab(page, 'Headers');
     const headersTable = buildCommonLocators(page).table('request-headers');
-    await expect(headersTable.container().locator('.type-label')).toHaveCount(0);
+    await expect(headersTable.container().getByTestId('datatype-selector-trigger')).toHaveCount(0);
   });
 
   test('test script: every typed var across scopes asserts true', async ({ pageWithUserData: page }) => {
@@ -630,13 +638,13 @@ const runDataTypeSelectorTests = (
     await expectEnvVarTypeLabel(page, 'env_untyped_num', 'string');
     await expectEnvVarTypeLabel(page, 'env_untyped_bool', 'string');
     await expectEnvVarTypeLabel(page, 'env_untyped_obj', 'string');
-    await expectEnvVarTypeLabel(page, 'env_secret_untyped', 'string');
+    await expectEnvVarTypeLabel(page, 'env_secret_untyped', 'string', { secret: true });
 
     await openEnvironmentSettings(page, 'global');
     await expectEnvVarTypeLabel(page, 'glob_untyped_num', 'string');
     await expectEnvVarTypeLabel(page, 'glob_untyped_bool', 'string');
     await expectEnvVarTypeLabel(page, 'glob_untyped_obj', 'string');
-    await expectEnvVarTypeLabel(page, 'glob_secret_untyped', 'string');
+    await expectEnvVarTypeLabel(page, 'glob_secret_untyped', 'string', { secret: true });
   });
 
   test('env editor: secret variables display their declared dataType label', async ({ pageWithUserData: page }) => {

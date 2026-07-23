@@ -175,6 +175,8 @@ export interface BrunoPresets {
 
 export interface BrunoConfig {
   version?: string;
+  // present only for OpenCollection (yml) collections; its presence marks the format.
+  opencollection?: string;
   name?: string;
   type?: string;
   ignore?: string[];

@@ -39,7 +39,8 @@ export const SingleWSMessage = ({
   isNew,
   onNewRendered,
   isSelected,
-  onSelect
+  onSelect,
+  paneHeight
 }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
@@ -85,6 +86,10 @@ export const SingleWSMessage = ({
     } else if (e.key === 'Escape') {
       setEditValue(displayName);
       setIsEditing(false);
+    } else if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      saveName(editValue);
+      dispatch(saveRequest(item.uid, collection.uid));
     }
   };
 
@@ -101,11 +106,16 @@ export const SingleWSMessage = ({
   const fontSize = get(preferences, 'font.codeFontSize', 14);
   const lineHeight = fontSize * 1.5;
 
+  const HEADER_ALLOWANCE = 44;
+  const maxEditorHeight = paneHeight
+    ? Math.max(160, paneHeight - HEADER_ALLOWANCE)
+    : Math.round((typeof window !== 'undefined' ? window.innerHeight : 900) * 0.6);
   const editorHeight = useMemo(() => {
     const lineCount = (content || '').split('\n').length;
     const lines = lineCount + 1;
-    return `${lines * lineHeight + 10}px`;
-  }, [content, lineHeight]);
+    const contentHeight = lines * lineHeight + 10;
+    return `${Math.min(contentHeight, maxEditorHeight)}px`;
+  }, [content, lineHeight, maxEditorHeight]);
 
   const onUpdateMessageType = (newMode) => {
     const currentMessages = [...(body.ws || [])];
@@ -169,8 +179,10 @@ export const SingleWSMessage = ({
   return (
     <StyledWrapper
       className={!isSelected ? 'disabled' : ''}
-      onMouseDownCapture={() => {
-        if (!isSelected) setTimeout(onSelect, 0);
+      data-testid={`ws-message-${index}`}
+      onMouseUpCapture={(e) => {
+        if (isSelected || e.target.closest('.hover-action-btn.delete')) return;
+        onSelect();
       }}
     >
       <div
@@ -217,10 +229,7 @@ export const SingleWSMessage = ({
               <span
                 className="message-label"
                 data-testid={`ws-message-label-${index}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onToggle();
-                }}
+                onClick={(e) => e.stopPropagation()}
                 onDoubleClick={handleNameClick}
               >
                 {displayName}
@@ -230,13 +239,13 @@ export const SingleWSMessage = ({
         </div>
         <div className="accordion-actions" onClick={(e) => e.stopPropagation()}>
           <div className="hover-actions">
-            <ToolHint text="Send" toolhintId={`send-msg-${index}`}>
+            <ToolHint text="Send" toolhintId={`send-msg-${index}`} place="bottom">
               <button onClick={onSendMessage} className="hover-action-btn" data-testid={`ws-send-msg-${index}`}>
                 <IconSend size={14} strokeWidth={1.5} />
               </button>
             </ToolHint>
             {(body.ws || []).length > 1 && (
-              <ToolHint text="Delete" toolhintId={`delete-msg-${index}`}>
+              <ToolHint text="Delete" toolhintId={`delete-msg-${index}`} place="bottom">
                 <button onClick={onDeleteMessage} className="hover-action-btn delete" data-testid={`ws-delete-msg-${index}`}>
                   <IconTrash size={14} strokeWidth={1.5} />
                 </button>
@@ -247,7 +256,11 @@ export const SingleWSMessage = ({
         </div>
       </div>
       {isExpanded && (
-        <div className="accordion-body" data-testid={`ws-message-body-${index}`} style={{ height: editorHeight }}>
+        <div
+          className="accordion-body"
+          data-testid={`ws-message-body-${index}`}
+          style={{ height: editorHeight }}
+        >
           <CodeEditor
             collection={collection}
             theme={displayedTheme}
@@ -259,6 +272,8 @@ export const SingleWSMessage = ({
             onSave={onSave}
             mode={codemirrorMode[displayMode] ?? 'text/plain'}
             enableVariableHighlighting={true}
+            docKey={`${item.uid}:ws-msg:${message.uid ?? index}`}
+            containScroll={true}
           />
         </div>
       )}

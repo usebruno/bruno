@@ -22,6 +22,8 @@ export const AppProvider = (props) => {
   useEffect(() => {
     dispatch(refreshScreenWidth());
     dispatch(hydrateApp());
+    // v3.5.0 v4 migration tab state; feature was removed from main.
+    localStorage.removeItem('v4-migration');
   }, []);
 
   useEffect(() => {

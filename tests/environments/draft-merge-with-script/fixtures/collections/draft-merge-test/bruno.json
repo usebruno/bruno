@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "draft-merge-test",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

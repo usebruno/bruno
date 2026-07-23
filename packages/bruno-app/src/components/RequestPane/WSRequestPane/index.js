@@ -52,7 +52,7 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
     currentMessages.push({
       uid: uuid(),
       name: `message ${currentMessages.length + 1}`,
-      content: '{}',
+      content: '',
       type: 'json',
       selected: true
     });

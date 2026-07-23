@@ -413,7 +413,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
 
     // Request should inherit auth mode
@@ -425,7 +426,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -470,7 +472,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -516,7 +519,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
 
     // Request should inherit auth mode
@@ -528,7 +532,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -573,7 +578,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
 
     // Request auth should default to 'none'
@@ -585,7 +591,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -635,7 +642,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
 
     // Request should inherit auth mode
@@ -647,7 +655,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -1452,7 +1461,8 @@ const expectedOutput = {
               apikey: null,
               oauth1: null,
               oauth2: null,
-              digest: null
+              digest: null,
+              ntlm: null
             },
             headers: [],
             params: [],
@@ -1482,7 +1492,8 @@ const expectedOutput = {
             apikey: null,
             oauth1: null,
             oauth2: null,
-            digest: null
+            digest: null,
+            ntlm: null
           },
           headers: [],
           script: {},
@@ -1507,7 +1518,8 @@ const expectedOutput = {
           apikey: null,
           oauth1: null,
           oauth2: null,
-          digest: null
+          digest: null,
+          ntlm: null
         },
         headers: [],
         params: [],
@@ -1538,7 +1550,8 @@ const expectedOutput = {
         apikey: null,
         oauth1: null,
         oauth2: null,
-        digest: null
+        digest: null,
+        ntlm: null
       },
       headers: [],
       script: {},

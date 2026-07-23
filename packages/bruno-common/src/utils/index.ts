@@ -38,3 +38,18 @@ export {
   BRUNO_VARIABLE_DATATYPES,
   isBrunoVariableDataType
 } from './datatype';
+
+export {
+  toDisplayString
+} from './string';
+
+export {
+  MAX_BODY_SIZE_DEFAULT,
+  isStrPresent,
+  makeEdgeGridTimestamp,
+  makeEdgeGridNonce,
+  canonicalizeHeaders,
+  base64HmacSha256,
+  base64Sha256,
+  makeContentHash
+} from './edgegrid';

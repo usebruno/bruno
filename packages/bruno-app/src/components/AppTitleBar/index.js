@@ -147,6 +147,8 @@ const AppTitleBar = () => {
   };
 
   const handleWorkspaceSwitch = (workspaceUid) => {
+    if (workspaceUid === activeWorkspaceUid) return;
+
     dispatch(switchWorkspace(workspaceUid));
     toast.success(`Switched to ${getWorkspaceDisplayName(workspaces.find((w) => w.uid === workspaceUid)?.name)}`);
   };

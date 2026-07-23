@@ -6,9 +6,12 @@
  */
 
 import React, { createRef } from 'react';
+import { useSelector } from 'react-redux';
 import { debounce, isEqual } from 'lodash';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { setupAutoComplete, showRootHints } from 'utils/codemirror/autocomplete';
+import { setupAiAutocomplete } from 'utils/codemirror/aiGhostText';
+import { buildAutocompleteContext } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
@@ -245,6 +248,19 @@ class CodeEditor extends React.Component {
           this.props.onScroll(this._lastScrollTop);
         }
       });
+
+      // For editors inside a scroll container (e.g. the WebSocket message list),
+      // stop the browser from scrolling that container on focus. Otherwise a
+      // click shifts the content mid-click, landing the cursor on the wrong line
+      // and jumping the editor. preventScroll keeps CodeMirror's own scrolling.
+      if (this.props.containScroll) {
+        const inputField = editor.getInputField();
+        if (inputField && typeof inputField.focus === 'function') {
+          const nativeFocus = inputField.focus.bind(inputField);
+          inputField.focus = (options) => nativeFocus({ ...(options || {}), preventScroll: true });
+        }
+      }
+
       this.addOverlay();
 
       const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
@@ -259,6 +275,24 @@ class CodeEditor extends React.Component {
         editor,
         autoCompleteOptions
       );
+
+      // AI ghost-text autocomplete (script editors only). Stays inert until
+      // the user has both enabled AI and configured a provider.
+      if (this.props.scriptType) {
+        this.aiAutocompleteCleanup = setupAiAutocomplete(editor, {
+          scriptType: this.props.scriptType,
+          isEnabled: () => {
+            const ai = this.props.aiPreferences;
+            return Boolean(ai?.enabled) && ai?.autocomplete?.enabled !== false;
+          },
+          getTriggerMode: () => this.props.aiPreferences?.autocomplete?.triggerMode || 'debounced',
+          getContext: () => buildAutocompleteContext({
+            item: this.props.item,
+            collection: this.props.collection,
+            scriptType: this.props.scriptType
+          })
+        });
+      }
 
       setupLinkAware(editor);
 
@@ -392,6 +426,7 @@ class CodeEditor extends React.Component {
         });
       }
 
+      this.aiAutocompleteCleanup?.();
       this.editor?._destroyLinkAware?.();
       this.editor.off('change', this._onEdit);
 
@@ -470,7 +505,15 @@ class CodeEditor extends React.Component {
 
 const CodeEditorWithPersistenceScope = React.forwardRef((props, ref) => {
   const persistenceScope = usePersistenceScope();
-  return <CodeEditor {...props} persistenceScope={persistenceScope} ref={ref} />;
+  const aiPreferences = useSelector((state) => state.app.preferences?.ai);
+  return (
+    <CodeEditor
+      {...props}
+      persistenceScope={persistenceScope}
+      aiPreferences={aiPreferences}
+      ref={ref}
+    />
+  );
 });
 
 CodeEditorWithPersistenceScope.displayName = 'CodeEditor';

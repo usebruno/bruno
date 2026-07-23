@@ -9,7 +9,7 @@ import {
 } from 'providers/ReduxStore/slices/global-environments';
 import EnvironmentVariablesTable from 'components/EnvironmentVariablesTable';
 
-const EnvironmentVariables = ({ environment, setIsModified, collection, searchQuery = '' }) => {
+const EnvironmentVariables = ({ environment, setIsModified, collection, searchQuery = '', variableType = 'variables' }) => {
   const dispatch = useDispatch();
   const { globalEnvironmentDraft } = useSelector((state) => state.globalEnvironments);
 
@@ -49,6 +49,7 @@ const EnvironmentVariables = ({ environment, setIsModified, collection, searchQu
       onDraftClear={handleDraftClear}
       setIsModified={setIsModified}
       searchQuery={searchQuery}
+      variableType={variableType}
     />
   );
 };

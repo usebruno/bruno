@@ -9,6 +9,7 @@ const { interpolateString, interpolateObject } = require('./interpolate-string')
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, formatErrorWithContext, SCRIPT_TYPES } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
+const { applyVariableUpdates, persistVariableUpdates } = require('../utils/persist-variables');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { setupProxyAgents } = require('../utils/proxy-util');
@@ -17,7 +18,7 @@ const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const { NtlmClient } = require('axios-ntlm');
-const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
+const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
 const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
@@ -93,8 +94,31 @@ const runSingleRequest = async function (
   runtime,
   collection,
   runSingleRequestByPathname,
-  globalEnvVars = {}
+  globalEnvVars = {},
+  persistPaths = {}
 ) {
+  const syncVariableUpdates = (result, currentRequest) => {
+    if (!result) return;
+    applyVariableUpdates(result, {
+      envVariables,
+      runtimeVariables,
+      globalEnvVars,
+      request: currentRequest
+    });
+    // Persistence is a side effect — never tank the run for it. In CI, env files may sit on
+    // read-only mounts or the user's shell may lack write permissions; log and continue.
+    try {
+      persistVariableUpdates(result, {
+        envFile: persistPaths.envFile,
+        globalEnvFile: persistPaths.globalEnvFile,
+        collection,
+        collectionRootPath: persistPaths.collectionRootPath,
+        envVarOverrides: persistPaths.envVarOverrides
+      });
+    } catch (err) {
+      console.warn(chalk.yellow(`Warning: failed to persist variable updates: ${err.message}`));
+    }
+  };
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
 
@@ -228,6 +252,7 @@ const runSingleRequest = async function (
           scriptingConfig,
           runSingleRequestByPathname,
           collectionName);
+        syncVariableUpdates(result, request);
         if (result?.nextRequestName !== undefined) {
           nextRequestName = result.nextRequestName;
         }
@@ -280,6 +305,9 @@ const runSingleRequest = async function (
 
         // Extract partial results from the error (tests that passed before the error)
         preRequestTestResults = error?.partialResults?.results || [];
+
+        // Persist any variable changes the script made before erroring
+        syncVariableUpdates(error?.partialResults, request);
 
         // Preserve nextRequestName if it was set before the error
         if (error?.partialResults?.nextRequestName !== undefined) {
@@ -664,6 +692,11 @@ const runSingleRequest = async function (
         delete request.digestConfig;
       }
 
+      if (request.edgeGridConfig) {
+        addEdgeGridInterceptor(axiosInstance, request);
+        delete request.edgeGridConfig;
+      }
+
       /** @type {import('axios').AxiosResponse} */
       response = await axiosInstance(request);
 
@@ -742,7 +775,7 @@ const runSingleRequest = async function (
     const postResponseVars = get(item, 'request.vars.res');
     if (postResponseVars?.length) {
       const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
-      varsRuntime.runPostResponseVars(
+      const result = varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
         response,
@@ -751,6 +784,9 @@ const runSingleRequest = async function (
         collectionPath,
         processEnvVars
       );
+      // Expressions can invoke bru.setEnvVar / setGlobalEnvVar / setCollectionVar as a side effect,
+      // mirroring how the desktop app surfaces these mutations after the vars block.
+      syncVariableUpdates(result, request);
     }
 
     // run post response script
@@ -771,6 +807,7 @@ const runSingleRequest = async function (
           runSingleRequestByPathname,
           collectionName
         );
+        syncVariableUpdates(result, request);
         if (result?.nextRequestName !== undefined) {
           nextRequestName = result.nextRequestName;
         }
@@ -801,6 +838,8 @@ const runSingleRequest = async function (
             isScriptError: true
           }
         ];
+
+        syncVariableUpdates(error?.partialResults, request);
 
         if (error?.partialResults?.nextRequestName !== undefined) {
           nextRequestName = error.partialResults.nextRequestName;
@@ -847,6 +886,7 @@ const runSingleRequest = async function (
           runSingleRequestByPathname,
           collectionName
         );
+        syncVariableUpdates(result, request);
         testResults = get(result, 'results', []);
 
         if (result?.nextRequestName !== undefined) {
@@ -878,6 +918,8 @@ const runSingleRequest = async function (
             isScriptError: true
           }
         ];
+
+        syncVariableUpdates(error?.partialResults, request);
 
         if (error?.partialResults?.nextRequestName !== undefined) {
           nextRequestName = error.partialResults.nextRequestName;
