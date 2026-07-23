@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const { getPhasesByRequestType, REQUEST_TYPES } = require('@usebruno/common');
 const { indentString, getValueString, getKeyString, getValueUrl, serializeVar, serializeAnnotations, buildAnnotationsFromKVItem } = require('./utils');
 const jsonToExampleBru = require('./example/jsonToBru');
 
@@ -290,8 +291,8 @@ ${indentString(`credentials_placement: ${auth?.oauth2?.credentialsPlacement || '
 ${indentString(`credentials_id: ${auth?.oauth2?.credentialsId || ''}`)}
 ${indentString(`token_source: ${auth?.oauth2?.tokenSource || 'access_token'}`)}
 ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
-          }${auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
-          }
+}${auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+}
 ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
 ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}
 }
@@ -314,8 +315,8 @@ ${indentString(`credentials_placement: ${auth?.oauth2?.credentialsPlacement || '
 ${indentString(`credentials_id: ${auth?.oauth2?.credentialsId || ''}`)}
 ${indentString(`token_source: ${auth?.oauth2?.tokenSource || 'access_token'}`)}
 ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
-          }${auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
-          }
+}${auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+}
 ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
 ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}
 }
@@ -334,8 +335,8 @@ ${indentString(`credentials_placement: ${auth?.oauth2?.credentialsPlacement || '
 ${indentString(`credentials_id: ${auth?.oauth2?.credentialsId || ''}`)}
 ${indentString(`token_source: ${auth?.oauth2?.tokenSource || 'access_token'}`)}
 ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
-          }${auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
-          }
+}${auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+}
 ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
 ${indentString(`auto_refresh_token: ${(auth?.oauth2?.autoRefreshToken ?? false).toString()}`)}
 }
@@ -353,8 +354,8 @@ ${indentString(`state: ${auth?.oauth2?.state || ''}`)}
 ${indentString(`credentials_id: ${auth?.oauth2?.credentialsId || ''}`)}
 ${indentString(`token_source: ${auth?.oauth2?.tokenSource || 'access_token'}`)}
 ${indentString(`token_placement: ${auth?.oauth2?.tokenPlacement || ''}`)}${auth?.oauth2?.tokenPlacement == 'header' ? '\n' + indentString(`token_header_prefix: ${auth?.oauth2?.tokenHeaderPrefix || ''}`) : ''
-          }${auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
-          }
+}${auth?.oauth2?.tokenPlacement !== 'header' ? '\n' + indentString(`token_query_key: ${auth?.oauth2?.tokenQueryKey || ''}`) : ''
+}
 ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toString()}`)}
 }
 
@@ -368,11 +369,11 @@ ${indentString(`auto_fetch_token: ${(auth?.oauth2?.autoFetchToken ?? true).toStr
       if (authorizationHeaders?.length) {
         bru += `auth:oauth2:additional_params:auth_req:headers {
 ${indentString(
-          authorizationHeaders
-            .filter((item) => item?.name?.length)
-            .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
-            .join('\n')
-        )}
+  authorizationHeaders
+    .filter((item) => item?.name?.length)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .join('\n')
+)}
 }
 
 `;
@@ -381,11 +382,11 @@ ${indentString(
       if (authorizationQueryParams?.length) {
         bru += `auth:oauth2:additional_params:auth_req:queryparams {
 ${indentString(
-          authorizationQueryParams
-            .filter((item) => item?.name?.length)
-            .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
-            .join('\n')
-        )}
+  authorizationQueryParams
+    .filter((item) => item?.name?.length)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .join('\n')
+)}
 }
 
 `;
@@ -394,11 +395,11 @@ ${indentString(
       if (tokenHeaders?.length) {
         bru += `auth:oauth2:additional_params:access_token_req:headers {
 ${indentString(
-          tokenHeaders
-            .filter((item) => item?.name?.length)
-            .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
-            .join('\n')
-        )}
+  tokenHeaders
+    .filter((item) => item?.name?.length)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .join('\n')
+)}
 }
 
 `;
@@ -407,11 +408,11 @@ ${indentString(
       if (tokenQueryParams?.length) {
         bru += `auth:oauth2:additional_params:access_token_req:queryparams {
 ${indentString(
-          tokenQueryParams
-            .filter((item) => item?.name?.length)
-            .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
-            .join('\n')
-        )}
+  tokenQueryParams
+    .filter((item) => item?.name?.length)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .join('\n')
+)}
 }
 
 `;
@@ -420,11 +421,11 @@ ${indentString(
       if (tokenBodyValues?.length) {
         bru += `auth:oauth2:additional_params:access_token_req:body {
 ${indentString(
-          tokenBodyValues
-            .filter((item) => item?.name?.length)
-            .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
-            .join('\n')
-        )}
+  tokenBodyValues
+    .filter((item) => item?.name?.length)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .join('\n')
+)}
 }
 
 `;
@@ -433,11 +434,11 @@ ${indentString(
       if (refreshHeaders?.length) {
         bru += `auth:oauth2:additional_params:refresh_token_req:headers {
 ${indentString(
-          refreshHeaders
-            .filter((item) => item?.name?.length)
-            .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
-            .join('\n')
-        )}
+  refreshHeaders
+    .filter((item) => item?.name?.length)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .join('\n')
+)}
 }
 
 `;
@@ -446,11 +447,11 @@ ${indentString(
       if (refreshQueryParams?.length) {
         bru += `auth:oauth2:additional_params:refresh_token_req:queryparams {
 ${indentString(
-          refreshQueryParams
-            .filter((item) => item?.name?.length)
-            .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
-            .join('\n')
-        )}
+  refreshQueryParams
+    .filter((item) => item?.name?.length)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .join('\n')
+)}
 }
 
 `;
@@ -459,11 +460,11 @@ ${indentString(
       if (refreshBodyValues?.length) {
         bru += `auth:oauth2:additional_params:refresh_token_req:body {
 ${indentString(
-          refreshBodyValues
-            .filter((item) => item?.name?.length)
-            .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
-            .join('\n')
-        )}
+  refreshBodyValues
+    .filter((item) => item?.name?.length)
+    .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}${item.enabled ? '' : '~'}${getKeyString(item.name)}: ${getValueString(item.value)}`)
+    .join('\n')
+)}
 }
 
 `;
@@ -626,7 +627,7 @@ ${indentString(body.sparql)}
         bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
 
         // Convert content to JSON string if it's an object
-        let jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
+        const jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
 
         // Wrap content with triple quotes for multiline support, without extra indentation
         bru += `${indentString(`content: '''\n${indentString(jsonValue)}\n'''`)}\n`;
@@ -652,7 +653,7 @@ ${indentString(body.sparql)}
         }
 
         // Convert content to JSON string if it's an object
-        let contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '';
+        const contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '';
 
         // Wrap content with triple quotes for multiline support, without extra indentation
         bru += `${indentString(`content: '''\n${indentString(contentValue)}\n'''`)}\n`;
@@ -661,8 +662,8 @@ ${indentString(body.sparql)}
     }
   }
 
-  let reqvars = _.get(vars, 'req');
-  let resvars = _.get(vars, 'res');
+  const reqvars = _.get(vars, 'req');
+  const resvars = _.get(vars, 'res');
   if (reqvars && reqvars.length) {
     const varsEnabled = _.filter(reqvars, (v) => v.enabled && !v.local);
     const varsDisabled = _.filter(reqvars, (v) => !v.enabled && !v.local);
