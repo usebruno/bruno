@@ -85,6 +85,7 @@
     "test:e2e": "playwright test --project=default --project=system-pac",
     "test:e2e:ssl": "playwright test --project=ssl",
     "test:e2e:auth": "playwright test --project=auth",
+    "test:e2e:mock-server": "playwright test --project=mock-server",
     "test:e2e:sanity": "playwright test --project=default --project=system-pac --grep @sanity",
     "test:benchmark": "playwright test --config=playwright.benchmark.config.ts",
     "lint": "cross-env NODE_OPTIONS=\"--max_old_space_size=4096\" npx eslint",

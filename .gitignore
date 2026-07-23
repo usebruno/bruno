@@ -50,8 +50,8 @@ bruno.iml
 .vscode
 .cursor
 .codex
-.agent
 .agents
+.agent
 skills-lock.json
 
 # Playwright
