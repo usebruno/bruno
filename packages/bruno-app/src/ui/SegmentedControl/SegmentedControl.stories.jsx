@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { IconWorld, IconApi, IconServer, IconPlugConnected } from '@tabler/icons';
+import { IconWorld, IconBolt, IconCirclesRelation, IconWifi } from '@tabler/icons';
 import SegmentedControl from './index';
 
 export default {
@@ -104,9 +104,9 @@ export const WithIcons = {
         onChange={setValue}
         items={[
           { value: 'http', label: 'HTTP', icon: <IconWorld size={15} strokeWidth={1.5} /> },
-          { value: 'graphql', label: 'GraphQL', icon: <IconApi size={15} strokeWidth={1.5} /> },
-          { value: 'grpc', label: 'gRPC', icon: <IconServer size={15} strokeWidth={1.5} /> },
-          { value: 'ws', label: 'WebSocket', icon: <IconPlugConnected size={15} strokeWidth={1.5} /> }
+          { value: 'graphql', label: 'GraphQL', icon: <IconBolt size={15} strokeWidth={1.5} /> },
+          { value: 'grpc', label: 'gRPC', icon: <IconCirclesRelation size={15} strokeWidth={1.5} /> },
+          { value: 'ws', label: 'WebSocket', icon: <IconWifi size={15} strokeWidth={1.5} /> }
         ]}
       />
     );
