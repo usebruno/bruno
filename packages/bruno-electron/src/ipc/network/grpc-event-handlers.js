@@ -461,9 +461,9 @@ const registerGrpcEventHandlers = (window) => {
         caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
       }
 
-      const clientCertConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.clientCertificates.certs', []) : get(collection, 'brunoConfig.clientCertificates.certs', []);
+      const collectionCerts = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.clientCertificates.certs', []) : get(collection, 'brunoConfig.clientCertificates.certs', []);
       const globalCerts = preferencesUtil.getGlobalClientCertificates();
-      clientCertConfig.push(...globalCerts);
+      const clientCertConfig = [...collectionCerts, ...globalCerts];
 
       for (let clientCert of clientCertConfig) {
         if (clientCert?.disabled) {

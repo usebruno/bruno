@@ -78,10 +78,7 @@ const StyledWrapper = styled.div`
   }
 
   .textbox {
-    border: 1px solid #ccc;
     padding: 0.15rem 0.45rem;
-    box-shadow: none;
-    border-radius: 0px;
     outline: none;
     box-shadow: none;
     transition: border-color ease-in-out 0.1s;
@@ -101,6 +98,7 @@ const StyledWrapper = styled.div`
     display: inline-block;
     width: 60px;
     overflow: hidden;
+    color: ${(props) => props.theme.colors.text.muted};
   }
 
   .protocol-https,

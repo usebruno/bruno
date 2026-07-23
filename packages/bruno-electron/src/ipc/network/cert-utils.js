@@ -66,9 +66,9 @@ const getCertsAndProxyConfig = async ({
   };
 
   // client certificate config
-  const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
+  const collectionCerts = get(brunoConfig, 'clientCertificates.certs', []);
   const globalCerts = preferencesUtil.getGlobalClientCertificates();
-  clientCertConfig.push(...globalCerts);
+  const clientCertConfig = [...collectionCerts, ...globalCerts];
 
   for (let clientCert of clientCertConfig) {
     if (clientCert?.disabled) {
