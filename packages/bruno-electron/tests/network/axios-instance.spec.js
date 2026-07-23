@@ -265,6 +265,7 @@ describe('axios-instance: cross-origin redirects authorization stripping', () =>
     expect(calls[0].headers['Custom-Header']).toBe('keep-me');
 
     // Redirected call should strip auth headers but keep custom headers
+    expect(calls[1].url).toBe('https://other-domain.com/target');
     expect(calls[1].headers['Authorization']).toBeUndefined();
     expect(calls[1].headers['Proxy-Authorization']).toBeUndefined();
     expect(calls[1].headers['Custom-Header']).toBe('keep-me');
@@ -290,6 +291,7 @@ describe('axios-instance: cross-origin redirects authorization stripping', () =>
 
     const calls = stubAdapter.getCalls();
     expect(calls.length).toBe(2);
+    expect(calls[1].url).toBe('https://other-domain.com/target');
     expect(calls[1].headers['authorization']).toBe('Bearer my-token');
     expect(calls[1].headers['proxy-authorization']).toBe('Bearer proxy-token');
     expect(calls[1].headers['Custom-Header']).toBe('keep-me');
@@ -314,6 +316,7 @@ describe('axios-instance: cross-origin redirects authorization stripping', () =>
 
     const calls = stubAdapter.getCalls();
     expect(calls.length).toBe(2);
+    expect(calls[1].url).toBe('https://api.example.com/target');
     expect(calls[1].headers['Authorization']).toBe('Bearer my-token');
     expect(calls[1].headers['Proxy-Authorization']).toBe('Bearer proxy-token');
   });
@@ -337,7 +340,78 @@ describe('axios-instance: cross-origin redirects authorization stripping', () =>
 
     const calls = stubAdapter.getCalls();
     expect(calls.length).toBe(2);
+    expect(calls[1].url).toBe('https://api.example.com/relative-target');
     expect(calls[1].headers['Authorization']).toBe('Bearer my-token');
     expect(calls[1].headers['Proxy-Authorization']).toBe('Bearer proxy-token');
+  });
+
+  test('should strip Authorization and Proxy-Authorization headers on cross-origin redirect chains', async () => {
+    function createChainRedirectingStubAdapter(redirectUrls) {
+      const calls = [];
+      const adapter = (config) => {
+        calls.push(config);
+        if (calls.length <= redirectUrls.length) {
+          const err = new Error('Redirect 302');
+          err.config = config;
+          err.response = {
+            status: 302,
+            statusText: 'Found',
+            headers: {
+              location: redirectUrls[calls.length - 1]
+            },
+            data: {}
+          };
+          return Promise.reject(err);
+        }
+        return Promise.resolve({
+          data: { success: true },
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config
+        });
+      };
+      adapter.getCalls = () => calls;
+      return adapter;
+    }
+
+    const stubAdapter = createChainRedirectingStubAdapter([
+      'https://api.example.com/intermediate',
+      'https://other-domain.com/target',
+      '/final-target'
+    ]);
+    const instance = makeAxiosInstance({
+      followRedirects: true,
+      forwardAuthorizationHeader: false
+    });
+
+    await instance({
+      url: 'https://api.example.com/start',
+      method: 'get',
+      headers: {
+        'Authorization': 'Bearer my-token',
+        'Proxy-Authorization': 'Bearer proxy-token'
+      },
+      adapter: stubAdapter
+    });
+
+    const calls = stubAdapter.getCalls();
+    expect(calls.length).toBe(4);
+
+    // First call (same origin)
+    expect(calls[0].url).toBe('https://api.example.com/start');
+    expect(calls[0].headers['Authorization']).toBe('Bearer my-token');
+
+    // Second call (same origin redirect)
+    expect(calls[1].url).toBe('https://api.example.com/intermediate');
+    expect(calls[1].headers['Authorization']).toBe('Bearer my-token');
+
+    // Third call (cross origin redirect) - headers stripped
+    expect(calls[2].url).toBe('https://other-domain.com/target');
+    expect(calls[2].headers['Authorization']).toBeUndefined();
+
+    // Fourth call (relative redirect on cross origin) - headers still stripped
+    expect(calls[3].url).toBe('https://other-domain.com/final-target');
+    expect(calls[3].headers['Authorization']).toBeUndefined();
   });
 });

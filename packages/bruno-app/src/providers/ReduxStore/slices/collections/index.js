@@ -996,7 +996,7 @@ export const collectionsSlice = createSlice({
               content: null
             }
           },
-          settings: cloneDeep(DEFAULT_HTTP_ITEM_SETTINGS),
+          settings: { ...DEFAULT_HTTP_ITEM_SETTINGS },
           draft: null
         };
         item.draft = cloneDeep(item);

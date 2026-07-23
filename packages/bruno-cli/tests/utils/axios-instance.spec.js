@@ -92,6 +92,7 @@ describe('makeAxiosInstance', () => {
       expect(calls[0].headers['Custom-Header']).toBe('keep-me');
 
       // Redirected call should strip auth headers but keep custom headers
+      expect(calls[1].url).toBe('https://other-domain.com/target');
       expect(calls[1].headers['Authorization']).toBeUndefined();
       expect(calls[1].headers['Proxy-Authorization']).toBeUndefined();
       expect(calls[1].headers['Custom-Header']).toBe('keep-me');
@@ -117,6 +118,7 @@ describe('makeAxiosInstance', () => {
 
       const calls = stubAdapter.getCalls();
       expect(calls.length).toBe(2);
+      expect(calls[1].url).toBe('https://other-domain.com/target');
       expect(calls[1].headers['authorization']).toBe('Bearer my-token');
       expect(calls[1].headers['proxy-authorization']).toBe('Bearer proxy-token');
       expect(calls[1].headers['Custom-Header']).toBe('keep-me');
@@ -141,6 +143,7 @@ describe('makeAxiosInstance', () => {
 
       const calls = stubAdapter.getCalls();
       expect(calls.length).toBe(2);
+      expect(calls[1].url).toBe('https://api.example.com/target');
       expect(calls[1].headers['Authorization']).toBe('Bearer my-token');
       expect(calls[1].headers['Proxy-Authorization']).toBe('Bearer proxy-token');
     });
@@ -164,6 +167,7 @@ describe('makeAxiosInstance', () => {
 
       const calls = stubAdapter.getCalls();
       expect(calls.length).toBe(2);
+      expect(calls[1].url).toBe('https://api.example.com/relative-target');
       expect(calls[1].headers['Authorization']).toBe('Bearer my-token');
       expect(calls[1].headers['Proxy-Authorization']).toBe('Bearer proxy-token');
     });
