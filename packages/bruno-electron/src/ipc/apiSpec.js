@@ -24,8 +24,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) 
 
   ipcMain.handle('renderer:save-api-spec', async (event, pathname, content) => {
     try {
+      if (!watcher || !watcher.hasWatcher(pathname)) {
+        throw new Error(`path: ${pathname} is not an open API spec`);
+      }
       await writeFile(pathname, content);
-      Promise.resolve();
     } catch (error) {
       return Promise.reject(error);
     }

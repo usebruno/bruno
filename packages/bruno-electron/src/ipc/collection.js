@@ -487,6 +487,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     try {
       const { name: folderName, root: folderRoot = {}, folderPathname, collectionPathname } = folder;
 
+      validatePathIsInsideCollection(folderPathname);
+
       const format = getCollectionFormat(collectionPathname);
       const folderFilePath = path.join(folderPathname, `folder.${format}`);
 
@@ -506,6 +508,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // save collection root
   ipcMain.handle('renderer:save-collection-root', async (event, collectionPathname, collectionRoot, brunoConfig) => {
     try {
+      validatePathIsInsideCollection(collectionPathname);
+
       const format = getCollectionFormat(collectionPathname);
       const filename = format === 'yml' ? 'opencollection.yml' : 'collection.bru';
       const content = await stringifyCollection(collectionRoot, brunoConfig, { format });
@@ -553,6 +557,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
       }
+
+      validatePathIsInsideCollection(pathname);
 
       // Sync example UIDs cache to maintain consistency when examples are added/deleted/reordered
       syncExampleUidsCache(pathname, request.examples);
@@ -624,6 +630,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         if (!fs.existsSync(pathname)) {
           throw new Error(`path: ${pathname} does not exist`);
         }
+
+        validatePathIsInsideCollection(pathname);
 
         const content = await stringifyRequestViaWorker(request, { format: r.format });
         await writeFile(pathname, content);
@@ -838,6 +846,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error('Invalid .env filename');
       }
 
+      validatePathIsInsideCollection(collectionPathname);
+
       const dotEnvPath = path.join(collectionPathname, filename);
       const content = utils.jsonToDotenv(variables);
       await writeFile(dotEnvPath, content);
@@ -856,6 +866,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error('Invalid .env filename');
       }
 
+      validatePathIsInsideCollection(collectionPathname);
+
       const dotEnvPath = path.join(collectionPathname, filename);
       await writeFile(dotEnvPath, content);
       return { success: true };
@@ -871,6 +883,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (!isValidDotEnvFilename(filename)) {
         throw new Error('Invalid .env filename');
       }
+
+      validatePathIsInsideCollection(collectionPathname);
 
       const dotEnvPath = path.join(collectionPathname, filename);
 
@@ -893,6 +907,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (!isValidDotEnvFilename(filename)) {
         throw new Error('Invalid .env filename');
       }
+
+      validatePathIsInsideCollection(collectionPathname);
 
       const dotEnvPath = path.join(collectionPathname, filename);
 
@@ -935,6 +951,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // Generic environment export handler
   ipcMain.handle('renderer:export-environment', async (event, { environments, environmentType, filePath, exportFormat = 'folder' }) => {
     try {
+      if (!filePath || typeof filePath !== 'string' || !path.isAbsolute(filePath)) {
+        throw new Error('Export path must be an absolute directory path');
+      }
+      if (!fs.existsSync(filePath) || !isDirectory(filePath)) {
+        throw new Error(`Export path: ${filePath} is not an existing directory`);
+      }
+
       const { app } = require('electron');
       const appVersion = app?.getVersion() || '2.0.0';
 
@@ -1168,6 +1191,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // delete file/folder
   ipcMain.handle('renderer:delete-item', async (event, pathname, type, collectionPathname) => {
     try {
+      validatePathIsInsideCollection(pathname);
+
       if (type === 'folder') {
         if (!fs.existsSync(pathname)) {
           return Promise.reject(new Error('The directory does not exist'));
@@ -1618,6 +1643,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:move-file-item', async (event, itemPath, destinationPath) => {
     try {
+      validatePathIsInsideCollection(itemPath);
+      validatePathIsInsideCollection(destinationPath);
+
       const itemContent = fs.readFileSync(itemPath, 'utf8');
       const newItemPath = path.join(destinationPath, path.basename(itemPath));
 
@@ -1632,6 +1660,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:move-item', async (event, { targetDirname, sourcePathname }) => {
     try {
+      validatePathIsInsideCollection(sourcePathname);
+      validatePathIsInsideCollection(targetDirname);
+
       if (fs.existsSync(targetDirname)) {
         const sourceDirname = path.dirname(sourcePathname);
         const pathnamesBefore = await getPaths(sourcePathname);
@@ -1656,6 +1687,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (!fs.existsSync(targetDirname)) {
         throw new Error(`Target directory: ${targetDirname} does not exist`);
       }
+
+      validatePathIsInsideCollection(sourcePathname);
+      validatePathIsInsideCollection(targetDirname);
 
       const sourceBasename = path.basename(sourcePathname);
       const filenameWithoutExt = sourceBasename.replace(/\.(bru|yml|yaml)$/, '');
@@ -1684,6 +1718,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:move-folder-item', async (event, folderPath, destinationPath) => {
     try {
+      validatePathIsInsideCollection(folderPath);
+      validatePathIsInsideCollection(destinationPath);
+
       const folderName = path.basename(folderPath);
       const newFolderPath = path.join(destinationPath, folderName);
 
