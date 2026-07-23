@@ -54,7 +54,7 @@ const CompatEndpointCard = ({
     prev.current = { enabled: providerEnabled };
   }, [providerEnabled]);
 
-  const isEditingKey = editing || !provider.configured;
+  const isEditingKey = editing || !provider.hasApiKey;
 
   const handleSaveKey = async () => {
     const trimmed = keyDraft.trim();
@@ -127,7 +127,7 @@ const CompatEndpointCard = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (keyDraft.trim() && !saving) handleSaveKey();
-    } else if (e.key === 'Escape' && provider.configured) {
+    } else if (e.key === 'Escape' && provider.hasApiKey) {
       e.preventDefault();
       handleCancelEditKey();
     }
@@ -235,7 +235,7 @@ const CompatEndpointCard = ({
             {/* API key */}
             <div>
               <div className="key-section-label flex items-center justify-between gap-2 text-[11px] mb-1">
-                <span>API Key</span>
+                <span>API Key <span className="opacity-60">(optional)</span></span>
               </div>
 
               {!isEditingKey ? (
@@ -319,7 +319,7 @@ const CompatEndpointCard = ({
                     {saving ? <IconLoader2 size={13} className="spin" /> : <IconCheck size={13} />}
                     Save
                   </button>
-                  {provider.configured && (
+                  {provider.hasApiKey && (
                     <button
                       type="button"
                       className="btn-icon w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
@@ -357,7 +357,7 @@ const CompatEndpointCard = ({
                 {!provider.configured && (
                   <span className="keyless-hint flex items-center gap-1.5 text-[11px] py-1">
                     <IconAlertCircle size={12} />
-                    Add an API key to enable
+                    Set a Base URL to enable
                   </span>
                 )}
               </div>
