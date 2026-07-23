@@ -41,6 +41,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
     mergeVars(collection, request, requestTreePath);
     mergeAuth(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
+    request.globalEnvironmentName = collection?.globalEnvironmentName;
     request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({
       oauth2Credentials: collection?.oauth2Credentials
     });
@@ -88,6 +89,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
     folderVariables: request.folderVariables,
     requestVariables: request.requestVariables,
     globalEnvironmentVariables: request.globalEnvironmentVariables,
+    globalEnvironmentName: request.globalEnvironmentName,
     oauth2CredentialVariables: request.oauth2CredentialVariables
   };
 

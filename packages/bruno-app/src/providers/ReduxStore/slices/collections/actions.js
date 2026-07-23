@@ -79,6 +79,7 @@ import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import {
   getGlobalEnvironmentVariables,
+  getGlobalEnvironmentName,
   findCollectionByPathname,
   getReorderedItemsInTargetDirectory,
   resetSequencesInFolder,
@@ -495,6 +496,7 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
 
     const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
 
@@ -536,6 +538,7 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
 
@@ -645,6 +648,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
 
     const requestUid = uuid();
     itemCopy.requestUid = requestUid;
@@ -782,6 +786,7 @@ export const runCollectionFolder
         activeGlobalEnvironmentUid
       });
       collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+      collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
 
       const folder = findItemInCollection(collectionCopy, folderUid);
 
@@ -1923,6 +1928,7 @@ export const loadGrpcMethodsFromReflection = (item, collectionUid, url) => async
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
     const runtimeVariables = collectionCopy.runtimeVariables;
 
@@ -1969,6 +1975,7 @@ export const generateGrpcurlCommand = (item, collectionUid) => async (dispatch, 
       activeGlobalEnvironmentUid
     });
     collectionCopy.globalEnvironmentVariables = globalEnvironmentVariables;
+    collectionCopy.globalEnvironmentName = getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid });
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
     const runtimeVariables = collectionCopy.runtimeVariables;
 

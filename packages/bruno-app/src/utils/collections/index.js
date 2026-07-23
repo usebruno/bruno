@@ -1209,9 +1209,13 @@ export const getDefaultRequestPaneTab = (item) => {
   }
 };
 
+export const findActiveGlobalEnvironment = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
+  return globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
+};
+
 export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
   let variables = {};
-  const environment = globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
+  const environment = findActiveGlobalEnvironment({ globalEnvironments, activeGlobalEnvironmentUid });
   if (environment) {
     each(environment.variables, (variable) => {
       if (variable.name && variable.enabled) {
@@ -1222,8 +1226,12 @@ export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobal
   return variables;
 };
 
+export const getGlobalEnvironmentName = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
+  return findActiveGlobalEnvironment({ globalEnvironments, activeGlobalEnvironmentUid })?.name;
+};
+
 export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
-  const environment = globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
+  const environment = findActiveGlobalEnvironment({ globalEnvironments, activeGlobalEnvironmentUid });
 
   if (environment && Array.isArray(environment.variables)) {
     return environment.variables
