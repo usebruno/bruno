@@ -30,6 +30,7 @@
 import { cloneDeep, find, get } from 'lodash';
 import interpolate, { interpolateObject } from '../../interpolate';
 import { encodeUrl, parseQueryParams, patternHasher } from '../../utils';
+import { signEdgeGridRequest } from './edgegrid';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -348,12 +349,13 @@ const looksLikeUrl = (url: string | undefined): boolean =>
  *   - 'wsse'                                  → runtime-only signing
  */
 
-const authToHeaders = (
+const authToHeaders = async (
   auth: BrunoAuth | undefined,
   variables: Record<string, unknown>,
   oauth2Credentials: OAuth2CredentialRecord[] | undefined,
-  collectionUid: string | undefined
-): BrunoKV[] => {
+  collectionUid: string | undefined,
+  request?: { method?: string; url?: string; headers?: BrunoKV[]; bodyText?: string }
+): Promise<BrunoKV[]> => {
   if (!auth || !auth.mode || auth.mode === 'none' || auth.mode === 'inherit') return [];
 
   switch (auth.mode) {
@@ -412,6 +414,22 @@ const authToHeaders = (
 
       const headerValue = (tokenHeaderPrefix ? `${tokenHeaderPrefix} ${accessToken}` : accessToken).trim();
       return [{ name: 'Authorization', value: headerValue, enabled: true }];
+    }
+
+    case 'akamai-edgegrid': {
+      if (!request?.url || !request?.method) return [];
+      // EG1-HMAC-SHA256 signs the request itself, so we build the header from the request context.
+      const requestHeaders: Record<string, string> = {};
+      (request.headers || []).forEach((h) => {
+        if (h?.enabled !== false && h?.name) requestHeaders[h.name] = String(h.value ?? '');
+      });
+      const value = await signEdgeGridRequest(get(auth, 'akamaiEdgegrid') || {}, {
+        method: request.method,
+        url: request.url,
+        headers: requestHeaders,
+        bodyText: request.bodyText
+      });
+      return value ? [{ name: 'Authorization', value, enabled: true }] : [];
     }
 
     // OAuth1 cannot pre-compute the signature for a static snippet.
@@ -566,7 +584,7 @@ const buildPostData = (body: BrunoBody | undefined): any => {
 // Main
 // ---------------------------------------------------------------------------
 
-export function buildHar(input: BuildHarInput): BuildHarOutput {
+export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   const variables = input.variables || {};
   const shouldInterpolate = input.shouldInterpolate ?? true;
 
@@ -609,8 +627,14 @@ export function buildHar(input: BuildHarInput): BuildHarOutput {
     throw new Error('invalid request url');
   }
 
-  // Step 5 — Auth → headers. Append to request headers.
-  const authHeaders = authToHeaders(working.auth, variables, input.oauth2Credentials, input.collectionUid);
+  // Step 5 — Auth → headers. Append to request headers. Request-signing auth (EdgeGrid) must
+  // sign the same `encodedUrl` the snippet transmits, or the signature won't cover the sent bytes.
+  const authHeaders = await authToHeaders(working.auth, variables, input.oauth2Credentials, input.collectionUid, {
+    method: working.method || 'GET',
+    url: encodedUrl,
+    headers: working.headers,
+    bodyText: buildPostData(working.body)?.text
+  });
   const allHeaders = mergeAndDedupeHeaders(working.headers, authHeaders);
 
   // Step 6 — Finalize headers (filter enabled, lowercase, default content-type).

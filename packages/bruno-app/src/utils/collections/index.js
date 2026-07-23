@@ -932,19 +932,19 @@ export const getCollectionItemCounts = (items = []) => {
 
 /**
  * Orders a list of collection items exactly the way the Sidebar tree renders them:
- * folders first (via `sortByNameThenSequence`), then requests ordered by `seq`. The
- * same ordering is applied recursively to every nested folder so an exported/serialized
- * tree matches the sidebar at all depths.
+ * folders first (via `sortByNameThenSequence`), then standalone apps by `seq`, then
+ * requests by `seq`. The same ordering is applied recursively to every nested folder
+ * so an exported/serialized tree matches the sidebar at all depths.
  *
- * Items that are neither folders nor requests (e.g. `js` script files) are excluded,
- * mirroring the sidebar, which only renders folders and requests. Transient items are
- * excluded too.
+ * Items that are none of folder/app/request (e.g. `js` script files) are excluded,
+ * mirroring the sidebar. Transient items are excluded too.
  */
 export const sortItemsBySidebarOrder = (items = []) => {
   const folderItems = sortByNameThenSequence(filter(items, (i) => isItemAFolder(i) && !i.isTransient));
+  const appItems = filter(items, (i) => i.type === 'app' && !i.isTransient).sort((a, b) => a.seq - b.seq);
   const requestItems = filter(items, (i) => isItemARequest(i) && !i.isTransient).sort((a, b) => a.seq - b.seq);
 
-  return [...folderItems, ...requestItems].map((item) =>
+  return [...folderItems, ...appItems, ...requestItems].map((item) =>
     Array.isArray(item.items) ? { ...item, items: sortItemsBySidebarOrder(item.items) } : item
   );
 };
@@ -1239,10 +1239,11 @@ export const getEnvironmentVariables = (collection) => {
   if (collection) {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment) {
-      each(environment.variables, (variable) => {
-        if (variable.name && variable.enabled) {
-          variables[variable.name] = variable.value;
-        }
+      // Apply secrets last so a secret wins over a plain variable of the same name,
+      // regardless of their order in the array.
+      const enabledVars = (environment.variables || []).filter((v) => v.name && v.enabled);
+      [...enabledVars.filter((v) => !v.secret), ...enabledVars.filter((v) => v.secret)].forEach((variable) => {
+        variables[variable.name] = variable.value;
       });
     }
   }
@@ -1726,7 +1727,11 @@ export const getVariableScope = (variableName, collection, item) => {
   if (collection.activeEnvironmentUid) {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment && environment.variables) {
-      const envVar = environment.variables.find((v) => v.name === variableName && v.enabled);
+      // A name can exist as both a plain variable and a secret. The secret takes
+      // precedence (matching interpolation), so the resolved value and the secret
+      // flag stay in sync instead of coming from different entries.
+      const envVars = environment.variables.filter((v) => v.name === variableName && v.enabled);
+      const envVar = envVars.find((v) => v.secret) || envVars[0];
       if (envVar) {
         return {
           type: 'environment',

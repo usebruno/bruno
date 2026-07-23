@@ -136,7 +136,7 @@ const SecurityPane = ({
   return (
     <div className="security-tab flex flex-col gap-3">
       <div className="ai-empty-notice px-3.5 py-3 text-xs">
-        Bruno strips sensitive values from the context it sends to AI providers. Toggle any check off if it gets in the way, or extend the lists below.
+        Sensitive data is automatically redacted before context is sent to AI providers. Turn off protections if needed, or add custom headers and variables to redact.
       </div>
 
       <div className="security-card">
@@ -144,7 +144,7 @@ const SecurityPane = ({
           <div className="flex flex-col gap-0.5 min-w-0">
             <span className="text-[12.5px] font-semibold">Redact sensitive header values</span>
             <span className="security-sub text-[11px]">
-              Masks Authorization, cookies, API keys, and other credential-bearing headers in the request context.
+              Masks Authorization, cookies, API keys and other credential-bearing headers in the request context.
             </span>
           </div>
           <ToggleSwitch
@@ -243,7 +243,7 @@ const SecurityPane = ({
               <span key={name} className="security-builtin-chip">{name}</span>
             ))}
             <span className="security-builtin-more text-[10.5px]">
-              plus any name matching <code>token</code>, <code>secret</code>, <code>password</code>, or <code>api_key</code>.
+              plus any name matching <code>token</code>, <code>secret</code>, <code>password</code> or <code>api_key</code>.
             </span>
           </div>
         </div>

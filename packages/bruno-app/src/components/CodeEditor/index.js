@@ -248,6 +248,19 @@ class CodeEditor extends React.Component {
           this.props.onScroll(this._lastScrollTop);
         }
       });
+
+      // For editors inside a scroll container (e.g. the WebSocket message list),
+      // stop the browser from scrolling that container on focus. Otherwise a
+      // click shifts the content mid-click, landing the cursor on the wrong line
+      // and jumping the editor. preventScroll keeps CodeMirror's own scrolling.
+      if (this.props.containScroll) {
+        const inputField = editor.getInputField();
+        if (inputField && typeof inputField.focus === 'function') {
+          const nativeFocus = inputField.focus.bind(inputField);
+          inputField.focus = (options) => nativeFocus({ ...(options || {}), preventScroll: true });
+        }
+      }
+
       this.addOverlay();
 
       const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);

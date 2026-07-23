@@ -84,7 +84,7 @@ const getScopeLabel = (scopeType) => {
 
 // Get the masked display text based on the value length
 const getMaskedDisplay = (value) => {
-  const contentLength = (value || '').length;
+  const contentLength = (value === undefined || value === null ? '' : String(value)).length;
   return contentLength > 0 ? '*'.repeat(contentLength) : '';
 };
 
@@ -137,6 +137,7 @@ const getCopyButton = (getVariableValue, onCopyCallback) => {
   const copyButton = document.createElement('button');
 
   copyButton.className = 'copy-button';
+  copyButton.setAttribute('data-testid', 'var-info-copy-button');
   copyButton.innerHTML = COPY_ICON_SVG_TEXT;
   copyButton.type = 'button';
 
@@ -300,10 +301,12 @@ export const renderVarInfo = (token, options) => {
 
   const varName = document.createElement('span');
   varName.className = 'var-name';
+  varName.setAttribute('data-testid', 'var-info-name');
   varName.textContent = variableName;
 
   const scopeBadge = document.createElement('span');
   scopeBadge.className = 'var-scope-badge';
+  scopeBadge.setAttribute('data-testid', 'var-info-scope-badge');
 
   // Check if a runtime variable exists - if so, show Runtime scope (even if detected as collection/folder/environment)
   const displayScopeType = hasRuntimeVariable ? 'runtime' : (scopeInfo ? scopeInfo.type : 'Unknown');
@@ -323,6 +326,7 @@ export const renderVarInfo = (token, options) => {
   if (!isValidVariableName) {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
     warningNote.textContent = 'Invalid variable name! Variables must only contain alpha-numeric characters, "-", "_", "."';
     into.appendChild(warningNote);
 
@@ -334,6 +338,7 @@ export const renderVarInfo = (token, options) => {
   if (scopeInfo.type === 'dynamic' && !scopeInfo.isValidDynamicVariable) {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
     warningNote.textContent = `Unknown dynamic variable "${variableName}". Check the variable name.`;
     into.appendChild(warningNote);
     return into;
@@ -343,6 +348,7 @@ export const renderVarInfo = (token, options) => {
   if (scopeInfo.type === 'dynamic' && scopeInfo.isValidDynamicVariable) {
     const readOnlyNote = document.createElement('div');
     readOnlyNote.className = 'var-readonly-note';
+    readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
     readOnlyNote.textContent = scopeInfo.isTimeBased
       ? 'Generates current timestamp on each request'
       : 'Generates random value on each request';
@@ -354,6 +360,7 @@ export const renderVarInfo = (token, options) => {
   if (scopeInfo.type === 'oauth2' && !scopeInfo.isValidOAuth2Variable) {
     const warningNote = document.createElement('div');
     warningNote.className = 'var-warning-note';
+    warningNote.setAttribute('data-testid', 'var-info-warning-note');
     warningNote.textContent = `OAuth2 token not found. Make sure you have fetched the token with the correct Token ID.`;
     into.appendChild(warningNote);
     return into;
@@ -371,12 +378,14 @@ export const renderVarInfo = (token, options) => {
     // Create display element (shows interpolated value by default)
     const valueDisplay = document.createElement('div');
     valueDisplay.className = 'var-value-editable-display';
+    valueDisplay.setAttribute('data-testid', 'var-info-value-editable');
     // Mask the displayed value if it contains secrets or references to secrets
     updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, false);
 
     // Create container for CodeMirror (hidden by default)
     const editorContainer = document.createElement('div');
     editorContainer.className = 'var-value-editor';
+    editorContainer.setAttribute('data-testid', 'var-info-value-editor');
     editorContainer.style.display = 'none'; // Hidden initially
 
     // Detect current theme from DOM
@@ -462,6 +471,7 @@ export const renderVarInfo = (token, options) => {
     if (shouldMaskValue || isMasked) {
       const toggleButton = document.createElement('button');
       toggleButton.className = 'secret-toggle-button';
+      toggleButton.setAttribute('data-testid', 'var-info-secret-toggle');
       toggleButton.innerHTML = EYE_ICON_SVG;
       toggleButton.type = 'button';
 
@@ -598,6 +608,7 @@ export const renderVarInfo = (token, options) => {
 
     const valueDisplay = document.createElement('div');
     valueDisplay.className = 'var-value-display';
+    valueDisplay.setAttribute('data-testid', 'var-info-value-display');
     // For read-only variables, still check if they reference secrets
     updateValueDisplay(valueDisplay, variableValue, shouldMaskValue, isMasked, false);
 
@@ -609,6 +620,7 @@ export const renderVarInfo = (token, options) => {
     if (shouldMaskValue || isMasked) {
       const toggleButton = document.createElement('button');
       toggleButton.className = 'secret-toggle-button';
+      toggleButton.setAttribute('data-testid', 'var-info-secret-toggle');
       toggleButton.innerHTML = EYE_ICON_SVG;
       toggleButton.type = 'button';
 
@@ -635,21 +647,25 @@ export const renderVarInfo = (token, options) => {
     if (scopeInfo.type === 'process.env') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'runtime' || hasRuntimeVariable) {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'Set by scripts (read-only)';
       into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'oauth2') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'read-only';
       into.appendChild(readOnlyNote);
     } else if (scopeInfo.type === 'undefined') {
       const readOnlyNote = document.createElement('div');
       readOnlyNote.className = 'var-readonly-note';
+      readOnlyNote.setAttribute('data-testid', 'var-info-readonly-note');
       readOnlyNote.textContent = 'No active environment';
       into.appendChild(readOnlyNote);
     }
@@ -847,6 +863,7 @@ if (!SERVER_RENDERED) {
 
     const popup = document.createElement('div');
     popup.className = 'CodeMirror-brunoVarInfo';
+    popup.setAttribute('data-testid', 'var-info-popup');
     popup.appendChild(brunoVarInfo);
     document.body.appendChild(popup);
 
