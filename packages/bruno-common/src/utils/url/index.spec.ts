@@ -172,50 +172,51 @@ describe('encodeUrl', () => {
       expect(encodeUrl(url)).toBe(expected);
     });
 
-    it('should handle already encoded URLs', () => {
+    it('should handle already encoded URLs (idempotent — no double-encoding)', () => {
       const url = 'https://example.com/api?name=john%20doe&email=john%40example.com';
-      const expected = 'https://example.com/api?name=john%2520doe&email=john%2540example.com';
+      const expected = 'https://example.com/api?name=john%20doe&email=john%40example.com';
       expect(encodeUrl(url)).toBe(expected);
     });
 
-    it('should handle pipe operator in already encoded URLs', () => {
+    it('should handle pipe operator in already encoded URLs (idempotent)', () => {
       const url = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc';
-      const expected = 'https://example.com/api?filter=status%257Cactive&sort=name%257Casc';
+      const expected = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc';
       expect(encodeUrl(url)).toBe(expected);
     });
   });
 
-  describe('PR #5507 contract — content-blind double-encoding (intentional)', () => {
-    // These assertions are the canary that proves no decode-encode wrap was slipped
-    // into the encoder. If any of them start failing, the contract has been broken.
+  describe('Idempotent encoding — no double-encoding of pre-encoded values', () => {
+    // Encoding is now idempotent: decode-then-encode. Already-encoded sequences
+    // are preserved as-is. This prevents the double-encoding problem where
+    // %20 would become %2520, breaking URLs that users have already encoded.
 
-    it('should double-encode pre-encoded space in query value (%20 → %2520)', () => {
+    it('should preserve pre-encoded space in query value (%20 stays %20)', () => {
       const url = 'https://example.com/api?name=John%20Doe';
-      const expected = 'https://example.com/api?name=John%2520Doe';
+      const expected = 'https://example.com/api?name=John%20Doe';
       expect(encodeUrl(url)).toBe(expected);
     });
 
-    it('should double-encode pre-encoded @ in query value (%40 → %2540)', () => {
+    it('should preserve pre-encoded @ in query value (%40 stays %40)', () => {
       const url = 'https://example.com/api?email=john%40example.com';
-      const expected = 'https://example.com/api?email=john%2540example.com';
+      const expected = 'https://example.com/api?email=john%40example.com';
       expect(encodeUrl(url)).toBe(expected);
     });
 
-    it('should double-encode pre-encoded pipe in query value (%7C → %257C)', () => {
+    it('should preserve pre-encoded pipe in query value (%7C stays %7C)', () => {
       const url = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc';
-      const expected = 'https://example.com/api?filter=status%257Cactive&sort=name%257Casc';
+      const expected = 'https://example.com/api?filter=status%7Cactive&sort=name%7Casc';
       expect(encodeUrl(url)).toBe(expected);
     });
 
-    it('should double-encode redirect URL with pre-encoded chars (the canonical #5507 case)', () => {
+    it('should preserve redirect URL with pre-encoded chars', () => {
       const url = 'https://auth.example.com/login?redirect=https%3A%2F%2Fother.com%2Fcb';
-      const expected = 'https://auth.example.com/login?redirect=https%253A%252F%252Fother.com%252Fcb';
+      const expected = 'https://auth.example.com/login?redirect=https%3A%2F%2Fother.com%2Fcb';
       expect(encodeUrl(url)).toBe(expected);
     });
 
-    it('should double-encode pre-encoded %25 → %2525 (single % → %25 same source bytes)', () => {
+    it('should preserve pre-encoded %25 (percent sign stays encoded)', () => {
       const url = 'https://example.com/api?coupon=50%25';
-      const expected = 'https://example.com/api?coupon=50%2525';
+      const expected = 'https://example.com/api?coupon=50%25';
       expect(encodeUrl(url)).toBe(expected);
     });
 
