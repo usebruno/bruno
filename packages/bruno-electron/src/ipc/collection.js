@@ -1710,7 +1710,19 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionRoot) => {
     try {
-      const transformedBrunoConfig = transformBrunoConfigBeforeSave(brunoConfig);
+      // Store cert passphrases securely, then strip them before writing to disk
+      const certs = brunoConfig?.clientCertificates?.certs || [];
+      environmentSecretsStore.storeCertPassphrases(collectionPath, certs);
+
+      const configToWrite = _.cloneDeep(brunoConfig);
+      if (configToWrite?.clientCertificates?.certs) {
+        configToWrite.clientCertificates.certs = configToWrite.clientCertificates.certs.map((cert) => {
+          const { passphrase, ...rest } = cert;
+          return rest;
+        });
+      }
+
+      const transformedBrunoConfig = transformBrunoConfigBeforeSave(configToWrite);
       const format = getCollectionFormat(collectionPath);
 
       if (format === 'bru') {
