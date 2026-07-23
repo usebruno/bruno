@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -20,6 +20,7 @@ import ScriptError from '../ScriptError';
 import ScriptErrorIcon from '../ScriptErrorIcon';
 import TestResults from '../TestResults';
 import TestResultsLabel from '../TestResultsLabel';
+import { getPhasesByRequestType, REQUEST_TYPES } from '@usebruno/common';
 
 const GrpcResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -29,14 +30,16 @@ const GrpcResponsePane = ({ item, collection }) => {
   const rightContentRef = useRef(null);
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
 
-  const hasScriptError
-    = item?.preRequestScriptErrorMessage || item?.onMessageScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
+  const scriptPhases = useMemo(() => getPhasesByRequestType(REQUEST_TYPES.GRPC), []);
+
+  const hasScriptOrTestError
+    = scriptPhases.some((phase) => item?.[`${phase.ERROR_STATE_KEY}Message`]) || item?.testScriptErrorMessage;
 
   useEffect(() => {
-    if (hasScriptError) {
+    if (hasScriptOrTestError) {
       setShowScriptErrorCard(true);
     }
-  }, [hasScriptError]);
+  }, [hasScriptOrTestError]);
 
   const requestTimeline = [...(collection?.timeline || [])].filter((obj) => {
     if (obj.itemUid === item.uid) return true;
@@ -86,12 +89,7 @@ const GrpcResponsePane = ({ item, collection }) => {
     {
       key: 'tests',
       label: (
-        <TestResultsLabel
-          results={item.testResults}
-          assertionResults={item.assertionResults}
-          preRequestTestResults={item.preRequestTestResults}
-          postResponseTestResults={item.postResponseTestResults}
-        />
+        <TestResultsLabel item={item} />
       ),
       indicator: null
     }
@@ -113,13 +111,7 @@ const GrpcResponsePane = ({ item, collection }) => {
       }
       case 'tests': {
         return (
-          <TestResults
-            item={item}
-            results={item.testResults}
-            assertionResults={item.assertionResults}
-            preRequestTestResults={item.preRequestTestResults}
-            postResponseTestResults={item.postResponseTestResults}
-          />
+          <TestResults item={item} />
         );
       }
       default: {
@@ -136,7 +128,7 @@ const GrpcResponsePane = ({ item, collection }) => {
     );
   }
 
-  if (!item.response && !requestTimeline?.length && !hasScriptError) {
+  if (!item.response && !requestTimeline?.length && !hasScriptOrTestError) {
     return (
       <HeightBoundContainer>
         <Placeholder />
@@ -155,7 +147,7 @@ const GrpcResponsePane = ({ item, collection }) => {
 
   const rightContent = !isLoading ? (
     <div ref={rightContentRef} className="flex items-center">
-      {hasScriptError && !showScriptErrorCard && (
+      {hasScriptOrTestError && !showScriptErrorCard && (
         <ScriptErrorIcon item={item} onClick={() => setShowScriptErrorCard(true)} />
       )}
       {focusedTab?.responsePaneTab === 'timeline' ? (
@@ -189,9 +181,9 @@ const GrpcResponsePane = ({ item, collection }) => {
           rightContentRef={rightContentRef}
         />
       </div>
-      <section className={`response-pane-content ${hasScriptError && showScriptErrorCard ? 'has-script-error' : ''}`}>
+      <section className={`response-pane-content ${hasScriptOrTestError && showScriptErrorCard ? 'has-script-error' : ''}`}>
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
-        {hasScriptError && showScriptErrorCard && (
+        {hasScriptOrTestError && showScriptErrorCard && (
           <ScriptError
             item={item}
             onClose={() => setShowScriptErrorCard(false)}

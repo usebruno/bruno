@@ -10,6 +10,9 @@ const {
 } = require('./utils');
 const parseExample = require('./example/bruToJson');
 
+// `.bru` script block type (BRU_TYPE) -> store field, from the shared registry.
+const FIELD_BY_BRU_TYPE = Object.fromEntries(SCRIPTING_PHASES.map((phase) => [phase.BRU_TYPE, phase.FIELD]));
+
 // this is done to avoid breaking existing pairlist mapping so
 // the key is hidden and not added into the json automatically
 const ANNOTATIONS_KEY = Symbol('annotations');
@@ -186,10 +189,8 @@ const grammar = ohm.grammar(`Bru {
   example = "example" st* "{" nl* examplecontent tagend
   examplecontent = (~tagend any)*
   
-  script = scriptreq | scriptres | scriptstream
-  scriptreq = "script:pre-request" st* "{" nl* textblock tagend
-  scriptres = "script:post-response" st* "{" nl* textblock tagend
-  scriptstream = "script:on-message" st* "{" nl* textblock tagend
+  script = "script:" scripttype st* "{" nl* textblock tagend
+  scripttype = (letter | digit | "-" | ":")+
   tests = "tests" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);
@@ -1175,26 +1176,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       assertions: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
-  scriptreq(_1, _2, _3, _4, textblock, _5) {
-    return {
-      script: {
-        req: outdentString(textblock.sourceString)
-      }
-    };
-  },
-  scriptres(_1, _2, _3, _4, textblock, _5) {
-    return {
-      script: {
-        res: outdentString(textblock.sourceString)
-      }
-    };
-  },
-  scriptstream(_1, _2, _3, _4, textblock, _5) {
-    return {
-      script: {
-        stream: outdentString(textblock.sourceString)
-      }
-    };
+  script(_1, scriptType, _2, _3, _4, textblock, _5) {
+    const field = FIELD_BY_BRU_TYPE[scriptType.sourceString];
+    return field ? { script: { [field]: outdentString(textblock.sourceString) } } : {};
   },
   tests(_1, _2, _3, _4, textblock, _5) {
     return {

@@ -7,7 +7,7 @@ import { toBrunoParams } from '../common/params';
 import { toBrunoBody } from '../common/body';
 import { toBrunoVariables } from '../common/variables';
 import { toBrunoPostResponseVariables } from '../common/actions';
-import { toBrunoScripts } from '../common/scripts';
+import { toBrunoScripts, applyBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
 import { toBrunoApp } from '../common/app';
 import { uuid, ensureString } from '../../../utils';
@@ -49,14 +49,9 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
 
   // scripts
   const scripts = toBrunoScripts(runtime?.scripts);
-  if (scripts?.script && brunoRequest.script) {
-    if (scripts.script.req) {
-      brunoRequest.script.req = scripts.script.req;
-    }
-    if (scripts.script.res) {
-      brunoRequest.script.res = scripts.script.res;
-    }
-  }
+  applyBrunoScripts(brunoRequest, scripts);
+
+  // tests
   if (scripts?.tests) {
     brunoRequest.tests = scripts.tests;
   }

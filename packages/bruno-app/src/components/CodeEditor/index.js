@@ -123,10 +123,10 @@ class CodeEditor extends React.Component {
         },
         'Shift-Tab': 'indentLess',
         'Ctrl-Space': (cm) => {
-          showRootHints(cm, this.props.showHintsFor, this.props.protocol);
+          showRootHints(cm, this.props.showHintsFor, this.props.requestType, this.props.scriptType);
         },
         'Cmd-Space': (cm) => {
-          showRootHints(cm, this.props.showHintsFor, this.props.protocol);
+          showRootHints(cm, this.props.showHintsFor, this.props.requestType, this.props.scriptType);
         },
         'Ctrl-Y': 'foldAll',
         'Cmd-Y': 'foldAll',
@@ -268,7 +268,8 @@ class CodeEditor extends React.Component {
       // Setup AutoComplete Helper for all modes
       const autoCompleteOptions = {
         showHintsFor: this.props.showHintsFor,
-        protocol: this.props.protocol,
+        requestType: this.props.requestType,
+        scriptType: this.props.scriptType,
         getAllVariables: getAllVariablesHandler
       };
 

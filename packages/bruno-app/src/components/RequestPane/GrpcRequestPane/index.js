@@ -16,6 +16,7 @@ import { hasEffectiveAuth } from 'utils/auth';
 import { AUTH_MODES_GRPC } from 'utils/common/constants';
 import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
+import { getPhasesByRequestType, REQUEST_TYPES } from '@usebruno/common';
 
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -24,6 +25,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const rightContentRef = useRef(null);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const requestPaneTab = focusedTab?.requestPaneTab;
+  const scriptPhases = getPhasesByRequestType(REQUEST_TYPES.GRPC);
 
   const selectTab = useCallback((tab) => {
     dispatch(
@@ -49,10 +51,10 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
         return <Documentation item={item} collection={collection} />;
       }
       case 'scripts': {
-        return <Script protocol="grpc" item={item} collection={collection} />;
+        return <Script item={item} collection={collection} />;
       }
       case 'tests': {
-        return <Tests item={item} collection={collection} protocol="grpc" />;
+        return <Tests item={item} collection={collection} />;
       }
       default: {
         return <div className="mt-4">404 | Not found</div>;
@@ -80,7 +82,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const isClientStreaming = request.methodType === 'client-streaming' || request.methodType === 'bidi-streaming';
 
   const allTabs = useMemo(() => {
-    const hasScriptError = item.preRequestScriptErrorMessage || item.onMessageScriptErrorMessage || item.postResponseScriptErrorMessage;
+    const hasScriptError = scriptPhases.some((phase) => item[`${phase.ERROR_STATE_KEY}Message`]);
     const getMessageIndicator = () => {
       if (grpcMessagesCount > 0) {
         return isClientStreaming ? (
@@ -116,7 +118,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       {
         key: 'scripts',
         label: 'Scripts',
-        indicator: (script.req || script.stream || script.res) ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null
+        indicator: scriptPhases.some(({ FIELD }) => script?.[FIELD]) ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null
       },
       {
         key: 'tests',
@@ -124,7 +126,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
         indicator: tests && tests.length > 0 ? hasTestError ? <StatusDot type="error" /> : <StatusDot type="default" /> : null
       }
     ];
-  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, hasAuth, tests, hasTestError, docs, item.preRequestScriptErrorMessage, item.onMessageScriptErrorMessage, item.postResponseScriptErrorMessage]);
+  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, hasAuth, script, tests, hasTestError, docs, ...scriptPhases.map(({ ERROR_STATE_KEY }) => item[`${ERROR_STATE_KEY}Message`])]);
 
   // Initialize tab to 'body' if no tab is currently set
   useEffect(() => {

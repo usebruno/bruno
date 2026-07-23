@@ -2,7 +2,6 @@ const addBruShimToContext = require('./shims/bru');
 const addBrunoRequestShimToContext = require('./shims/bruno-request');
 const addConsoleShimToContext = require('./shims/console');
 const addBrunoResponseShimToContext = require('./shims/bruno-response');
-const addBrunoOnMessageShimToContext = require('./shims/bruno-onmessage');
 const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
 const addLocalModuleLoaderShimToContext = require('./shims/local-module');
@@ -61,12 +60,11 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   try {
     managedQuickJsContext = createManagedQuickJsContext(QuickJSModule);
     const vm = managedQuickJsContext.vm;
-    const { bru, req, res, stream, ...variables } = externalContext;
+    const { bru, req, res, ...variables } = externalContext;
 
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
-    stream && addBrunoOnMessageShimToContext(vm, stream);
 
     Object.entries(variables)?.forEach(([key, value]) => {
       vm.setProp(vm.global, key, marshallToVm(value, vm));
@@ -118,13 +116,12 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
       `
     );
 
-    const { bru, req, res, stream, test, __brunoTestResults, console: consoleFn } = externalContext;
+    const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
 
     consoleFn && addConsoleShimToContext(vm, consoleFn);
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
-    stream && addBrunoOnMessageShimToContext(vm, stream);
     addLocalModuleLoaderShimToContext(vm, collectionPath);
     addPathShimToContext(vm);
 
