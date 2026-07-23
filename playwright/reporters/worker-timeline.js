@@ -21,6 +21,7 @@ class WorkerTimelineReporter {
       workerIndex: result.workerIndex,
       parallelIndex: result.parallelIndex,
       file: path.relative(process.cwd(), test.location.file).replace(/\\/g, '/'),
+      line: test.location.line,
       title: test.title,
       titlePath: test.titlePath().filter(Boolean).join(' › '),
       project: projectName(test),
@@ -66,6 +67,7 @@ class WorkerTimelineReporter {
         const predecessors = events.slice(0, i + 1).map((e, idx) => ({
           index: idx,
           file: e.file,
+          line: e.line,
           title: e.title,
           titlePath: e.titlePath,
           status: e.status,
@@ -78,6 +80,7 @@ class WorkerTimelineReporter {
           workerIndex: Number(workerKey),
           victim: {
             file: event.file,
+            line: event.line,
             title: event.title,
             titlePath: event.titlePath,
             project: event.project,
@@ -129,6 +132,13 @@ function renderPredecessorsMarkdown(failures) {
   md += '(shared `electronApp` / `page` state). Use these as contaminator suspects.\n\n';
   md += 'The `[N]` in each heading is the `--victim-index N` for ';
   md += '`scripts/find-e2e-contaminator.js --from-timeline …` (each entry is one failed/timed-out attempt, including retries).\n\n';
+  md += '**Note:** same Playwright `workerIndex` ≠ shared Electron profile. Tests using ';
+  md += '`pageWithUserData` / `newPage` launch separate apps; only default `page` tests share ';
+  md += '`electronApp`. Being listed as a predecessor is a suspect, not a confirmed contaminator.\n\n';
+  md += 'To bisect the failures with the most predecessors automatically:\n\n';
+  md += '```bash\n';
+  md += 'node scripts/find-e2e-contaminator.js --from-timeline playwright-report/failed-test-predecessors.json --auto-debug\n';
+  md += '```\n\n';
 
   failures.forEach((failure, failureIndex) => {
     const { victim, predecessors, workerIndex } = failure;
@@ -150,13 +160,15 @@ function renderPredecessorsMarkdown(failures) {
     md += `\n### Debug\n\n`;
     md += '```bash\n';
     md += `# victim alone\n`;
-    md += `npx playwright test ${shellQuote(victim.file)} -g ${shellQuote(victim.title)} --project=${shellQuote(victim.project)} --workers=1\n\n`;
+    md += `npx playwright test ${shellQuote(victim.file + (victim.line ? ':' + victim.line : ''))} --project=${shellQuote(victim.project)} --workers=1\n\n`;
     md += `# bisect predecessors from this artifact\n`;
     md += `node scripts/find-e2e-contaminator.js --from-timeline playwright-report/failed-test-predecessors.json --victim-index ${failureIndex}\n`;
     if (prior.length > 0) {
-      md += `\n# or manually with candidate file::title entries\n`;
-      const candidateArgs = prior.map((p) => shellQuote(`${p.file}::${p.title}`)).join(' ');
-      md += `node scripts/find-e2e-contaminator.js --victim ${shellQuote(victim.file)} --grep ${shellQuote(victim.title)} --project ${shellQuote(victim.project)} --candidates ${candidateArgs}\n`;
+      md += `\n# or manually with candidate file:line entries\n`;
+      const candidateArgs = prior
+        .map((p) => shellQuote(p.line ? `${p.file}:${p.line}` : `${p.file}::${p.title}`))
+        .join(' ');
+      md += `node scripts/find-e2e-contaminator.js --victim ${shellQuote(victim.file + (victim.line ? ':' + victim.line : ''))} --project ${shellQuote(victim.project)} --candidates ${candidateArgs}\n`;
     }
     md += '```\n\n';
   });

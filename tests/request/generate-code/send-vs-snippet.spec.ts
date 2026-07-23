@@ -5,6 +5,8 @@ const COLLECTION = 'generate-code-encoding';
 const FOLDER = 'requests';
 
 test.describe('Send Request — every fixture, ON and OFF', () => {
+  // Each case sends twice (encoding ON then OFF); default 30s is too tight when
+  // the echo server or Electron is briefly slow under parallel load.
   const fixtures = [
     // query-side
     'query-spaces',
@@ -50,15 +52,19 @@ test.describe('Send Request — every fixture, ON and OFF', () => {
   ];
 
   const expectEchoResponded = async (page: Page) => {
-    const texts = await page
-      .getByTestId('response-preview-container')
-      .locator('.CodeMirror-scroll')
-      .allInnerTexts();
-    // Echo server returns `{ "url": "/path/..." }`. Asserting the `"url":`
-    // marker is present is enough to confirm we hit the echo route (not a
-    // 404 / error page) without pinning the encoded byte-form, which is
-    // mode-dependent and the actual point of inspection here.
-    expect(texts.some((t: string) => t.includes('"url":'))).toBe(true);
+    await expect
+      .poll(async () => {
+        const texts = await page
+          .getByTestId('response-preview-container')
+          .locator('.CodeMirror-scroll')
+          .allInnerTexts();
+        // Echo server returns `{ "url": "/path/..." }`. Asserting the `"url":`
+        // marker is present is enough to confirm we hit the echo route (not a
+        // 404 / error page) without pinning the encoded byte-form, which is
+        // mode-dependent and the actual point of inspection here.
+        return texts.some((t: string) => t.includes('"url":'));
+      })
+      .toBe(true);
   };
 
   for (const file of fixtures) {

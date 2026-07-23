@@ -29,6 +29,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('global-search-input').click();
 
         await pressShortcut(page, 'Escape');
+        await expect(page.getByTestId('global-search-input')).toBeHidden();
       });
 
       test('customized Shift+K Global Search Modal', async ({ pageWithUserData: page }) => {
@@ -51,6 +52,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('global-search-input').click();
 
         await pressShortcut(page, 'Escape');
+        await expect(page.getByTestId('global-search-input')).toBeHidden();
       });
     });
   });

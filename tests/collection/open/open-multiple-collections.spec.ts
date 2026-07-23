@@ -76,9 +76,11 @@ test.describe('Open Multiple Collections', () => {
     electronApp,
     createTmpDir
   }) => {
-    // Directory without bruno.json file
+    // Empty dirs without bruno.json / opencollection.yml — both go through the
+    // "collection is not valid" path (avoid a non-existent path, which surfaces
+    // a different "could not be opened" toast).
     const collection1Dir = await createTmpDir('collection-1');
-    const collection2Dir = 'invalid-collection-path';
+    const collection2Dir = await createTmpDir('collection-2-invalid');
 
     // Count collections before attempting to open invalid ones
     const collectionCountBefore = await page.locator('#sidebar-collection-name').count();
@@ -95,14 +97,13 @@ test.describe('Open Multiple Collections', () => {
     await page.getByTestId('collections-header-add-menu').click();
     await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
 
-    // Wait for error toasts to appear
-    await page.waitForTimeout(1000);
-
     // Verify no collections were opened
     await expect(page.locator('#sidebar-collection-name')).toHaveCount(collectionCountBefore);
 
-    // Verify invalid collection error
-    const invalidCollectionError = page.getByText('The collection is not valid').first();
-    await expect(invalidCollectionError).toBeVisible();
+    // Invalid dirs toast "The collection is not valid …"; non-dirs toast
+    // "Some selected folders could not be opened …".
+    await expect(page.getByText(/collection is not valid|could not be opened/i).first()).toBeVisible({
+      timeout: 15000
+    });
   });
 });

@@ -1,10 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from '../../../playwright';
-import { openRequest, selectRequestPaneTab } from '../../utils/page';
+import { openRequest, selectRequestPaneTab, saveRequest } from '../../utils/page';
 
 const COLLECTION = 'req-description';
-const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 
 test.describe('Request Description - Write (Body: multipart-form)', () => {
   test('writes a multiline description to a multipart field and persists it to the .bru file', async ({
@@ -29,8 +28,7 @@ test.describe('Request Description - Write (Body: multipart-form)', () => {
     await expect(descCell.locator('.CodeMirror-line').nth(0)).toHaveText('Field line one');
     await expect(descCell.locator('.CodeMirror-line').nth(1)).toHaveText('Field line two');
 
-    await page.keyboard.press(saveShortcut);
-    await expect(page.getByText('Request saved successfully')).toBeVisible({ timeout: 5000 });
+    await saveRequest(page);
 
     const bruPath = path.join(collectionFixturePath!, 'multipart-with-descriptions.bru');
     const fileContent = fs.readFileSync(bruPath, 'utf8');

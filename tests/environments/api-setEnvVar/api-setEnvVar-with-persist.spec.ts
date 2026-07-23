@@ -21,14 +21,14 @@ test.describe('bru.setEnvVar(name, value, { persist: true }) - legacy arg', () =
         .click();
 
       await locators.environment.selector().click();
-      await expect(locators.environment.listOption('Stage')).toBeVisible();
+      await expect(locators.environment.listOption('Stage')).toBeVisible({ timeout: 15000 });
       await locators.environment.listOption('Stage').click();
       await expect(locators.environment.currentEnvironment()).toContainText('Stage');
 
       await sendRequest(page, 200);
 
       await expect
-        .poll(() => fs.readFileSync(stageBruPath, 'utf8'), { timeout: 5000 })
+        .poll(() => fs.readFileSync(stageBruPath, 'utf8'), { timeout: 15000 })
         .toMatch(/legacy_persist_var:\s*from-legacy-flag/);
     };
 

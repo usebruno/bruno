@@ -77,13 +77,13 @@ describe('system-proxy refresh', () => {
     beforeEach(() => jest.useFakeTimers());
     afterEach(() => jest.useRealTimers());
 
-    it('restores prior proxy vars if the shell fetch hangs past 60s', async () => {
+    it('restores prior proxy vars if the shell fetch hangs past the timeout', async () => {
       process.env.http_proxy = 'http://existing:8080';
       mockFetchShellEnv = jest.fn(() => new Promise(() => {})); // never resolves
       ({ fetchSystemProxy } = require('../system-proxy'));
 
       const p = fetchSystemProxy({ refresh: true });
-      jest.advanceTimersByTime(60_000);
+      jest.advanceTimersByTime(5_000);
       await p;
 
       expect(process.env.http_proxy).toBe('http://existing:8080');

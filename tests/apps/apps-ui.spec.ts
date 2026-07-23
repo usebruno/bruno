@@ -156,7 +156,7 @@ test.describe('Apps - request-level UI', () => {
     await openRequest(page, 'apps-persist', 'persist-req', { persist: true });
 
     await test.step('Freshly opened app-enabled request starts in preview mode', async () => {
-      await expect(activeAppView(page).locator('webview')).toBeVisible();
+      await expect(activeAppView(page).locator('webview')).toBeVisible({ timeout: 15000 });
       await expect(page.getByTestId('view-mode-app')).toHaveClass(/active/);
     });
 

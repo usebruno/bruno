@@ -12,6 +12,12 @@ export const buildSidebarLocators = (page: Page) => {
     collection: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
     folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
+    /** Prefer this when the same request name can exist in more than one open collection. */
+    collectionRequest: (collectionName: string, requestName: string) =>
+      page
+        .locator(`#collection-${collectionName.replace(/\s+/g, '-').toLowerCase()}`)
+        .getByTestId('sidebar-collection-item-row')
+        .filter({ hasText: requestName }),
     folderRequest: (folderName: string, requestName: string) => {
       // Find the folder's collection-item-name, then navigate to its parent wrapper container (StyledWrapper),
       // and search for the request within that container's descendants.
