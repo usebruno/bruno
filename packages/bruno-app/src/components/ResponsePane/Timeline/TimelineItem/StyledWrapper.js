@@ -1,5 +1,5 @@
-import styled from 'styled-components';
 import { rgba } from 'polished';
+import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   .tl-row-wrap {
@@ -272,9 +272,10 @@ const StyledWrapper = styled.div`
   }
   .tl-headers-table td.tl-headers-key {
     color: ${(props) => props.theme.colors.text.muted};
-    width: 220px;
-    min-width: 120px;
-    max-width: 280px;
+    width: 160px;
+    min-width: 100px;
+    max-width: 200px;
+    padding-right: 6px;
   }
   .tl-headers-table td.tl-headers-val {
     color: ${(props) => props.theme.text};

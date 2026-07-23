@@ -42,3 +42,8 @@ export {
 export {
   toDisplayString
 } from './string';
+
+export {
+  toEntries,
+  buildHeaderRows
+} from './headers-source';

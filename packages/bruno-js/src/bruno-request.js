@@ -138,6 +138,17 @@ class BrunoRequest {
   }
 
   setHeaders(headers) {
+    // Array form (e.g. [{ 'header-1': 'value-1' }, ...]) merges each entry onto the existing
+    // headers, preserving ones set elsewhere. Object form replaces the whole header set.
+    if (Array.isArray(headers)) {
+      if (!this.req.headers || typeof this.req.headers !== 'object' || Array.isArray(this.req.headers)) {
+        this.req.headers = {};
+      }
+      headers.forEach((entry) => {
+        if (entry && typeof entry === 'object') Object.assign(this.req.headers, entry);
+      });
+      return;
+    }
     this.req.headers = headers;
   }
 

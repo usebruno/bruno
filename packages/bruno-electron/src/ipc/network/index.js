@@ -585,6 +585,14 @@ const registerNetworkIpc = (mainWindow) => {
     let scriptResult;
     const { promptVariables = {}, name: collectionName } = collection;
 
+    // Snapshot headers before the pre-request script so we can tell which ones the script
+    // added/changed via req.setHeader (for source attribution in the timeline). Captured here,
+    // before interpolateVars below, so variable resolution doesn't register as a script change.
+    const preScriptHeaderState = new Map();
+    Object.keys(request.headers || {}).forEach((name) => {
+      preScriptHeaderState.set(name.toLowerCase(), request.headers[name]);
+    });
+
     const requestScript = get(request, 'script.req');
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
@@ -607,6 +615,11 @@ const registerNetworkIpc = (mainWindow) => {
       const domainsWithCookies = await getDomainsWithCookies();
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
     }
+
+    request.scriptSetHeaders = Object.keys(request.headers || {}).filter((name) => {
+      const lower = name.toLowerCase();
+      return !preScriptHeaderState.has(lower) || preScriptHeaderState.get(lower) !== request.headers[name];
+    });
 
     // interpolate variables inside request
     interpolateVars(request, envVars, runtimeVariables, processEnvVars, promptVariables);
@@ -950,6 +963,7 @@ const registerNetworkIpc = (mainWindow) => {
       if (preRequestError) {
         return Promise.reject(preRequestError);
       }
+
       const axiosInstance = await configureRequest(
         collectionUid,
         collection,
@@ -975,6 +989,7 @@ const registerNetworkIpc = (mainWindow) => {
         url: request.url,
         method: request.method,
         headers: headersSent,
+        scriptSetHeaders: request.scriptSetHeaders || [],
         data: requestData,
         dataBuffer: requestDataBuffer,
         timestamp: Date.now()

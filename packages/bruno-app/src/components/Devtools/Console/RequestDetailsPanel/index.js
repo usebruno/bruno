@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   IconX,
@@ -11,19 +11,20 @@ import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 import Network from 'components/ResponsePane/Timeline/TimelineItem/Network';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common/index';
+import { findItemInCollection, getTreePathFromCollectionToItem } from 'utils/collections/index';
+import { buildHeaderRows } from '@usebruno/common/utils';
 
-const RequestTab = ({ request, response }) => {
-  const formatHeaders = (headers) => {
-    if (!headers) return [];
-    if (Array.isArray(headers)) return headers;
-    return Object.entries(headers).map(([key, value]) => ({ name: key, value }));
-  };
-
+const RequestTab = ({ request, response, item, collection }) => {
   const formatBody = (body) => {
     if (!body) return 'No body';
     if (typeof body === 'string') return body;
     return JSON.stringify(body, null, 2);
   };
+
+  const headerRows = useMemo(
+    () => buildHeaderRows({ collection, item, treePath: getTreePathFromCollectionToItem(collection, item), request, timeline: response?.timeline }),
+    [collection, item, request, response?.timeline]
+  );
 
   return (
     <div className="tab-content">
@@ -43,7 +44,7 @@ const RequestTab = ({ request, response }) => {
 
       <div className="section">
         <h4>Request Headers</h4>
-        {formatHeaders(request?.headers).length > 0 ? (
+        {headerRows.length > 0 ? (
           <div className="headers-table">
             <table>
               <thead>
@@ -53,10 +54,10 @@ const RequestTab = ({ request, response }) => {
                 </tr>
               </thead>
               <tbody>
-                {formatHeaders(request.headers).map((header, index) => (
+                {headerRows.map((header, index) => (
                   <tr key={index}>
                     <td className="header-name">{header.name}</td>
-                    <td className="header-value">{header.value}</td>
+                    <td className="header-value">{String(header.value)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -77,7 +78,7 @@ const RequestTab = ({ request, response }) => {
   );
 };
 
-const ResponseTab = ({ response, request, collection }) => {
+const ResponseTab = ({ response, collection }) => {
   const formatHeaders = (headers) => {
     if (!headers) return [];
     if (Array.isArray(headers)) return headers;
@@ -134,7 +135,7 @@ const ResponseTab = ({ response, request, collection }) => {
   );
 };
 
-const NetworkTab = ({ response }) => {
+const NetworkTab = ({ response, request, item, collection }) => {
   const timeline = response?.timeline || [];
 
   return (
@@ -143,7 +144,7 @@ const NetworkTab = ({ response }) => {
         <h4>Network Logs</h4>
         <div className="network-logs-wrapper">
           {timeline.length > 0 ? (
-            <Network logs={timeline} />
+            <Network logs={timeline} request={request} item={item} collection={collection} />
           ) : (
             <div className="empty-state">No network logs available</div>
           )}
@@ -165,6 +166,7 @@ const RequestDetailsPanel = () => {
   const { request, response } = data;
 
   const collection = collections.find((c) => c.uid === selectedRequest.collectionUid);
+  const item = collection ? findItemInCollection(collection, selectedRequest.itemUid) : null;
 
   const handleClose = () => {
     dispatch(clearSelectedRequest());
@@ -178,13 +180,13 @@ const RequestDetailsPanel = () => {
   const getTabContent = () => {
     switch (activeTab) {
       case 'request':
-        return <RequestTab request={request} response={response} />;
+        return <RequestTab request={request} response={response} item={item} collection={collection} />;
       case 'response':
-        return <ResponseTab response={response} request={request} collection={collection} />;
+        return <ResponseTab response={response} collection={collection} />;
       case 'network':
-        return <NetworkTab response={response} />;
+        return <NetworkTab response={response} request={request} item={item} collection={collection} />;
       default:
-        return <RequestTab request={request} response={response} />;
+        return <RequestTab request={request} response={response} item={item} collection={collection} />;
     }
   };
 
