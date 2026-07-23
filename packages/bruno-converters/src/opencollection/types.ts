@@ -212,6 +212,7 @@ export interface BrunoConfig {
   };
   scripts?: {
     additionalContextRoots?: string[];
+    flow?: 'sandwich' | 'sequential';
   };
   openapi?: Array<{
     sourceUrl: string;
