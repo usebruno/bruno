@@ -2,25 +2,25 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { IconFilter, IconChevronDown } from '@tabler/icons';
 import { PortalDropdownMenu } from '../StyledWrapper';
-import LogIcon from '../LogIcon';
 import useClickOutside from 'hooks/useClickOutside';
 
-// Smallest height the menu may shrink to before it scrolls internally,
-// so a trigger near the viewport bottom still shows a usable, scrollable menu.
-const MIN_MENU_HEIGHT = 120;
+const VIEWPORT_MARGIN = 8; // keep this much gap from the viewport bottom
+const TRIGGER_GAP = 4; // gap between the trigger and the menu
 
 export const computeMenuStyle = (el, innerWidth = window.innerWidth, innerHeight = window.innerHeight) => {
   if (!el) return null;
   const rect = el.getBoundingClientRect();
-  const spaceBelow = innerHeight - rect.bottom - 8;
-  // Always open below the trigger; cap the height to the room available so the
-  // options list scrolls instead of clipping when space is tight.
+  // The trigger lives at the top of the devtools panel (min height 150px, docked
+  // above the status bar), so there's always ample room below it. Open below and
+  // cap the height to that room: the options list scrolls if needed, and
+  // `top + maxHeight` never exceeds the viewport.
+  const top = rect.bottom + TRIGGER_GAP;
   return {
     position: 'fixed',
-    top: rect.bottom + 4,
+    top,
     right: innerWidth - rect.right,
     zIndex: 9999,
-    maxHeight: Math.max(spaceBelow, MIN_MENU_HEIGHT)
+    maxHeight: innerHeight - top - VIEWPORT_MARGIN
   };
 };
 
