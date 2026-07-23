@@ -103,6 +103,25 @@ export const getScriptModifiedKeys = (scriptVars, baseline, { skipKeys = [] } = 
   return out;
 };
 
+export const DUPLICATE_SECRET_NAMES_ERROR = 'Duplicate secret names are not allowed';
+
+/**
+ * Secret values are persisted in a name-keyed side store and re-attached on read by name, so two
+ * secrets sharing a name collapse to one and the second loses its value. Names must therefore be
+ * unique among secrets. Returns the set of names carried by more than one secret variable. Only
+ * secret rows are counted, so callers need not filter by tab.
+ */
+export const getDuplicateSecretNames = (variables) => {
+  const counts = new Map();
+  (variables || []).forEach((v) => {
+    if (v.secret && v.name && v.name.trim() !== '') {
+      const key = v.name.trim();
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+  });
+  return new Set([...counts].filter(([, count]) => count > 1).map(([name]) => name));
+};
+
 /**
  * Strips the UID from an environment variable for comparison purposes.
  * This is useful when comparing variables where UIDs may differ but the actual data is the same.

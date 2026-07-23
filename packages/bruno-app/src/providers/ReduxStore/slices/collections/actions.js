@@ -89,7 +89,7 @@ import {
   mergeHeaders
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
-import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys, getDuplicateSecretNames, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -2135,6 +2135,10 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
     const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
     if (!environment) {
       return reject(new Error('Environment not found'));
+    }
+
+    if (getDuplicateSecretNames(variables).size > 0) {
+      return reject(new Error(DUPLICATE_SECRET_NAMES_ERROR));
     }
 
     environment.variables = variables;

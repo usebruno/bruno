@@ -14,8 +14,7 @@ const varRowValueLine = (page: Page, name: string) => envLocators(page).varRowVa
 const saveTab = (page: Page) => envLocators(page).saveTab();
 const searchInputLocator = (page: Page) => envLocators(page).searchInput();
 const tabDraftIcon = (page: Page) => page.locator('.request-tab.active').getByTestId('tab-draft-icon');
-const variablesTabDot = (page: Page) => envLocators(page).tabDot('variables');
-const secretsTabDot = (page: Page) => envLocators(page).tabDot('secrets');
+const tabCount = (page: Page, tab: string) => envLocators(page).tabCount(tab);
 
 const searchEnv = async (page: Page, query: string) => {
   const input = searchInputLocator(page);
@@ -167,45 +166,45 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     });
   });
 
-  test('the unsaved-changes dot appears only on the tab with unsaved edits', async ({ page, createTmpDir }) => {
+  test('the unsaved indicator appears only on the tab with unsaved edits', async ({ page, createTmpDir }) => {
     await importCollection(page, collectionFile, await createTmpDir('var-secret-per-tab-dot'), {
       expectedCollectionName: 'test_collection'
     });
 
     await createEnvironment(page, 'Per-Tab Dot Env', 'collection');
 
-    await test.step('No dots before anything is edited', async () => {
-      await expect(variablesTabDot(page)).toBeHidden();
-      await expect(secretsTabDot(page)).toBeHidden();
+    await test.step('No count or unsaved marker before anything is edited', async () => {
+      await expect(tabCount(page, 'variables')).toHaveCount(0);
+      await expect(tabCount(page, 'secrets')).toHaveCount(0);
     });
 
-    await test.step('Editing the Variables tab lights up only the Variables dot', async () => {
+    await test.step('Editing the Variables tab marks only Variables unsaved', async () => {
       await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
-      await expect(variablesTabDot(page)).toBeVisible();
-      await expect(secretsTabDot(page)).toBeHidden();
+      await expect(tabCount(page, 'variables')).toHaveClass(/unsaved/);
+      await expect(tabCount(page, 'secrets')).toHaveCount(0);
     });
 
-    await test.step('Editing the Secrets tab lights up its own dot without clearing Variables', async () => {
+    await test.step('Editing the Secrets tab marks it unsaved without clearing Variables', async () => {
       await secretsTab(page).click();
       await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
-      await expect(secretsTabDot(page)).toBeVisible();
-      // The Variables tab still has its unsaved row, so its dot must remain.
-      await expect(variablesTabDot(page)).toBeVisible();
+      await expect(tabCount(page, 'secrets')).toHaveClass(/unsaved/);
+      // The Variables tab still has its unsaved row, so its marker must remain.
+      await expect(tabCount(page, 'variables')).toHaveClass(/unsaved/);
     });
 
-    await test.step('Saving the Secrets tab clears only the Secrets dot', async () => {
+    await test.step('Saving the Secrets tab clears only its unsaved marker', async () => {
       await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
-      await expect(secretsTabDot(page)).toBeHidden();
-      await expect(variablesTabDot(page)).toBeVisible();
+      await expect(tabCount(page, 'secrets')).not.toHaveClass(/unsaved/);
+      await expect(tabCount(page, 'variables')).toHaveClass(/unsaved/);
     });
 
-    await test.step('Saving the Variables tab clears the last remaining dot', async () => {
+    await test.step('Saving the Variables tab clears the last unsaved marker', async () => {
       await variablesTab(page).click();
       await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
-      await expect(variablesTabDot(page)).toBeHidden();
-      await expect(secretsTabDot(page)).toBeHidden();
+      await expect(tabCount(page, 'variables')).not.toHaveClass(/unsaved/);
+      await expect(tabCount(page, 'secrets')).not.toHaveClass(/unsaved/);
     });
   });
 
@@ -565,45 +564,45 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     });
   });
 
-  test('the unsaved-changes dot appears only on the tab with unsaved edits', async ({ page, createTmpDir }) => {
+  test('the unsaved indicator appears only on the tab with unsaved edits', async ({ page, createTmpDir }) => {
     await importCollection(page, collectionFile, await createTmpDir('global-var-secret-per-tab-dot'), {
       expectedCollectionName: 'test_collection'
     });
 
     await createEnvironment(page, 'Global Per-Tab Dot Env', 'global');
 
-    await test.step('No dots before anything is edited', async () => {
-      await expect(variablesTabDot(page)).toBeHidden();
-      await expect(secretsTabDot(page)).toBeHidden();
+    await test.step('No count or unsaved marker before anything is edited', async () => {
+      await expect(tabCount(page, 'variables')).toHaveCount(0);
+      await expect(tabCount(page, 'secrets')).toHaveCount(0);
     });
 
-    await test.step('Editing the Variables tab lights up only the Variables dot', async () => {
+    await test.step('Editing the Variables tab marks only Variables unsaved', async () => {
       await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
-      await expect(variablesTabDot(page)).toBeVisible();
-      await expect(secretsTabDot(page)).toBeHidden();
+      await expect(tabCount(page, 'variables')).toHaveClass(/unsaved/);
+      await expect(tabCount(page, 'secrets')).toHaveCount(0);
     });
 
-    await test.step('Editing the Secrets tab lights up its own dot without clearing Variables', async () => {
+    await test.step('Editing the Secrets tab marks it unsaved without clearing Variables', async () => {
       await secretsTab(page).click();
       await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
-      await expect(secretsTabDot(page)).toBeVisible();
-      // The Variables tab still has its unsaved row, so its dot must remain.
-      await expect(variablesTabDot(page)).toBeVisible();
+      await expect(tabCount(page, 'secrets')).toHaveClass(/unsaved/);
+      // The Variables tab still has its unsaved row, so its marker must remain.
+      await expect(tabCount(page, 'variables')).toHaveClass(/unsaved/);
     });
 
-    await test.step('Saving the Secrets tab clears only the Secrets dot', async () => {
+    await test.step('Saving the Secrets tab clears only its unsaved marker', async () => {
       await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
-      await expect(secretsTabDot(page)).toBeHidden();
-      await expect(variablesTabDot(page)).toBeVisible();
+      await expect(tabCount(page, 'secrets')).not.toHaveClass(/unsaved/);
+      await expect(tabCount(page, 'variables')).toHaveClass(/unsaved/);
     });
 
-    await test.step('Saving the Variables tab clears the last remaining dot', async () => {
+    await test.step('Saving the Variables tab clears the last unsaved marker', async () => {
       await variablesTab(page).click();
       await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
-      await expect(variablesTabDot(page)).toBeHidden();
-      await expect(secretsTabDot(page)).toBeHidden();
+      await expect(tabCount(page, 'variables')).not.toHaveClass(/unsaved/);
+      await expect(tabCount(page, 'secrets')).not.toHaveClass(/unsaved/);
     });
   });
 

@@ -11,7 +11,6 @@ import ColorPicker from 'components/ColorPicker';
 import ActionIcon from 'ui/ActionIcon';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import { updateTabState } from 'providers/ReduxStore/slices/tabs';
-import DraftTabIcon from 'components/RequestTabs/RequestTab/DraftTabIcon';
 import { stripEnvVarUid } from 'utils/environments';
 import StyledWrapper from './StyledWrapper';
 
@@ -39,16 +38,25 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
       const normalize = (list) => JSON.stringify((list || []).filter(belongsToTab).map(stripEnvVarUid));
       return normalize(environmentsDraft.variables) !== normalize(environment?.variables);
     };
-    // The dot is floated into the tab's right margin (see StyledWrapper), so it never widens the
-    // tab; visibility toggles whether it shows without shifting the tab.
-    const draftIndicator = (dirty) => (
-      <span className="env-tab-draft-indicator" data-testid="env-tab-draft-indicator" style={{ visibility: dirty ? 'visible' : 'hidden' }}>
-        <DraftTabIcon />
-      </span>
-    );
+
+    const liveVariables = environmentsDraft?.variables || environment?.variables || [];
+    const countForTab = (isSecret) =>
+      liveVariables.filter(
+        (v) => (isSecret ? !!v.secret : !v.secret) && v.enabled && v.name && v.name.trim() !== ''
+      ).length;
+    const tabIndicator = (isSecret) => {
+      const count = countForTab(isSecret);
+      if (count === 0) return null;
+      const dirty = variablesTabDirty(isSecret);
+      return (
+        <sup className={`env-tab-count font-medium${dirty ? ' unsaved' : ''}`} data-testid="env-tab-count">
+          {count}
+        </sup>
+      );
+    };
     return [
-      { key: 'variables', label: 'Variables', indicator: draftIndicator(variablesTabDirty(false)) },
-      { key: 'secrets', label: 'Secrets', indicator: draftIndicator(variablesTabDirty(true)) }
+      { key: 'variables', label: 'Variables', indicator: tabIndicator(false) },
+      { key: 'secrets', label: 'Secrets', indicator: tabIndicator(true) }
     ];
   }, [environmentsDraft, environment?.variables]);
 
