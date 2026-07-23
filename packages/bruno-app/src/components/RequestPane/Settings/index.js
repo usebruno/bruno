@@ -5,7 +5,8 @@ import { IconTag } from '@tabler/icons';
 import ToggleSelector from 'components/RequestPane/Settings/ToggleSelector';
 import SettingsInput from 'components/SettingsInput';
 import InheritableSettingsInput from 'components/InheritableSettingsInput';
-import { updateItemSettings } from 'providers/ReduxStore/slices/collections';
+import { updateItemSettings, toggleAppMode } from 'providers/ReduxStore/slices/collections';
+import { setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Tags from './Tags/index';
 
@@ -28,6 +29,7 @@ const Settings = ({ item, collection }) => {
   const rawSettings = getPropertyFromDraftOrRequest('settings');
   const settings = { ...DEFAULT_SETTINGS, ...rawSettings };
   const { encodeUrl, followRedirects, maxRedirects, timeout, forwardAuthorizationHeader } = settings;
+  const enableApp = getPropertyFromDraftOrRequest('app.enabled') === true;
 
   // Reusable function to update settings
   const updateSetting = useCallback((settingUpdate) => {
@@ -48,6 +50,14 @@ const Settings = ({ item, collection }) => {
 
   const onToggleForwardAuthorizationOnRedirect = useCallback(() =>
     updateSetting({ forwardAuthorizationHeader: !forwardAuthorizationHeader }), [forwardAuthorizationHeader, updateSetting]);
+
+  const onToggleEnableApp = useCallback(() => {
+    const next = !enableApp;
+    dispatch(toggleAppMode({ enabled: next, itemUid: item.uid, collectionUid: collection.uid }));
+    if (next) {
+      dispatch(setTabAppPreview({ uid: item.uid, appPreview: false }));
+    }
+  }, [enableApp, dispatch, item.uid, collection.uid]);
 
   const onMaxRedirectsChange = useCallback((e) => {
     const value = e.target.value;
@@ -145,6 +155,19 @@ const Settings = ({ item, collection }) => {
               data-testid="forward-authorization-toggle"
             />
           </div>
+
+          {item.type === 'http-request' && (
+            <div className="flex flex-col gap-4">
+              <ToggleSelector
+                checked={enableApp}
+                onChange={onToggleEnableApp}
+                label="Enable App"
+                description="Show the App tab and app view mode for this request"
+                size="medium"
+                data-testid="enable-app-toggle"
+              />
+            </div>
+          )}
 
           <SettingsInput
             id="maxRedirects"

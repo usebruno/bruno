@@ -1,26 +1,7 @@
 import { test, expect, Page } from '../../playwright';
 import { buildScriptErrorLocators, buildCommonLocators } from '../utils/page/locators';
-import { openRequest, closeAllTabs, sendAndWaitForErrorCard, sendAndWaitForResponse } from '../utils/page/actions';
+import { openRequest, closeAllTabs, sendAndWaitForErrorCard, sendAndWaitForResponse, openFolderRequest } from '../utils/page/actions';
 import { setSandboxMode, runCollection } from '../utils/page/runner';
-
-/**
- * Helper: expand a folder in the sidebar and open a nested request.
- * Clicking the collection row is idempotent (only expands, never collapses).
- * Clicking the folder row is idempotent (only expands, never collapses).
- */
-const openFolderRequest = async (page: Page, collectionName: string, folderName: string, requestName: string) => {
-  await test.step(`Open folder request "${requestName}" in "${folderName}"`, async () => {
-    const { sidebar, tabs } = buildCommonLocators(page);
-    await sidebar.collectionRow(collectionName).click();
-    const folder = sidebar.folder(folderName);
-    await folder.waitFor({ state: 'visible' });
-    await folder.click();
-    const request = sidebar.request(requestName);
-    await request.waitFor({ state: 'visible' });
-    await request.click();
-    await expect(tabs.activeRequestTab()).toContainText(requestName);
-  });
-};
 
 for (const mode of ['safe', 'developer'] as const) {
   test.describe.serial(`Script Error Display [${mode} mode]`, () => {

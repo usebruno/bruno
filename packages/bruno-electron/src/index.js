@@ -15,7 +15,7 @@ if (isDev) {
 }
 
 const { format } = require('url');
-const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain, nativeTheme } = require('electron');
+const { BrowserWindow, app, session, Menu, globalShortcut, ipcMain, nativeTheme, shell } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 if (isDev && process.env.ELECTRON_USER_DATA_PATH) {
@@ -46,6 +46,7 @@ const registerApiSpecIpc = require('./ipc/apiSpec');
 const registerGitIpc = require('./ipc/git');
 const registerOpenAPISyncIpc = require('./ipc/openapi-sync');
 const registerAiIpc = require('./ipc/ai');
+const registerAiAutocompleteIpc = require('./ipc/ai/autocomplete');
 const { registerMountIpc } = require('./ipc/mount');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
@@ -425,7 +426,27 @@ app.on('ready', async () => {
     }
   });
 
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+  const AI_POPOUT_FRAME_PREFIX = 'bruno-ai-assistant';
+  const isAiPopoutFrame = (frameName) => Boolean(frameName && frameName.startsWith(AI_POPOUT_FRAME_PREFIX));
+
+  mainWindow.webContents.setWindowOpenHandler(({ url, frameName }) => {
+    if (isAiPopoutFrame(frameName) && (!url || url === 'about:blank')) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 480,
+          height: 640,
+          minWidth: 400,
+          minHeight: 480,
+          backgroundColor: themeBg,
+          icon: path.join(__dirname, 'about', '256x256.png'),
+          autoHideMenuBar: true,
+          // No OS title bar, the chat header is the drag region and carries
+          // its own close/dock controls.
+          frame: false
+        }
+      };
+    }
     try {
       const { protocol } = new URL(url);
       if (['https:', 'http:'].includes(protocol)) {
@@ -435,6 +456,27 @@ app.on('ready', async () => {
       console.error(e);
     }
     return { action: 'deny' };
+  });
+
+  mainWindow.webContents.on('did-create-window', (childWindow, { frameName }) => {
+    if (!isAiPopoutFrame(frameName)) return;
+    // Links inside AI responses open in the default browser and must never
+    // navigate the popout document itself (that would tear down the portal).
+    const openExternally = (url) => {
+      if (/^https?:\/\//.test(url)) {
+        shell.openExternal(url).catch((err) => {
+          console.error('Failed to open external URL from AI popout:', err);
+        });
+      }
+    };
+    childWindow.webContents.setWindowOpenHandler(({ url }) => {
+      openExternally(url);
+      return { action: 'deny' };
+    });
+    childWindow.webContents.on('will-navigate', (event, url) => {
+      event.preventDefault();
+      openExternally(url);
+    });
   });
 
   mainWindow.webContents.on('did-finish-load', async () => {
@@ -478,6 +520,7 @@ app.on('ready', async () => {
   registerGitIpc(mainWindow);
   registerOpenAPISyncIpc(mainWindow);
   registerAiIpc(mainWindow);
+  registerAiAutocompleteIpc(mainWindow);
   registerMountIpc();
 
   // Internal delegator

@@ -18,7 +18,8 @@ import {
   IconTrash,
   IconSettings,
   IconInfoCircle,
-  IconTerminal2
+  IconTerminal2,
+  IconAppWindow
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -29,6 +30,7 @@ import { uuid } from 'utils/common';
 import { copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
+import NewApp from 'components/Sidebar/NewApp';
 import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
@@ -95,6 +97,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
+  const [newAppModalOpen, setNewAppModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
   const [examplesExpanded, setExamplesExpanded] = useState(false);
@@ -177,11 +180,27 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   };
 
+  // Which sidebar section an item belongs to. The sidebar renders these three
+  // sections in order (folders → apps → requests), each sorted by seq independently.
+  const getSidebarSection = (i) => {
+    if (isItemAFolder(i)) return 'folder';
+    if (i?.type === 'app') return 'app';
+    return 'request';
+  };
+
   const canItemBeDropped = ({ draggedItem, targetItem, dropType }) => {
     const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
     const { uid: draggedItemUid, pathname: draggedItemPathname, sourceCollectionUid } = draggedItem;
 
     if (draggedItemUid === targetItemUid) return false;
+
+    // The sidebar renders items grouped by section (folders → apps → requests) and
+    // sorts each section by seq independently. An 'adjacent' drop between two different
+    // sections could never move the item across sections visually, so reject it.
+    // 'inside' drops on a folder are unaffected (that's a directory move, not a reorder).
+    if (dropType === 'adjacent' && getSidebarSection(draggedItem) !== getSidebarSection(targetItem)) {
+      return false;
+    }
 
     // For cross-collection moves, we allow the drop
     if (sourceCollectionUid !== collectionUid) {
@@ -218,6 +237,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
       const dropType = determineDropType(monitor);
       if (!dropType) return;
+      if (!canItemBeDropped({ draggedItem, targetItem: item, dropType })) return;
 
       await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }));
       setDropType(null);
@@ -257,7 +277,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     // scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);
-    if (isRequest) {
+    const isApp = item.type === 'app';
+    if (isRequest || isApp) {
       if (isTabForItemPresent) {
         dispatch(
           focusTab({
@@ -270,7 +291,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         addTab({
           uid: item.uid,
           collectionUid: collectionUid,
-          requestPaneTab: getDefaultRequestPaneTab(item),
+          ...(isRequest ? { requestPaneTab: getDefaultRequestPaneTab(item) } : {}),
           type: item.type,
           pathname: item.pathname
         })
@@ -350,6 +371,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           leftSection: IconFolderPlus,
           label: 'New Folder',
           onClick: () => setNewFolderModalOpen(true)
+        },
+        {
+          id: 'new-app',
+          leftSection: IconAppWindow,
+          label: 'New App',
+          onClick: () => setNewAppModalOpen(true)
         },
         {
           id: 'run',
@@ -547,8 +574,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i) && !i.isTransient));
+  const appItems = sortItemsBySequence(filter(item.items, (i) => i.type === 'app' && !i.isTransient));
   const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i) && !i.isTransient));
-  const showEmptyFolderMessage = isFolder && !hasSearchText && !folderItems?.length && !requestItems?.length;
+  const showEmptyFolderMessage
+    = isFolder && !hasSearchText && !folderItems?.length && !appItems?.length && !requestItems?.length;
 
   const emptyFolderMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: item.uid });
 
@@ -630,6 +659,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       )}
       {newFolderModalOpen && (
         <NewFolder item={item} collectionUid={collectionUid} onClose={() => setNewFolderModalOpen(false)} />
+      )}
+      {newAppModalOpen && (
+        <NewApp item={item} collectionUid={collectionUid} onClose={() => setNewAppModalOpen(false)} />
       )}
       {runCollectionModalOpen && (
         <RunCollectionItem collectionUid={collectionUid} item={item} onClose={() => setRunCollectionModalOpen(false)} />
@@ -733,6 +765,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         <div>
           {folderItems && folderItems.length
             ? folderItems.map((i) => {
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
+              })
+            : null}
+          {appItems && appItems.length
+            ? appItems.map((i) => {
                 return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
               })
             : null}

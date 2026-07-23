@@ -1,37 +1,33 @@
-import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { useDispatch } from 'react-redux';
 import { sendNetworkRequest } from 'utils/network/index';
+import { findEnvironmentInCollection } from 'utils/collections';
 import {
-  findEnvironmentInCollection,
-  getEnvironmentVariables,
-  getGlobalEnvironmentVariables
-} from 'utils/collections';
-import { responseReceived, appSetRuntimeVariable, toggleAppMode, initRunRequestEvent } from 'providers/ReduxStore/slices/collections';
+  responseReceived,
+  appSetRuntimeVariable,
+  initRunRequestEvent
+} from 'providers/ReduxStore/slices/collections';
+import { updateRequestPaneTab, setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
+import { addLog } from 'providers/ReduxStore/slices/logs';
 import { uuid } from 'utils/common';
 import { useTheme } from 'providers/Theme';
+import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
+import EmptyAppState from './EmptyAppState';
+import { buildVariables } from './buildVariables';
+import {
+  SENTINEL,
+  wrapHtml,
+  toDataUrl,
+  serializeTimeline,
+  projectResponse,
+  useAppWebview
+} from './webview-bridge';
 
-/*
- * App content runs inside an Electron <webview>, which is an out-of-process guest
- * with its own document, so it does NOT inherit the app's strict CSP (script-src 'self')
- * This mirrors the HtmlPreview component used for HTML response previews.
- *
- * Messaging (no node integration in the guest, so postMessage/ipc aren't available):
- *   host  -> guest : webview.executeJavaScript(`window.__brunoReceive(<json>)`)
- *   guest -> host  : console.log(SENTINEL + json), read via the 'console-message' event
- */
-const SENTINEL = '__BRUNO_APP_MSG__';
-
-// Encode a value for safe inlining into an executeJavaScript() string as a JS object literal.
-const toJsArg = (value) =>
-  JSON.stringify(value === undefined ? null : value)
-    .replace(/</g, '\\u003c')
-    .replace(/\u2028/g, '\\u2028')
-    .replace(/\u2029/g, '\\u2029');
-
-// The ctx bridge. Injected as early as possible so window.ctx exists before user scripts run.
-const BOOTSTRAP_SCRIPT = `<script>
+// Request-level ctx bootstrap. Injected into the guest so window.bru exists
+// before user scripts run.
+const REQUEST_CTX_BOOTSTRAP = `<script>
 (function () {
   if (window.__brunoBootstrapped) return;
   window.__brunoBootstrapped = true;
@@ -39,77 +35,96 @@ const BOOTSTRAP_SCRIPT = `<script>
   var SENTINEL = ${JSON.stringify(SENTINEL)};
   var pending = new Map();
   var nextRequestId = 0;
+  var initialized = false;
 
   function sendToHost(payload) {
     try { console.log(SENTINEL + JSON.stringify(payload)); } catch (e) {}
   }
 
   var ctx = {
-    theme: 'light',
-    response: null,
-    assertionResults: [],
-    testResults: [],
-    variables: {},
+    theme: { name: 'light', mode: 'light', config: {} },
+    assertions: [],
+    tests: [],
+    variables: {
+      resolved: {},
+      runtime: {
+        set: function (name, value) {
+          sendToHost({ type: 'setRuntimeVariable', key: String(name), value: value });
+        }
+      }
+    },
+    http: {
+      response: null,
+      onResponseChange: null
+    },
 
+    // Called once when the host delivers the initial state. ctx data arrives
+    // asynchronously AFTER page load, so apps must do their first render here
+    // (or in the on*Change callbacks), not at DOMContentLoaded.
+    onInit: null,
     onThemeChange: null,
-    onResponseUpdate: null,
-    onResultsUpdate: null,
-    onVariablesUpdate: null,
+    onAssertionsChange: null,
+    onTestsChange: null,
+    onVariablesChange: null,
 
-    sendRequest: function (overrides) {
+    submitRequest: function (options) {
       return new Promise(function (resolve, reject) {
         var requestId = ++nextRequestId;
         pending.set(requestId, { resolve: resolve, reject: reject });
-        sendToHost({ type: 'sendRequest', requestId: requestId, overrides: overrides || {} });
+        sendToHost({ type: 'sendRequest', requestId: requestId, options: options || {} });
       });
-    },
-    setRuntimeVariable: function (key, value) {
-      sendToHost({ type: 'setRuntimeVariable', key: String(key), value: value });
     },
     log: function () {
       var args = Array.prototype.slice.call(arguments);
       sendToHost({ type: 'log', args: args });
     }
   };
-  window.ctx = ctx;
+
+  var bru = { ctx: ctx };
+  window.bru = bru;
 
   function applyTheme(theme) {
-    ctx.theme = theme || 'light';
+    ctx.theme = theme || { name: 'light', mode: 'light', config: {} };
+    var mode = ctx.theme.mode || 'light';
     if (document.body) {
       document.body.classList.remove('light', 'dark');
-      document.body.classList.add(ctx.theme);
+      document.body.classList.add(mode);
     }
   }
 
-  // Host -> guest entry point.
   window.__brunoReceive = function (msg) {
     if (!msg) return;
     switch (msg.type) {
       case 'state':
         applyTheme(msg.theme);
-        ctx.response = msg.response || null;
-        ctx.assertionResults = msg.assertionResults || [];
-        ctx.testResults = msg.testResults || [];
-        ctx.variables = msg.variables || {};
+        ctx.http.response = msg.response || null;
+        ctx.assertions = msg.assertionResults || [];
+        ctx.tests = msg.testResults || [];
+        ctx.variables.resolved = msg.variables || {};
+        if (!initialized) {
+          initialized = true;
+          if (typeof ctx.onInit === 'function') {
+            try { ctx.onInit(bru); } catch (e) { sendToHost({ type: 'log', args: ['onInit error: ' + (e && e.message)] }); }
+          }
+        }
         break;
       case 'theme':
         applyTheme(msg.theme);
         if (typeof ctx.onThemeChange === 'function') ctx.onThemeChange(ctx.theme);
         break;
       case 'responseUpdate':
-        ctx.response = msg.response || null;
-        if (typeof ctx.onResponseUpdate === 'function') ctx.onResponseUpdate(ctx.response);
+        ctx.http.response = msg.response || null;
+        if (typeof ctx.http.onResponseChange === 'function') ctx.http.onResponseChange(ctx.http.response);
         break;
       case 'results':
-        ctx.assertionResults = msg.assertionResults || [];
-        ctx.testResults = msg.testResults || [];
-        if (typeof ctx.onResultsUpdate === 'function') {
-          ctx.onResultsUpdate({ assertionResults: ctx.assertionResults, testResults: ctx.testResults });
-        }
+        ctx.assertions = msg.assertionResults || [];
+        ctx.tests = msg.testResults || [];
+        if (typeof ctx.onAssertionsChange === 'function') ctx.onAssertionsChange(ctx.assertions);
+        if (typeof ctx.onTestsChange === 'function') ctx.onTestsChange(ctx.tests);
         break;
       case 'variables':
-        ctx.variables = msg.variables || {};
-        if (typeof ctx.onVariablesUpdate === 'function') ctx.onVariablesUpdate(ctx.variables);
+        ctx.variables.resolved = msg.variables || {};
+        if (typeof ctx.onVariablesChange === 'function') ctx.onVariablesChange(ctx.variables);
         break;
       case 'response': {
         var entry = pending.get(msg.requestId);
@@ -130,140 +145,66 @@ const BOOTSTRAP_SCRIPT = `<script>
 })();
 </script>`;
 
-const FRAGMENT_STYLES = `<style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    margin: 0;
-    background: #ffffff;
-    color: #1e1e1e;
-    transition: background-color 0.15s, color 0.15s;
-  }
-  body.dark { background: #1e1e1e; color: #e0e0e0; }
-</style>`;
-
-// User code may be a full HTML document or a fragment. For a full document we inject
-// the bootstrap into it (avoids producing a malformed nested document); a fragment is
-// wrapped in a minimal shell.
-const generateAppHtml = (userCode) => {
-  const code = userCode || '';
-  const isFullDocument = /<html[\s>]/i.test(code) || /<!doctype/i.test(code);
-
-  if (isFullDocument) {
-    if (/<head[^>]*>/i.test(code)) {
-      return code.replace(/<head[^>]*>/i, (m) => `${m}${BOOTSTRAP_SCRIPT}`);
-    }
-    if (/<body[^>]*>/i.test(code)) {
-      return code.replace(/<body[^>]*>/i, (m) => `${m}${BOOTSTRAP_SCRIPT}`);
-    }
-    return `${BOOTSTRAP_SCRIPT}${code}`;
-  }
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  ${FRAGMENT_STYLES}
-  ${BOOTSTRAP_SCRIPT}
-</head>
-<body>
-${code}
-</body>
-</html>`;
-};
-
-const serializeTimeline = (timeline) => {
-  if (!Array.isArray(timeline)) return timeline;
-  return timeline.map((entry) => ({
-    ...entry,
-    timestamp: entry.timestamp instanceof Date ? entry.timestamp.getTime() : entry.timestamp
-  }));
-};
-
-const projectResponse = (r) => ({
-  status: r?.status ?? null,
-  statusText: r?.statusText ?? null,
-  data: r?.data ?? null,
-  headers: r?.headers ?? null,
-  duration: r?.duration ?? null,
-  size: r?.size ?? null
-});
-
-const buildVariables = (collection) => {
-  const env = getEnvironmentVariables(collection);
-  const global = getGlobalEnvironmentVariables({
-    globalEnvironments: collection?.globalEnvironments || [],
-    activeGlobalEnvironmentUid: collection?.activeGlobalEnvironmentUid
-  });
-  return {
-    ...global,
-    ...env,
-    ...(collection?.collectionVariables || {}),
-    ...(collection?.runtimeVariables || {})
-  };
-};
-
 const AppView = ({ item, collection, code }) => {
   const dispatch = useDispatch();
-  const { displayedTheme } = useTheme();
-  const webviewRef = useRef(null);
-  const [domReady, setDomReady] = useState(false);
+  const { displayedTheme, theme, themeVariantLight, themeVariantDark } = useTheme();
+  const src = useMemo(() => toDataUrl(wrapHtml(REQUEST_CTX_BOOTSTRAP, code || '')), [code]);
 
-  const src = useMemo(
-    () => `data:text/html;charset=utf-8,${encodeURIComponent(generateAppHtml(code || ''))}`,
-    [code]
+  const themePayload = useMemo(
+    () => ({
+      name: displayedTheme === 'light' ? themeVariantLight : themeVariantDark,
+      mode: displayedTheme,
+      config: theme
+    }),
+    [displayedTheme, theme, themeVariantLight, themeVariantDark]
   );
 
   const environment = useMemo(
     () => findEnvironmentInCollection(collection, collection.activeEnvironmentUid),
     [collection]
   );
-  const variables = useMemo(() => buildVariables(collection), [collection]);
+  const variables = useMemo(() => buildVariables(collection, item), [collection, item]);
   const response = useMemo(() => (item.response ? projectResponse(item.response) : null), [item.response]);
   const assertionResults = useMemo(() => item.assertionResults || [], [item.assertionResults]);
   const testResults = useMemo(() => item.testResults || [], [item.testResults]);
 
-  // Push a message into the guest. Safe to call before dom-ready (no-op until then).
-  const pushToGuest = useCallback((msg) => {
-    const webview = webviewRef.current;
-    if (!webview || !domReady) return;
-    try {
-      webview.executeJavaScript(`window.__brunoReceive && window.__brunoReceive(${toJsArg(msg)})`).catch(() => {});
-    } catch (_) {
-      /* webview not attached yet */
-    }
-  }, [domReady]);
+  // pushToGuest is produced by useAppWebview, which itself needs handleGuestMessage —
+  // routing through a ref lets the callbacks call the *latest* pushToGuest without
+  // creating a circular useCallback dependency. Without this, the request-id reply
+  // (and error reply) close over the first-render no-op pushToGuest and the guest's
+  // bru.ctx.submitRequest() promise never resolves.
+  const pushToGuestRef = useRef(() => {});
 
   const handleSendRequest = useCallback(
-    async (requestId, overrides) => {
+    async (requestId, options) => {
+      const push = pushToGuestRef.current;
       try {
         // Mint a requestUid and register the run so the main process emits its
-        // test/assertion/script events against an id the store recognises — this is
-        // what makes ctx.testResults / ctx.assertionResults populate (same as Send).
+        // test/assertion/script events against an id the store recognises — this
+        // is what makes ctx.tests / ctx.assertions populate.
         const requestUid = uuid();
         const requestItem = cloneDeep(item.draft || item);
         requestItem.requestUid = requestUid;
         dispatch(initRunRequestEvent({ requestUid, itemUid: item.uid, collectionUid: collection.uid }));
 
-        const flatOverrides = overrides && typeof overrides === 'object' ? { ...overrides } : {};
-        const explicitVars = flatOverrides.variables;
-        delete flatOverrides.variables;
+        const runtimeOverrides
+          = options && typeof options.runtimeVariables === 'object' && options.runtimeVariables
+            ? options.runtimeVariables
+            : {};
         const mergedRuntime = {
           ...(collection.runtimeVariables || {}),
-          ...flatOverrides,
-          ...(explicitVars && typeof explicitVars === 'object' ? explicitVars : {})
+          ...runtimeOverrides
         };
 
         const result = await sendNetworkRequest(requestItem, collection, environment, mergedRuntime);
 
-        // sendNetworkRequest resolves (rather than rejects) on network/request
-        // errors with an `error` payload — surface that to the guest as a rejection.
+        // sendNetworkRequest resolves on network/request errors with `error` set —
+        // surface as a guest-side promise rejection rather than a fake success.
         if (result?.error) {
           const errorMessage = typeof result.error === 'string'
             ? result.error
             : result.error?.message || 'Request failed';
-          pushToGuest({ type: 'response', requestId, error: errorMessage });
+          push({ type: 'response', requestId, error: errorMessage });
           return;
         }
 
@@ -284,22 +225,21 @@ const AppView = ({ item, collection, code }) => {
           })
         );
 
-        pushToGuest({ type: 'response', requestId, response: projectResponse(result) });
+        push({ type: 'response', requestId, response: projectResponse(result) });
       } catch (err) {
-        pushToGuest({ type: 'response', requestId, error: err?.message || 'Request failed' });
+        push({ type: 'response', requestId, error: err?.message || 'Request failed' });
       }
     },
-    [item, collection, environment, dispatch, pushToGuest]
+    [item, collection, environment, dispatch]
   );
 
   const handleGuestMessage = useCallback(
     (data) => {
       switch (data?.type) {
         case 'ready':
-          // Readiness is tracked via the webview 'dom-ready' event; nothing to do here.
           break;
         case 'sendRequest':
-          handleSendRequest(data.requestId, data.overrides);
+          handleSendRequest(data.requestId, data.options);
           break;
         case 'setRuntimeVariable':
           if (typeof data.key === 'string' && data.key.length) {
@@ -308,6 +248,7 @@ const AppView = ({ item, collection, code }) => {
           break;
         case 'log':
           console.log('[app]', ...(data.args || []));
+          dispatch(addLog({ type: 'log', args: ['[app]', ...(data.args || [])], timestamp: new Date().toISOString() }));
           break;
         default:
           break;
@@ -316,48 +257,22 @@ const AppView = ({ item, collection, code }) => {
     [handleSendRequest, dispatch, collection.uid]
   );
 
-  useEffect(() => {
-    const webview = webviewRef.current;
-    if (!webview) return;
+  const { domReady, pushToGuest, webviewRef } = useAppWebview(handleGuestMessage);
+  pushToGuestRef.current = pushToGuest;
 
-    const onConsoleMessage = (e) => {
-      const text = e?.message;
-      if (typeof text !== 'string' || !text.startsWith(SENTINEL)) return;
-      try {
-        handleGuestMessage(JSON.parse(text.slice(SENTINEL.length)));
-      } catch (_) {
-        /* not our message */
-      }
-    };
-    // executeJavaScript() is only valid after Electron's 'dom-ready'; gate on that.
-    // A reload (e.g. code change) tears the guest down, so reset readiness then.
-    const onDomReady = () => setDomReady(true);
-    const onStartLoading = () => setDomReady(false);
-
-    webview.addEventListener('console-message', onConsoleMessage);
-    webview.addEventListener('dom-ready', onDomReady);
-    webview.addEventListener('did-start-loading', onStartLoading);
-
-    return () => {
-      webview.removeEventListener('console-message', onConsoleMessage);
-      webview.removeEventListener('dom-ready', onDomReady);
-      webview.removeEventListener('did-start-loading', onStartLoading);
-    };
-  }, [handleGuestMessage]);
-
-  // Push initial state once the guest signals ready (also after a reload).
-  // Push a full state snapshot on the readiness transition (initial load and after reloads).
-  // Subsequent changes are handled by the granular effects below.
+  // Push a full state snapshot on each readiness transition. Subsequent changes
+  // are handled by the granular effects below; using a ref avoids re-firing
+  // this effect (which would be a needless full re-broadcast).
   const stateRef = useRef();
-  stateRef.current = { theme: displayedTheme, response, assertionResults, testResults, variables };
+  stateRef.current = { theme: themePayload, response, assertionResults, testResults, variables };
   useEffect(() => {
     if (!domReady) return;
     pushToGuest({ type: 'state', ...stateRef.current });
   }, [domReady, pushToGuest]);
 
   useEffect(() => {
-    pushToGuest({ type: 'theme', theme: displayedTheme });
-  }, [displayedTheme, pushToGuest]);
+    pushToGuest({ type: 'theme', theme: themePayload });
+  }, [themePayload, pushToGuest]);
 
   useEffect(() => {
     pushToGuest({ type: 'responseUpdate', response });
@@ -372,8 +287,17 @@ const AppView = ({ item, collection, code }) => {
   }, [variables, pushToGuest]);
 
   const disableApp = useCallback(() => {
-    dispatch(toggleAppMode({ enabled: false, itemUid: item.uid, collectionUid: collection.uid }));
-  }, [dispatch, item.uid, collection.uid]);
+    dispatch(setTabAppPreview({ uid: item.uid, appPreview: false }));
+  }, [dispatch, item.uid]);
+
+  const goToAppTab = useCallback(() => {
+    dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: 'app' }));
+    dispatch(setTabAppPreview({ uid: item.uid, appPreview: false }));
+  }, [dispatch, item.uid]);
+
+  const openAppsDocs = useCallback(() => {
+    window?.ipcRenderer?.openExternal('https://link.usebruno.com/apps');
+  }, []);
 
   return (
     <StyledWrapper data-testid="app-view">
@@ -383,15 +307,44 @@ const AppView = ({ item, collection, code }) => {
           Exit to editor
         </button>
       </div>
-      <div className="app-webview-container">
-        <webview
-          ref={webviewRef}
-          src={src}
-          partition="persist:bruno-app-view"
-          webpreferences="disableDialogs=true, javascript=yes"
-          className="app-webview"
+      {code && code.trim().length ? (
+        <div className="app-webview-container">
+          <webview
+            ref={webviewRef}
+            src={src}
+            partition="persist:bruno-app-view"
+            webpreferences="disableDialogs=true, javascript=yes"
+            className="app-webview"
+          />
+        </div>
+      ) : (
+        <EmptyAppState
+          title="No app yet"
+          hint="Add HTML/JS in the App tab to render a custom UI for this request."
+          actions={(
+            <>
+              <Button
+                size="sm"
+                variant="filled"
+                color="primary"
+                onClick={goToAppTab}
+                data-testid="empty-app-add-code"
+              >
+                Add app code
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                color="secondary"
+                onClick={openAppsDocs}
+                data-testid="empty-app-learn-more"
+              >
+                Learn more
+              </Button>
+            </>
+          )}
         />
-      </div>
+      )}
     </StyledWrapper>
   );
 };

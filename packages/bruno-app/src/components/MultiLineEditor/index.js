@@ -94,7 +94,9 @@ class MultiLineEditor extends Component {
     this.addOverlay(variables);
 
     // Initialize masking if this is a secret field
-    this.setState({ maskInput: this.props.isSecret });
+    this.setState({ maskInput: this.props.isSecret }, () => {
+      this.props.onMaskChange?.(this.state.maskInput);
+    });
     this._enableMaskedEditor(this.props.isSecret);
   }
 
@@ -110,6 +112,7 @@ class MultiLineEditor extends Component {
       if (this.props.onChange) {
         this.props.onChange(this.cachedValue);
       }
+      requestAnimationFrame(() => this.editor?.refresh());
     }
   };
 
@@ -167,15 +170,21 @@ class MultiLineEditor extends Component {
       if (this.maskedEditor && this.maskedEditor.isEnabled()) {
         this.maskedEditor.update();
       }
+      requestAnimationFrame(() => this.editor?.refresh());
     }
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
       // If the secret flag has changed, update the editor to reflect the change
       this._enableMaskedEditor(this.props.isSecret);
       // also set the maskInput flag to the new value
-      this.setState({ maskInput: this.props.isSecret });
+      this.setState({ maskInput: this.props.isSecret }, () => {
+        this.props.onMaskChange?.(this.state.maskInput);
+      });
     }
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
       this.editor.setOption('readOnly', this.props.readOnly || false);
+    }
+    if (this.props.placeholder !== prevProps.placeholder && this.editor) {
+      this.editor.setOption('placeholder', this.props.placeholder);
     }
     this.ignoreChangeEvent = false;
   }
@@ -208,9 +217,11 @@ class MultiLineEditor extends Component {
    * @brief Toggle the visibility of the secret value
    */
   toggleVisibleSecret = () => {
-    const isVisible = !this.state.maskInput;
-    this.setState({ maskInput: isVisible });
-    this._enableMaskedEditor(isVisible);
+    const maskInput = !this.state.maskInput;
+    this.setState({ maskInput }, () => {
+      this._enableMaskedEditor(maskInput);
+      this.props.onMaskChange?.(maskInput);
+    });
   };
 
   /**
@@ -219,7 +230,7 @@ class MultiLineEditor extends Component {
    */
   secretEye = (isSecret) => {
     return isSecret === true ? (
-      <button className="mx-2" onClick={() => this.toggleVisibleSecret()}>
+      <button className="mx-2" data-testid="secret-reveal-toggle" onClick={() => this.toggleVisibleSecret()}>
         {this.state.maskInput === true ? (
           <IconEyeOff size={18} strokeWidth={2} />
         ) : (
@@ -231,10 +242,11 @@ class MultiLineEditor extends Component {
 
   render() {
     const wrapperClass = `multi-line-editor grow ${this.props.readOnly ? 'read-only' : ''}`;
+    const testId = this.props.testId ?? (this.props.name ? `test-multiline-editor-${this.props.name}` : undefined);
     return (
-      <div className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
+      <div data-testid={testId} className={`flex flex-row justify-between w-full overflow-x-auto ${this.props.className}`}>
         <StyledWrapper ref={this.editorRef} className={wrapperClass} />
-        {this.secretEye(this.props.isSecret)}
+        {!this.props.hideSecretEye && this.secretEye(this.props.isSecret)}
       </div>
     );
   }

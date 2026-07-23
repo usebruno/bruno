@@ -1,0 +1,27 @@
+info:
+  name: formurlencoded-with-descriptions
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: https://example.com/form
+  body:
+    type: form-urlencoded
+    data:
+      - name: username
+        value: alice
+        description: Single-line form desc
+      - name: password
+        value: secret
+        description: |-
+          Multi-line form desc line one
+          Multi-line form desc line two
+      - name: plain-field
+        value: no-desc
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
