@@ -1,0 +1,107 @@
+{
+  "info": {
+    "name": "SendRequest Promise Chains",
+    "description": "pm.sendRequest promise-chain translation coverage for Postman-to-Bruno import.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Promise Then Catch Finally",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.sendRequest({ url: 'https://jsonplaceholder.typicode.com/posts/1' })",
+              "  .then((response) => {",
+              "    console.log(response.json());",
+              "  })",
+              "  .catch((error) => {",
+              "    console.log(error);",
+              "  })",
+              "  .finally(() => {",
+              "    console.log('done');",
+              "  });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://jsonplaceholder.typicode.com/posts/1",
+          "protocol": "https",
+          "host": ["jsonplaceholder", "typicode", "com"],
+          "path": ["posts", "1"]
+        }
+      }
+    },
+    {
+      "name": "Nested Then Chains",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.sendRequest({ url: 'https://jsonplaceholder.typicode.com/posts/1' })",
+              "  .then((response) => response.json())",
+              "  .then((data) => {",
+              "    console.log(data.title);",
+              "  })",
+              "  .catch((error) => {",
+              "    console.log(error);",
+              "  });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://jsonplaceholder.typicode.com/posts/1",
+          "protocol": "https",
+          "host": ["jsonplaceholder", "typicode", "com"],
+          "path": ["posts", "1"]
+        }
+      }
+    },
+    {
+      "name": "SendRequest Inside SendRequest",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.sendRequest({ url: 'https://jsonplaceholder.typicode.com/users/1' })",
+              "  .then((userRes) => {",
+              "    const userId = userRes.json().id;",
+              "    return pm.sendRequest({ url: `https://jsonplaceholder.typicode.com/users/${userId}/posts` })",
+              "      .then((postsRes) => {",
+              "        console.log(postsRes.json());",
+              "      });",
+              "  })",
+              "  .catch((error) => {",
+              "    console.log(error);",
+              "  });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://jsonplaceholder.typicode.com/users/1",
+          "protocol": "https",
+          "host": ["jsonplaceholder", "typicode", "com"],
+          "path": ["users", "1"]
+        }
+      }
+    }
+  ]
+}
