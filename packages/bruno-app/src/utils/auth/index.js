@@ -101,5 +101,5 @@ export const hasEffectiveAuth = (collection, item, supportedModes) => {
  */
 export const shouldMaskValue = (value) => {
   if (!value || typeof value !== 'string') return true;
-  return !value.includes('{');
+  return !value.startsWith('{{');
 };
