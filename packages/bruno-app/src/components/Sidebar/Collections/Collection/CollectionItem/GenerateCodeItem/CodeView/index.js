@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { IconCopy } from '@tabler/icons';
 import { findCollectionByItemUid, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { cloneDeep } from 'lodash';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { generateSnippet } from '../utils/snippet-generator';
 const CodeView = ({ language, item }) => {
   const { displayedTheme } = useTheme();
@@ -31,13 +31,22 @@ const CodeView = ({ language, item }) => {
     return c;
   }, [collectionOriginal, globalEnvironments, activeGlobalEnvironmentUid]);
 
-  const snippet = useMemo(() => {
-    return generateSnippet({
+  // generateSnippet is async (EdgeGrid signs via Web Crypto), so the snippet is produced in an
+  // effect; the cancelled flag drops results from a superseded render.
+  const [snippet, setSnippet] = useState('');
+  useEffect(() => {
+    let cancelled = false;
+    generateSnippet({
       language,
       item,
       collection,
       shouldInterpolate: generateCodePrefs.shouldInterpolate
+    }).then((result) => {
+      if (!cancelled) setSnippet(result);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [language, item, collection, generateCodePrefs.shouldInterpolate]);
 
   return (

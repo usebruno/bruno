@@ -201,7 +201,8 @@ const buildTree = (collectionPath, parserResults, options = {}) => {
   for (const { relativePath, entry } of requests) {
     const segments = path.dirname(relativePath).split(path.sep).filter((s) => s && s !== '.');
     const { cursor } = ensureFolder(collectionPath, tree.items, segments, uidFor);
-    cursor.push(buildRequestNode(
+    const buildNode = buildRequestNode;
+    cursor.push(buildNode(
       path.join(collectionPath, relativePath),
       path.basename(relativePath),
       entry,

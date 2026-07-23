@@ -141,16 +141,18 @@ const Settings = ({ item, collection }) => {
             />
           </div>
 
-          <div className="flex flex-col gap-4">
-            <ToggleSelector
-              checked={enableApp}
-              onChange={onToggleEnableApp}
-              label="Enable App"
-              description="Show the App tab and app view mode for this request"
-              size="medium"
-              data-testid="enable-app-toggle"
-            />
-          </div>
+          {item.type === 'http-request' && (
+            <div className="flex flex-col gap-4">
+              <ToggleSelector
+                checked={enableApp}
+                onChange={onToggleEnableApp}
+                label="Enable App"
+                description="Show the App tab and app view mode for this request"
+                size="medium"
+                data-testid="enable-app-toggle"
+              />
+            </div>
+          )}
 
           <SettingsInput
             id="maxRedirects"

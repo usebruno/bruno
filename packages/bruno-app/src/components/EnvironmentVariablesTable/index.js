@@ -68,26 +68,30 @@ const EnvVarValueCell = ({
 }) => {
   const editorRef = useRef(null);
   const [compact, setCompact] = useState(true);
-  const [masked, setMasked] = useState(variable.secret);
+
+  const showAsSecret = variable.secret && !isLastEmptyRow;
+  const [masked, setMasked] = useState(showAsSecret);
 
   useEffect(() => {
-    setMasked(variable.secret);
-  }, [variable.secret]);
+    setMasked(showAsSecret);
+  }, [showAsSecret]);
 
   return (
     <VarValueCell
       onCompactChange={setCompact}
-      trailingContent={variable.secret && compact ? (
+      trailingContent={showAsSecret ? (
         <SecretEyeButton
           masked={masked}
+          testId="secret-reveal-toggle"
           onToggle={() => editorRef.current?.toggleVisibleSecret()}
         />
       ) : null}
       editor={(
         <div
-          className="relative flex flex-col"
+          className="flex items-center"
           onFocus={() => handleRowFocus(variable.uid)}
         >
+          {renderExtraValueContent && renderExtraValueContent(variable)}
           <MultiLineEditor
             ref={editorRef}
             theme={storedTheme}
@@ -95,8 +99,8 @@ const EnvVarValueCell = ({
             name={`${actualIndex}.value`}
             value={valueToString(variable.value, 2)}
             placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
-            isSecret={variable.secret}
-            hideSecretEye={variable.secret && compact}
+            isSecret={showAsSecret}
+            hideSecretEye={showAsSecret}
             onMaskChange={setMasked}
             onChange={(newValue) => {
               formik.setFieldValue(`${actualIndex}.value`, newValue, true);
@@ -120,7 +124,6 @@ const EnvVarValueCell = ({
             }}
             onSave={handleSave}
           />
-          {renderExtraValueContent && renderExtraValueContent(variable)}
         </div>
       )}
       renderTypeSelector={!isLastEmptyRow
@@ -262,6 +265,7 @@ const EnvironmentVariablesTable = ({
 
   const prevEnvUidRef = useRef(null);
   const mountedRef = useRef(false);
+  const pendingDraftRestoreRef = useRef(false);
 
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
@@ -353,7 +357,7 @@ const EnvironmentVariablesTable = ({
       });
       return Object.keys(errors).length > 0 ? errors : {};
     },
-    onSubmit: () => {}
+    onSubmit: () => { }
   });
 
   // Restore draft values on mount or environment switch (not on external filesystem reloads)
@@ -364,7 +368,8 @@ const EnvironmentVariablesTable = ({
     prevEnvUidRef.current = environment.uid;
     mountedRef.current = true;
 
-    if ((isMount || envChanged) && hasDraftForThisEnv && draft?.variables) {
+    if ((isMount || envChanged || pendingDraftRestoreRef.current) && hasDraftForThisEnv && draft?.variables) {
+      pendingDraftRestoreRef.current = false;
       formik.setValues([
         ...draft.variables.map((v) => ({ ...v, description: v.description ?? '' })),
         {
@@ -387,18 +392,6 @@ const EnvironmentVariablesTable = ({
   useEffect(() => {
     setPinnedData({ query: '', uids: new Set() });
   }, [savedValuesJson]);
-
-  // Keep the trailing empty "add new" row's secret flag in sync with the active
-  // tab, so typing into it creates a variable of the correct type. The empty row
-  // is filtered out of save/draft, so this never affects persisted data.
-  useEffect(() => {
-    const lastIndex = formik.values.length - 1;
-    const last = formik.values[lastIndex];
-    const isEmpty = !last?.name || (typeof last.name === 'string' && last.name.trim() === '');
-    if (last && isEmpty && !!last.secret !== isSecretTab) {
-      formik.setFieldValue(`${lastIndex}.secret`, isSecretTab, false);
-    }
-  }, [isSecretTab, formik.values]);
 
   // Sync modified state
   useEffect(() => {
@@ -580,6 +573,7 @@ const EnvironmentVariablesTable = ({
 
         if (otherDirty) {
           onDraftChange(cloneDeep(retainedVariables));
+          pendingDraftRestoreRef.current = true;
         } else {
           onDraftClear();
         }
@@ -843,12 +837,13 @@ const EnvironmentVariablesTable = ({
                     <ErrorMessage name={`${actualIndex}.name`} index={actualIndex} />
                   </div>
                 </td>
-                <td style={{ width: columnWidths.value }}>
+                <td style={{ width: columnWidths.value }} className="overflow-hidden">
                   <EnvVarValueCell
                     variable={variable}
                     actualIndex={actualIndex}
                     isLastRow={isLastRow}
                     isLastEmptyRow={isLastEmptyRow}
+                    isSecretTab={isSecretTab}
                     storedTheme={storedTheme}
                     collection={_collection}
                     formik={formik}
@@ -863,7 +858,7 @@ const EnvironmentVariablesTable = ({
                     collection={_collection}
                     name={`${actualIndex}.description`}
                     value={variable.description ?? ''}
-                    placeholder={!variable.description || (typeof variable.description === 'string' && variable.description.trim() === '') ? 'Description' : ''}
+                    placeholder={isLastEmptyRow && (!variable.description || (typeof variable.description === 'string' && variable.description.trim() === '')) ? 'Description' : ''}
                     onChange={(newValue) => {
                       formik.setFieldValue(`${actualIndex}.description`, newValue, true);
                       if (isLastRow) {
