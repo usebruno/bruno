@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useEditorState } from '@tiptap/react';
 import {
   IconCaretDown,
@@ -10,7 +10,7 @@ import {
   IconTrash
 } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
-import { EDITOR_MENU_DROPDOWN_PROPS } from './editorToolbarUi';
+import { EDITOR_MENU_DROPDOWN_PROPS } from '../utils/editorToolbarUi';
 
 const TABLE_MENU_GROUPS = [
   {
@@ -79,32 +79,28 @@ const TABLE_MENU_GROUPS = [
   }
 ];
 
-const getTableMenuState = (editor) => {
-  if (!editor?.isActive('table')) {
-    return { isInTable: false, disabledById: {} };
-  }
-
-  const disabledById = {};
-  TABLE_MENU_GROUPS.forEach((group) => {
-    group.options.forEach((option) => {
-      disabledById[option.id] = !option.canRun(editor);
-    });
+const EditorTableMenu = ({ editor }) => {
+  useEditorState({
+    editor,
+    selector: (ctx) => ctx.transactionNumber
   });
 
-  return { isInTable: true, disabledById };
-};
+  const isInTable = editor ? editor.isActive('table') : false;
 
-const EditorTableMenu = ({ editor }) => {
-  const tableMenuState = useEditorState({
-    editor,
-    selector: ({ editor: currentEditor }) => getTableMenuState(currentEditor)
-  }) ?? { isInTable: false, disabledById: {} };
+  const disabledById = useMemo(() => {
+    if (!editor || !isInTable) return {};
+    const disabled = {};
+    TABLE_MENU_GROUPS.forEach((group) => {
+      group.options.forEach((option) => {
+        disabled[option.id] = !option.canRun(editor);
+      });
+    });
+    return disabled;
+  }, [editor, isInTable, editor?.state]);
 
-  if (!editor || !tableMenuState.isInTable) {
+  if (!editor || !isInTable) {
     return null;
   }
-
-  const { disabledById } = tableMenuState;
 
   const menuItems = TABLE_MENU_GROUPS.map((group) => ({
     name: group.name,

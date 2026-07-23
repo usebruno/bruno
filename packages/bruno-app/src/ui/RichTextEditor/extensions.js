@@ -7,6 +7,19 @@ import TableRow from '@tiptap/extension-table-row';
 import TextStyle from '@tiptap/extension-text-style';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
+import EditorGapCursor from './utils/EditorGapCursor';
+import EditorHardBreak from './utils/EditorHardBreak';
+import EditorListKeyboard from './utils/EditorListKeyboard';
+import { serializeTable } from './utils/editorMarkdownSerialize';
+import EditorTableKeyboard from './utils/EditorTableKeyboard';
+import EditorTableView from './utils/EditorTableView';
+import {
+  EditorBulletList,
+  EditorListItem,
+  EditorOrderedList,
+  EditorTaskItem,
+  EditorTaskList
+} from './utils/EditorTaskList';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { EditorCodeBlock } from './EditorCodeBlock';
@@ -60,20 +73,6 @@ const EditorCodeBlockExtension = CodeBlockLowlight.extend({
     return ReactNodeViewRenderer(EditorCodeBlock);
   }
 }).configure({ lowlight });
-
-import EditorGapCursor from './EditorGapCursor';
-import EditorHardBreak from './EditorHardBreak';
-import EditorListKeyboard from './EditorListKeyboard';
-import { serializeTable } from './EditorMarkdownSerialize';
-import EditorTableKeyboard from './EditorTableKeyboard';
-import EditorTableView from './EditorTableView';
-import {
-  EditorBulletList,
-  EditorListItem,
-  EditorOrderedList,
-  EditorTaskItem,
-  EditorTaskList
-} from './EditorTaskList';
 
 const EditorTable = Table.extend({
   parseHTML() {
@@ -163,6 +162,7 @@ const extensions = [
   Markdown.configure({
     html: true,
     breaks: true,
+    linkify: true,
     transformPastedText: true,
     transformCopiedText: true
   })

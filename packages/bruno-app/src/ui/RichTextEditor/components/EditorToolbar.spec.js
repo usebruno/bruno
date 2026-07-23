@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { Editor } from '@tiptap/core';
 import { ThemeProvider } from 'styled-components';
 import themes from 'themes/index';
-import extensions from './extensions';
+import extensions from '../extensions';
 import EditorToolbar from './EditorToolbar';
 
 const mockTheme = themes.light;

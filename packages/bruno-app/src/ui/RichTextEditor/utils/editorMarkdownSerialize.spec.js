@@ -1,5 +1,5 @@
 import { Editor } from '@tiptap/core';
-import extensions from './extensions';
+import extensions from '../extensions';
 
 const createEditor = (content) =>
   new Editor({

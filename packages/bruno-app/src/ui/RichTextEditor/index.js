@@ -1,10 +1,10 @@
 import { EditorContent } from '@tiptap/react';
 import { useRef } from 'react';
-import EditorToolbar from './EditorToolbar';
-import EditorLinkPopover from './EditorLinkPopover';
-import useLinkHandlers from './useLinkHandlers';
+import EditorToolbar from './components/EditorToolbar';
+import EditorLinkPopover from './components/EditorLinkPopover';
+import useLinkHandlers from './utils/useLinkHandlers';
 import extensions from './extensions';
-import StyledWrapper from './StyledWrapper';
+import StyledWrapper from './components/StyledWrapper';
 
 const RichTextEditor = ({ editor, showToolbar = false }) => {
   const contentContainerRef = useRef(null);
