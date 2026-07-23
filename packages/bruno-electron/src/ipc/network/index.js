@@ -33,7 +33,7 @@ const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
-const { isRequestTagsIncluded } = require('@usebruno/common');
+const { isRequestTagsIncluded, SCRIPT_PHASES } = require('@usebruno/common');
 const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
@@ -585,13 +585,14 @@ const registerNetworkIpc = (mainWindow) => {
     scriptingConfig,
     runRequestByItemPathname
   ) => {
+    // run pre-request script
     let scriptResult;
     const { promptVariables = {}, name: collectionName } = collection;
 
-    const requestScript = get(request, 'script.req');
+    const requestScript = get(request, `script.${SCRIPT_PHASES.HTTP.PRE_REQUEST.FIELD}`);
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
-      scriptResult = await scriptRuntime.runRequestScript(
+      scriptResult = await scriptRuntime.runHttpPreRequestScript(
         decomment(requestScript, { space: true }),
         request,
         envVars,
@@ -713,12 +714,12 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run post-response script
-    const responseScript = get(request, 'script.res');
+    const responseScript = get(request, `script.${SCRIPT_PHASES.HTTP.POST_RESPONSE.FIELD}`);
     let scriptResult;
     const collectionName = collection?.name;
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
-      scriptResult = await scriptRuntime.runResponseScript(
+      scriptResult = await scriptRuntime.runHttpPostResponseScript(
         decomment(responseScript, { space: true }),
         request,
         response,
@@ -912,7 +913,6 @@ const registerNetworkIpc = (mainWindow) => {
       let preRequestScriptResult = null;
       let preRequestError = null;
       try {
-        // run pre-request script
         preRequestScriptResult = await runPreRequest(
           request,
           requestUid,
@@ -936,13 +936,13 @@ const registerNetworkIpc = (mainWindow) => {
         sendVariableUpdates(preRequestScriptResult, { collectionUid, requestUid, collection });
       }
 
-      emitScriptedRequestEvents('pre-request', preRequestScriptResult);
+      emitScriptedRequestEvents(SCRIPT_PHASES.HTTP.PRE_REQUEST.SCRIPT_TYPE, preRequestScriptResult);
 
-      preRequestScriptResult = appendScriptErrorResult('pre-request', preRequestScriptResult, preRequestError);
+      preRequestScriptResult = appendScriptErrorResult(SCRIPT_PHASES.HTTP.PRE_REQUEST.SCRIPT_TYPE, preRequestScriptResult, preRequestError);
 
       if (preRequestScriptResult?.results) {
         mainWindow.webContents.send('main:run-request-event', {
-          type: 'test-results-pre-request',
+          type: `test-results-${SCRIPT_PHASES.HTTP.PRE_REQUEST.SCRIPT_TYPE}`,
           results: preRequestScriptResult.results,
           itemUid: item.uid,
           requestUid,
@@ -953,10 +953,10 @@ const registerNetworkIpc = (mainWindow) => {
       !runInBackground && notifyScriptExecution({
         channel: 'main:run-request-event',
         basePayload: { requestUid, collectionUid, itemUid: item.uid },
-        scriptType: 'pre-request',
+        scriptType: SCRIPT_PHASES.HTTP.PRE_REQUEST.SCRIPT_TYPE,
         error: preRequestError,
         collectionPath,
-        scriptMetadata: request.script?.reqMetadata
+        scriptMetadata: request.script?.[`${SCRIPT_PHASES.HTTP.PRE_REQUEST.FIELD}Metadata`]
       });
 
       if (preRequestError) {
@@ -1136,13 +1136,13 @@ const registerNetworkIpc = (mainWindow) => {
           sendVariableUpdates(postResponseScriptResult, { collectionUid, requestUid, collection });
         }
 
-        emitScriptedRequestEvents('post-response', postResponseScriptResult);
+        emitScriptedRequestEvents(SCRIPT_PHASES.HTTP.POST_RESPONSE.SCRIPT_TYPE, postResponseScriptResult);
 
-        postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
+        postResponseScriptResult = appendScriptErrorResult(SCRIPT_PHASES.HTTP.POST_RESPONSE.SCRIPT_TYPE, postResponseScriptResult, postResponseError);
 
         if (postResponseScriptResult?.results) {
           mainWindow.webContents.send('main:run-request-event', {
-            type: 'test-results-post-response',
+            type: `test-results-${SCRIPT_PHASES.HTTP.POST_RESPONSE.SCRIPT_TYPE}`,
             results: postResponseScriptResult.results,
             itemUid: item.uid,
             requestUid,
@@ -1153,11 +1153,11 @@ const registerNetworkIpc = (mainWindow) => {
         !runInBackground && notifyScriptExecution({
           channel: 'main:run-request-event',
           basePayload: { requestUid, collectionUid, itemUid: item.uid },
-          scriptType: 'post-response',
+          scriptType: SCRIPT_PHASES.HTTP.POST_RESPONSE.SCRIPT_TYPE,
           error: postResponseError,
           itemPathname: item.pathname,
           collectionPath,
-          scriptMetadata: request.script?.resMetadata
+          scriptMetadata: request.script?.[`${SCRIPT_PHASES.HTTP.POST_RESPONSE.FIELD}Metadata`]
         });
 
         // run assertions
@@ -1701,7 +1701,6 @@ const registerNetworkIpc = (mainWindow) => {
             let preRequestScriptResult;
             let preRequestError = null;
             try {
-              // run pre-request script
               preRequestScriptResult = await runPreRequest(
                 request,
                 requestUid,
@@ -1724,12 +1723,12 @@ const registerNetworkIpc = (mainWindow) => {
               sendVariableUpdates(preRequestScriptResult, { collectionUid, requestUid, collection });
             }
 
-            preRequestScriptResult = appendScriptErrorResult('pre-request', preRequestScriptResult, preRequestError);
-            emitRunnerScriptedRequestEvents('pre-request', preRequestScriptResult);
+            preRequestScriptResult = appendScriptErrorResult(SCRIPT_PHASES.HTTP.PRE_REQUEST.SCRIPT_TYPE, preRequestScriptResult, preRequestError);
+            emitRunnerScriptedRequestEvents(SCRIPT_PHASES.HTTP.PRE_REQUEST.SCRIPT_TYPE, preRequestScriptResult);
 
             if (preRequestScriptResult?.results) {
               mainWindow.webContents.send('main:run-folder-event', {
-                type: 'test-results-pre-request',
+                type: `test-results-${SCRIPT_PHASES.HTTP.PRE_REQUEST.SCRIPT_TYPE}`,
                 preRequestTestResults: preRequestScriptResult.results,
                 ...eventData
               });
@@ -1738,11 +1737,11 @@ const registerNetworkIpc = (mainWindow) => {
             notifyScriptExecution({
               channel: 'main:run-folder-event',
               basePayload: eventData,
-              scriptType: 'pre-request',
+              scriptType: SCRIPT_PHASES.HTTP.PRE_REQUEST.SCRIPT_TYPE,
               error: preRequestError,
               itemPathname: item.pathname,
               collectionPath,
-              scriptMetadata: request.script?.reqMetadata
+              scriptMetadata: request.script?.[`${SCRIPT_PHASES.HTTP.PRE_REQUEST.FIELD}Metadata`]
             });
 
             const domainsWithCookiesPreRequest = await getDomainsWithCookies();
@@ -1983,17 +1982,17 @@ const registerNetworkIpc = (mainWindow) => {
               sendVariableUpdates(postResponseScriptResult, { collectionUid, requestUid, collection });
             }
 
-            postResponseScriptResult = appendScriptErrorResult('post-response', postResponseScriptResult, postResponseError);
-            emitRunnerScriptedRequestEvents('post-response', postResponseScriptResult);
+            postResponseScriptResult = appendScriptErrorResult(SCRIPT_PHASES.HTTP.POST_RESPONSE.SCRIPT_TYPE, postResponseScriptResult, postResponseError);
+            emitRunnerScriptedRequestEvents(SCRIPT_PHASES.HTTP.POST_RESPONSE.SCRIPT_TYPE, postResponseScriptResult);
 
             notifyScriptExecution({
               channel: 'main:run-folder-event',
               basePayload: eventData,
-              scriptType: 'post-response',
+              scriptType: SCRIPT_PHASES.HTTP.POST_RESPONSE.SCRIPT_TYPE,
               error: postResponseError,
               itemPathname: item.pathname,
               collectionPath,
-              scriptMetadata: request.script?.resMetadata
+              scriptMetadata: request.script?.[`${SCRIPT_PHASES.HTTP.POST_RESPONSE.FIELD}Metadata`]
             });
 
             const domainsWithCookiesPostResponse = await getDomainsWithCookies();
@@ -2010,7 +2009,7 @@ const registerNetworkIpc = (mainWindow) => {
             // Send post-response test results if available
             if (postResponseScriptResult?.results) {
               mainWindow.webContents.send('main:run-folder-event', {
-                type: 'test-results-post-response',
+                type: `test-results-${SCRIPT_PHASES.HTTP.POST_RESPONSE.SCRIPT_TYPE}`,
                 postResponseTestResults: postResponseScriptResult.results,
                 ...eventData
               });

@@ -1,7 +1,7 @@
 const chai = require('chai');
 const Bru = require('../bru');
-const { createBrunoRequest } = require('../bruno-request');
-const { createBrunoResponse } = require('../bruno-response');
+const BrunoRequest = require('../bruno-request');
+const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
 const { createBruTestResultMethods } = require('../utils/results');
 const { runScriptInNodeVm } = require('../sandbox/node-vm');
@@ -9,6 +9,7 @@ const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 const { SANDBOX } = require('../utils/sandbox');
 const { bindRunRequest, createScopeSetter } = require('./scripted-entries');
+const { REQUEST_TYPES } = require('@usebruno/common');
 
 class TestRuntime {
   constructor(props) {
@@ -51,10 +52,13 @@ class TestRuntime {
       collectionName,
       promptVariables,
       certsAndProxyConfig,
-      requestUrl: request?.url
+      requestUrl: request?.url,
+      request,
+      phaseType: request?.type === REQUEST_TYPES.GRPC ? 'afterCallEnd' : undefined,
+      phaseData: response
     });
-    const req = createBrunoRequest(request);
-    const res = createBrunoResponse(response, request?.protocol);
+    const req = new BrunoRequest(request);
+    const res = new BrunoResponse(response);
 
     // extend bru with result getter methods
     const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);

@@ -1,10 +1,11 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
+import { REQUEST_TYPES } from '@usebruno/common';
 import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
 import type { GrpcRequest, GrpcMetadata, GrpcMessageVariant } from '@opencollection/types/requests/grpc';
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import { toBrunoAuth } from '../common/auth';
 import { toBrunoVariables } from '../common/variables';
-import { toBrunoScripts } from '../common/scripts';
+import { toBrunoScripts, applyBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
 import { isNonEmptyString, uuid, ensureString } from '../../../utils';
 
@@ -51,9 +52,10 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
       grpc: []
     },
     script: {
-      req: null,
-      res: null,
-      stream: null
+      beforeCallStart: null,
+      beforeMessageSend: null,
+      afterMessageReceive: null,
+      afterCallEnd: null
     },
     vars: {
       req: [],
@@ -79,18 +81,10 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
   }
 
   // scripts
-  const scripts = toBrunoScripts(runtime?.scripts);
-  if (scripts?.script && brunoRequest.script) {
-    if (scripts.script.req) {
-      brunoRequest.script.req = scripts.script.req;
-    }
-    if (scripts.script.res) {
-      brunoRequest.script.res = scripts.script.res;
-    }
-    if (scripts.script.stream) {
-      brunoRequest.script.stream = scripts.script.stream;
-    }
-  }
+  const scripts = toBrunoScripts(runtime?.scripts, REQUEST_TYPES.GRPC);
+  applyBrunoScripts(brunoRequest, scripts, REQUEST_TYPES.GRPC);
+
+  // tests
   if (scripts?.tests) {
     brunoRequest.tests = scripts.tests;
   }

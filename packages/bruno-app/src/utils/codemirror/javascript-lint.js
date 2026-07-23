@@ -36,7 +36,6 @@ if (!SERVER_RENDERED) {
         bru: false,
         req: false,
         res: false,
-        stream: false,
         test: false,
         expect: false,
         require: false,

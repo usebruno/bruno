@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-const { BrunoHttpRequest: BrunoRequest } = require('../src/bruno-request');
+const BrunoRequest = require('../src/bruno-request');
 
 const makeReq = (overrides = {}) => ({
   url: 'http://localhost:5000/api',
