@@ -394,9 +394,9 @@ const EnvironmentVariablesTable = ({
 
   const sortOrderRef = useRef(null);
   const prevSortModeRef = useRef();
-  const prevHasDraftRef = useRef(hasDraftForThisEnv);
-  const justCommitted = prevHasDraftRef.current === true && hasDraftForThisEnv === false;
-  prevHasDraftRef.current = hasDraftForThisEnv;
+  const prevIsDraftRef = useRef(hasDraftForThisEnv);
+  const justCommitted = prevIsDraftRef.current === true && hasDraftForThisEnv === false;
+  prevIsDraftRef.current = hasDraftForThisEnv;
   if (prevSortModeRef.current !== sortMode || justCommitted) {
     prevSortModeRef.current = sortMode;
     sortOrderRef.current = buildSortOrder(formik.values, sortMode);

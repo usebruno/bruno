@@ -14,10 +14,8 @@ import { createDescriptionColumn } from 'components/EditableTable/descriptionCol
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
-import { useSortableEditableTableRows } from 'hooks/useSortableEditableTableRows';
-import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
 
-const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, hasDraft }) => {
+const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, isDraft }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -52,13 +50,6 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, hasDraf
     }));
   }, [dispatch, varType, collection.uid, item.uid]);
 
-  const { displayRows, handleChange, reorderable, cycleSortMode, SortIcon, sortLabel } = useSortableEditableTableRows({
-    storageKey: `request-vars-sort::${item.uid}::${varType}`,
-    rows: vars || [],
-    onChange: handleVarsChange,
-    hasDraft
-  });
-
   const getRowError = useCallback((row, index, key) => {
     if (key !== 'name') return null;
     if (!row.name || row.name.trim() === '') return null;
@@ -80,9 +71,9 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, hasDraf
   const columns = [
     {
       key: 'name',
-      name: <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} testId={`column-sort-toggle-request-${varType}`} />,
-      onHeaderClick: cycleSortMode,
+      name: 'Name',
       isKeyField: true,
+      sortable: true,
       placeholder: 'Name',
       width: '20%'
     },
@@ -143,12 +134,14 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, hasDraf
         tableId="request-vars"
         testId={`request-vars-${varType === 'response' ? 'res' : 'req'}`}
         columns={columns}
-        rows={displayRows}
-        onChange={handleChange}
+        rows={vars || []}
+        onChange={handleVarsChange}
         defaultRow={defaultRow}
         getRowError={getRowError}
-        reorderable={reorderable}
+        reorderable
         onReorder={handleVarDrag}
+        sortStorageKey={`request-vars-sort::${item.uid}::${varType}`}
+        isDraft={isDraft}
         columnWidths={varsWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('request-vars', widths)}
         initialScroll={initialScroll}

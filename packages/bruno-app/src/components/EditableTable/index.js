@@ -4,6 +4,8 @@ import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from 
 import { Tooltip } from 'react-tooltip';
 import { uuid } from 'utils/common';
 import { useMouseRowDrag, DRAG_ROW_KEY_ATTR } from 'hooks/useMouseRowDrag';
+import { useSortableEditableTableRows } from 'hooks/useSortableEditableTableRows';
+import ColumnSortHeader from './ColumnSortHeader';
 import StyledWrapper from './StyledWrapper';
 
 const MIN_COLUMN_WIDTH = 80;
@@ -47,8 +49,8 @@ const TableRow = React.memo(
 const EditableTable = ({
   tableId, // Not being used kept to maintain uniqueness & pass similar in onColumnWidthsChange
   columns,
-  rows,
-  onChange,
+  rows: rowsProp,
+  onChange: onChangeProp,
   defaultRow,
   getRowError,
   showCheckbox = true,
@@ -56,13 +58,15 @@ const EditableTable = ({
   disableCheckbox = false,
   checkboxLabel = '',
   checkboxKey = 'enabled',
-  reorderable = false,
+  reorderable: reorderableProp = false,
   onReorder,
   showAddRow = true,
   testId = 'editable-table',
   columnWidths,
   initialScroll = 0,
-  onColumnWidthsChange
+  onColumnWidthsChange,
+  sortStorageKey,
+  isDraft
 }) => {
   const wrapperRef = useRef(null);
   const virtuosoRef = useRef(null);
@@ -72,6 +76,32 @@ const EditableTable = ({
   const [tableHeight, setTableHeight] = useState(0);
   const [scrollParent, setScrollParent] = useState(null);
   const widths = columnWidths || {};
+
+  const sortColumn = useMemo(() => columns.find((col) => col.sortable), [columns]);
+  const sortable = !!sortColumn;
+  const getSortValue = useMemo(
+    () => (sortColumn ? (row) => row[sortColumn.key] : undefined),
+    [sortColumn]
+  );
+
+  const {
+    displayRows,
+    handleChange,
+    reorderable: sortAllowsReorder,
+    cycleSortMode,
+    SortIcon,
+    sortLabel
+  } = useSortableEditableTableRows({
+    storageKey: sortStorageKey,
+    rows: rowsProp,
+    onChange: onChangeProp,
+    isDraft,
+    getSortValue
+  });
+
+  const rows = sortable ? displayRows : rowsProp;
+  const onChange = sortable ? handleChange : onChangeProp;
+  const reorderable = reorderableProp && sortAllowsReorder;
 
   useLayoutEffect(() => {
     setScrollParent(findScrollParent(wrapperRef.current));
@@ -340,23 +370,32 @@ const EditableTable = ({
       {showCheckbox && (
         <td className="text-center">{checkboxLabel}</td>
       )}
-      {columns.map((column, colIndex) => (
-        <td
-          key={column.key}
-          style={{ width: getColumnWidth(column) }}
-          className={column.onHeaderClick ? 'sortable-header' : ''}
-          onClick={column.onHeaderClick}
-        >
-          <span className="column-name">{column.name}</span>
-          {colIndex < columns.length - 1 && (
-            <div
-              className={`resize-handle ${resizing === column.key ? 'resizing' : ''}`}
-              style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
-              onMouseDown={(e) => handleResizeStart(e, column.key)}
-            />
-          )}
-        </td>
-      ))}
+      {columns.map((column, colIndex) => {
+        const isSortColumn = column === sortColumn;
+        return (
+          <td
+            key={column.key}
+            style={{ width: getColumnWidth(column) }}
+            className={isSortColumn ? 'sortable-header' : ''}
+            onClick={isSortColumn ? cycleSortMode : undefined}
+          >
+            <span className="column-name">
+              {isSortColumn ? (
+                <ColumnSortHeader label={column.name} SortIcon={SortIcon} sortLabel={sortLabel} testId={`${testId}-sort-toggle`} />
+              ) : (
+                column.name
+              )}
+            </span>
+            {colIndex < columns.length - 1 && (
+              <div
+                className={`resize-handle ${resizing === column.key ? 'resizing' : ''}`}
+                style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
+                onMouseDown={(e) => handleResizeStart(e, column.key)}
+              />
+            )}
+          </td>
+        );
+      })}
       {showDelete && (
         <td
           id="delete-column-header"
@@ -365,7 +404,7 @@ const EditableTable = ({
         </td>
       )}
     </tr>
-  ), [showCheckbox, checkboxLabel, columns, getColumnWidth, resizing, tableHeight, handleResizeStart, showDelete]);
+  ), [showCheckbox, checkboxLabel, columns, getColumnWidth, resizing, tableHeight, handleResizeStart, showDelete, sortColumn, cycleSortMode, SortIcon, sortLabel, testId]);
 
   const itemContent = useCallback((rowIndex, row) => {
     const isEmpty = isLastEmptyRow(row, rowIndex);
