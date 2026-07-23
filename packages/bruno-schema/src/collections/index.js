@@ -171,7 +171,7 @@ const multipartFormSchema = Yup.object({
   .strict();
 
 
-const fileSchema = Yup.object({
+const fileSchema = Yup.object({ 
   uid: uidSchema,
   filePath: Yup.string().nullable(),
   contentType: Yup.string().nullable(),
@@ -247,14 +247,14 @@ const authDigestSchema = Yup.object({
 
 
 
-const authNTLMSchema = Yup.object({
-  username: Yup.string().nullable(),
-  password: Yup.string().nullable(),
-  domain: Yup.string().nullable()
+  const authNTLMSchema = Yup.object({
+    username: Yup.string().nullable(),
+    password: Yup.string().nullable(),
+    domain: Yup.string().nullable()
 
-})
-  .noUnknown(true)
-  .strict();
+  })
+    .noUnknown(true)
+    .strict();  
 
 const authApiKeySchema = Yup.object({
   key: Yup.string().nullable(),
@@ -309,15 +309,15 @@ const oauth2AuthorizationAdditionalParametersSchema = Yup.object({
   .strict();
 
 const oauth2AdditionalParametersSchema = Yup.object({
-  name: Yup.string().nullable(),
-  value: Yup.string().nullable(),
-  sendIn: Yup.string()
-    .oneOf(['headers', 'queryparams', 'body'])
-    .required('send in property is required'),
-  enabled: Yup.boolean()
-})
-  .noUnknown(true)
-  .strict();
+    name: Yup.string().nullable(),
+    value: Yup.string().nullable(),
+    sendIn: Yup.string()
+      .oneOf(['headers', 'queryparams', 'body'])
+      .required('send in property is required'),
+    enabled: Yup.boolean()
+  })
+    .noUnknown(true)
+    .strict();
 
 const oauth2Schema = Yup.object({
   grantType: Yup.string()
@@ -394,13 +394,13 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.string().nullable().strip()
   }),
   tokenHeaderPrefix: Yup.string().when(['grantType', 'tokenPlacement'], {
-    is: (grantType, tokenPlacement) =>
+    is: (grantType, tokenPlacement) => 
       ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) && tokenPlacement === 'header',
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   tokenQueryKey: Yup.string().when(['grantType', 'tokenPlacement'], {
-    is: (grantType, tokenPlacement) =>
+    is: (grantType, tokenPlacement) => 
       ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(grantType) && tokenPlacement === 'url',
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
@@ -670,7 +670,7 @@ const itemSchema = Yup.object({
       })
     })
   }),
-  settings: Yup.mixed()
+    settings: Yup.mixed()
     .when('type', {
       is: (type) => type === 'ws-request',
       then: wsSettingsSchema,
@@ -679,7 +679,7 @@ const itemSchema = Yup.object({
         followRedirects: Yup.boolean().nullable(),
         maxRedirects: Yup.number().min(0).max(50).nullable(),
         timeout: Yup.mixed().nullable(),
-        forwardAuthorizationHeader: Yup.boolean().nullable(),
+        forwardAuthorizationHeader: Yup.boolean().nullable()
       }).noUnknown(true)
     .strict()
     .nullable()
