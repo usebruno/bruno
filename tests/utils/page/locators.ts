@@ -264,7 +264,9 @@ export const buildCommonLocators = (page: Page) => ({
     jsonTreeLine: () => page.locator('.response-pane .object-content'),
     // Tests-tab summary line ("Tests (N), Passed: X, Failed: Y") and failure rows.
     testSummary: () => page.locator('.test-summary').filter({ hasText: 'Tests' }),
-    testFailures: () => page.locator('.test-result-item .test-failure'),
+    // Both the icon and label spans in a result row carry .test-failure, so match at the
+    // row level (`.test-result-item`) to count one entry per failure, not two.
+    testFailures: () => page.locator('.test-result-item').filter({ has: page.locator('.test-failure') }),
     assertionResults: {
       rows: () => page.locator('.test-result-item'),
       passed: () => page.locator('.test-result-item').filter({ has: page.locator('.test-success') }),
