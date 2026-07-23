@@ -63,6 +63,7 @@ const createSequencer = () => {
    * @param {string} [collectionId]
    */
   const clean = (requestId, collectionId = undefined) => {
+    if (!seq[requestId]) return;
     if (collectionId) {
       delete seq[requestId][collectionId];
     }
@@ -106,6 +107,17 @@ class WsClient {
 
     const requestId = request.uid;
     const collectionUid = collection.uid;
+
+    // Wait out an in-flight close so we don't open a replacement that the close handler then deletes.
+    if (this.closingResolvers.has(requestId)) {
+      await this.closingResolvers.get(requestId).promise;
+    }
+
+    // Reuse in-flight / open socket so ensure+connect races don't open a second connection.
+    const existing = this.activeConnections.get(requestId)?.connection;
+    if (existing && (existing.readyState === ws.WebSocket.CONNECTING || existing.readyState === ws.WebSocket.OPEN)) {
+      return existing;
+    }
 
     try {
       // Create WebSocket connection
@@ -247,26 +259,30 @@ class WsClient {
       return Promise.resolve();
     }
 
-    return new Promise((resolve) => {
-      const collectionUid = connectionMeta.collectionUid;
-
-      // Notify the UI that we're actively disconnecting so it can show a blink state
-      this.eventCallback('main:ws:disconnecting', requestId, collectionUid);
-
-      // Safety timeout: guarantee resolution even if the 'close' event never fires
-      const timeoutId = setTimeout(() => {
-        const resolver = this.closingResolvers.get(requestId);
-        if (resolver) {
-          this.closingResolvers.delete(requestId);
-          this.#removeConnection(requestId);
-          seq.clean(requestId, collectionUid);
-          resolve();
-        }
-      }, 5000);
-
-      this.closingResolvers.set(requestId, { resolve, timeoutId });
-      connectionMeta.connection.close(code, reason);
+    let resolve;
+    const promise = new Promise((r) => {
+      resolve = r;
     });
+
+    const collectionUid = connectionMeta.collectionUid;
+
+    // Notify the UI that we're actively disconnecting so it can show a blink state
+    this.eventCallback('main:ws:disconnecting', requestId, collectionUid);
+
+    // Safety timeout: guarantee resolution even if the 'close' event never fires
+    const timeoutId = setTimeout(() => {
+      const resolver = this.closingResolvers.get(requestId);
+      if (resolver) {
+        this.closingResolvers.delete(requestId);
+        this.#removeConnection(requestId);
+        seq.clean(requestId, collectionUid);
+        resolve();
+      }
+    }, 5000);
+
+    this.closingResolvers.set(requestId, { resolve, timeoutId, promise });
+    connectionMeta.connection.close(code, reason);
+    return promise;
   }
 
   /**
