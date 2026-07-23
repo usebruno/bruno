@@ -2,19 +2,26 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { IconFilter, IconChevronDown } from '@tabler/icons';
 import { PortalDropdownMenu } from '../StyledWrapper';
-import { LogIcon } from '../index';
+import LogIcon from '../LogIcon';
 import useClickOutside from 'hooks/useClickOutside';
 
-const computeMenuStyle = (el, setMenuStyle) => {
-  if (!el) return;
+// Smallest height the menu may shrink to before it scrolls internally,
+// so a trigger near the viewport bottom still shows a usable, scrollable menu.
+const MIN_MENU_HEIGHT = 120;
+
+export const computeMenuStyle = (el, innerWidth = window.innerWidth, innerHeight = window.innerHeight) => {
+  if (!el) return null;
   const rect = el.getBoundingClientRect();
-  setMenuStyle({
+  const spaceBelow = innerHeight - rect.bottom - 8;
+  // Always open below the trigger; cap the height to the room available so the
+  // options list scrolls instead of clipping when space is tight.
+  return {
     position: 'fixed',
     top: rect.bottom + 4,
-    right: window.innerWidth - rect.right,
+    right: innerWidth - rect.right,
     zIndex: 9999,
-    maxHeight: window.innerHeight - rect.bottom - 8
-  });
+    maxHeight: Math.max(spaceBelow, MIN_MENU_HEIGHT)
+  };
 };
 
 export const DevToolsFilterDropdown = ({
@@ -37,13 +44,13 @@ export const DevToolsFilterDropdown = ({
   useClickOutside([dropdownRef, menuRef], () => setIsOpen(false));
 
   useEffect(() => {
-    const handleResize = () => { if (isOpen) computeMenuStyle(dropdownRef.current, setMenuStyle); };
+    const handleResize = () => { if (isOpen) setMenuStyle(computeMenuStyle(dropdownRef.current) ?? {}); };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [isOpen]);
 
   const handleToggle = () => {
-    if (!isOpen) computeMenuStyle(dropdownRef.current, setMenuStyle);
+    if (!isOpen) setMenuStyle(computeMenuStyle(dropdownRef.current) ?? {});
     setIsOpen(!isOpen);
   };
 
@@ -55,7 +62,7 @@ export const DevToolsFilterDropdown = ({
           {allFiltersEnabled ? 'Hide All' : 'Show All'}
         </button>
       </div>
-      <div className="filter-dropdown-options" style={{ maxHeight: menuStyle.maxHeight - 32, overflowY: 'auto' }}>
+      <div className="filter-dropdown-options" style={{ maxHeight: Math.max(menuStyle.maxHeight - 32, 0), overflowY: 'auto' }}>
         {Object.entries(filters).map(([key, enabled]) => (
           <label key={key} className="filter-option">
             <input

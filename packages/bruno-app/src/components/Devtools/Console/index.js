@@ -6,10 +6,7 @@ import { useTheme } from 'providers/Theme';
 import {
   IconX,
   IconTrash,
-  IconAlertTriangle,
-  IconAlertCircle,
   IconBug,
-  IconCode,
   IconTerminal2,
   IconNetwork,
   IconDashboard
@@ -26,6 +23,7 @@ import {
 } from 'providers/ReduxStore/slices/logs';
 
 import { DevToolsFilterDropdown } from './FilterDropdown';
+import LogIcon from './LogIcon';
 import NetworkTab from './NetworkTab';
 import TerminalTab from './TerminalTab';
 import RequestDetailsPanel from './RequestDetailsPanel';
@@ -37,23 +35,6 @@ import { useResizablePanel } from 'hooks/useResizablePanel';
 
 const MIN_DETAILS_PANEL_WIDTH = 280;
 const DETAILS_PANEL_MAX_RATIO = 0.7;
-
-export const LogIcon = ({ type }) => {
-  const iconProps = { size: 16, strokeWidth: 1.5 };
-
-  switch (type) {
-    case 'error':
-      return <IconAlertCircle className="log-icon error" {...iconProps} />;
-    case 'warn':
-      return <IconAlertTriangle className="log-icon warn" {...iconProps} />;
-    case 'info':
-      return <IconAlertTriangle className="log-icon info" {...iconProps} />;
-    // case 'debug':
-    //   return <IconBug className="log-icon debug" {...iconProps} />;
-    default:
-      return <IconCode className="log-icon log" {...iconProps} />;
-  }
-};
 
 const LogTimestamp = ({ timestamp }) => {
   const date = new Date(timestamp);

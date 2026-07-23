@@ -400,15 +400,15 @@ const StyledWrapper = styled.div`
     }
 
     &.log {
-      border-left-color: ${(props) => props.theme.colors?.text?.muted || props.theme.overlay.overlay2};
+      border-left-color: ${(props) => props.theme.colors.text.muted};
 
       .log-level {
-        background: ${(props) => props.theme.colors?.text?.muted || props.theme.overlay.overlay2};
+        background: ${(props) => props.theme.colors.text.muted};
         color: white;
       }
 
       .log-icon {
-        color: ${(props) => props.theme.colors?.text?.muted || props.theme.overlay.overlay2};
+        color: ${(props) => props.theme.colors.text.muted};
       }
     }
   }
@@ -595,7 +595,7 @@ export const PortalDropdownMenu = styled.div`
     &.error { color: ${(props) => props.theme.status.danger.text}; }
     &.warn  { color: ${(props) => props.theme.status.warning.text}; }
     &.info  { color: ${(props) => props.theme.status.info.text}; }
-    &.log   { color: ${(props) => props.theme.colors?.text?.muted || props.theme.overlay.overlay2}; }
+    &.log   { color: ${(props) => props.theme.colors.text.muted}; }
   }
 `;
 
