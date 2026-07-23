@@ -190,6 +190,8 @@ const ClientCertSettings = ({ collection }) => {
   };
 
   const handleRemove = (indexToRemove) => {
+    // visiblePassphrases tracks cert indexes; removing a cert shifts every later index down by
+    // one, so drop the removed index and decrement the ones above it to keep them aligned.
     setVisiblePassphrases((previousIndexes) =>
       previousIndexes
         .filter((index) => index !== indexToRemove)
@@ -332,7 +334,7 @@ const ClientCertSettings = ({ collection }) => {
               </label>
               <div className="flex flex-col gap-1">
                 <div className="relative flex items-center">
-                  <div className="absolute left-0 pl-2 text-gray-400 pointer-events-none flex items-center h-full">
+                  <div className="absolute left-0 pl-2 pointer-events-none flex items-center h-full">
                     <span className="protocol-placeholder">
                       <span className="protocol-https">https://</span>
                       <span className="protocol-grpcs">grpcs://</span>
