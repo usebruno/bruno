@@ -105,7 +105,7 @@ const Documentation = ({ item, collection }) => {
       const target = event.target;
       const link = target && target.closest('a.docs-link');
       if (link && link.href) {
-        window.open(link.href, '_blank', 'noopener noreferrer nofollow');
+        window.open(link.href, '_blank', 'noopener,noreferrer');
         event.preventDefault();
         event.stopPropagation();
       }
