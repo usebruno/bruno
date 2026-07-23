@@ -24,6 +24,11 @@ export default {
       options: ['sm', 'md', 'lg'],
       description: 'Size of the segments'
     },
+    variant: {
+      control: 'inline-radio',
+      options: ['solid', 'outlined'],
+      description: 'Visual style: solid recessed track (default) or outlined container'
+    },
     fullWidth: {
       control: 'boolean',
       description: 'Stretch the control to fill its container (equal-width segments)'
@@ -51,6 +56,15 @@ export const Default = {
     const [value, setValue] = useState('http');
     return (
       <SegmentedControl ariaLabel="Request type" {...args} value={value} onChange={setValue} items={requestTypes} />
+    );
+  }
+};
+
+export const Outlined = {
+  render: (args) => {
+    const [value, setValue] = useState('http');
+    return (
+      <SegmentedControl ariaLabel="Request type" {...args} variant="outlined" value={value} onChange={setValue} items={requestTypes} />
     );
   }
 };

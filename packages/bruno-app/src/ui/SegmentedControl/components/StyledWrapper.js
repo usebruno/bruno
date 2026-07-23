@@ -11,6 +11,56 @@ const trackBg = (theme) =>
 const tileBg = (theme) =>
   (theme.mode === 'dark' ? theme.background?.surface2 : theme.background?.base) || theme.bg;
 
+// Two looks for the container and the active segment:
+//  - solid    (default): recessed track with a raised, surface-filled tile.
+//  - outlined: transparent, bordered container with a brand-tinted active tile.
+const variantStyles = {
+  solid: css`
+    background: ${(props) => trackBg(props.theme)};
+
+    .segment.active {
+      color: ${(props) => props.theme.brand};
+      background: ${(props) => tileBg(props.theme)};
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+      font-weight: 500;
+    }
+  `,
+  outlined: css`
+    background: transparent;
+    border: 1px solid ${(props) => props.theme.border.border1};
+    /* segments butt up against each other, separated by dividers and filling
+       the full cell (no inset tile), so drop the track padding and gap. */
+    padding: 0;
+    gap: 0;
+
+    .segment {
+      border-radius: 0;
+    }
+
+    /* vertical divider between segments */
+    .segment:not(:last-child) {
+      border-right: 1px solid ${(props) => props.theme.border.border1};
+    }
+
+    /* round the end segments so the active fill matches the container corners */
+    .segment:first-child {
+      border-top-left-radius: calc(${(props) => props.theme.border.radius.md} - 1px);
+      border-bottom-left-radius: calc(${(props) => props.theme.border.radius.md} - 1px);
+    }
+    .segment:last-child {
+      border-top-right-radius: calc(${(props) => props.theme.border.radius.md} - 1px);
+      border-bottom-right-radius: calc(${(props) => props.theme.border.radius.md} - 1px);
+    }
+
+    .segment.active {
+      color: ${(props) => props.theme.brand};
+      background: ${(props) => transparentize(0.88, props.theme.brand)};
+      box-shadow: none;
+      font-weight: 500;
+    }
+  `
+};
+
 const sizeStyles = {
   sm: css`
     .segment {
@@ -37,7 +87,6 @@ const StyledWrapper = styled.div`
   width: ${(props) => (props.$fullWidth ? '100%' : 'auto')};
   gap: 2px;
   padding: 3px;
-  background: ${(props) => trackBg(props.theme)};
   border-radius: ${(props) => props.theme.border.radius.md};
 
   .segment {
@@ -71,18 +120,12 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
   }
 
-  .segment.active {
-    color: ${(props) => props.theme.brand};
-    background: ${(props) => tileBg(props.theme)};
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-    font-weight: 500;
-  }
-
   .segment.disabled {
     cursor: not-allowed;
     opacity: 0.5;
   }
 
+  ${(props) => variantStyles[props.$variant] || variantStyles.solid}
   ${(props) => sizeStyles[props.$size]}
 
   /* focus ring only for keyboard focus (not mouse clicks); the input covers

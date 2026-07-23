@@ -7,8 +7,10 @@ import Segment from './Segment';
  *
  * Takes an `items` array — [{ value, label, icon?, disabled?, dataTestId?, ... }] —
  * and renders the segments for you. All other props (value, onChange, name,
- * size, fullWidth, disabled, ariaLabel/ariaLabelledBy, …) are forwarded to the
- * underlying control; the ref lands on the radiogroup container.
+ * size, variant, fullWidth, disabled, ariaLabel/ariaLabelledBy, …) are forwarded
+ * to the underlying control; the ref lands on the radiogroup container.
+ *
+ * `variant`: 'solid' (default, recessed track) | 'outlined' (bordered container).
  *
  * The compound building blocks (SegmentedControlBase + Segment) are kept
  * internal — if a compound API is ever needed, expose them from index.jsx.

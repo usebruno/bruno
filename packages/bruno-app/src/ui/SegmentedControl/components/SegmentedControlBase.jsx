@@ -28,6 +28,7 @@ const SegmentedControlBase = forwardRef(({
   ariaLabel,
   ariaLabelledBy,
   size = 'md',
+  variant = 'solid',
   fullWidth = false,
   disabled = false,
   className = '',
@@ -63,6 +64,7 @@ const SegmentedControlBase = forwardRef(({
         {...rest}
         ref={ref}
         $size={size}
+        $variant={variant}
         $fullWidth={fullWidth}
         className={className}
         role="radiogroup"
