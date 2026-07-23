@@ -174,6 +174,9 @@ export const buildCommonLocators = (page: Page) => ({
     },
     pane: () => page.getByTestId('request-pane')
   },
+  filePicker: {
+    warningTooltip: () => page.getByTestId('file-picker-warning-tooltip')
+  },
   // The variable-info popup shown when hovering a `{{var}}` token in an editor.
   varInfoPopup: {
     all: () => page.getByTestId('var-info-popup'),
