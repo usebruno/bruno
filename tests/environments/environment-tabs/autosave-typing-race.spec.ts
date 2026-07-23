@@ -1,33 +1,14 @@
 import path from 'path';
 import fs from 'fs';
-import { Page } from '@playwright/test';
 import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
   createEnvironment,
   openEnvironmentConfigTab,
-  openPreferences,
-  selectPreferencesTab,
+  setAutoSave,
   closeAllCollections
 } from '../../utils/page';
-
-// Enable autosave and pin the interval to its 500ms minimum, so a full autosave
-// cycle completes between keystrokes typed with a 600ms delay (see the test).
-const enableAutosave = async (page: Page, intervalMs = 500) => {
-  await test.step(`Enable autosave (interval ${intervalMs}ms)`, async () => {
-    await openPreferences(page);
-    await selectPreferencesTab(page, 'General');
-    await page.locator('#autoSaveEnabled').check();
-    const interval = page.locator('#autoSaveInterval');
-    await interval.fill(String(intervalMs));
-    // The preferences form persists on a 500ms debounce.
-    await page.waitForTimeout(800);
-    const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
-    await preferencesTab.hover();
-    await preferencesTab.locator('.close-icon').click({ force: true });
-  });
-};
 
 // The env .bru/.yml file, found without assuming the collection's on-disk nesting.
 const readEnvFile = (collectionsDir: string, collectionName: string, envName: string): string => {
@@ -66,7 +47,7 @@ test.describe('Autosave does not clobber in-flight environment edits', () => {
 
     // Enable autosave first, on the home screen, so it survives across the fresh
     // collection context (toggling it after leaves an empty view without the env selector).
-    await enableAutosave(page, 500);
+    await setAutoSave(page, { enabled: true, intervalMs: 500 });
 
     await createCollection(page, collectionName, collectionsDir);
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: collectionName })).toBeVisible();
