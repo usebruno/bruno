@@ -152,7 +152,6 @@ const Settings = ({ item, collection }) => {
               label="Forward Authorization on Redirect"
               description="Send Authorization and Proxy-Authorization headers when a redirect points to a different origin"
               size="medium"
-              data-testid="forward-authorization-toggle"
             />
           </div>
 
