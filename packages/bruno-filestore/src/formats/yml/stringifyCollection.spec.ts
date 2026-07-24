@@ -94,7 +94,7 @@ describe('stringifyCollection — client certificates', () => {
     request: { headers: [], auth: { mode: 'none' }, script: { req: null, res: null }, tests: null, vars: { req: [], res: [] } },
     docs: null
   } as any;
-  
+
   it('round-trips cert/pfx certificates', () => {
     const brunoConfig = {
       name: 'c',
