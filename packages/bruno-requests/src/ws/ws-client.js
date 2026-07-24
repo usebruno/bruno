@@ -269,8 +269,14 @@ class WsClient {
     // Notify the UI that we're actively disconnecting so it can show a blink state
     this.eventCallback('main:ws:disconnecting', requestId, collectionUid);
 
-    // Safety timeout: guarantee resolution even if the 'close' event never fires
+    // Safety timeout: force-destroy the socket if the close handshake never completes
     const timeoutId = setTimeout(() => {
+      if (!this.closingResolvers.has(requestId)) return;
+      try {
+        connectionMeta.connection.terminate();
+      } catch (_) {
+        // Socket may already be gone
+      }
       const resolver = this.closingResolvers.get(requestId);
       if (resolver) {
         this.closingResolvers.delete(requestId);
@@ -416,6 +422,11 @@ class WsClient {
         clearTimeout(pendingClose.timeoutId);
         this.closingResolvers.delete(requestId);
         pendingClose.resolve();
+      }
+
+      // Timed-out / replaced socket — ignore so a replacement stays active
+      if (this.activeConnections.get(requestId)?.connection !== ws) {
+        return;
       }
 
       this.eventCallback('main:ws:close', requestId, collectionUid, {

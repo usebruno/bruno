@@ -71,13 +71,17 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
     e && e.stopPropagation();
     setConnectionStatus(CONNECTION_STATUS.DISCONNECTING);
     try {
-      await closeWsConnection(item.uid);
+      const result = await closeWsConnection(item.uid);
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to close WebSocket connection');
+      }
       notify && toast.success('WebSocket connection closed');
       setConnectionStatus(CONNECTION_STATUS.DISCONNECTED);
     } catch (err) {
       console.error('Failed to close WebSocket connection:', err);
       notify && toast.error('Failed to close WebSocket connection');
-      setConnectionStatus(CONNECTION_STATUS.DISCONNECTED);
+      const statusResult = await getWsConnectionStatus(item.uid);
+      setConnectionStatus(statusResult?.status ?? CONNECTION_STATUS.DISCONNECTED);
     }
   };
 

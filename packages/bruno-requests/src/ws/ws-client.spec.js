@@ -41,6 +41,12 @@ jest.mock('ws', () => {
       this.emit('close', 1000, Buffer.from('closed'));
     }
 
+    // Match `ws`: terminate destroys immediately and emits close.
+    terminate() {
+      this.readyState = CLOSED;
+      this.emit('close', 1006, Buffer.from(''));
+    }
+
     ping() {}
 
     open() {
@@ -156,6 +162,37 @@ describe('WsClient', () => {
       await closed;
 
       expect(client.connectionStatus('req-1')).toBe('disconnected');
+      jest.useRealTimers();
+    });
+
+    it('does not let a timed-out socket close remove a replacement connection', async () => {
+      jest.useFakeTimers();
+      await start();
+      const original = mockSockets[0];
+      original.open();
+
+      // Close without emitting 'close' so the safety timeout retires the socket.
+      const closed = client.close('req-1');
+      // Suppress terminate→close during timeout so we can emit a delayed close later.
+      original.terminate = jest.fn();
+
+      jest.advanceTimersByTime(5000);
+      await closed;
+      expect(client.connectionStatus('req-1')).toBe('disconnected');
+      expect(original.terminate).toHaveBeenCalled();
+
+      await start();
+      expect(mockSockets).toHaveLength(2);
+      const replacement = mockSockets[1];
+      replacement.open();
+      expect(client.connectionStatus('req-1')).toBe('connected');
+      expect(client.activeConnections.get('req-1').connection).toBe(replacement);
+
+      // Delayed close from the timed-out original must not touch the replacement.
+      original.finishClose();
+
+      expect(client.activeConnections.get('req-1').connection).toBe(replacement);
+      expect(client.connectionStatus('req-1')).toBe('connected');
       jest.useRealTimers();
     });
 

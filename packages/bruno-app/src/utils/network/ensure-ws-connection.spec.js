@@ -13,7 +13,7 @@ describe('ensureWsConnection', () => {
   });
 
   const item = { uid: 'req-1', request: { url: 'ws://localhost:9' }, settings: {} };
-  const collection = { uid: 'col-1', pathname: '/tmp', runtimeVariables: {} };
+  const collection = { uid: 'col-1', runtimeVariables: {} };
 
   it('does not start a connection when already connecting', async () => {
     invoke.mockImplementation(async (channel) => {

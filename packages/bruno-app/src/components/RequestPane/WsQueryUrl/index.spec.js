@@ -125,6 +125,29 @@ describe('WsQueryUrl disconnect behavior', () => {
     expect(mockCloseWsConnection).not.toHaveBeenCalled();
   });
 
+  it('keeps connected status when close IPC returns success: false', async () => {
+    mockGetWsConnectionStatus
+      .mockResolvedValueOnce({ status: 'connected' })
+      .mockResolvedValue({ status: 'connected' });
+    mockCloseWsConnection.mockResolvedValueOnce({ success: false, error: 'still open' });
+
+    renderWsQueryUrl();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ws-disconnect-button')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('ws-disconnect-button'));
+
+    await waitFor(() => {
+      expect(mockCloseWsConnection).toHaveBeenCalledWith('req-1');
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('ws-disconnect-button')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('ws-connect-button')).not.toBeInTheDocument();
+  });
+
   it('disconnects on URL change while connected without reconnecting (O3)', async () => {
     mockGetWsConnectionStatus.mockResolvedValue({ status: 'connected' });
     const { rerender } = renderWsQueryUrl();
@@ -132,6 +155,7 @@ describe('WsQueryUrl disconnect behavior', () => {
     await waitFor(() => {
       expect(screen.getByTestId('ws-disconnect-button')).toBeInTheDocument();
     });
+    expect(mockCloseWsConnection).not.toHaveBeenCalled();
 
     const store = configureStore({
       reducer: {
@@ -155,8 +179,9 @@ describe('WsQueryUrl disconnect behavior', () => {
     });
 
     await waitFor(() => {
-      expect(mockCloseWsConnection).toHaveBeenCalledWith('req-1');
+      expect(mockCloseWsConnection).toHaveBeenCalledTimes(1);
     });
+    expect(mockCloseWsConnection).toHaveBeenCalledWith('req-1');
     expect(mockWsConnectOnly).not.toHaveBeenCalled();
   });
 });
