@@ -188,7 +188,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
               </div>
             )}
           </div>
-          {connectionStatus === CONNECTION_STATUS.CONNECTED && <div className="connection-status-strip"></div>}
+          {connectionStatus === CONNECTION_STATUS.CONNECTED && <div className="connection-status-strip" data-testid="ws-connected-strip"></div>}
           {connectionStatus === CONNECTION_STATUS.DISCONNECTING && <div className="connection-status-strip disconnecting" data-testid="ws-disconnecting-strip"></div>}
         </div>
         <SendButton

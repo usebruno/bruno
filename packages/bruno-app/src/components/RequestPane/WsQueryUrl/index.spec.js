@@ -134,7 +134,7 @@ describe('WsQueryUrl disconnect behavior', () => {
     renderWsQueryUrl();
 
     await waitFor(() => {
-      expect(screen.getByTestId('ws-disconnect-button')).toBeInTheDocument();
+      expect(screen.getByTestId('ws-connected-strip')).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByTestId('ws-disconnect-button'));
@@ -143,8 +143,9 @@ describe('WsQueryUrl disconnect behavior', () => {
       expect(mockCloseWsConnection).toHaveBeenCalledWith('req-1');
     });
     await waitFor(() => {
-      expect(screen.getByTestId('ws-disconnect-button')).toBeInTheDocument();
+      expect(screen.getByTestId('ws-connected-strip')).toBeInTheDocument();
     });
+    expect(screen.getByTestId('ws-disconnect-button')).toBeInTheDocument();
     expect(screen.queryByTestId('ws-connect-button')).not.toBeInTheDocument();
   });
 
