@@ -54,8 +54,6 @@ const CompatEndpointCard = ({
     prev.current = { enabled: providerEnabled };
   }, [providerEnabled]);
 
-  const isEditingKey = editing || !provider.configured;
-
   const handleSaveKey = async () => {
     const trimmed = keyDraft.trim();
     if (!trimmed) return;
@@ -127,7 +125,7 @@ const CompatEndpointCard = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (keyDraft.trim() && !saving) handleSaveKey();
-    } else if (e.key === 'Escape' && provider.configured) {
+    } else if (e.key === 'Escape') {
       e.preventDefault();
       handleCancelEditKey();
     }
@@ -235,15 +233,19 @@ const CompatEndpointCard = ({
             {/* API key */}
             <div>
               <div className="key-section-label flex items-center justify-between gap-2 text-[11px] mb-1">
-                <span>API Key</span>
+                <span>API Key <span className="opacity-60">(optional)</span></span>
               </div>
 
-              {!isEditingKey ? (
+              {!editing ? (
                 <div
                   className="key-display-row flex items-center justify-between gap-2 h-8 box-border pl-2.5 pr-0.5"
                   onClick={stopBubble}
                 >
-                  <span className="key-display-mask text-xs">••••••••••••••••</span>
+                  {provider.hasApiKey ? (
+                    <span className="key-display-mask text-xs">••••••••••••••••</span>
+                  ) : (
+                    <span className="key-display-mask text-xs opacity-60">Not set</span>
+                  )}
                   <div className="flex items-center gap-0.5">
                     <button
                       type="button"
@@ -261,23 +263,25 @@ const CompatEndpointCard = ({
                       className="btn-icon w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
                       onClick={handleStartEditKey}
                       disabled={pending}
-                      title="Replace key"
-                      aria-label="Replace key"
+                      title={provider.hasApiKey ? 'Replace key' : 'Add key'}
+                      aria-label={provider.hasApiKey ? 'Replace key' : 'Add key'}
                       data-testid={`ai-endpoint-${endpoint.id}-edit-key`}
                     >
                       <IconPencil size={15} />
                     </button>
-                    <button
-                      type="button"
-                      className="btn-icon danger w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
-                      onClick={handleClearKey}
-                      disabled={pending}
-                      title="Remove key"
-                      aria-label="Remove key"
-                      data-testid={`ai-endpoint-${endpoint.id}-clear-key`}
-                    >
-                      <IconTrash size={15} />
-                    </button>
+                    {provider.hasApiKey && (
+                      <button
+                        type="button"
+                        className="btn-icon danger w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
+                        onClick={handleClearKey}
+                        disabled={pending}
+                        title="Remove key"
+                        aria-label="Remove key"
+                        data-testid={`ai-endpoint-${endpoint.id}-clear-key`}
+                      >
+                        <IconTrash size={15} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -319,16 +323,14 @@ const CompatEndpointCard = ({
                     {saving ? <IconLoader2 size={13} className="spin" /> : <IconCheck size={13} />}
                     Save
                   </button>
-                  {provider.configured && (
-                    <button
-                      type="button"
-                      className="btn-icon w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
-                      onClick={handleCancelEditKey}
-                      title="Cancel"
-                    >
-                      <IconX size={15} />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className="btn-icon w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
+                    onClick={handleCancelEditKey}
+                    title="Cancel"
+                  >
+                    <IconX size={15} />
+                  </button>
                 </div>
               )}
 
@@ -357,7 +359,7 @@ const CompatEndpointCard = ({
                 {!provider.configured && (
                   <span className="keyless-hint flex items-center gap-1.5 text-[11px] py-1">
                     <IconAlertCircle size={12} />
-                    Add an API key to enable
+                    Set a Base URL to enable
                   </span>
                 )}
               </div>

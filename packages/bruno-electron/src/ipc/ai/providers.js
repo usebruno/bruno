@@ -90,12 +90,14 @@ const compatProviderEntry = (endpoint) => ({
 });
 
 const getSdk = ({ providerId, apiKey, baseURL }) => {
-  const key = sdkCacheKey({ providerId, apiKey, baseURL });
+  const isCompat = isOpenAiCompatibleProviderId(providerId);
+  const effectiveKey = isCompat && !apiKey ? '' : apiKey;
+  const key = sdkCacheKey({ providerId, apiKey: effectiveKey, baseURL });
   let sdk = sdkCache.get(key);
   if (sdk) return sdk;
 
-  if (isOpenAiCompatibleProviderId(providerId)) {
-    sdk = createOpenAI({ apiKey, baseURL });
+  if (isCompat) {
+    sdk = createOpenAI({ apiKey: effectiveKey, baseURL });
   } else {
     const provider = PROVIDERS[providerId];
     if (!provider) throw new Error(`Unknown AI provider: ${providerId}`);
@@ -210,12 +212,13 @@ const getModel = (modelId, { aiPreferences, getApiKey }) => {
     throw new Error(`${providerLabel(def.providerId, aiPreferences)} is not enabled. Enable it in Preferences > AI.`);
   }
 
+  const isCompat = isOpenAiCompatibleProviderId(def.providerId);
   const apiKey = getApiKey(def.providerId);
-  if (!apiKey) {
+  if (!apiKey && !isCompat) {
     throw new Error(`${providerLabel(def.providerId, aiPreferences)} API key is not configured. Add it in Preferences > AI.`);
   }
 
-  if (isOpenAiCompatibleProviderId(def.providerId) && !def.baseURL) {
+  if (isCompat && !def.baseURL) {
     throw new Error(`${providerLabel(def.providerId, aiPreferences)} is missing a Base URL. Set one in Preferences > AI.`);
   }
 
@@ -232,12 +235,13 @@ const getAvailableModels = ({ aiPreferences, hasApiKey }) => {
   for (const model of listModels(aiPreferences)) {
     const providerConfig = aiPreferences?.providers?.[model.provider];
     if (!providerConfig?.enabled) continue;
-    if (!hasApiKey(model.provider)) continue;
+    const isCompat = isOpenAiCompatibleProviderId(model.provider);
+    if (!isCompat && !hasApiKey(model.provider)) continue;
 
     const modelConfig = aiPreferences?.models?.[model.id];
     if (modelConfig?.enabled === false) continue;
 
-    if (isOpenAiCompatibleProviderId(model.provider)) {
+    if (isCompat) {
       const endpointId = endpointIdFromProviderId(model.provider);
       const endpoint = getCompatEndpoint(aiPreferences, endpointId);
       if (!endpoint?.baseURL) continue;
@@ -266,7 +270,7 @@ const validateApiKeyForProvider = async ({ providerId, apiKey, aiPreferences }) 
   }
   const url = `${endpoint.baseURL.replace(/\/$/, '')}/models`;
   return fetch(url, {
-    headers: { Authorization: `Bearer ${apiKey}` },
+    headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
     signal: AbortSignal.timeout(10000)
   });
 };
