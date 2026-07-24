@@ -52,6 +52,52 @@ request:
   });
 });
 
+describe('parseCollection — script execution flow', () => {
+  it('reads flow: sequential from the bruno extension', () => {
+    const yml = `opencollection: "1.0.0"
+info:
+  name: c
+extensions:
+  bruno:
+    scripts:
+      flow: sequential
+`;
+    const { brunoConfig } = parseCollection(yml);
+    expect(brunoConfig.scripts?.flow).toBe('sequential');
+  });
+
+  it('reads flow: sandwich from the bruno extension', () => {
+    const yml = `opencollection: "1.0.0"
+info:
+  name: c
+extensions:
+  bruno:
+    scripts:
+      flow: sandwich
+`;
+    const { brunoConfig } = parseCollection(yml);
+    expect(brunoConfig.scripts?.flow).toBe('sandwich');
+  });
+
+  it('ignores an unrecognized flow value', () => {
+    const yml = `opencollection: "1.0.0"
+info:
+  name: c
+extensions:
+  bruno:
+    scripts:
+      flow: parallel
+`;
+    const { brunoConfig } = parseCollection(yml);
+    expect(brunoConfig.scripts?.flow).toBeUndefined();
+  });
+
+  it('has no scripts.flow when the file does not set one', () => {
+    const { brunoConfig } = parseCollection('opencollection: "1.0.0"\ninfo:\n  name: c\n');
+    expect(brunoConfig.scripts?.flow).toBeUndefined();
+  });
+});
+
 describe('parseCollection — reading the collection version', () => {
   it('reads the version from the file as text', () => {
     const { brunoConfig } = parseCollection('opencollection: "1.0.0"\ninfo:\n  name: c\n  version: v1.0.0\n');

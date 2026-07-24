@@ -367,12 +367,12 @@ const runSingleRequest = async function (
       }
     }
 
-    if (request.settings?.encodeUrl) {
-      request.url = encodeUrl(request.url);
-    }
-
     if (!hasExplicitScheme(request.url)) {
       request.url = `http://${request.url}`;
+    }
+
+    if (request.settings?.encodeUrl) {
+      request.url = encodeUrl(request.url);
     }
 
     const insecure = get(options, 'insecure', false);
