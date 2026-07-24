@@ -2077,6 +2077,10 @@ const registerNetworkIpc = (mainWindow) => {
                 nextRequestName = testResults.nextRequestName;
               }
 
+              if (testResults?.stopExecution) {
+                stopRunnerExecution = true;
+              }
+
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'test-results',
                 testResults: testResults.results,
@@ -2141,12 +2145,14 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         deleteCancelToken(cancelTokenUid);
-        mainWindow.webContents.send('main:run-folder-event', {
-          type: 'testrun-ended',
-          collectionUid,
-          folderUid,
-          runCompletionTime: new Date().toISOString()
-        });
+        if (!stopRunnerExecution) {
+          mainWindow.webContents.send('main:run-folder-event', {
+            type: 'testrun-ended',
+            collectionUid,
+            folderUid,
+            runCompletionTime: new Date().toISOString()
+          });
+        }
       } catch (error) {
         console.log('error', error);
         deleteCancelToken(cancelTokenUid);
