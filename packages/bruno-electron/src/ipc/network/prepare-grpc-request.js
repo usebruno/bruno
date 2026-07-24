@@ -1,4 +1,5 @@
 const { cloneDeep, each, get } = require('lodash');
+const { REQUEST_TYPES } = require('@usebruno/common');
 const interpolateVars = require('./interpolate-vars');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, mergeAuth, getFormattedCollectionOauth2Credentials } = require('../../utils/collection');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -129,7 +130,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
   if (requestTreePath && requestTreePath.length > 0) {
     mergeAuth(collection, request, requestTreePath);
     mergeHeaders(collection, request, requestTreePath);
-    mergeScripts(collection, request, requestTreePath, scriptFlow);
+    mergeScripts(collection, request, requestTreePath, scriptFlow, REQUEST_TYPES.GRPC);
     mergeVars(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
     request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
@@ -147,10 +148,13 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
 
   let grpcRequest = {
     uid: item.uid,
+    pathname: item.pathname,
+    type: REQUEST_TYPES.GRPC,
     mode: request.body.mode,
     method: request.method,
     methodType: request.methodType,
     url,
+    auth: request.auth,
     headers,
     processEnvVars,
     envVars,
@@ -158,6 +162,9 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     promptVariables,
     body: request.body,
     protoPath: request.protoPath,
+    script: request.script,
+    tests: request.tests,
+    testsMetadata: request.testsMetadata,
     // Add variable properties for interpolation
     vars: request.vars,
     collectionVariables: request.collectionVariables,

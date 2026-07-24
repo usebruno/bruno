@@ -5,7 +5,7 @@ import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
 import { toBrunoVariables } from './common/variables';
 import { toBrunoPostResponseVariables } from './common/actions';
-import { toBrunoScripts } from './common/scripts';
+import { toBrunoScripts, applyBrunoScripts } from './common/scripts';
 import { ensureString } from '../../utils';
 
 const parseFolder = (ymlString: string): FolderRoot => {
@@ -54,14 +54,9 @@ const parseFolder = (ymlString: string): FolderRoot => {
 
       // scripts
       const scripts = toBrunoScripts(ocFolder.request.scripts);
-      if (scripts?.script && folderRequest.script) {
-        if (scripts.script.req) {
-          folderRequest.script.req = scripts.script.req;
-        }
-        if (scripts.script.res) {
-          folderRequest.script.res = scripts.script.res;
-        }
-      }
+      applyBrunoScripts(folderRequest, scripts);
+
+      // tests
       if (scripts?.tests) {
         folderRequest.tests = scripts.tests;
       }

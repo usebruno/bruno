@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -16,6 +16,11 @@ import ResponseTrailers from './ResponseTrailers';
 import GrpcQueryResult from './GrpcQueryResult';
 import ResponseLayoutToggle from '../ResponseLayoutToggle';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
+import ScriptError from '../ScriptError';
+import ScriptErrorIcon from '../ScriptErrorIcon';
+import TestResults from '../TestResults';
+import TestResultsLabel from '../TestResultsLabel';
+import { getPhasesByRequestType, REQUEST_TYPES } from '@usebruno/common';
 
 const GrpcResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -23,6 +28,18 @@ const GrpcResponsePane = ({ item, collection }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const rightContentRef = useRef(null);
+  const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
+
+  const scriptPhases = useMemo(() => getPhasesByRequestType(REQUEST_TYPES.GRPC), []);
+
+  const hasScriptOrTestError
+    = scriptPhases.some((phase) => item?.[`${phase.ERROR_STATE_KEY}Message`]) || item?.testScriptErrorMessage;
+
+  useEffect(() => {
+    if (hasScriptOrTestError) {
+      setShowScriptErrorCard(true);
+    }
+  }, [hasScriptOrTestError]);
 
   const requestTimeline = [...(collection?.timeline || [])].filter((obj) => {
     if (obj.itemUid === item.uid) return true;
@@ -68,6 +85,13 @@ const GrpcResponsePane = ({ item, collection }) => {
       key: 'timeline',
       label: 'Timeline',
       indicator: null
+    },
+    {
+      key: 'tests',
+      label: (
+        <TestResultsLabel item={item} />
+      ),
+      indicator: null
     }
   ];
 
@@ -85,6 +109,11 @@ const GrpcResponsePane = ({ item, collection }) => {
       case 'timeline': {
         return <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />;
       }
+      case 'tests': {
+        return (
+          <TestResults item={item} />
+        );
+      }
       default: {
         return <div>404 | Not found</div>;
       }
@@ -99,7 +128,7 @@ const GrpcResponsePane = ({ item, collection }) => {
     );
   }
 
-  if (!item.response && !requestTimeline?.length) {
+  if (!item.response && !requestTimeline?.length && !hasScriptOrTestError) {
     return (
       <HeightBoundContainer>
         <Placeholder />
@@ -118,6 +147,9 @@ const GrpcResponsePane = ({ item, collection }) => {
 
   const rightContent = !isLoading ? (
     <div ref={rightContentRef} className="flex items-center">
+      {hasScriptOrTestError && !showScriptErrorCard && (
+        <ScriptErrorIcon item={item} onClick={() => setShowScriptErrorCard(true)} />
+      )}
       {focusedTab?.responsePaneTab === 'timeline' ? (
         <>
           <ResponseLayoutToggle />
@@ -149,8 +181,15 @@ const GrpcResponsePane = ({ item, collection }) => {
           rightContentRef={rightContentRef}
         />
       </div>
-      <section className="response-pane-content">
+      <section className={`response-pane-content ${hasScriptOrTestError && showScriptErrorCard ? 'has-script-error' : ''}`}>
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
+        {hasScriptOrTestError && showScriptErrorCard && (
+          <ScriptError
+            item={item}
+            onClose={() => setShowScriptErrorCard(false)}
+            collection={collection}
+          />
+        )}
         <div className="response-tab-content">
           {!item?.response ? (
             focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (

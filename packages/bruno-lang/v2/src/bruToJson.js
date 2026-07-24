@@ -9,6 +9,10 @@ const {
   extractTypedAnnotations
 } = require('./utils');
 const parseExample = require('./example/bruToJson');
+const { SCRIPTING_PHASES } = require('@usebruno/common');
+
+// `.bru` script block type (BRU_TYPE) -> store field, from the shared registry.
+const FIELD_BY_BRU_TYPE = Object.fromEntries(SCRIPTING_PHASES.map((phase) => [phase.BRU_TYPE, phase.FIELD]));
 
 // this is done to avoid breaking existing pairlist mapping so
 // the key is hidden and not added into the json automatically
@@ -185,10 +189,9 @@ const grammar = ohm.grammar(`Bru {
   // Examples - multiple example blocks
   example = "example" st* "{" nl* examplecontent tagend
   examplecontent = (~tagend any)*
-
-  script = scriptreq | scriptres
-  scriptreq = "script:pre-request" st* "{" nl* textblock tagend
-  scriptres = "script:post-response" st* "{" nl* textblock tagend
+  
+  script = "script:" scripttype st* "{" nl* textblock tagend
+  scripttype = (letter | digit | "-" | ":")+
   tests = "tests" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);
@@ -199,7 +202,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true, extractTyp
   }
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
-    let value = pair[name];
+    const value = pair[name];
     const rawAnnotations = pair[ANNOTATIONS_KEY];
 
     if (!parseEnabled) {
@@ -231,7 +234,7 @@ const mapRequestParams = (pairList = [], type) => {
   }
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
-    let value = pair[name];
+    const value = pair[name];
     const rawAnnotations = pair[ANNOTATIONS_KEY];
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
@@ -281,7 +284,7 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
     multipartExtractContentType(pair);
 
     if (_.isString(pair.value) && pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
-      let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+      const filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.type = 'file';
       pair.value = filestr.split('|').filter(Boolean);
     }
@@ -296,7 +299,7 @@ const mapPairListToKeyValPairsFile = (pairList = [], parseEnabled = true) => {
     fileExtractContentType(pair);
 
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
-      let filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+      const filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.filePath = filePath;
       pair.selected = pair.enabled;
 
@@ -431,7 +434,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return value.ast;
   },
   pair(_1, annotations, _keyindent, key, _2, _3, _4, value, _5) {
-    let res = {};
+    const res = {};
     if (Array.isArray(value.ast)) {
       res[key.ast] = value.ast;
     } else {
@@ -461,7 +464,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return [pair.ast, ...rest.ast];
   },
   assertpair(_1, annotations, _2, key, _3, _4, _5, value, _6) {
-    let res = {};
+    const res = {};
     res[key.ast] = value.ast ? value.ast.trim() : '';
     const annotationList = annotations.ast;
     if (annotationList && annotationList.length > 0) {
@@ -523,7 +526,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return elements.map((e) => e.ast);
   },
   meta(_1, dictionary) {
-    let meta = mapPairListToKeyValPair(dictionary.ast);
+    const meta = mapPairListToKeyValPair(dictionary.ast);
 
     if (!meta.seq) {
       meta.seq = 1;
@@ -547,7 +550,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     };
   },
   settings(_1, dictionary) {
-    let settings = mapPairListToKeyValPair(dictionary.ast);
+    const settings = mapPairListToKeyValPair(dictionary.ast);
     const getNumFromRecord = createGetNumFromRecord(settings);
 
     const keepAliveInterval = getNumFromRecord('keepAliveInterval');
@@ -1133,7 +1136,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   varsreq(_1, dictionary) {
     const vars = mapPairListToKeyValPairs(dictionary.ast, true, true);
     _.each(vars, (v) => {
-      let name = v.name;
+      const name = v.name;
       if (name && name.length && name.charAt(0) === '@') {
         v.name = name.slice(1);
         v.local = true;
@@ -1154,7 +1157,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     // annotations only (preserved on round-trip) without populating `dataType`.
     const vars = mapPairListToKeyValPairs(dictionary.ast, true, false);
     _.each(vars, (v) => {
-      let name = v.name;
+      const name = v.name;
       if (name && name.length && name.charAt(0) === '@') {
         v.name = name.slice(1);
         v.local = true;
@@ -1174,19 +1177,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       assertions: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
-  scriptreq(_1, _2, _3, _4, textblock, _5) {
-    return {
-      script: {
-        req: outdentString(textblock.sourceString)
-      }
-    };
-  },
-  scriptres(_1, _2, _3, _4, textblock, _5) {
-    return {
-      script: {
-        res: outdentString(textblock.sourceString)
-      }
-    };
+  script(_1, scriptType, _2, _3, _4, textblock, _5) {
+    const field = FIELD_BY_BRU_TYPE[scriptType.sourceString];
+    return field ? { script: { [field]: outdentString(textblock.sourceString) } } : {};
   },
   tests(_1, _2, _3, _4, textblock, _5) {
     return {
@@ -1258,7 +1251,7 @@ const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    let ast = sem(match).ast;
+    const ast = sem(match).ast;
 
     return ast;
   } else {

@@ -10,6 +10,13 @@ import { useTheme } from 'providers/Theme';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
 
+/**
+ * @typedef {Object} TestsProps
+ * @property {Object} item - The request item (http or grpc).
+ * @property {Object} collection - The collection the item belongs to.
+ */
+
+/** @param {TestsProps} props */
 const Tests = ({ item, collection }) => {
   const dispatch = useDispatch();
   const testsEditorRef = useRef(null);
@@ -49,6 +56,7 @@ const Tests = ({ item, collection }) => {
         ref={testsEditorRef}
         collection={collection}
         item={item}
+        requestType={item?.type}
         docKey="tests"
         value={tests || ''}
         theme={displayedTheme}

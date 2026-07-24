@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
+import { getPhasesByRequestType } from '@usebruno/common';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
@@ -80,76 +81,44 @@ const TestSection = ({
   );
 };
 
-const TestResults = ({ item, results, assertionResults, preRequestTestResults, postResponseTestResults }) => {
-  results = results || [];
-  assertionResults = assertionResults || [];
-  preRequestTestResults = preRequestTestResults || [];
-  postResponseTestResults = postResponseTestResults || [];
+const TestResults = ({ item }) => {
+  const sections = [
+    ...getPhasesByRequestType(item?.type).map(({ SCRIPT_TYPE, LABEL, TEST_RESULTS_KEY }) => ({
+      key: SCRIPT_TYPE,
+      title: `${LABEL.replace(/\s+/g, '-')} Tests`,
+      results: item?.[TEST_RESULTS_KEY] || [],
+      type: 'test'
+    })),
+    { key: 'tests', title: 'Tests', results: item?.testResults || [], type: 'test' },
+    { key: 'assertions', title: 'Assertions', results: item?.assertionResults || [], type: 'assertion' }
+  ];
 
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `response-tests-scroll-${item?.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: '.response-tab-content', onChange: setScroll, initialValue: scroll });
 
-  const [expandedSections, setExpandedSections] = useState({
-    preRequest: true,
-    tests: true,
-    postResponse: true,
-    assertions: true
-  });
-
-  useEffect(() => {
-    setExpandedSections({
-      preRequest: preRequestTestResults.length > 0,
-      tests: results.length > 0,
-      postResponse: postResponseTestResults.length > 0,
-      assertions: assertionResults.length > 0
-    });
-  }, [results.length, assertionResults.length, preRequestTestResults.length, postResponseTestResults.length]);
-
+  const [expandedSections, setExpandedSections] = useState({});
+  const isExpanded = (section) => expandedSections[section.key] ?? section.results.length > 0;
   const toggleSection = (section) => {
-    setExpandedSections({
-      ...expandedSections,
-      [section]: !expandedSections[section]
-    });
+    setExpandedSections((prev) => ({ ...prev, [section.key]: !isExpanded(section) }));
   };
 
-  if (!results.length && !assertionResults.length && !preRequestTestResults.length && !postResponseTestResults.length) {
+  if (!sections.some((section) => section.results.length)) {
     return <div>No tests found</div>;
   }
 
   return (
     <StyledWrapper className="flex flex-col" ref={wrapperRef}>
-      <TestSection
-        title="Pre-Request Tests"
-        results={preRequestTestResults}
-        isExpanded={expandedSections.preRequest}
-        onToggle={() => toggleSection('preRequest')}
-        type="test"
-      />
-
-      <TestSection
-        title="Post-Response Tests"
-        results={postResponseTestResults}
-        isExpanded={expandedSections.postResponse}
-        onToggle={() => toggleSection('postResponse')}
-        type="test"
-      />
-
-      <TestSection
-        title="Tests"
-        results={results}
-        isExpanded={expandedSections.tests}
-        onToggle={() => toggleSection('tests')}
-        type="test"
-      />
-
-      <TestSection
-        title="Assertions"
-        results={assertionResults}
-        isExpanded={expandedSections.assertions}
-        onToggle={() => toggleSection('assertions')}
-        type="assertion"
-      />
+      {sections.map((section) => (
+        <TestSection
+          key={section.key}
+          title={section.title}
+          results={section.results}
+          isExpanded={isExpanded(section)}
+          onToggle={() => toggleSection(section)}
+          type={section.type}
+        />
+      ))}
     </StyledWrapper>
   );
 };

@@ -25,6 +25,7 @@ import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
+import { getPhasesByRequestType } from '@usebruno/common';
 import * as exampleReducers from './exampleReducers';
 
 const FILE_DERIVED_REQUEST_FIELDS = [
@@ -1937,6 +1938,22 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateScript: (state, action) => {
+      const { collectionUid, itemUid, script, field = 'req' } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.script = item.draft.request.script || {};
+          item.draft.request.script[field] = script;
+        }
+      }
+    },
     updateResponseScript: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -3167,14 +3184,14 @@ export const collectionsSlice = createSlice({
       item.requestUid = requestUid;
       item.requestStartTime = Date.now();
       item.testResults = [];
-      item.preRequestTestResults = [];
-      item.postResponseTestResults = [];
       item.assertionResults = [];
-      item.preRequestScriptErrorMessage = null;
-      item.postResponseScriptErrorMessage = null;
+
+      getPhasesByRequestType(item?.type).forEach((phase) => {
+        item[`${phase.ERROR_STATE_KEY}Message`] = null;
+        item[`${phase.ERROR_STATE_KEY}Context`] = null;
+        item[phase.TEST_RESULTS_KEY] = [];
+      });
       item.testScriptErrorMessage = null;
-      item.preRequestScriptErrorContext = null;
-      item.postResponseScriptErrorContext = null;
       item.testScriptErrorContext = null;
     },
     runRequestEvent: (state, action) => {
@@ -3187,14 +3204,10 @@ export const collectionsSlice = createSlice({
           // ignore outdated updates in case multiple requests are fired rapidly to avoid state inconsistency
           if (item.requestUid !== requestUid) return;
 
-          if (type === 'pre-request-script-execution') {
-            item.preRequestScriptErrorMessage = action.payload.errorMessage;
-            item.preRequestScriptErrorContext = action.payload.errorContext || null;
-          }
-
-          if (type === 'post-response-script-execution') {
-            item.postResponseScriptErrorMessage = action.payload.errorMessage;
-            item.postResponseScriptErrorContext = action.payload.errorContext || null;
+          const scriptPhase = getPhasesByRequestType(item?.type).find(({ SCRIPT_TYPE }) => `${SCRIPT_TYPE}-script-execution` === type);
+          if (scriptPhase) {
+            item[`${scriptPhase.ERROR_STATE_KEY}Message`] = action.payload.errorMessage;
+            item[`${scriptPhase.ERROR_STATE_KEY}Context`] = action.payload.errorContext || null;
           }
 
           if (type === 'test-script-execution') {
@@ -3264,14 +3277,13 @@ export const collectionsSlice = createSlice({
             item.testResults = results;
           }
 
-          if (type === 'test-results-pre-request') {
-            const { results } = action.payload;
-            item.preRequestTestResults = results;
-          }
+          const testResultsPhase = getPhasesByRequestType(item?.type).find(
+            ({ SCRIPT_TYPE }) => `test-results-${SCRIPT_TYPE}` === type
+          );
 
-          if (type === 'test-results-post-response') {
+          if (testResultsPhase) {
             const { results } = action.payload;
-            item.postResponseTestResults = results;
+            item[testResultsPhase.TEST_RESULTS_KEY] = results;
           }
         }
       }
@@ -4036,6 +4048,7 @@ export const {
   updateRequestGraphqlVariables,
   updateRequestScript,
   updateResponseScript,
+  updateScript,
   updateRequestTests,
   updateRequestMethod,
   updateRequestProtoPath,

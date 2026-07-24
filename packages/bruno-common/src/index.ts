@@ -4,6 +4,14 @@ export { percentageToZoomLevel } from './zoom';
 export { default as isRequestTagsIncluded } from './tags';
 export { transformExampleStatusInCollection } from './example-status';
 
+export {
+  SCRIPT_PHASES,
+  SCRIPTING_PHASES,
+  REQUEST_TYPES,
+  getPhasesByRequestType
+} from './scripting/phases';
+export type { RequestType, ScriptPhase } from './scripting/phases';
+
 export { buildHar } from './generate-code/har';
 export type {
   BuildHarInput,

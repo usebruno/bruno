@@ -1,9 +1,12 @@
-import { mockDataFunctions } from '@usebruno/common';
+import { mockDataFunctions, SCRIPT_PHASES, REQUEST_TYPES } from '@usebruno/common';
 
 const CodeMirror = require('codemirror');
 
 // Static API hints - Bruno JavaScript API (subgrouped by category)
-const STATIC_API_HINTS = {
+// TODO: Restore the commented-out APIs once the UI update fixes are live.
+// Currently these APIs only work within the request lifecycle but fail to update the UI tables.
+// e.g., setCollectionVar only sets the variable in the request lifecycle, fails to update the table in the UI.
+const HTTP_API_HINTS = {
   req: [
     'req',
     'req.url',
@@ -181,6 +184,152 @@ const STATIC_API_HINTS = {
   ]
 };
 
+/**
+ * Flatten a nested hint tree into full dotted-path strings.
+ * Array -> `prefix.member` per item (empty `[]` -> the prefix itself, a scalar leaf); object -> recurse.
+ */
+const flattenHintTree = (node, prefix) =>
+  Array.isArray(node)
+    ? (node.length ? node.map((member) => `${prefix}.${member}`) : [prefix])
+    : Object.entries(node).flatMap(([key, child]) => flattenHintTree(child, `${prefix}.${key}`));
+
+const GRPC_MESSAGE_READ_METHODS = ['all()', 'get(index)', 'first()', 'last()', 'count()', 'find(predicate)', 'filter(predicate)', 'map(mapper)', 'each(callback)'];
+const GRPC_METADATA_READ_METHODS = ['all()', 'get(key)', 'has(key)', 'count()', 'find(predicate)', 'filter(predicate)', 'map(mapper)', 'each(callback)'];
+const GRPC_METADATA_WRITE_METHODS = ['set(key, value)', 'setAll(data)', 'remove(key)', 'clear()'];
+
+const GRPC_COMMON_BRU_HINTS = {
+  'cwd()': [],
+  'getEnvName()': [],
+  'getProcessEnv(key)': [],
+  'hasEnvVar(key)': [],
+  'getEnvVar(key)': [],
+  'getFolderVar(key)': [],
+  'getCollectionVar(key)': [],
+  'hasCollectionVar(key)': [],
+  'setEnvVar(key, value)': [],
+  'setEnvVar(key, value, options)': [],
+  'deleteEnvVar(key)': [],
+  'getAllEnvVars()': [],
+  'deleteAllEnvVars()': [],
+  'hasVar(key)': [],
+  'getVar(key)': [],
+  'setVar(key,value)': [],
+  'deleteVar(key)': [],
+  'deleteAllVars()': [],
+  'getAllVars()': [],
+  'sendRequest(requestConfig)': [],
+  'sendRequest(requestConfig, callback)': [],
+  'getAssertionResults()': [],
+  'getTestResults()': [],
+  'sleep(ms)': [],
+  'getCollectionName()': [],
+  'isSafeMode()': [],
+  'getOauth2CredentialVar(key)': [],
+  'hasGlobalEnvVar(key)': [],
+  'getGlobalEnvVar(key)': [],
+  'setGlobalEnvVar(key, value)': [],
+  'getAllGlobalEnvVars()': [],
+  'interpolate(str)': [],
+  'resetOauth2Credential(credentialId)': [],
+  'utils': ['minifyJson(json)', 'minifyXml(xml)']
+};
+
+const GRPC_API_HINTS = {
+  [SCRIPT_PHASES.GRPC.BEFORE_CALL_START.SCRIPT_TYPE]: {
+    bru: {
+      ...GRPC_COMMON_BRU_HINTS,
+      grpc: {
+        request: {
+          url: [],
+          method: [],
+          methodType: [],
+          authMode: [],
+          messages: [...GRPC_MESSAGE_READ_METHODS],
+          metadata: [...GRPC_METADATA_READ_METHODS, ...GRPC_METADATA_WRITE_METHODS]
+        }
+      }
+    }
+  },
+  [SCRIPT_PHASES.GRPC.BEFORE_MESSAGE_SEND.SCRIPT_TYPE]: {
+    bru: {
+      ...GRPC_COMMON_BRU_HINTS,
+      grpc: {
+        request: {
+          url: [],
+          method: [],
+          methodType: [],
+          authMode: [],
+          message: ['data'],
+          metadata: GRPC_METADATA_READ_METHODS
+        }
+      }
+    }
+  },
+  [SCRIPT_PHASES.GRPC.AFTER_MESSAGE_RECEIVE.SCRIPT_TYPE]: {
+    bru: {
+      ...GRPC_COMMON_BRU_HINTS,
+      grpc: {
+        request: {
+          url: [],
+          method: [],
+          methodType: [],
+          authMode: [],
+          metadata: GRPC_METADATA_READ_METHODS
+        },
+        response: {
+          message: ['data', 'timestamp']
+        }
+      }
+    }
+  },
+  [SCRIPT_PHASES.GRPC.AFTER_CALL_END.SCRIPT_TYPE]: {
+    bru: {
+      ...GRPC_COMMON_BRU_HINTS,
+      grpc: {
+        request: {
+          url: [],
+          method: [],
+          methodType: [],
+          authMode: [],
+          messages: GRPC_MESSAGE_READ_METHODS,
+          metadata: GRPC_METADATA_READ_METHODS
+        },
+        response: {
+          messages: GRPC_MESSAGE_READ_METHODS,
+          trailers: GRPC_METADATA_READ_METHODS,
+          statusCode: [],
+          statusMessage: []
+        }
+      }
+    }
+  }
+};
+
+// Memoized per scriptType — the phase trees are static, so each phase is flattened only once.
+const grpcHintsCache = new Map();
+const buildGrpcHints = (scriptType) => {
+  if (grpcHintsCache.has(scriptType)) {
+    return grpcHintsCache.get(scriptType);
+  }
+  const phaseTree = GRPC_API_HINTS[scriptType] || {};
+  const hints = Object.fromEntries(
+    Object.entries(phaseTree).map(([root, node]) => [root, flattenHintTree(node, root)])
+  );
+  grpcHintsCache.set(scriptType, hints);
+  return hints;
+};
+
+const getApiHints = (requestType, scriptType) => {
+  if (requestType !== REQUEST_TYPES.GRPC) return HTTP_API_HINTS;
+  // gRPC tests run in the afterCallEnd phase, so the Tests tab (scriptType 'tests') uses its hints.
+  const phase = scriptType === 'tests' ? SCRIPT_PHASES.GRPC.AFTER_CALL_END.SCRIPT_TYPE : scriptType;
+  return buildGrpcHints(phase);
+};
+
+// Returns the top-level root identifiers for a protocol: `['bru']` for gRPC, `['req', 'res', 'bru']` for HTTP.
+const getApiRoots = (requestType, scriptType) =>
+  requestType === REQUEST_TYPES.GRPC ? Object.keys(getApiHints(requestType, scriptType)) : Object.keys(HTTP_API_HINTS);
+
 // Mock data functions - prefixed with $
 const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map((key) => `$${key}`);
 
@@ -246,12 +395,12 @@ const transformVariablesToHints = (allVariables = {}) => {
  * @param {Set} apiHints - Set to add API hints to
  * @param {string[]} showHintsFor - Array of hint types to show
  */
-const addApiHintsToSet = (apiHints, showHintsFor) => {
-  const apiTypes = ['req', 'res', 'bru'];
+const addApiHintsToSet = (apiHints, showHintsFor, requestType = REQUEST_TYPES.HTTP, scriptType) => {
+  const source = getApiHints(requestType, scriptType);
 
-  apiTypes.forEach((apiType) => {
+  Object.keys(source).forEach((apiType) => {
     if (showHintsFor.includes(apiType)) {
-      STATIC_API_HINTS[apiType].forEach((hint) => {
+      source[apiType]?.forEach((hint) => {
         generateProgressiveHints(hint).forEach((h) => apiHints.add(h));
       });
     }
@@ -303,10 +452,10 @@ const buildCategorizedHintsList = (allVariables = {}, anywordAutocompleteHints =
     anyword: new Set()
   };
 
-  const showHintsFor = options.showHintsFor || [];
+  const { showHintsFor = [], requestType, scriptType } = options;
 
   // Add different types of hints
-  addApiHintsToSet(categorizedHints.api, showHintsFor);
+  addApiHintsToSet(categorizedHints.api, showHintsFor, requestType, scriptType);
   addVariableHintsToSet(categorizedHints.variables, allVariables);
   addCustomHintsToSet(categorizedHints.anyword, anywordAutocompleteHints);
 
@@ -377,8 +526,8 @@ const calculateWordReplacementPositions = (cursor, start, end, word) => {
  * @param {string} word - The word to analyze
  * @returns {string} The determined context
  */
-const determineWordContext = (word) => {
-  const isApiHint = Object.keys(STATIC_API_HINTS).some(
+const determineWordContext = (word, requestType, scriptType) => {
+  const isApiHint = getApiRoots(requestType, scriptType).some(
     (apiRoot) => apiRoot.toLowerCase().startsWith(word.toLowerCase()) || word.toLowerCase().startsWith(apiRoot.toLowerCase())
   );
 
@@ -422,7 +571,7 @@ const extractWordFromLine = (currentLine, cursorPosition) => {
  * @param {Object} cm - CodeMirror instance
  * @returns {Object|null} Word information with context or null
  */
-const getCurrentWordWithContext = (cm) => {
+const getCurrentWordWithContext = (cm, requestType, scriptType) => {
   const cursor = cm.getCursor();
   const currentLine = cm.getLine(cursor.line);
   const currentString = cm.getRange({ line: cursor.line, ch: 0 }, cursor);
@@ -451,7 +600,7 @@ const getCurrentWordWithContext = (cm) => {
 
   const { word, start, end } = wordInfo;
   const { replaceFrom, replaceTo } = calculateWordReplacementPositions(cursor, start, end, word);
-  const context = determineWordContext(word);
+  const context = determineWordContext(word, requestType, scriptType);
 
   return {
     word,
@@ -534,13 +683,14 @@ const getHintParts = (filteredHints, currentInput) => {
  * @param {string[]} showHintsFor - Allowed hint types
  * @returns {string[]} Array of allowed hints
  */
-const getAllowedHintsByContext = (categorizedHints, context, showHintsFor) => {
+const getAllowedHintsByContext = (categorizedHints, context, showHintsFor, requestType, scriptType) => {
   let allowedHints = [];
 
   if (context === 'variables' && showHintsFor.includes('variables')) {
     allowedHints = [...categorizedHints.variables];
   } else if (context === 'api') {
-    const hasApiHints = showHintsFor.some((hint) => ['req', 'res', 'bru'].includes(hint));
+    const apiRoots = getApiRoots(requestType, scriptType);
+    const hasApiHints = showHintsFor.some((hint) => apiRoots.includes(hint));
     if (hasApiHints) {
       allowedHints = [...categorizedHints.api];
     }
@@ -559,12 +709,12 @@ const getAllowedHintsByContext = (categorizedHints, context, showHintsFor) => {
  * @param {string[]} showHintsFor - Allowed hint types
  * @returns {string[]} Filtered hints
  */
-const filterHintsByContext = (categorizedHints, currentWord, context, showHintsFor = []) => {
+const filterHintsByContext = (categorizedHints, currentWord, context, showHintsFor = [], requestType, scriptType) => {
   if (!currentWord) {
     return [];
   }
 
-  const allowedHints = getAllowedHintsByContext(categorizedHints, context, showHintsFor);
+  const allowedHints = getAllowedHintsByContext(categorizedHints, context, showHintsFor, requestType, scriptType);
 
   const lowerWord = currentWord.toLowerCase();
   const filtered = allowedHints.filter((hint) => {
@@ -617,15 +767,16 @@ const createStandardHintList = (filteredHints, from, to) => {
  * @param {string[]} showHintsFor - Array of hint types to show (e.g., ['req', 'res', 'bru'])
  * @returns {boolean} True if hints were shown, false otherwise
  */
-export const showRootHints = (cm, showHintsFor = []) => {
-  const wordInfo = getCurrentWordWithContext(cm);
+export const showRootHints = (cm, showHintsFor = [], requestType = REQUEST_TYPES.HTTP, scriptType) => {
+  const wordInfo = getCurrentWordWithContext(cm, requestType, scriptType);
   // If user is currently typing a word, let handleKeyupForAutocomplete
   // handle it instead of showing root hints.
   if (wordInfo) {
     return false;
   }
 
-  const hints = Object.keys(STATIC_API_HINTS).filter((rootHint) => showHintsFor.includes(rootHint));
+  const validRoots = getApiRoots(requestType, scriptType);
+  const hints = showHintsFor.filter((rootHint) => validRoots.includes(rootHint));
 
   if (hints.length === 0) return false;
 
@@ -652,7 +803,7 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
     return null;
   }
 
-  const wordInfo = getCurrentWordWithContext(cm);
+  const wordInfo = getCurrentWordWithContext(cm, options.requestType, options.scriptType);
   if (!wordInfo) {
     return null;
   }
@@ -666,7 +817,7 @@ export const getAutoCompleteHints = (cm, allVariables = {}, anywordAutocompleteH
   }
 
   const categorizedHints = buildCategorizedHintsList(allVariables, anywordAutocompleteHints, options);
-  const filteredHints = filterHintsByContext(categorizedHints, word, context, showHintsFor);
+  const filteredHints = filterHintsByContext(categorizedHints, word, context, showHintsFor, options.requestType, options.scriptType);
 
   if (filteredHints.length === 0) {
     return null;
@@ -750,7 +901,7 @@ const handleKeyupForAutocomplete = (cm, event, options) => {
   const hints = getAutoCompleteHints(cm, allVariables, anywordAutocompleteHints, options);
 
   if (!hints) {
-    const wordInfo = getCurrentWordWithContext(cm);
+    const wordInfo = getCurrentWordWithContext(cm, options.requestType, options.scriptType);
     if (cm.state.completionActive && wordInfo) {
       cm.state.completionActive.close();
     }
