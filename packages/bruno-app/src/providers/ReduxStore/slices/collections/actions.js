@@ -8,7 +8,7 @@ import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
 import path, { normalizePath, isPathExternalToBasePath } from 'utils/common/path';
-import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
 import SaveFileErrorModal from 'components/Errors/SaveFileErrorModal/index';
@@ -2814,10 +2814,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     }
 
     if (existingCollection) {
-      if (state.app.sidebarCollapsed) {
-        dispatch(toggleSidebarCollapse());
-      }
-
       if (activeWorkspace) {
         const workspaceCollection = {
           name: brunoConfig.name,
@@ -2871,9 +2867,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
         .then(() => {
           const currentState = getState();
-          if (currentState.app.sidebarCollapsed) {
-            dispatch(toggleSidebarCollapse());
-          }
 
           const currentWorkspace = currentState.workspaces.workspaces.find(
             (w) => w.uid === currentState.workspaces.activeWorkspaceUid
