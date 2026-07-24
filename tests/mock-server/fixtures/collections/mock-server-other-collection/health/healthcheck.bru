@@ -1,0 +1,35 @@
+meta {
+  name: healthcheck
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://api.example.com/health
+}
+
+example {
+  name: healthy
+
+  request: {
+    url: https://api.example.com/health
+    method: get
+    mode: none
+  }
+
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+
+    body: {
+      type: json
+      content: '''
+        {
+          "status": "ok"
+        }
+      '''
+    }
+  }
+}

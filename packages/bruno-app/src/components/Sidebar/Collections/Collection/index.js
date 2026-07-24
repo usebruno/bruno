@@ -21,6 +21,7 @@ import {
   IconTerminal2,
   IconFolder,
   IconBook,
+  IconServer,
   IconFileArrowRight,
   IconAppWindow
 } from '@tabler/icons';
@@ -57,12 +58,17 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import useKeybinding from 'hooks/useKeybinding';
+import { useBetaFeature } from 'utils/beta-features';
+import { BETA_FEATURES } from 'utils/beta-features';
+import StatusBadge from 'ui/StatusBadge';
+import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 
 // Delay before showing empty collection state (ms)
 // This prevents flicker from race condition between loading state and item batch updates
 const EMPTY_STATE_DELAY_MS = 300;
 
 const Collection = ({ collection, searchText }) => {
+  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
@@ -73,6 +79,7 @@ const Collection = ({ collection, searchText }) => {
   const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [showMoveToWorkspaceModal, setShowMoveToWorkspaceModal] = useState(false);
+  const [showCreateMockServerModal, setShowCreateMockServerModal] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [showEmptyState, setShowEmptyState] = useState(false);
@@ -103,6 +110,10 @@ const Collection = ({ collection, searchText }) => {
         type: 'openapi-sync'
       })
     );
+  };
+
+  const openMockServerDashboard = () => {
+    setShowCreateMockServerModal(true);
   };
 
   const handleRun = () => {
@@ -444,6 +455,13 @@ const Collection = ({ collection, searchText }) => {
       label: getRevealInFolderLabel(),
       onClick: handleShowInFolder
     },
+    ...(isMockServerEnabled ? [{
+      id: 'create-mock-server',
+      leftSection: IconServer,
+      label: 'Create Mock server',
+      rightSection: <StatusBadge status="info" size="xs">Beta</StatusBadge>,
+      onClick: openMockServerDashboard
+    }] : []),
     {
       id: 'divider-1',
       type: 'divider'
@@ -508,6 +526,12 @@ const Collection = ({ collection, searchText }) => {
       )}
       {showCloneCollectionModalOpen && (
         <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
+      )}
+      {showCreateMockServerModal && (
+        <CreateMockServerModal
+          defaultCollectionUid={collection.uid}
+          onClose={() => setShowCreateMockServerModal(false)}
+        />
       )}
       <CollectionItemDragPreview />
       <div

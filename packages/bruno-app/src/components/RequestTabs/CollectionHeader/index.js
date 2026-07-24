@@ -13,6 +13,7 @@ import {
   IconCheck,
   IconFolder,
   IconUpload,
+  IconServer2,
   IconFileCode,
   IconFileOff,
   IconCode,
@@ -46,6 +47,9 @@ import { normalizePath } from 'utils/common/path';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
+import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
+import { getMockServerInstances, openMockServerDashboard } from 'utils/mock-server/mock-server-instances';
 
 const MIGRATE_PILL_DISMISSED_KEY = 'bruno.migrateToYmlPill.dismissed';
 
@@ -74,6 +78,8 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   // Get the current active workspace
   const currentWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const gitRootPath = collection?.git?.gitRootPath;
+  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
+  const mockServerInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
 
   // Active request (used by the Request / App / File view-mode toggle)
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -101,6 +107,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const [closeWorkspaceModalOpen, setCloseWorkspaceModalOpen] = useState(false);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
   const [showMigrateModal, setShowMigrateModal] = useState(false);
+  const [showCreateMockServerModal, setShowCreateMockServerModal] = useState(false);
 
   // Migrate-to-YML pill dismissal state (persisted by collection pathname)
   const [migratePillDismissed, setMigratePillDismissed] = useState(true);
@@ -285,6 +292,19 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
       collectionUid: collection.uid,
       type: 'openapi-sync'
     }));
+  };
+
+  const viewMockServer = () => {
+    const existingInstance = mockServerInstances.find((instance) => (
+      instance.sourceType === 'collection' && instance.collectionUid === collection.uid
+    ));
+
+    if (existingInstance) {
+      dispatch(openMockServerDashboard(existingInstance, collection.uid));
+      return;
+    }
+
+    setShowCreateMockServerModal(true);
   };
 
   const handleFileModeClick = () => {
@@ -494,6 +514,13 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
 
       {createWorkspaceModalOpen && (
         <CreateWorkspace onClose={handleAdvancedCreateClose} />
+      )}
+
+      {showCreateMockServerModal && (
+        <CreateMockServerModal
+          defaultCollectionUid={collection.uid}
+          onClose={() => setShowCreateMockServerModal(false)}
+        />
       )}
 
       <div className="flex items-center justify-between gap-2 py-2 px-4">
@@ -760,6 +787,13 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   <IconRun size={16} strokeWidth={1.5} />
                 </ActionIcon>
               </ToolHint>
+              {isMockServerEnabled && (
+                <ToolHint text="Mock Server" toolhintId="MockServerToolhintId" place="bottom">
+                  <ActionIcon onClick={viewMockServer} aria-label="Mock Server" size="sm" data-testid="mock-server">
+                    <IconServer2 size={16} strokeWidth={1.5} />
+                  </ActionIcon>
+                </ToolHint>
+              )}
               {/* JS Sandbox Mode - always visible */}
               <JsSandboxMode collection={collection} />
               {/* Overflow menu */}

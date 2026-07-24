@@ -44,7 +44,10 @@ import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import GlobalEnvironmentSettings from 'components/Environments/GlobalEnvironmentSettings';
 import OpenAPISyncTab from 'components/OpenAPISyncTab';
 import OpenAPISpecTab from 'components/OpenAPISpecTab';
+import MockServerDashboard from 'components/MockServer/MockServerDashboard';
+import MockResponse from 'components/MockServer/MockResponse';
 import ChangelogTab from 'components/ChangelogTab';
+import { resolveMockServerInstance } from 'utils/mock-server/mock-server-instances';
 import CollapsedPanelIndicator from './CollapsedPanelIndicator';
 import { clampRequestHeightForResponse } from './paneSize';
 import { IconLoader2 } from '@tabler/icons';
@@ -73,6 +76,13 @@ const RequestTabPanel = () => {
   const _collections = useSelector((state) => state.collections.collections);
   const preferences = useSelector((state) => state.app.preferences);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const resolvedMockServerInstance = useSelector((state) => {
+    if (!focusedTab || (focusedTab.type !== 'mock-server' && focusedTab.type !== 'mock-response')) {
+      return null;
+    }
+
+    return resolveMockServerInstance(state, focusedTab);
+  });
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
@@ -431,6 +441,49 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'workspaceEnvironments') {
     return <GlobalEnvironmentSettings />;
+  }
+
+  if (focusedTab.type === 'mock-server') {
+    const instance = resolvedMockServerInstance;
+    if (!instance) {
+      return (
+        <div className="pb-4 px-4">
+          <div className="font-medium">Mock server not found</div>
+          <div className="text-sm mt-2 opacity-70">
+            This mock server may have been removed. Create a new one from the Mock Servers sidebar.
+          </div>
+        </div>
+      );
+    }
+
+    const instanceCollection = instance.sourceType === 'collection'
+      ? find(collections, (c) => c.uid === instance.collectionUid)
+      : (focusedTab.collectionUid ? find(collections, (c) => c.uid === focusedTab.collectionUid) : null);
+
+    return <MockServerDashboard instance={instance} collection={instanceCollection} />;
+  }
+
+  if (focusedTab.type === 'mock-response') {
+    const instance = resolvedMockServerInstance;
+    if (!instance) {
+      return (
+        <div className="pb-4 px-4">
+          <div className="font-medium">Mock server not found</div>
+        </div>
+      );
+    }
+
+    const instanceCollection = instance.sourceType === 'collection'
+      ? find(collections, (c) => c.uid === instance.collectionUid)
+      : (focusedTab.collectionUid ? find(collections, (c) => c.uid === focusedTab.collectionUid) : null);
+
+    return (
+      <MockResponse
+        instance={instance}
+        collection={instanceCollection}
+        responseUid={focusedTab.uid}
+      />
+    );
   }
 
   if (!focusedTab.uid || !focusedTab.collectionUid) {

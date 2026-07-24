@@ -2,6 +2,14 @@ import { findItemInCollection, findItemInCollectionByPathname } from 'utils/coll
 import path, { normalizePath } from 'utils/common/path';
 import { uuid } from 'utils/common';
 
+const normalizeTabType = (type) => {
+  if (type === 'mock-server-dashboard' || type === 'mocker') {
+    return 'mock-server';
+  }
+
+  return type;
+};
+
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
 const REQUEST_TAB_TYPES = new Set(['http-request', 'graphql-request', 'grpc-request', 'ws-request']);
@@ -16,14 +24,16 @@ const SINGLETON_TAB_TYPES = new Set([
   'workspaceOverview',
   'workspaceEnvironments',
   'openapi-sync',
-  'openapi-spec'
+  'openapi-spec',
+  'mock-server'
 ]);
 
 const NON_REPLACEABLE_SINGLETON_TAB_TYPES = new Set([
   'collection-runner',
   'variables',
   'openapi-sync',
-  'openapi-spec'
+  'openapi-spec',
+  'mock-server'
 ]);
 
 const IGNORED_TAB_TYPES = new Set([
@@ -406,6 +416,8 @@ export const findCollectionEnvironmentFromSnapshot = (collection, snapshotData =
 
 const getAccessor = (tab) => {
   if (tab.type === 'response-example') return 'pathname::exampleIndex';
+  if (tab.type === 'mock-server' && tab.mockServerUid) return 'type::mockServerUid';
+  if (tab.type === 'mock-response' && tab.uid) return 'type::mockResponseUid';
   if (SINGLETON_TAB_TYPES.has(tab.type)) return 'type';
   return 'pathname';
 };
@@ -483,6 +495,21 @@ export const serializeTab = (tab, collection) => {
     };
   }
 
+  if (tab.type === 'mock-server' && tab.mockServerUid) {
+    serialized.mockServerUid = tab.mockServerUid;
+    if (tab.tabName) {
+      serialized.name = tab.tabName;
+    }
+  }
+
+  if (tab.type === 'mock-response') {
+    serialized.mockServerUid = tab.mockServerUid || null;
+    serialized.responseUid = tab.uid;
+    if (tab.responseName || tab.tabName) {
+      serialized.name = tab.responseName || tab.tabName;
+    }
+  }
+
   const isEnvironmentTab = tab.type === 'environment-settings' || tab.type === 'global-environment-settings';
   if (isEnvironmentTab && tab.tabState?.environment?.tab) {
     serialized.environment = { tab: tab.tabState.environment.tab };
@@ -523,6 +550,14 @@ export const serializeActiveTab = (tab, collection) => {
     return { accessor, value: `${pathname}::-1` };
   }
 
+  if (tab.type === 'mock-server' && tab.mockServerUid) {
+    return { accessor: 'type::mockServerUid', value: tab.mockServerUid };
+  }
+
+  if (tab.type === 'mock-response' && tab.uid) {
+    return { accessor: 'type::mockResponseUid', value: tab.uid };
+  }
+
   return { accessor: 'type', value: tab.type };
 };
 
@@ -531,13 +566,25 @@ export const isActiveTab = (tab, activeTab, collection) => {
 
   const { accessor, value } = activeTab;
 
+  if (accessor === 'type::mockServerUid') {
+    return normalizeTabType(tab.type) === 'mock-server' && tab.mockServerUid === value;
+  }
+
+  if (accessor === 'type::mockResponseUid') {
+    return tab.type === 'mock-response' && tab.uid === value;
+  }
+
   if (accessor === 'type') {
-    return tab.type === value;
+    const normalizedValue = normalizeTabType(value);
+    const normalizedType = normalizeTabType(tab.type);
+    return normalizedType === normalizedValue;
   }
 
   if (accessor === 'pathname') {
     const item = findItemInCollection(collection, tab.uid);
-    return tab.type !== 'response-example' && (item?.pathname === value || tab.pathname === value);
+    return tab.type !== 'response-example'
+      && tab.type !== 'mock-response'
+      && (item?.pathname === value || tab.pathname === value);
   }
 
   if (accessor === 'pathname::exampleName') {
@@ -601,8 +648,52 @@ const resolveResponseExampleTabState = ({ item, pathname, exampleName, exampleIn
 };
 
 export const deserializeTab = (snapshotTab, collection) => {
-  const { accessor, pathname, exampleName, exampleIndex, exampleUid, type } = snapshotTab;
+  const { accessor, pathname, exampleName, exampleIndex, exampleUid } = snapshotTab;
+  const type = normalizeTabType(snapshotTab.type);
   const restoredRequestPaneTab = typeof snapshotTab.request?.tab === 'string' ? snapshotTab.request.tab : null;
+
+  if (type === 'mock-server') {
+    const mockServerUid = snapshotTab.mockServerUid || null;
+    return {
+      collectionUid: collection.uid,
+      type: 'mock-server',
+      mockServerUid,
+      tabName: snapshotTab.name || snapshotTab.tabName || null,
+      uid: mockServerUid || uuid(),
+      preview: !snapshotTab.permanent,
+      pathname: null,
+      requestPaneTab: 'params',
+      requestPaneWidth: null,
+      requestPaneHeight: null,
+      responsePaneTab: 'response',
+      responseFormat: null,
+      responseViewTab: null,
+      responsePaneScrollPosition: null,
+      scriptPaneTab: null
+    };
+  }
+
+  if (type === 'mock-response') {
+    const responseUid = snapshotTab.responseUid || snapshotTab.exampleUid || uuid();
+    return {
+      collectionUid: collection.uid,
+      type: 'mock-response',
+      mockServerUid: snapshotTab.mockServerUid || null,
+      responseName: snapshotTab.name || snapshotTab.responseName || snapshotTab.tabName || null,
+      tabName: snapshotTab.name || snapshotTab.tabName || null,
+      uid: responseUid,
+      preview: !snapshotTab.permanent,
+      pathname: null,
+      requestPaneTab: 'params',
+      requestPaneWidth: null,
+      requestPaneHeight: null,
+      responsePaneTab: 'response',
+      responseFormat: null,
+      responseViewTab: null,
+      responsePaneScrollPosition: null,
+      scriptPaneTab: null
+    };
+  }
 
   const tab = {
     collectionUid: collection.uid,
@@ -666,6 +757,9 @@ export const deserializeTab = (snapshotTab, collection) => {
     }
   }
 
+  if (!tab.uid && NON_REPLACEABLE_SINGLETON_TAB_TYPES.has(type)) {
+    tab.uid = uuid();
+  }
   if (snapshotTab.environment?.tab) {
     tab.tabState = { environment: { tab: snapshotTab.environment.tab } };
   }
@@ -733,10 +827,21 @@ export const getActiveTabFromSnapshot = async (collectionPathname, collection, s
   const { accessor, value } = tabsSnapshot.activeTab;
   let snapshotTab = null;
 
-  if (accessor === 'type') {
-    snapshotTab = tabsSnapshot.tabs.find((t) => t.type === value);
+  if (accessor === 'type::mockServerUid') {
+    snapshotTab = tabsSnapshot.tabs.find((t) => (
+      normalizeTabType(t.type) === 'mock-server' && t.mockServerUid === value
+    ));
+  } else if (accessor === 'type::mockResponseUid') {
+    snapshotTab = tabsSnapshot.tabs.find((t) => (
+      t.type === 'mock-response' && (t.responseUid === value || t.exampleUid === value)
+    ));
+  } else if (accessor === 'type') {
+    const normalizedValue = normalizeTabType(value);
+    snapshotTab = tabsSnapshot.tabs.find((t) => normalizeTabType(t.type) === normalizedValue);
   } else if (accessor === 'pathname') {
-    snapshotTab = tabsSnapshot.tabs.find((t) => t.pathname === value && t.type !== 'response-example');
+    snapshotTab = tabsSnapshot.tabs.find((t) => (
+      t.pathname === value && t.type !== 'response-example' && t.type !== 'mock-response'
+    ));
   } else if (accessor === 'pathname::exampleName') {
     snapshotTab = tabsSnapshot.tabs.find((t) => `${t.pathname}::${t.exampleName}` === value);
   } else if (accessor === 'pathname::exampleIndex') {

@@ -6,9 +6,11 @@ import { useSelector } from 'react-redux';
  */
 export const BETA_FEATURES = Object.freeze({
   NODE_VM: 'nodevm',
+  OPENAPI_SYNC: 'openapi-sync',
   AI_ASSISTANT: 'ai-assistant',
   FILE_CACHE: 'file-cache',
-  AKAMAI_EDGEGRID: 'akamai-edgegrid'
+  AKAMAI_EDGEGRID: 'akamai-edgegrid',
+  MOCK_SERVER: 'mock-server'
 });
 
 /**

@@ -146,7 +146,15 @@ function makeAxiosInstance({
     // Resolve all *.localhost to localhost and check if it should use IPv6 or IPv4
     // RFC: 6761 section 6.3 (https://tools.ietf.org/html/rfc6761#section-6.3)
     // @see https://github.com/usebruno/bruno/issues/124
-    if (getTld(url.hostname) === LOCALHOST || url.hostname === LOCAL_IPV4 || url.hostname === LOCAL_IPV6) {
+    if (url.hostname === LOCAL_IPV4) {
+      config.lookup = (hostname, options, callback) => {
+        callback(null, LOCAL_IPV4, 4);
+      };
+    } else if (url.hostname === LOCAL_IPV6) {
+      config.lookup = (hostname, options, callback) => {
+        callback(null, LOCAL_IPV6, 6);
+      };
+    } else if (getTld(url.hostname) === LOCALHOST || url.hostname === LOCALHOST) {
       // use custom DNS lookup for localhost
       config.lookup = (hostname, options, callback) => {
         const portNumber = Number(url.port) || (url.protocol.includes('https') ? 443 : 80);

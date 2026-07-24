@@ -29,13 +29,23 @@ const buildWorkspaceCollectionLookupKey = (workspacePathname, collectionPathname
 
 const tabSchema = yup.object({
   type: yup.string().required(),
-  accessor: yup.string().oneOf(['pathname', 'pathname::exampleName', 'pathname::exampleIndex', 'type']).required(),
+  accessor: yup.string().oneOf([
+    'pathname',
+    'pathname::exampleName',
+    'pathname::exampleIndex',
+    'type',
+    'type::mockServerUid',
+    'type::mockResponseUid'
+  ]).required(),
   pathname: yup.string().nullable(),
   permanent: yup.boolean().required(),
   name: yup.string().optional(),
   exampleName: yup.string().optional(),
   exampleIndex: yup.number().integer().min(0).optional(),
   exampleUid: yup.string().optional(),
+  mockServerUid: yup.string().optional(),
+  responseUid: yup.string().optional(),
+  tabName: yup.string().optional(),
   request: yup.object({
     tab: yup.string(),
     width: yup.number().nullable(),
@@ -52,7 +62,14 @@ const tabSchema = yup.object({
 });
 
 const activeTabSchema = yup.object({
-  accessor: yup.string().oneOf(['pathname', 'pathname::exampleName', 'pathname::exampleIndex', 'type']).required(),
+  accessor: yup.string().oneOf([
+    'pathname',
+    'pathname::exampleName',
+    'pathname::exampleIndex',
+    'type',
+    'type::mockServerUid',
+    'type::mockResponseUid'
+  ]).required(),
   value: yup.string().required()
 });
 
@@ -659,7 +676,14 @@ class SnapshotManager {
       return null;
     }
 
-    if (!['pathname', 'pathname::exampleName', 'pathname::exampleIndex', 'type'].includes(activeTab.accessor) || typeof activeTab.value !== 'string') {
+    if (![
+      'pathname',
+      'pathname::exampleName',
+      'pathname::exampleIndex',
+      'type',
+      'type::mockServerUid',
+      'type::mockResponseUid'
+    ].includes(activeTab.accessor) || typeof activeTab.value !== 'string') {
       return null;
     }
 

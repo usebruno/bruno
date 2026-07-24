@@ -7,7 +7,11 @@ import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
+// Commented out while there are no active beta features. Re-enable this import when
+// adding a beta feature its keys are then referenced as BETA_FEATURE_IDS.MY_FEATURE in the BETA_FEATURES array.
 import { IconArrowRight, IconExternalLink } from '@tabler/icons';
+import ToggleSwitch from 'components/ToggleSwitch';
+
 import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
 import { getDocsUrlWithVersion } from 'utils/url';
 
@@ -56,6 +60,12 @@ const BETA_FEATURES = [
     description:
       'Sign requests with the Akamai EdgeGrid authentication scheme. Select it from the Auth type dropdown on any request, folder, or collection.',
     docsUrl: 'https://link.usebruno.com/docs/auth'
+  },
+  {
+    id: BETA_FEATURE_IDS.MOCK_SERVER,
+    label: 'Mock Server',
+    description: 'Run a local mock server using response examples defined in your collection. Serve mock API responses for frontend development without a real backend.',
+    toggle: true
   }
 ];
 
@@ -159,8 +169,18 @@ const Beta = ({ close }) => {
                   {feature.label}
                 </span>
               </div>
-              <div className="beta-feature-description text-xs text-gray-500 dark:text-gray-400">
+              <div className="beta-feature-description text-xs text-gray-500 dark:text-gray-400 flex">
                 {feature.description}
+                {feature.toggle && (
+                  <div className="ml-auto">
+                    <ToggleSwitch
+                      size="xs"
+                      isOn={formik.values[feature.id]}
+                      handleToggle={() => formik.setFieldValue(feature.id, !formik.values[feature.id])}
+                      data-testid="mock-server-beta-toggle"
+                    />
+                  </div>
+                )}
               </div>
               {(feature.action || feature.docsUrl) && (
                 <div className="beta-feature-links">

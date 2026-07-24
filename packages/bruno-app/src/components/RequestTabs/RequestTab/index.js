@@ -27,6 +27,7 @@ import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
 import { getInvalidVariableNames } from 'utils/common/variables';
 import ExampleTab from '../ExampleTab';
+import MockResponseTab from 'components/MockServer/RequestTabs/MockResponseTab';
 import toast from 'react-hot-toast';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow, dropdownContainerRef }) => {
@@ -197,6 +198,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     'workspaceEnvironments',
     'openapi-sync',
     'openapi-spec',
+    'mock-server',
     'changelog'
   ];
 
@@ -512,6 +514,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           <SpecialTab handleCloseClick={null} type={tab.type} />
         ) : tab.type === 'workspaceEnvironments' ? (
           <SpecialTab handleCloseClick={null} type={tab.type} hasDraft={hasGlobalEnvironmentDraft} />
+        ) : tab.type === 'mock-server' ? (
+          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={tab.tabName} />
         ) : (
           <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
         )}
@@ -529,6 +533,12 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         collectionRequestTabs={collectionRequestTabs}
         folderUid={folderUid}
       />
+    );
+  }
+
+  if (tab.type === 'mock-response') {
+    return (
+      <MockResponseTab tab={tab} />
     );
   }
 

@@ -99,6 +99,13 @@ const Wrapper = styled.div`
       overflow: hidden;
     }
 
+    .example-count-badge {
+      font-size: 10px;
+      font-weight: 500;
+      color: ${(props) => props.theme.colors.text.muted};
+      flex-shrink: 0;
+    }
+
     /* Single source of truth for hover/focus states: background and menu icon visibility */
     &:hover,
     &.item-hovered,

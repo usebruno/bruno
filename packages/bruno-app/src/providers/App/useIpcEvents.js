@@ -6,6 +6,13 @@ import {
   setIsOpeningCollection
 } from 'providers/ReduxStore/slices/app';
 import {
+  updateServerStatus,
+  addRequestLogEntries,
+  setRouteTable,
+  syncRunningMockServers
+} from 'providers/ReduxStore/slices/mock-server/index';
+import { isMockServerLogListening } from 'utils/mock-server/mock-server-log-subscription';
+import {
   addTab
 } from 'providers/ReduxStore/slices/tabs';
 import {
@@ -367,9 +374,27 @@ const useIpcEvents = () => {
       dispatch(setGitVersion(val));
     });
 
+    // Mock server events
+    const removeMockServerStatusListener = ipcRenderer.on('main:mock-server-status-changed', (val) => {
+      dispatch(updateServerStatus(val));
+    });
+
+    const removeMockServerRequestLogListener = ipcRenderer.on('main:mock-server-request-log-batch', (val) => {
+      if (!isMockServerLogListening(val?.mockServerUid)) {
+        return;
+      }
+
+      dispatch(addRequestLogEntries(val));
+    });
+
+    const removeMockServerRouteTableListener = ipcRenderer.on('main:mock-server-route-table-updated', (val) => {
+      dispatch(setRouteTable(val));
+    });
+
     const removeLoadNotificationsListener = ipcRenderer.on('main:load-notifications', (notifications) => {
       dispatch(loadNotifications(notifications));
     });
+    dispatch(syncRunningMockServers());
 
     const removeCollectionTreeLoadedListener = ipcRenderer.on('main:collection-tree-loaded', ({ collectionUid, tree }) => {
       dispatch(collectionLoadedFromTree({ collectionUid, tree }));
@@ -422,6 +447,9 @@ const useIpcEvents = () => {
       removeRuntimeVariablesUpdateListener();
       removeSystemResourcesListener();
       gitVersionListener();
+      removeMockServerStatusListener();
+      removeMockServerRequestLogListener();
+      removeMockServerRouteTableListener();
       removeLoadNotificationsListener();
     };
   }, [isElectron]);
