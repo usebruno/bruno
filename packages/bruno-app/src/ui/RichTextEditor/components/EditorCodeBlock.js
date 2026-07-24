@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useRef } from 'react';
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/react';
-import Dropdown from 'components/Dropdown';
+import Dropdown from '../../../components/Dropdown';
 import { IconChevronDown, IconCopy, IconCheck } from '@tabler/icons';
 import { lowlight } from 'lowlight';
 

@@ -36,7 +36,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
     await page.keyboard.press('Enter');
     await page.keyboard.type('const y = 2;');
 
-    const langSelector = prosemirror.locator('.docs-code-block-lang-selector');
+    const langSelector = prosemirror.locator('.editor-code-block-lang-selector');
     await expect(langSelector).toBeVisible();
     await expect(langSelector).toContainText('auto');
 
