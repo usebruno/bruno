@@ -611,6 +611,14 @@ const registerNetworkIpc = (mainWindow) => {
     // interpolate variables inside request
     interpolateVars(request, envVars, runtimeVariables, processEnvVars, promptVariables);
 
+    if (!hasExplicitScheme(request.url)) {
+      // The scheme must be present before encoding. Without a `://`, encodeUrl
+      // treats a `host:port` authority as a path segment and percent-encodes the
+      // port colon (localhost:6000 → localhost%3A6000), which then resolves to a
+      // bogus host once configureRequest prepends http://.
+      request.url = `http://${request.url}`;
+    }
+
     if (request.settings?.encodeUrl) {
       request.url = encodeUrl(request.url);
     }
