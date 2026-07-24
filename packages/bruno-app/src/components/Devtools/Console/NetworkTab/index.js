@@ -10,11 +10,12 @@ import {
   setSelectedRequest
 } from 'providers/ReduxStore/slices/logs';
 import { useResizableColumns } from 'hooks/useResizableColumns';
+import { getBadge } from 'utils/request-source-badges';
 import StyledWrapper from './StyledWrapper';
 import { sortRequests } from './utils';
 
 const COLUMNS = [
-  { key: 'method', label: 'Method', width: 80, align: 'left' },
+  { key: 'method', label: 'Method', width: 130, align: 'left' },
   { key: 'status', label: 'Status', width: 70, align: 'left' },
   { key: 'domain', label: 'Domain', width: 180, align: 'left' },
   { key: 'path', label: 'Path', width: 300, align: 'left' },
@@ -44,11 +45,13 @@ const StatusBadge = ({ status, statusCode }) => {
 };
 
 const RequestRow = ({ request, isSelected, onClick, gridTemplateColumns }) => {
-  const { data } = request;
+  const { data, type, source } = request;
   const { request: req, response: res, timestamp } = data;
+  const isScripted = type === 'scripted-request';
+  const badge = isScripted ? getBadge({ source, isOauth2: false }) : null;
 
   const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
+    const date = new Date(timestamp ?? request.timestamp);
     return date.toLocaleTimeString('en-US', {
       hour12: false,
       hour: '2-digit',
@@ -103,6 +106,7 @@ const RequestRow = ({ request, isSelected, onClick, gridTemplateColumns }) => {
     >
       <div className="request-method">
         <MethodBadge method={req?.method} />
+        {badge && <span className={badge.badgeClass}>script</span>}
       </div>
 
       <div className="request-status">
@@ -158,7 +162,7 @@ const NetworkTab = () => {
     collections.forEach((collection) => {
       if (collection.timeline) {
         collection.timeline
-          .filter((entry) => entry.type === 'request')
+          .filter((entry) => entry.type === 'request' || entry.type === 'scripted-request')
           .forEach((entry) => {
             requests.push({
               ...entry,
