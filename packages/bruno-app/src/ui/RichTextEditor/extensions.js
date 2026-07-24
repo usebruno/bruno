@@ -95,7 +95,7 @@ const extensions = [
   }),
   EditorTableKeyboard,
   Link.configure({
-    openOnClick: false,
+    openOnClick: 'whenNotEditable',
     autolink: true,
     linkOnPaste: true,
     HTMLAttributes: {

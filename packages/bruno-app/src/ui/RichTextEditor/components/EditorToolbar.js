@@ -3,7 +3,7 @@ import { useEditorState } from '@tiptap/react';
 import { getMarkRange } from '@tiptap/core';
 import { IconCaretDown, IconDots, IconTableOptions } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
-import { Tooltip } from 'react-tooltip';
+import ToolHint from 'components/ToolHint';
 import ToolbarStyledWrapper from './ToolbarStyledWrapper';
 import EditorTableMenu from './EditorTableMenu';
 import { EDITOR_MENU_DROPDOWN_PROPS, EDITOR_TOOLBAR_TOOLTIP_PROPS } from '../utils/editorToolbarUi';
@@ -88,7 +88,6 @@ const EditorToolbar = ({ editor }) => {
           items={headingMenuItems}
           selectedItemId={activeHeadingId}
           placement="bottom-start"
-          data-testid="docs-heading-dropdown"
           {...EDITOR_MENU_DROPDOWN_PROPS}
         >
           <button
@@ -120,7 +119,7 @@ const EditorToolbar = ({ editor }) => {
             activeItemIds={overflowActiveItemIds}
             placement="bottom-end"
             showTickMark={false}
-            dropdownProps={EDITOR_MENU_DROPDOWN_PROPS}
+            {...EDITOR_MENU_DROPDOWN_PROPS}
           >
             <button type="button" className="toolbar-btn toolbar-overflow-btn" aria-label="More formatting options">
               <IconDots size={16} strokeWidth={1.5} />
@@ -128,7 +127,7 @@ const EditorToolbar = ({ editor }) => {
           </MenuDropdown>
         )}
       </div>
-      <Tooltip id="editor-toolbar-tooltip" {...EDITOR_TOOLBAR_TOOLTIP_PROPS} />
+      <ToolHint tooltipId="editor-toolbar-tooltip" {...EDITOR_TOOLBAR_TOOLTIP_PROPS} />
     </ToolbarStyledWrapper>
   );
 };

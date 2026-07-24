@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import docsContentStyles from 'components/Documentation/docsContentStyles';
+import editorContentStyles from 'ui/editorContentStyles';
 
 const StyledMarkdownBodyWrapper = styled.div`
   background: transparent;
@@ -10,7 +10,7 @@ const StyledMarkdownBodyWrapper = styled.div`
     box-sizing: border-box;
     height: 100%;
     margin: 0 auto;
-    ${docsContentStyles}
+    ${editorContentStyles}
 
     && table {
       display: table;

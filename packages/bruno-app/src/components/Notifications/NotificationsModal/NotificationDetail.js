@@ -44,7 +44,7 @@ const NotificationDetail = ({ notification }) => {
         <div className="notif-detail-title">{notification.title}</div>
       </div>
       <div key={notification.id} className="notif-detail-body">
-        <Markdown content={notification.description} allowHtml={false} onDoubleClick={() => {}} />
+        <Markdown content={notification.description} onDoubleClick={() => {}} />
       </div>
     </div>
   );

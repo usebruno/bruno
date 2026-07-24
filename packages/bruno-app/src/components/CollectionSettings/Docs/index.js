@@ -109,8 +109,8 @@ const Docs = ({ collection }) => {
           <div className="h-[1px] min-h-[500px]">
             {
               docs?.length > 0
-                ? <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
-                : <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={documentationPlaceholder} />
+                ? <Markdown onDoubleClick={toggleViewMode} content={docs} />
+                : <Markdown onDoubleClick={toggleViewMode} content={documentationPlaceholder} />
             }
           </div>
         </div>

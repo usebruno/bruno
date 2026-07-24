@@ -120,7 +120,7 @@ const EditorTableMenu = ({ editor }) => {
       className="editor-table-menu"
       showTickMark={false}
       groupStyle="select"
-      dropdownProps={EDITOR_MENU_DROPDOWN_PROPS}
+      {...EDITOR_MENU_DROPDOWN_PROPS}
     >
       <button type="button" className="heading-dropdown-trigger is-active" aria-label="Table options">
         <IconTableOptions size={16} strokeWidth={1.5} />

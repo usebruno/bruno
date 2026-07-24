@@ -7,7 +7,7 @@ const StyledWrapper = styled.div`
   color: ${(props) => props.theme.dropdown.color};
   background-color: ${(props) => props.theme.dropdown.bg};
   border: 1px solid ${(props) => props.theme.dropdown.border || props.theme.border.border1};
-  border-radius: ${(props) => props.theme.border.radius.base || '6px'};
+  border-radius: ${(props) => props.theme.border.radius.base};
   ${(props) =>
     props.theme.dropdown.shadow && props.theme.dropdown.shadow !== 'none'
       ? `box-shadow: ${props.theme.dropdown.shadow};`
@@ -51,8 +51,8 @@ const StyledWrapper = styled.div`
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 0.2rem;
-        border-radius: 4px;
+        padding: 0.3rem;
+        border-radius: ${(props) => props.theme.border.radius.sm};
         cursor: pointer;
         background: transparent;
         border: none;

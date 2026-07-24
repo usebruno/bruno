@@ -25,28 +25,14 @@ const Documentation = ({ item, collection }) => {
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const isEditing = focusedTab?.docsEditing || false;
   const [isMarkdownMode, setIsMarkdownMode] = useState(false);
-  const [isCompact, setIsCompact] = useState(false);
   const docs = item?.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
   const preferences = useSelector((state) => state.app.preferences);
 
   const wrapperRef = useRef(null);
   const skipDocsSyncRef = useRef(false);
-  const prevMarkdownModeRef = useRef(isMarkdownMode);
   const isMarkdownModeRef = useRef(isMarkdownMode);
   const [scroll, setScroll] = usePersistedState({ key: `request-docs-scroll-${item?.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, onChange: setScroll, enabled: !isEditing, initialValue: scroll });
-
-  useEffect(() => {
-    const el = wrapperRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
-
-    const observer = new ResizeObserver(() => {
-      setIsCompact(el.offsetWidth < 450);
-    });
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   const onEdit = useCallback(
     (value) => {
@@ -91,31 +77,6 @@ const Documentation = ({ item, collection }) => {
   useEffect(() => {
     if (!editor) return;
     const dom = editor.view.dom;
-    const handleClick = (event) => {
-      const target = event.target;
-      if (target && target.closest('a.docs-link')) {
-        if (editor.brunoOpenLinkModal) {
-          editor.brunoOpenLinkModal();
-          event.preventDefault();
-          event.stopPropagation();
-        }
-      }
-    };
-    const handleDoubleClick = (event) => {
-      const target = event.target;
-      const link = target && target.closest('a.docs-link');
-      if (link && link.href) {
-        window.open(link.href, '_blank', 'noopener,noreferrer');
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    };
-    dom.addEventListener('click', handleClick);
-    dom.addEventListener('dblclick', handleDoubleClick);
-    return () => {
-      dom.removeEventListener('click', handleClick);
-      dom.removeEventListener('dblclick', handleDoubleClick);
-    };
   }, [editor]);
 
   const { requestContext, variables: aiVariables } = useMemo(
@@ -158,11 +119,6 @@ const Documentation = ({ item, collection }) => {
     dispatch(updateDocsEditing({ uid: activeTabUid, docsEditing: editing }));
   };
 
-  const getTabClassname = (tabName) => {
-    const isActive = (tabName === 'Edit' && isEditing) || (tabName === 'Preview' && !isEditing);
-    return `docs-tab ${isActive ? 'is-active' : ''}`;
-  };
-
   if (!item) {
     return null;
   }
@@ -177,7 +133,6 @@ const Documentation = ({ item, collection }) => {
             </div>
           )}
           <ModeSwitch
-            compact={isCompact}
             checked={isMarkdownMode}
             onChange={() => setIsMarkdownMode((prev) => !prev)}
             className="docs-mode-switch"

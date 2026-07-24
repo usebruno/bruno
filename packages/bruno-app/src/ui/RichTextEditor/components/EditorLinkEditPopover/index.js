@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Button from 'ui/Button';
-import { IconEdit, IconUnlink, IconCopy } from '@tabler/icons';
-import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 
-const EditorLinkEditPopover = ({ editor, isOpen, onClose, onSubmit, onUnlink, initialText, initialUrl, externalCoords }) => {
+const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, initialText, initialUrl, externalCoords }) => {
   const [text, setText] = useState(initialText || '');
   const [url, setUrl] = useState(initialUrl || '');
   const [coords, setCoords] = useState({ top: 0, left: 0 });
@@ -38,6 +36,7 @@ const EditorLinkEditPopover = ({ editor, isOpen, onClose, onSubmit, onUnlink, in
   }, [isOpen, externalCoords]);
 
   useEffect(() => {
+    let timerId;
     const handleClickOutside = (e) => {
       if (popoverRef.current && !popoverRef.current.contains(e.target)) {
         onClose();
@@ -45,23 +44,17 @@ const EditorLinkEditPopover = ({ editor, isOpen, onClose, onSubmit, onUnlink, in
     };
     if (isOpen) {
       // Small delay to prevent immediate close if opened via click
-      setTimeout(() => document.addEventListener('mousedown', handleClickOutside), 10);
+      timerId = setTimeout(() => document.addEventListener('mousedown', handleClickOutside), 10);
     }
     return () => {
+      if (timerId) clearTimeout(timerId);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen, onClose]);
 
   const handleConfirm = () => {
-    if (!url) return;
-    onSubmit({ text, url });
-    onClose();
-  };
-
-  const handleUnlink = () => {
-    if (onUnlink) {
-      onUnlink();
-    }
+    if (!url.trim()) return;
+    onSubmit({ text, url: url.trim() });
     onClose();
   };
 
@@ -127,6 +120,7 @@ const EditorLinkEditPopover = ({ editor, isOpen, onClose, onSubmit, onUnlink, in
             color="primary"
             size="sm"
             onClick={handleConfirm}
+            disabled={!url.trim()}
           >
             {initialUrl ? 'Save' : 'Insert'}
           </Button>
