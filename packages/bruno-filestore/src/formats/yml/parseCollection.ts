@@ -142,14 +142,16 @@ const parseCollection = (ymlString: string): ParsedCollection => {
               type: 'cert',
               certFilePath: cert.certificateFilePath,
               keyFilePath: cert.privateKeyFilePath,
-              passphrase: cert.passphrase || ''
+              passphrase: cert.passphrase || '',
+              ...(cert.disabled === true && { disabled: true })
             };
           } else if (cert.type === 'pkcs12') {
             return {
               domain: cert.domain,
               type: 'pfx',
               pfxFilePath: cert.pkcs12FilePath,
-              passphrase: cert.passphrase || ''
+              passphrase: cert.passphrase || '',
+              ...(cert.disabled === true && { disabled: true })
             };
           }
           return null;

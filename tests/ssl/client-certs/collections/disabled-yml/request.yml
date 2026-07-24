@@ -1,0 +1,22 @@
+info:
+  name: request
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: https://localhost:9443/
+  auth:
+    type: none
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.clientCertPresented
+      operator: eq
+      value: "true"
+    - expression: res.body.subjectCN
+      operator: eq
+      value: bruno-client

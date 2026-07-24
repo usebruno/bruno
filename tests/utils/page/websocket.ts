@@ -5,7 +5,10 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
     connect: () => page.getByTestId('ws-connect-button'),
     disconnect: () => page.getByTestId('ws-disconnect-button')
   },
+  runButton: () => page.getByTestId('run-button'),
   messages: () => page.locator('.ws-message'),
+  messageText: (index: number) => page.locator('.ws-message').nth(index).locator('.message-content'),
+  errorMessage: () => page.locator('.ws-message.ws-error'),
   message: {
     container: () => page.getByTestId('ws-messages-container'),
     addButton: () => page.getByTestId('ws-add-message'),

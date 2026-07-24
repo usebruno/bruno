@@ -64,6 +64,7 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   if (config.clientCertificates?.length) {
     brunoConfig.clientCertificates = {
       certs: config.clientCertificates.map((cert) => {
+        const disabled = cert.disabled === true;
         if (cert.type === 'pem') {
           const pemCert = cert as PemCertificate;
           return {
@@ -71,7 +72,8 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
             type: 'pem' as const,
             certFilePath: pemCert.certificateFilePath || '',
             keyFilePath: pemCert.privateKeyFilePath || '',
-            passphrase: pemCert.passphrase || ''
+            passphrase: pemCert.passphrase || '',
+            ...(disabled && { disabled: true })
           };
         } else if (cert.type === 'pkcs12') {
           const pkcs12Cert = cert as Pkcs12Certificate;
@@ -79,7 +81,8 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
             domain: pkcs12Cert.domain || '',
             type: 'pkcs12' as const,
             pfxFilePath: pkcs12Cert.pkcs12FilePath || '',
-            passphrase: pkcs12Cert.passphrase || ''
+            passphrase: pkcs12Cert.passphrase || '',
+            ...(disabled && { disabled: true })
           };
         }
         return null;

@@ -53,6 +53,9 @@ const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): Collectio
           if (cert.passphrase) {
             pemCert.passphrase = cert.passphrase;
           }
+          if (cert.disabled === true) {
+            pemCert.disabled = true;
+          }
           return pemCert;
         } else if (cert.type === 'pkcs12') {
           const pkcs12Cert: Pkcs12Certificate = {
@@ -62,6 +65,9 @@ const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): Collectio
           };
           if (cert.passphrase) {
             pkcs12Cert.passphrase = cert.passphrase;
+          }
+          if (cert.disabled === true) {
+            pkcs12Cert.disabled = true;
           }
           return pkcs12Cert;
         }

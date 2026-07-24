@@ -1,0 +1,11 @@
+opencollection: "1.0.0"
+
+info:
+  name: client-certs-pfx-yml
+
+config:
+  clientCertificates:
+    - domain: localhost
+      type: pkcs12
+      pkcs12FilePath: ../../server/certs/client.pfx
+      passphrase: bruno
