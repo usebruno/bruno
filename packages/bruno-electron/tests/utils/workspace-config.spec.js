@@ -179,9 +179,26 @@ describe('Git remote on workspace collections', () => {
     expect(missing.remote).toBe('https://github.com/x/missing');
   });
 
-  test('getWorkspaceCollections still drops missing entries that have no remote', () => {
+  test('getWorkspaceCollections keeps local entries that fail to open and flags them', () => {
     writeYml([collection('Missing', 'collections/missing')]);
-    expect(getWorkspaceCollections(workspacePath)).toHaveLength(0);
+
+    const result = getWorkspaceCollections(workspacePath);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Missing');
+    expect(result[0].failedToOpen).toBe(true);
+    expect(result[0].failureReason).toBe('not-found');
+  });
+
+  test('getWorkspaceCollections flags existing directories without a collection config as failed', () => {
+    fs.mkdirSync(path.join(workspacePath, 'collections/empty'), { recursive: true });
+    writeYml([collection('Empty', 'collections/empty')]);
+
+    const result = getWorkspaceCollections(workspacePath);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].failedToOpen).toBe(true);
+    expect(result[0].failureReason).toBe('invalid');
   });
 
   test('setCollectionGitRemote adds the collection path to .gitignore', async () => {
