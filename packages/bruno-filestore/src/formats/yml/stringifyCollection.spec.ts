@@ -149,6 +149,13 @@ describe('stringifyCollection — client certificates', () => {
             keyFilePath: './certs/client-key.pem',
             passphrase: 'secret',
             disabled: true
+          },
+          {
+            domain: 'example.com',
+            type: 'pfx',
+            pfxFilePath: './certs/client.pfx',
+            passphrase: '',
+            disabled: true
           }
         ]
       }
@@ -160,6 +167,7 @@ describe('stringifyCollection — client certificates', () => {
 
     const { brunoConfig: reparsed } = parseCollection(yml);
     expect(reparsed.clientCertificates.certs[0].disabled).toBe(true);
+    expect(reparsed.clientCertificates.certs[1].disabled).toBe(true);
   });
 
   it('does not write disabled for enabled certs', () => {

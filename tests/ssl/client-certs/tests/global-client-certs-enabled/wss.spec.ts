@@ -18,12 +18,14 @@ test.describe('wss with global client certificate (enabled)', () => {
 
       await test.step('Connect over mTLS', async () => {
         await locators.connectionControls.connect().click();
+        await expect(locators.messageText(0)).toHaveText(/Connected to/);
         await expect(locators.connectionControls.disconnect()).toBeAttached();
       });
 
       await test.step('Send message and verify the server saw the client cert', async () => {
         await locators.runButton().click();
-        await expect(locators.messageText(2)).toHaveText(/clientCertPresented/);
+        await expect(locators.messageText(2)).toHaveText(/clientCertPresented"?\s*:\s*true/);
+        await expect(locators.messageText(2)).toHaveText(/subjectCN"?\s*:\s*"?bruno-client/);
       });
     });
   }

@@ -162,11 +162,16 @@ config:
     - domain: example.com
       type: pkcs12
       pkcs12FilePath: ./certs/client.pfx
+      disabled: true
+    - domain: other.com
+      type: pkcs12
+      pkcs12FilePath: ./certs/other.pfx
 `;
     const { brunoConfig } = parseCollection(yml);
 
     expect(brunoConfig.clientCertificates.certs[0].disabled).toBe(true);
-    expect(brunoConfig.clientCertificates.certs[1]).not.toHaveProperty('disabled');
+    expect(brunoConfig.clientCertificates.certs[1].disabled).toBe(true);
+    expect(brunoConfig.clientCertificates.certs[2]).not.toHaveProperty('disabled');
   });
 });
 
