@@ -1,5 +1,6 @@
 import React from 'react';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
+import { shouldMaskValue } from 'utils/auth';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -101,7 +102,7 @@ const OAuth2PasswordCredentials = ({ save, item = {}, request, handleRun, update
                 onRun={handleRun}
                 collection={collection}
                 item={item}
-                isSecret={isSecret}
+                isSecret={isSecret && shouldMaskValue(value)}
                 isCompact
               />
               {isSecret && showWarning && <SensitiveFieldWarning fieldName={key} warningMessage={warningMessage} />}

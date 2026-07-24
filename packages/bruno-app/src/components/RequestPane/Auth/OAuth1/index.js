@@ -11,6 +11,7 @@ import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import toast from 'react-hot-toast';
 import { sendRequest, browseFiles } from 'providers/ReduxStore/slices/collections/actions';
+import { shouldMaskValue } from 'utils/auth';
 import StyledWrapper from './StyledWrapper';
 
 const signatureMethodLabels = {
@@ -148,7 +149,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
               onRun={handleRun}
               collection={collection}
               item={item}
-              isSecret={true}
+              isSecret={shouldMaskValue(oauth1.consumerSecret)}
               isCompact
             />
             {consumerSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-consumer-secret" warningMessage={consumerSecretSensitive.warningMessage} />}
@@ -183,7 +184,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
             onRun={handleRun}
             collection={collection}
             item={item}
-            isSecret={true}
+            isSecret={shouldMaskValue(oauth1.accessTokenSecret)}
             isCompact
           />
           {tokenSecretSensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-token-secret" warningMessage={tokenSecretSensitive.warningMessage} />}
@@ -247,7 +248,7 @@ const OAuth1 = ({ item = {}, collection, request, save, updateAuth }) => {
                   onRun={handleRun}
                   collection={collection}
                   item={item}
-                  isSecret={true}
+                  isSecret={shouldMaskValue(privateKeyValue)}
                   allowNewlines={true}
                 />
                 {privateKeySensitive.showWarning && <SensitiveFieldWarning fieldName="oauth1-private-key" warningMessage={privateKeySensitive.warningMessage} />}

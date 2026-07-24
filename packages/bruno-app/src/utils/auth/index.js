@@ -91,3 +91,15 @@ export const hasEffectiveAuth = (collection, item, supportedModes) => {
   if (supportedModes && !supportedModes.includes(mode)) return false;
   return true;
 };
+
+/**
+ * Determines whether a value should be masked as a secret in the editor.
+ * Returns false when the value contains a variable reference (e.g. `{{token}}`),
+ * so the reference text stays visible and autocomplete works normally.
+ * Returns true for empty/plain-text values to keep isSecret stable and avoid
+ * visual flashing when the user starts typing.
+ */
+export const shouldMaskValue = (value) => {
+  if (!value || typeof value !== 'string') return true;
+  return !value.startsWith('{{');
+};

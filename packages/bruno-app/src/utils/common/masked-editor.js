@@ -185,11 +185,8 @@ export class MaskedEditor {
   handleInputRead() {
     if (!this.enabled || this.isProcessing) return;
 
-    // Debounce masking to prevent excessive updates
-    clearTimeout(this.maskTimeout);
-    this.maskTimeout = setTimeout(() => {
-      this.update();
-    }, 10);
+    // Apply masking synchronously to prevent characters from briefly appearing unmasked
+    this.update();
   }
 
   /**
