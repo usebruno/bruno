@@ -1,13 +1,14 @@
 import { Page } from '@playwright/test';
 import path from 'path';
 import { expect, test } from '../../../playwright';
-import { addRowToActiveTab, closeAllCollections, createEnvironment, deleteAllGlobalEnvironments, importCollection, saveEnvironment } from '../../utils/page';
+import { addRowToActiveTab, closeAllCollections, createEnvironment, deleteAllGlobalEnvironments, importCollection, openCollection, saveEnvironment } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 const envLocators = (page: Page) => buildCommonLocators(page).environment;
 
 const variablesTab = (page: Page) => envLocators(page).variablesTab();
 const secretsTab = (page: Page) => envLocators(page).secretsTab();
+const collectionEnvTab = (page: Page) => envLocators(page).collectionEnvTab();
 const varRow = (page: Page, name: string) => envLocators(page).varRow(name);
 const varRowValueLine = (page: Page, name: string) => envLocators(page).varRowValueLine(name);
 const saveTab = (page: Page) => envLocators(page).saveTab();
@@ -414,6 +415,47 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     await test.step('The plain variable kept its own value (not overwritten by the secret)', async () => {
       await variablesTab(page).click();
       await expect(varRowValueLine(page, SHARED_KEY)).toHaveText(PLAIN_VALUE);
+    });
+  });
+
+  test('keeps unsaved variable and secret drafts after navigating to the collection overview and back', async ({ page, createTmpDir }) => {
+    await importCollection(page, collectionFile, await createTmpDir('var-secret-draft-persist'), {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, 'Draft Persist Env', 'collection');
+
+    await test.step('Add an unsaved variable on the Variables tab', async () => {
+      await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
+      await expect(varRow(page, 'host')).toBeVisible();
+    });
+
+    await test.step('Add an unsaved secret on the Secrets tab', async () => {
+      await secretsTab(page).click();
+      await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
+      await expect(varRow(page, 'apiToken')).toBeVisible();
+    });
+
+    await test.step('Navigate to the collection overview, then back to the environment tab', async () => {
+      // Env-var edits are written to the draft on a 300ms debounce, and the editor unmounts when its
+      // tab loses focus — wait for the draft to commit before navigating away (mirrors the snapshot suite).
+      await expect(tabDraftIcon(page)).toBeVisible();
+      await page.waitForTimeout(500);
+
+      await openCollection(page, 'test_collection');
+      await collectionEnvTab(page).click();
+    });
+
+    await test.step('The unsaved variable draft is restored on the Variables tab', async () => {
+      await variablesTab(page).click();
+      await expect(varRow(page, 'host')).toBeVisible();
+      await expect(varRow(page, 'apiToken')).toHaveCount(0);
+    });
+
+    await test.step('The unsaved secret draft is restored on the Secrets tab', async () => {
+      await secretsTab(page).click();
+      await expect(varRow(page, 'apiToken')).toBeVisible();
+      await expect(varRow(page, 'host')).toHaveCount(0);
     });
   });
 });

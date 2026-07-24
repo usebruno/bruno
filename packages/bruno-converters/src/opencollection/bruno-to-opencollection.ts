@@ -154,6 +154,7 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
   const brunoExtension: {
     ignore?: string[];
     presets?: BrunoPresets;
+    scripts?: { flow?: 'sandwich' | 'sequential' };
   } = {};
 
   if (brunoConfig?.ignore?.length) {
@@ -169,6 +170,11 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
     if (presets.requestUrl) {
       brunoExtension.presets.requestUrl = presets.requestUrl;
     }
+  }
+
+  const scriptFlow = brunoConfig?.scripts?.flow;
+  if (scriptFlow === 'sandwich' || scriptFlow === 'sequential') {
+    brunoExtension.scripts = { flow: scriptFlow };
   }
 
   if (Object.keys(brunoExtension).length > 0) {

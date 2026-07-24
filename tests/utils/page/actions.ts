@@ -827,13 +827,16 @@ const addRowToActiveTab = async (
 
     const codeMirror = row.getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first();
     await codeMirror.scrollIntoViewIfNeeded();
-    await codeMirror.click();
+    // Target the editor's left edge: when the value column is narrow the DataTypeSelector
+    // renders as a compact overlay pinned to the cell's right side, which otherwise
+    // intercepts a centered click/hover.
+    await codeMirror.click({ position: { x: 5, y: 5 } });
     if (dataType) {
       await expect(codeMirror).toHaveClass(/CodeMirror-focused/);
       await page.keyboard.insertText(value);
 
       const { dataTypeSelector } = buildCommonLocators(page);
-      await codeMirror.hover();
+      await codeMirror.hover({ position: { x: 5, y: 5 } });
       await dataTypeSelector.typeLabel(row).click();
       await dataTypeSelector.menuItem(dataType).click();
       await expect(dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', dataType);

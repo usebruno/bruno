@@ -20,6 +20,7 @@ const AUTH_TYPES = Object.freeze({
   OAUTH2: 'oauth2',
   EDGEGRID: 'edgegrid',
   NOAUTH: 'noauth',
+  NTLM: 'ntlm',
   NONE: 'none'
 });
 
@@ -302,6 +303,15 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         maxBodySize: ensureMaxBodySize(authValues.maxBodySize)
       };
       break;
+    case AUTH_TYPES.NTLM:
+      // Postman's `workstation` field has no Bruno equivalent, so it is dropped here.
+      requestObject.auth.ntlm = {
+        username: ensureString(authValues.username),
+        password: ensureString(authValues.password),
+        domain: ensureString(authValues.domain)
+      };
+      break;
+
     case AUTH_TYPES.OAUTH1:
       requestObject.auth.oauth1 = {
         consumerKey: ensureString(authValues.consumerKey),
@@ -336,8 +346,35 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
       const postmanGrantType = findValueUsingKey('grant_type');
       const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] || 'client_credentials'; // Default
 
+      // Maps Postman's request-params arrays to Bruno's `additionalParameters`, converting `send_as`
+      // ('request_header'/'request_url'/'request_body') to Bruno's `sendIn` ('headers'/'queryparams'/'body').
+      const sendAsToSendIn = { request_header: 'headers', request_url: 'queryparams', request_body: 'body' };
+      const mapRequestParams = (params) => (Array.isArray(params) ? params : []).map((param) => ({
+        name: ensureString(param.key),
+        value: ensureString(param.value),
+        sendIn: sendAsToSendIn[param.send_as] || 'headers',
+        enabled: param.enabled !== false
+      }));
+      const additionalParameters = {};
+      if (Array.isArray(authValues.authRequestParams)) {
+        additionalParameters.authorization = mapRequestParams(authValues.authRequestParams);
+      }
+      if (Array.isArray(authValues.tokenRequestParams)) {
+        additionalParameters.token = mapRequestParams(authValues.tokenRequestParams);
+      }
+      if (Array.isArray(authValues.refreshRequestParams)) {
+        additionalParameters.refresh = mapRequestParams(authValues.refreshRequestParams);
+      }
+      const hasAdditionalParameters = Object.keys(additionalParameters).length > 0;
+      // The schema requires an `authorization` array for the authorization_code grant, so ensure it
+      // exists when any additional params are attached to this grant type.
+      if (hasAdditionalParameters && targetGrantType === 'authorization_code' && !additionalParameters.authorization) {
+        additionalParameters.authorization = [];
+      }
+
       // Common properties for all OAuth2 grant types
       const baseOAuth2Config = {
+        ...(hasAdditionalParameters ? { additionalParameters } : {}),
         grantType: targetGrantType,
         accessTokenUrl: findValueUsingKey('accessTokenUrl'),
         refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
@@ -348,7 +385,8 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         tokenPlacement: findValueUsingKey('addTokenTo') === 'header' ? 'header' : 'url',
         tokenHeaderPrefix: findValueUsingKey('headerPrefix'),
         tokenQueryKey: 'access_token',
-        credentialsPlacement: findValueUsingKey('client_authentication') === 'body' ? 'body' : 'basic_auth_header'
+        credentialsPlacement: findValueUsingKey('client_authentication') === 'body' ? 'body' : 'basic_auth_header',
+        credentialsId: findValueUsingKey('tokenName')
       };
 
       switch (postmanGrantType) {
@@ -443,7 +481,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               apikey: null,
               oauth1: null,
               oauth2: null,
-              digest: null
+              digest: null,
+              ntlm: null
             },
             headers: [],
             script: {},
@@ -510,7 +549,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               apikey: null,
               oauth1: null,
               oauth2: null,
-              digest: null
+              digest: null,
+              ntlm: null
             },
             headers: [],
             params: [],
@@ -987,7 +1027,8 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
           apikey: null,
           oauth1: null,
           oauth2: null,
-          digest: null
+          digest: null,
+          ntlm: null
         },
         headers: [],
         script: {},
