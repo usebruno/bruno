@@ -200,4 +200,78 @@ describe('createCollectionFromBrunoObject', () => {
       )
     ).rejects.toThrow('Unsupported item type: unsupported-type');
   });
+
+  it('strips a trailing period from request and environment names before appending the .bru extension', async () => {
+    createOutputDir();
+
+    await createCollectionFromBrunoObject(
+      {
+        name: 'trailing-period-collection',
+        items: [
+          {
+            type: 'http-request',
+            name: 'Add a new pet to the store.',
+            seq: 1,
+            request: {
+              method: 'POST',
+              url: 'https://api.example.com/pet'
+            }
+          }
+        ],
+        environments: [
+          {
+            name: 'Production.',
+            variables: []
+          }
+        ]
+      },
+      outputDir,
+      { format: 'bru' }
+    );
+
+    const files = fs.readdirSync(outputDir);
+    expect(files).toContain('Add a new pet to the store.bru');
+    expect(files).not.toContain('Add a new pet to the store..bru');
+
+    const envFiles = fs.readdirSync(path.join(outputDir, 'environments'));
+    expect(envFiles).toContain('Production.bru');
+    expect(envFiles).not.toContain('Production..bru');
+  });
+
+  it('strips a trailing period from request and environment names before appending the .yml extension', async () => {
+    createOutputDir();
+
+    await createCollectionFromBrunoObject(
+      {
+        name: 'trailing-period-collection',
+        items: [
+          {
+            type: 'http-request',
+            name: 'Add a new pet to the store.',
+            seq: 1,
+            request: {
+              method: 'POST',
+              url: 'https://api.example.com/pet'
+            }
+          }
+        ],
+        environments: [
+          {
+            name: 'Production.',
+            variables: []
+          }
+        ]
+      },
+      outputDir,
+      { format: 'yml' }
+    );
+
+    const files = fs.readdirSync(outputDir);
+    expect(files).toContain('Add a new pet to the store.yml');
+    expect(files).not.toContain('Add a new pet to the store..yml');
+
+    const envFiles = fs.readdirSync(path.join(outputDir, 'environments'));
+    expect(envFiles).toContain('Production.yml');
+    expect(envFiles).not.toContain('Production..yml');
+  });
 });
