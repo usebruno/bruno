@@ -733,11 +733,12 @@ class GrpcClient {
     const wrappedOnAfterMessageReceive
       = accumulateResponses || typeof onAfterMessageReceive === 'function'
         ? (res) => {
+            const timestamp = new Date().toISOString();
             if (accumulateResponses) {
-              accumulatedResponses.push(res);
+              accumulatedResponses.push({ data: res, timestamp });
             }
             if (typeof onAfterMessageReceive === 'function') {
-              onAfterMessageReceive(res);
+              onAfterMessageReceive(res, timestamp);
             }
           }
         : undefined;

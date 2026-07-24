@@ -13,8 +13,8 @@ const IN_VM_ITERATORS = new Set(['find', 'filter', 'map', 'each']);
 
 /**
  * Discover an API object's public method names: own props (grpc lists attach their methods as own
- * props via `expose()`) plus a custom prototype (GrpcMessage keeps its methods there). Skips
- * `constructor`, `_`-prefixed internals, and the built-in Object/Array prototypes.
+ * props via `expose()`) plus a custom prototype. Skips `constructor`, `_`-prefixed internals, and
+ * the built-in Object/Array prototypes.
  */
 const methodNames = (obj) => {
   const names = new Set();

@@ -564,8 +564,7 @@ const registerGrpcEventHandlers = (window) => {
       // ── After Message Receive ──────────────────────────────────────────────
       const hasAfterMessageReceiveScript = !!get(preparedRequest, `script.${SCRIPT_PHASES.GRPC.AFTER_MESSAGE_RECEIVE.FIELD}`)?.length;
       const afterMessageReceive = hasAfterMessageReceiveScript
-        ? (message) => {
-            const messageReceivedAt = new Date();
+        ? (message, messageReceivedAt) => {
             runAfterMessageReceive({ ...scriptContext, message, messageReceivedAt })
               .then(({ scriptError }) => {
                 if (scriptError) afterMessageReceiveErrored = true;
@@ -924,7 +923,7 @@ const registerGrpcEventHandlers = (window) => {
 
       const clientCertConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.clientCertificates.certs', []) : get(collection, 'brunoConfig.clientCertificates.certs', []);
 
-      for (let clientCert of clientCertConfig) {
+      for (const clientCert of clientCertConfig) {
         const domain = interpolateString(clientCert?.domain, interpolationOptions);
         const type = clientCert?.type || 'cert';
         if (domain) {
