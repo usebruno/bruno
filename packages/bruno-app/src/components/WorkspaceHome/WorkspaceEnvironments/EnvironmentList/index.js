@@ -43,11 +43,12 @@ const EnvironmentList = ({
 }) => {
   const dispatch = useDispatch();
   const globalEnvs = useSelector((state) => state?.globalEnvironments?.globalEnvironments);
-  const envSearchQuery = useSelector((state) => state.app.envVarSearch?.global?.query ?? '');
-  const isEnvSearchExpanded = useSelector((state) => state.app.envVarSearch?.global?.expanded ?? false);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const setEnvSearchQuery = (q) => dispatch(setEnvVarSearchQuery({ context: 'global', query: q }));
-  const setIsEnvSearchExpanded = (v) => dispatch(setEnvVarSearchExpanded({ context: 'global', expanded: v }));
+  const activeEnvTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.environment?.tab) || 'variables';
+  const envSearchQuery = useSelector((state) => state.app.envVarSearch?.global?.[activeEnvTab]?.query ?? '');
+  const isEnvSearchExpanded = useSelector((state) => state.app.envVarSearch?.global?.[activeEnvTab]?.expanded ?? false);
+  const setEnvSearchQuery = (q) => dispatch(setEnvVarSearchQuery({ context: 'global', tab: activeEnvTab, query: q }));
+  const setIsEnvSearchExpanded = (v) => dispatch(setEnvVarSearchExpanded({ context: 'global', tab: activeEnvTab, expanded: v }));
 
   const [openImportModal, setOpenImportModal] = useState(false);
   const [searchText, setSearchText] = useState('');

@@ -1,21 +1,48 @@
 const { ipcMain } = require('electron');
-const { generateText, streamText } = require('ai');
+const { generateText, streamText, stepCountIs } = require('ai');
+const { z } = require('zod');
 const { getPreferences } = require('../../store/preferences');
 const { aiKeyStore } = require('../../store/ai-keys');
 const {
   PROVIDERS,
-  MODEL_DEFINITIONS,
   listProviders,
   listModels,
   getModel,
   getAvailableModels,
-  clearSdkCache
+  clearSdkCache,
+  isKnownProviderId,
+  isBuiltInModelId,
+  isOpenAiCompatibleProviderId,
+  isReasoningModel,
+  validateApiKeyForProvider,
+  providerLabel
 } = require('./providers');
-const { SCRIPT_PROMPTS, SCRIPT_TYPES, buildScriptUserPrompt, stripCodeFences } = require('./script-prompts');
+const {
+  SCRIPT_TYPES,
+  buildScriptSystemPrompt,
+  buildScriptUserPrompt,
+  parseDecline,
+  stripCodeFences
+} = require('./script-prompts');
+const {
+  formatResponseShape,
+  searchVariables,
+  formatSearchVariablesResult
+} = require('./context');
+const registerChatIpc = require('./chat');
 
 const activeStreams = new Map();
 
+const SCRIPT_MAX_OUTPUT_TOKENS = {
+  'app-request': 16000,
+  'app-collection': 16000,
+  'docs': 8000
+};
+const DEFAULT_SCRIPT_MAX_OUTPUT_TOKENS = 4096;
+
 const getAiPrefs = () => getPreferences().ai || {};
+
+const getSecurityPrefs = () => getAiPrefs().security || null;
 
 const isEnabled = () => Boolean(getAiPrefs().enabled);
 
@@ -24,18 +51,23 @@ const buildStatus = () => {
   const hasApiKey = (providerId) => aiKeyStore.hasKey(providerId);
 
   const providers = {};
-  for (const provider of listProviders()) {
+  for (const provider of listProviders(aiPreferences)) {
+    const configured = provider.isCustom
+      ? Boolean(provider.baseURL)
+      : hasApiKey(provider.id);
+
     providers[provider.id] = {
       ...provider,
       enabled: Boolean(aiPreferences?.providers?.[provider.id]?.enabled),
-      configured: hasApiKey(provider.id)
+      configured,
+      hasApiKey: hasApiKey(provider.id)
     };
   }
 
   return {
     enabled: Boolean(aiPreferences.enabled),
     providers,
-    models: listModels(),
+    models: listModels(aiPreferences),
     availableModels: getAvailableModels({ aiPreferences, hasApiKey })
   };
 };
@@ -60,65 +92,84 @@ const pickDefaultModelId = () => {
   return available[0].id;
 };
 
+const assertKnownProvider = (providerId) => {
+  if (!isKnownProviderId(providerId, getAiPrefs())) {
+    throw new Error(`Unknown AI provider: ${providerId}`);
+  }
+};
+
 const registerAiIpc = (mainWindow) => {
+  const broadcastStatus = (status) => {
+    if (mainWindow?.webContents && !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send('main:ai-status-changed', status);
+    }
+  };
+
   ipcMain.handle('renderer:get-ai-status', async () => buildStatus());
 
   ipcMain.handle('renderer:set-ai-api-key', async (_event, { providerId, apiKey }) => {
-    if (!PROVIDERS[providerId]) {
-      throw new Error(`Unknown AI provider: ${providerId}`);
-    }
+    assertKnownProvider(providerId);
     const trimmed = typeof apiKey === 'string' ? apiKey.trim() : '';
     if (!trimmed) {
-      throw new Error('API key cannot be empty');
+      if (isOpenAiCompatibleProviderId(providerId)) {
+        aiKeyStore.clearKey(providerId);
+      } else {
+        throw new Error('API key cannot be empty');
+      }
+    } else {
+      aiKeyStore.setKey(providerId, trimmed);
     }
-    aiKeyStore.setKey(providerId, trimmed);
     clearSdkCache();
-    return buildStatus();
+    const status = buildStatus();
+    broadcastStatus(status);
+    return status;
   });
 
   ipcMain.handle('renderer:clear-ai-api-key', async (_event, { providerId }) => {
-    if (!PROVIDERS[providerId]) {
-      throw new Error(`Unknown AI provider: ${providerId}`);
-    }
+    assertKnownProvider(providerId);
     aiKeyStore.clearKey(providerId);
     clearSdkCache();
-    return buildStatus();
+    const status = buildStatus();
+    broadcastStatus(status);
+    return status;
   });
 
   ipcMain.handle('renderer:get-ai-api-key', async (_event, { providerId }) => {
-    if (!PROVIDERS[providerId]) {
-      throw new Error(`Unknown AI provider: ${providerId}`);
-    }
+    assertKnownProvider(providerId);
     return aiKeyStore.getKey(providerId) || '';
   });
 
   ipcMain.handle('renderer:ai-test-provider', async (_event, { providerId }) => {
-    if (!PROVIDERS[providerId]) {
+    const aiPrefs = getAiPrefs();
+    if (!isKnownProviderId(providerId, aiPrefs)) {
       return { ok: false, error: `Unknown provider: ${providerId}` };
     }
     const apiKey = aiKeyStore.getKey(providerId);
-    if (!apiKey) {
+    // Built-in providers must have a key to test. Compat endpoints can be
+    // hit without one (server may or may not require it).
+    if (!apiKey && !isOpenAiCompatibleProviderId(providerId)) {
       return { ok: false, error: 'No API key configured' };
     }
 
-    const aiPrefs = getAiPrefs();
     const providerEnabled = aiPrefs?.providers?.[providerId]?.enabled;
     if (!providerEnabled) {
-      return { ok: false, error: `${PROVIDERS[providerId].label} is disabled` };
-    }
-
-    const probeModel = Object.entries(MODEL_DEFINITIONS)
-      .find(([, def]) => def.provider === providerId);
-    if (!probeModel) {
-      return { ok: false, error: `No models registered for ${providerId}` };
+      return { ok: false, error: `${providerLabel(providerId, aiPrefs)} is disabled` };
     }
 
     try {
-      const model = resolveModel(probeModel[0]);
-      await generateText({ model, prompt: 'ping', maxOutputTokens: 1 });
-      return { ok: true };
+      const res = await validateApiKeyForProvider({ providerId, apiKey, aiPreferences: aiPrefs });
+      if (res.ok) {
+        return { ok: true };
+      }
+      if (res.status === 401 || res.status === 403) {
+        return { ok: false, error: 'Invalid API key' };
+      }
+      if (res.status === 429) {
+        return { ok: false, error: 'Rate limited — try again in a moment' };
+      }
+      return { ok: false, error: `Could not verify key (HTTP ${res.status})` };
     } catch (err) {
-      return { ok: false, error: err.message || 'Connection failed' };
+      return { ok: false, error: err.message || 'Could not reach provider. Check your network connection.' };
     }
   });
 
@@ -135,7 +186,7 @@ const registerAiIpc = (mainWindow) => {
         system,
         prompt,
         maxOutputTokens: maxTokens ?? 1024,
-        temperature: temperature ?? 0.3
+        ...(isReasoningModel(modelId) ? {} : { temperature: temperature ?? 0.3 })
       });
       return { text };
     } catch (err) {
@@ -145,7 +196,16 @@ const registerAiIpc = (mainWindow) => {
   });
 
   ipcMain.handle('renderer:ai-generate-script', async (_event, params) => {
-    const { scriptType, prompt, currentScript, requestContext, model: requestedModel } = params || {};
+    const {
+      scriptType,
+      prompt,
+      currentScript,
+      requestContext,
+      docsContext,
+      variables,
+      model: requestedModel,
+      streamId
+    } = params || {};
 
     if (!SCRIPT_TYPES.includes(scriptType)) {
       return { error: `Unknown scriptType: ${scriptType}` };
@@ -166,17 +226,108 @@ const registerAiIpc = (mainWindow) => {
       return { error: err.message };
     }
 
+    const security = getSecurityPrefs();
+    const controller = streamId ? new AbortController() : null;
+    if (streamId && controller) {
+      activeStreams.set(streamId, controller);
+    }
+
+    // Generation runs through streamText so the model can call tools
+    // (read_response, search_variables) when the inline context isn't enough.
+    // We don't stream tokens back to the renderer — the sparkle UI shows a
+    // spinner and applies the final code as a single blob — but the
+    // step-based loop gives the model a chance to gather context first.
+    const tools = {
+      read_response: {
+        description: 'Returns the redacted shape (keys + value types) of the last response for this request. Use it before writing tests/post-response code to learn property paths and types. Real values are stripped — reference fields at runtime, don\'t hard-code the placeholder strings.',
+        inputSchema: z.object({}),
+        execute: async () => {
+          const status = requestContext?.responseStatus;
+          const data = requestContext?.responseData;
+          if (!status && data == null) {
+            return '(No response available — the request has not been executed yet.)';
+          }
+          return formatResponseShape(status, data, { security }) || '(empty response)';
+        }
+      },
+      search_variables: {
+        description: 'Search environment / collection / global / runtime variables by name (case-insensitive substring). Pass a query to confirm a name before referencing it. Secret variables come back as `<redacted>`. Each result has a `scope` field — use it to pick the right runtime accessor: `bru.getEnvVar` for `env`, `bru.getGlobalEnvVar` for `global`, `bru.getCollectionVar` / `bru.getFolderVar` / `bru.getRequestVar` for `collection`, `bru.getVar` for `runtime`, and `bru.getSecretVar` for any value that came back redacted. Never hard-code a returned value.',
+        inputSchema: z.object({
+          query: z
+            .string()
+            .optional()
+            .describe('Substring to match against variable names. Omit to list the first 50.')
+        }),
+        execute: async ({ query }) => {
+          if (!Array.isArray(variables) || variables.length === 0) {
+            return '(No variables available — the collection has no environment, runtime, or collection variables defined.)';
+          }
+          const result = searchVariables(variables, query);
+          return formatSearchVariablesResult(result, query, { security });
+        }
+      }
+    };
+
     try {
-      const { text } = await generateText({
+      const result = streamText({
         model,
-        system: SCRIPT_PROMPTS[scriptType],
-        prompt: buildScriptUserPrompt({ userPrompt: prompt, currentScript, requestContext }),
-        maxOutputTokens: 2048
+        system: buildScriptSystemPrompt(scriptType),
+        prompt: buildScriptUserPrompt({
+          userPrompt: prompt,
+          currentScript,
+          requestContext,
+          docsContext,
+          variables,
+          scriptType,
+          security
+        }),
+        tools,
+        // Cap tool-call iteration — the model gets a few chances to look
+        // things up before it MUST produce the final script.
+        stopWhen: stepCountIs(6),
+        toolChoice: 'auto',
+        // Custom OpenAI-compatible models may be small local models that
+        // reject a max_tokens above their context window, let the server
+        // apply its own default for those instead of forcing a big cap.
+        maxOutputTokens: isBuiltInModelId(modelId)
+          ? (SCRIPT_MAX_OUTPUT_TOKENS[scriptType] || DEFAULT_SCRIPT_MAX_OUTPUT_TOKENS)
+          : undefined,
+        abortSignal: controller?.signal
       });
-      return { content: stripCodeFences(text), modelId };
+
+      let fullText = '';
+      for await (const part of result.fullStream) {
+        if (controller?.signal.aborted) break;
+        if (part.type === 'text-delta') {
+          fullText += part.text;
+        }
+      }
+
+      if (controller?.signal.aborted) {
+        return { stopped: true };
+      }
+
+      // The model declines out-of-scope prompts (or ones missing required
+      // context, e.g. "no response yet") via a sentinel line instead of
+      // emitting unrelated code that would get applied to the user's file.
+      const declineReason = parseDecline(fullText);
+      if (declineReason) {
+        return { error: declineReason, declined: true };
+      }
+
+      const content = stripCodeFences(fullText);
+      if (!content || !content.trim()) {
+        return { error: 'No content was generated. Try rephrasing your prompt.' };
+      }
+      return { content, modelId };
     } catch (err) {
+      if (err?.name === 'AbortError' || controller?.signal.aborted) {
+        return { stopped: true };
+      }
       console.error('AI generate-script error:', err);
       return { error: err.message || 'Failed to generate script' };
+    } finally {
+      if (streamId) activeStreams.delete(streamId);
     }
   });
 
@@ -217,7 +368,7 @@ const registerAiIpc = (mainWindow) => {
         model,
         system,
         maxOutputTokens: maxTokens ?? 2048,
-        temperature: temperature ?? 0.7,
+        ...(isReasoningModel(modelId) ? {} : { temperature: temperature ?? 0.7 }),
         abortSignal: controller.signal
       };
       if (messages) {
@@ -258,6 +409,13 @@ const registerAiIpc = (mainWindow) => {
       controller.abort();
       activeStreams.delete(streamId);
     }
+  });
+
+  registerChatIpc({
+    mainWindow,
+    resolveModel,
+    pickDefaultModelId,
+    isAiEnabled: isEnabled
   });
 };
 

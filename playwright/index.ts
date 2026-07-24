@@ -1,10 +1,33 @@
 import { test as baseTest, BrowserContext, ElectronApplication, Page, TestInfo } from '@playwright/test';
+import { merge } from 'lodash-es';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
 import { version } from '../packages/bruno-app/package.json';
 
 const electronAppPath = path.join(__dirname, '../packages/bruno-electron');
+
+const PREFERENCES_FILE = 'preferences.json';
+
+/**
+ * Default preferences for the app - preferences.json file.
+ * This is overridden by the init-user-data/preferences.json file if it exists.
+ *
+ * Uses lodash/merge to merge the default preferences with the init-user-data/preferences.json file.
+ *   - Note: arrays are merged by index, not concatenated. (e.g. lastOpenedCollections, lastOpenedWorkspaces, etc.)
+ */
+const defaultPreferences = {
+  preferences: {
+    onboarding: {
+      hasLaunchedBefore: true,
+      hasSeenWelcomeModal: true,
+      lastSeenVersion: version
+    },
+    ai: {
+      enabled: false
+    }
+  }
+};
 
 const existsAsync = (filepath: string) => fs.promises.access(filepath).then(() => true).catch(() => false);
 
@@ -238,24 +261,18 @@ export const test = baseTest.extend<
                 throw new Error(`\tNo replacement for {{${key}}} in ${path.join(initUserDataPath, file)}`);
               }
             });
+            if (file === PREFERENCES_FILE) {
+              content = JSON.stringify(merge({}, defaultPreferences, JSON.parse(content)), null, 2);
+            }
             await fs.promises.writeFile(path.join(userDataPath, file), content, 'utf-8');
           }
         } else {
           // No initUserDataPath provided: create default preferences to skip onboarding
           // BUT only if preferences.json doesn't already exist
-          const prefsPath = path.join(userDataPath, 'preferences.json');
+          const prefsPath = path.join(userDataPath, PREFERENCES_FILE);
           const prefsExist = await existsAsync(prefsPath);
 
           if (!prefsExist) {
-            const defaultPreferences = {
-              preferences: {
-                onboarding: {
-                  hasLaunchedBefore: true,
-                  hasSeenWelcomeModal: true,
-                  lastSeenVersion: version
-                }
-              }
-            };
             await fs.promises.writeFile(
               prefsPath,
               JSON.stringify(defaultPreferences, null, 2),
@@ -422,7 +439,6 @@ export const test = baseTest.extend<
 
     const context = await app.context();
     const page = await waitForReadyPage(app);
-
     await usePageWithTracing(context, page, testInfo, use, { initTracing: true });
   }
 });

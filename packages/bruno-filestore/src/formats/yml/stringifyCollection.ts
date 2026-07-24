@@ -73,6 +73,10 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
       name: brunoConfig.name || 'Untitled Collection'
     };
 
+    if (brunoConfig.version != null && brunoConfig.version !== '') {
+      oc.info.version = String(brunoConfig.version);
+    }
+
     // collection config
     if (hasCollectionConfig(brunoConfig)) {
       oc.config = {};
@@ -253,13 +257,18 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
     }
 
     // bruno-specific script extensions
+    const brunoScripts: Record<string, unknown> = {};
     if (brunoConfig.scripts?.additionalContextRoots?.length) {
+      brunoScripts.additionalContextRoots = brunoConfig.scripts.additionalContextRoots;
+    }
+    if (brunoConfig.scripts?.flow === 'sandwich' || brunoConfig.scripts?.flow === 'sequential') {
+      brunoScripts.flow = brunoConfig.scripts.flow;
+    }
+    if (Object.keys(brunoScripts).length > 0) {
       if (!oc.extensions.bruno) {
         oc.extensions.bruno = {};
       }
-      (oc.extensions.bruno as any).scripts = {
-        additionalContextRoots: brunoConfig.scripts.additionalContextRoots
-      };
+      (oc.extensions.bruno as any).scripts = brunoScripts;
     }
 
     // bruno-specific extensions

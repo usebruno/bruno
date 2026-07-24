@@ -19,8 +19,8 @@ const StyledWrapper = styled.div`
   }
 
   .CodeMirror-placeholder {
-    color: ${(props) => props.theme.text} !important;
-    opacity: 0.5 !important;
+    color: ${(props) => props.theme.codemirror.placeholder.color} !important;
+    opacity: ${(props) => props.theme.codemirror.placeholder.opacity} !important;
   }
 
   .CodeMirror-linenumber {
@@ -43,6 +43,15 @@ const StyledWrapper = styled.div`
   .CodeMirror-lint-line-warning .CodeMirror-linenumber {
     color: ${(props) => props.theme.colors.text.warning} !important;
     text-decoration: underline;
+  }
+
+  .cm-ghost-text-ai {
+    opacity: 0.45;
+    color: ${(props) => props.theme.colors.text.muted};
+    font-style: italic;
+    pointer-events: none;
+    user-select: none;
+    white-space: pre;
   }
 
   /* Removes the glow outline around the folded json */

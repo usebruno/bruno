@@ -113,6 +113,14 @@ const parseWebsocketRequest = (ocRequest: WebSocketRequest): BrunoItem => {
     pathname: null
   };
 
+  // description
+  if (info?.description) {
+    const desc = typeof info.description === 'string' ? info.description : (info.description as any)?.content || '';
+    if (desc.trim().length) {
+      brunoItem.description = desc;
+    }
+  }
+
   return brunoItem;
 };
 

@@ -43,8 +43,7 @@ describe('Multiline Syntax Handling', () => {
     expect(translatedCode).toContain('const apiKey = bru.getCollectionVar("apiKey")');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should handle multiline collection variable set syntax', () => {
+  it('should handle multiline collection variable set syntax', () => {
     const code = `
     pm.collectionVariables
                             .set("lastRun", new Date().toISOString());
@@ -287,8 +286,7 @@ describe('Multiline Syntax Handling', () => {
     expect(translatedCode).toContain('bru.runner.setNextRequest("Next API Call")');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should translate multiline pm.collectionVariables.set in comprehensive script', () => {
+  it('should translate multiline pm.collectionVariables.set in comprehensive script', () => {
     const code = `
     pm.collectionVariables
       .set("lastRun", new Date());

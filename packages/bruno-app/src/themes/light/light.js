@@ -249,6 +249,12 @@ const lightTheme = {
     }
   },
 
+  ws: {
+    activeMessage: {
+      label: palette.primary.TEXT
+    }
+  },
+
   request: {
     methods: {
       get: palette.hues.GREEN,
