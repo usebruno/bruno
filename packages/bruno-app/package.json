@@ -123,6 +123,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "mini-css-extract-plugin": "^2.4.5",
     "postcss": "8.4.47",
+    "postcss-loader": "^8.1.1",
     "style-loader": "^3.3.1",
     "tailwindcss": "^3.4.1",
     "webpack": "^5.64.4",
