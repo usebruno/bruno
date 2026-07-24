@@ -22,6 +22,7 @@ const toHeaderValue = (value) => {
   return String(value);
 };
 
+
 // Lowercased names of the enabled headers in a definition list.
 const enabledHeaderNames = (headers) => {
   const names = new Set();
