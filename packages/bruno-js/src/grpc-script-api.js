@@ -1,48 +1,21 @@
 const { safeParseJSON, isObject } = require('./utils');
 
 /**
- * GrpcMessage — a single gRPC message: `bru.grpc.response.message` (read-only, afterMessageReceive)
- * and `bru.grpc.request.message` (read-write, beforeMessageSend). Backed by accessors so it serves
- * both an incoming and an outgoing message.
+ * GrpcMessage — a single read-only gRPC message. `expose()` returns plain data so it logs cleanly:
+ * `bru.grpc.request.message` → `{ data }` (beforeMessageSend), `bru.grpc.response.message` →
+ * `{ data, timestamp }` (afterMessageReceive). Frozen when read-only.
  */
 class GrpcMessage {
-  constructor({ read, write, readOnly, timeStamp } = {}) {
+  constructor({ read, timestamp, readOnly = true } = {}) {
     this._read = typeof read === 'function' ? read : () => null;
-    this._write = typeof write === 'function' ? write : null;
-    this._timeStamp = typeof timeStamp === 'function' ? timeStamp : () => null;
-    this.readOnly = readOnly ?? !this._write;
+    this._timestamp = typeof timestamp === 'function' ? timestamp : null;
+    this.readOnly = readOnly;
   }
 
-  _assertWritable(method) {
-    if (this.readOnly) {
-      throw new Error(`bru.grpc.request.message.${method}() is read-only in this script phase`);
-    }
-  }
-
-  // ── read ──
-  get() {
-    return this._read();
-  }
-
-  timeStamp() {
-    return this._timeStamp();
-  }
-
-  // ── write ──
-  set(data) {
-    this._assertWritable('set');
-    this._write(data);
-  }
-
-  update(partial) {
-    this._assertWritable('update');
-    const current = this._read();
-    this._write({ ...(current || {}), ...partial });
-  }
-
-  clear() {
-    this._assertWritable('clear');
-    this._write(null);
+  expose() {
+    const value = { data: this._read() };
+    if (this._timestamp) value.timestamp = this._timestamp();
+    return this.readOnly ? Object.freeze(value) : value;
   }
 }
 
@@ -217,7 +190,7 @@ class GrpcMetadataList extends GrpcList {
 
 /**
  * GrpcResponseMessageList — the read-only `bru.grpc.response.messages` API. Wraps the server's
- * received messages (already-decoded objects), read via an accessor so it reflects the latest.
+ * received messages (each `{ data, timestamp }`), read via an accessor so it reflects the latest.
  */
 class GrpcResponseMessageList extends GrpcList {
   constructor(getMessages) {
@@ -268,6 +241,26 @@ class GrpcResponseMessageList extends GrpcList {
   }
 }
 
+const resolveGrpcAuth = (request) => {
+  const headers = request.headers;
+
+  if (request?.oauth2) {
+    return 'oauth2';
+  } else if (headers?.['Authorization']?.startsWith('Bearer')) {
+    return 'bearer';
+  } else if (headers?.['Authorization']?.startsWith('Basic') || request?.auth?.username) {
+    return 'basic';
+  } else if (request?.apiKeyAuthValueForQueryParams) {
+    return 'apikey';
+  } else if (request?.apiKeyHeaderName && headers?.[request.apiKeyHeaderName] !== undefined) {
+    return 'apikey';
+  } else if (headers?.['X-WSSE']) {
+    return 'wsse';
+  } else {
+    return 'none';
+  }
+};
+
 /**
  * Build the phase-aware `bru.grpc` namespace for a gRPC script.
  *
@@ -279,6 +272,8 @@ const buildGrpcScriptApi = ({ phaseType, request, phaseData } = {}) => {
     return undefined;
   }
 
+  const authMode = resolveGrpcAuth(request);
+
   switch (phaseType) {
     case 'beforeCallStart':
       return {
@@ -288,7 +283,7 @@ const buildGrpcScriptApi = ({ phaseType, request, phaseData } = {}) => {
           url: request.url ?? null,
           method: request.method ?? null,
           methodType: request.methodType ?? null,
-          authMode: request.auth?.mode ?? null
+          authMode: authMode
         }
       };
 
@@ -298,35 +293,33 @@ const buildGrpcScriptApi = ({ phaseType, request, phaseData } = {}) => {
         request: {
           message: new GrpcMessage({
             read: () => outgoing.message ?? null,
-            write: (value) => {
-              outgoing.message = value;
-            }
-          }),
+            readOnly: true
+          }).expose(),
           metadata: new GrpcMetadataList(request, { readOnly: true }).expose(),
           url: request.url ?? null,
           method: request.method ?? null,
           methodType: request.methodType ?? null,
-          authMode: request.auth?.mode ?? null
+          authMode: authMode
         }
       };
     }
 
     case 'afterMessageReceive': {
-      const { message, timeStamp } = phaseData || {};
+      const { message, timestamp } = phaseData || {};
       return {
         request: {
           metadata: new GrpcMetadataList(request, { readOnly: true }).expose(),
           url: request.url ?? null,
           method: request.method ?? null,
           methodType: request.methodType ?? null,
-          authMode: request.auth?.mode ?? null
+          authMode: authMode
         },
         response: {
           message: new GrpcMessage({
             read: () => message ?? null,
-            readOnly: true,
-            timeStamp: () => timeStamp ?? null
-          })
+            timestamp: () => timestamp ?? null,
+            readOnly: true
+          }).expose()
         }
       };
     }
@@ -340,7 +333,7 @@ const buildGrpcScriptApi = ({ phaseType, request, phaseData } = {}) => {
           url: request.url ?? null,
           method: request.method ?? null,
           methodType: request.methodType ?? null,
-          authMode: request.auth?.mode ?? null
+          authMode: authMode
         },
         response: {
           messages: new GrpcResponseMessageList(() => responses).expose(),

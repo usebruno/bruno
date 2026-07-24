@@ -426,7 +426,7 @@ class ScriptRuntime {
       requestUrl: request?.url,
       request,
       phaseType: SCRIPT_PHASES.GRPC.AFTER_MESSAGE_RECEIVE.FIELD,
-      phaseData: { message, timeStamp: messageReceivedAt }
+      phaseData: { message, timestamp: messageReceivedAt }
     });
 
     const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);

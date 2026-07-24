@@ -564,16 +564,15 @@ const registerGrpcEventHandlers = (window) => {
       // ── After Message Receive ──────────────────────────────────────────────
       const hasAfterMessageReceiveScript = !!get(preparedRequest, `script.${SCRIPT_PHASES.GRPC.AFTER_MESSAGE_RECEIVE.FIELD}`)?.length;
       const afterMessageReceive = hasAfterMessageReceiveScript
-        ? (message) => {
-            const messageReceivedAt = new Date();
-            runAfterMessageReceive({ ...scriptContext, message, messageReceivedAt })
-              .then(({ scriptError }) => {
-                if (scriptError) afterMessageReceiveErrored = true;
-              })
-              .catch((err) => {
-                console.error('Error running gRPC afterMessageReceive script:', err);
-              });
-          }
+        ? (message, messageReceivedAt) => {
+          runAfterMessageReceive({ ...scriptContext, message, messageReceivedAt })
+            .then(({ scriptError }) => {
+              if (scriptError) afterMessageReceiveErrored = true;
+            })
+            .catch((err) => {
+              console.error('Error running gRPC afterMessageReceive script:', err);
+            });
+        }
         : undefined;
 
       // ── After Call End ─────────────────────────────────────────────────────
@@ -582,18 +581,18 @@ const registerGrpcEventHandlers = (window) => {
       const hasTests = typeof testFile === 'string' && testFile.length > 0;
       const afterCallEnd = (hasAfterCallEndScript || hasTests)
         ? (response = {}) => {
-            if (afterMessageReceiveErrored) return;
-            (async () => {
-              if (hasAfterCallEndScript) {
-                await runAfterCallEnd({ ...scriptContext, response });
-              }
-              if (hasTests) {
-                await runTestFile({ ...scriptContext, response });
-              }
-            })().catch((err) => {
-              console.error('Error running gRPC afterCallEnd script/tests:', err);
-            });
-          }
+          if (afterMessageReceiveErrored) return;
+          (async () => {
+            if (hasAfterCallEndScript) {
+              await runAfterCallEnd({ ...scriptContext, response });
+            }
+            if (hasTests) {
+              await runTestFile({ ...scriptContext, response });
+            }
+          })().catch((err) => {
+            console.error('Error running gRPC afterCallEnd script/tests:', err);
+          });
+        }
         : undefined;
 
       // Get certificates and proxy configuration

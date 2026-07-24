@@ -194,7 +194,6 @@ const flattenHintTree = (node, prefix) =>
     : Object.entries(node).flatMap(([key, child]) => flattenHintTree(child, `${prefix}.${key}`));
 
 const GRPC_MESSAGE_READ_METHODS = ['all()', 'get(index)', 'first()', 'last()', 'count()', 'find(predicate)', 'filter(predicate)', 'map(mapper)', 'each(callback)'];
-const GRPC_MESSAGE_WRITE_METHODS = ['add(message)', 'addAll(messages)', 'set(index, message)', 'setAll(messages)', 'insert(index, message)', 'update(index, partial)', 'remove(index)', 'clear()'];
 const GRPC_METADATA_READ_METHODS = ['all()', 'get(key)', 'has(key)', 'count()', 'find(predicate)', 'filter(predicate)', 'map(mapper)', 'each(callback)'];
 const GRPC_METADATA_WRITE_METHODS = ['set(key, value)', 'setAll(data)', 'remove(key)', 'clear()'];
 
@@ -260,7 +259,7 @@ const GRPC_API_HINTS = {
           method: [],
           methodType: [],
           authMode: [],
-          message: ['get()', 'set(data)', 'update(partial)', 'clear()'],
+          message: ['data'],
           metadata: GRPC_METADATA_READ_METHODS
         }
       }
@@ -278,7 +277,7 @@ const GRPC_API_HINTS = {
           metadata: GRPC_METADATA_READ_METHODS
         },
         response: {
-          message: ['get()', 'timeStamp()']
+          message: ['data', 'timestamp']
         }
       }
     }
