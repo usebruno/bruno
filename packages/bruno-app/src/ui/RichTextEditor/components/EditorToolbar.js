@@ -7,7 +7,7 @@ import { Tooltip } from 'react-tooltip';
 import ToolbarStyledWrapper from './ToolbarStyledWrapper';
 import EditorTableMenu from './EditorTableMenu';
 import { EDITOR_MENU_DROPDOWN_PROPS, EDITOR_TOOLBAR_TOOLTIP_PROPS } from '../utils/editorToolbarUi';
-import { useToolbarOverflow } from '../utils/useToolbarOverflow';
+import { useToolbarOverflow } from '../hooks/useToolbarOverflow';
 
 const ToolbarButton = ({ tooltip, Icon, isActive, disabled, onClick, showLabel = false }) => {
   return (
