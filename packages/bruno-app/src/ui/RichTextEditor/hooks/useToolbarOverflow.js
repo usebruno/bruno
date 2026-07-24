@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useEditorState } from '@tiptap/react';
 import { getMarkRange } from '@tiptap/core';
-import { HEADING_OPTIONS, buildToolbarActions } from './editorToolbarConfig';
+import { HEADING_OPTIONS, buildToolbarActions } from '../utils/editorToolbarConfig';
 
 const getActiveHeadingId = (editor) => {
   if (!editor) return 'normal';

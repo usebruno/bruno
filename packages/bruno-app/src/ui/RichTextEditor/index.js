@@ -2,7 +2,7 @@ import { EditorContent } from '@tiptap/react';
 import { useRef } from 'react';
 import EditorToolbar from './components/EditorToolbar';
 import EditorLinkPopover from './components/EditorLinkPopover';
-import useLinkHandlers from './utils/useLinkHandlers';
+import useLinkHandlers from './hooks/useLinkHandlers';
 import extensions from './extensions';
 import StyledWrapper from './components/StyledWrapper';
 
