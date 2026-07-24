@@ -2,12 +2,10 @@ name: macOS Tests
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'release/v*']
-  pull_request:
-    branches: [main, 'release/v*']
+    branches: [main, 'release/*']
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

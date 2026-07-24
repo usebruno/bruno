@@ -100,10 +100,8 @@ test.describe('Open Multiple Collections', () => {
     // Verify no collections were opened
     await expect(page.locator('#sidebar-collection-name')).toHaveCount(collectionCountBefore);
 
-    // Invalid dirs toast "The collection is not valid …"; non-dirs toast
-    // "Some selected folders could not be opened …".
-    await expect(page.getByText(/collection is not valid|could not be opened/i).first()).toBeVisible({
-      timeout: 15000
-    });
+    // Verify invalid collection error
+    const invalidCollectionError = page.getByText('No Bruno collections found').first();
+    await expect(invalidCollectionError).toBeVisible();
   });
 });
