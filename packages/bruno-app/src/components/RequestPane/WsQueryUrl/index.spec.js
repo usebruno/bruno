@@ -118,7 +118,7 @@ describe('WsQueryUrl disconnect behavior', () => {
     renderWsQueryUrl();
 
     await waitFor(() => {
-      expect(screen.getByTestId('ws-disconnect-button')).toBeInTheDocument();
+      expect(screen.getByTestId('ws-disconnecting-strip')).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByTestId('ws-disconnect-button'));

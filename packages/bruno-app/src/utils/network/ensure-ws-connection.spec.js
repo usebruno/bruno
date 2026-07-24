@@ -29,6 +29,35 @@ describe('ensureWsConnection', () => {
     expect(invoke.mock.calls.some(([ch]) => ch === 'renderer:ws:start-connection')).toBe(false);
   });
 
+  it('does not start a connection when already connected', async () => {
+    invoke.mockImplementation(async (channel) => {
+      if (channel === 'renderer:ws:connection-status') {
+        return { status: 'connected' };
+      }
+      return { success: true };
+    });
+
+    await ensureWsConnection(item, collection, null, {});
+
+    expect(invoke.mock.calls.some(([ch]) => ch === 'renderer:ws:start-connection')).toBe(false);
+  });
+
+  it('starts a connection when disconnected', async () => {
+    invoke.mockImplementation(async (channel) => {
+      if (channel === 'renderer:ws:connection-status') {
+        return { status: 'disconnected' };
+      }
+      if (channel === 'renderer:ws:start-connection') {
+        return { success: true };
+      }
+      return { success: true };
+    });
+
+    await ensureWsConnection(item, collection, null, {});
+
+    expect(invoke.mock.calls.some(([ch]) => ch === 'renderer:ws:start-connection')).toBe(true);
+  });
+
   it('waits for disconnecting to finish then starts a fresh connection', async () => {
     let status = 'disconnecting';
     invoke.mockImplementation(async (channel) => {
