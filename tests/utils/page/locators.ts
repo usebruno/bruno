@@ -278,13 +278,13 @@ export const buildCommonLocators = (page: Page) => ({
     jsonTreeLine: () => page.locator('.response-pane .object-content'),
     // Tests-tab summary line ("Tests (N), Passed: X, Failed: Y") and failure rows.
     testSummary: () => page.locator('.test-summary').filter({ hasText: 'Tests' }),
-    // Both the icon and label spans in a result row carry .test-failure, so match at the
-    // row level (`.test-result-item`) to count one entry per failure, not two.
-    testFailures: () => page.locator('.test-result-item').filter({ has: page.locator('.test-failure') }),
+    // Match the fail icon (one per row) rather than a class shared by both the icon and
+    // label spans, so each failure counts once, not twice.
+    testFailures: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-fail') }),
     assertionResults: {
-      rows: () => page.locator('.test-result-item'),
-      passed: () => page.locator('.test-result-item').filter({ has: page.locator('.test-success') }),
-      failed: () => page.locator('.test-result-item').filter({ has: page.locator('.test-failure') })
+      rows: () => page.getByTestId('test-result-item'),
+      passed: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-pass') }),
+      failed: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-fail') })
     }
   },
   timeline: {
