@@ -10,7 +10,8 @@ import {
   createBrunoExample,
   groupRequestsByTags,
   groupRequestsByPath,
-  normalizeItemName
+  normalizeItemName,
+  getTagDescriptions
 } from './openapi-common';
 
 const getContentLevelExample = (bodyContent) => {
@@ -908,8 +909,9 @@ export const parseOpenApiCollection = (data, options = {}) => {
     } else {
       // Default tag-based grouping
       let [groups, ungroupedRequests] = groupRequestsByTags(allRequests, options);
+      const tagDescriptions = getTagDescriptions(collectionData.tags, options);
       let brunoFolders = groups.map((group) => {
-        return {
+        const folder = {
           uid: uuid(),
           name: group.name,
           type: 'folder',
@@ -930,6 +932,11 @@ export const parseOpenApiCollection = (data, options = {}) => {
           },
           items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames, options))
         };
+        const docs = tagDescriptions[group.name];
+        if (docs) {
+          folder.root.docs = docs;
+        }
+        return folder;
       });
 
       let ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames, options));
@@ -1030,7 +1037,8 @@ export const parseOpenApiCollection = (data, options = {}) => {
       },
       meta: {
         name: brunoCollection.name
-      }
+      },
+      docs: collectionData.info?.description
     };
 
     return brunoCollection;
