@@ -108,16 +108,12 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
     }));
   };
 
-  const tryDisconnect = () => {
-    closeWsConnection(item.uid).then(() => {}).catch(() => {});
-  };
-
   // Detect interpolated URL changes and attempt a disconnect
   useEffect(() => {
     if (connectionStatus !== 'connected') return;
     if (previousDeboundedInterpolatedURL.current === debouncedInterpolatedURL) return;
     if (debouncedInterpolatedURL === '') return;
-    tryDisconnect();
+    closeWsConnection(item.uid).then(() => {}).catch(() => {});
   }, [debouncedInterpolatedURL, connectionStatus, item]);
 
   return (
