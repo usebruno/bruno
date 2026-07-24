@@ -14,11 +14,7 @@ const Wrapper = styled.div`
   }
 
   &.text-redirect {
-    color: ${(props) => props.theme.requestTabPanel.responseRedirect};
-  }
-
-  &.text-client-error {
-    color: ${(props) => props.theme.requestTabPanel.responseClientError};
+    color: ${(props) => props.theme.colors.text.warning};
   }
 `;
 
