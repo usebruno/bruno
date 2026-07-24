@@ -14,11 +14,10 @@ import Button from 'ui/Button';
  * `disabled` dims the leading + body slots (not the actions, so controls stay usable).
  */
 const ListGroupItem = ({ leading, actions, disabled = false, className = '', children, ...rest }) => {
-  const dim = disabled ? 'opacity-50' : '';
   return (
-    <li className={['listgroup-item', className].filter(Boolean).join(' ')} {...rest}>
-      {leading != null ? <div className={`listgroup-item-leading ${dim}`}>{leading}</div> : null}
-      <div className={`listgroup-item-body ${dim}`}>{children}</div>
+    <li className={['listgroup-item', disabled ? 'is-disabled' : '', className].filter(Boolean).join(' ')} {...rest}>
+      {leading != null ? <div className="listgroup-item-leading">{leading}</div> : null}
+      <div className="listgroup-item-body">{children}</div>
       {actions != null ? <div className="listgroup-item-actions">{actions}</div> : null}
     </li>
   );
@@ -56,7 +55,7 @@ const ListGroup = ({ items = [], renderItem, getKey, emptyState, addButton, clas
           {emptyState.icon}
           {emptyState.title ? <div className="listgroup-empty-title">{emptyState.title}</div> : null}
           {emptyState.text ? <div className="listgroup-empty-text">{emptyState.text}</div> : null}
-          {addButton ? <div className="mt-6">{renderAddButton()}</div> : null}
+          {addButton ? <div className="listgroup-empty-action">{renderAddButton()}</div> : null}
         </div>
       ) : null}
 
@@ -68,7 +67,7 @@ const ListGroup = ({ items = [], renderItem, getKey, emptyState, addButton, clas
         </ul>
       ) : null}
 
-      {hasItems && addButton ? <div className="mt-4">{renderAddButton()}</div> : null}
+      {hasItems && addButton ? <div className="listgroup-add">{renderAddButton()}</div> : null}
     </StyledWrapper>
   );
 };

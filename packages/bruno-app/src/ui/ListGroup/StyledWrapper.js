@@ -5,6 +5,9 @@ const StyledWrapper = styled.div`
   .listgroup {
     display: flex;
     flex-direction: column;
+    list-style: none;
+    margin: 0;
+    padding: 0;
     max-width: ${(props) => props.$maxWidth};
     border: 1px solid ${(props) => props.theme.border.border1};
     border-radius: ${(props) => props.theme.border.radius.md};
@@ -40,6 +43,12 @@ const StyledWrapper = styled.div`
     }
   }
 
+  /* disabled dims the leading + body slots, but not the actions so controls stay usable */
+  .listgroup-item.is-disabled .listgroup-item-leading,
+  .listgroup-item.is-disabled .listgroup-item-body {
+    opacity: 0.5;
+  }
+
   .listgroup-item-leading {
     flex-shrink: 0;
     margin-top: 1px;
@@ -59,6 +68,14 @@ const StyledWrapper = styled.div`
     gap: 0.5rem;
     flex-shrink: 0;
     margin-top: 1px;
+  }
+
+  .listgroup-add {
+    margin-top: 1rem;
+  }
+
+  .listgroup-empty-action {
+    margin-top: 1.5rem;
   }
 
   /* Empty state — same frame as the list so the surface stays put */
