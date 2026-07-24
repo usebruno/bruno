@@ -344,23 +344,34 @@ const CollectionApp = ({ item, collection }) => {
     <StyledWrapper data-testid="collection-app">
       <div className="app-toolbar">
         <span>App - {item.name}</span>
-        <div className="view-toggle" data-testid="collection-app-view-toggle">
-          <button
-            type="button"
-            data-testid="collection-app-view-code"
-            className={classnames('view-btn', { active: view === 'code' })}
-            onClick={() => setView('code')}
-          >
-            Code
-          </button>
-          <button
-            type="button"
-            data-testid="collection-app-view-preview"
-            className={classnames('view-btn', { active: view === 'preview' })}
-            onClick={() => setView('preview')}
-          >
-            Preview
-          </button>
+        <div className="flex items-center gap-2">
+          {view === 'code' && (
+            <AIAssist
+              scriptType="app-collection"
+              currentScript={code || ''}
+              docsContext={docsContext}
+              variables={aiVariables}
+              onApply={onEdit}
+            />
+          )}
+          <div className="view-toggle" data-testid="collection-app-view-toggle">
+            <button
+              type="button"
+              data-testid="collection-app-view-code"
+              className={classnames('view-btn', { active: view === 'code' })}
+              onClick={() => setView('code')}
+            >
+              Code
+            </button>
+            <button
+              type="button"
+              data-testid="collection-app-view-preview"
+              className={classnames('view-btn', { active: view === 'preview' })}
+              onClick={() => setView('preview')}
+            >
+              Preview
+            </button>
+          </div>
         </div>
       </div>
 
@@ -375,13 +386,6 @@ const CollectionApp = ({ item, collection }) => {
             onEdit={onEdit}
             onSave={onSave}
             mode="htmlmixed"
-          />
-          <AIAssist
-            scriptType="app-collection"
-            currentScript={code || ''}
-            docsContext={docsContext}
-            variables={aiVariables}
-            onApply={onEdit}
           />
         </div>
       ) : code && code.trim().length ? (

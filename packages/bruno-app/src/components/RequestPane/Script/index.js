@@ -1,10 +1,8 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
-import AIAssist from 'components/AIAssist';
-import { buildAiContextPayload } from 'utils/ai';
 import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -13,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StatusDot from 'components/StatusDot';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
+import { getActiveScriptTab } from 'utils/tabs';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -26,13 +25,7 @@ const Script = ({ item, collection }) => {
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const scriptPaneTab = focusedTab?.scriptPaneTab;
 
-  // Default to post-response if pre-request script is empty (only when scriptPaneTab is null/undefined)
-  const getDefaultTab = () => {
-    const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
-    return hasPreRequestScript ? 'pre-request' : 'post-response';
-  };
-
-  const activeTab = scriptPaneTab || getDefaultTab();
+  const activeTab = getActiveScriptTab(scriptPaneTab, requestScript);
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
@@ -95,11 +88,6 @@ const Script = ({ item, collection }) => {
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  const { requestContext, variables: aiVariables } = useMemo(
-    () => buildAiContextPayload(item, collection),
-    [item, collection]
-  );
-
   const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
   const hasPostResponseScript = responseScript && responseScript.trim().length > 0;
 
@@ -145,13 +133,6 @@ const Script = ({ item, collection }) => {
               initialScroll={preReqScroll}
               onScroll={setPreReqScroll}
             />
-            <AIAssist
-              scriptType="pre-request"
-              currentScript={requestScript || ''}
-              requestContext={requestContext}
-              variables={aiVariables}
-              onApply={onRequestScriptEdit}
-            />
           </div>
         </TabsContent>
 
@@ -174,13 +155,6 @@ const Script = ({ item, collection }) => {
               scriptType="post-response"
               initialScroll={postResScroll}
               onScroll={setPostResScroll}
-            />
-            <AIAssist
-              scriptType="post-response"
-              currentScript={responseScript || ''}
-              requestContext={requestContext}
-              variables={aiVariables}
-              onApply={onResponseScriptEdit}
             />
           </div>
         </TabsContent>

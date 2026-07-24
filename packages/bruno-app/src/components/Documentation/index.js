@@ -4,13 +4,11 @@ import find from 'lodash/find';
 import { updateRequestDocs } from 'providers/ReduxStore/slices/collections';
 import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
-import { useMemo, useRef } from 'react';
+import { useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
-import AIAssist from 'components/AIAssist';
-import { buildAiContextPayload } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
@@ -44,10 +42,6 @@ const Documentation = ({ item, collection }) => {
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
-  const { requestContext, variables: aiVariables } = useMemo(
-    () => buildAiContextPayload(item, collection),
-    [item, collection]
-  );
 
   if (!item) {
     return null;
@@ -72,13 +66,6 @@ const Documentation = ({ item, collection }) => {
             mode="application/text"
             initialScroll={scroll}
             onScroll={setScroll}
-          />
-          <AIAssist
-            scriptType="docs"
-            currentScript={docs || ''}
-            requestContext={requestContext}
-            variables={aiVariables}
-            onApply={onEdit}
           />
         </div>
       ) : (

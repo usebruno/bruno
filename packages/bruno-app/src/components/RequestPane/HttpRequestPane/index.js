@@ -19,7 +19,10 @@ import StatusDot from 'components/StatusDot';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import AuthMode from '../Auth/AuthMode/index';
+import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
+
+const AI_TABS = ['script', 'tests', 'docs', 'app'];
 
 const TAB_CONFIG = [
   { key: 'params', label: 'Params' },
@@ -141,6 +144,10 @@ const HttpRequestPane = ({ item, collection }) => {
   ) : requestPaneTab === 'auth' ? (
     <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
       <AuthMode item={item} collection={collection} />
+    </div>
+  ) : AI_TABS.includes(effectiveTab) ? (
+    <div ref={rightContentRef} className="flex items-center">
+      <TabBarAiAssist item={item} collection={collection} activeTab={effectiveTab} />
     </div>
   ) : null;
 
