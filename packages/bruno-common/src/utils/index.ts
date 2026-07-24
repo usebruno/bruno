@@ -53,3 +53,10 @@ export {
   base64Sha256,
   makeContentHash
 } from './edgegrid';
+
+export const TIMEOUT_INHERIT = 'inherit' as const;
+
+// Normalize a request timeout setting for serialization: keep numbers and the
+// "inherit" sentinel as-is; fall back to 0 for anything else (null/undefined/invalid).
+export const resolveTimeoutSetting = (value: unknown): number | typeof TIMEOUT_INHERIT =>
+  typeof value === 'number' || value === TIMEOUT_INHERIT ? value : 0;
