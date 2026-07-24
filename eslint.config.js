@@ -10,6 +10,28 @@ const runESMImports = async () => {
   stylistic = await import('@stylistic/eslint-plugin').then((d) => d.default);
 };
 
+// Shared with the ESLINT_DISABLE_AUTOFIX override below - keep in one place
+// so adding a package here doesn't require remembering to update that block too.
+const mainLintFiles = [
+  './eslint.config.js',
+  'tests/**/*.{ts,js}',
+  'playwright/**/*.{js,ts}',
+  'packages/bruno-app/**/*.{js,jsx,ts}',
+  'packages/bruno-app/plugins/**/*.{js,cjs,mjs}',
+  'packages/bruno-app/src/test-utils/mocks/codemirror.js',
+  'packages/bruno-cli/**/*.js',
+  'packages/bruno-common/**/*.ts',
+  'packages/bruno-converters/**/*.js',
+  'packages/bruno-electron/**/*.js',
+  'packages/bruno-filestore/**/*.ts',
+  'packages/bruno-schema-types/**/*.ts',
+  'packages/bruno-js/**/*.js',
+  'packages/bruno-lang/**/*.js',
+  'packages/bruno-requests/**/*.ts',
+  'packages/bruno-requests/**/*.js',
+  'packages/bruno-tests/**/*.{js,ts}'
+];
+
 module.exports = runESMImports().then(() => defineConfig([
   // Global ignores - must be a standalone object with ONLY ignores
   {
@@ -35,25 +57,7 @@ module.exports = runESMImports().then(() => defineConfig([
         sourceType: 'module'
       }
     },
-    files: [
-      './eslint.config.js',
-      'tests/**/*.{ts,js}',
-      'playwright/**/*.{js,ts}',
-      'packages/bruno-app/**/*.{js,jsx,ts}',
-      'packages/bruno-app/plugins/**/*.{js,cjs,mjs}',
-      'packages/bruno-app/src/test-utils/mocks/codemirror.js',
-      'packages/bruno-cli/**/*.js',
-      'packages/bruno-common/**/*.ts',
-      'packages/bruno-converters/**/*.js',
-      'packages/bruno-electron/**/*.js',
-      'packages/bruno-filestore/**/*.ts',
-      'packages/bruno-schema-types/**/*.ts',
-      'packages/bruno-js/**/*.js',
-      'packages/bruno-lang/**/*.js',
-      'packages/bruno-requests/**/*.ts',
-      'packages/bruno-requests/**/*.js',
-      'packages/bruno-tests/**/*.{js,ts}'
-    ],
+    files: mainLintFiles,
     rules: {
       ...stylistic.configs.customize({
         indent: 2,
@@ -92,6 +96,16 @@ module.exports = runESMImports().then(() => defineConfig([
       'no-use-before-define': ['warn', { functions: false }]
     }
   },
+  // When running `eslint --fix` we don't want these two rules to silently
+  // rewrite existing code (they still run and warn under plain `npm run lint`).
+  // Toggle via ESLINT_DISABLE_AUTOFIX=true, set by the `lint:fix` script.
+  ...(process.env.ESLINT_DISABLE_AUTOFIX === 'true' ? [{
+    files: mainLintFiles,
+    rules: {
+      'eqeqeq': 'off',
+      'prefer-const': 'off'
+    }
+  }] : []),
   {
     files: ['packages/bruno-app/**/*.{js,jsx,ts}'],
     ignores: ['**/*.config.js', '**/public/**/*', '**/plugins/**/*'],
