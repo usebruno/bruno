@@ -24,6 +24,7 @@ const externalDeps = [
   'lodash/map',
   'js-yaml',
   'jscodeshift',
+  'mime-types',
   'nanoid',
   'xml2js',
   // Node built-ins

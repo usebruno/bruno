@@ -1,3 +1,4 @@
+import mime from 'mime-types';
 import { transformExampleStatusInCollection } from '@usebruno/common';
 import each from 'lodash/each';
 import get from 'lodash/get';
@@ -98,6 +99,16 @@ const ensureMaxBodySize = (value) => {
   if (value == null || value === '') return null;
   const num = Number(value);
   return isNaN(num) ? null : num;
+};
+
+/**
+ * Postman's `mode: "file"` body carries no per-file content type. Infer it from the
+ * file extension; fall back to application/octet-stream (RFC 2046 §4.5.1) when the
+ * extension is missing or unknown.
+ * https://datatracker.ietf.org/doc/html/rfc2046#section-4.5.1
+ */
+const inferBinaryContentType = (filePath) => {
+  return mime.lookup(filePath || '') || 'application/octet-stream';
 };
 
 /**
@@ -560,7 +571,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               text: null,
               xml: null,
               formUrlEncoded: [],
-              multipartForm: []
+              multipartForm: [],
+              file: []
             },
             docs: transformDescription(i.request.description)
           }
@@ -670,6 +682,17 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               brunoRequestItem.request.body.text = i.request.body.raw;
             }
           }
+
+          if (bodyMode === 'file') {
+            brunoRequestItem.request.body.mode = 'file';
+            const filePath = ensureString(i.request.body.file?.src);
+            brunoRequestItem.request.body.file.push({
+              uid: uuid(),
+              selected: true,
+              filePath,
+              contentType: inferBinaryContentType(filePath)
+            });
+          }
         }
 
         if (bodyMode === 'graphql') {
@@ -752,7 +775,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                   text: null,
                   xml: null,
                   formUrlEncoded: [],
-                  multipartForm: []
+                  multipartForm: [],
+                  file: []
                 }
               },
               response: {
@@ -864,6 +888,15 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                   example.request.body.mode = 'text';
                   example.request.body.text = originalRequest.body.raw;
                 }
+              } else if (bodyMode === 'file') {
+                example.request.body.mode = 'file';
+                const filePath = ensureString(originalRequest.body.file?.src);
+                example.request.body.file.push({
+                  uid: uuid(),
+                  selected: true,
+                  filePath,
+                  contentType: inferBinaryContentType(filePath)
+                });
               }
             }
 

@@ -159,6 +159,8 @@ export const buildCommonLocators = (page: Page) => ({
     requestTestId: () => page.getByTestId('request-name'),
     generateCodeButton: () => page.getByTestId('generate-code-button'),
     bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
+    bodyModeLabel: () => page.getByTestId('request-body-mode-label'),
+    exampleBodyModeLabel: () => page.getByTestId('example-body-mode-label'),
     bodyEditor: () => page.getByTestId('request-body-editor'),
     bodyVariableToken: (name: string, state?: 'valid' | 'invalid') => {
       const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
