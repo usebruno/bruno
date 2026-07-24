@@ -1,9 +1,10 @@
 import React from 'react';
-import { IconCertificate, IconTrash, IconWorld } from '@tabler/icons';
+import { IconCertificate, IconTrash, IconFile, IconX, IconUpload, IconPlus, IconEye, IconEyeOff } from '@tabler/icons';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import StyledWrapper from './StyledWrapper';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import Modal from 'components/Modal';
 import path from 'utils/common/path';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
@@ -11,12 +12,69 @@ import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField/index';
 import { useTheme } from 'styled-components';
 import { useDispatch } from 'react-redux';
 import { updateCollectionClientCertificates } from 'providers/ReduxStore/slices/collections';
-import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import get from 'lodash/get';
 import Button from 'ui/Button';
+import ActionIcon from 'ui/ActionIcon';
+
+const CertField = ({ label, value, title, action }) => (
+  <div className="cert-field">
+    <span className="cert-field-label">{label}</span>
+    <span className="cert-field-value truncate" title={title}>
+      {value}
+    </span>
+    {action}
+  </div>
+);
+
+const CertFileInput = ({ label, name, value, inputRef, onSelect, onClear, error, touched, dangerColor }) => (
+  <div className="mb-3 flex items-start">
+    <label className="settings-label mt-1" htmlFor={name}>
+      {label}
+    </label>
+    <div className="flex flex-col gap-1">
+      {/* input stays mounted (hidden) so its ref survives type switches and form resets */}
+      <input
+        key={name}
+        id={name}
+        type="file"
+        name={name}
+        className="hidden"
+        onChange={(e) => onSelect(e.target)}
+        ref={inputRef}
+      />
+      {value ? (
+        <div className="file-chip">
+          <IconFile size={14} strokeWidth={1.5} className="flex-shrink-0" />
+          <span className="truncate max-w-[260px]" title={value}>
+            {path.basename(value)}
+          </span>
+          <ActionIcon label="Remove file" size="sm" colorOnHover={dangerColor} onClick={onClear}>
+            <IconX size={14} strokeWidth={1.5} />
+          </ActionIcon>
+        </div>
+      ) : (
+        <Button
+          size="xs"
+          variant="outline"
+          icon={<IconUpload size={13} strokeWidth={1.5} />}
+          onClick={() => inputRef.current?.click()}
+        >
+          Choose file
+        </Button>
+      )}
+      {touched && error ? <div className="text-red-500 text-xs">{error}</div> : null}
+    </div>
+  </div>
+);
 
 const ClientCertSettings = ({ collection }) => {
   const dispatch = useDispatch();
+  const [showAddCertModal, setShowAddCertModal] = useState(false);
+  const [visiblePassphrases, setVisiblePassphrases] = useState([]);
+
+  const togglePassphraseVisibility = (index) => {
+    setVisiblePassphrases((prev) => (prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]));
+  };
 
   // Get client certs from draft if exists, otherwise from brunoConfig
   const clientCertConfig = collection.draft?.brunoConfig
@@ -25,7 +83,8 @@ const ClientCertSettings = ({ collection }) => {
   const certFilePathInputRef = useRef();
   const keyFilePathInputRef = useRef();
   const pfxFilePathInputRef = useRef();
-  const { storedTheme } = useTheme();
+  const theme = useTheme();
+  const { storedTheme } = theme;
 
   const formik = useFormik({
     initialValues: {
@@ -89,6 +148,7 @@ const ClientCertSettings = ({ collection }) => {
 
       formik.resetForm();
       resetFileInputFields();
+      setShowAddCertModal(false);
     }
   });
 
@@ -115,16 +175,16 @@ const ClientCertSettings = ({ collection }) => {
     }
   };
 
-  const handleTypeChange = (e) => {
-    formik.setFieldValue('type', e.target.value);
-    if (e.target.value === 'cert') {
+  const handleTypeChange = (type) => {
+    formik.setFieldValue('type', type);
+    if (type === 'cert') {
       formik.setFieldValue('pfxFilePath', '');
-      pfxFilePathInputRef.current.value = '';
+      if (pfxFilePathInputRef.current) pfxFilePathInputRef.current.value = '';
     } else {
       formik.setFieldValue('certFilePath', '');
-      certFilePathInputRef.current.value = '';
+      if (certFilePathInputRef.current) certFilePathInputRef.current.value = '';
       formik.setFieldValue('keyFilePath', '');
-      keyFilePathInputRef.current.value = '';
+      if (keyFilePathInputRef.current) keyFilePathInputRef.current.value = '';
     }
   };
 
@@ -141,249 +201,228 @@ const ClientCertSettings = ({ collection }) => {
     }));
   };
 
-  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
+  const openAddCertModal = () => {
+    formik.resetForm();
+    resetFileInputFields();
+    setShowAddCertModal(true);
+  };
+
+  const clearFileField = (name, inputRef) => {
+    formik.setFieldValue(name, '');
+    if (inputRef.current) inputRef.current.value = '';
+  };
 
   return (
     <StyledWrapper className="w-full h-full">
-      <div className="text-xs mb-4 text-muted">Add client certificates to be used for specific domains.</div>
+      <h1 className="font-medium text-[0.9375rem]">Client Certificates</h1>
+      <div className="text-xs mt-1 text-muted">Add client certificates to be used for specific domains.</div>
 
-      <h1 className="font-medium">Client Certificates</h1>
-      <ul className="mt-4">
-        {!clientCertConfig.length
-          ? 'No client certificates added'
-          : clientCertConfig.map((clientCert, index) => (
-              <li key={`client-cert-${index}`} className="flex items-center available-certificates p-2 rounded-lg mb-2">
-                <div className="flex items-center w-full justify-between">
-                  <div className="flex w-full items-center">
-                    <IconWorld className="mr-2" size={18} strokeWidth={1.5} />
-                    {clientCert.domain}
+      {!clientCertConfig.length ? (
+        <div className="cert-empty mt-5">
+          <IconCertificate size={24} strokeWidth={1.2} />
+          <div className="cert-empty-title">No client certificates</div>
+          <div className="cert-empty-text">
+            Certificates added here are sent automatically with requests to their matching domains.
+          </div>
+          <div className="mt-6">
+            <Button
+              size="sm"
+              icon={<IconPlus size={15} strokeWidth={1.5} />}
+              onClick={openAddCertModal}
+              data-testid="add-client-cert"
+            >
+              Add Certificate
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <ul className="cert-list mt-5">
+          {clientCertConfig.map((clientCert, index) => (
+            <li key={`client-cert-${index}`} className="cert-item">
+              <IconCertificate className="cert-icon" size={20} strokeWidth={1.5} />
+              <div className="cert-fields">
+                <CertField label="Host" value={clientCert.domain} title={clientCert.domain} />
+                {clientCert.type === 'pfx' ? (
+                  <CertField label="PFX File" value={path.basename(clientCert.pfxFilePath || '')} title={clientCert.pfxFilePath} />
+                ) : (
+                  <>
+                    <CertField label="Cert File" value={path.basename(clientCert.certFilePath || '')} title={clientCert.certFilePath} />
+                    <CertField label="Key File" value={path.basename(clientCert.keyFilePath || '')} title={clientCert.keyFilePath} />
+                  </>
+                )}
+                {clientCert.passphrase ? (
+                  <CertField
+                    label="Passphrase"
+                    value={visiblePassphrases.includes(index) ? clientCert.passphrase : '••••••••'}
+                    action={(
+                      <ActionIcon
+                        size="sm"
+                        className={visiblePassphrases.includes(index) ? 'stay-visible' : ''}
+                        label={visiblePassphrases.includes(index) ? 'Hide passphrase' : 'Show passphrase'}
+                        onClick={() => togglePassphraseVisibility(index)}
+                      >
+                        {visiblePassphrases.includes(index) ? (
+                          <IconEyeOff size={14} strokeWidth={1.5} />
+                        ) : (
+                          <IconEye size={14} strokeWidth={1.5} />
+                        )}
+                      </ActionIcon>
+                    )}
+                  />
+                ) : null}
+              </div>
+              <ActionIcon
+                label="Remove certificate"
+                colorOnHover={theme.colors.text.danger}
+                onClick={() => handleRemove(index)}
+              >
+                <IconTrash size={16} strokeWidth={1.5} />
+              </ActionIcon>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {clientCertConfig.length ? (
+        <div className="mt-4">
+          <Button
+            size="sm"
+            icon={<IconPlus size={15} strokeWidth={1.5} />}
+            onClick={openAddCertModal}
+            data-testid="add-client-cert"
+          >
+            Add Certificate
+          </Button>
+        </div>
+      ) : null}
+
+      {showAddCertModal && (
+        <Modal
+          size="md"
+          title="Add Client Certificate"
+          confirmText="Add"
+          dataTestId="add-client-cert-modal"
+          handleConfirm={formik.handleSubmit}
+          handleCancel={() => setShowAddCertModal(false)}
+        >
+          <div className="text-xs mb-4 text-muted">
+            The certificate and key files are stored as paths relative to the collection.
+          </div>
+          <form className="bruno-form" onSubmit={formik.handleSubmit}>
+            <div className="mb-3 flex items-start">
+              <label className="settings-label mt-1" htmlFor="domain">
+                Domain
+              </label>
+              <div className="flex flex-col gap-1">
+                <div className="relative flex items-center">
+                  <div className="absolute left-0 pl-2 text-gray-400 pointer-events-none flex items-center h-full">
+                    <span className="protocol-placeholder">
+                      <span className="protocol-https">https://</span>
+                      <span className="protocol-grpcs">grpcs://</span>
+                      <span className="protocol-wss">wss://</span>
+                    </span>
                   </div>
-                  <div className="flex w-full items-center">
-                    <IconCertificate className="mr-2 flex-shrink-0" size={18} strokeWidth={1.5} />
-                    {clientCert.type === 'cert' ? clientCert.certFilePath : clientCert.pfxFilePath}
-                  </div>
-                  <button onClick={() => handleRemove(index)} className="remove-certificate ml-2">
-                    <IconTrash size={18} strokeWidth={1.5} />
-                  </button>
+                  <input
+                    id="domain"
+                    type="text"
+                    name="domain"
+                    placeholder="example.org"
+                    className="block textbox non-passphrase-input !pl-[60px]"
+                    onChange={formik.handleChange}
+                    value={formik.values.domain || ''}
+                  />
                 </div>
-              </li>
-            ))}
-      </ul>
-
-      <h1 className="font-medium mt-8 mb-2">Add Client Certificate</h1>
-      <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="domain">
-            Domain
-          </label>
-          <div className="relative flex items-center">
-            <div className="absolute left-0 pl-2 text-gray-400 pointer-events-none flex items-center h-full">
-              <span className="protocol-placeholder">
-                <span className="protocol-https">https://</span>
-                <span className="protocol-grpcs">grpcs://</span>
-                <span className="protocol-wss">wss://</span>
-              </span>
+                {formik.touched.domain && formik.errors.domain ? (
+                  <div className="text-red-500 text-xs">{formik.errors.domain}</div>
+                ) : null}
+              </div>
             </div>
-            <input
-              id="domain"
-              type="text"
-              name="domain"
-              placeholder="example.org"
-              className="block textbox non-passphrase-input !pl-[60px]"
-              onChange={formik.handleChange}
-              value={formik.values.domain || ''}
-            />
-          </div>
-          {formik.touched.domain && formik.errors.domain ? (
-            <div className="ml-1 text-red-500">{formik.errors.domain}</div>
-          ) : null}
-        </div>
-        <div className="mb-3 flex items-center">
-          <label id="type-label" className="settings-label">
-            Type
-          </label>
-          <div className="flex items-center" aria-labelledby="type-label">
-            <label className="flex items-center cursor-pointer" htmlFor="cert">
-              <input
-                id="cert"
-                type="radio"
-                name="type"
-                value="cert"
-                checked={formik.values.type === 'cert'}
-                onChange={handleTypeChange}
-                className="mr-1"
-              />
-              Cert
-            </label>
-            <label className="flex items-center ml-4 cursor-pointer" htmlFor="pfx">
-              <input
-                id="pfx"
-                type="radio"
-                name="type"
-                value="pfx"
-                checked={formik.values.type === 'pfx'}
-                onChange={handleTypeChange}
-                className="mr-1"
-              />
-              PFX
-            </label>
-          </div>
-        </div>
-        {formik.values.type === 'cert' ? (
-          <>
             <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="certFilePath">
-                Cert file
+              <label id="type-label" className="settings-label">
+                Type
               </label>
-              <div className="flex flex-row gap-2 justify-start">
-                <input
-                  key="certFilePath"
-                  id="certFilePath"
-                  type="file"
+              <div className="type-picker" role="radiogroup" aria-labelledby="type-label">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={formik.values.type === 'cert'}
+                  className={`type-option ${formik.values.type === 'cert' ? 'active' : ''}`}
+                  onClick={() => handleTypeChange('cert')}
+                >
+                  Cert &amp; Key
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={formik.values.type === 'pfx'}
+                  className={`type-option ${formik.values.type === 'pfx' ? 'active' : ''}`}
+                  onClick={() => handleTypeChange('pfx')}
+                >
+                  PFX
+                </button>
+              </div>
+            </div>
+            {formik.values.type === 'cert' ? (
+              <>
+                <CertFileInput
+                  label="Cert file"
                   name="certFilePath"
-                  className={`non-passphrase-input ${formik.values.certFilePath?.length ? 'hidden' : 'block'}`}
-                  onChange={(e) => getFile(e.target)}
-                  ref={certFilePathInputRef}
+                  value={formik.values.certFilePath}
+                  inputRef={certFilePathInputRef}
+                  onSelect={getFile}
+                  onClear={() => clearFileField('certFilePath', certFilePathInputRef)}
+                  error={formik.errors.certFilePath}
+                  touched={formik.touched.certFilePath}
+                  dangerColor={theme.colors.text.danger}
                 />
-                {formik.values.certFilePath ? (
-                  <div className="flex flex-row gap-2 items-center">
-                    <div
-                      className="my-[3px] overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px]"
-                      title={path.basename(formik.values.certFilePath)}
-                    >
-                      {path.basename(formik.values.certFilePath)}
-                    </div>
-                    <IconTrash
-                      size={18}
-                      strokeWidth={1.5}
-                      className="ml-2 cursor-pointer"
-                      onClick={() => {
-                        formik.setFieldValue('certFilePath', '');
-                        certFilePathInputRef.current.value = '';
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <></>
-                )}
-              </div>
-              {formik.touched.certFilePath && formik.errors.certFilePath ? (
-                <div className="ml-1 text-red-500">{formik.errors.certFilePath}</div>
-              ) : null}
-            </div>
-            <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="keyFilePath">
-                Key file
-              </label>
-              <div className="flex flex-row gap-2">
-                <input
-                  key="keyFilePath"
-                  id="keyFilePath"
-                  type="file"
+                <CertFileInput
+                  label="Key file"
                   name="keyFilePath"
-                  className={`non-passphrase-input ${formik.values.keyFilePath?.length ? 'hidden' : 'block'}`}
-                  onChange={(e) => getFile(e.target)}
-                  ref={keyFilePathInputRef}
+                  value={formik.values.keyFilePath}
+                  inputRef={keyFilePathInputRef}
+                  onSelect={getFile}
+                  onClear={() => clearFileField('keyFilePath', keyFilePathInputRef)}
+                  error={formik.errors.keyFilePath}
+                  touched={formik.touched.keyFilePath}
+                  dangerColor={theme.colors.text.danger}
                 />
-                {formik.values.keyFilePath ? (
-                  <div className="flex flex-row gap-2 items-center">
-                    <div
-                      className="my-[3px] overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px]"
-                      title={path.basename(formik.values.keyFilePath)}
-                    >
-                      {path.basename(formik.values.keyFilePath)}
-                    </div>
-                    <IconTrash
-                      size={18}
-                      strokeWidth={1.5}
-                      className="ml-2 cursor-pointer"
-                      onClick={() => {
-                        formik.setFieldValue('keyFilePath', '');
-                        keyFilePathInputRef.current.value = '';
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <></>
-                )}
-              </div>
-              {formik.touched.keyFilePath && formik.errors.keyFilePath ? (
-                <div className="ml-1 text-red-500">{formik.errors.keyFilePath}</div>
-              ) : null}
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="pfxFilePath">
-                PFX file
+              </>
+            ) : (
+              <CertFileInput
+                label="PFX file"
+                name="pfxFilePath"
+                value={formik.values.pfxFilePath}
+                inputRef={pfxFilePathInputRef}
+                onSelect={getFile}
+                onClear={() => clearFileField('pfxFilePath', pfxFilePathInputRef)}
+                error={formik.errors.pfxFilePath}
+                touched={formik.touched.pfxFilePath}
+                dangerColor={theme.colors.text.danger}
+              />
+            )}
+            <div className="mb-3 flex items-start">
+              <label className="settings-label mt-1" htmlFor="passphrase">
+                Passphrase
               </label>
-              <div className="flex flex-row gap-2">
-                <input
-                  key="pfxFilePath"
-                  id="pfxFilePath"
-                  type="file"
-                  name="pfxFilePath"
-                  className={`non-passphrase-input ${formik.values.pfxFilePath?.length ? 'hidden' : 'block'}`}
-                  onChange={(e) => getFile(e.target)}
-                  ref={pfxFilePathInputRef}
-                />
-                {formik.values.pfxFilePath ? (
-                  <div className="flex flex-row gap-2 items-center">
-                    <div
-                      className="my-[3px] overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px]"
-                      title={path.basename(formik.values.pfxFilePath)}
-                    >
-                      {path.basename(formik.values.pfxFilePath)}
-                    </div>
-                    <IconTrash
-                      size={18}
-                      strokeWidth={1.5}
-                      className="ml-2 cursor-pointer"
-                      onClick={() => {
-                        formik.setFieldValue('pfxFilePath', '');
-                        pfxFilePathInputRef.current.value = '';
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <></>
-                )}
+              <div className="flex flex-col gap-1">
+                <div className="textbox flex flex-row items-center w-[300px] h-[1.70rem] relative">
+                  <SingleLineEditor
+                    value={formik.values.passphrase || ''}
+                    theme={storedTheme}
+                    onChange={(val) => formik.setFieldValue('passphrase', val)}
+                    collection={collection}
+                    isSecret={true}
+                  />
+                  {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}
+                </div>
+                {formik.touched.passphrase && formik.errors.passphrase ? (
+                  <div className="text-red-500 text-xs">{formik.errors.passphrase}</div>
+                ) : null}
               </div>
-              {formik.touched.pfxFilePath && formik.errors.pfxFilePath ? (
-                <div className="ml-1 text-red-500">{formik.errors.pfxFilePath}</div>
-              ) : null}
             </div>
-          </>
-        )}
-        <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="passphrase">
-            Passphrase
-          </label>
-          <div className="textbox flex flex-row items-center w-[300px] h-[1.70rem] relative">
-            <SingleLineEditor
-              value={formik.values.passphrase || ''}
-              theme={storedTheme}
-              onChange={(val) => formik.setFieldValue('passphrase', val)}
-              collection={collection}
-              isSecret={true}
-            />
-            {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}
-          </div>
-          {formik.touched.passphrase && formik.errors.passphrase ? (
-            <div className="ml-1 text-red-500">{formik.errors.passphrase}</div>
-          ) : null}
-        </div>
-        <div className="mt-6 flex flex-row gap-2 items-center">
-          <Button type="submit" size="sm" data-testid="add-client-cert">
-            Add
-          </Button>
-          <div className="h-4 border-l border-gray-600"></div>
-          <Button type="button" size="sm" onClick={handleSave}>
-            Save
-          </Button>
-        </div>
-      </form>
+          </form>
+        </Modal>
+      )}
     </StyledWrapper>
   );
 };
