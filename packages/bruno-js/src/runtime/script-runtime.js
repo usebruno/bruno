@@ -101,6 +101,18 @@ class ScriptRuntime {
       scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
     });
 
+    const wrapRequestOnFailHandler = () => {
+      if (typeof request.onFailHandler !== 'function') {
+        return;
+      }
+
+      const onFailHandler = request.onFailHandler;
+      request.onFailHandler = async (error) => {
+        await onFailHandler(error);
+        return buildRequestScriptResult();
+      };
+    };
+
     // Track script errors to attach partial results before re-throwing
     // This ensures that any test() calls that passed before the error are preserved
     // Similar pattern to test-runtime.js which already handles this correctly
@@ -126,6 +138,7 @@ class ScriptRuntime {
         throw scriptError;
       }
 
+      wrapRequestOnFailHandler();
       return buildRequestScriptResult();
     }
 
@@ -146,6 +159,7 @@ class ScriptRuntime {
       throw scriptError;
     }
 
+    wrapRequestOnFailHandler();
     return buildRequestScriptResult();
   }
 
