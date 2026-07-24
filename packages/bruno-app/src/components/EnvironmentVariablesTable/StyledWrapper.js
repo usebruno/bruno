@@ -62,6 +62,10 @@ const Wrapper = styled.div`
           border-right: none;
         }
 
+        &.sortable-header {
+          cursor: pointer;
+        }
+
         .resize-handle {
           position: absolute;
           right: 0;
@@ -181,6 +185,36 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.brand};
     &:hover {
       opacity: 0.9;
+    }
+  }
+
+  .drag-handle {
+    opacity: 0;
+    transition: opacity 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .icon-grip,
+    .icon-minus {
+      color: ${(props) => props.theme.colors.text.muted};
+    }
+  }
+
+  tbody tr:hover .drag-handle,
+  tbody tr.drag-over .drag-handle {
+    opacity: 1;
+  }
+
+  tbody tr.dragging-source {
+    opacity: 0.4;
+  }
+
+  .column-sort-header .action-icon {
+    opacity: 0.7;
+
+    &:hover {
+      opacity: 1;
     }
   }
 `;

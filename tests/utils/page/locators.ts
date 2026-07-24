@@ -76,6 +76,14 @@ export const buildCommonLocators = (page: Page) => ({
     varRow: (name: string) => page.getByTestId(`env-var-row-${name}`),
     // Prefix match — keep as a CSS selector since getByTestId is exact-match only.
     varRows: () => page.locator('tbody tr[data-testid^="env-var-row-"]'),
+    // The Name column's input within a row found by its current name.
+    varRowNameInput: (name: string) => page.getByTestId(`env-var-row-${name}`).locator('input[name$=".name"]'),
+    // Name column's sort-cycle button (Variables tab only).
+    sortToggle: () => page.getByTestId('column-sort-toggle'),
+    // Present only when dragging is enabled for this row.
+    dragHandle: (name: string) => page.getByTestId(`env-var-row-${name}`).getByTestId('drag-handle'),
+    // Every visible row's Name input, in on-screen order.
+    visibleNameInputs: () => page.locator('tbody tr[data-testid^="env-var-row-"]').locator('input[name$=".name"]'),
     // Rows for `name` whose CodeMirror value matches `value`. Useful when two rows
     // share a name (e.g. enabled + disabled twins after a script write).
     varRowsByValue: (name: string, value: string | RegExp) =>
@@ -129,6 +137,7 @@ export const buildCommonLocators = (page: Page) => ({
     saveAll: () => page.getByTestId('save-all-env'),
     searchInput: () => page.getByTestId('env-search-input'),
     searchAction: () => page.getByTestId('env-search-action'),
+    savedToast: () => page.getByText('Changes saved successfully').last(),
     collectionEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Environments$/ }),
     globalEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Global Environments$/ }),
     unsavedModal: {
