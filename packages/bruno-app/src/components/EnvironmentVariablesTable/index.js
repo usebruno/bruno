@@ -19,7 +19,7 @@ import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
-import { stripEnvVarUid } from 'utils/environments';
+import { stripEnvVarUid, getDuplicateSecretNames, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 
@@ -266,6 +266,9 @@ const EnvironmentVariablesTable = ({
   const prevEnvUidRef = useRef(null);
   const mountedRef = useRef(false);
   const pendingDraftRestoreRef = useRef(false);
+  // Uid of the row whose name was most recently edited. The duplicate-secret error is shown only
+  // on this row so a fresh collision flags the key you just typed, not its already-present twin.
+  const lastEditedNameUidRef = useRef(null);
 
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
@@ -338,6 +341,7 @@ const EnvironmentVariablesTable = ({
     ),
     validate: (values) => {
       const errors = {};
+      const duplicateSecrets = getDuplicateSecretNames(values);
       values.forEach((variable, index) => {
         const isLastRow = index === values.length - 1;
         const isEmptyRow = !variable.name || variable.name.trim() === '';
@@ -353,6 +357,13 @@ const EnvironmentVariablesTable = ({
           if (!errors[index]) errors[index] = {};
           errors[index].name
             = 'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.';
+        } else if (
+          variable.secret
+          && duplicateSecrets.has(variable.name.trim())
+          && variable.uid === lastEditedNameUidRef.current
+        ) {
+          if (!errors[index]) errors[index] = {};
+          errors[index].name = 'Secret names must be unique';
         }
       });
       return Object.keys(errors).length > 0 ? errors : {};
@@ -440,7 +451,7 @@ const EnvironmentVariablesTable = ({
     }
     return (
       <span>
-        <IconAlertCircle id={id} className="text-red-600 cursor-pointer" size={20} />
+        <IconAlertCircle id={id} data-testid="env-var-name-error" className="text-red-600 cursor-pointer" size={20} />
         <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
       </span>
     );
@@ -489,7 +500,10 @@ const EnvironmentVariablesTable = ({
   );
 
   const handleNameChange = (index, e) => {
+    lastEditedNameUidRef.current = formik.values[index]?.uid ?? null;
     formik.handleChange(e);
+    // Touch the field as it changes so its validation icon surfaces while typing, not only after blur.
+    formik.setFieldTouched(`${index}.name`, true, false);
     const isLastRow = index === formik.values.length - 1;
 
     if (isLastRow) {
@@ -555,6 +569,11 @@ const EnvironmentVariablesTable = ({
 
     if (hasValidationErrors) {
       toast.error('Please fix validation errors before saving');
+      return;
+    }
+
+    if (getDuplicateSecretNames(activeCurrent).size > 0) {
+      toast.error(DUPLICATE_SECRET_NAMES_ERROR);
       return;
     }
 
@@ -663,6 +682,11 @@ const EnvironmentVariablesTable = ({
 
     if (hasValidationErrors) {
       toast.error('Please fix validation errors before saving');
+      return;
+    }
+
+    if (getDuplicateSecretNames(namedValues).size > 0) {
+      toast.error(DUPLICATE_SECRET_NAMES_ERROR);
       return;
     }
 
@@ -824,6 +848,7 @@ const EnvironmentVariablesTable = ({
                         className="mousetrap"
                         id={`${actualIndex}.name`}
                         name={`${actualIndex}.name`}
+                        data-testid="env-var-name-input"
                         value={variable.name}
                         placeholder={!variable.name || (typeof variable.name === 'string' && variable.name.trim() === '') ? 'Name' : ''}
                         onChange={(e) => handleNameChange(actualIndex, e)}

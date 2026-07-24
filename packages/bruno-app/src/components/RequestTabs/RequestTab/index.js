@@ -26,6 +26,7 @@ import GradientCloseButton from './GradientCloseButton';
 import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
 import { getInvalidVariableNames } from 'utils/common/variables';
+import { DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
 import ExampleTab from '../ExampleTab';
 import toast from 'react-hot-toast';
 
@@ -253,6 +254,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     return false;
   }, { enabled: isActive, deps: [isActive, tab, hasChanges, item, collection, folder, globalEnvironmentDraft] });
 
+  const showSaveError = (err) =>
+    toast.error(err?.message === DUPLICATE_SECRET_NAMES_ERROR ? DUPLICATE_SECRET_NAMES_ERROR : 'An error occurred while saving the changes');
+
   // Save shortcut — tab-type-aware, only active for the focused tab
   useKeybinding('save', () => {
     if (tab.type === 'environment-settings') {
@@ -263,7 +267,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         } else {
           dispatch(saveEnvironment(variables, environmentUid, collection.uid))
             .then(() => toast.success('Changes saved successfully'))
-            .catch(() => toast.error('An error occurred while saving the changes'));
+            .catch(showSaveError);
         }
       }
     } else if (tab.type === 'global-environment-settings' || tab.type === 'workspaceEnvironments') {
@@ -274,7 +278,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         } else {
           dispatch(saveGlobalEnvironment({ variables, environmentUid }))
             .then(() => toast.success('Changes saved successfully'))
-            .catch(() => toast.error('An error occurred while saving the changes'));
+            .catch(showSaveError);
         }
       }
     } else if (tab.type === 'folder-settings') {
@@ -436,10 +440,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                     setShowConfirmEnvironmentClose(false);
                     toast.success('Environment saved');
                   })
-                  .catch((err) => {
-                    console.log('err', err);
-                    toast.error('Failed to save environment');
-                  });
+                  .catch(showSaveError);
               }
             }}
           />
@@ -487,10 +488,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                     setShowConfirmGlobalEnvironmentClose(false);
                     toast.success('Global environment saved');
                   })
-                  .catch((err) => {
-                    console.log('err', err);
-                    toast.error('Failed to save global environment');
-                  });
+                  .catch(showSaveError);
               }
             }}
           />

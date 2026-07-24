@@ -3,7 +3,7 @@ import { uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import { cloneDeep } from 'lodash';
-import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys, getDuplicateSecretNames, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
 
 const initialState = {
   globalEnvironments: [],
@@ -236,6 +236,10 @@ export const saveGlobalEnvironment = ({ variables, environmentUid }) => (dispatc
 
     if (!environment) {
       return reject(new Error('Environment not found'));
+    }
+
+    if (getDuplicateSecretNames(variables).size > 0) {
+      return reject(new Error(DUPLICATE_SECRET_NAMES_ERROR));
     }
 
     const environmentToSave = { ...environment, variables };

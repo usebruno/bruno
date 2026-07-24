@@ -3,7 +3,7 @@ jest.mock('nanoid', () => ({
   customAlphabet: () => () => 'aaaaaaaaaaaaaaaaaaaa1'
 }));
 
-import { applyScriptEnvVars, buildEnvVariable, stripEnvVarUid } from './environments';
+import { applyScriptEnvVars, buildEnvVariable, stripEnvVarUid, getDuplicateSecretNames } from './environments';
 
 describe('buildEnvVariable — dataType preservation for env export/import', () => {
   it('preserves non-string datatypes on non-secret variables', () => {
@@ -372,5 +372,62 @@ describe('Env export → import round-trip via JSON', () => {
     expect(reimported[4]).toMatchObject({ name: 'plain', value: 'hello', secret: false });
     expect(reimported[4].dataType).toBeUndefined();
     expect(reimported[5]).toMatchObject({ name: 'token', value: '', secret: true, dataType: 'number' });
+  });
+});
+
+describe('getDuplicateSecretNames', () => {
+  it('returns an empty set when there are no variables', () => {
+    expect(getDuplicateSecretNames([]).size).toBe(0);
+    expect(getDuplicateSecretNames(undefined).size).toBe(0);
+  });
+
+  it('returns an empty set when secret names are unique', () => {
+    const vars = [
+      { name: 'token', secret: true },
+      { name: 'apiKey', secret: true }
+    ];
+    expect(getDuplicateSecretNames(vars).size).toBe(0);
+  });
+
+  it('flags a name carried by more than one secret', () => {
+    const vars = [
+      { name: 'token', secret: true },
+      { name: 'token', secret: true }
+    ];
+    expect([...getDuplicateSecretNames(vars)]).toEqual(['token']);
+  });
+
+  it('ignores duplicate names on non-secret variables', () => {
+    const vars = [
+      { name: 'host', secret: false },
+      { name: 'host', secret: false }
+    ];
+    expect(getDuplicateSecretNames(vars).size).toBe(0);
+  });
+
+  it('does not flag a plain variable and a secret that share a name', () => {
+    const vars = [
+      { name: 'token', secret: false },
+      { name: 'token', secret: true }
+    ];
+    expect(getDuplicateSecretNames(vars).size).toBe(0);
+  });
+
+  it('compares trimmed names and ignores blank ones', () => {
+    const vars = [
+      { name: 'token', secret: true },
+      { name: '  token  ', secret: true },
+      { name: '   ', secret: true },
+      { name: '', secret: true }
+    ];
+    expect([...getDuplicateSecretNames(vars)]).toEqual(['token']);
+  });
+
+  it('is case-sensitive', () => {
+    const vars = [
+      { name: 'token', secret: true },
+      { name: 'TOKEN', secret: true }
+    ];
+    expect(getDuplicateSecretNames(vars).size).toBe(0);
   });
 });
