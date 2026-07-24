@@ -194,6 +194,9 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     uid: uuid(),
     name: operationName,
     type: 'http-request',
+    settings: {
+      forwardAuthorizationHeader: false
+    },
     tags: sanitizeTags(request.operationObject.tags || [], options),
     request: {
       docs: _operationObject.description,

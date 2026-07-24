@@ -136,6 +136,12 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
       settings.maxRedirects = 5;
     }
 
+    if (typeof ocRequest.settings.forwardAuthorizationHeader === 'boolean') {
+      settings.forwardAuthorizationHeader = ocRequest.settings.forwardAuthorizationHeader;
+    } else {
+      settings.forwardAuthorizationHeader = true;
+    }
+
     brunoItem.settings = settings;
   }
 

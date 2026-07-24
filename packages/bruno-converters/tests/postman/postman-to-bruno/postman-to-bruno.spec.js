@@ -355,20 +355,23 @@ describe('postman-collection', () => {
     expect(requestWithAllSettings.settings).toEqual({
       encodeUrl: false,
       followRedirects: false,
-      maxRedirects: 10
+      maxRedirects: 10,
+      forwardAuthorizationHeader: false
     });
 
     // Test request with partial settings
     const requestWithPartialSettings = brunoCollection.items[1];
     expect(requestWithPartialSettings.settings).toEqual({
       encodeUrl: true,
-      followRedirects: true
+      followRedirects: true,
+      forwardAuthorizationHeader: false
     });
 
     // Test request without settings
     const requestWithoutSettings = brunoCollection.items[2];
     expect(requestWithoutSettings.settings).toEqual({
-      encodeUrl: true
+      encodeUrl: true,
+      forwardAuthorizationHeader: false
     });
   });
 

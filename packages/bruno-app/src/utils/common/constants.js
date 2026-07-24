@@ -11,6 +11,11 @@ export const PRESET_REQUEST_TYPES = {
 
 export const DEFAULT_PRESET_REQUEST_TYPE = PRESET_REQUEST_TYPES.HTTP;
 
+export const DEFAULT_HTTP_ITEM_SETTINGS = {
+  encodeUrl: true,
+  forwardAuthorizationHeader: false
+};
+
 export const AUTH_MODES = {
   AWSV4: 'awsv4',
   BASIC: 'basic',

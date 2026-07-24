@@ -71,6 +71,16 @@ const checkConnection = (host, port) =>
  * @see https://github.com/axios/axios/issues/695
  * @returns {axios.AxiosInstance}
  */
+const isSameOrigin = (url1, url2) => {
+  try {
+    const parsed1 = new global.URL(url1);
+    const parsed2 = new global.URL(url2);
+    return parsed1.origin === parsed2.origin;
+  } catch (err) {
+    return false;
+  }
+};
+
 function makeAxiosInstance({
   proxyMode = 'off',
   proxyModeReason = '',
@@ -78,7 +88,8 @@ function makeAxiosInstance({
   requestMaxRedirects = 5,
   httpsAgentRequestFields = {},
   interpolationOptions = {},
-  followRedirects = true
+  followRedirects = true,
+  forwardAuthorizationHeader = true
 } = {}) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
@@ -359,6 +370,23 @@ function makeAxiosInstance({
               ...error.config.headers
             }
           };
+
+          if (!forwardAuthorizationHeader) {
+            if (!isSameOrigin(error.config.url, redirectUrl)) {
+              Object.keys(requestConfig.headers).forEach((key) => {
+                const lowerKey = key.toLowerCase();
+                if (lowerKey === 'authorization' || lowerKey === 'proxy-authorization') {
+                  delete requestConfig.headers[key];
+                }
+              });
+
+              timeline.push({
+                timestamp: new Date(),
+                type: 'info',
+                message: `Cross-origin redirect: stripping Authorization and Proxy-Authorization headers`
+              });
+            }
+          }
 
           // Apply proper HTTP redirect behavior based on status code
           const statusCode = error.response.status;

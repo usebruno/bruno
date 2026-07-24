@@ -136,6 +136,9 @@ const configureRequest = async (
   // Get followRedirects setting, default to true for backward compatibility
   const followRedirects = request.settings?.followRedirects ?? true;
 
+  // Get forwardAuthorizationHeader setting, default to true for backward compatibility
+  const forwardAuthorizationHeader = request.settings?.forwardAuthorizationHeader ?? true;
+
   // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
   let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
 
@@ -160,7 +163,8 @@ const configureRequest = async (
     requestMaxRedirects,
     httpsAgentRequestFields,
     interpolationOptions,
-    followRedirects
+    followRedirects,
+    forwardAuthorizationHeader
   });
 
   if (request.ntlmConfig) {

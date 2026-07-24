@@ -154,6 +154,8 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
       settings.maxRedirects = 5;
     }
 
+    settings.forwardAuthorizationHeader = httpSettings?.forwardAuthorizationHeader ?? true;
+
     ocRequest.settings = settings;
 
     // docs
