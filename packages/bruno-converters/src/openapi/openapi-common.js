@@ -534,6 +534,27 @@ export const groupRequestsByTags = (requests, options = {}) => {
 };
 
 /**
+ * Builds a lookup of tag description keyed by sanitized tag name.
+ * Folders are named from the sanitized first tag (see groupRequestsByTags), so the
+ * spec's top-level tags[] descriptions are keyed the same way to line up with folder names.
+ * @param {Array} tags - The spec's top-level tags array (each { name, description })
+ * @param {Object} options - Sanitization options (forwarded to sanitizeTag)
+ * @returns {Object} Map of sanitized tag name -> description
+ */
+export const getTagDescriptions = (tags, options = {}) => {
+  const descriptions = Object.create(null);
+  each(tags || [], (tag) => {
+    if (tag && typeof tag === 'object' && tag.name && tag.description) {
+      const key = sanitizeTag(tag.name, options);
+      if (key) {
+        descriptions[key] = tag.description;
+      }
+    }
+  });
+  return descriptions;
+};
+
+/**
  * Groups requests by URL path segments and builds nested folder structures
  * @param {Array} requests - Array of parsed request objects
  * @param {Function} transformFn - Function to transform a request into a Bruno item: (request, usedNames, options) => brunoItem
