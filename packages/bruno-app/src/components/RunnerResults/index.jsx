@@ -5,7 +5,7 @@ import { get, cloneDeep } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution, mountCollection, updateRunnerConfiguration } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection, areItemsLoading } from 'utils/collections';
-import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconExternalLink } from '@tabler/icons';
+import { IconRefresh, IconCircleCheck, IconCircleX, IconCircleOff, IconCheck, IconX, IconRun, IconColumns } from '@tabler/icons';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 import RunnerTags from './RunnerTags/index';
@@ -394,7 +394,7 @@ export default function RunnerResults({ collection }) {
                 <div key={item.uid}>
                   <div className="item-path mt-2" data-testid="runner-result-item">
                     <div className="flex items-center">
-                      <span>
+                      <span className="flex-shrink-0">
                         {allTestsPassed(item)
                           ? <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
                           : null}
@@ -406,22 +406,33 @@ export default function RunnerResults({ collection }) {
                           : null}
                       </span>
                       <span
-                        className={`mr-1 ml-2 ${item.status == 'skipped' ? 'skipped-request' : anyTestFailed(item) ? 'danger' : ''}`}
+                        className={`flex-1 min-w-0 truncate mr-1 ml-2 ${item.status == 'skipped' ? 'skipped-request' : anyTestFailed(item) ? 'danger' : ''}`}
                       >
                         {item.displayName}
                       </span>
                       {item.status !== 'error' && item.status !== 'skipped' && item.status !== 'completed' ? (
-                        <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
+                        <IconRefresh className="animate-spin ml-1 flex-shrink-0" size={18} strokeWidth={1.5} />
                       ) : item.responseReceived?.status ? (
-                        <span className="text-xs link cursor-pointer" onClick={() => setSelectedItem(item)}>
-                          <span className="mr-1">{item.responseReceived?.status}</span>
-                          -&nbsp;
-                          <span>{item.responseReceived?.statusText}</span>
+                        <span className="text-xs flex-shrink-0 flex items-center">
+                          <span className={`mr-1 ${item.responseReceived?.status >= 400 ? 'danger' : 'text-green'}`}>{item.responseReceived?.status}</span>
+                          <button
+                            onClick={() => setSelectedItem(item)}
+                            className="mr-1 link cursor-pointer flex items-center"
+                            title="View response"
+                            aria-label="View response"
+                          >
+                            <IconColumns size={16} strokeWidth={1.5} />
+                          </button>
                         </span>
                       ) : (
-                        <span className="danger text-xs cursor-pointer" onClick={() => setSelectedItem(item)}>
+                        <button
+                          onClick={() => setSelectedItem(item)}
+                          className="danger text-xs cursor-pointer flex-shrink-0"
+                          title="View response"
+                          aria-label="View response"
+                        >
                           (request failed)
-                        </span>
+                        </button>
                       )}
                     </div>
                     {areTagsAdded && item?.tags?.length > 0 && (
@@ -552,10 +563,10 @@ export default function RunnerResults({ collection }) {
           <div className="flex flex-1 w-[50%] overflow-y-auto">
             <div className="flex flex-col w-full h-full items-center justify-center text-center">
               <div className="mb-4 text-subtext0">
-                <IconExternalLink size={64} strokeWidth={1.5} />
+                <IconColumns size={64} strokeWidth={1.5} />
               </div>
               <p className="text-subtext1">
-                Click on the status code to view the response
+                Click the icon next to a status code to view the response
               </p>
             </div>
           </div>
