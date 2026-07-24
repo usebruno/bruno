@@ -63,6 +63,7 @@ const createSequencer = () => {
    * @param {string} [collectionId]
    */
   const clean = (requestId, collectionId = undefined) => {
+    if (!seq[requestId]) return;
     if (collectionId) {
       delete seq[requestId][collectionId];
     }
@@ -83,6 +84,7 @@ class WsClient {
   messageQueues = {};
   activeConnections = new Map();
   connectionKeepAlive = new Map();
+  closingResolvers = new Map();
 
   constructor(eventCallback) {
     this.eventCallback = eventCallback;
@@ -105,6 +107,17 @@ class WsClient {
 
     const requestId = request.uid;
     const collectionUid = collection.uid;
+
+    // Wait out an in-flight close so we don't open a replacement that the close handler then deletes.
+    if (this.closingResolvers.has(requestId)) {
+      await this.closingResolvers.get(requestId).promise;
+    }
+
+    // Reuse in-flight / open socket so ensure+connect races don't open a second connection.
+    const existing = this.activeConnections.get(requestId)?.connection;
+    if (existing && (existing.readyState === ws.WebSocket.CONNECTING || existing.readyState === ws.WebSocket.OPEN)) {
+      return existing;
+    }
 
     try {
       // Create WebSocket connection
@@ -225,18 +238,57 @@ class WsClient {
   }
 
   /**
-   * Close a WebSocket connection
+   * Close a WebSocket connection reliably.
+   * Returns a promise that resolves once the connection has fully closed
+   * or a safety timeout is reached.
    * @param {string} requestId - The request ID to close
    * @param {number} code - Close code (optional)
    * @param {string} reason - Close reason (optional)
+   * @returns {Promise<void>}
    */
   close(requestId, code = 1000, reason = 'Client initiated close') {
     const connectionMeta = this.activeConnections.get(requestId);
-    if (connectionMeta?.connection) {
-      connectionMeta.connection.close(code, reason);
-      this.#removeConnection(requestId);
-      seq.clean(requestId);
+
+    // Return existing close promise if one is already in flight
+    if (this.closingResolvers.has(requestId)) {
+      return this.closingResolvers.get(requestId).promise;
     }
+
+    if (!connectionMeta?.connection) {
+      seq.clean(requestId);
+      return Promise.resolve();
+    }
+
+    let resolve;
+    const promise = new Promise((r) => {
+      resolve = r;
+    });
+
+    const collectionUid = connectionMeta.collectionUid;
+
+    // Notify the UI that we're actively disconnecting so it can show a blink state
+    this.eventCallback('main:ws:disconnecting', requestId, collectionUid);
+
+    // Safety timeout: force-destroy the socket if the close handshake never completes
+    const timeoutId = setTimeout(() => {
+      if (!this.closingResolvers.has(requestId)) return;
+      try {
+        connectionMeta.connection.terminate();
+      } catch (_) {
+        // Socket may already be gone
+      }
+      const resolver = this.closingResolvers.get(requestId);
+      if (resolver) {
+        this.closingResolvers.delete(requestId);
+        this.#removeConnection(requestId);
+        seq.clean(requestId, collectionUid);
+        resolve();
+      }
+    }, 5000);
+
+    this.closingResolvers.set(requestId, { resolve, timeoutId, promise });
+    connectionMeta.connection.close(code, reason);
+    return promise;
   }
 
   /**
@@ -364,6 +416,19 @@ class WsClient {
     });
 
     ws.on('close', (code, reason) => {
+      // Resolve any pending close promise
+      const pendingClose = this.closingResolvers.get(requestId);
+      if (pendingClose) {
+        clearTimeout(pendingClose.timeoutId);
+        this.closingResolvers.delete(requestId);
+        pendingClose.resolve();
+      }
+
+      // Timed-out / replaced socket — ignore so a replacement stays active
+      if (this.activeConnections.get(requestId)?.connection !== ws) {
+        return;
+      }
+
       this.eventCallback('main:ws:close', requestId, collectionUid, {
         code,
         reason: Buffer.from(reason).toString(),
@@ -434,8 +499,9 @@ class WsClient {
    * @param {string} requestId - The request ID to get the connection status of
    * @returns {string} - The connection status
    */
-  // Returns "disconnected", "connecting", "connected"
+  // Returns "disconnected", "connecting", "connected", "disconnecting"
   connectionStatus(requestId) {
+    if (this.closingResolvers.has(requestId)) return 'disconnecting';
     const connectionMeta = this.activeConnections.get(requestId);
     if (connectionMeta?.connection?.readyState === ws.WebSocket.CONNECTING) return 'connecting';
     if (connectionMeta?.connection?.readyState === ws.WebSocket.OPEN) return 'connected';
