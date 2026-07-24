@@ -83,7 +83,7 @@ const Documentation = ({ collection, folder }) => {
         </div>
       ) : (
         <div className="h-full">
-          <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
+          <Markdown onDoubleClick={toggleViewMode} content={docs} />
         </div>
       )}
     </StyledWrapper>

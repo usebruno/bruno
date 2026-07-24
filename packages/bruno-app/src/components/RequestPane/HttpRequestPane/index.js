@@ -15,6 +15,7 @@ import Tests from 'components/RequestPane/Tests';
 import Settings from 'components/RequestPane/Settings';
 import AppCodeEditor from 'components/RequestPane/AppCodeEditor';
 import Documentation from 'components/Documentation/index';
+import DocsAction from 'components/Documentation/DocsAction';
 import StatusDot from 'components/StatusDot';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
@@ -134,15 +135,32 @@ const HttpRequestPane = ({ item, collection }) => {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  const rightContent = requestPaneTab === 'body' ? (
-    <div ref={rightContentRef}>
-      <RequestBodyMode item={item} collection={collection} />
-    </div>
-  ) : requestPaneTab === 'auth' ? (
-    <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
-      <AuthMode item={item} collection={collection} />
-    </div>
-  ) : null;
+  let rightContent = null;
+  switch (requestPaneTab) {
+    case 'body':
+      rightContent = (
+        <div ref={rightContentRef}>
+          <RequestBodyMode item={item} collection={collection} />
+        </div>
+      );
+      break;
+    case 'auth':
+      rightContent = (
+        <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
+          <AuthMode item={item} collection={collection} />
+        </div>
+      );
+      break;
+    case 'docs':
+      rightContent = (
+        <div ref={rightContentRef}>
+          <DocsAction />
+        </div>
+      );
+      break;
+    default:
+      rightContent = null;
+  }
 
   return (
     <div className="flex flex-col h-full relative">

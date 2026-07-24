@@ -98,7 +98,7 @@ const WorkspaceDocs = ({ workspace }) => {
           </div>
         ) : hasDocs ? (
           <div className="docs-markdown">
-            <Markdown collectionPath={workspace?.pathname || ''} onDoubleClick={toggleViewMode} content={localDocs} />
+            <Markdown onDoubleClick={toggleViewMode} content={localDocs} />
           </div>
         ) : (
           <div className="empty-state">
