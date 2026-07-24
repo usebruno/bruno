@@ -157,6 +157,9 @@ const ResponsiveTabs = ({
     if (tabsContainerRef.current) {
       observer.observe(tabsContainerRef.current);
     }
+    if (rightContentRef?.current) {
+      observer.observe(rightContentRef.current);
+    }
 
     return () => {
       if (frameId) {
