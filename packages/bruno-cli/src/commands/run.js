@@ -129,6 +129,10 @@ const builder = async (yargs) => {
       describe: 'Overwrite a single environment variable, multiple usages possible',
       type: 'string'
     })
+    .option('global-env-var', {
+      describe: 'Overwrite a single global environment variable (requires --global-env), multiple usages possible',
+      type: 'string'
+    })
     .option('sandbox', {
       describe: 'Javascript sandbox to use; available sandboxes are "safe" (default) or "developer"',
       default: 'safe',
@@ -281,6 +285,10 @@ const builder = async (yargs) => {
     .example(
       '$0 run request.bru --global-env production --workspace-path /path/to/workspace',
       'Run a request with a global environment from the specified workspace'
+    )
+    .example(
+      '$0 run request.bru --global-env production --global-env-var TOKEN=xxx',
+      'Run a request, overriding a global environment variable for this run only'
     );
 };
 
@@ -296,6 +304,7 @@ const handler = async function (argv) {
       globalEnv,
       workspacePath,
       envVar,
+      globalEnvVar,
       insecure,
       r: recursive,
       output: outputPath,
@@ -360,6 +369,7 @@ const handler = async function (argv) {
 
     const runtimeVariables = {};
     let envVars = {};
+    let globalEnvVars = {};
     let envFileDescriptor = null;
     let globalEnvFileDescriptor = null;
     // --env-var overrides as Map<name, injected value>. The persistence layer compares the
@@ -367,6 +377,9 @@ const handler = async function (argv) {
     // value passed through unchanged) apart from a deliberate same-named script write that
     // must reach disk. Typical use: CI injects a secret the CLI can't decrypt at rest.
     const envVarOverrides = new Map();
+    // --global-env-var overrides as Map<name, injected value>. Same leak-guard contract as
+    // envVarOverrides above, but scoped to the global environment .yml file.
+    const globalEnvVarOverrides = new Map();
 
     const resolveEnvFileFormat = (filePath) => {
       const ext = path.extname(filePath).toLowerCase();
@@ -437,7 +450,6 @@ const handler = async function (argv) {
       }
     }
 
-    let globalEnvVars = {};
     if (globalEnv) {
       const findWorkspacePath = (startPath) => {
         let currentPath = startPath;
@@ -516,6 +528,33 @@ const handler = async function (argv) {
           }
           envVars[match[1]] = match[2];
           envVarOverrides.set(match[1], match[2]);
+        }
+      }
+    }
+
+    if (globalEnvVar) {
+      let processVars;
+      if (typeof globalEnvVar === 'string') {
+        processVars = [globalEnvVar];
+      } else if (typeof globalEnvVar === 'object' && Array.isArray(globalEnvVar)) {
+        processVars = globalEnvVar;
+      } else {
+        console.error(chalk.red(`overridable global environment variables not parsable: use name=value`));
+        process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
+      }
+      if (processVars && Array.isArray(processVars)) {
+        for (const value of processVars.values()) {
+          // split the string at the first equals sign
+          const match = value.match(/^([^=]+)=(.*)$/);
+          if (!match) {
+            console.error(
+              chalk.red(`Overridable global environment variable not correct: use name=value - presented: `)
+              + chalk.dim(`${value}`)
+            );
+            process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
+          }
+          globalEnvVars[match[1]] = match[2];
+          globalEnvVarOverrides.set(match[1], match[2]);
         }
       }
     }
@@ -642,7 +681,8 @@ const handler = async function (argv) {
       envFile: envFileDescriptor,
       globalEnvFile: globalEnvFileDescriptor,
       collectionRootPath,
-      envVarOverrides
+      envVarOverrides,
+      globalEnvVarOverrides
     };
 
     // Fetch system proxy once for all requests (skip if --noproxy flag is set)

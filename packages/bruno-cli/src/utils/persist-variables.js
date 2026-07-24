@@ -381,10 +381,13 @@ const persistCollectionVars = (collection, scriptCollVars, collectionRootPath) =
  *   globalEnvFile?: { path: string, format: 'yml' },
  *   collection: object,
  *   collectionRootPath: string,
- *   envVarOverrides?: Map<string, string>
+ *   envVarOverrides?: Map<string, string>,
+ *   globalEnvVarOverrides?: Map<string, string>
  * }} targets - Where each kind of var should land on disk. `envVarOverrides` maps each
  *   CLI `--env-var name=value` to its injected value; that value is never persisted, but a
  *   deliberate same-named script write with a different value still reaches disk.
+ *   `globalEnvVarOverrides` applies the same leak-guard to the global env file, seeded from
+ *   `--global-env-var name=value`.
  *   `globalEnvFile.format` is yml-only because the CLI's `--global-env <name>` flag looks
  *   up `<workspace>/environments/<name>.yml` (no JSON/bru equivalent exists today).
  * @returns {void}
@@ -400,16 +403,15 @@ const persistCollectionVars = (collection, scriptCollVars, collectionRootPath) =
  * persistVariableUpdates(result, { envFile, globalEnvFile, collection, collectionRootPath });
  * -> writes `token: abc` into the active env file and `region: eu` into the collection root file.
  */
-const persistVariableUpdates = (result, { envFile, globalEnvFile, collection, collectionRootPath, envVarOverrides }) => {
+const persistVariableUpdates = (result, { envFile, globalEnvFile, collection, collectionRootPath, envVarOverrides, globalEnvVarOverrides }) => {
   if (!result) return;
   const envOpts = envVarOverrides ? { overrides: envVarOverrides } : undefined;
   if (result.envVariables) persistEnvFile(envFile, result.envVariables, envOpts);
-  // Defense-in-depth: the bru runtime keeps envVariables and globalEnvironmentVariables as
-  // separate maps and never auto-syncs between them, so the override can't reach the global
-  // env map through normal flow. Still, pass the override filter through — if a user script
-  // ever copies via `bru.setGlobalEnvVar(k, bru.getVar(k))`, the override value won't land
-  // on disk in the global env file.
-  if (result.globalEnvironmentVariables) persistEnvFile(globalEnvFile, result.globalEnvironmentVariables, envOpts);
+  // Global env file gets its own leak-guard, seeded from `--global-env-var` overrides: a value
+  // injected via the CLI and passed through unchanged never reaches the .yml, but a deliberate
+  // `bru.setGlobalEnvVar` write of a different value still persists.
+  const globalEnvOpts = globalEnvVarOverrides ? { overrides: globalEnvVarOverrides } : undefined;
+  if (result.globalEnvironmentVariables) persistEnvFile(globalEnvFile, result.globalEnvironmentVariables, globalEnvOpts);
   if (result.collectionVariables) persistCollectionVars(collection, result.collectionVariables, collectionRootPath);
 };
 

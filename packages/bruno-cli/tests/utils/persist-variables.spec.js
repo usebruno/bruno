@@ -410,29 +410,40 @@ describe('persistVariableUpdates — global env file', () => {
     expect(fs.readFileSync(envPath, 'utf8')).toMatch(/stale/);
   });
 
-  // Defense-in-depth: the runtime can't currently leak an --env-var override into the
-  // globalEnvironmentVariables result (envVariables and globalEnvironmentVariables are
-  // separate maps in the bru sandbox). But if a user script ever copies between the two
-  // — e.g. `bru.setGlobalEnvVar('token', bru.getVar('token'))` — the override must still
-  // be filtered before reaching the global env file.
-  it('respects envVarOverrides when persisting to the global env file', () => {
-    const globalPath = writeFile('global.yml',
-      'name: global\nvariables:\n  - name: token\n    value: real-global-secret\n  - name: region\n    value: us\n'
-    );
-    persistVariableUpdates(
-      // Simulates a user script that copied the env override into the global env scope.
-      { globalEnvironmentVariables: { token: 'transient-cli-value', region: 'eu' } },
-      {
-        globalEnvFile: { path: globalPath, format: 'yml' },
-        envVarOverrides: new Map([['token', 'transient-cli-value']])
-      }
-    );
+  // The global env file has its own leak-guard, seeded from `--global-env-var`. A value
+  // injected via the CLI and passed through unchanged must never reach the global .yml,
+  // while a deliberate `bru.setGlobalEnvVar` write of a different value still persists.
+  it('respects globalEnvVarOverrides when persisting to the global env file', () => {
+    const globalYml = 'name: global\nvariables:\n  - name: token\n    value: real-global-secret\n  - name: region\n    value: us\n';
+    const globalPath = writeFile('global.yml', globalYml);
+    // Simulates a --global-env-var override that a script echoed back unchanged.
+    const updates = { globalEnvironmentVariables: { token: 'transient-cli-value', region: 'eu' } };
+    const options = {
+      globalEnvFile: { path: globalPath, format: 'yml' },
+      globalEnvVarOverrides: new Map([['token', 'transient-cli-value']])
+    };
+    persistVariableUpdates(updates, options);
     const written = fs.readFileSync(globalPath, 'utf8');
     // token's on-disk value must NOT be the transient override
     expect(written).not.toMatch(/transient-cli-value/);
     expect(written).toMatch(/real-global-secret/);
     // unrelated keys still update
     expect(written).toMatch(/value:\s*eu/);
+  });
+
+  // A deliberate script write of a value different from the injected override must persist.
+  it('persists a deliberate global write that differs from the injected override', () => {
+    const globalYml = 'name: global\nvariables:\n  - name: token\n    value: real-global-secret\n';
+    const globalPath = writeFile('global.yml', globalYml);
+    const updates = { globalEnvironmentVariables: { token: 'rotated' } };
+    const options = {
+      globalEnvFile: { path: globalPath, format: 'yml' },
+      globalEnvVarOverrides: new Map([['token', 'transient-cli-value']])
+    };
+    persistVariableUpdates(updates, options);
+    const written = fs.readFileSync(globalPath, 'utf8');
+    expect(written).toMatch(/value:\s*rotated/);
+    expect(written).not.toMatch(/transient-cli-value/);
   });
 });
 
