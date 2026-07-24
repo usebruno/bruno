@@ -11,7 +11,8 @@ import {
   getExampleFromSchema,
   createBrunoExample,
   groupRequestsByTags,
-  groupRequestsByPath
+  groupRequestsByPath,
+  getTagDescriptions
 } from './openapi-common';
 
 /**
@@ -610,19 +611,27 @@ export const parseSwagger2Collection = (data, options = {}) => {
     if (groupingType === 'path') {
       brunoCollection.items = groupRequestsByPath(allRequests, transformSwaggerRequestItem, options);
     } else {
-      let [groups, ungroupedRequests] = groupRequestsByTags(allRequests);
-      let brunoFolders = groups.map((group) => ({
-        uid: uuid(),
-        name: group.name,
-        type: 'folder',
-        root: {
-          request: {
-            auth: { mode: 'inherit', basic: null, bearer: null, digest: null, apikey: null, oauth2: null }
+      let [groups, ungroupedRequests] = groupRequestsByTags(allRequests, options);
+      const tagDescriptions = getTagDescriptions(collectionData.tags, options);
+      let brunoFolders = groups.map((group) => {
+        const folder = {
+          uid: uuid(),
+          name: group.name,
+          type: 'folder',
+          root: {
+            request: {
+              auth: { mode: 'inherit', basic: null, bearer: null, digest: null, apikey: null, oauth2: null }
+            },
+            meta: { name: group.name }
           },
-          meta: { name: group.name }
-        },
-        items: group.requests.map((req) => transformSwaggerRequestItem(req, usedNames, options))
-      }));
+          items: group.requests.map((req) => transformSwaggerRequestItem(req, usedNames, options))
+        };
+        const docs = tagDescriptions[group.name];
+        if (docs) {
+          folder.root.docs = docs;
+        }
+        return folder;
+      });
 
       let ungroupedItems = ungroupedRequests.map((req) => transformSwaggerRequestItem(req, usedNames, options));
       brunoCollection.items = brunoFolders.concat(ungroupedItems);
@@ -632,7 +641,8 @@ export const parseSwagger2Collection = (data, options = {}) => {
     let collectionAuth = buildCollectionAuth(securityConfig.supported[0]);
     brunoCollection.root = {
       request: { auth: collectionAuth },
-      meta: { name: brunoCollection.name }
+      meta: { name: brunoCollection.name },
+      docs: collectionData.info?.description
     };
 
     return brunoCollection;
