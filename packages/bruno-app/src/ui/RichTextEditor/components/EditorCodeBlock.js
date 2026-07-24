@@ -71,6 +71,7 @@ export const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
         {!isSingleLine && (
           <Dropdown
             onCreate={onDropdownCreate}
+            appendTo={() => document.body}
             icon={(
               <div className="editor-code-block-lang-selector flex items-center gap-1 cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 px-2 py-1 rounded transition-colors duration-150">
                 <span>{language}</span>
@@ -79,23 +80,25 @@ export const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
             )}
             placement="bottom-end"
           >
-            <div
-              className={`dropdown-item ${language === 'auto' ? 'active' : ''} px-2 py-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700`}
-              data-language="auto"
-              onClick={setLanguage}
-            >
-              auto
-            </div>
-            {LANGUAGES.map((lang) => (
+            <div className="flex flex-col max-h-64 overflow-y-auto">
               <div
-                key={lang}
-                className={`dropdown-item ${language === lang ? 'active' : ''} px-2 py-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700`}
-                data-language={lang}
+                className={`dropdown-item ${language === 'auto' ? 'active' : ''} px-2 py-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700`}
+                data-language="auto"
                 onClick={setLanguage}
               >
-                {lang}
+                auto
               </div>
-            ))}
+              {LANGUAGES.map((lang) => (
+                <div
+                  key={lang}
+                  className={`dropdown-item ${language === lang ? 'active' : ''} px-2 py-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700`}
+                  data-language={lang}
+                  onClick={setLanguage}
+                >
+                  {lang}
+                </div>
+              ))}
+            </div>
           </Dropdown>
         )}
         <div
