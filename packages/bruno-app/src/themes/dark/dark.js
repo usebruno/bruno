@@ -294,8 +294,6 @@ const darkTheme = {
     responseOk: palette.hues.GREEN,
     responseError: palette.hues.RED,
     responsePending: palette.hues.BLUE,
-    responseClientError: palette.hues.ORANGE,
-    responseRedirect: palette.hues.CYAN,
     responseOverlayBg: rgba(palette.background.BASE, 0.8),
 
     card: {
