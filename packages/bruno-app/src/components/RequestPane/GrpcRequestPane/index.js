@@ -127,7 +127,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
     </div>
   ) : requestPaneTab === 'docs' ? (
     <div ref={rightContentRef}>
-      <DocsAction item={item} />
+      <DocsAction />
     </div>
   ) : null;
 

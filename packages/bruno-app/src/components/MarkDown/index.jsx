@@ -3,7 +3,7 @@ import { useEditor } from '@tiptap/react';
 import RichTextEditor from 'ui/RichTextEditor';
 import { isValidUrl } from 'utils/url/index';
 
-const Markdown = ({ collectionPath, onDoubleClick, content, allowHtml = true }) => {
+const Markdown = ({ onDoubleClick, content }) => {
   const editor = useEditor({
     extensions: RichTextEditor.extensions,
     content: content || '',
@@ -22,7 +22,7 @@ const Markdown = ({ collectionPath, onDoubleClick, content, allowHtml = true }) 
       const href = target.getAttribute('href');
       if (href && isValidUrl(href)) {
         event.preventDefault();
-        window.open(href, '_blank');
+        window.open(href, '_blank', 'noopener,noreferrer');
       }
     }
   };

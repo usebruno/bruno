@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getMarkRange } from '@tiptap/core';
-import { Tooltip } from 'react-tooltip';
 import { IconEdit, IconUnlink, IconCopy, IconExternalLink } from '@tabler/icons';
 import toast from 'react-hot-toast';
+import ToolHint from 'components/ToolHint';
+import Button from 'ui/Button';
 import EditorLinkEditPopover from '../EditorLinkEditPopover';
 import StyledWrapper from './StyledWrapper';
 
-const HOVER_TOOLTIP_ID = 'editor-link-hover-tooltip';
+const POPOVER_WIDTH = 280;
 
 /**
  * Resolves link text + doc range from the TipTap document for a given anchor element.
@@ -38,7 +39,7 @@ function getRelativeCoords(anchorEl, containerEl) {
 
   const left = Math.min(
     Math.max(8, anchorRect.left - containerRect.left), // 8px left padding
-    containerRect.width - 280 - 8 // 8px right padding
+    containerRect.width - POPOVER_WIDTH - 8 // 8px right padding
   );
   // Add some spacing so the top of the popover has a gap
   const top = anchorRect.bottom - containerRect.top + containerEl.scrollTop + 6;
@@ -129,7 +130,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
         const containerRect = container.getBoundingClientRect();
         coords = {
           top: posCoords.bottom - containerRect.top + container.scrollTop + 6,
-          left: Math.min(Math.max(8, posCoords.left - containerRect.left), containerRect.width - 280 - 8)
+          left: Math.min(Math.max(8, posCoords.left - containerRect.left), containerRect.width - POPOVER_WIDTH - 8)
         };
       } catch (e) { /* ignore */ }
 
@@ -219,65 +220,59 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
             <div className="view-separator" />
             <div className="action-icons">
               {isEditable && (
-                <button
-                  type="button"
-                  className="action-icon-btn"
-                  data-tooltip-id={HOVER_TOOLTIP_ID}
-                  data-tooltip-content="Edit link"
-                  onClick={() => {
-                    setHoverOpen(false);
-                    if (currentAnchorRef.current) {
-                      openEditForAnchor(currentAnchorRef.current);
-                    }
-                  }}
-                >
-                  <IconEdit size={14} strokeWidth={1.5} />
-                </button>
+                <ToolHint text="Edit link" toolhintId="edit-link">
+                  <button
+                    type="button"
+                    className="action-icon-btn"
+                    onClick={() => {
+                      setHoverOpen(false);
+                      if (currentAnchorRef.current) {
+                        openEditForAnchor(currentAnchorRef.current);
+                      }
+                    }}
+                  >
+                    <IconEdit size={14} strokeWidth={1.5} />
+                  </button>
+                </ToolHint>
               )}
               {isEditable && (
+                <ToolHint text="Remove link" toolhintId="remove-link">
+                  <button
+                    type="button"
+                    className="action-icon-btn"
+                    onClick={() => {
+                      setHoverOpen(false);
+                      if (onUnlink) onUnlink();
+                    }}
+                  >
+                    <IconUnlink size={14} strokeWidth={1.5} />
+                  </button>
+                </ToolHint>
+              )}
+              <ToolHint text="Copy link" toolhintId="copy-link">
                 <button
                   type="button"
                   className="action-icon-btn"
-                  data-tooltip-id={HOVER_TOOLTIP_ID}
-                  data-tooltip-content="Remove link"
                   onClick={() => {
+                    navigator.clipboard.writeText(hoverLink.url);
+                    toast.success('Link copied to clipboard');
                     setHoverOpen(false);
-                    if (onUnlink) onUnlink();
                   }}
                 >
-                  <IconUnlink size={14} strokeWidth={1.5} />
+                  <IconCopy size={14} strokeWidth={1.5} />
                 </button>
-              )}
-              <button
-                type="button"
-                className="action-icon-btn"
-                data-tooltip-id={HOVER_TOOLTIP_ID}
-                data-tooltip-content="Copy link"
-                onClick={() => {
-                  navigator.clipboard.writeText(hoverLink.url);
-                  toast.success('Link copied to clipboard');
-                  setHoverOpen(false);
-                }}
-              >
-                <IconCopy size={14} strokeWidth={1.5} />
-              </button>
-              <button
-                type="button"
-                className="action-icon-btn"
-                data-tooltip-id={HOVER_TOOLTIP_ID}
-                data-tooltip-content="Open in new tab"
-                onClick={() => window.open(hoverLink.url, '_blank', 'noreferrer')}
-              >
-                <IconExternalLink size={14} strokeWidth={1.5} />
-              </button>
+              </ToolHint>
+              <ToolHint text="Open in new tab" toolhintId="open-link">
+                <button
+                  type="button"
+                  className="action-icon-btn"
+                  onClick={() => window.open(hoverLink.url, '_blank', 'noreferrer')}
+                >
+                  <IconExternalLink size={14} strokeWidth={1.5} />
+                </button>
+              </ToolHint>
             </div>
           </div>
-          <Tooltip
-            id={HOVER_TOOLTIP_ID}
-            place="top"
-            positionStrategy="fixed"
-            style={{ zIndex: 99999, fontSize: '11px' }}
-          />
         </StyledWrapper>
       )}
 
@@ -285,8 +280,6 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
       <EditorLinkEditPopover
         editor={editor}
         isOpen={editOpen}
-        mode="edit"
-        isEditable={true}
         externalCoords={editCoords}
         onClose={() => setEditOpen(false)}
         onSubmit={(data) => {

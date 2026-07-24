@@ -309,35 +309,45 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  const rightContent = requestPaneTab === 'auth' ? (
-    <div ref={schemaActionsRef} className="flex flex-grow justify-start items-center">
-      <AuthMode item={item} collection={collection} />
-    </div>
-  ) : requestPaneTab === 'query' ? (
-    <div ref={schemaActionsRef} className="flex items-center gap-2">
-      <ActionIcon
-        label="Prettify"
-        onClick={handlePrettify}
-      >
-        <IconWand size={14} strokeWidth={1.5} />
-      </ActionIcon>
-      <ActionIcon
-        label={showQueryBuilder ? 'Hide Query Builder' : 'Show Query Builder'}
-        onClick={toggleQueryBuilder}
-      >
-        <IconSidebarToggle collapsed={!showQueryBuilder} size={16} strokeWidth={1.5} />
-      </ActionIcon>
-      <MenuDropdown items={queryMenuItems} placement="bottom-end">
-        <ActionIcon label="More actions">
-          <IconDots size={16} strokeWidth={1.5} />
-        </ActionIcon>
-      </MenuDropdown>
-    </div>
-  ) : requestPaneTab === 'docs' ? (
-    <div ref={schemaActionsRef}>
-      <DocsAction item={item} />
-    </div>
-  ) : null;
+  let rightContent = null;
+  switch (requestPaneTab) {
+    case 'auth':
+      rightContent = (
+        <div ref={schemaActionsRef} className="flex flex-grow justify-start items-center">
+          <AuthMode item={item} collection={collection} />
+        </div>
+      );
+      break;
+    case 'query':
+      rightContent = (
+        <div ref={schemaActionsRef} className="flex items-center gap-2">
+          <ActionIcon label="Prettify" onClick={handlePrettify}>
+            <IconWand size={14} strokeWidth={1.5} />
+          </ActionIcon>
+          <ActionIcon
+            label={showQueryBuilder ? 'Hide Query Builder' : 'Show Query Builder'}
+            onClick={toggleQueryBuilder}
+          >
+            <IconSidebarToggle collapsed={!showQueryBuilder} size={16} strokeWidth={1.5} />
+          </ActionIcon>
+          <MenuDropdown items={queryMenuItems} placement="bottom-end">
+            <ActionIcon label="More actions">
+              <IconDots size={16} strokeWidth={1.5} />
+            </ActionIcon>
+          </MenuDropdown>
+        </div>
+      );
+      break;
+    case 'docs':
+      rightContent = (
+        <div ref={schemaActionsRef}>
+          <DocsAction />
+        </div>
+      );
+      break;
+    default:
+      rightContent = null;
+  }
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">

@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import docsContentStyles from 'components/Documentation/docsContentStyles';
+import editorContentStyles from 'ui/editorContentStyles';
 
 const StyledWrapper = styled.div`
   .rich-text-editor-content {
@@ -13,7 +13,7 @@ const StyledWrapper = styled.div`
     height: 100%;
     outline: none;
     caret-color: ${(props) => props.theme.colors.text.yellow};
-    ${docsContentStyles}
+    ${editorContentStyles}
 
     p:not(table p),
     h1,

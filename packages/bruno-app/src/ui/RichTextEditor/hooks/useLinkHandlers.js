@@ -4,8 +4,17 @@ const useLinkHandlers = (editor) => {
   const handleLinkSubmit = useCallback(({ text, url }) => {
     if (!editor) return;
 
-    const parsedUrl = url.trim().toLowerCase();
-    if (parsedUrl.startsWith('javascript:')) return;
+    const trimmedUrl = url.trim();
+    const parsedUrl = trimmedUrl.toLowerCase();
+
+    if (
+      parsedUrl.startsWith('javascript:')
+      || parsedUrl.startsWith('vbscript:')
+      || parsedUrl.startsWith('data:')
+      || parsedUrl.startsWith('file:')
+    ) {
+      return;
+    }
 
     const chain = editor.chain().focus();
     if (editor.isActive('link')) {
@@ -15,8 +24,8 @@ const useLinkHandlers = (editor) => {
     chain
       .insertContent({
         type: 'text',
-        text: text || url,
-        marks: [{ type: 'link', attrs: { href: url } }]
+        text: text || trimmedUrl,
+        marks: [{ type: 'link', attrs: { href: trimmedUrl } }]
       })
       .run();
   }, [editor]);

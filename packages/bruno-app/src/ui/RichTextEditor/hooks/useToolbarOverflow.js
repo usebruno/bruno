@@ -43,17 +43,6 @@ export const useToolbarOverflow = (editor) => {
     }
   }, []);
 
-  useEffect(() => {
-    if (editor) {
-      editor.brunoOpenLinkModal = () => handleLinkClick(editor);
-    }
-    return () => {
-      if (editor) {
-        delete editor.brunoOpenLinkModal;
-      }
-    };
-  }, [editor, handleLinkClick]);
-
   const actions = useMemo(() => buildToolbarActions(handleLinkClick), [handleLinkClick]);
   const [visibleCount, setVisibleCount] = useState(actions.length);
 
@@ -137,15 +126,15 @@ export const useToolbarOverflow = (editor) => {
   const overflowActions = actions.slice(visibleCount);
   const overflowActiveItemIds = activeItemIds.filter((id) => overflowActions.some((action) => action.id === id));
 
-  const overflowMenuItems = overflowActions.map((action) => ({
+  const overflowMenuItems = useMemo(() => overflowActions.map((action) => ({
     id: action.id,
     label: action.tooltip,
     leftSection: action.Icon,
     onClick: () => action.run(editor),
     disabled: disabledById[action.id]
-  }));
+  })), [overflowActions, disabledById, editor]);
 
-  const headingMenuItems = HEADING_OPTIONS.map((option) => ({
+  const headingMenuItems = useMemo(() => HEADING_OPTIONS.map((option) => ({
     id: option.id,
     label: option.label,
     onClick: () => {
@@ -155,7 +144,7 @@ export const useToolbarOverflow = (editor) => {
         editor.chain().focus().setHeading({ level: option.level }).run();
       }
     }
-  }));
+  })), [editor]);
 
   return {
     toolbarRef,

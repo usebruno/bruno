@@ -4,7 +4,7 @@ import { css } from 'styled-components';
  * Shared prose styles for docs preview (.markdown-body) and Rich Text editor (.tiptap).
  * Keeps typography and table appearance consistent between edit and preview.
  */
-const docsContentStyles = css`
+const editorContentStyles = css`
   color: ${(props) => props.theme.text};
   background: transparent;
   font-size: ${(props) => props.theme.font.size.base};
@@ -129,7 +129,7 @@ const docsContentStyles = css`
 
   code {
     background-color: ${(props) => props.theme.background.surface0};
-    border-radius: 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     font-size: 0.85em;
     padding: 0.15em 0.35em;
     font-family: ${(props) => props.theme.font.monospace || 'monospace'};
@@ -141,7 +141,7 @@ const docsContentStyles = css`
     font-family: ${(props) => props.theme.font.monospace || 'monospace'};
     margin: 1rem 0;
     padding: 2.5rem 1rem 0.75rem 1rem;
-    border-radius: 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     overflow-x: auto;
 
     code {
@@ -173,14 +173,14 @@ const docsContentStyles = css`
   .editor-image {
     max-width: 100%;
     height: auto;
-    border-radius: 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     margin: 0.5rem 0;
   }
 
   video {
     max-width: 100%;
     height: auto;
-    border-radius: 4px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     margin: 0.5rem 0;
   }
 
@@ -257,8 +257,6 @@ const docsContentStyles = css`
     }
   }
 
-
-
   /* Syntax Highlighting for code blocks (highlight.js classes from lowlight) */
   .hljs-keyword,
   .hljs-selector-tag,
@@ -313,4 +311,4 @@ const docsContentStyles = css`
   }
     
 `;
-export default docsContentStyles;
+export default editorContentStyles;
