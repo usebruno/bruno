@@ -229,7 +229,9 @@ const buildCertsAndProxyConfig = async ({
     clientCertificates,
     collectionLevelProxy,
     appLevelProxyConfig,
-    systemProxyConfig
+    systemProxyConfig,
+    shouldSendCookies: preferencesUtil.shouldSendCookies(),
+    shouldStoreCookies: preferencesUtil.shouldStoreCookies()
   };
 };
 
