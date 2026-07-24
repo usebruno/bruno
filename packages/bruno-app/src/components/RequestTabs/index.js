@@ -12,6 +12,7 @@ import StyledWrapper from './StyledWrapper';
 import DraggableTab from './DraggableTab';
 import CreateTransientRequest from 'components/CreateTransientRequest';
 import ActionIcon from 'ui/ActionIcon/index';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
@@ -28,6 +29,7 @@ const RequestTabs = () => {
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const screenWidth = useSelector((state) => state.app.screenWidth);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const tabsAcrossCollections = useBetaFeature(BETA_FEATURES.TABS_ACROSS_COLLECTIONS);
 
   const createSetHasOverflow = useCallback((tabUid) => {
     return (hasOverflow) => {
@@ -46,6 +48,19 @@ const RequestTabs = () => {
   const activeTab = find(tabs, (t) => t.uid === activeTabUid);
   const activeCollection = find(collections, (c) => c?.uid === activeTab?.collectionUid);
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
+
+  const scratchCollectionUids = useMemo(
+    () => new Set(workspaces.map((w) => w.scratchCollectionUid).filter(Boolean)),
+    [workspaces]
+  );
+
+  // In "tabs across collections" mode, show every collection's tabs together. Workspace-level
+  // scratch tabs (overview, environments, scratch requests) stay out unless their workspace is
+  // the active context — they belong to the workspace, not to a collection shown in the sidebar.
+  const displayedTabs = useMemo(() => {
+    if (!tabsAcrossCollections) return collectionRequestTabs;
+    return tabs.filter((t) => !scratchCollectionUids.has(t.collectionUid) || t.collectionUid === activeTab?.collectionUid);
+  }, [tabsAcrossCollections, tabs, collectionRequestTabs, scratchCollectionUids, activeTab?.collectionUid]);
 
   const isScratchCollection = useMemo(() => {
     return activeCollection ? workspaces.some((w) => w.scratchCollectionUid === activeCollection.uid) : false;
@@ -68,12 +83,12 @@ const RequestTabs = () => {
     }
 
     return () => resizeObserver.disconnect();
-  }, [activeTabUid, activeTab, collectionRequestTabs.length, screenWidth, leftSidebarWidth, sidebarCollapsed]);
+  }, [activeTabUid, activeTab, displayedTabs.length, screenWidth, leftSidebarWidth, sidebarCollapsed]);
 
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
       'active': tab.uid === activeTabUid,
-      'last-tab': tabs && tabs.length && index === tabs.length - 1,
+      'last-tab': displayedTabs.length && index === displayedTabs.length - 1,
       'has-overflow': tabOverflowStates[tab.uid]
     });
   };
@@ -113,7 +128,7 @@ const RequestTabs = () => {
       {newRequestModalOpen && (
         <NewRequest collectionUid={activeCollection?.uid} onClose={() => setNewRequestModalOpen(false)} />
       )}
-      {collectionRequestTabs && collectionRequestTabs.length ? (
+      {displayedTabs && displayedTabs.length ? (
         <>
           {activeCollection && (
             <CollectionHeader
@@ -135,8 +150,9 @@ const RequestTabs = () => {
             </li> */}
             <div className="tabs-scroll-container" style={{ maxWidth: maxTablistWidth }} ref={scrollContainerRef}>
               <ul role="tablist" ref={tabsRef}>
-                {collectionRequestTabs && collectionRequestTabs.length
-                  ? collectionRequestTabs.map((tab, index) => {
+                {displayedTabs && displayedTabs.length
+                  ? displayedTabs.map((tab, index) => {
+                      const tabCollection = find(collections, (c) => c?.uid === tab.collectionUid);
                       return (
                         <DraggableTab
                           key={tab.uid}
@@ -153,11 +169,11 @@ const RequestTabs = () => {
                           onClick={() => handleClick(tab)}
                         >
                           <RequestTab
-                            collectionRequestTabs={collectionRequestTabs}
+                            collectionRequestTabs={displayedTabs}
                             tabIndex={index}
                             key={tab.uid}
                             tab={tab}
-                            collection={activeCollection}
+                            collection={tabCollection}
                             folderUid={tab.folderUid}
                             hasOverflow={tabOverflowStates[tab.uid]}
                             setHasOverflow={createSetHasOverflow(tab.uid)}

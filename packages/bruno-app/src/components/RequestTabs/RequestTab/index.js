@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useRef, Fragment, useMemo, useEffect } from 'react';
 import get from 'lodash/get';
+import find from 'lodash/find';
 import { makeTabPermanent, syncTabUid } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs, saveFile } from 'providers/ReduxStore/slices/collections/actions';
 import useKeybinding from 'hooks/useKeybinding';
@@ -23,7 +24,6 @@ import MenuDropdown from 'ui/MenuDropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
 import NewRequest from 'components/Sidebar/NewRequest/index';
 import GradientCloseButton from './GradientCloseButton';
-import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
 import { getInvalidVariableNames } from 'utils/common/variables';
 import ExampleTab from '../ExampleTab';
@@ -600,6 +600,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       <div
         ref={tabLabelRef}
         className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}
+        title={collection?.name ? `${collection.name} · ${item.name}` : item.name}
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
         onMouseDown={handleMouseDown}
@@ -656,6 +657,12 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   const [showCloneRequestModal, setShowCloneRequestModal] = useState(false);
   const [showAddNewRequestModal, setShowAddNewRequestModal] = useState(false);
 
+  // Tabs shown together may belong to different collections (tabs-across-collections beta
+  // feature), so bulk-close actions must resolve each target tab's own collection rather than
+  // assuming they all share `collection` (the collection of the tab whose menu was opened).
+  const collections = useSelector((state) => state.collections.collections);
+  const resolveTabCollection = (t) => find(collections, (c) => c.uid === t.collectionUid) || collection;
+
   // Returns the tab-label's position for dropdown positioning.
   // Returns zero-sized rect if element isn't mounted yet (prevents Tippy errors).
   const getTabLabelRect = () => {
@@ -674,19 +681,20 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   const hasRightTabs = totalTabs > tabIndex + 1;
   const hasOtherTabs = totalTabs > 1;
 
-  async function handleCloseTab(tabUid) {
-    if (!tabUid) {
+  async function handleCloseTab(tab) {
+    if (!tab?.uid) {
       return;
     }
 
     try {
-      const item = findItemInCollection(collection, tabUid);
+      const tabCollection = resolveTabCollection(tab);
+      const item = findItemInCollection(tabCollection, tab.uid);
       // silently save unsaved changes before closing the tab
       if (hasRequestChanges(item)) {
-        await dispatch(saveRequest(item.uid, collection.uid, true));
+        await dispatch(saveRequest(item.uid, tabCollection.uid, true));
       }
 
-      dispatch(closeTabs({ tabUids: [tabUid] }));
+      dispatch(closeTabs({ tabUids: [tab.uid] }));
     } catch (err) { }
   }
 
@@ -710,10 +718,11 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     const tabUidsToClose = [];
 
     for (const tab of tabs) {
-      const item = findItemInCollection(collection, tab.uid);
+      const tabCollection = resolveTabCollection(tab);
+      const item = findItemInCollection(tabCollection, tab.uid);
       if (item && hasRequestChanges(item)) {
         try {
-          await dispatch(saveRequest(item.uid, collection.uid, true));
+          await dispatch(saveRequest(item.uid, tabCollection.uid, true));
         } catch (err) {
           continue;
         }
@@ -745,9 +754,12 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
   }
 
   function handleCloseSavedTabs() {
-    const items = flattenItems(collection?.items);
-    const savedTabs = items?.filter?.((item) => !hasRequestChanges(item));
-    const savedTabIds = savedTabs?.map((item) => item.uid) || [];
+    const savedTabIds = collectionRequestTabs
+      .filter((tab) => {
+        const item = findItemInCollection(resolveTabCollection(tab), tab.uid);
+        return item && !hasRequestChanges(item);
+      })
+      .map((tab) => tab.uid);
     dispatch(closeTabs({ tabUids: savedTabIds }));
   }
 
@@ -775,7 +787,7 @@ function RequestTabMenu({ menuDropdownRef, tabLabelRef, collectionRequestTabs, t
     {
       id: 'close',
       label: 'Close',
-      onClick: () => handleCloseTab(currentTabUid)
+      onClick: () => handleCloseTab(collectionRequestTabs[tabIndex])
     },
     {
       id: 'close-others',
