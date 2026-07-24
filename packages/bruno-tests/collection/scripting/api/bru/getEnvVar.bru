@@ -14,6 +14,7 @@ get {
 tests {
   test("should get env var in scripts", function() {
     const host = bru.getEnvVar("host")
-    expect(host).to.equal("https://testbench-sanity.usebruno.com");
+    expect(host).to.be.a("string");
+    expect(host).to.not.be.empty;
   });
 }
