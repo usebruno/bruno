@@ -1,0 +1,22 @@
+meta {
+  name: nested-walkup
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://httpfaker.org/api/echo
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const { buildRequestId } = require('../../shared-scripts/deep/nested/nested-helper');
+  bru.setVar('requestId', buildRequestId('/api/v1/users', 'POST'));
+}
+
+tests {
+  test('nested shared util resolves signature-utils via walk-up', function() {
+    expect(bru.getVar('requestId')).to.match(/^POST__api_v1_users_[0-9a-f]{8}$/);
+  });
+}

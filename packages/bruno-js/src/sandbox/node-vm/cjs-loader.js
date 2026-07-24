@@ -66,7 +66,7 @@ function resolveLocalModulePath(fromDir, moduleName) {
  * @param {Object} options.isolatedContext - The VM isolated context created with vm.createContext()
  * @param {string} options.currentModuleDir - Current module directory for resolving relative paths
  * @param {Map} options.localModuleCache - Cache for loaded modules
- * @param {string[]} options.additionalContextRootsAbsolute - Additional allowed root paths
+ * @param {string[]} options.additionalContextRootsAbsolute - Allowed roots for local file imports
  * @returns {Function} Custom require function
  */
 function createCustomRequire({
@@ -115,6 +115,7 @@ function createCustomRequire({
     return loadNpmModule({
       moduleName,
       collectionPath,
+      currentModuleDir,
       isolatedContext,
       localModuleCache
     });
@@ -269,7 +270,13 @@ function executeModuleInVmContext({
 }
 
 /**
- * Loads an npm module into the vm context
+ * Loads an npm module into the vm context.
+ *
+ * Resolution order matches standard Node.js walk-up:
+ *   1. currentModuleDir/node_modules → walk up parent dirs
+ *   2. collectionPath/node_modules
+ *   3. Bruno's bundled node_modules (final fallback for chai/ajv/axios/etc.)
+ *
  * @param {Object} options - Configuration options
  * @returns {*} The exported content of the loaded module
  * @throws {Error} When module cannot be resolved or loaded
@@ -277,19 +284,22 @@ function executeModuleInVmContext({
 function loadNpmModule({
   moduleName,
   collectionPath,
+  currentModuleDir,
   isolatedContext,
   localModuleCache
 }) {
   let resolvedPath;
 
-  // Module resolution order:
-  // 1. Collection's node_modules (user-installed packages for their collection)
-  // 2. Bruno's node_modules (fallback for built-in dependencies)
-  //
-  // This order ensures user packages take precedence, allowing users to:
-  // - Override Bruno's bundled package versions
-  // - Install collection-specific dependencies
-  if (collectionPath) {
+  if (currentModuleDir) {
+    try {
+      const callerRequire = nodeModule.createRequire(path.join(currentModuleDir, 'package.json'));
+      resolvedPath = callerRequire.resolve(moduleName);
+    } catch {
+      // Not found via walk-up, continue to fallbacks
+    }
+  }
+
+  if (!resolvedPath && collectionPath) {
     try {
       const collectionRequire = nodeModule.createRequire(path.join(collectionPath, 'package.json'));
       resolvedPath = collectionRequire.resolve(moduleName);
@@ -298,7 +308,7 @@ function loadNpmModule({
     }
   }
 
-  // Fall back to Bruno's node_modules
+  // Fall back to Bruno's bundled node_modules
   if (!resolvedPath) {
     try {
       resolvedPath = require.resolve(moduleName, { paths: module.paths });
@@ -320,7 +330,11 @@ function loadNpmModule({
 }
 
 /**
- * Creates require function for npm module dependencies
+ * Creates the require function handed to a loaded npm module. Resolution is
+ * plain Node.js walk-up from the module's own directory — internal relative
+ * requires, sibling packages, and npm-linked / file: dependencies all resolve
+ * the way native `require` would from that location.
+ *
  * @param {Object} options - Configuration options
  * @returns {Function} Custom require function for npm module dependencies
  */

@@ -1,0 +1,22 @@
+meta {
+  name: happy-path
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://httpfaker.org/api/echo
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const { generateAuthToken } = require('../../shared-scripts/utils');
+  bru.setVar('authToken', generateAuthToken({ apiKey: 'collectionB-key', timestamp: 1700000001 }));
+}
+
+tests {
+  test('Collection B builds a valid auth token via the shared util', function() {
+    expect(bru.getVar('authToken')).to.match(/^collectionB-key\.1700000001\.[0-9a-f]{8}$/);
+  });
+}
