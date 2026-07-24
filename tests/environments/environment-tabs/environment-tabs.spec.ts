@@ -186,6 +186,7 @@ test.describe('Environment Variables / Secrets tab separation', () => {
 
     await test.step('Editing the Variables tab marks only Variables unsaved', async () => {
       await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
+      await expect(tabCount(page, 'variables')).toHaveText('1');
       await expect(tabCount(page, 'variables')).toHaveClass(/unsaved/);
       await expect(tabCount(page, 'secrets')).toHaveCount(0);
     });
@@ -193,15 +194,20 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     await test.step('Editing the Secrets tab marks it unsaved without clearing Variables', async () => {
       await secretsTab(page).click();
       await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
+      await expect(tabCount(page, 'secrets')).toHaveText('1');
       await expect(tabCount(page, 'secrets')).toHaveClass(/unsaved/);
       // The Variables tab still has its unsaved row, so its marker must remain.
+      await expect(tabCount(page, 'variables')).toHaveText('1');
       await expect(tabCount(page, 'variables')).toHaveClass(/unsaved/);
     });
 
     await test.step('Saving the Secrets tab clears only its unsaved marker', async () => {
       await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      // The saved count survives the save; only the unsaved marker clears.
+      await expect(tabCount(page, 'secrets')).toHaveText('1');
       await expect(tabCount(page, 'secrets')).not.toHaveClass(/unsaved/);
+      await expect(tabCount(page, 'variables')).toHaveText('1');
       await expect(tabCount(page, 'variables')).toHaveClass(/unsaved/);
     });
 
@@ -209,7 +215,9 @@ test.describe('Environment Variables / Secrets tab separation', () => {
       await variablesTab(page).click();
       await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(tabCount(page, 'variables')).toHaveText('1');
       await expect(tabCount(page, 'variables')).not.toHaveClass(/unsaved/);
+      await expect(tabCount(page, 'secrets')).toHaveText('1');
       await expect(tabCount(page, 'secrets')).not.toHaveClass(/unsaved/);
     });
   });
@@ -441,10 +449,9 @@ test.describe('Environment Variables / Secrets tab separation', () => {
       await expect(varErrors(page)).toHaveCount(1);
     });
 
-    await test.step('Saving is blocked with an error and no success toast', async () => {
+    await test.step('Saving is blocked with a duplicate-name error', async () => {
       await saveEnvironment(page);
       await expect(toastByMessage(page, DUPLICATE_SECRET_TOAST)).toBeVisible();
-      await expect(toastByMessage(page, 'Changes saved successfully')).toHaveCount(0);
     });
 
     await test.step('Renaming the duplicate to a unique name clears the error and lets it save', async () => {
@@ -637,6 +644,7 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
 
     await test.step('Editing the Variables tab marks only Variables unsaved', async () => {
       await addRowToActiveTab(page, 'host', 'https://echo.usebruno.com');
+      await expect(tabCount(page, 'variables')).toHaveText('1');
       await expect(tabCount(page, 'variables')).toHaveClass(/unsaved/);
       await expect(tabCount(page, 'secrets')).toHaveCount(0);
     });
@@ -644,15 +652,20 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     await test.step('Editing the Secrets tab marks it unsaved without clearing Variables', async () => {
       await secretsTab(page).click();
       await addRowToActiveTab(page, 'apiToken', 'super-secret-token-12345');
+      await expect(tabCount(page, 'secrets')).toHaveText('1');
       await expect(tabCount(page, 'secrets')).toHaveClass(/unsaved/);
       // The Variables tab still has its unsaved row, so its marker must remain.
+      await expect(tabCount(page, 'variables')).toHaveText('1');
       await expect(tabCount(page, 'variables')).toHaveClass(/unsaved/);
     });
 
     await test.step('Saving the Secrets tab clears only its unsaved marker', async () => {
       await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      // The saved count survives the save; only the unsaved marker clears.
+      await expect(tabCount(page, 'secrets')).toHaveText('1');
       await expect(tabCount(page, 'secrets')).not.toHaveClass(/unsaved/);
+      await expect(tabCount(page, 'variables')).toHaveText('1');
       await expect(tabCount(page, 'variables')).toHaveClass(/unsaved/);
     });
 
@@ -660,7 +673,9 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
       await variablesTab(page).click();
       await saveTab(page).click();
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await expect(tabCount(page, 'variables')).toHaveText('1');
       await expect(tabCount(page, 'variables')).not.toHaveClass(/unsaved/);
+      await expect(tabCount(page, 'secrets')).toHaveText('1');
       await expect(tabCount(page, 'secrets')).not.toHaveClass(/unsaved/);
     });
   });
@@ -889,14 +904,34 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
       await expect(varErrors(page)).toHaveCount(1);
     });
 
-    await test.step('Saving is blocked with an error and no success toast', async () => {
+    await test.step('Saving is blocked with a duplicate-name error', async () => {
       await saveEnvironment(page);
       await expect(toastByMessage(page, DUPLICATE_SECRET_TOAST)).toBeVisible();
-      await expect(toastByMessage(page, 'Changes saved successfully')).toHaveCount(0);
     });
 
     await test.step('Renaming the duplicate to a unique name clears the error and lets it save', async () => {
       await varNameInput(page, 'apiToken').fill('apiTokenBackup');
+      await expect(varErrors(page)).toHaveCount(0);
+      await saveEnvironment(page);
+      await expect(toastByMessage(page, 'Changes saved successfully').last()).toBeVisible();
+    });
+  });
+
+  test('still allows duplicate names on the Variables tab', async ({ page, createTmpDir }) => {
+    await importCollection(page, collectionFile, await createTmpDir('global-variable-duplicate-name'), {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, 'Global Duplicate Variable Env', 'global');
+
+    await test.step('Add two variables with the same name on the Variables tab', async () => {
+      await expect(variablesTab(page)).toHaveClass(/active/);
+      await addRowToActiveTab(page, 'host', 'first-value');
+      await envLocators(page).addRowNameInput().fill('host');
+      await expect(varRow(page, 'host')).toHaveCount(2);
+    });
+
+    await test.step('No duplicate-name error is shown and the save succeeds', async () => {
       await expect(varErrors(page)).toHaveCount(0);
       await saveEnvironment(page);
       await expect(toastByMessage(page, 'Changes saved successfully').last()).toBeVisible();
