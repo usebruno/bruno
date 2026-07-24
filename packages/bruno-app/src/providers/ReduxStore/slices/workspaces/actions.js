@@ -8,7 +8,7 @@ import {
   updateWorkspaceLoadingState,
   setWorkspaceScratchCollection
 } from '../workspaces';
-import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, hydrateCollectionWithUiStateSnapshot } from '../collections/actions';
+import { createCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, hydrateCollectionWithUiStateSnapshot } from '../collections/actions';
 import { removeCollection, addTransientDirectory, updateCollectionMountStatus, expandCollection, sortCollections } from '../collections';
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
@@ -1001,10 +1001,6 @@ export const createCollectionInWorkspace = (collectionName, collectionFolderName
       workspaceId: currentWorkspace.pathname
     }));
   };
-};
-
-export const openCollectionInWorkspace = () => {
-  return (dispatch) => dispatch(openCollection());
 };
 
 const handleWorkspaceAction = async (action, workspaceUid, ...args) => {

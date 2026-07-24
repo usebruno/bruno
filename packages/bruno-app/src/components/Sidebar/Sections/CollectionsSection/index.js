@@ -16,9 +16,9 @@ import {
   IconTerminal2
 } from '@tabler/icons';
 
-import { importCollection, openCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { importCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
-import { savePreferences, setIsCreatingCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
+import { savePreferences, setIsCreatingCollection, setIsOpeningCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
 import { normalizePath } from 'utils/common/path';
 import { isScratchCollection, flattenItems, isItemTransientRequest } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
@@ -184,14 +184,7 @@ const CollectionsSection = () => {
   };
 
   const handleOpenCollection = () => {
-    const options = {};
-    if (activeWorkspace?.pathname) {
-      options.workspaceId = activeWorkspace.pathname;
-    }
-
-    dispatch(openCollection(options)).catch((err) => {
-      toast.error('An error occurred while opening the collection');
-    });
+    dispatch(setIsOpeningCollection(true));
   };
 
   const handleStartRequest = () => {

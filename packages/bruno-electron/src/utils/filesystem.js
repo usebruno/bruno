@@ -178,6 +178,19 @@ const browseDirectory = async (win) => {
   return isDirectory(resolvedPath) ? resolvedPath : false;
 };
 
+const browseDirectories = async (win) => {
+  const { filePaths } = await dialog.showOpenDialog(win, {
+    properties: ['openDirectory', 'createDirectory', 'multiSelections']
+  });
+
+  if (!filePaths || !filePaths.length) {
+    return [];
+  }
+
+  const resolvedPaths = filePaths.map((filePath) => path.resolve(filePath)).filter((resolvedPath) => isDirectory(resolvedPath));
+  return [...new Set(resolvedPaths)];
+};
+
 const browseFiles = async (win, filters = [], properties = []) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
     properties: ['openFile', ...properties],
@@ -581,6 +594,7 @@ module.exports = {
   hasRequestExtension,
   createDirectory,
   browseDirectory,
+  browseDirectories,
   browseFiles,
   chooseFileToSave,
   searchForFiles,
