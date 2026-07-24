@@ -2226,6 +2226,22 @@ const registerNetworkIpc = (mainWindow) => {
       return Promise.reject(error);
     }
   });
+
+  // export request/response as a HAR file
+  ipcMain.handle('renderer:export-har-file', async (event, har, pathname) => {
+    try {
+      const fileName = pathname ? `${path.basename(pathname, path.extname(pathname))}.har` : 'request.har';
+      const dirPath = pathname ? path.dirname(pathname) : '';
+      const filePath = await chooseFileToSave(mainWindow, path.join(dirPath, fileName));
+      if (filePath) {
+        await writeFile(filePath, JSON.stringify(har, null, 2));
+        return { success: true, filePath };
+      }
+      return { success: false, cancelled: true };
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
 };
 
 /**
