@@ -1,0 +1,75 @@
+{
+  "name": "@usebruno/sqlite",
+  "version": "0.1.0",
+  "license": "MIT",
+  "main": "dist/node/cjs/index.js",
+  "module": "dist/node/esm/index.js",
+  "types": "dist/node/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/node/index.d.ts",
+      "require": "./dist/node/cjs/index.js",
+      "import": "./dist/node/esm/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "require": "./dist/node/cjs/index.js",
+      "import": "./dist/node/esm/index.js"
+    },
+    "./web": {
+      "types": "./dist/web/index.d.ts",
+      "require": "./dist/web/cjs/index.js",
+      "import": "./dist/web/esm/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "package.json"
+  ],
+  "scripts": {
+    "clean": "rimraf dist",
+    "generate": "tsx scripts/generate-artifacts.ts",
+    "prepare": "npm run generate",
+    "prebuild": "npm run clean && npm run generate",
+    "build": "rollup -c",
+    "watch": "rollup -c -w",
+    "pretest": "npm run generate",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "prepack": "npm run test && npm run build",
+    "migration:new": "tsx scripts/new-migration.ts",
+    "migration:verify": "tsx --env-file=.env scripts/verify-migrations.ts"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "5.101.1",
+    "react": "19.0.0"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "7.26.0",
+    "@babel/preset-typescript": "7.28.5",
+    "@rollup/plugin-commonjs": "23.0.7",
+    "@rollup/plugin-json": "6.1.0",
+    "@rollup/plugin-node-resolve": "15.3.1",
+    "@rollup/plugin-terser": "1.0.0",
+    "@rollup/plugin-typescript": "12.1.2",
+    "@tanstack/react-query": "5.101.1",
+    "@types/jest": "29.5.14",
+    "@types/node": "22.15.17",
+    "@types/react": "18.3.18",
+    "babel-jest": "29.7.0",
+    "jest": "29.7.0",
+    "node-sql-parser": "5.4.0",
+    "rimraf": "6.0.1",
+    "rollup": "3.30.0",
+    "rollup-plugin-dts": "5.3.1",
+    "rollup-plugin-peer-deps-external": "2.2.4",
+    "react": "19.0.0",
+    "typescript": "4.9.5",
+    "tsx": "4.22.4"
+  },
+  "overrides": {
+    "rollup": "3.30.0"
+  },
+  "dependencies": {}
+}
