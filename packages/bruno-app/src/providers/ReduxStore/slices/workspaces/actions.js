@@ -1049,7 +1049,20 @@ export const closeWorkspaceAction = (workspaceUid) => {
       }
 
       await ipcRenderer.invoke('renderer:close-workspace', workspace.pathname);
+
+      if (workspace.scratchCollectionUid) {
+        dispatch(removeCollection({ collectionUid: workspace.scratchCollectionUid }));
+      }
+
+      const wasActive = getState().workspaces.activeWorkspaceUid === workspaceUid;
       dispatch(removeWorkspace(workspaceUid));
+
+      if (wasActive) {
+        const defaultWorkspace = getState().workspaces.workspaces.find((w) => w.type === 'default');
+        if (defaultWorkspace) {
+          await dispatch(switchWorkspace(defaultWorkspace.uid));
+        }
+      }
     } catch (error) {
       toast.error(error.message || 'Failed to close workspace');
       throw error;
