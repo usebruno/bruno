@@ -38,6 +38,7 @@ const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
+const { createSseEventBuffer } = require('./sse-event-buffer');
 const { easterEggResponse } = require('../../utils/woof');
 const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
@@ -1347,12 +1348,12 @@ const registerNetworkIpc = (mainWindow) => {
       const stream = response.stream;
       response.stream = { running: response.status >= 200 && response.status < 300 };
 
-      stream.on('data', (newData) => {
-        // Collect the raw chunk so runRequest can rebuild the full body on stream close.
-        response.sseChunks?.push(newData);
+      const sseEventBuffer = createSseEventBuffer();
+
+      const sendSseEvent = (rawEvent) => {
         seq += 1;
 
-        const parsed = parseDataFromResponse({ data: newData, headers: {} });
+        const parsed = parseDataFromResponse({ data: rawEvent, headers: {} });
 
         mainWindow.webContents.send('main:http-stream-new-data', {
           collectionUid,
@@ -1361,9 +1362,20 @@ const registerNetworkIpc = (mainWindow) => {
           timestamp: Date.now(),
           data: parsed
         });
+      };
+
+      stream.on('data', (newData) => {
+        // Collect the raw chunk so runRequest can rebuild the full body on stream close.
+        response.sseChunks?.push(newData);
+        sseEventBuffer.push(newData).forEach(sendSseEvent);
       });
 
       stream.on('close', () => {
+        const remaining = sseEventBuffer.flush();
+        if (remaining) {
+          sendSseEvent(remaining);
+        }
+
         if (!cancelTokens[response.cancelTokenUid]) return;
 
         mainWindow.webContents.send('main:http-stream-end', {
