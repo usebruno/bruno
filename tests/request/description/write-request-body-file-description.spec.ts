@@ -1,10 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from '../../../playwright';
-import { openRequest, selectRequestPaneTab } from '../../utils/page';
+import { openRequest, selectRequestPaneTab, saveRequest } from '../../utils/page';
 
 const COLLECTION = 'req-description';
-const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 
 test.describe('Request Description - Write (Body: file)', () => {
   test('writes a multiline description to a file body row and persists it to the .bru file', async ({
@@ -33,10 +32,7 @@ test.describe('Request Description - Write (Body: file)', () => {
       await expect(descCell.locator('.CodeMirror-line').nth(1)).toHaveText('File line two');
     });
 
-    await test.step('Save the request', async () => {
-      await page.keyboard.press(saveShortcut);
-      await expect(page.getByText('Request saved successfully')).toBeVisible({ timeout: 5000 });
-    });
+    await saveRequest(page);
 
     await test.step('Verify the description was persisted to the .bru file', async () => {
       const bruPath = path.join(collectionFixturePath!, 'file-with-descriptions.bru');

@@ -57,8 +57,11 @@ function isTracingEnabled(testInfo: TestInfo): boolean {
 
 // Wait for the Electron app to have a ready, loaded window.
 // Handles cases where the first window is slow to appear (e.g. on Windows).
+// Boot budget calibrated under --workers=5 (~7.5s max spawn→ready + ~10s buffer).
+const ELECTRON_BOOT_TIMEOUT_MS = 18_000;
+
 export async function waitForReadyPage(app: ElectronApplication, options: { timeout?: number } = {}): Promise<Page> {
-  const { timeout = 45000 } = options;
+  const { timeout = ELECTRON_BOOT_TIMEOUT_MS } = options;
 
   let page: Page | null = null;
   try {
@@ -283,6 +286,7 @@ export const test = baseTest.extend<
 
         const app = await playwright._electron.launch({
           args: [electronAppPath, '--disable-gpu'],
+          timeout: ELECTRON_BOOT_TIMEOUT_MS,
           env: {
             ...process.env,
             ELECTRON_USER_DATA_PATH: userDataPath,
@@ -321,7 +325,7 @@ export const test = baseTest.extend<
       const app = await launchElectronApp();
       await use(app);
     },
-    { scope: 'worker' }
+    { scope: 'worker', timeout: ELECTRON_BOOT_TIMEOUT_MS }
   ],
 
   context: async ({ electronApp }, use, testInfo) => {
@@ -334,17 +338,23 @@ export const test = baseTest.extend<
     await use(context);
   },
 
-  page: async ({ electronApp, context }, use, testInfo) => {
-    const page = await waitForReadyPage(electronApp);
-    await usePageWithTracing(context, page, testInfo, use);
-  },
+  page: [
+    async ({ electronApp, context }, use, testInfo) => {
+      const page = await waitForReadyPage(electronApp);
+      await usePageWithTracing(context, page, testInfo, use);
+    },
+    { timeout: ELECTRON_BOOT_TIMEOUT_MS }
+  ],
 
-  newPage: async ({ launchElectronApp }, use, testInfo) => {
-    const app = await launchElectronApp();
-    const context = await app.context();
-    const page = await waitForReadyPage(app);
-    await usePageWithTracing(context, page, testInfo, use, { initTracing: true, useChunks: false });
-  },
+  newPage: [
+    async ({ launchElectronApp }, use, testInfo) => {
+      const app = await launchElectronApp();
+      const context = await app.context();
+      const page = await waitForReadyPage(app);
+      await usePageWithTracing(context, page, testInfo, use, { initTracing: true, useChunks: false });
+    },
+    { timeout: ELECTRON_BOOT_TIMEOUT_MS }
+  ],
 
   reuseOrLaunchElectronApp: [
     async ({ launchElectronApp }, use, testInfo) => {
@@ -378,21 +388,59 @@ export const test = baseTest.extend<
     { scope: 'worker' }
   ],
 
-  restartApp: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath, workspaceFixturePath }, use, testInfo) => {
-    await use(async ({ initUserDataPath } = {}) => {
+  // Dual Electron launches need close + relaunch within the boot budget.
+  restartApp: [
+    async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath, workspaceFixturePath }, use, testInfo) => {
+      await use(async ({ initUserDataPath } = {}) => {
+        const testDir = path.dirname(testInfo.file);
+        const defaultInitUserDataPath = path.join(testDir, 'init-user-data');
+
+        let srcUserDataPath = initUserDataPath;
+        if (!srcUserDataPath) {
+          const hasInitUserData = await fs.promises.stat(defaultInitUserDataPath).catch(() => false);
+          srcUserDataPath = hasInitUserData ? defaultInitUserDataPath : undefined;
+        }
+
+        // Copy init-user-data to a fresh tmp dir (same as pageWithUserData)
+        const tmpAppDataDir = await createTmpDir();
+        if (srcUserDataPath) {
+          await recursiveCopy(srcUserDataPath, tmpAppDataDir);
+        }
+
+        const templateVars: Record<string, string> = {};
+        if (collectionFixturePath) {
+          templateVars.collectionPath = collectionFixturePath.split(path.sep).join('/');
+        }
+        if (workspaceFixturePath) {
+          templateVars.workspacePath = workspaceFixturePath.split(path.sep).join('/');
+        }
+
+        // Close the previous app (from pageWithUserData) before launching a new one
+        return await reuseOrLaunchElectronApp({
+          initUserDataPath: tmpAppDataDir,
+          testFile: testInfo.file,
+          templateVars,
+          closePrevious: true
+        });
+      });
+    },
+    // Close (bounded ~8s) + relaunch; keep a 2× boot budget.
+    { timeout: ELECTRON_BOOT_TIMEOUT_MS * 2 }
+  ],
+
+  pageWithUserData: [
+    async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath, workspaceFixturePath }, use, testInfo) => {
       const testDir = path.dirname(testInfo.file);
-      const defaultInitUserDataPath = path.join(testDir, 'init-user-data');
+      const initUserDataPath = path.join(testDir, 'init-user-data');
 
-      let srcUserDataPath = initUserDataPath;
-      if (!srcUserDataPath) {
-        const hasInitUserData = await fs.promises.stat(defaultInitUserDataPath).catch(() => false);
-        srcUserDataPath = hasInitUserData ? defaultInitUserDataPath : undefined;
-      }
-
-      // Copy init-user-data to a fresh tmp dir (same as pageWithUserData)
       const tmpAppDataDir = await createTmpDir();
-      if (srcUserDataPath) {
-        await recursiveCopy(srcUserDataPath, tmpAppDataDir);
+      try {
+        await recursiveCopy(initUserDataPath, tmpAppDataDir);
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('doesn\'t exist')) {
+          throw new Error(`${initUserDataPath} doesn't exist, either add one or if you don't need an initial state then use the \`page\` fixture instead of \`pageWithUserData\`.`);
+        }
+        throw err;
       }
 
       const templateVars: Record<string, string> = {};
@@ -403,44 +451,14 @@ export const test = baseTest.extend<
         templateVars.workspacePath = workspaceFixturePath.split(path.sep).join('/');
       }
 
-      // Close the previous app (from pageWithUserData) before launching a new one
-      return await reuseOrLaunchElectronApp({
-        initUserDataPath: tmpAppDataDir,
-        testFile: testInfo.file,
-        templateVars,
-        closePrevious: true
-      });
-    });
-  },
+      const app = await reuseOrLaunchElectronApp({ initUserDataPath: tmpAppDataDir, testFile: testInfo.file, templateVars });
 
-  pageWithUserData: async ({ reuseOrLaunchElectronApp, createTmpDir, collectionFixturePath, workspaceFixturePath }, use, testInfo) => {
-    const testDir = path.dirname(testInfo.file);
-    const initUserDataPath = path.join(testDir, 'init-user-data');
-
-    const tmpAppDataDir = await createTmpDir();
-    try {
-      await recursiveCopy(initUserDataPath, tmpAppDataDir);
-    } catch (err) {
-      if (err instanceof Error && err.message.includes('doesn\'t exist')) {
-        throw new Error(`${initUserDataPath} doesn't exist, either add one or if you don't need an initial state then use the \`page\` fixture instead of \`pageWithUserData\`.`);
-      }
-      throw err;
-    }
-
-    const templateVars: Record<string, string> = {};
-    if (collectionFixturePath) {
-      templateVars.collectionPath = collectionFixturePath.split(path.sep).join('/');
-    }
-    if (workspaceFixturePath) {
-      templateVars.workspacePath = workspaceFixturePath.split(path.sep).join('/');
-    }
-
-    const app = await reuseOrLaunchElectronApp({ initUserDataPath: tmpAppDataDir, testFile: testInfo.file, templateVars });
-
-    const context = await app.context();
-    const page = await waitForReadyPage(app);
-    await usePageWithTracing(context, page, testInfo, use, { initTracing: true });
-  }
+      const context = await app.context();
+      const page = await waitForReadyPage(app);
+      await usePageWithTracing(context, page, testInfo, use, { initTracing: true });
+    },
+    { timeout: ELECTRON_BOOT_TIMEOUT_MS }
+  ]
 });
 
 export * from '@playwright/test';

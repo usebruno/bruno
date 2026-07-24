@@ -76,6 +76,43 @@ The suite must be isolated (unique tmp paths, no shared state).
 
 Most specs load fixtures via `collectionFixturePath` (copies `fixtures/collection(s)/` to a temp dir) or `pageWithUserData` (loads `init-user-data/` into a fresh temp userData dir). These operate on **temp copies** — they need **no** cleanup, even though they mutate files on disk (e.g. persistence specs writing to `environments/*.bru` or `collection.bru`). Only a spec that mutates a **committed** fixture **in place** must restore it in `afterAll` — those use `git checkout <fixturePath>`. Don't flag a missing `afterAll` on a temp-copy spec.
 
+## Worker-shared Electron (order-dependent flakes)
+
+`page` uses the worker-scoped `electronApp`: **one Electron + one temp userData per Playwright worker**, not per test. With `fullyParallel: true`, a worker runs tests from **many files** sequentially on that same process. Leftover collections, tabs, global envs, prefs, or cookies can break a later test. Retries stay on the same worker.
+
+Cleanup between tests still matters (`closeAllCollections`, `deleteAllGlobalEnvironments`). `newPage` / `pageWithUserData` launch separate apps when you need a fresh process or seeded profile.
+
+### Diagnosing contaminators
+
+Every run writes (under `playwright-report/`, uploaded by CI with the HTML report):
+
+- `worker-timeline.json` — all tests grouped by `workerIndex`
+- `failed-test-predecessors.md` / `.json` — for each failure, the prior tests on that worker
+
+Walk backwards from the victim in that list, then confirm locally:
+
+```bash
+node scripts/find-e2e-contaminator.js \
+  --from-timeline playwright-report/failed-test-predecessors.json \
+  --victim-index 0
+```
+
+`--victim-index` selects which entry in `failed-test-predecessors.json`’s `failures[]` array to bisect (default `0` = first). Each entry is one failed/timed-out **attempt** (including retries). In `failed-test-predecessors.md` the headings are `## [0] …`, `## [1] …` — that bracket number is the index to pass.
+
+Being listed as a predecessor is only a **suspect**. Same Playwright `workerIndex` is not the same as a shared Electron profile (`pageWithUserData` / `newPage` use separate apps). The bisect script confirms with `file:line` selection and repeated contaminator→victim runs (`--confirm-repeat`, default 2).
+
+To auto-pick victims with the longest predecessor lists and bisect them:
+
+```bash
+node scripts/find-e2e-contaminator.js \
+  --from-timeline playwright-report/failed-test-predecessors.json \
+  --auto-debug
+```
+
+`--auto-debug` keeps failures with at least `--min-predecessors` priors (default `3`), dedupes the same test across retries (prefers retry `0`), sorts by predecessor count, and bisects up to `--limit` victims (default `5`).
+
+The bisect runner **rewrites the predecessor sequence into numbered temp specs** (`0001.spec.ts`, `0002.spec.ts`, …). Playwright otherwise runs files alphabetically and ignores CLI order, which made earlier `no-repro` results meaningless. Timeout failures in CI often still `no-repro` under contamination bisect — they are frequently load/hang flakes, not leftover app state.
+
 ## Common Pitfalls
 
 1. **Worker-scoped fixtures persist across test retries** — app state from failed attempts carries over. If test creates resources (folders, collections), retries may fail trying to create duplicates.

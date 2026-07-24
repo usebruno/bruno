@@ -1,6 +1,11 @@
 import { defineConfig } from '@playwright/test';
 
-const reporter: any[] = [['list'], ['html'], ['json', { outputFile: 'playwright-report/results.json' }]];
+const reporter: any[] = [
+  ['list'],
+  ['html'],
+  ['json', { outputFile: 'playwright-report/results.json' }],
+  ['./playwright/reporters/worker-timeline.js']
+];
 
 if (process.env.CI) {
   reporter.push(['github']);
@@ -13,6 +18,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: undefined,
+  // Electron boots under load; fixtures own the boot budget separately (see playwright/index.ts).
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
   reporter,
 
   use: {

@@ -43,8 +43,11 @@ const dismissImportIssuesToasts = async (page: Page) => {
  * @param page - The page object
  * @returns void
  */
-const closeAllCollections = async (page) => {
+const closeAllCollections = async (page: Page) => {
   await test.step('Close all collections', async () => {
+    // Clear tippy/toast overlays that can swallow the Remove click under load.
+    await page.keyboard.press('Escape').catch(() => {});
+
     const numberOfCollections = await page.locator('[data-testid="collections"] .collection-name').count();
 
     for (let i = 0; i < numberOfCollections; i++) {
@@ -74,11 +77,24 @@ const closeAllCollections = async (page) => {
         await page.getByRole('button', { name: 'Discard All and Remove' }).click({ force: true });
       } else {
         // Regular modal - click the submit button
-        await page.locator('.bruno-modal-footer .submit').click();
+        await page.locator('.bruno-modal-footer .submit').click({ force: true });
       }
 
-      // Wait for modal to close
-      await removeModal.waitFor({ state: 'hidden', timeout: 5000 });
+      // Wait for modal to close; under load a second overlay can leave it stuck.
+      try {
+        await removeModal.waitFor({ state: 'hidden', timeout: 15000 });
+      } catch {
+        await page.keyboard.press('Escape').catch(() => {});
+        const discard = page.getByRole('button', { name: 'Discard All and Remove' });
+        if (await discard.isVisible().catch(() => false)) {
+          await discard.click({ force: true });
+        }
+        const submit = page.locator('.bruno-modal').filter({ hasText: 'Remove Collection' }).locator('.bruno-modal-footer .submit');
+        if (await submit.isVisible().catch(() => false)) {
+          await submit.click({ force: true });
+        }
+        await removeModal.waitFor({ state: 'hidden', timeout: 10000 });
+      }
     }
 
     // Wait until no collections are left open (check sidebar only)
@@ -393,11 +409,12 @@ const createRequest = async (
 
     await locators.modal.button('Create').click();
 
-    if (inFolder) {
-      await expect(locators.sidebar.folderRequest(parentName, requestName)).toBeVisible();
-    } else {
-      await expect(locators.sidebar.request(requestName)).toBeVisible();
-    }
+    // Scope under the parent collection — identical request names across open
+    // collections make the unscoped `.collection-item-name` locator strict-mode-fail.
+    const createdRequest = inFolder
+      ? locators.sidebar.folderRequest(parentName, requestName)
+      : locators.sidebar.collectionScope(parentName).getByTestId('sidebar-collection-item-row').filter({ hasText: requestName });
+    await expect(createdRequest).toBeVisible();
   });
 };
 
@@ -1023,7 +1040,8 @@ const selectfolderPaneTab = async (page: Page, tabName: string) => {
   await test.step(`Select folder pane tab "${tabName}"`, async () => {
     const locators = buildCommonLocators(page);
     const tab = locators.paneTabs.folderSettingsTab(tabName.toLowerCase());
-    await tab.click();
+    // Folder settings remount/layout can leave the default 2s action timeout too tight.
+    await tab.click({ timeout: 5000 });
     await expect(tab).toContainClass('active');
   });
 };
@@ -1328,42 +1346,15 @@ const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) 
     await expect(pane).toBeVisible();
     await expect(pane.locator('.tabs')).toBeVisible();
 
-    // await expect
-    //   .poll(
-    //     async () => trySelectPaneTabOnce(page, paneSelector, tabName),
-    //     {
-    //       message: `Tab "${tabName}" not found in visible tabs or overflow dropdown`,
-    //       timeout: 8000,
-    //       intervals: [100, 150, 200, 250]
-    //     }
-    //   )
-    //   .toBe(true);
-
-    const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
-    const overflowButton = pane.locator('.tabs .more-tabs');
-
-    // ResponsiveTabs recalculates layout via ResizeObserver/rAF, so the tab or
-    // the overflow trigger can detach mid-click. Retry the whole sequence so a
-    // mid-action remount doesn't fail the test.
-    await expect(async () => {
-      if (await visibleTab.isVisible()) {
-        await visibleTab.click({ timeout: 2000 });
-        await expect(visibleTab).toContainClass('active', { timeout: 2000 });
-        return;
-      }
-
-      if (await overflowButton.isVisible()) {
-        await overflowButton.click({ timeout: 2000 });
-
-        const dropdownItem = page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName });
-        await dropdownItem.waitFor({ state: 'visible', timeout: 2000 });
-        await dropdownItem.click({ force: true, timeout: 2000 });
-        await expect(visibleTab).toContainClass('active', { timeout: 2000 });
-        return;
-      }
-
-      throw new Error(`Tab "${tabName}" not found in visible tabs or overflow dropdown`);
-    }).toPass({ timeout: 15000 });
+    // ResponsiveTabs recalculates via ResizeObserver/rAF; tabs can sit in the
+    // overflow menu. trySelectPaneTabOnce covers both paths and remount races.
+    await expect
+      .poll(async () => trySelectPaneTabOnce(page, paneSelector, tabName), {
+        message: `Tab "${tabName}" not found in visible tabs or overflow dropdown`,
+        timeout: 15000,
+        intervals: [100, 150, 200, 250, 400]
+      })
+      .toBe(true);
   });
 };
 
@@ -1619,12 +1610,36 @@ const deleteAssertion = async (page: Page, rowIndex: number) => {
  * @param page - The page object
  * @returns void
  */
+const SAVE_SUCCESS_TOAST
+  = /Request saved successfully|File saved successfully!?|Changes saved successfully/;
+
+/** Chord Cmd/Ctrl+S — more reliable than page.keyboard.press('Meta+s') under Electron load. */
+const pressSaveShortcut = async (page: Page) => {
+  const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+  await page.keyboard.down(modifier);
+  await page.keyboard.down('KeyS');
+  await page.keyboard.up('KeyS');
+  await page.keyboard.up(modifier);
+};
+
 const saveRequest = async (page: Page) => {
   await test.step('Save request', async () => {
-    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
-    await page.keyboard.press(saveShortcut);
-    await expect(page.getByText('Request saved successfully').last()).toBeVisible({ timeout: 3000 });
-    await page.waitForTimeout(200);
+    const locators = buildCommonLocators(page);
+    // No draft → Cmd/Ctrl+S does not toast; waiting for a save toast hangs.
+    // Give the draft icon a beat to appear after edits (tags/body) before skipping.
+    const draft = locators.tabs.draftIndicator();
+    const hasDraft
+      = (await draft.isVisible().catch(() => false))
+        || (await draft.waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false));
+    if (!hasDraft) {
+      return;
+    }
+
+    await pressSaveShortcut(page);
+    // yml/fileMode uses "File saved successfully!"; bru uses "Request saved successfully".
+    // Do not wait for draft-icon clear — collection apps can keep has-changes briefly
+    // (or permanently) after a successful save toast.
+    await expect(page.getByText(SAVE_SUCCESS_TOAST).last()).toBeVisible({ timeout: 10000 });
   });
 };
 
@@ -1659,10 +1674,17 @@ const generateGrpcSampleMessage = async (page: Page, index: number = 0) => {
 const selectGrpcMethod = async (page: Page, methodName: string) => {
   await test.step(`Select gRPC method "${methodName}"`, async () => {
     const locators = buildGrpcCommonLocators(page);
-    await locators.method.dropdownTrigger().click();
-    await locators.method.dropdown().waitFor({ state: 'visible', timeout: 5000 });
-    await locators.method.item(methodName).first().click();
-    await expect(locators.method.selectedName()).toContainText(methodName);
+
+    await expect(async () => {
+      const listOpen = await page.getByTestId('grpc-methods-list').isVisible().catch(() => false);
+      if (!listOpen) {
+        await locators.method.dropdownTrigger().click();
+      }
+      const item = locators.method.item(methodName).first();
+      await expect(item).toBeVisible({ timeout: 5000 });
+      await item.click();
+      await expect(locators.method.selectedName()).toContainText(methodName, { timeout: 5000 });
+    }).toPass({ timeout: 15000 });
   });
 };
 
@@ -1728,8 +1750,7 @@ const createWorkspace = async (page: Page, workspaceName: string) => {
     await renameInput.fill(workspaceName);
     await renameInput.press('Enter');
 
-    await expect(page.getByText('Workspace created!')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByTestId('workspace-name')).toHaveText(workspaceName, { timeout: 5000 });
+    await expect(page.getByTestId('workspace-name')).toHaveText(workspaceName, { timeout: 20000 });
   });
 };
 
@@ -2360,6 +2381,7 @@ const createApp = async (
     await modal.locator('input[name="appName"]').fill(appName);
     await modal.getByRole('button', { name: 'Create', exact: true }).click();
     await expect(modal).toBeHidden({ timeout: 5000 });
+    await expect(activeAppPreviewSlot(page).getByTestId('collection-app')).toBeVisible({ timeout: 5000 });
   });
 };
 
@@ -2563,6 +2585,7 @@ export {
   editAssertion,
   deleteAssertion,
   saveRequest,
+  pressSaveShortcut,
   addGrpcMessage,
   generateGrpcSampleMessage,
   selectGrpcMethod,

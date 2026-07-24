@@ -1,7 +1,9 @@
 const { getSystemProxy, fetchShellEnv } = require('@usebruno/requests');
 
 const PROXY_ENV_KEYS = ['http_proxy', 'HTTP_PROXY', 'https_proxy', 'HTTPS_PROXY', 'no_proxy', 'NO_PROXY', 'all_proxy', 'ALL_PROXY'];
-const TIMEOUT_MS = 60_000;
+// Keep this short: Preferences → Refresh blocks the UI on this race, and a
+// hung login-shell fetch (common in CI/Electron e2e) must not sit for a minute.
+const TIMEOUT_MS = 5_000;
 
 let cachedSystemProxy;
 let systemProxyPromise;

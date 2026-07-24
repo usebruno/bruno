@@ -2,8 +2,6 @@ import { test, expect } from '../../../playwright';
 import { openCollection, sendRequest, openEnvironmentSelector } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
-const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
-
 test.describe('Global environment draft merge with script-set variables', () => {
   test('preserves unsaved draft edits when script sets a new global env variable', async ({
     pageWithUserData: page
@@ -18,9 +16,16 @@ test.describe('Global environment draft merge with script-set variables', () => 
       await expect(locators.environment.globalEnvTab()).toBeVisible();
 
       await expect(locators.environment.variableRowByName('existingVar')).toBeVisible();
-      await locators.environment.variableValue('existingVar').click();
-      await page.keyboard.press(selectAllShortcut);
-      await page.keyboard.type('draft-edited-global-value');
+      const valueEditor = locators.environment.variableValue('existingVar');
+      await valueEditor.click();
+      // keyboard select-all/type is flaky against CodeMirror under Electron load (same as
+      // write-environment-description) — setValue fires the change event reliably.
+      await valueEditor.evaluate((el, value) => {
+        const cm = (el as any).CodeMirror;
+        if (!cm) throw new Error('CodeMirror instance missing on env value editor');
+        cm.setValue(value);
+      }, 'draft-edited-global-value');
+      await expect(valueEditor).toContainText('draft-edited-global-value');
 
       await expect(locators.environment.globalEnvTab().locator('.close-gradient'))
         .toHaveClass(/has-changes/);

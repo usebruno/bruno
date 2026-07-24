@@ -1,4 +1,15 @@
-import { test, expect } from '../../../playwright';
+import { test, expect, type Page } from '../../../playwright';
+
+/** Wait for reflection to finish, then open the methods dropdown. */
+const refreshAndOpenMethods = async (page: Page) => {
+  await page.getByTestId('refresh-methods-icon').click();
+  const loaded = page.getByText(/Loaded \d+ gRPC methods from reflection/);
+  await expect(loaded).toBeVisible({ timeout: 30000 });
+  await expect(loaded).toBeHidden();
+
+  await page.getByTestId('grpc-methods-dropdown').click();
+  await expect(page.getByTestId('grpc-methods-list')).toBeVisible();
+};
 
 test.describe('Grpc Collection - Method Search Functionality', () => {
   test.beforeAll(async ({ pageWithUserData: page }) => {
@@ -15,8 +26,13 @@ test.describe('Grpc Collection - Method Search Functionality', () => {
 
   test.afterEach(async ({ pageWithUserData: page }) => {
     await test.step('Close the gRPC sayHello tab without saving changes', async () => {
-      await page.getByRole('tab', { name: 'gRPC sayHello' }).getByTestId('request-tab-close-icon').click({ force: true });
-      await page.getByRole('button', { name: 'Don\'t Save' }).click();
+      const tab = page.getByRole('tab', { name: 'gRPC sayHello' });
+      if (!(await tab.isVisible().catch(() => false))) return;
+      await tab.getByTestId('request-tab-close-icon').click({ force: true });
+      const dontSave = page.getByRole('button', { name: 'Don\'t Save' });
+      if (await dontSave.isVisible().catch(() => false)) {
+        await dontSave.click();
+      }
     });
   });
 
@@ -26,14 +42,11 @@ test.describe('Grpc Collection - Method Search Functionality', () => {
     });
 
     await test.step('Wait for gRPC query URL container to be visible', async () => {
-      const grpcQueryUrlContainer = page.getByTestId('grpc-query-url-container');
-      await grpcQueryUrlContainer.waitFor({ state: 'visible' });
+      await page.getByTestId('grpc-query-url-container').waitFor({ state: 'visible' });
     });
 
     await test.step('Refresh gRPC methods and open methods dropdown', async () => {
-      await page.getByTestId('refresh-methods-icon').click();
-      const grpcMethodsDropdown = page.getByTestId('grpc-methods-dropdown');
-      await grpcMethodsDropdown.click();
+      await refreshAndOpenMethods(page);
     });
 
     await test.step('Search the term "Loojup" and verify the "Lookup" grpc method is visible and select it', async () => {
@@ -44,8 +57,7 @@ test.describe('Grpc Collection - Method Search Functionality', () => {
     });
 
     await test.step('Verify the "Lookup" grpc method is selected', async () => {
-      const method = page.getByTestId('selected-grpc-method-name').filter({ hasText: 'Lookup' });
-      await expect(method).toBeVisible();
+      await expect(page.getByTestId('selected-grpc-method-name')).toContainText('Lookup');
     });
   });
 
@@ -55,14 +67,11 @@ test.describe('Grpc Collection - Method Search Functionality', () => {
     });
 
     await test.step('Wait for gRPC query URL container to be visible', async () => {
-      const grpcQueryUrlContainer = page.getByTestId('grpc-query-url-container');
-      await grpcQueryUrlContainer.waitFor({ state: 'visible' });
+      await page.getByTestId('grpc-query-url-container').waitFor({ state: 'visible' });
     });
 
     await test.step('Refresh gRPC methods and open methods dropdown', async () => {
-      await page.getByTestId('refresh-methods-icon').click();
-      const grpcMethodsDropdown = page.getByTestId('grpc-methods-dropdown');
-      await grpcMethodsDropdown.click();
+      await refreshAndOpenMethods(page);
     });
 
     await test.step('Use keyboard to navigate to "Sum" method and select it', async () => {
@@ -71,8 +80,7 @@ test.describe('Grpc Collection - Method Search Functionality', () => {
     });
 
     await test.step('Verify the "Sum" grpc method is selected', async () => {
-      const method = page.getByTestId('selected-grpc-method-name').filter({ hasText: 'Add/Sum' });
-      await expect(method).toBeVisible();
+      await expect(page.getByTestId('selected-grpc-method-name')).toContainText('Add/Sum');
     });
   });
 });

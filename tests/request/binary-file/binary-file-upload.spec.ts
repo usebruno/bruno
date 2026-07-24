@@ -43,12 +43,10 @@ test.describe.serial('File / Binary body upload', () => {
   test.beforeAll(async ({ page, electronApp, createTmpDir }) => {
     tmpDir = await createTmpDir('binary-file-upload');
 
-    // The JSON file is intentionally larger than the 20 MiB streaming
-    // threshold (STREAMING_FILE_SIZE_THRESHOLD in prepare-request.js) so the
-    // body is sent as an fs.ReadStream — this is the exact code path that
-    // produced the bug. Anything <= 20 MiB would go through the Buffer path,
-    // which was never broken.
-    const LARGE_JSON_BYTES = 80 * 1024 * 1024; // 25 MiB > 20 MiB threshold
+    // Just over the streaming threshold (STREAMING_FILE_SIZE_THRESHOLD) so the
+    // body is sent as an fs.ReadStream — the path that produced the bug — without
+    // blowing the beforeAll hook on a multi-dozen-MiB write+hash.
+    const LARGE_JSON_BYTES = 21 * 1024 * 1024; // 21 MiB > 20 MiB threshold
     const jsonBuffer = Buffer.alloc(LARGE_JSON_BYTES, 'a');
     jsonFilePath = path.join(tmpDir, 'payload.json');
     await fs.promises.writeFile(jsonFilePath, jsonBuffer);

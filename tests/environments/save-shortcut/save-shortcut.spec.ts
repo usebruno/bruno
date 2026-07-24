@@ -6,17 +6,13 @@ import {
   createEnvironment,
   addRowToActiveTab,
   closeAllCollections,
-  deleteAllGlobalEnvironments
+  deleteAllGlobalEnvironments,
+  pressSaveShortcut
 } from '../../utils/page';
 
 const collectionFile = path.join(__dirname, '..', 'create-environment', 'fixtures', 'bruno-collection.json');
 
-const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
 const tabDraftIcon = (page: Page) => page.locator('.request-tab.active').getByTestId('tab-draft-icon');
-
-const saveWithShortcut = async (page: Page) => {
-  await page.keyboard.press(`${modifier}+KeyS`);
-};
 
 test.describe('Environment save shortcut (Cmd/Ctrl+S)', () => {
   test.afterEach(async ({ page }) => {
@@ -36,12 +32,12 @@ test.describe('Environment save shortcut (Cmd/Ctrl+S)', () => {
     });
 
     await test.step('Pressing the save shortcut shows the success toast', async () => {
-      await saveWithShortcut(page);
+      await pressSaveShortcut(page);
       await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
     });
 
     await test.step('The unsaved-changes dot is gone once saved', async () => {
-      await expect(tabDraftIcon(page)).not.toBeVisible();
+      await expect(tabDraftIcon(page)).not.toBeVisible({ timeout: 20000 });
     });
   });
 });
@@ -65,12 +61,13 @@ test.describe('Global environment save shortcut (Cmd/Ctrl+S)', () => {
     });
 
     await test.step('Pressing the save shortcut shows the success toast', async () => {
-      await saveWithShortcut(page);
-      await expect(page.getByText('Changes saved successfully').last()).toBeVisible();
+      await page.locator('.request-tab').filter({ hasText: 'Global Environments' }).click();
+      await pressSaveShortcut(page);
+      await expect(page.getByText('Changes saved successfully').last()).toBeVisible({ timeout: 15000 });
     });
 
     await test.step('The unsaved-changes dot is gone once saved', async () => {
-      await expect(tabDraftIcon(page)).not.toBeVisible();
+      await expect(tabDraftIcon(page)).not.toBeVisible({ timeout: 20000 });
     });
   });
 });

@@ -25,7 +25,8 @@ test.describe('System Proxy - last refreshed timestamp', () => {
     const systemProxyLocators = buildPreferencesLocators(page).systemProxy;
     await systemProxyLocators.systemProxyRefreshButton().click();
 
-    await expect(systemProxyLocators.systemProxyLastRefreshedLabel()).toBeVisible();
+    // Refresh awaits a shell-env re-sync (capped at 5s) before writing lastRefreshedAt.
+    await expect(systemProxyLocators.systemProxyLastRefreshedLabel()).toBeVisible({ timeout: 15000 });
 
     await expect(systemProxyLocators.systemProxyLastRefreshedLabel()).toHaveText(TIMESTAMP_REGEX);
   });
@@ -37,7 +38,7 @@ test.describe('System Proxy - last refreshed timestamp', () => {
 
     // first refresh click sets the timestamp
     await systemProxyLocators.systemProxyRefreshButton().click();
-    await expect(systemProxyLocators.systemProxyLastRefreshedLabel()).toBeVisible();
+    await expect(systemProxyLocators.systemProxyLastRefreshedLabel()).toBeVisible({ timeout: 15000 });
     await expect(systemProxyLocators.systemProxyLastRefreshedLabel()).toHaveText(TIMESTAMP_REGEX);
 
     const firstRefreshedAt = Number(
@@ -48,21 +49,21 @@ test.describe('System Proxy - last refreshed timestamp', () => {
 
     // second refresh click should update the timestamp
     await systemProxyLocators.systemProxyRefreshButton().click();
-    await expect(systemProxyLocators.systemProxyLastRefreshedLabel()).toBeVisible();
-    await expect(systemProxyLocators.systemProxyLastRefreshedLabel()).toHaveText(TIMESTAMP_REGEX);
 
-    // The refresh handler sets the timestamp asynchronously (after the dispatched
-    // thunk resolves), so the `data-refreshed-at` attribute is not updated the moment
-    // the click returns. `toHaveText` above doesn't help here since the regex matches
-    // any valid timestamp, including the stale first value. Poll until the attribute
-    // actually changes before reading it, otherwise we could capture the old value.
+    // Refresh re-syncs shell env (capped at 5s); poll must outlast that or the
+    // attribute can still equal firstRefreshedAt when the default 5s poll ends.
     await expect
-      .poll(async () =>
-        Number(
-          await systemProxyLocators.systemProxyLastRefreshedLabel().getAttribute('data-refreshed-at')
-        )
+      .poll(
+        async () =>
+          Number(
+            await systemProxyLocators.systemProxyLastRefreshedLabel().getAttribute('data-refreshed-at')
+          ),
+        { timeout: 15000 }
       )
       .not.toBe(firstRefreshedAt);
+
+    await expect(systemProxyLocators.systemProxyLastRefreshedLabel()).toBeVisible({ timeout: 15000 });
+    await expect(systemProxyLocators.systemProxyLastRefreshedLabel()).toHaveText(TIMESTAMP_REGEX);
 
     const secondRefreshedAt = Number(
       await systemProxyLocators.systemProxyLastRefreshedLabel().getAttribute('data-refreshed-at')
