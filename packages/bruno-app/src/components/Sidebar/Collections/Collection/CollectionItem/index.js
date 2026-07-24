@@ -23,7 +23,8 @@ import {
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem } from 'providers/ReduxStore/slices/collections/actions';
+import { sanitizeName } from 'utils/common/regex';
 import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
@@ -106,12 +107,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
 
+  const isCloneable = isFolder || isItemARequest(item);
+
   // Check if request has examples (only for HTTP requests)
   const hasExamples = isItemARequest(item) && item.type === 'http-request' && item.examples && item.examples.length > 0;
 
   // Sidebar shortcuts — only active when this sidebar item has keyboard focus
   useKeybinding('cloneItem', () => {
-    setCloneItemModalOpen(true);
+    handleCloneItem();
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
@@ -387,20 +390,21 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       );
     }
 
-    items.push(
-      {
+    if (isCloneable) {
+      items.push({
         id: 'clone',
         leftSection: IconCopy,
         label: 'Clone',
-        onClick: () => setCloneItemModalOpen(true)
-      },
-      {
-        id: 'copy',
-        leftSection: IconCopy,
-        label: 'Copy',
-        onClick: handleCopyItem
-      }
-    );
+        onClick: handleCloneItem
+      });
+    }
+
+    items.push({
+      id: 'copy',
+      leftSection: IconCopy,
+      label: 'Copy',
+      onClick: handleCopyItem
+    });
 
     if (isFolder && hasCopiedItems) {
       items.push({
@@ -613,6 +617,15 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     dispatch(copyRequest(item));
     const itemType = isFolder ? 'Folder' : 'Request';
     toast.success(`${itemType} copied`);
+  };
+
+  // One-click clone: display name becomes "<source> copy"; the filesystem name
+  // uniqueness is resolved silently by electron.
+  const handleCloneItem = () => {
+    if (!isCloneable) return;
+    dispatch(cloneItem(`${item.name} copy`, `${sanitizeName(item.name)} copy`, item.uid, collectionUid))
+      .then(() => toast.success(`${isFolder ? 'Folder' : 'Request'} cloned!`))
+      .catch((err) => toast.error(err?.message || `An error occurred while cloning the ${isFolder ? 'folder' : 'request'}`));
   };
 
   const handlePasteItem = () => {

@@ -97,7 +97,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     ).not.toBeVisible();
   });
 
-  test('Verify cross-collection folder drag and drop, a duplicate folder exist. expected to throw error toast', async ({
+  test('Verify cross-collection folder drag and drop when a duplicate folder exists: silently suffixes the directory', async ({
     page,
     createTmpDir
   }) => {
@@ -168,30 +168,29 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     // Perform drag and drop operation
     await sourceFolder.dragTo(targetCollection);
 
-    // check for error toast notification
-    await expect(page.getByText(/Error: Cannot copy.*already exists/i)).toBeVisible();
+    // collision is resolved silently (folder directory suffixed on disk).
+    // No error toast is shown, and no flow fails just because a folder name already exists.
+    await expect(page.getByText(/already exists/i)).toHaveCount(0);
 
-    // source and target collection request should remain unchanged
+    // The folder is moved out of the source collection.
     const sourceCollectionContainer = page
       .locator('.collection-name')
       .filter({ hasText: 'source-collection' })
       .locator('..');
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
     await expect(
       sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'folder-1' })
-    ).toBeVisible();
-    await expect(
-      sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'http-request' })
-    ).toBeVisible();
+    ).toHaveCount(0);
 
+    // The target now shows two "folder-1" entries (the original and the moved one;
+    // the directory name was silently suffixed on disk).
     const targetCollectionContainer = page
       .locator('.collection-name')
       .filter({ hasText: 'target-collection' })
       .locator('..');
+    await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
     await expect(
       targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'folder-1' })
-    ).toBeVisible();
-    await expect(
-      targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'http-request' })
-    ).not.toBeVisible();
+    ).toHaveCount(2);
   });
 });
