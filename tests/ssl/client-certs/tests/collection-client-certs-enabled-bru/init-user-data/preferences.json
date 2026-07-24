@@ -2,10 +2,6 @@
   "maximized": false,
   "lastOpenedCollections": ["{{projectRoot}}/tests/ssl/client-certs/tests/collection-client-certs-enabled-bru/fixtures/collection"],
   "preferences": {
-    "onboarding": {
-      "hasLaunchedBefore": true,
-      "hasSeenWelcomeModal": true
-    },
     "request": {
       "sslVerification": true,
       "customCaCertificate": {
