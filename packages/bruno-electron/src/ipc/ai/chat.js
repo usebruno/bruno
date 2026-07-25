@@ -110,7 +110,18 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
   });
 
   ipcMain.on('renderer:ai-chat-stream', async (_event, payload) => {
-    const { messages, allContent, contentType, requestContext, variables, requests, requestId, model: modelId, appEnabled } = payload || {};
+    const {
+      messages,
+      allContent,
+      contentType,
+      requestContext,
+      variables,
+      requests,
+      requestId,
+      model: modelId,
+      modelApiFormat,
+      appEnabled
+    } = payload || {};
 
     const send = (channel, data) => {
       if (mainWindow?.webContents && !mainWindow.webContents.isDestroyed()) {
@@ -149,7 +160,7 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
 
     let model;
     try {
-      model = resolveModel(effectiveModelId);
+      model = resolveModel(effectiveModelId, { apiFormatOverride: modelApiFormat });
     } catch (err) {
       send('main:ai-chat-error', { requestId, error: err.message });
       return;

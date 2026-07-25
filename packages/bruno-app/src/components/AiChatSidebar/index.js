@@ -555,7 +555,8 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     try {
-      await dispatch(sendAiMessage(activeTabUid, text, allContent, requestContext, selectedModel, contentType, aiVariables, appEnabled, aiRequests));
+      const modelFormat = selectedModelEntry?.apiFormat || null;
+      await dispatch(sendAiMessage(activeTabUid, text, allContent, requestContext, selectedModel, modelFormat, contentType, aiVariables, appEnabled, aiRequests));
       setProcessingStage('applying');
       setTimeout(() => setProcessingStage(null), 500);
     } catch (err) {
@@ -667,10 +668,16 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
     try { localStorage.setItem(SELECTED_MODEL_LS_KEY, modelId); } catch {}
   };
 
-  const selectedModelLabel = useMemo(() => {
-    if (selectedModel === AUTO_MODEL_ID) return 'Auto';
-    return availableModels.find((m) => m.id === selectedModel)?.label || 'Auto';
+  const selectedModelEntry = useMemo(() => {
+    if (selectedModel === AUTO_MODEL_ID) return null;
+    return availableModels.find((m) => m.id === selectedModel) || null;
   }, [availableModels, selectedModel]);
+
+  const selectedModelLabel = useMemo(() => {
+    if (!selectedModelEntry) return 'Auto';
+    const suffix = selectedModelEntry.apiFormat === 'responses' ? ' · Responses API' : '';
+    return `${selectedModelEntry.label}${suffix}`;
+  }, [selectedModelEntry]);
 
   const ModelSelectorTrigger = forwardRef((props, ref) => (
     <div ref={ref} className="model-btn" {...props}>
@@ -686,7 +693,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
       { id: AUTO_MODEL_ID, label: 'Auto', onClick: () => handleModelSelect(AUTO_MODEL_ID) },
       ...availableModels.map((model) => ({
         id: model.id,
-        label: model.label,
+        label: `${model.label}${model.apiFormat === 'responses' ? ' · Responses API' : ''}`,
         onClick: () => handleModelSelect(model.id)
       }))
     ],

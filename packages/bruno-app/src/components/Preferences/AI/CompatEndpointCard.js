@@ -137,7 +137,8 @@ const CompatEndpointCard = ({
     onAddModel({
       id: uuid(),
       modelId: id,
-      label: newModelLabel.trim() || id
+      label: newModelLabel.trim() || id,
+      apiFormat: 'chat-completions'
     });
     setNewModelId('');
     setNewModelLabel('');
@@ -375,6 +376,7 @@ const CompatEndpointCard = ({
                   {models.map((model) => {
                     const enabled = isModelEnabled(model.id);
                     const disabled = !provider.configured || !providerEnabled;
+                    const apiFormat = model.apiFormat || 'chat-completions';
                     return (
                       <div
                         key={model.id}
@@ -401,9 +403,18 @@ const CompatEndpointCard = ({
                           placeholder="Model id"
                           onChange={(e) => onUpdateModel(model.id, { modelId: e.target.value })}
                         />
+                        <select
+                          className="compat-inline-input flex-[0.9] text-xs"
+                          value={apiFormat}
+                          onChange={(e) => onUpdateModel(model.id, { apiFormat: e.target.value })}
+                          disabled={disabled}
+                        >
+                          <option value="chat-completions">Chat Completions</option>
+                          <option value="responses">Responses API</option>
+                        </select>
                         <button
                           type="button"
-                          className="btn-icon danger w-6 h-6 box-border inline-flex items-center justify-center cursor-pointer"
+                          className="btn-icon danger w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
                           onClick={() => onRemoveModel(model.id)}
                           title="Remove model"
                           aria-label="Remove model"
