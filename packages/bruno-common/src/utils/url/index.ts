@@ -148,7 +148,17 @@ const safeDecodeURIComponent = (s: string): string => {
 const encodePathSegments = (path: string): string =>
   path
     .split('/')
-    .map((segment) => encodeURIComponent(safeDecodeURIComponent(segment)))
+    .map((segment) => {
+      const encoded = encodeURIComponent(safeDecodeURIComponent(segment));
+      // RFC 3986 §3.3 pchar = unreserved / pct-encoded / sub-delims / ":" / "@"
+      // Restore ':' and '@' which are legal unencoded in path segments
+      // but encodeURIComponent encodes them anyway.
+      // This preserves pre-4.0.0 behavior for routing layers that distinguish
+      // /foo:bar from /foo%3Abar.
+      return encoded
+        .replace(/%3A/g, ':')
+        .replace(/%40/g, '@');
+    })
     .join('/');
 
 // Encodes path segments and query name/value pairs when the URL Encoding toggle is on.
