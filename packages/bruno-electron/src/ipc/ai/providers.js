@@ -228,7 +228,10 @@ const getModel = (modelId, { aiPreferences, getApiKey, apiFormatOverride }) => {
 
   const sdk = getSdk({ providerId: def.providerId, apiKey, baseURL: def.baseURL });
 
-  const format = apiFormatOverride || def.apiFormat || 'chat-completions';
+    const format = apiFormatOverride || def.apiFormat || 'chat-completions';
+    if (format && format !== 'chat-completions' && format !== 'responses') {
+      throw new Error(`Unsupported API format "${format}" for ${providerLabel(def.providerId, aiPreferences)}. Supported formats are Chat Completions and Responses.`);
+    }
   if (format === 'responses') {
     if (typeof sdk.responses === 'function') {
       return sdk.responses(def.sdkModelId);
