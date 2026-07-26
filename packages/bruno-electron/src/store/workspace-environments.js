@@ -71,7 +71,7 @@ class GlobalEnvironmentsManager {
     if (this.envHasSecrets(environment)) {
       const envSecrets = environmentSecretsStore.getEnvSecrets(workspacePath, environment);
       _.each(envSecrets, (secret) => {
-        const variable = _.find(environment.variables, (v) => v.name === secret.name);
+        const variable = _.find(environment.variables, (v) => v.name === secret.name && v.secret);
         if (variable && secret.value) {
           const decryptionResult = decryptStringSafe(secret.value);
           variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);

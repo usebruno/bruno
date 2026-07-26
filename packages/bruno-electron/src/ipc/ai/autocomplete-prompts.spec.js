@@ -68,6 +68,19 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('res:');
     expect(prompt).toContain('test/expect:');
   });
+
+  it('forbids Postman pm.* usage in every script type', () => {
+    for (const type of ['pre-request', 'post-response', 'tests']) {
+      const prompt = buildSystemPrompt(type);
+      expect(prompt).toMatch(/pm\.\*/);
+      expect(prompt.toLowerCase()).toContain('postman');
+    }
+  });
+
+  it('tells the model res is off-limits in pre-request', () => {
+    const prompt = buildSystemPrompt('pre-request');
+    expect(prompt).toContain('Do NOT emit res.status');
+  });
 });
 
 describe('stripDisallowedApis', () => {
@@ -113,6 +126,34 @@ describe('stripDisallowedApis', () => {
 
   it('handles empty suggestions', () => {
     expect(stripDisallowedApis('', 'pre-request')).toBe('');
+  });
+
+  it('drops pm.* suggestions in pre-request', () => {
+    expect(stripDisallowedApis('pm.environment.get("token");', 'pre-request')).toBe('');
+    expect(stripDisallowedApis('pm.variables.set("k", "v");', 'pre-request')).toBe('');
+  });
+
+  it('drops pm.* suggestions in post-response', () => {
+    expect(stripDisallowedApis('pm.response.json();', 'post-response')).toBe('');
+  });
+
+  it('drops pm.* suggestions in tests', () => {
+    expect(stripDisallowedApis('pm.test("status", () => {});', 'tests')).toBe('');
+    expect(stripDisallowedApis('pm.expect(res.getStatus()).to.equal(200);', 'tests')).toBe('');
+  });
+
+  it('drops optional-chained and bracket-access pm', () => {
+    expect(stripDisallowedApis('pm?.environment?.get("t");', 'tests')).toBe('');
+    expect(stripDisallowedApis('pm["environment"].get("t");', 'tests')).toBe('');
+  });
+
+  it('does not flag identifiers that merely contain pm', () => {
+    expect(stripDisallowedApis('const impl = 1;', 'pre-request')).toBe('const impl = 1;');
+    expect(stripDisallowedApis('foo.pm.get();', 'pre-request')).toBe('foo.pm.get();');
+  });
+
+  it('keeps pm when the user has declared it themselves', () => {
+    expect(stripDisallowedApis('.doThing();', 'tests', 'const pm = require("./pm")')).toBe('.doThing();');
   });
 });
 
@@ -197,6 +238,46 @@ describe('sanitizeSuggestion', () => {
   it('keeps a continuation of res in post-response', () => {
     expect(sanitizeSuggestion({ text: '.getStatus();', prefix: 'const status = res', scriptType: 'post-response' }))
       .toBe('.getStatus();');
+  });
+
+  it('drops pm.* suggestions in pre-request', () => {
+    expect(sanitizeSuggestion({ text: 'pm.environment.get("token");', prefix: 'const t = ', scriptType: 'pre-request' }))
+      .toBe('');
+  });
+
+  it('drops pm.* suggestions in post-response', () => {
+    expect(sanitizeSuggestion({ text: 'pm.response.json();', prefix: 'const body = ', scriptType: 'post-response' }))
+      .toBe('');
+  });
+
+  it('drops pm.* suggestions in tests', () => {
+    expect(sanitizeSuggestion({ text: 'pm.test("status", () => {});', prefix: '', scriptType: 'tests' }))
+      .toBe('');
+  });
+
+  it('drops pm.* even when the user already typed pm', () => {
+    expect(sanitizeSuggestion({ text: '.environment.get("t");', prefix: 'const t = pm', scriptType: 'tests' }))
+      .toBe('');
+  });
+
+  it('drops pm.* split across a partially typed prefix', () => {
+    expect(sanitizeSuggestion({ text: 'm.environment.get("t");', prefix: 'const t = p', scriptType: 'tests' }))
+      .toBe('');
+  });
+
+  it('drops pm.* when the accessor dot is already typed', () => {
+    expect(sanitizeSuggestion({ text: 'environment.get("t");', prefix: 'const t = pm.', scriptType: 'tests' }))
+      .toBe('');
+  });
+
+  it('does not drop when pm is a property of another object', () => {
+    expect(sanitizeSuggestion({ text: 'get("t");', prefix: 'const x = wrapper.pm.', scriptType: 'tests' }))
+      .toBe('get("t");');
+  });
+
+  it('does not drop when the trailing identifier merely ends in pm', () => {
+    expect(sanitizeSuggestion({ text: '.doThing();', prefix: 'const x = mypm', scriptType: 'tests' }))
+      .toBe('.doThing();');
   });
 
   it('allows res member access when the user declared res in a pre-request script', () => {

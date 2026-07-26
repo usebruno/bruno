@@ -10,6 +10,7 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   const brunoExtension = oc.extensions?.bruno as {
     ignore?: string[];
     presets?: BrunoPresets;
+    scripts?: { flow?: unknown };
   } | undefined;
 
   const ignoreList = brunoExtension && Array.isArray(brunoExtension.ignore)
@@ -34,6 +35,11 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     if (brunoExtension.presets.requestUrl) {
       brunoConfig.presets.requestUrl = brunoExtension.presets.requestUrl;
     }
+  }
+
+  const scriptFlow = brunoExtension?.scripts?.flow;
+  if (scriptFlow === 'sandwich' || scriptFlow === 'sequential') {
+    brunoConfig.scripts = { flow: scriptFlow };
   }
 
   const config = oc.config;

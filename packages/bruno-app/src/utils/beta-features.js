@@ -5,7 +5,10 @@ import { useSelector } from 'react-redux';
  * Contains all available beta feature keys
  */
 export const BETA_FEATURES = Object.freeze({
-  NODE_VM: 'nodevm'
+  NODE_VM: 'nodevm',
+  AI_ASSISTANT: 'ai-assistant',
+  FILE_CACHE: 'file-cache',
+  AKAMAI_EDGEGRID: 'akamai-edgegrid'
 });
 
 /**

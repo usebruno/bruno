@@ -40,6 +40,7 @@ module.exports = runESMImports().then(() => defineConfig([
       'tests/**/*.{ts,js}',
       'playwright/**/*.{js,ts}',
       'packages/bruno-app/**/*.{js,jsx,ts}',
+      'packages/bruno-app/plugins/**/*.{js,cjs,mjs}',
       'packages/bruno-app/src/test-utils/mocks/codemirror.js',
       'packages/bruno-cli/**/*.js',
       'packages/bruno-common/**/*.ts',
@@ -78,12 +79,22 @@ module.exports = runESMImports().then(() => defineConfig([
       '@stylistic/max-len': ['off'],
       '@stylistic/jsx-one-expression-per-line': ['off'],
       '@stylistic/max-statements-per-line': ['off'],
-      '@stylistic/no-mixed-operators': ['off']
+      '@stylistic/no-mixed-operators': ['off'],
+      'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none' }],
+      'no-debugger': 'warn',
+      'eqeqeq': ['warn', 'always'],
+      'prefer-const': 'warn',
+      'no-var': 'warn',
+      'no-unreachable': 'warn',
+      'no-duplicate-imports': 'warn',
+      'no-self-compare': 'warn',
+      'no-empty': ['warn', { allowEmptyCatch: true }],
+      'no-use-before-define': ['warn', { functions: false }]
     }
   },
   {
     files: ['packages/bruno-app/**/*.{js,jsx,ts}'],
-    ignores: ['**/*.config.js', '**/public/**/*'],
+    ignores: ['**/*.config.js', '**/public/**/*', '**/plugins/**/*'],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -98,6 +109,19 @@ module.exports = runESMImports().then(() => defineConfig([
         ecmaFeatures: {
           jsx: true
         }
+      }
+    },
+    rules: {
+      'no-undef': 'error'
+    }
+  },
+  {
+    // Rsbuild/rspack plugins are Node build tooling (CommonJS + ESM), not browser UI.
+    files: ['packages/bruno-app/plugins/**/*.{js,cjs,mjs}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest
       }
     },
     rules: {
