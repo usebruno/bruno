@@ -7,7 +7,7 @@ import appReducer, {
 
 const baseState = () => appReducer(undefined, { type: '@@INIT' });
 
-describe('app slice — sidebarSectionSizes', () => {
+describe('app slice - sidebarSectionSizes', () => {
   it('starts empty', () => {
     expect(baseState().sidebarSectionSizes).toEqual({});
   });
@@ -33,7 +33,7 @@ describe('app slice — sidebarSectionSizes', () => {
   });
 });
 
-describe('app slice — sidebarExpandedSections', () => {
+describe('app slice - sidebarExpandedSections', () => {
   it('starts with collections expanded', () => {
     expect(baseState().sidebarExpandedSections).toEqual(['collections']);
   });

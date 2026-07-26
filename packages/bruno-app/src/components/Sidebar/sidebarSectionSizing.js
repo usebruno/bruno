@@ -1,12 +1,12 @@
 export const DEFAULT_SECTION_WEIGHT = 1;
 // A section can be dragged down to this height but no further; dragging never
-// collapses a section (matches VSCode — close it by clicking its header).
+// collapses a section. Close it by clicking its header instead.
 export const MIN_SECTION_PX = 100;
 
-// Lays out the expanded sections when a new one is opened, VSCode-style: the new
-// section opens at an equal 1/N share of the shared area, and that space is
+// Lays out the expanded sections when a new one is opened: the new section opens
+// at an equal 1/N share of the shared area, and that space is
 // reclaimed from the other sections' slack (height above the minimum) starting
-// with the neighbour directly above the new section and cascading outward — up
+// with the neighbour directly above the new section and cascading outward - up
 // first, then down. A section already at its minimum gives nothing; if the total
 // available slack is less than the new section's share, the new section opens
 // smaller (whatever slack allowed).
@@ -20,7 +20,7 @@ export const resolveExpandHeights = ({ oldHeights, newIndex, areaPx, minPx = MIN
 
   const reduced = [...oldHeights];
   // Reclaim from the nearest neighbours first, fanning outward from the new
-  // section — the section directly above, then directly below, then the next
+  // section - the section directly above, then directly below, then the next
   // ones out (above preferred at equal distance). `reduced[newIndex-1]` is the
   // neighbour above, `reduced[newIndex]` the neighbour below.
   const order = [];
@@ -46,7 +46,7 @@ export const resolveExpandHeights = ({ oldHeights, newIndex, areaPx, minPx = MIN
 
 // Given the two neighbours' pixel heights and a cumulative drag delta, return new
 // weights that preserve their combined weight. The delta is clamped so neither
-// neighbour drops below `minPx` — dragging never collapses a section.
+// neighbour drops below `minPx` - dragging never collapses a section.
 // Positive delta drags the sash down (grows `above`, shrinks `below`).
 export const computeSashTransfer = ({ abovePx, belowPx, deltaPx, combinedWeight, minPx = MIN_SECTION_PX }) => {
   const totalPx = abovePx + belowPx;
