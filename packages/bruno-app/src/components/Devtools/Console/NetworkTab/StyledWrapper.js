@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   display: flex;
@@ -170,7 +171,34 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .request-method   { padding: 2px 8px 2px 16px; }
+  .request-method {
+    padding: 2px 8px 2px 16px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .tl-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 8px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    width: fit-content;
+  }
+
+  .tl-badge--scripted {
+    background: ${(props) => rgba(props.theme.colors.text.yellow, 0.12)};
+    color: ${(props) => props.theme.colors.text.yellow};
+  }
+
+  .tl-badge--run-request {
+    background: ${(props) => rgba(props.theme.colors.text.purple, 0.14)};
+    color: ${(props) => props.theme.colors.text.purple};
+  }
   .request-status   { padding: 2px 8px; }
 
   .method-badge {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'providers/Theme';
@@ -24,6 +24,27 @@ const makeRequest = (overrides = {}) => ({
       ...('size' in overrides ? { size: overrides.size } : { size: 512 })
     },
     timestamp: overrides.timestamp ?? 1000
+  }
+});
+
+const makeScriptedRequest = (overrides = {}) => ({
+  type: 'scripted-request',
+  timestamp: overrides.timestamp ?? 1000,
+  collectionUid: overrides.collectionUid ?? 'col-1',
+  itemUid: overrides.itemUid ?? 'item-1',
+  collectionName: 'Test Collection',
+  data: {
+    request: {
+      method: overrides.method ?? 'GET',
+      url: overrides.url ?? 'https://example.com/api/scripted'
+    },
+    response: {
+      status: overrides.status ?? 200,
+      statusCode: overrides.statusCode ?? 200,
+      ...('duration' in overrides ? { duration: overrides.duration } : { duration: 100 }),
+      ...('size' in overrides ? { size: overrides.size } : { size: 512 })
+    },
+    ...('dataTimestamp' in overrides ? { timestamp: overrides.dataTimestamp } : {})
   }
 });
 
@@ -203,5 +224,53 @@ describe('sort results', () => {
     fireEvent.click(screen.getByTestId('network-header-method'));
     fireEvent.click(screen.getByTestId('network-header-method'));
     expect(getRowMethods()).toEqual(['POST', 'GET', 'DELETE']);
+  });
+});
+
+describe('scripted requests', () => {
+  it('renders scripted requests in the network list', () => {
+    renderNetworkTab([
+      makeScriptedRequest({
+        itemUid: 'scripted',
+        method: 'POST',
+        url: 'https://example.com/api/scripted'
+      })
+    ]);
+
+    expect(screen.getAllByTestId('network-request-row')).toHaveLength(1);
+    expect(screen.getByText('POST')).toBeInTheDocument();
+    expect(screen.getByText('/api/scripted')).toBeInTheDocument();
+  });
+
+  it('shows a script badge on scripted request rows', () => {
+    renderNetworkTab([
+      makeScriptedRequest({ itemUid: 'scripted' })
+    ]);
+
+    const row = screen.getAllByTestId('network-request-row')[0];
+
+    expect(within(row).getByText('script')).toBeInTheDocument();
+  });
+
+  it('does not show a script badge on regular request rows', () => {
+    renderNetworkTab([
+      makeRequest({ itemUid: 'regular' })
+    ]);
+
+    const row = screen.getAllByTestId('network-request-row')[0];
+
+    expect(within(row).queryByText('script')).not.toBeInTheDocument();
+  });
+
+  it('uses the top-level timestamp when data.timestamp is missing', () => {
+    renderNetworkTab([
+      makeScriptedRequest({
+        itemUid: 'scripted',
+        timestamp: 1710000000000
+      })
+    ]);
+
+    expect(screen.getAllByTestId('network-request-row')).toHaveLength(1);
+    expect(screen.queryByText('Invalid Date')).not.toBeInTheDocument();
   });
 });

@@ -321,7 +321,7 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
 
           <div className="filter-dropdown-options">
             {Object.entries(filters).map(([method, enabled]) => (
-              <label key={method} className="filter-option">
+              <label key={method} className="filter-option" data-testid={`network-filter-option-${method}`}>
                 <input
                   type="checkbox"
                   checked={enabled}
@@ -329,7 +329,7 @@ const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggl
                 />
                 <div className="filter-option-content">
                   <span className="filter-option-label">{method}</span>
-                  <span className="filter-option-count">({requestCounts[method] || 0})</span>
+                  <span className="filter-option-count" data-testid={`network-filter-count-${method}`}>({requestCounts[method] || 0})</span>
                 </div>
               </label>
             ))}
@@ -426,7 +426,7 @@ const Console = () => {
     collections.forEach((collection) => {
       if (collection.timeline) {
         collection.timeline
-          .filter((entry) => entry.type === 'request')
+          .filter((entry) => entry.type === 'request' || entry.type === 'scripted-request')
           .forEach((entry) => {
             requests.push({
               ...entry,
