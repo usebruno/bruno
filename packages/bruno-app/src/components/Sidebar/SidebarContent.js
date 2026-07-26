@@ -6,17 +6,19 @@ import SidebarSectionSash from './SidebarSectionSash';
 import {
   DEFAULT_SECTION_WEIGHT,
   MIN_SECTION_PX,
-  resolveExpandHeights,
-  resolveSashDrag
+  computeSashTransfer,
+  resolveExpandHeights
 } from './sidebarSectionSizing';
 
 /**
  * Renders the stacked sidebar sections. Expanded sections divide the available
  * height in proportion to their persisted weights (app.sidebarSectionSizes);
- * a draggable sash between two adjacent expanded sections resizes them.
+ * a draggable sash between two adjacent expanded sections resizes them. Dragging
+ * only shrinks a section to its minimum — closing a section is done by clicking
+ * its header (which clears its stored size so it reopens at the 1/N default).
  */
 const SidebarContent = ({ sections }) => {
-  const { isExpanded, setSectionExpanded } = useSidebarAccordion();
+  const { isExpanded } = useSidebarAccordion();
   const dispatch = useDispatch();
   const sizes = useSelector((state) => state.app.sidebarSectionSizes);
 
@@ -81,6 +83,14 @@ const SidebarContent = ({ sections }) => {
     dispatch(updateSidebarSectionSizes(updates));
   }, [expandedIds.join('|'), sizes, dispatch]);
 
+  // A section closed from its header drops its stored size, so it reopens at the
+  // 1/N default rather than its last dragged height.
+  useEffect(() => {
+    Object.keys(sizes).forEach((id) => {
+      if (!expandedIds.includes(id)) dispatch(removeSidebarSectionSize(id));
+    });
+  }, [expandedIds.join('|'), sizes, dispatch]);
+
   // Normalize the rendered flex-grow across expanded sections so it always sums
   // to the expanded count (>= 1). CSS distributes only a fraction of the free
   // space when the flex-grow values sum to less than 1, which would leave a
@@ -95,7 +105,7 @@ const SidebarContent = ({ sections }) => {
     return classes.join(' ');
   };
 
-  const makeSashHandlers = (aboveId, belowId, aboveIsTop) => {
+  const makeSashHandlers = (aboveId, belowId) => {
     // Captured once at drag start. The drag delta is measured from the start
     // position, so it must apply to the heights as they were then — re-reading
     // the live (already-resized) heights each move would compound the delta.
@@ -114,20 +124,15 @@ const SidebarContent = ({ sections }) => {
       onDrag: (deltaPx) => {
         if (!startRef.current) return;
         const { abovePx, belowPx, combinedWeight } = startRef.current;
-
-        const result = resolveSashDrag({ abovePx, belowPx, deltaPx, combinedWeight, aboveIsTop });
-
-        // Dragging a neighbor past its minimum, into the collapse zone, closes
-        // that section (header only) instead of flooring at the min height.
-        if (result.action === 'collapse') {
-          const id = result.side === 'below' ? belowId : aboveId;
-          startRef.current = null;
-          setLiveSizes(null);
-          dispatch(removeSidebarSectionSize(id));
-          setSectionExpanded(id, false);
-          return;
-        }
-        setLiveSizes({ [aboveId]: result.weightAbove, [belowId]: result.weightBelow });
+        // Clamps at the minimum height — dragging never collapses a section.
+        const { weightAbove, weightBelow } = computeSashTransfer({
+          abovePx,
+          belowPx,
+          deltaPx,
+          combinedWeight,
+          minPx: MIN_SECTION_PX
+        });
+        setLiveSizes({ [aboveId]: weightAbove, [belowId]: weightBelow });
       },
       onDragEnd: () => {
         startRef.current = null;
@@ -154,7 +159,7 @@ const SidebarContent = ({ sections }) => {
         return (
           <Fragment key={section.id}>
             {showSashBefore && (
-              <SidebarSectionSash {...makeSashHandlers(prevSection.id, section.id, index - 1 === 0)} />
+              <SidebarSectionSash {...makeSashHandlers(prevSection.id, section.id)} />
             )}
             <div
               className={wrapperClassName}
