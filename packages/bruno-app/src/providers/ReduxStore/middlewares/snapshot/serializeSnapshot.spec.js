@@ -265,4 +265,15 @@ describe('serializeSnapshot sidebar section sizes', () => {
     expect(snapshot.extras.sidebar.sectionSizes).toEqual({ 'collections': 4, 'api-specs': 1 });
     expect(snapshot.extras.devTools).toBeDefined();
   });
+
+  it('persists the expanded section list', async () => {
+    const state = makeState();
+    state.app.sidebarExpandedSections = ['collections', 'api-specs'];
+
+    const snapshot = await serializeSnapshot(state, {
+      getExistingSnapshot: async () => null
+    });
+
+    expect(snapshot.extras.sidebar.expandedSections).toEqual(['collections', 'api-specs']);
+  });
 });

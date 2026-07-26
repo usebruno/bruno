@@ -91,11 +91,17 @@ const devToolsSchema = yup.object({
   })
 });
 
+const sidebarSchema = yup.object({
+  sectionSizes: yup.object().optional(),
+  expandedSections: yup.array().of(yup.string()).optional()
+});
+
 const snapshotSchema = yup.object({
   version: yup.string().defined(),
   activeWorkspacePath: yup.string().nullable(),
   extras: yup.object({
-    devTools: devToolsSchema.required()
+    devTools: devToolsSchema.required(),
+    sidebar: sidebarSchema.optional()
   }).required(),
   workspaces: yup.array().of(workspaceSchema).required(),
   collections: yup.array().of(collectionSchema).required()
@@ -397,7 +403,8 @@ class SnapshotManager {
       version: snapshot.version ?? SNAPSHOT_VERSION,
       activeWorkspacePath: typeof snapshot.activeWorkspacePath === 'string' ? snapshot.activeWorkspacePath : null,
       extras: {
-        devTools: this._normalizeDevTools(snapshot?.extras?.devTools)
+        devTools: this._normalizeDevTools(snapshot?.extras?.devTools),
+        sidebar: this._normalizeSidebar(snapshot?.extras?.sidebar)
       },
       workspaces: this._normalizeWorkspaceList(snapshot.workspaces),
       collections: this._normalizeCollectionList(snapshot.collections, snapshot.tabs)
@@ -426,6 +433,22 @@ class SnapshotManager {
     });
 
     return _snapshotEntry;
+  }
+
+  _normalizeSidebar(sidebar = {}) {
+    const sectionSizes = {};
+    if (isObject(sidebar?.sectionSizes)) {
+      Object.entries(sidebar.sectionSizes).forEach(([id, size]) => {
+        if (typeof size === 'number' && Number.isFinite(size) && size > 0) {
+          sectionSizes[id] = size;
+        }
+      });
+    }
+    const expandedSections = Array.isArray(sidebar?.expandedSections)
+      ? sidebar.expandedSections.filter((id) => typeof id === 'string')
+      : [];
+
+    return { sectionSizes, expandedSections };
   }
 
   _normalizeWorkspaceList(workspaces) {
