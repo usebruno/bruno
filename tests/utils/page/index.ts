@@ -5,4 +5,5 @@ export * from './locators';
 export * from './mounting';
 export * from './preferences';
 export * from './ai';
+export * from './timeline-headers';
 export * from '../snapshot';

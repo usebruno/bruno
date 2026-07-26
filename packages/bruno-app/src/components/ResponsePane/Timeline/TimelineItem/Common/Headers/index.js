@@ -5,12 +5,12 @@ import { toEntries } from '@usebruno/common/utils';
 const HeaderTable = ({ entries }) => {
   if (!entries.length) return <div className="tl-empty">No Headers</div>;
   return (
-    <table className="tl-headers-table">
+    <table className="tl-headers-table" data-testid="tl-headers-table">
       <tbody>
         {entries.map((h, i) => (
-          <tr key={i}>
-            <td className="tl-headers-key">{h.name}</td>
-            <td className="tl-headers-val">{String(h.value)}</td>
+          <tr key={i} data-testid="tl-header-row">
+            <td className="tl-headers-key" data-testid="tl-header-name">{h.name}</td>
+            <td className="tl-headers-val" data-testid="tl-header-value">{String(h.value)}</td>
           </tr>
         ))}
       </tbody>

@@ -3,10 +3,12 @@ import { buildApiSpecPanelLocators } from './openapi/render-spec';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
+import { buildTimelineHeaderLocators } from './timeline-headers';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
+  timelineHeaders: buildTimelineHeaderLocators(page),
   openApi: {
     render: buildApiSpecPanelLocators(page)
   },

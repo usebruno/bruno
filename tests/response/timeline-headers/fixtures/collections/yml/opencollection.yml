@@ -1,0 +1,17 @@
+opencollection: "1.0.0"
+info:
+  name: timeline-headers
+
+request:
+  auth:
+    mode: none
+  headers:
+    - name: collection-header-1
+      value: collection-header-value-1
+    - name: collection-header-2
+      value: collection-header-value-2
+  scripts:
+    - type: before-request
+      code: |-
+        req.setHeader('collection-script-header-1', 'collection-script-value-1');
+        req.setHeaders([{ 'collection-script-header-2': 'collection-script-value-2' }]);

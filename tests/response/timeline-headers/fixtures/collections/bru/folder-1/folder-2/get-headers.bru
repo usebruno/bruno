@@ -1,0 +1,21 @@
+meta {
+  name: get-headers
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8081/headers
+  body: none
+  auth: inherit
+}
+
+headers {
+  request-header-1: request-header-value-1
+  request-header-2: request-header-value-2
+}
+
+script:pre-request {
+  req.setHeader('request-script-header-1', 'request-script-value-1');
+  req.setHeaders([{ 'request-script-header-2': 'request-script-value-2' }]);
+}

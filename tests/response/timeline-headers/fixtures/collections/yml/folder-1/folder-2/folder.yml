@@ -1,0 +1,16 @@
+info:
+  name: folder-2
+  type: folder
+  seq: 1
+
+request:
+  headers:
+    - name: folder-2-header-1
+      value: folder-2-header-value-1
+    - name: folder-2-header-2
+      value: folder-2-header-value-2
+  scripts:
+    - type: before-request
+      code: |-
+        req.setHeader('folder-2-script-header-1', 'folder-2-script-value-1');
+        req.setHeaders([{ 'folder-2-script-header-2': 'folder-2-script-value-2' }]);
