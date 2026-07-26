@@ -53,6 +53,25 @@ describe('makeAxiosInstance', () => {
     expect(stubAdapter.getConfig().headers['User-Agent']).toMatch(/^bruno-runtime\//);
   });
 
+  it.each([
+    ['request automatic sending is disabled', { sendCookies: false }],
+    ['the global cookie option is disabled', { disableCookies: true, sendCookies: true }]
+  ])('preserves a manual Cookie header without injecting jar cookies when %s', async (_case, options) => {
+    mockGetCookieStringForUrl.mockReturnValue('session=from-jar');
+    const stubAdapter = createStubAdapter();
+    const instance = makeAxiosInstance(options);
+
+    await instance({
+      url: 'https://api.example.com/test',
+      method: 'get',
+      headers: { Cookie: 'manual=value' },
+      adapter: stubAdapter
+    });
+
+    expect(mockGetCookieStringForUrl).not.toHaveBeenCalled();
+    expect(stubAdapter.getConfig().headers.Cookie).toBe('manual=value');
+  });
+
   it('does not store or inject cookie jar cookies on redirects when request cookie automation is disabled', async () => {
     mockGetCookieStringForUrl.mockReturnValue('session=from-jar');
     const stubAdapter = createStubAdapter();

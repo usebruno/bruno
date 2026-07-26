@@ -61,6 +61,10 @@ describe('axios-instance: default headers', () => {
   beforeEach(() => {
     mockAddCookieToJar.mockReset();
     mockGetCookieStringForUrl.mockReset();
+    mockShouldStoreCookies.mockReset();
+    mockShouldStoreCookies.mockReturnValue(true);
+    mockShouldSendCookies.mockReset();
+    mockShouldSendCookies.mockReturnValue(true);
   });
 
   test('setting User-Agent does not clobber the axios default Accept header', async () => {
@@ -87,6 +91,36 @@ describe('axios-instance: default headers', () => {
     mockGetCookieStringForUrl.mockReturnValue('session=from-jar');
     const stubAdapter = createStubAdapter();
     const instance = makeAxiosInstance({ storeCookies: false, sendCookies: false });
+    const redirectError = {
+      config: {
+        url: 'https://api.example.com/start',
+        method: 'get',
+        headers: { Cookie: 'manual=value' },
+        metadata: { timeline: [] },
+        adapter: stubAdapter
+      },
+      response: {
+        status: 302,
+        headers: {
+          'location': 'https://api.example.com/target',
+          'set-cookie': ['session=from-response']
+        }
+      }
+    };
+
+    await instance.interceptors.response.handlers[0].rejected(redirectError);
+
+    expect(mockGetCookieStringForUrl).not.toHaveBeenCalled();
+    expect(mockAddCookieToJar).not.toHaveBeenCalled();
+    expect(stubAdapter.getConfig().headers.Cookie).toBe('manual=value');
+  });
+
+  test('keeps global cookie preferences as the master controls on redirects', async () => {
+    mockShouldStoreCookies.mockReturnValue(false);
+    mockShouldSendCookies.mockReturnValue(false);
+    mockGetCookieStringForUrl.mockReturnValue('session=from-jar');
+    const stubAdapter = createStubAdapter();
+    const instance = makeAxiosInstance({ storeCookies: true, sendCookies: true });
     const redirectError = {
       config: {
         url: 'https://api.example.com/start',
