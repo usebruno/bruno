@@ -14,7 +14,7 @@ import {
  * Renders the stacked sidebar sections. Expanded sections divide the available
  * height in proportion to their persisted weights (app.sidebarSectionSizes);
  * a draggable sash between two adjacent expanded sections resizes them. Dragging
- * only shrinks a section to its minimum — closing a section is done by clicking
+ * only shrinks a section to its minimum - closing a section is done by clicking
  * its header (which clears its stored size so it reopens at the 1/N default).
  */
 const SidebarContent = ({ sections }) => {
@@ -30,12 +30,12 @@ const SidebarContent = ({ sections }) => {
 
   const weightFor = (id) => liveSizes?.[id] ?? sizes[id] ?? DEFAULT_SECTION_WEIGHT;
 
-  // Size a newly-expanded, never-sized section VSCode-style: it opens at 1/N of the
-  // shared area, taking that space from the neighbour above it (cascading outward),
-  // while the other sections keep their heights. Sizes are stored as target pixel
+  // Size a newly-expanded, never-sized section: it opens at 1/N of the shared
+  // area, taking that space from the neighbour above it (cascading outward), while
+  // the other sections keep their heights. Sizes are stored as target pixel
   // heights; flexGrowFor normalizes them back into flex-grow at render time.
-  // useLayoutEffect (not useEffect) so the measure-and-resize happens before paint —
-  // otherwise the new section flashes at its min height for one frame.
+  // Runs in useLayoutEffect (not useEffect) so the measure-and-resize happens
+  // before paint, otherwise the new section flashes at its min height for a frame.
   useLayoutEffect(() => {
     const unsized = expandedIds.filter((id) => !(id in sizes));
     if (unsized.length === 0) return;
@@ -52,7 +52,7 @@ const SidebarContent = ({ sections }) => {
     }
 
     const oldIds = expandedIds.filter((id) => id !== newId);
-    // The only expanded section fills on its own — no neighbour to take space from.
+    // The only expanded section fills on its own - no neighbour to take space from.
     if (oldIds.length === 0) {
       dispatch(updateSidebarSectionSizes({ [newId]: DEFAULT_SECTION_WEIGHT }));
       return;
@@ -109,7 +109,7 @@ const SidebarContent = ({ sections }) => {
 
   const makeSashHandlers = (aboveId, belowId) => {
     // Captured once at drag start. The drag delta is measured from the start
-    // position, so it must apply to the heights as they were then — re-reading
+    // position, so it must apply to the heights as they were then - re-reading
     // the live (already-resized) heights each move would compound the delta.
     const startRef = { current: null };
     return {
@@ -126,7 +126,7 @@ const SidebarContent = ({ sections }) => {
       onDrag: (deltaPx) => {
         if (!startRef.current) return;
         const { abovePx, belowPx, combinedWeight } = startRef.current;
-        // Clamps at the minimum height — dragging never collapses a section.
+        // Clamps at the minimum height - dragging never collapses a section.
         const { weightAbove, weightBelow } = computeSashTransfer({
           abovePx,
           belowPx,
