@@ -27,6 +27,14 @@ describe('resolveExpandHeights', () => {
     expect(heights).toEqual([300, 375, 225]);
   });
 
+  it('a middle insert pulls from its nearest neighbours, leaving far sections untouched', () => {
+    // 4 sections at 300 each; open a 5th in the middle (index 2), target = 1500/5 = 300.
+    const heights = resolveExpandHeights({ oldHeights: [300, 300, 300, 300], newIndex: 2, areaPx: 1500, minPx: 100 });
+    // above-adjacent drains to min (200 given), below-adjacent gives the rest (100);
+    // the outermost sections keep their 300.
+    expect(heights).toEqual([300, 100, 300, 200, 300]);
+  });
+
   it('opens smaller than 1/N when the other sections have no slack to give', () => {
     // both existing already at min 100; area only 900, target 300 but no slack
     const heights = resolveExpandHeights({ oldHeights: [100, 100], newIndex: 2, areaPx: 900, minPx: 100 });
