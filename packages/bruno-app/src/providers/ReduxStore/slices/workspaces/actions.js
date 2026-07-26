@@ -26,7 +26,8 @@ import {
   startSnapshotHydrationSession,
   markSnapshotCollectionHydrated,
   clearSnapshotHydrationSession,
-  updateSidebarSectionSizes
+  updateSidebarSectionSizes,
+  setSidebarExpandedSections
 } from '../app';
 import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab, TAB_IDENFIERS as DEVTOOL_TABS } from '../logs';
 import { normalizePath } from 'utils/common/path';
@@ -989,6 +990,10 @@ export const workspaceOpenedEvent = (workspacePath, workspaceUid, workspaceConfi
         }
         const { activeTab = 'terminal' } = snapshot.extras.devTools;
         dispatch(setActiveDevToolsTab(activeTab));
+      }
+
+      if (!currentState.app.snapshotReady && Array.isArray(snapshot?.extras?.sidebar?.expandedSections)) {
+        dispatch(setSidebarExpandedSections(snapshot.extras.sidebar.expandedSections));
       }
 
       if (!currentState.app.snapshotReady && snapshot?.extras?.sidebar?.sectionSizes) {

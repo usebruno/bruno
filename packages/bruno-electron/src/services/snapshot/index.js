@@ -112,7 +112,9 @@ const devToolsSchema = yup.object({
 
 const sidebarSchema = yup.object({
   collapsed: yup.boolean().optional(),
-  width: yup.number().optional()
+  width: yup.number().optional(),
+  sectionSizes: yup.object().optional(),
+  expandedSections: yup.array().of(yup.string()).optional()
 });
 
 const snapshotSchema = yup.object({
@@ -453,6 +455,18 @@ class SnapshotManager {
     }
     if (typeof sidebar.width === 'number') {
       result.width = sidebar.width;
+    }
+    if (isObject(sidebar.sectionSizes)) {
+      const sectionSizes = {};
+      Object.entries(sidebar.sectionSizes).forEach(([id, size]) => {
+        if (typeof size === 'number' && Number.isFinite(size) && size > 0) {
+          sectionSizes[id] = size;
+        }
+      });
+      result.sectionSizes = sectionSizes;
+    }
+    if (Array.isArray(sidebar.expandedSections)) {
+      result.expandedSections = sidebar.expandedSections.filter((id) => typeof id === 'string');
     }
     return Object.keys(result).length > 0 ? result : undefined;
   }
