@@ -19,11 +19,17 @@ export const resolveExpandHeights = ({ oldHeights, newIndex, areaPx, minPx = MIN
   const target = areaPx / count;
 
   const reduced = [...oldHeights];
-  // Reclaim order: nearest neighbour above the new section first, then further up,
-  // then the neighbours below.
+  // Reclaim from the nearest neighbours first, fanning outward from the new
+  // section — the section directly above, then directly below, then the next
+  // ones out (above preferred at equal distance). `reduced[newIndex-1]` is the
+  // neighbour above, `reduced[newIndex]` the neighbour below.
   const order = [];
-  for (let i = newIndex - 1; i >= 0; i--) order.push(i);
-  for (let i = newIndex; i < reduced.length; i++) order.push(i);
+  let up = newIndex - 1;
+  let down = newIndex;
+  while (up >= 0 || down < reduced.length) {
+    if (up >= 0) order.push(up--);
+    if (down < reduced.length) order.push(down++);
+  }
 
   let remaining = target;
   for (const i of order) {
