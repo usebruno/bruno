@@ -5,7 +5,8 @@ const {
   setFolderVars,
   setCollectionVars,
   updateFile,
-  wsResponseReceived
+  wsResponseReceived,
+  requestUrlChanged
 } = collectionsSlice.actions;
 const reducer = collectionsSlice.reducer;
 
@@ -156,5 +157,31 @@ describe('wsResponseReceived — disconnecting', () => {
       status: 'DISCONNECTING',
       statusText: 'DISCONNECTING'
     });
+  });
+});
+
+describe('requestUrlChanged — preserves URL order for path params', () => {
+  it('orders existing and newly discovered path params according to the URL', () => {
+    const item = {
+      uid: 'item1',
+      type: 'http-request',
+      request: {
+        url: 'https://example.com/users/:id',
+        params: [
+          { uid: 'path-1', name: 'id', value: '123', enabled: true, type: 'path' }
+        ]
+      }
+    };
+
+    const next = reducer(
+      makeStateWith(item),
+      requestUrlChanged({ collectionUid: 'col1', itemUid: 'item1', url: 'https://example.com/users/:id/posts/:postId' })
+    );
+
+    const pathParams = next.collections[0].items[0].draft.request.params.filter((param) => param.type === 'path');
+
+    expect(pathParams.map((param) => param.name)).toEqual(['id', 'postId']);
+    expect(pathParams[0].uid).toBe('path-1');
+    expect(pathParams[1].uid).not.toBe('path-1');
   });
 });
