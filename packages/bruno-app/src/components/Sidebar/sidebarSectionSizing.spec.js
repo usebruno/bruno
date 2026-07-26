@@ -1,28 +1,37 @@
 import {
-  DEFAULT_SECTION_WEIGHT,
-  NEW_SECTION_FRACTION,
-  computeExpandWeight,
   computeSashTransfer,
+  resolveExpandHeights,
   resolveSashDrag
 } from './sidebarSectionSizing';
 
-describe('computeExpandWeight', () => {
-  it('returns the default weight when there are no expanded siblings', () => {
-    expect(computeExpandWeight([], 0.2)).toBe(DEFAULT_SECTION_WEIGHT);
+describe('resolveExpandHeights', () => {
+  it('opens the second section at 50% of a two-section sidebar', () => {
+    // one section fills the 900px area; expanding a second below it
+    const heights = resolveExpandHeights({ oldHeights: [900], newIndex: 1, areaPx: 900, minPx: 64 });
+    expect(heights).toEqual([450, 450]);
   });
 
-  it('gives the new section ~20% of the combined area (single sibling)', () => {
-    const w = computeExpandWeight([1], 0.2);
-    expect(w).toBeCloseTo(0.25, 5); // 0.25 / (0.25 + 1) = 0.2
+  it('takes the new section (1/3) from the neighbour above, leaving the far section untouched', () => {
+    // Collections 225, API Specs 675; open a third below -> 3rd takes 300 from API Specs
+    const heights = resolveExpandHeights({ oldHeights: [225, 675], newIndex: 2, areaPx: 900, minPx: 100 });
+    expect(heights).toEqual([225, 375, 300]);
   });
 
-  it('gives the new section ~20% with multiple siblings, keeping their proportions', () => {
-    const w = computeExpandWeight([2, 2], 0.2);
-    expect(w).toBeCloseTo(1, 5); // 1 / (1 + 4) = 0.2
+  it('cascades past a neighbour that is already at its minimum', () => {
+    // API Specs pinned at min 100; the third opens taking its space from Collections instead
+    const heights = resolveExpandHeights({ oldHeights: [700, 100], newIndex: 2, areaPx: 900, minPx: 100 });
+    expect(heights).toEqual([400, 100, 300]);
   });
 
-  it('ignores non-positive sibling weights', () => {
-    expect(computeExpandWeight([0, -3], 0.2)).toBe(DEFAULT_SECTION_WEIGHT);
+  it('takes from the neighbour below when the new section opens at the top', () => {
+    const heights = resolveExpandHeights({ oldHeights: [675, 225], newIndex: 0, areaPx: 900, minPx: 100 });
+    expect(heights).toEqual([300, 375, 225]);
+  });
+
+  it('opens smaller than 1/N when the other sections have no slack to give', () => {
+    // both existing already at min 100; area only 900, target 300 but no slack
+    const heights = resolveExpandHeights({ oldHeights: [100, 100], newIndex: 2, areaPx: 900, minPx: 100 });
+    expect(heights).toEqual([100, 100, 0]); // new gets whatever slack allowed (none)
   });
 });
 
@@ -87,12 +96,5 @@ describe('resolveSashDrag', () => {
   it('still collapses the bottom even when the above is the top section', () => {
     const r = resolveSashDrag({ abovePx: 400, belowPx: 400, deltaPx: 390, combinedWeight: 2, aboveIsTop: true });
     expect(r).toEqual({ action: 'collapse', side: 'below' });
-  });
-});
-
-describe('NEW_SECTION_FRACTION default', () => {
-  it('opens a newly expanded section at 25% next to one existing section', () => {
-    const w = computeExpandWeight([1], NEW_SECTION_FRACTION);
-    expect(w / (w + 1)).toBeCloseTo(0.25, 5);
   });
 });

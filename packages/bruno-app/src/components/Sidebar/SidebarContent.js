@@ -5,8 +5,8 @@ import { updateSidebarSectionSizes, removeSidebarSectionSize } from 'providers/R
 import SidebarSectionSash from './SidebarSectionSash';
 import {
   DEFAULT_SECTION_WEIGHT,
-  NEW_SECTION_FRACTION,
-  computeExpandWeight,
+  MIN_SECTION_PX,
+  resolveExpandHeights,
   resolveSashDrag
 } from './sidebarSectionSizing';
 
@@ -26,24 +26,60 @@ const SidebarContent = ({ sections }) => {
 
   const expandedIds = sections.filter((s) => isExpanded(s.id)).map((s) => s.id);
 
-  // Assign a ~20% default weight to any newly-expanded, never-sized section.
+  const weightFor = (id) => liveSizes?.[id] ?? sizes[id] ?? DEFAULT_SECTION_WEIGHT;
+
+  // Size a newly-expanded, never-sized section VSCode-style: it opens at 1/N of the
+  // shared area, taking that space from the neighbour above it (cascading outward),
+  // while the other sections keep their heights. Sizes are stored as target pixel
+  // heights; flexGrowFor normalizes them back into flex-grow at render time.
   useEffect(() => {
     const unsized = expandedIds.filter((id) => !(id in sizes));
     if (unsized.length === 0) return;
 
-    const runningWeights = expandedIds
-      .filter((id) => id in sizes)
-      .map((id) => sizes[id]);
-    const updates = {};
-    unsized.forEach((id) => {
-      const weight = computeExpandWeight(runningWeights, NEW_SECTION_FRACTION);
-      updates[id] = weight;
-      runningWeights.push(weight);
+    // With more than one unsized section at once (e.g. restored from a snapshot),
+    // seed the extra ones first so the cascade below always runs against fully
+    // sized neighbours; the primary new section is then sized on the next pass.
+    const [newId, ...extraUnsized] = unsized;
+    if (extraUnsized.length > 0) {
+      const seed = {};
+      extraUnsized.forEach((id) => { seed[id] = DEFAULT_SECTION_WEIGHT; });
+      dispatch(updateSidebarSectionSizes(seed));
+      return;
+    }
+
+    const oldIds = expandedIds.filter((id) => id !== newId);
+    // The only expanded section fills on its own — no neighbour to take space from.
+    if (oldIds.length === 0) {
+      dispatch(updateSidebarSectionSizes({ [newId]: DEFAULT_SECTION_WEIGHT }));
+      return;
+    }
+
+    // Shared area = the height currently filled by the expanded sections.
+    const areaPx = expandedIds.reduce(
+      (sum, id) => sum + (wrapperRefs.current[id]?.getBoundingClientRect().height || 0),
+      0
+    );
+    if (areaPx <= 0) {
+      dispatch(updateSidebarSectionSizes({ [newId]: DEFAULT_SECTION_WEIGHT }));
+      return;
+    }
+
+    // Reconstruct the neighbours' pre-expand heights from their weights (avoids the
+    // transient height the new section briefly takes before this effect runs).
+    const oldWeightSum = oldIds.reduce((sum, id) => sum + weightFor(id), 0) || 1;
+    const oldHeights = oldIds.map((id) => (weightFor(id) / oldWeightSum) * areaPx);
+
+    const heights = resolveExpandHeights({
+      oldHeights,
+      newIndex: expandedIds.indexOf(newId),
+      areaPx,
+      minPx: MIN_SECTION_PX
     });
+
+    const updates = {};
+    expandedIds.forEach((id, i) => { updates[id] = heights[i]; });
     dispatch(updateSidebarSectionSizes(updates));
   }, [expandedIds.join('|'), sizes, dispatch]);
-
-  const weightFor = (id) => liveSizes?.[id] ?? sizes[id] ?? DEFAULT_SECTION_WEIGHT;
 
   // Normalize the rendered flex-grow across expanded sections so it always sums
   // to the expanded count (>= 1). CSS distributes only a fraction of the free
