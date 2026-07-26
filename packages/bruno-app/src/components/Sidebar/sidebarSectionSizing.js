@@ -1,5 +1,4 @@
 export const DEFAULT_SECTION_WEIGHT = 1;
-export const NEW_SECTION_FRACTION = 0.25;
 export const MIN_SECTION_PX = 64;
 // Dragging a neighbor's height below this (past its min) collapses the section.
 export const COLLAPSE_THRESHOLD_PX = 32;
@@ -7,12 +6,39 @@ export const COLLAPSE_THRESHOLD_PX = 32;
 // the shared area so the sash remains reachable (matches VSCode).
 export const TOP_MIN_FRACTION = 0.25;
 
-// Weight for a section that should occupy `fraction` of the area shared with its
-// already-expanded siblings, leaving the siblings' relative proportions intact.
-export const computeExpandWeight = (expandedSiblingWeights, fraction = NEW_SECTION_FRACTION) => {
-  const sum = expandedSiblingWeights.reduce((total, weight) => total + (weight > 0 ? weight : 0), 0);
-  if (sum <= 0) return DEFAULT_SECTION_WEIGHT;
-  return (fraction / (1 - fraction)) * sum;
+// Lays out the expanded sections when a new one is opened, VSCode-style: the new
+// section opens at an equal 1/N share of the shared area, and that space is
+// reclaimed from the other sections' slack (height above the minimum) starting
+// with the neighbour directly above the new section and cascading outward — up
+// first, then down. A section already at its minimum gives nothing; if the total
+// available slack is less than the new section's share, the new section opens
+// smaller (whatever slack allowed).
+//
+// `oldHeights` are the existing expanded sections' pixel heights in visual order;
+// `newIndex` is the position the new section takes in the resulting order.
+// Returns the full ordered list of N heights (new section inserted at newIndex).
+export const resolveExpandHeights = ({ oldHeights, newIndex, areaPx, minPx = MIN_SECTION_PX }) => {
+  const count = oldHeights.length + 1;
+  const target = areaPx / count;
+
+  const reduced = [...oldHeights];
+  // Reclaim order: nearest neighbour above the new section first, then further up,
+  // then the neighbours below.
+  const order = [];
+  for (let i = newIndex - 1; i >= 0; i--) order.push(i);
+  for (let i = newIndex; i < reduced.length; i++) order.push(i);
+
+  let remaining = target;
+  for (const i of order) {
+    if (remaining <= 0) break;
+    const slack = Math.max(0, reduced[i] - minPx);
+    const give = Math.min(slack, remaining);
+    reduced[i] -= give;
+    remaining -= give;
+  }
+
+  const newHeight = target - remaining; // short of target if slack ran out
+  return [...reduced.slice(0, newIndex), newHeight, ...reduced.slice(newIndex)];
 };
 
 // Given the two neighbors' pixel heights and a drag delta, return new weights that
