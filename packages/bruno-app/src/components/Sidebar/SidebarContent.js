@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useSidebarAccordion } from './SidebarAccordionContext';
 import { updateSidebarSectionSizes, removeSidebarSectionSize } from 'providers/ReduxStore/slices/app';
@@ -34,7 +34,9 @@ const SidebarContent = ({ sections }) => {
   // shared area, taking that space from the neighbour above it (cascading outward),
   // while the other sections keep their heights. Sizes are stored as target pixel
   // heights; flexGrowFor normalizes them back into flex-grow at render time.
-  useEffect(() => {
+  // useLayoutEffect (not useEffect) so the measure-and-resize happens before paint —
+  // otherwise the new section flashes at its min height for one frame.
+  useLayoutEffect(() => {
     const unsized = expandedIds.filter((id) => !(id in sizes));
     if (unsized.length === 0) return;
 
@@ -164,7 +166,8 @@ const SidebarContent = ({ sections }) => {
             <div
               className={wrapperClassName}
               ref={(node) => {
-                wrapperRefs.current[section.id] = node;
+                if (node) wrapperRefs.current[section.id] = node;
+                else delete wrapperRefs.current[section.id];
               }}
               style={expanded ? { flexGrow: flexGrowFor(section.id), flexBasis: 0 } : undefined}
             >
