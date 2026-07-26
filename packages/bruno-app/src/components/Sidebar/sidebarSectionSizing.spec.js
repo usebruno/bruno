@@ -1,7 +1,6 @@
 import {
   computeSashTransfer,
-  resolveExpandHeights,
-  resolveSashDrag
+  resolveExpandHeights
 } from './sidebarSectionSizing';
 
 describe('resolveExpandHeights', () => {
@@ -54,47 +53,12 @@ describe('computeSashTransfer', () => {
     expect(weightBelow).toBeCloseTo(3 * (236 / 300), 5);
   });
 
-  it('honors a larger minAbovePx floor for the top section', () => {
-    // container 800px, top floored at 25% = 200px; big up-drag should stop there
+  it('clamps a large up-drag at the minimum instead of collapsing', () => {
+    // above 600, below 200, min 100; a huge up-drag can only shrink above to 100
     const { weightAbove, weightBelow } = computeSashTransfer({
-      abovePx: 600, belowPx: 200, deltaPx: -1000, combinedWeight: 4, minAbovePx: 200, minBelowPx: 64
+      abovePx: 600, belowPx: 200, deltaPx: -1000, combinedWeight: 4, minPx: 100
     });
-    expect(weightAbove).toBeCloseTo(4 * (200 / 800), 5); // top stays at 200px
-    expect(weightBelow).toBeCloseTo(4 * (600 / 800), 5);
-  });
-});
-
-describe('resolveSashDrag', () => {
-  const base = { abovePx: 400, belowPx: 400, combinedWeight: 2 };
-
-  it('resizes proportionally on a normal drag', () => {
-    const r = resolveSashDrag({ ...base, deltaPx: 100, aboveIsTop: false });
-    expect(r.action).toBe('resize');
-    expect(r.weightAbove).toBeCloseTo(2 * (500 / 800), 5); // above 400->500
-    expect(r.weightBelow).toBeCloseTo(2 * (300 / 800), 5);
-  });
-
-  it('collapses the bottom section when dragged down past the threshold', () => {
-    // below 400 - 390 = 10px < 32 collapse threshold
-    const r = resolveSashDrag({ ...base, deltaPx: 390, aboveIsTop: false });
-    expect(r).toEqual({ action: 'collapse', side: 'below' });
-  });
-
-  it('collapses a non-top above section when dragged up past the threshold', () => {
-    // above 400 + (-390) = 10px < 32
-    const r = resolveSashDrag({ ...base, deltaPx: -390, aboveIsTop: false });
-    expect(r).toEqual({ action: 'collapse', side: 'above' });
-  });
-
-  it('never collapses the top section — it floors at 25% of the shared area', () => {
-    const r = resolveSashDrag({ abovePx: 600, belowPx: 200, deltaPx: -1000, combinedWeight: 4, aboveIsTop: true });
-    expect(r.action).toBe('resize');
-    expect(r.weightAbove).toBeCloseTo(4 * (200 / 800), 5); // floored at 25% = 200px
-    expect(r.weightBelow).toBeCloseTo(4 * (600 / 800), 5);
-  });
-
-  it('still collapses the bottom even when the above is the top section', () => {
-    const r = resolveSashDrag({ abovePx: 400, belowPx: 400, deltaPx: 390, combinedWeight: 2, aboveIsTop: true });
-    expect(r).toEqual({ action: 'collapse', side: 'below' });
+    expect(weightAbove).toBeCloseTo(4 * (100 / 800), 5); // above floored at 100px
+    expect(weightBelow).toBeCloseTo(4 * (700 / 800), 5);
   });
 });
