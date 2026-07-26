@@ -17,6 +17,7 @@ const initialState = {
   },
   leftSidebarWidth: 250,
   sidebarSectionSizes: {},
+  sidebarExpandedSections: ['collections'],
   sidebarCollapsed: false,
   showSidebarSearch: false,
   focusedSidebarPath: null,
@@ -176,6 +177,20 @@ export const appSlice = createSlice({
     removeSidebarSectionSize: (state, action) => {
       delete state.sidebarSectionSizes[action.payload];
     },
+    setSidebarSectionExpanded: (state, action) => {
+      const { id, expanded } = action.payload;
+      const has = state.sidebarExpandedSections.includes(id);
+      if (expanded && !has) {
+        state.sidebarExpandedSections.push(id);
+      } else if (!expanded && has) {
+        state.sidebarExpandedSections = state.sidebarExpandedSections.filter((sectionId) => sectionId !== id);
+      }
+    },
+    setSidebarExpandedSections: (state, action) => {
+      if (Array.isArray(action.payload)) {
+        state.sidebarExpandedSections = action.payload.filter((id) => typeof id === 'string');
+      }
+    },
     updateIsDragging: (state, action) => {
       state.isDragging = action.payload.isDragging;
     },
@@ -299,6 +314,8 @@ export const {
   updateLeftSidebarWidth,
   updateSidebarSectionSizes,
   removeSidebarSectionSize,
+  setSidebarSectionExpanded,
+  setSidebarExpandedSections,
   updateIsDragging,
   showHomePage,
   hideHomePage,

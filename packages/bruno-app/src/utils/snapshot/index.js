@@ -42,6 +42,7 @@ export const SAVE_TRIGGERS = new Map([
   ['app/setSnapshotReady', null],
   ['app/updateSidebarSectionSizes', null],
   ['app/removeSidebarSectionSize', null],
+  ['app/setSidebarSectionExpanded', null],
   ['tabs/addTab', null],
   ['tabs/closeTabs', null],
   ['tabs/focusTab', null],

@@ -98,7 +98,7 @@ const Sidebar = () => {
   }, [leftSidebarWidth]);
 
   return (
-    <SidebarAccordionProvider defaultExpanded={['collections']}>
+    <SidebarAccordionProvider>
       <StyledWrapper className="flex relative h-full">
         <aside className="sidebar" style={{ width: currentWidth, transition: dragging ? 'none' : 'width 0.2s ease-in-out' }}>
           <div className="flex flex-row h-full w-full">

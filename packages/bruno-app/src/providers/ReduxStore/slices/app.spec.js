@@ -1,4 +1,9 @@
-import appReducer, { updateSidebarSectionSizes, removeSidebarSectionSize } from './app';
+import appReducer, {
+  updateSidebarSectionSizes,
+  removeSidebarSectionSize,
+  setSidebarSectionExpanded,
+  setSidebarExpandedSections
+} from './app';
 
 const baseState = () => appReducer(undefined, { type: '@@INIT' });
 
@@ -25,5 +30,31 @@ describe('app slice — sidebarSectionSizes', () => {
     let state = appReducer(baseState(), updateSidebarSectionSizes({ 'collections': 4, 'api-specs': 1 }));
     state = appReducer(state, removeSidebarSectionSize('api-specs'));
     expect(state.sidebarSectionSizes).toEqual({ collections: 4 });
+  });
+});
+
+describe('app slice — sidebarExpandedSections', () => {
+  it('starts with collections expanded', () => {
+    expect(baseState().sidebarExpandedSections).toEqual(['collections']);
+  });
+
+  it('adds and removes a section id without duplicating', () => {
+    let state = appReducer(baseState(), setSidebarSectionExpanded({ id: 'api-specs', expanded: true }));
+    expect(state.sidebarExpandedSections).toEqual(['collections', 'api-specs']);
+    // expanding again is a no-op (no duplicate)
+    state = appReducer(state, setSidebarSectionExpanded({ id: 'api-specs', expanded: true }));
+    expect(state.sidebarExpandedSections).toEqual(['collections', 'api-specs']);
+    state = appReducer(state, setSidebarSectionExpanded({ id: 'collections', expanded: false }));
+    expect(state.sidebarExpandedSections).toEqual(['api-specs']);
+  });
+
+  it('replaces the list from a hydrated array, dropping non-strings', () => {
+    const state = appReducer(baseState(), setSidebarExpandedSections(['api-specs', 'dummy', 5, null]));
+    expect(state.sidebarExpandedSections).toEqual(['api-specs', 'dummy']);
+  });
+
+  it('ignores a non-array payload', () => {
+    const state = appReducer(baseState(), setSidebarExpandedSections('nope'));
+    expect(state.sidebarExpandedSections).toEqual(['collections']);
   });
 });
