@@ -112,6 +112,52 @@ describe('postmanToBrunoEnvironment Function', () => {
     expect(brunoEnvironment).toEqual(expectedEnvironment);
   });
 
+  it('should default enabled to true when the field is missing and preserve an explicit false', async () => {
+    const postmanEnvironment = {
+      id: 'some-id',
+      name: 'My Environment',
+      values: [
+        { key: 'api_url', value: 'https://api.example.com', enabled: true },
+        { key: 'gymfinder-backend-url', value: 'https://example.com', type: 'default' },
+        { key: 'disabled_var', value: 'off', enabled: false }
+      ]
+    };
+
+    const brunoEnvironment = await postmanToBrunoEnvironment(postmanEnvironment);
+
+    const expectedEnvironment = {
+      name: 'My Environment',
+      variables: [
+        {
+          name: 'api_url',
+          value: 'https://api.example.com',
+          enabled: true,
+          secret: false,
+          type: 'text',
+          uid: 'mockeduuidvalue123456'
+        },
+        {
+          name: 'gymfinder-backend-url',
+          value: 'https://example.com',
+          enabled: true,
+          secret: false,
+          type: 'text',
+          uid: 'mockeduuidvalue123456'
+        },
+        {
+          name: 'disabled_var',
+          value: 'off',
+          enabled: false,
+          secret: false,
+          type: 'text',
+          uid: 'mockeduuidvalue123456'
+        }
+      ]
+    };
+
+    expect(brunoEnvironment).toEqual(expectedEnvironment);
+  });
+
   it.skip('should throw Error when JSON parsing fails', async () => {
     const invalidBrunoEnvironment = {
       id: 'some-id',
