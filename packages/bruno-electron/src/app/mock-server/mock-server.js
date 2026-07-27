@@ -434,7 +434,8 @@ const tryMockRequest = ({ url, method = 'GET', headers = {}, body = null }) => n
     port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
     path: `${parsedUrl.pathname}${parsedUrl.search}`,
     method: method.toUpperCase(),
-    headers: requestHeaders
+    headers: requestHeaders,
+    timeout: 30000
   }, (res) => {
     const chunks = [];
 
@@ -451,6 +452,7 @@ const tryMockRequest = ({ url, method = 'GET', headers = {}, body = null }) => n
   });
 
   req.on('error', reject);
+  req.on('timeout', () => req.destroy(new Error('Try request timed out')));
 
   if (payload) {
     req.write(payload);

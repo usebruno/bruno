@@ -65,7 +65,7 @@ export const updateMockResponseRules = (state, action) => {
     return;
   }
 
-  editor.rules = rules;
+  editor.rules = cloneDeep(rules);
 };
 
 export const cancelMockResponseEditorEdit = (state, action) => {

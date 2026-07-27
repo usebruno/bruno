@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { IconCopy, IconCheck } from '@tabler/icons';
 import toast from 'react-hot-toast';
@@ -12,6 +12,7 @@ const RouteTable = ({ mockServerUid }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [methodFilter, setMethodFilter] = useState(null);
   const [copiedRouteUid, setCopiedRouteUid] = useState(null);
+  const copyResetTimeoutRef = useRef(null);
 
   const serverState = useSelector((state) => state.mockServer.servers[mockServerUid]) || {};
   const isRunning = serverState.status === 'running';
@@ -47,7 +48,8 @@ const RouteTable = ({ mockServerUid }) => {
     try {
       await navigator.clipboard.writeText(`${baseUrl}${routePath}`);
       setCopiedRouteUid(routeUid);
-      setTimeout(() => setCopiedRouteUid(null), 1500);
+      clearTimeout(copyResetTimeoutRef.current);
+      copyResetTimeoutRef.current = setTimeout(() => setCopiedRouteUid(null), 1500);
     } catch {
       toast.error('Failed to copy URL');
     }
@@ -77,6 +79,7 @@ const RouteTable = ({ mockServerUid }) => {
                 handleCopyRouteUrl(row.uid, value);
               }}
               title="Copy route URL"
+              aria-label="Copy route URL"
             >
               {copiedRouteUid === row.uid
                 ? <IconCheck size={13} strokeWidth={2} />

@@ -97,7 +97,9 @@ const schemaToExample = (schema, spec = null, depth = 0, refStack = new Set()) =
   if (type === 'object' || resolvedSchema.properties) {
     const result = {};
     for (const [key, value] of Object.entries(resolvedSchema.properties || {})) {
-      result[key] = schemaToExample(value, spec, depth + 1, refStack);
+      // each sibling gets its own copy so resolving the same $ref twice (e.g. two
+      // fields pointing at the same component schema) isn't mistaken for a cycle
+      result[key] = schemaToExample(value, spec, depth + 1, new Set(refStack));
     }
     return result;
   }
@@ -143,7 +145,7 @@ const resolveOpenApiSchema = (spec, schema, refStack = new Set()) => {
   }
 
   if (Array.isArray(schema.allOf) && schema.allOf.length) {
-    let merged = { type: 'object', properties: {}, required: [] };
+    const merged = { type: 'object', properties: {}, required: [] };
 
     for (const part of schema.allOf) {
       const resolved = resolveOpenApiSchema(spec, part, new Set(refStack));

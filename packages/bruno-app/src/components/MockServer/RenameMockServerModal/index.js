@@ -53,8 +53,8 @@ const RenameMockServerModal = ({ instance, onClose }) => {
         dispatch(updateMockServerTabName(nextInstance));
         toast.success('Mock server renamed');
         onClose();
-      } catch {
-        toast.error('Failed to rename mock server');
+      } catch (err) {
+        toast.error(err?.message || 'Failed to rename mock server');
       }
     }
   });

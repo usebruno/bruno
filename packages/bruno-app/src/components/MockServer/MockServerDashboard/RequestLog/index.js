@@ -219,7 +219,7 @@ const RequestLog = ({ mockServerUid }) => {
   useEffect(() => {
     const latestEntry = displayedLogs[0];
     if (latestEntry?.matchTrace) {
-      setExpandedLogUid(latestEntry.uid);
+      setExpandedLogUid((current) => current ?? latestEntry.uid);
     }
   }, [displayedLogs.length, displayedLogs[0]?.uid]);
 

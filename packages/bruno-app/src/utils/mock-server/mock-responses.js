@@ -41,6 +41,11 @@ export const extractMockResponseRoutePath = (rawUrl) => {
     try {
       cleaned = new URL(cleaned).pathname;
     } catch {
+      // new URL() rejects malformed/templated hosts (e.g. "{{host}}:{{port}}", "bad host");
+      // strip the scheme and everything up to the first "/" so only the path survives
+      const withoutScheme = cleaned.replace(/^https?:\/\//, '');
+      const slashIndex = withoutScheme.indexOf('/');
+      cleaned = slashIndex === -1 ? '/' : withoutScheme.slice(slashIndex);
       const qIndex = cleaned.indexOf('?');
       if (qIndex !== -1) {
         cleaned = cleaned.substring(0, qIndex);

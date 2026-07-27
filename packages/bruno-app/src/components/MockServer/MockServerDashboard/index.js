@@ -100,14 +100,16 @@ const MockServerDashboard = ({ instance, collection }) => {
     const trimmed = String(value).trim();
 
     if (!trimmed) {
-      setPortError('Port is required');
-      return false;
+      const error = 'Port is required';
+      setPortError(error);
+      return error;
     }
 
     const nextPort = Number(trimmed);
     if (nextPort < 1 || nextPort > 65535) {
-      setPortError('Port must be between 1 and 65535');
-      return false;
+      const error = 'Port must be between 1 and 65535';
+      setPortError(error);
+      return error;
     }
 
     try {
@@ -116,10 +118,11 @@ const MockServerDashboard = ({ instance, collection }) => {
       });
       const error = getMockServerPortError(portCheck, nextPort);
       setPortError(error);
-      return !error;
+      return error;
     } catch (err) {
-      setPortError(err.message || 'Failed to validate port');
-      return false;
+      const error = err.message || 'Failed to validate port';
+      setPortError(error);
+      return error;
     }
   };
 
@@ -134,9 +137,9 @@ const MockServerDashboard = ({ instance, collection }) => {
   });
 
   const handleStart = async () => {
-    const isValidPort = await validatePort(activePort);
-    if (!isValidPort) {
-      toast.error(portError || 'Fix the port before starting the mock server');
+    const validationError = await validatePort(activePort);
+    if (validationError) {
+      toast.error(validationError || 'Fix the port before starting the mock server');
       return;
     }
 

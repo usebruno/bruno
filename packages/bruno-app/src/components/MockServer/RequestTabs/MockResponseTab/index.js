@@ -1,16 +1,32 @@
 import React from 'react';
-import { useDispatch } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { isEqual } from 'lodash';
 import { IconServer2 } from '@tabler/icons';
 import { closeTabs, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { mockResponseFromEditorItem } from 'utils/mock-server/mock-responses/editor';
 import GradientCloseButton from '../../../RequestTabs/RequestTab/GradientCloseButton';
 import StyledWrapper from '../../../RequestTabs/RequestTab/StyledWrapper';
 
 const MockResponseTab = ({ tab }) => {
   const dispatch = useDispatch();
   const tabLabel = tab.responseName || tab.tabName || 'Mock Response';
+  const editor = useSelector((state) => state.collections.mockResponseEditors[tab.uid]);
+
+  const hasUnsavedChanges = () => {
+    if (!editor) return false;
+    try {
+      const draft = mockResponseFromEditorItem(editor.item, tab.uid, editor.rules, editor.savedMockResponse);
+      return !isEqual(draft, editor.savedMockResponse);
+    } catch {
+      return false;
+    }
+  };
 
   const handleCloseClick = (event) => {
     event.stopPropagation();
+    if (hasUnsavedChanges() && !window.confirm('This mock response has unsaved changes. Close without saving?')) {
+      return;
+    }
     dispatch(closeTabs({ tabUids: [tab.uid] }));
   };
 

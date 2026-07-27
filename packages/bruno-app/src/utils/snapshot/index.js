@@ -503,7 +503,9 @@ export const serializeTab = (tab, collection) => {
   }
 
   if (tab.type === 'mock-response') {
-    serialized.mockServerUid = tab.mockServerUid || null;
+    if (tab.mockServerUid) {
+      serialized.mockServerUid = tab.mockServerUid;
+    }
     serialized.responseUid = tab.uid;
     if (tab.responseName || tab.tabName) {
       serialized.name = tab.responseName || tab.tabName;

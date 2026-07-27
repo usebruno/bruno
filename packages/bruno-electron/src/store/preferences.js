@@ -149,7 +149,7 @@ const preferencesSchema = Yup.object().shape({
     instances: Yup.array().of(Yup.object({
       uid: Yup.string().required(),
       name: Yup.string().required(),
-      sourceType: Yup.string().oneOf(['collection', 'spec']).required(),
+      sourceType: Yup.string().oneOf(['collection', 'spec', 'manual']).required(),
       collectionUid: Yup.string().nullable(),
       specUid: Yup.string().nullable(),
       specPath: Yup.string().nullable(),
@@ -231,7 +231,7 @@ class PreferencesStore {
   }
 
   getPreferences() {
-    let preferences = this.store.get('preferences', {});
+    const preferences = this.store.get('preferences', {});
 
     // Handle existing users without proxy settings
     // They should get disabled proxy by default, not inherit from system
@@ -260,7 +260,7 @@ class PreferencesStore {
       const hasOldFormat = proxy.hasOwnProperty('enabled') || proxy.hasOwnProperty('mode');
 
       if (hasOldFormat) {
-        let newProxy = {
+        const newProxy = {
           source: 'inherit',
           pac: { source: '' },
           config: {

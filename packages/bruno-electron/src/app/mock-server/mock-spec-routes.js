@@ -15,6 +15,13 @@ const convertOpenApiPath = (path) => {
   return converted.replace(/\/+/g, '/');
 };
 
+const pickResponseContent = (response = {}) => (
+  response.content?.['application/json']
+  || response.content?.['text/plain']
+  || Object.values(response.content || {})[0]
+  || null
+);
+
 const sortStatusCodes = (statusCodes = []) => (
   [...statusCodes].sort((a, b) => {
     const aNum = Number(a);
@@ -27,30 +34,6 @@ const sortStatusCodes = (statusCodes = []) => (
     return String(a).localeCompare(String(b));
   })
 );
-
-const pickResponseContent = (response = {}) => (
-  response.content?.['application/json']
-  || response.content?.['text/plain']
-  || Object.values(response.content || {})[0]
-  || null
-);
-
-const pickResponse = (responses = {}) => {
-  const statusCodes = sortStatusCodes(Object.keys(responses).filter((code) => code !== 'default'));
-  const preferred = statusCodes.find((code) => String(code).startsWith('2')) || statusCodes[0];
-
-  if (!preferred) {
-    return { status: 200, statusText: 'OK', content: null };
-  }
-
-  const response = responses[preferred] || {};
-
-  return {
-    status: Number(preferred) || 200,
-    statusText: response.description || 'OK',
-    content: pickResponseContent(response)
-  };
-};
 
 const listOperationResponses = (responses = {}) => {
   const statusCodes = sortStatusCodes(Object.keys(responses).filter((code) => code !== 'default'));

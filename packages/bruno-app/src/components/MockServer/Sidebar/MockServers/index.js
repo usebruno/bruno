@@ -192,8 +192,16 @@ const MockServerItem = React.memo(({
             <span className="w-[18px] mr-1 flex-shrink-0" />
           )}
           <span
+            role="button"
+            tabIndex={0}
             className="flex items-center flex-nowrap whitespace-nowrap overflow-ellipsis overflow-hidden flex-1 min-w-0"
             onClick={openDashboard}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openDashboard();
+              }
+            }}
           >
             <StatusDot $running={isRunning} data-testid="mock-server-sidebar-status-dot" />
             <span className="truncate">{instance.name}</span>

@@ -25,6 +25,13 @@ const FilterDropdown = ({ label, options, value, onChange, allLabel = 'All', pla
     setOpen(false);
   }, [onChange]);
 
+  const handleOptionKeyDown = (e, val) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleSelect(val);
+    }
+  };
+
   // Close on outside click
   useEffect(() => {
     if (!open) return;
@@ -72,10 +79,14 @@ const FilterDropdown = ({ label, options, value, onChange, allLabel = 'All', pla
       </button>
 
       {open && (
-        <div className={`filter-menu ${menuAlignClass}`}>
+        <div className={`filter-menu ${menuAlignClass}`} role="listbox">
           <div
+            role="option"
+            aria-selected={!isActive}
+            tabIndex={0}
             className={`filter-option ${!isActive ? 'selected' : ''}`}
             onClick={() => handleSelect(null)}
+            onKeyDown={(e) => handleOptionKeyDown(e, null)}
           >
             <span className="filter-option-label">{allLabel}</span>
             <IconCheck
@@ -90,8 +101,12 @@ const FilterDropdown = ({ label, options, value, onChange, allLabel = 'All', pla
           {options.map((option) => (
             <div
               key={option.value}
+              role="option"
+              aria-selected={value === option.value}
+              tabIndex={0}
               className={`filter-option ${value === option.value ? 'selected' : ''}`}
               onClick={() => handleSelect(option.value)}
+              onKeyDown={(e) => handleOptionKeyDown(e, option.value)}
             >
               {option.icon && (
                 <span className="filter-option-icon">{option.icon}</span>

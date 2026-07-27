@@ -280,10 +280,9 @@ test.describe.serial('Mock Server', () => {
 
     await openMockServerTab(page);
     await page.getByTestId('mock-server-tab-log').click();
-    await page.waitForTimeout(500);
 
     const noMatchLabels = page.locator('.log-table-container .no-match-label');
-    expect(await noMatchLabels.count()).toBeGreaterThan(0);
+    await expect(noMatchLabels.first()).toBeVisible();
   });
 
   test('should filter request log by match status', async ({ pageWithUserData: page }) => {

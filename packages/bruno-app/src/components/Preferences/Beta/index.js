@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences, updateActivePreferencesTab } from 'providers/ReduxStore/slices/app';
@@ -91,7 +91,8 @@ const Beta = ({ close }) => {
     return initialValues;
   };
 
-  const betaSchema = generateValidationSchema();
+  // BETA_FEATURES is static, so the schema never actually changes across renders
+  const betaSchema = useMemo(() => generateValidationSchema(), []);
 
   const formik = useFormik({
     enableReinitialize: true,

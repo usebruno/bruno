@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
@@ -170,7 +170,9 @@ const CreateMockServerModal = ({
     || null;
 
   const existingInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
-  const configuredInstances = useSelector((state) => getMockServerInstances(state));
+  // getMockServerInstances rebuilds a new array wrapper each call; shallowEqual keeps the
+  // reference stable across renders as long as the underlying instances haven't changed
+  const configuredInstances = useSelector((state) => getMockServerInstances(state), shallowEqual);
   const hasCollectionOptions = collectionSelectOptions.length > 0;
   const hasSpecOptions = specSelectOptions.length > 0;
   const canLinkSource = hasCollectionOptions || hasSpecOptions;

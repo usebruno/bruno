@@ -54,11 +54,6 @@ const RenameMockResponseModal = ({
             className="textbox mt-2 w-full"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                handleConfirm();
-              }
-            }}
             data-testid="mock-response-rename-name-input"
           />
         </div>
