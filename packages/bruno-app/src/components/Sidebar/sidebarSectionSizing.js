@@ -40,7 +40,10 @@ export const resolveExpandHeights = ({ oldHeights, newIndex, areaPx, minPx = MIN
     remaining -= give;
   }
 
-  const newHeight = target - remaining; // short of target if slack ran out
+  // Floor at minPx even when there was no slack to give: the new section is a
+  // valid positive height (the CSS min-height enforces the same floor), so it is
+  // never stored as 0 and rejected by the reducer.
+  const newHeight = Math.max(minPx, target - remaining);
   return [...reduced.slice(0, newIndex), newHeight, ...reduced.slice(newIndex)];
 };
 
@@ -50,8 +53,15 @@ export const resolveExpandHeights = ({ oldHeights, newIndex, areaPx, minPx = MIN
 // Positive delta drags the sash down (grows `above`, shrinks `below`).
 export const computeSashTransfer = ({ abovePx, belowPx, deltaPx, combinedWeight, minPx = MIN_SECTION_PX }) => {
   const totalPx = abovePx + belowPx;
-  const minDelta = minPx - abovePx;
-  const maxDelta = belowPx - minPx;
+  // Degenerate pair (no measurable height): split evenly rather than divide by zero.
+  if (!(totalPx > 0)) {
+    return { weightAbove: combinedWeight / 2, weightBelow: combinedWeight / 2 };
+  }
+  // When the pair is smaller than two minimums, neither can keep the full minimum;
+  // cap the reserved minimum at half the pair so the clamp stays symmetric.
+  const effectiveMin = Math.min(minPx, totalPx / 2);
+  const minDelta = effectiveMin - abovePx;
+  const maxDelta = belowPx - effectiveMin;
   const clampedDelta = Math.max(minDelta, Math.min(maxDelta, deltaPx));
   const newAbovePx = abovePx + clampedDelta;
   const weightAbove = combinedWeight * (newAbovePx / totalPx);

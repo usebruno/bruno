@@ -444,11 +444,17 @@ class SnapshotManager {
         }
       });
     }
-    const expandedSections = Array.isArray(sidebar?.expandedSections)
-      ? sidebar.expandedSections.filter((id) => typeof id === 'string')
-      : [];
 
-    return { sectionSizes, expandedSections };
+    // Only carry expandedSections when the source actually had an array. An
+    // absent key (pre-upgrade snapshot, empty default) must stay absent so the
+    // renderer keeps its own default rather than being handed an empty list,
+    // while a deliberately-empty [] is preserved.
+    const normalized = { sectionSizes };
+    if (Array.isArray(sidebar?.expandedSections)) {
+      normalized.expandedSections = sidebar.expandedSections.filter((id) => typeof id === 'string');
+    }
+
+    return normalized;
   }
 
   _normalizeWorkspaceList(workspaces) {

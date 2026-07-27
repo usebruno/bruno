@@ -35,10 +35,11 @@ describe('resolveExpandHeights', () => {
     expect(heights).toEqual([300, 100, 300, 200, 300]);
   });
 
-  it('opens smaller than 1/N when the other sections have no slack to give', () => {
-    // both existing already at min 100; area only 900, target 300 but no slack
-    const heights = resolveExpandHeights({ oldHeights: [100, 100], newIndex: 2, areaPx: 900, minPx: 100 });
-    expect(heights).toEqual([100, 100, 0]); // new gets whatever slack allowed (none)
+  it('floors the new section at minPx when the other sections have no slack to give', () => {
+    // both existing already at min 100; no slack, but the new section still opens
+    // at the minimum height (never a rejected 0).
+    const heights = resolveExpandHeights({ oldHeights: [100, 100], newIndex: 2, areaPx: 200, minPx: 100 });
+    expect(heights).toEqual([100, 100, 100]);
   });
 });
 
@@ -68,5 +69,23 @@ describe('computeSashTransfer', () => {
     });
     expect(weightAbove).toBeCloseTo(4 * (100 / 800), 5); // above floored at 100px
     expect(weightBelow).toBeCloseTo(4 * (700 / 800), 5);
+  });
+
+  it('splits evenly for a degenerate zero-height pair (no NaN)', () => {
+    const { weightAbove, weightBelow } = computeSashTransfer({
+      abovePx: 0, belowPx: 0, deltaPx: 50, combinedWeight: 4, minPx: 100
+    });
+    expect(weightAbove).toBe(2);
+    expect(weightBelow).toBe(2);
+  });
+
+  it('keeps both neighbours at their share when the pair is smaller than two minimums', () => {
+    // total 120 < 2 * 100; effectiveMin caps at 60 so a big drag cannot push
+    // either neighbour below half the pair.
+    const { weightAbove, weightBelow } = computeSashTransfer({
+      abovePx: 60, belowPx: 60, deltaPx: 100, combinedWeight: 2, minPx: 100
+    });
+    expect(weightAbove).toBeCloseTo(1, 5);
+    expect(weightBelow).toBeCloseTo(1, 5);
   });
 });
