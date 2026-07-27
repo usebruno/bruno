@@ -10,6 +10,8 @@ const redirectRouter = require('./redirect');
 const mixRouter = require('./mix');
 const wsRouter = require('./ws');
 const setupGraphQL = require('./graphql');
+const { createGraphQLSchema } = require('./graphql/schema');
+const createGraphQLSubscriptionsUpgradeHandler = require('./graphql/subscriptions');
 const sseRouter = require('./sse');
 const fileBinaryRouter = require('./file-binary');
 
@@ -102,9 +104,23 @@ app.use((err, req, res, next) => {
 
 const server = require('http').createServer(app);
 
-server.on('upgrade', wsRouter);
+createGraphQLSchema().then((schema) => {
+  const handleGraphQLSubscriptionsUpgrade = createGraphQLSubscriptionsUpgradeHandler(schema);
 
-setupGraphQL(app).then(() => {
+  // A single dispatcher — parsed by pathname, not startsWith (wsRouter matches
+  // the raw URL including the query string) — routes /api/graphql to the
+  // subscriptions handler and everything else to wsRouter's /ws routes, so
+  // the two upgrade handlers never race each other over the same event.
+  server.on('upgrade', (request, socket, head) => {
+    const { pathname } = new URL(request.url, `http://${request.headers.host}`);
+    if (pathname === '/api/graphql') {
+      return handleGraphQLSubscriptionsUpgrade(request, socket, head);
+    }
+    return wsRouter(request, socket, head);
+  });
+
+  return setupGraphQL(app, schema);
+}).then(() => {
   server.listen(port, function () {
     console.log(`Testbench started on port: ${port}`);
   });
