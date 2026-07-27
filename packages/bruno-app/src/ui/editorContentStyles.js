@@ -130,7 +130,7 @@ const editorContentStyles = css`
   code {
     background-color: transparent;
     border: solid 1px ${(props) => props.theme.border.border0};
-    border-radius: ${(props) => props.theme.border.radius.sm};
+    border-radius: ${(props) => props.theme.border.radius.base};
     font-size: 0.85em;
     padding: 0.15em 0.35em;
     font-family: ${(props) => props.theme.font.monospace || 'monospace'};
@@ -147,7 +147,7 @@ const editorContentStyles = css`
     font-family: ${(props) => props.theme.font.monospace || 'monospace'};
     margin: 1rem 0;
     padding: 0.75rem 1rem;
-    border-radius: ${(props) => props.theme.border.radius.sm};
+    border-radius: ${(props) => props.theme.border.radius.base};
     overflow-x: auto;
 
     html.light & {
