@@ -780,6 +780,31 @@ const selectEnvironment = async (
 };
 
 /**
+ * Ensures the environment selector dropdown is open and in a clean state
+ * @param page - The page object
+ * @returns void
+ */
+const ensureEnvironmentSelectorOpen = async (page: Page) => {
+  await test.step('Ensure environment selector dropdown is open', async () => {
+    const locators = buildCommonLocators(page);
+    const trigger = locators.environment.selector();
+
+    if (!(await trigger.isVisible())) {
+      await page.locator('#sidebar-collection-name').first().click();
+    }
+
+    // Check if the dropdown is already open
+    const searchInput = locators.environment.searchInput();
+    if (!(await searchInput.isVisible())) {
+      await trigger.click();
+    } else {
+      await searchInput.fill(''); // Reset state if already open
+      await searchInput.blur(); // Remove focus to ensure tests start clean
+    }
+  });
+};
+
+/**
  * Send the current request and wait for response
  * @param page - The page object
  * @param expectedStatusCode - Optional expected status code to wait for
@@ -2168,7 +2193,8 @@ export {
   exitApp,
   selectViewMode,
   getAppWebviewHtml,
-  renameWsMessage
+  renameWsMessage,
+  ensureEnvironmentSelectorOpen
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
