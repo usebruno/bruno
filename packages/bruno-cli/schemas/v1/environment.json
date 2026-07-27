@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usebruno.com/schemas/v1/environment.json",
+  "x-source": "generated",
+  "x-bruno-contract-version": 1,
+  "title": "Bruno environment",
+  "type": "object",
+  "properties": {
+    "uid": {
+      "type": "string",
+      "minLength": 21,
+      "maxLength": 21,
+      "pattern": "^[a-zA-Z0-9]*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "variables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "uid": {
+            "type": "string",
+            "minLength": 21,
+            "maxLength": 21,
+            "pattern": "^[a-zA-Z0-9]*$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value": {},
+          "annotations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "secret": {
+            "type": "boolean"
+          },
+          "dataType": {
+            "type": "string",
+            "enum": [
+              "string",
+              "number",
+              "boolean",
+              "object"
+            ]
+          }
+        }
+      }
+    },
+    "externalSecrets": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "color": {
+      "type": "string"
+    },
+    "pathname": {
+      "type": "string"
+    }
+  }
+}

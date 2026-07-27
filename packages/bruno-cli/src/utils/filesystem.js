@@ -58,6 +58,21 @@ const writeFile = async (pathname, content) => {
   }
 };
 
+// Atomic write: stage content to a sibling temp file then rename. rename() is
+// atomic on the same filesystem on POSIX + recent Windows, so a crash mid-write
+// leaves the original intact rather than a half-written file. Used by the
+// agent-facing write commands (bru request add/edit/delete, etc.).
+const writeFileAtomicSync = (target, content) => {
+  const tmp = `${target}.tmp.${process.pid}.${Date.now()}`;
+  fs.writeFileSync(tmp, content, { encoding: 'utf8' });
+  try {
+    fs.renameSync(tmp, target);
+  } catch (err) {
+    try { fs.unlinkSync(tmp); } catch (_) { /* best effort cleanup */ }
+    throw err;
+  }
+};
+
 const hasJsonExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
   return ['json'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
@@ -181,6 +196,7 @@ module.exports = {
   isDirectory,
   normalizeAndResolvePath,
   writeFile,
+  writeFileAtomicSync,
   hasJsonExtension,
   hasBruExtension,
   createDirectory,

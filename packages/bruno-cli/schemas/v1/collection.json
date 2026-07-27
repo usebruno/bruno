@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usebruno.com/schemas/v1/collection.json",
+  "x-source": "hand-authored",
+  "x-bruno-contract-version": 1,
+  "x-source-note": "Top-level shape of a Bruno collection root file (collection.bru / opencollection.yml) as parsed by @usebruno/filestore. collectionSchema in @usebruno/schema is recursive via itemSchema; converter can't handle it. Permissive on nested values.",
+  "title": "Bruno collection",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "version": { "type": ["string", "number"] },
+    "name": { "type": "string" },
+    "type": { "type": "string" },
+    "items": {
+      "type": "array",
+      "description": "Folders + requests (recursive). See request.json for request shape; folders nest further items under `items`.",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "environments": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "root": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "request": { "type": "object", "additionalProperties": true },
+        "docs": { "type": "string" },
+        "meta": { "type": "object", "additionalProperties": true }
+      }
+    }
+  }
+}

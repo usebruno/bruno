@@ -20,6 +20,8 @@ const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
 const { sanitizeResultsForReporter } = require('../utils/sanitize-results');
 const { getSystemProxy } = require('@usebruno/requests');
+const { createWriter } = require('../json/envelope');
+const { negotiateVersion } = require('../json/version');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -224,6 +226,15 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Allow verbose output for debugging purposes'
     })
+    .option('json', {
+      type: 'boolean',
+      default: false,
+      description: 'Emit a versioned NDJSON event stream on stdout; structured error envelope on stderr. Silences the human-readable output.'
+    })
+    .option('json-version', {
+      type: 'number',
+      description: 'Pin the JSON contract version (current: 1). Only valid with --json.'
+    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run request.bru --env-file env.bru', 'Run a request with the environment from env.bru file')
@@ -317,9 +328,104 @@ const handler = async function (argv) {
       delay,
       tags: includeTags,
       excludeTags,
-      verbose
+      verbose,
+      json: jsonMode,
+      jsonVersion: requestedJsonVersion
     } = argv;
     const collectionPath = process.cwd();
+
+    // JSON mode: validate the requested version, build the writer, then silence
+    // chalk chatter so stdout is exclusively NDJSON envelopes. Structured errors
+    // are written to stderr by writer.exitWithError; existing chalk messages are
+    // suppressed via the console hijack below.
+    const negotiatedVersion = jsonMode ? negotiateVersion(requestedJsonVersion) : null;
+    const writer = createWriter({ json: jsonMode, version: negotiatedVersion || undefined });
+    if (writer.enabled) {
+      console.log = () => {};
+      console.warn = () => {};
+      console.error = () => {};
+    }
+    if (jsonMode && negotiatedVersion === null) {
+      writer.exitWithError({
+        code: constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT,
+        message: `Unsupported --json-version: ${requestedJsonVersion}. Supported: 1`
+      });
+    }
+    const exitWithCode = (code, message, extra) => {
+      writer.exitWithError({ code, message, ...(extra || {}) });
+    };
+
+    // Drains the result object from runSingleRequest into NDJSON events.
+    // No-op when JSON mode is off. Called after each request returns and after
+    // bail synthesises skipped placeholders.
+    const emitRequestEvents = (resultObj, relPath) => {
+      if (!writer.enabled || !resultObj) return;
+      const r = resultObj.response || {};
+      if (r.status !== 'skipped' && r.status != null) {
+        writer.writeEvent({
+          kind: 'request.response',
+          ok: resultObj.status !== 'error',
+          data: {
+            path: relPath,
+            status: r.status,
+            status_text: r.statusText,
+            duration_ms: r.responseTime,
+            size_bytes: r.size,
+            url: r.url
+          }
+        });
+      }
+      (resultObj.assertionResults || []).forEach((a) => {
+        writer.writeEvent({
+          kind: 'assertion.result',
+          ok: a.status === 'pass',
+          data: {
+            path: relPath,
+            description: a.description
+              || `${a.lhsExpr || ''} ${a.operator || ''} ${a.rhsExpr || ''}`.trim()
+              || 'assertion',
+            passed: a.status === 'pass',
+            lhs: a.lhsExpr,
+            operator: a.operator,
+            rhs: a.rhsExpr,
+            ...(a.error ? { error: a.error } : {})
+          }
+        });
+      });
+      const drainTests = (arr, phase) => {
+        (arr || []).forEach((t) => {
+          writer.writeEvent({
+            kind: 'test.result',
+            ok: t.status === 'pass',
+            data: {
+              path: relPath,
+              phase,
+              name: t.description,
+              passed: t.status === 'pass',
+              ...(t.error ? { error: t.error } : {})
+            }
+          });
+        });
+      };
+      drainTests(resultObj.preRequestTestResults, 'pre-request');
+      drainTests(resultObj.testResults, 'test');
+      drainTests(resultObj.postResponseTestResults, 'post-response');
+    };
+
+    const emitRequestEnd = (resultObj, relPath, name) => {
+      if (!writer.enabled) return;
+      writer.writeEvent({
+        kind: 'request.end',
+        ok: resultObj.status === 'pass' || resultObj.status === 'skipped',
+        data: {
+          path: relPath,
+          name,
+          status: resultObj.status,
+          ...(resultObj.skipReason ? { skip_reason: resultObj.skipReason } : {}),
+          ...(resultObj.error ? { error: resultObj.error } : {})
+        }
+      });
+    };
 
     let collection = createCollectionJsonFromPathname(collectionPath);
     const { root: collectionRoot, brunoConfig } = collection;
@@ -329,7 +435,7 @@ const handler = async function (argv) {
         const clientCertConfigExists = await exists(clientCertConfig);
         if (!clientCertConfigExists) {
           console.error(chalk.red(`Client Certificate Config file "${clientCertConfig}" does not exist.`));
-          process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+          exitWithCode(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
         }
 
         const clientCertConfigFileContent = fs.readFileSync(clientCertConfig, 'utf8');
@@ -339,7 +445,7 @@ const handler = async function (argv) {
           clientCertConfigJson = JSON.parse(clientCertConfigFileContent);
         } catch (err) {
           console.error(chalk.red(`Failed to parse Client Certificate Config JSON: ${err.message}`));
-          process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+          exitWithCode(constants.EXIT_STATUS.ERROR_INVALID_FILE);
         }
 
         if (clientCertConfigJson?.enabled && Array.isArray(clientCertConfigJson?.certs)) {
@@ -354,7 +460,7 @@ const handler = async function (argv) {
         }
       } catch (err) {
         console.error(chalk.red(`Unexpected error: ${err.message}`));
-        process.exit(constants.EXIT_STATUS.ERROR_GENERIC);
+        exitWithCode(constants.EXIT_STATUS.ERROR_GENERIC);
       }
     }
 
@@ -408,14 +514,14 @@ const handler = async function (argv) {
       const envFilePath = path.resolve(collectionPath, envFile);
       if (!(await exists(envFilePath))) {
         console.error(chalk.red(`Environment file not found: `) + chalk.dim(envFile));
-        process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+        exitWithCode(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
       try {
         envVars = loadEnvFromFile(envFilePath);
         envFileDescriptor = { path: envFilePath, format: resolveEnvFileFormat(envFilePath) };
       } catch (err) {
         console.error(chalk.red(`Failed to parse environment file: ${err.message}`));
-        process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+        exitWithCode(constants.EXIT_STATUS.ERROR_INVALID_FILE);
       }
     }
 
@@ -425,7 +531,7 @@ const handler = async function (argv) {
       const collectionEnvFilePath = path.join(collectionPath, 'environments', `${env}${envExt}`);
       if (!(await exists(collectionEnvFilePath))) {
         console.error(chalk.red(`Environment file not found: `) + chalk.dim(`environments/${env}${envExt}`));
-        process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+        exitWithCode(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
       try {
         const collectionEnvVars = loadEnvFromFile(collectionEnvFilePath, env);
@@ -433,7 +539,7 @@ const handler = async function (argv) {
         envFileDescriptor = { path: collectionEnvFilePath, format: collection.format };
       } catch (err) {
         console.error(chalk.red(`Failed to parse Environment file: ${err.message}`));
-        process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+        exitWithCode(constants.EXIT_STATUS.ERROR_INVALID_FILE);
       }
     }
 
@@ -457,20 +563,20 @@ const handler = async function (argv) {
 
       if (!workspacePath) {
         console.error(chalk.red(`Workspace not found. Please specify a workspace path using --workspace-path or ensure the collection is inside a workspace directory.`));
-        process.exit(constants.EXIT_STATUS.ERROR_GLOBAL_ENV_REQUIRES_WORKSPACE);
+        exitWithCode(constants.EXIT_STATUS.ERROR_GLOBAL_ENV_REQUIRES_WORKSPACE);
       }
 
       const workspaceExists = await exists(workspacePath);
       if (!workspaceExists) {
         console.error(chalk.red(`Workspace path not found: `) + chalk.dim(workspacePath));
-        process.exit(constants.EXIT_STATUS.ERROR_WORKSPACE_NOT_FOUND);
+        exitWithCode(constants.EXIT_STATUS.ERROR_WORKSPACE_NOT_FOUND);
       }
 
       const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
       const workspaceYmlExists = await exists(workspaceYmlPath);
       if (!workspaceYmlExists) {
         console.error(chalk.red(`Invalid workspace: workspace.yml not found in `) + chalk.dim(workspacePath));
-        process.exit(constants.EXIT_STATUS.ERROR_WORKSPACE_NOT_FOUND);
+        exitWithCode(constants.EXIT_STATUS.ERROR_WORKSPACE_NOT_FOUND);
       }
 
       const globalEnvFilePath = path.join(workspacePath, 'environments', `${globalEnv}.yml`);
@@ -478,7 +584,7 @@ const handler = async function (argv) {
       if (!globalEnvFileExists) {
         console.error(chalk.red(`Global environment not found: `) + chalk.dim(`environments/${globalEnv}.yml`));
         console.error(chalk.dim(`Workspace: ${workspacePath}`));
-        process.exit(constants.EXIT_STATUS.ERROR_GLOBAL_ENV_NOT_FOUND);
+        exitWithCode(constants.EXIT_STATUS.ERROR_GLOBAL_ENV_NOT_FOUND);
       }
 
       try {
@@ -489,7 +595,7 @@ const handler = async function (argv) {
         globalEnvFileDescriptor = { path: globalEnvFilePath, format: 'yml' };
       } catch (err) {
         console.error(chalk.red(`Failed to parse global environment: ${err.message}`));
-        process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+        exitWithCode(constants.EXIT_STATUS.ERROR_INVALID_FILE);
       }
     }
 
@@ -501,7 +607,7 @@ const handler = async function (argv) {
         processVars = envVar;
       } else {
         console.error(chalk.red(`overridable environment variables not parsable: use name=value`));
-        process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
+        exitWithCode(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
       }
       if (processVars && Array.isArray(processVars)) {
         for (const value of processVars.values()) {
@@ -512,7 +618,7 @@ const handler = async function (argv) {
               chalk.red(`Overridable environment variable not correct: use name=value - presented: `)
               + chalk.dim(`${value}`)
             );
-            process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
+            exitWithCode(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
           envVars[match[1]] = match[2];
           envVarOverrides.set(match[1], match[2]);
@@ -558,7 +664,7 @@ const handler = async function (argv) {
 
     if (['json', 'junit', 'html'].indexOf(format) === -1) {
       console.error(chalk.red(`Format must be one of "json", "junit or "html"`));
-      process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
+      exitWithCode(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
     }
 
     let formats = {};
@@ -609,7 +715,7 @@ const handler = async function (argv) {
       const pathExists = await exists(resolvedPath);
       if (!pathExists) {
         console.error(chalk.red(`Path not found: ${resolvedPath}`));
-        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+        exitWithCode(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
       }
     }
 
@@ -632,6 +738,20 @@ const handler = async function (argv) {
 
     requestItems = requestItems.filter((item) => {
       return isRequestTagsIncluded(item.tags, includeTags, excludeTags);
+    });
+
+    writer.writeEvent({
+      kind: 'run.start',
+      data: {
+        collection: {
+          name: brunoConfig?.name || null,
+          path: collectionPath
+        },
+        env: envVars?.__name__ || null,
+        global_env: globalEnvVars?.__name__ || null,
+        total_requests: requestItems.length,
+        tags: { include: includeTags, exclude: excludeTags }
+      }
     });
 
     const runtime = getJsSandboxRuntime(sandbox);
@@ -689,6 +809,18 @@ const handler = async function (argv) {
     while (currentRequestIndex < requestItems.length) {
       const requestItem = cloneDeep(requestItems[currentRequestIndex]);
       const { name, pathname } = requestItem;
+      const relPathForEvent = path.relative(collectionPath, pathname);
+
+      writer.writeEvent({
+        kind: 'request.start',
+        data: {
+          path: relPathForEvent,
+          name,
+          method: requestItem.request?.method || null,
+          url: requestItem.request?.url || null,
+          iteration: 1
+        }
+      });
 
       const start = process.hrtime();
       const result = await runSingleRequest(
@@ -717,13 +849,17 @@ const handler = async function (argv) {
         console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
       }
 
-      results.push({
+      const decoratedResult = {
         ...result,
         runDuration: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
         suitename: stripExtension(pathname),
         name,
         path: result.test?.filename || path.relative(collectionPath, pathname)
-      });
+      };
+      results.push(decoratedResult);
+
+      emitRequestEvents(decoratedResult, decoratedResult.path);
+      emitRequestEnd(decoratedResult, decoratedResult.path, name);
 
       sanitizeResultsForReporter(results, {
         skipAllHeaders: reporterSkipAllHeaders,
@@ -755,7 +891,7 @@ const handler = async function (argv) {
           // summary table can distinguish them from user-initiated skips via skipReason.
           for (const ri of remainingItems) {
             const relativePath = path.relative(collectionPath, ri.pathname);
-            results.push({
+            const skipped = {
               test: {
                 filename: relativePath
               },
@@ -782,7 +918,9 @@ const handler = async function (argv) {
               suitename: stripExtension(ri.pathname),
               name: ri.name,
               path: relativePath
-            });
+            };
+            results.push(skipped);
+            emitRequestEnd(skipped, relativePath, ri.name);
           }
 
           bailInfo = {
@@ -813,7 +951,7 @@ const handler = async function (argv) {
         nJumps++;
         if (nJumps > 10000) {
           console.error(chalk.red(`Too many jumps, possible infinite loop`));
-          process.exit(constants.EXIT_STATUS.ERROR_INFINITE_LOOP);
+          exitWithCode(constants.EXIT_STATUS.ERROR_INFINITE_LOOP);
         }
         if (nextRequestName === null) {
           break;
@@ -837,6 +975,21 @@ const handler = async function (argv) {
     const runCompletionTime = new Date().toISOString();
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
+
+    const runFailed = (summary.failedAssertions + summary.failedTests + summary.failedPreRequestTests + summary.failedPostResponseTests + summary.failedRequests > 0)
+      || (summary?.errorRequests > 0);
+
+    writer.writeEvent({
+      kind: 'run.end',
+      ok: !runFailed,
+      data: {
+        ...summary,
+        duration_ms: totalTime,
+        completion_time: runCompletionTime,
+        bail: bailInfo || null,
+        exit_code: runFailed ? constants.EXIT_STATUS.ERROR_FAILED_COLLECTION : 0
+      }
+    });
 
     // Extract environment name from envVars if available
     const environmentName = envVars?.__name__ || null;
@@ -867,12 +1020,12 @@ const handler = async function (argv) {
         const outputDirExists = await exists(outputDir);
         if (!outputDirExists) {
           console.error(chalk.red(`Output directory ${outputDir} does not exist`));
-          process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
+          exitWithCode(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
         }
 
         if (!reporter) {
           console.error(chalk.red(`Reporter ${formatter} does not exist`));
-          process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
+          exitWithCode(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
         }
 
         reporter(reportPath);
@@ -882,12 +1035,12 @@ const handler = async function (argv) {
     }
 
     if ((summary.failedAssertions + summary.failedTests + summary.failedPreRequestTests + summary.failedPostResponseTests + summary.failedRequests > 0) || (summary?.errorRequests > 0)) {
-      process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
+      exitWithCode(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
     }
   } catch (err) {
     console.log('Something went wrong');
     console.error(chalk.red(err.message));
-    process.exit(constants.EXIT_STATUS.ERROR_GENERIC);
+    // exitWithCode(constants.EXIT_STATUS.ERROR_GENERIC);
   }
 };
 

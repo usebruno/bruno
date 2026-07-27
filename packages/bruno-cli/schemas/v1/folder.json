@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usebruno.com/schemas/v1/folder.json",
+  "x-source": "hand-authored",
+  "x-bruno-contract-version": 1,
+  "x-source-note": "Shape of a folder.bru / folder.yml file. Optional in a collection — folders without a folder.bru file are pure directories. Permissive top-level.",
+  "title": "Bruno folder",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "type": { "type": "string", "const": "folder" },
+    "name": { "type": "string" },
+    "seq": { "type": "number" },
+    "root": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "request": { "type": "object", "additionalProperties": true },
+        "docs": { "type": "string" },
+        "meta": { "type": "object", "additionalProperties": true }
+      }
+    }
+  }
+}

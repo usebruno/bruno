@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usebruno.com/schemas/v1/collection-var.json",
+  "x-source": "hand-authored",
+  "x-bruno-contract-version": 1,
+  "x-source-note": "Shape of an individual collection variable as exposed by bru.setCollectionVar / persisted to collection.bru.",
+  "title": "Bruno collection variable",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["name"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "value": {
+      "description": "Variable value. Scripts may set non-string values; persistence preserves the runtime type."
+    },
+    "description": { "type": ["string", "null"] },
+    "enabled": { "type": "boolean" },
+    "secret": { "type": "boolean" },
+    "dataType": {
+      "type": ["string", "null"],
+      "enum": [null, "string", "number", "boolean", "object"]
+    },
+    "annotations": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "name": { "type": "string" },
+          "value": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

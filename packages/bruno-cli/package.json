@@ -37,11 +37,14 @@
   ],
   "scripts": {
     "test": "node --experimental-vm-modules $(npx which jest)",
-    "test:ci": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js"
+    "test:ci": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js",
+    "generate:schemas": "node scripts/generate-schemas.js",
+    "check:schemas": "node scripts/generate-schemas.js --check"
   },
   "files": [
     "src",
     "bin",
+    "schemas",
     "readme.md",
     "changelog.md",
     "package.json"
@@ -72,5 +75,9 @@
     "socks-proxy-agent": "^8.0.2",
     "xmlbuilder": "^15.1.1",
     "yargs": "^17.6.2"
+  },
+  "devDependencies": {
+    "@sodaru/yup-to-json-schema": "^2.0.1",
+    "@usebruno/schema": "0.7.0"
   }
 }
