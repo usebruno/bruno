@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { IconPlus, IconDownload, IconSettings, IconSearch, IconX } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
 import ColorBadge from 'components/ColorBadge';
+import SearchInput from 'components/SearchInput';
 
 const EnvironmentListContent = ({
   environments,
@@ -71,36 +72,21 @@ const EnvironmentListContent = ({
       {environments && environments.length > 0 ? (
         <>
           <div className="environment-list">
-            {environments.length >= 0 && (
-              <div className="env-list-search">
-                <IconSearch size={13} strokeWidth={1.5} className="env-list-search-icon" />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Search environments..."
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="env-list-search-input"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                  data-testid="env-search-input"
-                />
-                {searchText && (
-                  <button
-                    className="env-list-search-clear"
-                    title="Clear search"
-                    onClick={() => setSearchText('')}
-                    onMouseDown={(e) => e.preventDefault()}
-                    data-testid="env-search-clear-btn"
-                  >
-                    <IconX size={12} strokeWidth={1.5} />
-                  </button>
-                )}
-              </div>
-            )}
+            <div className="env-list-search">
+              <SearchInput
+                ref={searchInputRef}
+                placeholder="Search environments..."
+                searchText={searchText}
+                setSearchText={setSearchText}
+                onKeyDown={handleKeyDown}
+                className="w-full h-[30px] px-0"
+                leftIconClassName="!pl-2"
+                data-testid="env-search-input"
+                autoFocus={false}
+                inputClassName="h-[30px] text-xs"
+                iconSize={13}
+              />
+            </div>
             <div
               className={`dropdown-item no-environment ${!activeEnvironmentUid ? 'dropdown-item-active' : ''}`}
               onClick={() => onEnvironmentSelect(null)}
