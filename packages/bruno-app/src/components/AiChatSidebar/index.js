@@ -214,6 +214,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
   const messagesContainerRef = useRef(null);
   const isNearBottomRef = useRef(true);
   const textareaRef = useRef(null);
+  const wasLoadingRef = useRef(false);
 
   const isOpen = useSelector((state) => state.chat.isOpen);
   const allChats = useSelector((state) => state.chat.chats);
@@ -475,6 +476,15 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
   useEffect(() => {
     if (isOpen) textareaRef.current?.focus();
   }, [isOpen]);
+
+  // Return focus to the prompt input when an AI response completes so
+  // the user can immediately type a follow-up without clicking back in.
+  useEffect(() => {
+    if (wasLoadingRef.current && !isLoading && isOpen) {
+      textareaRef.current?.focus();
+    }
+    wasLoadingRef.current = isLoading;
+  }, [isLoading, isOpen]);
 
   // Re-measure the textarea on mount when a draft was restored from the
   // module cache (pop-out/dock remount) so it isn't stuck at one row.
