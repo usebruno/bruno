@@ -15,10 +15,10 @@ export const buildPreferencesLocators = (page: Page) => ({
   /** Locators on the General panel */
   general: {
     autoSaveEnabled: () => page.locator('#autoSaveEnabled'),
-    autoSaveInterval: () => page.locator('#autoSaveInterval')
+    autoSaveInterval: () => page.locator('#autoSaveInterval'),
+    /** The "Request Timeout (in ms)" field on the General tab */
+    requestTimeoutInput: () => page.locator('input[name="timeout"]')
   },
-  /** The "Request Timeout (in ms)" field on the General tab */
-  requestTimeoutInput: () => page.locator('input[name="timeout"]'),
   /** The open Preferences tab in the tab bar */
   openTab: () => page.locator('.request-tab').filter({ hasText: 'Preferences' }),
   /** Close control on the open Preferences tab */
@@ -112,9 +112,9 @@ export const setRequestTimeoutPreference = async (page: Page, value: string) => 
     const preferences = buildPreferencesLocators(page);
     await openPreferences(page);
     await selectPreferencesTab(page, 'General');
-    await preferences.requestTimeoutInput().fill(value);
+    await preferences.general.requestTimeoutInput().fill(value);
     // Wait for the value to commit before closing so the debounced save flushes the new value on unmount
-    await expect(preferences.requestTimeoutInput()).toHaveValue(value, { timeout: 5000 });
+    await expect(preferences.general.requestTimeoutInput()).toHaveValue(value, { timeout: 5000 });
     await preferences.openTab().hover();
     await preferences.openTabCloseIcon().click({ force: true });
     await preferences.openTab().waitFor({ state: 'detached' });
