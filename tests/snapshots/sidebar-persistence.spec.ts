@@ -1,28 +1,32 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect, closeElectronApp } from '../../playwright';
+import { test, expect, closeElectronApp, Page } from '../../playwright';
+import { buildSidebarLocators } from '../utils/page/sidebar';
 import { waitForReadyPage } from '../utils/page';
 import { readSnapshot, waitForSnapshotFile } from '../utils/snapshot';
 import { SIDEBAR_WIDTH_KEY, SIDEBAR_COLLAPSED_KEY } from '../../packages/bruno-app/src/utils/common/localStorage';
 
-async function resizeSidebar(page: any, targetWidth: number) {
-  const dragHandle = page.getByTestId('sidebar-drag-handle');
+async function resizeSidebar(page: Page, targetWidth: number) {
+  const dragHandle = buildSidebarLocators(page).dragHandle();
   await expect(dragHandle).toBeVisible({ timeout: 10000 });
 
-  await dragHandle.dispatchEvent('mousedown', { button: 0 });
-  await page.waitForTimeout(100);
+  const handleBox = await dragHandle.boundingBox();
+  expect(handleBox).not.toBeNull();
 
-  // Mouse move and up on document (React attaches these listeners to document)
-  await page.evaluate((width) => {
-    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: width, clientY: 100 }));
-  }, targetWidth);
-  await page.waitForTimeout(100);
+  if (handleBox) {
+    // The drag handle might be partially overlapped by the main overview area due to z-index/absolute positioning.
+    // To ensure Playwright clicks the drag handle instead of the main area, we target the left edge (handleBox.x + 1).
+    await page.mouse.move(handleBox.x + 1, handleBox.y + handleBox.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(100);
 
-  await page.evaluate((width) => {
-    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: width, clientY: 100 }));
-  }, targetWidth);
+    // Use Playwright's mouse API to simulate a real user dragging the handle
+    await page.mouse.move(targetWidth, handleBox.y + handleBox.height / 2, { steps: 20 });
+    await page.waitForTimeout(100);
 
-  await page.waitForTimeout(100);
+    await page.mouse.up();
+    await page.waitForTimeout(100);
+  }
 }
 
 /**
@@ -43,8 +47,8 @@ test.describe('Snapshot: Sidebar Persistence', () => {
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
 
-    const toggleButton = page.getByTestId('toggle-sidebar-button');
-    const sidebar = page.getByTestId('sidebar');
+    const toggleButton = buildSidebarLocators(page).toggleSidebarButton();
+    const sidebar = buildSidebarLocators(page).sidebarContainer();
 
     await test.step('Sidebar is visible on first launch', async () => {
       await expect(sidebar).toBeVisible({ timeout: 10000 });
@@ -77,7 +81,7 @@ test.describe('Snapshot: Sidebar Persistence', () => {
       const app2 = await launchElectronApp({ userDataPath });
       const page2 = await waitForReadyPage(app2);
 
-      const sidebar2 = page2.getByTestId('sidebar');
+      const sidebar2 = buildSidebarLocators(page2).sidebarContainer();
       await expect.poll(async () => {
         return await sidebar2.evaluate((el: HTMLElement) => el.offsetWidth);
       }).toBe(0);
@@ -93,7 +97,7 @@ test.describe('Snapshot: Sidebar Persistence', () => {
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
 
-    const sidebar = page.getByTestId('sidebar');
+    const sidebar = buildSidebarLocators(page).sidebarContainer();
 
     await test.step('Resize sidebar by dragging the drag handle', async () => {
       await resizeSidebar(page, TARGET_WIDTH);
@@ -124,7 +128,7 @@ test.describe('Snapshot: Sidebar Persistence', () => {
       const app2 = await launchElectronApp({ userDataPath });
       const page2 = await waitForReadyPage(app2);
 
-      const sidebar2 = page2.getByTestId('sidebar');
+      const sidebar2 = buildSidebarLocators(page2).sidebarContainer();
       await expect.poll(async () => {
         const restoredWidth = await sidebar2.evaluate((el: HTMLElement) => el.offsetWidth);
         return Math.abs(restoredWidth - TARGET_WIDTH) < 15;
@@ -182,7 +186,7 @@ test.describe('Snapshot: Sidebar Persistence', () => {
       const app = await launchElectronApp({ userDataPath });
       const page = await waitForReadyPage(app);
 
-      const toggleButton = page.getByTestId('toggle-sidebar-button');
+      const toggleButton = buildSidebarLocators(page).toggleSidebarButton();
 
       await resizeSidebar(page, 300);
 
@@ -209,12 +213,12 @@ test.describe('Snapshot: Sidebar Persistence', () => {
       const app3 = await launchElectronApp({ userDataPath });
       const page3 = await waitForReadyPage(app3);
 
-      const sidebar3 = page3.getByTestId('sidebar');
+      const sidebar3 = buildSidebarLocators(page3).sidebarContainer();
       await expect.poll(async () => {
         return await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
       }).toBe(0);
 
-      const toggleButton3 = page3.getByTestId('toggle-sidebar-button');
+      const toggleButton3 = buildSidebarLocators(page3).toggleSidebarButton();
       await toggleButton3.click();
       await expect.poll(async () => {
         const width = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
@@ -256,12 +260,12 @@ test.describe('Snapshot: Sidebar Persistence', () => {
       const app3 = await launchElectronApp({ userDataPath });
       const page3 = await waitForReadyPage(app3);
 
-      const sidebar3 = page3.getByTestId('sidebar');
+      const sidebar3 = buildSidebarLocators(page3).sidebarContainer();
       await expect.poll(async () => {
         return await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
       }).toBe(0);
 
-      const toggleButton3 = page3.getByTestId('toggle-sidebar-button');
+      const toggleButton3 = buildSidebarLocators(page3).toggleSidebarButton();
       await toggleButton3.click();
       await expect.poll(async () => {
         const width = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
@@ -281,7 +285,7 @@ test.describe('Snapshot: Sidebar Persistence', () => {
 
       await resizeSidebar(page, 380);
 
-      const toggleButton = page.getByTestId('toggle-sidebar-button');
+      const toggleButton = buildSidebarLocators(page).toggleSidebarButton();
       await toggleButton.click();
 
       await expect.poll(() => {
@@ -306,7 +310,7 @@ test.describe('Snapshot: Sidebar Persistence', () => {
       const app3 = await launchElectronApp({ userDataPath });
       const page3 = await waitForReadyPage(app3);
 
-      const sidebar3 = page3.getByTestId('sidebar');
+      const sidebar3 = buildSidebarLocators(page3).sidebarContainer();
 
       await expect.poll(async () => {
         const width = await sidebar3.evaluate((el: HTMLElement) => el.offsetWidth);
