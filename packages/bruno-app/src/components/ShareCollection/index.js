@@ -24,7 +24,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
   const [isExporting, setIsExporting] = useState(false);
 
   const hasNonExportableRequestTypes = useMemo(() => {
-    let types = new Set();
+    const types = new Set();
     const checkItem = (item) => {
       if (item.type === 'grpc-request') {
         types.add('gRPC');
@@ -32,6 +32,10 @@ const ShareCollection = ({ onClose, collectionUid }) => {
       }
       if (item.type === 'ws-request') {
         types.add('WebSocket');
+        return true;
+      }
+      if (item.type === 'graphql-subscription-request') {
+        types.add('GraphQL Subscription');
         return true;
       }
       if (item.items) {

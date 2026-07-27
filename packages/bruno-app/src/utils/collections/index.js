@@ -766,8 +766,22 @@ export const transformRequestToSaveToFilesystem = (item) => {
     delete itemToSave.request.params;
   }
 
+  if (_item.type === 'graphql-subscription-request') {
+    // graphql-subscription-request has no script/vars/assertions/tests — the
+    // long-lived request types never execute them, so this type omits them
+    // from its schema entirely (see WebSocketRequest for the same reasoning).
+    delete itemToSave.request.method;
+    delete itemToSave.request.methodType;
+    delete itemToSave.request.params;
+    delete itemToSave.request.script;
+    delete itemToSave.request.vars;
+    delete itemToSave.request.assertions;
+    delete itemToSave.request.tests;
+    itemToSave.request.connectionParams = _item.request.connectionParams ?? null;
+  }
+
   // Only process params for non-gRPC requests
-  if (!['grpc-request', 'ws-request'].includes(_item.type)) {
+  if (!['grpc-request', 'ws-request', 'graphql-subscription-request'].includes(_item.type)) {
     each(_item.request.params, (param) => {
       itemToSave.request.params.push({
         uid: param.uid,
@@ -908,7 +922,7 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 };
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type) && !item.items;
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'graphql-subscription-request'].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {

@@ -54,7 +54,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       || tab.type === 'http-request'
       || tab.type === 'graphql-request'
       || tab.type === 'grpc-request'
-      || tab.type === 'ws-request';
+      || tab.type === 'ws-request'
+      || tab.type === 'graphql-subscription-request';
     const shouldSyncUid = isRequestType || tab.type === 'folder-settings';
 
     if (!shouldSyncUid || !tab.pathname || !item?.uid || tab.uid === item.uid) {
@@ -73,6 +74,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         return 'WS';
       case 'graphql-request':
         return 'GQL';
+      case 'graphql-subscription-request':
+        return 'SUB';
       default:
         return item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
     }
