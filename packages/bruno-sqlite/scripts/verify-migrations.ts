@@ -10,7 +10,7 @@ import path from 'node:path';
 
 const main = () => {
   const dbPath = process.env.DB_PATH;
-  if (dbPath === undefined || dbPath.trim().length === 0) throw new Error('undefined environment variable DB_PATH. create a .env file.');
+  if (dbPath === undefined || dbPath.trim().length === 0) throw new Error('undefined environment variable DB_PATH.');
   if (!path.isAbsolute(dbPath)) throw new Error('non absolute DB_PATH. provide an absolute path');
 
   let migrations: Migration[];
