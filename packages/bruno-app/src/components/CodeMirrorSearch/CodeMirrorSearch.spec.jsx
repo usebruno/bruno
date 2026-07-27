@@ -215,6 +215,41 @@ describe('CodeMirrorSearch', () => {
       expect(screen.getByTestId('codemirror-search-replace-input')).toBeInTheDocument();
     });
 
+    it('openReplace() auto-focuses and selects the replace input', () => {
+      const ref = createRef();
+      renderSearch({}, ref);
+      // First act: flush setReplaceVisible(true) so the replace input mounts and ref is set.
+      act(() => { ref.current.openReplace(); });
+      // Second act: fire the setTimeout(0) that calls focus()/select() on the now-mounted input.
+      act(() => { jest.runAllTimers(); });
+      expect(document.activeElement).toBe(screen.getByTestId('codemirror-search-replace-input'));
+    });
+
+    it('focusAtCursor() focuses and selects the search input', () => {
+      const ref = createRef();
+      renderSearch({}, ref);
+      act(() => ref.current.focusAtCursor({ line: 0, ch: 0 }));
+      act(() => jest.runAllTimers());
+      expect(document.activeElement).toBe(screen.getByTestId('codemirror-search-input'));
+    });
+
+    it('focusAtCursor() navigates to nearest match from cursor when search text exists', () => {
+      const matches = Array.from({ length: 5 }, (_, i) => ({
+        from: { line: i, ch: 0 },
+        to: { line: i, ch: 7 }
+      }));
+      const ref = createRef();
+      renderSearch({ editor: makeMockEditor(matches) }, ref);
+
+      // First seed a search term via typeSearch so debouncedSearchText is set
+      typeSearch('console');
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('1 / 5');
+
+      // focusAtCursor at line 3 → nearest match is index 3 → "4 / 5"
+      act(() => ref.current.focusAtCursor({ line: 3, ch: 0 }));
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('4 / 5');
+    });
+
     it('close() calls onClose and collapses replace', () => {
       const onClose = jest.fn();
       const ref = createRef();
@@ -296,6 +331,64 @@ describe('CodeMirrorSearch', () => {
       });
 
       expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('0 results');
+    });
+  });
+
+  describe('replace mode Enter key behavior', () => {
+    function setupReplace(matchCount = 3) {
+      const matches = Array.from({ length: matchCount }, (_, i) => ({
+        from: { line: i, ch: 0 },
+        to: { line: i, ch: 7 }
+      }));
+      const content = Array.from({ length: matchCount }, () => 'console').join('\n');
+      const lines = content.split('\n');
+      const editor = {
+        ...makeMockEditor(matches),
+        getValue: jest.fn(() => content),
+        lineCount: jest.fn(() => lines.length),
+        lastLine: jest.fn(() => lines.length - 1),
+        getLine: jest.fn((n) => lines[n])
+      };
+      const ref = createRef();
+      renderSearch({ editor }, ref);
+      typeSearch('console');
+      act(() => {
+        ref.current.openReplace();
+        jest.runAllTimers();
+      });
+      fireEvent.change(screen.getByTestId('codemirror-search-replace-input'), { target: { value: 'log' } });
+      return { editor, ref };
+    }
+
+    it('Enter in replace input triggers replace single and advances to next match', () => {
+      const { editor } = setupReplace(3);
+      expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('1 / 3');
+      fireEvent.keyDown(screen.getByTestId('codemirror-search-replace-input'), { key: 'Enter' });
+      expect(editor.replaceRange).toHaveBeenCalledTimes(1);
+    });
+
+    it('Cmd+Enter in replace input triggers Replace All', () => {
+      const { editor } = setupReplace(3);
+      fireEvent.keyDown(screen.getByTestId('codemirror-search-replace-input'), {
+        key: 'Enter', metaKey: true
+      });
+      expect(editor.operation).toHaveBeenCalled();
+    });
+
+    it('Cmd+Enter in search input (replace open) triggers Replace All', () => {
+      const { editor } = setupReplace(3);
+      fireEvent.keyDown(screen.getByTestId('codemirror-search-input'), {
+        key: 'Enter', metaKey: true
+      });
+      expect(editor.operation).toHaveBeenCalled();
+    });
+
+    it('Cmd+Enter in replace input calls preventDefault (no newline / no default action)', () => {
+      setupReplace(3);
+      const replaceInput = screen.getByTestId('codemirror-search-replace-input');
+      // fireEvent returns false when preventDefault() was called on a cancelable event
+      const dispatched = fireEvent.keyDown(replaceInput, { key: 'Enter', metaKey: true });
+      expect(dispatched).toBe(false);
     });
   });
 
