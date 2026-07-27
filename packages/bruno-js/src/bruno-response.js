@@ -32,8 +32,10 @@ class BrunoResponse {
   }
 
   getHeader(name) {
-    let lowerName = name?.toLowerCase();
-    return this.res && this.res.headers ? this.res.headers[lowerName] : null;
+    if (typeof name !== 'string' || !this.res?.headers) {
+      return null;
+    }
+    return this.res.headers[name.toLowerCase()];
   }
 
   getHeaders() {

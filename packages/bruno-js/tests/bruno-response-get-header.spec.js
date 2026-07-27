@@ -33,4 +33,11 @@ describe('BrunoResponse getHeader (case-insensitive lookup)', () => {
     const res = new BrunoResponse(createRes());
     expect(res.getHeader('X-Does-Not-Exist')).toBeUndefined();
   });
+
+  it('returns null for non-string name', () => {
+    const res = new BrunoResponse(createRes());
+    expect(res.getHeader(null)).toBeNull();
+    expect(res.getHeader(undefined)).toBeNull();
+    expect(res.getHeader(123)).toBeNull();
+  });
 });
