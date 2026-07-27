@@ -130,7 +130,7 @@ const builder = async (yargs) => {
       type: 'string'
     })
     .option('global-env-var', {
-      describe: 'Overwrite a single global environment variable (requires --global-env), multiple usages possible',
+      describe: 'Overwrite a single global environment variable, multiple usages possible',
       type: 'string'
     })
     .option('sandbox', {

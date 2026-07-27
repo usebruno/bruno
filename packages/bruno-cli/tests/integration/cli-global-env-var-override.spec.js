@@ -3,11 +3,10 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const http = require('http');
-const { spawn } = require('child_process');
 const yaml = require('js-yaml');
 const { bruToEnvJsonV2 } = require('@usebruno/lang');
+const { runCli } = require('./helpers/run-cli');
 
-const CLI_BIN = path.resolve(__dirname, '..', '..', 'bin', 'bru.js');
 const FIXTURES_DIR = path.join(__dirname, 'fixtures', 'cli-global-env-var-override');
 
 // Covers the --global-env-var CLI flag end-to-end: argument validation (requires --global-env,
@@ -72,19 +71,6 @@ describe('CLI run — --global-env-var overrides', () => {
     return dest;
   };
 
-  // spawnSync blocks jest's event loop, starving the in-process HTTP server → ECONNREFUSED.
-  // Use async spawn so the server stays responsive.
-  const runCli = (args, cwd) =>
-    new Promise((resolve, reject) => {
-      const child = spawn(process.execPath, [CLI_BIN, ...args], { cwd, env: { ...process.env } });
-      let stdout = '';
-      let stderr = '';
-      child.stdout.on('data', (chunk) => { stdout += chunk; });
-      child.stderr.on('data', (chunk) => { stderr += chunk; });
-      child.on('error', reject);
-      child.on('close', (code) => resolve({ code, stdout, stderr }));
-    });
-
   // --global-env-var mirrors --env-var but targets the workspace's global env file. The
   // injected value must reach the run (proving the override applied) yet never overwrite the
   // real secret in <workspace>/environments/<name>.yml.
@@ -119,32 +105,16 @@ describe('CLI run — --global-env-var overrides', () => {
     expect(varsByName.persistedByScript).toBe('kept-on-disk');
   }, 60_000);
 
-  // --global-env-var is meaningless without a loaded global environment; the guard rejects it
-  // up front with ERROR_INCORRECT_ENV_OVERRIDE (8).
-  it('exits with an error when --global-env-var is passed without --global-env', async () => {
-    const root = stageFixture('no-global-env');
-
-    const args = [
-      'run', 'ping.bru',
-      '--env', 'Test',
-      '--global-env-var', 'token=xxx',
-      '--sandbox', 'developer',
-      '--noproxy'
-    ];
-    const result = await runCli(args, root);
-
-    expect(result.code).toBe(8);
-    expect(result.stderr).toContain('--global-env-var requires --global-env to be set');
-  }, 60_000);
-
   // A --global-env-var value with no `=` is malformed and must abort with
   // ERROR_INCORRECT_ENV_OVERRIDE (8) rather than silently swallowing it.
+  // Validation aborts before the request executes, so no dedicated fixture is needed — the leak
+  // collection is reused.
   it('exits with an error when --global-env-var value is malformed (no name=value)', async () => {
-    const root = stageFixture('malformed');
-    const collectionDir = path.join(root, 'workspace', 'malformed-collection');
+    const root = stageFixture('leak');
+    const collectionDir = path.join(root, 'workspace', 'override-leak-collection');
 
     const args = [
-      'run', 'ping.bru',
+      'run', 'echo-global-token.bru',
       '--global-env', 'Global',
       '--global-env-var', 'token',
       '--sandbox', 'developer',
