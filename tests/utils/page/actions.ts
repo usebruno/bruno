@@ -953,8 +953,19 @@ const ensureEnvironmentSelectorOpen = async (page: Page) => {
       await trigger.click();
     } else {
       await searchInput.fill(''); // Reset state if already open
+
+      const globalTab = locators.environment.globalTab();
+      if (await globalTab.isVisible()) {
+        const globalClass = (await globalTab.getAttribute('class')) || '';
+        if (globalClass.includes('active')) {
+          await locators.environment.collectionTab().click();
+        }
+      }
+
       await searchInput.blur(); // Remove focus to ensure tests start clean
     }
+
+    await expect(locators.environment.collectionTab()).toHaveClass(/active/);
   });
 };
 

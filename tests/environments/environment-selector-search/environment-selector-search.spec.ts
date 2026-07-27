@@ -46,7 +46,7 @@ test.describe('Environment Selector Search', () => {
     await ensureEnvironmentSelectorOpen(page);
 
     const searchInput = locators.environment.searchInput();
-    await searchInput.fill('staging');
+    await searchInput.fill('StAgInG');
 
     await expect(locators.environment.listItem('Staging')).toBeVisible();
     await expect(locators.environment.noEnvironmentItem()).toBeVisible();
