@@ -18,7 +18,7 @@ const DocsAction = () => {
       <Button
         variant="ghost"
         color="secondary"
-        size="xs"
+        size="sm"
         className="docs-edit-toggle opacity-70 hover:opacity-100"
         onClick={() => dispatch(updateDocsEditing({ uid: activeTabUid, docsEditing: !isEditing }))}
         icon={isEditing ? <IconEye strokeWidth={1.5} /> : <IconEdit strokeWidth={1.5} />}
