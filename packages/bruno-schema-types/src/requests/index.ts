@@ -1,6 +1,7 @@
 import type { HttpRequest } from './http';
 import type { GrpcRequest } from './grpc';
 import type { WebSocketRequest } from './websocket';
+import type { GraphqlSubscriptionRequest } from './graphql-subscription';
 
 export type {
   HttpRequest,
@@ -23,4 +24,9 @@ export type {
   WebSocketMessage
 } from './websocket';
 
-export type Request = HttpRequest | GrpcRequest | WebSocketRequest;
+export type {
+  GraphqlSubscriptionRequest,
+  GraphqlSubscriptionRequestBody
+} from './graphql-subscription';
+
+export type Request = HttpRequest | GrpcRequest | WebSocketRequest | GraphqlSubscriptionRequest;

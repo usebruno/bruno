@@ -88,4 +88,18 @@ describe('Item Schema Validation', () => {
       )
     ]);
   });
+
+  it('item schema must throw an error if request is not present when item-type is graphql-subscription-request', async () => {
+    const item = {
+      uid: uuid(),
+      name: 'On Tick',
+      type: 'graphql-subscription-request'
+    };
+
+    return Promise.all([
+      expect(itemSchema.validate(item)).rejects.toEqual(
+        validationErrorWithMessages('request is required when item-type is graphql-subscription-request')
+      )
+    ]);
+  });
 });
