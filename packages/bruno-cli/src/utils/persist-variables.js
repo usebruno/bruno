@@ -135,11 +135,14 @@ const applyVariableUpdates = (result, { envVariables, runtimeVariables, globalEn
  * - `overrides`: names supplied via CLI `--env-var` keyed to their injected value. The leaked
  *   override value never reaches disk and the file's entry is preserved, but a deliberate
  *   script write of a *different* value for the same name still persists.
+ * - `globalOverrides`: same leak-guard for `--global-env-var` values, used when merging the
+ *   global env file (also catches a collection override a script copied across the map boundary,
+ *   e.g. `bru.setGlobalEnvVar(k, bru.getVar(k))`).
  *
  * @param {Array<{ name: string, value: any, enabled?: boolean, type?: string, secret?: boolean, dataType?: string }>} variables
  *   Existing entries from the env file.
  * @param {Object<string, any>} scriptVarsRaw - Flat map from the script runtime; may include `__name__`.
- * @param {{ overrides?: Map<string, string> }} [options] - Names → injected override values.
+ * @param {{ overrides?: Map<string, string>, globalOverrides?: Map<string, string> }} [options] - Names → injected override values.
  * @returns {Array<object>} New array of merged variable entries.
  *
  * @example
@@ -180,11 +183,19 @@ const applyVariableUpdates = (result, { envVariables, runtimeVariables, globalEn
  */
 const mergeScriptVarsIntoEnvList = (variables, scriptVarsRaw, options = {}) => {
   const overrides = options.overrides instanceof Map ? options.overrides : new Map();
+  // The global env file also guards against collection (`--env-var`) overrides a script may
+  // have copied across the map boundary (e.g. `bru.setGlobalEnvVar(k, bru.getVar(k))`).
+  const globalOverrides = options.globalOverrides instanceof Map ? options.globalOverrides : new Map();
   const scriptVars = stripInternal(scriptVarsRaw);
-  // Drop a script value only when it still matches the injected override — a different
+  // Drop a script value only when it still matches an injected override — a different
   // value means the script deliberately wrote it (e.g. `bru.setEnvVar('token', 'rotated')`)
   // and must reach disk.
   for (const [key, overrideValue] of overrides) {
+    if (key in scriptVars && scriptVars[key] === overrideValue) {
+      delete scriptVars[key];
+    }
+  }
+  for (const [key, overrideValue] of globalOverrides) {
     if (key in scriptVars && scriptVars[key] === overrideValue) {
       delete scriptVars[key];
     }
@@ -196,7 +207,7 @@ const mergeScriptVarsIntoEnvList = (variables, scriptVarsRaw, options = {}) => {
       if (v.enabled === false) return true;
       if (scriptKeys.has(v.name)) return true;
       // Keep the file's entry for an overridden name even if the script didn't echo it back.
-      if (overrides.has(v.name)) return true;
+      if (overrides.has(v.name) || globalOverrides.has(v.name)) return true;
       return false;
     })
     .map((v) => {
@@ -275,7 +286,7 @@ const writeIfChanged = (filePath, content, existing) => {
  *
  * @param {{ path: string, format: 'json' | 'yml' | 'bru' } | null | undefined} envFile - Env file descriptor; no-op when missing.
  * @param {Object<string, any>} scriptVars - Flat map of vars the script declared.
- * @param {{ overrides?: Map<string, string> }} [options] - `--env-var name=value` entries keyed by name → injected value; forwarded to `mergeScriptVarsIntoEnvList` to keep override values off disk.
+ * @param {{ overrides?: Map<string, string>, globalOverrides?: Map<string, string> }} [options] - Injected override values keyed by name (`--env-var`, and `--global-env-var` via `globalOverrides`); forwarded to `mergeScriptVarsIntoEnvList` to keep override values off disk.
  * @returns {void}
  *
  * @example
@@ -407,10 +418,11 @@ const persistVariableUpdates = (result, { envFile, globalEnvFile, collection, co
   if (!result) return;
   const envOpts = envVarOverrides ? { overrides: envVarOverrides } : undefined;
   if (result.envVariables) persistEnvFile(envFile, result.envVariables, envOpts);
-  // Global env file gets its own leak-guard, seeded from `--global-env-var` overrides: a value
-  // injected via the CLI and passed through unchanged never reaches the .yml, but a deliberate
-  // `bru.setGlobalEnvVar` write of a different value still persists.
-  const globalEnvOpts = globalEnvVarOverrides ? { overrides: globalEnvVarOverrides } : undefined;
+  // Global env file guards against both override sources: a `--global-env-var` value passed
+  // through unchanged, and a collection `--env-var` value a script copied across the map
+  // boundary (e.g. `bru.setGlobalEnvVar(k, bru.getVar(k))`). Either injected value stays off
+  // disk, while a deliberate `bru.setGlobalEnvVar` write of a different value still persists.
+  const globalEnvOpts = { overrides: envVarOverrides, globalOverrides: globalEnvVarOverrides };
   if (result.globalEnvironmentVariables) persistEnvFile(globalEnvFile, result.globalEnvironmentVariables, globalEnvOpts);
   if (result.collectionVariables) persistCollectionVars(collection, result.collectionVariables, collectionRootPath);
 };
