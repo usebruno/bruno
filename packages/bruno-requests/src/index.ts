@@ -1,6 +1,14 @@
 export { addDigestInterceptor, getOAuth2Token, createOAuth1Authorizer, computeBodyHash, applyOAuth1ToRequest, addEdgeGridInterceptor } from './auth';
 export { GrpcClient, generateGrpcSampleMessage } from './grpc';
 export { WsClient } from './ws/ws-client';
+export { GraphQLSubscriptionClient, describeCloseCode } from './graphql/graphql-subscription-client';
+export {
+  MESSAGE_TYPES as GRAPHQL_SUBSCRIPTION_MESSAGE_TYPES,
+  encodeConnectionInit as encodeGraphqlSubscriptionConnectionInit,
+  encodeSubscribe as encodeGraphqlSubscribe,
+  encodeComplete as encodeGraphqlSubscriptionComplete,
+  decodeFrame as decodeGraphqlSubscriptionFrame
+} from './graphql/graphql-transport-ws-protocol';
 export { default as cookies } from './cookies';
 
 export { getCACertificates } from './utils/ca-cert';
