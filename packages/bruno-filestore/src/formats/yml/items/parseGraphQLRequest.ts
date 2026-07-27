@@ -109,6 +109,10 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
   // settings
   if (ocRequest.settings) {
     const settings: BrunoHttpItemSettings = {};
+    const ocSettings = ocRequest.settings as GraphQLRequestSettings & {
+      storeCookies?: boolean;
+      sendCookies?: boolean;
+    };
 
     if (typeof ocRequest.settings.encodeUrl === 'boolean') {
       settings.encodeUrl = ocRequest.settings.encodeUrl;
@@ -135,6 +139,9 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
     } else {
       settings.maxRedirects = 5;
     }
+
+    settings.storeCookies = typeof ocSettings.storeCookies === 'boolean' ? ocSettings.storeCookies : true;
+    settings.sendCookies = typeof ocSettings.sendCookies === 'boolean' ? ocSettings.sendCookies : true;
 
     brunoItem.settings = settings;
   }

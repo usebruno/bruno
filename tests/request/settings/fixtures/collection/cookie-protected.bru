@@ -1,0 +1,16 @@
+meta {
+  name: cookie-protected
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8081/api/auth/cookie/protected
+  body: none
+  auth: inherit
+}
+
+settings {
+  storeCookies: true
+  sendCookies: true
+}

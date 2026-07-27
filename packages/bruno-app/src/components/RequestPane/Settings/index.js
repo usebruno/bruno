@@ -15,6 +15,8 @@ const DEFAULT_SETTINGS = {
   encodeUrl: false,
   followRedirects: true,
   maxRedirects: 5,
+  storeCookies: true,
+  sendCookies: true,
   timeout: 'inherit'
 };
 
@@ -27,7 +29,7 @@ const Settings = ({ item, collection }) => {
 
   const rawSettings = getPropertyFromDraftOrRequest('settings');
   const settings = { ...DEFAULT_SETTINGS, ...rawSettings };
-  const { encodeUrl, followRedirects, maxRedirects, timeout } = settings;
+  const { encodeUrl, followRedirects, maxRedirects, storeCookies, sendCookies, timeout } = settings;
   const enableApp = getPropertyFromDraftOrRequest('app.enabled') === true;
 
   // Reusable function to update settings
@@ -46,6 +48,12 @@ const Settings = ({ item, collection }) => {
 
   const onToggleFollowRedirects = useCallback(() =>
     updateSetting({ followRedirects: !followRedirects }), [followRedirects, updateSetting]);
+
+  const onToggleStoreCookies = useCallback(() =>
+    updateSetting({ storeCookies: !storeCookies }), [storeCookies, updateSetting]);
+
+  const onToggleSendCookies = useCallback(() =>
+    updateSetting({ sendCookies: !sendCookies }), [sendCookies, updateSetting]);
 
   const onToggleEnableApp = useCallback(() => {
     const next = !enableApp;
@@ -138,6 +146,28 @@ const Settings = ({ item, collection }) => {
               description="Follow HTTP redirects automatically"
               size="medium"
               data-testid="follow-redirects-toggle"
+            />
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <ToggleSelector
+              checked={storeCookies}
+              onChange={onToggleStoreCookies}
+              label="Store Cookies Automatically"
+              description="Store cookies received in responses to this request"
+              size="medium"
+              data-testid="store-cookies-toggle"
+            />
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <ToggleSelector
+              checked={sendCookies}
+              onChange={onToggleSendCookies}
+              label="Send Cookies Automatically"
+              description="Send matching cookies from the cookie jar with this request"
+              size="medium"
+              data-testid="send-cookies-toggle"
             />
           </div>
 

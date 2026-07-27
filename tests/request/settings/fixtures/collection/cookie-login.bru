@@ -1,0 +1,16 @@
+meta {
+  name: cookie-login
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8081/api/auth/cookie/login
+  body: none
+  auth: inherit
+}
+
+settings {
+  storeCookies: false
+  sendCookies: true
+}

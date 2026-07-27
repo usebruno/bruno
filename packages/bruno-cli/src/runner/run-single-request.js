@@ -469,7 +469,7 @@ const runSingleRequest = async function (
     });
 
     // set cookies if enabled
-    if (!options.disableCookies) {
+    if (!options.disableCookies && request.settings?.sendCookies !== false) {
       const cookieString = getCookieStringForUrl(request.url);
       if (cookieString && typeof cookieString === 'string' && cookieString.length) {
         const existingCookieHeaderName = Object.keys(request.headers).find(
@@ -647,6 +647,8 @@ const runSingleRequest = async function (
       let axiosInstance = makeAxiosInstance({
         requestMaxRedirects: requestMaxRedirects,
         disableCookies: options.disableCookies,
+        storeCookies: request.settings?.storeCookies !== false,
+        sendCookies: request.settings?.sendCookies !== false,
         followRedirects: followRedirects,
         proxyMode,
         proxyConfig,
@@ -709,7 +711,7 @@ const runSingleRequest = async function (
       response.headers.delete('request-duration');
 
       // save cookies if enabled
-      if (!options.disableCookies) {
+      if (!options.disableCookies && request.settings?.storeCookies !== false) {
         saveCookies(request.url, response.headers);
       }
     } catch (err) {
@@ -724,7 +726,7 @@ const runSingleRequest = async function (
         response.headers.delete('request-duration');
 
         // save cookies if enabled (4XX/5XX responses can also set cookies)
-        if (!options.disableCookies) {
+        if (!options.disableCookies && request.settings?.storeCookies !== false) {
           saveCookies(request.url, response.headers);
         }
       } else {

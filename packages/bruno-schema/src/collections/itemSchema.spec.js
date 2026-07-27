@@ -88,4 +88,27 @@ describe('Item Schema Validation', () => {
       )
     ]);
   });
+
+  it('item schema accepts per-request cookie settings', async () => {
+    const item = {
+      uid: uuid(),
+      name: 'Cookie Settings',
+      type: 'http-request',
+      request: {
+        url: 'https://example.com',
+        method: 'GET',
+        headers: [],
+        params: [],
+        body: {
+          mode: 'none'
+        }
+      },
+      settings: {
+        storeCookies: false,
+        sendCookies: false
+      }
+    };
+
+    await expect(itemSchema.validate(item)).resolves.toBeTruthy();
+  });
 });

@@ -22,6 +22,8 @@
     "encodeUrl": true,
     "followRedirects": false,
     "maxRedirects": 0,
+    "storeCookies": false,
+    "sendCookies": false,
     "timeout": 60000
   }
 }

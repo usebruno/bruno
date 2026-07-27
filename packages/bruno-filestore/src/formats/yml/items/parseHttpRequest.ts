@@ -1,6 +1,6 @@
 import type { Item as BrunoItem, HttpItemSettings as BrunoHttpItemSettings } from '@usebruno/schema-types/collection/item';
 import type { HttpRequest as BrunoHttpRequest } from '@usebruno/schema-types/requests/http';
-import type { HttpRequest, HttpRequestBody } from '@opencollection/types/requests/http';
+import type { HttpRequest, HttpRequestBody, HttpRequestSettings } from '@opencollection/types/requests/http';
 import { toBrunoAuth } from '../common/auth';
 import { toBrunoHttpHeaders } from '../common/headers';
 import { toBrunoParams } from '../common/params';
@@ -112,6 +112,10 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
   // settings
   if (ocRequest.settings) {
     const settings: BrunoHttpItemSettings = {};
+    const ocSettings = ocRequest.settings as HttpRequestSettings & {
+      storeCookies?: boolean;
+      sendCookies?: boolean;
+    };
 
     if (typeof ocRequest.settings.encodeUrl === 'boolean') {
       settings.encodeUrl = ocRequest.settings.encodeUrl;
@@ -138,6 +142,9 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
     } else {
       settings.maxRedirects = 5;
     }
+
+    settings.storeCookies = typeof ocSettings.storeCookies === 'boolean' ? ocSettings.storeCookies : true;
+    settings.sendCookies = typeof ocSettings.sendCookies === 'boolean' ? ocSettings.sendCookies : true;
 
     brunoItem.settings = settings;
   }

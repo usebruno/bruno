@@ -16,6 +16,8 @@ export interface HttpItemSettings {
   encodeUrl?: boolean | null;
   followRedirects?: boolean | null;
   maxRedirects?: number | null;
+  storeCookies?: boolean | null;
+  sendCookies?: boolean | null;
   timeout?: number | 'inherit' | null;
 }
 
