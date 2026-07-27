@@ -1,6 +1,5 @@
 import { Page } from '../../../playwright';
-
-const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+import { escapeRegExp } from '../helpers';
 
 /**
  * Locators for the read-only headers table rendered inside an expanded timeline

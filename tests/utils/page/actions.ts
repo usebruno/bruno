@@ -3,6 +3,7 @@ import process from 'node:process';
 import * as path from 'path';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, buildWebsocketCommonLocators } from './locators';
 import { waitForCollectionMount } from './mounting';
+import { escapeRegExp } from '../helpers';
 
 type SandboxMode = 'safe' | 'developer';
 
@@ -1230,8 +1231,6 @@ const switchToEditorTab = async (page: Page) => {
 const getResponseBody = async (page: Page): Promise<string> => {
   return await page.locator('.response-pane').innerText();
 };
-
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const trySelectPaneTabOnce = async (page: Page, paneSelector: string, tabName: string) => {
   const pane = page.locator(paneSelector);

@@ -1,6 +1,15 @@
 import fs from 'fs';
 
 /**
+ * Escape a string for literal use inside a RegExp.
+ *
+ * Locators built from header/tab/label names routinely anchor an exact match
+ * (`^name$`); without escaping, a name containing regex metacharacters would
+ * silently match the wrong element or none at all.
+ */
+export const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
  * Read and JSON-parse a file, retrying until it has parseable content.
  *
  * Reading an exported file immediately after the app writes it can observe a

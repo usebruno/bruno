@@ -9,6 +9,8 @@ headers {
 }
 
 script:pre-request {
-  req.setHeader('folder-1-script-header-1', 'folder-1-script-value-1');
-  req.setHeaders([{ 'folder-1-script-header-2': 'folder-1-script-value-2' }]);
+  req.setHeaders([
+    { 'folder-1-script-header-1': 'folder-1-script-value-1' },
+    { 'folder-1-script-header-2': 'folder-1-script-value-2' }
+  ]);
 }
