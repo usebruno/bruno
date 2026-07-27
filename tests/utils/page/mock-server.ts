@@ -100,9 +100,7 @@ export const startMockServer = async (page: Page): Promise<string> => {
   });
 };
 
-/**
- * Stop the mock server and wait until status shows Stopped.
- */
+// Stop the mock server and wait until status shows Stopped.
 export const stopMockServer = async (page: Page) => {
   await test.step('Stop mock server', async () => {
     const ms = buildMockServerLocators(page);
@@ -111,9 +109,7 @@ export const stopMockServer = async (page: Page) => {
   });
 };
 
-/**
- * Open the create-mock-server flow from a collection's actions menu and submit a name.
- */
+// Open the create-mock-server flow from a collection's actions menu and submit a name.
 export const createMockServerFromCollection = async (page: Page, collectionName: string, serverName: string) => {
   await test.step(`Create mock server "${serverName}" for "${collectionName}"`, async () => {
     const ms = buildMockServerLocators(page);
