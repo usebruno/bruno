@@ -20,22 +20,30 @@ const sortRequestHeaderLogs = (logs, { request, collection, item }) => {
     if (key && !orderByName.has(key)) orderByName.set(key, i);
   });
 
-  const slots = [];
-  logs.forEach((log, i) => {
-    if (log?.type === 'requestHeader') slots.push(i);
-  });
-  if (slots.length < 2) return logs;
-
   const rank = (entry) => {
     const r = orderByName.get(headerNameOf(entry));
     return r === undefined ? Number.MAX_SAFE_INTEGER : r;
   };
-  const sorted = slots.map((i) => logs[i]).sort((a, b) => rank(a) - rank(b));
 
+  // A redirected request accumulates multiple hops in one timeline, each preceded by a 'request'
+  // marker. Sort each hop's requestHeader block independently so headers from different hops never
+  // interleave (a global sort would shuffle hop-1 and hop-2 headers into each other's slots).
   const result = [...logs];
-  slots.forEach((slot, k) => {
-    result[slot] = sorted[k];
+  let segment = [];
+  const flushSegment = () => {
+    if (segment.length >= 2) {
+      const sorted = segment.map((i) => logs[i]).sort((a, b) => rank(a) - rank(b));
+      segment.forEach((slot, k) => {
+        result[slot] = sorted[k];
+      });
+    }
+    segment = [];
+  };
+  logs.forEach((log, i) => {
+    if (log?.type === 'requestHeader') segment.push(i);
+    else if (log?.type === 'request') flushSegment();
   });
+  flushSegment();
   return result;
 };
 

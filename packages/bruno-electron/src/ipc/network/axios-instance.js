@@ -256,14 +256,25 @@ function makeAxiosInstance({
 
   const backfillSentHeaders = (timeline, req) => {
     if (!Array.isArray(timeline) || !req) return;
+    // Redirects reuse a single timeline with one 'request' marker per hop. Scope the backfill to the
+    // current (last) hop only, so prior hops' identically-named headers don't mask this hop's, and so
+    // insertion lands inside this hop's header block.
+    let hopStart = 0;
+    for (let i = timeline.length - 1; i >= 0; i--) {
+      if (timeline[i]?.type === 'request') {
+        hopStart = i;
+        break;
+      }
+    }
     const existing = new Set();
     let lastIdx = -1;
-    timeline.forEach((entry, i) => {
-      if (entry?.type !== 'requestHeader' || typeof entry.message !== 'string') return;
+    for (let i = hopStart; i < timeline.length; i++) {
+      const entry = timeline[i];
+      if (entry?.type !== 'requestHeader' || typeof entry.message !== 'string') continue;
       const idx = entry.message.indexOf(':');
       if (idx !== -1) existing.add(entry.message.slice(0, idx).trim().toLowerCase());
       lastIdx = i;
-    });
+    }
     const additions = parseSentHeaders(req)
       .filter((h) => !existing.has(h.name.toLowerCase()))
       .map((h) => ({ timestamp: new Date(), type: 'requestHeader', message: `${h.name}: ${h.value}` }));

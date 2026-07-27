@@ -144,8 +144,15 @@ class BrunoRequest {
       if (!this.req.headers || typeof this.req.headers !== 'object' || Array.isArray(this.req.headers)) {
         this.req.headers = {};
       }
+      // Copy keys explicitly (not Object.assign) so a script-supplied __proto__/constructor/prototype
+      // key can't repoint the headers object's prototype. None are valid HTTP header names anyway.
+      const unsafeKeys = ['__proto__', 'constructor', 'prototype'];
       headers.forEach((entry) => {
-        if (entry && typeof entry === 'object') Object.assign(this.req.headers, entry);
+        if (!entry || typeof entry !== 'object') return;
+        Object.keys(entry).forEach((key) => {
+          if (unsafeKeys.includes(key)) return;
+          this.req.headers[key] = entry[key];
+        });
       });
       return;
     }
