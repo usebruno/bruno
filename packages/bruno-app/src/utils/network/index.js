@@ -338,3 +338,79 @@ export const getWsConnectionStatus = async (requestId) => {
     ipcRenderer.invoke('renderer:ws:connection-status', requestId).then(resolve).catch(reject);
   });
 };
+
+/**
+ * Opens the graphql-transport-ws socket for a subscription request (connection_init/ack handshake only).
+ * The real response data is handled by useGraphqlSubscriptionEventListeners.
+ */
+export const connectGraphqlSubscription = async (item, collection, environment, runtimeVariables) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    const request = item.draft ? item.draft : item;
+    const settings = item.draft ? item.draft.settings : item.settings;
+
+    ipcRenderer
+      .invoke('renderer:gql-sub:connect', { item: request, collection, environment, runtimeVariables, settings })
+      .then((result) => (result?.success ? resolve() : reject(new Error(result?.error || 'Failed to connect'))))
+      .catch(reject);
+  });
+};
+
+/**
+ * Sends the `subscribe` message for the request's query/variables over an
+ * already-open (or newly-opened) connection.
+ */
+export const subscribeGraphqlSubscription = async (item, collection, environment, runtimeVariables) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    const request = item.draft ? item.draft : item;
+
+    ipcRenderer
+      .invoke('renderer:gql-sub:subscribe', { item: request, collection, environment, runtimeVariables })
+      .then((result) => (result?.success ? resolve() : reject(new Error(result?.error || 'Failed to subscribe'))))
+      .catch(reject);
+  });
+};
+
+/**
+ * Connects (if needed) then subscribes — the combined action the Subscribe button drives.
+ */
+export const sendGraphqlSubscriptionRequest = async (item, collection, environment, runtimeVariables) => {
+  const connectionStatus = await getGraphqlSubscriptionConnectionStatus(item.uid);
+  if (connectionStatus?.status !== 'connected') {
+    await connectGraphqlSubscription(item, collection, environment, runtimeVariables);
+  }
+
+  await subscribeGraphqlSubscription(item, collection, environment, runtimeVariables);
+  return {};
+};
+
+/**
+ * Sends a `complete` message for the active operation, leaving the socket open.
+ */
+export const unsubscribeGraphqlSubscription = async (requestId) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:gql-sub:unsubscribe', requestId).then(resolve).catch(reject);
+  });
+};
+
+/**
+ * Closes the subscription's socket entirely.
+ */
+export const disconnectGraphqlSubscription = async (requestId, code, reason) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:gql-sub:disconnect', requestId, code, reason).then(resolve).catch(reject);
+  });
+};
+
+/**
+ * Get the connection status ("disconnected" | "connecting" | "connected") of a subscription.
+ */
+export const getGraphqlSubscriptionConnectionStatus = async (requestId) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:gql-sub:connection-status', requestId).then(resolve).catch(reject);
+  });
+};
