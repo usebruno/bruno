@@ -83,6 +83,21 @@ const StyledWrapper = styled.div`
           accent-color: ${(props) => props.theme.primary.solid};
         }
 
+        .env-checkbox:indeterminate {
+          appearance: none;
+          -webkit-appearance: none;
+          background-color: ${(props) => props.theme.primary.solid};
+          border: 1px solid ${(props) => props.theme.primary.solid};
+          border-radius: 0.15rem;
+          background-image: linear-gradient(
+            ${(props) => props.theme.bg},
+            ${(props) => props.theme.bg}
+          );
+          background-size: 0.55rem 2px;
+          background-position: center;
+          background-repeat: no-repeat;
+        }
+
         .env-section-header {
           display: flex;
           align-items: center;
