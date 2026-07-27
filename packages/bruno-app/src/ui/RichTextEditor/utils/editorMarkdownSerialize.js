@@ -37,12 +37,10 @@ const flattenListItemParagraphs = (listNode) => {
     const allParagraphs = blocks.length > 0 && blocks.every((block) => block.type.name === 'paragraph');
 
     if (allParagraphs && blocks.length > 1) {
-      blocks.forEach((paragraph) => {
-        entries.push({
-          attrs: listItem.attrs,
-          blocks: [paragraph],
-          itemType: listItem.type.name
-        });
+      entries.push({
+        attrs: listItem.attrs,
+        blocks,
+        itemType: listItem.type.name
       });
       return;
     }
@@ -67,7 +65,7 @@ const serializeFlattenedEntryContent = (state, entry) => {
 
   entry.blocks.forEach((block, blockIndex) => {
     if (blockIndex) {
-      state.write('<br/>');
+      state.write('\n');
     }
 
     if (block.isTextblock) {
