@@ -81,12 +81,14 @@ export const openCodeEditorSearchBar = async (page: Page, editorId: string) => {
 };
 
 /**
- * Open the replace bar via Ctrl+Alt+F and wait for both the search bar and replace input.
+ * Open the replace bar and wait for both the search bar and replace input.
  *
+ * Shortcut: Cmd+Option+F (Mac) / Ctrl+H (Win/Linux).
  * Uses the keyboard shortcut rather than clicking toggle-replace-btn to avoid CI failures
  * where the sidebar can overlap the button.
  */
 export const openCodeEditorReplaceBar = async (page: Page, editorId: string) => {
+  const replaceKey = process.platform === 'darwin' ? 'Meta+Alt+f' : 'Control+h';
   await openPreRequestScriptEditor(page, editorId);
   const cm = page.getByTestId(editorId).locator('.CodeMirror').first();
   await cm.evaluate((el: any) => {
@@ -95,7 +97,7 @@ export const openCodeEditorReplaceBar = async (page: Page, editorId: string) => 
       el.CodeMirror.focus();
     }
   });
-  await page.keyboard.press('Control+Alt+f');
+  await page.keyboard.press(replaceKey);
   const loc = buildCodeEditorSearchLocators(page, editorId);
   await loc.searchBar().waitFor({ state: 'visible' });
   await loc.replaceInput().waitFor({ state: 'visible' });

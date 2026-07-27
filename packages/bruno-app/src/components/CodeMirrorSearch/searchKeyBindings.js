@@ -4,6 +4,12 @@
  * Centralises the key handlers so they stay in sync across every CodeEditor
  * variant that embeds <CodeMirrorSearch />.
  *
+ * Search:  Cmd+F (Mac) / Ctrl+F (Win/Linux)
+ * Replace: Cmd+Option+F (Mac) / Ctrl+H (Win/Linux)
+ *
+ * Note: Cmd+H is intentionally excluded — on macOS it is a system-level shortcut
+ * that hides the application window and cannot be intercepted by Electron.
+ *
  * @param {object} opts
  * @param {(update: object, cb?: () => void) => void} opts.setState
  * @param {{ current: object | null }} opts.searchBarRef
@@ -34,10 +40,8 @@ export function buildSearchKeyBindings({ setState, searchBarRef, isSearchBarVisi
   return {
     'Cmd-F': openSearch,
     'Ctrl-F': openSearch,
-    'Cmd-H': openReplace,
-    'Ctrl-H': openReplace,
-    'Cmd-Alt-F': openReplace,
-    'Ctrl-Alt-F': openReplace,
+    'Cmd-Alt-F': openReplace, // Cmd + Option + F — standard replace shortcut on Mac
+    'Ctrl-H': openReplace, // Ctrl + H — standard replace shortcut on Windows/Linux
     'Esc': () => {
       if (isSearchBarVisible()) {
         searchBarRef.current?.close();

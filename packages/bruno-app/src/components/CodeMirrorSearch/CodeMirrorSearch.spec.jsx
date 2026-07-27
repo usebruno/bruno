@@ -197,10 +197,10 @@ describe('CodeMirrorSearch', () => {
       const ref = createRef();
       renderSearch({ editor: makeMockEditor(matches) }, ref);
 
-      act(() => {
-        ref.current.setSearch('console', { line: 2, ch: 0 });
-        jest.advanceTimersByTime(250);
-      });
+      act(() => { ref.current.setSearch('console', { line: 2, ch: 0 }); });
+      // Advance timers in a separate act() so the debounce effect for 'console'
+      // is set up (first act flushes state + effects) before the timer fires.
+      act(() => { jest.advanceTimersByTime(250); });
 
       expect(screen.getByTestId('codemirror-search-result-count')).toHaveTextContent('3 / 5');
     });

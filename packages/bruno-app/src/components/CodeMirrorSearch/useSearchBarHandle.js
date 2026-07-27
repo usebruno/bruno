@@ -89,7 +89,10 @@ export function useSearchBarHandle({
 
     openReplace: () => {
       setReplaceVisible(true);
-      setTimeout(() => replaceInputRef.current?.focus(), 0);
+      setTimeout(() => {
+        replaceInputRef.current?.focus();
+        replaceInputRef.current?.select();
+      }, 0);
     },
 
     close: () => {
