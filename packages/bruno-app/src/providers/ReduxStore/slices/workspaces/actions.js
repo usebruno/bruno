@@ -8,7 +8,7 @@ import {
   updateWorkspaceLoadingState,
   setWorkspaceScratchCollection
 } from '../workspaces';
-import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, hydrateCollectionWithUiStateSnapshot } from '../collections/actions';
+import { createCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, hydrateCollectionWithUiStateSnapshot } from '../collections/actions';
 import { removeCollection, addTransientDirectory, updateCollectionMountStatus, expandCollection, sortCollections } from '../collections';
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
@@ -1003,10 +1003,6 @@ export const createCollectionInWorkspace = (collectionName, collectionFolderName
   };
 };
 
-export const openCollectionInWorkspace = () => {
-  return (dispatch) => dispatch(openCollection());
-};
-
 const handleWorkspaceAction = async (action, workspaceUid, ...args) => {
   try {
     await action(workspaceUid, ...args);
@@ -1053,7 +1049,20 @@ export const closeWorkspaceAction = (workspaceUid) => {
       }
 
       await ipcRenderer.invoke('renderer:close-workspace', workspace.pathname);
+
+      if (workspace.scratchCollectionUid) {
+        dispatch(removeCollection({ collectionUid: workspace.scratchCollectionUid }));
+      }
+
+      const wasActive = getState().workspaces.activeWorkspaceUid === workspaceUid;
       dispatch(removeWorkspace(workspaceUid));
+
+      if (wasActive) {
+        const defaultWorkspace = getState().workspaces.workspaces.find((w) => w.type === 'default');
+        if (defaultWorkspace) {
+          await dispatch(switchWorkspace(defaultWorkspace.uid));
+        }
+      }
     } catch (error) {
       toast.error(error.message || 'Failed to close workspace');
       throw error;
