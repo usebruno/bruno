@@ -18,7 +18,7 @@ const MockResponseTab = ({ tab }) => {
       const draft = mockResponseFromEditorItem(editor.item, tab.uid, editor.rules, editor.savedMockResponse);
       return !isEqual(draft, editor.savedMockResponse);
     } catch {
-      return false;
+      return true;
     }
   };
 

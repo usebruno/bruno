@@ -106,7 +106,7 @@ const MockServerDashboard = ({ instance, collection }) => {
     }
 
     const nextPort = Number(trimmed);
-    if (nextPort < 1 || nextPort > 65535) {
+    if (!Number.isInteger(nextPort) || nextPort < 1 || nextPort > 65535) {
       const error = 'Port must be between 1 and 65535';
       setPortError(error);
       return error;
