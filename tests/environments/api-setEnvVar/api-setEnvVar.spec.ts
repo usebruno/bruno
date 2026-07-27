@@ -6,6 +6,10 @@ import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('bru.setEnvVar(name, value)', () => {
   test('set env var using script persists by default across restart', async ({ pageWithUserData: page, restartApp, collectionFixturePath }) => {
+    // Includes a full app restart (waitForReadyPage allows up to 45s); the 30s
+    // default budget is too small on a slow or loaded CI runner.
+    test.setTimeout(90_000);
+
     const stageBruPath = path.join(collectionFixturePath!, 'environments', 'Stage.bru');
     const locators = buildCommonLocators(page);
     const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });

@@ -13,6 +13,7 @@ import { IconArrowRight, IconExternalLink } from '@tabler/icons';
 import ToggleSwitch from 'components/ToggleSwitch';
 
 import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
+import { getDocsUrlWithVersion } from 'utils/url';
 
 /**
  * UI metadata for the Beta Features section in Preferences — one entry per toggle.
@@ -196,7 +197,7 @@ const Beta = ({ close }) => {
                   {feature.docsUrl && (
                     <a
                       className="beta-feature-link"
-                      href={feature.docsUrl}
+                      href={getDocsUrlWithVersion(feature.docsUrl)}
                       target="_blank"
                       rel="noreferrer"
                     >

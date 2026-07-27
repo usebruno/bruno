@@ -9,6 +9,7 @@ import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-enviro
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { findItemInCollection, findItemInCollectionByPathname, hasRequestChanges, areItemsLoading, isItemTransientRequest } from 'utils/collections';
+import { resolveNewRequestTarget } from './resolveNewRequestTarget';
 import ConfirmRequestClose from './ConfirmRequestClose';
 import ConfirmCollectionClose from './ConfirmCollectionClose';
 import ConfirmFolderClose from './ConfirmFolderClose';
@@ -40,6 +41,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const [showConfirmFolderClose, setShowConfirmFolderClose] = useState(false);
   const [showConfirmEnvironmentClose, setShowConfirmEnvironmentClose] = useState(false);
   const [showConfirmGlobalEnvironmentClose, setShowConfirmGlobalEnvironmentClose] = useState(false);
+  const [newRequestTarget, setNewRequestTarget] = useState(null);
 
   const menuDropdownRef = useRef();
 
@@ -208,6 +210,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isActive = tab.uid === activeTabUid;
+  // Truthy only when a sidebar folder/collection is focused; those own the
+  // new-request shortcut (with folder targeting), so the tab handler yields to them.
+  const focusedSidebarPath = useSelector((state) => state.app.focusedSidebarPath);
 
   // Close tab shortcut — draft-aware, only active for the focused tab
   useKeybinding('closeTab', () => {
@@ -292,6 +297,14 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     return false;
   }, { enabled: isActive, deps: [isActive, tab, item, collection, folder, globalEnvironmentDraft] });
 
+  useKeybinding('newRequest', () => {
+    const target = resolveNewRequestTarget({ tab, item, collection, folder });
+    if (target) {
+      setNewRequestTarget(target);
+    }
+    return false;
+  }, { enabled: isActive && !focusedSidebarPath, deps: [isActive, focusedSidebarPath, tab, item, collection, folder] });
+
   const handleCloseEnvironmentSettings = (event) => {
     if (!collection?.environmentsDraft) {
       return handleCloseClick(event);
@@ -311,6 +324,14 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     event.preventDefault();
     setShowConfirmGlobalEnvironmentClose(true);
   };
+
+  const newRequestModal = newRequestTarget ? (
+    <NewRequest
+      collectionUid={newRequestTarget.collectionUid}
+      item={newRequestTarget.item}
+      onClose={() => setNewRequestTarget(null)}
+    />
+  ) : null;
 
   if (specialTabs.includes(tab.type)) {
     return (
@@ -476,6 +497,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             }}
           />
         )}
+        {newRequestModal}
         {tab.type === 'folder-settings' && !folder ? (
           tab.name && isItemsLoading
             ? <RequestTabLoading handleCloseClick={handleCloseClick} name={tab.name} />
@@ -584,6 +606,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }}
         />
       )}
+      {newRequestModal}
       <div
         ref={tabLabelRef}
         className={`flex items-baseline tab-label ${tab.preview ? 'italic' : ''}`}

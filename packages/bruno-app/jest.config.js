@@ -25,6 +25,7 @@ module.exports = {
     '<rootDir>/jest.setup.js'
   ],
   testMatch: [
-    '<rootDir>/src/**/*.spec.[jt]s?(x)'
+    '<rootDir>/src/**/*.spec.[jt]s?(x)',
+    '<rootDir>/plugins/**/*.spec.[jt]s?(x)'
   ]
 };
