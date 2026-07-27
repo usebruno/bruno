@@ -37,15 +37,30 @@ describe('executeRequestOnFailHandler', () => {
     expect(consoleSpy).not.toHaveBeenCalled();
   });
 
-  it('should call onFailHandler when it exists and is a function', async () => {
-    const mockHandler = jest.fn();
+  it('should return the result from onFailHandler', async () => {
+    const handlerResult = {
+      envVariables: {
+        environmentToken: 'updated'
+      },
+      runtimeVariables: {
+        runtimeToken: 'updated'
+      },
+      globalEnvironmentVariables: {
+        globalToken: 'updated'
+      }
+    };
+    const mockHandler = jest.fn().mockResolvedValue(handlerResult);
+    const onResult = jest.fn();
     const request = { onFailHandler: mockHandler };
     const error = new Error('Test error');
 
-    await executeRequestOnFailHandler(request, error);
+    const result = await executeRequestOnFailHandler(request, error, onResult);
 
     expect(mockHandler).toHaveBeenCalledWith(error);
     expect(mockHandler).toHaveBeenCalledTimes(1);
+    expect(onResult).toHaveBeenCalledWith(handlerResult);
+    expect(onResult).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(handlerResult);
     expect(consoleSpy).not.toHaveBeenCalled();
   });
 
