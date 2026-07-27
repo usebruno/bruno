@@ -2,6 +2,7 @@ export * from './actions';
 export * from './file-mode';
 export * from './runner';
 export * from './locators';
+export * from './naming-collisions';
 export * from './sidebar';
 export * from './mounting';
 export * from './preferences';

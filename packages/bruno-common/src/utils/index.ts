@@ -44,6 +44,13 @@ export {
 } from './string';
 
 export {
+  sanitizeName,
+  validateName,
+  validateNameError,
+  nextSuffixedName
+} from './naming';
+
+export {
   MAX_BODY_SIZE_DEFAULT,
   isStrPresent,
   makeEdgeGridTimestamp,
