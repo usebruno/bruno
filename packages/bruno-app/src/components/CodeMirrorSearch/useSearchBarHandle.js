@@ -64,7 +64,8 @@ export function useSearchBarHandle({
     focusAtCursor: (cursorPos) => {
       // If there's existing search text, navigate to nearest match at cursor
       if (cursorPos && editor && searchText) {
-        const matches = searchMatches.current.length
+        const expectedKey = createCacheKey(docVersion.current, searchText, regex, caseSensitive, wholeWord);
+        const matches = (expectedKey === searchCacheKey.current && searchMatches.current.length)
           ? searchMatches.current
           : findSearchMatches(editor, searchText, regex, caseSensitive, wholeWord);
         const startsAtOrAfterCursor = (match) =>
@@ -73,7 +74,7 @@ export function useSearchBarHandle({
         const targetIdx = matches.findIndex(startsAtOrAfterCursor);
         const resolvedIdx = targetIdx >= 0 ? targetIdx : 0;
         searchMatches.current = matches;
-        searchCacheKey.current = createCacheKey(docVersion.current, searchText, regex, caseSensitive, wholeWord);
+        searchCacheKey.current = expectedKey;
         setMatchCount(matches.length);
         setMatchIndex(resolvedIdx);
         initialIndexRef.current = { idx: resolvedIdx, forText: searchText };
