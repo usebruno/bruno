@@ -199,7 +199,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true, extractTyp
   }
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
-    let value = pair[name];
+    const value = pair[name];
     const rawAnnotations = pair[ANNOTATIONS_KEY];
 
     if (!parseEnabled) {
@@ -231,7 +231,7 @@ const mapRequestParams = (pairList = [], type) => {
   }
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
-    let value = pair[name];
+    const value = pair[name];
     const rawAnnotations = pair[ANNOTATIONS_KEY];
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
@@ -281,7 +281,7 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
     multipartExtractContentType(pair);
 
     if (_.isString(pair.value) && pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
-      let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+      const filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.type = 'file';
       pair.value = filestr.split('|').filter(Boolean);
     }
@@ -296,7 +296,7 @@ const mapPairListToKeyValPairsFile = (pairList = [], parseEnabled = true) => {
     fileExtractContentType(pair);
 
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
-      let filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+      const filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.filePath = filePath;
       pair.selected = pair.enabled;
 
@@ -431,7 +431,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return value.ast;
   },
   pair(_1, annotations, _keyindent, key, _2, _3, _4, value, _5) {
-    let res = {};
+    const res = {};
     if (Array.isArray(value.ast)) {
       res[key.ast] = value.ast;
     } else {
@@ -461,7 +461,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return [pair.ast, ...rest.ast];
   },
   assertpair(_1, annotations, _2, key, _3, _4, _5, value, _6) {
-    let res = {};
+    const res = {};
     res[key.ast] = value.ast ? value.ast.trim() : '';
     const annotationList = annotations.ast;
     if (annotationList && annotationList.length > 0) {
@@ -523,7 +523,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return elements.map((e) => e.ast);
   },
   meta(_1, dictionary) {
-    let meta = mapPairListToKeyValPair(dictionary.ast);
+    const meta = mapPairListToKeyValPair(dictionary.ast);
 
     if (!meta.seq) {
       meta.seq = 1;
@@ -547,7 +547,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     };
   },
   settings(_1, dictionary) {
-    let settings = mapPairListToKeyValPair(dictionary.ast);
+    const settings = mapPairListToKeyValPair(dictionary.ast);
     const getNumFromRecord = createGetNumFromRecord(settings);
 
     const keepAliveInterval = getNumFromRecord('keepAliveInterval');
@@ -558,7 +558,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     }
 
     if (settings.forwardAuthorizationHeader !== undefined) {
-      parsedSettings.forwardAuthorizationHeader = typeof settings.forwardAuthorizationHeader === 'boolean' ? settings.forwardAuthorizationHeader : settings.forwardAuthorizationHeader === 'true';
+      parsedSettings.forwardAuthorizationHeader = toBool(settings.forwardAuthorizationHeader);
     }
 
     // Parse maxRedirects as number
@@ -1141,7 +1141,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   varsreq(_1, dictionary) {
     const vars = mapPairListToKeyValPairs(dictionary.ast, true, true);
     _.each(vars, (v) => {
-      let name = v.name;
+      const name = v.name;
       if (name && name.length && name.charAt(0) === '@') {
         v.name = name.slice(1);
         v.local = true;
@@ -1162,7 +1162,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     // annotations only (preserved on round-trip) without populating `dataType`.
     const vars = mapPairListToKeyValPairs(dictionary.ast, true, false);
     _.each(vars, (v) => {
-      let name = v.name;
+      const name = v.name;
       if (name && name.length && name.charAt(0) === '@') {
         v.name = name.slice(1);
         v.local = true;
@@ -1266,7 +1266,7 @@ const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    let ast = sem(match).ast;
+    const ast = sem(match).ast;
 
     return ast;
   } else {
