@@ -134,7 +134,7 @@ const entriesFromDeclaredValues = (param) => {
  * @param {*} [fallbackValue] - Value to use once every source the spec declares has come up empty
  * @returns {Array} - Entries of `{ value, enabled }`, plus `name` where a member overrides it
  */
-const getParameterEntries = (param, fallbackValue) => {
+const computeParameterEntries = (param, fallbackValue) => {
   const schema = param.schema || {};
   const entries = [];
 
@@ -237,7 +237,7 @@ const objectValueFromSchema = (param) => {
       ? { ...prop, example: schemaExample[propName] }
       : prop;
     const isRequired = Array.isArray(param.schema.required) && param.schema.required.includes(propName);
-    const entries = getParameterEntries({
+    const entries = computeParameterEntries({
       ...param, example: undefined, examples: undefined, name: propName, schema: propSchema, required: isRequired
     });
 
@@ -249,6 +249,28 @@ const objectValueFromSchema = (param) => {
   });
 
   return value;
+};
+
+/**
+ * Wraps computeParameterEntries with the enableOptionalParameters option.
+ * The base logic enables every required parameter, plus any optional one that
+ * carries an example/default value, so whether an optional parameter is ticked
+ * depends on how thoroughly the spec documents it. When importers pass
+ * enableOptionalParameters: false (mirroring the option exposed by other
+ * OpenAPI importers), every entry for a non-required parameter is disabled so
+ * that only required parameters are ticked. Defaults to the existing behaviour
+ * when unset.
+ * @param {Object} param - The OpenAPI parameter object
+ * @param {Object} options - Conversion options
+ * @param {*} [fallbackValue] - Forwarded to computeParameterEntries
+ * @returns {Array} - Array of objects with value and enabled properties
+ */
+const getParameterEntries = (param, options = {}, fallbackValue) => {
+  const entries = computeParameterEntries(param, fallbackValue);
+  if (options.enableOptionalParameters === false && !param.required) {
+    return entries.map((entry) => ({ ...entry, enabled: false }));
+  }
+  return entries;
 };
 
 const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
@@ -350,7 +372,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
           ? { ...prop, example: schemaExample[propName] }
           : prop;
         const tempParam = { ...param, example: undefined, examples: undefined, name: propName, schema: propSchema, required: isRequired };
-        const entries = getParameterEntries(tempParam);
+        const entries = getParameterEntries(tempParam, options);
 
         entries.forEach((entry) => {
           if (param.in === 'query' || param.in === 'querystring') {
@@ -383,9 +405,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
         });
       });
     } else {
-      const entries = isObjectSchema
-        ? getParameterEntries(param, objectValueFromSchema(param))
-        : getParameterEntries(param);
+      const entries = getParameterEntries(param, options, isObjectSchema ? objectValueFromSchema(param) : undefined);
 
       entries.forEach((entry) => {
         if (param.in === 'query' || param.in === 'querystring') {
@@ -524,6 +544,22 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
         autoRefreshToken: true
       };
     }
+  }
+
+  // Keep the request URL in sync with the enabled query params. Bruno derives
+  // the query string it sends from the URL, so an enabled param that is absent
+  // from the URL is shown ticked but is not actually applied until the user
+  // toggles it. Appending the enabled query params mirrors how Bruno persists a
+  // saved request (URL and params:query stay in sync) so an imported request
+  // works on first open.
+  const enabledQueryParams = brunoRequestItem.request.params.filter(
+    (param) => param.type === 'query' && param.enabled
+  );
+  if (enabledQueryParams.length > 0) {
+    const queryString = enabledQueryParams
+      .map((param) => `${param.name}=${param.value ?? ''}`)
+      .join('&');
+    brunoRequestItem.request.url += `?${queryString}`;
   }
 
   // TODO: handle allOf/anyOf/oneOf
