@@ -155,48 +155,6 @@ const buildMockResponseRecord = ({
   };
 };
 
-const buildRouteMapFromSpec = (spec, options = {}) => {
-  const routeMap = new Map();
-  if (!spec?.paths) {
-    return routeMap;
-  }
-
-  for (const [rawPath, pathItem] of Object.entries(spec.paths)) {
-    const routePath = convertOpenApiPath(rawPath);
-
-    for (const method of HTTP_METHODS) {
-      const operation = pathItem?.[method];
-      if (!operation) {
-        continue;
-      }
-
-      const routeKey = `${method.toUpperCase()} ${routePath}`;
-      const operationResponses = listOperationResponses(operation.responses);
-
-      routeMap.set(routeKey, operationResponses.map((pickedResponse) => {
-        const body = buildResponseBody(pickedResponse.content, spec, options);
-
-        return {
-          exampleName: operation.operationId || `${method.toUpperCase()} ${routePath}`,
-          sourceFile: 'openapi-spec',
-          requestItemName: operation.summary || operation.operationId || routePath,
-          response: {
-            status: pickedResponse.status,
-            statusText: pickedResponse.statusText,
-            headers: [{
-              name: 'Content-Type',
-              value: body.type === 'json' ? 'application/json' : 'text/plain'
-            }],
-            body
-          }
-        };
-      }));
-    }
-  }
-
-  return routeMap;
-};
-
 const buildMockResponsesFromSpec = (spec, options = {}) => {
   const responses = [];
   if (!spec?.paths) {
@@ -234,7 +192,6 @@ const buildMockResponsesFromSpec = (spec, options = {}) => {
 };
 
 module.exports = {
-  buildRouteMapFromSpec,
   buildMockResponsesFromSpec,
   convertOpenApiPath,
   listOperationResponses,
