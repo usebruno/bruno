@@ -1,26 +1,22 @@
 import styled, { css } from 'styled-components';
 import { transparentize } from 'polished';
 
-// Recessed track behind the segments and the raised "tile" behind the active
-// segment, sourced from the theme's surface scale. In light themes the tile is
-// the lightest surface (base) on a greyer track; in dark themes the tile is a
-// lighter surface raised above a darker track.
+// Recessed track behind the segments (solid variant): mantle in dark themes,
+// crust in light themes.
 const trackBg = (theme) =>
-  (theme.mode === 'dark' ? theme.background?.surface0 : theme.background?.crust) || theme.bg;
+  theme.mode === 'dark' ? theme.background.mantle : theme.background.crust;
 
-const tileBg = (theme) =>
-  (theme.mode === 'dark' ? theme.background?.surface2 : theme.background?.base) || theme.bg;
+// Raised active-segment fill: surface1 in dark themes, base in light themes.
+const activeBg = (theme) =>
+  theme.mode === 'dark' ? theme.background.surface1 : theme.background.base;
 
-// Two looks for the container and the active segment:
-//  - solid    (default): recessed track with a raised, surface-filled tile.
-//  - outlined: transparent, bordered container with a brand-tinted active tile.
 const variantStyles = {
   solid: css`
     background: ${(props) => trackBg(props.theme)};
 
     .segment.active {
-      color: ${(props) => props.theme.brand};
-      background: ${(props) => tileBg(props.theme)};
+      color: ${(props) => props.theme.text};
+      background: ${(props) => activeBg(props.theme)};
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
       font-weight: 500;
     }
@@ -44,17 +40,17 @@ const variantStyles = {
 
     /* round the end segments so the active fill matches the container corners */
     .segment:first-child {
-      border-top-left-radius: calc(${(props) => props.theme.border.radius.md} - 1px);
-      border-bottom-left-radius: calc(${(props) => props.theme.border.radius.md} - 1px);
+      border-top-left-radius: calc(${(props) => props.theme.border.radius.base} - 1px);
+      border-bottom-left-radius: calc(${(props) => props.theme.border.radius.base} - 1px);
     }
     .segment:last-child {
-      border-top-right-radius: calc(${(props) => props.theme.border.radius.md} - 1px);
-      border-bottom-right-radius: calc(${(props) => props.theme.border.radius.md} - 1px);
+      border-top-right-radius: calc(${(props) => props.theme.border.radius.base} - 1px);
+      border-bottom-right-radius: calc(${(props) => props.theme.border.radius.base} - 1px);
     }
 
     .segment.active {
-      color: ${(props) => props.theme.brand};
-      background: ${(props) => transparentize(0.88, props.theme.brand)};
+      color: ${(props) => props.theme.text};
+      background: ${(props) => activeBg(props.theme)};
       box-shadow: none;
       font-weight: 500;
     }
@@ -87,7 +83,7 @@ const StyledWrapper = styled.div`
   width: ${(props) => (props.$fullWidth ? '100%' : 'auto')};
   gap: 2px;
   padding: 3px;
-  border-radius: ${(props) => props.theme.border.radius.md};
+  border-radius: ${(props) => props.theme.border.radius.base};
 
   .segment {
     position: relative;
@@ -114,6 +110,11 @@ const StyledWrapper = styled.div`
 
   .segment-icon svg {
     display: block;
+  }
+
+  /* keep the active icon on the brand accent even though the label is base text */
+  .segment.active .segment-icon {
+    color: ${(props) => props.theme.brand};
   }
 
   .segment:hover:not(.active):not(.disabled) {
