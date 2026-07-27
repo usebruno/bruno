@@ -42,6 +42,7 @@ export function buildSearchKeyBindings({ setState, searchBarRef, isSearchBarVisi
     'Ctrl-F': openSearch,
     'Cmd-Alt-F': openReplace, // Cmd + Option + F — standard replace shortcut on Mac
     'Ctrl-H': openReplace, // Ctrl + H — standard replace shortcut on Windows/Linux
+    'Cmd-H': false, // Mac: replace (our replace is Cmd+Option+F)
     'Esc': () => {
       if (isSearchBarVisible()) {
         searchBarRef.current?.close();
