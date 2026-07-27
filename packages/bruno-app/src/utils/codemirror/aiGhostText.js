@@ -4,9 +4,10 @@ import { aiAutocomplete, cancelAiAutocomplete } from 'utils/ai';
  * Inline (ghost-text) AI autocomplete for CodeMirror 5 script editors.
  *
  * Suggestion is rendered as a faded bookmark widget at the cursor:
- *   Tab           accept the whole suggestion
- *   Esc           dismiss
- *   Cmd/Ctrl+\    manually trigger (and only way to trigger in manual mode)
+ *   Tab               accept the whole suggestion
+ *   Cmd/Ctrl+Right    accept the next word from the suggestion
+ *   Esc               dismiss
+ *   Cmd/Ctrl+\        manually trigger (and only way to trigger in manual mode)
  *
  * Trigger modes from preferences:
  *   aggressive  -> debounce 100ms (feels keystroke-level but coalesces bursts)
@@ -266,6 +267,33 @@ const acceptAll = (cm) => {
   return true;
 };
 
+const nextWord = (text) => {
+  if (!text) return '';
+  const m = text.match(/^\s*(\w+|[^\w\s])/);
+  return m ? m[0] : text;
+};
+
+const acceptWord = (cm) => {
+  const s = getState(cm);
+  if (!s.suggestion) return false;
+  const word = nextWord(s.suggestion);
+  if (!word) return false;
+  const remainder = s.suggestion.slice(word.length);
+  const cursor = cm.getCursor();
+  clearGhost(cm);
+  cm.replaceRange(word, cursor, cursor, '+ai-autocomplete');
+  if (remainder) {
+    showGhost(cm, remainder);
+    const newCursorIdx = cm.indexFromPos(cm.getCursor());
+    s.reusePrefix = cm.getValue().slice(0, newCursorIdx);
+    s.reuseSuggestion = remainder;
+  } else {
+    s.reusePrefix = null;
+    s.reuseSuggestion = null;
+  }
+  return true;
+};
+
 const dismiss = (cm) => {
   const s = getState(cm);
   if (!s.suggestion) return false;
@@ -351,6 +379,18 @@ export const setupAiAutocomplete = (editor, options) => {
       event.preventDefault();
       event.stopPropagation();
       acceptAll(cm);
+      return;
+    }
+
+    if (
+      event.key === 'ArrowRight'
+      && (event.metaKey || event.ctrlKey)
+      && !event.shiftKey
+      && !event.altKey
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      acceptWord(cm);
       return;
     }
 

@@ -154,8 +154,8 @@ class CodeEditor extends React.Component {
       },
       foldOptions: {
         widget: (from, to) => {
-          var count = undefined;
-          var internal = this.editor.getRange(from, to);
+          let count = undefined;
+          const internal = this.editor.getRange(from, to);
           if (this.props.mode == 'application/ld+json') {
             if (this.editor.getLine(from.line).endsWith('[')) {
               var toParse = '[' + internal + ']';
@@ -164,10 +164,10 @@ class CodeEditor extends React.Component {
               count = Object.keys(JSON.parse(toParse)).length;
             } catch (e) {}
           } else if (this.props.mode == 'application/xml') {
-            var doc = new DOMParser();
+            const doc = new DOMParser();
             try {
               // add header element and remove prefix namespaces for DOMParser
-              var dcm = doc.parseFromString(
+              const dcm = doc.parseFromString(
                 '<a> ' + internal.replace(/(?<=\<|<\/)\w+:/g, '') + '</a>',
                 'application/xml'
               );
@@ -179,14 +179,14 @@ class CodeEditor extends React.Component {
       }
     }));
     CodeMirror.registerHelper('lint', 'json', function (text) {
-      let found = [];
+      const found = [];
       if (!window.jsonlint) {
         if (window.console) {
           window.console.error('Error: window.jsonlint not defined, CodeMirror JSON linting cannot run.');
         }
         return found;
       }
-      let jsonlint = window.jsonlint.parser || window.jsonlint;
+      const jsonlint = window.jsonlint.parser || window.jsonlint;
       try {
         jsonlint.parse(stripJsonComments(text.replace(/(?<!"[^":{]*){{[^}]*}}(?![^"},]*")/g, '1')));
       } catch (error) {
@@ -248,6 +248,19 @@ class CodeEditor extends React.Component {
           this.props.onScroll(this._lastScrollTop);
         }
       });
+
+      // For editors inside a scroll container (e.g. the WebSocket message list),
+      // stop the browser from scrolling that container on focus. Otherwise a
+      // click shifts the content mid-click, landing the cursor on the wrong line
+      // and jumping the editor. preventScroll keeps CodeMirror's own scrolling.
+      if (this.props.containScroll) {
+        const inputField = editor.getInputField();
+        if (inputField && typeof inputField.focus === 'function') {
+          const nativeFocus = inputField.focus.bind(inputField);
+          inputField.focus = (options) => nativeFocus({ ...(options || {}), preventScroll: true });
+        }
+      }
+
       this.addOverlay();
 
       const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
@@ -357,7 +370,7 @@ class CodeEditor extends React.Component {
     }
 
     if (this.editor) {
-      let variables = getAllVariables(this.props.collection, this.props.item);
+      const variables = getAllVariables(this.props.collection, this.props.item);
       if (!isEqual(variables, this.variables)) {
         this.addOverlay();
       }
@@ -467,7 +480,7 @@ class CodeEditor extends React.Component {
 
   addOverlay = () => {
     const mode = this.props.mode || 'application/ld+json';
-    let variables = getAllVariables(this.props.collection, this.props.item);
+    const variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
 
     // Update brunoVarInfo with latest variables

@@ -138,7 +138,7 @@ class MultiLineEditor extends Component {
     // event loop.
     this.ignoreChangeEvent = true;
 
-    let variables = getAllVariables(this.props.collection, this.props.item);
+    const variables = getAllVariables(this.props.collection, this.props.item);
     if (!isEqual(variables, this.variables)) {
       if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
         this.editor.options.brunoVarInfo.variables = variables;
@@ -182,6 +182,9 @@ class MultiLineEditor extends Component {
     }
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
       this.editor.setOption('readOnly', this.props.readOnly || false);
+    }
+    if (this.props.placeholder !== prevProps.placeholder && this.editor) {
+      this.editor.setOption('placeholder', this.props.placeholder);
     }
     this.ignoreChangeEvent = false;
   }

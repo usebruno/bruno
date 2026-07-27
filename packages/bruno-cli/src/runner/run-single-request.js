@@ -69,7 +69,7 @@ const extractPromptVariablesForRequest = ({ request, collection, envVariables, r
 
   // client certificate config
   const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
-  for (let clientCert of clientCertConfig) {
+  for (const clientCert of clientCertConfig) {
     const domain = interpolateString(clientCert?.domain, interpolationOptions);
     if (domain) {
       const hostRegex = getCACertHostRegex(domain);
@@ -367,12 +367,12 @@ const runSingleRequest = async function (
       }
     }
 
-    if (request.settings?.encodeUrl) {
-      request.url = encodeUrl(request.url);
-    }
-
     if (!hasExplicitScheme(request.url)) {
       request.url = `http://${request.url}`;
+    }
+
+    if (request.settings?.encodeUrl) {
+      request.url = encodeUrl(request.url);
     }
 
     const insecure = get(options, 'insecure', false);
@@ -385,8 +385,8 @@ const runSingleRequest = async function (
       httpsAgentRequestFields['rejectUnauthorized'] = false;
     } else {
       const caCertFilePath = options['cacert'];
-      let caCertificatesData = getCACertificates({ caCertFilePath, shouldKeepDefaultCerts: !options['ignoreTruststore'] });
-      let caCertificates = caCertificatesData.caCertificates;
+      const caCertificatesData = getCACertificates({ caCertFilePath, shouldKeepDefaultCerts: !options['ignoreTruststore'] });
+      const caCertificates = caCertificatesData.caCertificates;
       httpsAgentRequestFields['ca'] = caCertificates || [];
     }
 
@@ -399,7 +399,7 @@ const runSingleRequest = async function (
 
     // client certificate config
     const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
-    for (let clientCert of clientCertConfig) {
+    for (const clientCert of clientCertConfig) {
       const domain = interpolateString(clientCert?.domain, interpolationOptions);
       const type = clientCert?.type || 'cert';
       if (domain) {
@@ -518,7 +518,7 @@ const runSingleRequest = async function (
       if (typeof request.data !== 'string' && !isFormData(request?.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
-        let form = createFormData(request.data, collectionPath);
+        const form = createFormData(request.data, collectionPath);
         request.data = form;
 
         if (contentType !== 'multipart/form-data') {

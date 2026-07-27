@@ -32,16 +32,16 @@ const SUGGESTIONS = {
     { label: 'Errors', prompt: 'Document common error responses and status codes' }
   ],
   'app-request': [
-    { label: 'Send button', prompt: 'Add a button that calls ctx.sendRequest() and displays the response status, headers, and pretty-printed body' },
-    { label: 'Form for body', prompt: 'Build a form whose fields override the request body, then send it with ctx.sendRequest({ variables }) and show the result' },
-    { label: 'Response viewer', prompt: 'Render ctx.response with collapsible JSON and a banner showing status and response time; update on ctx.onResponseUpdate' },
-    { label: 'Test results', prompt: 'List ctx.testResults and ctx.assertionResults with pass/fail badges; refresh on ctx.onResultsUpdate' }
+    { label: 'Send button', prompt: 'Add a button that calls bru.ctx.submitRequest() and displays the response status, headers, and pretty-printed body' },
+    { label: 'Form for body', prompt: 'Build a form whose fields override the request body, then send it with bru.ctx.submitRequest({ runtimeVariables }) and show the result' },
+    { label: 'Response viewer', prompt: 'Render bru.ctx.http.response with collapsible JSON and a banner showing status and response time; update on bru.ctx.http.onResponseChange' },
+    { label: 'Test results', prompt: 'List bru.ctx.tests and bru.ctx.assertions with pass/fail badges; refresh on bru.ctx.onTestsChange and bru.ctx.onAssertionsChange' }
   ],
   'app-collection': [
-    { label: 'Request list', prompt: 'List all requests from ctx.listRequests() with their method and url, and a Run button next to each that calls ctx.runRequest(pathname)' },
-    { label: 'Dashboard', prompt: 'Build a small dashboard that runs every request from ctx.listRequests() on load and shows status code, response time, and a pass/fail dot for each' },
-    { label: 'Form runner', prompt: 'Render a form, and on submit call ctx.runRequest(pathname, { variables }) for a chosen request and display the response' },
-    { label: 'Variables panel', prompt: 'Show ctx.variables in a table and allow editing values via ctx.setRuntimeVariable(key, value); react to ctx.onVariablesUpdate' }
+    { label: 'Request list', prompt: 'List all requests from bru.ctx.listRequests() with their method and url, and a Run button next to each that calls bru.ctx.runRequest(pathname)' },
+    { label: 'Dashboard', prompt: 'Build a small dashboard that runs every request from bru.ctx.listRequests() on load and shows status code, response time, and a pass/fail dot for each' },
+    { label: 'Form runner', prompt: 'Render a form, and on submit call bru.ctx.runRequest(pathname, { runtimeVariables }) for a chosen request and display the response' },
+    { label: 'Variables panel', prompt: 'Show bru.ctx.variables.resolved in a table and allow editing values via bru.ctx.variables.runtime.set(name, value); react to bru.ctx.onVariablesChange' }
   ]
 };
 

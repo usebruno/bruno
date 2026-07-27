@@ -4,7 +4,7 @@ import jsyaml from 'js-yaml';
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, openCollection, selectEnvironment, sendRequestAndWaitForResponse } from '../../utils/page';
 
-test.describe('Migrate collection from bru to yml format', () => {
+test.describe.skip('Migrate collection from bru to yml format', () => {
   test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });

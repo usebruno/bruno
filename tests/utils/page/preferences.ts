@@ -8,7 +8,20 @@ export const buildPreferencesLocators = (page: Page) => ({
   /** Status-bar button that opens the Preferences dialog */
   statusBarTrigger: () => page.getByRole('button', { name: 'Open Preferences' }),
   /** A top-level tab inside the Preferences dialog (exact name match) */
-  tab: (name: string) => page.getByRole('tab', { name, exact: true })
+  tab: (name: string) => page.getByRole('tab', { name, exact: true }),
+
+  /** Locators for the System Proxy panel */
+  systemProxy: buildSystemProxyModeLocators(page)
+
+});
+
+const buildSystemProxyModeLocators = (page: Page) => ({
+  /** Returns the locator for the System Proxy mode radio button */
+  systemProxyMode: () => page.getByRole('radio', { name: 'System Proxy' }),
+  /** The "Refresh" button in the System Proxy panel */
+  systemProxyRefreshButton: () => page.getByTestId('system-proxy-refresh-button'),
+  /** The "Last refreshed at <timestamp>" label in the System Proxy panel */
+  systemProxyLastRefreshedLabel: () => page.getByTestId('system-proxy-last-refreshed')
 });
 
 /**

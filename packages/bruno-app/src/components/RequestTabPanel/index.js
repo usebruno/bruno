@@ -400,7 +400,7 @@ const RequestTabPanel = () => {
     }
   }, [isConsoleOpen, isVerticalLayout, responsePaneCollapsed]);
 
-  if (typeof window == 'undefined') {
+  if (typeof window === 'undefined') {
     return <div></div>;
   }
 
@@ -422,7 +422,7 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'changelog') {
-    return <ChangelogTab />;
+    return <ChangelogTab collectionUid={focusedTab.collectionUid} />;
   }
 
   if (focusedTab.type === 'workspaceOverview') {

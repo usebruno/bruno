@@ -296,7 +296,7 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
       if (filter) {
         return safeStringifyJSON(applyJSONPathFilter(data, filter), true);
       }
-    } catch (error) {}
+    } catch (error) { }
 
     if (isVeryLargeResponse) {
       return safeStringifyJSON(data, false);
@@ -304,7 +304,7 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
 
     try {
       return fastJsonFormat(rawData);
-    } catch (error) {}
+    } catch (error) { }
 
     if (typeof data === 'string') {
       return data;
@@ -319,7 +319,7 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
       return typeof data === 'string' ? data : safeStringifyJSON(data, false);
     }
 
-    let parsed = safeParseXML(data, { collapseContent: true });
+    const parsed = safeParseXML(data, { collapseContent: true });
     if (typeof parsed === 'string') {
       return parsed;
     }
@@ -341,7 +341,7 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
     }
 
     // Get HTML string from rawData
-    let htmlString = rawData;
+    const htmlString = rawData;
     // Prettify HTML
     try {
       return prettifyHtmlString(htmlString);
@@ -365,7 +365,7 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
     }
 
     // Get JavaScript string from rawData
-    let jsString = rawData;
+    const jsString = rawData;
 
     // Prettify JavaScript
     try {
@@ -554,3 +554,14 @@ export function isHexFormat(str) {
 
   return false;
 }
+
+export const formatProxyTimestamp = (timestamp) => {
+  return new Date(timestamp).toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+};

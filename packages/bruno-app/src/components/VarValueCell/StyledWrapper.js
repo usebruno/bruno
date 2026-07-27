@@ -25,7 +25,7 @@ const StyledWrapper = styled.div`
 
   &.var-value-compact .trailing-area .type-selector-overlay {
     right: 100%;
-    margin-right: 4px;
+    margin-right: 0px;
   }
 
   &.var-value-compact > .type-selector-overlay {

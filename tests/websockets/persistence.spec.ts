@@ -1,5 +1,5 @@
 import { expect, Locator, test } from '../../playwright';
-import { buildWebsocketCommonLocators } from '../utils/page/locators';
+import { buildCommonLocators } from '../utils/page/locators';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 
@@ -33,7 +33,7 @@ test.describe.serial('persistence', () => {
 
   test('save new websocket url', async ({ pageWithUserData: page }) => {
     const replacementUrl = 'ws://localhost:8083';
-    const locators = buildWebsocketCommonLocators(page);
+    const locators = buildCommonLocators(page);
     const selectAllShortcut = process.platform === 'darwin' ? 'Meta+a' : 'Control+a';
 
     await page.locator('#sidebar-collection-name').click();

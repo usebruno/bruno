@@ -44,6 +44,7 @@ jest.mock('../../cache/requestUids', () => ({
 
 const { MountManager } = require('./manager');
 const collectionWatcher = require('../../app/collection-watcher');
+const treeBuilder = require('./tree-builder');
 
 const makeEmit = () => ({ loading: jest.fn(), tree: jest.fn(), config: jest.fn() });
 
@@ -99,6 +100,30 @@ describe('MountManager.remount', () => {
     expect(collectionWatcher.removeWatcher).not.toHaveBeenCalled();
     expect(collectionWatcher.addWatcher).not.toHaveBeenCalled();
     expect(collectionWatcher.addTempDirectoryWatcher).not.toHaveBeenCalled();
+  });
+
+  it('gives each environment variable a distinct uid when names collide', async () => {
+    treeBuilder.buildTree.mockReturnValueOnce({
+      items: [],
+      environments: [
+        {
+          uid: 'env-1',
+          name: 'Local',
+          variables: [
+            { name: 'TOKEN', value: 'a' },
+            { name: 'TOKEN', value: 'b' },
+            { name: 'TOKEN', value: 'c' }
+          ]
+        }
+      ]
+    });
+
+    const manager = new MountManager();
+    const { emit } = await mountCollection(manager, { collectionUid: 'col-1' });
+
+    const emittedTree = emit.tree.mock.calls[0][0];
+    const uids = emittedTree.environments[0].variables.map((v) => v.uid);
+    expect(new Set(uids).size).toBe(3);
   });
 
   it('propagates a watcher-removal failure without reattaching', async () => {

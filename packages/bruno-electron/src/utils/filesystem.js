@@ -178,6 +178,19 @@ const browseDirectory = async (win) => {
   return isDirectory(resolvedPath) ? resolvedPath : false;
 };
 
+const browseDirectories = async (win) => {
+  const { filePaths } = await dialog.showOpenDialog(win, {
+    properties: ['openDirectory', 'createDirectory', 'multiSelections']
+  });
+
+  if (!filePaths || !filePaths.length) {
+    return [];
+  }
+
+  const resolvedPaths = filePaths.map((filePath) => path.resolve(filePath)).filter((resolvedPath) => isDirectory(resolvedPath));
+  return [...new Set(resolvedPaths)];
+};
+
 const browseFiles = async (win, filters = [], properties = []) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
     properties: ['openFile', ...properties],
@@ -362,14 +375,14 @@ const sizeInMB = (size) => {
 
 const getSafePathToWrite = (filePath) => {
   const MAX_FILENAME_LENGTH = 255; // Common limit on most filesystems
-  let dir = path.dirname(filePath);
-  let ext = path.extname(filePath);
+  const dir = path.dirname(filePath);
+  const ext = path.extname(filePath);
   let base = path.basename(filePath, ext);
   if (base.length + ext.length > MAX_FILENAME_LENGTH) {
     base = sanitizeName(base);
     base = base.slice(0, MAX_FILENAME_LENGTH - ext.length);
   }
-  let safePath = path.join(dir, base + ext);
+  const safePath = path.join(dir, base + ext);
   return safePath;
 };
 
@@ -392,7 +405,7 @@ function safeWriteFileSync(filePath, data) {
 
 // Recursively copies a source <file/directory> to a destination <directory>.
 const copyPath = async (source, destination) => {
-  let targetPath = `${destination}/${path.basename(source)}`;
+  const targetPath = `${destination}/${path.basename(source)}`;
 
   const targetPathExists = await fsPromises.access(targetPath).then(() => true).catch(() => false);
   if (targetPathExists) {
@@ -465,7 +478,7 @@ const moveCollectionDirectory = async (source, destination) => {
 
 // Recursively gets paths.
 const getPaths = async (source) => {
-  let paths = [];
+  const paths = [];
   const _getPaths = async (source) => {
     const stat = await fsPromises.lstat(source);
     paths.push(source);
@@ -581,6 +594,7 @@ module.exports = {
   hasRequestExtension,
   createDirectory,
   browseDirectory,
+  browseDirectories,
   browseFiles,
   chooseFileToSave,
   searchForFiles,

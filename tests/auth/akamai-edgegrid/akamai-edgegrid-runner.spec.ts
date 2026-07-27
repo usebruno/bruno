@@ -10,7 +10,7 @@ import {
 /**
  * End-to-end EdgeGrid (EG1-HMAC-SHA256) auth against the local simulator
  * (packages/bruno-tests/src/auth/edgegrid.js, mounted at /api/auth/edgegrid). The simulator
- * independently re-derives the signature and returns 200/401 — so a green run proves the full
+ * independently re-derives the signature and returns 200/401 - so a green run proves the full
  * UI → prepare-request → interceptor → wire → server-validation path, with no real Akamai API.
  */
 

@@ -804,13 +804,13 @@ const StyledWrapper = styled.div`
       align-items: center;
       gap: 4px;
       padding: 4px 8px;
-      border: none;
+      border: 1px solid ${(props) => props.theme.button2.color.primary.border};
       border-radius: 4px;
       font-size: 11px;
-      font-weight: 500;
+      font-weight: 400;
       cursor: pointer;
-      background: ${(props) => props.theme.brand};
-      color: ${(props) => (props.theme.mode === 'dark' ? '#000' : '#fff')};
+      background: ${(props) => props.theme.button2.color.primary.bg};
+      color: ${(props) => props.theme.button2.color.primary.text};
 
       &:hover {
         opacity: 0.9;

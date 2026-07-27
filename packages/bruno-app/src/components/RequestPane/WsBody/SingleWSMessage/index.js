@@ -179,8 +179,10 @@ export const SingleWSMessage = ({
   return (
     <StyledWrapper
       className={!isSelected ? 'disabled' : ''}
-      onMouseUpCapture={() => {
-        if (!isSelected) onSelect();
+      data-testid={`ws-message-${index}`}
+      onMouseUpCapture={(e) => {
+        if (isSelected || e.target.closest('.hover-action-btn.delete')) return;
+        onSelect();
       }}
     >
       <div
@@ -237,13 +239,13 @@ export const SingleWSMessage = ({
         </div>
         <div className="accordion-actions" onClick={(e) => e.stopPropagation()}>
           <div className="hover-actions">
-            <ToolHint text="Send" toolhintId={`send-msg-${index}`}>
+            <ToolHint text="Send" toolhintId={`send-msg-${index}`} place="bottom">
               <button onClick={onSendMessage} className="hover-action-btn" data-testid={`ws-send-msg-${index}`}>
                 <IconSend size={14} strokeWidth={1.5} />
               </button>
             </ToolHint>
             {(body.ws || []).length > 1 && (
-              <ToolHint text="Delete" toolhintId={`delete-msg-${index}`}>
+              <ToolHint text="Delete" toolhintId={`delete-msg-${index}`} place="bottom">
                 <button onClick={onDeleteMessage} className="hover-action-btn delete" data-testid={`ws-delete-msg-${index}`}>
                   <IconTrash size={14} strokeWidth={1.5} />
                 </button>
@@ -270,6 +272,8 @@ export const SingleWSMessage = ({
             onSave={onSave}
             mode={codemirrorMode[displayMode] ?? 'text/plain'}
             enableVariableHighlighting={true}
+            docKey={`${item.uid}:ws-msg:${message.uid ?? index}`}
+            containScroll={true}
           />
         </div>
       )}

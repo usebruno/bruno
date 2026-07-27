@@ -97,6 +97,7 @@ const initialState = {
     hasCopiedItems: false // Whether clipboard has Bruno data (for UI)
   },
   systemProxyVariables: {},
+  systemProxyLastRefreshedAt: null,
   envVarSearch: {
     collection: {
       variables: { query: '', expanded: false },
@@ -107,7 +108,8 @@ const initialState = {
       secrets: { query: '', expanded: false }
     }
   },
-  isCreatingCollection: false
+  isCreatingCollection: false,
+  isOpeningCollection: false
 };
 
 export const appSlice = createSlice({
@@ -210,6 +212,9 @@ export const appSlice = createSlice({
     updateSystemProxyVariables: (state, action) => {
       state.systemProxyVariables = action.payload;
     },
+    updateSystemProxyLastRefreshedAt: (state, action) => {
+      state.systemProxyLastRefreshedAt = action.payload;
+    },
     updateGenerateCode: (state, action) => {
       state.generateCode = {
         ...state.generateCode,
@@ -252,6 +257,9 @@ export const appSlice = createSlice({
     },
     setIsCreatingCollection: (state, action) => {
       state.isCreatingCollection = action.payload;
+    },
+    setIsOpeningCollection: (state, action) => {
+      state.isOpeningCollection = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -292,6 +300,7 @@ export const {
   removeTaskFromQueue,
   removeAllTasksFromQueue,
   updateSystemProxyVariables,
+  updateSystemProxyLastRefreshedAt,
   updateGenerateCode,
   toggleSidebarCollapse,
   toggleSidebarSearch,
@@ -302,7 +311,8 @@ export const {
   setClipboard,
   setEnvVarSearchQuery,
   setEnvVarSearchExpanded,
-  setIsCreatingCollection
+  setIsCreatingCollection,
+  setIsOpeningCollection
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
@@ -397,6 +407,7 @@ export const refreshSystemProxy = () => (dispatch, getState) => {
     ipcRenderer.invoke('renderer:refresh-system-proxy')
       .then((variables) => {
         dispatch(updateSystemProxyVariables(variables));
+        dispatch(updateSystemProxyLastRefreshedAt(Date.now()));
         return variables;
       })
       .then(resolve).catch(reject);

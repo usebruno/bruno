@@ -114,7 +114,7 @@ const generateUniqueName = (originalName, existingItems, isFolder) => {
   const existingFilenames = existingItems
     .filter((item) => isFolder ? item.type === 'folder' : item.type !== 'folder')
     .map((item) => {
-      let filename = trim(item.filename);
+      const filename = trim(item.filename);
       // For requests, remove file extension (.bru, .yml, .yaml)
       return isFolder ? filename : filename.replace(/\.(bru|yml|yaml)$/, '');
     });
@@ -228,7 +228,7 @@ export const saveFile = (content, itemUid, collectionUid, silent = false) => asy
   const { ipcRenderer } = window;
   try {
     if (['http-request', 'graphql-request'].includes(item?.type)) {
-      let json = await ipcRenderer.invoke('renderer:convert-to-json', item, content, collection.format);
+      const json = await ipcRenderer.invoke('renderer:convert-to-json', item, content, collection.format);
       delete json.isTransient;
       await itemSchema.validate(json);
     }
@@ -407,7 +407,7 @@ export const saveMultipleCollections = (collectionDrafts) => (dispatch, getState
         const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
         const { ipcRenderer } = window;
 
-        let savePromises = [];
+        const savePromises = [];
 
         savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig));
 
@@ -487,7 +487,7 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
       return reject(new Error('Collection not found'));
     }
 
-    let collectionCopy = cloneDeep(collection);
+    const collectionCopy = cloneDeep(collection);
 
     // add selected global env variables to the collection object
     const globalEnvironmentVariables = getGlobalEnvironmentVariables({
@@ -524,7 +524,7 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
-    let collectionCopy = cloneDeep(collection);
+    const collectionCopy = cloneDeep(collection);
 
     const itemCopy = cloneDeep(item);
 
@@ -576,7 +576,7 @@ const extractPromptVariablesForRequest = async (item, collection) => {
     // Get request auth or inherited auth
     const resolvedAuthRequest = resolveInheritedAuth(item, collection);
 
-    for (let clientCert of clientCertConfig) {
+    for (const clientCert of clientCertConfig) {
       const domain = interpolateUrl({ url: clientCert?.domain, variables: allVariables });
 
       if (domain) {
@@ -635,7 +635,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       await dispatch(cancelRequest(item.cancelTokenUid, item, collection));
     }
 
-    let collectionCopy = cloneDeep(collection);
+    const collectionCopy = cloneDeep(collection);
 
     const itemCopy = cloneDeep(item);
 
@@ -774,7 +774,7 @@ export const runCollectionFolder
         return reject(new Error('Collection not found'));
       }
 
-      let collectionCopy = cloneDeep(collection);
+      const collectionCopy = cloneDeep(collection);
 
       // add selected global env variables to the collection object
       const globalEnvironmentVariables = getGlobalEnvironmentVariables({
@@ -1831,7 +1831,7 @@ const DEFAULT_APP_STARTER = `<!DOCTYPE html>
   <script>
     const out = document.getElementById('out');
     document.getElementById('refresh').addEventListener('click', async () => {
-      const requests = await ctx.listRequests();
+      const requests = await bru.ctx.listRequests();
       out.textContent = requests.map(r => \`\${r.method || r.type}  \${r.name}\`).join('\\n') || '(no requests)';
     });
   </script>
@@ -2677,6 +2677,14 @@ export const browseDirectory = () => (dispatch, getState) => {
   });
 };
 
+export const browseDirectories = () => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    ipcRenderer.invoke('renderer:browse-directories').then(resolve).catch(reject);
+  });
+};
+
 export const browseFiles = (filters, properties) => (_dispatch, _getState) => {
   const { ipcRenderer } = window;
 
@@ -2791,7 +2799,7 @@ export const openScratchCollectionEvent = (uid, pathname, brunoConfig) => (dispa
   });
 };
 
-export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
+export const openCollectionEvent = (uid, pathname, brunoConfig, options = {}) => (dispatch, getState) => {
   const { ipcRenderer } = window;
 
   return new Promise((resolve, reject) => {
@@ -2808,7 +2816,9 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     );
 
     if (existingCollection && isAlreadyInWorkspace) {
-      toast.success('Collection is already opened');
+      if (!options.silent) {
+        toast.success('Collection is already opened');
+      }
       resolve();
       return;
     }
@@ -2827,7 +2837,9 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         ipcRenderer
           .invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection)
           .then(() => {
-            toast.success('Collection added to workspace');
+            if (!options.silent) {
+              toast.success('Collection added to workspace');
+            }
           })
           .catch((err) => {
             console.error('Failed to add collection to workspace', err);
@@ -2940,25 +2952,6 @@ export const cloneCollection = (collectionName, collectionFolderName, collection
     previousPath
   );
 };
-export const openCollection = (options = {}) => (dispatch, getState) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-
-    const state = getState();
-    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
-
-    if (!options.workspaceId) {
-      options.workspaceId = activeWorkspace?.pathname || 'default';
-    }
-
-    ipcRenderer.invoke('renderer:open-collection', options)
-      .then((result) => {
-        resolve(result);
-      })
-      .catch(reject);
-  });
-};
-
 export const openMultipleCollections = (collectionPaths, options = {}) => () => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
@@ -3291,8 +3284,10 @@ export const mountCollection
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
 
             const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
-            if (!skipTabRestore && collection?.pathname) {
-              await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+            if (collection?.pathname) {
+              if (!skipTabRestore) {
+                await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+              }
 
               const collectionSnapshotState = await window.ipcRenderer
                 .invoke('renderer:snapshot:get-collection', collection.pathname, workspacePathname)

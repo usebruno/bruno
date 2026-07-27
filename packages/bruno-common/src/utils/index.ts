@@ -47,3 +47,14 @@ export {
   toEntries,
   buildHeaderRows
 } from './headers-source';
+
+export {
+  MAX_BODY_SIZE_DEFAULT,
+  isStrPresent,
+  makeEdgeGridTimestamp,
+  makeEdgeGridNonce,
+  canonicalizeHeaders,
+  base64HmacSha256,
+  base64Sha256,
+  makeContentHash
+} from './edgegrid';
