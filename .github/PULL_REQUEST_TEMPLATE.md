@@ -2,6 +2,22 @@
 
 <!-- Explain here the changes your PR introduces and text to help us understand the context of this change. -->
 
+### Problem
+
+<!-- What issue does this PR solve? Link the related issue if one exists. -->
+
+### Fix
+
+<!-- How does this PR fix the problem? Briefly describe your approach. -->
+
+### Screenshots
+
+<!-- Add screenshots or gifs here if applicable, to help explain the change. -->
+
+| Before | After |
+| --- | --- |
+|  |  |
+
 #### Contribution Checklist:
 
 - [ ] **I've used AI significantly to create this pull request**
