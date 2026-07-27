@@ -12,8 +12,6 @@ const runESMImports = async () => {
 
 const isFixMode = process.argv.some((arg) => arg === '--fix' || arg === '--fix-dry-run');
 
-// Shared with the ESLINT_DISABLE_AUTOFIX override below - keep in one place
-// so adding a package here doesn't require remembering to update that block too.
 const mainLintFiles = [
   './eslint.config.js',
   'tests/**/*.{ts,js}',
