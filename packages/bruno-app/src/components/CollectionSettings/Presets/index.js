@@ -101,6 +101,20 @@ const PresetsSettings = ({ collection }) => {
             <label htmlFor="ws" className="ml-1 cursor-pointer select-none">
               WebSocket
             </label>
+
+            <input
+              id="graphql-subscription"
+              data-testid="presets-request-type-graphql-subscription"
+              className="ml-4 cursor-pointer"
+              type="radio"
+              name="requestType"
+              onChange={handleRequestTypeChange}
+              value={PRESET_REQUEST_TYPES.GRAPHQL_SUBSCRIPTION}
+              checked={(currentPresets.requestType || DEFAULT_PRESET_REQUEST_TYPE) === PRESET_REQUEST_TYPES.GRAPHQL_SUBSCRIPTION}
+            />
+            <label htmlFor="graphql-subscription" className="ml-1 cursor-pointer select-none">
+              GraphQL Subscription
+            </label>
           </div>
         </div>
         <div className="mb-3 flex items-center">

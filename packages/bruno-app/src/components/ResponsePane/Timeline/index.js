@@ -22,7 +22,7 @@ const getEffectiveAuthSource = (collection, item) => {
   };
 
   // Get path from collection to item
-  let path = [];
+  const path = [];
   let currentItem = findItemInCollection(collection, item?.uid);
   while (currentItem) {
     path.unshift(currentItem);
@@ -30,7 +30,7 @@ const getEffectiveAuthSource = (collection, item) => {
   }
 
   // Check folders in reverse to find the closest auth configuration
-  for (let i of [...path].reverse()) {
+  for (const i of [...path].reverse()) {
     if (i.type === 'folder') {
       const folderAuth = get(i, 'root.request.auth');
       if (folderAuth && folderAuth.mode && folderAuth.mode !== 'none' && folderAuth.mode !== 'inherit') {
@@ -59,7 +59,7 @@ const Timeline = ({ collection, item }) => {
     () => getEffectiveAuthSource(collection, item),
     [item, itemAuthMode, collection]
   );
-  const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';
+  const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request' || item.type === 'graphql-subscription-request';
 
   const entries = useMemo(
     () => buildTimelineEntries(collection?.timeline, item.uid, authSource),

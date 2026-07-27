@@ -2,7 +2,7 @@ const { ipcMain, app } = require('electron');
 const { GraphQLSubscriptionClient } = require('@usebruno/requests');
 const { cloneDeep, each, get } = require('lodash');
 const decomment = require('decomment');
-const { parse } = require('graphql');
+const { parse, getIntrospectionQuery } = require('graphql');
 const interpolateVars = require('./interpolate-vars');
 const { preferencesUtil } = require('../../store/preferences');
 const { getCertsAndProxyConfig } = require('./cert-utils');
@@ -201,6 +201,66 @@ const prepareGraphQLSubscriptionRequest = async (item, collection, environment, 
   return preparedRequest;
 };
 
+const INTROSPECTION_TIMEOUT_MS = 15_000;
+
+/**
+ * Runs a GraphQL introspection query over the subscription endpoint itself —
+ * `graphql-transport-ws` is not subscription-only, a `subscribe` message
+ * carrying any query yields one `next` then `complete`. Uses a short-lived,
+ * throwaway client (not the shared one used for real subscriptions) so this
+ * never touches — or is visible in — the tab's own connection/response state.
+ */
+const introspectGraphQLSubscriptionSchema = (preparedRequest, tlsOptions) => {
+  const requestId = `${preparedRequest.uid}:introspection`;
+  let settled = false;
+  let client;
+  let timeoutHandle;
+
+  return new Promise((resolve, reject) => {
+    const settle = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutHandle);
+      client.disconnect(requestId, 1000, 'Introspection complete');
+      fn(value);
+    };
+
+    client = new GraphQLSubscriptionClient((channel, ...args) => {
+      if (channel === 'main:gql-sub:operation-state') {
+        const [, , { states }] = args;
+        (states || []).forEach((state) => {
+          if (state.type === 'next') {
+            settle(resolve, state.payload?.data);
+          } else if (state.type === 'error') {
+            settle(reject, new Error(state.errors?.[0]?.message || 'Introspection query failed'));
+          }
+        });
+      } else if (channel === 'main:gql-sub:error') {
+        const [, , { error }] = args;
+        settle(reject, new Error(error || 'Introspection connection failed'));
+      }
+    });
+
+    timeoutHandle = setTimeout(() => {
+      settle(reject, new Error('Introspection query timed out'));
+    }, INTROSPECTION_TIMEOUT_MS);
+
+    try {
+      client.connect({
+        request: { ...preparedRequest, uid: requestId },
+        collection: { uid: 'introspection' },
+        options: { tls: tlsOptions }
+      });
+      client.subscribe(requestId, {
+        query: getIntrospectionQuery(),
+        operationName: 'IntrospectionQuery'
+      });
+    } catch (error) {
+      settle(reject, error);
+    }
+  });
+};
+
 // Creating the client at module level so it can be accessed from window-all-closed/before-quit
 let graphqlSubscriptionClient;
 
@@ -320,6 +380,42 @@ const registerGraphQLSubscriptionEventHandlers = (window) => {
         return { success: true };
       } catch (error) {
         console.error('Error subscribing to GraphQL subscription:', error);
+        return { success: false, error: error.message };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    'renderer:gql-sub:introspect',
+    async (event, { item, collection, environment, runtimeVariables }) => {
+      try {
+        const itemCopy = cloneDeep(item);
+        const preparedRequest = await prepareGraphQLSubscriptionRequest(itemCopy, collection, environment, runtimeVariables);
+
+        const certsAndProxyConfig = await getCertsAndProxyConfig({
+          collectionUid: collection.uid,
+          collection,
+          request: itemCopy.request,
+          envVars: preparedRequest.envVars,
+          runtimeVariables,
+          processEnvVars: preparedRequest.processEnvVars,
+          collectionPath: collection.pathname,
+          globalEnvironmentVariables: collection.globalEnvironmentVariables
+        });
+        const { httpsAgentRequestFields } = certsAndProxyConfig;
+
+        const data = await introspectGraphQLSubscriptionSchema(preparedRequest, {
+          rejectUnauthorized: preferencesUtil.shouldVerifyTls(),
+          ca: httpsAgentRequestFields.ca,
+          cert: httpsAgentRequestFields.cert,
+          key: httpsAgentRequestFields.key,
+          pfx: httpsAgentRequestFields.pfx,
+          passphrase: httpsAgentRequestFields.passphrase
+        });
+
+        return { success: true, data };
+      } catch (error) {
+        console.error('Error running introspection over the subscription socket:', error);
         return { success: false, error: error.message };
       }
     }

@@ -69,6 +69,31 @@ export const fetchGqlSchema = async (endpoint, environment, request, collection)
   });
 };
 
+/**
+ * Runs introspection over a graphql-subscription-request's own wss:// endpoint
+ * (a short-lived subscribe that yields one `next` then `complete`), rather
+ * than a plain axios POST — there's no HTTP endpoint to POST to.
+ *
+ * Matches useGraphqlSchema's `fetchIntrospection(endpoint, environment, request, collection)`
+ * call signature — `request` here is the flattened `{ ...item.request, pathname, uid }`
+ * shape GraphQLRequestPane already builds, so it's re-wrapped into an item-like object.
+ */
+export const fetchGraphqlSubscriptionSchema = async (endpoint, environment, request, collection) => {
+  const { ipcRenderer } = window;
+  const item = { uid: request.uid, type: 'graphql-subscription-request', request };
+
+  const result = await ipcRenderer.invoke('renderer:gql-sub:introspect', {
+    item,
+    collection,
+    environment,
+    runtimeVariables: collection?.runtimeVariables || {}
+  });
+  if (!result?.success) {
+    throw new Error(result?.error || 'Introspection query failed');
+  }
+  return result.data;
+};
+
 export const cancelNetworkRequest = async (cancelTokenUid) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;

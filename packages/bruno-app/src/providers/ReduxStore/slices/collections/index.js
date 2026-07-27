@@ -1952,6 +1952,20 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateGraphqlSubscriptionConnectionParams: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.connectionParams = action.payload.connectionParams;
+        }
+      }
+    },
     updateRequestScript: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -4222,6 +4236,7 @@ export const {
   updateRequestBody,
   updateRequestGraphqlQuery,
   updateRequestGraphqlVariables,
+  updateGraphqlSubscriptionConnectionParams,
   updateRequestScript,
   updateResponseScript,
   updateRequestTests,

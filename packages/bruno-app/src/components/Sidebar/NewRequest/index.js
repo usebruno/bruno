@@ -8,7 +8,7 @@ import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { newEphemeralHttpRequest } from 'providers/ReduxStore/slices/collections';
-import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { newHttpRequest, newGrpcRequest, newWsRequest, newGraphqlSubscriptionRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelector';
 import { getDefaultRequestPaneTab } from 'utils/collections';
@@ -101,6 +101,10 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
       return 'ws-request';
     }
 
+    if (collectionPresets.requestType === 'graphql-subscription') {
+      return 'graphql-subscription-request';
+    }
+
     return 'http-request';
   };
 
@@ -149,6 +153,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
     onSubmit: (values) => {
       const isGrpcRequest = values.requestType === 'grpc-request';
       const isWsRequest = values.requestType === 'ws-request';
+      const isGraphqlSubscriptionRequest = values.requestType === 'graphql-subscription-request';
       const filename = values.filename;
 
       if (isGrpcRequest) {
@@ -175,6 +180,19 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
           requestMethod: values.requestMethod,
           filename: filename,
           requestType: values.requestType,
+          requestUrl: values.requestUrl,
+          collectionUid: collection.uid,
+          itemUid: item ? item.uid : null
+        }))
+          .then(() => {
+            toast.success('New request created!');
+            onClose();
+          })
+          .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+      } else if (isGraphqlSubscriptionRequest) {
+        dispatch(newGraphqlSubscriptionRequest({
+          requestName: values.requestName,
+          filename: filename,
           requestUrl: values.requestUrl,
           collectionUid: collection.uid,
           itemUid: item ? item.uid : null
@@ -384,6 +402,21 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       WebSocket
                     </label>
                   </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="graphql-subscription-request"
+                      name="requestType"
+                      value="graphql-subscription-request"
+                      checked={formik.values.requestType === 'graphql-subscription-request'}
+                      onChange={formik.handleChange}
+                      data-testid="graphql-subscription-request"
+                    />
+                    <label htmlFor="graphql-subscription-request" className="ml-1 cursor-pointer select-none">
+                      GraphQL Subscription
+                    </label>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -496,7 +529,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                     URL
                   </label>
                   <div className="flex items-center mt-2 ">
-                    {!['grpc-request', 'ws-request'].includes(formik.values.requestType) ? (
+                    {!['grpc-request', 'ws-request', 'graphql-subscription-request'].includes(formik.values.requestType) ? (
                       <div className="flex items-center h-full method-selector-container">
                         <HttpMethodSelector
                           method={formik.values.requestMethod}

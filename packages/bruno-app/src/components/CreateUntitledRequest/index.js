@@ -1,11 +1,11 @@
 import React, { useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import MenuDropdown from 'ui/MenuDropdown';
-import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { newHttpRequest, newGrpcRequest, newWsRequest, newGraphqlSubscriptionRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { generateUniqueRequestName } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
-import { IconApi, IconBrandGraphql, IconPlugConnected, IconCode, IconPlus } from '@tabler/icons';
+import { IconApi, IconBrandGraphql, IconPlugConnected, IconCode, IconPlus, IconAntenna } from '@tabler/icons';
 import ActionIcon from 'ui/ActionIcon';
 
 const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated, placement = 'bottom' }) => {
@@ -85,6 +85,26 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
       .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
   }, [dispatch, collection, itemUid, onRequestCreated]);
 
+  const handleCreateGraphqlSubscriptionRequest = useCallback(async () => {
+    const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
+    const filename = sanitizeName(uniqueName);
+
+    dispatch(
+      newGraphqlSubscriptionRequest({
+        requestName: uniqueName,
+        filename: filename,
+        requestUrl: '',
+        collectionUid: collection.uid,
+        itemUid: itemUid
+      })
+    )
+      .then(() => {
+        toast.success('New request created!');
+        onRequestCreated?.();
+      })
+      .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+  }, [dispatch, collection, itemUid, onRequestCreated]);
+
   const handleCreateGrpcRequest = useCallback(async () => {
     const uniqueName = await generateUniqueRequestName(collection, 'Untitled', itemUid);
     const filename = sanitizeName(uniqueName);
@@ -125,12 +145,18 @@ const CreateUntitledRequest = ({ collectionUid, itemUid = null, onRequestCreated
       onClick: handleCreateWebSocketRequest
     },
     {
+      id: 'graphql-subscription',
+      label: 'GraphQL Subscription',
+      leftSection: <IconAntenna size={16} strokeWidth={2} />,
+      onClick: handleCreateGraphqlSubscriptionRequest
+    },
+    {
       id: 'grpc',
       label: 'gRPC',
       leftSection: <IconCode size={16} strokeWidth={2} />,
       onClick: handleCreateGrpcRequest
     }
-  ], [handleCreateHttpRequest, handleCreateGraphQLRequest, handleCreateWebSocketRequest, handleCreateGrpcRequest]);
+  ], [handleCreateHttpRequest, handleCreateGraphQLRequest, handleCreateWebSocketRequest, handleCreateGraphqlSubscriptionRequest, handleCreateGrpcRequest]);
 
   if (!collection) {
     return null;
