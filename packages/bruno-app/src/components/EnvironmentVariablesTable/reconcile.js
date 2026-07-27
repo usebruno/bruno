@@ -6,10 +6,7 @@
 // variable lists. Returns 'adopt' | 'skip' | 'noop'.
 export const reconcileSavedChange = ({ prevSaved, nextSaved, current }) => {
   // The saved snapshot didn't actually change.
-  if (prevSaved === nextSaved) return 'noop';
-
-  // The form already matches the incoming snapshot (e.g. our own save landing).
-  if (current === nextSaved) return 'noop';
+  if (prevSaved === nextSaved || current === nextSaved) return 'noop';
 
   // The form still matches the previous baseline => the user has no unsaved
   // edits => it is safe to adopt the newly-saved / reloaded data.
