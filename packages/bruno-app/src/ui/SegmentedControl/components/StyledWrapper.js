@@ -22,7 +22,7 @@ const variantStyles = {
     }
   `,
   outlined: css`
-    background: transparent;
+    background: ${(props) => trackBg(props.theme)};
     border: 1px solid ${(props) => props.theme.border.border1};
     /* segments butt up against each other, separated by dividers and filling
        the full cell (no inset tile), so drop the track padding and gap. */
