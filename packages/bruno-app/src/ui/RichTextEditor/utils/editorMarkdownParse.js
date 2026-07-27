@@ -56,11 +56,39 @@ const setupTaskListParser = (markdownit) => {
 };
 
 const updateTaskListDOM = (element) => {
-  element.querySelectorAll('.contains-task-list, ul[data-type="taskList"]').forEach((list) => {
-    list.setAttribute('data-type', 'taskList');
+  element.querySelectorAll('ul.contains-task-list, ul[data-type="taskList"]').forEach((ul) => {
+    let currentList = null;
+    let isCurrentTask = null;
+    const newLists = [];
+
+    Array.from(ul.children).forEach((li) => {
+      const isTask = li.classList.contains('task-list-item') || li.getAttribute('data-type') === 'taskItem';
+
+      if (isCurrentTask !== isTask || !currentList) {
+        currentList = ul.cloneNode(false);
+        if (isTask) {
+          currentList.classList.add('contains-task-list');
+          currentList.setAttribute('data-type', 'taskList');
+        } else {
+          currentList.classList.remove('contains-task-list');
+          currentList.removeAttribute('data-type');
+          if (currentList.getAttribute('class') === '') {
+            currentList.removeAttribute('class');
+          }
+        }
+        newLists.push(currentList);
+        isCurrentTask = isTask;
+      }
+      currentList.appendChild(li);
+    });
+
+    if (newLists.length > 0) {
+      newLists.forEach((nl) => ul.parentNode.insertBefore(nl, ul));
+      ul.remove();
+    }
   });
 
-  element.querySelectorAll('.task-list-item, ul.contains-task-list > li, ul[data-type="taskList"] > li').forEach((item) => {
+  element.querySelectorAll('.task-list-item, ul[data-type="taskList"] > li').forEach((item) => {
     const input = item.querySelector('input[type="checkbox"]');
     item.setAttribute('data-type', 'taskItem');
 
