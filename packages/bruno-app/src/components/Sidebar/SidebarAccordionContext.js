@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useCallback, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { setSidebarSectionExpanded } from 'providers/ReduxStore/slices/app';
+import { setSidebarSectionExpanded, removeSidebarSectionSize } from 'providers/ReduxStore/slices/app';
 
 const SidebarAccordionContext = createContext();
 
@@ -21,30 +21,24 @@ export const SidebarAccordionProvider = ({ children }) => {
   const expandedSections = useSelector((state) => state.app.sidebarExpandedSections);
   const dropdownContainerRef = useRef(null);
 
-  const toggleSection = useCallback((sectionId) => {
-    dispatch(setSidebarSectionExpanded({ id: sectionId, expanded: !expandedSections.includes(sectionId) }));
-  }, [dispatch, expandedSections]);
-
   const setSectionExpanded = useCallback((sectionId, expanded) => {
     dispatch(setSidebarSectionExpanded({ id: sectionId, expanded }));
+    // Closing a section drops its stored height so it reopens at the 1/N default.
+    if (!expanded) {
+      dispatch(removeSidebarSectionSize(sectionId));
+    }
   }, [dispatch]);
 
   const isExpanded = useCallback((sectionId) => {
     return expandedSections.includes(sectionId);
   }, [expandedSections]);
 
-  const getExpandedCount = useCallback(() => {
-    return expandedSections.length;
-  }, [expandedSections]);
-
   return (
     <SidebarAccordionContext.Provider
       value={{
         expandedSections,
-        toggleSection,
         setSectionExpanded,
         isExpanded,
-        getExpandedCount,
         dropdownContainerRef
       }}
     >

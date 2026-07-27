@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { IconChevronRight, IconChevronDown } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { useSidebarAccordion } from '../SidebarAccordionContext';
@@ -12,31 +12,17 @@ const SidebarSection = ({
   children,
   className = ''
 }) => {
-  const { isExpanded, setSectionExpanded, getExpandedCount } = useSidebarAccordion();
-  const [localExpanded, setLocalExpanded] = useState(() => isExpanded(id));
+  const { isExpanded, setSectionExpanded } = useSidebarAccordion();
+  const expanded = isExpanded(id);
   const sectionRef = useRef(null);
 
-  // Sync with context
-  useEffect(() => {
-    const expanded = isExpanded(id);
-    setLocalExpanded(expanded);
-  }, [id, isExpanded]);
-
-  const handleToggle = () => {
-    const newExpanded = !localExpanded;
-    setLocalExpanded(newExpanded);
-    setSectionExpanded(id, newExpanded);
-  };
-
-  const expandedCount = getExpandedCount();
-  // Check if this is the only expanded section
-  const isOnlyExpanded = expandedCount === 1 && localExpanded;
+  const handleToggle = () => setSectionExpanded(id, !expanded);
 
   return (
     <StyledWrapper className={className}>
       <div
         ref={sectionRef}
-        className={`sidebar-section ${localExpanded ? 'expanded' : ''} ${isOnlyExpanded ? 'single-expanded' : ''} ${expandedCount > 1 && localExpanded ? 'multi-expanded' : ''}`}
+        className={`sidebar-section ${expanded ? 'expanded' : ''}`}
       >
         <div
           className="section-header"
@@ -53,7 +39,7 @@ const SidebarSection = ({
               }}
             >
               <ActionIcon size="sm" className="section-toggle">
-                {localExpanded ? (
+                {expanded ? (
                   <IconChevronDown size={12} stroke={1.5} />
                 ) : (
                   <IconChevronRight size={12} stroke={1.5} />
@@ -68,7 +54,7 @@ const SidebarSection = ({
               className="section-actions"
               onClick={(e) => {
                 e.stopPropagation();
-                if (!localExpanded) {
+                if (!expanded) {
                   setSectionExpanded(id, true);
                 }
               }}
@@ -77,7 +63,7 @@ const SidebarSection = ({
             </div>
           )}
         </div>
-        {localExpanded && (
+        {expanded && (
           <div className="section-content">
             {children}
           </div>

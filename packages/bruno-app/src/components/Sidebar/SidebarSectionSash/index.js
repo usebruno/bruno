@@ -40,6 +40,9 @@ const SidebarSectionSash = ({ onDragStart, onDrag, onDragEnd }) => {
     <StyledWrapper
       className={`sidebar-section-sash ${dragging ? 'dragging' : ''}`}
       onMouseDown={handleMouseDown}
+      role="separator"
+      aria-orientation="horizontal"
+      data-testid="sidebar-section-sash"
     />
   );
 };
