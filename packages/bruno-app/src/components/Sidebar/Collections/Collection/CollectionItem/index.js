@@ -25,6 +25,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest, cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
+import { formatIpcError } from 'utils/common/error';
 import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
@@ -625,7 +626,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     if (!isCloneable) return;
     dispatch(cloneItem(`${item.name} copy`, `${sanitizeName(item.name)} copy`, item.uid, collectionUid))
       .then(() => toast.success(`${isFolder ? 'Folder' : 'Request'} cloned!`))
-      .catch((err) => toast.error(err?.message || `An error occurred while cloning the ${isFolder ? 'folder' : 'request'}`));
+      .catch((err) => toast.error(formatIpcError(err) || `An error occurred while cloning the ${isFolder ? 'folder' : 'request'}`));
   };
 
   const handlePasteItem = () => {
@@ -641,7 +642,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         toast.success('Item pasted successfully');
       })
       .catch((err) => {
-        toast.error(err ? err.message : 'An error occurred while pasting the item');
+        toast.error(formatIpcError(err) || 'An error occurred while pasting the item');
       });
   };
 

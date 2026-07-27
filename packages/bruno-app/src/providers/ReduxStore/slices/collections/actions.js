@@ -797,58 +797,39 @@ export const newFolder = (folderName, directoryName, collectionUid, itemUid) => 
       return reject(new Error('Collection not found'));
     }
 
-    if (!itemUid) {
-      const fullName = path.join(collection.pathname, directoryName);
-      const { ipcRenderer } = window;
-
-      const folderData = {
-        meta: {
-          name: folderName,
-          seq: items?.length + 1
-        },
-        request: {
-          auth: {
-            mode: 'inherit'
-          }
-        }
-      };
-
-      ipcRenderer
-        .invoke('renderer:new-folder', { pathname: fullName, folderData, format: collection.format })
-        .then(resolve)
-        .catch((error) => {
-          toast.error('Failed to create a new folder!');
-          reject(error);
-        });
-    } else {
+    // Resolve the parent directory: the collection root, or an existing folder.
+    let parentPathname;
+    if (itemUid) {
       const currentItem = findItemInCollection(collection, itemUid);
-      if (currentItem) {
-        const fullName = path.join(currentItem.pathname, directoryName);
-        const { ipcRenderer } = window;
-
-        const folderData = {
-          meta: {
-            name: folderName,
-            seq: items?.length + 1
-          },
-          request: {
-            auth: {
-              mode: 'inherit'
-            }
-          }
-        };
-
-        ipcRenderer
-          .invoke('renderer:new-folder', { pathname: fullName, folderData, format: collection.format })
-          .then(resolve)
-          .catch((error) => {
-            toast.error('Failed to create a new folder!');
-            reject(error);
-          });
-      } else {
+      if (!currentItem) {
         return reject(new Error('unable to find parent folder'));
       }
+      parentPathname = currentItem.pathname;
+    } else {
+      parentPathname = collection.pathname;
     }
+
+    const fullName = path.join(parentPathname, directoryName);
+    const folderData = {
+      meta: {
+        name: folderName,
+        seq: (items?.length ?? 0) + 1
+      },
+      request: {
+        auth: {
+          mode: 'inherit'
+        }
+      }
+    };
+
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('renderer:new-folder', { pathname: fullName, folderData, format: collection.format })
+      .then(resolve)
+      .catch((error) => {
+        toast.error('Failed to create a new folder!');
+        reject(error);
+      });
   });
 };
 
