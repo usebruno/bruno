@@ -128,15 +128,21 @@ const editorContentStyles = css`
   }
 
   code {
-    background-color: ${(props) => props.theme.background.surface0};
+    background-color: transparent;
+    border: solid 1px ${(props) => props.theme.border.border0};
     border-radius: ${(props) => props.theme.border.radius.sm};
     font-size: 0.85em;
     padding: 0.15em 0.35em;
     font-family: ${(props) => props.theme.font.monospace || 'monospace'};
+
+    html.light & {
+      background-color: ${(props) => props.theme.sidebar.bg};
+    }
   }
 
   pre {
-    background-color: ${(props) => props.theme.background.surface0};
+    background-color: transparent;
+    border: solid 1px ${(props) => props.theme.border.border0};
     color: ${(props) => props.theme.text};
     font-family: ${(props) => props.theme.font.monospace || 'monospace'};
     margin: 1rem 0;
@@ -144,10 +150,15 @@ const editorContentStyles = css`
     border-radius: ${(props) => props.theme.border.radius.sm};
     overflow-x: auto;
 
+    html.light & {
+      background-color: ${(props) => props.theme.sidebar.bg};
+    }
+
     code {
-      background: none;
+      background-color: transparent;
       padding: 0;
       font-size: 0.85em;
+      border: none;
     }
   }
 
