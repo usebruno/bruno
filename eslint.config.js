@@ -88,8 +88,8 @@ module.exports = runESMImports().then(() => defineConfig([
       '@stylistic/no-mixed-operators': ['off'],
       'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none' }],
       'no-debugger': 'warn',
-      'eqeqeq': ['warn', 'always'],
-      'prefer-const': 'warn',
+      'eqeqeq': isFixMode ? 'off' : ['warn', 'always'],
+      'prefer-const': isFixMode ? 'off' : 'warn',
       'no-var': 'warn',
       'no-unreachable': 'warn',
       'no-duplicate-imports': 'warn',
@@ -98,16 +98,6 @@ module.exports = runESMImports().then(() => defineConfig([
       'no-use-before-define': ['warn', { functions: false }]
     }
   },
-  // When running `eslint --fix` we don't want these two rules to silently
-  // rewrite existing code (they still run and warn under plain `npm run lint`).
-  // Toggle via ESLINT_DISABLE_AUTOFIX=true, set by the `lint:fix` script.
-  ...(isFixMode ? [{
-    files: mainLintFiles,
-    rules: {
-      'eqeqeq': 'off',
-      'prefer-const': 'off'
-    }
-  }] : []),
   {
     files: ['packages/bruno-app/**/*.{js,jsx,ts}'],
     ignores: ['**/*.config.js', '**/public/**/*', '**/plugins/**/*'],
