@@ -16,13 +16,15 @@ const findCollectionDir = (location: string) =>
   path.join(location, fs.readdirSync(location).find((entry) => fs.statSync(path.join(location, entry)).isDirectory())!);
 
 const setDefaultViaPresets = async (page: Page, collectionName: string, environmentName: string) => {
-  const locators = buildCommonLocators(page);
-  await openCollectionSettings(page, collectionName);
-  await locators.paneTabs.collectionSettingsTab('presets').click();
-  await locators.presets.defaultEnvironment().click();
-  await locators.presets.defaultEnvironmentOption(environmentName).click();
-  // The default is a draft change (like Request Type / Base URL); persist it via Save.
-  await locators.presets.saveBtn().click();
+  await test.step(`Set default environment to "${environmentName}" via Presets`, async () => {
+    const locators = buildCommonLocators(page);
+    await openCollectionSettings(page, collectionName);
+    await locators.paneTabs.collectionSettingsTab('presets').click();
+    await locators.presets.defaultEnvironment().click();
+    await locators.presets.defaultEnvironmentOption(environmentName).click();
+    // The default is a draft change (like Request Type / Base URL); persist it via Save.
+    await locators.presets.saveBtn().click();
+  });
 };
 
 test.describe('Collection Default Environment - Presets & sharing', () => {
@@ -33,9 +35,11 @@ test.describe('Collection Default Environment - Presets & sharing', () => {
   test('setting the default environment in Presets persists to bruno.json', async ({ page, createTmpDir }) => {
     const location = await createTmpDir('default-env-presets');
 
-    await createCollection(page, 'default-env-presets', location, 'bru');
-    await createEnvironment(page, 'prod', 'collection');
-    await createEnvironment(page, 'dev', 'collection');
+    await test.step('Create collection with prod/dev environments', async () => {
+      await createCollection(page, 'default-env-presets', location, 'bru');
+      await createEnvironment(page, 'prod', 'collection');
+      await createEnvironment(page, 'dev', 'collection');
+    });
 
     await setDefaultViaPresets(page, 'default-env-presets', 'prod');
 
@@ -51,9 +55,11 @@ test.describe('Collection Default Environment - Presets & sharing', () => {
   test('setting the default environment in Presets persists to opencollection.yml', async ({ page, createTmpDir }) => {
     const location = await createTmpDir('default-env-presets-yml');
 
-    await createCollection(page, 'default-env-presets-yml', location, 'yml');
-    await createEnvironment(page, 'prod', 'collection');
-    await createEnvironment(page, 'dev', 'collection');
+    await test.step('Create collection with prod/dev environments', async () => {
+      await createCollection(page, 'default-env-presets-yml', location, 'yml');
+      await createEnvironment(page, 'prod', 'collection');
+      await createEnvironment(page, 'dev', 'collection');
+    });
 
     await setDefaultViaPresets(page, 'default-env-presets-yml', 'prod');
 
@@ -70,9 +76,11 @@ test.describe('Collection Default Environment - Presets & sharing', () => {
     const locators = buildCommonLocators(page);
     const location = await createTmpDir('default-env-presets-clear');
 
-    await createCollection(page, 'default-env-presets-clear', location, 'bru');
-    await createEnvironment(page, 'prod', 'collection');
-    await createEnvironment(page, 'dev', 'collection');
+    await test.step('Create collection with prod/dev environments', async () => {
+      await createCollection(page, 'default-env-presets-clear', location, 'bru');
+      await createEnvironment(page, 'prod', 'collection');
+      await createEnvironment(page, 'dev', 'collection');
+    });
 
     const collectionDir = findCollectionDir(location);
     const readDefaultEnvironment = () => {
@@ -83,19 +91,24 @@ test.describe('Collection Default Environment - Presets & sharing', () => {
     await setDefaultViaPresets(page, 'default-env-presets-clear', 'prod');
     await expect.poll(readDefaultEnvironment, { timeout: 10000 }).toBe('prod');
 
-    // Selecting "None" and saving removes the key entirely.
-    await locators.presets.defaultEnvironment().click();
-    await locators.presets.defaultEnvironmentOption('None').click();
-    await locators.presets.saveBtn().click();
+    await test.step('Clear default environment via "None"', async () => {
+      // Selecting "None" and saving removes the key entirely.
+      await locators.presets.defaultEnvironment().click();
+      await locators.presets.defaultEnvironmentOption('None').click();
+      await locators.presets.saveBtn().click();
+    });
+
     await expect.poll(readDefaultEnvironment, { timeout: 10000 }).toBeUndefined();
   });
 
   test('exported ZIP carries the configured default environment in bruno.json', async ({ page, electronApp, createTmpDir }) => {
     const location = await createTmpDir('default-env-zip');
 
-    await createCollection(page, 'default-env-zip', location, 'bru');
-    await createEnvironment(page, 'prod', 'collection');
-    await createEnvironment(page, 'dev', 'collection');
+    await test.step('Create collection with prod/dev environments', async () => {
+      await createCollection(page, 'default-env-zip', location, 'bru');
+      await createEnvironment(page, 'prod', 'collection');
+      await createEnvironment(page, 'dev', 'collection');
+    });
 
     await setDefaultViaPresets(page, 'default-env-zip', 'prod');
 
@@ -107,19 +120,22 @@ test.describe('Collection Default Environment - Presets & sharing', () => {
       }, { timeout: 10000 })
       .toBe('prod');
 
-    // Mock the native save dialog so the export writes to a known path.
     const zipPath = path.join(await createTmpDir('default-env-zip-out'), 'export.zip');
-    await electronApp.evaluate(({ dialog }, filePath) => {
-      dialog.showSaveDialog = async () => ({ filePath, canceled: false });
-    }, zipPath);
 
-    await page.evaluate(
-      ({ collectionPath, collectionName }) =>
-        (window as any).ipcRenderer.invoke('renderer:export-collection-zip', collectionPath, collectionName),
-      { collectionPath: collectionDir, collectionName: 'default-env-zip' }
-    );
+    await test.step('Mock save dialog and export collection as ZIP', async () => {
+      // Mock the native save dialog so the export writes to a known path.
+      await electronApp.evaluate(({ dialog }, filePath) => {
+        dialog.showSaveDialog = async () => ({ filePath, canceled: false });
+      }, zipPath);
 
-    await expect.poll(() => fs.existsSync(zipPath), { timeout: 10000 }).toBe(true);
+      await page.evaluate(
+        ({ collectionPath, collectionName }) =>
+          (window as any).ipcRenderer.invoke('renderer:export-collection-zip', collectionPath, collectionName),
+        { collectionPath: collectionDir, collectionName: 'default-env-zip' }
+      );
+
+      await expect.poll(() => fs.existsSync(zipPath), { timeout: 10000 }).toBe(true);
+    });
 
     const zip = new AdmZip(zipPath);
     const entry = zip.getEntries().find((e) => /(^|\/)bruno\.json$/.test(e.entryName));
@@ -131,34 +147,39 @@ test.describe('Collection Default Environment - Presets & sharing', () => {
   test('importing a shared collection applies its default environment on first open', async ({ page, createTmpDir }) => {
     const { environment } = buildCommonLocators(page);
 
-    // Build a shared-collection ZIP whose bruno.json carries presets.defaultEnvironment.
-    const zipPath = path.join(await createTmpDir('imported-default-env-src'), 'shared.zip');
-    const zip = new AdmZip();
-    zip.addFile(
-      'bruno.json',
-      Buffer.from(
-        JSON.stringify(
-          { version: '1', name: 'imported-default-env', type: 'collection', presets: { defaultEnvironment: 'prod' } },
-          null,
-          2
-        ) + '\n'
-      )
-    );
-    zip.addFile('environments/prod.bru', Buffer.from('vars {\n  name: production\n}\n'));
-    zip.addFile('environments/dev.bru', Buffer.from('vars {\n  name: development\n}\n'));
-    zip.writeZip(zipPath);
+    await test.step('Build shared-collection ZIP with a configured default environment', async () => {
+      // Build a shared-collection ZIP whose bruno.json carries presets.defaultEnvironment.
+      const zipPath = path.join(await createTmpDir('imported-default-env-src'), 'shared.zip');
+      const zip = new AdmZip();
+      zip.addFile(
+        'bruno.json',
+        Buffer.from(
+          JSON.stringify(
+            { version: '1', name: 'imported-default-env', type: 'collection', presets: { defaultEnvironment: 'prod' } },
+            null,
+            2
+          ) + '\n'
+        )
+      );
+      zip.addFile('environments/prod.bru', Buffer.from('vars {\n  name: production\n}\n'));
+      zip.addFile('environments/dev.bru', Buffer.from('vars {\n  name: development\n}\n'));
+      zip.writeZip(zipPath);
 
-    // Import into a fresh location, so there is no prior ui-snapshot for that path.
-    const importLocation = await createTmpDir('imported-default-env-dest');
-    await page.evaluate(
-      ({ zipFilePath, collectionLocation }) =>
-        (window as any).ipcRenderer.invoke('renderer:import-collection-zip', zipFilePath, collectionLocation),
-      { zipFilePath: zipPath, collectionLocation: importLocation }
-    );
+      // Import into a fresh location, so there is no prior ui-snapshot for that path.
+      const importLocation = await createTmpDir('imported-default-env-dest');
+      await page.evaluate(
+        ({ zipFilePath, collectionLocation }) =>
+          (window as any).ipcRenderer.invoke('renderer:import-collection-zip', zipFilePath, collectionLocation),
+        { zipFilePath: zipPath, collectionLocation: importLocation }
+      );
+    });
 
-    // Opening the freshly imported collection applies its configured default (prod).
-    await openCollection(page, 'imported-default-env');
-    await waitForCollectionMount(page, 'imported-default-env');
+    await test.step('Open imported collection and confirm default is applied', async () => {
+      // Opening the freshly imported collection applies its configured default (prod).
+      await openCollection(page, 'imported-default-env');
+      await waitForCollectionMount(page, 'imported-default-env');
+    });
+
     await expect(environment.currentEnvironment()).toContainText('prod');
   });
 });
