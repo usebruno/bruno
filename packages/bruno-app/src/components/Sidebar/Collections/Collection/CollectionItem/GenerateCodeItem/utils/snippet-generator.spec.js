@@ -1205,6 +1205,41 @@ describe('generateSnippet – encodeUrl setting', () => {
     const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
     expect(result).toBe(`curl -X GET '${rawUrl}'`);
   });
+
+  it('should preserve the host:port colon (not %3A) when encodeUrl is true', async () => {
+    // Local-dev `host:port` authority. The port colon must survive un-encoded:
+    // encodeUrl leaves the authority alone because the scheme is present (the
+    // codegen path prepends http:// upstream), so a bogus `localhost%3A6000`
+    // host can never reach the snippet.
+    const rawUrl = 'http://localhost:6000/echo-request';
+    const item = makeItem(rawUrl, { encodeUrl: true });
+
+    const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('http://localhost:6000/echo-request');
+    expect(result).not.toContain('localhost%3A6000');
+  });
+
+  it('should preserve the host:port colon when encodeUrl is false', async () => {
+    const rawUrl = 'http://localhost:6000/echo-request';
+    const item = makeItem(rawUrl, { encodeUrl: false });
+
+    const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('http://localhost:6000/echo-request');
+    expect(result).not.toContain('localhost%3A6000');
+  });
+
+  it('requires an explicit scheme — a bare host:port is rejected upstream of the snippet', async () => {
+    // generateSnippet expects the scheme already prepended: the GenerateCodeItem
+    // component runs interpolateUrlPathParams (which prepends http://) before
+    // calling it. Given a raw `host:port` with no scheme, buildHar's URL sanity
+    // gate rejects it and the error string surfaces. The schemeless→correct
+    // path (user types `localhost:6000`, snippet shows `http://localhost:6000`)
+    // is exercised end-to-end in tests/request/generate-code.
+    const item = makeItem('localhost:6000/echo-request', { encodeUrl: true });
+
+    const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toBe('Error generating code snippet');
+  });
 });
 
 // ---------------------------------------------------------------------------
