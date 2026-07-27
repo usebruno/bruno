@@ -59,6 +59,14 @@ const parseCollection = (ymlString: string): ParsedCollection => {
         };
       }
     }
+    // scripts.flow controls collection/folder/request script execution order
+    // ('sandwich' | 'sequential'); unrecognized values fall back to the runtime default.
+    if (brunoExtensions?.scripts?.flow === 'sandwich' || brunoExtensions?.scripts?.flow === 'sequential') {
+      brunoConfig.scripts = {
+        ...brunoConfig.scripts,
+        flow: brunoExtensions.scripts.flow
+      };
+    }
     if (Array.isArray(brunoExtensions?.openapi) && brunoExtensions.openapi.length > 0) {
       brunoConfig.openapi = brunoExtensions.openapi.map((entry: any) => ({
         sourceUrl: entry.sourceUrl,
