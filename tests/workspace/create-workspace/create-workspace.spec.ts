@@ -24,8 +24,8 @@ function findCreatedWorkspaceDirs(location: string): string[] {
 }
 
 test.describe('Create Workspace', () => {
-  test.describe('Inline Creation Flow', () => {
-    test('should create workspace via inline rename and press Enter', async ({ launchElectronApp, createTmpDir }) => {
+  test.describe('inline workspace creation flow', () => {
+    test('TC-957: Verify create a workspace directly from the title bar by typing a name', { tag: '@sanity' }, async ({ launchElectronApp, createTmpDir }) => {
       const wsLocation = await createTmpDir('ws-location-enter');
 
       const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
@@ -454,7 +454,7 @@ test.describe('Create Workspace', () => {
       await closeElectronApp(app);
     });
 
-    test('should persist workspace name after app restart', async ({ launchElectronApp, createTmpDir }) => {
+    test('TC-959: Verify created Workspace persists even after bruno app restart.', { tag: '@sanity' }, async ({ launchElectronApp, createTmpDir }) => {
       const userDataPath = await createTmpDir('create-ws-name-persist');
       const wsLocation = await createTmpDir('ws-location-persist');
 

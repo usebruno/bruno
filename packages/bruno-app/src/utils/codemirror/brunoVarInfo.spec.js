@@ -421,6 +421,28 @@ describe('renderVarInfo', () => {
       expect(copyButton.classList.contains('copy-success')).toBe(false);
     });
 
+    it('should copy plain object values as formatted JSON', async () => {
+      const { copyButton } = setupRender({ apiKey: { host: 'localhost', port: 8080 } });
+
+      copyButton.click();
+      await jest.runAllTimersAsync();
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        JSON.stringify({ host: 'localhost', port: 8080 }, null, 2)
+      );
+    });
+
+    it('should fall back to String() for circular objects and still write to clipboard', async () => {
+      const circular = {};
+      circular.self = circular;
+      const { copyButton } = setupRender({ apiKey: circular });
+
+      copyButton.click();
+      await jest.runAllTimersAsync();
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(String(circular));
+    });
+
     it('should log to the console when the variable value is not copied', async () => {
       const { copyButton } = setupRender({ apiKey: 'cause-clipboard-error' });
 

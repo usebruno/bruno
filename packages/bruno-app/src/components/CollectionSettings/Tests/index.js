@@ -1,8 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
+import { buildAiVariablesPayload } from 'utils/ai';
 import { updateCollectionTests } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
@@ -37,6 +38,8 @@ const Tests = ({ collection }) => {
     scriptPhase: 'test'
   });
 
+  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, null), [collection]);
+
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">These tests will run any time a request in this collection is sent.</div>
@@ -56,7 +59,7 @@ const Tests = ({ collection }) => {
           initialScroll={testsScroll}
           onScroll={setTestsScroll}
         />
-        <AIAssist scriptType="tests" currentScript={tests || ''} onApply={onEdit} />
+        <AIAssist scriptType="tests" currentScript={tests || ''} variables={aiVariables} onApply={onEdit} />
       </div>
 
       <div className="mt-6">

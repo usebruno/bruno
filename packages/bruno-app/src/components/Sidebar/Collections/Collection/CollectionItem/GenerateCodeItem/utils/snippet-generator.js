@@ -31,7 +31,7 @@ const addCurlAuthFlags = (curlCommand, auth) => {
   return curlCommand;
 };
 
-const generateSnippet = ({ language, item, collection, shouldInterpolate = false }) => {
+const generateSnippet = async ({ language, item, collection, shouldInterpolate = false }) => {
   try {
     // Get HTTPSnippet dynamically so mocks can be applied in tests
     const { HTTPSnippet } = require('httpsnippet');
@@ -51,7 +51,7 @@ const generateSnippet = ({ language, item, collection, shouldInterpolate = false
     const settings = item.draft ? get(item, 'draft.settings') : get(item, 'settings');
 
     const sourceUrl = item.rawUrl || request.url;
-    const { har, rawUrl, encodedUrl, unhash } = buildHar({
+    const { har, rawUrl, encodedUrl, unhash } = await buildHar({
       request: {
         method: request.method,
         url: sourceUrl,

@@ -3,7 +3,7 @@ const path = require('path');
 const _ = require('lodash');
 const { parseEnvironment, stringifyEnvironment } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
-const { writeFile, createDirectory } = require('../utils/filesystem');
+const { writeFile, createDirectory, withFileLock } = require('../utils/filesystem');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { decryptStringSafe } = require('../utils/encryption');
 const EnvironmentSecretsStore = require('./env-secrets');
@@ -71,7 +71,7 @@ class GlobalEnvironmentsManager {
     if (this.envHasSecrets(environment)) {
       const envSecrets = environmentSecretsStore.getEnvSecrets(workspacePath, environment);
       _.each(envSecrets, (secret) => {
-        const variable = _.find(environment.variables, (v) => v.name === secret.name);
+        const variable = _.find(environment.variables, (v) => v.name === secret.name && v.secret);
         if (variable && secret.value) {
           const decryptionResult = decryptStringSafe(secret.value);
           variable.value = parseValueByDataType(decryptionResult.value, variable.dataType);
@@ -183,12 +183,17 @@ class GlobalEnvironmentsManager {
         environment.color = color;
       }
 
-      if (this.envHasSecrets(environment)) {
-        environmentSecretsStore.storeEnvSecrets(workspacePath, environment);
-      }
+      // Serialize concurrent writes per env file. Two rapid scripted
+      // bru.setGlobalEnvVar() persist calls can otherwise overlap and the
+      // second writer's stringify+write can land before the first, dropping it.
+      await withFileLock(envFile.filePath, async () => {
+        if (this.envHasSecrets(environment)) {
+          environmentSecretsStore.storeEnvSecrets(workspacePath, environment);
+        }
 
-      const content = await stringifyEnvironment(environment, { format: 'yml' });
-      await writeFile(envFile.filePath, content);
+        const content = await stringifyEnvironment(environment, { format: 'yml' });
+        await writeFile(envFile.filePath, content);
+      });
 
       return true;
     } catch (error) {
@@ -274,11 +279,13 @@ class GlobalEnvironmentsManager {
         throw new Error(`Environment file not found for uid: ${environmentUid}`);
       }
 
-      const environment = await this.parseEnvironmentFile(envFile.filePath, workspacePath);
-      environment.color = color;
+      await withFileLock(envFile.filePath, async () => {
+        const environment = await this.parseEnvironmentFile(envFile.filePath, workspacePath);
+        environment.color = color;
 
-      const content = stringifyEnvironment(environment, { format: 'yml' });
-      await writeFile(envFile.filePath, content);
+        const content = stringifyEnvironment(environment, { format: 'yml' });
+        await writeFile(envFile.filePath, content);
+      });
 
       return true;
     } catch (error) {

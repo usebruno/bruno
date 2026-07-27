@@ -2,7 +2,9 @@ const {
   getValueString,
   extractTypedAnnotations,
   buildAnnotationsFromVariable,
-  serializeAnnotations
+  serializeAnnotations,
+  escapeMultilineDescription,
+  unescapeMultilineDescription
 } = require('../src/utils');
 
 describe('getValueString', () => {
@@ -142,15 +144,15 @@ describe('serializeAnnotations', () => {
     expect(serializeAnnotations([{ name: 'number' }])).toBe('@number\n');
   });
 
-  it('serializes a string-valued annotation using single-quote delimiters by default', () => {
+  it('serializes a non-empty description annotation using single-quote delimiters', () => {
     expect(serializeAnnotations([{ name: 'description', value: 'a doc' }])).toBe('@description(\'a doc\')\n');
   });
 
-  it('switches to double-quote delimiters when the value contains a single quote', () => {
+  it('uses double-quote delimiters for description when value contains a single quote', () => {
     expect(serializeAnnotations([{ name: 'description', value: 'O\'Reilly' }])).toBe('@description("O\'Reilly")\n');
   });
 
-  it('keeps single-quote delimiters when the value contains a double quote', () => {
+  it('uses single-quote delimiters for description when value contains a double quote', () => {
     expect(serializeAnnotations([{ name: 'description', value: 'say "hi"' }])).toBe('@description(\'say "hi"\')\n');
   });
 
@@ -175,9 +177,53 @@ describe('serializeAnnotations', () => {
   });
 
   it('treats null/empty-string values as present (not as missing)', () => {
-    // `a.value === undefined` is the only branch that renders without parentheses,
-    // so null and '' both serialize as quoted empty-ish values.
+    // null coerces to 'null' (non-empty), so gets single-quote format
     expect(serializeAnnotations([{ name: 'description', value: null }])).toBe('@description(\'null\')\n');
+    // empty string falls through to standard single-quote format
     expect(serializeAnnotations([{ name: 'description', value: '' }])).toBe('@description(\'\')\n');
+  });
+
+  it('escapes embedded triple quotes in a multiline description', () => {
+    expect(serializeAnnotations([{ name: 'description', value: 'line1\nline2 with \'\'\' inside\nline3' }])).toBe(
+      '@description(\'\'\'\n  line1\n  line2 with \\\'\\\'\\\' inside\n  line3\n\'\'\')\n'
+    );
+  });
+
+  it('doubles a pre-existing backslash-quote before escaping triple quotes in a multiline description', () => {
+    expect(serializeAnnotations([{ name: 'description', value: 'it\\\'s multiline\nand has \'\'\' too' }])).toBe(
+      '@description(\'\'\'\n  it\\\\\'s multiline\n  and has \\\'\\\'\\\' too\n\'\'\')\n'
+    );
+  });
+
+  it('does not escape triple quotes on other (non-description) multiline annotations', () => {
+    expect(serializeAnnotations([{ name: 'note', value: 'line1 \'\'\'\nline2' }])).toBe(
+      '@note(\'\'\'\n  line1 \'\'\'\n  line2\n\'\'\')\n'
+    );
+  });
+});
+
+describe('escapeMultilineDescription / unescapeMultilineDescription', () => {
+  it('escapes a literal triple-quote sequence', () => {
+    expect(escapeMultilineDescription('has \'\'\' inside')).toBe('has \\\'\\\'\\\' inside');
+  });
+
+  it('doubles a pre-existing backslash-quote sequence', () => {
+    expect(escapeMultilineDescription('it\\\'s here')).toBe('it\\\\\'s here');
+  });
+
+  it('round-trips a value containing both a backslash-quote and a triple-quote', () => {
+    const original = 'it\\\'s \'\'\' here';
+    const escaped = escapeMultilineDescription(original);
+    expect(unescapeMultilineDescription(escaped)).toBe(original);
+  });
+
+  it('leaves plain text untouched', () => {
+    expect(escapeMultilineDescription('plain text')).toBe('plain text');
+    expect(unescapeMultilineDescription('plain text')).toBe('plain text');
+  });
+
+  it('unescapeMultilineDescription reverses escapeMultilineDescription', () => {
+    const original = 'line1\nline2 with \'\'\' and \\\'quoted\\\' bits\nline3';
+    expect(unescapeMultilineDescription(escapeMultilineDescription(original))).toBe(original);
   });
 });

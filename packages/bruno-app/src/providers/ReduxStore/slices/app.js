@@ -68,7 +68,20 @@ const initialState = {
         anthropic: { enabled: false }
       },
       models: {},
-      defaultModel: ''
+      defaultModel: '',
+      autocomplete: {
+        enabled: true,
+        model: '',
+        triggerMode: 'debounced'
+      },
+      security: {
+        redactHeaders: true,
+        redactBody: true,
+        redactVariables: true,
+        redactResponse: true,
+        customRedactedHeaders: [],
+        customRedactedVariables: []
+      }
     }
   },
   generateCode: {
@@ -84,11 +97,19 @@ const initialState = {
     hasCopiedItems: false // Whether clipboard has Bruno data (for UI)
   },
   systemProxyVariables: {},
+  systemProxyLastRefreshedAt: null,
   envVarSearch: {
-    collection: { query: '', expanded: false },
-    global: { query: '', expanded: false }
+    collection: {
+      variables: { query: '', expanded: false },
+      secrets: { query: '', expanded: false }
+    },
+    global: {
+      variables: { query: '', expanded: false },
+      secrets: { query: '', expanded: false }
+    }
   },
-  isCreatingCollection: false
+  isCreatingCollection: false,
+  isOpeningCollection: false
 };
 
 export const appSlice = createSlice({
@@ -191,6 +212,9 @@ export const appSlice = createSlice({
     updateSystemProxyVariables: (state, action) => {
       state.systemProxyVariables = action.payload;
     },
+    updateSystemProxyLastRefreshedAt: (state, action) => {
+      state.systemProxyLastRefreshedAt = action.payload;
+    },
     updateGenerateCode: (state, action) => {
       state.generateCode = {
         ...state.generateCode,
@@ -223,16 +247,19 @@ export const appSlice = createSlice({
       // Update clipboard UI state
       state.clipboard.hasCopiedItems = action.payload.hasCopiedItems;
     },
-    setEnvVarSearchQuery: (state, { payload: { context, query } }) => {
-      if (!state.envVarSearch[context]) return;
-      state.envVarSearch[context].query = query;
+    setEnvVarSearchQuery: (state, { payload: { context, tab = 'variables', query } }) => {
+      if (!state.envVarSearch[context]?.[tab]) return;
+      state.envVarSearch[context][tab].query = query;
     },
-    setEnvVarSearchExpanded: (state, { payload: { context, expanded } }) => {
-      if (!state.envVarSearch[context]) return;
-      state.envVarSearch[context].expanded = expanded;
+    setEnvVarSearchExpanded: (state, { payload: { context, tab = 'variables', expanded } }) => {
+      if (!state.envVarSearch[context]?.[tab]) return;
+      state.envVarSearch[context][tab].expanded = expanded;
     },
     setIsCreatingCollection: (state, action) => {
       state.isCreatingCollection = action.payload;
+    },
+    setIsOpeningCollection: (state, action) => {
+      state.isOpeningCollection = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -273,6 +300,7 @@ export const {
   removeTaskFromQueue,
   removeAllTasksFromQueue,
   updateSystemProxyVariables,
+  updateSystemProxyLastRefreshedAt,
   updateGenerateCode,
   toggleSidebarCollapse,
   toggleSidebarSearch,
@@ -283,19 +311,23 @@ export const {
   setClipboard,
   setEnvVarSearchQuery,
   setEnvVarSearchExpanded,
-  setIsCreatingCollection
+  setIsCreatingCollection,
+  setIsOpeningCollection
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
+  const previous = getState().app.preferences;
+  dispatch(updatePreferences(preferences));
 
-    ipcRenderer
-      .invoke('renderer:save-preferences', preferences)
-      .then(() => dispatch(updatePreferences(preferences)))
-      .then(resolve)
-      .catch(reject);
-  });
+  const { ipcRenderer } = window;
+  return ipcRenderer
+    .invoke('renderer:save-preferences', preferences)
+    .catch((err) => {
+      if (getState().app.preferences === preferences) {
+        dispatch(updatePreferences(previous));
+      }
+      throw err;
+    });
 };
 
 export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
@@ -375,6 +407,7 @@ export const refreshSystemProxy = () => (dispatch, getState) => {
     ipcRenderer.invoke('renderer:refresh-system-proxy')
       .then((variables) => {
         dispatch(updateSystemProxyVariables(variables));
+        dispatch(updateSystemProxyLastRefreshedAt(Date.now()));
         return variables;
       })
       .then(resolve).catch(reject);

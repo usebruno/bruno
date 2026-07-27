@@ -10,7 +10,7 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
-import { buildRequestContextFromItem } from 'utils/ai';
+import { buildAiContextPayload } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
@@ -44,7 +44,10 @@ const Documentation = ({ item, collection }) => {
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
-  const requestContext = useMemo(() => buildRequestContextFromItem(item), [item]);
+  const { requestContext, variables: aiVariables } = useMemo(
+    () => buildAiContextPayload(item, collection),
+    [item, collection]
+  );
 
   if (!item) {
     return null;
@@ -74,6 +77,7 @@ const Documentation = ({ item, collection }) => {
             scriptType="docs"
             currentScript={docs || ''}
             requestContext={requestContext}
+            variables={aiVariables}
             onApply={onEdit}
           />
         </div>

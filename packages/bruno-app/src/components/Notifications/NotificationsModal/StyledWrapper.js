@@ -244,8 +244,50 @@ const StyledWrapper = styled.div`
     flex: 1;
     min-height: 0;
     width: 100%;
-    border: none;
-    background: transparent;
+    overflow-y: auto;
+    padding: 8px 12px;
+
+    .markdown-body {
+      background: transparent;
+      font-size: 12px;
+      line-height: 20px;
+      font-weight: 500;
+      color: ${(props) => props.theme.colors.text.muted};
+      word-break: break-word;
+
+      p {
+        margin: 0 0 0.75rem 0;
+        white-space: normal;
+      }
+
+      a {
+        color: ${(props) => props.theme.textLink};
+        text-decoration: underline;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        font-size: 13px;
+        font-weight: 600;
+        margin: 0 0 0.5rem 0;
+        padding: 0;
+        border: none;
+        color: ${(props) => props.theme.text};
+      }
+
+      ul {
+        padding-left: 1.25rem;
+        margin: 0 0 0.75rem 0;
+      }
+
+      img {
+        max-width: 100%;
+      }
+    }
   }
 
   .notif-empty {

@@ -10,6 +10,7 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   const brunoExtension = oc.extensions?.bruno as {
     ignore?: string[];
     presets?: BrunoPresets;
+    scripts?: { flow?: unknown };
   } | undefined;
 
   const ignoreList = brunoExtension && Array.isArray(brunoExtension.ignore)
@@ -17,11 +18,14 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     : ['node_modules', '.git'];
 
   const brunoConfig: BrunoConfig = {
-    version: '1',
     name: oc.info?.name || 'Untitled Collection',
     type: 'collection',
     ignore: ignoreList
   };
+
+  if (oc.info?.version != null && oc.info.version !== '') {
+    brunoConfig.version = String(oc.info.version);
+  }
 
   if (brunoExtension?.presets?.requestType || brunoExtension?.presets?.requestUrl) {
     brunoConfig.presets = {};
@@ -31,6 +35,11 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     if (brunoExtension.presets.requestUrl) {
       brunoConfig.presets.requestUrl = brunoExtension.presets.requestUrl;
     }
+  }
+
+  const scriptFlow = brunoExtension?.scripts?.flow;
+  if (scriptFlow === 'sandwich' || scriptFlow === 'sequential') {
+    brunoConfig.scripts = { flow: scriptFlow };
   }
 
   const config = oc.config;

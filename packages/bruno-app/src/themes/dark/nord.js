@@ -82,6 +82,12 @@ const nordTheme = {
     subtle: colors.BRAND
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.BRAND
+    }
+  },
+
   accents: {
     primary: colors.BRAND
   },

@@ -32,11 +32,17 @@ const Wrapper = styled.div`
         width: 25px;
         border-right: none;
       }
+
       &:nth-child(4) {
         width: 80px;
       }
+      
       &:nth-child(5) {
-        width: 60px;
+        width: 10%;
+      }
+      
+      &:nth-child(6) {
+        width: 5%;
       }
     }
 

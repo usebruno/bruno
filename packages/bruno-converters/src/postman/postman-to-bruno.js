@@ -1,14 +1,15 @@
-import get from 'lodash/get';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
+import mime from 'mime-types';
 import { transformExampleStatusInCollection } from '@usebruno/common';
 import each from 'lodash/each';
-import postmanTranslation from './postman-translations';
+import get from 'lodash/get';
+import { hydrateSeqInCollection, transformItemsInCollection, uuid, validateSchema } from '../common';
+import { invalidVariableCharacterRegex } from '../constants/index';
 import {
-  extractPackagesFromScript,
   buildPackageReport,
+  extractPackagesFromScript,
   TRANSLATOR_INJECTED_GLOBALS
 } from './postman-package-detector';
-import { invalidVariableCharacterRegex } from '../constants/index';
+import postmanTranslation from './postman-translations';
 
 const AUTH_TYPES = Object.freeze({
   BASIC: 'basic',
@@ -18,7 +19,9 @@ const AUTH_TYPES = Object.freeze({
   DIGEST: 'digest',
   OAUTH1: 'oauth1',
   OAUTH2: 'oauth2',
+  EDGEGRID: 'edgegrid',
   NOAUTH: 'noauth',
+  NTLM: 'ntlm',
   NONE: 'none'
 });
 
@@ -89,6 +92,23 @@ const ensureString = (value, fallback = '') => {
   if (typeof value === 'string') return value;
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
+};
+
+// EdgeGrid's maxBodySize is numeric in Bruno; coerce Postman's value (number or string) to a number or null.
+const ensureMaxBodySize = (value) => {
+  if (value == null || value === '') return null;
+  const num = Number(value);
+  return isNaN(num) ? null : num;
+};
+
+/**
+ * Postman's `mode: "file"` body carries no per-file content type. Infer it from the
+ * file extension; fall back to application/octet-stream (RFC 2046 §4.5.1) when the
+ * extension is missing or unknown.
+ * https://datatracker.ietf.org/doc/html/rfc2046#section-4.5.1
+ */
+const inferBinaryContentType = (filePath) => {
+  return mime.lookup(filePath || '') || 'application/octet-stream';
 };
 
 /**
@@ -281,6 +301,28 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         password: ensureString(authValues.password)
       };
       break;
+    case AUTH_TYPES.EDGEGRID:
+      requestObject.auth.mode = 'akamai-edgegrid';
+      requestObject.auth.akamaiEdgegrid = {
+        accessToken: ensureString(authValues.accessToken),
+        clientToken: ensureString(authValues.clientToken),
+        clientSecret: ensureString(authValues.clientSecret),
+        nonce: ensureString(authValues.nonce),
+        timestamp: ensureString(authValues.timestamp),
+        baseURL: ensureString(authValues.baseURL),
+        headersToSign: ensureString(authValues.headersToSign),
+        maxBodySize: ensureMaxBodySize(authValues.maxBodySize)
+      };
+      break;
+    case AUTH_TYPES.NTLM:
+      // Postman's `workstation` field has no Bruno equivalent, so it is dropped here.
+      requestObject.auth.ntlm = {
+        username: ensureString(authValues.username),
+        password: ensureString(authValues.password),
+        domain: ensureString(authValues.domain)
+      };
+      break;
+
     case AUTH_TYPES.OAUTH1:
       requestObject.auth.oauth1 = {
         consumerKey: ensureString(authValues.consumerKey),
@@ -315,8 +357,35 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
       const postmanGrantType = findValueUsingKey('grant_type');
       const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] || 'client_credentials'; // Default
 
+      // Maps Postman's request-params arrays to Bruno's `additionalParameters`, converting `send_as`
+      // ('request_header'/'request_url'/'request_body') to Bruno's `sendIn` ('headers'/'queryparams'/'body').
+      const sendAsToSendIn = { request_header: 'headers', request_url: 'queryparams', request_body: 'body' };
+      const mapRequestParams = (params) => (Array.isArray(params) ? params : []).map((param) => ({
+        name: ensureString(param.key),
+        value: ensureString(param.value),
+        sendIn: sendAsToSendIn[param.send_as] || 'headers',
+        enabled: param.enabled !== false
+      }));
+      const additionalParameters = {};
+      if (Array.isArray(authValues.authRequestParams)) {
+        additionalParameters.authorization = mapRequestParams(authValues.authRequestParams);
+      }
+      if (Array.isArray(authValues.tokenRequestParams)) {
+        additionalParameters.token = mapRequestParams(authValues.tokenRequestParams);
+      }
+      if (Array.isArray(authValues.refreshRequestParams)) {
+        additionalParameters.refresh = mapRequestParams(authValues.refreshRequestParams);
+      }
+      const hasAdditionalParameters = Object.keys(additionalParameters).length > 0;
+      // The schema requires an `authorization` array for the authorization_code grant, so ensure it
+      // exists when any additional params are attached to this grant type.
+      if (hasAdditionalParameters && targetGrantType === 'authorization_code' && !additionalParameters.authorization) {
+        additionalParameters.authorization = [];
+      }
+
       // Common properties for all OAuth2 grant types
       const baseOAuth2Config = {
+        ...(hasAdditionalParameters ? { additionalParameters } : {}),
         grantType: targetGrantType,
         accessTokenUrl: findValueUsingKey('accessTokenUrl'),
         refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
@@ -327,7 +396,8 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         tokenPlacement: findValueUsingKey('addTokenTo') === 'header' ? 'header' : 'url',
         tokenHeaderPrefix: findValueUsingKey('headerPrefix'),
         tokenQueryKey: 'access_token',
-        credentialsPlacement: findValueUsingKey('client_authentication') === 'body' ? 'body' : 'basic_auth_header'
+        credentialsPlacement: findValueUsingKey('client_authentication') === 'body' ? 'body' : 'basic_auth_header',
+        credentialsId: findValueUsingKey('tokenName')
       };
 
       switch (postmanGrantType) {
@@ -422,7 +492,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               apikey: null,
               oauth1: null,
               oauth2: null,
-              digest: null
+              digest: null,
+              ntlm: null
             },
             headers: [],
             script: {},
@@ -489,7 +560,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               apikey: null,
               oauth1: null,
               oauth2: null,
-              digest: null
+              digest: null,
+              ntlm: null
             },
             headers: [],
             params: [],
@@ -499,7 +571,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               text: null,
               xml: null,
               formUrlEncoded: [],
-              multipartForm: []
+              multipartForm: [],
+              file: []
             },
             docs: transformDescription(i.request.description)
           }
@@ -609,6 +682,17 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               brunoRequestItem.request.body.text = i.request.body.raw;
             }
           }
+
+          if (bodyMode === 'file') {
+            brunoRequestItem.request.body.mode = 'file';
+            const filePath = ensureString(i.request.body.file?.src);
+            brunoRequestItem.request.body.file.push({
+              uid: uuid(),
+              selected: true,
+              filePath,
+              contentType: inferBinaryContentType(filePath)
+            });
+          }
         }
 
         if (bodyMode === 'graphql') {
@@ -691,7 +775,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                   text: null,
                   xml: null,
                   formUrlEncoded: [],
-                  multipartForm: []
+                  multipartForm: [],
+                  file: []
                 }
               },
               response: {
@@ -803,6 +888,15 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
                   example.request.body.mode = 'text';
                   example.request.body.text = originalRequest.body.raw;
                 }
+              } else if (bodyMode === 'file') {
+                example.request.body.mode = 'file';
+                const filePath = ensureString(originalRequest.body.file?.src);
+                example.request.body.file.push({
+                  uid: uuid(),
+                  selected: true,
+                  filePath,
+                  contentType: inferBinaryContentType(filePath)
+                });
               }
             }
 
@@ -966,7 +1060,8 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
           apikey: null,
           oauth1: null,
           oauth2: null,
-          digest: null
+          digest: null,
+          ntlm: null
         },
         headers: [],
         script: {},

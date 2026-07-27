@@ -100,8 +100,7 @@ describe('Combined API Features Translation', () => {
     expect(translatedCode).toContain('bru.setEnvVar("userId", response.user.id);');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should translate pm.collectionVariables.set in a combined code block', () => {
+  it('should translate pm.collectionVariables.set in a combined code block', () => {
     const code = 'pm.collectionVariables.set("sessionId", response.session.id);';
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe('bru.setCollectionVar("sessionId", response.session.id);');
@@ -114,8 +113,7 @@ describe('Combined API Features Translation', () => {
     expect(translatedCode).toBe('bru.setEnvVar("computed", bru.getVar("base") + "-suffix");');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should handle more complex nested expressions', () => {
+  it('should handle more complex nested expressions', () => {
     const code = 'pm.collectionVariables.set("fullPath", pm.environment.get("baseUrl") + pm.variables.get("endpoint"));';
     const translatedCode = translateCode(code);
     expect(translatedCode).toBe('bru.setCollectionVar("fullPath", bru.getEnvVar("baseUrl") + bru.getVar("endpoint"));');
@@ -358,8 +356,7 @@ describe('Combined API Features Translation', () => {
     expect(translatedCode).toContain('bru.setVar("token", res.getBody().token);');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should translate pm.collectionVariables alias set inside functions', () => {
+  it('should translate pm.collectionVariables alias set inside functions', () => {
     const code = `
         const tempCollVars = pm.collectionVariables;
         tempCollVars.set("sessionId", "value");

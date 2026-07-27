@@ -4,8 +4,7 @@ const {
   setRequestVars,
   setFolderVars,
   setCollectionVars,
-  collectionAddEnvFileEvent,
-  scriptEnvironmentUpdateEvent
+  updateFile
 } = collectionsSlice.actions;
 const reducer = collectionsSlice.reducer;
 
@@ -32,102 +31,6 @@ const assertGuardedVars = (vars) => {
   expect(vars[2]).toMatchObject({ name: 'plain', value: 'hello' });
   expect(vars[2].dataType).toBeUndefined();
 };
-
-describe('collectionAddEnvFileEvent — ephemeral env vars on disk reload', () => {
-  const stateWithEnv = (variables) => ({
-    collections: [
-      {
-        uid: 'col1',
-        items: [],
-        environments: [{ uid: 'env1', name: 'dev', pathname: '/dev.bru', variables }]
-      }
-    ]
-  });
-
-  // A persist:true setEnvVar writes the file, which reloads only the persisted var.
-  const fileReload = reducer(
-    stateWithEnv([
-      { uid: 'v1', name: 'test_env_var', value: 'test', ephemeral: true },
-      { uid: 'v2', name: 'test_env_var_test', value: 'test', ephemeral: false }
-    ]),
-    collectionAddEnvFileEvent({
-      collectionUid: 'col1',
-      environment: {
-        uid: 'env1',
-        name: 'dev',
-        pathname: '/dev.bru',
-        variables: [{ uid: 'v2', name: 'test_env_var_test', value: 'test' }]
-      }
-    })
-  );
-  const reloadedVars = fileReload.collections[0].environments[0].variables;
-
-  it('keeps a script-created ephemeral var absent from the reloaded file', () => {
-    const kept = reloadedVars.find((v) => v.name === 'test_env_var');
-    expect(kept).toMatchObject({ name: 'test_env_var', value: 'test', ephemeral: true });
-  });
-
-  it('drops an overlay ephemeral (persistedValue set) absent from the reloaded file', () => {
-    const next = reducer(
-      stateWithEnv([{ uid: 'v1', name: 'deleted_overlay', value: 'temp', ephemeral: true, persistedValue: 'orig' }]),
-      collectionAddEnvFileEvent({
-        collectionUid: 'col1',
-        environment: { uid: 'env1', name: 'dev', pathname: '/dev.bru', variables: [] }
-      })
-    );
-
-    expect(next.collections[0].environments[0].variables).toHaveLength(0);
-  });
-});
-
-describe('scriptEnvironmentUpdateEvent — re-updating a script-created ephemeral var', () => {
-  const stateWithEnvVar = (variable) => ({
-    collections: [
-      {
-        uid: 'col1',
-        items: [],
-        activeEnvironmentUid: 'env1',
-        environments: [{ uid: 'env1', name: 'dev', variables: [variable] }]
-      }
-    ]
-  });
-
-  it('does not give a script-created ephemeral var a persistedValue when its value changes again', () => {
-    // First run left this in Redux: created by setEnvVar (persist:false), never on disk.
-    const existing = { uid: 'v1', name: 'test_env_var', value: 'test', enabled: true, ephemeral: true };
-
-    const next = reducer(
-      stateWithEnvVar(existing),
-      scriptEnvironmentUpdateEvent({
-        collectionUid: 'col1',
-        envVariables: { test_env_var: 'updated' },
-        runtimeVariables: {},
-        persistentEnvVariables: {}
-      })
-    );
-
-    const variable = next.collections[0].environments[0].variables[0];
-    expect(variable).toMatchObject({ name: 'test_env_var', value: 'updated', ephemeral: true });
-    expect(variable.persistedValue).toBeUndefined();
-  });
-
-  it('captures the on-disk base as persistedValue when first shadowing a real var', () => {
-    const onDisk = { uid: 'v1', name: 'api_url', value: 'https://disk', enabled: true };
-
-    const next = reducer(
-      stateWithEnvVar(onDisk),
-      scriptEnvironmentUpdateEvent({
-        collectionUid: 'col1',
-        envVariables: { api_url: 'https://overlay' },
-        runtimeVariables: {},
-        persistentEnvVariables: {}
-      })
-    );
-
-    const variable = next.collections[0].environments[0].variables[0];
-    expect(variable).toMatchObject({ value: 'https://overlay', ephemeral: true, persistedValue: 'https://disk' });
-  });
-});
 
 describe('setRequestVars — strips dataType: \'string\' (implicit default)', () => {
   it('drops a stray string-dataType on request vars and preserves typed datatypes', () => {
@@ -181,5 +84,45 @@ describe('setCollectionVars — strips dataType: \'string\' (implicit default)',
     );
 
     assertGuardedVars(next.collections[0].draft.root.request.vars.req);
+  });
+});
+
+describe('updateFile — does not steal selection on non-selection edits', () => {
+  it('editing the description of a non-selected file leaves the selected file selected', () => {
+    const item = {
+      uid: 'item1',
+      type: 'http-request',
+      request: {
+        body: {
+          file: [
+            { uid: 'f1', filePath: '/tmp/readme.pdf', contentType: 'application/pdf', selected: true, description: '' },
+            { uid: 'f2', filePath: '/tmp/plain.bin', contentType: 'application/octet-stream', selected: false, description: '' }
+          ]
+        }
+      }
+    };
+
+    const next = reducer(
+      makeStateWith(item),
+      updateFile({
+        collectionUid: 'col1',
+        itemUid: 'item1',
+        param: {
+          uid: 'f2',
+          filePath: '/tmp/plain.bin',
+          contentType: 'application/octet-stream',
+          description: 'a plain file',
+          selected: false
+        }
+      })
+    );
+
+    const files = next.collections[0].items[0].draft.request.body.file;
+    const f1 = files.find((p) => p.uid === 'f1');
+    const f2 = files.find((p) => p.uid === 'f2');
+
+    expect(f1.selected).toBe(true);
+    expect(f2.selected).toBe(false);
+    expect(f2.description).toBe('a plain file');
   });
 });

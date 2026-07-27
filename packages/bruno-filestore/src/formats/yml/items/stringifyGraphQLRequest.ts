@@ -16,6 +16,7 @@ import { toOpenCollectionVariables } from '../common/variables';
 import { toOpenCollectionActions } from '../common/actions';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
+import { resolveTimeoutSetting } from '@usebruno/common/utils';
 
 const stringifyGraphQLRequest = (item: BrunoItem): string => {
   try {
@@ -32,6 +33,9 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
     }
     if (item.tags?.length) {
       info.tags = item.tags;
+    }
+    if (isNonEmptyString(item.description)) {
+      info.description = item.description;
     }
     ocRequest.info = info;
 
@@ -129,12 +133,7 @@ const stringifyGraphQLRequest = (item: BrunoItem): string => {
       settings.encodeUrl = true;
     }
 
-    const timeout = httpSettings?.timeout;
-    if (isNumber(timeout)) {
-      settings.timeout = timeout;
-    } else {
-      settings.timeout = 0;
-    }
+    settings.timeout = resolveTimeoutSetting(httpSettings?.timeout);
 
     if (httpSettings?.followRedirects === true) {
       settings.followRedirects = true;

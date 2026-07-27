@@ -62,9 +62,10 @@ class TestRuntime {
     if (!testsFile || !testsFile.length) {
       return {
         request,
-        envVariables,
-        runtimeVariables,
-        globalEnvironmentVariables,
+        envVariables: null,
+        runtimeVariables: null,
+        collectionVariables: null,
+        globalEnvironmentVariables: null,
         results: __brunoTestResults.getResults(),
         nextRequestName: bru.nextRequest
       };
@@ -125,10 +126,10 @@ class TestRuntime {
 
     const result = {
       request,
-      envVariables: cleanJson(envVariables),
-      runtimeVariables: cleanJson(runtimeVariables),
-      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
-      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
+      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
+      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
+      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
+      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest,

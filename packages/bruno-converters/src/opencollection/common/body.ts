@@ -90,13 +90,17 @@ export const fromOpenCollectionBody = (body: HttpRequestBody | GraphQLBody | und
         return {
           ...defaultBody,
           mode: 'formUrlEncoded',
-          formUrlEncoded: (formBody.data || []).map((field): BrunoKeyValue => ({
-            uid: uuid(),
-            name: field.name || '',
-            value: field.value || '',
-            description: typeof field.description === 'string' ? field.description : field.description?.content || null,
-            enabled: field.disabled !== true
-          }))
+          formUrlEncoded: (formBody.data || []).map((field): BrunoKeyValue => {
+            const entry: BrunoKeyValue = {
+              uid: uuid(),
+              name: field.name || '',
+              value: field.value || '',
+              enabled: field.disabled !== true
+            };
+            const desc = typeof field.description === 'string' ? field.description : field.description?.content;
+            if (desc && desc.trim().length) entry.description = desc;
+            return entry;
+          })
         };
       }
 
@@ -105,15 +109,19 @@ export const fromOpenCollectionBody = (body: HttpRequestBody | GraphQLBody | und
         return {
           ...defaultBody,
           mode: 'multipartForm',
-          multipartForm: (multipartBody.data || []).map((field): BrunoMultipartFormEntry => ({
-            uid: uuid(),
-            type: field.type || 'text',
-            name: field.name || '',
-            value: Array.isArray(field.value) ? field.value : (field.value || ''),
-            description: typeof field.description === 'string' ? field.description : field.description?.content || null,
-            contentType: null,
-            enabled: field.disabled !== true
-          }))
+          multipartForm: (multipartBody.data || []).map((field): BrunoMultipartFormEntry => {
+            const entry: BrunoMultipartFormEntry = {
+              uid: uuid(),
+              type: field.type || 'text',
+              name: field.name || '',
+              value: Array.isArray(field.value) ? field.value : (field.value || ''),
+              contentType: null,
+              enabled: field.disabled !== true
+            };
+            const desc = typeof field.description === 'string' ? field.description : field.description?.content;
+            if (desc && desc.trim().length) entry.description = desc;
+            return entry;
+          })
         };
       }
 
@@ -122,12 +130,19 @@ export const fromOpenCollectionBody = (body: HttpRequestBody | GraphQLBody | und
         return {
           ...defaultBody,
           mode: 'file',
-          file: (fileBody.data || []).map((file): BrunoFileEntry => ({
-            uid: uuid(),
-            filePath: file.filePath || '',
-            contentType: file.contentType || '',
-            selected: file.selected !== false
-          }))
+          file: (fileBody.data || []).map((file): BrunoFileEntry => {
+            const entry: BrunoFileEntry = {
+              uid: uuid(),
+              filePath: file.filePath || '',
+              contentType: file.contentType || '',
+              selected: file.selected !== false
+            };
+            const desc = typeof file.description === 'string'
+              ? file.description
+              : (file.description as { content?: string } | undefined)?.content;
+            if (desc && desc.trim().length) entry.description = desc;
+            return entry;
+          })
         };
       }
     }
@@ -198,11 +213,19 @@ export const toOpenCollectionBody = (body: BrunoHttpRequestBody | null | undefin
     }
 
     case 'file': {
-      const fileData: FileBodyVariant[] = (body.file || []).map((file): FileBodyVariant => ({
-        filePath: file.filePath || '',
-        contentType: file.contentType || '',
-        selected: file.selected !== false
-      }));
+      const fileData: FileBodyVariant[] = (body.file || []).map((file): FileBodyVariant => {
+        const entry: FileBodyVariant = {
+          filePath: file.filePath || '',
+          contentType: file.contentType || '',
+          selected: file.selected !== false
+        };
+
+        if (file.description && typeof file.description === 'string' && file.description.trim().length) {
+          entry.description = file.description;
+        }
+
+        return entry;
+      });
 
       return { type: 'file', data: fileData };
     }

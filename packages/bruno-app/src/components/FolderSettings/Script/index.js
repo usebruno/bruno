@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
+import { buildAiVariablesPayload } from 'utils/ai';
 import { updateFolderRequestScript, updateFolderResponseScript } from 'providers/ReduxStore/slices/collections';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -102,6 +103,8 @@ const Script = ({ collection, folder }) => {
     dispatch(saveFolderRoot(collection.uid, folder.uid));
   };
 
+  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, folder), [collection, folder]);
+
   const items = flattenItems(folder.items || []);
   const hasPreRequestScriptError = items.some((i) => isItemARequest(i) && i.preRequestScriptErrorMessage);
   const hasPostResponseScriptError = items.some((i) => isItemARequest(i) && i.postResponseScriptErrorMessage);
@@ -142,12 +145,14 @@ const Script = ({ collection, folder }) => {
               font={get(preferences, 'font.codeFont', 'default')}
               fontSize={get(preferences, 'font.codeFontSize')}
               showHintsFor={['req', 'bru']}
+              scriptType="pre-request"
               initialScroll={preReqScroll}
               onScroll={setPreReqScroll}
             />
             <AIAssist
               scriptType="pre-request"
               currentScript={requestScript || ''}
+              variables={aiVariables}
               onApply={onRequestScriptEdit}
             />
           </div>
@@ -167,12 +172,14 @@ const Script = ({ collection, folder }) => {
               font={get(preferences, 'font.codeFont', 'default')}
               fontSize={get(preferences, 'font.codeFontSize')}
               showHintsFor={['req', 'res', 'bru']}
+              scriptType="post-response"
               initialScroll={postResScroll}
               onScroll={setPostResScroll}
             />
             <AIAssist
               scriptType="post-response"
               currentScript={responseScript || ''}
+              variables={aiVariables}
               onApply={onResponseScriptEdit}
             />
           </div>
