@@ -41,6 +41,9 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
       case 'ws':
         requestType = 'ws-request';
         break;
+      case 'graphql-subscription':
+        requestType = 'graphql-subscription-request';
+        break;
       default:
         requestType = 'http-request';
     }
@@ -50,6 +53,7 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
     const urlPath: Record<typeof requestType, string> = {
       'grpc-request': 'grpc.url',
       'ws-request': 'ws.url',
+      'graphql-subscription-request': 'graphqlSubscription.url',
       'default': 'http.url'
     };
 
@@ -113,6 +117,19 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
           }
         ])
       });
+    } else if (requestType === 'graphql-subscription-request') {
+      transformedJson.request.auth.mode = _.get(json, 'graphqlSubscription.auth', 'none');
+      transformedJson.request.body = {
+        mode: 'graphql',
+        graphql: _.get(json, 'body.graphql', { query: '', variables: '' })
+      };
+      transformedJson.request.connectionParams = _.get(json, 'graphqlSubscriptionConnectionParams', null) || null;
+      // graphql-subscription-request has no script/vars/assertions/tests — they are never
+      // executed for long-lived request types, so this type omits them from its schema entirely.
+      delete (transformedJson.request as any).script;
+      delete (transformedJson.request as any).vars;
+      delete (transformedJson.request as any).assertions;
+      delete (transformedJson.request as any).tests;
     } else {
       // For HTTP and GraphQL
       (transformedJson.request as any).params = _.get(json, 'params', []);
@@ -167,6 +184,9 @@ export const stringifyBruRequest = (json: any): string => {
         break;
       case 'ws-request':
         type = 'ws';
+        break;
+      case 'graphql-subscription-request':
+        type = 'graphql-subscription';
         break;
       default:
         type = 'http';
@@ -237,6 +257,24 @@ export const stringifyBruRequest = (json: any): string => {
           }
         ])
       });
+    } else if (type === 'graphql-subscription') {
+      bruJson.graphqlSubscription = {
+        url: _.get(json, 'request.url'),
+        auth: _.get(json, 'request.auth.mode', 'none')
+      };
+
+      bruJson.body = _.get(json, 'request.body', {
+        mode: 'graphql',
+        graphql: {
+          query: '',
+          variables: ''
+        }
+      });
+
+      const connectionParams = _.get(json, 'request.connectionParams');
+      if (connectionParams) {
+        bruJson.graphqlSubscriptionConnectionParams = connectionParams;
+      }
     }
 
     // Common fields for all request types

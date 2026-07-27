@@ -187,6 +187,63 @@ body:ws {
     });
   });
 
+  describe('graphql:subscription', () => {
+    it('parses the url and auth dictionary', () => {
+      const input = `
+graphql:subscription {
+  url: wss://api.example.com/graphql
+  auth: inherit
+}
+`;
+
+      const expected = {
+        graphqlSubscription: {
+          url: 'wss://api.example.com/graphql',
+          auth: 'inherit'
+        }
+      };
+
+      const output = parser(input);
+      expect(output).toEqual(expected);
+    });
+
+    it('parses the connection-params text block distinctly from the subscription dictionary', () => {
+      const input = `
+graphql:subscription {
+  url: wss://api.example.com/graphql
+}
+
+graphql:subscription:connection-params {
+  {"authToken": "{{token}}"}
+}
+`;
+
+      const output = parser(input);
+      expect(output.graphqlSubscription).toEqual({
+        url: 'wss://api.example.com/graphql'
+      });
+      expect(output.graphqlSubscriptionConnectionParams).toBe('{"authToken": "{{token}}"}');
+    });
+
+    it('parses the connection-params block when it precedes the subscription dictionary', () => {
+      const input = `
+graphql:subscription:connection-params {
+  {"authToken": "{{token}}"}
+}
+
+graphql:subscription {
+  url: wss://api.example.com/graphql
+}
+`;
+
+      const output = parser(input);
+      expect(output.graphqlSubscription).toEqual({
+        url: 'wss://api.example.com/graphql'
+      });
+      expect(output.graphqlSubscriptionConnectionParams).toBe('{"authToken": "{{token}}"}');
+    });
+  });
+
   describe('body:grpc', () => {
     it('parses message content with name and content', () => {
       const input = `

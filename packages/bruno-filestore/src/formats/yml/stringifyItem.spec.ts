@@ -1,3 +1,4 @@
+import type { HttpRequest } from '@usebruno/schema-types/requests/http';
 import stringifyItem from './stringifyItem';
 import parseItem from './parseItem';
 
@@ -39,7 +40,7 @@ describe('stringifyItem — typed runtime.variables', () => {
     expect(yml).not.toMatch(/type:\s*string/);
 
     const reparsed = parseItem(yml);
-    const reqVars = reparsed.request!.vars!.req!;
+    const reqVars = (reparsed.request as HttpRequest).vars!.req!;
 
     expect(reqVars).toHaveLength(5);
     expect(reqVars[0]).toMatchObject({ name: 'count', value: 42, dataType: 'number' });
@@ -49,5 +50,79 @@ describe('stringifyItem — typed runtime.variables', () => {
     expect(reqVars[3].dataType).toBeUndefined();
     expect(reqVars[4]).toMatchObject({ name: 'plain', value: 'hello' });
     expect(reqVars[4].dataType).toBeUndefined();
+  });
+});
+
+describe('stringifyItem — graphql-subscription', () => {
+  it('round-trips url, headers, auth, body, connectionParams, settings and docs', () => {
+    const item = {
+      uid: 'i1',
+      type: 'graphql-subscription-request',
+      name: 'On Tick',
+      seq: 2,
+      tags: ['realtime'],
+      request: {
+        url: 'wss://api.example.com/graphql',
+        headers: [{ uid: 'h1', name: 'X-Test', value: '1', enabled: true }],
+        auth: { mode: 'inherit' },
+        body: {
+          mode: 'graphql',
+          graphql: {
+            query: 'subscription OnTick { tick { count } }',
+            variables: '{}'
+          }
+        },
+        connectionParams: '{"authToken": "{{token}}"}',
+        docs: 'some docs'
+      },
+      settings: {
+        timeout: 15,
+        keepAliveInterval: 30
+      }
+    } as any;
+
+    const yml = stringifyItem(item);
+
+    expect(yml).toContain('type: graphql-subscription');
+    expect(yml).toContain('url: wss://api.example.com/graphql');
+    expect(yml).toContain('connectionParams:');
+
+    const reparsed = parseItem(yml);
+    expect(reparsed.type).toBe('graphql-subscription-request');
+    expect(reparsed.request).toMatchObject({
+      url: 'wss://api.example.com/graphql',
+      connectionParams: '{"authToken": "{{token}}"}',
+      docs: 'some docs',
+      body: {
+        mode: 'graphql',
+        graphql: {
+          query: 'subscription OnTick { tick { count } }',
+          variables: '{}'
+        }
+      }
+    });
+    expect(reparsed.settings).toMatchObject({ timeout: 15, keepAliveInterval: 30 });
+  });
+
+  it('omits connectionParams entirely when unset', () => {
+    const item = {
+      uid: 'i1',
+      type: 'graphql-subscription-request',
+      name: 'On Tick',
+      request: {
+        url: 'wss://api.example.com/graphql',
+        headers: [],
+        auth: { mode: 'none' },
+        body: { mode: 'graphql', graphql: { query: 'subscription { tick }' } },
+        connectionParams: null,
+        docs: null
+      }
+    } as any;
+
+    const yml = stringifyItem(item);
+    expect(yml).not.toContain('connectionParams');
+
+    const reparsed = parseItem(yml);
+    expect((reparsed.request as any).connectionParams).toBeNull();
   });
 });
