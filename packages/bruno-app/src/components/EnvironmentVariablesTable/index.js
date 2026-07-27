@@ -266,9 +266,6 @@ const EnvironmentVariablesTable = ({
   const prevEnvUidRef = useRef(null);
   const mountedRef = useRef(false);
   const pendingDraftRestoreRef = useRef(false);
-  // Uid of the row whose name was most recently edited. The duplicate-secret error is shown only
-  // on this row so a fresh collision flags the key you just typed, not its already-present twin.
-  const lastEditedNameUidRef = useRef(null);
 
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
   const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
@@ -357,11 +354,7 @@ const EnvironmentVariablesTable = ({
           if (!errors[index]) errors[index] = {};
           errors[index].name
             = 'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.';
-        } else if (
-          variable.secret
-          && duplicateSecrets.has(variable.name.trim())
-          && variable.uid === lastEditedNameUidRef.current
-        ) {
+        } else if (variable.secret && duplicateSecrets.has(variable.name.trim())) {
           if (!errors[index]) errors[index] = {};
           errors[index].name = 'Secret names must be unique';
         }
@@ -434,6 +427,8 @@ const EnvironmentVariablesTable = ({
     return () => clearTimeout(timeoutId);
   }, [formik.values, savedValuesJson, environment.uid, hasDraftForThisEnv, draft?.variables, onDraftChange, onDraftClear]);
 
+  const duplicateSecretNames = useMemo(() => getDuplicateSecretNames(formik.values), [formik.values]);
+
   const ErrorMessage = ({ name, index }) => {
     const meta = formik.getFieldMeta(name);
     const id = `error-${name}-${index}`;
@@ -446,7 +441,9 @@ const EnvironmentVariablesTable = ({
       return null;
     }
 
-    if (!meta.error || !meta.touched) {
+    const isDuplicateSecret = variable?.secret && !isEmptyRow && duplicateSecretNames.has(variable.name.trim());
+
+    if (!meta.error || (!meta.touched && !isDuplicateSecret)) {
       return null;
     }
     return (
@@ -500,7 +497,6 @@ const EnvironmentVariablesTable = ({
   );
 
   const handleNameChange = (index, e) => {
-    lastEditedNameUidRef.current = formik.values[index]?.uid ?? null;
     formik.handleChange(e);
     // Touch the field as it changes so its validation icon surfaces while typing, not only after blur.
     formik.setFieldTouched(`${index}.name`, true, false);
