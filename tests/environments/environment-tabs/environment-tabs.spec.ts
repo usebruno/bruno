@@ -487,7 +487,7 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     });
   });
 
-  test.only('flags a collision that arrives from the environment file, with nothing typed', async ({ page, createTmpDir }) => {
+  test('flags a collision that arrives from the environment file, with nothing typed', async ({ page, createTmpDir }) => {
     const collectionDir = await createTmpDir('secret-preexisting-duplicate');
     await importCollection(page, collectionFile, collectionDir, {
       expectedCollectionName: 'test_collection'
