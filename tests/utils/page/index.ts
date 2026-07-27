@@ -6,4 +6,5 @@ export * from './sidebar';
 export * from './mounting';
 export * from './preferences';
 export * from './ai';
+export * from './mock-server';
 export * from '../snapshot';

@@ -154,6 +154,7 @@ const RouteTable = ({ mockServerUid }) => {
         showCheckbox={false}
         showDelete={false}
         showAddRow={false}
+        testId="mock-server-routes-table"
       />
 
       {filteredRoutes.length === 0 && routes.length > 0 && (

@@ -81,7 +81,8 @@ export const tabsSlice = createSlice({
         isTransient,
         mockServerUid,
         tabName,
-        responseName
+        responseName,
+        openInEditMode
       } = action.payload;
 
       const nonReplaceableTabTypes = [
@@ -165,7 +166,8 @@ export const tabsSlice = createSlice({
           ...(isTransient ? { isTransient: true } : {}),
           ...(mockServerUid ? { mockServerUid } : {}),
           ...(tabName ? { tabName } : {}),
-          ...(responseName ? { responseName } : {})
+          ...(responseName ? { responseName } : {}),
+          ...(openInEditMode ? { openInEditMode: true } : {})
         };
 
         state.activeTabUid = uid;
@@ -204,7 +206,8 @@ export const tabsSlice = createSlice({
         ...(isTransient ? { isTransient: true } : {}),
         ...(mockServerUid ? { mockServerUid } : {}),
         ...(tabName ? { tabName } : {}),
-        ...(responseName ? { responseName } : {})
+        ...(responseName ? { responseName } : {}),
+        ...(openInEditMode ? { openInEditMode: true } : {})
       });
       state.activeTabUid = uid;
     },
@@ -461,6 +464,13 @@ export const tabsSlice = createSlice({
         console.error('Tab not found!');
       }
     },
+    // One-shot "just created" flag for response-example tabs — cleared after ResponseExample mounts.
+    clearOpenInEditMode: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+      if (tab) {
+        delete tab.openInEditMode;
+      }
+    },
     migrateCollectionTabsToYml: (state, action) => {
       const { collectionUid } = action.payload;
       state.tabs.forEach((tab) => {
@@ -650,6 +660,7 @@ export const {
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
+  clearOpenInEditMode,
   migrateCollectionTabsToYml,
   collapseRequestPane,
   collapseResponsePane,

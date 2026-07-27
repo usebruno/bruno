@@ -1,41 +1,18 @@
 import { test, expect } from '../../playwright';
-import type { Page } from '@playwright/test';
 import { createRequest, sendRequest, getResponseBody } from '../utils/page/actions';
+import {
+  buildMockServerLocators,
+  openMockServerTab,
+  syncResponsesFromExamples,
+  startMockServer,
+  stopMockServer,
+  createMockServerFromCollection
+} from '../utils/page/mock-server';
 
 const COLLECTION_NAME = 'mock-server-test-collection';
 const DEFAULT_MOCK_PORT = '4500';
 let currentMockPort = DEFAULT_MOCK_PORT;
 const getMockBase = () => `http://localhost:${currentMockPort}`;
-
-const openMockServerTab = async (page: Page) => {
-  await page.locator('#sidebar-collection-name').filter({ hasText: new RegExp(`^${COLLECTION_NAME}$`) }).click();
-  await page.getByTestId('mock-server').click();
-  await page.getByTestId('mock-server-dashboard').waitFor({ state: 'visible' });
-};
-
-const syncResponsesFromExamples = async (page: Page) => {
-  await openMockServerTab(page);
-  await page.getByTestId('mock-server-tab-responses').click();
-  await expect(page.getByTestId('mock-response-sync-examples-btn')).toBeVisible({ timeout: 10000 });
-  await page.getByTestId('mock-response-sync-examples-btn').click();
-  await expect(page.getByTestId('sync-mock-examples-modal')).toBeVisible({ timeout: 10000 });
-  await page.getByTestId('sync-mock-examples-modal-submit-btn').click();
-  await expect(page.getByText('Mock responses synced with collection examples')).toBeVisible({ timeout: 10000 });
-};
-
-const startMockServer = async (page: Page) => {
-  await page.getByTestId('mock-server-start-btn').click();
-  const statusText = page.getByTestId('mock-server-status-text');
-  await expect(statusText).toContainText('Running on port', { timeout: 15000 });
-  const text = await statusText.innerText();
-  const portMatch = text.match(/Running on port (\d+)/);
-  currentMockPort = portMatch ? portMatch[1] : DEFAULT_MOCK_PORT;
-};
-
-const stopMockServer = async (page: Page) => {
-  await page.getByTestId('mock-server-stop-btn').click();
-  await expect(page.getByTestId('mock-server-status-text')).toContainText('Stopped', { timeout: 15000 });
-};
 
 const mockFetch = async (urlPath: string, options?: RequestInit) => {
   const res = await fetch(`${getMockBase()}${urlPath}`, options);
@@ -46,96 +23,90 @@ const mockFetch = async (urlPath: string, options?: RequestInit) => {
 
 test.describe.serial('Mock Server', () => {
   test('should create mock server and sync responses from collection examples', async ({ pageWithUserData: page }) => {
-    const collection = page.getByTestId('sidebar-collection-row').filter({ hasText: new RegExp(`^${COLLECTION_NAME}$`) });
-    await collection.hover();
-    await collection.locator('.collection-actions .icon').click();
+    const ms = buildMockServerLocators(page);
 
-    const createMockServerBtn = page.getByTestId('collection-actions-create-mock-server');
-    await expect(createMockServerBtn).toBeVisible({ timeout: 10000 });
-    await createMockServerBtn.click();
+    await createMockServerFromCollection(page, COLLECTION_NAME, 'Test Mock Server');
 
-    await expect(page.locator('.bruno-modal-card')).toBeVisible({ timeout: 10000 });
-    await page.getByTestId('mock-server-name-input').fill('Test Mock Server');
-    await page.getByTestId('modal-submit-btn').click();
+    await expect(ms.dashboard()).toBeVisible();
+    await expect(ms.statusText()).toHaveText('Stopped');
 
-    await expect(page.getByTestId('mock-server-dashboard')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByTestId('mock-server-status-text')).toHaveText('Stopped');
-
-    await syncResponsesFromExamples(page);
+    await syncResponsesFromExamples(page, COLLECTION_NAME);
   });
 
   test('should show dashboard controls in stopped state', async ({ pageWithUserData: page }) => {
-    await page.locator('#sidebar-collection-name').filter({ hasText: new RegExp(`^${COLLECTION_NAME}$`) }).click();
-    await openMockServerTab(page);
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
 
-    await expect(page.getByTestId('mock-server-dashboard')).toBeVisible();
-    await expect(page.getByTestId('mock-server-status-text')).toHaveText('Stopped');
-    await expect(page.getByTestId('mock-server-status-dot')).not.toHaveClass(/running/);
-    await expect(page.getByTestId('mock-server-delay-input')).toBeVisible();
-    await expect(page.getByTestId('mock-server-start-btn')).toBeVisible();
-    await expect(page.getByTestId('mock-server-stop-btn')).not.toBeVisible();
-    await expect(page.getByTestId('mock-server-copy-url')).not.toBeVisible();
+    await expect(ms.dashboard()).toBeVisible();
+    await expect(ms.statusText()).toHaveText('Stopped');
+    await expect(ms.statusDot()).not.toHaveClass(/running/);
+    await expect(ms.delayInput()).toBeVisible();
+    await expect(ms.startBtn()).toBeVisible();
+    await expect(ms.stopBtn()).not.toBeVisible();
+    await expect(ms.copyUrl()).not.toBeVisible();
   });
 
   test('should show Responses, Routes and Request Log tabs', async ({ pageWithUserData: page }) => {
-    await openMockServerTab(page);
-    await expect(page.getByTestId('mock-server-tab-responses')).toBeVisible();
-    await expect(page.getByTestId('mock-server-tab-routes')).toBeVisible();
-    await expect(page.getByTestId('mock-server-tab-log')).toBeVisible();
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+    await expect(ms.tabResponses()).toBeVisible();
+    await expect(ms.tabRoutes()).toBeVisible();
+    await expect(ms.tabLog()).toBeVisible();
   });
 
   test('should start mock server and show running status', async ({ pageWithUserData: page }) => {
-    await openMockServerTab(page);
-    await startMockServer(page);
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+    currentMockPort = await startMockServer(page);
 
-    await expect(page.getByTestId('mock-server-status-dot')).toHaveClass(/running/);
-    await expect(page.getByTestId('mock-server-stop-btn')).toBeVisible();
-    await expect(page.getByTestId('mock-server-refresh-btn')).toBeVisible();
-    await expect(page.getByTestId('mock-server-copy-url')).toContainText(`http://localhost:${currentMockPort}`);
-    await expect(page.getByTestId('mock-server-stats')).toBeVisible();
-    await expect(page.getByTestId('mock-server-start-btn')).not.toBeVisible();
+    await expect(ms.statusText()).toContainText('Running on port');
+    await expect(ms.statusDot()).toHaveClass(/running/);
+    await expect(ms.stopBtn()).toBeVisible();
+    await expect(ms.refreshBtn()).toBeVisible();
+    await expect(ms.copyUrl()).toContainText(`http://localhost:${currentMockPort}`);
+    await expect(ms.stats()).toBeVisible();
+    await expect(ms.startBtn()).not.toBeVisible();
   });
 
   test('should show registered routes from synced mock responses', async ({ pageWithUserData: page }) => {
-    await openMockServerTab(page);
-    await page.getByTestId('mock-server-tab-routes').click();
-    await expect(page.getByTestId('mock-server-route-search')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByTestId('mock-server-stats')).toContainText('3 routes');
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+    await ms.tabRoutes().click();
+    await expect(ms.routeSearch()).toBeVisible({ timeout: 10000 });
+    await expect(ms.stats()).toContainText('3 routes');
   });
 
   test('should filter routes by search query', async ({ pageWithUserData: page }) => {
-    await openMockServerTab(page);
-    await page.getByTestId('mock-server-tab-routes').click();
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+    await ms.tabRoutes().click();
 
     await test.step('Search for "health" should show 1 route', async () => {
-      await page.getByTestId('mock-server-route-search').fill('health');
-      const rows = page.locator('.table-container table tbody tr');
-      await expect(rows).toHaveCount(1);
+      await ms.routeSearch().fill('health');
+      await expect(ms.routeRows()).toHaveCount(1);
     });
 
     await test.step('Clear search should show all routes', async () => {
-      await page.getByTestId('mock-server-route-search').fill('');
-      const rows = page.locator('.table-container table tbody tr');
-      await expect(rows).toHaveCount(3);
+      await ms.routeSearch().fill('');
+      await expect(ms.routeRows()).toHaveCount(3);
     });
   });
 
   test('should filter routes by method dropdown', async ({ pageWithUserData: page }) => {
-    await openMockServerTab(page);
-    await page.getByTestId('mock-server-tab-routes').click();
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+    await ms.tabRoutes().click();
 
     await test.step('Filter by POST should show 1 route', async () => {
-      await page.getByTestId('mock-server-method-filter').click();
-      await page.locator('.filter-option-label').getByText('POST').click();
-      const rows = page.locator('.table-container table tbody tr');
-      await expect(rows).toHaveCount(1);
+      await ms.methodFilter().click();
+      await ms.filterOption('POST').click();
+      await expect(ms.routeRows()).toHaveCount(1);
     });
 
     await test.step('Reset filter to All Methods', async () => {
-      await page.getByTestId('mock-server-method-filter').click();
-      await page.locator('.filter-option-label').getByText('All Methods', { exact: true }).click();
-      const rows = page.locator('.table-container table tbody tr');
-      await expect(rows).toHaveCount(3);
+      await ms.methodFilter().click();
+      await ms.filterOption('All Methods').click();
+      await expect(ms.routeRows()).toHaveCount(3);
     });
   });
 
@@ -256,47 +227,44 @@ test.describe.serial('Mock Server', () => {
   });
 
   test('should show all requests in request log after Bruno sends', async ({ pageWithUserData: page }) => {
-    await openMockServerTab(page);
-    await page.getByTestId('mock-server-tab-log').click();
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+    await ms.tabLog().click();
 
     await test.step('Log count should reflect requests made so far', async () => {
-      const logCount = page.getByTestId('mock-server-log-count');
-      await expect(logCount).toBeVisible();
-      const text = await logCount.innerText();
+      await expect(ms.logCount()).toBeVisible();
+      const text = await ms.logCount().innerText();
       expect(parseInt(text)).toBeGreaterThan(10);
     });
 
     await test.step('Log table should have rows with data', async () => {
-      const methodBadges = page.locator('.log-table-container .method-badge');
-      expect(await methodBadges.count()).toBeGreaterThan(0);
-
-      const paths = page.locator('.log-table-container .log-path');
-      expect(await paths.count()).toBeGreaterThan(0);
+      expect(await ms.logMethodBadges().count()).toBeGreaterThan(0);
+      expect(await ms.logPaths().count()).toBeGreaterThan(0);
     });
   });
 
   test('should show unmatched requests with No Match label in log', async ({ pageWithUserData: page }) => {
+    const ms = buildMockServerLocators(page);
     await mockFetch('/this-does-not-exist');
 
-    await openMockServerTab(page);
-    await page.getByTestId('mock-server-tab-log').click();
+    await openMockServerTab(page, COLLECTION_NAME);
+    await ms.tabLog().click();
 
-    const noMatchLabels = page.locator('.log-table-container .no-match-label');
-    await expect(noMatchLabels.first()).toBeVisible();
+    await expect(ms.logNoMatchLabels().first()).toBeVisible();
   });
 
   test('should filter request log by match status', async ({ pageWithUserData: page }) => {
-    await openMockServerTab(page);
-    await page.getByTestId('mock-server-tab-log').click();
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+    await ms.tabLog().click();
 
     await test.step('Filter to show only unmatched', async () => {
-      await page.getByTestId('mock-server-match-filter').click();
-      await page.locator('.filter-option-label').getByText('Unmatched', { exact: true }).click();
+      await ms.matchFilter().click();
+      await ms.filterOption('Unmatched').click();
 
-      const noMatchLabels = page.locator('.log-table-container .no-match-label');
-      expect(await noMatchLabels.count()).toBeGreaterThan(0);
+      expect(await ms.logNoMatchLabels().count()).toBeGreaterThan(0);
 
-      const statusCodes = page.locator('.log-table-container .status-code');
+      const statusCodes = ms.logStatusCodes();
       const count = await statusCodes.count();
       for (let i = 0; i < count; i++) {
         await expect(statusCodes.nth(i)).toHaveText('404');
@@ -304,27 +272,27 @@ test.describe.serial('Mock Server', () => {
     });
 
     await test.step('Filter to show only matched', async () => {
-      await page.getByTestId('mock-server-match-filter').click();
-      await page.locator('.filter-option-label').getByText('Matched', { exact: true }).click();
-      const noMatchLabels = page.locator('.log-table-container .no-match-label');
-      expect(await noMatchLabels.count()).toBe(0);
+      await ms.matchFilter().click();
+      await ms.filterOption('Matched').click();
+      expect(await ms.logNoMatchLabels().count()).toBe(0);
     });
 
     await test.step('Reset filter to all', async () => {
-      await page.getByTestId('mock-server-match-filter').click();
-      await page.locator('.filter-option-label').getByText('All Requests', { exact: true }).click();
+      await ms.matchFilter().click();
+      await ms.filterOption('All Requests').click();
     });
   });
 
   test('should filter request log by status code', async ({ pageWithUserData: page }) => {
-    await openMockServerTab(page);
-    await page.getByTestId('mock-server-tab-log').click();
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+    await ms.tabLog().click();
 
     await test.step('Filter by 2xx should only show 2xx entries', async () => {
-      await page.getByTestId('mock-server-status-filter').click();
-      await page.locator('.filter-option-label').getByText('2xx Success', { exact: true }).click();
+      await ms.statusFilter().click();
+      await ms.filterOption('2xx Success').click();
 
-      const statusCodes = page.locator('.log-table-container .status-code');
+      const statusCodes = ms.logStatusCodes();
       const count = await statusCodes.count();
       expect(count).toBeGreaterThan(0);
       for (let i = 0; i < count; i++) {
@@ -336,69 +304,75 @@ test.describe.serial('Mock Server', () => {
     });
 
     await test.step('Reset filter', async () => {
-      await page.getByTestId('mock-server-status-filter').click();
-      await page.locator('.filter-option-label').getByText('All Status', { exact: true }).click();
+      await ms.statusFilter().click();
+      await ms.filterOption('All Status').click();
     });
   });
 
   test('should clear request log and show empty state', async ({ pageWithUserData: page }) => {
-    await openMockServerTab(page);
-    await page.getByTestId('mock-server-tab-log').click();
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+    await ms.tabLog().click();
 
-    const logCount = page.getByTestId('mock-server-log-count');
-    await expect(logCount).toBeVisible();
-    const text = await logCount.innerText();
+    await expect(ms.logCount()).toBeVisible();
+    const text = await ms.logCount().innerText();
     expect(parseInt(text)).toBeGreaterThan(0);
 
-    await page.getByTestId('mock-server-log-clear').click();
-    await expect(page.getByText('No requests logged yet')).toBeVisible();
-    await expect(logCount).not.toBeVisible();
+    await ms.logClear().click();
+    await expect(ms.logEmptyState()).toBeVisible();
+    await expect(ms.logCount()).not.toBeVisible();
   });
 
   test('should apply global delay to matched responses', async ({ pageWithUserData: page }) => {
-    await openMockServerTab(page);
-    await page.getByTestId('mock-server-delay-input').fill('500');
-    await page.getByTestId('mock-server-delay-input').blur();
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+    await ms.delayInput().fill('500');
+    await ms.delayInput().blur();
 
     const start = Date.now();
     await mockFetch('/health');
     const elapsed = Date.now() - start;
     expect(elapsed).toBeGreaterThanOrEqual(400);
 
-    await page.getByTestId('mock-server-delay-input').fill('0');
-    await page.getByTestId('mock-server-delay-input').blur();
+    await ms.delayInput().fill('0');
+    await ms.delayInput().blur();
   });
 
   test('should not delay 404 responses', async ({ pageWithUserData: page }) => {
-    await openMockServerTab(page);
-    await page.getByTestId('mock-server-delay-input').fill('1000');
-    await page.getByTestId('mock-server-delay-input').blur();
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+    await ms.delayInput().fill('1000');
+    await ms.delayInput().blur();
 
     const start = Date.now();
     await mockFetch('/nonexistent');
     const elapsed = Date.now() - start;
     expect(elapsed).toBeLessThan(500);
 
-    await page.getByTestId('mock-server-delay-input').fill('0');
-    await page.getByTestId('mock-server-delay-input').blur();
+    await ms.delayInput().fill('0');
+    await ms.delayInput().blur();
   });
 
   test('should show refresh toast with correct route count', async ({ pageWithUserData: page }) => {
-    await openMockServerTab(page);
-    await page.getByTestId('mock-server-refresh-btn').click();
-    await expect(page.getByText(/Routes refreshed.*routes/).first()).toBeVisible({ timeout: 5000 });
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+    await ms.refreshBtn().click();
+    await expect(ms.refreshToast()).toBeVisible({ timeout: 5000 });
   });
 
   test('should stop server and show start button after stop', async ({ pageWithUserData: page }) => {
-    await openMockServerTab(page);
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
     await stopMockServer(page);
-    await expect(page.getByTestId('mock-server-start-btn')).toBeVisible();
-    await expect(page.getByTestId('mock-server-stop-btn')).not.toBeVisible();
-    await expect(page.getByTestId('mock-server-copy-url')).not.toBeVisible();
+    await expect(ms.statusText()).toContainText('Stopped');
+    await expect(ms.startBtn()).toBeVisible();
+    await expect(ms.stopBtn()).not.toBeVisible();
+    await expect(ms.copyUrl()).not.toBeVisible();
   });
 
   test('should show server stopped for cleanup', async ({ pageWithUserData: page }) => {
-    await openMockServerTab(page);
-    await expect(page.getByTestId('mock-server-status-text')).toContainText('Stopped');
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+    await expect(ms.statusText()).toContainText('Stopped');
   });
 });

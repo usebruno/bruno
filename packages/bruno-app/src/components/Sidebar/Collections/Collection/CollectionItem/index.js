@@ -354,7 +354,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     menuDropdownRef.current?.show();
   };
 
-  let indents = range(item.depth);
+  const indents = range(item.depth);
 
   // Build menu items for MenuDropdown
   const buildMenuItems = () => {
@@ -571,7 +571,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       type: 'OPEN_EXAMPLE',
       collectionUid: collectionUid,
       itemUid: item.uid,
-      exampleIndex: exampleIndex
+      exampleIndex: exampleIndex,
+      // Freshly created examples start blank, so open the tab in edit mode.
+      openInEditMode: true
     }));
 
     toast.success(`Example "${name}" created successfully`);

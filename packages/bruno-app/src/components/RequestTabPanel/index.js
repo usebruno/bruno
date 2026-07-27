@@ -410,7 +410,7 @@ const RequestTabPanel = () => {
     }
   }, [isConsoleOpen, isVerticalLayout, responsePaneCollapsed]);
 
-  if (typeof window == 'undefined') {
+  if (typeof window === 'undefined') {
     return <div></div>;
   }
 
@@ -512,7 +512,7 @@ const RequestTabPanel = () => {
     }
 
     if (example) {
-      return <ResponseExample item={item} collection={collection} example={example} />;
+      return <ResponseExample item={item} collection={collection} example={example} openInEditMode={focusedTab.openInEditMode} />;
     }
 
     const displayName = focusedTab.exampleName || focusedTab.name;
