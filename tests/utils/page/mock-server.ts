@@ -93,7 +93,10 @@ export const startMockServer = async (page: Page): Promise<string> => {
     await running.waitFor({ state: 'visible', timeout: 15000 });
     const text = await ms.statusText().innerText();
     const portMatch = text.match(/Running on port (\d+)/);
-    return portMatch ? portMatch[1] : '4500';
+    if (!portMatch) {
+      throw new Error(`Unable to parse mock server port from status: ${text}`);
+    }
+    return portMatch[1];
   });
 };
 
