@@ -3,7 +3,7 @@ import { uuid } from './common/index';
 
 export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
   const isSecret = !!obj.secret;
-  let envVariable = {
+  const envVariable = {
     name: obj.name ?? '',
     value: isSecret ? '' : (obj.value ?? ''),
     type: 'text',
@@ -104,6 +104,7 @@ export const getScriptModifiedKeys = (scriptVars, baseline, { skipKeys = [] } = 
 };
 
 export const DUPLICATE_SECRET_NAMES_ERROR = 'Duplicate secret names are not allowed';
+export const DUPLICATE_SECRET_NAME_FIELD_ERROR = 'Secret names must be unique';
 
 /**
  * Secret values are persisted in a name-keyed side store and re-attached on read by name, so two

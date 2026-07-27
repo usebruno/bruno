@@ -1,4 +1,5 @@
 import { Page } from '@playwright/test';
+import fs from 'fs';
 import path from 'path';
 import { expect, test } from '../../../playwright';
 import { addRowToActiveTab, closeAllCollections, createEnvironment, deleteAllGlobalEnvironments, importCollection, openCollection, saveEnvironment } from '../../utils/page';
@@ -13,6 +14,11 @@ const varErrors = (page: Page) => envLocators(page).varErrors();
 const varNameInput = (page: Page, name: string) => envLocators(page).varRow(name).last().getByTestId('env-var-name-input');
 const varNameInputAt = (page: Page, name: string, index: number) =>
   envLocators(page).varRow(name).nth(index).getByTestId('env-var-name-input');
+
+const fillNewRowName = async (page: Page, name: string) => {
+  await expect(envLocators(page).addRowNameInput()).toHaveValue('');
+  await envLocators(page).addRowNameInput().fill(name);
+};
 
 const variablesTab = (page: Page) => envLocators(page).variablesTab();
 const secretsTab = (page: Page) => envLocators(page).secretsTab();
@@ -444,7 +450,7 @@ test.describe('Environment Variables / Secrets tab separation', () => {
       await secretsTab(page).click();
       await addRowToActiveTab(page, 'apiToken', 'first-value');
       // A second row reusing the name a duplicate is defined by its name, so only the name is filled.
-      await envLocators(page).addRowNameInput().fill('apiToken');
+      await fillNewRowName(page, 'apiToken');
     });
 
     await test.step('Both colliding rows are flagged inline', async () => {
@@ -452,7 +458,7 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     });
 
     await test.step('A third row with the same name flags all three', async () => {
-      await envLocators(page).addRowNameInput().fill('apiToken');
+      await fillNewRowName(page, 'apiToken');
       await expect(varErrors(page)).toHaveCount(3);
     });
 
@@ -481,6 +487,43 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     });
   });
 
+  test.only('flags a collision that arrives from the environment file, with nothing typed', async ({ page, createTmpDir }) => {
+    const collectionDir = await createTmpDir('secret-preexisting-duplicate');
+    await importCollection(page, collectionFile, collectionDir, {
+      expectedCollectionName: 'test_collection'
+    });
+
+    await createEnvironment(page, 'Preexisting Dup Env', 'collection');
+
+    await test.step('Save a single secret so the environment file exists', async () => {
+      await secretsTab(page).click();
+      await addRowToActiveTab(page, 'apiToken', 'first-value');
+      await saveEnvironment(page);
+      await expect(toastByMessage(page, 'Changes saved successfully').last()).toBeVisible();
+    });
+
+    await test.step('Rewrite the file so it carries two secrets under one name', async () => {
+      fs.writeFileSync(
+        path.join(collectionDir, 'test_collection', 'environments', 'Preexisting Dup Env.yml'),
+        'name: Preexisting Dup Env\n\nvariables:\n  - secret: true\n    name: apiToken\n  - secret: true\n    name: apiToken\n'
+      );
+      await expect(varRow(page, 'apiToken')).toHaveCount(2);
+    });
+
+    await test.step('Both rows are flagged without any interaction', async () => {
+      await expect(varErrors(page)).toHaveCount(2);
+    });
+
+    // An untouched editor has nothing to save, so reach the save gate through an unrelated edit —
+    // the pre-existing collision must still block it, matching what the rows already show.
+    await test.step('An unrelated edit cannot be saved while the collision stands', async () => {
+      await addRowToActiveTab(page, 'apiTokenExtra', 'another-value');
+      await saveEnvironment(page);
+      await expect(toastByMessage(page, DUPLICATE_SECRET_TOAST)).toBeVisible();
+      await expect(varErrors(page)).toHaveCount(2);
+    });
+  });
+
   test('still allows duplicate names on the Variables tab', async ({ page, createTmpDir }) => {
     await importCollection(page, collectionFile, await createTmpDir('variable-duplicate-name'), {
       expectedCollectionName: 'test_collection'
@@ -491,7 +534,7 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     await test.step('Add two variables with the same name on the Variables tab', async () => {
       await expect(variablesTab(page)).toHaveClass(/active/);
       await addRowToActiveTab(page, 'host', 'first-value');
-      await envLocators(page).addRowNameInput().fill('host');
+      await fillNewRowName(page, 'host');
       await expect(varRow(page, 'host')).toHaveCount(2);
     });
 
@@ -916,7 +959,7 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
       await secretsTab(page).click();
       await addRowToActiveTab(page, 'apiToken', 'first-value');
       // A second row reusing the name a duplicate is defined by its name, so only the name is filled.
-      await envLocators(page).addRowNameInput().fill('apiToken');
+      await fillNewRowName(page, 'apiToken');
     });
 
     await test.step('Both colliding rows are flagged inline', async () => {
@@ -924,7 +967,7 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     });
 
     await test.step('A third row with the same name flags all three', async () => {
-      await envLocators(page).addRowNameInput().fill('apiToken');
+      await fillNewRowName(page, 'apiToken');
       await expect(varErrors(page)).toHaveCount(3);
     });
 
@@ -963,7 +1006,7 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     await test.step('Add two variables with the same name on the Variables tab', async () => {
       await expect(variablesTab(page)).toHaveClass(/active/);
       await addRowToActiveTab(page, 'host', 'first-value');
-      await envLocators(page).addRowNameInput().fill('host');
+      await fillNewRowName(page, 'host');
       await expect(varRow(page, 'host')).toHaveCount(2);
     });
 

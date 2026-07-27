@@ -19,7 +19,12 @@ import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
-import { stripEnvVarUid, getDuplicateSecretNames, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
+import {
+  stripEnvVarUid,
+  getDuplicateSecretNames,
+  DUPLICATE_SECRET_NAMES_ERROR,
+  DUPLICATE_SECRET_NAME_FIELD_ERROR
+} from 'utils/environments';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 
@@ -356,7 +361,7 @@ const EnvironmentVariablesTable = ({
             = 'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.';
         } else if (variable.secret && duplicateSecrets.has(variable.name.trim())) {
           if (!errors[index]) errors[index] = {};
-          errors[index].name = 'Secret names must be unique';
+          errors[index].name = DUPLICATE_SECRET_NAME_FIELD_ERROR;
         }
       });
       return Object.keys(errors).length > 0 ? errors : {};
@@ -442,14 +447,15 @@ const EnvironmentVariablesTable = ({
     }
 
     const isDuplicateSecret = variable?.secret && !isEmptyRow && duplicateSecretNames.has(variable.name.trim());
+    const error = meta.error || (isDuplicateSecret ? DUPLICATE_SECRET_NAME_FIELD_ERROR : null);
 
-    if (!meta.error || (!meta.touched && !isDuplicateSecret)) {
+    if (!error || (!meta.touched && !isDuplicateSecret)) {
       return null;
     }
     return (
       <span>
         <IconAlertCircle id={id} data-testid="env-var-name-error" className="text-red-600 cursor-pointer" size={20} />
-        <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
+        <Tooltip className="tooltip-mod" anchorId={id} html={error} />
       </span>
     );
   };
