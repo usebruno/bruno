@@ -43,7 +43,7 @@ const tabSchema = yup.object({
   exampleName: yup.string().optional(),
   exampleIndex: yup.number().integer().min(0).optional(),
   exampleUid: yup.string().optional(),
-  mockServerUid: yup.string().optional(),
+  mockServerUid: yup.string().nullable().optional(),
   responseUid: yup.string().optional(),
   tabName: yup.string().optional(),
   request: yup.object({
