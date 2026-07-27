@@ -64,6 +64,22 @@ export const buildCommonLocators = (page: Page) => ({
     submitButton: () => page.locator('.bruno-modal-footer .submit'),
     newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`)
   },
+  openCollectionPicker: {
+    list: () => page.getByTestId('selection-list'),
+    titles: () => page.getByTestId('selection-list').locator('.selection-item-title'),
+    descriptions: () => page.getByTestId('selection-list').locator('.selection-item-description'),
+    item: (name: string) =>
+      page.getByTestId('selection-list').getByRole('listitem').filter({
+        has: page.getByText(name, { exact: true })
+      }),
+    itemCheckbox: (name: string) =>
+      page.getByTestId('selection-list').getByRole('listitem').filter({
+        has: page.getByText(name, { exact: true })
+      }).getByRole('checkbox'),
+    count: () => page.getByTestId('selection-count'),
+    selectAllToggle: () => page.getByTestId('selection-select-all-toggle').getByRole('checkbox'),
+    searchInput: () => page.getByTestId('selection-search-input')
+  },
   environment: {
     selector: () => page.getByTestId('environment-selector-trigger'),
     collectionTab: () => page.getByTestId('env-tab-collection'),
