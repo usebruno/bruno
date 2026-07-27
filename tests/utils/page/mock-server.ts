@@ -1,8 +1,6 @@
 import { test, Page } from '../../../playwright';
 
-/**
- * Locators for the Mock Server dashboard, routes table, request log, and related modals.
- */
+// Locators for the Mock Server dashboard, routes table, request log, and related modals.
 export const buildMockServerLocators = (page: Page) => ({
   collectionRow: (name: string) =>
     page.getByTestId('sidebar-collection-row').filter({ hasText: new RegExp(`^${name}$`) }),
@@ -54,9 +52,7 @@ export const buildMockServerLocators = (page: Page) => ({
   refreshToast: () => page.getByText(/Routes refreshed.*routes/).first()
 });
 
-/**
- * Open the mock server dashboard for a collection via the collection header tab.
- */
+// Open the mock server dashboard for a collection via the collection header tab.
 export const openMockServerTab = async (page: Page, collectionName: string) => {
   await test.step(`Open mock server tab for "${collectionName}"`, async () => {
     const ms = buildMockServerLocators(page);
@@ -66,9 +62,7 @@ export const openMockServerTab = async (page: Page, collectionName: string) => {
   });
 };
 
-/**
- * Sync mock responses from collection examples. Waits for modal + toast; does not assert.
- */
+// Sync mock responses from collection examples. Waits for modal + toast; does not assert.
 export const syncResponsesFromExamples = async (page: Page, collectionName: string) => {
   await test.step('Sync mock responses from collection examples', async () => {
     const ms = buildMockServerLocators(page);
@@ -82,9 +76,7 @@ export const syncResponsesFromExamples = async (page: Page, collectionName: stri
   });
 };
 
-/**
- * Start the mock server and return the port it reports.
- */
+// Start the mock server and return the port it reports.
 export const startMockServer = async (page: Page): Promise<string> => {
   return await test.step('Start mock server', async () => {
     const ms = buildMockServerLocators(page);
