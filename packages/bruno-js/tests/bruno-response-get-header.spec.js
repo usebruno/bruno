@@ -1,7 +1,7 @@
 const BrunoResponse = require('../src/bruno-response');
 
 describe('BrunoResponse getHeader (case-insensitive lookup)', () => {
-  const createRes = () => ({
+  const mockResponse = {
     status: 200,
     statusText: 'OK',
     headers: {
@@ -12,10 +12,10 @@ describe('BrunoResponse getHeader (case-insensitive lookup)', () => {
       'content-length': '512'
     },
     data: {}
-  });
+  };
 
   it('looks up headers case-insensitively', () => {
-    const res = new BrunoResponse(createRes());
+    const res = new BrunoResponse(mockResponse);
     expect(res.getHeader('Content-Type')).toBe('application/json');
     expect(res.getHeader('CONTENT-TYPE')).toBe('application/json');
     expect(res.getHeader('Cache-Control')).toBe('no-cache');
@@ -25,17 +25,17 @@ describe('BrunoResponse getHeader (case-insensitive lookup)', () => {
   });
 
   it('returns array-valued headers as-is', () => {
-    const res = new BrunoResponse(createRes());
+    const res = new BrunoResponse(mockResponse);
     expect(res.getHeader('Set-Cookie')).toEqual(['a=1', 'b=2']);
   });
 
   it('returns undefined for a missing header', () => {
-    const res = new BrunoResponse(createRes());
+    const res = new BrunoResponse(mockResponse);
     expect(res.getHeader('X-Does-Not-Exist')).toBeUndefined();
   });
 
   it('returns null for non-string name', () => {
-    const res = new BrunoResponse(createRes());
+    const res = new BrunoResponse(mockResponse);
     expect(res.getHeader(null)).toBeNull();
     expect(res.getHeader(undefined)).toBeNull();
     expect(res.getHeader(123)).toBeNull();
