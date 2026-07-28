@@ -3,8 +3,11 @@ import classnames from 'classnames';
 import ManageWorkspace from 'components/ManageWorkspace';
 import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
+import AppPreviewKeepAlive from 'components/AppPreviewKeepAlive';
 import AiChatSidebar from 'components/AiChatSidebar';
+import AiChatPopout from 'components/AiChatSidebar/Popout';
 import Sidebar from 'components/Sidebar';
+import OpenCollection from 'components/Sidebar/OpenCollection';
 import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
 import ApiSpecPanel from 'components/ApiSpecPanel';
@@ -26,6 +29,9 @@ import SaveTransientRequest from 'components/SaveTransientRequest';
 
 require('codemirror/mode/javascript/javascript');
 require('codemirror/mode/xml/xml');
+// css + htmlmixed power the app code editors (apps are HTML/CSS/JS documents)
+require('codemirror/mode/css/css');
+require('codemirror/mode/htmlmixed/htmlmixed');
 require('codemirror/mode/sparql/sparql');
 require('codemirror/addon/comment/comment');
 require('codemirror/addon/dialog/dialog');
@@ -89,6 +95,7 @@ export default function Main() {
   // re-render on every tabs/collections change — important on Windows where
   // extra re-renders during initial layout were destabilising CodeMirror.
   const isAiSidebarOpen = useSelector((state) => state.chat.isOpen);
+  const isAiPoppedOut = useSelector((state) => state.chat.isPoppedOut);
   const activeCollection = useSelector((state) => {
     if (!state.chat.isOpen) return null;
     const activeTab = state.tabs.tabs.find((t) => t.uid === state.tabs.activeTabUid);
@@ -160,13 +167,19 @@ export default function Main() {
             ) : (
               <>
                 <RequestTabs />
-                <TabPanelErrorBoundary key={activeTabUid} tabUid={activeTabUid}>
-                  <RequestTabPanel key={activeTabUid} />
-                </TabPanelErrorBoundary>
+                <div className="relative flex flex-col flex-grow overflow-hidden">
+                  <TabPanelErrorBoundary key={activeTabUid} tabUid={activeTabUid}>
+                    <RequestTabPanel key={activeTabUid} />
+                  </TabPanelErrorBoundary>
+                  <AppPreviewKeepAlive />
+                </div>
               </>
             )}
           </section>
-          {isAiSidebarOpen && activeCollection && !showApiSpecPage && !showManageWorkspacePage && (
+          {isAiSidebarOpen && activeCollection && isAiPoppedOut && (
+            <AiChatPopout collection={activeCollection} />
+          )}
+          {isAiSidebarOpen && activeCollection && !isAiPoppedOut && !showApiSpecPage && !showManageWorkspacePage && (
             <AiChatSidebar collection={activeCollection} />
           )}
         </StyledWrapper>
@@ -175,6 +188,7 @@ export default function Main() {
       <Devtools mainSectionRef={mainSectionRef} />
       <StatusBar />
       <TransientRequestModalsRenderer modals={saveTransientRequestModals} />
+      <OpenCollection />
     </div>
     // </ErrorCapture>
   );

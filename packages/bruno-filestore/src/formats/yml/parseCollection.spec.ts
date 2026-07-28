@@ -51,3 +51,66 @@ request:
     expect(reqVars[5]).toMatchObject({ name: 'cfg', value: 'not-json', dataType: 'object' });
   });
 });
+
+describe('parseCollection — script execution flow', () => {
+  it('reads flow: sequential from the bruno extension', () => {
+    const yml = `opencollection: "1.0.0"
+info:
+  name: c
+extensions:
+  bruno:
+    scripts:
+      flow: sequential
+`;
+    const { brunoConfig } = parseCollection(yml);
+    expect(brunoConfig.scripts?.flow).toBe('sequential');
+  });
+
+  it('reads flow: sandwich from the bruno extension', () => {
+    const yml = `opencollection: "1.0.0"
+info:
+  name: c
+extensions:
+  bruno:
+    scripts:
+      flow: sandwich
+`;
+    const { brunoConfig } = parseCollection(yml);
+    expect(brunoConfig.scripts?.flow).toBe('sandwich');
+  });
+
+  it('ignores an unrecognized flow value', () => {
+    const yml = `opencollection: "1.0.0"
+info:
+  name: c
+extensions:
+  bruno:
+    scripts:
+      flow: parallel
+`;
+    const { brunoConfig } = parseCollection(yml);
+    expect(brunoConfig.scripts?.flow).toBeUndefined();
+  });
+
+  it('has no scripts.flow when the file does not set one', () => {
+    const { brunoConfig } = parseCollection('opencollection: "1.0.0"\ninfo:\n  name: c\n');
+    expect(brunoConfig.scripts?.flow).toBeUndefined();
+  });
+});
+
+describe('parseCollection — reading the collection version', () => {
+  it('reads the version from the file as text', () => {
+    const { brunoConfig } = parseCollection('opencollection: "1.0.0"\ninfo:\n  name: c\n  version: v1.0.0\n');
+    expect(brunoConfig.version).toBe('v1.0.0');
+  });
+
+  it('turns a number version into text (2 becomes "2")', () => {
+    const { brunoConfig } = parseCollection('opencollection: "1.0.0"\ninfo:\n  name: c\n  version: 2\n');
+    expect(brunoConfig.version).toBe('2');
+  });
+
+  it('has no version when the file does not have one', () => {
+    const { brunoConfig } = parseCollection('opencollection: "1.0.0"\ninfo:\n  name: c\n');
+    expect(brunoConfig.version).toBeUndefined();
+  });
+});

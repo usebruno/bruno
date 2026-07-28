@@ -35,15 +35,19 @@ import {
   createCollection as _createCollection,
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
+  applyDefaultEnvironment as _applyDefaultEnvironment,
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
   moveCollection,
+  deleteItem as _deleteItemFromState,
+  brunoConfigUpdateEvent as _brunoConfigUpdateEvent,
   workspaceEnvUpdateEvent,
   requestCancelled,
   resetRunResults,
   responseReceived,
   updateLastAction,
   setCollectionSecurityConfig,
+  updateCollectionVersion as _updateCollectionVersion,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrlAndCredentialsId,
   initRunRequestEvent,
@@ -60,14 +64,17 @@ import {
   updateFolderVar,
   addCollectionVar,
   updateCollectionVar,
+  scriptUpdateCollectionVars,
+  setScriptCollVarBaseline,
+  _clearScriptCollectionBaselines,
   addTransientDirectory,
   addSaveTransientRequestModal,
   updatePathParam,
-  toggleCollection
+  migrateCollectionToYmlInPlace
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab, migrateCollectionTabsToYml } from 'providers/ReduxStore/slices/tabs';
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
@@ -82,15 +89,16 @@ import {
   calculateDraggedItemNewPathname,
   transformFolderRootToSave,
   getTreePathFromCollectionToItem,
-  mergeHeaders
+  mergeHeaders,
+  isPathOrDescendant
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
-import { buildPersistedEnvVariables } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
-import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { saveGlobalEnvironment, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import {
@@ -310,6 +318,40 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   });
 };
 
+export const saveCollectionVersion = (collectionUid, version) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const updatedVersion = typeof version === 'string' ? version.trim() : '';
+
+    const brunoConfigToSave = { ...(collection.brunoConfig || {}) };
+    if (updatedVersion) {
+      brunoConfigToSave.version = updatedVersion;
+    } else {
+      delete brunoConfigToSave.version;
+    }
+
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:update-bruno-config', brunoConfigToSave, collection.pathname, collection.root)
+      .then(() => {
+        dispatch(_updateCollectionVersion({ collectionUid, version: updatedVersion }));
+        toast.success('Collection version updated');
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to update collection version');
+        reject(err);
+      });
+  });
+};
+
 export const saveFolderRoot = (collectionUid, folderUid, silent = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -501,6 +543,8 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
 
+    // WS connect does not run user scripts — no baseline to clear.
+
     connectWS(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, { connectOnly: true })
       .then(resolve)
       .catch((err) => {
@@ -618,6 +662,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       }
       return reject(error);
     }
+
+    dispatch(clearScriptVariableBaselines(collectionUid));
 
     await dispatch(
       initRunRequestEvent({
@@ -1224,8 +1270,8 @@ export const handleCollectionItemDrop
           }
         }
 
-        // Update sequences in the target directory (if dropping adjacent)
-        if (dropType === 'adjacent') {
+        // Update sequences in the target directory (if dropping above/below)
+        if (dropType === 'above' || dropType === 'below') {
           const targetItemSequence = targetItemDirectoryItems.find((i) => i.uid === targetItemUid)?.seq;
 
           const draggedItemWithNewPathAndSequence = {
@@ -1238,7 +1284,8 @@ export const handleCollectionItemDrop
           const reorderedTargetItems = getReorderedItemsInTargetDirectory({
             items: [...targetItemDirectoryItems, draggedItemWithNewPathAndSequence],
             targetItemUid,
-            draggedItemUid
+            draggedItemUid,
+            dropType
           });
 
           if (reorderedTargetItems?.length) {
@@ -1247,7 +1294,7 @@ export const handleCollectionItemDrop
         }
       };
 
-      const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems }) => {
+      const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems, dropType }) => {
         const { uid: targetItemUid } = targetItem;
         const { uid: draggedItemUid } = draggedItem;
 
@@ -1255,7 +1302,8 @@ export const handleCollectionItemDrop
         const reorderedItems = getReorderedItemsInTargetDirectory({
           items: targetItemDirectoryItems,
           targetItemUid,
-          draggedItemUid
+          draggedItemUid,
+          dropType
         });
 
         if (reorderedItems?.length) {
@@ -1272,7 +1320,7 @@ export const handleCollectionItemDrop
             collectionPathname: collection.pathname
           });
           if (!newPathname) return;
-          if (targetItemPathname?.startsWith(draggedItemPathname)) return;
+          if (isPathOrDescendant(targetItemPathname, draggedItemPathname)) return;
 
           if (isCrossFormatMove && isItemAFolder(draggedItem)) {
             toast.error('Moving folders between collections with different formats is not supported');
@@ -1296,7 +1344,7 @@ export const handleCollectionItemDrop
               dropType
             });
           } else {
-            await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem });
+            await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem, dropType });
           }
 
           if (isCrossCollectionMove) {
@@ -1669,7 +1717,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
               uid: uuid(),
               name: 'message 1',
               type: 'json',
-              content: '{}'
+              content: ''
             }
           ]
         },
@@ -1789,7 +1837,7 @@ const DEFAULT_APP_STARTER = `<!DOCTYPE html>
   <script>
     const out = document.getElementById('out');
     document.getElementById('refresh').addEventListener('click', async () => {
-      const requests = await ctx.listRequests();
+      const requests = await bru.ctx.listRequests();
       out.textContent = requests.map(r => \`\${r.method || r.type}  \${r.name}\`).join('\\n') || '(no requests)';
     });
   </script>
@@ -2011,12 +2059,7 @@ export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, g
 
     const { ipcRenderer } = window;
 
-    // strip "ephemeral" metadata
-    const variablesToCopy = (baseEnv.variables || [])
-      .filter((v) => !v.ephemeral)
-      .map(({ ephemeral, ...rest }) => {
-        return rest;
-      });
+    const variablesToCopy = baseEnv.variables || [];
 
     ipcRenderer
       .invoke('renderer:create-environment', collection.pathname, sanitizedName, variablesToCopy)
@@ -2100,8 +2143,7 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       return reject(new Error('Environment not found'));
     }
 
-    const persisted = buildPersistedEnvVariables(variables, { mode: 'save' });
-    environment.variables = persisted;
+    environment.variables = variables;
 
     const { ipcRenderer } = window;
     const envForValidation = cloneDeep(environment);
@@ -2110,7 +2152,7 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       .validate(environment)
       .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envForValidation))
       .then(() => {
-        dispatch(_saveEnvironment({ variables: persisted, environmentUid, collectionUid }));
+        dispatch(_saveEnvironment({ variables, environmentUid, collectionUid }));
       })
       .then(resolve)
       .catch(reject);
@@ -2247,9 +2289,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 
           const updatedVariables = environment.variables.map((v) => {
             if (v.uid === variable.uid) {
-              // Clear ephemeral metadata when user manually edits the value
-              const { ephemeral, persistedValue, ...rest } = v;
-              return { ...rest, value: newValue };
+              return { ...v, value: newValue };
             }
             return v;
           });
@@ -2363,9 +2403,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 
           const updatedVariables = environment.variables.map((v) => {
             if (v.uid === variable.uid) {
-              // Clear ephemeral metadata when user manually edits the value
-              const { ephemeral, persistedValue, ...rest } = v;
-              return { ...rest, value: newValue };
+              return { ...v, value: newValue };
             }
             return v;
           });
@@ -2404,86 +2442,97 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
   });
 };
 
-export const mergeAndPersistEnvironment
-  = ({ persistentEnvVariables, collectionUid }) =>
-    (_dispatch, getState) => {
-      return new Promise((resolve, reject) => {
-        const state = getState();
-        const collection = findCollectionByUid(state.collections.collections, collectionUid);
+// Clears all three script-driven baselines for a given collection:
+//   collection-scope env baseline, collection-scope coll-vars baseline, and the
+//   workspace-scope global-env baseline. Call at the start of any request kickoff
+//   path so a stale baseline from a previous send can't leak into draft merging.
+export const clearScriptVariableBaselines = (collectionUid) => (dispatch) => {
+  dispatch(_clearScriptCollectionBaselines({ collectionUid }));
+  dispatch(_clearScriptGlobalEnvBaseline());
+};
 
-        if (!collection) {
-          return reject(new Error('Collection not found'));
-        }
+export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection) return;
 
-        const environmentUid = collection.activeEnvironmentUid;
-        if (!environmentUid) {
-          return reject(new Error('No active environment found'));
-        }
+  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  if (!environment) return;
 
-        const collectionCopy = cloneDeep(collection);
-        const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
-        if (!environment) {
-          return reject(new Error('Environment not found'));
-        }
+  if (collection._scriptEnvBaseline) {
+    // Baseline exists — a draft was flushed earlier in this request cycle.
+    // Write to disk silently (without dispatching _saveEnvironment) to avoid
+    // racing with file-watcher callbacks.
+    const envCopy = { ...environment };
+    const { ipcRenderer } = window;
+    environmentSchema
+      .validate(envCopy)
+      .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, envCopy))
+      .catch((err) => console.error('Failed to persist environment during script execution:', err));
+    return;
+  }
 
-        // Only proceed if there are persistent variables to save
-        if (!persistentEnvVariables || Object.keys(persistentEnvVariables).length === 0) {
-          return resolve();
-        }
+  dispatch(saveEnvironment(environment.variables, environment.uid, collectionUid))
+    .catch((err) => console.error('Failed to persist environment during script execution:', err));
+};
 
-        let existingVars = environment.variables || [];
+export const collectionVariablesUpdateEvent = ({ collectionVariables, collectionUid }) => (dispatch, getState) => {
+  if (!collectionVariables || !collectionUid) return;
 
-        let normalizedNewVars = Object.entries(persistentEnvVariables).map(([name, value]) => {
-          const inferred = getDataTypeFromValue(value);
-          return {
-            uid: uuid(),
-            name,
-            value,
-            type: 'text',
-            enabled: true,
-            secret: false,
-            ...(inferred !== 'string' ? { dataType: inferred } : {})
-          };
-        });
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection) return;
 
-        const merged = existingVars.map((v) => {
-          const found = normalizedNewVars.find((nv) => nv.name === v.name);
-          if (!found) return v;
-          const { dataType: _oldDataType, ...rest } = v;
-          return { ...rest, value: found.value, ...(found.dataType ? { dataType: found.dataType } : {}) };
-        });
-        normalizedNewVars.forEach((nv) => {
-          if (!merged.some((v) => v.name === nv.name)) {
-            merged.push(nv);
-          }
-        });
+  const savedVars = get(collection, 'root.request.vars.req', []);
+  const draftVars = collection.draft?.root
+    ? get(collection, 'draft.root.request.vars.req', null)
+    : null;
 
-        // Save all non-ephemeral vars and all variables that were previously persisted
-        const persistedNames = new Set(Object.keys(persistentEnvVariables));
+  let baseline = collection._scriptCollVarBaseline || null;
 
-        // Add all existing non-ephemeral variables to persistedNames so they are preserved
-        existingVars.forEach((v) => {
-          if (!v.ephemeral) {
-            persistedNames.add(v.name);
-          }
-        });
+  if (!baseline && draftVars) {
+    baseline = {};
+    savedVars.forEach((v) => {
+      if (v.enabled) baseline[v.name] = v.value;
+    });
+    dispatch(setScriptCollVarBaseline({ collectionUid, baseline }));
+  }
 
-        const environmentToSave = cloneDeep(environment);
-        environmentToSave.variables = buildPersistedEnvVariables(merged, { mode: 'merge', persistedNames });
+  let vars = cloneDeep(draftVars || savedVars);
 
-        const { ipcRenderer } = window;
-        environmentSchema
-          .validate(environmentToSave)
-          .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environmentToSave))
-          .then(resolve)
-          .catch(reject);
-      });
-    };
+  vars = applyScriptEnvVars(vars, collectionVariables, baseline);
+
+  // Re-infer dataType only for vars the script actually modified; baseline-mode no-op writes
+  // must NOT overwrite a user's in-progress draft type change.
+  const modifiedKeys = getScriptModifiedKeys(collectionVariables, baseline);
+  modifiedKeys.forEach((name) => {
+    const existing = vars.find((v) => v.name === name);
+    if (!existing) return;
+    const inferred = getDataTypeFromValue(collectionVariables[name]);
+    if (inferred === 'string') {
+      delete existing.dataType;
+    } else {
+      existing.dataType = inferred;
+    }
+  });
+
+  dispatch(scriptUpdateCollectionVars({ collectionUid, vars }));
+
+  // Save from root (not draft) so draft headers/auth/scripts are not persisted to disk.
+  const fresh = findCollectionByUid(getState().collections.collections, collectionUid);
+  if (fresh) {
+    const collectionRootToSave = transformCollectionRootToSave({ root: fresh.root });
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:save-collection-root', fresh.pathname, collectionRootToSave, fresh.brunoConfig)
+      .catch((err) => console.error('Failed to persist collection variables:', err));
+  }
+};
 
 export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
@@ -2501,10 +2550,13 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
       type: 'COLLECTION_ENVIRONMENT',
       data: {
         collectionPath: collection?.pathname,
+        workspacePathname: activeWorkspace?.pathname || null,
         environmentPath: getCollectionEnvironmentPath(collection, environment),
         selectedEnvironment: environment?.name || ''
       }
     });
+
+    dispatch(clearScriptVariableBaselines(collectionUid));
 
     dispatch(_selectEnvironment({ environmentUid, collectionUid }));
     resolve();
@@ -2631,11 +2683,30 @@ export const browseDirectory = () => (dispatch, getState) => {
   });
 };
 
+export const browseDirectories = () => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    ipcRenderer.invoke('renderer:browse-directories').then(resolve).catch(reject);
+  });
+};
+
 export const browseFiles = (filters, properties) => (_dispatch, _getState) => {
   const { ipcRenderer } = window;
 
   return new Promise((resolve, reject) => {
     ipcRenderer.invoke('renderer:browse-files', filters, properties).then(resolve).catch(reject);
+  });
+};
+
+export const exportCollectionToPostman = (location, fileName, content, overwrite = false) => (_dispatch, _getState) => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    ipcRenderer
+      .invoke('renderer:export-collection-postman', location, fileName, content, overwrite)
+      .then(resolve)
+      .catch(reject);
   });
 };
 
@@ -2698,6 +2769,32 @@ export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getS
   });
 };
 
+export const ignoreFolder = (itemUid, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const item = findItemInCollection(collection, itemUid);
+    if (!item) {
+      return reject(new Error('Unable to locate item'));
+    }
+
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('renderer:ignore-folder', collectionUid, collection.pathname, collection.root, collection.brunoConfig || {}, item.pathname)
+      .then((updatedBrunoConfig) => {
+        dispatch(_brunoConfigUpdateEvent({ collectionUid, brunoConfig: updatedBrunoConfig }));
+        dispatch(_deleteItemFromState({ itemUid, collectionUid }));
+        resolve();
+      })
+      .catch(reject);
+  });
+};
+
 /**
  * Opens a scratch collection and creates it in Redux state.
  * This is a simplified version of openCollectionEvent for scratch collections,
@@ -2745,7 +2842,7 @@ export const openScratchCollectionEvent = (uid, pathname, brunoConfig) => (dispa
   });
 };
 
-export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
+export const openCollectionEvent = (uid, pathname, brunoConfig, options = {}) => (dispatch, getState) => {
   const { ipcRenderer } = window;
 
   return new Promise((resolve, reject) => {
@@ -2762,7 +2859,9 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     );
 
     if (existingCollection && isAlreadyInWorkspace) {
-      toast.success('Collection is already opened');
+      if (!options.silent) {
+        toast.success('Collection is already opened');
+      }
       resolve();
       return;
     }
@@ -2781,7 +2880,9 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         ipcRenderer
           .invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection)
           .then(() => {
-            toast.success('Collection added to workspace');
+            if (!options.silent) {
+              toast.success('Collection added to workspace');
+            }
           })
           .catch((err) => {
             console.error('Failed to add collection to workspace', err);
@@ -2894,25 +2995,6 @@ export const cloneCollection = (collectionName, collectionFolderName, collection
     previousPath
   );
 };
-export const openCollection = (options = {}) => (dispatch, getState) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-
-    const state = getState();
-    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
-
-    if (!options.workspaceId) {
-      options.workspaceId = activeWorkspace?.pathname || 'default';
-    }
-
-    ipcRenderer.invoke('renderer:open-collection', options)
-      .then((result) => {
-        resolve(result);
-      })
-      .catch(reject);
-  });
-};
-
 export const openMultipleCollections = (collectionPaths, options = {}) => () => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
@@ -2931,6 +3013,9 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, meta.collectionUid);
+    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+    const shouldPersistSelectionFromLastAction = collection?.lastAction?.type === 'ADD_ENVIRONMENT'
+      && collection?.lastAction?.payload === environment?.name;
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
@@ -2953,6 +3038,22 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
           })
         )
       )
+      .then(() => {
+        if (!shouldPersistSelectionFromLastAction) {
+          return;
+        }
+
+        const { ipcRenderer } = window;
+        ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
+          type: 'COLLECTION_ENVIRONMENT',
+          data: {
+            collectionPath: collection?.pathname,
+            workspacePathname: activeWorkspace?.pathname || null,
+            environmentPath: getCollectionEnvironmentPath(collection, environment, environment?.pathname),
+            selectedEnvironment: environment?.name || ''
+          }
+        });
+      })
       .then(resolve)
       .catch(reject);
   });
@@ -3078,10 +3179,21 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
       const collectionUid = collectionCopy?.uid;
 
       // update selected environment
+      // Precedence:
+      //   1. The environment saved in the ui-state-snapshot always wins.
+      //   2. The collection's configured default environment (brunoConfig.presets.defaultEnvironment)
+      //      is applied ONLY the first time a collection is opened/imported.
       const environment = findCollectionEnvironmentFromSnapshot(collectionCopy, collectionSnapshotData);
 
       if (environment) {
         dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
+      } else if (collectionSnapshotData?.hasSnapshotEntry === false) {
+        const defaultEnvironmentName = collectionCopy?.brunoConfig?.presets?.defaultEnvironment;
+        if (defaultEnvironmentName && collectionUid) {
+          // Apply the default now if its environment file is already loaded; otherwise mark
+          // it pending so it's applied as soon as the file arrives (collectionAddEnvFileEvent).
+          dispatch(_applyDefaultEnvironment({ collectionUid, defaultEnvironmentName }));
+        }
       }
 
       // todo: add any other redux state that you want to save
@@ -3220,14 +3332,25 @@ export const mountCollection
       const fileCacheEnabled = getState().app?.preferences?.cache?.file?.enabled;
       const channel = fileCacheEnabled ? 'renderer:mount-collection-v2' : 'renderer:mount-collection';
       return new Promise(async (resolve, reject) => {
-        callIpc(channel, { collectionUid, collectionPathname, brunoConfig })
+        callIpc(channel, { collectionUid, collectionPathname, brunoConfig, workspacePathname })
           .then(async (transientDirPath) => {
             dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
 
             const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
-            if (!skipTabRestore && collection?.pathname) {
-              await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+            if (collection?.pathname) {
+              if (!skipTabRestore) {
+                await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+              }
+
+              const collectionSnapshotState = await window.ipcRenderer
+                .invoke('renderer:snapshot:get-collection', collection.pathname, workspacePathname)
+                .catch(() => null);
+              await dispatch(hydrateCollectionWithUiStateSnapshot(
+                collectionSnapshotState
+                  ? { pathname: collection.pathname, ...collectionSnapshotState, hasSnapshotEntry: true }
+                  : { pathname: collection.pathname, hasSnapshotEntry: false }
+              ));
             }
           })
           .then(resolve)
@@ -3485,54 +3608,18 @@ export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) =>
     }
 
     const collectionPathname = collection.pathname;
-    const uid = collection.uid;
     ipcRenderer
       .invoke('renderer:migrate-collection-to-yml', collectionPathname, collectionUid)
-      .then(async (updatedBrunoConfig) => {
-        // Remove old collection state so we can recreate it with the new yml config.
-        // openCollectionEvent requires no existing collection with the same pathname.
-        dispatch(_removeCollection({ collectionUid }));
-        dispatch(closeAllCollectionTabs({ collectionUid }));
+      .then((updatedBrunoConfig) => {
+        dispatch(migrateCollectionToYmlInPlace({ collectionUid, brunoConfig: updatedBrunoConfig }));
+        dispatch(migrateCollectionTabsToYml({ collectionUid }));
 
-        try {
-          // Reopen the collection with updated config (now yml format)
-          await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
-
-          // Mount the collection (starts the watcher and loads items)
-          await dispatch(mountCollection({
-            collectionUid: uid,
-            collectionPathname: collectionPathname,
-            brunoConfig: updatedBrunoConfig
-          }));
-        } catch (reopenError) {
-          // Files on disk are already yml; best-effort recovery so the
-          // collection doesn't disappear from the UI. openCollectionEvent is
-          // a no-op if it already succeeded, and mountCollection is what we
-          // retry when it was the failing step.
-          try {
-            await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
-            await dispatch(mountCollection({
-              collectionUid: uid,
-              collectionPathname: collectionPathname,
-              brunoConfig: updatedBrunoConfig
-            }));
-          } catch (_) {}
-          throw reopenError;
-        }
-
-        // Expand the collection in the sidebar (only if collapsed)
-        const reopenedCollection = findCollectionByUid(getState().collections.collections, uid);
-        if (reopenedCollection?.collapsed) {
-          dispatch(toggleCollection(uid));
-        }
-
-        // Reopen collection settings on the overview tab
         dispatch(addTab({
-          uid: uid,
-          collectionUid: uid,
+          uid: collectionUid,
+          collectionUid: collectionUid,
           type: 'collection-settings'
         }));
-        dispatch(updateSettingsSelectedTab({ collectionUid: uid, tab: 'overview' }));
+        dispatch(updateSettingsSelectedTab({ collectionUid: collectionUid, tab: 'overview' }));
 
         toast.success('Collection migrated to YML format successfully');
         resolve();

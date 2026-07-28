@@ -86,6 +86,14 @@ const defaultPreferences = {
       enabled: true,
       model: '',
       triggerMode: 'debounced'
+    },
+    security: {
+      redactHeaders: true,
+      redactBody: true,
+      redactVariables: true,
+      redactResponse: true,
+      customRedactedHeaders: [],
+      customRedactedVariables: []
     }
   }
 };
@@ -182,6 +190,14 @@ const preferencesSchema = Yup.object().shape({
       enabled: Yup.boolean(),
       model: Yup.string().max(200).nullable(),
       triggerMode: Yup.string().oneOf(['aggressive', 'debounced', 'manual']).nullable()
+    }).optional(),
+    security: Yup.object({
+      redactHeaders: Yup.boolean(),
+      redactBody: Yup.boolean(),
+      redactVariables: Yup.boolean(),
+      redactResponse: Yup.boolean(),
+      customRedactedHeaders: Yup.array().of(Yup.string().max(200)).max(200),
+      customRedactedVariables: Yup.array().of(Yup.string().max(200)).max(200)
     }).optional()
   }).optional()
 });

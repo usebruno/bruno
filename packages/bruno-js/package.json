@@ -26,7 +26,7 @@
     "crypto-js": "^4.2.0",
     "json-query": "^2.2.2",
     "jsonwebtoken": "^9.0.3",
-    "lodash": "^4.17.21",
+    "lodash": "4.18.1",
     "moment": "^2.29.4",
     "nanoid": "3.3.8",
     "node-fetch": "^2.7.0",

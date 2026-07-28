@@ -117,6 +117,84 @@ describe('Bruno JSON export/import — dataType preservation', () => {
     const secretEnv = envVars.find((v) => v.name === 'token');
     expect(secretEnv).toMatchObject({ secret: true, value: '', dataType: 'number' });
   });
+
+  it('imports Bruno JSON with root descriptions when collection and folder root UIDs are absent', async () => {
+    const imported = await processBrunoCollection({
+      name: 'descriptions-imported-bru',
+      version: '1',
+      items: [
+        {
+          type: 'folder',
+          name: 'folder',
+          seq: 1,
+          root: {
+            meta: { name: 'folder' },
+            request: {
+              headers: [
+                { name: 'X-Folder-Version', value: '1.0', enabled: true, description: 'Folder header desc' }
+              ],
+              vars: {
+                req: [{ name: 'folderBaseUrl', value: 'https://folder.example.com', enabled: true, description: 'Folder var desc' }],
+                res: []
+              },
+              script: {},
+              tests: null
+            }
+          },
+          items: [
+            {
+              type: 'http',
+              name: 'request',
+              seq: 1,
+              request: {
+                url: 'https://example.com/api',
+                method: 'POST',
+                headers: [{ name: 'X-Version', value: '2.0', enabled: true, description: 'Header desc' }],
+                params: [],
+                body: { mode: 'none', formUrlEncoded: [], multipartForm: [], file: [] },
+                script: {},
+                vars: { req: [], res: [] },
+                assertions: [],
+                tests: '',
+                docs: '',
+                auth: { mode: 'none' }
+              }
+            }
+          ]
+        }
+      ],
+      environments: [
+        {
+          name: 'test_env',
+          variables: [
+            { name: 'envHost', value: 'http://localhost:3000', type: 'text', enabled: true, secret: false, description: 'Env desc' }
+          ]
+        }
+      ],
+      root: {
+        request: {
+          headers: [
+            { name: 'X-Collection-Version', value: '2.0', enabled: true, description: 'Collection header desc' }
+          ],
+          vars: {
+            req: [{ name: 'baseUrl', value: 'https://example.com', enabled: true, description: 'Collection var desc' }],
+            res: []
+          },
+          script: {},
+          tests: null
+        }
+      },
+      brunoConfig: { version: '1', name: 'descriptions-imported-bru', type: 'collection' }
+    });
+
+    expect(imported.root.request.headers[0].description).toBe('Collection header desc');
+    expect(imported.root.request.vars.req[0].description).toBe('Collection var desc');
+
+    const folder = imported.items.find((item) => item.type === 'folder');
+    expect(folder.root.request.headers[0].description).toBe('Folder header desc');
+    expect(folder.root.request.vars.req[0].description).toBe('Folder var desc');
+    expect(imported.environments[0].variables[0].description).toBe('Env desc');
+  });
 });
 
 describe('deleteSecretsInEnvs', () => {

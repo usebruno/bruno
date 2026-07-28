@@ -49,7 +49,6 @@ bruno.iml
 .idea
 .vscode
 .cursor
-.claude
 .codex
 .agents
 .agent
@@ -63,7 +62,7 @@ tests/benchmarks/results/
 /benchmark-report/
 
 # Development plan files
-CLAUDE.md
+CLAUDE.local.md
 AGENTS.md
 *.plan.md
 

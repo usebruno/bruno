@@ -213,6 +213,12 @@ const lightMonochromeTheme = {
     }
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.BRAND
+    }
+  },
+
   request: {
     methods: {
       get: '#525252',

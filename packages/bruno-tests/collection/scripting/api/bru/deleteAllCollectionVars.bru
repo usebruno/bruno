@@ -11,9 +11,6 @@ get {
 }
 
 script:pre-request {
-  // TODO: skipped because deleteAllCollectionVars does not update the UI
-  bru.runner.skipRequest();
-  return;
   bru.setCollectionVar("testDelAllCollectionA", "a");
   bru.setCollectionVar("testDelAllCollectionB", "b");
 }
@@ -27,6 +24,12 @@ tests {
     const valB = bru.getCollectionVar("testDelAllCollectionB");
     expect(valA).to.be.undefined;
     expect(valB).to.be.undefined;
+  });
+
+  test("should not throw when called on empty scope", function() {
+    expect(function() {
+      bru.deleteAllCollectionVars();
+    }).to.not.throw();
   });
 
   // Restore collection vars for subsequent requests

@@ -1,6 +1,11 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
-const { extractTypedAnnotations } = require('./utils');
+const {
+  parseAnnotationMultilineTextBlock,
+  unescapeAnnotationDoubleQuotedArg,
+  applyDescriptionFromAnnotations,
+  extractTypedAnnotations
+} = require('./utils');
 
 // this is done to avoid breaking existing pairlist mapping so
 // the key is hidden and not added into the json automatically
@@ -38,7 +43,9 @@ const grammar = ohm.grammar(`Bru {
   annotationchar = ~("(" | ")" | " " | "\\t" | "\\r" | "\\n" | ":") any
   annotationsinglequotedargchar = ~"'" any
   annotationsinglequotedarg = "'" annotationsinglequotedargchar* "'"
-  annotationdoublequotedargchar = ~"\\"" any
+  annotationdoublequotedargchar = annotationdoublequotedargesc | annotationdoublequotedargnorm
+  annotationdoublequotedargesc = "\\\\" any
+  annotationdoublequotedargnorm = ~"\\"" any
   annotationdoublequotedarg = "\\"" annotationdoublequotedargchar* "\\""
   annotationunquotedargchar = ~")" any
   annotationunquotedarg = annotationunquotedargchar*
@@ -55,7 +62,8 @@ const grammar = ohm.grammar(`Bru {
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
   pair = st* pairannotations st* key st* ":" st* value st*
   key = keychar*
-  value = multilinetextblock | valuechar*
+  value = multilinetextblock | singlelinevalue
+  singlelinevalue = valuechar*
 
   // Array Blocks
   array = st* "[" stnl* valuelist stnl* "]"
@@ -76,7 +84,7 @@ const mapPairListToKeyValPairs = (pairList = []) => {
     return [];
   }
 
-  return _.map(pairList[0], (pair) => {
+  return _.flatMap(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
     let value = pair[name];
     const rawAnnotations = pair[ANNOTATIONS_KEY];
@@ -89,12 +97,42 @@ const mapPairListToKeyValPairs = (pairList = []) => {
     const result = { name, value, enabled };
     if (rawAnnotations && rawAnnotations.length) {
       result.annotations = rawAnnotations;
+      applyDescriptionFromAnnotations(result, rawAnnotations);
     }
 
     extractTypedAnnotations(rawAnnotations, result);
 
-    return result;
+    return expandDescriptionOrphanRows(result);
   });
+};
+
+// When multiple @description annotations stack on one var, all but the last
+// render as description-only rows in the environment editor.
+const expandDescriptionOrphanRows = (variable) => {
+  const annotations = variable.annotations || [];
+  const descriptionAnnotations = annotations.filter((a) => a.name === 'description');
+  const otherAnnotations = annotations.filter((a) => a.name !== 'description');
+
+  if (descriptionAnnotations.length <= 1) {
+    return [variable];
+  }
+
+  const orphanRows = descriptionAnnotations.slice(0, -1).map((descAnnotation) => ({
+    name: '',
+    value: '',
+    enabled: variable.enabled,
+    annotations: [descAnnotation],
+    description: descAnnotation.value ?? ''
+  }));
+
+  const lastDescription = descriptionAnnotations[descriptionAnnotations.length - 1];
+  const mainRow = {
+    ...variable,
+    annotations: [...otherAnnotations, lastDescription],
+    description: lastDescription.value ?? ''
+  };
+
+  return [...orphanRows, mainRow];
 };
 
 const mapArrayListToKeyValPairs = (arrayList = []) => {
@@ -115,6 +153,7 @@ const mapArrayListToKeyValPairs = (arrayList = []) => {
     const result = { name, value: '', enabled };
     if (item.annotations && item.annotations.length) {
       result.annotations = item.annotations;
+      applyDescriptionFromAnnotations(result, item.annotations);
     }
 
     extractTypedAnnotations(item.annotations, result);
@@ -186,7 +225,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString;
   },
   annotationdoublequotedarg(_open, chars, _close) {
-    return chars.sourceString;
+    return unescapeAnnotationDoubleQuotedArg(chars.sourceString);
   },
   annotationunquotedarg(chars) {
     return chars.sourceString;
@@ -195,12 +234,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return alt.ast;
   },
   annotationmultilinetextblock(_1, content, _2) {
-    const lines = content.sourceString.split('\n');
-    let minIndent = 4;
-    const dedented = lines.map((line) => (line.trim() === '' ? '' : line.substring(minIndent)));
-    if (dedented.length > 0 && dedented[0] === '') dedented.shift();
-    if (dedented.length > 0 && dedented[dedented.length - 1] === '') dedented.pop();
-    return dedented.join('\n');
+    return parseAnnotationMultilineTextBlock(content.sourceString);
   },
   annotationargscontents(alt) {
     return alt.ast;
@@ -226,6 +260,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       return chars.ast;
     }
     return chars.sourceString ? chars.sourceString.trim() : '';
+  },
+  singlelinevalue(chars) {
+    return chars.sourceString?.trim() || '';
   },
   multilinetextblockstart(_1, _2) {
     return '';

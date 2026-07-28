@@ -38,6 +38,7 @@ export interface Item {
   type: ItemType;
   seq?: number | null;
   name: string;
+  description?: string | null;
   tags?: string[] | null;
   request?: Request | null;
   settings?: ItemSettings;

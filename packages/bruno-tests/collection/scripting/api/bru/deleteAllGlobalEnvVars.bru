@@ -11,9 +11,6 @@ get {
 }
 
 script:pre-request {
-  // TODO: skipped because deleteAllGlobalEnvVars does not update the UI
-  bru.runner.skipRequest();
-  return;
   bru.setGlobalEnvVar("testDelAllGlobalA", "a");
   bru.setGlobalEnvVar("testDelAllGlobalB", "b");
 }
@@ -27,6 +24,12 @@ tests {
     const valB = bru.getGlobalEnvVar("testDelAllGlobalB");
     expect(valA).to.be.undefined;
     expect(valB).to.be.undefined;
+  });
+
+  test("should not throw when called on empty scope", function() {
+    expect(function() {
+      bru.deleteAllGlobalEnvVars();
+    }).to.not.throw();
   });
 
   // Restore global env vars for subsequent requests

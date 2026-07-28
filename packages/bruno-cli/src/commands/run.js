@@ -4,7 +4,7 @@ const path = require('path');
 const yaml = require('js-yaml');
 const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
-const { exists, isFile, isDirectory, stripExtension } = require('../utils/filesystem');
+const { exists, stripExtension, isSafeFileName } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { getEnvVars } = require('../utils/bru');
 const { parseEnvironmentJson } = require('../utils/environment');
@@ -321,7 +321,7 @@ const handler = async function (argv) {
     } = argv;
     const collectionPath = process.cwd();
 
-    let collection = createCollectionJsonFromPathname(collectionPath);
+    const collection = createCollectionJsonFromPathname(collectionPath);
     const { root: collectionRoot, brunoConfig } = collection;
 
     if (clientCertConfig) {
@@ -360,6 +360,20 @@ const handler = async function (argv) {
 
     const runtimeVariables = {};
     let envVars = {};
+    let envFileDescriptor = null;
+    let globalEnvFileDescriptor = null;
+    // --env-var overrides as Map<name, injected value>. The persistence layer compares the
+    // script's resulting value against the injected value to tell a leaked override (same
+    // value passed through unchanged) apart from a deliberate same-named script write that
+    // must reach disk. Typical use: CI injects a secret the CLI can't decrypt at rest.
+    const envVarOverrides = new Map();
+
+    const resolveEnvFileFormat = (filePath) => {
+      const ext = path.extname(filePath).toLowerCase();
+      if (ext === '.json') return 'json';
+      if (ext === '.yml') return 'yml';
+      return 'bru';
+    };
 
     // Helper to load environment variables from a file
     const loadEnvFromFile = (filePath, nameOverride) => {
@@ -374,11 +388,11 @@ const handler = async function (argv) {
         const rawName = normalizedEnv?.name;
         const trimmedName = typeof rawName === 'string' ? rawName.trim() : '';
         result.__name__ = trimmedName || path.basename(filePath, '.json');
-      } else if (fileExt === '.yml' || fileExt === '.yaml') {
+      } else if (fileExt === '.yml') {
         const content = fs.readFileSync(filePath, 'utf8');
         const envJson = parseEnvironment(content, { format: 'yml' });
         result = getEnvVars(envJson);
-        result.__name__ = nameOverride || path.basename(filePath, fileExt);
+        result.__name__ = nameOverride || path.basename(filePath, '.yml');
       } else {
         const content = fs.readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
         const envJson = parseEnvironment(content, { format: 'bru' });
@@ -398,9 +412,44 @@ const handler = async function (argv) {
       }
       try {
         envVars = loadEnvFromFile(envFilePath);
+        envFileDescriptor = { path: envFilePath, format: resolveEnvFileFormat(envFilePath) };
       } catch (err) {
         console.error(chalk.red(`Failed to parse environment file: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+      }
+    }
+
+    // Fall back to the collection's configured default environment
+    // (bruno.json presets.defaultEnvironment) when no environment was
+    // specified via --env or --env-file.
+    const defaultEnvironment = brunoConfig?.presets?.defaultEnvironment;
+    if (!env && !envFile && defaultEnvironment) {
+      // The default environment name comes from shared collection config, so it is
+      // untrusted. Only accept a bare file name so a crafted value (path separators or
+      // traversal) can't load a file outside environments/.
+      if (!isSafeFileName(defaultEnvironment)) {
+        console.warn(
+          chalk.yellow(`Ignoring invalid default environment name: `) + chalk.dim(defaultEnvironment)
+        );
+      } else {
+        const envExt = FORMAT_CONFIG[collection.format].ext;
+        const defaultEnvFilePath = path.join(collectionPath, 'environments', `${defaultEnvironment}${envExt}`);
+        if (await exists(defaultEnvFilePath)) {
+          try {
+            const defaultEnvVars = loadEnvFromFile(defaultEnvFilePath, defaultEnvironment);
+            envVars = { ...envVars, ...defaultEnvVars };
+            envFileDescriptor = { path: defaultEnvFilePath, format: collection.format };
+            console.log(chalk.dim(`Using default environment: ${defaultEnvironment}`));
+          } catch (err) {
+            console.error(chalk.red(`Failed to parse default environment file: ${err.message}`));
+            process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+          }
+        } else {
+          console.warn(
+            chalk.yellow(`Configured default environment not found: `)
+            + chalk.dim(`environments/${defaultEnvironment}${envExt}`)
+          );
+        }
       }
     }
 
@@ -415,6 +464,7 @@ const handler = async function (argv) {
       try {
         const collectionEnvVars = loadEnvFromFile(collectionEnvFilePath, env);
         envVars = { ...envVars, ...collectionEnvVars };
+        envFileDescriptor = { path: collectionEnvFilePath, format: collection.format };
       } catch (err) {
         console.error(chalk.red(`Failed to parse Environment file: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
@@ -470,6 +520,7 @@ const handler = async function (argv) {
         const globalEnvJson = parseEnvironment(globalEnvContent, { format: 'yml' });
         globalEnvVars = getEnvVars(globalEnvJson);
         globalEnvVars.__name__ = globalEnv;
+        globalEnvFileDescriptor = { path: globalEnvFilePath, format: 'yml' };
       } catch (err) {
         console.error(chalk.red(`Failed to parse global environment: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
@@ -498,6 +549,7 @@ const handler = async function (argv) {
             process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
           envVars[match[1]] = match[2];
+          envVarOverrides.set(match[1], match[2]);
         }
       }
     }
@@ -543,7 +595,7 @@ const handler = async function (argv) {
       process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
     }
 
-    let formats = {};
+    const formats = {};
 
     // Maintains back compat with --format and --output
     if (outputPath && outputPath.length) {
@@ -578,7 +630,7 @@ const handler = async function (argv) {
     }
 
     let requestItems = [];
-    let results = [];
+    const results = [];
 
     if (!paths || !paths.length) {
       paths = ['./'];
@@ -618,6 +670,15 @@ const handler = async function (argv) {
 
     const runtime = getJsSandboxRuntime(sandbox);
 
+    const collectionRootFile = collection.format === 'yml' ? 'opencollection.yml' : 'collection.bru';
+    const collectionRootPath = path.join(collectionPath, collectionRootFile);
+    const persistPaths = {
+      envFile: envFileDescriptor,
+      globalEnvFile: globalEnvFileDescriptor,
+      collectionRootPath,
+      envVarOverrides
+    };
+
     // Fetch system proxy once for all requests (skip if --noproxy flag is set)
     if (!noproxy) {
       try {
@@ -647,7 +708,8 @@ const handler = async function (argv) {
             runtime,
             collection,
             runSingleRequestByPathname,
-            globalEnvVars
+            globalEnvVars,
+            persistPaths
           );
           resolve(res?.response);
         }
@@ -674,7 +736,8 @@ const handler = async function (argv) {
         runtime,
         collection,
         runSingleRequestByPathname,
-        globalEnvVars
+        globalEnvVars,
+        persistPaths
       );
 
       const isLastRun = currentRequestIndex === requestItems.length - 1;

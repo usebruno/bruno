@@ -35,10 +35,11 @@ const config = {
     ],
     icon: 'resources/icons/mac/icon.icns',
     hardenedRuntime: true,
-    identity: 'Bruno Software, Inc. (P3WTZH48ZB)',
+    identity: 'Anoop MD (W7LPPWA48L)',
     entitlements: 'resources/entitlements.mac.plist',
     entitlementsInherit: 'resources/entitlements.mac.plist',
     notarize: false,
+    requirements: 'resources/app-requirements.txt',
     protocols: [
       {
         name: 'Bruno',
@@ -110,6 +111,10 @@ const config = {
     allowElevation: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true
+  },
+  pkg: {
+    installLocation: '/Applications',
+    isRelocatable: false
   }
 };
 
