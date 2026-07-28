@@ -4,6 +4,12 @@ const {
   parseCollection: _parseCollection
 } = require('@usebruno/filestore');
 
+const URL_PATH_BY_REQUEST_TYPE = {
+  'grpc-request': 'grpc.url',
+  'graphql-subscription-request': 'graphqlSubscription.url',
+  'default': 'http.url'
+};
+
 const collectionBruToJson = (bru) => {
   try {
     const json = _parseCollection(bru);
@@ -66,6 +72,9 @@ const bruToJson = (bru) => {
       case 'ws':
         requestType = 'ws-request';
         break;
+      case 'graphql-subscription':
+        requestType = 'graphql-subscription-request';
+        break;
       default:
         requestType = 'http-request';
     }
@@ -80,7 +89,7 @@ const bruToJson = (bru) => {
       tags: Array.isArray(tags) ? tags : [],
       examples: _.get(json, 'examples', []),
       request: {
-        url: _.get(json, requestType === 'grpc-request' ? 'grpc.url' : 'http.url'),
+        url: _.get(json, URL_PATH_BY_REQUEST_TYPE[requestType] || URL_PATH_BY_REQUEST_TYPE.default),
         headers: requestType === 'grpc-request' ? _.get(json, 'metadata', []) : _.get(json, 'headers', []),
         // Preserving special characters in custom methods. Using _.upperCase strips special characters.
         method: String(_.get(json, 'http.method') ?? '').toUpperCase(),
@@ -115,6 +124,13 @@ const bruToJson = (bru) => {
         mode: 'ws',
         ws: [bodyFromBru]
       };
+    } else if (requestType === 'graphql-subscription-request') {
+      transformedJson.request.auth.mode = _.get(json, 'graphqlSubscription.auth', 'none');
+      transformedJson.request.body = {
+        mode: 'graphql',
+        graphql: _.get(json, 'body.graphql', { query: '', variables: '' })
+      };
+      transformedJson.request.connectionParams = _.get(json, 'graphqlSubscriptionConnectionParams', null) || null;
     } else {
       transformedJson.request.method = _.upperCase(_.get(json, 'http.method'));
       transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
