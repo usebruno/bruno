@@ -544,6 +544,15 @@ export const groupRequestsByTags = (requests, options = {}) => {
 };
 
 /**
+ * Coerces a value into a string.
+ * The spec is unvalidated, so a description can arrive as any YAML type. A bad
+ * value is dropped rather than failing the whole import.
+ * @param {*} value - A value straight off the parsed spec
+ * @returns {string} The value, or '' when it isn't a usable string
+ */
+export const toSpecString = (value) => (typeof value === 'string' ? value : '');
+
+/**
  * Builds a lookup of tag description keyed by sanitized tag name.
  * Folders are named from the sanitized first tag (see groupRequestsByTags), so the
  * spec's top-level tags[] descriptions are keyed the same way to line up with folder names.
@@ -554,10 +563,11 @@ export const groupRequestsByTags = (requests, options = {}) => {
 export const getTagDescriptions = (tags, options = {}) => {
   const descriptions = Object.create(null);
   each(tags || [], (tag) => {
-    if (tag && typeof tag === 'object' && tag.name && tag.description) {
+    if (tag && typeof tag === 'object' && tag.name) {
+      const docs = toSpecString(tag.description);
       const key = sanitizeTag(tag.name, options);
-      if (key) {
-        descriptions[key] = tag.description;
+      if (key && docs) {
+        descriptions[key] = docs;
       }
     }
   });

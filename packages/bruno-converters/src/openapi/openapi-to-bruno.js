@@ -11,7 +11,8 @@ import {
   groupRequestsByTags,
   groupRequestsByPath,
   normalizeItemName,
-  getTagDescriptions
+  getTagDescriptions,
+  toSpecString
 } from './openapi-common';
 
 const getContentLevelExample = (bodyContent) => {
@@ -163,7 +164,7 @@ const getParameterEntries = (param) => {
 const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
   let _operationObject = request.operationObject;
 
-  let operationName = _operationObject.summary || _operationObject.operationId || _operationObject.description;
+  let operationName = _operationObject.summary || _operationObject.operationId || toSpecString(_operationObject.description);
   operationName = operationName ? normalizeItemName(operationName) : '';
   if (!operationName) {
     operationName = `${request.method} ${request.path}`;
@@ -197,7 +198,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     },
     tags: sanitizeTags(request.operationObject.tags || [], options),
     request: {
-      docs: _operationObject.description,
+      docs: toSpecString(_operationObject.description),
       url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
@@ -1038,7 +1039,7 @@ export const parseOpenApiCollection = (data, options = {}) => {
       meta: {
         name: brunoCollection.name
       },
-      docs: collectionData.info?.description
+      docs: toSpecString(collectionData.info?.description)
     };
 
     return brunoCollection;

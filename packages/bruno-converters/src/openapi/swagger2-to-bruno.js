@@ -13,7 +13,8 @@ import {
   groupRequestsByTags,
   groupRequestsByPath,
   normalizeItemName,
-  getTagDescriptions
+  getTagDescriptions,
+  toSpecString
 } from './openapi-common';
 
 /**
@@ -132,7 +133,7 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
   const produces = op.produces || request.global.produces || ['application/json'];
 
   // Determine operation name
-  let operationName = op.summary || op.operationId || op.description;
+  let operationName = op.summary || op.operationId || toSpecString(op.description);
   operationName = operationName ? normalizeItemName(operationName) : '';
   if (!operationName) operationName = `${request.method} ${request.path}`;
 
@@ -159,7 +160,7 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
     },
     tags: sanitizeTags(op.tags || [], options),
     request: {
-      docs: op.description,
+      docs: toSpecString(op.description),
       url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
@@ -644,7 +645,7 @@ export const parseSwagger2Collection = (data, options = {}) => {
     brunoCollection.root = {
       request: { auth: collectionAuth },
       meta: { name: brunoCollection.name },
-      docs: collectionData.info?.description
+      docs: toSpecString(collectionData.info?.description)
     };
 
     return brunoCollection;
