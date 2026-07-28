@@ -14,7 +14,9 @@ jobs:
   unit-test:
     name: Unit Tests (Linux)
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: 
+      - ubuntu-latest
+      - self-hosted
     permissions:
       contents: read
     steps:
@@ -28,7 +30,9 @@ jobs:
 
   cli-test:
     name: CLI Tests (Linux)
-    runs-on: ubuntu-latest
+    runs-on: 
+      - ubuntu-latest
+      - self-hosted
     permissions:
       checks: write
       pull-requests: write
@@ -54,7 +58,9 @@ jobs:
   e2e-test:
     name: Playwright E2E Tests (Linux) ${{ matrix.shard }}/${{ matrix.shardTotal }}
     timeout-minutes: 240
-    runs-on: ubuntu-24.04
+    runs-on: 
+      - ubuntu-24.04
+      - self-hosted
     strategy:
       fail-fast: false
       matrix:
@@ -100,7 +106,9 @@ jobs:
     name: Merge Playwright Reports (Linux)
     if: ${{ !cancelled() }}
     needs: [e2e-test]
-    runs-on: ubuntu-latest
+    runs-on: 
+      - ubuntu-latest
+      - self-hosted
     steps:
       - uses: actions/checkout@v6
 
@@ -129,7 +137,9 @@ jobs:
   ssl-test:
     name: SSL Tests (Linux)
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: 
+      - ubuntu-latest
+      - self-hosted
     permissions:
       checks: write
       pull-requests: write
@@ -158,7 +168,9 @@ jobs:
   oauth1-tests:
     name: OAuth 1.0 Auth Tests (Linux)
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: 
+      - ubuntu-latest
+      - self-hosted
     permissions:
       checks: write
       pull-requests: write
