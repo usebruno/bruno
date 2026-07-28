@@ -226,11 +226,11 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
   }
 
   const settings: HttpRequestSettings = {
-    encodeUrl: typeof brunoSettings?.encodeUrl === 'boolean' ? brunoSettings.encodeUrl : true,
+    encodeUrl: toBool(brunoSettings?.encodeUrl, true),
     timeout: resolveTimeoutSetting(brunoSettings?.timeout),
-    followRedirects: typeof brunoSettings?.followRedirects === 'boolean' ? brunoSettings.followRedirects : true,
-    maxRedirects: typeof brunoSettings?.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5,
-    forwardAuthorizationHeader: typeof brunoSettings?.forwardAuthorizationHeader === 'boolean' ? brunoSettings.forwardAuthorizationHeader : true
+    followRedirects: toBool(brunoSettings?.followRedirects, true),
+    maxRedirects: toNumber(brunoSettings?.maxRedirects, 5),
+    forwardAuthorizationHeader: toBool(brunoSettings?.forwardAuthorizationHeader, true)
   };
   ocRequest.settings = settings;
 
