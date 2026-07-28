@@ -48,7 +48,7 @@ const requestTypes = [
   { value: 'http', label: 'HTTP' },
   { value: 'graphql', label: 'GraphQL' },
   { value: 'grpc', label: 'gRPC' },
-  { value: 'ws', label: 'WebSocket' }
+  { value: 'ws', label: 'WebSocket', disabled: true }
 ];
 
 export const Default = {
