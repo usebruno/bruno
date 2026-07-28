@@ -4,7 +4,8 @@ export {
   parseQueryParams,
   buildQueryString,
   stripOrigin,
-  safeDecodeURIComponent
+  safeDecodeURIComponent,
+  isSameOrigin
 } from './url';
 
 export {

@@ -8,6 +8,7 @@ const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies')
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
+const { isSameOrigin } = require('@usebruno/common').utils;
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -71,15 +72,6 @@ const checkConnection = (host, port) =>
  * @see https://github.com/axios/axios/issues/695
  * @returns {axios.AxiosInstance}
  */
-const isSameOrigin = (url1, url2) => {
-  try {
-    const parsed1 = new global.URL(url1);
-    const parsed2 = new global.URL(url2);
-    return parsed1.origin === parsed2.origin;
-  } catch (err) {
-    return false;
-  }
-};
 
 function makeAxiosInstance({
   proxyMode = 'off',

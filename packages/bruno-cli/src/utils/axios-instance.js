@@ -3,6 +3,7 @@ const { CLI_VERSION } = require('../constants');
 const { addCookieToJar, getCookieStringForUrl } = require('./cookies');
 const { createFormData } = require('./form-data');
 const { setupProxyAgents } = require('./proxy-util');
+const { isSameOrigin } = require('@usebruno/common').utils;
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
@@ -64,16 +65,6 @@ const createRedirectConfig = (error, redirectUrl) => {
   }
 
   return requestConfig;
-};
-
-const isSameOrigin = (url1, url2) => {
-  try {
-    const parsed1 = new global.URL(url1);
-    const parsed2 = new global.URL(url2);
-    return parsed1.origin === parsed2.origin;
-  } catch (err) {
-    return false;
-  }
 };
 
 /**
