@@ -89,10 +89,10 @@ test.describe('bru.setGlobalEnvVar(name, value) - typed value persistence (works
         const strRow = locators.environment.variableRowByName('global_str');
 
         await expect(numRow).toBeVisible();
-        await expect(locators.dataTypeSelector.typeLabel(numRow)).toHaveText('number', { timeout: 5000 });
-        await expect(locators.dataTypeSelector.typeLabel(boolRow)).toHaveText('boolean');
-        await expect(locators.dataTypeSelector.typeLabel(objRow)).toHaveText('object');
-        await expect(locators.dataTypeSelector.typeLabel(strRow)).toHaveText('string');
+        await expect(locators.dataTypeSelector.typeLabel(numRow)).toHaveAttribute('data-selected-type', 'number', { timeout: 5000 });
+        await expect(locators.dataTypeSelector.typeLabel(boolRow)).toHaveAttribute('data-selected-type', 'boolean');
+        await expect(locators.dataTypeSelector.typeLabel(objRow)).toHaveAttribute('data-selected-type', 'object');
+        await expect(locators.dataTypeSelector.typeLabel(strRow)).toHaveAttribute('data-selected-type', 'string');
       });
     } finally {
       await closeElectronApp(secondApp);
