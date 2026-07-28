@@ -179,8 +179,10 @@ export const SingleWSMessage = ({
   return (
     <StyledWrapper
       className={!isSelected ? 'disabled' : ''}
-      onMouseUpCapture={() => {
-        if (!isSelected) onSelect();
+      data-testid={`ws-message-${index}`}
+      onMouseUpCapture={(e) => {
+        if (isSelected || e.target.closest('.hover-action-btn.delete')) return;
+        onSelect();
       }}
     >
       <div

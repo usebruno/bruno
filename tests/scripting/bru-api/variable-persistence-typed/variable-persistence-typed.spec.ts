@@ -64,9 +64,9 @@ test.describe('Script-driven typed variable persistence to disk (developer mode)
       const objRow = locators.environment.variableRowByName('envObj');
 
       await expect(numRow).toBeVisible();
-      await expect(locators.dataTypeSelector.typeLabel(numRow)).toHaveText('number');
-      await expect(locators.dataTypeSelector.typeLabel(boolRow)).toHaveText('boolean');
-      await expect(locators.dataTypeSelector.typeLabel(objRow)).toHaveText('object');
+      await expect(locators.dataTypeSelector.typeLabel(numRow)).toHaveAttribute('data-selected-type', 'number');
+      await expect(locators.dataTypeSelector.typeLabel(boolRow)).toHaveAttribute('data-selected-type', 'boolean');
+      await expect(locators.dataTypeSelector.typeLabel(objRow)).toHaveAttribute('data-selected-type', 'object');
 
       await locators.environment.collectionEnvTab().getByTestId('request-tab-close-icon').click({ force: true });
     });

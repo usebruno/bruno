@@ -125,7 +125,7 @@ bru.ctx.onTestsChange       = (tests) => { ... }
 bru.ctx.onVariablesChange   = (variables) => { ... }
 \`\`\`
 
-### Collection-/folder-level app (edited from the collection's own app editor — mentioned here only so you can answer questions about it)
+### Collection-/folder-level app (edited from the collection's own app editor)
 \`\`\`js
 bru.ctx.theme / bru.ctx.variables / bru.ctx.variables.runtime.set / bru.ctx.log / bru.ctx.onInit   // as above
 bru.ctx.collection                        // { name, pathname } | null
@@ -135,6 +135,8 @@ bru.ctx.onThemeChange / bru.ctx.onVariablesChange / bru.ctx.onCollectionChange
 \`\`\`
 There is NO \`bru.ctx.http\` / \`bru.ctx.submitRequest\` / \`bru.ctx.assertions\` / \`bru.ctx.tests\` at collection level. Reference requests by the \`pathname\` from \`bru.ctx.listRequests()\`, not by name.
 
+At design time you also have list_requests() and search_requests(query) tools that return the same shape — call them to enumerate the collection before hard-coding pathnames, and to locate specific requests the user asked about (e.g. "create an app for the login request"). For a targeted app that runs a small known set, you may embed the resolved pathnames directly instead of calling \`bru.ctx.listRequests()\` at runtime.
+
 ## RULES
 1. Generate a single self-contained HTML document (inline styles and scripts are fine — no external CDN)
 2. Use ONLY the \`bru.ctx\` APIs listed above for the app's level — do not invent \`bru.ctx\` methods, do not use \`fetch\` to call the API directly, and do not rely on Bruno internals beyond \`bru.ctx\`
@@ -142,7 +144,8 @@ There is NO \`bru.ctx.http\` / \`bru.ctx.submitRequest\` / \`bru.ctx.assertions\
 4. Always handle loading and error states around \`bru.ctx.submitRequest\` / \`bru.ctx.runRequest\`; bind UI updates to the \`on*Change\` callbacks instead of polling
 5. Theme changes toggle a \`light\`/\`dark\` class on \`document.body\` (from \`bru.ctx.theme.mode\`) — style both states; \`bru.ctx.theme.config\` is the full resolved theme object
 6. Keep the UI clean, readable, and accessible — neutral styling, no heavy gradients
-7. Write the COMPLETE document when using write_content`
+7. When building a collection/folder-level app that runs specific requests, call list_requests / search_requests first to get real pathnames from this workspace — never invent one. Pass the returned \`pathname\` verbatim to \`bru.ctx.runRequest\`.
+8. Write the COMPLETE document when using write_content`
 };
 
 const SCOPE_GUARD = `## Scope
@@ -182,6 +185,8 @@ This means:
 - read_response(): returns the redacted shape (keys + types) of the last response body. No parameters. Use it to learn paths and types — not to read actual values.
 - If read_response reports that no response is available and the task depends on the response structure (tests on body fields, extracting values, rendering response data), do NOT invent fields or guess the shape. Ask the user to run the request once so you can read the response shape, then continue from there.
 - search_variables(query?): search environment / collection / global / runtime variables by name (case-insensitive substring). Pass a query string when you need to confirm a name before referencing it. Values come back redacted for secrets — never hard-code a returned value. Each result has a \`scope\` field — use it to pick the right runtime accessor: \`bru.getEnvVar\` for \`env\`, \`bru.getGlobalEnvVar\` for \`global\`, \`bru.getCollectionVar\` / \`bru.getFolderVar\` / \`bru.getRequestVar\` for \`collection\`, \`bru.getVar\` for \`runtime\`, and \`bru.getSecretVar\` for any value that came back redacted. Use this when the inline variables list is truncated.
+- list_requests(): list every HTTP / GraphQL / gRPC / WebSocket request in this collection. Returns each request's name, method, url, folder path, and \`pathname\`. Use it when you need the collection map — for collection/folder-level apps, before wiring up buttons that call \`bru.ctx.runRequest\`, or when the user asks "what's in this collection". Prefer search_requests when you already know a keyword.
+- search_requests(query): search this collection's requests by case-insensitive substring against name / url / pathname / folder path (or an exact HTTP method like GET/POST). Returns the same shape as list_requests. Use it to locate a request the user referenced by name, endpoint, or method.
 
 ### Rules
 - ALWAYS call read_content before write_content for the same type
@@ -208,7 +213,9 @@ const TOOL_LABELS = {
     'docs': 'Writing documentation'
   },
   read_response: { default: 'Reading response data' },
-  search_variables: { default: 'Searching variables' }
+  search_variables: { default: 'Searching variables' },
+  list_requests: { default: 'Listing collection requests' },
+  search_requests: { default: 'Searching collection requests' }
 };
 
 const buildSystemPrompt = (contentType, hasMultipleContent) => {

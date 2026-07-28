@@ -42,3 +42,26 @@ export {
 export {
   toDisplayString
 } from './string';
+
+export {
+  MAX_BODY_SIZE_DEFAULT,
+  isStrPresent,
+  makeEdgeGridTimestamp,
+  makeEdgeGridNonce,
+  canonicalizeHeaders,
+  base64HmacSha256,
+  base64Sha256,
+  makeContentHash
+} from './edgegrid';
+
+export const TIMEOUT_INHERIT = 'inherit' as const;
+
+// Normalize a request timeout setting for serialization: keep the "inherit"
+// sentinel and finite, positive numbers as-is; fall back to 0 for everything
+// else (null/undefined, NaN, ±Infinity, zero, negatives, non-numeric values),
+// since those don't serialize to a meaningful timeout.
+export const resolveTimeoutSetting = (value: unknown): number | typeof TIMEOUT_INHERIT => {
+  if (value === TIMEOUT_INHERIT) return value;
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
+  return 0;
+};

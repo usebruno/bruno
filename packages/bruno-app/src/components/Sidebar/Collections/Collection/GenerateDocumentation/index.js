@@ -232,7 +232,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
               </div>
 
               <p className="note m-0">
-                The generated file loads OpenCollection's JavaScript and CSS files from a CDN, which requires an internet connection.
+                The generated file loads Bruno's JavaScript and CSS files from a CDN, which requires an internet connection.
               </p>
             </div>
           )}
