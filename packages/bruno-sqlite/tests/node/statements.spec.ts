@@ -75,5 +75,5 @@ describe('Statements.execute mutation signalling', () => {
     const statements = newStatements(onMutation);
     expect(() => statements.execute('invalid', {})).toThrow('unknown definition type: invalid_type');
     expect(onMutation).not.toHaveBeenCalled();
-  })
+  });
 });

@@ -1,12 +1,11 @@
-import { DB } from "../src/node/db";
-import type { Migration } from "../src/shared/types";
-import { loadMigrations } from "./lib/sources";
-import { vacuumIntoStatement } from "./lib/sql";
+import { DB } from '../src/node/db';
+import type { Migration } from '../src/shared/types';
+import { loadMigrations } from './lib/sources';
+import { vacuumIntoStatement } from './lib/sql';
 import { DatabaseSync } from 'node:sqlite';
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
-
 
 const main = () => {
   const dbPath = process.env.DB_PATH;
@@ -44,6 +43,6 @@ const main = () => {
   }
 
   console.log(`Verified ${migrations.length} migration(s): all statements applied cleanly.`);
-}
+};
 
 main();
