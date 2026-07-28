@@ -11,6 +11,8 @@ export const buildRequestLocators = (page: Page) => ({
   requestTestId: () => page.getByTestId('request-name'),
   generateCodeButton: () => page.getByTestId('generate-code-button'),
   bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
+  bodyModeLabel: () => page.getByTestId('request-body-mode-label'),
+  exampleBodyModeLabel: () => page.getByTestId('example-body-mode-label'),
   bodyEditor: () => page.getByTestId('request-body-editor'),
   // File / Binary body table + the rendered file name(s).
   fileBodyTable: () => page.getByTestId('file-body-table'),
