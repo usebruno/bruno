@@ -17,7 +17,7 @@ const workspaceYml = (collectionName) =>
 
 const globalEnvYml = (vars) =>
   `name: Global\nvariables:\n`
-  + vars.map(([name, value]) => `  - name: ${name}\n    value: ${value}\n    enabled: true\n    secret: false\n`).join('');
+  + vars.map(([name, value]) => `  - name: ${name}\n    value: ${value}\n`).join('');
 
 // Covers the --global-env-var CLI flag end-to-end: argument validation (rejects malformed
 // name=value) and the leak-guard that keeps injected values out of the on-disk global env file.
