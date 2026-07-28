@@ -44,6 +44,11 @@ export {
 } from './string';
 
 export {
+  toBool,
+  toNumber
+} from './type-helpers';
+
+export {
   MAX_BODY_SIZE_DEFAULT,
   isStrPresent,
   makeEdgeGridTimestamp,
