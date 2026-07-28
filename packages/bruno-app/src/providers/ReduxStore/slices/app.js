@@ -336,7 +336,21 @@ export const {
   setIsOpeningCollection
 } = appSlice.actions;
 
-export const hydrateApp = () => async (dispatch) => {
+/**
+ * NOTE:
+ * We generally avoid persisting the same piece of application state in multiple
+ * places (snapshot + localStorage) as it increases complexity and can lead to
+ * consistency issues.
+ *
+ * This is an intentional exception. The sidebar renders before the snapshot has
+ * finished loading, which can briefly cause an incorrect UI state (visible
+ * flicker). localStorage provides an immediate value during startup, while the
+ * snapshot remains the canonical persisted state.
+ *
+ * Ideally, rendering would wait until snapshot hydration completes, but that
+ * introduces a noticeable startup delay that we want to avoid.
+ */
+export const hydrateSidebarState = () => async (dispatch) => {
   if (!window.ipcRenderer) {
     return;
   }
