@@ -322,19 +322,19 @@ const CollectionsList = ({ workspace }) => {
                     <StatusBadge
                       status="info"
                       size="xs"
-                      dataTestId="collection-git-badge"
+                      data-testid="collection-git-badge"
                       leftSection={<IconBrandGit size={11} strokeWidth={2} />}
                     >
                       Git
                     </StatusBadge>
                   )}
                   {collection.failedToOpen && (
-                    <StatusBadge status="danger" size="xs" dataTestId="collection-failed-badge">
+                    <StatusBadge status="danger" size="xs" data-testid="collection-failed-badge">
                       {collection.failureReason === 'not-found' ? 'Missing' : 'Failed to open'}
                     </StatusBadge>
                   )}
                   {!isDefaultWorkspace && collection.isLoaded === false && !collection.failedToOpen && (
-                    <StatusBadge status="warning" size="xs" dataTestId="collection-not-cloned-badge">
+                    <StatusBadge status="warning" size="xs" data-testid="collection-not-cloned-badge">
                       Not cloned
                     </StatusBadge>
                   )}
