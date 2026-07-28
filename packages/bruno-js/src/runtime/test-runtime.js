@@ -76,17 +76,22 @@ class TestRuntime {
       };
     }
 
+    const isGrpc = request?.type === REQUEST_TYPES.GRPC;
     const context = {
       test,
       bru,
-      req,
-      res,
       expect: chai.expect,
       assert: chai.assert,
       __brunoTestResults: __brunoTestResults,
       jwt: jsonwebtoken,
       __bruSetScope: createScopeSetter(bru)
     };
+
+    // gRPC doesn't expose `req`/`res`; scripts use the `bru.grpc.*` namespace instead.
+    if (!isGrpc) {
+      context.req = req;
+      context.res = res;
+    }
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {
