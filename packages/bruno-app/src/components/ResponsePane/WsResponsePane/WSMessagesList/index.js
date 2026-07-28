@@ -28,7 +28,7 @@ const getContentMeta = (content) => {
 };
 
 const parseContent = (content) => {
-  let contentMeta = getContentMeta(content);
+  const contentMeta = getContentMeta(content);
   return {
     type: contentMeta.isJSON ? 'application/json' : 'text/plain',
     content: contentMeta.isJSON ? JSON.stringify(JSON.parse(contentMeta.content), null, 2) : contentMeta.content
@@ -59,7 +59,7 @@ const TypeIcon = ({ type }) => {
   }[type];
 };
 
-const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
+const WSMessageItem = memo(({ message, messageKey, isOpen, onToggle }) => {
   const [showHex, setShowHex] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
@@ -70,8 +70,8 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
   const isInfo = message.type === 'info';
   const isError = message.type === 'error';
   const isOutgoing = message.type === 'outgoing';
-  let contentHexdump = message.messageHexdump;
-  let parsedContent = parseContent(message.message);
+  const contentHexdump = message.messageHexdump;
+  const parsedContent = parseContent(message.message);
   const dataType = getDataTypeText(parsedContent.type);
 
   useEffect(() => {
@@ -91,7 +91,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
 
   const handleToggle = () => {
     if (!canOpenMessage) return;
-    onToggle?.(message.timestamp);
+    onToggle?.(messageKey);
   };
 
   return (
@@ -135,7 +135,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
             : <span className="w-4"></span>}
         </div>
       </div>
-      {isOpen && (
+      {isOpen && canOpenMessage && (
         <>
           <div className="mt-2 flex justify-end gap-2 text-xs ws-message-toolbar" role="tablist">
             <div
@@ -174,20 +174,25 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
   );
 });
 
+// Matches computeItemKey below — messages don't have a stable id of their own,
+// and plain timestamp collides whenever two entries land in the same millisecond
+// (a burst of `next` frames, or an info entry pushed alongside one). Toggling one
+// message must never open/close an unrelated message that happens to share a key.
+const getMessageKey = (msg) => msg.seq ?? msg.timestamp;
+
 const WSMessagesList = ({ messages = [] }) => {
   const virtuosoRef = useRef(null);
   const [scrollerElement, setScrollerElement] = useState(null);
   const [openMessages, setOpenMessages] = useState(new Set());
   const userScrolledAwayRef = useRef(false);
 
-  // Toggle message open/closed state by timestamp
-  const handleMessageToggle = useCallback((timestamp) => {
+  const handleMessageToggle = useCallback((key) => {
     setOpenMessages((prev) => {
       const next = new Set(prev);
-      if (next.has(timestamp)) {
-        next.delete(timestamp);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
-        next.add(timestamp);
+        next.add(key);
       }
       return next;
     });
@@ -229,12 +234,13 @@ const WSMessagesList = ({ messages = [] }) => {
   }, [openMessages.size]);
 
   const renderItem = useCallback((_, msg) => {
-    const isOpen = openMessages.has(msg.timestamp);
-    return <WSMessageItem message={msg} isOpen={isOpen} onToggle={handleMessageToggle} />;
+    const key = getMessageKey(msg);
+    const isOpen = openMessages.has(key);
+    return <WSMessageItem message={msg} messageKey={key} isOpen={isOpen} onToggle={handleMessageToggle} />;
   }, [openMessages, handleMessageToggle]);
 
   const computeItemKey = useCallback((_, msg) => {
-    return msg.seq ?? msg.timestamp;
+    return getMessageKey(msg);
   }, []);
 
   if (!messages.length) {

@@ -1,6 +1,6 @@
 import { findParentItemInCollectionByPathname } from 'utils/collections';
 
-const REQUEST_TAB_TYPES = ['request', 'http-request', 'graphql-request', 'grpc-request', 'ws-request'];
+const REQUEST_TAB_TYPES = ['request', 'http-request', 'graphql-request', 'grpc-request', 'ws-request', 'graphql-subscription-request'];
 
 /**
  * Resolves where a new request should be created when Cmd/Ctrl+N is pressed

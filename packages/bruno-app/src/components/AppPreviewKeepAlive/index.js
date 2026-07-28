@@ -15,7 +15,8 @@ const APP_CAPABLE_TAB_TYPES = new Set([
   'http-request',
   'graphql-request',
   'grpc-request',
-  'ws-request'
+  'ws-request',
+  'graphql-subscription-request'
 ]);
 
 const AppPreviewKeepAlive = () => {

@@ -25,7 +25,24 @@ const buildAndValidateSchema = (data) => {
 
 const schemaHashPrefix = 'bruno.graphqlSchema';
 
-const useGraphqlSchema = (endpoint, environment, request, collection) => {
+// The default fetcher for graphql-request — a plain axios POST of the
+// introspection query, adapted to the `{ query, variables }`-response shape.
+const defaultFetchIntrospection = async (endpoint, environment, request, collection) => {
+  const response = await fetchGqlSchema(endpoint, environment, request, collection);
+  if (!response) {
+    throw new Error('Introspection query failed');
+  }
+  if (response.status !== 200) {
+    throw new Error(response.statusText);
+  }
+  const data = response.data?.data;
+  if (!data) {
+    throw new Error('No data returned from introspection query');
+  }
+  return data;
+};
+
+const useGraphqlSchema = (endpoint, environment, request, collection, fetchIntrospection = defaultFetchIntrospection) => {
   const { ipcRenderer } = window;
   const localStorageKey = `${schemaHashPrefix}.${simpleHash(endpoint)}`;
   const [error, setError] = useState(null);
@@ -37,7 +54,7 @@ const useGraphqlSchema = (endpoint, environment, request, collection) => {
       if (!saved) {
         return null;
       }
-      let parsedData = safeParseJSON(saved);
+      const parsedData = safeParseJSON(saved);
       const { schema } = buildAndValidateSchema(parsedData);
       return schema;
     } catch (err) {
@@ -48,17 +65,7 @@ const useGraphqlSchema = (endpoint, environment, request, collection) => {
   });
 
   const loadSchemaFromIntrospection = async () => {
-    const response = await fetchGqlSchema(endpoint, environment, request, collection);
-    if (!response) {
-      throw new Error('Introspection query failed');
-    }
-    if (response.status !== 200) {
-      throw new Error(response.statusText);
-    }
-    const data = response.data?.data;
-    if (!data) {
-      throw new Error('No data returned from introspection query');
-    }
+    const data = await fetchIntrospection(endpoint, environment, request, collection);
     setSchemaSource('introspection');
     return data;
   };

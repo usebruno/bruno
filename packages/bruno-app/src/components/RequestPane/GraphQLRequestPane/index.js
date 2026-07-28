@@ -12,6 +12,7 @@ import QueryBuilder from 'components/RequestPane/QueryBuilder';
 import MenuDropdown from 'ui/MenuDropdown';
 import Auth from 'components/RequestPane/Auth';
 import GraphQLVariables from 'components/RequestPane/GraphQLVariables';
+import ConnectionParams from 'components/RequestPane/ConnectionParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import Vars from 'components/RequestPane/Vars';
 import Assertions from 'components/RequestPane/Assertions';
@@ -23,15 +24,20 @@ import { updateRequestGraphqlQuery, updateRequestGraphqlVariables } from 'provid
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Documentation from 'components/Documentation/index';
 import useGraphqlSchema from '../GraphQLSchemaActions/useGraphqlSchema';
+import { fetchGraphqlSubscriptionSchema } from 'utils/network/index';
 import { findEnvironmentInCollection } from 'utils/collections';
 import { hasEffectiveAuth } from 'utils/auth';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import Settings from 'components/RequestPane/Settings';
+import WSAuth from '../WSRequestPane/WSAuth';
+import WSAuthMode from '../WSRequestPane/WSAuth/WSAuthMode';
+import WSSettingsPane from '../WSSettingsPane';
+import { AUTH_MODES_WS } from 'utils/common/constants';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import AuthMode from '../Auth/AuthMode/index';
 import StatusDot from 'components/StatusDot';
 
-const TAB_CONFIG = [
+const GRAPHQL_REQUEST_TABS = [
   { key: 'query', label: 'Query' },
   { key: 'headers', label: 'Headers' },
   { key: 'auth', label: 'Auth' },
@@ -41,6 +47,18 @@ const TAB_CONFIG = [
   { key: 'tests', label: 'Tests' },
   { key: 'docs', label: 'Docs' },
   { key: 'settings', label: 'Settings' }
+];
+
+// graphql-subscription-request has no Script/Vars/Assert/Tests tabs — the
+// long-lived request types never execute scripts/tests, so showing tabs that
+// would silently do nothing is worse than omitting them (see WSRequestPane).
+const GRAPHQL_SUBSCRIPTION_TABS = [
+  { key: 'query', label: 'Query' },
+  { key: 'headers', label: 'Headers' },
+  { key: 'auth', label: 'Auth' },
+  { key: 'connection', label: 'Connection' },
+  { key: 'settings', label: 'Settings' },
+  { key: 'docs', label: 'Docs' }
 ];
 
 const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
@@ -59,12 +77,17 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
   const queryBuilderContainerRef = useRef(null);
   const queryEditorRef = useRef(null);
 
+  const isSubscription = item.type === 'graphql-subscription-request';
+
   const query = item.draft
     ? get(item, 'draft.request.body.graphql.query', '')
     : get(item, 'request.body.graphql.query', '');
   const variables = item.draft
     ? get(item, 'draft.request.body.graphql.variables', '')
     : get(item, 'request.body.graphql.variables', '');
+  const connectionParams = item.draft
+    ? get(item, 'draft.request.connectionParams', '')
+    : get(item, 'request.connectionParams', '');
 
   const { displayedTheme } = useTheme();
 
@@ -74,7 +97,13 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   const request = item.draft ? { ...item.draft.request, pathname, uid } : { ...item.request, pathname, uid };
 
-  const { schema, schemaSource, loadSchema, isLoading: isSchemaLoading, error: schemaError } = useGraphqlSchema(url, environment, request, collection);
+  const { schema, schemaSource, loadSchema, isLoading: isSchemaLoading, error: schemaError } = useGraphqlSchema(
+    url,
+    environment,
+    request,
+    collection,
+    isSubscription ? fetchGraphqlSubscriptionSchema : undefined
+  );
 
   const schemaActionsRef = useRef(null);
 
@@ -176,17 +205,17 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
 
   const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
   const hasAuth = useMemo(
-    () => hasEffectiveAuth(collection, item),
-    [item, itemAuthMode, collection]
+    () => hasEffectiveAuth(collection, item, isSubscription ? AUTH_MODES_WS : undefined),
+    [item, itemAuthMode, collection, isSubscription]
   );
 
   const allTabs = useMemo(
-    () => TAB_CONFIG.map(({ key, label }) => ({
+    () => (isSubscription ? GRAPHQL_SUBSCRIPTION_TABS : GRAPHQL_REQUEST_TABS).map(({ key, label }) => ({
       key,
       label,
       indicator: key === 'auth' && hasAuth ? <StatusDot dataTestId="auth" /> : null
     })),
-    [hasAuth]
+    [hasAuth, isSubscription]
   );
 
   const handlePrettify = useCallback(() => {
@@ -263,7 +292,11 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
       case 'headers':
         return <RequestHeaders item={item} collection={collection} />;
       case 'auth':
-        return <Auth item={item} collection={collection} />;
+        return isSubscription
+          ? <WSAuth item={item} collection={collection} />
+          : <Auth item={item} collection={collection} />;
+      case 'connection':
+        return <ConnectionParams item={item} connectionParams={connectionParams} collection={collection} />;
       case 'vars':
         return <Vars item={item} collection={collection} />;
       case 'assert':
@@ -275,11 +308,13 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
       case 'docs':
         return <Documentation item={item} collection={collection} />;
       case 'settings':
-        return <Settings item={item} collection={collection} />;
+        return isSubscription
+          ? <WSSettingsPane item={item} collection={collection} />
+          : <Settings item={item} collection={collection} />;
       default:
         return <div className="mt-4">404 | Not found</div>;
     }
-  }, [requestPaneTab, item, collection, displayedTheme, schema, onSave, query, onRun, onQueryChange, handleGqlClickReference, handlePrettify, preferences, variables, variablesOpen, variablesHeight, dispatch]);
+  }, [requestPaneTab, item, collection, displayedTheme, schema, onSave, query, onRun, onQueryChange, handleGqlClickReference, handlePrettify, preferences, variables, variablesOpen, variablesHeight, dispatch, isSubscription, connectionParams]);
 
   const queryMenuItems = useMemo(() => [
     {
@@ -310,7 +345,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
 
   const rightContent = requestPaneTab === 'auth' ? (
     <div ref={schemaActionsRef} className="flex flex-grow justify-start items-center">
-      <AuthMode item={item} collection={collection} />
+      {isSubscription ? <WSAuthMode item={item} collection={collection} /> : <AuthMode item={item} collection={collection} />}
     </div>
   ) : requestPaneTab === 'query' ? (
     <div ref={schemaActionsRef} className="flex items-center gap-2">

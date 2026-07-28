@@ -23,6 +23,7 @@ import 'swagger-ui-react/swagger-ui.css';
 import Devtools from 'components/Devtools';
 import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
 import useWsEventListeners from 'utils/network/ws-event-listeners';
+import useGraphqlSubscriptionEventListeners from 'utils/network/graphql-subscription-event-listeners';
 import Portal from 'components/Portal';
 import SaveTransientRequestContainer from 'components/SaveTransientRequest/Container';
 import SaveTransientRequest from 'components/SaveTransientRequest';
@@ -108,6 +109,7 @@ export default function Main() {
   // Initialize event listeners
   useGrpcEventListeners();
   useWsEventListeners();
+  useGraphqlSubscriptionEventListeners();
 
   const className = classnames({
     'is-dragging': isDragging
