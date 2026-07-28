@@ -303,7 +303,8 @@ describe('postman-collection', () => {
           protocolProfileBehavior: {
             maxRedirects: 10,
             followRedirects: false,
-            disableUrlEncoding: true
+            disableUrlEncoding: true,
+            followAuthorizationHeader: true
           },
           request: {
             method: 'GET',
@@ -356,7 +357,7 @@ describe('postman-collection', () => {
       encodeUrl: false,
       followRedirects: false,
       maxRedirects: 10,
-      forwardAuthorizationHeader: false
+      forwardAuthorizationHeader: true
     });
 
     // Test request with partial settings
