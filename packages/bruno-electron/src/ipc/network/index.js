@@ -37,11 +37,21 @@ const { isRequestTagsIncluded } = require('@usebruno/common');
 const { cookiesStore } = require('../../store/cookies');
 const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
+const { registerGraphQLSubscriptionEventHandlers } = require('./graphql-subscription-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { easterEggResponse } = require('../../utils/woof');
 const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
+
+// gRPC, WebSocket and GraphQL subscription requests are long-lived transports driven
+// over their own IPC channels, not the HTTP runRequest/runner loop.
+const getLongLivedProtocolLabel = (itemType) => {
+  if (itemType === 'ws-request') return 'WebSocket';
+  if (itemType === 'grpc-request') return 'gRPC';
+  if (itemType === 'graphql-subscription-request') return 'GraphQL subscription';
+  return null;
+};
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -50,7 +60,7 @@ const saveCookies = (url, headers) => {
       setCookieHeaders = Array.isArray(headers['set-cookie'])
         ? headers['set-cookie']
         : [headers['set-cookie']];
-      for (let setCookieHeader of setCookieHeaders) {
+      for (const setCookieHeader of setCookieHeaders) {
         if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
           addCookieToJar(setCookieHeader, url);
         }
@@ -152,7 +162,7 @@ const configureRequest = async (
   request.maxRedirects = 0;
 
   const { promptVariables = {} } = collection;
-  let { proxyMode, proxyModeReason, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
+  const { proxyMode, proxyModeReason, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
     proxyMode,
     proxyModeReason,
@@ -177,7 +187,7 @@ const configureRequest = async (
   }
 
   if (request.oauth2) {
-    let requestCopy = cloneDeep(request);
+    const requestCopy = cloneDeep(request);
     const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
 
     // Get cert/proxy configs for token and refresh URLs
@@ -650,7 +660,7 @@ const registerNetworkIpc = (mainWindow) => {
       if (typeof request.data !== 'string' && !isFormData(request.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
-        let form = createFormData(request.data, collectionPath);
+        const form = createFormData(request.data, collectionPath);
         request.data = form;
         if (contentType !== 'multipart/form-data') {
           // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
@@ -755,10 +765,10 @@ const registerNetworkIpc = (mainWindow) => {
         }
         const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
         if (_item) {
-          // WS/gRPC items live on separate IPC channels and can't be driven via
-          // the HTTP runRequest. Record a Skipped row so the user sees feedback.
-          if (_item.type === 'ws-request' || _item.type === 'grpc-request') {
-            const protocolLabel = _item.type === 'ws-request' ? 'WebSocket' : 'gRPC';
+          // WS/gRPC/graphql-subscription items live on separate IPC channels and
+          // can't be driven via the HTTP runRequest. Record a Skipped row so the user sees feedback.
+          const protocolLabel = getLongLivedProtocolLabel(_item.type);
+          if (protocolLabel) {
             const startedAt = Date.now();
             callerBru?._recordScriptedRequest?.({
               source: 'runRequest',
@@ -1442,10 +1452,10 @@ const registerNetworkIpc = (mainWindow) => {
           }
           const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
           if (_item) {
-            // WS/gRPC items live on separate IPC channels and can't be driven via
-            // the HTTP runRequest. Record a Skipped row so the user sees feedback.
-            if (_item.type === 'ws-request' || _item.type === 'grpc-request') {
-              const protocolLabel = _item.type === 'ws-request' ? 'WebSocket' : 'gRPC';
+            // WS/gRPC/graphql-subscription items live on separate IPC channels and
+            // can't be driven via the HTTP runRequest. Record a Skipped row so the user sees feedback.
+            const protocolLabel = getLongLivedProtocolLabel(_item.type);
+            if (protocolLabel) {
               const startedAt = Date.now();
               callerBru?._recordScriptedRequest?.({
                 source: 'runRequest',
@@ -1549,7 +1559,7 @@ const registerNetworkIpc = (mainWindow) => {
         let folderRequests = [];
 
         if (recursive) {
-          let sortedFolder = sortFolder(folder);
+          const sortedFolder = sortFolder(folder);
           folderRequests = getAllRequestsInFolderRecursively(sortedFolder);
         } else {
           each(folder.items, (item) => {
@@ -1594,7 +1604,7 @@ const registerNetworkIpc = (mainWindow) => {
         while (currentRequestIndex < folderRequests.length) {
           // user requested to cancel runner
           if (abortController.signal.aborted) {
-            let error = new Error('Runner execution cancelled');
+            const error = new Error('Runner execution cancelled');
             error.isCancel = true;
             throw error;
           }
@@ -1637,14 +1647,16 @@ const registerNetworkIpc = (mainWindow) => {
             ...eventData
           });
 
-          // Skip gRPC requests
-          if (item.type === 'grpc-request') {
+          // Skip gRPC, WebSocket and GraphQL subscription requests — none of
+          // these long-lived transports can be driven by the HTTP runner loop.
+          const protocolLabel = getLongLivedProtocolLabel(item.type);
+          if (protocolLabel) {
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'runner-request-skipped',
-              error: 'gRPC requests are skipped in folder/collection runs',
+              error: `${protocolLabel} requests are skipped in folder/collection runs`,
               responseReceived: {
                 status: 'skipped',
-                statusText: 'gRPC request skipped',
+                statusText: `${protocolLabel} request skipped`,
                 data: null,
                 responseTime: 0,
                 headers: null
@@ -1782,7 +1794,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
             });
 
-            let requestSent = {
+            const requestSent = {
               url: request.url,
               method: request.method,
               headers: headersSent,
@@ -2257,6 +2269,7 @@ const registerAllNetworkIpc = (mainWindow) => {
   registerNetworkIpc(mainWindow);
   registerGrpcEventHandlers(mainWindow);
   registerWsEventHandlers(mainWindow);
+  registerGraphQLSubscriptionEventHandlers(mainWindow);
 };
 
 module.exports = registerAllNetworkIpc;

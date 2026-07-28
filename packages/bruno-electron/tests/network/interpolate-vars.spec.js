@@ -286,6 +286,57 @@ describe('interpolate-vars: interpolateVars', () => {
         expect(result.body.json).toEqual('{"token": "abc123"}');
       });
     });
+
+    describe('With graphql-subscription requests', () => {
+      it('interpolates query, variables and connectionParams in place', async () => {
+        const request = {
+          url: '{{baseUrl}}/graphql',
+          mode: 'graphql',
+          data: {
+            query: 'subscription { tick(id: "{{tickId}}") }',
+            variables: '{"count": {{count}}}',
+            connectionParams: '{"authToken": "{{token}}"}'
+          },
+          globalEnvironmentVariables: {},
+          collectionVariables: {},
+          folderVariables: {},
+          requestVariables: {},
+          oauth2CredentialVariables: {}
+        };
+
+        const result = interpolateVars(
+          request,
+          { baseUrl: 'wss://example.com', tickId: 'OnTick' },
+          { count: 3, token: 'secret' },
+          {}
+        );
+
+        expect(result.url).toEqual('wss://example.com/graphql');
+        expect(result.data.query).toEqual('subscription { tick(id: "OnTick") }');
+        expect(result.data.variables).toEqual('{"count": 3}');
+        expect(result.data.connectionParams).toEqual('{"authToken": "secret"}');
+      });
+
+      it('leaves connectionParams untouched when absent', async () => {
+        const request = {
+          url: '{{baseUrl}}/graphql',
+          mode: 'graphql',
+          data: {
+            query: 'subscription { tick }',
+            variables: '{}'
+          },
+          globalEnvironmentVariables: {},
+          collectionVariables: {},
+          folderVariables: {},
+          requestVariables: {},
+          oauth2CredentialVariables: {}
+        };
+
+        const result = interpolateVars(request, { baseUrl: 'wss://example.com' }, {}, {});
+
+        expect(result.data.connectionParams).toBeUndefined();
+      });
+    });
   });
 
   describe('Does NOT interpolate string', () => {
@@ -312,7 +363,7 @@ describe('interpolate-vars: interpolateVars', () => {
       });
 
       it('If there are no variables (multiple)', async () => {
-        let gqlBody = `{"query":"mutation {\\n  test(input: { native: { firstElem: \\"{should-not-get-interpolated}\\", secondElem: \\"{should-not-get-interpolated}}"}}) {\\n    __typename\\n    ... on TestType {\\n      id\\n      identifier\\n    }\\n  }\\n}","variables":"{}"}`;
+        const gqlBody = `{"query":"mutation {\\n  test(input: { native: { firstElem: \\"{should-not-get-interpolated}\\", secondElem: \\"{should-not-get-interpolated}}"}}) {\\n    __typename\\n    ... on TestType {\\n      id\\n      identifier\\n    }\\n  }\\n}","variables":"{}"}`;
 
         const request = { method: 'POST', url: 'test', data: gqlBody };
         const result = interpolateVars(request, { 'should-not-get-interpolated': 'ERROR' }, null, null);

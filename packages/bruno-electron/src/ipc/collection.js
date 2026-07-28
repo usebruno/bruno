@@ -26,7 +26,8 @@ const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
-const { wsClient } = require('../ipc/network/ws-event-handlers');
+const { getWsClient } = require('../ipc/network/ws-event-handlers');
+const { getGraphQLSubscriptionClient } = require('../ipc/network/graphql-subscription-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
 const { transformProxyConfig } = require('@usebruno/requests');
 
@@ -352,8 +353,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       // tear down the old watcher before moving the collection directory
       if (watcher && mainWindow) {
         watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
+        const wsClient = getWsClient();
         if (wsClient) {
           wsClient.closeForCollection(collectionUid);
+        }
+        const graphqlSubscriptionClient = getGraphQLSubscriptionClient();
+        if (graphqlSubscriptionClient) {
+          graphqlSubscriptionClient.closeForCollection(collectionUid);
         }
       }
 
@@ -618,7 +624,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // save multiple requests
   ipcMain.handle('renderer:save-multiple-requests', async (event, requestsToSave) => {
     try {
-      for (let r of requestsToSave) {
+      for (const r of requestsToSave) {
         const request = r.item;
         const pathname = r.pathname;
 
@@ -1085,7 +1091,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         const requestFilesAtSource = await searchForRequestFiles(oldPath, collectionPathname);
 
-        for (let requestFile of requestFilesAtSource) {
+        for (const requestFile of requestFilesAtSource) {
           const newRequestFilePath = requestFile.replace(oldPath, newPath);
           moveRequestUid(requestFile, newRequestFilePath);
         }
@@ -1176,12 +1182,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         // delete the request uid mappings
         const requestFilesAtSource = await searchForRequestFiles(pathname, collectionPathname);
-        for (let requestFile of requestFilesAtSource) {
+        for (const requestFile of requestFilesAtSource) {
           deleteRequestUid(requestFile);
         }
 
         fs.rmSync(pathname, { recursive: true, force: true });
-      } else if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(type)) {
+      } else if (['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'graphql-subscription-request'].includes(type)) {
         if (!fs.existsSync(pathname)) {
           return Promise.reject(new Error('The file does not exist'));
         }
@@ -1277,8 +1283,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     if (watcher && mainWindow) {
       watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
 
+      const wsClient = getWsClient();
       if (wsClient) {
         wsClient.closeForCollection(collectionUid);
+      }
+      const graphqlSubscriptionClient = getGraphQLSubscriptionClient();
+      if (graphqlSubscriptionClient) {
+        graphqlSubscriptionClient.closeForCollection(collectionUid);
       }
     }
 
@@ -1307,12 +1318,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:import-collection', async (_, collection, collectionLocation, options = {}) => {
     const format = options.format || DEFAULT_COLLECTION_FORMAT;
     const rawOpenAPISpec = options.rawOpenAPISpec;
-    let collections = Array.isArray(collection) ? collection : [collection];
+    const collections = Array.isArray(collection) ? collection : [collection];
     let completedImports = 0;
     let failedImports = 0;
-    let successfulImports = [];
+    const successfulImports = [];
 
-    for (let coll of collections) {
+    for (const coll of collections) {
       try {
         // Sending a "started" and "ended" event to renderer to start and stop the spinner.
         mainWindow.webContents.send('main:collection-import-started', coll.uid);
@@ -1342,14 +1353,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         // Recursive function to parse the collection items and create files/folders
         const parseCollectionItems = async (items = [], currentPath) => {
           await Promise.all(items.map(async (item) => {
-            if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
-              let sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
+            if (['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'graphql-subscription-request'].includes(item.type)) {
+              const sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
               const content = await stringifyRequestViaWorker(item, { format });
               const filePath = path.join(currentPath, sanitizedFilename);
               safeWriteFileSync(filePath, content);
             }
             if (item.type === 'folder') {
-              let sanitizedFolderName = sanitizeName(item?.filename || item?.name);
+              const sanitizedFolderName = sanitizeName(item?.filename || item?.name);
               const folderPath = path.join(currentPath, sanitizedFolderName);
               fs.mkdirSync(folderPath, { recursive: true });
 
@@ -1366,7 +1377,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             }
             // Handle items of type 'js'
             if (item.type === 'js') {
-              let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.js`);
+              const sanitizedFilename = sanitizeName(item?.filename || `${item.name}.js`);
               const filePath = path.join(currentPath, sanitizedFilename);
               safeWriteFileSync(filePath, item.fileContent);
             }
@@ -1381,7 +1392,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
           await Promise.all(environments.map(async (env) => {
             const content = await stringifyEnvironment(env, { format });
-            let sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
+            const sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
             const filePath = path.join(envDirPath, sanitizedEnvFilename);
             safeWriteFileSync(filePath, content);
           }));
@@ -1507,7 +1518,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       // Recursive function to parse the folder and create files/folders
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(async (item) => {
-          if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
+          if (['http-request', 'graphql-request', 'grpc-request', 'graphql-subscription-request'].includes(item.type)) {
             const content = await stringifyRequestViaWorker(item, { format });
 
             // Use the correct file extension based on target format
@@ -1560,7 +1571,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     try {
       const format = getCollectionFormat(collectionPathname);
 
-      for (let item of itemsToResequence) {
+      for (const item of itemsToResequence) {
         if (item?.type === 'folder') {
           const folderRootPath = path.join(item.pathname, `folder.${format}`);
           let folderJsonData = {
@@ -1692,7 +1703,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const requestFilesAtSource = await searchForRequestFiles(folderPath);
 
-      for (let requestFile of requestFilesAtSource) {
+      for (const requestFile of requestFilesAtSource) {
         const newRequestFilePath = requestFile.replace(folderPath, newFolderPath);
         moveRequestUid(requestFile, newRequestFilePath);
       }
@@ -1880,7 +1891,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:fetch-oauth2-credentials', async (event, { itemUid, request, collection }) => {
     try {
       if (request.oauth2) {
-        let requestCopy = _.cloneDeep(request);
+        const requestCopy = _.cloneDeep(request);
         const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
         const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
         const envVars = getEnvVars(environment);
@@ -1908,7 +1919,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             processEnvVars,
             promptVariables
           });
-          let tokenRequestForConfig = { ...requestCopy, url: interpolatedTokenUrl };
+          const tokenRequestForConfig = { ...requestCopy, url: interpolatedTokenUrl };
           certsAndProxyConfigForTokenUrl = await getCertsAndProxyConfig({
             collectionUid,
             collection,
@@ -1934,7 +1945,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             processEnvVars,
             promptVariables
           });
-          let refreshRequestForConfig = { ...requestCopy, url: interpolatedRefreshUrl };
+          const refreshRequestForConfig = { ...requestCopy, url: interpolatedRefreshUrl };
           certsAndProxyConfigForRefreshUrl = await getCertsAndProxyConfig({
             collectionUid,
             collection,
@@ -2011,7 +2022,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:refresh-oauth2-credentials', async (event, { itemUid, request, collection }) => {
     try {
       if (request.oauth2) {
-        let requestCopy = _.cloneDeep(request);
+        const requestCopy = _.cloneDeep(request);
         const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
         const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
         const envVars = getEnvVars(environment);
@@ -2033,7 +2044,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           globalEnvironmentVariables
         });
 
-        let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+        const { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
         return { credentials, url, collectionUid, credentialsId, debugInfo };
       }
     } catch (error) {
@@ -2067,7 +2078,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             name: path.basename(pathname)
           }
         };
-        let bruContent = fs.readFileSync(pathname, 'utf8');
+        const bruContent = fs.readFileSync(pathname, 'utf8');
         const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.loading = true;
@@ -2091,7 +2102,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             name: path.basename(pathname)
           }
         };
-        let bruContent = fs.readFileSync(pathname, 'utf8');
+        const bruContent = fs.readFileSync(pathname, 'utf8');
         const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.partial = true;
@@ -2117,7 +2128,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             name: path.basename(pathname)
           }
         };
-        let bruContent = fs.readFileSync(pathname, 'utf8');
+        const bruContent = fs.readFileSync(pathname, 'utf8');
         const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.loading = true;
@@ -2141,7 +2152,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             name: path.basename(pathname)
           }
         };
-        let bruContent = fs.readFileSync(pathname, 'utf8');
+        const bruContent = fs.readFileSync(pathname, 'utf8');
         const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.partial = true;
@@ -2451,10 +2462,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
             if (isBruEnvironmentConfig(filePath, collectionPath)) {
               try {
-                let bruContent = fs.readFileSync(filePath, 'utf8');
+                const bruContent = fs.readFileSync(filePath, 'utf8');
                 const environmentFilepathBasename = path.basename(filePath);
                 const environmentName = environmentFilepathBasename.substring(0, environmentFilepathBasename.length - 4);
-                let data = await parseEnvironment(bruContent);
+                const data = await parseEnvironment(bruContent);
                 variables = {
                   ...variables,
                   envVariables: {
@@ -2470,8 +2481,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
             if (isCollectionRootBruFile(filePath, collectionPath)) {
               try {
-                let bruContent = fs.readFileSync(filePath, 'utf8');
-                let data = await parseCollection(bruContent);
+                const bruContent = fs.readFileSync(filePath, 'utf8');
+                const data = await parseCollection(bruContent);
                 // TODO
                 continue;
               } catch (err) {
