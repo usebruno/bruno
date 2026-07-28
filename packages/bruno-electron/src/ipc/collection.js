@@ -61,7 +61,7 @@ const {
   scanForBrunoFiles,
   withFileLock
 } = require('../utils/filesystem');
-const { getCollectionConfigFile, openCollection, openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
+const { getCollectionConfigFile, openCollection, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
 const { isValidNpmPackageName, runNpmInstall } = require('../utils/install-packages');
 const { waitForShellEnv } = require('../store/shell-env-state');
@@ -1243,12 +1243,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     return results;
   });
 
-  ipcMain.handle('renderer:open-collection', async () => {
-    if (watcher && mainWindow) {
-      await openCollectionDialog(mainWindow, watcher);
-    }
-  });
-
   ipcMain.handle('renderer:open-multiple-collections', async (e, collectionPaths, options = {}) => {
     if (watcher && mainWindow) {
       const result = await openCollectionsByPathname(mainWindow, watcher, collectionPaths, options);
@@ -2342,11 +2336,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // Implement the Postman to Bruno conversion handler
-  ipcMain.handle('renderer:convert-postman-to-bruno', async (event, postmanCollection) => {
+  ipcMain.handle('renderer:convert-postman-to-bruno', async (event, postmanCollection, options = {}) => {
     try {
       // Convert Postman collection to Bruno format
       // Returns { collection, issues } where issues tracks items that were skipped or degraded
-      const result = await postmanToBruno(postmanCollection, { useWorkers: true });
+      const result = await postmanToBruno(postmanCollection, {
+        useWorkers: true,
+        // preserve scripts without any pm.* -> bru.* translation
+        preserveScripts: !!options.preserveScripts
+      });
 
       return result;
     } catch (error) {
@@ -2542,6 +2540,31 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       return { success: true, filePath };
     } catch (error) {
       throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:export-collection-postman', async (event, dirPath, fileName, content, overwrite = false) => {
+    try {
+      if (!dirPath || !fs.existsSync(dirPath)) {
+        throw new Error('Export location does not exist');
+      }
+
+      // ensure the resolved path is inside the export directory
+      const resolvedDir = path.resolve(dirPath);
+      const filePath = path.resolve(resolvedDir, fileName);
+      if (!filePath.startsWith(resolvedDir + path.sep) && filePath !== resolvedDir) {
+        throw new Error('Invalid file name');
+      }
+
+      if (!overwrite && fs.existsSync(filePath)) {
+        throw new Error(`path: ${filePath} already exists`);
+      }
+
+      await writeFile(filePath, content);
+
+      return { success: true, filePath };
+    } catch (error) {
+      return Promise.reject(error);
     }
   });
 
@@ -2836,12 +2859,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 };
 
-const registerMainEventHandlers = (mainWindow, watcher) => {
-  ipcMain.on('main:open-collection', () => {
-    if (watcher && mainWindow) {
-      openCollectionDialog(mainWindow, watcher);
+const registerMainEventHandlers = (mainWindow) => {
+  const triggerOpenCollection = () => {
+    if (mainWindow) {
+      mainWindow.webContents.send('main:open-collection');
     }
-  });
+  };
+
+  ipcMain.on('renderer:open-collection', triggerOpenCollection);
+  ipcMain.on('menu:open-collection', triggerOpenCollection);
 
   ipcMain.on('main:open-docs', () => {
     const docsURL = 'https://docs.usebruno.com';

@@ -3,6 +3,8 @@ import { buildApiSpecPanelLocators } from './openapi/render-spec';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
+import { buildCodeEditorSearchLocators } from './code-editor-search';
+import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
 import { buildWebsocketCommonLocators } from './websocket';
@@ -10,13 +12,16 @@ import { buildWebsocketCommonLocators } from './websocket';
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
+  codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
   openApi: {
     render: buildApiSpecPanelLocators(page)
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
+  requestSettings: buildRequestSettingsLocators(page),
   websocket: buildWebsocketCommonLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
+  settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
@@ -68,6 +73,22 @@ export const buildCommonLocators = (page: Page) => ({
     footer: () => page.locator('.bruno-modal-footer'),
     submitButton: () => page.locator('.bruno-modal-footer .submit'),
     newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`)
+  },
+  openCollectionPicker: {
+    list: () => page.getByTestId('selection-list'),
+    titles: () => page.getByTestId('selection-list').locator('.selection-item-title'),
+    descriptions: () => page.getByTestId('selection-list').locator('.selection-item-description'),
+    item: (name: string) =>
+      page.getByTestId('selection-list').getByRole('listitem').filter({
+        has: page.getByText(name, { exact: true })
+      }),
+    itemCheckbox: (name: string) =>
+      page.getByTestId('selection-list').getByRole('listitem').filter({
+        has: page.getByText(name, { exact: true })
+      }).getByRole('checkbox'),
+    count: () => page.getByTestId('selection-count'),
+    selectAllToggle: () => page.getByTestId('selection-select-all-toggle').getByRole('checkbox'),
+    searchInput: () => page.getByTestId('selection-search-input')
   },
   environment: {
     selector: () => page.getByTestId('environment-selector-trigger'),
@@ -164,6 +185,8 @@ export const buildCommonLocators = (page: Page) => ({
     requestTestId: () => page.getByTestId('request-name'),
     generateCodeButton: () => page.getByTestId('generate-code-button'),
     bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
+    bodyModeLabel: () => page.getByTestId('request-body-mode-label'),
+    exampleBodyModeLabel: () => page.getByTestId('example-body-mode-label'),
     bodyEditor: () => page.getByTestId('request-body-editor'),
     bodyVariableToken: (name: string, state?: 'valid' | 'invalid') => {
       const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
@@ -215,7 +238,9 @@ export const buildCommonLocators = (page: Page) => ({
     requestType: (type: 'http' | 'graphql' | 'grpc' | 'ws') =>
       page.getByTestId(`presets-request-type-${type}`),
     requestUrl: () => page.getByTestId('presets-request-url'),
-    saveBtn: () => page.getByTestId('presets-save-btn')
+    saveBtn: () => page.getByTestId('presets-save-btn'),
+    defaultEnvironment: () => page.getByTestId('presets-default-environment'),
+    defaultEnvironmentOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
@@ -274,7 +299,11 @@ export const buildCommonLocators = (page: Page) => ({
     items: () => page.getByTestId('timeline-item'),
     lastItem: () => page.getByTestId('timeline-item').last(),
     itemHeader: (item: Locator) => item.getByTestId('timeline-item-header'),
-    clearButton: () => page.getByRole('button', { name: 'Clear Timeline' })
+    clearButton: () => page.getByRole('button', { name: 'Clear Timeline' }),
+    container: () => page.getByTestId('timeline-container'),
+    entries: () => page.getByTestId('timeline-container').getByTestId('timeline-entry'),
+    networkButton: (item: Locator) => item.getByRole('button', { name: 'Network' }),
+    networkLogs: (item: Locator) => item.locator('.network-logs-container')
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
@@ -286,6 +315,8 @@ export const buildCommonLocators = (page: Page) => ({
     locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
+    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
     bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
     bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
@@ -306,6 +337,15 @@ export const buildCommonLocators = (page: Page) => ({
         issuesToastUrlTooLongWarning: () => issuesToast().getByTestId('import-issues-url-too-long-warning')
       };
     })()
+  },
+  export: {
+    postmanModal: () => page.getByTestId('export-to-postman-modal'),
+    postmanFormatCard: () => page.getByTestId('export-format-postman'),
+    nameInput: () => page.getByLabel('Name', { exact: true }),
+    locationInput: () => page.getByLabel('Location', { exact: true }),
+    optionsButton: () => page.getByRole('button', { name: 'Options' }),
+    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle')
   },
   /**
    * Build generic table locators for any table with a testId
