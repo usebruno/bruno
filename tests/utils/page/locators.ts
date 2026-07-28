@@ -8,6 +8,7 @@ import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
 import { buildWebsocketCommonLocators } from './websocket';
+import { buildGraphqlSubscriptionCommonLocators } from './graphql-subscription';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
@@ -20,6 +21,7 @@ export const buildCommonLocators = (page: Page) => ({
   ai: buildAiPreferencesLocators(page),
   requestSettings: buildRequestSettingsLocators(page),
   websocket: buildWebsocketCommonLocators(page),
+  graphqlSubscription: buildGraphqlSubscriptionCommonLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
