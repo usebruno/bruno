@@ -111,7 +111,7 @@ const prepareGraphQLSubscriptionRequest = async (item, collection, environment, 
 
   if (preparedRequest.oauth2) {
     const requestCopy = cloneDeep(preparedRequest);
-    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey } = {} } = requestCopy;
+    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy;
 
     let credentials, credentialsId, oauth2Url, debugInfo;
     let tokenFetcher;
@@ -128,10 +128,65 @@ const prepareGraphQLSubscriptionRequest = async (item, collection, environment, 
     }
 
     if (tokenFetcher) {
+      // Resolve cert/proxy config per-URL — the token/refresh endpoints can live on a
+      // different host than the subscription itself, so the socket's TLS/proxy config
+      // (resolved separately by the connect/introspect handlers) can't be assumed to apply.
+      let certsAndProxyConfigForTokenUrl;
+      let certsAndProxyConfigForRefreshUrl;
+
+      if (accessTokenUrl && grantType !== 'implicit') {
+        const interpolatedTokenUrl = interpolateString(accessTokenUrl, {
+          globalEnvironmentVariables: request.globalEnvironmentVariables,
+          collectionVariables,
+          envVars,
+          folderVariables,
+          requestVariables,
+          runtimeVariables,
+          processEnvVars,
+          promptVariables
+        });
+        certsAndProxyConfigForTokenUrl = await getCertsAndProxyConfig({
+          collectionUid: collection.uid,
+          collection,
+          request: { ...requestCopy, url: interpolatedTokenUrl },
+          envVars,
+          runtimeVariables,
+          processEnvVars,
+          collectionPath: collection.pathname,
+          globalEnvironmentVariables: request.globalEnvironmentVariables
+        });
+      }
+
+      const tokenUrlForRefresh = refreshTokenUrl || accessTokenUrl;
+      if (tokenUrlForRefresh && grantType !== 'implicit') {
+        const interpolatedRefreshUrl = interpolateString(tokenUrlForRefresh, {
+          globalEnvironmentVariables: request.globalEnvironmentVariables,
+          collectionVariables,
+          envVars,
+          folderVariables,
+          requestVariables,
+          runtimeVariables,
+          processEnvVars,
+          promptVariables
+        });
+        certsAndProxyConfigForRefreshUrl = await getCertsAndProxyConfig({
+          collectionUid: collection.uid,
+          collection,
+          request: { ...requestCopy, url: interpolatedRefreshUrl },
+          envVars,
+          runtimeVariables,
+          processEnvVars,
+          collectionPath: collection.pathname,
+          globalEnvironmentVariables: request.globalEnvironmentVariables
+        });
+      }
+
       interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
       ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await tokenFetcher({
         request: requestCopy,
-        collectionUid: collection.uid
+        collectionUid: collection.uid,
+        certsAndProxyConfigForTokenUrl,
+        certsAndProxyConfigForRefreshUrl
       }));
       preparedRequest.oauth2Credentials = {
         credentials,

@@ -605,7 +605,9 @@ const wsRequestSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
-const wsSettingsSchema = Yup.object({
+// Shared by ws-request and graphql-subscription-request — both are long-lived
+// socket connections with the same connect-timeout/keepalive knobs.
+const longLivedConnectionSettingsSchema = Yup.object({
   timeout: Yup.number()
     .default(500),
   keepAliveInterval: Yup.number()
@@ -630,16 +632,6 @@ const graphqlSubscriptionRequestSchema = Yup.object({
 })
   .noUnknown(true)
   .strict();
-
-const graphqlSubscriptionSettingsSchema = Yup.object({
-  timeout: Yup.number()
-    .default(500),
-  keepAliveInterval: Yup.number()
-    .default(0)
-})
-  .noUnknown(true)
-  .strict()
-  .nullable();
 
 const folderRootSchema = Yup.object({
   request: Yup.object({
@@ -702,10 +694,10 @@ const itemSchema = Yup.object({
     settings: Yup.mixed()
     .when('type', {
       is: (type) => type === 'ws-request',
-      then: wsSettingsSchema,
+      then: longLivedConnectionSettingsSchema,
       otherwise: Yup.mixed().when('type', {
         is: (type) => type === 'graphql-subscription-request',
-        then: graphqlSubscriptionSettingsSchema,
+        then: longLivedConnectionSettingsSchema,
         otherwise: Yup.object({
           encodeUrl: Yup.boolean().nullable(),
           followRedirects: Yup.boolean().nullable(),
