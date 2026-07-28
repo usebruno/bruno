@@ -767,9 +767,6 @@ export const transformRequestToSaveToFilesystem = (item) => {
   }
 
   if (_item.type === 'graphql-subscription-request') {
-    // graphql-subscription-request has no script/vars/assertions/tests — the
-    // long-lived request types never execute them, so this type omits them
-    // from its schema entirely (see WebSocketRequest for the same reasoning).
     delete itemToSave.request.method;
     delete itemToSave.request.methodType;
     delete itemToSave.request.params;

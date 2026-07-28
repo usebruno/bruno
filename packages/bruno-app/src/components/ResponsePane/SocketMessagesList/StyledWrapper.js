@@ -1,8 +1,7 @@
 import styled from 'styled-components';
 
 // `classPrefix` (e.g. "ws", "gql-subscription") keeps each socket-backed request
-// type's rendered class names distinct — WS message rows must keep the `ws-*`
-// classes the existing websocket e2e locators already depend on.
+// type's rendered class names distinct.
 const StyledWrapper = styled.div`
   flex: 1;
   min-height: 0;

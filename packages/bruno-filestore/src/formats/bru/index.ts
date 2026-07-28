@@ -142,8 +142,6 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
         graphql: _.get(json, 'body.graphql', { query: '', variables: '' })
       };
       transformedJson.request.connectionParams = _.get(json, 'graphqlSubscriptionConnectionParams', null) || null;
-      // graphql-subscription-request has no script/vars/assertions/tests — they are never
-      // executed for long-lived request types, so this type omits them from its schema entirely.
       delete (transformedJson.request as any).script;
       delete (transformedJson.request as any).vars;
       delete (transformedJson.request as any).assertions;

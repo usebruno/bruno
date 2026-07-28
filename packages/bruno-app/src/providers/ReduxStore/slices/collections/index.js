@@ -235,8 +235,6 @@ const initiatedGraphqlSubscriptionResponse = {
   trailers: []
 };
 
-// graphql-transport-ws close code meanings — kept local rather than importing
-// @usebruno/requests (bruno-app's dependency boundary excludes bruno-requests).
 const graphqlSubscriptionCloseCodes = {
   4400: 'Bad Request',
   4401: 'Unauthorized',
@@ -249,21 +247,10 @@ const graphqlSubscriptionCloseCodes = {
 };
 
 // Translates a raw graphql-transport-ws wire frame into a simplified, human-facing
-// message-history entry for the Messages tab. Handshake/keepalive frames
-// (connection_init, connection_ack, ping, pong) are protocol chatter the user never
-// needs to see and are dropped entirely; `complete` carries no payload of its own —
-// its "Completed"/"Unsubscribed" wording comes from the operation-state channel
-// instead (see the `operation-state` case below). Only `subscribe`/`next`/`error`
-// keep their envelope's payload, since that's the part a user actually cares about.
-// `seq` is deliberately not carried over from the frame here — the reducer assigns
-// a fresh, response-history-wide seq to every entry it pushes (see pushResponse in
-// graphqlSubscriptionResponseReceived), since a frame's own per-connection seq can
-// collide with one independently assigned to an info entry (Connected/Closed/...).
+// message-history entry for the Messages tab.
 const buildGraphqlSubscriptionMessageEntry = (frame) => {
   switch (frame.type) {
     case 'subscribe': {
-      // Outgoing frames aren't decoded (only incoming ones are) — but Bruno always
-      // encodes its own outgoing frames as valid JSON, so re-parsing is safe here.
       let payload = null;
       try {
         payload = JSON.parse(frame.raw)?.payload ?? null;
@@ -280,8 +267,6 @@ const buildGraphqlSubscriptionMessageEntry = (frame) => {
       return { type: 'error', message: frame.message?.payload ?? null, timestamp: frame.timestamp };
 
     case 'unparsable':
-      // Hostile/non-JSON server output is an anomaly worth surfacing, unlike routine
-      // protocol chatter — shown as raw text since there's no payload to extract.
       return { type: 'error', message: frame.raw, timestamp: frame.timestamp };
 
     default:

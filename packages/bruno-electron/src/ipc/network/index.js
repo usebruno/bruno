@@ -44,8 +44,6 @@ const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType }
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
-// gRPC, WebSocket and GraphQL subscription requests are long-lived transports driven
-// over their own IPC channels, not the HTTP runRequest/runner loop.
 const getLongLivedProtocolLabel = (itemType) => {
   if (itemType === 'ws-request') return 'WebSocket';
   if (itemType === 'grpc-request') return 'gRPC';

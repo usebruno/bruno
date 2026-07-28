@@ -49,9 +49,6 @@ const GRAPHQL_REQUEST_TABS = [
   { key: 'settings', label: 'Settings' }
 ];
 
-// graphql-subscription-request has no Script/Vars/Assert/Tests tabs — the
-// long-lived request types never execute scripts/tests, so showing tabs that
-// would silently do nothing is worse than omitting them (see WSRequestPane).
 const GRAPHQL_SUBSCRIPTION_TABS = [
   { key: 'query', label: 'Query' },
   { key: 'headers', label: 'Headers' },

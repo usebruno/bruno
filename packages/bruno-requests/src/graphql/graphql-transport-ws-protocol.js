@@ -1,10 +1,6 @@
 /**
  * Wire vocabulary for the `graphql-transport-ws` subprotocol
  * (https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md).
- *
- * Pure, no I/O — isolating the vocabulary here is what makes a second protocol
- * (e.g. legacy `subscriptions-transport-ws`) cheap to add later as a sibling
- * module with the same exported shape, selected from the negotiated `socket.protocol`.
  */
 
 export const MESSAGE_TYPES = {

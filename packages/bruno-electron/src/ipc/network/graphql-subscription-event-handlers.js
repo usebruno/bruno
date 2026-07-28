@@ -25,10 +25,7 @@ const { setAuthHeaders } = require('./prepare-request');
 
 const SEC_WEBSOCKET_PROTOCOL_HEADER = 'sec-websocket-protocol';
 
-// Infers the operation name from the parsed query. A parse failure — or a
-// query whose selected operation isn't a subscription — must never block the
-// request: the server is the authority, and a client has to be able to send a
-// deliberately malformed query and show the server's 4400.
+// Infers the operation name from the parsed query.
 const resolveOperation = (query) => {
   try {
     const document = parse(query);
@@ -231,9 +228,6 @@ const prepareGraphQLSubscriptionRequest = async (item, collection, environment, 
   }
   delete preparedRequest.apiKeyAuthValueForQueryParams;
 
-  // Interpolate query/variables/connectionParams (still strings) before parsing —
-  // this is why `{"Authorization": "Bearer {{token}}"}` works at all.
-  // https://github.com/usebruno/bruno/issues/884
   interpolateVars(preparedRequest, envVars, runtimeVariables, processEnvVars, promptVariables);
 
   const rawVariables = preparedRequest.data.variables;

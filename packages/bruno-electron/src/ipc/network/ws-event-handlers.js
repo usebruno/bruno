@@ -475,9 +475,6 @@ const registerWsEventHandlers = (window) => {
   });
 };
 
-// A getter, not the instance — `wsClient` is only assigned once
-// registerWsEventHandlers runs, so exporting it by value here would capture
-// `undefined` at require-time (the exact bug this getter fixes).
 const getWsClient = () => wsClient;
 
 module.exports = {

@@ -20,8 +20,6 @@ const GraphQLSubscriptionQueryUrl = ({ item, collection, handleRun }) => {
   const saveShortcut = isMacOS() ? '⌘S' : 'Ctrl+S';
   const hasChanges = useMemo(() => hasRequestChanges(item), [item]);
 
-  // Derived from Redux state already kept live by useGraphqlSubscriptionEventListeners
-  // off the main:gql-sub:* push events, rather than polling on an interval like WsQueryUrl does.
   const isConnected = useSelector((state) => (state.collections.activeConnections || []).includes(item.uid));
   const statusText = item.response?.statusText;
   const isSubscribed = isConnected && statusText === 'CONNECTED';

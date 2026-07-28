@@ -107,10 +107,6 @@ const server = require('http').createServer(app);
 createGraphQLSchema().then((schema) => {
   const handleGraphQLSubscriptionsUpgrade = createGraphQLSubscriptionsUpgradeHandler(schema);
 
-  // A single dispatcher — parsed by pathname, not startsWith (wsRouter matches
-  // the raw URL including the query string) — routes /api/graphql to the
-  // subscriptions handler and everything else to wsRouter's /ws routes, so
-  // the two upgrade handlers never race each other over the same event.
   server.on('upgrade', (request, socket, head) => {
     const { pathname } = new URL(request.url, `http://${request.headers.host}`);
     if (pathname === '/api/graphql') {
