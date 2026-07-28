@@ -147,7 +147,7 @@ const PresetsSettings = ({ collection }) => {
                 data-testid="presets-request-url"
                 type="text"
                 name="requestUrl"
-                placeholder="http://localhost:6000"
+                placeholder="Request URL"
                 className="block textbox preset-input"
                 autoComplete="off"
                 autoCorrect="off"
