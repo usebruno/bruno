@@ -8,14 +8,11 @@ import {
   syncMockResponseEditorSaved,
   updateMockResponseRules
 } from 'providers/ReduxStore/slices/collections/mockResponseEditorActions';
-import { cancelResponseExampleEdit } from 'providers/ReduxStore/slices/collections';
+import { cancelMockResponseEditorEdit } from 'providers/ReduxStore/slices/collections';
 import { saveMockResponse, deleteMockResponse, loadMockResponses } from 'providers/ReduxStore/slices/mock-server/index';
 import { closeTabs, updateTabMeta, updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest } from 'utils/mock-server/mock-responses';
-import {
-  getMockResponseItemUid,
-  mockResponseFromEditorItem
-} from 'utils/mock-server/mock-responses/editor';
+import { mockResponseFromEditorItem } from 'utils/mock-server/mock-responses/editor';
 import ResponseExampleResponsePane from 'components/ResponseExample/ResponseExampleResponsePane';
 import MockResponseTopBar from './MockResponseTopBar';
 import MockResponseRequestPane from './MockResponseRequestPane';
@@ -85,14 +82,12 @@ const MockResponse = ({ instance, collection, responseUid }) => {
   const [topPaneHeight, setTopPaneHeight] = useState(MIN_TOP_PANE_HEIGHT);
   const [dragging, setDragging] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [tryResult, setTryResult] = useState(null);
+  const [tryState, setTryState] = useState(null);
   const [isTrying, setIsTrying] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const mainSectionRef = useRef(null);
 
-  useEffect(() => {
-    setTryResult(null);
-  }, [responseUid]);
+  const tryResult = tryState?.responseUid === responseUid ? tryState.result : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -141,7 +136,6 @@ const MockResponse = ({ instance, collection, responseUid }) => {
 
   const item = editor?.item || null;
   const exampleUid = responseUid;
-  const itemUid = getMockResponseItemUid(responseUid);
 
   const handleMouseMove = (event) => {
     if (dragging && mainSectionRef.current) {
@@ -254,13 +248,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
   };
 
   const handleCancel = () => {
-    if (itemUid && editorCollection?.uid) {
-      dispatch(cancelResponseExampleEdit({
-        itemUid,
-        collectionUid: editorCollection.uid,
-        exampleUid
-      }));
-    }
+    dispatch(cancelMockResponseEditorEdit({ responseUid }));
     setEditMode(false);
   };
 
@@ -314,7 +302,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
         request: example.request
       });
 
-      setTryResult(result);
+      setTryState({ responseUid, result });
       dispatch(updateResponsePaneTab({
         uid: responseUid,
         responsePaneTab: 'try-result'

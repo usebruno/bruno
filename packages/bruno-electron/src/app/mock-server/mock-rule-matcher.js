@@ -1,3 +1,5 @@
+const { isSensitiveName, REDACTED_VALUE } = require('../../ipc/ai/context');
+
 const getJsonPathValue = (body, jsonPath) => {
   if (body === undefined || body === null) {
     return undefined;
@@ -71,6 +73,14 @@ const compareValues = (operator, actual, expected) => {
   }
 };
 
+const redactActualValue = (key, actual) => {
+  if (actual === undefined || actual === null) {
+    return null;
+  }
+
+  return isSensitiveName(key) ? REDACTED_VALUE : actual;
+};
+
 const evaluateCondition = (condition, context) => {
   if (!condition?.target) {
     return true;
@@ -99,7 +109,7 @@ const evaluateConditionDetail = (condition, context) => {
     key: condition.key || '',
     operator: condition.operator || 'equals',
     expected: condition.value ?? null,
-    actual: actual === undefined || actual === null ? null : actual
+    actual: redactActualValue(condition.key, actual)
   };
 };
 

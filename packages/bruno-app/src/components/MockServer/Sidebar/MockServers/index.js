@@ -35,7 +35,7 @@ const StatusDot = styled.span`
   border-radius: 50%;
   margin-right: 8px;
   flex-shrink: 0;
-  background: ${(props) => (props.$running ? '#22c55e' : '#9ca3af')};
+  background: ${(props) => (props.$running ? props.theme.status.success.text : props.theme.colors.text.muted)};
 `;
 
 const MockServerItem = React.memo(({

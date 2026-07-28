@@ -160,6 +160,28 @@ describe('mock-rule-matcher', () => {
     expect(trace.candidates[0].matched).toBe(false);
   });
 
+  it('redacts sensitive rule values from the match trace without changing matching', () => {
+    const { selected, trace } = evaluateResponseCandidates([
+      {
+        responseUid: 'authed',
+        responseName: 'authed',
+        rules: {
+          operator: 'AND',
+          conditions: [{ target: 'header', key: 'Authorization', operator: 'contains', value: 'Bearer' }]
+        }
+      }
+    ], {
+      headers: { authorization: 'Bearer super-secret-token' },
+      query: {},
+      body: {}
+    });
+
+    expect(selected.responseUid).toBe('authed');
+    expect(trace.candidates[0].conditions[0].pass).toBe(true);
+    expect(trace.candidates[0].conditions[0].actual).toBe('<redacted>');
+    expect(JSON.stringify(trace)).not.toContain('super-secret-token');
+  });
+
   it('builds request context from express req', () => {
     const built = buildRequestContext({
       headers: { 'content-type': 'application/json', 'X-Plan': 'free' },

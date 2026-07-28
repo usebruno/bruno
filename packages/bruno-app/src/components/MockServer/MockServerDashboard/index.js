@@ -42,8 +42,8 @@ const MockServerDashboard = ({ instance, collection }) => {
   const [copied, setCopied] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [nameDraft, setNameDraft] = useState(instance.name);
-  const [delayDraft, setDelayDraft] = useState(instance.globalDelay || 0);
+  const [nameDraft, setNameDraft] = useState(null);
+  const [delayDraft, setDelayDraft] = useState(null);
   const [portError, setPortError] = useState(null);
   const collections = useSelector((state) => state.collections.collections);
   const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
@@ -86,11 +86,8 @@ const MockServerDashboard = ({ instance, collection }) => {
   const baseUrl = isRunning ? serverState.baseUrl : null;
   const activePort = isRunning ? serverState.port : storedInstance.port;
   const activeDelay = isRunning ? (serverState.globalDelay || 0) : (storedInstance.globalDelay || 0);
-
-  useEffect(() => {
-    setNameDraft(storedInstance.name);
-    setDelayDraft(activeDelay);
-  }, [storedInstance.name, activeDelay]);
+  const nameValue = nameDraft ?? storedInstance.name;
+  const delayValue = delayDraft ?? activeDelay;
 
   useEffect(() => {
     validatePort(activePort);
@@ -187,22 +184,22 @@ const MockServerDashboard = ({ instance, collection }) => {
   };
 
   const handleNameBlur = async () => {
-    const trimmedName = nameDraft.trim();
+    const trimmedName = nameValue.trim();
 
     if (!trimmedName || trimmedName === storedInstance.name) {
-      setNameDraft(storedInstance.name);
+      setNameDraft(null);
       return;
     }
 
     if (!validateName(trimmedName)) {
       toast.error(validateNameError(trimmedName));
-      setNameDraft(storedInstance.name);
+      setNameDraft(null);
       return;
     }
 
     if (isMockServerNameTaken(workspaceInstances, trimmedName, storedInstance.uid)) {
       toast.error('A mock server with this name already exists');
-      setNameDraft(storedInstance.name);
+      setNameDraft(null);
       return;
     }
 
@@ -210,7 +207,8 @@ const MockServerDashboard = ({ instance, collection }) => {
       await persistInstance({ name: trimmedName });
     } catch {
       toast.error('Failed to save mock server name');
-      setNameDraft(storedInstance.name);
+    } finally {
+      setNameDraft(null);
     }
   };
 
@@ -219,9 +217,10 @@ const MockServerDashboard = ({ instance, collection }) => {
   };
 
   const handleDelayBlur = async () => {
-    const newDelay = Number(delayDraft) || 0;
+    const newDelay = Number(delayValue) || 0;
 
     if (newDelay === activeDelay) {
+      setDelayDraft(null);
       return;
     }
 
@@ -233,7 +232,8 @@ const MockServerDashboard = ({ instance, collection }) => {
       await persistInstance({ globalDelay: newDelay });
     } catch (err) {
       toast.error(err.message || 'Failed to update delay');
-      setDelayDraft(activeDelay);
+    } finally {
+      setDelayDraft(null);
     }
   };
 
@@ -318,7 +318,7 @@ const MockServerDashboard = ({ instance, collection }) => {
           <input
             type="text"
             className="mock-server-name-input"
-            value={nameDraft}
+            value={nameValue}
             onChange={(event) => setNameDraft(event.target.value)}
             onBlur={handleNameBlur}
             onKeyDown={(event) => {
@@ -367,7 +367,7 @@ const MockServerDashboard = ({ instance, collection }) => {
             <input
               id="mock-server-delay-input"
               type="number"
-              value={delayDraft}
+              value={delayValue}
               onChange={handleDelayChange}
               onBlur={handleDelayBlur}
               disabled={isStarting}

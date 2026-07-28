@@ -430,7 +430,7 @@ const tryMockRequest = ({ url, method = 'GET', headers = {}, body = null }) => n
   }
 
   const req = transport.request({
-    hostname: parsedUrl.hostname,
+    hostname: parsedUrl.hostname === 'localhost' ? LOCALHOST_IPV4 : parsedUrl.hostname,
     port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
     path: `${parsedUrl.pathname}${parsedUrl.search}`,
     method: method.toUpperCase(),

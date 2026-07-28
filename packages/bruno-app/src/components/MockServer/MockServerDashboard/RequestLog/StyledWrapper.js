@@ -53,14 +53,6 @@ const Wrapper = styled.div`
 
   .method-badge {
     font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-
-    &.get { color: #22c55e; }
-    &.post { color: #f59e0b; }
-    &.put { color: #3b82f6; }
-    &.patch { color: #a855f7; }
-    &.delete { color: #ef4444; }
   }
 
   .status-code {
@@ -161,7 +153,7 @@ const Wrapper = styled.div`
   }
 
   .match-trace-result-success {
-    color: #22c55e;
+    color: ${(props) => props.theme.status.success.text};
   }
 
   .match-trace-result-fail {
@@ -195,7 +187,7 @@ const Wrapper = styled.div`
     margin-bottom: 8px;
 
     &.is-selected {
-      border-color: #22c55e;
+      border-color: ${(props) => props.theme.status.success.border};
     }
   }
 
@@ -218,13 +210,13 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
 
     &.selected {
-      background: rgba(34, 197, 94, 0.15);
-      color: #22c55e;
+      background: ${(props) => props.theme.status.success.background};
+      color: ${(props) => props.theme.status.success.text};
     }
 
     &.skipped {
-      background: rgba(245, 158, 11, 0.15);
-      color: #f59e0b;
+      background: ${(props) => props.theme.status.warning.background};
+      color: ${(props) => props.theme.status.warning.text};
     }
   }
 
@@ -243,7 +235,7 @@ const Wrapper = styled.div`
       font-family: monospace;
 
       &.pass {
-        color: #22c55e;
+        color: ${(props) => props.theme.status.success.text};
       }
 
       &.fail {

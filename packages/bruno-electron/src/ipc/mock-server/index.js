@@ -1,5 +1,7 @@
 const { ipcMain } = require('electron');
 const fs = require('fs');
+const path = require('path');
+const { getWorkspaceApiSpecs, validateWorkspacePath } = require('../../utils/workspace-config');
 const mockServer = require('../../app/mock-server/mock-server');
 const { buildMockResponsesFromSpec } = require('../../app/mock-server/mock-spec-routes');
 const {
@@ -31,6 +33,28 @@ const parseSpecContent = (content) => {
     const yaml = require('js-yaml');
     return yaml.load(content);
   }
+};
+
+const readWorkspaceSpec = (workspacePath, specPath) => {
+  if (!specPath) {
+    throw new Error('API spec path is required.');
+  }
+
+  validateWorkspacePath(workspacePath);
+
+  const resolvedPath = path.resolve(specPath);
+  const isRegisteredSpec = getWorkspaceApiSpecs(workspacePath)
+    .some((spec) => spec.path && path.resolve(spec.path) === resolvedPath);
+
+  if (!isRegisteredSpec) {
+    throw new Error('API spec is not registered in this workspace.');
+  }
+
+  if (!fs.existsSync(resolvedPath)) {
+    throw new Error('API spec file not found.');
+  }
+
+  return parseSpecContent(fs.readFileSync(resolvedPath, 'utf8'));
 };
 
 const registerMockServerIpc = (mainWindow) => {
@@ -231,9 +255,7 @@ const registerMockServerIpc = (mainWindow) => {
     try {
       const { workspacePath, workspaceUid, migrateFrom = [] } = payload;
 
-      if (!workspacePath) {
-        throw new Error('Workspace path is required.');
-      }
+      validateWorkspacePath(workspacePath);
 
       const instances = listMockServers(workspacePath, workspaceUid, { migrateFrom });
       return { success: true, instances };
@@ -246,9 +268,7 @@ const registerMockServerIpc = (mainWindow) => {
     try {
       const { workspacePath, instance } = payload;
 
-      if (!workspacePath) {
-        throw new Error('Workspace path is required.');
-      }
+      validateWorkspacePath(workspacePath);
 
       if (!instance?.uid) {
         throw new Error('Mock server id is required.');
@@ -279,9 +299,7 @@ const registerMockServerIpc = (mainWindow) => {
         throw new Error('Mock server id is required.');
       }
 
-      if (!workspacePath) {
-        throw new Error('Workspace path is required.');
-      }
+      validateWorkspacePath(workspacePath);
 
       const location = { mockServerUid: sourceMockServerUid, workspacePath };
       const targetLocation = { mockServerUid: targetMockServerUid, workspacePath };
@@ -304,16 +322,7 @@ const registerMockServerIpc = (mainWindow) => {
     try {
       const { specPath, generateFromSchema = false, ...location } = payload;
 
-      if (!specPath) {
-        throw new Error('API spec path is required.');
-      }
-
-      if (!fs.existsSync(specPath)) {
-        throw new Error('API spec file not found.');
-      }
-
-      const content = fs.readFileSync(specPath, 'utf8');
-      const spec = parseSpecContent(content);
+      const spec = readWorkspaceSpec(location.workspacePath, specPath);
       const generatedResponses = buildMockResponsesFromSpec(spec, { generateFromSchema: Boolean(generateFromSchema) });
       const createdResponses = appendMockResponses(location, generatedResponses);
       await mockServer.reloadRoutesFromStore(location.mockServerUid, location);
@@ -334,18 +343,9 @@ const registerMockServerIpc = (mainWindow) => {
   // saves the merged list via the existing replace-responses handler.
   ipcMain.handle('renderer:mock-server-load-spec-responses', async (_event, payload) => {
     try {
-      const { specPath, generateFromSchema = true } = payload;
+      const { workspacePath, specPath, generateFromSchema = true } = payload;
 
-      if (!specPath) {
-        throw new Error('API spec path is required.');
-      }
-
-      if (!fs.existsSync(specPath)) {
-        throw new Error('API spec file not found.');
-      }
-
-      const content = fs.readFileSync(specPath, 'utf8');
-      const spec = parseSpecContent(content);
+      const spec = readWorkspaceSpec(workspacePath, specPath);
       const responses = buildMockResponsesFromSpec(spec, { generateFromSchema: Boolean(generateFromSchema) });
 
       return { success: true, responses };

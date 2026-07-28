@@ -44,7 +44,7 @@ const StyledWrapper = styled.div`
 
   .method {
     min-width: 72px;
-    color: #fff;
+    color: ${(props) => props.theme.button2.color.danger.text};
   }
 
   .method-get { background-color: ${(props) => props.theme.request.methods.get}; }

@@ -4,6 +4,7 @@ import { IconCopy, IconCheck } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import EditableTable from 'components/EditableTable';
 import FilterDropdown from 'components/FilterDropdown';
+import MethodBadge from 'ui/MethodBadge';
 import StyledWrapper from './StyledWrapper';
 
 const RouteTable = ({ mockServerUid }) => {
@@ -61,7 +62,7 @@ const RouteTable = ({ mockServerUid }) => {
       name: 'Method',
       width: '80px',
       render: ({ value }) => (
-        <span className={`method-badge ${(value || '').toLowerCase()}`}>{value}</span>
+        <MethodBadge method={value} size="sm" className="method-badge" />
       )
     },
     {

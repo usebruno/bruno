@@ -540,7 +540,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       name: name,
       description: description,
       status: statusCode,
-      statusText: '',
+      statusText: 'OK',
       headers: [],
       body: {
         type: bodyType,

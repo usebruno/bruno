@@ -58,41 +58,6 @@ const getLegacyStorePaths = ({ mockServerUid, collectionPath, sourceType }) => {
   return legacyPaths;
 };
 
-const removeDirIfEmpty = (dirPath) => {
-  if (!fs.existsSync(dirPath)) {
-    return;
-  }
-
-  try {
-    if (fs.readdirSync(dirPath).length === 0) {
-      fs.rmdirSync(dirPath);
-    }
-  } catch {
-    // Ignore cleanup errors.
-  }
-};
-
-const cleanupLegacyPerServerStore = (legacyPath, collectionPath) => {
-  try {
-    if (fs.existsSync(legacyPath)) {
-      fs.unlinkSync(legacyPath);
-    }
-  } catch {
-    return;
-  }
-
-  if (!collectionPath) {
-    return;
-  }
-
-  const legacyMocksDir = path.join(collectionPath, '.bruno', 'mocks');
-  const collectionMocksDir = path.join(collectionPath, 'mocks');
-  const legacyBrunoDir = path.join(collectionPath, '.bruno');
-  removeDirIfEmpty(legacyMocksDir);
-  removeDirIfEmpty(collectionMocksDir);
-  removeDirIfEmpty(legacyBrunoDir);
-};
-
 const createEmptyStore = () => ({
   version: STORE_VERSION,
   mockServers: {}
@@ -122,6 +87,19 @@ const pickMockServerMeta = (instance = {}) => {
   }
 
   return meta;
+};
+
+const mergeMockServerBlock = (existing = {}, instance = {}) => {
+  const preserved = { ...existing };
+  for (const key of MOCK_SERVER_META_FIELDS) {
+    delete preserved[key];
+  }
+
+  return {
+    ...preserved,
+    ...pickMockServerMeta(instance),
+    responses: Array.isArray(existing.responses) ? existing.responses : []
+  };
 };
 
 const mockServerBlockToInstance = (uid, block = {}, workspaceUid) => ({
@@ -297,9 +275,10 @@ const readLegacyPerServerStore = (location) => {
 const migrateLegacyResponses = (location) => {
   const { mockServerUid, workspacePath } = location;
   const store = readWorkspaceStore(workspacePath);
-  const existingResponses = store.mockServers?.[mockServerUid]?.responses || [];
+  const existingBlock = store.mockServers?.[mockServerUid] || {};
+  const existingResponses = existingBlock.responses || [];
 
-  if (existingResponses.length > 0) {
+  if (existingResponses.length > 0 || existingBlock.legacyMigrated) {
     return existingResponses;
   }
 
@@ -309,17 +288,11 @@ const migrateLegacyResponses = (location) => {
   }
 
   store.mockServers[mockServerUid] = {
-    ...(store.mockServers[mockServerUid] || {}),
+    ...existingBlock,
+    legacyMigrated: true,
     responses: legacyResponses
   };
   writeWorkspaceStore(workspacePath, store);
-
-  const perServerPath = getLegacyPerServerStorePath(location);
-  cleanupLegacyPerServerStore(perServerPath, location.collectionPath);
-
-  for (const legacyPath of getLegacyStorePaths(location)) {
-    cleanupLegacyPerServerStore(legacyPath, location.collectionPath);
-  }
 
   return legacyResponses;
 };
@@ -367,10 +340,7 @@ const saveMockServer = (workspacePath, instance) => {
   const store = readWorkspaceStore(workspacePath);
   const existing = store.mockServers[instance.uid] || {};
 
-  store.mockServers[instance.uid] = {
-    ...pickMockServerMeta(instance),
-    responses: Array.isArray(existing.responses) ? existing.responses : []
-  };
+  store.mockServers[instance.uid] = mergeMockServerBlock(existing, instance);
 
   writeWorkspaceStore(workspacePath, store);
   return mockServerBlockToInstance(instance.uid, store.mockServers[instance.uid], instance.workspaceUid);
@@ -391,10 +361,7 @@ const listMockServers = (workspacePath, workspaceUid, { migrateFrom = [] } = {})
 
     const existing = store.mockServers[instance.uid] || {};
     if (!existing.name) {
-      store.mockServers[instance.uid] = {
-        ...pickMockServerMeta(instance),
-        responses: Array.isArray(existing.responses) ? existing.responses : []
-      };
+      store.mockServers[instance.uid] = mergeMockServerBlock(existing, instance);
       dirty = true;
     }
   }

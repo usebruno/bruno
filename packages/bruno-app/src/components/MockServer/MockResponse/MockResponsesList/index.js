@@ -207,6 +207,7 @@ const MockResponsesList = ({ instance, collection }) => {
     setIsSyncingSpec(true);
     try {
       const { responses: specResponses } = await dispatch(loadMockResponsesFromSpec({
+        workspacePath: location.workspacePath,
         specPath: spec.pathname
       })).unwrap();
 

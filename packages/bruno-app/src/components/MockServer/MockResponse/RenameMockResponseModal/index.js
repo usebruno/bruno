@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 
@@ -9,11 +9,7 @@ const RenameMockResponseModal = ({
   isSaving = false
 }) => {
   const inputRef = useRef();
-  const [name, setName] = React.useState(response?.name || '');
-
-  useEffect(() => {
-    setName(response?.name || '');
-  }, [response?.name]);
+  const [name, setName] = useState(response?.name || '');
 
   useEffect(() => {
     if (inputRef.current) {

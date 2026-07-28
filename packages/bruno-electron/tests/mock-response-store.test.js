@@ -1,9 +1,11 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const yaml = require('js-yaml');
 const {
   appendMockResponses,
   cloneMockServerResponses,
+  deleteMockResponse,
   deleteMockServer,
   getWorkspaceStorePath,
   listMockResponses,
@@ -163,6 +165,35 @@ describe('mock-response-store', () => {
     fs.rmSync(workspacePath, { recursive: true, force: true });
   });
 
+  it('keeps unknown mock server keys on save and clears fields the instance unsets', () => {
+    saveMockServer(workspacePath, {
+      uid: 'mock-1',
+      name: 'Spec Mock Server',
+      port: 4000,
+      sourceType: 'spec',
+      specPath: '/tmp/openapi.yml',
+      workspaceUid: 'workspace-1'
+    });
+
+    const store = readWorkspaceStore(workspacePath);
+    store.mockServers['mock-1'].futureField = 'keep-me';
+    fs.writeFileSync(getWorkspaceStorePath(workspacePath), yaml.dump(store), 'utf8');
+
+    saveMockServer(workspacePath, {
+      uid: 'mock-1',
+      name: 'Manual Mock Server',
+      port: 4000,
+      sourceType: 'manual',
+      specPath: null,
+      workspaceUid: 'workspace-1'
+    });
+
+    const savedBlock = readWorkspaceStore(workspacePath).mockServers['mock-1'];
+    expect(savedBlock.futureField).toBe('keep-me');
+    expect(savedBlock.sourceType).toBe('manual');
+    expect(savedBlock.specPath).toBeUndefined();
+  });
+
   it('migrates legacy preference instances into workspace mockserver.yml', () => {
     const instances = listMockServers(workspacePath, 'workspace-1', {
       migrateFrom: [{
@@ -202,7 +233,31 @@ describe('mock-response-store', () => {
     expect(responses).toHaveLength(1);
     expect(responses[0].name).toBe('Legacy');
     expect(fs.existsSync(getWorkspaceStorePath(workspacePath))).toBe(true);
-    expect(fs.existsSync(path.join(legacyMocksDir, 'mock-1.yml'))).toBe(false);
+    expect(fs.existsSync(path.join(legacyMocksDir, 'mock-1.yml'))).toBe(true);
+  });
+
+  it('does not resurrect migrated legacy responses after they are deleted', () => {
+    const collectionPath = path.join(workspacePath, 'collections', 'demo');
+    const legacyMocksDir = path.join(collectionPath, 'mocks');
+    fs.mkdirSync(legacyMocksDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(legacyMocksDir, 'mock-1.yml'),
+      'responses:\n  - uid: response-legacy\n    name: Legacy\n    request:\n      url: /legacy\n      method: GET\n    response:\n      status: 200\n      body:\n        type: json\n        content: "{}"\n    rules:\n      operator: AND\n      conditions: []\n',
+      'utf8'
+    );
+
+    const location = {
+      mockServerUid: 'mock-1',
+      sourceType: 'collection',
+      collectionPath,
+      workspacePath
+    };
+
+    expect(listMockResponses(location)).toHaveLength(1);
+
+    deleteMockResponse(location, 'response-legacy');
+
+    expect(listMockResponses(location)).toHaveLength(0);
   });
 
   it('appends generated responses and skips duplicate route and status pairs', () => {

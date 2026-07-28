@@ -4,6 +4,7 @@ import { IconInfoCircle } from '@tabler/icons';
 import { clearMockLog, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
 import { subscribeMockServerLog } from 'utils/mock-server/mock-server-log-subscription';
 import FilterDropdown from 'components/FilterDropdown';
+import MethodBadge from 'ui/MethodBadge';
 import StyledWrapper from './StyledWrapper';
 
 const getStatusClass = (statusCode, matched) => {
@@ -182,7 +183,8 @@ const RequestLog = ({ mockServerUid }) => {
   const logs = useSelector((state) => state.mockServer.requestLogs[mockServerUid]) || [];
   const [matchFilter, setMatchFilter] = useState(null);
   const [statusFilter, setStatusFilter] = useState(null);
-  const [expandedLogUid, setExpandedLogUid] = useState(null);
+  const [selectedLogUid, setSelectedLogUid] = useState(null);
+  const [collapsedLogUid, setCollapsedLogUid] = useState(null);
 
   useEffect(() => {
     const unsubscribe = subscribeMockServerLog(mockServerUid);
@@ -210,26 +212,22 @@ const RequestLog = ({ mockServerUid }) => {
 
   const displayedLogs = useMemo(() => [...filteredLogs].reverse(), [filteredLogs]);
 
-  useEffect(() => {
-    if (expandedLogUid && !displayedLogs.some((entry) => entry.uid === expandedLogUid)) {
-      setExpandedLogUid(null);
-    }
-  }, [displayedLogs, expandedLogUid]);
-
-  useEffect(() => {
-    const latestEntry = displayedLogs[0];
-    if (latestEntry?.matchTrace) {
-      setExpandedLogUid((current) => current ?? latestEntry.uid);
-    }
-  }, [displayedLogs.length, displayedLogs[0]?.uid]);
+  const autoExpandUid = displayedLogs[0]?.matchTrace ? displayedLogs[0].uid : null;
+  const isSelectionVisible = selectedLogUid && displayedLogs.some((entry) => entry.uid === selectedLogUid);
+  const expandedLogUid = isSelectionVisible
+    ? selectedLogUid
+    : (collapsedLogUid === autoExpandUid ? null : autoExpandUid);
 
   const handleClear = () => {
     dispatch(clearMockLog({ mockServerUid }));
-    setExpandedLogUid(null);
+    setSelectedLogUid(null);
+    setCollapsedLogUid(null);
   };
 
   const toggleTrace = (uid) => {
-    setExpandedLogUid((current) => (current === uid ? null : uid));
+    const isExpanded = expandedLogUid === uid;
+    setSelectedLogUid(isExpanded ? null : uid);
+    setCollapsedLogUid(isExpanded ? uid : null);
   };
 
   if (logs.length === 0) {
@@ -312,7 +310,7 @@ const RequestLog = ({ mockServerUid }) => {
                       </button>
                     </td>
                     <td><span className="log-timestamp">{formatTimestamp(entry.timestamp)}</span></td>
-                    <td><span className={`method-badge ${(entry.method || '').toLowerCase()}`}>{entry.method}</span></td>
+                    <td><MethodBadge method={entry.method} size="sm" className="method-badge" /></td>
                     <td><span className="log-path">{entry.path}</span></td>
                     <td>
                       {entry.matched

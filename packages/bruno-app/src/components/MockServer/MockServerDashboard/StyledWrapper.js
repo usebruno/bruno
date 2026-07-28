@@ -21,25 +21,25 @@ const StyledWrapper = styled.div`
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        background: #6b7280;
+        background: ${(props) => props.theme.colors.text.muted};
         flex-shrink: 0;
 
         &.running {
-          background: #22c55e;
+          background: ${(props) => props.theme.status.success.text};
         }
 
         &.starting {
-          background: #f59e0b;
+          background: ${(props) => props.theme.status.warning.text};
           animation: pulse 1s infinite;
         }
 
         &.stopping {
-          background: #f59e0b;
+          background: ${(props) => props.theme.status.warning.text};
           animation: pulse 1s infinite;
         }
 
         &.error {
-          background: #ef4444;
+          background: ${(props) => props.theme.status.danger.text};
         }
       }
 
@@ -150,15 +150,15 @@ const StyledWrapper = styled.div`
       transition: all 0.15s;
 
       &.start-btn {
-        background: #1b8e45;
-        color: white;
-        &:hover { background: #16a34a; }
+        background: ${(props) => props.theme.button2.color.success.bg};
+        color: ${(props) => props.theme.button2.color.success.text};
+        &:hover { filter: brightness(1.1); }
       }
 
       &.stop-btn {
-        background: #ef4444;
-        color: white;
-        &:hover { background: #dc2626; }
+        background: ${(props) => props.theme.button2.color.danger.bg};
+        color: ${(props) => props.theme.button2.color.danger.text};
+        &:hover { filter: brightness(1.1); }
       }
 
       &.refresh-btn {

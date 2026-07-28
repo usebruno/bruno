@@ -44,17 +44,7 @@ const Wrapper = styled.div`
 
   .method-badge {
     font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
     letter-spacing: 0.3px;
-
-    &.get { color: #22c55e; }
-    &.post { color: #f59e0b; }
-    &.put { color: #3b82f6; }
-    &.patch { color: #a855f7; }
-    &.delete { color: #ef4444; }
-    &.head { color: #06b6d4; }
-    &.options { color: #6b7280; }
   }
 
   .path-cell {
