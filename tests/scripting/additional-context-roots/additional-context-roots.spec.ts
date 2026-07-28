@@ -3,8 +3,6 @@ import { setSandboxMode, runCollection, validateRunnerResults } from '../../util
 
 test.describe('additionalContextRoots npm resolution [developer mode]', () => {
   test('Collection A resolves shared-lib via walk-up', async ({ pageWithUserData: page }) => {
-    test.setTimeout(2 * 60 * 1000);
-
     await setSandboxMode(page, 'Collection A', 'developer');
     await runCollection(page, 'Collection A');
 
@@ -17,8 +15,6 @@ test.describe('additionalContextRoots npm resolution [developer mode]', () => {
   });
 
   test('Collection B reuses the same shared root from the workspace', async ({ pageWithUserData: page }) => {
-    test.setTimeout(2 * 60 * 1000);
-
     await setSandboxMode(page, 'Collection B', 'developer');
     await runCollection(page, 'Collection B');
 

@@ -4,6 +4,36 @@ const path = require('path');
 const os = require('os');
 const { runScriptInNodeVm } = require('./index');
 
+// Windows denies symlink creation without developer mode / admin. Probe once at
+// module load so the dependent tests can be marked skipped in the reporter
+// instead of silently no-oping mid-test.
+const symlinksSupported = (() => {
+  const target = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-symlink-probe-'));
+  const link = target + '-link';
+  try {
+    fs.symlinkSync(target, link, 'dir');
+    fs.unlinkSync(link);
+    return true;
+  } catch (e) {
+    if (e.code === 'EPERM' || e.code === 'ENOTSUP') return false;
+    throw e;
+  } finally {
+    fs.rmSync(target, { recursive: true, force: true });
+  }
+})();
+const itIfSymlinks = symlinksSupported ? it : it.skip;
+
+const makePkg = (parentDir, pkgName, files) => {
+  const pkgDir = path.join(parentDir, pkgName);
+  fs.mkdirSync(pkgDir, { recursive: true });
+  for (const [relPath, content] of Object.entries(files)) {
+    const filePath = path.join(pkgDir, relPath);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, content);
+  }
+  return pkgDir;
+};
+
 describe('node-vm sandbox', () => {
   let testDir;
   let collectionPath;
@@ -245,13 +275,9 @@ describe('node-vm sandbox', () => {
       // Package lives only in additionalRoot/node_modules — the collection has
       // no dependency declared for it.
       const additionalRoot = path.join(testDir, 'shared');
-      fs.mkdirSync(additionalRoot);
-      const sharedNodeModulesDir = path.join(additionalRoot, 'node_modules', 'shared-package');
-      fs.mkdirSync(sharedNodeModulesDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(sharedNodeModulesDir, 'index.js'),
-        'module.exports = { fromShared: true };'
-      );
+      makePkg(path.join(additionalRoot, 'node_modules'), 'shared-package', {
+        'index.js': 'module.exports = { fromShared: true };'
+      });
 
       // A COLLECTION script directly requiring `shared-package` must fail:
       // native Node walk-up from the collection never reaches a sibling
@@ -278,17 +304,9 @@ describe('node-vm sandbox', () => {
 
     it('should resolve npm module required by a shared script in additionalContextRoots', async () => {
       const additionalRoot = path.join(testDir, 'shared');
-      fs.mkdirSync(additionalRoot);
-
-      // Create an npm dependency inside shared/node_modules
-      const sharedNodeModulesDir = path.join(additionalRoot, 'node_modules', 'shared-util');
-      fs.mkdirSync(sharedNodeModulesDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(sharedNodeModulesDir, 'index.js'),
-        'module.exports = { parse: function(s) { return JSON.parse(s); } };'
-      );
-
-      // Create a shared script that requires the npm module
+      makePkg(path.join(additionalRoot, 'node_modules'), 'shared-util', {
+        'index.js': 'module.exports = { parse: function(s) { return JSON.parse(s); } };'
+      });
       fs.writeFileSync(
         path.join(additionalRoot, 'parser.js'),
         'const sharedUtil = require("shared-util"); module.exports = { parse: sharedUtil.parse };'
@@ -325,12 +343,9 @@ describe('node-vm sandbox', () => {
       const nestedDir = path.join(additionalRoot, 'deep', 'nested');
       fs.mkdirSync(nestedDir, { recursive: true });
 
-      const depDir = path.join(additionalRoot, 'node_modules', 'deep-dep');
-      fs.mkdirSync(depDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(depDir, 'index.js'),
-        'module.exports = { walkedUp: true };'
-      );
+      makePkg(path.join(additionalRoot, 'node_modules'), 'deep-dep', {
+        'index.js': 'module.exports = { walkedUp: true };'
+      });
 
       fs.writeFileSync(
         path.join(nestedDir, 'parser.js'),
@@ -356,15 +371,12 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
     });
 
-    it('should resolve npm modules when additionalContextRoots points at a symlink', async () => {
+    itIfSymlinks('should resolve npm modules when additionalContextRoots points at a symlink', async () => {
       // Physical location of the shared root
       const realShared = path.join(testDir, 'real-shared');
-      const realNodeModules = path.join(realShared, 'node_modules', 'symlinked-lib');
-      fs.mkdirSync(realNodeModules, { recursive: true });
-      fs.writeFileSync(
-        path.join(realNodeModules, 'index.js'),
-        'module.exports = { via: "symlink" };'
-      );
+      makePkg(path.join(realShared, 'node_modules'), 'symlinked-lib', {
+        'index.js': 'module.exports = { via: "symlink" };'
+      });
 
       // Shared script inside the real location that requires the npm package.
       // Loaded through the symlink below.
@@ -374,14 +386,8 @@ describe('node-vm sandbox', () => {
       );
 
       // User-facing symlink that Bruno is told to treat as the shared root.
-      // Windows requires developer mode / admin to create symlinks — skip gracefully.
       const linkedShared = path.join(testDir, 'linked-shared');
-      try {
-        fs.symlinkSync(realShared, linkedShared, 'dir');
-      } catch (e) {
-        if (e.code === 'EPERM' || e.code === 'ENOTSUP') return;
-        throw e;
-      }
+      fs.symlinkSync(realShared, linkedShared, 'dir');
 
       const script = `
         const helper = require('../linked-shared/helper');
@@ -402,33 +408,19 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('via', 'symlink');
     });
 
-    it('should allow subpath imports into an npm-linked package', async () => {
+    itIfSymlinks('should allow subpath imports into an npm-linked package', async () => {
       // Physical location of a multi-file package outside every declared root.
-      const externalPkg = path.join(testDir, 'external-subpath-pkg');
-      fs.mkdirSync(externalPkg, { recursive: true });
-      fs.writeFileSync(
-        path.join(externalPkg, 'package.json'),
-        JSON.stringify({ name: 'subpath-pkg', main: 'index.js' })
-      );
-      fs.writeFileSync(
-        path.join(externalPkg, 'index.js'),
-        'module.exports = { root: true };'
-      );
-      // Subpath file — require('subpath-pkg/utils') maps to utils.js (a file,
-      // not a directory-with-index.js).
-      fs.writeFileSync(
-        path.join(externalPkg, 'utils.js'),
-        'module.exports = { greet: () => "sub-hello" };'
-      );
+      // Subpath file utils.js — require('subpath-pkg/utils') maps to utils.js
+      // (a file, not a directory-with-index.js).
+      const externalPkg = makePkg(testDir, 'external-subpath-pkg', {
+        'package.json': JSON.stringify({ name: 'subpath-pkg', main: 'index.js' }),
+        'index.js': 'module.exports = { root: true };',
+        'utils.js': 'module.exports = { greet: () => "sub-hello" };'
+      });
 
       const nodeModulesDir = path.join(collectionPath, 'node_modules');
       fs.mkdirSync(nodeModulesDir, { recursive: true });
-      try {
-        fs.symlinkSync(externalPkg, path.join(nodeModulesDir, 'subpath-pkg'), 'dir');
-      } catch (e) {
-        if (e.code === 'EPERM' || e.code === 'ENOTSUP') return;
-        throw e;
-      }
+      fs.symlinkSync(externalPkg, path.join(nodeModulesDir, 'subpath-pkg'), 'dir');
 
       const script = `
         const utils = require('subpath-pkg/utils');
@@ -445,33 +437,19 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'sub-hello');
     });
 
-    it('should allow internal relative requires inside an npm-linked package', async () => {
+    itIfSymlinks('should allow internal relative requires inside an npm-linked package', async () => {
       // Physical location of a multi-file package outside every declared root.
-      const externalPkg = path.join(testDir, 'external-pkg');
-      fs.mkdirSync(externalPkg, { recursive: true });
-      fs.writeFileSync(
-        path.join(externalPkg, 'package.json'),
-        JSON.stringify({ name: 'linked-pkg', main: 'index.js' })
-      );
-      fs.writeFileSync(
-        path.join(externalPkg, 'index.js'),
-        'const util = require("./util"); module.exports = { greet: util.greet };'
-      );
-      fs.writeFileSync(
-        path.join(externalPkg, 'util.js'),
-        'module.exports = { greet: () => "hello" };'
-      );
+      const externalPkg = makePkg(testDir, 'external-pkg', {
+        'package.json': JSON.stringify({ name: 'linked-pkg', main: 'index.js' }),
+        'index.js': 'const util = require("./util"); module.exports = { greet: util.greet };',
+        'util.js': 'module.exports = { greet: () => "hello" };'
+      });
 
       // npm-link style: collection has node_modules/<pkg> as a symlink to the
       // physical location that lives outside the collection.
       const nodeModulesDir = path.join(collectionPath, 'node_modules');
       fs.mkdirSync(nodeModulesDir, { recursive: true });
-      try {
-        fs.symlinkSync(externalPkg, path.join(nodeModulesDir, 'linked-pkg'), 'dir');
-      } catch (e) {
-        if (e.code === 'EPERM' || e.code === 'ENOTSUP') return;
-        throw e;
-      }
+      fs.symlinkSync(externalPkg, path.join(nodeModulesDir, 'linked-pkg'), 'dir');
 
       const script = `
         const pkg = require('linked-pkg');
@@ -492,26 +470,14 @@ describe('node-vm sandbox', () => {
       // Two packages installed side-by-side in the collection's node_modules —
       // pkg-a transitively requires pkg-b.
       const nodeModulesDir = path.join(collectionPath, 'node_modules');
-      const pkgADir = path.join(nodeModulesDir, 'pkg-a');
-      const pkgBDir = path.join(nodeModulesDir, 'pkg-b');
-      fs.mkdirSync(pkgADir, { recursive: true });
-      fs.mkdirSync(pkgBDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(pkgADir, 'package.json'),
-        JSON.stringify({ name: 'pkg-a', main: 'index.js' })
-      );
-      fs.writeFileSync(
-        path.join(pkgADir, 'index.js'),
-        'const b = require("pkg-b"); module.exports = { value: b.value + 1 };'
-      );
-      fs.writeFileSync(
-        path.join(pkgBDir, 'package.json'),
-        JSON.stringify({ name: 'pkg-b', main: 'index.js' })
-      );
-      fs.writeFileSync(
-        path.join(pkgBDir, 'index.js'),
-        'module.exports = { value: 41 };'
-      );
+      makePkg(nodeModulesDir, 'pkg-a', {
+        'package.json': JSON.stringify({ name: 'pkg-a', main: 'index.js' }),
+        'index.js': 'const b = require("pkg-b"); module.exports = { value: b.value + 1 };'
+      });
+      makePkg(nodeModulesDir, 'pkg-b', {
+        'package.json': JSON.stringify({ name: 'pkg-b', main: 'index.js' }),
+        'index.js': 'module.exports = { value: 41 };'
+      });
 
       const script = `
         const a = require('pkg-a');
@@ -528,31 +494,17 @@ describe('node-vm sandbox', () => {
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 42);
     });
 
-    it('should allow a scoped npm-linked package', async () => {
+    itIfSymlinks('should allow a scoped npm-linked package', async () => {
       // Physical location of a scoped multi-file package outside every declared root.
-      const externalPkg = path.join(testDir, 'external-scoped-pkg');
-      fs.mkdirSync(externalPkg, { recursive: true });
-      fs.writeFileSync(
-        path.join(externalPkg, 'package.json'),
-        JSON.stringify({ name: '@bruno/scoped-pkg', main: 'index.js' })
-      );
-      fs.writeFileSync(
-        path.join(externalPkg, 'index.js'),
-        'const util = require("./util"); module.exports = { greet: util.greet };'
-      );
-      fs.writeFileSync(
-        path.join(externalPkg, 'util.js'),
-        'module.exports = { greet: () => "scoped-hello" };'
-      );
+      const externalPkg = makePkg(testDir, 'external-scoped-pkg', {
+        'package.json': JSON.stringify({ name: '@bruno/scoped-pkg', main: 'index.js' }),
+        'index.js': 'const util = require("./util"); module.exports = { greet: util.greet };',
+        'util.js': 'module.exports = { greet: () => "scoped-hello" };'
+      });
 
       const scopeDir = path.join(collectionPath, 'node_modules', '@bruno');
       fs.mkdirSync(scopeDir, { recursive: true });
-      try {
-        fs.symlinkSync(externalPkg, path.join(scopeDir, 'scoped-pkg'), 'dir');
-      } catch (e) {
-        if (e.code === 'EPERM' || e.code === 'ENOTSUP') return;
-        throw e;
-      }
+      fs.symlinkSync(externalPkg, path.join(scopeDir, 'scoped-pkg'), 'dir');
 
       const script = `
         const pkg = require('@bruno/scoped-pkg');
