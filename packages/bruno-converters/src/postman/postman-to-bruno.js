@@ -402,7 +402,7 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
   }
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false, preserveScripts = false } = {}, scriptMap, issues = [], parentPath = '') => {
+const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = false } = {}, scriptMap, issues = [], parentPath = '') => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
@@ -462,11 +462,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false, 
       processAuth(i.auth, brunoFolderItem.root.request);
 
       if (i.item && i.item.length) {
-        importPostmanV2CollectionItem(brunoFolderItem, i.item, { useWorkers, preserveScripts }, scriptMap, issues, itemPath);
+        importPostmanV2CollectionItem(brunoFolderItem, i.item, { preserveScripts }, scriptMap, issues, itemPath);
       }
 
       if (i.event) {
-        if (useWorkers && !preserveScripts) {
+        if (scriptMap) {
           scriptMap.set(brunoFolderItem.uid, {
             events: i.event,
             request: brunoFolderItem.root.request
@@ -546,7 +546,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false, 
         brunoRequestItem.settings = settings;
 
         if (i.event) {
-          if (useWorkers && !preserveScripts) {
+          if (scriptMap) {
             scriptMap.set(brunoRequestItem.uid, {
               events: i.event,
               request: brunoRequestItem.request
@@ -1020,7 +1020,7 @@ const importPostmanV2Collection = async (collection, { useWorkers = false, prese
   // Create a single scriptMap for all items
   const scriptMap = useWorkers && !preserveScripts ? new Map() : null;
 
-  importPostmanV2CollectionItem(brunoCollection, collection.item, { useWorkers, preserveScripts }, scriptMap, issues);
+  importPostmanV2CollectionItem(brunoCollection, collection.item, { preserveScripts }, scriptMap, issues);
 
   // Process all scripts in a single call at the top level
   if (useWorkers && scriptMap && scriptMap.size > 0) {
