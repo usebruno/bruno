@@ -1719,12 +1719,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (!rootToWrite) {
         const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
         if (fs.existsSync(ocYmlPath)) {
-          try {
-            const existing = fs.readFileSync(ocYmlPath, 'utf8');
-            rootToWrite = parseCollection(existing, { format }).collectionRoot;
-          } catch (e) {
-            rootToWrite = collectionRoot;
-          }
+          const existing = fs.readFileSync(ocYmlPath, 'utf8');
+          rootToWrite = parseCollection(existing, { format }).collectionRoot;
         }
       }
       const content = await stringifyCollection(rootToWrite, transformedBrunoConfig, { format });
