@@ -1,7 +1,8 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/tests/request/settings/collection"
+    "{{collectionPath}}/requests-settings-bru",
+    "{{collectionPath}}/requests-settings-yml"
   ],
   "preferences": {
     "onboarding": {
