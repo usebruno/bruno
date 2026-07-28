@@ -23,28 +23,67 @@ export const registerBrunoTheme = (brunoTheme, displayedTheme) => {
   const editorFg = normalizeColor(fg);
   const gutterBgNorm = normalizeColor(gutterBg);
 
+  // hexOr avoids the `normalizeColor(x) || fallback` trap — normalizeColor
+  // returns '#1e1e1e' for missing input, which is truthy, so the fallback
+  // would never fire.
+  const hexOr = (source, fallback) => (source ? normalizeColor(source) : fallback);
+
+  const widgetBg = hexOr(brunoTheme?.dropdown?.bg, editorBg);
+  const widgetBorder = hexOr(brunoTheme?.dropdown?.border, isDark ? '#454545' : '#c8c8c8');
+  const widgetFg = hexOr(brunoTheme?.dropdown?.color, editorFg);
+  const widgetSelectedBg = hexOr(brunoTheme?.dropdown?.hoverBg, isDark ? '#04395e' : '#d6ebff');
+  const widgetHighlightFg = hexOr(brunoTheme?.textLink, isDark ? '#569cd6' : '#0078d4');
+  const bracketFg = hexOr(tokens.tagBracket, editorFg);
+  const bracketErrorFg = hexOr(brunoTheme?.codemirror?.variable?.invalid, isDark ? '#f14c4c' : '#e51400');
+
   const themeName = `bruno-${displayedTheme}`;
 
   monaco.editor.defineTheme(themeName, {
     base,
     inherit: true,
     rules: [
+      // Comments
       { token: 'comment', foreground: normalizeHex(tokens.comment) },
       { token: 'comment.js', foreground: normalizeHex(tokens.comment) },
       { token: 'comment.block', foreground: normalizeHex(tokens.comment) },
+      { token: 'comment.doc.js', foreground: normalizeHex(tokens.comment) },
+      // Strings
       { token: 'string', foreground: normalizeHex(tokens.string) },
       { token: 'string.js', foreground: normalizeHex(tokens.string) },
+      { token: 'string.escape', foreground: normalizeHex(tokens.number) },
+      { token: 'string.escape.js', foreground: normalizeHex(tokens.number) },
+      { token: 'string.escape.invalid.js', foreground: normalizeHex(tokens.variable) },
+      // Numbers
       { token: 'number', foreground: normalizeHex(tokens.number) },
       { token: 'number.js', foreground: normalizeHex(tokens.number) },
+      { token: 'number.hex.js', foreground: normalizeHex(tokens.number) },
+      { token: 'number.octal.js', foreground: normalizeHex(tokens.number) },
+      { token: 'number.binary.js', foreground: normalizeHex(tokens.number) },
+      { token: 'number.float.js', foreground: normalizeHex(tokens.number) },
+      // Keywords & identifiers
       { token: 'keyword', foreground: normalizeHex(tokens.keyword) },
       { token: 'keyword.js', foreground: normalizeHex(tokens.keyword) },
+      { token: 'keyword.flow.js', foreground: normalizeHex(tokens.keyword) },
       { token: 'identifier', foreground: normalizeHex(tokens.variable) },
       { token: 'identifier.js', foreground: normalizeHex(tokens.variable) },
       { token: 'type.identifier', foreground: normalizeHex(tokens.definition) },
       { token: 'type.identifier.js', foreground: normalizeHex(tokens.definition) },
+      // Regex
+      { token: 'regexp', foreground: normalizeHex(tokens.string) },
+      { token: 'regexp.js', foreground: normalizeHex(tokens.string) },
+      { token: 'regexp.escape.js', foreground: normalizeHex(tokens.number) },
+      // Decorators
+      { token: 'annotation', foreground: normalizeHex(tokens.keyword) },
+      { token: 'annotation.js', foreground: normalizeHex(tokens.keyword) },
+      // Delimiters — brackets/parens/braces all use tagBracket so nothing goes yellow
       { token: 'delimiter', foreground: normalizeHex(tokens.operator) },
       { token: 'delimiter.js', foreground: normalizeHex(tokens.operator) },
       { token: 'delimiter.bracket', foreground: normalizeHex(tokens.tagBracket) },
+      { token: 'delimiter.bracket.js', foreground: normalizeHex(tokens.tagBracket) },
+      { token: 'delimiter.parenthesis.js', foreground: normalizeHex(tokens.tagBracket) },
+      { token: 'delimiter.square.js', foreground: normalizeHex(tokens.tagBracket) },
+      { token: 'delimiter.angle.js', foreground: normalizeHex(tokens.tagBracket) },
+      // Markup
       { token: 'tag', foreground: normalizeHex(tokens.tag) },
       { token: 'attribute.name', foreground: normalizeHex(tokens.property) },
       { token: 'attribute.value', foreground: normalizeHex(tokens.string) },
@@ -59,20 +98,43 @@ export const registerBrunoTheme = (brunoTheme, displayedTheme) => {
       'editor.foreground': editorFg,
       'editorGutter.background': gutterBgNorm,
       'editorLineNumber.foreground': isDark ? '#858585' : '#999999',
+      // Suppress the default focus/contrast borders that would otherwise
+      // ring the suggest widget with an unwanted color.
+      'focusBorder': widgetBorder,
+      'contrastBorder': widgetBorder,
+      'contrastActiveBorder': widgetBorder,
+      // Override the default rainbow bracket pair colorization — all 6 levels
+      // collapse to the theme's tagBracket color so brackets stay monochrome
+      // and don't leak yellow/gold into themes that don't want it.
+      'editorBracketHighlight.foreground1': bracketFg,
+      'editorBracketHighlight.foreground2': bracketFg,
+      'editorBracketHighlight.foreground3': bracketFg,
+      'editorBracketHighlight.foreground4': bracketFg,
+      'editorBracketHighlight.foreground5': bracketFg,
+      'editorBracketHighlight.foreground6': bracketFg,
+      'editorBracketHighlight.unexpectedBracket.foreground': bracketErrorFg,
       // Hover widget (JSDoc tooltips)
-      'editorHoverWidget.background': normalizeColor(brunoTheme?.dropdown?.bg) || editorBg,
-      'editorHoverWidget.border': normalizeColor(brunoTheme?.dropdown?.border) || (isDark ? '#454545' : '#c8c8c8'),
-      'editorHoverWidget.foreground': editorFg,
+      'editorHoverWidget.background': widgetBg,
+      'editorHoverWidget.border': widgetBorder,
+      'editorHoverWidget.foreground': widgetFg,
       // Suggest widget (autocomplete)
-      'editorSuggestWidget.background': normalizeColor(brunoTheme?.dropdown?.bg) || editorBg,
-      'editorSuggestWidget.border': normalizeColor(brunoTheme?.dropdown?.border) || (isDark ? '#454545' : '#c8c8c8'),
-      'editorSuggestWidget.foreground': editorFg,
-      'editorSuggestWidget.selectedBackground': normalizeColor(brunoTheme?.dropdown?.hoverBg) || (isDark ? '#04395e' : '#d6ebff'),
-      'editorSuggestWidget.highlightForeground': normalizeColor(brunoTheme?.textLink) || (isDark ? '#569cd6' : '#0078d4'),
+      'editorSuggestWidget.background': widgetBg,
+      'editorSuggestWidget.border': widgetBorder,
+      'editorSuggestWidget.foreground': widgetFg,
+      'editorSuggestWidget.selectedBackground': widgetSelectedBg,
+      'editorSuggestWidget.selectedForeground': widgetFg,
+      'editorSuggestWidget.selectedIconForeground': widgetFg,
+      'editorSuggestWidget.highlightForeground': widgetHighlightFg,
+      'editorSuggestWidget.focusHighlightForeground': widgetHighlightFg,
+      // Suggest widget uses list.* colors for hover/focus states
+      'list.hoverBackground': widgetSelectedBg,
+      'list.hoverForeground': widgetFg,
+      'list.focusBackground': widgetSelectedBg,
+      'list.focusForeground': widgetFg,
       // Widget (shared - parameter hints, find widget, etc.)
-      'editorWidget.background': normalizeColor(brunoTheme?.dropdown?.bg) || editorBg,
-      'editorWidget.border': normalizeColor(brunoTheme?.dropdown?.border) || (isDark ? '#454545' : '#c8c8c8'),
-      'editorWidget.foreground': editorFg
+      'editorWidget.background': widgetBg,
+      'editorWidget.border': widgetBorder,
+      'editorWidget.foreground': widgetFg
     }
   });
 
@@ -88,14 +150,13 @@ export const getCurrentThemeName = (displayedTheme) => {
 };
 
 /**
- * Strip '#' prefix and return 6-char hex for Monaco token rules.
- * Handles undefined/null gracefully.
+ * Return a 6-char hex (no '#') for Monaco token rules.
+ * Accepts hex or hsl()/hsla() strings; returns undefined for missing input.
  */
 function normalizeHex(color) {
   if (!color) return undefined;
-  const s = String(color).trim();
-  if (s.startsWith('#')) return s.slice(1);
-  return s;
+  const normalized = normalizeColor(color);
+  return normalized.startsWith('#') ? normalized.slice(1) : normalized;
 }
 
 // Memoize color conversions to avoid repeated computation
@@ -114,9 +175,11 @@ function normalizeColor(color) {
 
   let result;
   if (s.startsWith('#')) {
-    result = s.length <= 7 ? s : s.slice(0, 7);
+    result = expandHex(s);
   } else if (s.startsWith('hsl')) {
     result = hslStringToHex(s);
+  } else if (s.startsWith('rgb')) {
+    result = rgbStringToHex(s);
   } else {
     result = s;
   }
@@ -126,11 +189,49 @@ function normalizeColor(color) {
 }
 
 /**
+ * Expand shorthand hex (#rgb / #rgba) to full #rrggbb, and truncate 8-char to 6-char.
+ * Monaco requires exactly 6-char hex in theme colors.
+ */
+function expandHex(hex) {
+  if (hex.length === 4) {
+    // #rgb -> #rrggbb
+    return `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`;
+  }
+  if (hex.length === 5) {
+    // #rgba -> #rrggbb (drop alpha)
+    return `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`;
+  }
+  return hex.length <= 7 ? hex : hex.slice(0, 7);
+}
+
+/**
+ * Convert an rgb()/rgba() string to #rrggbb hex. Alpha is dropped — Monaco's
+ * theme colors don't accept it in this format. Supports both legacy
+ * (comma) and modern (space + slash) CSS syntax.
+ */
+function rgbStringToHex(rgbString) {
+  const match = rgbString.match(
+    /rgba?\(\s*([\d.]+)\s*[,\s]\s*([\d.]+)\s*[,\s]\s*([\d.]+)/
+  );
+  if (!match) return '#1e1e1e';
+
+  const toHex = (n) => {
+    const v = Math.max(0, Math.min(255, Math.round(parseFloat(n))));
+    return v.toString(16).padStart(2, '0');
+  };
+  return `#${toHex(match[1])}${toHex(match[2])}${toHex(match[3])}`;
+}
+
+/**
  * Convert an hsl()/hsla() string to #rrggbb hex using pure math.
- * Avoids DOM manipulation and layout thrashing.
+ * Supports both legacy (comma) and modern (space) CSS syntax, with an
+ * optional `deg` unit on the hue — e.g. `hsl(210, 90%, 76%)`,
+ * `hsl(0deg 0% 80%)`, `hsl(0 0% 80%)`.
  */
 function hslStringToHex(hslString) {
-  const match = hslString.match(/hsla?\(\s*([\d.]+)\s*[,\s]\s*([\d.]+)%\s*[,\s]\s*([\d.]+)%/);
+  const match = hslString.match(
+    /hsla?\(\s*([\d.]+)(?:deg)?\s*[,\s]\s*([\d.]+)%\s*[,\s]\s*([\d.]+)%/
+  );
   if (!match) return '#1e1e1e';
 
   const h = parseFloat(match[1]) / 360;
