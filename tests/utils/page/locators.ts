@@ -3,6 +3,7 @@ import { buildApiSpecPanelLocators } from './openapi/render-spec';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
+import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
@@ -11,6 +12,7 @@ import { buildWebsocketCommonLocators } from './websocket';
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
+  codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
   openApi: {
     render: buildApiSpecPanelLocators(page)
   },
