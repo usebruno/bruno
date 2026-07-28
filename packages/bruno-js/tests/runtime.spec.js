@@ -88,6 +88,57 @@ describe('runtime', () => {
         { description: 'format valid', status: 'pass' }
       ]);
     });
+
+    it('should return stopExecution when bru.runner.stopExecution() is called in tests (nodevm)', async () => {
+      const testFile = `bru.runner.stopExecution();`;
+
+      const runtime = new TestRuntime({ runtime: 'nodevm' });
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        null,
+        process.env
+      );
+      expect(result.stopExecution).toBe(true);
+    });
+
+    it('should return stopExecution when bru.runner.stopExecution() is called in tests (quickjs)', async () => {
+      const testFile = `bru.runner.stopExecution();`;
+
+      const runtime = new TestRuntime({ runtime: 'quickjs' });
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        null,
+        process.env
+      );
+      expect(result.stopExecution).toBe(true);
+    });
+
+    it('should not set stopExecution when bru.runner.stopExecution() is not called', async () => {
+      const testFile = `test('noop', () => { expect(true).to.be.true; });`;
+
+      const runtime = new TestRuntime({ runtime: 'nodevm' });
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        null,
+        process.env
+      );
+      expect(result.stopExecution).toBeFalsy();
+    });
   });
 
   describe('script-runtime', () => {
