@@ -2,7 +2,6 @@ import { Page, test, expect } from '../../../../playwright';
 import { buildCommonLocators } from '../locators';
 
 export const buildEnvironmentLocators = (page: Page) => ({
-  selector: () => page.getByTestId('environment-selector-trigger'),
   collectionTab: () => page.getByTestId('env-tab-collection'),
   globalTab: () => page.getByTestId('env-tab-global'),
   envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
@@ -85,9 +84,9 @@ export const buildEnvironmentLocators = (page: Page) => ({
  * @returns void
  */
 export const openEnvironmentSelector = async (page: Page) => {
-  const locators = buildEnvironmentLocators(page);
-  const trigger = locators.selector();
-  const searchInput = locators.searchInput();
+  const locators = buildCommonLocators(page);
+  const trigger = locators.collectionHeader.envSelectorTrigger();
+  const searchInput = locators.environment.searchInput();
 
   await test.step('Open dropdown', async () => {
     // pre-check: ensure the trigger is visible, otherwise click collection name to reveal

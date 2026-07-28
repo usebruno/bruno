@@ -28,6 +28,7 @@ export const buildCommonLocators = (page: Page) => ({
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
+  environment: buildEnvironmentLocators(page),
   actions: {
     collectionActions: (collectionName: string) =>
       page.getByTestId('collections').locator('.collection-name')
@@ -87,7 +88,6 @@ export const buildCommonLocators = (page: Page) => ({
     selectAllToggle: () => page.getByTestId('selection-select-all-toggle').getByRole('checkbox'),
     searchInput: () => page.getByTestId('selection-search-input')
   },
-  environment: buildEnvironmentLocators(page),
   codeMirror: {
     byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first()
   },
