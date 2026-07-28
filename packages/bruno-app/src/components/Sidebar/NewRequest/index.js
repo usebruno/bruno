@@ -391,21 +391,6 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                   <div className="flex items-center gap-2">
                     <input
                       type="radio"
-                      id="ws-request"
-                      name="requestType"
-                      value="ws-request"
-                      checked={formik.values.requestType === 'ws-request'}
-                      onChange={formik.handleChange}
-                      data-testid="ws-request"
-                    />
-                    <label htmlFor="ws-request" className="ml-1 cursor-pointer select-none">
-                      WebSocket
-                    </label>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
                       id="graphql-subscription-request"
                       name="requestType"
                       value="graphql-subscription-request"
@@ -432,6 +417,20 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                     />
                     <label htmlFor="from-curl" className="ml-1 cursor-pointer select-none">
                       From cURL
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="ws-request"
+                      name="requestType"
+                      value="ws-request"
+                      checked={formik.values.requestType === 'ws-request'}
+                      onChange={formik.handleChange}
+                      data-testid="ws-request"
+                    />
+                    <label htmlFor="ws-request" className="ml-1 cursor-pointer select-none">
+                      WebSocket
                     </label>
                   </div>
                 </div>
