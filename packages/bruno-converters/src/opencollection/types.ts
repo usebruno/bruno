@@ -171,6 +171,7 @@ export type {
 export interface BrunoPresets {
   requestType?: string;
   requestUrl?: string;
+  defaultEnvironment?: string;
 }
 
 export interface BrunoConfig {
@@ -212,6 +213,7 @@ export interface BrunoConfig {
   };
   scripts?: {
     additionalContextRoots?: string[];
+    flow?: 'sandwich' | 'sequential';
   };
   openapi?: Array<{
     sourceUrl: string;

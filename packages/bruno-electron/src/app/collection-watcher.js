@@ -706,14 +706,23 @@ const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher, workspac
 
   const collectionSnapshotState = snapshotManager.getCollection(watchPath, workspacePathname);
 
+  // Always send at least the pathname (even when there's no snapshot entry) so the
+  // renderer can fall back to the collection's configured default environment.
+  // hasSnapshotEntry lets the renderer apply the default only on the first open/import
+  // (no entry yet); once the user has made any environment choice an entry exists.
   const hydratePayload = collectionSnapshotState
     ? {
         pathname: watchPath,
         workspacePathname: workspacePathname || '',
         environmentPath: collectionSnapshotState?.environment?.collection || '',
-        selectedEnvironment: collectionSnapshotState?.selectedEnvironment || ''
+        selectedEnvironment: collectionSnapshotState?.selectedEnvironment || '',
+        hasSnapshotEntry: true
       }
-    : null;
+    : {
+        pathname: watchPath,
+        workspacePathname: workspacePathname || '',
+        hasSnapshotEntry: false
+      };
 
   win.webContents.send('main:hydrate-app-with-ui-state-snapshot', hydratePayload);
 };
