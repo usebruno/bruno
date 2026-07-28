@@ -269,7 +269,7 @@ const Collection = ({ collection, searchText }) => {
         // For collection items, always show full highlight (inside drop)
         setDropType('inside');
       } else {
-        // For collections, show line indicator (adjacent drop)
+        // For collections, show line indicator (above drop)
         setDropType('above');
       }
     },

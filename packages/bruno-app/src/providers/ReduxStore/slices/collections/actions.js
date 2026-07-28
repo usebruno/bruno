@@ -1267,7 +1267,7 @@ export const handleCollectionItemDrop
           }
         }
 
-        // Update sequences in the target directory (if dropping adjacent)
+        // Update sequences in the target directory (if dropping above/below)
         if (dropType === 'above' || dropType === 'below') {
           const targetItemSequence = targetItemDirectoryItems.find((i) => i.uid === targetItemUid)?.seq;
 
