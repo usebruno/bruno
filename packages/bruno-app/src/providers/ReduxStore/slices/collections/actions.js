@@ -35,6 +35,7 @@ import {
   createCollection as _createCollection,
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
+  applyDefaultEnvironment as _applyDefaultEnvironment,
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
   moveCollection,
@@ -86,7 +87,8 @@ import {
   calculateDraggedItemNewPathname,
   transformFolderRootToSave,
   getTreePathFromCollectionToItem,
-  mergeHeaders
+  mergeHeaders,
+  isPathOrDescendant
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
@@ -1266,8 +1268,8 @@ export const handleCollectionItemDrop
           }
         }
 
-        // Update sequences in the target directory (if dropping adjacent)
-        if (dropType === 'adjacent') {
+        // Update sequences in the target directory (if dropping above/below)
+        if (dropType === 'above' || dropType === 'below') {
           const targetItemSequence = targetItemDirectoryItems.find((i) => i.uid === targetItemUid)?.seq;
 
           const draggedItemWithNewPathAndSequence = {
@@ -1280,7 +1282,8 @@ export const handleCollectionItemDrop
           const reorderedTargetItems = getReorderedItemsInTargetDirectory({
             items: [...targetItemDirectoryItems, draggedItemWithNewPathAndSequence],
             targetItemUid,
-            draggedItemUid
+            draggedItemUid,
+            dropType
           });
 
           if (reorderedTargetItems?.length) {
@@ -1289,7 +1292,7 @@ export const handleCollectionItemDrop
         }
       };
 
-      const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems }) => {
+      const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems, dropType }) => {
         const { uid: targetItemUid } = targetItem;
         const { uid: draggedItemUid } = draggedItem;
 
@@ -1297,7 +1300,8 @@ export const handleCollectionItemDrop
         const reorderedItems = getReorderedItemsInTargetDirectory({
           items: targetItemDirectoryItems,
           targetItemUid,
-          draggedItemUid
+          draggedItemUid,
+          dropType
         });
 
         if (reorderedItems?.length) {
@@ -1314,7 +1318,7 @@ export const handleCollectionItemDrop
             collectionPathname: collection.pathname
           });
           if (!newPathname) return;
-          if (targetItemPathname?.startsWith(draggedItemPathname)) return;
+          if (isPathOrDescendant(targetItemPathname, draggedItemPathname)) return;
 
           if (isCrossFormatMove && isItemAFolder(draggedItem)) {
             toast.error('Moving folders between collections with different formats is not supported');
@@ -1338,7 +1342,7 @@ export const handleCollectionItemDrop
               dropType
             });
           } else {
-            await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem });
+            await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem, dropType });
           }
 
           if (isCrossCollectionMove) {
@@ -2677,6 +2681,14 @@ export const browseDirectory = () => (dispatch, getState) => {
   });
 };
 
+export const browseDirectories = () => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    ipcRenderer.invoke('renderer:browse-directories').then(resolve).catch(reject);
+  });
+};
+
 export const browseFiles = (filters, properties) => (_dispatch, _getState) => {
   const { ipcRenderer } = window;
 
@@ -2802,7 +2814,7 @@ export const openScratchCollectionEvent = (uid, pathname, brunoConfig) => (dispa
   });
 };
 
-export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
+export const openCollectionEvent = (uid, pathname, brunoConfig, options = {}) => (dispatch, getState) => {
   const { ipcRenderer } = window;
 
   return new Promise((resolve, reject) => {
@@ -2819,7 +2831,9 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     );
 
     if (existingCollection && isAlreadyInWorkspace) {
-      toast.success('Collection is already opened');
+      if (!options.silent) {
+        toast.success('Collection is already opened');
+      }
       resolve();
       return;
     }
@@ -2838,7 +2852,9 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         ipcRenderer
           .invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection)
           .then(() => {
-            toast.success('Collection added to workspace');
+            if (!options.silent) {
+              toast.success('Collection added to workspace');
+            }
           })
           .catch((err) => {
             console.error('Failed to add collection to workspace', err);
@@ -2951,25 +2967,6 @@ export const cloneCollection = (collectionName, collectionFolderName, collection
     previousPath
   );
 };
-export const openCollection = (options = {}) => (dispatch, getState) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-
-    const state = getState();
-    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
-
-    if (!options.workspaceId) {
-      options.workspaceId = activeWorkspace?.pathname || 'default';
-    }
-
-    ipcRenderer.invoke('renderer:open-collection', options)
-      .then((result) => {
-        resolve(result);
-      })
-      .catch(reject);
-  });
-};
-
 export const openMultipleCollections = (collectionPaths, options = {}) => () => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
@@ -3154,10 +3151,21 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
       const collectionUid = collectionCopy?.uid;
 
       // update selected environment
+      // Precedence:
+      //   1. The environment saved in the ui-state-snapshot always wins.
+      //   2. The collection's configured default environment (brunoConfig.presets.defaultEnvironment)
+      //      is applied ONLY the first time a collection is opened/imported.
       const environment = findCollectionEnvironmentFromSnapshot(collectionCopy, collectionSnapshotData);
 
       if (environment) {
         dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
+      } else if (collectionSnapshotData?.hasSnapshotEntry === false) {
+        const defaultEnvironmentName = collectionCopy?.brunoConfig?.presets?.defaultEnvironment;
+        if (defaultEnvironmentName && collectionUid) {
+          // Apply the default now if its environment file is already loaded; otherwise mark
+          // it pending so it's applied as soon as the file arrives (collectionAddEnvFileEvent).
+          dispatch(_applyDefaultEnvironment({ collectionUid, defaultEnvironmentName }));
+        }
       }
 
       // todo: add any other redux state that you want to save
@@ -3311,7 +3319,9 @@ export const mountCollection
                 .invoke('renderer:snapshot:get-collection', collection.pathname, workspacePathname)
                 .catch(() => null);
               await dispatch(hydrateCollectionWithUiStateSnapshot(
-                collectionSnapshotState ? { pathname: collection.pathname, ...collectionSnapshotState } : null
+                collectionSnapshotState
+                  ? { pathname: collection.pathname, ...collectionSnapshotState, hasSnapshotEntry: true }
+                  : { pathname: collection.pathname, hasSnapshotEntry: false }
               ));
             }
           })

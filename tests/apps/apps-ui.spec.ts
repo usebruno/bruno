@@ -140,6 +140,27 @@ test.describe('Apps - request-level UI', () => {
     });
   });
 
+  test('GraphQL requests do not expose the "Enable App" setting', async ({ page, createTmpDir }) => {
+    const collectionPath = await createTmpDir('apps-ui-graphql');
+    const collectionName = 'apps-gql';
+    await createCollection(page, collectionName, collectionPath);
+    await createRequest(page, 'gql-req', collectionName, {
+      url: 'http://localhost:8081/api/graphql',
+      requestType: 'graphql'
+    });
+    await openRequest(page, collectionName, 'gql-req', { persist: true });
+
+    await selectRequestPaneTab(page, 'Settings');
+
+    // Sibling toggles render, confirming the Settings tab loaded.
+    await expect(page.getByTestId('encode-url-toggle')).toBeVisible();
+    await expect(page.getByTestId('follow-redirects-toggle')).toBeVisible();
+
+    await expect(page.getByTestId('enable-app-toggle')).toHaveCount(0);
+    await expectNoAppTab(page);
+    await expect(page.getByTestId('view-mode-toggle')).toHaveCount(0);
+  });
+
   test('Enable App and code persist; an enabled app opens in preview mode by default', async ({ page, createTmpDir }) => {
     const collectionPath = await createTmpDir('apps-ui-persist');
     await createCollection(page, 'apps-persist', collectionPath);

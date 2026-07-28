@@ -2,11 +2,39 @@ import React from 'react';
 import Tippy from '@tippyjs/react';
 import StyledWrapper from './StyledWrapper';
 
-const Dropdown = ({ icon, children, onCreate, placement, transparent, visible, appendTo, onMouseEnter, onMouseLeave, ...props }) => {
+// Popper modifier that forces the dropdown popover to match the width of its
+// reference (trigger) element. Enabled via the `sameWidth` prop.
+const sameWidthModifier = {
+  name: 'sameWidth',
+  enabled: true,
+  phase: 'beforeWrite',
+  requires: ['computeStyles'],
+  fn: ({ state }) => {
+    state.styles.popper.width = `${state.rects.reference.width}px`;
+  },
+  effect: ({ state }) => {
+    state.elements.popper.style.width = `${state.elements.reference.offsetWidth}px`;
+  }
+};
+
+const Dropdown = ({ icon, children, onCreate, placement, transparent, visible, appendTo, onMouseEnter, onMouseLeave, sameWidth = false, popperOptions, ...props }) => {
+  // Merge the caller's popperOptions with the sameWidth modifier when requested.
+  const resolvedPopperOptions = sameWidth
+    ? {
+        ...popperOptions,
+        modifiers: [...(popperOptions?.modifiers || []), sameWidthModifier]
+      }
+    : popperOptions;
+
+  const baseProps = { ...props, interactive: true, appendTo: appendTo || 'parent' };
+  if (resolvedPopperOptions) {
+    baseProps.popperOptions = resolvedPopperOptions;
+  }
+
   // When in controlled mode (visible prop is provided), don't use trigger prop
   const tippyProps = visible !== undefined
-    ? { ...props, visible, interactive: true, appendTo: appendTo || 'parent' }
-    : { ...props, trigger: 'click', interactive: true, appendTo: appendTo || 'parent' };
+    ? { ...baseProps, visible }
+    : { ...baseProps, trigger: 'click' };
 
   return (
     <Tippy

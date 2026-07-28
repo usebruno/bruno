@@ -562,6 +562,20 @@ const openBulkImportModal = async (page: Page, filePaths: string[]) => {
   });
 };
 
+const toggleOpenCollectionItem = async (page: Page, name: string) => {
+  await test.step(`Toggle open collection checkbox for "${name}"`, async () => {
+    await buildCommonLocators(page).openCollectionPicker.itemCheckbox(name).click();
+  });
+};
+
+const closeOpenCollectionModal = async (page: Page) => {
+  await test.step('Close the Open Collection modal', async () => {
+    const locators = buildCommonLocators(page);
+    await locators.modal.closeButton().click();
+    await locators.modal.byTitle('Open Collection').waitFor({ state: 'hidden' });
+  });
+};
+
 /**
  * Remove a specific collection from the sidebar
  * @param page - The page object
@@ -824,13 +838,16 @@ const addRowToActiveTab = async (
 
     const codeMirror = row.getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first();
     await codeMirror.scrollIntoViewIfNeeded();
-    await codeMirror.click();
+    // Target the editor's left edge: when the value column is narrow the DataTypeSelector
+    // renders as a compact overlay pinned to the cell's right side, which otherwise
+    // intercepts a centered click/hover.
+    await codeMirror.click({ position: { x: 5, y: 5 } });
     if (dataType) {
       await expect(codeMirror).toHaveClass(/CodeMirror-focused/);
       await page.keyboard.insertText(value);
 
       const { dataTypeSelector } = buildCommonLocators(page);
-      await codeMirror.hover();
+      await codeMirror.hover({ position: { x: 5, y: 5 } });
       await dataTypeSelector.typeLabel(row).click();
       await dataTypeSelector.menuItem(dataType).click();
       await expect(dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', dataType);
@@ -2586,6 +2603,8 @@ export {
   deleteCollectionFromOverview,
   importCollection,
   openBulkImportModal,
+  toggleOpenCollectionItem,
+  closeOpenCollectionModal,
   removeCollection,
   createFolder,
   openEnvironmentSelector,
