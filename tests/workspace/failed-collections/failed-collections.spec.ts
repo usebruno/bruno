@@ -67,7 +67,7 @@ test.describe('Collections that fail to open', () => {
   test('clicking a missing collection reports the failure and opens no tab', async ({ launchElectronApp, createTmpDir }) => {
     const workspacePath = await createTmpDir('failed-coll-click-missing');
     const { app, page } = await openBrokenWorkspaceOverview(launchElectronApp, workspacePath);
-    const overview = buildCommonLocators(page).workspaceOverview;
+    const { workspaceOverview: overview, tabs } = buildCommonLocators(page);
 
     await test.step('Click the missing collection card', async () => {
       await expect(overview.card(MISSING_COLL)).toBeVisible({ timeout: 10000 });
@@ -79,7 +79,7 @@ test.describe('Collections that fail to open', () => {
     });
 
     await test.step('No collection tab is opened and the card stays on the overview', async () => {
-      await expect(page.locator('.request-tab').filter({ hasText: MISSING_COLL })).toHaveCount(0);
+      await expect(tabs.requestTab(MISSING_COLL)).toHaveCount(0);
       await expect(overview.card(MISSING_COLL)).toBeVisible();
     });
 
@@ -89,7 +89,7 @@ test.describe('Collections that fail to open', () => {
   test('clicking a folder without a collection config reports the failure', async ({ launchElectronApp, createTmpDir }) => {
     const workspacePath = await createTmpDir('failed-coll-click-empty');
     const { app, page } = await openBrokenWorkspaceOverview(launchElectronApp, workspacePath);
-    const overview = buildCommonLocators(page).workspaceOverview;
+    const { workspaceOverview: overview, tabs } = buildCommonLocators(page);
 
     await test.step('Click the collection card whose folder has no bruno.json', async () => {
       await expect(overview.card(EMPTY_COLL)).toBeVisible({ timeout: 10000 });
@@ -98,7 +98,7 @@ test.describe('Collections that fail to open', () => {
 
     await test.step('An error toast reports the collection could not be opened', async () => {
       await expect(page.getByText(/Collection could not be opened:.*empty-coll/)).toBeVisible();
-      await expect(page.locator('.request-tab').filter({ hasText: EMPTY_COLL })).toHaveCount(0);
+      await expect(tabs.requestTab(EMPTY_COLL)).toHaveCount(0);
     });
 
     await closeElectronApp(app);
@@ -124,7 +124,7 @@ test.describe('Collections that fail to open', () => {
   test('removing a failed collection prunes it from workspace.yml without a confirmation modal', async ({ launchElectronApp, createTmpDir }) => {
     const workspacePath = await createTmpDir('failed-coll-remove');
     const { app, page } = await openBrokenWorkspaceOverview(launchElectronApp, workspacePath);
-    const overview = buildCommonLocators(page).workspaceOverview;
+    const { workspaceOverview: overview, modal } = buildCommonLocators(page);
 
     await test.step('Choose Remove from the failed collection card menu', async () => {
       await expect(overview.card(MISSING_COLL)).toBeVisible({ timeout: 10000 });
@@ -133,7 +133,7 @@ test.describe('Collections that fail to open', () => {
 
     await test.step('The collection is removed straight away, with no confirmation modal', async () => {
       await expect(page.getByText('Collection removed from workspace')).toBeVisible();
-      await expect(page.locator('.bruno-modal-card').filter({ hasText: 'Remove Collection' })).toHaveCount(0);
+      await expect(modal.byTitle('Remove Collection')).toHaveCount(0);
       await expect(overview.card(MISSING_COLL)).toHaveCount(0, { timeout: 5000 });
     });
 
