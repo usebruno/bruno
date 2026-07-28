@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import {
   updateCookies,
   updatePreferences,
-  setGitVersion
+  setGitVersion,
+  setIsOpeningCollection
 } from 'providers/ReduxStore/slices/app';
 import {
   addTab
@@ -131,9 +132,9 @@ const useIpcEvents = () => {
       }
     );
 
-    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', async (pathname, uid, brunoConfig) => {
+    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', async (pathname, uid, brunoConfig, options) => {
       try {
-        await dispatch(openCollectionEvent(uid, pathname, brunoConfig));
+        await dispatch(openCollectionEvent(uid, pathname, brunoConfig, options));
       } finally {
         dispatch(hydrateSnapshotForOpenedCollection(pathname));
       }
@@ -141,6 +142,10 @@ const useIpcEvents = () => {
 
     const removeOpenWorkspaceListener = ipcRenderer.on('main:workspace-opened', (workspacePath, workspaceUid, workspaceConfig) => {
       dispatch(workspaceOpenedEvent(workspacePath, workspaceUid, workspaceConfig));
+    });
+
+    const removeOpenCollectionModalListener = ipcRenderer.on('main:open-collection', () => {
+      dispatch(setIsOpeningCollection(true));
     });
 
     const removeWorkspacesReadyListener = ipcRenderer.on('main:workspaces-ready', () => {
@@ -395,6 +400,7 @@ const useIpcEvents = () => {
       removeOpenCollectionListener();
       removeCollectionMigrationProgressListener();
       removeOpenWorkspaceListener();
+      removeOpenCollectionModalListener();
       removeWorkspacesReadyListener();
       removeWorkspaceConfigUpdatedListener();
       removeWorkspaceEnvironmentAddedListener();

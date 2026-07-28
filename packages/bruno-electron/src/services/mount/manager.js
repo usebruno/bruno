@@ -24,8 +24,7 @@ const hydrateEnvironments = (collectionPath, environments) => {
   for (const env of environments) {
     if (!Array.isArray(env.variables)) continue;
     env.variables.forEach((variable, i) => {
-      const key = variable.name || `index:${i}`;
-      variable.uid = uidForSeed(`${env.uid}#var#${key}`);
+      variable.uid = uidForSeed(`${env.uid}#var#${i}#${variable.name || ''}`);
     });
     if (!envHasSecrets(env)) continue;
     try {

@@ -1,4 +1,5 @@
 export * from './actions';
+export * from './code-editor-search';
 export * from './file-mode';
 export * from './runner';
 export * from './locators';
@@ -8,3 +9,4 @@ export * from './collection/migrate-to-yml';
 export * from './preferences';
 export * from './ai';
 export * from '../snapshot';
+export * from './request-settings';
