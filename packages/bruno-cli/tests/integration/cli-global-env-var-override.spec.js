@@ -7,11 +7,23 @@ const yaml = require('js-yaml');
 const { bruToEnvJsonV2 } = require('@usebruno/lang');
 const { runCli } = require('./helpers/run-cli');
 
-const FIXTURES_DIR = path.join(__dirname, 'fixtures', 'cli-global-env-var-override');
+const writeFixtureFile = (filePath, content) => {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, content);
+};
 
-// Covers the --global-env-var CLI flag end-to-end: argument validation (requires --global-env,
-// rejects malformed values) and the leak-guard that keeps injected values out of the on-disk
-// global env file. The persistence-layer unit for this lives in tests/utils/persist-variables.spec.js.
+const workspaceYml = (collectionName) =>
+  `opencollection: 1.0.0\ninfo:\n  name: "Test Workspace"\n  type: workspace\ncollections:\n  - name: "${collectionName}"\n    path: "${collectionName}"\nspecs:\ndocs: ''\n`;
+
+const globalEnvYml = (vars) =>
+  `name: Global\nvariables:\n`
+  + vars.map(([name, value]) => `  - name: ${name}\n    value: ${value}\n    enabled: true\n    secret: false\n`).join('');
+
+// Covers the --global-env-var CLI flag end-to-end: argument validation (rejects malformed
+// name=value) and the leak-guard that keeps injected values out of the on-disk global env file.
+// The persistence-layer unit for this lives in tests/utils/persist-variables.spec.js.
+// Collections are written inline into a fresh temp dir per test — the mock server's port is
+// random per run, so `baseUrl` has to be interpolated at write time.
 describe('CLI run — --global-env-var overrides', () => {
   let server;
   let baseUrl;
@@ -20,7 +32,7 @@ describe('CLI run — --global-env-var overrides', () => {
 
   beforeAll(async () => {
     server = http.createServer((req, res) => {
-      receivedUrl = req.url; // fixtures interpolate override values into the query string
+      receivedUrl = req.url; // requests interpolate override values into the query string
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
     });
@@ -42,54 +54,70 @@ describe('CLI run — --global-env-var overrides', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  // Recursively traverse the provided directory, identifying all files.
-  // For each file, replace every instance of the placeholder `{{BASE_URL}}`
-  // with the actual live server URL (`baseUrl`). This ensures that all fixtures
-  // reference the dynamic test HTTP server, enabling isolation and deterministic integration tests.
-  const substituteBaseUrl = (dir) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        substituteBaseUrl(full);
-      } else {
-        const content = fs.readFileSync(full, 'utf8');
-        if (content.includes('{{BASE_URL}}')) {
-          fs.writeFileSync(full, content.split('{{BASE_URL}}').join(baseUrl));
-        }
-      }
-    }
-  };
+  // Global env vars live in the workspace, not the collection — the CLI walks up from cwd looking
+  // for workspace.yml, so the collection must sit inside the workspace dir. Shared by the two
+  // tests below, which need an identical tree.
+  const stageLeakCollection = () => {
+    const workspaceDir = path.join(tmpDir, 'workspace');
+    const collectionDir = path.join(workspaceDir, 'override-leak-collection');
 
-  // Fixtures are static on disk but the mock server's port is random per run. Copy the named
-  // scenario into a fresh temp dir (so the test can mutate it) and substitute {{BASE_URL}} in
-  // text files with the live server URL.
-  const stageFixture = (scenario) => {
-    const src = path.join(FIXTURES_DIR, scenario); // get the path of the fixture
-    const dest = path.join(tmpDir, scenario); // get the path of the temp dir
-    fs.cpSync(src, dest, { recursive: true }); // copy the fixture to the temp dir
-    substituteBaseUrl(dest); // substitute the {{BASE_URL}} with the live server URL
-    return dest;
+    writeFixtureFile(path.join(workspaceDir, 'workspace.yml'), workspaceYml('override-leak-collection'));
+    writeFixtureFile(
+      path.join(workspaceDir, 'environments', 'Global.yml'),
+      globalEnvYml([['baseUrl', baseUrl], ['token', 'real-global-secret']])
+    );
+    writeFixtureFile(
+      path.join(collectionDir, 'bruno.json'),
+      JSON.stringify({ version: '1', name: 'override-leak-collection', type: 'collection' }, null, 2) + '\n'
+    );
+    writeFixtureFile(
+      path.join(collectionDir, 'collection.bru'),
+      'meta {\n  name: override-leak-collection\n  seq: 1\n}\n'
+    );
+    writeFixtureFile(
+      path.join(collectionDir, 'echo-global-token.bru'),
+      `meta {
+  name: echo-global-token
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/ping?token={{token}}
+  body: none
+  auth: none
+}
+
+script:post-response {
+  // Echo the override back to force a full-env write attempt, and make a genuine
+  // (non-override) write that SHOULD persist to the global env file.
+  bru.setGlobalEnvVar("token", bru.getGlobalEnvVar("token"));
+  bru.setGlobalEnvVar("persistedByScript", "kept-on-disk");
+}
+`
+    );
+
+    return { workspaceDir, collectionDir };
   };
 
   // --global-env-var mirrors --env-var but targets the workspace's global env file. The
   // injected value must reach the run (proving the override applied) yet never overwrite the
   // real secret in <workspace>/environments/<name>.yml.
   it('does not persist --global-env-var override values into the global env file', async () => {
-    const root = stageFixture('leak');
-    const collectionDir = path.join(root, 'workspace', 'override-leak-collection');
+    const { workspaceDir, collectionDir } = stageLeakCollection();
 
-    const args = [
+    const result = await runCli([
       'run', 'echo-global-token.bru',
       '--global-env', 'Global',
       '--global-env-var', 'token=transient-cli-value',
       '--sandbox', 'developer',
       '--noproxy'
-    ];
-    const result = await runCli(args, collectionDir);
+    ], collectionDir);
 
     if (result.code !== 0) {
-      const message = `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`;
-      throw new Error(message);
+      throw new Error(
+        `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`
+      );
     }
 
     // check for runtime override value in the request url
@@ -97,7 +125,7 @@ describe('CLI run — --global-env-var overrides', () => {
     expect(receivedUrl).not.toContain('real-global-secret');
 
     // Global env on disk: real secret survives and genuine writes persist, override never lands
-    const written = fs.readFileSync(path.join(root, 'workspace', 'environments', 'Global.yml'), 'utf8');
+    const written = fs.readFileSync(path.join(workspaceDir, 'environments', 'Global.yml'), 'utf8');
     expect(written).not.toContain('transient-cli-value'); // transient override never touches disk
 
     const varsByName = Object.fromEntries(yaml.load(written).variables.map((v) => [v.name, v.value]));
@@ -107,20 +135,17 @@ describe('CLI run — --global-env-var overrides', () => {
 
   // A --global-env-var value with no `=` is malformed and must abort with
   // ERROR_INCORRECT_ENV_OVERRIDE (8) rather than silently swallowing it.
-  // Validation aborts before the request executes, so no dedicated fixture is needed — the leak
-  // collection is reused.
+  // Validation aborts before the request executes, so the leak collection is reused as-is.
   it('exits with an error when --global-env-var value is malformed (no name=value)', async () => {
-    const root = stageFixture('leak');
-    const collectionDir = path.join(root, 'workspace', 'override-leak-collection');
+    const { collectionDir } = stageLeakCollection();
 
-    const args = [
+    const result = await runCli([
       'run', 'echo-global-token.bru',
       '--global-env', 'Global',
       '--global-env-var', 'token',
       '--sandbox', 'developer',
       '--noproxy'
-    ];
-    const result = await runCli(args, collectionDir);
+    ], collectionDir);
 
     expect(result.code).toBe(8);
     expect(result.stderr).toContain('Overridable global environment variable not correct');
@@ -131,10 +156,55 @@ describe('CLI run — --global-env-var overrides', () => {
   // and the leak-guard keeps all injected values off disk, independently for each scope, while
   // deliberate unrelated writes in both scopes still persist.
   it('applies multiple --env-var and --global-env-var overrides without leaking either scope to disk', async () => {
-    const root = stageFixture('multi');
-    const collectionDir = path.join(root, 'workspace', 'multi-override-collection');
+    const workspaceDir = path.join(tmpDir, 'workspace');
+    const collectionDir = path.join(workspaceDir, 'multi-override-collection');
 
-    const args = [
+    writeFixtureFile(path.join(workspaceDir, 'workspace.yml'), workspaceYml('multi-override-collection'));
+    writeFixtureFile(
+      path.join(workspaceDir, 'environments', 'Global.yml'),
+      globalEnvYml([['baseUrl', baseUrl], ['token', 'real-token'], ['region', 'us']])
+    );
+    writeFixtureFile(
+      path.join(collectionDir, 'bruno.json'),
+      JSON.stringify({ version: '1', name: 'multi-override-collection', type: 'collection' }, null, 2) + '\n'
+    );
+    writeFixtureFile(
+      path.join(collectionDir, 'collection.bru'),
+      'meta {\n  name: multi-override-collection\n  seq: 1\n}\n'
+    );
+    writeFixtureFile(
+      path.join(collectionDir, 'environments', 'Local.bru'),
+      'vars {\n  apiKey: real-api-key\n  stage: prod\n}\n'
+    );
+    writeFixtureFile(
+      path.join(collectionDir, 'echo-globals.bru'),
+      `meta {
+  name: echo-globals
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/ping?token={{token}}&region={{region}}&apiKey={{apiKey}}&stage={{stage}}
+  body: none
+  auth: none
+}
+
+script:post-response {
+  // Echo both scopes back to force full-env write attempts, plus a deliberate unrelated write
+  // in each scope that must persist.
+  bru.setGlobalEnvVar("token", bru.getGlobalEnvVar("token"));
+  bru.setGlobalEnvVar("region", bru.getGlobalEnvVar("region"));
+  bru.setGlobalEnvVar("globalUnrelated", "global-kept");
+
+  bru.setEnvVar("apiKey", bru.getEnvVar("apiKey"));
+  bru.setEnvVar("stage", bru.getEnvVar("stage"));
+  bru.setEnvVar("localUnrelated", "local-kept");
+}
+`
+    );
+
+    const result = await runCli([
       'run', 'echo-globals.bru',
       '--env', 'Local',
       '--env-var', 'apiKey=transient-api-key',
@@ -144,12 +214,12 @@ describe('CLI run — --global-env-var overrides', () => {
       '--global-env-var', 'region=eu-transient',
       '--sandbox', 'developer',
       '--noproxy'
-    ];
-    const result = await runCli(args, collectionDir);
+    ], collectionDir);
 
     if (result.code !== 0) {
-      const message = `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`;
-      throw new Error(message);
+      throw new Error(
+        `CLI exited with code ${result.code}.\n--- stdout ---\n${result.stdout}\n--- stderr ---\n${result.stderr}`
+      );
     }
 
     // Runtime request url: both local and global overrides are applied
@@ -159,7 +229,7 @@ describe('CLI run — --global-env-var overrides', () => {
     expect(receivedUrl).toContain('stage=transient-stage');
 
     // Global env on disk: real values survive and genuine writes persist, overrides never land
-    const globalWritten = fs.readFileSync(path.join(root, 'workspace', 'environments', 'Global.yml'), 'utf8');
+    const globalWritten = fs.readFileSync(path.join(workspaceDir, 'environments', 'Global.yml'), 'utf8');
     const globalVars = Object.fromEntries(yaml.load(globalWritten).variables.map((v) => [v.name, v.value]));
     expect(globalVars.token).toBe('real-token'); // real secret kept
     expect(globalVars.region).toBe('us'); // real value kept
