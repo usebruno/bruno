@@ -4,4 +4,5 @@ export const toBool = (value: any, defaultValue: boolean = true): boolean => {
   if (value === 'false') return false;
   return defaultValue;
 };
+
 export const toNumber = (value: any, defaultValue: number = 0): number => (typeof value === 'number' ? value : defaultValue);

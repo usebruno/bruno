@@ -12,7 +12,7 @@ import Tags from './Tags/index';
 
 // Default settings configuration
 const DEFAULT_SETTINGS = {
-  encodeUrl: true,
+  encodeUrl: false,
   followRedirects: true,
   maxRedirects: 5,
   timeout: 'inherit',
