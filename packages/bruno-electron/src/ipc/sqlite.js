@@ -35,6 +35,7 @@ class SqliteEventModel {
 }
 
 const registerSqliteIpc = (window) => {
+  if (ipc) return;
   ipc = new SqliteEventModel(window);
 };
 
