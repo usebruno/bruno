@@ -1,6 +1,6 @@
 import React from 'react';
-import { IconApi, IconBrandGraphql, IconPlugConnected, IconCode } from '@tabler/icons';
-import { newHttpRequest, newWsRequest, newGrpcRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { IconApi, IconBrandGraphql, IconPlugConnected, IconCode, IconAntenna } from '@tabler/icons';
+import { newHttpRequest, newWsRequest, newGrpcRequest, newGraphqlSubscriptionRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { generateUniqueRequestName } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
 import { formatIpcError } from 'utils/common/error';
@@ -35,6 +35,9 @@ const createRequest = async ({ dispatch, collection, itemUid, requestType }) => 
         break;
       case 'websocket':
         await dispatch(newWsRequest({ ...baseParams, requestMethod: 'ws' }));
+        break;
+      case 'graphql-subscription':
+        await dispatch(newGraphqlSubscriptionRequest(baseParams));
         break;
       case 'grpc':
         await dispatch(newGrpcRequest(baseParams));
@@ -78,6 +81,12 @@ export const createEmptyStateMenuItems = ({ dispatch, collection, itemUid }) => 
       label: 'WebSocket',
       leftSection: <IconPlugConnected size={16} strokeWidth={2} />,
       onClick: handleCreate('websocket')
+    },
+    {
+      id: 'graphql-subscription',
+      label: 'GraphQL Subscription',
+      leftSection: <IconAntenna size={16} strokeWidth={2} />,
+      onClick: handleCreate('graphql-subscription')
     }
   ];
 };

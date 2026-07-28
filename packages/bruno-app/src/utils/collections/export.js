@@ -7,7 +7,7 @@ export const deleteUidsInItems = (items) => {
   each(items, (item) => {
     delete item.uid;
 
-    if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
+    if (['http-request', 'graphql-request', 'grpc-request', 'graphql-subscription-request'].includes(item.type)) {
       each(get(item, 'request.headers'), (header) => delete header.uid);
       each(get(item, 'request.params'), (param) => delete param.uid);
       each(get(item, 'request.vars.req'), (v) => delete v.uid);
@@ -41,7 +41,7 @@ export const deleteUidsInItems = (items) => {
  */
 export const transformItem = (items = []) => {
   each(items, (item) => {
-    if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
+    if (['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'graphql-subscription-request'].includes(item.type)) {
       if (item.type === 'graphql-request') {
         item.type = 'graphql';
       }
@@ -56,6 +56,10 @@ export const transformItem = (items = []) => {
 
       if (item.type === 'ws-request') {
         item.type = 'ws';
+      }
+
+      if (item.type === 'graphql-subscription-request') {
+        item.type = 'graphql-subscription';
       }
     }
 

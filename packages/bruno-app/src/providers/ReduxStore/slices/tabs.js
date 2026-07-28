@@ -90,7 +90,7 @@ export const tabsSlice = createSlice({
       let defaultRequestPaneTab = 'params';
       if (type === 'grpc-request' || type === 'ws-request') {
         defaultRequestPaneTab = 'body';
-      } else if (type === 'graphql-request') {
+      } else if (type === 'graphql-request' || type === 'graphql-subscription-request') {
         defaultRequestPaneTab = 'query';
       }
 
