@@ -10,7 +10,8 @@ const extractTables = (sql: string): string[] => {
     let list: string[] = sqlParser.tableList(sql, { database: "Sqlite" })
     // This is in the form of statement::db::table, hence the second index access
     return Array.from(list.map(entry => entry.split("::")[2]))
-  } catch {
+  } catch (error) {
+    console.warn(`Could not determine the tables for statement:\n${sql}\n${(error as Error).message}`)
     return []
   }
 }
