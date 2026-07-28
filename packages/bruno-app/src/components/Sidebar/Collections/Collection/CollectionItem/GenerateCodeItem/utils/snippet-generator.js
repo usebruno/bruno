@@ -57,8 +57,6 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
     const interpolatedUrl = interpolateUrl({ url: templateUrl, variables });
     const harUrl = interpolateUrlPathParams(interpolatedUrl, request.params, variables, { raw: true });
     const sourceUrl = item.rawUrl || harUrl;
-    const { har, rawUrl, encodedUrl, unhash } = buildHar({
-    const sourceUrl = item.rawUrl || request.url;
     const { har, rawUrl, encodedUrl, unhash } = await buildHar({
       request: {
         method: request.method,

@@ -1311,7 +1311,7 @@ describe('generateSnippet – URL interpolation behavior', () => {
     processEnvVariables: {}
   };
 
-  it('should NOT interpolate URL variables when shouldInterpolate is false', () => {
+  it('should NOT interpolate URL variables when shouldInterpolate is false', async () => {
     const item = {
       uid: 'url-test-1',
       request: {
@@ -1324,7 +1324,7 @@ describe('generateSnippet – URL interpolation behavior', () => {
       }
     };
 
-    const result = generateSnippet({
+    const result = await generateSnippet({
       language,
       item,
       collection: baseCollection,
@@ -1335,7 +1335,7 @@ describe('generateSnippet – URL interpolation behavior', () => {
     expect(result).not.toContain('https://api.example.com/ping');
   });
 
-  it('should interpolate URL variables when shouldInterpolate is true', () => {
+  it('should interpolate URL variables when shouldInterpolate is true', async () => {
     const item = {
       uid: 'url-test-2',
       request: {
@@ -1348,7 +1348,7 @@ describe('generateSnippet – URL interpolation behavior', () => {
       }
     };
 
-    const result = generateSnippet({
+    const result = await generateSnippet({
       language,
       item,
       collection: baseCollection,
@@ -1359,7 +1359,7 @@ describe('generateSnippet – URL interpolation behavior', () => {
     expect(result).not.toContain('{{host}}');
   });
 
-  it('should NOT interpolate URL path params when shouldInterpolate is false', () => {
+  it('should NOT interpolate URL path params when shouldInterpolate is false', async () => {
     const item = {
       uid: 'url-test-3',
       request: {
@@ -1374,7 +1374,7 @@ describe('generateSnippet – URL interpolation behavior', () => {
       }
     };
 
-    const result = generateSnippet({
+    const result = await generateSnippet({
       language,
       item,
       collection: baseCollection,
@@ -1385,7 +1385,7 @@ describe('generateSnippet – URL interpolation behavior', () => {
     expect(result).not.toContain('/users/123');
   });
 
-  it('should interpolate both URL variables and path params when shouldInterpolate is true', () => {
+  it('should interpolate both URL variables and path params when shouldInterpolate is true', async () => {
     const item = {
       uid: 'url-test-4',
       request: {
@@ -1400,7 +1400,7 @@ describe('generateSnippet – URL interpolation behavior', () => {
       }
     };
 
-    const result = generateSnippet({
+    const result = await generateSnippet({
       language,
       item,
       collection: baseCollection,
@@ -1412,7 +1412,7 @@ describe('generateSnippet – URL interpolation behavior', () => {
     expect(result).not.toContain(':userId');
   });
 
-  it('should preserve template URL when rawUrl is set and shouldInterpolate is false', () => {
+  it('should preserve template URL when rawUrl is set and shouldInterpolate is false', async () => {
     const item = {
       uid: 'url-test-rawurl',
       request: {
@@ -1426,7 +1426,7 @@ describe('generateSnippet – URL interpolation behavior', () => {
       rawUrl: 'https://api.example.com/ping'
     };
 
-    const result = generateSnippet({
+    const result = await generateSnippet({
       language,
       item,
       collection: baseCollection,
