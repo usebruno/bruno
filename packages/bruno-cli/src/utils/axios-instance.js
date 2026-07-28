@@ -190,15 +190,13 @@ function makeAxiosInstance({
 
           const requestConfig = createRedirectConfig(error, redirectUrl);
 
-          if (!forwardAuthorizationHeader) {
-            if (!isSameOrigin(error.config.url, redirectUrl)) {
-              Object.keys(requestConfig.headers).forEach((key) => {
-                const lowerKey = key.toLowerCase();
-                if (lowerKey === 'authorization' || lowerKey === 'proxy-authorization') {
-                  delete requestConfig.headers[key];
-                }
-              });
-            }
+          if (!forwardAuthorizationHeader && !isSameOrigin(error.config.url, redirectUrl)) {
+            Object.keys(requestConfig.headers).forEach((key) => {
+              const lowerKey = key.toLowerCase();
+              if (lowerKey === 'authorization' || lowerKey === 'proxy-authorization') {
+                delete requestConfig.headers[key];
+              }
+            });
           }
 
           await setupProxyAgents({

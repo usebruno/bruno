@@ -1,6 +1,7 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import { parseQueryParams, extractPromptVariables, getDataTypeFromValue } from '@usebruno/common/utils';
-import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT, DEFAULT_HTTP_ITEM_SETTINGS } from 'utils/common/constants';
+import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
+import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';

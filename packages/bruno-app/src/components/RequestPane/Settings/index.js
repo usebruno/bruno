@@ -121,7 +121,7 @@ const Settings = ({ item, collection }) => {
           <Tags item={item} collection={collection} />
         </div>
 
-        <div className="flex flex-col gap-4 pr-1">
+        <div className="flex flex-col gap-4">
 
           <div className="flex flex-col gap-4">
             <ToggleSelector
