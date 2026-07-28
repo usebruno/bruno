@@ -60,7 +60,11 @@ export const Default = {
   }
 };
 
+// The stories below only appear on the Docs page (as additional examples), not
+// as their own entries in the sidebar/toolbar, see the `!dev` tag.
+
 export const Outlined = {
+  tags: ['!dev'],
   render: (args) => {
     const [value, setValue] = useState('http');
     return (
@@ -70,6 +74,7 @@ export const Outlined = {
 };
 
 export const FullWidth = {
+  tags: ['!dev'],
   render: (args) => {
     const [value, setValue] = useState('http');
     return (
@@ -81,6 +86,7 @@ export const FullWidth = {
 };
 
 export const Sizes = {
+  tags: ['!dev'],
   render: () => {
     const [value, setValue] = useState('http');
     return (
@@ -94,6 +100,7 @@ export const Sizes = {
 };
 
 export const WithIcons = {
+  tags: ['!dev'],
   render: (args) => {
     const [value, setValue] = useState('http');
     return (
@@ -114,6 +121,7 @@ export const WithIcons = {
 };
 
 export const DisabledOption = {
+  tags: ['!dev'],
   render: (args) => {
     const [value, setValue] = useState('http');
     return (
@@ -134,6 +142,7 @@ export const DisabledOption = {
 };
 
 export const DisabledGroup = {
+  tags: ['!dev'],
   render: (args) => {
     const [value, setValue] = useState('http');
     return (
