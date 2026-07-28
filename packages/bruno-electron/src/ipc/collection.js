@@ -1710,7 +1710,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   const writeBrunoConfig = async (brunoConfig, collectionPath, collectionRoot) => {
-    const transformedBrunoConfig = transformBrunoConfigBeforeSave(brunoConfig);
+    const transformedBrunoConfig = transformBrunoConfigBeforeSave(_.cloneDeep(brunoConfig));
     const format = getCollectionFormat(collectionPath);
 
     if (format === 'bru') {
