@@ -399,9 +399,6 @@ describe('node-vm sandbox', () => {
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig });
 
-      // If isResolvedNpmPathAllowed didn't canonicalize both sides via realpathSync,
-      // the resolved path (under real-shared/) would be rejected as escaping the
-      // configured root (linked-shared/) and this assertion would fail.
       expect(context.bru.setVar).toHaveBeenCalledWith('via', 'symlink');
     });
 
@@ -424,10 +421,10 @@ describe('node-vm sandbox', () => {
         'module.exports = { greet: () => "sub-hello" };'
       );
 
-      const nmDir = path.join(collectionPath, 'node_modules');
-      fs.mkdirSync(nmDir, { recursive: true });
+      const nodeModulesDir = path.join(collectionPath, 'node_modules');
+      fs.mkdirSync(nodeModulesDir, { recursive: true });
       try {
-        fs.symlinkSync(externalPkg, path.join(nmDir, 'subpath-pkg'), 'dir');
+        fs.symlinkSync(externalPkg, path.join(nodeModulesDir, 'subpath-pkg'), 'dir');
       } catch (e) {
         if (e.code === 'EPERM' || e.code === 'ENOTSUP') return;
         throw e;
@@ -445,9 +442,6 @@ describe('node-vm sandbox', () => {
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
-      // Without the bare-name lookup, isModuleLinkedFromAllowedRoot would build
-      // linkPath = <coll>/node_modules/subpath-pkg/utils, realpath'd against a
-      // candidate of .../utils.js, produce '../utils.js', and reject.
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'sub-hello');
     });
 
@@ -470,10 +464,10 @@ describe('node-vm sandbox', () => {
 
       // npm-link style: collection has node_modules/<pkg> as a symlink to the
       // physical location that lives outside the collection.
-      const nmDir = path.join(collectionPath, 'node_modules');
-      fs.mkdirSync(nmDir, { recursive: true });
+      const nodeModulesDir = path.join(collectionPath, 'node_modules');
+      fs.mkdirSync(nodeModulesDir, { recursive: true });
       try {
-        fs.symlinkSync(externalPkg, path.join(nmDir, 'linked-pkg'), 'dir');
+        fs.symlinkSync(externalPkg, path.join(nodeModulesDir, 'linked-pkg'), 'dir');
       } catch (e) {
         if (e.code === 'EPERM' || e.code === 'ENOTSUP') return;
         throw e;
@@ -491,19 +485,15 @@ describe('node-vm sandbox', () => {
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
-      // Without the ownPackageRoot fallback in createNpmModuleRequire, index.js's
-      // require('./util') would be rejected as escaping allowed roots.
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'hello');
     });
 
     it('should allow a package in collection node_modules to require a sibling package', async () => {
-      // Two real (non-linked) packages installed side-by-side in the collection's
-      // node_modules. pkg-a's transitive require of pkg-b must succeed — collectionPath
-      // is pushed into additionalContextRootsAbsolute upstream, so the gated resolve
-      // inside createNpmModuleRequire accepts the sibling lookup.
-      const nmDir = path.join(collectionPath, 'node_modules');
-      const pkgADir = path.join(nmDir, 'pkg-a');
-      const pkgBDir = path.join(nmDir, 'pkg-b');
+      // Two packages installed side-by-side in the collection's node_modules —
+      // pkg-a transitively requires pkg-b.
+      const nodeModulesDir = path.join(collectionPath, 'node_modules');
+      const pkgADir = path.join(nodeModulesDir, 'pkg-a');
+      const pkgBDir = path.join(nodeModulesDir, 'pkg-b');
       fs.mkdirSync(pkgADir, { recursive: true });
       fs.mkdirSync(pkgBDir, { recursive: true });
       fs.writeFileSync(
@@ -576,8 +566,6 @@ describe('node-vm sandbox', () => {
 
       await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
 
-      // Exercises the scoped-name branch of isModuleLinkedFromAllowedRoot
-      // (bareName = '@bruno/scoped-pkg').
       expect(context.bru.setVar).toHaveBeenCalledWith('result', 'scoped-hello');
     });
   });
