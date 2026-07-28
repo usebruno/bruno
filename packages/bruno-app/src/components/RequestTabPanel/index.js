@@ -35,6 +35,7 @@ import WsQueryUrl from 'components/RequestPane/WsQueryUrl';
 import GraphQLSubscriptionQueryUrl from 'components/RequestPane/GraphQLSubscriptionQueryUrl';
 import WSRequestPane from 'components/RequestPane/WSRequestPane';
 import WSResponsePane from 'components/ResponsePane/WsResponsePane';
+import GraphqlSubscriptionResponsePane from 'components/ResponsePane/GraphqlSubscriptionResponsePane';
 import { useTabPaneBoundaries } from 'hooks/useTabPaneBoundaries/index';
 import useKeybinding from 'hooks/useKeybinding';
 import { ScopedPersistenceProvider } from 'hooks/usePersistedState/PersistedScopeProvider';
@@ -637,8 +638,9 @@ const RequestTabPanel = () => {
       case 'grpc-request':
         return <GrpcResponsePane item={item} collection={collection} response={item.response} />;
       case 'ws-request':
-      case 'graphql-subscription-request':
         return <WSResponsePane item={item} collection={collection} response={item.response} />;
+      case 'graphql-subscription-request':
+        return <GraphqlSubscriptionResponsePane item={item} collection={collection} response={item.response} />;
       default:
         return <ResponsePane item={item} collection={collection} response={item.response} />;
     }
