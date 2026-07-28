@@ -12,7 +12,8 @@ import {
   createBrunoExample,
   groupRequestsByTags,
   groupRequestsByPath,
-  getTagDescriptions
+  getTagDescriptions,
+  toSpecString
 } from './openapi-common';
 
 /**
@@ -78,7 +79,7 @@ const getParameterEntries = (param) => {
   }
 
   // Single value
-  let value = getParameterValue(param);
+  const value = getParameterValue(param);
   let enabled = param.required || false;
 
   if (value !== '') {
@@ -131,7 +132,7 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
   const produces = op.produces || request.global.produces || ['application/json'];
 
   // Determine operation name
-  let operationName = op.summary || op.operationId || op.description;
+  let operationName = op.summary || op.operationId || toSpecString(op.description);
   if (!operationName) operationName = `${request.method} ${request.path}`;
 
   // Sanitize operation name to prevent Bruno parsing issues
@@ -149,7 +150,7 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
   }
   usedNames.add(operationName);
 
-  let path = request.path;
+  const path = request.path;
 
   const brunoRequestItem = {
     uid: uuid(),
@@ -157,7 +158,7 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
     type: 'http-request',
     tags: sanitizeTags(op.tags || [], options),
     request: {
-      docs: op.description,
+      docs: toSpecString(op.description),
       url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
@@ -582,7 +583,7 @@ export const parseSwagger2Collection = (data, options = {}) => {
       return [...inherited, ...operationParams];
     };
 
-    let allRequests = Object.entries(collectionData.paths || {})
+    const allRequests = Object.entries(collectionData.paths || {})
       .map(([path, pathItemObject]) => {
         const pathItemParams = pathItemObject.parameters || [];
         return Object.entries(pathItemObject)
@@ -611,9 +612,9 @@ export const parseSwagger2Collection = (data, options = {}) => {
     if (groupingType === 'path') {
       brunoCollection.items = groupRequestsByPath(allRequests, transformSwaggerRequestItem, options);
     } else {
-      let [groups, ungroupedRequests] = groupRequestsByTags(allRequests, options);
+      const [groups, ungroupedRequests] = groupRequestsByTags(allRequests, options);
       const tagDescriptions = getTagDescriptions(collectionData.tags, options);
-      let brunoFolders = groups.map((group) => {
+      const brunoFolders = groups.map((group) => {
         const folder = {
           uid: uuid(),
           name: group.name,
@@ -633,16 +634,16 @@ export const parseSwagger2Collection = (data, options = {}) => {
         return folder;
       });
 
-      let ungroupedItems = ungroupedRequests.map((req) => transformSwaggerRequestItem(req, usedNames, options));
+      const ungroupedItems = ungroupedRequests.map((req) => transformSwaggerRequestItem(req, usedNames, options));
       brunoCollection.items = brunoFolders.concat(ungroupedItems);
     }
 
     // Collection-level auth
-    let collectionAuth = buildCollectionAuth(securityConfig.supported[0]);
+    const collectionAuth = buildCollectionAuth(securityConfig.supported[0]);
     brunoCollection.root = {
       request: { auth: collectionAuth },
       meta: { name: brunoCollection.name },
-      docs: collectionData.info?.description
+      docs: toSpecString(collectionData.info?.description)
     };
 
     return brunoCollection;
