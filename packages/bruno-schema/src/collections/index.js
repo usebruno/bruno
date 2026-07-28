@@ -606,15 +606,40 @@ const wsRequestSchema = Yup.object({
   .strict();
 
 const wsSettingsSchema = Yup.object({
-  settings: Yup.object({
-    timeout: Yup.number()
-      .default(500),
-    keepAliveInterval: Yup.number()
-      .default(0)
-  }).noUnknown(true)
+  timeout: Yup.number()
+    .default(500),
+  keepAliveInterval: Yup.number()
+    .default(0)
+})
+  .noUnknown(true)
+  .strict()
+  .nullable();
+
+const graphqlSubscriptionRequestSchema = Yup.object({
+  url: requestUrlSchema,
+  headers: Yup.array().of(keyValueSchema).required('headers are required'),
+  auth: authSchema,
+  body: Yup.object({
+    mode: Yup.string().oneOf(['graphql']).required('mode is required'),
+    graphql: graphqlBodySchema.nullable()
+  })
     .strict()
-    .nullable()
-});
+    .required('body is required'),
+  connectionParams: Yup.string().nullable(),
+  docs: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
+const graphqlSubscriptionSettingsSchema = Yup.object({
+  timeout: Yup.number()
+    .default(500),
+  keepAliveInterval: Yup.number()
+    .default(0)
+})
+  .noUnknown(true)
+  .strict()
+  .nullable();
 
 const folderRootSchema = Yup.object({
   request: Yup.object({
@@ -653,7 +678,7 @@ const folderRootSchema = Yup.object({
 
 const itemSchema = Yup.object({
   uid: uidSchema,
-  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'app', 'grpc-request', 'ws-request']).required('type is required'),
+  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js', 'app', 'grpc-request', 'ws-request', 'graphql-subscription-request']).required('type is required'),
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
   tags: Yup.array().of(Yup.string().min(1, 'tag must not be empty')),
@@ -664,9 +689,13 @@ const itemSchema = Yup.object({
     otherwise: Yup.mixed().when('type', {
       is: (type) => type === 'ws-request',
       then: wsRequestSchema.required('request is required when item-type is ws-request'),
-      otherwise: requestSchema.when('type', {
-        is: (type) => ['http-request', 'graphql-request'].includes(type),
-        then: (schema) => schema.required('request is required when item-type is request')
+      otherwise: Yup.mixed().when('type', {
+        is: (type) => type === 'graphql-subscription-request',
+        then: graphqlSubscriptionRequestSchema.required('request is required when item-type is graphql-subscription-request'),
+        otherwise: requestSchema.when('type', {
+          is: (type) => ['http-request', 'graphql-request'].includes(type),
+          then: (schema) => schema.required('request is required when item-type is request')
+        })
       })
     })
   }),
@@ -674,14 +703,18 @@ const itemSchema = Yup.object({
     .when('type', {
       is: (type) => type === 'ws-request',
       then: wsSettingsSchema,
-      otherwise: Yup.object({
-        encodeUrl: Yup.boolean().nullable(),
-        followRedirects: Yup.boolean().nullable(),
-        maxRedirects: Yup.number().min(0).max(50).nullable(),
-        timeout: Yup.mixed().nullable()
-      }).noUnknown(true)
-    .strict()
-    .nullable()
+      otherwise: Yup.mixed().when('type', {
+        is: (type) => type === 'graphql-subscription-request',
+        then: graphqlSubscriptionSettingsSchema,
+        otherwise: Yup.object({
+          encodeUrl: Yup.boolean().nullable(),
+          followRedirects: Yup.boolean().nullable(),
+          maxRedirects: Yup.number().min(0).max(50).nullable(),
+          timeout: Yup.mixed().nullable()
+        }).noUnknown(true)
+      .strict()
+      .nullable()
+      })
     }),
   fileContent: Yup.string().when('type', {
     // If the type is 'js', the fileContent field is expected to be a string.

@@ -88,4 +88,71 @@ describe('Item Schema Validation', () => {
       )
     ]);
   });
+
+  it('item schema must throw an error if request is not present when item-type is graphql-subscription-request', async () => {
+    const item = {
+      uid: uuid(),
+      name: 'On Tick',
+      type: 'graphql-subscription-request'
+    };
+
+    return Promise.all([
+      expect(itemSchema.validate(item)).rejects.toEqual(
+        validationErrorWithMessages('request is required when item-type is graphql-subscription-request')
+      )
+    ]);
+  });
+
+  it('item schema validates a flat settings object for graphql-subscription-request', async () => {
+    const item = {
+      uid: uuid(),
+      name: 'On Tick',
+      type: 'graphql-subscription-request',
+      settings: {
+        timeout: 0,
+        keepAliveInterval: 0
+      },
+      request: {
+        url: 'ws://localhost:8080/graphql',
+        headers: [],
+        auth: { mode: 'none' },
+        body: {
+          mode: 'graphql',
+          graphql: { query: 'subscription { onTick }', variables: '{}' }
+        },
+        connectionParams: null,
+        docs: null
+      }
+    };
+
+    const isValid = await itemSchema.validate(item);
+    expect(isValid).toBeTruthy();
+
+    const invalidItem = { ...item, settings: { settings: { timeout: 0, keepAliveInterval: 0 } } };
+    await expect(itemSchema.validate(invalidItem)).rejects.toThrow();
+  });
+
+  it('item schema validates a flat settings object for ws-request', async () => {
+    const item = {
+      uid: uuid(),
+      name: 'A WS Request',
+      type: 'ws-request',
+      settings: {
+        timeout: 0,
+        keepAliveInterval: 0
+      },
+      request: {
+        url: 'ws://localhost:8080',
+        headers: [],
+        auth: { mode: 'none' },
+        body: { mode: 'ws', ws: [] }
+      }
+    };
+
+    const isValid = await itemSchema.validate(item);
+    expect(isValid).toBeTruthy();
+
+    const invalidItem = { ...item, settings: { settings: { timeout: 0, keepAliveInterval: 0 } } };
+    await expect(itemSchema.validate(invalidItem)).rejects.toThrow();
+  });
 });
