@@ -102,11 +102,7 @@ const CollectionsList = ({ workspace }) => {
     }
 
     if (collection.failedToOpen) {
-      if (collection.failureReason === 'not-found') {
-        toast.error(`Collection "${collection.name}" could not be opened — not found at ${collection.pathname}`);
-      } else {
-        toast.error(`Collection "${collection.name}" could not be opened — no valid collection found at ${collection.pathname}`);
-      }
+      toast.error(`Collection could not be opened: ${collection.pathname}`);
       return;
     }
 
@@ -313,6 +309,7 @@ const CollectionsList = ({ workspace }) => {
             <div
               key={collection.uid || index}
               className="collection-card"
+              data-testid="collection-card"
               onClick={(e) => handleOpenCollectionClick(collection, e)}
             >
               <div className="collection-info">
@@ -325,18 +322,21 @@ const CollectionsList = ({ workspace }) => {
                     <StatusBadge
                       status="info"
                       size="xs"
+                      dataTestId="collection-git-badge"
                       leftSection={<IconBrandGit size={11} strokeWidth={2} />}
                     >
                       Git
                     </StatusBadge>
                   )}
                   {collection.failedToOpen && (
-                    <StatusBadge status="danger" size="xs">
+                    <StatusBadge status="danger" size="xs" dataTestId="collection-failed-badge">
                       {collection.failureReason === 'not-found' ? 'Missing' : 'Failed to open'}
                     </StatusBadge>
                   )}
                   {!isDefaultWorkspace && collection.isLoaded === false && !collection.failedToOpen && (
-                    <StatusBadge status="warning" size="xs">Not cloned</StatusBadge>
+                    <StatusBadge status="warning" size="xs" dataTestId="collection-not-cloned-badge">
+                      Not cloned
+                    </StatusBadge>
                   )}
                 </div>
                 <div className="collection-path">{collection.pathname}</div>
