@@ -7,8 +7,10 @@ import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
 import { buildWebsocketCommonLocators } from './websocket';
+import { buildCollectionHeaderLocators } from './collection/collection-header';
 
 export const buildCommonLocators = (page: Page) => ({
+  collectionHeader: buildCollectionHeaderLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
   openApi: {
@@ -88,11 +90,6 @@ export const buildCommonLocators = (page: Page) => ({
     globalTab: () => page.getByTestId('env-tab-global'),
     envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
     listOption: (name: string) => page.locator('.environment-list .dropdown-item', { hasText: name }),
-    searchInput: () => page.getByTestId('env-search-input'),
-    searchClearBtn: () => page.locator('.env-list-search .close-icon'),
-    listItem: (name?: string) => name ? page.getByTestId('env-list-item').filter({ hasText: name }) : page.getByTestId('env-list-item'),
-    noResults: () => page.getByTestId('env-no-results'),
-    noEnvironmentItem: () => page.getByTestId('env-no-environment-item'),
     currentEnvironment: () => page.locator('.current-environment'),
     configureButton: () => page.locator('#configure-env'),
     saveButton: () => page.getByTestId('save-env'),
