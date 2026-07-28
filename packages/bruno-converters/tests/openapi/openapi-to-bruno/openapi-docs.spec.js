@@ -1,27 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import openApiToBruno from '../../../src/openapi/openapi-to-bruno';
-
-const findRequestByName = (items, name) => {
-  for (const item of items) {
-    if (item.type === 'http-request' && item.name === name) return item;
-    if (item.type === 'folder' && item.items) {
-      const found = findRequestByName(item.items, name);
-      if (found) return found;
-    }
-  }
-  return undefined;
-};
-
-const findFolderByName = (items, name) => {
-  for (const item of items) {
-    if (item.type === 'folder' && item.name === name) return item;
-    if (item.type === 'folder' && item.items) {
-      const found = findFolderByName(item.items, name);
-      if (found) return found;
-    }
-  }
-  return undefined;
-};
+import { findRequestByName, findFolderByName } from '../../common/find-items';
 
 const buildSpec = (overrides = {}) => ({
   openapi: '3.0.0',
