@@ -3,6 +3,7 @@ import { buildApiSpecPanelLocators } from './openapi/render-spec';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
+import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
 import { buildWebsocketCommonLocators } from './websocket';
@@ -15,6 +16,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
+  requestSettings: buildRequestSettingsLocators(page),
   websocket: buildWebsocketCommonLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
@@ -63,6 +65,22 @@ export const buildCommonLocators = (page: Page) => ({
     footer: () => page.locator('.bruno-modal-footer'),
     submitButton: () => page.locator('.bruno-modal-footer .submit'),
     newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`)
+  },
+  openCollectionPicker: {
+    list: () => page.getByTestId('selection-list'),
+    titles: () => page.getByTestId('selection-list').locator('.selection-item-title'),
+    descriptions: () => page.getByTestId('selection-list').locator('.selection-item-description'),
+    item: (name: string) =>
+      page.getByTestId('selection-list').getByRole('listitem').filter({
+        has: page.getByText(name, { exact: true })
+      }),
+    itemCheckbox: (name: string) =>
+      page.getByTestId('selection-list').getByRole('listitem').filter({
+        has: page.getByText(name, { exact: true })
+      }).getByRole('checkbox'),
+    count: () => page.getByTestId('selection-count'),
+    selectAllToggle: () => page.getByTestId('selection-select-all-toggle').getByRole('checkbox'),
+    searchInput: () => page.getByTestId('selection-search-input')
   },
   environment: {
     selector: () => page.getByTestId('environment-selector-trigger'),
@@ -159,6 +177,8 @@ export const buildCommonLocators = (page: Page) => ({
     requestTestId: () => page.getByTestId('request-name'),
     generateCodeButton: () => page.getByTestId('generate-code-button'),
     bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
+    bodyModeLabel: () => page.getByTestId('request-body-mode-label'),
+    exampleBodyModeLabel: () => page.getByTestId('example-body-mode-label'),
     bodyEditor: () => page.getByTestId('request-body-editor'),
     bodyVariableToken: (name: string, state?: 'valid' | 'invalid') => {
       const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';

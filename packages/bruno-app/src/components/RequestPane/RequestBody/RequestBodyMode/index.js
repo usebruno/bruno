@@ -110,6 +110,7 @@ const RequestBodyMode = ({ item, collection }) => {
           selectedItemId={bodyMode}
           showGroupDividers={false}
           groupStyle="select"
+          data-testid="request-body-mode-label"
         >
           <div className="flex items-center justify-center pl-3 py-1 select-none selected-body-mode">
             {humanizeRequestBodyMode(bodyMode)} <IconCaretDown className="caret ml-1" size={14} strokeWidth={2} />
