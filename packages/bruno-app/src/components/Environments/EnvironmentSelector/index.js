@@ -267,6 +267,7 @@ const EnvironmentSelector = ({ collection }) => {
           onCreate={(ref) => (dropdownTippyRef.current = ref)}
           icon={<DropdownTrigger collectionEnv={activeCollectionEnvironment} globalEnv={activeGlobalEnvironment} />}
           placement="bottom-end"
+          popperOptions={{ strategy: 'fixed' }}
         >
           {/* Tab Headers */}
           <div className="tab-header flex pt-3 pb-2 px-3">

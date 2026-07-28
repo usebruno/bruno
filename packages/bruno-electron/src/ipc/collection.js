@@ -74,6 +74,7 @@ const interpolateVars = require('./network/interpolate-vars');
 const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
+const { setBrunoConfig } = require('../store/bruno-config');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
@@ -1702,36 +1703,55 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  const writeBrunoConfig = async (brunoConfig, collectionPath, collectionRoot) => {
+    const transformedBrunoConfig = transformBrunoConfigBeforeSave(_.cloneDeep(brunoConfig));
+    const format = getCollectionFormat(collectionPath);
+
+    if (format === 'bru') {
+      const brunoConfigPath = path.join(collectionPath, 'bruno.json');
+      const content = await stringifyJson(transformedBrunoConfig);
+      await writeFile(brunoConfigPath, content);
+    } else if (format === 'yml') {
+      // opencollection.yml holds both config AND the collection root. If the caller
+      // didn't supply a root (e.g. a config-only update before the tree finished
+      // loading), recover it from disk so request defaults/docs/scripts aren't wiped.
+      let rootToWrite = collectionRoot;
+      if (!rootToWrite) {
+        const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
+        if (fs.existsSync(ocYmlPath)) {
+          const existing = fs.readFileSync(ocYmlPath, 'utf8');
+          rootToWrite = parseCollection(existing, { format }).collectionRoot;
+        }
+      }
+      const content = await stringifyCollection(rootToWrite, transformedBrunoConfig, { format });
+      await writeFile(path.join(collectionPath, 'opencollection.yml'), content);
+    } else {
+      throw new Error(`Invalid collection format: ${format}`);
+    }
+  };
+
   ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionRoot) => {
     try {
-      const transformedBrunoConfig = transformBrunoConfigBeforeSave(brunoConfig);
-      const format = getCollectionFormat(collectionPath);
+      await writeBrunoConfig(brunoConfig, collectionPath, collectionRoot);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
 
-      if (format === 'bru') {
-        const brunoConfigPath = path.join(collectionPath, 'bruno.json');
-        const content = await stringifyJson(transformedBrunoConfig);
-        await writeFile(brunoConfigPath, content);
-      } else if (format === 'yml') {
-        // opencollection.yml holds both config AND the collection root. If the caller
-        // didn't supply a root (e.g. a config-only update before the tree finished
-        // loading), recover it from disk so request defaults/docs/scripts aren't wiped.
-        let rootToWrite = collectionRoot;
-        if (!rootToWrite) {
-          const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
-          if (fs.existsSync(ocYmlPath)) {
-            try {
-              const existing = fs.readFileSync(ocYmlPath, 'utf8');
-              rootToWrite = parseCollection(existing, { format }).collectionRoot;
-            } catch (e) {
-              rootToWrite = collectionRoot;
-            }
-          }
-        }
-        const content = await stringifyCollection(rootToWrite, transformedBrunoConfig, { format });
-        await writeFile(path.join(collectionPath, 'opencollection.yml'), content);
-      } else {
-        throw new Error(`Invalid collection format: ${format}`);
-      }
+  ipcMain.handle('renderer:ignore-folder', async (event, collectionUid, collectionPath, collectionRoot, brunoConfig, folderPath) => {
+    try {
+      const relativePath = path.relative(collectionPath, folderPath).replace(/\\/g, '/');
+      const existingIgnores = brunoConfig?.ignore || [];
+      const updatedBrunoConfig = {
+        ...brunoConfig,
+        ignore: [...new Set([...existingIgnores, relativePath])]
+      };
+
+      await writeBrunoConfig(updatedBrunoConfig, collectionPath, collectionRoot);
+      setBrunoConfig(collectionUid, updatedBrunoConfig);
+      collectionWatcher.unlinkItemPathInWatcher(folderPath);
+
+      return updatedBrunoConfig;
     } catch (error) {
       return Promise.reject(error);
     }
@@ -2336,11 +2356,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // Implement the Postman to Bruno conversion handler
-  ipcMain.handle('renderer:convert-postman-to-bruno', async (event, postmanCollection) => {
+  ipcMain.handle('renderer:convert-postman-to-bruno', async (event, postmanCollection, options = {}) => {
     try {
       // Convert Postman collection to Bruno format
       // Returns { collection, issues } where issues tracks items that were skipped or degraded
-      const result = await postmanToBruno(postmanCollection, { useWorkers: true });
+      const result = await postmanToBruno(postmanCollection, {
+        useWorkers: true,
+        // preserve scripts without any pm.* -> bru.* translation
+        preserveScripts: !!options.preserveScripts
+      });
 
       return result;
     } catch (error) {
@@ -2536,6 +2560,31 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       return { success: true, filePath };
     } catch (error) {
       throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:export-collection-postman', async (event, dirPath, fileName, content, overwrite = false) => {
+    try {
+      if (!dirPath || !fs.existsSync(dirPath)) {
+        throw new Error('Export location does not exist');
+      }
+
+      // ensure the resolved path is inside the export directory
+      const resolvedDir = path.resolve(dirPath);
+      const filePath = path.resolve(resolvedDir, fileName);
+      if (!filePath.startsWith(resolvedDir + path.sep) && filePath !== resolvedDir) {
+        throw new Error('Invalid file name');
+      }
+
+      if (!overwrite && fs.existsSync(filePath)) {
+        throw new Error(`path: ${filePath} already exists`);
+      }
+
+      await writeFile(filePath, content);
+
+      return { success: true, filePath };
+    } catch (error) {
+      return Promise.reject(error);
     }
   });
 

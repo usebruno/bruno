@@ -143,6 +143,7 @@ test.describe('Open Collection - selection flow', () => {
     await openViaSidebar(page);
 
     await expect(openCollectionModal(page)).toBeVisible();
+    await expect(openCollectionModal(page).getByText(/found inside your selection/)).toBeVisible();
     await expect(locators.openCollectionPicker.count()).toHaveText('2');
     await expect(listTitles(page)).toHaveCount(2);
 
@@ -174,6 +175,7 @@ test.describe('Open Collection - selection flow', () => {
     await openViaSidebar(page);
 
     await expect(openCollectionModal(page)).toBeVisible();
+    await expect(openCollectionModal(page).getByText(/found inside your selection/)).toBeVisible();
     await expect(listTitles(page)).toHaveText('Picked Collection');
 
     await toggleOpenCollectionItem(page, 'Picked Collection');

@@ -171,6 +171,7 @@ export type {
 export interface BrunoPresets {
   requestType?: string;
   requestUrl?: string;
+  defaultEnvironment?: string;
 }
 
 export interface BrunoConfig {
