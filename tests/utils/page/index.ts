@@ -1,4 +1,5 @@
 export * from './actions';
+export * from './code-editor-search';
 export * from './file-mode';
 export * from './runner';
 export * from './locators';

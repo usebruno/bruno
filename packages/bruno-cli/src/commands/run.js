@@ -4,7 +4,7 @@ const path = require('path');
 const yaml = require('js-yaml');
 const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
-const { exists, isFile, isDirectory, stripExtension } = require('../utils/filesystem');
+const { exists, stripExtension, isSafeFileName } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { getEnvVars } = require('../utils/bru');
 const { parseEnvironmentJson } = require('../utils/environment');
@@ -321,7 +321,7 @@ const handler = async function (argv) {
     } = argv;
     const collectionPath = process.cwd();
 
-    let collection = createCollectionJsonFromPathname(collectionPath);
+    const collection = createCollectionJsonFromPathname(collectionPath);
     const { root: collectionRoot, brunoConfig } = collection;
 
     if (clientCertConfig) {
@@ -416,6 +416,40 @@ const handler = async function (argv) {
       } catch (err) {
         console.error(chalk.red(`Failed to parse environment file: ${err.message}`));
         process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+      }
+    }
+
+    // Fall back to the collection's configured default environment
+    // (bruno.json presets.defaultEnvironment) when no environment was
+    // specified via --env or --env-file.
+    const defaultEnvironment = brunoConfig?.presets?.defaultEnvironment;
+    if (!env && !envFile && defaultEnvironment) {
+      // The default environment name comes from shared collection config, so it is
+      // untrusted. Only accept a bare file name so a crafted value (path separators or
+      // traversal) can't load a file outside environments/.
+      if (!isSafeFileName(defaultEnvironment)) {
+        console.warn(
+          chalk.yellow(`Ignoring invalid default environment name: `) + chalk.dim(defaultEnvironment)
+        );
+      } else {
+        const envExt = FORMAT_CONFIG[collection.format].ext;
+        const defaultEnvFilePath = path.join(collectionPath, 'environments', `${defaultEnvironment}${envExt}`);
+        if (await exists(defaultEnvFilePath)) {
+          try {
+            const defaultEnvVars = loadEnvFromFile(defaultEnvFilePath, defaultEnvironment);
+            envVars = { ...envVars, ...defaultEnvVars };
+            envFileDescriptor = { path: defaultEnvFilePath, format: collection.format };
+            console.log(chalk.dim(`Using default environment: ${defaultEnvironment}`));
+          } catch (err) {
+            console.error(chalk.red(`Failed to parse default environment file: ${err.message}`));
+            process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+          }
+        } else {
+          console.warn(
+            chalk.yellow(`Configured default environment not found: `)
+            + chalk.dim(`environments/${defaultEnvironment}${envExt}`)
+          );
+        }
       }
     }
 
@@ -561,7 +595,7 @@ const handler = async function (argv) {
       process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
     }
 
-    let formats = {};
+    const formats = {};
 
     // Maintains back compat with --format and --output
     if (outputPath && outputPath.length) {
@@ -596,7 +630,7 @@ const handler = async function (argv) {
     }
 
     let requestItems = [];
-    let results = [];
+    const results = [];
 
     if (!paths || !paths.length) {
       paths = ['./'];
