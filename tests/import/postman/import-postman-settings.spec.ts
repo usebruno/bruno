@@ -31,20 +31,16 @@ test.describe('Import Postman Collection with Settings', () => {
 
     await test.step('Assert settings toggles match Postman protocolProfileBehavior', async () => {
       // URL Encoding should be off
-      const encodeUrlToggle = page.getByTestId('encode-url-toggle');
-      await expect(encodeUrlToggle).toHaveAttribute('aria-checked', 'false');
+      await expect(locators.requestSettings.encodeUrlToggle()).toHaveAttribute('aria-checked', 'false');
 
       // Follow Redirects should be on
-      const followRedirectsToggle = page.getByTestId('follow-redirects-toggle');
-      await expect(followRedirectsToggle).toHaveAttribute('aria-checked', 'true');
+      await expect(locators.requestSettings.followRedirectsToggle()).toHaveAttribute('aria-checked', 'true');
 
       // Forward Auth Header should be on
-      const forwardAuthToggle = page.getByTestId('forward-auth-header-toggle');
-      await expect(forwardAuthToggle).toHaveAttribute('aria-checked', 'true');
+      await expect(locators.requestSettings.forwardAuthToggle()).toHaveAttribute('aria-checked', 'true');
 
       // Max Redirects should be 10
-      const maxRedirectsInput = page.locator('#maxRedirects');
-      await expect(maxRedirectsInput).toHaveValue('10');
+      await expect(locators.requestSettings.maxRedirectsInput()).toHaveValue('10');
     });
 
     await test.step('Open request with disabled auth forwarding and assert toggle is off', async () => {
@@ -52,8 +48,7 @@ test.describe('Import Postman Collection with Settings', () => {
       await selectRequestPaneTab(page, 'Settings');
 
       // Wait for Settings pane to render (should still be on Settings tab)
-      const forwardAuthToggle = page.getByTestId('forward-auth-header-toggle');
-      await expect(forwardAuthToggle).toHaveAttribute('aria-checked', 'false');
+      await expect(locators.requestSettings.forwardAuthToggle()).toHaveAttribute('aria-checked', 'false');
     });
   });
 });
