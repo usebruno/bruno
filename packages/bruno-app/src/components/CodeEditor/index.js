@@ -21,6 +21,7 @@ import { setupLinkAware } from 'utils/codemirror/linkAware';
 import { setupLintErrorTooltip } from 'utils/codemirror/lint-errors';
 import { setupCodeMirrorResizeRefresh } from 'utils/codemirror/resize';
 import CodeMirrorSearch from 'components/CodeMirrorSearch/index';
+import { buildSearchKeyBindings } from 'components/CodeMirrorSearch/searchKeyBindings';
 import {
   applyEditorState,
   captureEditorState,
@@ -102,18 +103,12 @@ class CodeEditor extends React.Component {
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
-        'Cmd-F': (cm) => {
-          this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
-          });
-        },
-        'Ctrl-F': (cm) => {
-          this.setState({ searchBarVisible: true }, () => {
-            this.searchBarRef.current?.focus();
-          });
-        },
-        'Cmd-H': this.props.readOnly ? false : 'replace',
-        'Ctrl-H': this.props.readOnly ? false : 'replace',
+        ...buildSearchKeyBindings({
+          setState: (update, cb) => this.setState(update, cb),
+          searchBarRef: this.searchBarRef,
+          isSearchBarVisible: () => this.state.searchBarVisible,
+          isReadOnly: () => this.props.readOnly
+        }),
         'Cmd-Enter': runShortcut,
         'Ctrl-Enter': runShortcut,
         'Tab': function (cm) {
@@ -144,11 +139,6 @@ class CodeEditor extends React.Component {
             this.editor.toggleComment({ lineComment: '//', blockComment: '/*' });
           } else {
             this.editor.toggleComment();
-          }
-        },
-        'Esc': () => {
-          if (this.state.searchBarVisible) {
-            this.setState({ searchBarVisible: false });
           }
         }
       },
@@ -457,6 +447,7 @@ class CodeEditor extends React.Component {
       <StyledWrapper
         className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''}`}
         aria-label="Code Editor"
+        data-testid={this.props.testId}
         font={this.props.font}
         fontSize={this.props.fontSize}
       >
@@ -467,6 +458,7 @@ class CodeEditor extends React.Component {
           }}
           visible={this.state.searchBarVisible}
           editor={this.editor}
+          readOnly={this.props.readOnly}
           onClose={() => this.setState({ searchBarVisible: false })}
         />
         <div

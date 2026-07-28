@@ -1,4 +1,5 @@
 export * from './actions';
+export * from './code-editor-search';
 export * from './file-mode';
 export * from './runner';
 export * from './locators';
@@ -9,3 +10,4 @@ export * from './ai';
 export * from './timeline-headers';
 export * from './devtools-console';
 export * from '../snapshot';
+export * from './request-settings';

@@ -5,6 +5,8 @@ import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
 import { buildTimelineHeaderLocators } from './timeline-headers';
 import { buildDevToolsLocators } from './devtools-console';
+import { buildCodeEditorSearchLocators } from './code-editor-search';
+import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
 import { buildWebsocketCommonLocators } from './websocket';
@@ -14,11 +16,13 @@ export const buildCommonLocators = (page: Page) => ({
   fileMode: buildFileModeLocators(page),
   timelineHeaders: buildTimelineHeaderLocators(page),
   devtools: buildDevToolsLocators(page),
+  codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
   openApi: {
     render: buildApiSpecPanelLocators(page)
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
+  requestSettings: buildRequestSettingsLocators(page),
   websocket: buildWebsocketCommonLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
@@ -179,6 +183,8 @@ export const buildCommonLocators = (page: Page) => ({
     requestTestId: () => page.getByTestId('request-name'),
     generateCodeButton: () => page.getByTestId('generate-code-button'),
     bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
+    bodyModeLabel: () => page.getByTestId('request-body-mode-label'),
+    exampleBodyModeLabel: () => page.getByTestId('example-body-mode-label'),
     bodyEditor: () => page.getByTestId('request-body-editor'),
     bodyVariableToken: (name: string, state?: 'valid' | 'invalid') => {
       const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
