@@ -32,7 +32,7 @@ const SegmentedControlBase = forwardRef(({
   fullWidth = false,
   disabled = false,
   className = '',
-  dataTestId = 'segmented-control',
+  'data-testid': testId = 'segmented-control',
   children,
   ...rest
 }, ref) => {
@@ -69,7 +69,7 @@ const SegmentedControlBase = forwardRef(({
         className={className}
         role="radiogroup"
         {...ariaProps}
-        data-testid={dataTestId}
+        data-testid={testId}
       >
         {children}
       </StyledWrapper>

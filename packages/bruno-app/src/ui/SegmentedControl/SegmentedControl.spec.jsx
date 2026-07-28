@@ -126,14 +126,15 @@ describe('SegmentedControl', () => {
     radios.forEach((r) => expect(r.name).toBe(first.name));
   });
 
-  it('applies item dataTestId to the underlying input', () => {
-    renderSegmentedControl({ items: [{ value: 'http', label: 'HTTP', dataTestId: 'seg-http' }] });
+  it('selects individual segments by accessible name, without needing a per-item testid', () => {
+    renderSegmentedControl();
 
-    expect(screen.getByTestId('seg-http')).toBe(screen.getByRole('radio', { name: 'HTTP' }));
+    const radios = screen.getAllByRole('radio');
+    expect(radios[2]).toBe(screen.getByRole('radio', { name: 'gRPC' }));
   });
 
-  it('applies dataTestId to the group container', () => {
-    renderSegmentedControl({ dataTestId: 'req-type-group' });
+  it('applies data-testid to the group container', () => {
+    renderSegmentedControl({ 'data-testid': 'req-type-group' });
 
     expect(screen.getByTestId('req-type-group')).toBe(screen.getByRole('radiogroup'));
   });

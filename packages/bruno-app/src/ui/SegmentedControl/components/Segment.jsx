@@ -10,7 +10,7 @@ import { SegmentedControlContext } from './SegmentedControlBase';
  * underlying <input>, and any extra props (id, required, aria-describedby,
  * autoFocus, …) are forwarded to it too.
  */
-const Segment = forwardRef(({ value, label, icon, disabled = false, className = '', dataTestId, ...rest }, ref) => {
+const Segment = forwardRef(({ value, label, icon, disabled = false, className = '', ...rest }, ref) => {
   const group = useContext(SegmentedControlContext);
 
   if (!group) {
@@ -38,7 +38,6 @@ const Segment = forwardRef(({ value, label, icon, disabled = false, className = 
         checked={checked}
         disabled={isDisabled}
         onChange={handleChange}
-        data-testid={dataTestId || `segment-${value}`}
       />
       {icon && <span className="segment-icon" aria-hidden="true">{icon}</span>}
       {label && <span className="segment-label">{label}</span>}
