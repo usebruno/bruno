@@ -1,0 +1,20 @@
+meta {
+  name: Ping-TLS
+  type: grpc
+  seq: 2
+}
+
+grpc {
+  url: grpcs://localhost:50052
+  method: /bruno.tests.echo.EchoService/Ping
+  body: grpc
+  auth: inherit
+  methodType: unary
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {}
+  '''
+}

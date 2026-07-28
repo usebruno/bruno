@@ -99,7 +99,8 @@ jest.mock('@grpc/proto-loader', () => ({
   load: jest.fn().mockResolvedValue({})
 }));
 
-import { GrpcClient } from './grpc-client';
+import { GrpcClient, resolveGrpcUseTls } from './grpc-client';
+import { ChannelCredentials } from '@grpc/grpc-js';
 
 describe('GrpcClient', () => {
   let grpcClient;
@@ -652,6 +653,119 @@ describe('GrpcClient', () => {
       expect(capturedChannelOptions['grpc.http_connect_target']).toBe('dns:myserver:50051');
       expect(capturedChannelOptions['grpc.enable_http_proxy']).toBe(0);
       expect(capturedHost).toBe('proxy.example.com:8080');
+    });
+  });
+
+  describe('resolveGrpcUseTls', () => {
+    test('returns false for unix sockets', () => {
+      expect(resolveGrpcUseTls('unix:/var/run/grpc.sock', true)).toBe(false);
+      expect(resolveGrpcUseTls('unix-abstract:my.socket', true)).toBe(false);
+    });
+
+    test('returns false for windows named pipes', () => {
+      expect(resolveGrpcUseTls('\\\\.\\pipe\\mypipe', true)).toBe(false);
+      expect(resolveGrpcUseTls('//./pipe/mypipe', true)).toBe(false);
+    });
+
+    test('explicit grpc:// is always plaintext (user opt-out)', () => {
+      expect(resolveGrpcUseTls('grpc://api.example.com:443', true)).toBe(false);
+      expect(resolveGrpcUseTls('grpc://api.example.com:443', false)).toBe(false);
+    });
+
+    test('explicit http:// is always plaintext (user opt-out)', () => {
+      expect(resolveGrpcUseTls('http://api.example.com:80', true)).toBe(false);
+    });
+
+    test('explicit grpcs:// follows sslVerification', () => {
+      expect(resolveGrpcUseTls('grpcs://api.example.com:443', true)).toBe(true);
+      expect(resolveGrpcUseTls('grpcs://api.example.com:443', false)).toBe(false);
+    });
+
+    test('explicit https:// follows sslVerification', () => {
+      expect(resolveGrpcUseTls('https://api.example.com:443', true)).toBe(true);
+      expect(resolveGrpcUseTls('https://api.example.com:443', false)).toBe(false);
+    });
+
+    test('bare loopback hosts are plaintext (backward compat for local dev)', () => {
+      expect(resolveGrpcUseTls('localhost:50051', true)).toBe(false);
+      expect(resolveGrpcUseTls('127.0.0.1:50051', true)).toBe(false);
+      expect(resolveGrpcUseTls('0.0.0.0:50051', true)).toBe(false);
+      expect(resolveGrpcUseTls('[::1]:50051', true)).toBe(false);
+    });
+
+    test('bare remote host follows sslVerification (this is the bug fix)', () => {
+      expect(resolveGrpcUseTls('api.example.com:443', true)).toBe(true);
+      expect(resolveGrpcUseTls('api.example.com:443', false)).toBe(false);
+    });
+
+    test('unknown scheme defaults to plaintext', () => {
+      expect(resolveGrpcUseTls('ftp://api.example.com', true)).toBe(false);
+    });
+
+    test('empty or nullish URL is plaintext', () => {
+      expect(resolveGrpcUseTls('', true)).toBe(false);
+      expect(resolveGrpcUseTls(null, true)).toBe(false);
+      expect(resolveGrpcUseTls(undefined, true)).toBe(false);
+    });
+  });
+
+  describe('#getChannelCredentials selection via loadMethodsFromReflection', () => {
+    const baseRequest = {
+      url: 'grpc://localhost:50051',
+      uid: 'test-request-uid',
+      headers: {}
+    };
+    const baseParams = {
+      collectionUid: 'test-collection-uid',
+      sendEvent: jest.fn()
+    };
+
+    test('bare host + useTls=true selects SSL credentials (bug fix)', async () => {
+      await grpcClient.loadMethodsFromReflection({
+        ...baseParams,
+        request: { ...baseRequest, url: 'api.example.com:443' },
+        useTls: true
+      });
+      expect(ChannelCredentials.createSsl).toHaveBeenCalled();
+      expect(ChannelCredentials.createInsecure).not.toHaveBeenCalled();
+    });
+
+    test('bare host + useTls=false selects insecure', async () => {
+      await grpcClient.loadMethodsFromReflection({
+        ...baseParams,
+        request: { ...baseRequest, url: 'api.example.com:443' },
+        useTls: false
+      });
+      expect(ChannelCredentials.createInsecure).toHaveBeenCalled();
+      expect(ChannelCredentials.createSsl).not.toHaveBeenCalled();
+    });
+
+    test('grpcs:// + useTls=true selects SSL credentials (regression)', async () => {
+      await grpcClient.loadMethodsFromReflection({
+        ...baseParams,
+        request: { ...baseRequest, url: 'grpcs://api.example.com:443' },
+        useTls: true
+      });
+      expect(ChannelCredentials.createSsl).toHaveBeenCalled();
+    });
+
+    test('unix socket forces insecure regardless of useTls', async () => {
+      await grpcClient.loadMethodsFromReflection({
+        ...baseParams,
+        request: { ...baseRequest, url: 'unix:/var/run/grpc.sock' },
+        useTls: true
+      });
+      expect(ChannelCredentials.createInsecure).toHaveBeenCalled();
+      expect(ChannelCredentials.createSsl).not.toHaveBeenCalled();
+    });
+
+    test('falls back to URL-scheme heuristic when useTls is undefined', async () => {
+      // grpcs:// scheme means the fallback picks SSL
+      await grpcClient.loadMethodsFromReflection({
+        ...baseParams,
+        request: { ...baseRequest, url: 'grpcs://api.example.com:443' }
+      });
+      expect(ChannelCredentials.createSsl).toHaveBeenCalled();
     });
   });
 

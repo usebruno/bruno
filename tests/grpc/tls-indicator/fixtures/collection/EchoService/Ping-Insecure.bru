@@ -1,0 +1,20 @@
+meta {
+  name: Ping-Insecure
+  type: grpc
+  seq: 1
+}
+
+grpc {
+  url: grpc://localhost:50051
+  method: /bruno.tests.echo.EchoService/Ping
+  body: grpc
+  auth: inherit
+  methodType: unary
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {}
+  '''
+}

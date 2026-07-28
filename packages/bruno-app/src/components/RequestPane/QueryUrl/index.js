@@ -24,6 +24,7 @@ import { hasRequestChanges } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import ToolHint from 'components/ToolHint';
+import TlsIndicator from 'components/RequestPane/TlsIndicator';
 import toast from 'react-hot-toast';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
@@ -393,6 +394,9 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   return (
     <StyledWrapper className="flex items-center w-full">
       <div className="flex items-center h-full url-input-group">
+        <div className="flex items-center h-full pl-2 pr-1">
+          <TlsIndicator size={18} />
+        </div>
         <div className="flex items-center h-full min-w-fit">
           <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
         </div>
