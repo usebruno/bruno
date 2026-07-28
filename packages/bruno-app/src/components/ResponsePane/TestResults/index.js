@@ -45,6 +45,7 @@ const ResultItem = ({ result, type }) => (
 );
 
 const TestSection = ({
+  sectionKey,
   title,
   results,
   isExpanded,
@@ -60,6 +61,7 @@ const TestSection = ({
     <div className="mb-4">
       <div
         className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2"
+        data-testid={`test-results-summary-${sectionKey}`}
         onClick={onToggle}
       >
         <span className="dropdown-icon mr-2 flex items-center">
@@ -115,6 +117,7 @@ const TestResults = ({ item }) => {
       {sections.map((section) => (
         <TestSection
           key={section.key}
+          sectionKey={section.key}
           title={section.title}
           results={section.results}
           isExpanded={isExpanded(section)}
