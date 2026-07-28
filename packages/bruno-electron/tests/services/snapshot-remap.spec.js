@@ -396,3 +396,39 @@ describe('SnapshotManager shared collection lookups', () => {
     });
   });
 });
+
+describe('SnapshotManager sidebar normalization', () => {
+  const baseSnapshot = (sidebar) => ({
+    version: '0.0.1',
+    activeWorkspacePath: null,
+    extras: {
+      devTools: { open: false, activeTab: 'terminal', tabs: {} },
+      ...(sidebar !== undefined ? { sidebar } : {})
+    },
+    workspaces: [],
+    collections: []
+  });
+
+  it('omits expandedSections when the saved snapshot had no sidebar (keeps renderer default)', () => {
+    snapshotManager.saveSnapshot(baseSnapshot(undefined));
+    const snap = snapshotManager.getSnapshot();
+    expect(snap.extras.sidebar.expandedSections).toBeUndefined();
+    expect(snap.extras.sidebar.sectionSizes).toEqual({});
+  });
+
+  it('preserves a deliberately empty expandedSections list', () => {
+    snapshotManager.saveSnapshot(baseSnapshot({ sectionSizes: {}, expandedSections: [] }));
+    const snap = snapshotManager.getSnapshot();
+    expect(snap.extras.sidebar.expandedSections).toEqual([]);
+  });
+
+  it('filters non-string ids and non-positive sizes', () => {
+    snapshotManager.saveSnapshot(baseSnapshot({
+      sectionSizes: { a: 100, b: 0, c: -5, d: 'x' },
+      expandedSections: ['a', 5, 'b', null]
+    }));
+    const snap = snapshotManager.getSnapshot();
+    expect(snap.extras.sidebar.expandedSections).toEqual(['a', 'b']);
+    expect(snap.extras.sidebar.sectionSizes).toEqual({ a: 100 });
+  });
+});

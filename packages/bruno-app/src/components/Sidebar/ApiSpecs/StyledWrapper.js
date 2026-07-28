@@ -22,38 +22,41 @@ const Wrapper = styled.div`
   .api-spec-item {
     height: 1.6rem;
     cursor: pointer;
+    position: relative;
+
+    .menu-icon {
+      color: ${(props) => props.theme.sidebar.dropdownIcon.color};
+      visibility: hidden;
+    }
+
+    .api-spec-item-menu-icon {
+      visibility: hidden;
+    }
+
     &.active {
       background: ${(props) => props.theme.sidebar.collection.item.bg};
     }
-    &:hover {
+
+    &:hover,
+    &.menu-open {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-      .menu-icon {
-        .dropdown {
-          div[aria-expanded='false'] {
-            visibility: visible;
-          }
-        }
-      }
     }
-  }
 
-  .menu-icon {
-    cursor: pointer;
-    color: ${(props) => props.theme.sidebar.dropdownIcon.color};
+    &.menu-open {
+      border-top: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
+      border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
+      outline: none;
+    }
 
-    .dropdown {
-      div[aria-expanded='true'] {
+    &:hover,
+    &.active,
+    &.menu-open {
+      .menu-icon,
+      .api-spec-item-menu-icon {
         visibility: visible;
-      }
-      div[aria-expanded='false'] {
-        visibility: hidden;
+        background-color: transparent !important;
       }
     }
-  }
-
-  div.tippy-box {
-    position: relative;
-    top: -0.625rem;
   }
 
   .placeholder {
