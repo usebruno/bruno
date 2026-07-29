@@ -39,6 +39,9 @@ export const buildSidebarLocators = (page: Page) => {
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
     // The sidebar tree wraps each collection in `#collection-<slug>`; scope queries
     // to it to disambiguate items that share names across collections.
-    collectionScope: (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`)
+    collectionScope: (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`),
+    dragHandle: () => page.getByTestId('sidebar-drag-handle'),
+    toggleSidebarButton: () => page.getByTestId('toggle-sidebar-button'),
+    sidebarContainer: () => page.getByTestId('sidebar')
   };
 };

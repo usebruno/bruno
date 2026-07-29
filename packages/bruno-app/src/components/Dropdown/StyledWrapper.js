@@ -18,7 +18,7 @@ const Wrapper = styled.div`
   max-height: 90vh;
   overflow-y: auto;
   max-width: unset !important;
-  padding: 0.25rem;
+  padding: ${(props) => (props.noPadding ? '0' : '0.25rem')};
 
   [role="menu"] {
     outline: none;
