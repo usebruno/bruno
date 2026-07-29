@@ -1,4 +1,4 @@
-import { Page, test } from '../../../playwright';
+import { Page, test, expect } from '../../../playwright';
 
 export const buildWebsocketCommonLocators = (page: Page) => ({
   connectionControls: {
@@ -52,15 +52,24 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
 export const resetWsResponse = async (page: Page) => {
   await test.step('Disconnect and clear the ws response', async () => {
     const locators = buildWebsocketCommonLocators(page);
+    const connect = locators.connectionControls.connect();
+    const disconnect = locators.connectionControls.disconnect();
+    const clearResponse = locators.toolbar.clearResponse();
 
-    if (await locators.connectionControls.disconnect().isVisible()) {
-      await locators.connectionControls.disconnect().click();
-      await locators.connectionControls.connect().waitFor();
+    // Exactly one of the two buttons is rendered at a time, but neither is while the connection is
+    // still opening or closing. Settle on one before the snapshot below, or a mid-transition pane
+    // reads as "not connected" and the disconnect is skipped — the no-op this helper exists to avoid.
+    await expect(connect.or(disconnect)).toBeVisible();
+
+    if (await disconnect.isVisible()) {
+      await disconnect.click();
+      await connect.waitFor();
     }
 
-    if (await locators.toolbar.clearResponse().isVisible()) {
-      await locators.toolbar.clearResponse().click();
-      await locators.messages().first().waitFor({ state: 'detached' });
+    if (await clearResponse.isVisible()) {
+      await clearResponse.click();
+      // Count rather than waiting for the first row to detach, which is already true of an empty list.
+      await expect(locators.messages()).toHaveCount(0);
     }
   });
 };

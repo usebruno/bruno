@@ -23,7 +23,10 @@ test.describe('https with global client certificate (disabled)', () => {
       const locators = buildCommonLocators(page);
 
       await setSandboxMode(page, COLLECTION, mode);
-      await openRequest(page, COLLECTION, 'https-request');
+      // A request per mode: the response is stored per request, so opening a different one
+      // leaves this test with an empty response pane. The pane cannot be cleared here — the
+      // clear control is not rendered while a response carries a transport-level error.
+      await openRequest(page, COLLECTION, `https-${mode}`);
 
       await test.step('Send request and assert the TLS handshake is rejected', async () => {
         await locators.request.sendButton().click();

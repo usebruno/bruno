@@ -265,6 +265,9 @@ export const buildCommonLocators = (page: Page) => ({
   },
   response: {
     statusCode: () => page.getByTestId('response-status-code'),
+    // Rendered by every response pane (http, grpc, ws) only while a response exists, so its
+    // absence doubles as the "response is cleared" signal.
+    clearButton: () => page.getByTestId('response-clear-btn'),
     pane: () => page.locator('.response-pane'),
     errorMessage: () => page.getByTestId('response-pane').locator('.error'),
     copyButton: () => page.locator('button[title="Copy response to clipboard"]'),

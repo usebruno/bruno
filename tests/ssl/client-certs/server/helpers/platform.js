@@ -66,6 +66,7 @@ function waitForPortRelease(port, timeoutMs = 2000) {
   while (Date.now() < deadline) {
     if (!hasListenerOnPort(port)) return;
   }
+  throw new Error(`Port ${port} is still bound after ${timeoutMs}ms; the process holding it could not be killed`);
 }
 
 function killProcessOnPort(port) {

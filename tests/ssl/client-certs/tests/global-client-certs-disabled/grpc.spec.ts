@@ -1,5 +1,5 @@
 import { test, expect } from '../../../../../playwright';
-import { setSandboxMode, openRequest } from '../../../../utils/page';
+import { setSandboxMode, openRequest, resetResponse } from '../../../../utils/page';
 import { buildGrpcCommonLocators } from '../../../../utils/page/locators';
 
 const COLLECTION = 'global-client-certs-disabled';
@@ -11,6 +11,12 @@ test.describe('grpc with global client certificate (disabled)', () => {
   // App launch plus the mTLS handshake exceeds the default 30s under parallel load. The budget
   // belongs on the describe so it covers fixture setup too, which test.setTimeout cannot reach.
   test.describe.configure({ timeout: 60_000 });
+
+  // tests in this file share one app instance — hand the next test an empty response pane,
+  // so its assertions cannot be satisfied by the previous test's response
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    await resetResponse(page);
+  });
 
   for (const mode of ['developer', 'safe'] as const) {
     test(`${mode} mode`, async ({ pageWithUserData: page }) => {
