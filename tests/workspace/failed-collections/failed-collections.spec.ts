@@ -146,4 +146,19 @@ test.describe('Collections that fail to open', () => {
 
     await closeElectronApp(app);
   });
+
+  test('switching into a workspace with unopenable collections surfaces an aggregated error toast', async ({ launchElectronApp, createTmpDir }) => {
+    const workspacePath = await createTmpDir('failed-coll-switch-toast');
+    await fs.promises.cp(fixturePath, workspacePath, { recursive: true });
+
+    const app = await launchElectronApp({ initUserDataPath, templateVars: { workspacePath } });
+    const page = await waitForReadyPage(app);
+
+    await test.step('The switch reports how many collections could not be opened', async () => {
+      await switchWorkspace(page, WORKSPACE_NAME);
+      await expect(page.getByText('2 collections could not be opened')).toBeVisible({ timeout: 10000 });
+    });
+
+    await closeElectronApp(app);
+  });
 });
