@@ -2,6 +2,7 @@ import { Page, test, expect } from '../../../../playwright';
 import { buildCommonLocators } from '../locators';
 
 export const buildEnvironmentLocators = (page: Page) => ({
+  selector: () => page.getByTestId('environment-selector-trigger'),
   collectionTab: () => page.getByTestId('env-tab-collection'),
   globalTab: () => page.getByTestId('env-tab-global'),
   envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
