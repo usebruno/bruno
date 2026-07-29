@@ -1,56 +1,7 @@
+const { extractMockRoutePath } = require('@usebruno/common').utils;
 const { listMockResponses } = require('./mock-response-store');
 
-const extractRoutePath = (rawUrl) => {
-  if (!rawUrl) {
-    return null;
-  }
-
-  let cleaned = String(rawUrl).trim();
-  cleaned = cleaned.replace(/^\{\{[^}]+\}\}/, '');
-
-  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
-    try {
-      cleaned = new URL(cleaned).pathname;
-    } catch {
-      const qIndex = cleaned.indexOf('?');
-      if (qIndex !== -1) {
-        cleaned = cleaned.substring(0, qIndex);
-      }
-    }
-  } else {
-    const ipHostMatch = cleaned.match(/^(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?(\/[^?#]*)?/);
-    if (ipHostMatch) {
-      cleaned = ipHostMatch[1] || '/';
-    } else {
-      const domainHostMatch = cleaned.match(/^(?:[a-zA-Z0-9-]+\.)+[a-zA-Z0-9-]+(?::\d+)?(\/[^?#]*)?/);
-      if (domainHostMatch) {
-        cleaned = domainHostMatch[1] || '/';
-      } else {
-        const bareHostMatch = cleaned.match(/^[a-zA-Z0-9-]+:\d+(\/[^?#]*)?/);
-        if (bareHostMatch) {
-          cleaned = bareHostMatch[1] || '/';
-        }
-      }
-    }
-
-    const qIndex = cleaned.indexOf('?');
-    if (qIndex !== -1) {
-      cleaned = cleaned.substring(0, qIndex);
-    }
-  }
-
-  cleaned = cleaned.replace(/\{\{([^}]+)\}\}/g, ':$1');
-
-  if (!cleaned.startsWith('/')) {
-    cleaned = `/${cleaned}`;
-  }
-  if (cleaned.length > 1 && cleaned.endsWith('/')) {
-    cleaned = cleaned.slice(0, -1);
-  }
-  cleaned = cleaned.replace(/\/+/g, '/');
-
-  return cleaned || '/';
-};
+const extractRoutePath = extractMockRoutePath;
 
 const normalizeMockResponseEntry = (response) => ({
   status: Number(response?.status) || 200,

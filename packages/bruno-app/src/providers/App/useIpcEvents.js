@@ -8,7 +8,6 @@ import {
 import {
   updateServerStatus,
   addRequestLogEntries,
-  setRouteTable,
   syncRunningMockServers
 } from 'providers/ReduxStore/slices/mock-server/index';
 import { isMockServerLogListening } from 'utils/mock-server/mock-server-log-subscription';
@@ -387,10 +386,6 @@ const useIpcEvents = () => {
       dispatch(addRequestLogEntries(val));
     });
 
-    const removeMockServerRouteTableListener = ipcRenderer.on('main:mock-server-route-table-updated', (val) => {
-      dispatch(setRouteTable(val));
-    });
-
     const removeLoadNotificationsListener = ipcRenderer.on('main:load-notifications', (notifications) => {
       dispatch(loadNotifications(notifications));
     });
@@ -449,7 +444,6 @@ const useIpcEvents = () => {
       gitVersionListener();
       removeMockServerStatusListener();
       removeMockServerRequestLogListener();
-      removeMockServerRouteTableListener();
       removeLoadNotificationsListener();
     };
   }, [isElectron]);

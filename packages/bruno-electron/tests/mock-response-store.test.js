@@ -146,7 +146,7 @@ describe('mock-response-store', () => {
       name: 'Spec Mock Server',
       port: 4000,
       sourceType: 'spec',
-      specUid: 'spec-1',
+      specPath: '/tmp/openapi.yml',
       workspaceUid: 'workspace-1'
     });
 
@@ -192,6 +192,8 @@ describe('mock-response-store', () => {
     expect(savedBlock.futureField).toBe('keep-me');
     expect(savedBlock.sourceType).toBe('manual');
     expect(savedBlock.specPath).toBeUndefined();
+    expect(savedBlock.specUid).toBeUndefined();
+    expect(savedBlock.specName).toBeUndefined();
   });
 
   it('migrates legacy preference instances into workspace mockserver.yml', () => {
@@ -280,6 +282,13 @@ describe('mock-response-store', () => {
         uid: 'response-2',
         name: 'Users duplicate',
         request: { url: '/users', method: 'GET' },
+        response: { status: 200, body: { type: 'json', content: '{}' } },
+        rules: { operator: 'AND', conditions: [] }
+      },
+      {
+        uid: 'response-2b',
+        name: 'Users absolute url duplicate',
+        request: { url: 'https://api.example.com/users', method: 'GET' },
         response: { status: 200, body: { type: 'json', content: '{}' } },
         rules: { operator: 'AND', conditions: [] }
       },

@@ -5,11 +5,12 @@ import toast from 'react-hot-toast';
 import EditableTable from 'components/EditableTable';
 import FilterDropdown from 'components/FilterDropdown';
 import MethodBadge from 'ui/MethodBadge';
+import { buildMockRouteTable, countMatchedRouteHits } from 'utils/mock-server/mock-responses';
 import StyledWrapper from './StyledWrapper';
 
 const RouteTable = ({ mockServerUid }) => {
-  const routes = useSelector((state) => state.mockServer.routes[mockServerUid]) || [];
-  const hitCounts = useSelector((state) => state.mockServer.routeHitCounts[mockServerUid]) || {};
+  const responses = useSelector((state) => state.mockServer.mockResponses[mockServerUid]) || [];
+  const requestLogs = useSelector((state) => state.mockServer.requestLogs[mockServerUid]) || [];
   const [searchQuery, setSearchQuery] = useState('');
   const [methodFilter, setMethodFilter] = useState(null);
   const [copiedRouteUid, setCopiedRouteUid] = useState(null);
@@ -18,6 +19,9 @@ const RouteTable = ({ mockServerUid }) => {
   const serverState = useSelector((state) => state.mockServer.servers[mockServerUid]) || {};
   const isRunning = serverState.status === 'running';
   const baseUrl = isRunning ? serverState.baseUrl : null;
+
+  const routes = useMemo(() => buildMockRouteTable(responses), [responses]);
+  const hitCounts = useMemo(() => countMatchedRouteHits(requestLogs), [requestLogs]);
 
   const filteredRoutes = useMemo(() => {
     return routes
@@ -30,9 +34,7 @@ const RouteTable = ({ mockServerUid }) => {
         ...route,
         uid: `${route.method} ${route.path}`,
         hits: hitCounts[`${route.method} ${route.path}`] || 0,
-        responseCount: route.responseCount ?? route.exampleCount ?? 0,
-        defaultResponse: route.defaultResponse ?? route.defaultExample ?? null,
-        source: route.responses?.[0]?.sourceFile || route.examples?.[0]?.sourceFile || '-'
+        source: route.responses?.[0]?.sourceFile || '-'
       }));
   }, [routes, searchQuery, methodFilter, hitCounts]);
 

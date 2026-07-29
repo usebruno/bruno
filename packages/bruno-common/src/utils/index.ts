@@ -4,7 +4,9 @@ export {
   parseQueryParams,
   buildQueryString,
   stripOrigin,
-  safeDecodeURIComponent
+  safeDecodeURIComponent,
+  extractMockRoutePath,
+  getMockResponseRouteKey
 } from './url';
 
 export {

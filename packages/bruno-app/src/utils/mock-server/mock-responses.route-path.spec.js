@@ -1,12 +1,9 @@
 import { extractMockResponseRoutePath, buildMockServerTryUrl } from './mock-responses';
 
 describe('extractMockResponseRoutePath', () => {
-  it('strips hosts and variables from mock endpoint urls', () => {
+  it('re-exports the shared mock route path helper', () => {
     expect(extractMockResponseRoutePath('{{baseUrl}}/breeds')).toBe('/breeds');
-    expect(extractMockResponseRoutePath('google.com/test')).toBe('/test');
     expect(extractMockResponseRoutePath('https://api.example.com/v1/users')).toBe('/v1/users');
-    expect(extractMockResponseRoutePath('localhost:8080/api')).toBe('/api');
-    expect(extractMockResponseRoutePath('pets')).toBe('/pets');
   });
 });
 

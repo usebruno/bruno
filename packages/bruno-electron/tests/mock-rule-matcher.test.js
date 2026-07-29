@@ -47,6 +47,21 @@ describe('mock-rule-matcher', () => {
       operator: 'not_equals',
       value: 'free'
     }, context)).toBe(true);
+
+    expect(evaluateCondition({
+      target: 'header',
+      key: 'X-Plan',
+      operator: 'matches',
+      value: '^pre'
+    }, context)).toBe(true);
+
+    // legacy operator name still works
+    expect(evaluateCondition({
+      target: 'query',
+      key: 'status',
+      operator: 'regex',
+      value: 'act.*'
+    }, context)).toBe(true);
   });
 
   it('matches AND and OR rule groups', () => {

@@ -11,7 +11,7 @@ import {
   syncMockResponsesFromExamples
 } from 'providers/ReduxStore/slices/mock-server/index';
 import { addTab, closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
-import { removeMockResponseEditor } from 'providers/ReduxStore/slices/collections/mockResponseEditorActions';
+import { removeMockResponseEditor } from 'providers/ReduxStore/slices/collections';
 import {
   buildMockServerTryUrl,
   collectCollectionExamples,
@@ -23,10 +23,8 @@ import {
 import { resolveInstanceSpec } from 'utils/mock-server/mock-server-instances';
 import { IconCopy, IconSearch, IconServer2, IconTrash } from '@tabler/icons';
 import CreateMockResponsePanel from '../CreateMockResponsePanel';
-import DeleteMockResponseModal from '../DeleteMockResponseModal';
 import GenerateFromSpecModal from '../GenerateFromSpecModal';
-import SyncFromExamplesModal from '../SyncFromExamplesModal';
-import SyncWithSpecModal from '../SyncWithSpecModal';
+import MockConfirmModal from 'components/MockServer/MockConfirmModal';
 import Button from 'ui/Button';
 import ActionIcon from 'ui/ActionIcon';
 import StyledWrapper from './StyledWrapper';
@@ -269,21 +267,29 @@ const MockResponsesList = ({ instance, collection }) => {
   return (
     <StyledWrapper>
       {deletingResponse ? (
-        <DeleteMockResponseModal
-          response={deletingResponse}
-          isDeleting={isDeleting}
+        <MockConfirmModal
+          title="Delete Mock Response"
+          confirmText={isDeleting ? 'Deleting...' : 'Delete'}
+          confirmDisabled={isDeleting}
+          confirmButtonColor="danger"
+          dataTestId="delete-mock-response-modal"
           onClose={() => {
             if (!isDeleting) {
               setDeletingResponse(null);
             }
           }}
           onConfirm={handleConfirmDelete}
-        />
+        >
+          Are you sure you want to delete the mock response
+          {' '}
+          <span className="font-medium">{deletingResponse?.name}</span>
+          ?
+        </MockConfirmModal>
       ) : null}
 
       {showGenerateModal ? (
         <GenerateFromSpecModal
-          specName={spec?.name || instance.specName}
+          specName={spec?.name || instance.specPath}
           isGenerating={isGenerating}
           onClose={() => {
             if (!isGenerating) {
@@ -295,28 +301,51 @@ const MockResponsesList = ({ instance, collection }) => {
       ) : null}
 
       {showSyncModal ? (
-        <SyncFromExamplesModal
-          isSyncing={isSyncing}
+        <MockConfirmModal
+          title="Sync with Collection Examples"
+          confirmText={isSyncing ? 'Syncing...' : 'Sync'}
+          confirmDisabled={isSyncing}
+          dataTestId="sync-mock-examples-modal"
           onClose={() => {
             if (!isSyncing) {
               setShowSyncModal(false);
             }
           }}
           onConfirm={handleConfirmSync}
-        />
+        >
+          <p>
+            Mock responses that match collection examples will be overwritten with the latest example data.
+          </p>
+          <p className="mt-3 text-sm opacity-80">
+            Custom mock responses without a matching example will be kept.
+          </p>
+        </MockConfirmModal>
       ) : null}
 
       {showSyncSpecModal ? (
-        <SyncWithSpecModal
-          specName={spec?.name || instance.specName}
-          isSyncing={isSyncingSpec}
+        <MockConfirmModal
+          title="Sync with API Spec"
+          confirmText={isSyncingSpec ? 'Syncing...' : 'Sync'}
+          confirmDisabled={isSyncingSpec}
+          dataTestId="mock-response-sync-spec-modal"
           onClose={() => {
             if (!isSyncingSpec) {
               setShowSyncSpecModal(false);
             }
           }}
           onConfirm={handleConfirmSyncWithSpec}
-        />
+        >
+          <p>
+            Mock responses matching an endpoint in
+            {' '}
+            <span className="font-medium">{spec?.name || instance.specPath || 'this API spec'}</span>
+            {' '}
+            will be overwritten with the latest spec data (bodies generated from schema).
+          </p>
+          <p className="mt-3 text-sm opacity-80">
+            Custom mock responses without a matching endpoint will be kept.
+          </p>
+        </MockConfirmModal>
       ) : null}
 
       <div className="actions">

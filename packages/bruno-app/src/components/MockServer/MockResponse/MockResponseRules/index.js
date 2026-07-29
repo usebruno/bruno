@@ -12,7 +12,7 @@ const OPERATOR_OPTIONS = [
   { value: 'equals', label: 'equals' },
   { value: 'not_equals', label: 'not equals' },
   { value: 'contains', label: 'contains' },
-  { value: 'regex', label: 'regex' }
+  { value: 'matches', label: 'matches' }
 ];
 
 const MockResponseRules = ({ rules, editMode, onChange, embedded = false }) => {
@@ -98,7 +98,7 @@ const MockResponseRules = ({ rules, editMode, onChange, embedded = false }) => {
           />
 
           <select
-            value={condition.operator || 'equals'}
+            value={condition.operator === 'regex' ? 'matches' : (condition.operator || 'equals')}
             disabled={!editMode}
             onChange={(event) => updateCondition(index, { operator: event.target.value })}
           >

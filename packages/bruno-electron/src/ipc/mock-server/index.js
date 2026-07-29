@@ -18,13 +18,7 @@ const {
   setMockServerResponses
 } = require('../../app/mock-server/mock-response-store');
 
-const getResponsesAndRoutes = (location) => {
-  const mockServerUid = location.mockServerUid || location.collectionUid;
-  const responses = listMockResponses(location);
-  const routes = mockServer.getRoutes(mockServerUid, location);
-
-  return { responses, routes };
-};
+const getResponses = (location) => listMockResponses(location);
 
 const parseSpecContent = (content) => {
   try {
@@ -111,11 +105,6 @@ const registerMockServerIpc = (mainWindow) => {
     }
   });
 
-  ipcMain.handle('renderer:mock-server-status', async (_event, payload) => {
-    const mockServerUid = payload.mockServerUid || payload.collectionUid;
-    return mockServer.getStatus(mockServerUid, payload);
-  });
-
   ipcMain.handle('renderer:mock-server-refresh-routes', async (_event, payload) => {
     try {
       const mockServerUid = payload.mockServerUid || payload.collectionUid;
@@ -124,15 +113,6 @@ const registerMockServerIpc = (mainWindow) => {
     } catch (err) {
       return { success: false, error: err.message };
     }
-  });
-
-  ipcMain.handle('renderer:mock-server-get-routes', async (_event, payload) => {
-    const mockServerUid = payload.mockServerUid || payload.collectionUid;
-    return mockServer.getRoutes(mockServerUid, payload);
-  });
-
-  ipcMain.handle('renderer:mock-server-get-log', async (_event, { mockServerUid, collectionUid }) => {
-    return mockServer.getLog(mockServerUid || collectionUid);
   });
 
   ipcMain.handle('renderer:mock-server-set-delay', async (_event, { mockServerUid, collectionUid, delay }) => {
@@ -157,24 +137,13 @@ const registerMockServerIpc = (mainWindow) => {
     const uid = payload.mockServerUid || payload.collectionUid;
     return {
       status: mockServer.getStatus(uid, payload),
-      routes: mockServer.getRoutes(uid, payload),
       log: mockServer.getLog(uid)
     };
   });
 
-  ipcMain.handle('renderer:mock-server-get-responses', async (_event, payload) => {
-    try {
-      const { responses, routes } = getResponsesAndRoutes(payload);
-      return { success: true, responses, routes };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
-  });
-
   ipcMain.handle('renderer:mock-server-get-responses-and-routes', async (_event, payload) => {
     try {
-      const { responses, routes } = getResponsesAndRoutes(payload);
-      return { success: true, responses, routes };
+      return { success: true, responses: getResponses(payload) };
     } catch (err) {
       return { success: false, error: err.message };
     }
@@ -189,7 +158,7 @@ const registerMockServerIpc = (mainWindow) => {
           continue;
         }
 
-        results[location.mockServerUid] = getResponsesAndRoutes(location);
+        results[location.mockServerUid] = { responses: getResponses(location) };
       }
 
       return { success: true, results };
@@ -318,37 +287,31 @@ const registerMockServerIpc = (mainWindow) => {
     }
   });
 
-  ipcMain.handle('renderer:mock-server-generate-from-spec', async (_event, payload) => {
+  ipcMain.handle('renderer:mock-server-build-spec-responses', async (_event, payload) => {
     try {
-      const { specPath, generateFromSchema = false, ...location } = payload;
+      const {
+        specPath,
+        generateFromSchema = false,
+        persist = false,
+        workspacePath,
+        ...location
+      } = payload;
 
-      const spec = readWorkspaceSpec(location.workspacePath, specPath);
+      const spec = readWorkspaceSpec(workspacePath || location.workspacePath, specPath);
       const generatedResponses = buildMockResponsesFromSpec(spec, { generateFromSchema: Boolean(generateFromSchema) });
-      const createdResponses = appendMockResponses(location, generatedResponses);
-      await mockServer.reloadRoutesFromStore(location.mockServerUid, location);
+
+      if (!persist) {
+        return { success: true, responses: generatedResponses };
+      }
+
+      const createdResponses = appendMockResponses({ ...location, workspacePath }, generatedResponses);
+      await mockServer.reloadRoutesFromStore(location.mockServerUid, { ...location, workspacePath });
 
       return {
         success: true,
         createdCount: createdResponses.length,
-        responses: createdResponses
+        responses: listMockResponses({ ...location, workspacePath })
       };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
-  });
-
-  // Read-only: parses the spec and returns freshly generated responses without
-  // persisting anything. Used by "Sync with Spec" — the renderer merges these
-  // against the current responses (same shape as "Sync with Examples") and
-  // saves the merged list via the existing replace-responses handler.
-  ipcMain.handle('renderer:mock-server-load-spec-responses', async (_event, payload) => {
-    try {
-      const { workspacePath, specPath, generateFromSchema = true } = payload;
-
-      const spec = readWorkspaceSpec(workspacePath, specPath);
-      const responses = buildMockResponsesFromSpec(spec, { generateFromSchema: Boolean(generateFromSchema) });
-
-      return { success: true, responses };
     } catch (err) {
       return { success: false, error: err.message };
     }

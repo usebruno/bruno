@@ -57,7 +57,8 @@ const compareValues = (operator, actual, expected) => {
   const expectedText = expected === undefined || expected === null ? '' : String(expected);
 
   switch (operator) {
-    case 'regex':
+    case 'matches':
+    case 'regex': // legacy alias
       try {
         return new RegExp(expectedText).test(actualText);
       } catch {

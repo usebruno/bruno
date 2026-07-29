@@ -11,6 +11,7 @@ import { normalizePath } from 'utils/common/path';
 import { isScratchCollection } from 'utils/collections';
 import { matchLoadedApiSpecs } from 'components/Sidebar/ApiSpecs/matchLoadedApiSpecs';
 import {
+  DEFAULT_MOCK_SERVER_PORT,
   createMockServerInstance,
   getMockServerInstances,
   checkMockServerPortAvailable,
@@ -23,24 +24,14 @@ import {
 } from 'utils/mock-server/mock-server-instances';
 
 const resolveSelectedSpecUid = (editingInstance, apiSpecs) => {
-  if (!editingInstance) {
+  if (!editingInstance?.specPath) {
     return '';
   }
 
-  if (editingInstance.specUid && apiSpecs.some((spec) => spec.uid === editingInstance.specUid)) {
-    return editingInstance.specUid;
-  }
-
-  if (editingInstance.specPath) {
-    const matchingSpec = apiSpecs.find(
-      (spec) => normalizePath(spec.pathname) === normalizePath(editingInstance.specPath)
-    );
-    if (matchingSpec) {
-      return matchingSpec.uid;
-    }
-  }
-
-  return editingInstance.specUid || '';
+  const matchingSpec = apiSpecs.find(
+    (spec) => normalizePath(spec.pathname) === normalizePath(editingInstance.specPath)
+  );
+  return matchingSpec?.uid || '';
 };
 
 const toSpecOption = (spec, fallbackName = null) => ({
@@ -60,37 +51,32 @@ const buildSpecSelectOptions = (workspaceSpecs, apiSpecs, editingInstance = null
     }
   });
 
-  const selectedSpecUid = resolveSelectedSpecUid(editingInstance, apiSpecs) || editingInstance?.specUid;
-  if (selectedSpecUid && !optionsByUid.has(selectedSpecUid)) {
-    if (editingInstance?.specPath || editingInstance?.specName) {
-      optionsByUid.set(selectedSpecUid, {
-        uid: selectedSpecUid,
-        name: editingInstance.specName || editingInstance.specPath,
-        pathname: editingInstance.specPath
-      });
-    }
+  const selectedSpecUid = resolveSelectedSpecUid(editingInstance, apiSpecs);
+  if (!selectedSpecUid && editingInstance?.specPath) {
+    optionsByUid.set(editingInstance.specPath, {
+      uid: editingInstance.specPath,
+      name: editingInstance.specPath.split(/[\\/]/).pop(),
+      pathname: editingInstance.specPath
+    });
   }
 
   return Array.from(optionsByUid.values()).sort((a, b) => a.name.localeCompare(b.name));
 };
 
-const resolveSpecDetails = (specUid, apiSpecs, editingInstance = null) => {
+const resolveSpecPath = (specUid, apiSpecs, editingInstance = null) => {
   const loadedSpec = apiSpecs.find((spec) => spec.uid === specUid);
   if (loadedSpec) {
-    return {
-      specPath: loadedSpec.pathname,
-      specName: loadedSpec.name || loadedSpec.filename
-    };
+    return loadedSpec.pathname;
   }
 
-  if (editingInstance?.specUid === specUid) {
-    return {
-      specPath: editingInstance.specPath || null,
-      specName: editingInstance.specName || null
-    };
+  if (editingInstance?.specPath && (
+    editingInstance.specPath === specUid
+    || normalizePath(editingInstance.specPath) === normalizePath(specUid)
+  )) {
+    return editingInstance.specPath;
   }
 
-  return { specPath: null, specName: null };
+  return null;
 };
 
 const buildCollectionSelectOptions = (workspaceCollections, collections, editingInstance = null) => {
@@ -120,6 +106,9 @@ const CreateMockServerModal = ({
   const inputRef = useRef();
   const [showAdvancedPort, setShowAdvancedPort] = useState(Boolean(editingInstance));
   const [portError, setPortError] = useState(null);
+  // Kept in state so enableReinitialize cannot wipe a suggested free port back to 4000
+  // when collections/specs finish loading after the modal opens.
+  const [suggestedPort, setSuggestedPort] = useState(editingInstance?.port || DEFAULT_MOCK_SERVER_PORT);
   const collections = useSelector((state) => state.collections.collections);
   const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => ({
@@ -176,7 +165,6 @@ const CreateMockServerModal = ({
   const hasCollectionOptions = collectionSelectOptions.length > 0;
   const hasSpecOptions = specSelectOptions.length > 0;
   const canLinkSource = hasCollectionOptions || hasSpecOptions;
-  const suggestedPort = editingInstance?.port || 4000;
   const initialSpecUid = editingInstance
     ? resolveSelectedSpecUid(editingInstance, apiSpecs)
     : (defaultSpec?.uid || '');
@@ -231,11 +219,21 @@ const CreateMockServerModal = ({
         return;
       }
 
-      if (showAdvancedPort) {
-        const portCheck = await checkMockServerPortAvailable(values.port, configuredInstances, {
+      let resolvedPort = Number(values.port);
+      const portUnchanged = isEditing && Number(editingInstance.port) === resolvedPort;
+
+      // Advanced closed: pick a free port at create time (matches the helper copy).
+      // Advanced open / edit: validate unless this mock is keeping its current port
+      // (a running instance would otherwise look like a system conflict).
+      if (!isEditing && !showAdvancedPort) {
+        resolvedPort = await suggestAvailableMockServerPort(configuredInstances, {
           excludeUid: editingInstance?.uid
         });
-        const error = getMockServerPortError(portCheck, values.port);
+      } else if (!portUnchanged) {
+        const portCheck = await checkMockServerPortAvailable(resolvedPort, configuredInstances, {
+          excludeUid: editingInstance?.uid
+        });
+        const error = getMockServerPortError(portCheck, resolvedPort);
         if (error) {
           setPortError(error);
           toast.error(error);
@@ -244,30 +242,27 @@ const CreateMockServerModal = ({
       }
 
       const resolvedSourceType = values.linkSource ? values.sourceType : 'manual';
-      const specDetails = resolvedSourceType === 'spec'
-        ? resolveSpecDetails(values.specUid, apiSpecs, editingInstance)
-        : { specPath: null, specName: null };
+      const specPath = resolvedSourceType === 'spec'
+        ? resolveSpecPath(values.specUid, apiSpecs, editingInstance)
+        : null;
 
       const instance = editingInstance
         ? {
-            ...editingInstance,
+            uid: editingInstance.uid,
+            workspaceUid: editingInstance.workspaceUid,
             name: values.name.trim(),
             sourceType: resolvedSourceType,
             collectionUid: resolvedSourceType === 'collection' ? values.collectionUid : null,
-            specUid: resolvedSourceType === 'spec' ? values.specUid : null,
-            specPath: resolvedSourceType === 'spec' ? specDetails.specPath : null,
-            specName: resolvedSourceType === 'spec' ? specDetails.specName : null,
-            port: Number(values.port),
+            specPath: resolvedSourceType === 'spec' ? specPath : null,
+            port: resolvedPort,
             globalDelay: Number(values.globalDelay) || 0
           }
         : createMockServerInstance({
             name: values.name,
             sourceType: resolvedSourceType,
             collectionUid: values.collectionUid,
-            specUid: values.specUid,
-            specPath: specDetails.specPath,
-            specName: specDetails.specName,
-            port: values.port,
+            specPath,
+            port: resolvedPort,
             globalDelay: values.globalDelay,
             workspaceUid: activeWorkspaceUid
           });
@@ -313,6 +308,7 @@ const CreateMockServerModal = ({
       excludeUid: editingInstance?.uid
     }).then((port) => {
       if (!cancelled) {
+        setSuggestedPort(port);
         formik.setFieldValue('port', port);
       }
     }).catch(() => {});
@@ -521,6 +517,10 @@ const CreateMockServerModal = ({
                     }}
                     onBlur={async (event) => {
                       formik.handleBlur(event);
+                      if (editingInstance && Number(editingInstance.port) === Number(event.target.value)) {
+                        setPortError(null);
+                        return;
+                      }
                       const portCheck = await checkMockServerPortAvailable(event.target.value, configuredInstances, {
                         excludeUid: editingInstance?.uid
                       });
@@ -556,7 +556,7 @@ const CreateMockServerModal = ({
               </>
             ) : (
               <div className="text-xs mt-2 opacity-70">
-                Bruno will pick the next available port automatically when you start the server.
+                Bruno will pick the next available port automatically.
               </div>
             )}
           </div>

@@ -6,13 +6,9 @@ const net = require('net');
 const { BrowserWindow } = require('electron');
 const { v4: uuidv4 } = require('uuid');
 const { preferencesUtil } = require('../../store/preferences');
-const {
-  buildRouteMapFromMockResponses,
-  countRouteResponses,
-  routeMapToRouteTable
-} = require('./mock-response-routes');
+const { buildRouteMapFromMockResponses, countRouteResponses } = require('./mock-response-routes');
 const { buildRequestContext, evaluateResponseCandidates } = require('./mock-rule-matcher');
-const { DEFAULT_GATEWAY_PORT } = require('./mock-server-routing');
+const DEFAULT_GATEWAY_PORT = 4000;
 
 const MAX_LOG_ENTRIES = 500;
 const LOG_FLUSH_MS = 300;
@@ -88,13 +84,25 @@ const isPortUsedByMockServer = (port, mockServerUid = null) => {
   return false;
 };
 
+// Connect probe, not bind. On macOS, bind(127.0.0.1) can succeed while another
+// process already holds *:port (e.g. OrbStack), so a bind check falsely reports free.
 const isPortAvailable = (port) => new Promise((resolve) => {
-  const tester = net.createServer()
-    .once('error', () => resolve(false))
-    .once('listening', () => {
-      tester.close(() => resolve(true));
-    })
-    .listen(port, LOCALHOST_IPV4);
+  const socket = net.connect({ port, host: LOCALHOST_IPV4 });
+  let settled = false;
+  const finish = (available) => {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    socket.removeAllListeners();
+    socket.destroy();
+    resolve(available);
+  };
+
+  socket.setTimeout(250);
+  socket.once('connect', () => finish(false));
+  socket.once('timeout', () => finish(false));
+  socket.once('error', () => finish(true));
 });
 
 const checkPortAvailable = async (port, { mockServerUid = null, additionalUsedPorts = [] } = {}) => {
@@ -110,6 +118,11 @@ const checkPortAvailable = async (port, { mockServerUid = null, additionalUsedPo
 
   if (additionalUsedPorts.some((usedPort) => Number(usedPort) === normalizedPort)) {
     return { available: false, reason: 'bruno-config' };
+  }
+
+  // Editing/saving settings for a running mock: the connect probe would see our own listener.
+  if (mockServerUid && isolatedServers.get(mockServerUid)?.port === normalizedPort) {
+    return { available: true, reason: null };
   }
 
   if (!(await isPortAvailable(normalizedPort))) {
@@ -174,13 +187,6 @@ const emit = (channel, data) => {
 
 const emitStatusChanged = (mockServerUid, status) => {
   emit('main:mock-server-status-changed', { mockServerUid, ...status });
-};
-
-const emitRouteTableUpdated = (mockServerUid) => {
-  emit('main:mock-server-route-table-updated', {
-    mockServerUid,
-    routes: getRoutes(mockServerUid)
-  });
 };
 
 const setCollectionRouteMap = (collection, routeMap) => {
@@ -629,19 +635,13 @@ const refreshRoutes = async (mockServerUid, location = {}) => {
 
   if (collection) {
     setCollectionRouteMap(collection, routeMap);
-    emitRouteTableUpdated(mockServerUid);
   }
 
   return {
     routeCount: routeMap.size,
-    exampleCount: countRouteResponses(routeMap),
-    routes: routeMapToRouteTable(routeMap)
+    exampleCount: countRouteResponses(routeMap)
   };
 };
-
-const getRoutes = (mockServerUid, location = {}) => (
-  routeMapToRouteTable(resolveRouteMap(mockServerUid, location))
-);
 
 const getLog = (mockServerUid) => {
   const collection = collections.get(mockServerUid);
@@ -681,7 +681,6 @@ module.exports = {
   stopAll,
   getStatus,
   refreshRoutes,
-  getRoutes,
   getLog,
   setDelay,
   clearLog,

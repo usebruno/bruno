@@ -1,45 +1,14 @@
 import { cloneDeep } from 'lodash';
-import {
-  buildMockResponseEditorItem,
-  getMockResponseItemUid
-} from 'utils/mock-server/mock-responses/editor';
-
-const buildEditorCollection = (collection, mockServerUid, responseUid) => {
-  if (collection?.uid) {
-    return {
-      uid: collection.uid,
-      pathname: collection.pathname || null,
-      name: collection.name || 'Collection',
-      activeEnvironmentUid: collection.activeEnvironmentUid || null,
-      environments: collection.environments || [],
-      globalEnvironmentVariables: collection.globalEnvironmentVariables || {},
-      globalEnvSecrets: collection.globalEnvSecrets || [],
-      workspaceProcessEnvVariables: collection.workspaceProcessEnvVariables || {},
-      root: collection.root,
-      draft: collection.draft,
-      runtimeVariables: collection.runtimeVariables || {},
-      processEnvVariables: collection.processEnvVariables || {},
-      promptVariables: collection.promptVariables || {},
-      oauth2Credentials: collection.oauth2Credentials
-    };
-  }
-
-  return {
-    uid: `mock-server-collection-${mockServerUid || responseUid}`,
-    pathname: null,
-    name: 'Mock Server'
-  };
-};
+import { buildMockResponseEditorItem } from 'utils/mock-server/mock-responses/editor';
 
 export const initMockResponseEditor = (state, action) => {
-  const { mockResponse, collection, mockServerUid } = action.payload;
+  const { mockResponse, mockServerUid } = action.payload;
   const responseUid = mockResponse.uid;
 
   state.mockResponseEditors[responseUid] = {
     item: buildMockResponseEditorItem(mockResponse),
     savedMockResponse: cloneDeep(mockResponse),
     rules: cloneDeep(mockResponse.rules || { operator: 'AND', conditions: [] }),
-    collection: buildEditorCollection(collection, mockServerUid, responseUid),
     mockServerUid: mockServerUid || null
   };
 };
@@ -83,5 +52,3 @@ export const cancelMockResponseEditorEdit = (state, action) => {
 export const removeMockResponseEditor = (state, action) => {
   delete state.mockResponseEditors[action.payload.responseUid];
 };
-
-export const getMockResponseEditorItemUid = (responseUid) => getMockResponseItemUid(responseUid);

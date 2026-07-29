@@ -3,17 +3,9 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 const MAX_LOG_ENTRIES = 500;
 
 const initialState = {
-  // Per-instance server state: { [mockServerUid]: ServerState }
   servers: {},
-  // Per-instance request logs: { [mockServerUid]: RequestLogEntry[] }
   requestLogs: {},
-  // Per-instance route hit counts: { [mockServerUid]: { [method path]: number } }
-  routeHitCounts: {},
-  // Per-instance route tables: { [mockServerUid]: Route[] }
-  routes: {},
-  // Per-instance mock responses: { [mockServerUid]: MockResponse[] }
   mockResponses: {},
-  // Workspace-scoped mock server instances from mockserver.yml
   instancesByWorkspace: {}
 };
 
@@ -51,9 +43,6 @@ export const startMockServer = createAsyncThunk(
       throw new Error(result.error);
     }
 
-    const routes = await window.ipcRenderer.invoke('renderer:mock-server-get-routes', payload);
-    dispatch(setRouteTable({ mockServerUid, routes: routes || [] }));
-
     dispatch(updateServerStatus({
       mockServerUid,
       status: 'running',
@@ -83,15 +72,11 @@ export const stopMockServer = createAsyncThunk(
 
 export const refreshMockRoutes = createAsyncThunk(
   'mockServer/refreshRoutes',
-  async (payload, { dispatch }) => {
-    const mockServerUid = resolveMockServerUid(payload);
+  async (payload) => {
     const result = await window.ipcRenderer.invoke('renderer:mock-server-refresh-routes', payload);
     if (!result.success) {
       throw new Error(result.error);
     }
-
-    const routes = result.routes || await window.ipcRenderer.invoke('renderer:mock-server-get-routes', payload);
-    dispatch(setRouteTable({ mockServerUid, routes: routes || [] }));
 
     return result;
   }
@@ -132,7 +117,6 @@ export const syncMockServerState = createAsyncThunk(
       mockServerUid,
       ...(result?.status || {})
     }));
-    dispatch(setRouteTable({ mockServerUid, routes: result?.routes || [] }));
     dispatch(setRequestLogs({ mockServerUid, entries: result?.log || [] }));
 
     return { mockServerUid, ...result };
@@ -171,33 +155,16 @@ export const loadMockServerInstances = createAsyncThunk(
   }
 );
 
-export const loadMockServerRoutes = createAsyncThunk(
-  'mockServer/loadRoutes',
-  async (payload, { dispatch }) => {
-    const mockServerUid = resolveMockServerUid(payload);
-    const routes = await window.ipcRenderer.invoke('renderer:mock-server-get-routes', payload);
-    dispatch(setRouteTable({ mockServerUid, routes: routes || [] }));
-
-    return {
-      mockServerUid,
-      routes: routes || []
-    };
-  }
-);
-
 export const loadMockResponses = createAsyncThunk(
   'mockServer/loadResponses',
-  async (payload, { dispatch }) => {
+  async (payload) => {
     const result = await window.ipcRenderer.invoke('renderer:mock-server-get-responses-and-routes', payload);
     if (!result.success) {
       throw new Error(result.error);
     }
 
-    const mockServerUid = payload.mockServerUid;
-    dispatch(setRouteTable({ mockServerUid, routes: result.routes || [] }));
-
     return {
-      mockServerUid,
+      mockServerUid: payload.mockServerUid,
       responses: result.responses || []
     };
   }
@@ -205,7 +172,7 @@ export const loadMockResponses = createAsyncThunk(
 
 export const loadAllMockResponses = createAsyncThunk(
   'mockServer/loadAllResponses',
-  async ({ locations }, { dispatch }) => {
+  async ({ locations }) => {
     const result = await window.ipcRenderer.invoke('renderer:mock-server-load-all-responses', { locations });
     if (!result.success) {
       throw new Error(result.error);
@@ -221,7 +188,6 @@ export const loadAllMockResponses = createAsyncThunk(
         continue;
       }
 
-      dispatch(setRouteTable({ mockServerUid, routes: data.routes || [] }));
       loaded.push({
         mockServerUid,
         responses: data.responses || []
@@ -234,14 +200,10 @@ export const loadAllMockResponses = createAsyncThunk(
 
 export const createMockResponse = createAsyncThunk(
   'mockServer/createResponse',
-  async (payload, { dispatch }) => {
+  async (payload) => {
     const result = await window.ipcRenderer.invoke('renderer:mock-server-create-response', payload);
     if (!result.success) {
       throw new Error(result.error);
-    }
-
-    if (result.routes) {
-      dispatch(setRouteTable({ mockServerUid: payload.mockServerUid, routes: result.routes }));
     }
 
     return {
@@ -253,14 +215,10 @@ export const createMockResponse = createAsyncThunk(
 
 export const saveMockResponse = createAsyncThunk(
   'mockServer/saveResponse',
-  async (payload, { dispatch }) => {
+  async (payload) => {
     const result = await window.ipcRenderer.invoke('renderer:mock-server-save-response', payload);
     if (!result.success) {
       throw new Error(result.error);
-    }
-
-    if (result.routes) {
-      dispatch(setRouteTable({ mockServerUid: payload.mockServerUid, routes: result.routes }));
     }
 
     return {
@@ -272,14 +230,10 @@ export const saveMockResponse = createAsyncThunk(
 
 export const deleteMockResponse = createAsyncThunk(
   'mockServer/deleteResponse',
-  async (payload, { dispatch }) => {
+  async (payload) => {
     const result = await window.ipcRenderer.invoke('renderer:mock-server-delete-response', payload);
     if (!result.success) {
       throw new Error(result.error);
-    }
-
-    if (result.routes) {
-      dispatch(setRouteTable({ mockServerUid: payload.mockServerUid, routes: result.routes }));
     }
 
     return {
@@ -291,13 +245,14 @@ export const deleteMockResponse = createAsyncThunk(
 
 export const generateMockResponsesFromSpec = createAsyncThunk(
   'mockServer/generateFromSpec',
-  async (payload, { dispatch }) => {
-    const result = await window.ipcRenderer.invoke('renderer:mock-server-generate-from-spec', payload);
+  async (payload) => {
+    const result = await window.ipcRenderer.invoke('renderer:mock-server-build-spec-responses', {
+      ...payload,
+      persist: true
+    });
     if (!result.success) {
       throw new Error(result.error);
     }
-
-    await dispatch(loadMockResponses(payload));
 
     return {
       mockServerUid: payload.mockServerUid,
@@ -309,14 +264,10 @@ export const generateMockResponsesFromSpec = createAsyncThunk(
 
 export const syncMockResponsesFromExamples = createAsyncThunk(
   'mockServer/syncFromExamples',
-  async (payload, { dispatch }) => {
+  async (payload) => {
     const result = await window.ipcRenderer.invoke('renderer:mock-server-replace-responses', payload);
     if (!result.success) {
       throw new Error(result.error);
-    }
-
-    if (result.routes) {
-      dispatch(setRouteTable({ mockServerUid: payload.mockServerUid, routes: result.routes }));
     }
 
     return {
@@ -329,7 +280,11 @@ export const syncMockResponsesFromExamples = createAsyncThunk(
 export const loadMockResponsesFromSpec = createAsyncThunk(
   'mockServer/loadResponsesFromSpec',
   async (payload) => {
-    const result = await window.ipcRenderer.invoke('renderer:mock-server-load-spec-responses', payload);
+    const result = await window.ipcRenderer.invoke('renderer:mock-server-build-spec-responses', {
+      ...payload,
+      persist: false,
+      generateFromSchema: payload.generateFromSchema ?? true
+    });
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -351,26 +306,6 @@ export const mockServerSlice = createSlice({
       };
     },
 
-    addRequestLogEntry: (state, action) => {
-      const { mockServerUid, collectionUid, entry } = action.payload;
-      const uid = mockServerUid || collectionUid;
-      if (!state.requestLogs[uid]) {
-        state.requestLogs[uid] = [];
-      }
-      state.requestLogs[uid].push(entry);
-      if (state.requestLogs[uid].length > MAX_LOG_ENTRIES) {
-        state.requestLogs[uid] = state.requestLogs[uid].slice(-MAX_LOG_ENTRIES);
-      }
-
-      if (entry?.matched) {
-        const key = `${entry.method} ${entry.path}`;
-        if (!state.routeHitCounts[uid]) {
-          state.routeHitCounts[uid] = {};
-        }
-        state.routeHitCounts[uid][key] = (state.routeHitCounts[uid][key] || 0) + 1;
-      }
-    },
-
     addRequestLogEntries: (state, action) => {
       const { mockServerUid, collectionUid, entries = [] } = action.payload;
       const uid = mockServerUid || collectionUid;
@@ -387,68 +322,19 @@ export const mockServerSlice = createSlice({
       if (state.requestLogs[uid].length > MAX_LOG_ENTRIES) {
         state.requestLogs[uid] = state.requestLogs[uid].slice(-MAX_LOG_ENTRIES);
       }
-
-      if (!state.routeHitCounts[uid]) {
-        state.routeHitCounts[uid] = {};
-      }
-
-      for (const entry of entries) {
-        if (!entry?.matched) {
-          continue;
-        }
-
-        const key = `${entry.method} ${entry.path}`;
-        state.routeHitCounts[uid][key] = (state.routeHitCounts[uid][key] || 0) + 1;
-      }
-    },
-
-    clearRequestLog: (state, action) => {
-      const { mockServerUid, collectionUid } = action.payload;
-      const uid = mockServerUid || collectionUid;
-      state.requestLogs[uid] = [];
-      state.routeHitCounts[uid] = {};
-    },
-
-    setRouteTable: (state, action) => {
-      const { mockServerUid, collectionUid, routes } = action.payload;
-      const uid = mockServerUid || collectionUid;
-      state.routes[uid] = routes;
     },
 
     setRequestLogs: (state, action) => {
       const { mockServerUid, collectionUid, entries } = action.payload;
       const uid = mockServerUid || collectionUid;
       state.requestLogs[uid] = entries || [];
-
-      const hitCounts = {};
-      for (const entry of entries || []) {
-        if (!entry?.matched) {
-          continue;
-        }
-
-        const key = `${entry.method} ${entry.path}`;
-        hitCounts[key] = (hitCounts[key] || 0) + 1;
-      }
-      state.routeHitCounts[uid] = hitCounts;
-    },
-
-    setMockResponses: (state, action) => {
-      const { mockServerUid, responses } = action.payload;
-      state.mockResponses[mockServerUid] = responses || [];
     },
 
     removeMockServerData: (state, action) => {
       const { mockServerUid } = action.payload;
       delete state.servers[mockServerUid];
       delete state.requestLogs[mockServerUid];
-      delete state.routeHitCounts[mockServerUid];
-      delete state.routes[mockServerUid];
       delete state.mockResponses[mockServerUid];
-    },
-
-    setMockServerInstances: (state, action) => {
-      const { workspaceUid, instances } = action.payload;
-      state.instancesByWorkspace[workspaceUid] = instances || [];
     },
 
     upsertMockServerInstance: (state, action) => {
@@ -490,8 +376,6 @@ export const mockServerSlice = createSlice({
           globalDelay: 0
         };
         state.requestLogs[mockServerUid] = [];
-        state.routeHitCounts[mockServerUid] = {};
-        state.routes[mockServerUid] = [];
       })
       .addCase(updateMockDelay.fulfilled, (state, action) => {
         const { mockServerUid, delay } = action.payload;
@@ -502,7 +386,6 @@ export const mockServerSlice = createSlice({
       .addCase(clearMockLog.fulfilled, (state, action) => {
         const { mockServerUid } = action.payload;
         state.requestLogs[mockServerUid] = [];
-        state.routeHitCounts[mockServerUid] = {};
       })
       .addCase(loadMockResponses.fulfilled, (state, action) => {
         const { mockServerUid, responses } = action.payload;
@@ -545,11 +428,8 @@ export const mockServerSlice = createSlice({
           .filter((response) => response.uid !== responseUid);
       })
       .addCase(generateMockResponsesFromSpec.fulfilled, (state, action) => {
-        const { mockServerUid } = action.payload;
-        // Responses are reloaded via loadMockResponses in the thunk.
-        if (!state.mockResponses[mockServerUid]) {
-          state.mockResponses[mockServerUid] = [];
-        }
+        const { mockServerUid, responses } = action.payload;
+        state.mockResponses[mockServerUid] = responses || [];
       })
       .addCase(syncMockResponsesFromExamples.fulfilled, (state, action) => {
         const { mockServerUid, responses } = action.payload;
@@ -560,14 +440,9 @@ export const mockServerSlice = createSlice({
 
 export const {
   updateServerStatus,
-  addRequestLogEntry,
   addRequestLogEntries,
-  clearRequestLog,
-  setRouteTable,
   setRequestLogs,
-  setMockResponses,
   removeMockServerData,
-  setMockServerInstances,
   upsertMockServerInstance,
   removeMockServerInstance
 } = mockServerSlice.actions;

@@ -5,6 +5,9 @@ import {
   getGlobalEnvironmentVariablesMasked
 } from 'utils/collections';
 import { resolveMockServerWorkspacePath } from 'utils/mock-server/mock-server-instances';
+import { extractMockRoutePath, getMockResponseRouteKey } from '@usebruno/common/utils';
+
+export { extractMockRoutePath as extractMockResponseRoutePath, getMockResponseRouteKey };
 
 export const resolveMockResponseLocation = (
   instance,
@@ -29,70 +32,6 @@ export const resolveMockResponseLocation = (
   };
 };
 
-export const extractMockResponseRoutePath = (rawUrl) => {
-  if (!rawUrl) {
-    return '/';
-  }
-
-  let cleaned = String(rawUrl).trim();
-  cleaned = cleaned.replace(/^\{\{[^}]+\}\}/, '');
-
-  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
-    try {
-      cleaned = new URL(cleaned).pathname;
-    } catch {
-      // new URL() rejects malformed/templated hosts (e.g. "{{host}}:{{port}}", "bad host");
-      // strip the scheme and everything up to the first "/" so only the path survives
-      const withoutScheme = cleaned.replace(/^https?:\/\//, '');
-      const slashIndex = withoutScheme.indexOf('/');
-      cleaned = slashIndex === -1 ? '/' : withoutScheme.slice(slashIndex);
-      const qIndex = cleaned.indexOf('?');
-      if (qIndex !== -1) {
-        cleaned = cleaned.substring(0, qIndex);
-      }
-    }
-  } else {
-    const ipHostMatch = cleaned.match(/^(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?(\/[^?#]*)?/);
-    if (ipHostMatch) {
-      cleaned = ipHostMatch[1] || '/';
-    } else {
-      const domainHostMatch = cleaned.match(/^(?:[a-zA-Z0-9-]+\.)+[a-zA-Z0-9-]+(?::\d+)?(\/[^?#]*)?/);
-      if (domainHostMatch) {
-        cleaned = domainHostMatch[1] || '/';
-      } else {
-        const bareHostMatch = cleaned.match(/^[a-zA-Z0-9-]+:\d+(\/[^?#]*)?/);
-        if (bareHostMatch) {
-          cleaned = bareHostMatch[1] || '/';
-        }
-      }
-    }
-
-    const qIndex = cleaned.indexOf('?');
-    if (qIndex !== -1) {
-      cleaned = cleaned.substring(0, qIndex);
-    }
-  }
-
-  cleaned = cleaned.replace(/\{\{([^}]+)\}\}/g, ':$1');
-
-  if (!cleaned.startsWith('/')) {
-    cleaned = `/${cleaned}`;
-  }
-  if (cleaned.length > 1 && cleaned.endsWith('/')) {
-    cleaned = cleaned.slice(0, -1);
-  }
-  cleaned = cleaned.replace(/\/+/g, '/');
-
-  return cleaned || '/';
-};
-
-export const getMockResponseRouteKey = (response) => {
-  const method = (response?.request?.method || 'GET').toUpperCase();
-  const url = extractMockResponseRoutePath(response?.request?.url);
-  const status = Number(response?.response?.status) || 200;
-  return `${method} ${url}::${status}`;
-};
-
 export const copyExampleToMockResponse = (example, parentRequest) => ({
   name: `${example.name || 'Example'} (mock)`,
   description: example.description || '',
@@ -101,7 +40,7 @@ export const copyExampleToMockResponse = (example, parentRequest) => ({
     requestPathname: parentRequest?.pathname || null
   },
   request: {
-    url: extractMockResponseRoutePath(example.request?.url || parentRequest?.request?.url || '/'),
+    url: extractMockRoutePath(example.request?.url || parentRequest?.request?.url || '/'),
     method: (example.request?.method || parentRequest?.request?.method || 'GET').toUpperCase(),
     headers: example.request?.headers || [],
     params: example.request?.params || [],
@@ -122,14 +61,13 @@ export const copyExampleToMockResponse = (example, parentRequest) => ({
   }
 });
 
-export const syncMockResponsesFromExamples = (existingResponses = [], exampleEntries = []) => {
+const mergeMockResponsesByRouteKey = (existingResponses = [], nextResponses = [], { keepExistingName = false, ensureUid = false } = {}) => {
   const responses = [...existingResponses];
   const indexByRouteKey = new Map(
     responses.map((response, index) => [getMockResponseRouteKey(response), index])
   );
 
-  for (const { item, example } of exampleEntries) {
-    const nextResponse = copyExampleToMockResponse(example, item);
+  for (const nextResponse of nextResponses) {
     const routeKey = getMockResponseRouteKey(nextResponse);
     const existingIndex = indexByRouteKey.get(routeKey);
 
@@ -138,57 +76,43 @@ export const syncMockResponsesFromExamples = (existingResponses = [], exampleEnt
       responses[existingIndex] = {
         ...nextResponse,
         uid: existing.uid,
-        name: nextResponse.name,
+        name: keepExistingName ? existing.name : nextResponse.name,
         rules: existing.rules
       };
       continue;
     }
 
-    nextResponse.uid = uuid();
+    const toPush = ensureUid && !nextResponse.uid
+      ? { ...nextResponse, uid: uuid() }
+      : nextResponse;
     indexByRouteKey.set(routeKey, responses.length);
-    responses.push(nextResponse);
+    responses.push(toPush);
   }
 
   return responses;
 };
 
-// Same shape as syncMockResponsesFromExamples: responses matching a spec endpoint+status
-// are overwritten with the freshly generated content (uid/rules kept); everything else
-// (manually created, or no longer in the spec) is left untouched.
-export const syncMockResponsesFromSpec = (existingResponses = [], specResponses = []) => {
-  const responses = [...existingResponses];
-  const indexByRouteKey = new Map(
-    responses.map((response, index) => [getMockResponseRouteKey(response), index])
-  );
+export const syncMockResponsesFromExamples = (existingResponses = [], exampleEntries = []) => (
+  mergeMockResponsesByRouteKey(
+    existingResponses,
+    exampleEntries.map(({ item, example }) => copyExampleToMockResponse(example, item)),
+    { keepExistingName: false, ensureUid: true }
+  )
+);
 
-  for (const nextResponse of specResponses) {
-    const routeKey = getMockResponseRouteKey(nextResponse);
-    const existingIndex = indexByRouteKey.get(routeKey);
-
-    if (existingIndex !== undefined) {
-      const existing = responses[existingIndex];
-      responses[existingIndex] = {
-        ...nextResponse,
-        uid: existing.uid,
-        name: existing.name,
-        rules: existing.rules
-      };
-      continue;
-    }
-
-    indexByRouteKey.set(routeKey, responses.length);
-    responses.push(nextResponse);
-  }
-
-  return responses;
-};
+export const syncMockResponsesFromSpec = (existingResponses = [], specResponses = []) => (
+  mergeMockResponsesByRouteKey(existingResponses, specResponses, {
+    keepExistingName: true,
+    ensureUid: false
+  })
+);
 
 export const buildMockServerTryUrl = ({
   port,
   requestUrl,
   params = []
 }) => {
-  let path = extractMockResponseRoutePath(requestUrl);
+  let path = extractMockRoutePath(requestUrl);
   const query = (params || [])
     .filter((param) => param?.enabled !== false && param?.name)
     .map((param) => `${encodeURIComponent(param.name)}=${encodeURIComponent(param.value || '')}`)
@@ -360,4 +284,55 @@ export const collectCollectionExamples = (collection) => {
 
   walk(collection?.items || []);
   return examples;
+};
+
+export const buildMockRouteTable = (responses = []) => {
+  const routeMap = new Map();
+
+  for (const response of responses) {
+    const method = (response?.request?.method || 'GET').toUpperCase();
+    const path = extractMockRoutePath(response?.request?.url);
+    const key = `${method} ${path}`;
+
+    if (!routeMap.has(key)) {
+      routeMap.set(key, []);
+    }
+
+    routeMap.get(key).push(response);
+  }
+
+  return Array.from(routeMap.entries())
+    .map(([key, items]) => {
+      const [method, ...pathParts] = key.split(' ');
+      return {
+        method,
+        path: pathParts.join(' '),
+        responseCount: items.length,
+        responses: items.map((item) => ({
+          uid: item.uid,
+          name: item.name || 'Mock Response',
+          status: Number(item.response?.status) || 200,
+          sourceFile: 'mock-response'
+        })),
+        defaultResponse: items[0]?.name || null
+      };
+    })
+    .sort((left, right) => (
+      `${left.method} ${left.path}`.localeCompare(`${right.method} ${right.path}`)
+    ));
+};
+
+export const countMatchedRouteHits = (entries = []) => {
+  const hitCounts = {};
+
+  for (const entry of entries) {
+    if (!entry?.matched) {
+      continue;
+    }
+
+    const key = `${entry.method} ${entry.path}`;
+    hitCounts[key] = (hitCounts[key] || 0) + 1;
+  }
+
+  return hitCounts;
 };

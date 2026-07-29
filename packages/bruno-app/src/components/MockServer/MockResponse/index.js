@@ -6,9 +6,9 @@ import {
   initMockResponseEditor,
   removeMockResponseEditor,
   syncMockResponseEditorSaved,
-  updateMockResponseRules
-} from 'providers/ReduxStore/slices/collections/mockResponseEditorActions';
-import { cancelMockResponseEditorEdit } from 'providers/ReduxStore/slices/collections';
+  updateMockResponseRules,
+  cancelMockResponseEditorEdit
+} from 'providers/ReduxStore/slices/collections';
 import { saveMockResponse, deleteMockResponse, loadMockResponses } from 'providers/ReduxStore/slices/mock-server/index';
 import { closeTabs, updateTabMeta, updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest } from 'utils/mock-server/mock-responses';
@@ -122,7 +122,6 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     if (!editor || editor.savedMockResponse?.uid !== storedResponse.uid) {
       dispatch(initMockResponseEditor({
         mockResponse: storedResponse,
-        collection: resolvedCollection,
         mockServerUid: instance.uid
       }));
     }

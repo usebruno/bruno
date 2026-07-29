@@ -3,6 +3,7 @@ const fs = require('fs');
 const os = require('os');
 const yaml = require('js-yaml');
 const { v4: uuidv4 } = require('uuid');
+const { getMockResponseRouteKey } = require('@usebruno/common').utils;
 
 let electronApp = null;
 
@@ -68,9 +69,7 @@ const MOCK_SERVER_META_FIELDS = [
   'port',
   'sourceType',
   'collectionUid',
-  'specUid',
   'specPath',
-  'specName',
   'globalDelay'
 ];
 
@@ -94,6 +93,9 @@ const mergeMockServerBlock = (existing = {}, instance = {}) => {
   for (const key of MOCK_SERVER_META_FIELDS) {
     delete preserved[key];
   }
+  delete preserved.specUid;
+  delete preserved.specName;
+  delete preserved.responses;
 
   return {
     ...preserved,
@@ -108,9 +110,7 @@ const mockServerBlockToInstance = (uid, block = {}, workspaceUid) => ({
   port: Number(block.port) || DEFAULT_MOCK_SERVER_PORT,
   sourceType: block.sourceType || 'collection',
   collectionUid: block.collectionUid || null,
-  specUid: block.specUid || null,
   specPath: block.specPath || null,
-  specName: block.specName || null,
   globalDelay: Number(block.globalDelay) || 0,
   workspaceUid
 });
@@ -487,20 +487,13 @@ const cloneMockServerResponses = (sourceLocation, targetLocation) => {
   return clonedResponses;
 };
 
-const getResponseRouteKey = (response) => {
-  const method = (response?.request?.method || 'GET').toUpperCase();
-  const url = response?.request?.url || '/';
-  const status = Number(response?.response?.status) || 200;
-  return `${method} ${url}::${status}`;
-};
-
 const appendMockResponses = (location, responses = []) => {
   const existingResponses = [...getMockServerResponses(location)];
-  const existingKeys = new Set(existingResponses.map((item) => getResponseRouteKey(item)));
+  const existingKeys = new Set(existingResponses.map((item) => getMockResponseRouteKey(item)));
   const created = [];
 
   for (const response of responses) {
-    const routeKey = getResponseRouteKey(response);
+    const routeKey = getMockResponseRouteKey(response);
     if (existingKeys.has(routeKey)) {
       continue;
     }

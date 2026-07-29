@@ -288,7 +288,7 @@ const MockServerDashboard = ({ instance, collection }) => {
       if (spec?.pathname) {
         return spec.name || spec.filename || spec.pathname;
       }
-      return instance.specName || 'API Spec';
+      return spec.name || spec.filename || spec.pathname || 'API Spec';
     }
 
     return collection?.name || 'Collection';

@@ -1,6 +1,8 @@
 import {
   getMockResponseRouteKey,
-  syncMockResponsesFromExamples
+  syncMockResponsesFromExamples,
+  buildMockRouteTable,
+  countMatchedRouteHits
 } from './mock-responses';
 
 jest.mock('utils/common', () => ({
@@ -52,5 +54,51 @@ describe('syncMockResponsesFromExamples', () => {
     expect(synced.find((item) => item.uid === 'users-1')?.response.body.content).toBe('{"synced":true}');
     expect(synced.find((item) => item.uid === 'generated-uid')?.name).toBe('Create order (mock)');
     expect(getMockResponseRouteKey(synced.find((item) => item.uid === 'users-1'))).toBe('GET /users::200');
+  });
+});
+
+describe('buildMockRouteTable', () => {
+  it('groups responses by method and path', () => {
+    const routes = buildMockRouteTable([
+      {
+        uid: 'a',
+        name: 'Users',
+        request: { url: 'https://api.example.com/users', method: 'get' },
+        response: { status: 200 }
+      },
+      {
+        uid: 'b',
+        name: 'Users error',
+        request: { url: '/users', method: 'GET' },
+        response: { status: 401 }
+      }
+    ]);
+
+    expect(routes).toEqual([
+      {
+        method: 'GET',
+        path: '/users',
+        responseCount: 2,
+        responses: [
+          { uid: 'a', name: 'Users', status: 200, sourceFile: 'mock-response' },
+          { uid: 'b', name: 'Users error', status: 401, sourceFile: 'mock-response' }
+        ],
+        defaultResponse: 'Users'
+      }
+    ]);
+  });
+});
+
+describe('countMatchedRouteHits', () => {
+  it('counts only matched log entries', () => {
+    expect(countMatchedRouteHits([
+      { matched: true, method: 'GET', path: '/users' },
+      { matched: true, method: 'GET', path: '/users' },
+      { matched: false, method: 'GET', path: '/users' },
+      { matched: true, method: 'POST', path: '/users' }
+    ])).toEqual({
+      'GET /users': 2,
+      'POST /users': 1
+    });
   });
 });

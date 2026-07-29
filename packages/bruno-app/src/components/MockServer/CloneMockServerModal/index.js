@@ -9,13 +9,14 @@ import { validateName, validateNameError } from 'utils/common/regex';
 import { loadMockResponses } from 'providers/ReduxStore/slices/mock-server/index';
 import {
   cloneMockServerInstancePayload,
+  DEFAULT_MOCK_SERVER_PORT,
   getMockServerInstances,
   isMockServerNameTaken,
   isMockServerPortTaken,
   openMockServerDashboard,
   resolveTabCollectionUid,
   saveMockServerInstance,
-  suggestNextMockServerPort
+  suggestAvailableMockServerPort
 } from 'utils/mock-server/mock-server-instances';
 
 const CloneMockServerModal = ({
@@ -30,13 +31,12 @@ const CloneMockServerModal = ({
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const configuredInstances = useSelector((state) => getMockServerInstances(state));
   const existingInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
-  const suggestedPort = suggestNextMockServerPort(configuredInstances);
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       name: `${instance.name} copy`,
-      port: suggestedPort
+      port: DEFAULT_MOCK_SERVER_PORT
     },
     validationSchema: Yup.object({
       name: Yup.string()
@@ -110,6 +110,20 @@ const CloneMockServerModal = ({
       inputRef.current.select();
     }
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    suggestAvailableMockServerPort(configuredInstances).then((port) => {
+      if (!cancelled) {
+        formik.setFieldValue('port', port);
+      }
+    }).catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [configuredInstances]);
 
   return (
     <Portal>

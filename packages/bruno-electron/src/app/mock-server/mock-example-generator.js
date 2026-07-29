@@ -1,12 +1,3 @@
-const path = require('path');
-const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
-const { openApiToBruno } = require('@usebruno/converters');
-const { parseRequest, stringifyRequestViaWorker } = require('@usebruno/filestore');
-const { searchForRequestFiles, getCollectionFormat, writeFile } = require('../../utils/filesystem');
-const { normalizeUrlPath } = require('./mock-server-routing');
-const { loadCollectionOpenApiSpec } = require('./mock-spec-loader');
-
 let faker;
 try {
   const fakerModule = require('@faker-js/faker');
@@ -60,28 +51,6 @@ const fakerWords = () => {
   return 'string';
 };
 
-const buildSpecItemsMap = (collectionItems) => {
-  const map = new Map();
-
-  const flatten = (items) => {
-    for (const item of items || []) {
-      if (item.type === 'folder' && item.items) {
-        flatten(item.items);
-        continue;
-      }
-
-      if (!item.request) continue;
-
-      const method = item.request.method?.toUpperCase() || 'GET';
-      const urlPath = normalizeUrlPath(item.request.url);
-      map.set(`${method}:${urlPath}`, item);
-    }
-  };
-
-  flatten(collectionItems);
-  return map;
-};
-
 const schemaToExample = (schema, spec = null, depth = 0, refStack = new Set()) => {
   if (!schema || depth > 8) return null;
 
@@ -97,8 +66,6 @@ const schemaToExample = (schema, spec = null, depth = 0, refStack = new Set()) =
   if (type === 'object' || resolvedSchema.properties) {
     const result = {};
     for (const [key, value] of Object.entries(resolvedSchema.properties || {})) {
-      // each sibling gets its own copy so resolving the same $ref twice (e.g. two
-      // fields pointing at the same component schema) isn't mistaken for a cycle
       result[key] = schemaToExample(value, spec, depth + 1, new Set(refStack));
     }
     return result;
@@ -211,131 +178,6 @@ const generatePrimitiveExample = (schema, type) => {
   return null;
 };
 
-const getResponseBodyFromSpecItem = (specItem) => {
-  if (specItem?.examples?.length) {
-    const example = specItem.examples[0];
-    return {
-      status: Number(example.response?.status) || 200,
-      statusText: example.response?.statusText || 'OK',
-      headers: example.response?.headers || [],
-      body: example.response?.body || { type: 'json', content: '{}' }
-    };
-  }
-
-  return {
-    status: 200,
-    statusText: 'OK',
-    headers: [{ name: 'Content-Type', value: 'application/json', enabled: true }],
-    body: { type: 'json', content: '{}' }
-  };
-};
-
-const createDefaultExample = (parsedRequest) => {
-  const method = parsedRequest.request?.method || 'GET';
-  const url = parsedRequest.request?.url || '/';
-
-  return {
-    uid: uuidv4(),
-    name: '200 OK',
-    type: 'http-request',
-    request: {
-      method,
-      url
-    },
-    response: {
-      status: 200,
-      statusText: 'OK',
-      headers: [{ name: 'Content-Type', value: 'application/json', enabled: true }],
-      body: {
-        type: 'json',
-        content: '{}'
-      }
-    }
-  };
-};
-
-const cloneExamplesFromSpecItem = (specItem, parsedRequest) => {
-  if (!specItem?.examples?.length) {
-    return [createDefaultExample(parsedRequest)];
-  }
-
-  return specItem.examples.map((example) => ({
-    ...example,
-    uid: example.uid || uuidv4(),
-    request: {
-      method: example.request?.method || parsedRequest.request?.method || 'GET',
-      url: example.request?.url || parsedRequest.request?.url || '/'
-    }
-  }));
-};
-
-const shouldSkipRequestFile = (basename, relativePath) => {
-  if (basename === 'collection.bru' || basename === 'folder.bru') return true;
-  if (basename === 'opencollection.yml' || basename === 'folder.yml') return true;
-
-  const relDir = path.dirname(relativePath);
-  return relDir === 'environments' || relDir.startsWith(`environments${path.sep}`)
-    || relDir === 'mocks' || relDir.startsWith(`mocks${path.sep}`);
-};
-
-const ensureMockExamples = async (collectionPath, brunoConfig) => {
-  const format = getCollectionFormat(collectionPath);
-  const spec = await loadCollectionOpenApiSpec(collectionPath, brunoConfig);
-  let specItemsMap = new Map();
-
-  if (spec) {
-    const groupBy = brunoConfig?.openapi?.[0]?.groupBy || 'tags';
-    const brunoFromSpec = openApiToBruno(spec, { groupBy });
-    specItemsMap = buildSpecItemsMap(brunoFromSpec.items || []);
-  }
-
-  let filesUpdated = 0;
-  let examplesGenerated = 0;
-  const files = searchForRequestFiles(collectionPath, collectionPath);
-
-  for (const filePath of files) {
-    const basename = path.basename(filePath);
-    const relativePath = path.relative(collectionPath, filePath);
-    if (shouldSkipRequestFile(basename, relativePath)) continue;
-
-    let content;
-    try {
-      content = fs.readFileSync(filePath, 'utf8');
-    } catch {
-      continue;
-    }
-
-    let parsed;
-    try {
-      parsed = parseRequest(content, { format });
-    } catch {
-      continue;
-    }
-
-    if (!parsed?.request) continue;
-    if (parsed?.examples?.length) continue;
-
-    const requestType = parsed.type || 'http-request';
-    if (requestType !== 'http-request' && requestType !== 'http') continue;
-
-    const method = parsed.request.method?.toUpperCase() || 'GET';
-    const routeId = `${method}:${normalizeUrlPath(parsed.request.url)}`;
-    const specItem = specItemsMap.get(routeId);
-
-    parsed.examples = cloneExamplesFromSpecItem(specItem, parsed);
-    examplesGenerated += parsed.examples.length;
-
-    const updatedContent = await stringifyRequestViaWorker(parsed, { format });
-    await writeFile(filePath, updatedContent);
-    filesUpdated += 1;
-  }
-
-  return { filesUpdated, examplesGenerated, specLoaded: Boolean(spec) };
-};
-
 module.exports = {
-  ensureMockExamples,
-  schemaToExample,
-  resolveOpenApiSchema,
-  createDefaultExample
+  schemaToExample
 };

@@ -192,9 +192,7 @@ export const createMockServerInstance = ({
   name,
   sourceType,
   collectionUid,
-  specUid,
   specPath,
-  specName,
   port,
   globalDelay,
   workspaceUid
@@ -203,41 +201,30 @@ export const createMockServerInstance = ({
   name: name.trim(),
   sourceType: sourceType || 'manual',
   collectionUid: sourceType === 'collection' ? collectionUid : null,
-  specUid: sourceType === 'spec' ? specUid : null,
   specPath: sourceType === 'spec' ? specPath || null : null,
-  specName: sourceType === 'spec' ? specName || null : null,
   port: Number(port) || DEFAULT_MOCK_SERVER_PORT,
   globalDelay: Number(globalDelay) || 0,
   workspaceUid
 });
 
 export const resolveInstanceSpec = (instance, apiSpecs) => {
-  if (!instance || instance.sourceType !== 'spec') {
+  if (!instance || instance.sourceType !== 'spec' || !instance.specPath) {
     return null;
   }
 
-  const byUid = apiSpecs.find((spec) => spec.uid === instance.specUid);
-  if (byUid) {
-    return byUid;
+  const byPath = apiSpecs.find(
+    (spec) => normalizePath(spec.pathname) === normalizePath(instance.specPath)
+  );
+  if (byPath) {
+    return byPath;
   }
 
-  if (instance.specPath) {
-    const byPath = apiSpecs.find(
-      (spec) => normalizePath(spec.pathname) === normalizePath(instance.specPath)
-    );
-    if (byPath) {
-      return byPath;
-    }
-
-    return {
-      uid: instance.specUid,
-      pathname: instance.specPath,
-      name: instance.specName,
-      filename: instance.specName
-    };
-  }
-
-  return null;
+  const filename = instance.specPath.split(/[\\/]/).pop();
+  return {
+    pathname: instance.specPath,
+    name: filename,
+    filename
+  };
 };
 
 export const resolveTabCollectionUid = ({
@@ -419,9 +406,7 @@ export const cloneMockServerInstancePayload = (sourceInstance, { name, port, wor
     name,
     sourceType: sourceInstance.sourceType,
     collectionUid: sourceInstance.collectionUid,
-    specUid: sourceInstance.specUid,
     specPath: sourceInstance.specPath,
-    specName: sourceInstance.specName,
     port,
     globalDelay: sourceInstance.globalDelay,
     workspaceUid: workspaceUid || sourceInstance.workspaceUid
