@@ -55,7 +55,7 @@ const StyledWrapper = styled.div`
       align-items:center;
       justify-content:flex-start;
       width: 100%;
-      height: 1.75rem;
+      min-height: 1.75rem;
       color: ${(props) => props.theme.text};
       font-weight: 400;
       font-size: ${(props) => props.theme.font.size.sm};
