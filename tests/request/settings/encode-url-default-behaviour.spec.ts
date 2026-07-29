@@ -1,40 +1,22 @@
-import fs from 'fs';
 import path from 'path';
-import { closeElectronApp, ElectronApplication, expect, test, waitForReadyPage } from '../../../playwright';
+import { expect, test } from '../../../playwright';
 import {
   buildCommonLocators,
   selectRequestPaneTab
 } from '../../utils/page';
 
-const initUserDataPath = path.join(__dirname, 'init-user-data');
-const fixtureCollectionsPath = path.join(__dirname, 'fixtures', 'collections');
-
-type LaunchFixtures = {
-  launchElectronApp: (options?: { initUserDataPath?: string; templateVars?: Record<string, string> }) => Promise<ElectronApplication>;
-  createTmpDir: (tag?: string) => Promise<string>;
-};
-
-const launchWithIsolatedCollections = async ({ launchElectronApp, createTmpDir }: LaunchFixtures) => {
-  const collectionPath = await createTmpDir('settings-collections');
-  await fs.promises.cp(fixtureCollectionsPath, collectionPath, { recursive: true });
-  const app = await launchElectronApp({ initUserDataPath, templateVars: { collectionPath } });
-  const page = await waitForReadyPage(app);
-  return { app, page, collectionPath };
-};
+test.use({
+  collectionFixturePath: path.join(__dirname, 'fixtures', 'collections')
+});
 
 test.describe('Encode URL Setting Tests', () => {
-  let app: ElectronApplication;
+  let locators: ReturnType<typeof buildCommonLocators>;
 
-  test.afterEach(async () => {
-    if (app) await closeElectronApp(app);
+  test.beforeEach(async ({ pageWithUserData: page }) => {
+    locators = buildCommonLocators(page);
   });
 
-  test('should reflect encodeUrl true when the key is available', async ({ launchElectronApp, createTmpDir }) => {
-    const context = await launchWithIsolatedCollections({ launchElectronApp, createTmpDir });
-    app = context.app;
-    const page = context.page;
-    const locators = buildCommonLocators(page);
-
+  test('should reflect encodeUrl true when the key is available', async ({ pageWithUserData: page }) => {
     await expect(locators.sidebar.collection('encode-url-test')).toBeVisible();
     await locators.sidebar.collection('encode-url-test').click();
     await locators.sidebar.request('encode-url-true').click();
@@ -45,12 +27,7 @@ test.describe('Encode URL Setting Tests', () => {
     await expect(encodeUrlToggle).toHaveAttribute('aria-checked', 'true');
   });
 
-  test('should reflect encodeUrl false when the key is not present', async ({ launchElectronApp, createTmpDir }) => {
-    const context = await launchWithIsolatedCollections({ launchElectronApp, createTmpDir });
-    app = context.app;
-    const page = context.page;
-    const locators = buildCommonLocators(page);
-
+  test('should reflect encodeUrl false when the key is not present', async ({ pageWithUserData: page }) => {
     await expect(locators.sidebar.collection('encode-url-test')).toBeVisible();
     await locators.sidebar.collection('encode-url-test').click();
     await locators.sidebar.request('encode-url-missing').click();
@@ -61,12 +38,7 @@ test.describe('Encode URL Setting Tests', () => {
     await expect(encodeUrlToggle).toHaveAttribute('aria-checked', 'false');
   });
 
-  test('should reflect encodeUrl false when the key is explicitly false', async ({ launchElectronApp, createTmpDir }) => {
-    const context = await launchWithIsolatedCollections({ launchElectronApp, createTmpDir });
-    app = context.app;
-    const page = context.page;
-    const locators = buildCommonLocators(page);
-
+  test('should reflect encodeUrl false when the key is explicitly false', async ({ pageWithUserData: page }) => {
     await expect(locators.sidebar.collection('encode-url-test')).toBeVisible();
     await locators.sidebar.collection('encode-url-test').click();
     await locators.sidebar.request('encode-url-false').click();
