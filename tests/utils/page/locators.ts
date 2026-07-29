@@ -3,39 +3,28 @@ import { buildApiSpecPanelLocators } from './openapi/render-spec';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
+import { buildCodeEditorSearchLocators } from './code-editor-search';
+import { buildRequestSettingsLocators } from './request-settings';
+import { buildSidebarLocators } from './sidebar';
+import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
+import { buildWebsocketCommonLocators } from './websocket';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
+  codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
   openApi: {
     render: buildApiSpecPanelLocators(page)
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
+  requestSettings: buildRequestSettingsLocators(page),
+  websocket: buildWebsocketCommonLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
+  settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
-  sidebar: {
-    collectionsContainer: () => page.getByTestId('collections'),
-    collection: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
-    folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
-    request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
-    folderRequest: (folderName: string, requestName: string) => {
-      // Find the folder's collection-item-name, then navigate to its parent wrapper container (StyledWrapper),
-      // and search for the request within that container's descendants.
-      // Using .locator('..') gets the parent element of the folder's collection-item-name div.
-      const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
-      return folderWrapper.locator('.collection-item-name').filter({ hasText: requestName });
-    },
-    closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
-    collectionRow: (name: string) => page.getByTestId('sidebar-collection-row').filter({ hasText: name }),
-    itemRow: (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ hasText: name }),
-    requestExamplesToggle: (requestName: string) =>
-      page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('request-item-chevron'),
-    example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
-    // The sidebar tree wraps each collection in `#collection-<slug>`; scope queries
-    // to it to disambiguate items that share names across collections.
-    collectionScope: (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`)
-  },
+  sidebar: buildSidebarLocators(page),
+  deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
   actions: {
     collectionActions: (collectionName: string) =>
       page.getByTestId('collections').locator('.collection-name')
@@ -78,6 +67,22 @@ export const buildCommonLocators = (page: Page) => ({
     footer: () => page.locator('.bruno-modal-footer'),
     submitButton: () => page.locator('.bruno-modal-footer .submit'),
     newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`)
+  },
+  openCollectionPicker: {
+    list: () => page.getByTestId('selection-list'),
+    titles: () => page.getByTestId('selection-list').locator('.selection-item-title'),
+    descriptions: () => page.getByTestId('selection-list').locator('.selection-item-description'),
+    item: (name: string) =>
+      page.getByTestId('selection-list').getByRole('listitem').filter({
+        has: page.getByText(name, { exact: true })
+      }),
+    itemCheckbox: (name: string) =>
+      page.getByTestId('selection-list').getByRole('listitem').filter({
+        has: page.getByText(name, { exact: true })
+      }).getByRole('checkbox'),
+    count: () => page.getByTestId('selection-count'),
+    selectAllToggle: () => page.getByTestId('selection-select-all-toggle').getByRole('checkbox'),
+    searchInput: () => page.getByTestId('selection-search-input')
   },
   environment: {
     selector: () => page.getByTestId('environment-selector-trigger'),
@@ -135,9 +140,15 @@ export const buildCommonLocators = (page: Page) => ({
     // Variables and secrets each live on their own tab in the environment editor.
     variablesTab: () => page.getByTestId('responsive-tab-variables'),
     secretsTab: () => page.getByTestId('responsive-tab-secrets'),
+    // The per-tab unsaved-changes dot, scoped to its tab (the visible tab carries the
+    // responsive-tab testid; the hidden measurement copy does not, so this stays unique).
+    // The dot is always in the DOM and toggles via visibility, so assert with
+    // toBeVisible()/toBeHidden() rather than presence.
+    tabDot: (tab: string) => page.getByTestId(`responsive-tab-${tab}`).getByTestId('env-tab-draft-indicator'),
     saveTab: () => page.getByTestId('save-env'),
     saveAll: () => page.getByTestId('save-all-env'),
     searchInput: () => page.getByTestId('env-search-input'),
+    searchAction: () => page.getByTestId('env-search-action'),
     collectionEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Environments$/ }),
     globalEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Global Environments$/ }),
     unsavedModal: {
@@ -159,8 +170,8 @@ export const buildCommonLocators = (page: Page) => ({
     menuItem: (type: string) => page.locator('[role="menu"]').last().getByText(type, { exact: true })
   },
   request: {
-    urlInput: () => page.locator('#request-url .CodeMirror'),
-    urlLine: () => page.locator('#request-url .CodeMirror-line'),
+    urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
+    urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
     sendButton: () => page.getByTestId('send-arrow-icon'),
     methodDropdown: () => page.getByTestId('request-method-selector'),
     newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
@@ -168,20 +179,42 @@ export const buildCommonLocators = (page: Page) => ({
     requestTestId: () => page.getByTestId('request-name'),
     generateCodeButton: () => page.getByTestId('generate-code-button'),
     bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
+    bodyModeLabel: () => page.getByTestId('request-body-mode-label'),
+    exampleBodyModeLabel: () => page.getByTestId('example-body-mode-label'),
     bodyEditor: () => page.getByTestId('request-body-editor'),
-    bodyVariableToken: (name: string) =>
-      page.getByTestId('request-body-editor').locator('.CodeMirror .cm-variable-valid').filter({ hasText: name }),
+    bodyVariableToken: (name: string, state?: 'valid' | 'invalid') => {
+      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
+      return page.getByTestId('request-body-editor').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
+    },
+    urlVariableToken: (name: string, state?: 'valid' | 'invalid') => {
+      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
+      return page.getByTestId('request-url').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
+    },
+    headerVariableToken: (row: Locator, name: string, state?: 'valid' | 'invalid') => {
+      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
+      return row.locator('.CodeMirror').nth(1).locator(selector).filter({ hasText: name }).first();
+    },
     pane: () => page.getByTestId('request-pane')
+  },
+  filePicker: {
+    warningTooltip: () => page.getByTestId('file-picker-warning-tooltip')
   },
   // The variable-info popup shown when hovering a `{{var}}` token in an editor.
   varInfoPopup: {
-    all: () => page.locator('.CodeMirror-brunoVarInfo'),
+    all: () => page.getByTestId('var-info-popup'),
     byName: (name: string) =>
-      page.locator('.CodeMirror-brunoVarInfo').filter({ has: page.locator('.var-name').filter({ hasText: new RegExp(`^${name}$`) }) }),
-    valueDisplay: (popup: Locator) => popup.locator('.var-value-editable-display, .var-value-display').first(),
-    editableValue: (popup: Locator) => popup.locator('.var-value-editable-display').first(),
-    secretToggle: (popup: Locator) => popup.locator('.secret-toggle-button'),
-    editor: (popup: Locator) => popup.locator('.var-value-editor .CodeMirror')
+      page.getByTestId('var-info-popup').filter({ has: page.getByTestId('var-info-name').filter({ hasText: new RegExp(`^${name}$`) }) }),
+    name: (popup: Locator) => popup.getByTestId('var-info-name'),
+    scopeBadge: (popup: Locator) => popup.getByTestId('var-info-scope-badge'),
+    valueDisplay: (popup: Locator) => popup.getByTestId(/^var-info-value-(editable|display)$/).first(),
+    editableValue: (popup: Locator) => popup.getByTestId('var-info-value-editable').first(),
+    secretToggle: (popup: Locator) => popup.getByTestId('var-info-secret-toggle'),
+    copyButton: (popup: Locator) => popup.getByTestId('var-info-copy-button'),
+    readonlyNote: (popup: Locator) => popup.getByTestId('var-info-readonly-note'),
+    warningNote: (popup: Locator) => popup.getByTestId('var-info-warning-note'),
+    // The editor container itself (hidden until the value display is clicked).
+    editorContainer: (popup: Locator) => popup.getByTestId('var-info-value-editor'),
+    editor: (popup: Locator) => popup.getByTestId('var-info-value-editor').locator('.CodeMirror')
   },
   auth: {
     apiKey: {
@@ -202,7 +235,9 @@ export const buildCommonLocators = (page: Page) => ({
     requestType: (type: 'http' | 'graphql' | 'grpc' | 'ws') =>
       page.getByTestId(`presets-request-type-${type}`),
     requestUrl: () => page.getByTestId('presets-request-url'),
-    saveBtn: () => page.getByTestId('presets-save-btn')
+    saveBtn: () => page.getByTestId('presets-save-btn'),
+    defaultEnvironment: () => page.getByTestId('presets-default-environment'),
+    defaultEnvironmentOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
@@ -261,7 +296,11 @@ export const buildCommonLocators = (page: Page) => ({
     items: () => page.getByTestId('timeline-item'),
     lastItem: () => page.getByTestId('timeline-item').last(),
     itemHeader: (item: Locator) => item.getByTestId('timeline-item-header'),
-    clearButton: () => page.getByRole('button', { name: 'Clear Timeline' })
+    clearButton: () => page.getByRole('button', { name: 'Clear Timeline' }),
+    container: () => page.getByTestId('timeline-container'),
+    entries: () => page.getByTestId('timeline-container').getByTestId('timeline-entry'),
+    networkButton: (item: Locator) => item.getByRole('button', { name: 'Network' }),
+    networkLogs: (item: Locator) => item.locator('.network-logs-container')
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
@@ -273,6 +312,8 @@ export const buildCommonLocators = (page: Page) => ({
     locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
+    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
     bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
     bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
@@ -293,6 +334,15 @@ export const buildCommonLocators = (page: Page) => ({
         issuesToastUrlTooLongWarning: () => issuesToast().getByTestId('import-issues-url-too-long-warning')
       };
     })()
+  },
+  export: {
+    postmanModal: () => page.getByTestId('export-to-postman-modal'),
+    postmanFormatCard: () => page.getByTestId('export-format-postman'),
+    nameInput: () => page.getByLabel('Name', { exact: true }),
+    locationInput: () => page.getByLabel('Location', { exact: true }),
+    optionsButton: () => page.getByRole('button', { name: 'Options' }),
+    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle')
   },
   /**
    * Build generic table locators for any table with a testId
@@ -340,25 +390,6 @@ export const buildCommonLocators = (page: Page) => ({
       },
       rowValueInput: (rowIndex: number) => baseTable.rowCell('value', rowIndex)
     };
-  }
-});
-
-export const buildWebsocketCommonLocators = (page: Page) => ({
-  ...buildCommonLocators(page),
-  connectionControls: {
-    connect: () => page.getByTestId('ws-connect-button'),
-    disconnect: () => page.getByTestId('ws-disconnect-button')
-  },
-  messages: () => page.locator('.ws-message'),
-  message: {
-    label: (index: number) => page.getByTestId(`ws-message-label-${index}`),
-    nameInput: (index: number) => page.getByTestId(`ws-message-name-input-${index}`),
-    nameTooltip: () => page.getByTestId('ws-message-name-tooltip')
-  },
-  toolbar: {
-    latestFirst: () => page.getByRole('button', { name: 'Latest First' }),
-    latestLast: () => page.getByRole('button', { name: 'Latest Last' }),
-    clearResponse: () => page.getByTestId('response-clear-btn')
   }
 });
 

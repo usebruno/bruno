@@ -16,7 +16,7 @@ export const createDescriptionColumn = ({
   placeholder: 'Description',
   width: '25%',
   readOnly,
-  render: ({ row, value, onChange, rowIndex }) => (
+  render: ({ row, value, onChange, rowIndex, isLastEmptyRow }) => (
     <MultiLineEditor
       value={value || ''}
       theme={theme}
@@ -27,7 +27,7 @@ export const createDescriptionColumn = ({
           ? (newValue) => onDescriptionChange(newValue, { row, onChange })
           : onChange
       }
-      placeholder={!value ? 'Description' : ''}
+      placeholder={(isLastEmptyRow && !value) ? 'Description' : ''}
       {...(onRun ? { onRun } : {})}
       {...(collection ? { collection } : {})}
       {...(item ? { item } : {})}

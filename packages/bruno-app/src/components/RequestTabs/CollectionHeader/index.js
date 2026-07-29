@@ -557,7 +557,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                 appendTo={() => document.body}
                 icon={(
                   <button className="switcher-trigger">
-                    <span className={classNames('switcher-name', { 'scratch-collection': isScratchCollection })}>{displayName}</span>
+                    <span data-testid="workspace-switcher-name" className={classNames('switcher-name', { 'scratch-collection': isScratchCollection })}>{displayName}</span>
                     <IconChevronDown size={14} strokeWidth={1.5} className="chevron" />
                   </button>
                 )}
@@ -622,7 +622,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
               placement="bottom-start"
               onCreate={onWorkspaceActionsCreate}
               appendTo={() => document.body}
-              icon={<IconDots size={18} strokeWidth={1.5} className="workspace-actions-trigger" />}
+              icon={<IconDots size={18} strokeWidth={1.5} data-testid="workspace-actions-trigger" className="workspace-actions-trigger" />}
             >
               <div className="dropdown-item" onClick={handleRenameWorkspaceClick}>
                 <div className="dropdown-icon">
@@ -714,7 +714,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   </ActionIcon>
                 </ToolHint>
               )}
-              {collection.format === 'bru' && !migratePillDismissed && (
+              {/* {collection.format === 'bru' && !migratePillDismissed && (
                 <div
                   className="migrate-yml-pill"
                   data-testid="migrate-yml-pill"
@@ -738,7 +738,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                     <IconX size={12} strokeWidth={2} />
                   </button>
                 </div>
-              )}
+              )} */}
               {/* OpenAPI Sync - standalone only when configured and beta enabled */}
               {hasOpenApiSyncConfigured && (
                 <ToolHint

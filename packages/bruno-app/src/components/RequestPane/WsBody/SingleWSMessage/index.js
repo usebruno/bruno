@@ -7,7 +7,7 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { queueWsMessage, isWsConnectionActive, connectWS } from 'utils/network/index';
+import { queueWsMessage, ensureWsConnection } from 'utils/network/index';
 import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collections/index';
 import toast from 'react-hot-toast';
 import WSRequestBodyMode from '../BodyMode/index';
@@ -161,11 +161,8 @@ export const SingleWSMessage = ({
       const col = findCollectionByUid(collections, collection.uid);
       const environment = findEnvironmentInCollection(col, col?.activeEnvironmentUid);
 
-      // Auto-connect if not already connected
-      const connectionStatus = await isWsConnectionActive(item.uid);
-      if (!connectionStatus.isActive) {
-        await connectWS(item, col, environment, col?.runtimeVariables, { connectOnly: true });
-      }
+      // Auto-connect if needed; while CONNECTING just queue — open flushes.
+      await ensureWsConnection(item, col, environment, col?.runtimeVariables);
 
       const result = await queueWsMessage(item, col, environment, col?.runtimeVariables, index);
       if (!result.success) {
@@ -179,8 +176,10 @@ export const SingleWSMessage = ({
   return (
     <StyledWrapper
       className={!isSelected ? 'disabled' : ''}
-      onMouseUpCapture={() => {
-        if (!isSelected) onSelect();
+      data-testid={`ws-message-${index}`}
+      onMouseUpCapture={(e) => {
+        if (isSelected || e.target.closest('.hover-action-btn.delete')) return;
+        onSelect();
       }}
     >
       <div
@@ -237,13 +236,13 @@ export const SingleWSMessage = ({
         </div>
         <div className="accordion-actions" onClick={(e) => e.stopPropagation()}>
           <div className="hover-actions">
-            <ToolHint text="Send" toolhintId={`send-msg-${index}`}>
+            <ToolHint text="Send" toolhintId={`send-msg-${index}`} place="bottom">
               <button onClick={onSendMessage} className="hover-action-btn" data-testid={`ws-send-msg-${index}`}>
                 <IconSend size={14} strokeWidth={1.5} />
               </button>
             </ToolHint>
             {(body.ws || []).length > 1 && (
-              <ToolHint text="Delete" toolhintId={`delete-msg-${index}`}>
+              <ToolHint text="Delete" toolhintId={`delete-msg-${index}`} place="bottom">
                 <button onClick={onDeleteMessage} className="hover-action-btn delete" data-testid={`ws-delete-msg-${index}`}>
                   <IconTrash size={14} strokeWidth={1.5} />
                 </button>
@@ -270,6 +269,8 @@ export const SingleWSMessage = ({
             onSave={onSave}
             mode={codemirrorMode[displayMode] ?? 'text/plain'}
             enableVariableHighlighting={true}
+            docKey={`${item.uid}:ws-msg:${message.uid ?? index}`}
+            containScroll={true}
           />
         </div>
       )}

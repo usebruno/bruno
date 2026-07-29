@@ -1,8 +1,10 @@
 import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import * as path from 'path';
-import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, buildWebsocketCommonLocators } from './locators';
+import * as fs from 'fs';
+import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
 import { waitForCollectionMount } from './mounting';
+import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
 
 type SandboxMode = 'safe' | 'developer';
 
@@ -157,13 +159,13 @@ const createCollection = async (
 
     if (format) {
       const advancedBtn = createCollectionModal.locator('.advanced-options .btn-advanced');
-      const showFileFormatToggle = page.getByTestId('show-file-format-toggle');
+      const showAdvancedOptionsToggle = page.getByTestId('show-advanced-options-toggle');
       const formatSelect = createCollectionModal.locator('#format');
 
       await expect(async () => {
         if (!(await formatSelect.isVisible())) {
           await advancedBtn.click();
-          await showFileFormatToggle.click({ timeout: 2000 });
+          await showAdvancedOptionsToggle.click({ timeout: 2000 });
         }
         await expect(formatSelect).toBeVisible({ timeout: 2000 });
       }).toPass({ timeout: 15000 });
@@ -476,6 +478,7 @@ type ImportCollectionOptions = {
   expectedCollectionName?: string;
   expectIssues?: boolean;
   sidebarTimeout?: number;
+  preserveScripts?: boolean;
 };
 
 const importCollection = async (
@@ -506,6 +509,15 @@ const importCollection = async (
     // Verify expected collection name if provided
     if (options.expectedCollectionName) {
       await expect(locationModal.getByText(options.expectedCollectionName)).toBeVisible();
+    }
+
+    // Enable 'Preserve scripts' option via the Advanced Options toggle
+    if (options.preserveScripts) {
+      await locationModal.getByRole('button', { name: 'Options' }).click();
+      await locators.import.advancedOptionsToggle().click();
+      const preserveScriptsCheckbox = locators.import.preserveScriptsToggle();
+      await preserveScriptsCheckbox.check();
+      await expect(preserveScriptsCheckbox).toBeChecked();
     }
 
     // Set location and import
@@ -547,6 +559,20 @@ const openBulkImportModal = async (page: Page, filePaths: string[]) => {
 
     await locators.import.fileInput().setInputFiles(filePaths);
     await expect(locators.import.bulkModal()).toBeVisible();
+  });
+};
+
+const toggleOpenCollectionItem = async (page: Page, name: string) => {
+  await test.step(`Toggle open collection checkbox for "${name}"`, async () => {
+    await buildCommonLocators(page).openCollectionPicker.itemCheckbox(name).click();
+  });
+};
+
+const closeOpenCollectionModal = async (page: Page) => {
+  await test.step('Close the Open Collection modal', async () => {
+    const locators = buildCommonLocators(page);
+    await locators.modal.closeButton().click();
+    await locators.modal.byTitle('Open Collection').waitFor({ state: 'hidden' });
   });
 };
 
@@ -748,6 +774,7 @@ type EnvironmentVariable = {
   name: string;
   value: string;
   isSecret?: boolean;
+  dataType?: 'number' | 'boolean' | 'object';
 };
 
 /**
@@ -766,7 +793,7 @@ const addEnvironmentVariable = async (page: Page, variable: EnvironmentVariable)
     await tab.click();
     await expect(tab).toHaveClass(/active/);
 
-    await addRowToActiveTab(page, variable.name, variable.value);
+    await addRowToActiveTab(page, variable.name, variable.value, variable.dataType);
   });
 };
 
@@ -788,13 +815,19 @@ const addEnvironmentVariables = async (page: Page, variables: EnvironmentVariabl
 /**
  * Add a variable or secret to whichever environment tab (Variables / Secrets) is
  * currently active. The active tab determines the row's type, so select the tab
- * before calling.
+ * before calling. When `dataType` is given, its type is set via the DataTypeSelector.
  * @param page - The page object
  * @param name - The variable/secret name
  * @param value - The variable/secret value
+ * @param dataType - Optional non-string dataType to assign (default `string`)
  * @returns void
  */
-const addRowToActiveTab = async (page: Page, name: string, value: string) => {
+const addRowToActiveTab = async (
+  page: Page,
+  name: string,
+  value: string,
+  dataType?: 'number' | 'boolean' | 'object'
+) => {
   await test.step(`Add row "${name}" to the active environment tab`, async () => {
     const nameInput = page.locator('input[placeholder="Name"]').last();
     await nameInput.waitFor({ state: 'visible' });
@@ -805,8 +838,22 @@ const addRowToActiveTab = async (page: Page, name: string, value: string) => {
 
     const codeMirror = row.getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first();
     await codeMirror.scrollIntoViewIfNeeded();
-    await codeMirror.click();
-    await page.keyboard.type(value);
+    // Target the editor's left edge: when the value column is narrow the DataTypeSelector
+    // renders as a compact overlay pinned to the cell's right side, which otherwise
+    // intercepts a centered click/hover.
+    await codeMirror.click({ position: { x: 5, y: 5 } });
+    if (dataType) {
+      await expect(codeMirror).toHaveClass(/CodeMirror-focused/);
+      await page.keyboard.insertText(value);
+
+      const { dataTypeSelector } = buildCommonLocators(page);
+      await codeMirror.hover({ position: { x: 5, y: 5 } });
+      await dataTypeSelector.typeLabel(row).click();
+      await dataTypeSelector.menuItem(dataType).click();
+      await expect(dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', dataType);
+    } else {
+      await page.keyboard.type(value);
+    }
   });
 };
 
@@ -1658,6 +1705,21 @@ const closeAllTabs = async (page: Page) => {
     if (await discardAllButton.isVisible({ timeout: 1000 }).catch(() => false)) {
       await discardAllButton.click();
     }
+
+    const saveTransientModal = page.getByTestId('save-transient-request-modal');
+    if (await saveTransientModal.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await saveTransientModal.getByRole('button', { name: 'Cancel' }).click();
+      await expect(saveTransientModal).toBeHidden();
+    }
+  });
+};
+
+// Switch to an already-open request tab by its label (e.g. transient tabs are "Untitled N").
+const switchToOpenTab = async (page: Page, label: string) => {
+  await test.step(`Switch to tab "${label}"`, async () => {
+    const tab = page.getByTestId('request-tab').filter({ has: page.getByText(label, { exact: true }) });
+    await tab.click();
+    await expect(tab).toHaveAttribute('aria-selected', 'true');
   });
 };
 
@@ -2129,6 +2191,77 @@ const generateCollectionDocs = async (
   });
 };
 
+const openExportToPostmanModal = async (page: Page, collectionName: string) => {
+  await test.step(`Open Export to Postman for "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    await openCollection(page, collectionName);
+
+    const collectionAction = locators.actions.collectionActions(collectionName);
+    await locators.sidebar.collection(collectionName).hover();
+    await expect(collectionAction).toBeVisible({ timeout: 2000 });
+    await collectionAction.click();
+    await locators.dropdown.item('Share').click();
+    await expect(locators.modal.title('Share Collection')).toBeVisible();
+
+    await locators.export.postmanFormatCard().click();
+    await locators.modal.button('Proceed').click();
+    await expect(locators.modal.title('Export to Postman')).toBeVisible();
+  });
+};
+
+const closeExportToPostmanModal = async (page: Page) => {
+  await test.step('Close the export modal', async () => {
+    const locators = buildCommonLocators(page);
+
+    await locators.export.postmanModal().getByTestId('modal-close-button').click();
+    await expect(locators.modal.title('Export to Postman')).toBeHidden();
+    await expect(locators.modal.title('Share Collection')).toBeHidden();
+  });
+};
+
+// Dismiss an open modal if one is present
+const dismissModalIfOpen = async (page: Page) => {
+  const { modal } = buildCommonLocators(page);
+  if (await modal.closeButton().isVisible()) {
+    await modal.closeButton().click({ force: true });
+    await expect(modal.card()).toBeHidden();
+  }
+};
+
+const exportCollectionToPostman = async (
+  page: Page,
+  collectionName: string,
+  outputDir: string,
+  { preserveScripts = false }: { preserveScripts?: boolean } = {}
+) => {
+  const locators = buildCommonLocators(page);
+
+  await openExportToPostmanModal(page, collectionName);
+
+  await test.step('Set the export location', async () => {
+    await locators.export.locationInput().fill(outputDir);
+  });
+
+  await test.step('Configure preserve scripts', async () => {
+    if (preserveScripts) {
+      await locators.export.optionsButton().click();
+      await locators.export.advancedOptionsToggle().click();
+      const checkbox = locators.export.preserveScriptsToggle();
+      await expect(checkbox).toBeVisible();
+      await checkbox.check();
+      await expect(checkbox).toBeChecked();
+    }
+  });
+
+  return await test.step('Export and read the written file', async () => {
+    await locators.modal.button('Export').click();
+    const filePath = path.join(outputDir, `${collectionName}.json`);
+    await expect.poll(() => fs.existsSync(filePath), { timeout: 5000 }).toBe(true);
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  });
+};
+
 /**
  * Toggle the "Enable App" request setting idempotently (Settings tab).
  * Enabling exposes the App tab and the Request/App/File view-mode toggle.
@@ -2334,9 +2467,9 @@ const selectAppView = async (page: Page, view: 'code' | 'preview') => {
  */
 const renameWsMessage = async (page: Page, index: number, name: string) => {
   await test.step(`Rename websocket message ${index} to "${name}"`, async () => {
-    const ws = buildWebsocketCommonLocators(page);
-    await ws.message.label(index).dblclick();
-    const nameInput = ws.message.nameInput(index);
+    const { websocket } = buildCommonLocators(page);
+    await websocket.message.label(index).dblclick();
+    const nameInput = websocket.message.nameInput(index);
     await expect(nameInput).toBeVisible();
     await nameInput.selectText();
     await page.keyboard.type(name);
@@ -2384,8 +2517,79 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
   await target.scrollIntoViewIfNeeded().catch(() => { });
 };
 
+/**
+ * Set the active request's URL and save it. Typed char-by-char so CodeMirror
+ * tokenizes `{{var}}` references (vs. a bulk fill that skips tokenization).
+ * @param page - The page object
+ * @param url - The URL to type into the request URL editor
+ */
+const setRequestUrlAndSave = async (page: Page, url: string) => {
+  await test.step(`Set request URL: ${url}`, async () => {
+    const { request } = buildCommonLocators(page);
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+    await request.urlInput().click();
+    await page.keyboard.type(url);
+    await page.keyboard.press(saveShortcut);
+  });
+};
+
+/**
+ * Hover a `{{var}}` token in the URL editor and return its (visible) info tooltip.
+ * @param page - The page object
+ * @param varName - The variable name inside the braces
+ * @param state - Highlight class to match: 'valid' (known) or 'invalid' (unknown); omit to match either
+ * @returns The tooltip popup locator
+ */
+const openUrlVarTooltip = async (
+  page: Page,
+  varName: string,
+  state?: 'valid' | 'invalid'
+): Promise<Locator> => {
+  const { request, varInfoPopup } = buildCommonLocators(page);
+  // Dismiss any previously-open tooltip first.
+  await page.mouse.move(0, 0);
+  await request.urlVariableToken(varName, state).hover();
+
+  const tooltip = varInfoPopup.all().first();
+  await expect(tooltip).toBeVisible();
+  return tooltip;
+};
+
+/**
+ * Returns true if the element is on top at its centre (not hidden behind a header),
+ * i.e. the topmost element at its centre is inside a dropdown/tippy container.
+ * @param locator - The dropdown item locator
+ * @returns Whether the item is the topmost element at its own centre
+ */
+const elementIsInsideDropdown = async (locator: Locator) => {
+  const box = await locator.boundingBox();
+  expect(box, 'dropdown item should have a layout box').not.toBeNull();
+  const x = box!.x + box!.width / 2;
+  const y = box!.y + box!.height / 2;
+  return locator.page().evaluate(
+    ({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest('.tippy-box, .dropdown')),
+    { x, y }
+  );
+};
+
+/**
+* Open the System Proxy panel in the Preferences dialog and wait for the refresh button to be visible.
+* @param page - The page object
+*/
+
+const openSystemProxyPanel = async (page: Page) => {
+  await openPreferences(page);
+  await selectPreferencesTab(page, 'Proxy');
+
+  const systemProxyLocators = buildPreferencesLocators(page).systemProxy;
+  await systemProxyLocators.systemProxyMode().click();
+  await systemProxyLocators.systemProxyRefreshButton().waitFor({ state: 'visible' });
+};
+
 export {
   waitForReadyPage,
+  setRequestUrlAndSave,
+  openUrlVarTooltip,
   scrollVirtuosoRowIntoView,
   dismissImportIssuesToasts,
   closeAllCollections,
@@ -2399,6 +2603,8 @@ export {
   deleteCollectionFromOverview,
   importCollection,
   openBulkImportModal,
+  toggleOpenCollectionItem,
+  closeOpenCollectionModal,
   removeCollection,
   createFolder,
   openEnvironmentSelector,
@@ -2443,6 +2649,7 @@ export {
   generateGrpcSampleMessage,
   selectGrpcMethod,
   closeAllTabs,
+  switchToOpenTab,
   createWorkspace,
   switchWorkspace,
   selectScriptSubTab,
@@ -2466,6 +2673,10 @@ export {
   openRequestInFolder,
   setUrlEncoding,
   generateCollectionDocs,
+  openExportToPostmanModal,
+  closeExportToPostmanModal,
+  dismissModalIfOpen,
+  exportCollectionToPostman,
   openFolderSettings,
   setTableRowDescriptionValue,
   setAppCode,
@@ -2482,7 +2693,9 @@ export {
   getAppWebviewHtml,
   createApp,
   selectAppView,
-  renameWsMessage
+  renameWsMessage,
+  elementIsInsideDropdown,
+  openSystemProxyPanel
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };

@@ -61,7 +61,7 @@ const {
   scanForBrunoFiles,
   withFileLock
 } = require('../utils/filesystem');
-const { getCollectionConfigFile, openCollection, openCollectionDialog, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
+const { getCollectionConfigFile, openCollection, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
 const { isValidNpmPackageName, runNpmInstall } = require('../utils/install-packages');
 const { waitForShellEnv } = require('../store/shell-env-state');
@@ -74,9 +74,11 @@ const interpolateVars = require('./network/interpolate-vars');
 const { interpolateString } = require('./network/interpolate-string');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeVars, parseBruFileMeta, hydrateRequestWithUuid, transformRequestToSaveToFilesystem } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
+const { setBrunoConfig } = require('../store/bruno-config');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
+const { remount: remountCollectionV2 } = require('./mount');
 const { transformBrunoConfigBeforeSave, transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { REQUEST_TYPES } = require('../utils/constants');
 const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
@@ -1242,12 +1244,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     return results;
   });
 
-  ipcMain.handle('renderer:open-collection', async () => {
-    if (watcher && mainWindow) {
-      await openCollectionDialog(mainWindow, watcher);
-    }
-  });
-
   ipcMain.handle('renderer:open-multiple-collections', async (e, collectionPaths, options = {}) => {
     if (watcher && mainWindow) {
       const result = await openCollectionsByPathname(mainWindow, watcher, collectionPaths, options);
@@ -1595,6 +1591,17 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             const content = await stringifyRequestViaWorker(itemToSave, { format });
             await writeFile(item.pathname, content);
           }
+        } else if (item?.type === 'app') {
+          if (fs.existsSync(item.pathname)) {
+            const existingContent = fs.readFileSync(item.pathname, 'utf8');
+            const appJson = parseRequest(existingContent, { format });
+            if (appJson?.seq === item.seq) {
+              continue;
+            }
+            appJson.seq = item.seq;
+            const newContent = stringifyRequest(appJson, { format });
+            await writeFile(item.pathname, newContent);
+          }
         }
       }
       return true;
@@ -1696,36 +1703,55 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
+  const writeBrunoConfig = async (brunoConfig, collectionPath, collectionRoot) => {
+    const transformedBrunoConfig = transformBrunoConfigBeforeSave(_.cloneDeep(brunoConfig));
+    const format = getCollectionFormat(collectionPath);
+
+    if (format === 'bru') {
+      const brunoConfigPath = path.join(collectionPath, 'bruno.json');
+      const content = await stringifyJson(transformedBrunoConfig);
+      await writeFile(brunoConfigPath, content);
+    } else if (format === 'yml') {
+      // opencollection.yml holds both config AND the collection root. If the caller
+      // didn't supply a root (e.g. a config-only update before the tree finished
+      // loading), recover it from disk so request defaults/docs/scripts aren't wiped.
+      let rootToWrite = collectionRoot;
+      if (!rootToWrite) {
+        const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
+        if (fs.existsSync(ocYmlPath)) {
+          const existing = fs.readFileSync(ocYmlPath, 'utf8');
+          rootToWrite = parseCollection(existing, { format }).collectionRoot;
+        }
+      }
+      const content = await stringifyCollection(rootToWrite, transformedBrunoConfig, { format });
+      await writeFile(path.join(collectionPath, 'opencollection.yml'), content);
+    } else {
+      throw new Error(`Invalid collection format: ${format}`);
+    }
+  };
+
   ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionRoot) => {
     try {
-      const transformedBrunoConfig = transformBrunoConfigBeforeSave(brunoConfig);
-      const format = getCollectionFormat(collectionPath);
+      await writeBrunoConfig(brunoConfig, collectionPath, collectionRoot);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
 
-      if (format === 'bru') {
-        const brunoConfigPath = path.join(collectionPath, 'bruno.json');
-        const content = await stringifyJson(transformedBrunoConfig);
-        await writeFile(brunoConfigPath, content);
-      } else if (format === 'yml') {
-        // opencollection.yml holds both config AND the collection root. If the caller
-        // didn't supply a root (e.g. a config-only update before the tree finished
-        // loading), recover it from disk so request defaults/docs/scripts aren't wiped.
-        let rootToWrite = collectionRoot;
-        if (!rootToWrite) {
-          const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
-          if (fs.existsSync(ocYmlPath)) {
-            try {
-              const existing = fs.readFileSync(ocYmlPath, 'utf8');
-              rootToWrite = parseCollection(existing, { format }).collectionRoot;
-            } catch (e) {
-              rootToWrite = collectionRoot;
-            }
-          }
-        }
-        const content = await stringifyCollection(rootToWrite, transformedBrunoConfig, { format });
-        await writeFile(path.join(collectionPath, 'opencollection.yml'), content);
-      } else {
-        throw new Error(`Invalid collection format: ${format}`);
-      }
+  ipcMain.handle('renderer:ignore-folder', async (event, collectionUid, collectionPath, collectionRoot, brunoConfig, folderPath) => {
+    try {
+      const relativePath = path.relative(collectionPath, folderPath).replace(/\\/g, '/');
+      const existingIgnores = brunoConfig?.ignore || [];
+      const updatedBrunoConfig = {
+        ...brunoConfig,
+        ignore: [...new Set([...existingIgnores, relativePath])]
+      };
+
+      await writeBrunoConfig(updatedBrunoConfig, collectionPath, collectionRoot);
+      setBrunoConfig(collectionUid, updatedBrunoConfig);
+      collectionWatcher.unlinkItemPathInWatcher(folderPath);
+
+      return updatedBrunoConfig;
     } catch (error) {
       return Promise.reject(error);
     }
@@ -2330,11 +2356,15 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   // Implement the Postman to Bruno conversion handler
-  ipcMain.handle('renderer:convert-postman-to-bruno', async (event, postmanCollection) => {
+  ipcMain.handle('renderer:convert-postman-to-bruno', async (event, postmanCollection, options = {}) => {
     try {
       // Convert Postman collection to Bruno format
       // Returns { collection, issues } where issues tracks items that were skipped or degraded
-      const result = await postmanToBruno(postmanCollection, { useWorkers: true });
+      const result = await postmanToBruno(postmanCollection, {
+        useWorkers: true,
+        // preserve scripts without any pm.* -> bru.* translation
+        preserveScripts: !!options.preserveScripts
+      });
 
       return result;
     } catch (error) {
@@ -2530,6 +2560,31 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       return { success: true, filePath };
     } catch (error) {
       throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:export-collection-postman', async (event, dirPath, fileName, content, overwrite = false) => {
+    try {
+      if (!dirPath || !fs.existsSync(dirPath)) {
+        throw new Error('Export location does not exist');
+      }
+
+      // ensure the resolved path is inside the export directory
+      const resolvedDir = path.resolve(dirPath);
+      const filePath = path.resolve(resolvedDir, fileName);
+      if (!filePath.startsWith(resolvedDir + path.sep) && filePath !== resolvedDir) {
+        throw new Error('Invalid file name');
+      }
+
+      if (!overwrite && fs.existsSync(filePath)) {
+        throw new Error(`path: ${filePath} already exists`);
+      }
+
+      await writeFile(filePath, content);
+
+      return { success: true, filePath };
+    } catch (error) {
+      return Promise.reject(error);
     }
   });
 
@@ -2779,13 +2834,21 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       ymlBrunoConfig.size = size;
       ymlBrunoConfig.filesCount = filesCount;
 
-      if (watcher) {
-        try {
+      try {
+        const remounted = await remountCollectionV2({ collectionUid, brunoConfig: ymlBrunoConfig });
+        if (!remounted && watcher) {
           watcher.addWatcher(mainWindow, collectionPathname, collectionUid, ymlBrunoConfig, false, undefined, { ignoreInitial: true });
-        } catch (watcherError) {
-          console.error('Failed to re-attach watcher after migration:', watcherError);
+        }
+      } catch (watcherError) {
+        console.error('Failed to re-attach watcher after migration:', watcherError);
+        try {
+          if (watcher) {
+            watcher.addWatcher(mainWindow, collectionPathname, collectionUid, ymlBrunoConfig, false, undefined, { ignoreInitial: true });
+          }
+        } catch (fallbackError) {
+          console.error('Fallback watcher attach failed after migration:', fallbackError);
           mainWindow.webContents.send('main:display-error', {
-            message: `Collection migrated to yml, but live sync could not be re-enabled: ${watcherError.message}. Please reopen the collection.`
+            message: `Collection migrated to yml, but live sync could not be re-enabled: ${fallbackError.message}. Please reopen the collection.`
           });
         }
       }
@@ -2802,25 +2865,29 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       }
 
       // Restart the watcher on the original bru collection
-      if (watcher) {
-        try {
-          const config = JSON.parse(fs.readFileSync(path.join(collectionPathname, 'bruno.json'), 'utf8'));
+      try {
+        const config = JSON.parse(fs.readFileSync(path.join(collectionPathname, 'bruno.json'), 'utf8'));
+        const remounted = await remountCollectionV2({ collectionUid, brunoConfig: config });
+        if (!remounted && watcher) {
           watcher.addWatcher(mainWindow, collectionPathname, collectionUid, config);
-        } catch (watcherError) {
-          console.error('Failed to restart watcher after migration error:', watcherError);
         }
+      } catch (watcherError) {
+        console.error('Failed to restart watcher after migration error:', watcherError);
       }
       throw error;
     }
   });
 };
 
-const registerMainEventHandlers = (mainWindow, watcher) => {
-  ipcMain.on('main:open-collection', () => {
-    if (watcher && mainWindow) {
-      openCollectionDialog(mainWindow, watcher);
+const registerMainEventHandlers = (mainWindow) => {
+  const triggerOpenCollection = () => {
+    if (mainWindow) {
+      mainWindow.webContents.send('main:open-collection');
     }
-  });
+  };
+
+  ipcMain.on('renderer:open-collection', triggerOpenCollection);
+  ipcMain.on('menu:open-collection', triggerOpenCollection);
 
   ipcMain.on('main:open-docs', () => {
     const docsURL = 'https://docs.usebruno.com';

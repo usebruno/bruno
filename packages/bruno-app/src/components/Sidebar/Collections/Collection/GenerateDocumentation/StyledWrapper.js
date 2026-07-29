@@ -20,7 +20,7 @@ const StyledWrapper = styled.div`
       width: 100%;
 
       .version-info {
-        padding: 0.75rem 1rem;
+        padding: 0.75rem;
         background-color: ${(props) => props.theme.background.mantle};
 
         .version-line {
@@ -72,7 +72,7 @@ const StyledWrapper = styled.div`
       }
 
       .env-section {
-        padding: 1rem;
+        padding: 0.75rem;
 
         .env-checkbox {
           width: 1rem;
@@ -80,6 +80,22 @@ const StyledWrapper = styled.div`
           margin: 0;
           flex-shrink: 0;
           cursor: pointer;
+          accent-color: ${(props) => props.theme.primary.solid};
+        }
+
+        .env-checkbox:indeterminate {
+          appearance: none;
+          -webkit-appearance: none;
+          background-color: ${(props) => props.theme.primary.solid};
+          border: 1px solid ${(props) => props.theme.primary.solid};
+          border-radius: 0.15rem;
+          background-image: linear-gradient(
+            ${(props) => props.theme.bg},
+            ${(props) => props.theme.bg}
+          );
+          background-size: 0.55rem 2px;
+          background-position: center;
+          background-repeat: no-repeat;
         }
 
         .env-section-header {
@@ -130,17 +146,19 @@ const StyledWrapper = styled.div`
         .env-row {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          /* Fixed row height — MUST match ENV_ROW_HEIGHT (Virtuoso fixedItemHeight)
-             in EnvironmentSelectionList. The inter-row spacing is baked in here. */
           height: 28px;
           cursor: pointer;
           margin: 0;
+
+          .env-checkbox {
+            margin-right: 10px;
+          }
 
           .env-name {
             font-size: ${(props) => props.theme.font.size.base};
             color: ${(props) => props.theme.text};
             min-width: 0;
+            margin-left: 6px;
           }
         }
       }

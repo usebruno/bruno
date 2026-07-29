@@ -36,8 +36,8 @@ const buildHtmlDocument = (collectionName, escapedYamlContent) => `<!DOCTYPE htm
         body { margin: 0; padding: 0; }
         #opencollection-container { width: 100vw; height: 100vh; }
     </style>
-    <link rel="stylesheet" href="${CDN_BASE_URL}/docs/index.css">
-    <script src="${CDN_BASE_URL}/docs/index.js"></script>
+    <link rel="stylesheet" href="${CDN_BASE_URL}/api-docs/api-docs.css">
+    <script src="${CDN_BASE_URL}/api-docs/api-docs.js"></script>
 </head>
 <body>
     <div id="opencollection-container"></div>
@@ -86,16 +86,15 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
 
   const environments = useMemo(() => collection?.environments || [], [collection?.environments]);
 
-  // Track *deselected* environments so all environments — including any that load
-  // after mount — stay selected by default, matching the design.
-  const [deselectedEnvUids, setDeselectedEnvUids] = useState(() => new Set());
+  // Track *selected* environments, starting empty, so nothing is included by default.
+  const [selectedEnvUidsSet, setSelectedEnvUidsSet] = useState(() => new Set());
   const selectedEnvUids = useMemo(
-    () => environments.filter((env) => !deselectedEnvUids.has(env.uid)).map((env) => env.uid),
-    [environments, deselectedEnvUids]
+    () => environments.filter((env) => selectedEnvUidsSet.has(env.uid)).map((env) => env.uid),
+    [environments, selectedEnvUidsSet]
   );
 
   const toggleEnv = useCallback((uid) => {
-    setDeselectedEnvUids((prev) => {
+    setSelectedEnvUidsSet((prev) => {
       const next = new Set(prev);
       if (next.has(uid)) {
         next.delete(uid);
@@ -106,9 +105,9 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
     });
   }, []);
 
-  // Select all -> nothing deselected; deselect all -> every environment deselected.
+  // Select all -> every environment selected; deselect all -> nothing selected.
   const toggleAllEnvs = useCallback(
-    (selectAll) => setDeselectedEnvUids(selectAll ? new Set() : new Set(environments.map((env) => env.uid))),
+    (selectAll) => setSelectedEnvUidsSet(selectAll ? new Set(environments.map((env) => env.uid)) : new Set()),
     [environments]
   );
 
@@ -120,7 +119,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
       // ) at every depth, so the generated docs match the collection shown in the sidebar.
       collectionCopy.items = sortItemsBySidebarOrder(collectionCopy.items);
 
-      // Only include the environments the user kept selected in the generated docs.
+      // Only include the environments the user explicitly selected in the generated docs.
       const selectedSet = new Set(selectedEnvUids);
       collectionCopy.environments = (collectionCopy.environments || []).filter((env) => selectedSet.has(env.uid));
 
@@ -232,7 +231,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
               </div>
 
               <p className="note m-0">
-                The generated file loads OpenCollection's JavaScript and CSS files from a CDN, which requires an internet connection.
+                The generated file loads Bruno's JavaScript and CSS files from a CDN, which requires an internet connection.
               </p>
             </div>
           )}

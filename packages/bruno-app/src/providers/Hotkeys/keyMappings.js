@@ -78,6 +78,63 @@ export const KEY_BINDING_SECTIONS = [
   }
 ];
 
+export const KEY_BINDING_SEPARATOR = '+bind+';
+
+export const MODIFIER_SYMBOLS = {
+  mac: {
+    command: '⌘',
+    ctrl: '⌃',
+    alt: '⌥',
+    shift: '⇧'
+  },
+  windows: {
+    ctrl: 'Ctrl',
+    alt: 'Alt',
+    shift: 'Shift',
+    command: 'Win'
+  }
+};
+
+export const fromKeysString = (keysStr) => (keysStr ? keysStr.split(KEY_BINDING_SEPARATOR).filter(Boolean) : []);
+
+export const formatSingleKeyForDisplay = (key, os) => {
+  if (MODIFIER_SYMBOLS[os]?.[key]) return MODIFIER_SYMBOLS[os][key];
+  if (key.length === 1) return key.toUpperCase();
+
+  const SPECIAL_LABELS = {
+    enter: os === 'mac' ? '↩' : 'Enter',
+    backspace: os === 'mac' ? '⌫' : 'Backspace',
+    tab: os === 'mac' ? '⇥' : 'Tab',
+    delete: os === 'mac' ? '⌦' : 'Delete',
+    esc: os === 'mac' ? '⎋' : 'Esc',
+    space: os === 'mac' ? '␣' : 'Space',
+    arrowup: '↑',
+    arrowdown: '↓',
+    arrowleft: '←',
+    arrowright: '→',
+    pageup: 'PageUp',
+    pagedown: 'PageDown',
+    home: 'Home',
+    end: 'End'
+  };
+
+  return SPECIAL_LABELS[key] || key.charAt(0).toUpperCase() + key.slice(1);
+};
+
+export const formatKeysForDisplay = (keysArr, os, separator = ' + ') => {
+  if (!keysArr?.length) return '';
+  return keysArr.map((key) => formatSingleKeyForDisplay(key, os)).join(separator);
+};
+
+export const getKeyBindingForActionByOS = (action, userKeyBindings, os) => {
+  const merged = getMergedKeyBindings(userKeyBindings);
+  return merged?.[action]?.[os] || '';
+};
+
+export const getKeyBindingDisplayTextByOS = (action, userKeyBindings, os) => {
+  return formatKeysForDisplay(fromKeysString(getKeyBindingForActionByOS(action, userKeyBindings, os)), os);
+};
+
 /**
  * Converts keybindings from storage format (+bind+) to Mousetrap format (+)
  * Storage format uses +bind+ as separator to avoid conflicts with the actual + key
@@ -91,7 +148,7 @@ export const toMousetrapCombo = (keysStr) => {
   if (!keysStr) return null;
 
   // Split by +bind+ separator
-  const parts = keysStr.split('+bind+').filter(Boolean);
+  const parts = fromKeysString(keysStr);
 
   // Convert arrow key names from browser format to Mousetrap format
   const converted = parts.map((part) => {
