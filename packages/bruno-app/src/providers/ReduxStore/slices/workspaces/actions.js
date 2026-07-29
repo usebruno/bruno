@@ -952,7 +952,7 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
 
         if (workspace?.collections?.length > 0) {
           const newCollectionPaths = workspace.collections
-            .filter((workspaceCollection) => !workspaceCollection.notFoundLocally)
+            .filter((workspaceCollection) => !workspaceCollection.notFoundLocally && !workspaceCollection.failedToOpen)
             .map((workspaceCollection) => workspaceCollection.path)
             .filter((collectionPath) => collectionPath && !openCollections.includes(normalizePath(collectionPath)));
 
