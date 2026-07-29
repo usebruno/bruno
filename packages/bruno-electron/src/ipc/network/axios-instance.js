@@ -8,6 +8,7 @@ const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies')
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
+const { isSameOrigin } = require('@usebruno/common').utils;
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -71,6 +72,7 @@ const checkConnection = (host, port) =>
  * @see https://github.com/axios/axios/issues/695
  * @returns {axios.AxiosInstance}
  */
+
 function makeAxiosInstance({
   proxyMode = 'off',
   proxyModeReason = '',
@@ -78,7 +80,8 @@ function makeAxiosInstance({
   requestMaxRedirects = 5,
   httpsAgentRequestFields = {},
   interpolationOptions = {},
-  followRedirects = true
+  followRedirects = true,
+  forwardAuthorizationHeader = true
 } = {}) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
@@ -367,6 +370,23 @@ function makeAxiosInstance({
               ...error.config.headers
             }
           };
+
+          if (!forwardAuthorizationHeader) {
+            if (!isSameOrigin(error.config.url, redirectUrl)) {
+              Object.keys(requestConfig.headers).forEach((key) => {
+                const lowerKey = key.toLowerCase();
+                if (lowerKey === 'authorization' || lowerKey === 'proxy-authorization') {
+                  delete requestConfig.headers[key];
+                }
+              });
+
+              timeline.push({
+                timestamp: new Date(),
+                type: 'info',
+                message: `Cross-origin redirect: stripping Authorization and Proxy-Authorization headers`
+              });
+            }
+          }
 
           // Apply proper HTTP redirect behavior based on status code
           const statusCode = error.response.status;

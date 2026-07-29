@@ -6,7 +6,8 @@ export {
   stripOrigin,
   safeDecodeURIComponent,
   extractMockRoutePath,
-  getMockResponseRouteKey
+  getMockResponseRouteKey,
+  isSameOrigin
 } from './url';
 
 export {
@@ -44,6 +45,11 @@ export {
 export {
   toDisplayString
 } from './string';
+
+export {
+  toBool,
+  toNumber
+} from './type-helpers';
 
 export {
   MAX_BODY_SIZE_DEFAULT,

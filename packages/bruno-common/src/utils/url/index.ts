@@ -295,6 +295,16 @@ const getMockResponseRouteKey = (response?: MockResponseRouteKeyInput | null): s
   return `${method} ${url}::${status}`;
 };
 
+const isSameOrigin = (url1: string, url2: string): boolean => {
+  try {
+    const parsed1 = new URL(url1);
+    const parsed2 = new URL(url2);
+    return parsed1.origin === parsed2.origin;
+  } catch (err) {
+    return false;
+  }
+};
+
 export {
   hasExplicitScheme,
   encodeUrl,
@@ -304,6 +314,7 @@ export {
   safeDecodeURIComponent,
   extractMockRoutePath,
   getMockResponseRouteKey,
+  isSameOrigin,
   type QueryParam,
   type BuildQueryStringOptions,
   type ExtractQueryParamsOptions,
