@@ -8,9 +8,12 @@ const COLLECTION = 'global-client-certs-disabled';
 // withholds it over gRPC TLS. The server rejects the connection at the handshake and the
 // call fails with a non-OK status.
 test.describe('grpc with global client certificate (disabled)', () => {
+  // App launch plus the mTLS handshake exceeds the default 30s under parallel load. The budget
+  // belongs on the describe so it covers fixture setup too, which test.setTimeout cannot reach.
+  test.describe.configure({ timeout: 60_000 });
+
   for (const mode of ['developer', 'safe'] as const) {
     test(`${mode} mode`, async ({ pageWithUserData: page }) => {
-      test.setTimeout(60 * 1000);
       const locators = buildGrpcCommonLocators(page);
 
       await setSandboxMode(page, COLLECTION, mode);

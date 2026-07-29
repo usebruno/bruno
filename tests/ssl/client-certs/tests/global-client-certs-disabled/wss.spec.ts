@@ -8,6 +8,10 @@ const COLLECTION = 'global-client-certs-disabled';
 // withholds it over WSS. The WebSocket upgrade fails the mTLS handshake — the connection
 // never reaches CONNECTED and an error entry appears in the message list.
 test.describe('wss with global client certificate (disabled)', () => {
+  // App launch plus the mTLS handshake exceeds the default 30s under parallel load. The budget
+  // belongs on the describe so it covers fixture setup too, which test.setTimeout cannot reach.
+  test.describe.configure({ timeout: 60_000 });
+
   // tests in this file share one app instance — hand the next test a closed connection and an empty message list
   test.afterEach(async ({ pageWithUserData: page }) => {
     await resetWsResponse(page);
@@ -15,7 +19,6 @@ test.describe('wss with global client certificate (disabled)', () => {
 
   for (const mode of ['developer', 'safe'] as const) {
     test(`${mode} mode`, async ({ pageWithUserData: page }) => {
-      test.setTimeout(60 * 1000);
       const locators = buildCommonLocators(page).websocket;
 
       await setSandboxMode(page, COLLECTION, mode);

@@ -8,9 +8,12 @@ const COLLECTION = 'global-client-certs-enabled';
 // in Preferences. Bruno applies the global cert over gRPC TLS, the mTLS handshake
 // succeeds, and the unary SayHello call returns OK with the server's `(mTLS ok)` reply.
 test.describe('grpc with global client certificate (enabled)', () => {
+  // App launch plus the mTLS handshake exceeds the default 30s under parallel load. The budget
+  // belongs on the describe so it covers fixture setup too, which test.setTimeout cannot reach.
+  test.describe.configure({ timeout: 60_000 });
+
   for (const mode of ['developer', 'safe'] as const) {
     test(`${mode} mode`, async ({ pageWithUserData: page }) => {
-      test.setTimeout(60 * 1000);
       const locators = buildGrpcCommonLocators(page);
 
       await setSandboxMode(page, COLLECTION, mode);

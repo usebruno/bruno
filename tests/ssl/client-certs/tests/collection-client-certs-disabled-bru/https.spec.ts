@@ -14,9 +14,12 @@ const TLS_HANDSHAKE_FAILURE = /certificate required|handshake failure|bad certif
 // withholds it. The mTLS server rejects the request at the TLS handshake — the error
 // surfaced in the response pane is the proof the disable flag is honored.
 test.describe('https with collection client certificate (disabled, bru)', () => {
+  // App launch plus the mTLS handshake exceeds the default 30s under parallel load. The budget
+  // belongs on the describe so it covers fixture setup too, which test.setTimeout cannot reach.
+  test.describe.configure({ timeout: 60_000 });
+
   for (const mode of ['developer', 'safe'] as const) {
     test(`${mode} mode`, async ({ pageWithUserData: page }) => {
-      test.setTimeout(60 * 1000);
       const locators = buildCommonLocators(page);
 
       await setSandboxMode(page, COLLECTION, mode);

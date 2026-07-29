@@ -8,9 +8,12 @@ const COLLECTION = 'global-client-certs-enabled';
 // in Preferences (request.clientCertificates). Bruno applies the global cert to the
 // matching domain, the mTLS handshake succeeds, and the request's assertions all pass.
 test.describe('https with global client certificate (enabled)', () => {
+  // App launch plus the mTLS handshake exceeds the default 30s under parallel load. The budget
+  // belongs on the describe so it covers fixture setup too, which test.setTimeout cannot reach.
+  test.describe.configure({ timeout: 60_000 });
+
   for (const mode of ['developer', 'safe'] as const) {
     test(`${mode} mode`, async ({ pageWithUserData: page }) => {
-      test.setTimeout(60 * 1000);
       const locators = buildCommonLocators(page);
 
       await setSandboxMode(page, COLLECTION, mode);
