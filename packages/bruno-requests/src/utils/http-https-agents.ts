@@ -54,7 +54,9 @@ type SystemProxyConfig = {
 
 type ClientCertificate = {
   domain?: string;
+  name?: string;
   type?: 'cert' | 'pfx';
+  enabled?: boolean;
   certFilePath?: string;
   keyFilePath?: string;
   pfxFilePath?: string;
@@ -266,8 +268,9 @@ const getCertsAndProxyConfig = ({
 
   // client certificate config
   const clientCertConfig = get(clientCertificates, 'certs', []) as ClientCertificate[];
+  const enabledCerts = clientCertConfig.filter((cert) => cert.enabled !== false);
 
-  for (const clientCert of clientCertConfig) {
+  for (const clientCert of enabledCerts) {
     const domain = clientCert?.domain;
     const type = clientCert?.type || 'cert';
     if (domain) {
