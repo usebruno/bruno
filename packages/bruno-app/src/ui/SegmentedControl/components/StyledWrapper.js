@@ -1,18 +1,13 @@
 import styled, { css } from 'styled-components';
 import { transparentize } from 'polished';
 
-// Recessed track behind the segments (solid variant): mantle in dark themes,
-// crust in light themes.
-const trackBg = (theme) =>
-  theme.mode === 'dark' ? theme.background.mantle : theme.background.crust;
-
 // Raised active-segment fill: surface1 in dark themes, base in light themes.
 const activeBg = (theme) =>
   theme.mode === 'dark' ? theme.background.surface1 : theme.background.base;
 
 const variantStyles = {
   solid: css`
-    background: ${(props) => trackBg(props.theme)};
+    background: ${(props) => props.theme.background.mantle};
 
     .segment.active {
       color: ${(props) => props.theme.text};
@@ -22,7 +17,7 @@ const variantStyles = {
     }
   `,
   outlined: css`
-    background: ${(props) => trackBg(props.theme)};
+    background: ${(props) => props.theme.background.mantle};
     border: 1px solid ${(props) => props.theme.border.border1};
     /* segments butt up against each other, separated by dividers and filling
        the full cell (no inset tile), so drop the track padding and gap. */
