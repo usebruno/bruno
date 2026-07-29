@@ -39,6 +39,8 @@ import {
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
   moveCollection,
+  deleteItem as _deleteItemFromState,
+  brunoConfigUpdateEvent as _brunoConfigUpdateEvent,
   workspaceEnvUpdateEvent,
   requestCancelled,
   resetRunResults,
@@ -2699,6 +2701,17 @@ export const browseFiles = (filters, properties) => (_dispatch, _getState) => {
   });
 };
 
+export const exportCollectionToPostman = (location, fileName, content, overwrite = false) => (_dispatch, _getState) => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    ipcRenderer
+      .invoke('renderer:export-collection-postman', location, fileName, content, overwrite)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
 export const saveCollectionSettings = (collectionUid, brunoConfig = null, silent = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -2754,6 +2767,32 @@ export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getS
     ipcRenderer
       .invoke('renderer:update-bruno-config', brunoConfig, collection.pathname, collection.root)
       .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const ignoreFolder = (itemUid, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const item = findItemInCollection(collection, itemUid);
+    if (!item) {
+      return reject(new Error('Unable to locate item'));
+    }
+
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('renderer:ignore-folder', collectionUid, collection.pathname, collection.root, collection.brunoConfig || {}, item.pathname)
+      .then((updatedBrunoConfig) => {
+        dispatch(_brunoConfigUpdateEvent({ collectionUid, brunoConfig: updatedBrunoConfig }));
+        dispatch(_deleteItemFromState({ itemUid, collectionUid }));
+        resolve();
+      })
       .catch(reject);
   });
 };

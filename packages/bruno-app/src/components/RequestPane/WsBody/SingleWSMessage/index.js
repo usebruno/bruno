@@ -7,7 +7,7 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { queueWsMessage, isWsConnectionActive, connectWS } from 'utils/network/index';
+import { queueWsMessage, ensureWsConnection } from 'utils/network/index';
 import { findCollectionByUid, findEnvironmentInCollection } from 'utils/collections/index';
 import toast from 'react-hot-toast';
 import WSRequestBodyMode from '../BodyMode/index';
@@ -161,11 +161,8 @@ export const SingleWSMessage = ({
       const col = findCollectionByUid(collections, collection.uid);
       const environment = findEnvironmentInCollection(col, col?.activeEnvironmentUid);
 
-      // Auto-connect if not already connected
-      const connectionStatus = await isWsConnectionActive(item.uid);
-      if (!connectionStatus.isActive) {
-        await connectWS(item, col, environment, col?.runtimeVariables, { connectOnly: true });
-      }
+      // Auto-connect if needed; while CONNECTING just queue — open flushes.
+      await ensureWsConnection(item, col, environment, col?.runtimeVariables);
 
       const result = await queueWsMessage(item, col, environment, col?.runtimeVariables, index);
       if (!result.success) {

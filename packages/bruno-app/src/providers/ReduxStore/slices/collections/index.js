@@ -3868,6 +3868,11 @@ export const collectionsSlice = createSlice({
           updatedResponse.status = 'CONNECTING';
           updatedResponse.statusText = 'CONNECTING';
           break;
+
+        case 'disconnecting':
+          updatedResponse.status = 'DISCONNECTING';
+          updatedResponse.statusText = 'DISCONNECTING';
+          break;
       }
 
       item.response = updatedResponse;

@@ -224,15 +224,28 @@ export const connectWS = async (item, collection, environment, runtimeVariables,
   });
 };
 
-export const sendWsRequest = async (item, collection, environment, runtimeVariables, selectedMessageIndex = 0) => {
-  const ensureConnection = async () => {
-    const connectionStatus = await isWsConnectionActive(item.uid);
-    if (!connectionStatus.isActive) {
-      await connectWS(item, collection, environment, runtimeVariables, { connectOnly: true });
-    }
-  };
+/**
+ * Connect only when there is no live or in-flight socket.
+ * While CONNECTING, callers should just queueMessage — open flushes the queue.
+ * While DISCONNECTING, wait for close to finish then open a fresh connection.
+ */
+export const ensureWsConnection = async (item, collection, environment, runtimeVariables) => {
+  let { status } = await getWsConnectionStatus(item.uid);
 
-  await ensureConnection();
+  if (status === 'disconnecting') {
+    await closeWsConnection(item.uid);
+    ({ status } = await getWsConnectionStatus(item.uid));
+  }
+
+  if (status === 'connected' || status === 'connecting') {
+    return;
+  }
+
+  await connectWS(item, collection, environment, runtimeVariables, { connectOnly: true });
+};
+
+export const sendWsRequest = async (item, collection, environment, runtimeVariables, selectedMessageIndex = 0) => {
+  await ensureWsConnection(item, collection, environment, runtimeVariables);
 
   // Send only the selected message by index
   const result = await queueWsMessage(item, collection, environment, runtimeVariables, selectedMessageIndex);
