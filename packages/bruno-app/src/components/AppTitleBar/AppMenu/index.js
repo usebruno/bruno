@@ -16,7 +16,7 @@ const AppMenu = () => {
         {
           id: 'open-collection',
           label: 'Open Collection',
-          onClick: () => ipcRenderer?.invoke('renderer:open-collection')
+          onClick: () => ipcRenderer?.send('renderer:open-collection')
         },
         { type: 'divider', id: 'file-div-1' },
         {

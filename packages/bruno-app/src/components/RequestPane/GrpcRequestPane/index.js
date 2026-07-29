@@ -13,6 +13,7 @@ import DocsAction from 'components/Documentation/DocsAction';
 import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
+import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
 import { AUTH_MODES_GRPC } from 'utils/common/constants';
 
@@ -132,8 +133,9 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       break;
     case 'docs':
       rightContent = (
-        <div ref={rightContentRef}>
+        <div ref={rightContentRef} className="flex items-center gap-2">
           <DocsAction />
+          <TabBarAiAssist item={item} collection={collection} activeTab={requestPaneTab} />
         </div>
       );
       break;

@@ -1,6 +1,6 @@
 import { OpenCollection } from "@opencollection/types";
 import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, PemCertificate, Pkcs12Certificate } from "./types";
-import { fromOpenCollectionAuth, fromOpenCollectionHeaders, fromOpenCollectionScripts, fromOpenCollectionVariables } from "./common";
+import { fromOpenCollectionActions, fromOpenCollectionAuth, fromOpenCollectionHeaders, fromOpenCollectionScripts, fromOpenCollectionVariables } from "./common";
 import { uuid } from "../common";
 import { fromOpenCollectionItems } from "./items";
 import { fromOpenCollectionFolder } from "./folder";
@@ -10,6 +10,7 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   const brunoExtension = oc.extensions?.bruno as {
     ignore?: string[];
     presets?: BrunoPresets;
+    scripts?: { flow?: unknown };
   } | undefined;
 
   const ignoreList = brunoExtension && Array.isArray(brunoExtension.ignore)
@@ -26,7 +27,7 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     brunoConfig.version = String(oc.info.version);
   }
 
-  if (brunoExtension?.presets?.requestType || brunoExtension?.presets?.requestUrl) {
+  if (brunoExtension?.presets?.requestType || brunoExtension?.presets?.requestUrl || brunoExtension?.presets?.defaultEnvironment) {
     brunoConfig.presets = {};
     if (brunoExtension.presets.requestType) {
       brunoConfig.presets.requestType = brunoExtension.presets.requestType;
@@ -34,6 +35,14 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     if (brunoExtension.presets.requestUrl) {
       brunoConfig.presets.requestUrl = brunoExtension.presets.requestUrl;
     }
+    if (brunoExtension.presets.defaultEnvironment) {
+      brunoConfig.presets.defaultEnvironment = brunoExtension.presets.defaultEnvironment;
+    }
+  }
+
+  const scriptFlow = brunoExtension?.scripts?.flow;
+  if (scriptFlow === 'sandwich' || scriptFlow === 'sequential') {
+    brunoConfig.scripts = { flow: scriptFlow };
   }
 
   const config = oc.config;
@@ -99,7 +108,10 @@ const fromOpenCollectionRoot = (oc: OpenCollection): BrunoCollectionRoot => {
       headers: fromOpenCollectionHeaders(oc.request.headers),
       auth: fromOpenCollectionAuth(oc.request.auth),
       script: scripts?.script,
-      vars: fromOpenCollectionVariables(oc.request.variables),
+      vars: {
+        ...fromOpenCollectionVariables(oc.request.variables),
+        res: fromOpenCollectionActions(oc.request.actions)
+      },
       tests: scripts?.tests
     };
   }

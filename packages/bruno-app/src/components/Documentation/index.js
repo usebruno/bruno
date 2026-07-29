@@ -66,6 +66,7 @@ const Documentation = ({ item, collection }) => {
         requestContext={requestContext}
         variables={aiVariables}
         onRequestEdit={() => setEditing(true)}
+        testId="docs-editor"
       />
     </StyledWrapper>
   );

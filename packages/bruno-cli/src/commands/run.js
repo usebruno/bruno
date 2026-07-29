@@ -4,7 +4,7 @@ const path = require('path');
 const yaml = require('js-yaml');
 const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
-const { exists, isFile, isDirectory, stripExtension } = require('../utils/filesystem');
+const { exists, stripExtension, isSafeFileName } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { getEnvVars } = require('../utils/bru');
 const { parseEnvironmentJson } = require('../utils/environment');
@@ -127,6 +127,10 @@ const builder = async (yargs) => {
     })
     .option('env-var', {
       describe: 'Overwrite a single environment variable, multiple usages possible',
+      type: 'string'
+    })
+    .option('global-env-var', {
+      describe: 'Overwrite a single global environment variable, multiple usages possible',
       type: 'string'
     })
     .option('sandbox', {
@@ -281,6 +285,10 @@ const builder = async (yargs) => {
     .example(
       '$0 run request.bru --global-env production --workspace-path /path/to/workspace',
       'Run a request with a global environment from the specified workspace'
+    )
+    .example(
+      '$0 run request.bru --global-env production --global-env-var TOKEN=xxx',
+      'Run a request, overriding a global environment variable for this run only'
     );
 };
 
@@ -296,6 +304,7 @@ const handler = async function (argv) {
       globalEnv,
       workspacePath,
       envVar,
+      globalEnvVar,
       insecure,
       r: recursive,
       output: outputPath,
@@ -321,7 +330,7 @@ const handler = async function (argv) {
     } = argv;
     const collectionPath = process.cwd();
 
-    let collection = createCollectionJsonFromPathname(collectionPath);
+    const collection = createCollectionJsonFromPathname(collectionPath);
     const { root: collectionRoot, brunoConfig } = collection;
 
     if (clientCertConfig) {
@@ -360,6 +369,7 @@ const handler = async function (argv) {
 
     const runtimeVariables = {};
     let envVars = {};
+    let globalEnvVars = {};
     let envFileDescriptor = null;
     let globalEnvFileDescriptor = null;
     // --env-var overrides as Map<name, injected value>. The persistence layer compares the
@@ -367,6 +377,9 @@ const handler = async function (argv) {
     // value passed through unchanged) apart from a deliberate same-named script write that
     // must reach disk. Typical use: CI injects a secret the CLI can't decrypt at rest.
     const envVarOverrides = new Map();
+    // --global-env-var overrides as Map<name, injected value>. Same leak-guard contract as
+    // envVarOverrides above, but scoped to the global environment .yml file.
+    const globalEnvVarOverrides = new Map();
 
     const resolveEnvFileFormat = (filePath) => {
       const ext = path.extname(filePath).toLowerCase();
@@ -419,6 +432,40 @@ const handler = async function (argv) {
       }
     }
 
+    // Fall back to the collection's configured default environment
+    // (bruno.json presets.defaultEnvironment) when no environment was
+    // specified via --env or --env-file.
+    const defaultEnvironment = brunoConfig?.presets?.defaultEnvironment;
+    if (!env && !envFile && defaultEnvironment) {
+      // The default environment name comes from shared collection config, so it is
+      // untrusted. Only accept a bare file name so a crafted value (path separators or
+      // traversal) can't load a file outside environments/.
+      if (!isSafeFileName(defaultEnvironment)) {
+        console.warn(
+          chalk.yellow(`Ignoring invalid default environment name: `) + chalk.dim(defaultEnvironment)
+        );
+      } else {
+        const envExt = FORMAT_CONFIG[collection.format].ext;
+        const defaultEnvFilePath = path.join(collectionPath, 'environments', `${defaultEnvironment}${envExt}`);
+        if (await exists(defaultEnvFilePath)) {
+          try {
+            const defaultEnvVars = loadEnvFromFile(defaultEnvFilePath, defaultEnvironment);
+            envVars = { ...envVars, ...defaultEnvVars };
+            envFileDescriptor = { path: defaultEnvFilePath, format: collection.format };
+            console.log(chalk.dim(`Using default environment: ${defaultEnvironment}`));
+          } catch (err) {
+            console.error(chalk.red(`Failed to parse default environment file: ${err.message}`));
+            process.exit(constants.EXIT_STATUS.ERROR_INVALID_FILE);
+          }
+        } else {
+          console.warn(
+            chalk.yellow(`Configured default environment not found: `)
+            + chalk.dim(`environments/${defaultEnvironment}${envExt}`)
+          );
+        }
+      }
+    }
+
     // Load --env and merge (collection env takes precedence)
     if (env) {
       const envExt = FORMAT_CONFIG[collection.format].ext;
@@ -437,7 +484,6 @@ const handler = async function (argv) {
       }
     }
 
-    let globalEnvVars = {};
     if (globalEnv) {
       const findWorkspacePath = (startPath) => {
         let currentPath = startPath;
@@ -520,6 +566,33 @@ const handler = async function (argv) {
       }
     }
 
+    if (globalEnvVar) {
+      let processVars;
+      if (typeof globalEnvVar === 'string') {
+        processVars = [globalEnvVar];
+      } else if (typeof globalEnvVar === 'object' && Array.isArray(globalEnvVar)) {
+        processVars = globalEnvVar;
+      } else {
+        console.error(chalk.red(`overridable global environment variables not parsable: use name=value`));
+        process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
+      }
+      if (processVars && Array.isArray(processVars)) {
+        for (const value of processVars.values()) {
+          // split the string at the first equals sign
+          const match = value.match(/^([^=]+)=(.*)$/);
+          if (!match) {
+            console.error(
+              chalk.red(`Overridable global environment variable not correct: use name=value - presented: `)
+              + chalk.dim(`${value}`)
+            );
+            process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
+          }
+          globalEnvVars[match[1]] = match[2];
+          globalEnvVarOverrides.set(match[1], match[2]);
+        }
+      }
+    }
+
     const options = getOptions();
     if (bail) {
       options['bail'] = true;
@@ -561,7 +634,7 @@ const handler = async function (argv) {
       process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
     }
 
-    let formats = {};
+    const formats = {};
 
     // Maintains back compat with --format and --output
     if (outputPath && outputPath.length) {
@@ -596,7 +669,7 @@ const handler = async function (argv) {
     }
 
     let requestItems = [];
-    let results = [];
+    const results = [];
 
     if (!paths || !paths.length) {
       paths = ['./'];
@@ -642,7 +715,8 @@ const handler = async function (argv) {
       envFile: envFileDescriptor,
       globalEnvFile: globalEnvFileDescriptor,
       collectionRootPath,
-      envVarOverrides
+      envVarOverrides,
+      globalEnvVarOverrides
     };
 
     // Fetch system proxy once for all requests (skip if --noproxy flag is set)
