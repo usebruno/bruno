@@ -59,6 +59,16 @@ export const buildCommonLocators = (page: Page) => ({
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
     tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`)
   },
+  aiAssist: {
+    trigger: (scriptType: string) => page.getByTestId(`ai-assist-trigger-${scriptType}`),
+    requestPaneTabBarTrigger: (scriptType: string) =>
+      page.locator('[data-testid="request-pane"] [role="tablist"]').getByTestId(`ai-assist-trigger-${scriptType}`),
+    settingsTabBarTrigger: (scriptType: string) =>
+      page.getByTestId('settings-tab-bar').getByTestId(`ai-assist-trigger-${scriptType}`)
+  },
+  documentation: {
+    editToggle: () => page.locator('.editing-mode')
+  },
   folder: {
     chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
   },
