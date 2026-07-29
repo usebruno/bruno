@@ -4,13 +4,11 @@ import find from 'lodash/find';
 import { updateCollectionDocs, deleteCollectionDraft } from 'providers/ReduxStore/slices/collections';
 import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
-import { useMemo, useRef } from 'react';
+import { useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
-import AIAssist from 'components/AIAssist';
-import { buildAiVariablesPayload, buildDocsContextFromCollection } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import { IconEdit, IconX, IconFileText } from '@tabler/icons';
 import Button from 'ui/Button/index';
@@ -27,8 +25,6 @@ const Docs = ({ collection }) => {
   const isEditing = focusedTab?.docsEditing || false;
   const docs = collection.draft?.root ? get(collection, 'draft.root.docs', '') : get(collection, 'root.docs', '');
   const preferences = useSelector((state) => state.app.preferences);
-  const docsContext = useMemo(() => buildDocsContextFromCollection(collection), [collection]);
-  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, null), [collection]);
 
   // StyledWrapper has overflow-y: auto — use null selector.
   // Preview mode: hook tracks wrapper scroll. Edit mode: CodeEditor's onScroll/initialScroll.
@@ -102,7 +98,6 @@ const Docs = ({ collection }) => {
             initialScroll={scroll}
             onScroll={setScroll}
           />
-          <AIAssist scriptType="docs" currentScript={docs || ''} docsContext={docsContext} variables={aiVariables} onApply={onEdit} />
         </div>
       ) : (
         <div className="pl-1">
