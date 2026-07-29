@@ -1234,17 +1234,11 @@ describe('generateSnippet – encodeUrl setting', () => {
     expect(result).not.toContain('localhost%3A6000');
   });
 
-  it('requires an explicit scheme — a bare host:port is rejected upstream of the snippet', async () => {
-    // generateSnippet expects the scheme already prepended: the GenerateCodeItem
-    // component runs interpolateUrlPathParams (which prepends http://) before
-    // calling it. Given a raw `host:port` with no scheme, buildHar's URL sanity
-    // gate rejects it and the error string surfaces. The schemeless→correct
-    // path (user types `localhost:6000`, snippet shows `http://localhost:6000`)
-    // is exercised end-to-end in tests/request/generate-code.
+  it('normalizes a bare host:port to an http:// URL', async () => {
     const item = makeItem('localhost:6000/echo-request', { encodeUrl: true });
-
     const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
-    expect(result).toBe('Error generating code snippet');
+    expect(result).toBe(`curl -X GET 'http://localhost:6000/echo-request'`);
+    expect(result).not.toContain('localhost%3A6000');
   });
 });
 

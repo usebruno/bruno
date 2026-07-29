@@ -1,5 +1,5 @@
 import { buildHar } from '@usebruno/common';
-import { stripOrigin } from '@usebruno/common/utils';
+import { hasExplicitScheme, stripOrigin } from '@usebruno/common/utils';
 import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from 'utils/collections/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { get } from 'lodash';
@@ -83,7 +83,8 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
       result = addCurlAuthFlags(result, effectiveAuth);
     }
     if (!shouldInterpolate) {
-      result = result.replaceAll(harUrl, templateUrl);
+      const displayUrl = hasExplicitScheme(interpolatedUrl) ? templateUrl : `http://${templateUrl}`;
+      result = result.replaceAll(harUrl, displayUrl);
     }
 
     /**
