@@ -661,6 +661,15 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
 
 const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
   try {
+    if (path.normalize(pathname) === path.normalize(collectionPath)) {
+      win.webContents.send('main:collection-tree-updated', 'unlinkCollection', {
+        meta: {
+          collectionUid,
+          pathname: collectionPath
+        }
+      });
+      return;
+    }
     if (!fs.existsSync(collectionPath)) {
       return;
     }

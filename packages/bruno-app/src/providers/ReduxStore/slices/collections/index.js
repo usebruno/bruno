@@ -3128,6 +3128,10 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    collectionUnlinkCollectionEvent: (state, action) => {
+      const { collectionUid } = action.payload;
+      state.collections = filter(state.collections, (c) => c.uid !== collectionUid);
+    },
     collectionAddEnvFileEvent: (state, action) => {
       const { environment, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -4122,6 +4126,7 @@ export const {
   collectionChangeFileEvent,
   collectionUnlinkFileEvent,
   collectionUnlinkDirectoryEvent,
+  collectionUnlinkCollectionEvent,
   collectionAddEnvFileEvent,
   collectionRenamedEvent,
   resetRunResults,
