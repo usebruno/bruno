@@ -17,7 +17,6 @@ import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
 import { AUTH_MODES_GRPC } from 'utils/common/constants';
 import Script from 'components/RequestPane/Script';
-import Tests from 'components/RequestPane/Tests';
 import { getPhasesByRequestType, REQUEST_TYPES } from '@usebruno/common';
 
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
@@ -65,7 +64,6 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
   const script = getPropertyFromDraftOrRequest(item, 'request.script');
-  const hasTestError = item.testScriptErrorMessage;
 
   const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
   const hasAuth = useMemo(
@@ -79,8 +77,9 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const request = item.draft ? item.draft.request : item.request;
   const isClientStreaming = request.methodType === 'client-streaming' || request.methodType === 'bidi-streaming';
 
+  const hasScriptError = scriptPhases.some((phase) => item[`${phase.ERROR_STATE_KEY}Message`]);
+
   const allTabs = useMemo(() => {
-    const hasScriptError = scriptPhases.some((phase) => item[`${phase.ERROR_STATE_KEY}Message`]);
     const getMessageIndicator = () => {
       if (grpcMessagesCount > 0) {
         return isClientStreaming ? (
@@ -119,7 +118,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
         indicator: scriptPhases.some(({ FIELD }) => script?.[FIELD]) ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null
       }
     ];
-  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, hasAuth, script, hasTestError, docs, ...scriptPhases.map(({ ERROR_STATE_KEY }) => item[`${ERROR_STATE_KEY}Message`])]);
+  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, hasAuth, script, docs, hasScriptError]);
 
   // Initialize tab to 'body' if no tab is currently set
   useEffect(() => {

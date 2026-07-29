@@ -71,15 +71,16 @@ class ScriptRuntime {
     };
   }
 
-  // Build the result object returned from a script run (shared by all phases). `primary` carries the
-  // phase-specific first field — `{ request }` for the "before" phases, `{ response }` for "after".
-  #buildScriptResult({ primary, bru, testResults, envVariables, runtimeVariables, globalEnvironmentVariables }) {
+  // Script result, shared by all phases. `primary` is `{ request }` before / `{ response }` after;
+  // a variable scope is null when the script didn't write to it, so callers can skip the write.
+  #buildScriptResult({ primary, bru, testResults, envVariables, runtimeVariables, collectionVariables, globalEnvironmentVariables }) {
     return {
       ...primary,
-      envVariables: cleanJson(envVariables),
-      runtimeVariables: cleanJson(runtimeVariables),
+      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
+      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
+      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
       persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
-      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
       oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
       results: cleanJson(testResults.getResults()),
       nextRequestName: bru.nextRequest,
@@ -156,6 +157,7 @@ class ScriptRuntime {
       testResults: __brunoTestResults,
       envVariables,
       runtimeVariables,
+      collectionVariables,
       globalEnvironmentVariables
     });
 
@@ -230,6 +232,7 @@ class ScriptRuntime {
       testResults: __brunoTestResults,
       envVariables,
       runtimeVariables,
+      collectionVariables,
       globalEnvironmentVariables
     });
 
@@ -303,6 +306,7 @@ class ScriptRuntime {
       testResults: __brunoTestResults,
       envVariables,
       runtimeVariables,
+      collectionVariables,
       globalEnvironmentVariables
     });
 
@@ -376,6 +380,7 @@ class ScriptRuntime {
       testResults: __brunoTestResults,
       envVariables,
       runtimeVariables,
+      collectionVariables,
       globalEnvironmentVariables
     });
 
@@ -451,6 +456,7 @@ class ScriptRuntime {
       testResults: __brunoTestResults,
       envVariables,
       runtimeVariables,
+      collectionVariables,
       globalEnvironmentVariables
     });
 
@@ -524,6 +530,7 @@ class ScriptRuntime {
       testResults: __brunoTestResults,
       envVariables,
       runtimeVariables,
+      collectionVariables,
       globalEnvironmentVariables
     });
 

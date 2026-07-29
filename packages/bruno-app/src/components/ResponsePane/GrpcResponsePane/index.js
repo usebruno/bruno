@@ -148,7 +148,7 @@ const GrpcResponsePane = ({ item, collection }) => {
   const rightContent = !isLoading ? (
     <div ref={rightContentRef} className="flex items-center">
       {hasScriptOrTestError && !showScriptErrorCard && (
-        <ScriptErrorIcon item={item} onClick={() => setShowScriptErrorCard(true)} />
+        <ScriptErrorIcon itemUid={item.uid} onClick={() => setShowScriptErrorCard(true)} />
       )}
       {focusedTab?.responsePaneTab === 'timeline' ? (
         <>

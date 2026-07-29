@@ -107,7 +107,7 @@ export const SCRIPT_PHASES = deepFreeze({
       SCRIPT_TYPE: 'grpc:after-message-receive',
       LABEL: 'After Message',
       HINTS: ['bru'],
-      ERROR_STATE_KEY: 'afterMessageScriptError',
+      ERROR_STATE_KEY: 'afterMessageReceiveScriptError',
       TEST_RESULTS_KEY: 'afterMessageReceiveTestResults'
     },
     AFTER_CALL_END: {
@@ -120,6 +120,31 @@ export const SCRIPT_PHASES = deepFreeze({
       HINTS: ['bru'],
       ERROR_STATE_KEY: 'afterCallEndScriptError',
       TEST_RESULTS_KEY: 'afterCallEndTestResults'
+    }
+  },
+  GRAPHQL: {
+    PRE_REQUEST: {
+      REQUEST_TYPE: 'graphql-request',
+      FIELD: 'req',
+      YML_TYPE: 'before-request',
+      BRU_TYPE: 'pre-request',
+      SCRIPT_TYPE: 'pre-request',
+      LABEL: 'Pre Request',
+      HINTS: ['req', 'bru'],
+      RUNS_BEFORE: true,
+      ERROR_STATE_KEY: 'preRequestScriptError',
+      TEST_RESULTS_KEY: 'preRequestTestResults'
+    },
+    POST_RESPONSE: {
+      REQUEST_TYPE: 'graphql-request',
+      FIELD: 'res',
+      YML_TYPE: 'after-response',
+      BRU_TYPE: 'post-response',
+      SCRIPT_TYPE: 'post-response',
+      LABEL: 'Post Response',
+      HINTS: ['req', 'res', 'bru'],
+      ERROR_STATE_KEY: 'postResponseScriptError',
+      TEST_RESULTS_KEY: 'postResponseTestResults'
     }
   }
 } satisfies Record<string, Record<string, ScriptPhase>>);

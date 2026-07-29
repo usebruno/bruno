@@ -14,7 +14,6 @@ const isAllowedSourceFile = (filePath) =>
 
 const SCRIPT_TYPES = Object.freeze({
   PRE_REQUEST: 'pre-request',
-  ON_MESSAGE: 'on-message',
   POST_RESPONSE: 'post-response',
   TEST: 'test'
 });

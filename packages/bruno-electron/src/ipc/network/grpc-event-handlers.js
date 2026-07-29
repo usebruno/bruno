@@ -8,6 +8,7 @@ const { cloneDeep, get } = require('lodash');
 const { preferencesUtil } = require('../../store/preferences');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { getCertsAndProxyConfig } = require('./cert-utils');
+const { applyCollectionVarsToCollectionRoot } = require('./apply-collection-vars');
 const { interpolateString } = require('./interpolate-string');
 const path = require('node:path');
 const prepareGrpcRequest = require('./prepare-grpc-request');
@@ -164,27 +165,38 @@ const registerGrpcEventHandlers = (window) => {
     sendEvent('main:console-log', { type, args });
   };
 
-  /**
-   * Propagate env / runtime / global variable changes from a script result to the renderer.
-   * Shared between the beforeMessageSend and afterMessageReceive script runners.
-   */
-  const propagateScriptEnvUpdates = (scriptResult, request, collection) => {
+  const sendVariableUpdates = (scriptResult, request, collection) => {
     if (!scriptResult) return;
-    sendEvent('main:script-environment-update', {
-      envVariables: scriptResult.envVariables,
-      runtimeVariables: scriptResult.runtimeVariables,
-      persistentEnvVariables: scriptResult.persistentEnvVariables,
-      requestUid: request.uid,
-      collectionUid: collection.uid
-    });
-    sendEvent('main:persistent-env-variables-update', {
-      persistentEnvVariables: scriptResult.persistentEnvVariables,
-      collectionUid: collection.uid
-    });
-    sendEvent('main:global-environment-variables-update', {
-      globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
-    });
-    collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
+
+    if (scriptResult.envVariables || scriptResult.runtimeVariables) {
+      sendEvent('main:script-environment-update', {
+        envVariables: scriptResult.envVariables,
+        runtimeVariables: scriptResult.runtimeVariables,
+        persistentEnvVariables: scriptResult.persistentEnvVariables,
+        requestUid: request.uid,
+        collectionUid: collection.uid
+      });
+    }
+    if (scriptResult.persistentEnvVariables) {
+      sendEvent('main:persistent-env-variables-update', {
+        persistentEnvVariables: scriptResult.persistentEnvVariables,
+        collectionUid: collection.uid
+      });
+    }
+    if (scriptResult.globalEnvironmentVariables) {
+      sendEvent('main:global-environment-variables-update', {
+        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
+      });
+      collection.globalEnvironmentVariables = scriptResult.globalEnvironmentVariables;
+    }
+    if (scriptResult.collectionVariables) {
+      sendEvent('main:collection-variables-update', {
+        collectionVariables: scriptResult.collectionVariables,
+        requestUid: request.uid,
+        collectionUid: collection.uid
+      });
+      applyCollectionVarsToCollectionRoot(collection, scriptResult.collectionVariables);
+    }
   };
 
   /**
@@ -267,7 +279,7 @@ const registerGrpcEventHandlers = (window) => {
       scriptMetadata: request.script?.[`${FIELD}Metadata`]
     });
 
-    propagateScriptEnvUpdates(scriptResult, request, collection);
+    sendVariableUpdates(scriptResult, request, collection);
     emitPhaseTestResults({ scriptResult, scriptType: SCRIPT_TYPE, requestUid, collection, itemUid });
 
     return { scriptResult, scriptError };
@@ -314,7 +326,7 @@ const registerGrpcEventHandlers = (window) => {
       scriptMetadata: request.script?.[`${FIELD}Metadata`]
     });
 
-    propagateScriptEnvUpdates(scriptResult, request, collection);
+    sendVariableUpdates(scriptResult, request, collection);
     emitPhaseTestResults({ scriptResult, scriptType: SCRIPT_TYPE, requestUid, collection, itemUid });
 
     return { message: scriptError ? outgoingMessage : scriptResult.message, scriptError };
@@ -370,7 +382,7 @@ const registerGrpcEventHandlers = (window) => {
       scriptMetadata: request.script?.[`${FIELD}Metadata`]
     });
 
-    propagateScriptEnvUpdates(scriptResult, request, collection);
+    sendVariableUpdates(scriptResult, request, collection);
     emitPhaseTestResults({ scriptResult, scriptType: SCRIPT_TYPE, requestUid, collection, itemUid });
 
     return { scriptResult, scriptError };
@@ -426,7 +438,7 @@ const registerGrpcEventHandlers = (window) => {
       scriptMetadata: request.script?.[`${FIELD}Metadata`]
     });
 
-    propagateScriptEnvUpdates(scriptResult, request, collection);
+    sendVariableUpdates(scriptResult, request, collection);
     emitPhaseTestResults({ scriptResult, scriptType: SCRIPT_TYPE, requestUid, collection, itemUid });
 
     return { scriptResult, scriptError };
@@ -477,11 +489,14 @@ const registerGrpcEventHandlers = (window) => {
         // Unary / server-streaming send only body.grpc[0]: run beforeMessageSend, write it back, record it.
         const sentEntry = get(preparedRequest, 'body.grpc.0');
         if (sentEntry) {
-          const { message, scriptError } = await runBeforeMessageSend(scriptContext, safeParseJSON(sentEntry.content));
-          if (scriptError) {
-            return { success: false, error: scriptError.message };
+          const hasBeforeMessageSend = !!get(preparedRequest, `script.${SCRIPT_PHASES.GRPC.BEFORE_MESSAGE_SEND.FIELD}`)?.length;
+          if (hasBeforeMessageSend) {
+            const { message, scriptError } = await runBeforeMessageSend(scriptContext, safeParseJSON(sentEntry.content));
+            if (scriptError) {
+              return { success: false, error: scriptError.message };
+            }
+            sentEntry.content = safeStringifyJSON(message);
           }
-          sentEntry.content = safeStringifyJSON(message);
           scriptContext.sentMessages.push(sentEntry);
         }
       }

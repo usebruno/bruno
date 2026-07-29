@@ -103,8 +103,9 @@ const HttpRequestPane = ({ item, collection }) => {
     [item, itemAuthMode, collection]
   );
 
+  const hasScriptError = scriptPhases.some((phase) => item[`${phase.ERROR_STATE_KEY}Message`]);
+
   const indicators = useMemo(() => {
-    const hasScriptError = scriptPhases.some((phase) => item[`${phase.ERROR_STATE_KEY}Message`]);
     const hasTestError = item.testScriptErrorMessage;
 
     return {
@@ -120,7 +121,7 @@ const HttpRequestPane = ({ item, collection }) => {
       app: app?.code?.length > 0 ? <StatusDot dataTestId="app" /> : null,
       settings: tags?.length > 0 ? <StatusDot /> : null
     };
-  }, [activeCounts, body.mode, hasAuth, script, ...scriptPhases.map(({ ERROR_STATE_KEY }) => item[`${ERROR_STATE_KEY}Message`]), item.testScriptErrorMessage, tests, docs, app, tags]);
+  }, [activeCounts, body.mode, hasAuth, script, hasScriptError, item.testScriptErrorMessage, tests, docs, app, tags]);
 
   const allTabs = useMemo(
     () => TAB_CONFIG

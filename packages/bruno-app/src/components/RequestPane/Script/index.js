@@ -70,13 +70,10 @@ const Script = ({ item, collection }) => {
     return () => clearTimeout(timer);
   }, [activeTab, SCRIPT_PHASES]);
 
-  SCRIPT_PHASES.forEach(({ SCRIPT_TYPE }) => {
-    useFocusErrorLine({
-      uid: item.uid,
-      editorRef: getEditorRef(SCRIPT_TYPE),
-      scriptPhase: SCRIPT_TYPE,
-      isVisible: activeTab === SCRIPT_TYPE
-    });
+  useFocusErrorLine({
+    uid: item.uid,
+    editorRef: getEditorRef(activeTab),
+    scriptPhase: activeTab
   });
 
   const onScriptEdit = (field, value) => {
@@ -152,13 +149,7 @@ const Script = ({ item, collection }) => {
               <TabsTrigger key={phase.SCRIPT_TYPE} value={phase.SCRIPT_TYPE}>
                 {phase.LABEL}
                 {hasScript && (
-                  <StatusDot
-                    type={
-                      item?.[`${phase.SCRIPT_TYPE}ScriptErrorMessage`]
-                        ? 'error'
-                        : 'default'
-                    }
-                  />
+                  <StatusDot type={item?.[`${phase.ERROR_STATE_KEY}Message`] ? 'error' : 'default'} />
                 )}
               </TabsTrigger>
             );

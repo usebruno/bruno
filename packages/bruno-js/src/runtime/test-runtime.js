@@ -76,7 +76,6 @@ class TestRuntime {
       };
     }
 
-    const isGrpc = request?.type === REQUEST_TYPES.GRPC;
     const context = {
       test,
       bru,

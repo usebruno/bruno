@@ -551,7 +551,7 @@ const grpcRequestSchema = Yup.object({
     beforeCallStart: Yup.string().nullable(),
     beforeMessageSend: Yup.string().nullable(),
     afterMessageReceive: Yup.string().nullable(),
-    afterCallEnd: Yup.string().nullable(),
+    afterCallEnd: Yup.string().nullable()
   })
     .noUnknown(true)
     .strict(),
