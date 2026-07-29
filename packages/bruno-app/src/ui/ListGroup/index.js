@@ -52,7 +52,7 @@ const ListGroup = ({ items = [], renderItem, getKey, emptyState, addButton, clas
     <StyledWrapper className={className} $maxWidth={resolvedMaxWidth}>
       {!hasItems && emptyState ? (
         <div className="listgroup-empty">
-          {emptyState.icon}
+          {emptyState.icon ? <div className="listgroup-empty-icon">{emptyState.icon}</div> : null}
           {emptyState.title ? <div className="listgroup-empty-title">{emptyState.title}</div> : null}
           {emptyState.text ? <div className="listgroup-empty-text">{emptyState.text}</div> : null}
           {addButton ? <div className="listgroup-empty-action">{renderAddButton()}</div> : null}

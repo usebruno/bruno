@@ -91,7 +91,9 @@ const StyledWrapper = styled.div`
     border-radius: ${(props) => props.theme.border.radius.md};
     color: ${(props) => props.theme.colors.text.muted};
 
-    svg {
+    /* scoped to the empty-state icon so it doesn't reach the add button's icon */
+    .listgroup-empty-icon {
+      display: flex;
       opacity: 0.5;
       margin-bottom: 0.2rem;
     }
