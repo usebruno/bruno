@@ -54,13 +54,17 @@ request:
 describe('parseFolder — seq', () => {
   it('leaves seq undefined when folder.yml has no seq field', () => {
     const yml = `info:\n  name: my-folder\n`;
+    const { meta } = parseFolder(yml);
 
-    expect(parseFolder(yml).meta?.seq).toBeUndefined();
+    expect(meta).toEqual(expect.objectContaining({ name: 'my-folder' }));
+    expect(meta!.seq).toBeUndefined();
   });
 
   it('preserves an explicit numeric seq from the file', () => {
     const yml = `info:\n  name: my-folder\n  seq: 3\n`;
+    const { meta } = parseFolder(yml);
 
-    expect(parseFolder(yml).meta?.seq).toBe(3);
+    expect(meta).toEqual(expect.objectContaining({ name: 'my-folder' }));
+    expect(meta!.seq).toBe(3);
   });
 });

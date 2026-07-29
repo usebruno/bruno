@@ -37,6 +37,10 @@ const scheduleSave = (getState) => {
 };
 
 export const flushSnapshotNow = async (getState) => {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
   try {
     const state = getState();
     const snapshot = await serializeSnapshot(state);

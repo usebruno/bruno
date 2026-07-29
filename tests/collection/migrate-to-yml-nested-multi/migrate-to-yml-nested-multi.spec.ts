@@ -1,7 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, openCollection, buildCommonLocators, confirmMigration } from '../../utils/page';
+import {
+  closeAllCollections,
+  openCollection,
+  buildCommonLocators,
+  confirmMigration,
+  openMigrateToYmlModalFromOverview
+} from '../../utils/page';
 
 test.describe('Migrating one collection to yml closes its tabs and leaves other collections untouched', () => {
   test.afterAll(async ({ page }) => {
@@ -39,10 +45,7 @@ test.describe('Migrating one collection to yml closes its tabs and leaves other 
     });
 
     await test.step('Migrate the source collection to yml', async () => {
-      await loc.sidebar.collection('migrate-source').click();
-      await page.getByTestId('collection-settings-tab-overview').click();
-      await loc.migrateToYml.convertButton().click();
-      await loc.migrateToYml.modal().waitFor({ state: 'visible', timeout: 5000 });
+      await openMigrateToYmlModalFromOverview(page, 'migrate-source');
       await confirmMigration(page);
 
       await expect(page.getByText('Collection migrated to YML format successfully')).toBeVisible({ timeout: 30000 });
@@ -60,10 +63,10 @@ test.describe('Migrating one collection to yml closes its tabs and leaves other 
       await expect(loc.sidebar.collection('migrate-source')).toBeVisible({ timeout: 15000 });
 
       for (const name of ['root-req', 'users', 'deep']) {
-        await expect(loc.tabs.requestTab(name)).not.toBeVisible();
+        await expect(loc.tabs.requestTab(name)).toHaveCount(0);
       }
       await expect(loc.tabs.collectionSettingsTab()).toBeVisible();
-      await expect(page.getByTestId('collection-settings-tab-overview')).toBeVisible();
+      await expect(loc.paneTabs.collectionSettingsTab('overview')).toBeVisible();
     });
 
     await test.step('The reloaded tree serves the migrated requests', async () => {
@@ -71,7 +74,7 @@ test.describe('Migrating one collection to yml closes its tabs and leaves other 
       await loc.folder.chevron('v2').click();
       await loc.sidebar.request('deep').click();
       await expect(page.locator('#request-url').locator('.CodeMirror')).toContainText('/api/v2/deep');
-      await expect(page.getByText('Request no longer exists')).not.toBeVisible();
+      await expect(loc.migrateToYml.missingRequestMessage()).not.toBeVisible();
     });
 
     await test.step('The other collection is untouched by the migration', async () => {

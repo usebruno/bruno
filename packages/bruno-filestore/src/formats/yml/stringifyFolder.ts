@@ -44,8 +44,9 @@ const stringifyFolder = (folderRoot: FolderRoot): string => {
     };
     // Only write seq when the folder actually has a numeric one. Defaulting to 1 would
     // force every seq-less folder into position 1 on disk and break alphabetical fallback.
-    if (typeof folderRoot.meta?.seq === 'number') {
-      info.seq = folderRoot.meta.seq;
+    const seq = folderRoot.meta?.seq;
+    if (typeof seq === 'number' && Number.isFinite(seq)) {
+      info.seq = seq;
     }
     ocFolder.info = info;
 

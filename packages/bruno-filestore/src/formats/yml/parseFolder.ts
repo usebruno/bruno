@@ -13,6 +13,7 @@ const parseFolder = (ymlString: string): FolderRoot => {
     const ocFolder: Folder = parseYml(ymlString);
 
     const info = ocFolder.info;
+    const seq = info?.seq;
 
     const folderRoot: FolderRoot = {
       meta: {
@@ -20,7 +21,7 @@ const parseFolder = (ymlString: string): FolderRoot => {
         // Only set seq when the source has a numeric value. Missing seq must stay absent:
         // defaulting to 1 makes every seq-less folder look "ordered at position 1" to
         // sortByNameThenSequence, pinning them all to slot 1 instead of alphabetical sort.
-        ...(typeof info?.seq === 'number' ? { seq: info.seq } : {})
+        ...(typeof seq === 'number' && Number.isFinite(seq) ? { seq } : {})
       },
       request: {
         headers: [],

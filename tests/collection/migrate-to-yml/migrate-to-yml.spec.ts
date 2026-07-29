@@ -6,6 +6,8 @@ import {
   buildCommonLocators,
   closeAllCollections,
   openCollection,
+  openMigrateToYmlModalFromOverview,
+  openCollectionOverview,
   confirmMigration,
   selectEnvironment,
   sendRequestAndWaitForResponse
@@ -37,21 +39,19 @@ test.describe.skip('Migrate collection from bru to yml format', () => {
 
     await test.step('Open collection and open a request as a permanent tab', async () => {
       await openCollection(page, 'migration-test');
-      await page.locator('#sidebar-collection-name').filter({ hasText: 'migration-test' }).click();
+      await loc.sidebar.collection('migration-test').click();
       await loc.sidebar.request('ping').dblclick();
       await expect(loc.tabs.requestTab('ping')).toBeVisible();
     });
 
     await test.step('Verify migration section is visible for bru collection', async () => {
-      await page.locator('#sidebar-collection-name').filter({ hasText: 'migration-test' }).click();
-      await page.getByTestId('collection-settings-tab-overview').click();
+      await openCollectionOverview(page, 'migration-test');
       await expect(page.getByText('Migrate to YML file format')).toBeVisible();
       await expect(loc.migrateToYml.convertButton()).toBeVisible();
     });
 
     await test.step('Confirm migration from the modal', async () => {
-      await loc.migrateToYml.convertButton().click();
-      await loc.migrateToYml.modal().waitFor({ state: 'visible', timeout: 5000 });
+      await openMigrateToYmlModalFromOverview(page, 'migration-test');
       await expect(loc.migrateToYml.modal().getByText('migration-test')).toBeVisible();
       await confirmMigration(page);
     });
@@ -119,26 +119,26 @@ test.describe.skip('Migrate collection from bru to yml format', () => {
     });
 
     await test.step('Collection reappears in the sidebar with its items', async () => {
-      await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'migration-test' })).toBeVisible({ timeout: 15000 });
-      await expect(page.locator('.item-name').filter({ hasText: 'ping' })).toBeVisible({ timeout: 15000 });
-      await expect(page.locator('.item-name').filter({ hasText: 'post-json' })).toBeVisible();
-      await expect(page.locator('.item-name').filter({ hasText: 'api' })).toBeVisible();
+      await expect(loc.sidebar.collection('migration-test')).toBeVisible({ timeout: 15000 });
+      await expect(loc.sidebar.request('ping')).toBeVisible({ timeout: 15000 });
+      await expect(loc.sidebar.request('post-json')).toBeVisible();
+      await expect(loc.sidebar.request('api')).toBeVisible();
     });
 
     await test.step('Previously open request tab is closed and the overview tab is open', async () => {
-      await expect(loc.tabs.requestTab('ping')).not.toBeVisible();
+      await expect(loc.tabs.requestTab('ping')).toHaveCount(0);
       await expect(loc.tabs.collectionSettingsTab()).toBeVisible();
-      await expect(page.getByTestId('collection-settings-tab-overview')).toBeVisible();
+      await expect(loc.paneTabs.collectionSettingsTab('overview')).toBeVisible();
     });
 
     await test.step('Verify migration section is hidden after migration', async () => {
-      await page.getByTestId('collection-settings-tab-overview').click();
+      await loc.paneTabs.collectionSettingsTab('overview').click();
       await expect(page.getByText('Migrate to YML file format')).not.toBeVisible();
     });
 
     await test.step('Verify migrated requests are functional', async () => {
       await selectEnvironment(page, 'Local');
-      await page.locator('.item-name').filter({ hasText: 'ping' }).click();
+      await loc.sidebar.request('ping').click();
       await sendRequestAndWaitForResponse(page, 200);
     });
 

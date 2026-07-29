@@ -109,6 +109,9 @@ class MountManager {
         fileIndex: this.#getIndex()
       });
       collectionWatcher.addTempDirectoryWatcher(entry.win, tempDirectoryPath, collectionUid, collectionPath);
+    } catch (err) {
+      this.#mounts.delete(collectionUid);
+      throw err;
     } finally {
       entry.emit.loading(false);
     }

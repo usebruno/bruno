@@ -51,16 +51,20 @@ describe('stringifyFolder — seq', () => {
     const folderRoot = { meta: { name: 'no-seq-folder' }, docs: null } as any;
 
     const yml = stringifyFolder(folderRoot);
+    const { meta } = parseFolder(yml);
 
     expect(yml).not.toMatch(/seq:/);
-    expect(parseFolder(yml).meta?.seq).toBeUndefined();
+    expect(meta).toEqual(expect.objectContaining({ name: 'no-seq-folder' }));
+    expect(meta!.seq).toBeUndefined();
   });
 
   it('preserves an explicit numeric seq', () => {
     const folderRoot = { meta: { name: 'ordered-folder', seq: 3 }, docs: null } as any;
 
     const yml = stringifyFolder(folderRoot);
+    const { meta } = parseFolder(yml);
 
-    expect(parseFolder(yml).meta?.seq).toBe(3);
+    expect(meta).toEqual(expect.objectContaining({ name: 'ordered-folder' }));
+    expect(meta!.seq).toBe(3);
   });
 });

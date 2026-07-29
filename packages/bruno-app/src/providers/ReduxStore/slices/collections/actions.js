@@ -3686,7 +3686,9 @@ export const migrateCollectionToYml = (collectionUid) => async (dispatch, getSta
     }
     // Main restored the disk and re-opened the original collection; hold the locked
     // modal open until it is back in the store so the sidebar never sits empty.
-    await remountReopenedCollection().catch(() => {});
+    await remountReopenedCollection().catch(() => {
+      toast.error('Collection could not be reopened automatically. Please reopen it manually.');
+    });
     throw err;
   } finally {
     dispatch(migrationEnded());

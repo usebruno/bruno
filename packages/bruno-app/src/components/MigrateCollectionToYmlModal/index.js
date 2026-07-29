@@ -42,7 +42,7 @@ const MigrateCollectionToYmlModal = () => {
   };
 
   const handleCancelMigration = () => {
-    dispatch(cancelMigrateCollectionToYml(migration.collectionUid));
+    dispatch(cancelMigrateCollectionToYml(migration.collectionUid)).catch(() => {});
   };
 
   const handleClose = () => {
@@ -72,7 +72,7 @@ const MigrateCollectionToYmlModal = () => {
   const confirmDisabled = isMigrating ? isCancelling : isExporting || !isCollectionMounted;
   const progressPercent = migration.total ? Math.round((migration.current / migration.total) * 100) : 0;
   const progressLabel = migration.phase
-    ? `${PHASE_LABELS[migration.phase] || migration.phase} — ${migration.current}/${migration.total}`
+    ? `${PHASE_LABELS[migration.phase] || migration.phase}: ${migration.current}/${migration.total}`
     : 'Preparing…';
 
   return (
@@ -96,7 +96,15 @@ const MigrateCollectionToYmlModal = () => {
               This will convert all files in <strong>{migration.collectionName}</strong> from <code>.bru</code> format to <code>.yml</code> format.
             </p>
             {isMigrating ? (
-              <div className="migration-progress mt-4" data-testid="migration-progress">
+              <div
+                className="migration-progress mt-4"
+                data-testid="migration-progress"
+                role="progressbar"
+                aria-valuenow={progressPercent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={isCancelling ? 'Cancelling and restoring the collection' : progressLabel}
+              >
                 <div className="migration-progress-track">
                   <div
                     className="migration-progress-fill"

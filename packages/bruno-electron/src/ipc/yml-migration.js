@@ -167,6 +167,7 @@ const migrateCollectionOnDisk = async ({
     await fsExtra.ensureDir(backupRootDir);
     backupDir = await fs.promises.mkdtemp(path.join(backupRootDir, 'backup-'));
     for (const originalPath of originalsToRemove) {
+      checkCancelled();
       await fsExtra.copy(originalPath, path.join(backupDir, path.relative(collectionPathname, originalPath)));
     }
 
@@ -277,7 +278,7 @@ const migrateCollectionToYml = async ({ mainWindow, watcher, collectionPathname,
     // The persisted ui snapshot may still hold this collection's .bru tabs (renderer
     // snapshot saves are debounced); clear them so a later restore can't resurrect them.
     try {
-      snapshotManager.setCollection(collectionPathname, { tabs: [] });
+      snapshotManager.setCollection(collectionPathname, { tabs: [], activeTab: null });
     } catch (snapshotError) {
       console.error('Failed to clear snapshot tabs after migration:', snapshotError);
     }

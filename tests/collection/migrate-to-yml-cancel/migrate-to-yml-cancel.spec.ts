@@ -6,6 +6,7 @@ import {
   waitForReadyPage,
   openCollection,
   openMigrateToYmlModalFromOverview,
+  openCollectionOverview,
   confirmMigration
 } from '../../utils/page';
 
@@ -49,12 +50,12 @@ test.describe('Cancelling a bru to yml migration restores the collection', () =>
 
     await test.step('While migrating: collection is gone from the sidebar, locked modal shows progress', async () => {
       await expect(loc.migrateToYml.progress()).toBeVisible({ timeout: 10000 });
-      await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'migration-test' })).not.toBeVisible();
+      await expect(loc.sidebar.collection('migration-test')).not.toBeVisible();
     });
 
     await test.step('Cancel the migration', async () => {
       await loc.migrateToYml.cancelMigrationButton().click();
-      await expect(page.getByText('Migration cancelled')).toBeVisible({ timeout: 30000 });
+      await expect(loc.migrateToYml.cancelledMessage()).toBeVisible({ timeout: 30000 });
     });
 
     await test.step('Disk is restored exactly: all bru files back, no yml residue', async () => {
@@ -66,9 +67,8 @@ test.describe('Cancelling a bru to yml migration restores the collection', () =>
     });
 
     await test.step('Collection reopens in bru form and still offers the migration', async () => {
-      await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'migration-test' })).toBeVisible({ timeout: 15000 });
-      await page.locator('#sidebar-collection-name').filter({ hasText: 'migration-test' }).click();
-      await page.getByTestId('collection-settings-tab-overview').click();
+      await expect(loc.sidebar.collection('migration-test')).toBeVisible({ timeout: 15000 });
+      await openCollectionOverview(page, 'migration-test');
       await expect(loc.migrateToYml.convertButton()).toBeVisible({ timeout: 15000 });
     });
 

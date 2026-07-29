@@ -243,8 +243,8 @@ class SnapshotManager {
         ...(isObject(existingCollection?.environment) ? existingCollection.environment : {}),
         ...(isObject(data?.environment) ? data.environment : {})
       },
-      activeTab: data?.activeTab ?? existingCollection?.activeTab,
-      tabs: data?.tabs ?? existingCollection?.tabs,
+      activeTab: isObject(data) && 'activeTab' in data ? data.activeTab : existingCollection?.activeTab,
+      tabs: isObject(data) && 'tabs' in data ? data.tabs : existingCollection?.tabs,
       environmentPath: data?.environmentPath ?? existingCollection?.environmentPath,
       selectedEnvironment: data?.selectedEnvironment ?? existingCollection?.selectedEnvironment
     };
