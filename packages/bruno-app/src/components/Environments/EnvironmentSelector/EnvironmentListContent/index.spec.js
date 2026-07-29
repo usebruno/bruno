@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import React from 'react';
+import React, { useState } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import EnvironmentListContent from './index';
@@ -18,7 +18,7 @@ const renderWithTheme = (component) => {
 };
 
 const EnvironmentListContentWrapper = (props) => {
-  const [searchText, setSearchText] = React.useState('');
+  const [searchText, setSearchText] = useState('');
   return (
     <EnvironmentListContent
       {...props}

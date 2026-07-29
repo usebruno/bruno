@@ -17,7 +17,6 @@ const EnvironmentListContent = ({
 }) => {
   const searchInputRef = useRef(null);
 
-  // Handle keydown events for the search input
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') {
       if (searchText) {
@@ -28,14 +27,12 @@ const EnvironmentListContent = ({
     }
   };
 
-  // Handle global keydown events for the search input
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
       if (document.activeElement === searchInputRef.current) {
         return;
       }
 
-      // Ignore if user is already focused on an input or textarea
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
         return;
       }
@@ -45,7 +42,6 @@ const EnvironmentListContent = ({
         return;
       }
 
-      // Focus the search input
       if (searchInputRef.current) {
         searchInputRef.current.focus();
       }
@@ -57,15 +53,12 @@ const EnvironmentListContent = ({
     };
   }, []);
 
-  // Filter environments based on search text
   const filteredEnvs = useMemo(() => {
     const trimmedSearchText = searchText?.trim()?.toLowerCase();
     if (!trimmedSearchText) {
       return environments || [];
     }
-    return (environments || []).filter((env) =>
-      env?.name?.toLowerCase()?.includes(trimmedSearchText)
-    );
+    return (environments || []).filter((env) => env.name.toLowerCase().includes(trimmedSearchText));
   }, [environments, searchText]);
 
   return (

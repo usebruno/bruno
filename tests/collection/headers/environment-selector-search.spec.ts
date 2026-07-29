@@ -101,7 +101,6 @@ test.describe.serial('Environment Selector Search', () => {
     const locators = buildCommonLocators(page);
     const searchInput = locators.environment.searchInput();
 
-    // Type something in the search input
     await searchInput.fill('prod');
     await expect(searchInput).toHaveValue('prod');
 
@@ -112,5 +111,32 @@ test.describe.serial('Environment Selector Search', () => {
     await expect(locators.environment.listItem('Development')).toBeVisible();
     await expect(locators.environment.listItem('Production')).toBeVisible();
     await expect(locators.environment.listItem('Staging')).toBeVisible();
+  });
+
+  test('should keep search independent between the Collection and Global tabs', async ({ pageWithUserData: page }) => {
+    const locators = buildCommonLocators(page);
+    const searchInput = locators.environment.searchInput();
+
+    await searchInput.fill('prod');
+    await expect(locators.environment.listItem('Production')).toBeVisible();
+    await expect(locators.environment.listItem('Development')).not.toBeVisible();
+
+    await locators.environment.globalTab().click();
+    await expect(searchInput).toHaveValue('');
+
+    await locators.environment.collectionTab().click();
+    await expect(searchInput).toHaveValue('');
+    await expect(locators.environment.listItem('Development')).toBeVisible();
+    await expect(locators.environment.listItem('Production')).toBeVisible();
+    await expect(locators.environment.listItem('Staging')).toBeVisible();
+  });
+
+  test('should keep the Configure button visible when search has no results', async ({ pageWithUserData: page }) => {
+    const locators = buildCommonLocators(page);
+    const searchInput = locators.environment.searchInput();
+    await searchInput.fill('nonexistentenv');
+
+    await expect(locators.environment.noResults()).toBeVisible();
+    await expect(locators.environment.configureButton()).toBeVisible();
   });
 });

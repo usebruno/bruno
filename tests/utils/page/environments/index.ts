@@ -1,5 +1,5 @@
-import { Page, test, expect } from '../../../../playwright';
-import { buildCommonLocators } from '../locators';
+import { Page, test } from '../../../../playwright';
+import { buildCollectionHeaderLocators } from '../collection/collection-header';
 
 export const buildEnvironmentLocators = (page: Page) => ({
   selector: () => page.getByTestId('environment-selector-trigger'),
@@ -85,9 +85,8 @@ export const buildEnvironmentLocators = (page: Page) => ({
  * @returns void
  */
 export const openEnvironmentSelector = async (page: Page) => {
-  const locators = buildCommonLocators(page);
-  const trigger = locators.collectionHeader.envSelectorTrigger();
-  const searchInput = locators.environment.searchInput();
+  const trigger = buildCollectionHeaderLocators(page).envSelectorTrigger();
+  const searchInput = buildEnvironmentLocators(page).searchInput();
 
   await test.step('Open dropdown', async () => {
     await trigger.waitFor({ state: 'visible' });
@@ -97,13 +96,11 @@ export const openEnvironmentSelector = async (page: Page) => {
 };
 
 /**
- * Closes the environment selector dropdown if it is open.
- * Uses the Escape key to handle both clearing search input and closing the dropdown.
+ * Closes the environment selector dropdown if it is open, by clicking its trigger again.
  * @param page - The page object
  * @returns void
  */
 export const closeEnvironmentSelector = async (page: Page) => {
-  const locators = buildCommonLocators(page);
-  const trigger = locators.collectionHeader.envSelectorTrigger();
+  const trigger = buildCollectionHeaderLocators(page).envSelectorTrigger();
   await trigger.click();
 };

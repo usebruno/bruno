@@ -279,7 +279,10 @@ const EnvironmentSelector = ({ collection }) => {
                 className={`tab-button whitespace-nowrap pb-[0.375rem] border-b-[0.125rem] bg-transparent flex align-center cursor-pointer transition-all duration-200 mr-[1.25rem] ${
                   activeTab === tab.id ? 'active' : 'inactive'
                 }`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setSearchText('');
+                }}
                 data-testid={`env-tab-${tab.id}`}
               >
                 <span className="tab-content-wrapper">
