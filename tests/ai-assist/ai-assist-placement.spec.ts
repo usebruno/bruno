@@ -11,7 +11,8 @@ import {
   selectFolderScriptPaneTab,
   selectfolderPaneTab,
   selectRequestPaneTab,
-  selectScriptSubTab
+  selectScriptSubTab,
+  setAppEnabled
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
@@ -52,6 +53,118 @@ test.describe('AI Assist tab-bar placement', () => {
       await expect(locators.aiAssist.trigger('docs')).toBeVisible();
     });
   });
+
+  test('request pane: Script tab bar follows the default sub-tab when none was picked', async ({ pageWithUserData: page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    const collectionName = 'ai-assist-script-default';
+    const requestName = 'request-1';
+
+    await test.step('Arrange: create and open a request with no scripts', async () => {
+      await createCollection(page, collectionName, await createTmpDir(collectionName));
+      await createRequest(page, requestName, collectionName);
+      await locators.sidebar.request(requestName).click();
+      await locators.tabs.requestTab(requestName).waitFor({ state: 'visible' });
+    });
+
+    await test.step('Script defaults to post-response and the tab bar button matches', async () => {
+      await selectRequestPaneTab(page, 'Script');
+      await expect(locators.paneTabs.tabTrigger('post-response')).toContainClass('active');
+      await expect(locators.aiAssist.trigger('post-response')).toBeVisible();
+      await expect(locators.aiAssist.trigger('pre-request')).toHaveCount(0);
+    });
+  });
+
+  test('request pane: App tab shows the AI Assist button', async ({ pageWithUserData: page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    const collectionName = 'ai-assist-app-tab';
+    const requestName = 'request-1';
+
+    await test.step('Arrange: create a request and enable its app', async () => {
+      await createCollection(page, collectionName, await createTmpDir(collectionName));
+      await createRequest(page, requestName, collectionName);
+      await locators.sidebar.request(requestName).click();
+      await locators.tabs.requestTab(requestName).waitFor({ state: 'visible' });
+      await setAppEnabled(page, true);
+    });
+
+    await test.step('App tab shows the app-request AI Assist button', async () => {
+      await selectRequestPaneTab(page, 'App');
+      await expect(locators.aiAssist.trigger('app-request')).toBeVisible();
+    });
+  });
+
+  test('graphql request pane: AI Assist sits in the tab bar, docs only in edit mode', async ({ pageWithUserData: page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    const collectionName = 'ai-assist-graphql';
+    const requestName = 'graphql-request-1';
+
+    await test.step('Arrange: create and open a GraphQL request', async () => {
+      await createCollection(page, collectionName, await createTmpDir(collectionName));
+      await createRequest(page, requestName, collectionName, { requestType: 'graphql' });
+      await locators.sidebar.request(requestName).click();
+      await locators.tabs.requestTab(requestName).waitFor({ state: 'visible' });
+    });
+
+    await test.step('Query tab keeps its own actions and shows no AI Assist button', async () => {
+      await selectRequestPaneTab(page, 'Query');
+      await expect(locators.aiAssist.trigger('pre-request')).toHaveCount(0);
+      await expect(locators.aiAssist.trigger('post-response')).toHaveCount(0);
+    });
+
+    await test.step('Tests tab shows the AI Assist button', async () => {
+      await selectRequestPaneTab(page, 'Tests');
+      await expect(locators.aiAssist.trigger('tests')).toBeVisible();
+    });
+
+    await test.step('Each Script sub-tab shows its own AI Assist button', async () => {
+      await selectScriptSubTab(page, 'pre-request');
+      await expect(locators.aiAssist.trigger('pre-request')).toBeVisible();
+      await selectScriptSubTab(page, 'post-response');
+      await expect(locators.aiAssist.trigger('post-response')).toBeVisible();
+    });
+
+    await test.step('Docs shows the AI Assist button only in edit mode', async () => {
+      await selectRequestPaneTab(page, 'Docs');
+      await expect(locators.aiAssist.trigger('docs')).toHaveCount(0);
+
+      await locators.documentation.editToggle().click();
+      await expect(locators.aiAssist.trigger('docs')).toBeVisible();
+    });
+  });
+
+  const docsOnlyProtocols = [
+    { protocol: 'gRPC', requestType: 'grpc' as const, requestName: 'grpc-request-1' },
+    { protocol: 'WebSocket', requestType: 'ws' as const, requestName: 'ws-request-1' }
+  ];
+
+  for (const { protocol, requestType, requestName } of docsOnlyProtocols) {
+    test(`${protocol} request pane: AI Assist appears only on Docs in edit mode`, async ({ pageWithUserData: page, createTmpDir }) => {
+      const locators = buildCommonLocators(page);
+      const collectionName = `ai-assist-${requestType}`;
+
+      await test.step(`Arrange: create and open a ${protocol} request`, async () => {
+        await createCollection(page, collectionName, await createTmpDir(collectionName));
+        await createRequest(page, requestName, collectionName, { requestType });
+        await locators.sidebar.request(requestName).click();
+        await locators.tabs.requestTab(requestName).waitFor({ state: 'visible' });
+      });
+
+      await test.step('Message and Auth tabs show no AI Assist button', async () => {
+        await selectRequestPaneTab(page, 'Message');
+        await expect(locators.aiAssist.trigger('docs')).toHaveCount(0);
+        await selectRequestPaneTab(page, 'Auth');
+        await expect(locators.aiAssist.trigger('docs')).toHaveCount(0);
+      });
+
+      await test.step('Docs shows the AI Assist button only in edit mode', async () => {
+        await selectRequestPaneTab(page, 'Docs');
+        await expect(locators.aiAssist.trigger('docs')).toHaveCount(0);
+
+        await locators.documentation.editToggle().click();
+        await expect(locators.aiAssist.trigger('docs')).toBeVisible();
+      });
+    });
+  }
 
   test('collection settings: AI Assist sits in the tab bar, docs only in edit mode', async ({ pageWithUserData: page, createTmpDir }) => {
     const locators = buildCommonLocators(page);
