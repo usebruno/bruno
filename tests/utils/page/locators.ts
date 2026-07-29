@@ -56,7 +56,11 @@ export const buildCommonLocators = (page: Page) => ({
     tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`)
   },
   aiAssist: {
-    trigger: (scriptType: string) => page.getByTestId(`ai-assist-trigger-${scriptType}`)
+    trigger: (scriptType: string) => page.getByTestId(`ai-assist-trigger-${scriptType}`),
+    requestPaneTabBarTrigger: (scriptType: string) =>
+      page.locator('[data-testid="request-pane"] [role="tablist"]').getByTestId(`ai-assist-trigger-${scriptType}`),
+    settingsTabBarTrigger: (scriptType: string) =>
+      page.getByTestId('settings-tab-bar').getByTestId(`ai-assist-trigger-${scriptType}`)
   },
   documentation: {
     editToggle: () => page.locator('.editing-mode')

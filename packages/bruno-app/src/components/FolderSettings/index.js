@@ -82,7 +82,7 @@ const FolderSettings = ({ collection, folder }) => {
   return (
     <StyledWrapper className="flex flex-col h-full overflow-auto">
       <div className="flex flex-col h-full relative px-4 py-4">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-4" data-testid="settings-tab-bar">
           <div className="flex flex-wrap items-center tabs" role="tablist">
             <div className={getTabClassname('headers')} role="tab" data-testid="folder-settings-tab-headers" onClick={() => setTab('headers')}>
               Headers

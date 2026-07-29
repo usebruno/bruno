@@ -35,14 +35,14 @@ test.describe('AI Assist tab-bar placement', () => {
 
     await test.step('Tests tab shows the AI Assist button', async () => {
       await selectRequestPaneTab(page, 'Tests');
-      await expect(locators.aiAssist.trigger('tests')).toBeVisible();
+      await expect(locators.aiAssist.requestPaneTabBarTrigger('tests')).toBeVisible();
     });
 
     await test.step('Each Script sub-tab shows its own AI Assist button', async () => {
       await selectScriptSubTab(page, 'pre-request');
-      await expect(locators.aiAssist.trigger('pre-request')).toBeVisible();
+      await expect(locators.aiAssist.requestPaneTabBarTrigger('pre-request')).toBeVisible();
       await selectScriptSubTab(page, 'post-response');
-      await expect(locators.aiAssist.trigger('post-response')).toBeVisible();
+      await expect(locators.aiAssist.requestPaneTabBarTrigger('post-response')).toBeVisible();
     });
 
     await test.step('Docs shows the AI Assist button only in edit mode', async () => {
@@ -50,7 +50,7 @@ test.describe('AI Assist tab-bar placement', () => {
       await expect(locators.aiAssist.trigger('docs')).toHaveCount(0);
 
       await locators.documentation.editToggle().click();
-      await expect(locators.aiAssist.trigger('docs')).toBeVisible();
+      await expect(locators.aiAssist.requestPaneTabBarTrigger('docs')).toBeVisible();
     });
   });
 
@@ -69,7 +69,7 @@ test.describe('AI Assist tab-bar placement', () => {
     await test.step('Script defaults to post-response and the tab bar button matches', async () => {
       await selectRequestPaneTab(page, 'Script');
       await expect(locators.paneTabs.tabTrigger('post-response')).toContainClass('active');
-      await expect(locators.aiAssist.trigger('post-response')).toBeVisible();
+      await expect(locators.aiAssist.requestPaneTabBarTrigger('post-response')).toBeVisible();
       await expect(locators.aiAssist.trigger('pre-request')).toHaveCount(0);
     });
   });
@@ -89,7 +89,7 @@ test.describe('AI Assist tab-bar placement', () => {
 
     await test.step('App tab shows the app-request AI Assist button', async () => {
       await selectRequestPaneTab(page, 'App');
-      await expect(locators.aiAssist.trigger('app-request')).toBeVisible();
+      await expect(locators.aiAssist.requestPaneTabBarTrigger('app-request')).toBeVisible();
     });
   });
 
@@ -113,14 +113,14 @@ test.describe('AI Assist tab-bar placement', () => {
 
     await test.step('Tests tab shows the AI Assist button', async () => {
       await selectRequestPaneTab(page, 'Tests');
-      await expect(locators.aiAssist.trigger('tests')).toBeVisible();
+      await expect(locators.aiAssist.requestPaneTabBarTrigger('tests')).toBeVisible();
     });
 
     await test.step('Each Script sub-tab shows its own AI Assist button', async () => {
       await selectScriptSubTab(page, 'pre-request');
-      await expect(locators.aiAssist.trigger('pre-request')).toBeVisible();
+      await expect(locators.aiAssist.requestPaneTabBarTrigger('pre-request')).toBeVisible();
       await selectScriptSubTab(page, 'post-response');
-      await expect(locators.aiAssist.trigger('post-response')).toBeVisible();
+      await expect(locators.aiAssist.requestPaneTabBarTrigger('post-response')).toBeVisible();
     });
 
     await test.step('Docs shows the AI Assist button only in edit mode', async () => {
@@ -128,7 +128,7 @@ test.describe('AI Assist tab-bar placement', () => {
       await expect(locators.aiAssist.trigger('docs')).toHaveCount(0);
 
       await locators.documentation.editToggle().click();
-      await expect(locators.aiAssist.trigger('docs')).toBeVisible();
+      await expect(locators.aiAssist.requestPaneTabBarTrigger('docs')).toBeVisible();
     });
   });
 
@@ -161,7 +161,7 @@ test.describe('AI Assist tab-bar placement', () => {
         await expect(locators.aiAssist.trigger('docs')).toHaveCount(0);
 
         await locators.documentation.editToggle().click();
-        await expect(locators.aiAssist.trigger('docs')).toBeVisible();
+        await expect(locators.aiAssist.requestPaneTabBarTrigger('docs')).toBeVisible();
       });
     });
   }
@@ -175,15 +175,15 @@ test.describe('AI Assist tab-bar placement', () => {
 
     await test.step('Tests tab shows the AI Assist button', async () => {
       await selectCollectionPaneTab(page, 'Tests');
-      await expect(locators.aiAssist.trigger('tests')).toBeVisible();
+      await expect(locators.aiAssist.settingsTabBarTrigger('tests')).toBeVisible();
     });
 
     await test.step('Each Script sub-tab shows its own AI Assist button', async () => {
       await selectCollectionPaneTab(page, 'Script');
       await selectCollectionScriptPaneTab(page, 'pre-request');
-      await expect(locators.aiAssist.trigger('pre-request')).toBeVisible();
+      await expect(locators.aiAssist.settingsTabBarTrigger('pre-request')).toBeVisible();
       await selectCollectionScriptPaneTab(page, 'post-response');
-      await expect(locators.aiAssist.trigger('post-response')).toBeVisible();
+      await expect(locators.aiAssist.settingsTabBarTrigger('post-response')).toBeVisible();
     });
 
     await test.step('Docs (Overview) shows the AI Assist button only in edit mode', async () => {
@@ -191,7 +191,7 @@ test.describe('AI Assist tab-bar placement', () => {
       await expect(locators.aiAssist.trigger('docs')).toHaveCount(0);
 
       await locators.documentation.editToggle().click();
-      await expect(locators.aiAssist.trigger('docs')).toBeVisible();
+      await expect(locators.aiAssist.settingsTabBarTrigger('docs')).toBeVisible();
     });
   });
 
@@ -206,15 +206,15 @@ test.describe('AI Assist tab-bar placement', () => {
 
     await test.step('Test tab shows the AI Assist button', async () => {
       await selectfolderPaneTab(page, 'Test');
-      await expect(locators.aiAssist.trigger('tests')).toBeVisible();
+      await expect(locators.aiAssist.settingsTabBarTrigger('tests')).toBeVisible();
     });
 
     await test.step('Each Script sub-tab shows its own AI Assist button', async () => {
       await selectfolderPaneTab(page, 'Script');
       await selectFolderScriptPaneTab(page, 'pre-request');
-      await expect(locators.aiAssist.trigger('pre-request')).toBeVisible();
+      await expect(locators.aiAssist.settingsTabBarTrigger('pre-request')).toBeVisible();
       await selectFolderScriptPaneTab(page, 'post-response');
-      await expect(locators.aiAssist.trigger('post-response')).toBeVisible();
+      await expect(locators.aiAssist.settingsTabBarTrigger('post-response')).toBeVisible();
     });
 
     await test.step('Docs shows the AI Assist button only in edit mode', async () => {
@@ -222,7 +222,7 @@ test.describe('AI Assist tab-bar placement', () => {
       await expect(locators.aiAssist.trigger('docs')).toHaveCount(0);
 
       await locators.documentation.editToggle().click();
-      await expect(locators.aiAssist.trigger('docs')).toBeVisible();
+      await expect(locators.aiAssist.settingsTabBarTrigger('docs')).toBeVisible();
     });
   });
 });

@@ -109,7 +109,7 @@ const CollectionSettings = ({ collection }) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full relative px-4 py-4 overflow-hidden">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4" data-testid="settings-tab-bar">
         <div className="flex flex-wrap items-center tabs" role="tablist">
           <div className={getTabClassname('overview')} role="tab" data-testid="collection-settings-tab-overview" onClick={() => setTab('overview')}>
             Overview
