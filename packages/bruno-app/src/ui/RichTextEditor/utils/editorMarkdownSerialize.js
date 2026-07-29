@@ -34,21 +34,9 @@ const flattenListItemParagraphs = (listNode) => {
   const entries = [];
 
   listNode.forEach((listItem) => {
-    const blocks = childNodes(listItem);
-    const allParagraphs = blocks.length > 0 && blocks.every((block) => block.type.name === 'paragraph');
-
-    if (allParagraphs && blocks.length > 1) {
-      entries.push({
-        attrs: listItem.attrs,
-        blocks,
-        itemType: listItem.type.name
-      });
-      return;
-    }
-
     entries.push({
       attrs: listItem.attrs,
-      blocks,
+      blocks: childNodes(listItem),
       itemType: listItem.type.name
     });
   });
@@ -107,25 +95,31 @@ const serializeBulletList = (state, node) => {
   renderFlattenedListEntries(state, node, entries, '  ', () => `${marker} `);
 };
 
-const findIndexOfAdjacentNode = (node, parent, index) => {
-  let adjacentIndex = 0;
+const countPrecedingSiblingsOfSameType = (node, parent, index) => {
+  let count = 0;
 
-  for (; index - adjacentIndex > 0; adjacentIndex += 1) {
-    if (parent.child(index - adjacentIndex - 1).type.name !== node.type.name) {
+  for (; index - count > 0; count += 1) {
+    if (parent.child(index - count - 1).type.name !== node.type.name) {
       break;
     }
   }
 
-  return adjacentIndex;
+  return count;
 };
 
+// CommonMark merges two adjacent ordered lists that use the same `.`/`)`
+// separator into a single list. The ProseMirror doc has no field for the
+// separator the source markdown originally used (it carries no semantic
+// meaning — only the numbering does), so alternating the separator by
+// position in a run of adjacent ordered lists is how re-serialization keeps
+// them visually and structurally distinct instead of merging on reparse.
 const serializeOrderedList = (state, node, parent, index) => {
   const start = node.attrs.start || 1;
   const entries = flattenListItemParagraphs(node);
   const maxW = String(start + entries.length - 1).length;
   const space = state.repeat(' ', maxW + 2);
-  const adjacentIndex = parent ? findIndexOfAdjacentNode(node, parent, index) : 0;
-  const separator = adjacentIndex % 2 ? ') ' : '. ';
+  const precedingSiblingCount = parent ? countPrecedingSiblingsOfSameType(node, parent, index) : 0;
+  const separator = precedingSiblingCount % 2 ? ') ' : '. ';
 
   renderFlattenedListEntries(state, node, entries, space, (entryIndex) => {
     const number = String(start + entryIndex);

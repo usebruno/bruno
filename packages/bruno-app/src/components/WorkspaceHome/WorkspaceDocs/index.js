@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { saveWorkspaceDocs } from 'providers/ReduxStore/slices/workspaces/actions';
 import StyledWrapper from './StyledWrapper';
@@ -25,13 +25,20 @@ const WorkspaceDocs = ({ workspace }) => {
     initialValue: scroll
   });
 
-  useEffect(() => {
-    setLocalDocs(workspace?.docs || '');
-    setIsEditing(false);
-  }, [workspace?.uid, workspace?.docs]);
-
+  // `workspace` is keyed by uid at the call site, so switching workspaces
+  // remounts this component and re-initializes localDocs/isEditing fresh
+  // instead of needing an effect to reset them. localDocs is only seeded
+  // from workspace.docs on mount and when edit mode is (re-)entered, so an
+  // external update to workspace.docs while the user is mid-edit doesn't
+  // silently overwrite their in-progress changes.
   const toggleViewMode = () => {
-    setIsEditing((prev) => !prev);
+    setIsEditing((prev) => {
+      const next = !prev;
+      if (next) {
+        setLocalDocs(workspace?.docs || '');
+      }
+      return next;
+    });
   };
 
   const onEdit = (value) => {

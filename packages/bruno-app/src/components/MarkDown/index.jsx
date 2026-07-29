@@ -21,7 +21,7 @@ const Markdown = ({ onDoubleClick, content, allowHtml = true, collectionPath = '
 
   const handleOnClick = (event) => {
     const target = event.target.closest('a');
-    if (!target || target.tagName !== 'A') return;
+    if (!target) return;
 
     const href = target.getAttribute('href');
     // Always prevent the anchor's default navigation — falling through to it

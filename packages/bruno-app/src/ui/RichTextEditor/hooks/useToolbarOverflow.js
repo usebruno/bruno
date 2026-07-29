@@ -136,30 +136,18 @@ export const useToolbarOverflow = (editor) => {
     }));
   }, [editor]);
 
-  if (!editor) {
-    return {
-      toolbarRef,
-      measureRef,
-      actions: [],
-      visibleActions: [],
-      overflowActions: [],
-      overflowActiveItemIds: [],
-      headingMenuItems: [],
-      overflowMenuItems: [],
-      activeHeading: HEADING_OPTIONS[0],
-      activeHeadingId: 'normal',
-      activeItemIds: [],
-      disabledById: {},
-      isInTable: false
-    };
-  }
-
+  // `actions`/`visibleActions`/`overflowActions` aren't editor-gated at their
+  // own definitions above (kept stable so toolbar layout doesn't shift once
+  // the editor mounts) — every other field already resolves to its empty
+  // default (via its own `!editor` guard or `getActiveHeadingId`/`isInTable`'s
+  // ternary) whether or not `editor` exists, so only those three need an
+  // override here.
   return {
     toolbarRef,
     measureRef,
-    actions,
-    visibleActions,
-    overflowActions,
+    actions: editor ? actions : [],
+    visibleActions: editor ? visibleActions : [],
+    overflowActions: editor ? overflowActions : [],
     overflowActiveItemIds,
     headingMenuItems,
     overflowMenuItems,

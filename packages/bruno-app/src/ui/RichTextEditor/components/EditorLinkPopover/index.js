@@ -68,7 +68,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
   const [editLink, setEditLink] = useState({ text: '', url: '' });
 
   const hoverTimerRef = useRef(null);
-  const isHoverHovered = useRef(false);
+  const isPointerOverHoverPopover = useRef(false);
   const currentAnchorRef = useRef(null);
 
   const isEditable = editor?.isEditable ?? false;
@@ -93,7 +93,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
   }, [editor, getContainer]);
 
   const closeHover = useCallback(() => {
-    if (!isHoverHovered.current) {
+    if (!isPointerOverHoverPopover.current) {
       setHoverOpen(false);
       currentAnchorRef.current = null;
     }
@@ -197,11 +197,11 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
           data-hover-popover="true"
           style={{ top: `${hoverCoords.top}px`, left: `${hoverCoords.left}px` }}
           onMouseEnter={() => {
-            isHoverHovered.current = true;
+            isPointerOverHoverPopover.current = true;
             clearTimeout(hoverTimerRef.current);
           }}
           onMouseLeave={() => {
-            isHoverHovered.current = false;
+            isPointerOverHoverPopover.current = false;
             hoverTimerRef.current = setTimeout(closeHover, 200);
           }}
         >

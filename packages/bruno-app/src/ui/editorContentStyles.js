@@ -201,7 +201,7 @@ const editorContentStyles = css`
     border-radius: ${(props) => props.theme.border.radius.base};
     border: solid 1px ${(props) => props.theme.border.border0};
     overflow: clip;
-    border-collapse: separate; 
+    border-collapse: separate;
     border-spacing: 0;
 
     th {

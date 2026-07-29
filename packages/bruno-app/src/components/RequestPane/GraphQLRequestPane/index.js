@@ -33,8 +33,6 @@ import AuthMode from '../Auth/AuthMode/index';
 import TabBarAiAssist from '../TabBarAiAssist';
 import StatusDot from 'components/StatusDot';
 
-// const AI_TABS = ['script', 'tests', 'docs'];
-
 const TAB_CONFIG = [
   { key: 'query', label: 'Query' },
   { key: 'headers', label: 'Headers' },

@@ -9,6 +9,11 @@ import ModeSwitch from 'components/ModeSwitch';
 import { useEditor } from '@tiptap/react';
 import StyledWrapper from './StyledWrapper';
 
+// Distinct from any real `docs` value (including `null`, which a fresh
+// collection's docs field legitimately holds) so the "no edit emitted yet"
+// sentinel below can never be mistaken for actual doc content.
+const DOCS_NOT_YET_EMITTED = Symbol('docs-not-yet-emitted');
+
 const DocsEditor = ({
   docs,
   onEdit,
@@ -22,15 +27,32 @@ const DocsEditor = ({
   emptyPreviewContent,
   onRequestEdit,
   initialScroll,
-  onScroll
+  onScroll,
+  testId
 }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const [isMarkdownMode, setIsMarkdownMode] = useState(false);
+  // Entering edit mode always lands on the WYSIWYG editor by default (per
+  // spec), computed during render instead of via an effect so it takes
+  // effect in the same render as the isEditing change.
+  const [wasEditing, setWasEditing] = useState(isEditing);
+  if (isEditing !== wasEditing) {
+    setWasEditing(isEditing);
+    if (isEditing && !wasEditing) {
+      setIsMarkdownMode(false);
+    }
+  }
 
-  const lastEmittedDocsRef = useRef(null);
+  const lastEmittedDocsRef = useRef(DOCS_NOT_YET_EMITTED);
   const isMarkdownModeRef = useRef(isMarkdownMode);
   const isEditingRef = useRef(isEditing);
+  // Plain assignment during render — these refs exist only so the onUpdate
+  // closure below can read the latest mode/editing flags without being
+  // recreated on every change; there's no external system to synchronize
+  // with, so an effect would just add an unnecessary extra render pass.
+  isMarkdownModeRef.current = isMarkdownMode;
+  isEditingRef.current = isEditing;
 
   const editor = useEditor(
     {
@@ -63,12 +85,12 @@ const DocsEditor = ({
   );
 
   useEffect(() => {
-    isMarkdownModeRef.current = isMarkdownMode;
-  }, [isMarkdownMode]);
-
-  useEffect(() => {
-    isEditingRef.current = isEditing;
-  }, [isEditing]);
+    if (!editor || editor.isDestroyed) return;
+    const nextEditable = isEditing && !isMarkdownMode;
+    if (editor.isEditable !== nextEditable) {
+      editor.setEditable(nextEditable, false);
+    }
+  }, [editor, isEditing, isMarkdownMode]);
 
   useEffect(() => {
     if (!editor) return;
@@ -88,14 +110,8 @@ const DocsEditor = ({
     }
   }, [docs, editor, isMarkdownMode, isEditing, emptyPreviewContent]);
 
-  useEffect(() => {
-    if (isEditing) {
-      setIsMarkdownMode(false);
-    }
-  }, [isEditing]);
-
   return (
-    <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative">
+    <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative" data-testid={testId}>
       {isEditing && (
         <div className="docs-tab-strip">
           {!isMarkdownMode && (

@@ -26,9 +26,9 @@ const StyledWrapper = styled.div`
   }
 
   .is-active button {
-    color: ${(props) => props.theme.button2.color['primary']?.bg};
+    color: ${(props) => props.theme.button2.color.primary.bg};
     background: ${(props) => transparentize(1 - 0.12, props.theme.dropdown.selectedColor)};
-    
+
     &:hover {
       background: ${(props) => transparentize(1 - 0.12, props.theme.dropdown.selectedColor)};
     }

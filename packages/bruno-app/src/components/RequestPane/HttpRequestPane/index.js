@@ -23,8 +23,6 @@ import AuthMode from '../Auth/AuthMode/index';
 import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
 
-// const AI_TABS = ['script', 'tests', 'docs', 'app'];
-
 const TAB_CONFIG = [
   { key: 'params', label: 'Params' },
   { key: 'body', label: 'Body' },

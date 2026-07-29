@@ -1,43 +1,20 @@
 import { Extension } from '@tiptap/core';
 
+const LIST_ITEM_TYPES = ['taskItem', 'listItem'];
+
+const runForActiveListItemType = (editor, commandName) => {
+  const activeType = LIST_ITEM_TYPES.find((type) => editor.isActive(type));
+  return activeType ? editor.commands[commandName](activeType) : false;
+};
+
 const EditorListKeyboard = Extension.create({
   name: 'docsListKeyboard',
   priority: 1001,
   addKeyboardShortcuts() {
     return {
-      'Enter': () => {
-        if (this.editor.isActive('taskItem')) {
-          return this.editor.commands.splitListItem('taskItem');
-        }
-
-        if (this.editor.isActive('listItem')) {
-          return this.editor.commands.splitListItem('listItem');
-        }
-
-        return false;
-      },
-      'Tab': () => {
-        if (this.editor.isActive('taskItem')) {
-          return this.editor.commands.sinkListItem('taskItem');
-        }
-
-        if (this.editor.isActive('listItem')) {
-          return this.editor.commands.sinkListItem('listItem');
-        }
-
-        return false;
-      },
-      'Shift-Tab': () => {
-        if (this.editor.isActive('taskItem')) {
-          return this.editor.commands.liftListItem('taskItem');
-        }
-
-        if (this.editor.isActive('listItem')) {
-          return this.editor.commands.liftListItem('listItem');
-        }
-
-        return false;
-      }
+      'Enter': () => runForActiveListItemType(this.editor, 'splitListItem'),
+      'Tab': () => runForActiveListItemType(this.editor, 'sinkListItem'),
+      'Shift-Tab': () => runForActiveListItemType(this.editor, 'liftListItem')
     };
   }
 });

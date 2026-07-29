@@ -476,7 +476,9 @@ const MenuDropdown = forwardRef(({
           handleTriggerClick();
         },
         'aria-expanded': isOpen,
-        'data-testid': testId
+        // Preserve a trigger's own `data-testid` (e.g. a semantically named
+        // toolbar button) instead of clobbering it with the dropdown's testId.
+        'data-testid': children.props['data-testid'] || testId
       })
     : <div onClick={handleTriggerClick} aria-expanded={isOpen} data-testid={testId}>{children}</div>;
 

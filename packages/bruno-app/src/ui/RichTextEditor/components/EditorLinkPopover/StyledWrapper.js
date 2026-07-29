@@ -8,10 +8,7 @@ const StyledWrapper = styled.div`
   background-color: ${(props) => props.theme.dropdown.bg};
   border: 1px solid ${(props) => props.theme.dropdown.border};
   border-radius: ${(props) => props.theme.border.radius.base};
-  ${(props) =>
-    props.theme.dropdown.shadow && props.theme.dropdown.shadow !== 'none'
-      ? `box-shadow: ${props.theme.dropdown.shadow};`
-      : 'box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);'}
+  box-shadow: ${(props) => props.theme.dropdown.shadow || 'none'};
 
   .hover-link-view {
     display: flex;

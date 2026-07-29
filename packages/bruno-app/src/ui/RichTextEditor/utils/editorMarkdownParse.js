@@ -54,6 +54,13 @@ const setupTaskListParser = (markdownit) => {
   });
 };
 
+// markdown-it-task-lists renders one <ul> per source list even when task and
+// non-task items are interleaved, but it marks the *whole* <ul> as a task
+// list as soon as any item in it has a checkbox — so a mixed list would parse
+// into a single taskList node containing plain listItems. The ProseMirror
+// schema has no such mixed node, so each run of same-kind items is split into
+// its own <ul>, and each item's checkbox <label>/text siblings are unwrapped
+// into a <div> to match the taskItem node's expected content shape.
 const updateTaskListDOM = (element) => {
   element.querySelectorAll('ul.contains-task-list, ul[data-type="taskList"]').forEach((ul) => {
     let currentList = null;

@@ -4,6 +4,12 @@ import runMarkdownitSetupOnce from '../utils/markdownitSetupOnce';
 
 const RAW_HTML_BLOCK_ATTR = 'data-raw-html-block';
 
+// This raw HTML is rendered straight into the page via `innerHTML`, not a
+// contained iframe/shadow DOM, so DOMPurify's default allowlist (which
+// permits <style>) would let an untrusted collection's docs inject CSS rules
+// that affect the whole app UI, not just this block.
+const SANITIZE_CONFIG = { FORBID_TAGS: ['style'] };
+
 // A standalone `<br/>` is how an empty paragraph marks itself for
 // reparse (see EditorParagraph's serializer) — treat it as an ordinary
 // hard break inside an (auto-wrapped) empty paragraph, not as opaque
@@ -83,7 +89,7 @@ const EditorRawHtmlBlock = Node.create({
       dom.className = 'editor-raw-html-block';
       dom.contentEditable = 'false';
       dom.setAttribute(RAW_HTML_BLOCK_ATTR, encodeRawHtml(node.attrs.html));
-      dom.innerHTML = DOMPurify.sanitize(node.attrs.html);
+      dom.innerHTML = DOMPurify.sanitize(node.attrs.html, SANITIZE_CONFIG);
 
       return {
         dom,

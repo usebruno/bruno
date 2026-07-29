@@ -7,7 +7,7 @@ import EditorTableMenu from '../EditorTableMenu';
 import { EDITOR_MENU_DROPDOWN_PROPS, EDITOR_TOOLBAR_TOOLTIP_PROPS } from '../../utils/editorToolbarUi';
 import { useToolbarOverflow } from '../../hooks/useToolbarOverflow';
 
-const ToolbarButton = ({ tooltip, Icon, isActive, disabled, onClick, showLabel = false }) => {
+const ToolbarButton = ({ tooltip, Icon, isActive, disabled, onClick, showLabel = false, testId }) => {
   return (
     <button
       type="button"
@@ -15,6 +15,7 @@ const ToolbarButton = ({ tooltip, Icon, isActive, disabled, onClick, showLabel =
       disabled={disabled}
       className={`toolbar-btn ${isActive ? 'is-active' : ''}`}
       aria-label={tooltip}
+      data-testid={testId}
       data-tooltip-id="editor-toolbar-tooltip"
       data-tooltip-content={tooltip}
     >
@@ -25,7 +26,7 @@ const ToolbarButton = ({ tooltip, Icon, isActive, disabled, onClick, showLabel =
 };
 
 const ToolbarAction = ({ editor, action, isActive, disabled, showLabel = false }) => {
-  const { tooltip, Icon, run } = action;
+  const { id, tooltip, Icon, run } = action;
 
   return (
     <ToolbarButton
@@ -35,6 +36,7 @@ const ToolbarAction = ({ editor, action, isActive, disabled, showLabel = false }
       disabled={disabled}
       onClick={() => run(editor)}
       showLabel={showLabel}
+      testId={`toolbar-${id}`}
     />
   );
 };
@@ -91,6 +93,7 @@ const EditorToolbar = ({ editor }) => {
           <button
             type="button"
             className={`heading-dropdown-trigger ${activeHeadingId !== 'normal' ? 'is-active' : ''}`}
+            data-testid="toolbar-heading-dropdown"
           >
             <span>{activeHeading.label}</span>
             <IconCaretDown size={14} strokeWidth={1.5} fill="currentColor" />
@@ -119,7 +122,12 @@ const EditorToolbar = ({ editor }) => {
             showTickMark={false}
             {...EDITOR_MENU_DROPDOWN_PROPS}
           >
-            <button type="button" className="toolbar-btn toolbar-overflow-btn" aria-label="More formatting options">
+            <button
+              type="button"
+              className="toolbar-btn toolbar-overflow-btn"
+              aria-label="More formatting options"
+              data-testid="toolbar-overflow-menu"
+            >
               <IconDots size={16} strokeWidth={1.5} />
             </button>
           </MenuDropdown>

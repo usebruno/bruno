@@ -1,11 +1,8 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
-import find from 'lodash/find';
-import { updateCollectionDocs, deleteCollectionDraft } from 'providers/ReduxStore/slices/collections';
-import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
-import { useTheme } from 'providers/Theme';
+import { updateCollectionDocs } from 'providers/ReduxStore/slices/collections';
 import { useRef, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { buildAiVariablesPayload, buildDocsContextFromCollection } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
@@ -16,15 +13,14 @@ import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 import { useDocsEditingState } from 'components/Documentation/useDocsEditingState';
 import DocsEditor from 'components/Documentation/DocsEditor';
-import get from 'lodash/get';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
   const { isEditing, setEditing } = useDocsEditingState();
-  const docs = collection.draft?.root ? get(collection, 'draft.root.docs', '') : get(collection, 'root.docs', '');
+  const savedDocs = get(collection, 'root.docs', '');
+  const docs = collection.draft?.root ? get(collection, 'draft.root.docs', '') : savedDocs;
   const docsContext = useMemo(() => buildDocsContextFromCollection(collection), [collection]);
   const aiVariables = useMemo(() => buildAiVariablesPayload(collection, null), [collection]);
-  const preferences = useSelector((state) => state.app.preferences);
 
   // The rich text editor owns its own scroll container. Preview and rich-text
   // edit mode track scroll there; markdown mode uses CodeEditor's onScroll/initialScroll.
@@ -55,7 +51,7 @@ const Docs = ({ collection }) => {
     dispatch((
       updateCollectionDocs({
         collectionUid: collection.uid,
-        docs: docs
+        docs: savedDocs
       }))
     );
     toggleViewMode();

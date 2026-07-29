@@ -189,7 +189,7 @@ const WorkspaceOverview = ({ workspace }) => {
         </div>
 
         <div className="overview-docs">
-          <WorkspaceDocs workspace={workspace} />
+          <WorkspaceDocs key={workspace?.uid} workspace={workspace} />
         </div>
       </div>
     </StyledWrapper>

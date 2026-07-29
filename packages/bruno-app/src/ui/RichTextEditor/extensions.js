@@ -1,16 +1,15 @@
-import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TextStyle from '@tiptap/extension-text-style';
-import Paragraph from '@tiptap/extension-paragraph';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
 import EditorGapCursor from './extensions/EditorGapCursor';
 import EditorHardBreak from './extensions/EditorHardBreak';
 import { EditorKbd, EditorSuperscript } from './extensions/EditorInlineHtmlMarks';
 import EditorListKeyboard from './extensions/EditorListKeyboard';
-import { serializeTable } from './utils/editorMarkdownSerialize';
+import EditorParagraph from './extensions/EditorParagraph';
 import { createEditorImage, createEditorLink } from './extensions/EditorRelativeAssets';
 import EditorRawHtmlBlock from './extensions/EditorRawHtmlBlock';
+import EditorTable from './extensions/EditorTable';
 import { EditorTableCell, EditorTableHeader } from './extensions/EditorTableAlignment';
 import EditorTableKeyboard from './extensions/EditorTableKeyboard';
 import EditorTableView from './extensions/EditorTableView';
@@ -21,47 +20,6 @@ import {
   EditorTaskItem,
   EditorTaskList
 } from './extensions/EditorTaskList';
-
-const EditorTable = Table.extend({
-  parseHTML() {
-    return [{ tag: 'div.tableWrapper > table' }, { tag: 'table' }];
-  },
-  addStorage() {
-    return {
-      markdown: {
-        serialize: serializeTable,
-        parse: {
-          updateDOM(element) {
-            element.querySelectorAll('div.tableWrapper').forEach((wrapper) => {
-              const table = wrapper.querySelector(':scope > table');
-              if (table) {
-                wrapper.replaceWith(table);
-              }
-            });
-          }
-        }
-      }
-    };
-  }
-});
-
-const EditorParagraph = Paragraph.extend({
-  addStorage() {
-    return {
-      markdown: {
-        serialize(state, node) {
-          if (node.content.size === 0) {
-            state.write('<br/>');
-            state.closeBlock(node);
-          } else {
-            state.renderInline(node);
-            state.closeBlock(node);
-          }
-        }
-      }
-    };
-  }
-});
 
 const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
   TextStyle.configure({ types: [EditorListItem.name] }),
@@ -133,7 +91,12 @@ const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
     breaks: true,
     linkify: true,
     transformPastedText: true,
-    transformCopiedText: true
+    transformCopiedText: true,
+    // The parsed ProseMirror bulletList node has no memory of whether the
+    // source used `-`, `*`, or `+` — the marker carries no semantic meaning,
+    // so serialization always normalizes to one consistent marker rather than
+    // reading this option from an unset config (which read as accidental).
+    bulletListMarker: '-'
   })
 ];
 

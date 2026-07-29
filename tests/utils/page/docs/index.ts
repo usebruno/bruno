@@ -13,5 +13,12 @@ export const buildDocsLocators = (page: Page) => ({
   modeSwitchDocs: () => page.locator('.docs-mode-switch button').filter({ hasText: 'Rich Text' }),
   modeSwitchMarkdown: () => page.locator('.docs-mode-switch button').filter({ hasText: 'Markdown' }),
   tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
-  codeEditor: () => page.locator('.editor-container .CodeMirror-scroll')
+  codeEditor: () => page.locator('.editor-container .CodeMirror-scroll'),
+  tableMenuTrigger: () => page.getByTestId('toolbar-table-menu'),
+  overflowMenuTrigger: () => page.getByTestId('toolbar-overflow-menu'),
+  collectionDocsEditToggle: () => page.locator('.collection-settings-content .editing-mode'),
+  collectionDocsSaveBtn: () => page.locator('.collection-settings-content').getByRole('button', { name: 'Save', exact: true }),
+  collectionDocsCancelBtn: () => page.locator('.collection-settings-content').getByRole('button', { name: 'Cancel', exact: true }),
+  folderDocsEditToggle: () => page.locator('.folder-settings-content .editing-mode'),
+  folderDocsSaveBtn: () => page.locator('.folder-settings-content').getByRole('button', { name: 'Save', exact: true })
 });

@@ -206,16 +206,15 @@ const EditorTaskItem = TaskItem.extend({
         }
       });
 
-      Object.entries(this.options?.HTMLAttributes || {}).forEach(([key, value]) => {
-        listItem.setAttribute(key, value);
-      });
-
       listItem.dataset.checked = node.attrs.checked;
       checkbox.checked = node.attrs.checked;
 
       checkboxWrapper.append(checkbox, checkboxStyler);
       listItem.append(checkboxWrapper, content);
 
+      // `HTMLAttributes` here is already this.options.HTMLAttributes merged
+      // with the node's own renderHTML output (e.g. data-checked) — applying
+      // it once after building the DOM covers both in one pass.
       Object.entries(HTMLAttributes).forEach(([key, value]) => {
         listItem.setAttribute(key, value);
       });

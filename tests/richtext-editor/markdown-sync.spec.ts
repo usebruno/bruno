@@ -16,21 +16,18 @@ test.describe('Rich Text Editor Edge Cases - Markdown Sync', () => {
 
     // Switch to Markdown
     await locators.docs.modeSwitchMarkdown().click();
-    await page.waitForTimeout(500);
+    const codeEditor = locators.docs.codeEditor();
+    await expect(codeEditor).toBeVisible();
 
     // Type in Markdown
-    const codeEditor = locators.docs.codeEditor();
     await codeEditor.click();
-
     await page.keyboard.type('Hello MARKDOWN');
-    await page.waitForTimeout(500);
+    await expect(codeEditor).toContainText('Hello MARKDOWN');
 
     // Switch to Rich Text
     await locators.docs.modeSwitchDocs().click();
-    await page.waitForTimeout(1000);
 
     const prosemirror = locators.docs.proseMirror();
-    const richText = await prosemirror.textContent();
-    expect(richText).toContain('Hello MARKDOWN');
+    await expect(prosemirror).toContainText('Hello MARKDOWN');
   });
 });
