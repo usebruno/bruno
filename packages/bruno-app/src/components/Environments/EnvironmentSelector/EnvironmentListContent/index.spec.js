@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import EnvironmentListContent from './index';
 import themes from 'themes/index';
@@ -14,6 +14,17 @@ const renderWithTheme = (component) => {
         {component}
       </ThemeProvider>
     </ThemeContext.Provider>
+  );
+};
+
+const EnvironmentListContentWrapper = (props) => {
+  const [searchText, setSearchText] = React.useState('');
+  return (
+    <EnvironmentListContent
+      {...props}
+      searchText={searchText}
+      setSearchText={setSearchText}
+    />
   );
 };
 
@@ -45,7 +56,7 @@ describe('EnvironmentListContent', () => {
 
   describe('Initial Render', () => {
     it('should render all environments and No Environment option', () => {
-      renderWithTheme(<EnvironmentListContent {...defaultProps} />);
+      renderWithTheme(<EnvironmentListContentWrapper {...defaultProps} />);
 
       expect(screen.getByTestId('env-no-environment-item')).toBeInTheDocument();
 
@@ -57,7 +68,7 @@ describe('EnvironmentListContent', () => {
     });
 
     it('should render empty state when there are no environments', () => {
-      renderWithTheme(<EnvironmentListContent {...defaultProps} environments={[]} />);
+      renderWithTheme(<EnvironmentListContentWrapper {...defaultProps} environments={[]} />);
 
       expect(screen.getByText('Ready to get started?')).toBeInTheDocument();
       expect(screen.getByText('Create an environment to get started')).toBeInTheDocument();
@@ -68,7 +79,7 @@ describe('EnvironmentListContent', () => {
 
   describe('Search functionality', () => {
     it('should filter environments when typing in search input', async () => {
-      renderWithTheme(<EnvironmentListContent {...defaultProps} />);
+      renderWithTheme(<EnvironmentListContentWrapper {...defaultProps} />);
       const user = userEvent.setup();
 
       const searchInput = screen.getByTestId('env-search-input');
@@ -83,7 +94,7 @@ describe('EnvironmentListContent', () => {
     });
 
     it('should show "No results found" when search matches nothing', async () => {
-      renderWithTheme(<EnvironmentListContent {...defaultProps} />);
+      renderWithTheme(<EnvironmentListContentWrapper {...defaultProps} />);
       const user = userEvent.setup();
 
       const searchInput = screen.getByTestId('env-search-input');
@@ -100,7 +111,7 @@ describe('EnvironmentListContent', () => {
     });
 
     it('should clear search when clicking the clear button', async () => {
-      renderWithTheme(<EnvironmentListContent {...defaultProps} />);
+      renderWithTheme(<EnvironmentListContentWrapper {...defaultProps} />);
       const user = userEvent.setup();
 
       const searchInput = screen.getByTestId('env-search-input');
@@ -108,7 +119,7 @@ describe('EnvironmentListContent', () => {
 
       expect(screen.getAllByTestId('env-list-item')).toHaveLength(1);
 
-      const clearBtn = screen.getByTestId('env-search-clear-btn');
+      const clearBtn = document.querySelector('.close-icon');
       await user.click(clearBtn);
 
       expect(searchInput).toHaveValue('');
@@ -116,7 +127,7 @@ describe('EnvironmentListContent', () => {
     });
 
     it('should clear search when pressing Escape', async () => {
-      renderWithTheme(<EnvironmentListContent {...defaultProps} />);
+      renderWithTheme(<EnvironmentListContentWrapper {...defaultProps} />);
       const user = userEvent.setup();
 
       const searchInput = screen.getByTestId('env-search-input');
@@ -133,7 +144,7 @@ describe('EnvironmentListContent', () => {
 
   describe('Interactions', () => {
     it('should call onEnvironmentSelect with correct env when an item is clicked', async () => {
-      renderWithTheme(<EnvironmentListContent {...defaultProps} />);
+      renderWithTheme(<EnvironmentListContentWrapper {...defaultProps} />);
       const user = userEvent.setup();
 
       const envItems = screen.getAllByTestId('env-list-item');
@@ -144,7 +155,7 @@ describe('EnvironmentListContent', () => {
     });
 
     it('should call onEnvironmentSelect with null when No Environment is clicked', async () => {
-      renderWithTheme(<EnvironmentListContent {...defaultProps} />);
+      renderWithTheme(<EnvironmentListContentWrapper {...defaultProps} />);
       const user = userEvent.setup();
 
       const noEnvItem = screen.getByTestId('env-no-environment-item');
@@ -155,7 +166,7 @@ describe('EnvironmentListContent', () => {
     });
 
     it('should call onSettingsClick when Configure is clicked', async () => {
-      renderWithTheme(<EnvironmentListContent {...defaultProps} />);
+      renderWithTheme(<EnvironmentListContentWrapper {...defaultProps} />);
       const user = userEvent.setup();
 
       const configureBtn = screen.getByTestId('configure-env');
@@ -167,7 +178,7 @@ describe('EnvironmentListContent', () => {
 
   describe('Focus Management', () => {
     it('should focus the input when pressing Backspace globally', () => {
-      renderWithTheme(<EnvironmentListContent {...defaultProps} />);
+      renderWithTheme(<EnvironmentListContentWrapper {...defaultProps} />);
 
       const searchInput = screen.getByTestId('env-search-input');
       expect(searchInput).not.toHaveFocus();
@@ -177,7 +188,7 @@ describe('EnvironmentListContent', () => {
     });
 
     it('should focus the input when typing a printable character', () => {
-      renderWithTheme(<EnvironmentListContent {...defaultProps} />);
+      renderWithTheme(<EnvironmentListContentWrapper {...defaultProps} />);
 
       const searchInput = screen.getByTestId('env-search-input');
       expect(searchInput).not.toHaveFocus();
