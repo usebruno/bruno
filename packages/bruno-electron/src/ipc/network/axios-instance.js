@@ -95,6 +95,7 @@ function makeAxiosInstance({
       return data;
     },
     proxy: false,
+    insecureHTTPParser: true,
     maxRedirects: 0,
     headers: {}
   });

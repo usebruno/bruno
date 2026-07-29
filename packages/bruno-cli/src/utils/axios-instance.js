@@ -88,6 +88,7 @@ function makeAxiosInstance({
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
     proxy: false,
+    insecureHTTPParser: true,
     maxRedirects: 0,
     headers: {}
   });
