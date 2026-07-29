@@ -32,6 +32,19 @@ const addCurlAuthFlags = (curlCommand, auth) => {
   return curlCommand;
 };
 
+// `localhost:6000/x` needs to become `http://localhost:6000/x`: buildHar rejects a URL with no
+// scheme, and `http` is what the request would actually use.
+const prependDefaultScheme = (url) => {
+  // No URL to work with — let buildHar report it rather than inventing one here.
+  if (!url) return url;
+
+  if (hasExplicitScheme(url)) return url;
+
+  if (url.startsWith('{{')) return url;
+
+  return `http://${url}`;
+};
+
 const generateSnippet = async ({ language, item, collection, shouldInterpolate = false }) => {
   try {
     // Get HTTPSnippet dynamically so mocks can be applied in tests
@@ -52,11 +65,15 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
     const settings = item.draft ? get(item, 'draft.settings') : get(item, 'settings');
 
     // buildHar intentionally does NOT resolve `{{var}}` / `:pathParam` in the URL
-    // so the caller owns URL interpolation.
-    const templateUrl = request.url;
-    const interpolatedUrl = interpolateUrl({ url: templateUrl, variables });
-    const harUrl = interpolateUrlPathParams(interpolatedUrl, request.params, variables, { raw: true });
-    const sourceUrl = item.rawUrl || harUrl;
+    const sourceUrl = shouldInterpolate
+      ? interpolateUrlPathParams(
+          interpolateUrl({ url: request.url, variables }) || '',
+          request.params,
+          variables,
+          { raw: true }
+        )
+      : prependDefaultScheme(request.url);
+
     const { har, rawUrl, encodedUrl, unhash } = await buildHar({
       request: {
         method: request.method,
@@ -82,17 +99,14 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
     if (language.target === 'shell' && language.client === 'curl') {
       result = addCurlAuthFlags(result, effectiveAuth);
     }
-    if (!shouldInterpolate) {
-      const displayUrl = hasExplicitScheme(interpolatedUrl) ? templateUrl : `http://${templateUrl}`;
-      result = result.replaceAll(harUrl, displayUrl);
-    }
-
     /**
      *
      * Display-swap. HTTPSnippet renders the URL in encoded form (using har.queryString as the source of truth).
      * For OFF mode we want the user's raw bytes visible in the snippet — swap the encoded path+query substring for the raw form.
-     * For OFF: prefer item.rawUrl when the caller explicitly supplied it (legacy GenerateCodeItem pipeline does this so user-typed pre-encoded
-     * bytes survive the WHATWG-URL normalization). Otherwise fall back to buildHar's rawUrl.
+     * buildHar derives `rawUrl` from the exact URL passed in above, so it carries the user's
+     * pre-encoded bytes (and, when the toggle is OFF, the un-substituted placeholders).
+     * `item.rawUrl` remains honoured for callers that resolve the URL themselves and want
+     * their own bytes displayed; GenerateCodeItem no longer sets it.
      */
     const displayRawUrl = item.rawUrl || rawUrl;
     const parsed = parse(encodedUrl, true, true);

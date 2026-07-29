@@ -29,7 +29,7 @@
 
 import { cloneDeep, find, get } from 'lodash';
 import interpolate, { interpolateObject } from '../../interpolate';
-import { encodeUrl, parseQueryParams, patternHasher } from '../../utils';
+import { encodeUrl, hasExplicitScheme, parseQueryParams, patternHasher } from '../../utils';
 import { signEdgeGridRequest } from './edgegrid';
 
 // ---------------------------------------------------------------------------
@@ -277,9 +277,14 @@ const hashPathParamPositions = (
   pathParams: BrunoKV[] | undefined
 ): { url: string; restore: (input: string, opts: { encode: boolean }) => string } => {
   const noopRestore = (input: string) => input;
-  if (!url || !Array.isArray(pathParams) || pathParams.length === 0) {
+  if (!url) {
     return { url, restore: noopRestore };
   }
+  // Hash `:id` positions even with no path params to substitute: `encodePathSegments`
+  // runs `encodeURIComponent` per segment, so an unhashed `:id` would reach the
+  // snippet as `%3Aid`. With no matching param, `restore` puts the `:id` literal
+  // back — which is what a caller preserving templates wants.
+  const enabledPathParams = Array.isArray(pathParams) ? pathParams : [];
 
   let prefix = '';
   let working = url;
@@ -298,7 +303,7 @@ const hashPathParamPositions = (
   const path = authorityMatch?.[2] ?? pathPart;
 
   const enabledByName = new Map<string, string>(
-    pathParams
+    enabledPathParams
       .filter((p) => p && p.enabled !== false && (p.type === undefined || p.type === 'path'))
       .map((p) => [p.name, p.value == null ? '' : String(p.value)])
   );
@@ -584,6 +589,10 @@ const buildPostData = (body: BrunoBody | undefined): any => {
 // Main
 // ---------------------------------------------------------------------------
 
+// Stand-in scheme for URLs whose real scheme arrives via a `{{var}}`. Only ever
+// visible to the URL pipeline; see Step 2b in `buildHar`.
+const SYNTHETIC_SCHEME = 'http://';
+
 export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   const variables = input.variables || {};
   const shouldInterpolate = input.shouldInterpolate ?? true;
@@ -601,6 +610,21 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   // usage, `shouldInterpolate=false` means "preserve URL-bar templates".
   const { hashed: hashedUrl, restore: restoreUrlVars } = patternHasher(working.url || '');
 
+  // A URL whose scheme comes from a variable (`{{host}}/ping`) has no literal
+  // `scheme://` left once the variable is hashed, so authority parsing and the
+  // `looksLikeUrl` gate below would both reject it. Prepend a stand-in scheme for the
+  // pipeline, then strip it in `unhash` — but only when the variable really does supply
+  // one, so a genuinely schemeless `localhost:6000/x` still renders the `http://` the
+  // client will use. Gating on a *leading* placeholder keeps the gate strict for
+  // everything else: `not a url` must stay rejected, not become `http://not a url`.
+  const needsSyntheticScheme = (working.url || '').startsWith('{{') && !hasExplicitScheme(hashedUrl);
+  const syntheticSchemeIsRedundant = needsSyntheticScheme
+    && hasExplicitScheme(interpolate(working.url || '', variables) || '');
+  // The token the synthetic scheme was prepended to, so the strip below can target
+  // that one position instead of every `http://` in the snippet.
+  const leadingToken = needsSyntheticScheme ? hashedUrl.match(/^[A-Za-z0-9._-]+/)?.[0] ?? '' : '';
+  const urlForPipeline = needsSyntheticScheme ? SYNTHETIC_SCHEME + hashedUrl : hashedUrl;
+
   // Step 3 — Hash path-param positions via `patternHasher`. The URL now
   // contains opaque `bruno-var-hash-XXX` tokens instead of `:id`, so the
   // next `encodeUrl()` pass can encode non-path-param chars in the path
@@ -608,7 +632,7 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   // here) unhashes those tokens back to `:id` literals and then substitutes
   // each one for the path-param value (raw or encoded per the flag).
   const encodeFlag = working.settings?.encodeUrl === true;
-  const { url: urlWithPlaceholders, restore: restorePathParams } = hashPathParamPositions(hashedUrl, working.pathParams);
+  const { url: urlWithPlaceholders, restore: restorePathParams } = hashPathParamPositions(urlForPipeline, working.pathParams);
 
   // Step 4 — Apply `encodeUrl()` to the URL with placeholders. Placeholders
   // are alphanumeric+dash, so `encodeURIComponent` (used per path segment
@@ -648,7 +672,11 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   // so the entries here must carry user-typed bytes. Feeding the encoded URL
   // here would cause double-encoding (`:` → `%3A` from encodeUrl, then
   // `%3A` → `%253A` from HTTPSnippet's encodeURIComponent pass).
-  const harQueryString = buildQueryString(working, working.url);
+  // Pass the *hashed* URL: HTTPSnippet re-encodes each queryString value with
+  // encodeURIComponent, which would mangle a raw `{{var}}` into `%7B%7Bvar%7D%7D`
+  // beyond what `unhash` can restore. Hash tokens are alphanumeric+dash, so they
+  // pass through untouched.
+  const harQueryString = buildQueryString(working, hashedUrl);
 
   // Step 8 — Strip the URL's query before storing in HAR (the bracket-key fix).
   const harUrl = stripQueryStringFromUrl(encodedUrl);
@@ -667,7 +695,13 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
     binary: true
   };
 
-  const unhash = (s: string): string => (typeof s === 'string' ? restoreUrlVars(s) : s);
+  const unhash = (s: string): string => {
+    if (typeof s !== 'string') return s;
+    const withoutSyntheticScheme = syntheticSchemeIsRedundant
+      ? s.replaceAll(SYNTHETIC_SCHEME + leadingToken, leadingToken)
+      : s;
+    return restoreUrlVars(withoutSyntheticScheme);
+  };
 
   return {
     har,

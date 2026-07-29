@@ -283,15 +283,17 @@ describe('Snippet Generator - Simple Tests', () => {
   it('should work with JavaScript language', async () => {
     const javascriptLanguage = { target: 'javascript', client: 'fetch' };
 
-    const mockSnippetOutput = `fetch("https://api.example.com/data", {
+    // Echo the HAR's URL rather than a fixed string: with the toggle off that URL carries
+    // buildHar's placeholder tokens, and restoring them is exactly what's under test.
+    const mockSnippetOutput = (harRequest) => `fetch("${harRequest.url}", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ "message": "Hello World", "count": 42 })
 })`;
 
     const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
-    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation(() => ({
-      convert: jest.fn(() => mockSnippetOutput)
+    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation((harRequest) => ({
+      convert: jest.fn(() => mockSnippetOutput(harRequest))
     }));
 
     const result = await generateSnippet({
@@ -1139,15 +1141,11 @@ describe('generateSnippet – encodeUrl setting', () => {
     expect(result).toContain('%3D%3D');
   });
 
-  it('should single-encode spaces and special chars when encodeUrl is true and rawUrl is provided', async () => {
-    // The raw URL (before new URL() encoding) contains literal spaces and @.
-    // encodeUrl() should encode them once: space → %20, @ → %40.
-    // Previously this double-encoded because request.url was already encoded by new URL().
-    const encodedUrl = 'https://example.com/api?name=abc%20os&email=user%40test.com';
-    const item = {
-      ...makeItem(encodedUrl, { encodeUrl: true }),
-      rawUrl: 'https://example.com/api?name=abc os&email=user@test.com'
-    };
+  it('should single-encode spaces and special chars when encodeUrl is true', async () => {
+    // `request.url` carries the user's literal bytes — spaces and `@` here — so encodeUrl()
+    // encodes them exactly once: space → %20, @ → %40. The double-encoding this guards
+    // against came from the URL reaching buildHar already run through new URL().
+    const item = makeItem('https://example.com/api?name=abc os&email=user@test.com', { encodeUrl: true });
 
     const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
     // space → %20 (single encoding, not %2520)
@@ -1429,5 +1427,114 @@ describe('generateSnippet – URL interpolation behavior', () => {
 
     expect(result).toContain('{{host}}/ping');
     expect(result).not.toContain('https://api.example.com/ping');
+  });
+});
+
+describe('generateSnippet – URL templates survive real httpsnippet targets', () => {
+  const baseCollection = {
+    root: { request: { auth: { mode: 'none' }, headers: [] } },
+    globalEnvironmentVariables: {
+      host: 'https://api.example.com',
+      webhookUrl: 'https://hooks.example.com/services/T00/B00/SECRET',
+      signingKey: 'sk-live+AbC123'
+    },
+    runtimeVariables: {},
+    processEnvVariables: {}
+  };
+
+  const makeItem = (url, params = []) => ({
+    uid: 'real-snippet',
+    request: { method: 'GET', url, headers: [], body: { mode: 'none' }, auth: { mode: 'none' }, params }
+  });
+
+  let mockedHTTPSnippet;
+
+  beforeAll(() => {
+    mockedHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+  });
+
+  afterAll(() => {
+    require('httpsnippet').HTTPSnippet = mockedHTTPSnippet;
+  });
+
+  it.each([
+    ['python', 'requests'],
+    ['javascript', 'axios'],
+    ['node', 'axios']
+  ])('%s/%s renders the query separately and still keeps the template', async (target, client) => {
+    const result = await generateSnippet({
+      language: { target, client },
+      item: makeItem('{{webhookUrl}}/data?page=1'),
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('{{webhookUrl}}');
+    expect(result).not.toContain('SECRET');
+  });
+
+  it('keeps the template when the resolved value holds a character encodeUrl would rewrite', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem('{{host}}/v1/{{signingKey}}/data'),
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('{{signingKey}}');
+    expect(result).not.toContain('sk-live+AbC123');
+  });
+
+  it('leaves a path param literal rather than percent-encoding it', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem('{{host}}/users/:userId', [{ name: 'userId', value: '123', type: 'path', enabled: true }]),
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('/users/:userId');
+    expect(result).not.toContain('%3AuserId');
+    expect(result).not.toContain('/users/123');
+  });
+
+  it('resolves variables and path params when shouldInterpolate is true', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem('{{host}}/users/:userId', [{ name: 'userId', value: '123', type: 'path', enabled: true }]),
+      collection: baseCollection,
+      shouldInterpolate: true
+    });
+
+    expect(result).toContain('https://api.example.com/users/123');
+    expect(result).not.toContain('{{host}}');
+    expect(result).not.toContain(':userId');
+  });
+
+  describe('clients that split host from path', () => {
+    // python3 emits `http.client.HTTPConnection(host)` plus a separate request path.
+    const language = { target: 'python', client: 'python3' };
+    const item = () => makeItem('{{webhookUrl}}/data?page=1');
+
+    it('preserves the template and leaks nothing when interpolation is off', async () => {
+      const result = await generateSnippet({
+        language, item: item(), collection: baseCollection, shouldInterpolate: false
+      });
+
+      expect(result).toContain('{{webhookUrl}}');
+      expect(result).not.toContain('SECRET');
+      expect(result).not.toContain('hooks.example.com');
+    });
+
+    it('splits host and path correctly when interpolation is on', async () => {
+      const result = await generateSnippet({
+        language, item: item(), collection: baseCollection, shouldInterpolate: true
+      });
+
+      expect(result).toContain('hooks.example.com');
+      expect(result).toContain('/services/T00/B00/SECRET/data');
+      expect(result).not.toContain('{{webhookUrl}}');
+    });
   });
 });
