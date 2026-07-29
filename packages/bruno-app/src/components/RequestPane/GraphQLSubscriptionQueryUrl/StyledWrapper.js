@@ -26,6 +26,29 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.request.gql};
   }
 
+  .action-button {
+    background: none;
+    border: none;
+    padding: 0;
+  }
+
+  .save-icon {
+    cursor: default;
+
+    &.has-changes {
+      cursor: pointer;
+    }
+  }
+
+  .subscribe-icon,
+  .unsubscribe-icon {
+    cursor: pointer;
+  }
+
+  .subscribe-icon.connecting {
+    animation: iconPulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
   .connection-status-strip {
     animation: pulse 1.5s ease-in-out infinite;
     background-color: ${(props) => props.theme.colors.text.green};
@@ -45,6 +68,16 @@ const StyledWrapper = styled.div`
     }
     100% {
       opacity: 0.4;
+    }
+  }
+
+  @keyframes iconPulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
     }
   }
 

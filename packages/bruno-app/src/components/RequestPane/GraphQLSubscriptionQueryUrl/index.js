@@ -75,11 +75,13 @@ const GraphQLSubscriptionQueryUrl = ({ item, collection, handleRun }) => {
             collection={collection}
             item={item}
           />
-          <div className="flex items-center h-full cursor-pointer gap-3 mx-3">
+          <div className="flex items-center h-full gap-3 mx-3">
             <ToolHint text={`Save (${saveShortcut})`} toolhintId="gql-sub-save-request" place="top" positionStrategy="fixed">
-              <div
-                className="flex items-center"
+              <button
+                type="button"
+                className="flex items-center action-button"
                 data-testid="save-request-button"
+                aria-label={`Save (${saveShortcut})`}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (!hasChanges) return;
@@ -90,32 +92,44 @@ const GraphQLSubscriptionQueryUrl = ({ item, collection, handleRun }) => {
                   color={hasChanges ? theme.draftColor : theme.requestTabs.icon.color}
                   strokeWidth={1.5}
                   size={20}
-                  className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
+                  className={classnames('save-icon', { 'has-changes': hasChanges })}
                 />
-              </div>
+              </button>
             </ToolHint>
 
             {isSubscribed ? (
               <ToolHint text="Unsubscribe" toolhintId="gql-sub-unsubscribe" place="top" positionStrategy="fixed">
-                <div className="flex items-center" onClick={handleUnsubscribeClick} data-testid="gql-sub-unsubscribe-button">
+                <button
+                  type="button"
+                  className="flex items-center action-button"
+                  onClick={handleUnsubscribeClick}
+                  data-testid="gql-sub-unsubscribe-button"
+                  aria-label="Unsubscribe"
+                >
                   <IconPlugConnectedX
                     color={theme.colors.text.danger}
                     strokeWidth={1.5}
                     size={20}
-                    className="cursor-pointer"
+                    className="unsubscribe-icon"
                   />
-                </div>
+                </button>
               </ToolHint>
             ) : (
               <ToolHint text="Subscribe" toolhintId="gql-sub-subscribe" place="top" positionStrategy="fixed">
-                <div className="flex items-center" onClick={handleSubscribeClick} data-testid="gql-sub-subscribe-button">
+                <button
+                  type="button"
+                  className="flex items-center action-button"
+                  onClick={handleSubscribeClick}
+                  data-testid="gql-sub-subscribe-button"
+                  aria-label="Subscribe"
+                >
                   <IconPlugConnected
-                    className={classnames('cursor-pointer', { 'animate-pulse': isConnecting })}
+                    className={classnames('subscribe-icon', { connecting: isConnecting })}
                     color={theme.colors.text.green}
                     strokeWidth={1.5}
                     size={20}
                   />
-                </div>
+                </button>
               </ToolHint>
             )}
           </div>
