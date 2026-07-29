@@ -270,7 +270,7 @@ const SocketMessagesList = ({ messages = [], classPrefix, supportsHexdump = fals
   }, []);
 
   if (!messages.length) {
-    return <StyledWrapper $classPrefix={classPrefix}><div className="empty-state">No messages yet.</div></StyledWrapper>;
+    return <StyledWrapper $classPrefix={classPrefix} className={`${classPrefix}-messages-list`}><div className="empty-state">No messages yet.</div></StyledWrapper>;
   }
 
   return (
