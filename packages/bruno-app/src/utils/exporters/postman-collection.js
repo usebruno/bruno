@@ -1,17 +1,13 @@
-import * as FileSaver from 'file-saver';
 import { brunoToPostman } from '@usebruno/converters';
 import { filterTransientItems } from 'utils/collections';
 
-export const exportCollection = (collection) => {
+export const exportPostmanCollection = (collection, { preserveScripts = false } = {}) => {
   // Filter out transient items before export
   collection.items = filterTransientItems(collection.items);
 
-  const collectionToExport = brunoToPostman(collection);
+  const collectionToExport = brunoToPostman(collection, { preserveScripts });
 
-  const fileName = `${collection.name}.json`;
-  const fileBlob = new Blob([JSON.stringify(collectionToExport, null, 2)], { type: 'application/json' });
-
-  FileSaver.saveAs(fileBlob, fileName);
+  return JSON.stringify(collectionToExport, null, 2);
 };
 
-export default exportCollection;
+export default exportPostmanCollection;

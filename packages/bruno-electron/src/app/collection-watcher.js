@@ -21,7 +21,7 @@ const { uuid } = require('../utils/common');
 const { parseValueByDataType } = require('@usebruno/common/utils');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptStringSafe } = require('../utils/encryption');
-const { setBrunoConfig } = require('../store/bruno-config');
+const { setBrunoConfig, getBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const snapshotManager = require('../services/snapshot');
 const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
@@ -706,14 +706,23 @@ const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher, workspac
 
   const collectionSnapshotState = snapshotManager.getCollection(watchPath, workspacePathname);
 
+  // Always send at least the pathname (even when there's no snapshot entry) so the
+  // renderer can fall back to the collection's configured default environment.
+  // hasSnapshotEntry lets the renderer apply the default only on the first open/import
+  // (no entry yet); once the user has made any environment choice an entry exists.
   const hydratePayload = collectionSnapshotState
     ? {
         pathname: watchPath,
         workspacePathname: workspacePathname || '',
         environmentPath: collectionSnapshotState?.environment?.collection || '',
-        selectedEnvironment: collectionSnapshotState?.selectedEnvironment || ''
+        selectedEnvironment: collectionSnapshotState?.selectedEnvironment || '',
+        hasSnapshotEntry: true
       }
-    : null;
+    : {
+        pathname: watchPath,
+        workspacePathname: workspacePathname || '',
+        hasSnapshotEntry: false
+      };
 
   win.webContents.send('main:hydrate-app-with-ui-state-snapshot', hydratePayload);
 };
@@ -811,8 +820,6 @@ class CollectionWatcher {
     // Always ignore node_modules and .git, regardless of user config
     // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
     const defaultIgnores = ['node_modules', '.git'];
-    const userIgnores = brunoConfig?.ignore || [];
-    const ignores = [...new Set([...defaultIgnores, ...userIgnores])];
 
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
@@ -834,8 +841,16 @@ class CollectionWatcher {
             return true;
           }
 
+          const userIgnores = getBrunoConfig(collectionUid)?.ignore || [];
+          const ignores = [...new Set([...defaultIgnores, ...userIgnores])];
+          const normalizedRelativePath = relativePath.split(path.sep).join('/');
+
           return ignores.some((ignorePattern) => {
-            return relativePath === ignorePattern || relativePath.startsWith(ignorePattern);
+            const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');
+            if (!normalizedIgnorePattern) {
+              return false;
+            }
+            return normalizedRelativePath === normalizedIgnorePattern || normalizedRelativePath.startsWith(`${normalizedIgnorePattern}/`);
           });
         },
         persistent: true,
