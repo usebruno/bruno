@@ -154,7 +154,6 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     method: request.method,
     methodType: request.methodType,
     url,
-    auth: request.auth,
     headers,
     processEnvVars,
     envVars,

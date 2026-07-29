@@ -248,7 +248,7 @@ const resolveGrpcAuth = (request) => {
     return 'oauth2';
   } else if (headers?.['Authorization']?.startsWith('Bearer')) {
     return 'bearer';
-  } else if (headers?.['Authorization']?.startsWith('Basic') || request?.auth?.username) {
+  } else if (headers?.['Authorization']?.startsWith('Basic') || request?.basicAuth?.username) {
     return 'basic';
   } else if (request?.apiKeyAuthValueForQueryParams) {
     return 'apikey';
