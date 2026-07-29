@@ -1,5 +1,6 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import { parseQueryParams, extractPromptVariables, getDataTypeFromValue } from '@usebruno/common/utils';
+import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
 import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
@@ -1448,9 +1449,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           mode: 'inherit'
         }
       },
-      settings: settings ?? {
-        encodeUrl: true
-      }
+      settings: settings ?? cloneDeep(DEFAULT_HTTP_ITEM_SETTINGS)
     };
 
     // itemUid is null when we are creating a new request at the root level

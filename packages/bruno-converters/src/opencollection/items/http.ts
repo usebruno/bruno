@@ -18,6 +18,7 @@ import {
   toOpenCollectionAssertions,
   resolveTimeoutSetting
 } from '../common';
+import { utils } from '@usebruno/common';
 import type {
   HttpRequest,
   HttpRequestSettings,
@@ -35,6 +36,9 @@ import type {
   BrunoHttpRequest
 } from '../types';
 import type { HttpItemSettings as BrunoHttpItemSettings } from '@usebruno/schema-types/collection/item';
+
+
+const { toBool, toNumber } = utils;
 
 const getHttpBody = (body: HttpRequestBody | Array<{ title: string; selected?: boolean; body: HttpRequestBody }> | undefined): HttpRequestBody | undefined => {
   if (!body) return undefined;
@@ -105,10 +109,11 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
 
   if (ocRequest.settings) {
     const settings: BrunoHttpItemSettings = {
-      encodeUrl: typeof ocRequest.settings.encodeUrl === 'boolean' ? ocRequest.settings.encodeUrl : true,
+      encodeUrl: toBool(ocRequest.settings.encodeUrl, true),
       timeout: resolveTimeoutSetting(ocRequest.settings.timeout),
-      followRedirects: typeof ocRequest.settings.followRedirects === 'boolean' ? ocRequest.settings.followRedirects : true,
-      maxRedirects: typeof ocRequest.settings.maxRedirects === 'number' ? ocRequest.settings.maxRedirects : 5
+      followRedirects: toBool(ocRequest.settings.followRedirects, true),
+      maxRedirects: toNumber(ocRequest.settings.maxRedirects, 5),
+      forwardAuthorizationHeader: toBool(ocRequest.settings.forwardAuthorizationHeader, true)
     };
     brunoItem.settings = settings;
   }
@@ -221,10 +226,11 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
   }
 
   const settings: HttpRequestSettings = {
-    encodeUrl: typeof brunoSettings?.encodeUrl === 'boolean' ? brunoSettings.encodeUrl : true,
+    encodeUrl: toBool(brunoSettings?.encodeUrl, true),
     timeout: resolveTimeoutSetting(brunoSettings?.timeout),
-    followRedirects: typeof brunoSettings?.followRedirects === 'boolean' ? brunoSettings.followRedirects : true,
-    maxRedirects: typeof brunoSettings?.maxRedirects === 'number' ? brunoSettings.maxRedirects : 5
+    followRedirects: toBool(brunoSettings?.followRedirects, true),
+    maxRedirects: toNumber(brunoSettings?.maxRedirects, 5),
+    forwardAuthorizationHeader: toBool(brunoSettings?.forwardAuthorizationHeader, true)
   };
   ocRequest.settings = settings;
 

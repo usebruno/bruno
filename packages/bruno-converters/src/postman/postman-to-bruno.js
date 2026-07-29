@@ -582,7 +582,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
         };
 
         const settings = {
-          encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true
+          encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true,
+          forwardAuthorizationHeader: i.protocolProfileBehavior?.followAuthorizationHeader ?? false
         };
 
         // Handle followRedirects setting
