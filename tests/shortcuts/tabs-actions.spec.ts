@@ -1,5 +1,11 @@
 import { expect, test } from '../../playwright';
-import { closeAllCollections, createTransientRequest, fillRequestUrl } from '../utils/page';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  createTransientRequest,
+  fillRequestUrl,
+  saveTransientViaModal
+} from '../utils/page';
 import {
   closePreferencesTab,
   closeTabByName,
@@ -189,61 +195,43 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('Close transient request (Shift+X): saves to collection and closes tab without reopening', async ({ pageWithUserData: page }) => {
-        // Count tabs already open before we start
-        const initialTabCount = await page.locator('.request-tab').count();
+        const locators = buildCommonLocators(page);
+        const transientUrl = 'http://localhost:8081/ping';
+        const savedRequestName = 'Transient Close Test';
+        let initialTabCount = 0;
 
-        // Create a new transient HTTP request — it opens as "Untitled X" and is NOT in the sidebar
-        await createTransientRequest(page, { requestType: 'HTTP' });
+        await test.step('Create a transient request with an unsaved URL', async () => {
+          initialTabCount = await locators.tabs.allRequestTabs().count();
 
-        // One new tab should be open and active
-        await expect(page.locator('.request-tab')).toHaveCount(initialTabCount + 1);
-        const transientTab = page.locator('.request-tab.active');
-        await expect(transientTab).toContainText('Untitled');
+          // A transient request opens as "Untitled X" and is NOT in the sidebar
+          await createTransientRequest(page, { requestType: 'HTTP' });
+          await expect(locators.tabs.allRequestTabs()).toHaveCount(initialTabCount + 1);
+          await expect(locators.tabs.activeRequestTab()).toContainText('Untitled');
 
-        // Type a URL so the request has an unsaved change (creates a draft, shows the dot indicator)
-        await fillRequestUrl(page, 'http://localhost:8081/ping');
-        await expect(transientTab.locator('.has-changes-icon')).toBeVisible();
+          // Typing a URL creates a draft, shown by the dot indicator on the tab
+          await fillRequestUrl(page, transientUrl);
+          await expect(locators.tabs.draftIndicator()).toBeVisible();
+        });
 
-        // Press Shift+X (closeTab remapped in beforeEach)
-        await pressShortcut(page, 'Shift', 'KeyX');
+        await test.step('Close the tab (Shift+X) and pick Save in the unsaved-changes prompt', async () => {
+          await pressShortcut(page, 'Shift', 'KeyX');
+          await expect(locators.modal.byTitle('Unsaved changes')).toBeVisible({ timeout: 3000 });
+          await locators.modal.button('Save').click();
+        });
 
-        // "Unsaved changes" dialog should appear
-        const unsavedModal = page.locator('.bruno-modal-card').filter({ has: page.getByText('Unsaved changes', { exact: true }) });
-        await expect(unsavedModal).toBeVisible({ timeout: 3000 });
+        await test.step('Save the transient request into the collection', async () => {
+          await saveTransientViaModal(page, savedRequestName, { collectionName });
+        });
 
-        // Click "Save" — this should dismiss this dialog and open the Save Request picker
-        await unsavedModal.getByRole('button', { name: 'Save', exact: true }).click();
+        await test.step('Tab closes and the saved request is not reopened', async () => {
+          await expect(locators.tabs.allRequestTabs()).toHaveCount(initialTabCount, { timeout: 5000 });
+          await expect(locators.tabs.requestTab(savedRequestName)).toHaveCount(0);
+        });
 
-        // The save flow modal appears. In workspaces with a scratch collection it first shows
-        // "Select Collection" so the user can pick a target — handle that automatically.
-        const saveFlowModal = page.locator('.bruno-modal-card');
-        await expect(saveFlowModal.filter({ hasText: /Save Request|Select Collection/ })).toBeVisible({ timeout: 5000 });
-
-        if (await saveFlowModal.filter({ hasText: 'Select Collection' }).isVisible()) {
-          // Pick kb-collection from the list so the form advances to "Save Request"
-          await saveFlowModal.locator('.collection-item-name').filter({ hasText: collectionName }).click();
-          await expect(saveFlowModal.filter({ hasText: 'Save Request' })).toBeVisible({ timeout: 5000 });
-        }
-
-        // Give the request a name and confirm
-        const saveModal = saveFlowModal.filter({ hasText: 'Save Request' });
-        const nameInput = saveModal.locator('#request-name');
-        await nameInput.clear();
-        await nameInput.fill('Transient Close Test');
-        await saveModal.getByRole('button', { name: 'Save' }).click();
-
-        // After saving, the tab count must return to the initial count:
-        // the transient tab closed AND no new tab was reopened for the saved request
-        await expect(page.locator('.request-tab')).toHaveCount(initialTabCount, { timeout: 5000 });
-
-        // Double-check: no tab named "Transient Close Test" is visible
-        await expect(
-          page.locator('.request-tab').filter({ has: page.getByText('Transient Close Test', { exact: true }) })
-        ).not.toBeVisible();
-
-        // Open the saved request from the sidebar and verify the URL was persisted correctly
-        await openRequest(page, collectionName, 'Transient Close Test');
-        await expect(page.locator('#request-url .CodeMirror-line')).toContainText('http://localhost:8081/ping');
+        await test.step('Saved request keeps the URL typed before saving', async () => {
+          await openRequest(page, collectionName, savedRequestName);
+          await expect(locators.request.urlLine()).toContainText(transientUrl);
+        });
       });
     });
 

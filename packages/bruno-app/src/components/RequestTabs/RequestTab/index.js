@@ -591,11 +591,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                 setShowConfirmClose(false);
               })
               .catch((err) => {
-                if (!err) {
-                  setShowConfirmClose(false);
-                } else {
-                  console.log('err', err);
-                }
+                console.log('err', err);
               });
           }}
         />
