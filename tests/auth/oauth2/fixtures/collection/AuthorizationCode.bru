@@ -1,0 +1,31 @@
+meta {
+  name: AuthorizationCode
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{localhost}}
+  body: none
+  auth: oauth2
+}
+
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: bruno://app/oauth2/callback
+  authorization_url: {{host}}/realms/{{realm}}/protocol/openid-connect/auth
+  access_token_url: {{host}}/realms/{{realm}}/protocol/openid-connect/token
+  refresh_token_url:
+  client_id: bruno
+  client_secret: {{client_secret}}
+  scope: openid
+  state:
+  pkce: false
+  credentials_placement: body
+  credentials_id: credentials
+  token_source: access_token
+  token_placement: header
+  token_header_prefix: Bearer
+  auto_fetch_token: true
+  auto_refresh_token: false
+}
