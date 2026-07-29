@@ -7,6 +7,7 @@ import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import { shouldMaskValue } from 'utils/auth';
 import StyledWrapper from './StyledWrapper';
 
 const BasicAuth = ({ collection }) => {
@@ -67,7 +68,7 @@ const BasicAuth = ({ collection }) => {
           onSave={handleSave}
           onChange={(val) => handlePasswordChange(val)}
           collection={collection}
-          isSecret={true}
+          isSecret={shouldMaskValue(basicAuth.password)}
           isCompact
         />
         {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}

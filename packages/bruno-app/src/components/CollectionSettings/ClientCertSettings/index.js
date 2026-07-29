@@ -8,6 +8,7 @@ import path from 'utils/common/path';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField/index';
+import { shouldMaskValue } from 'utils/auth';
 import { useTheme } from 'styled-components';
 import { useDispatch } from 'react-redux';
 import { updateCollectionClientCertificates } from 'providers/ReduxStore/slices/collections';
@@ -366,7 +367,7 @@ const ClientCertSettings = ({ collection }) => {
               theme={storedTheme}
               onChange={(val) => formik.setFieldValue('passphrase', val)}
               collection={collection}
-              isSecret={true}
+              isSecret={shouldMaskValue(formik.values.passphrase)}
             />
             {showWarning && <SensitiveFieldWarning fieldName="basic-password" warningMessage={warningMessage} />}
           </div>

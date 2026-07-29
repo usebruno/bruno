@@ -7,6 +7,7 @@ import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
+import { shouldMaskValue } from 'utils/auth';
 import StyledWrapper from './StyledWrapper';
 
 const AwsV4Auth = ({ collection }) => {
@@ -143,7 +144,7 @@ const AwsV4Auth = ({ collection }) => {
           onSave={handleSave}
           onChange={(val) => handleSecretAccessKeyChange(val)}
           collection={collection}
-          isSecret={true}
+          isSecret={shouldMaskValue(awsv4Auth.secretAccessKey)}
           isCompact
         />
         {showWarning && <SensitiveFieldWarning fieldName="awsv4-secret-access-key" warningMessage={warningMessage} />}

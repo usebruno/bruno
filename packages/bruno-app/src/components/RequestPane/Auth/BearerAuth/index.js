@@ -7,6 +7,7 @@ import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { shouldMaskValue } from 'utils/auth';
 import StyledWrapper from './StyledWrapper';
 
 const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
@@ -49,7 +50,7 @@ const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
-          isSecret={true}
+          isSecret={shouldMaskValue(bearerToken)}
           isCompact
         />
         {showWarning && <SensitiveFieldWarning fieldName="bearer-token" warningMessage={warningMessage} />}

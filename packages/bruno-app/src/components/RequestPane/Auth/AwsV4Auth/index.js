@@ -8,6 +8,7 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
+import { shouldMaskValue } from 'utils/auth';
 
 const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
   const dispatch = useDispatch();
@@ -157,7 +158,7 @@ const AwsV4Auth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
-          isSecret={true}
+          isSecret={shouldMaskValue(awsv4Auth.secretAccessKey)}
           isCompact
         />
 
