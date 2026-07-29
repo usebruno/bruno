@@ -2,6 +2,7 @@ import { SidebarAccordionProvider } from './SidebarAccordionContext';
 import SidebarContent from './SidebarContent';
 import StyledWrapper from './StyledWrapper';
 
+import get from 'lodash/get';
 import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateLeftSidebarWidth, updateIsDragging, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
@@ -26,6 +27,8 @@ const SIDEBAR_SECTIONS = [
 const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
+  const preferences = useSelector((state) => state.app.preferences);
+  const isRightSidebar = get(preferences, 'layout.sidebarPosition', 'left') === 'right';
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
   const lastWidthRef = useRef(leftSidebarWidth);
 
@@ -48,7 +51,10 @@ const Sidebar = () => {
   const handleMouseMove = (e) => {
     if (!dragging || sidebarCollapsed) return;
     e.preventDefault();
-    const nextWidth = clamp(e.clientX + 2, MIN_LEFT_SIDEBAR_WIDTH, MAX_LEFT_SIDEBAR_WIDTH);
+    const widthFromPointer = isRightSidebar
+      ? window.innerWidth - e.clientX + 2
+      : e.clientX + 2;
+    const nextWidth = clamp(widthFromPointer, MIN_LEFT_SIDEBAR_WIDTH, MAX_LEFT_SIDEBAR_WIDTH);
     if (Math.abs(nextWidth - lastWidthRef.current) < 3) return;
     lastWidthRef.current = nextWidth;
     setAsideWidth(nextWidth);
@@ -91,7 +97,7 @@ const Sidebar = () => {
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [dragging, asideWidth]);
+  }, [dragging, asideWidth, isRightSidebar]);
 
   useEffect(() => {
     setAsideWidth(leftSidebarWidth);
@@ -99,8 +105,13 @@ const Sidebar = () => {
 
   return (
     <SidebarAccordionProvider defaultExpanded={['collections']}>
-      <StyledWrapper className="flex relative h-full">
-        <aside className="sidebar" style={{ width: currentWidth, transition: dragging ? 'none' : 'width 0.2s ease-in-out' }}>
+      <StyledWrapper className={`flex relative h-full${isRightSidebar ? ' sidebar-on-right' : ''}`}>
+        <aside
+          className="sidebar"
+          data-testid="sidebar"
+          data-sidebar-position={isRightSidebar ? 'right' : 'left'}
+          style={{ width: currentWidth, transition: dragging ? 'none' : 'width 0.2s ease-in-out' }}
+        >
           <div className="flex flex-row h-full w-full">
             <div className="flex flex-col w-full" style={{ width: asideWidth }}>
               <div className="flex flex-col flex-grow sidebar-sections-container" style={{ minHeight: 0, overflow: 'hidden' }}>
