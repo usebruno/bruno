@@ -266,16 +266,26 @@ const migrateCollectionToYml = async ({ mainWindow, watcher, collectionPathname,
   // The renderer dropped the collection from its store before invoking us, so on every
   // exit — success, failure or cancel — re-open from disk; the renderer re-creates and
   // mounts it fresh via the normal main:collection-opened flow (same deterministic uid).
+  // openCollection catches load errors and returns { opened: false, error } rather than
+  // always throwing, so treat that shape as failure too.
   const reopenCollection = async () => {
+    let result;
     try {
-      await openCollection(mainWindow, watcher, collectionPathname);
+      result = await openCollection(mainWindow, watcher, collectionPathname);
     } catch (reopenError) {
       console.error('Failed to reopen collection after migration:', reopenError);
+      throw reopenError;
+    }
+    if (result?.opened === false) {
+      const message = result.error || 'Failed to reopen collection after migration';
+      console.error('Failed to reopen collection after migration:', message);
+      throw new Error(message);
     }
   };
 
+  let result;
   try {
-    const result = await migrateCollectionOnDisk({
+    result = await migrateCollectionOnDisk({
       collectionPathname,
       brunoConfig,
       backupRootDir: path.join(app.getPath('userData'), 'tmp', 'yml-migration'),
@@ -293,15 +303,19 @@ const migrateCollectionToYml = async ({ mainWindow, watcher, collectionPathname,
     } catch (snapshotError) {
       console.error('Failed to remap snapshot tabs after migration:', snapshotError);
     }
-
-    await reopenCollection();
-    return { brunoConfig: result.brunoConfig };
   } catch (error) {
-    await reopenCollection();
+    try {
+      await reopenCollection();
+    } catch (_) {
+      // Prefer the migration/cancel error; reopen failure is already logged above.
+    }
     throw error;
   } finally {
     migrationCancellations.delete(collectionUid);
   }
+
+  await reopenCollection();
+  return { brunoConfig: result.brunoConfig };
 };
 
 const registerYmlMigrationIpc = (mainWindow, watcher) => {

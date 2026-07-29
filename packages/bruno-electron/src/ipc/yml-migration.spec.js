@@ -39,7 +39,9 @@ jest.mock('@usebruno/filestore', () => {
   };
 });
 
-const { migrateCollectionOnDisk, MIGRATION_CANCELLED_MESSAGE } = require('./yml-migration');
+const { migrateCollectionOnDisk, migrateCollectionToYml, MIGRATION_CANCELLED_MESSAGE } = require('./yml-migration');
+const { openCollection } = require('../app/collections');
+const snapshotManager = require('../services/snapshot');
 
 const BRUNO_JSON = {
   version: '1',
@@ -258,5 +260,64 @@ describe('migrateCollectionOnDisk', () => {
     expect(reportError).toHaveBeenCalledWith(expect.stringContaining('could not be restored'));
     // the backup directory with the originals must survive for manual recovery
     expect(fs.readdirSync(backupRootDir)).toHaveLength(1);
+  });
+});
+
+describe('migrateCollectionToYml reopen', () => {
+  let collectionDir;
+  const collectionUid = 'col-uid';
+  const mainWindow = { webContents: { send: jest.fn() } };
+  const watcher = { removeWatcher: jest.fn() };
+
+  beforeEach(() => {
+    collectionDir = fs.mkdtempSync(path.join(os.tmpdir(), 'yml-migration-reopen-'));
+    fs.writeFileSync(path.join(collectionDir, 'bruno.json'), JSON.stringify(BRUNO_JSON, null, 2));
+    fs.writeFileSync(path.join(collectionDir, 'collection.bru'), COLLECTION_BRU);
+    fs.writeFileSync(path.join(collectionDir, 'ping.bru'), REQUEST_BRU);
+    openCollection.mockReset();
+    openCollection.mockResolvedValue({ opened: true });
+    snapshotManager.remapCollectionTabPaths.mockClear();
+    mainWindow.webContents.send.mockClear();
+  });
+
+  afterEach(() => {
+    fsExtra.removeSync(collectionDir);
+  });
+
+  it('fails the success path when openCollection returns opened: false', async () => {
+    openCollection.mockResolvedValue({
+      opened: false,
+      error: 'broken opencollection.yml'
+    });
+
+    await expect(
+      migrateCollectionToYml({
+        mainWindow,
+        watcher,
+        collectionPathname: collectionDir,
+        collectionUid
+      })
+    ).rejects.toThrow('broken opencollection.yml');
+
+    // Disk migration still completed (yml present); reopen failure must not look like success.
+    expect(fs.existsSync(path.join(collectionDir, 'opencollection.yml'))).toBe(true);
+    expect(fs.existsSync(path.join(collectionDir, 'bruno.json'))).toBe(false);
+  });
+
+  it('still surfaces the migration error when reopen also returns opened: false', async () => {
+    fs.writeFileSync(path.join(collectionDir, 'broken.bru'), 'meta { this is not parseable');
+    openCollection.mockResolvedValue({
+      opened: false,
+      error: 'could not reopen'
+    });
+
+    await expect(
+      migrateCollectionToYml({
+        mainWindow,
+        watcher,
+        collectionPathname: collectionDir,
+        collectionUid
+      })
+    ).rejects.toThrow(/failed to parse/);
   });
 });
