@@ -4005,6 +4005,7 @@ export const collectionsSlice = createSlice({
         item.requestSent.timestamp = Date.now();
         item.response = {
           ...initiatedGraphqlSubscriptionResponse,
+          responses: [],
           statusText: 'CONNECTING'
         };
       }
@@ -4052,7 +4053,7 @@ export const collectionsSlice = createSlice({
       // millisecond (a burst of `next` frames, or an info entry pushed alongside
       // one), and WSMessagesList keys/tracks open-state per row by `seq ?? timestamp`;
       // a collision there means two unrelated rows share one open/closed state.
-      updatedResponse.responses ||= [];
+      updatedResponse.responses = [...(currentResponse.responses || [])];
       let nextSeq = updatedResponse.responses.length;
       const pushResponse = (entry) => {
         updatedResponse.responses.push({ ...entry, seq: nextSeq++ });
