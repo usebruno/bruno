@@ -811,9 +811,27 @@ export const parseOpenApiCollection = (data, options = {}) => {
 
     let servers = collectionData.servers || [];
 
-    // Create environments based on the servers
+    // Create environments based on the servers. A server's name or description is free text
+    // that becomes the environment's filename, so it needs the same normalization as an
+    // operation name. It also needs a uniqueness guard: unlike requests, environments have
+    // no deduplication, so two servers described alike resolve to one file and the later
+    // one overwrites the earlier.
+    const usedEnvironmentNames = new Set();
     servers.forEach((server, index) => {
-      let environmentName = server.name || server.description || `Environment ${index + 1}`;
+      const serverLabel = server.name || server.description;
+      let environmentName = serverLabel ? normalizeItemName(serverLabel) : '';
+      if (!environmentName) {
+        environmentName = `Environment ${index + 1}`;
+      }
+      if (usedEnvironmentNames.has(environmentName)) {
+        let counter = 2;
+        while (usedEnvironmentNames.has(`${environmentName} (${counter})`)) {
+          counter++;
+        }
+        environmentName = `${environmentName} (${counter})`;
+      }
+      usedEnvironmentNames.add(environmentName);
+
       const serverVars = extractServerVars(server);
       const variables = serverVars.map((sv) => ({
         uid: uuid(),
