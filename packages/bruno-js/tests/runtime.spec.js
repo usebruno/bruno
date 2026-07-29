@@ -110,6 +110,7 @@ describe('runtime', () => {
       const testFile = `bru.runner.stopExecution();`;
 
       const runtime = new TestRuntime({ runtime: 'quickjs' });
+      const onConsoleLog = () => {};
       const result = await runtime.runTests(
         testFile,
         { ...baseRequest },
@@ -117,7 +118,7 @@ describe('runtime', () => {
         {},
         {},
         '.',
-        null,
+        onConsoleLog,
         process.env
       );
       expect(result.stopExecution).toBe(true);

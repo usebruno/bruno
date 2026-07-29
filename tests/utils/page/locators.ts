@@ -171,6 +171,36 @@ export const buildCommonLocators = (page: Page) => ({
     mismatchIcon: (row: Locator) => row.locator('svg.text-yellow-600'),
     menuItem: (type: string) => page.locator('[role="menu"]').last().getByText(type, { exact: true })
   },
+  request: {
+    urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
+    urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
+    sendButton: () => page.getByTestId('send-arrow-icon'),
+    methodDropdown: () => page.getByTestId('request-method-selector'),
+    newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
+    requestNameInput: () => page.getByPlaceholder('Request Name'),
+    requestTestId: () => page.getByTestId('request-name'),
+    generateCodeButton: () => page.getByTestId('generate-code-button'),
+    bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
+    bodyModeLabel: () => page.getByTestId('request-body-mode-label'),
+    exampleBodyModeLabel: () => page.getByTestId('example-body-mode-label'),
+    bodyEditor: () => page.getByTestId('request-body-editor'),
+    bodyVariableToken: (name: string, state?: 'valid' | 'invalid') => {
+      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
+      return page.getByTestId('request-body-editor').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
+    },
+    urlVariableToken: (name: string, state?: 'valid' | 'invalid') => {
+      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
+      return page.getByTestId('request-url').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
+    },
+    headerVariableToken: (row: Locator, name: string, state?: 'valid' | 'invalid') => {
+      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
+      return row.locator('.CodeMirror').nth(1).locator(selector).filter({ hasText: name }).first();
+    },
+    pane: () => page.getByTestId('request-pane')
+  },
+  filePicker: {
+    warningTooltip: () => page.getByTestId('file-picker-warning-tooltip')
+  },
   // The variable-info popup shown when hovering a `{{var}}` token in an editor.
   varInfoPopup: {
     all: () => page.getByTestId('var-info-popup'),
@@ -284,6 +314,8 @@ export const buildCommonLocators = (page: Page) => ({
     locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
+    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
     bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
     bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
@@ -304,6 +336,15 @@ export const buildCommonLocators = (page: Page) => ({
         issuesToastUrlTooLongWarning: () => issuesToast().getByTestId('import-issues-url-too-long-warning')
       };
     })()
+  },
+  export: {
+    postmanModal: () => page.getByTestId('export-to-postman-modal'),
+    postmanFormatCard: () => page.getByTestId('export-format-postman'),
+    nameInput: () => page.getByLabel('Name', { exact: true }),
+    locationInput: () => page.getByLabel('Location', { exact: true }),
+    optionsButton: () => page.getByRole('button', { name: 'Options' }),
+    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle')
   },
   /**
    * Build generic table locators for any table with a testId
