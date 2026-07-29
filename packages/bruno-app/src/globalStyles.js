@@ -350,8 +350,6 @@ const GlobalStyle = createGlobalStyle`
     box-shadow: ${(props) => props.theme.infoTip.boxShadow} !important;
     border-radius: ${(props) => props.theme.border.radius.sm} !important;
     color: ${(props) => props.theme.text} !important;
-    max-width: 320px !important;
-    max-height: 240px !important;
     overflow-y: auto !important;
   }
 
