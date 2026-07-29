@@ -1,15 +1,7 @@
-import 'github-markdown-css/github-markdown.css';
-import get from 'lodash/get';
-import find from 'lodash/find';
 import { updateCollectionDocs } from 'providers/ReduxStore/slices/collections';
-import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
-import { useTheme } from 'providers/Theme';
 import { useMemo, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
-import Markdown from 'components/MarkDown';
-import CodeEditor from 'components/CodeEditor';
-import AIAssist from 'components/AIAssist';
 import { buildAiVariablesPayload, buildDocsContextFromCollection } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import { IconEdit, IconFileText } from '@tabler/icons';
@@ -17,27 +9,31 @@ import Button from 'ui/Button/index';
 import ActionIcon from 'ui/ActionIcon/index';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { useDocsEditingState } from 'components/Documentation/useDocsEditingState';
+import DocsEditor from 'components/Documentation/DocsEditor';
+import get from 'lodash/get';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
-  const { displayedTheme } = useTheme();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  const isEditing = focusedTab?.docsEditing || false;
+  const { isEditing, setEditing } = useDocsEditingState();
   const docs = collection.draft?.root ? get(collection, 'draft.root.docs', '') : get(collection, 'root.docs', '');
-  const preferences = useSelector((state) => state.app.preferences);
   const docsContext = useMemo(() => buildDocsContextFromCollection(collection), [collection]);
   const aiVariables = useMemo(() => buildAiVariablesPayload(collection, null), [collection]);
 
-  // StyledWrapper has overflow-y: auto — use null selector.
-  // Preview mode: hook tracks wrapper scroll. Edit mode: CodeEditor's onScroll/initialScroll.
+  // The rich text editor owns its own scroll container. Preview and rich-text
+  // edit mode track scroll there; markdown mode uses CodeEditor's onScroll/initialScroll.
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `collection-docs-scroll-${collection.uid}`, default: 0 });
-  useTrackScroll({ ref: wrapperRef, onChange: setScroll, enabled: !isEditing, initialValue: scroll });
+  useTrackScroll({
+    ref: wrapperRef,
+    selector: '.rich-text-editor-content',
+    onChange: setScroll,
+    enabled: !isEditing,
+    initialValue: scroll
+  });
 
   const toggleViewMode = () => {
-    dispatch(updateDocsEditing({ uid: activeTabUid, docsEditing: !isEditing }));
+    setEditing(!isEditing);
   };
 
   const onEdit = (value) => {
@@ -88,33 +84,22 @@ const Docs = ({ collection }) => {
           )}
         </div>
       </div>
-      {isEditing ? (
-        <div className="relative flex-1 min-h-0">
-          <CodeEditor
-            collection={collection}
-            theme={displayedTheme}
-            value={docs}
-            onEdit={onEdit}
-            onSave={onSave}
-            mode="application/text"
-            font={get(preferences, 'font.codeFont', 'default')}
-            fontSize={get(preferences, 'font.codeFontSize')}
-            initialScroll={scroll}
-            onScroll={setScroll}
-          />
-          <AIAssist scriptType="docs" currentScript={docs || ''} docsContext={docsContext} variables={aiVariables} onApply={onEdit} />
-        </div>
-      ) : (
-        <div className="pl-1">
-          <div className="h-[1px] min-h-[500px]">
-            {
-              docs?.length > 0
-                ? <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
-                : <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={documentationPlaceholder} />
-            }
-          </div>
-        </div>
-      )}
+      <div className="flex-1 min-h-0">
+        <DocsEditor
+          docs={docs}
+          onEdit={onEdit}
+          onSave={onSave}
+          isEditing={isEditing}
+          collection={collection}
+          collectionPath={collection.pathname}
+          docsContext={docsContext}
+          variables={aiVariables}
+          emptyPreviewContent={documentationPlaceholder}
+          onRequestEdit={toggleViewMode}
+          initialScroll={scroll}
+          onScroll={setScroll}
+        />
+      </div>
     </StyledWrapper>
   );
 };

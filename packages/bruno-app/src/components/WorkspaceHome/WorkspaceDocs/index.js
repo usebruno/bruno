@@ -1,23 +1,29 @@
-import 'github-markdown-css/github-markdown.css';
-import get from 'lodash/get';
-import { useTheme } from 'providers/Theme';
-import { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useState, useEffect, useRef } from 'react';
+import { useDispatch } from 'react-redux';
 import { saveWorkspaceDocs } from 'providers/ReduxStore/slices/workspaces/actions';
-import Markdown from 'components/MarkDown';
-import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 import { IconFileText, IconEdit, IconX, IconPlus } from '@tabler/icons';
 import Button from 'ui/Button';
 import toast from 'react-hot-toast';
 import ActionIcon from 'ui/ActionIcon/index';
+import { usePersistedState } from 'hooks/usePersistedState';
+import { useTrackScroll } from 'hooks/useTrackScroll';
+import DocsEditor from 'components/Documentation/DocsEditor';
 
 const WorkspaceDocs = ({ workspace }) => {
   const dispatch = useDispatch();
-  const { displayedTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [localDocs, setLocalDocs] = useState(workspace?.docs || '');
-  const preferences = useSelector((state) => state.app.preferences);
+
+  const wrapperRef = useRef(null);
+  const [scroll, setScroll] = usePersistedState({ key: `workspace-docs-scroll-${workspace?.uid}`, default: 0 });
+  useTrackScroll({
+    ref: wrapperRef,
+    selector: '.rich-text-editor-content',
+    onChange: setScroll,
+    enabled: !isEditing,
+    initialValue: scroll
+  });
 
   useEffect(() => {
     setLocalDocs(workspace?.docs || '');
@@ -78,27 +84,26 @@ const WorkspaceDocs = ({ workspace }) => {
         )}
       </div>
 
-      <div className="docs-content">
-        {isEditing ? (
+      <div className="docs-content" ref={wrapperRef}>
+        {hasDocs || isEditing ? (
           <div className="editor-container">
-            <CodeEditor
-              theme={displayedTheme}
-              value={localDocs}
-              onEdit={onEdit}
-              onSave={onSave}
-              mode="markdown"
-              font={get(preferences, 'font.codeFont', 'default')}
-              fontSize={get(preferences, 'font.codeFontSize')}
-            />
-            <div className="editor-actions">
-              <Button onClick={onSave}>
-                Save
-              </Button>
+            <div className="flex-1 min-h-0 flex flex-col">
+              <DocsEditor
+                docs={localDocs}
+                onEdit={onEdit}
+                onSave={onSave}
+                isEditing={isEditing}
+                collectionPath={workspace?.pathname || ''}
+                onRequestEdit={toggleViewMode}
+              />
             </div>
-          </div>
-        ) : hasDocs ? (
-          <div className="docs-markdown">
-            <Markdown collectionPath={workspace?.pathname || ''} onDoubleClick={toggleViewMode} content={localDocs} />
+            {isEditing && (
+              <div className="editor-actions">
+                <Button onClick={onSave}>
+                  Save
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="empty-state">

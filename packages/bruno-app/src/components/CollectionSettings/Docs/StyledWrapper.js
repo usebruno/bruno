@@ -16,11 +16,6 @@ const StyledWrapper = styled.div`
     display: flex;
     justify-content: flex-end;
   }
-
-  .markdown-body {
-    height: auto !important;
-    overflow-y: visible !important;
-  }
 `;
 
 export default StyledWrapper;
