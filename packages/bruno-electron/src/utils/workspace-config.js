@@ -563,6 +563,17 @@ const reorderWorkspaceCollections = async (workspacePath, collectionPaths) => {
   });
 };
 
+const getCollectionFailureReason = (collectionPath) => {
+  try {
+    if (!fs.existsSync(collectionPath) || !fs.statSync(collectionPath).isDirectory()) {
+      return 'not-found';
+    }
+  } catch (err) {
+    return err.code === 'ENOENT' || err.code === 'ENOTDIR' ? 'not-found' : 'invalid';
+  }
+  return 'invalid';
+};
+
 const resolveAndFilterWorkspaceCollections = (workspacePath, rawCollections) => {
   const seenPaths = new Set();
 
@@ -583,7 +594,7 @@ const resolveAndFilterWorkspaceCollections = (workspacePath, rawCollections) => 
 
       if (isValidCollectionDirectory(collection.path)) return collection;
       if (collection.remote) return { ...collection, notFoundLocally: true };
-      return null;
+      return { ...collection, failedToOpen: true, failureReason: getCollectionFailureReason(collection.path) };
     })
     .filter(Boolean);
 };

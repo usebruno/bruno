@@ -9,10 +9,18 @@ jest.mock('react-hot-toast', () => ({
   error: jest.fn()
 }));
 
+jest.mock('../collections/actions', () => ({
+  createCollection: jest.fn(() => () => Promise.resolve()),
+  openMultipleCollections: jest.fn(() => () => Promise.resolve({ opened: [], failed: [], invalid: [] })),
+  openScratchCollectionEvent: jest.fn(() => () => Promise.resolve()),
+  mountCollection: jest.fn(() => () => Promise.resolve()),
+  hydrateCollectionWithUiStateSnapshot: jest.fn(() => () => Promise.resolve())
+}));
+
 import os from 'os';
 import path from 'path';
 import { configureStore } from '@reduxjs/toolkit';
-import workspacesReducer from './index';
+import workspacesReducer, { updateWorkspace } from './index';
 import collectionsReducer from '../collections';
 import chatReducer, { openAiSidebar } from '../chat';
 import appReducer from '../app';
@@ -114,5 +122,46 @@ describe('switchWorkspace', () => {
 
     expect(store.getState().chat.isOpen).toBe(false);
     expect(store.getState().workspaces.activeWorkspaceUid).toBe(WS_B);
+  });
+});
+
+describe('workspaceConfigUpdatedEvent', () => {
+  let workspaceConfigUpdatedEvent;
+  let openMultipleCollections;
+
+  const WS_A_PATH = path.join(os.tmpdir(), 'ws-a');
+  const GOOD_COLL = path.join(os.tmpdir(), 'good-coll');
+  const FAILED_COLL = path.join(os.tmpdir(), 'failed-coll');
+
+  beforeAll(async () => {
+    ({ openMultipleCollections } = await import('../collections/actions'));
+    ({ workspaceConfigUpdatedEvent } = await import('./actions'));
+  });
+
+  beforeEach(() => {
+    openMultipleCollections.mockClear();
+    // actions.js captures `const { ipcRenderer } = window` at import time, so mutate
+    // the existing object's `invoke` rather than reassigning window.ipcRenderer.
+    window.ipcRenderer.invoke = jest.fn((channel) => {
+      if (channel === 'renderer:load-workspace-collections') {
+        return Promise.resolve([
+          { name: 'Good', path: GOOD_COLL },
+          { name: 'Failed', path: FAILED_COLL, failedToOpen: true, failureReason: 'invalid' }
+        ]);
+      }
+      return mockIpcInvoke(channel);
+    });
+  });
+
+  it('does not re-attempt to open failed-to-open collections on a config update', async () => {
+    const store = createStore();
+    store.dispatch(updateWorkspace({ uid: WS_A, pathname: WS_A_PATH }));
+
+    await store.dispatch(workspaceConfigUpdatedEvent(WS_A_PATH, WS_A, { collections: [], docs: '' }));
+
+    expect(openMultipleCollections).toHaveBeenCalledTimes(1);
+    const attemptedPaths = openMultipleCollections.mock.calls[0][0];
+    expect(attemptedPaths).toContain(GOOD_COLL);
+    expect(attemptedPaths).not.toContain(FAILED_COLL);
   });
 });

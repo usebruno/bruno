@@ -10,6 +10,8 @@ import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
 import { buildWebsocketCommonLocators } from './websocket';
+import { buildRequestLocators } from '../request';
+import { buildWorkspaceOverviewLocators } from './workspace-overview';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
@@ -24,10 +26,12 @@ export const buildCommonLocators = (page: Page) => ({
   ai: buildAiPreferencesLocators(page),
   requestSettings: buildRequestSettingsLocators(page),
   websocket: buildWebsocketCommonLocators(page),
+  request: buildRequestLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
+  workspaceOverview: buildWorkspaceOverviewLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
   actions: {
     collectionActions: (collectionName: string) =>
@@ -58,6 +62,16 @@ export const buildCommonLocators = (page: Page) => ({
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
     tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`)
+  },
+  aiAssist: {
+    trigger: (scriptType: string) => page.getByTestId(`ai-assist-trigger-${scriptType}`),
+    requestPaneTabBarTrigger: (scriptType: string) =>
+      page.locator('[data-testid="request-pane"] [role="tablist"]').getByTestId(`ai-assist-trigger-${scriptType}`),
+    settingsTabBarTrigger: (scriptType: string) =>
+      page.getByTestId('settings-tab-bar').getByTestId(`ai-assist-trigger-${scriptType}`)
+  },
+  documentation: {
+    editToggle: () => page.locator('.editing-mode')
   },
   folder: {
     chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
@@ -173,32 +187,8 @@ export const buildCommonLocators = (page: Page) => ({
     mismatchIcon: (row: Locator) => row.locator('svg.text-yellow-600'),
     menuItem: (type: string) => page.locator('[role="menu"]').last().getByText(type, { exact: true })
   },
-  request: {
-    urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
-    urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
-    sendButton: () => page.getByTestId('send-arrow-icon'),
-    methodDropdown: () => page.getByTestId('request-method-selector'),
-    newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
-    requestNameInput: () => page.getByPlaceholder('Request Name'),
-    requestTestId: () => page.getByTestId('request-name'),
-    generateCodeButton: () => page.getByTestId('generate-code-button'),
-    bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
-    bodyModeLabel: () => page.getByTestId('request-body-mode-label'),
-    exampleBodyModeLabel: () => page.getByTestId('example-body-mode-label'),
-    bodyEditor: () => page.getByTestId('request-body-editor'),
-    bodyVariableToken: (name: string, state?: 'valid' | 'invalid') => {
-      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
-      return page.getByTestId('request-body-editor').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
-    },
-    urlVariableToken: (name: string, state?: 'valid' | 'invalid') => {
-      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
-      return page.getByTestId('request-url').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
-    },
-    headerVariableToken: (row: Locator, name: string, state?: 'valid' | 'invalid') => {
-      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
-      return row.locator('.CodeMirror').nth(1).locator(selector).filter({ hasText: name }).first();
-    },
-    pane: () => page.getByTestId('request-pane')
+  filePicker: {
+    warningTooltip: () => page.getByTestId('file-picker-warning-tooltip')
   },
   // The variable-info popup shown when hovering a `{{var}}` token in an editor.
   varInfoPopup: {
@@ -236,7 +226,9 @@ export const buildCommonLocators = (page: Page) => ({
     requestType: (type: 'http' | 'graphql' | 'grpc' | 'ws') =>
       page.getByTestId(`presets-request-type-${type}`),
     requestUrl: () => page.getByTestId('presets-request-url'),
-    saveBtn: () => page.getByTestId('presets-save-btn')
+    saveBtn: () => page.getByTestId('presets-save-btn'),
+    defaultEnvironment: () => page.getByTestId('presets-default-environment'),
+    defaultEnvironmentOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
   },
   tags: {
     input: () => page.getByTestId('tag-input').getByRole('textbox'),
@@ -295,9 +287,11 @@ export const buildCommonLocators = (page: Page) => ({
     items: () => page.getByTestId('timeline-item'),
     lastItem: () => page.getByTestId('timeline-item').last(),
     itemHeader: (item: Locator) => item.getByTestId('timeline-item-header'),
+    clearButton: () => page.getByRole('button', { name: 'Clear Timeline' }),
+    container: () => page.getByTestId('timeline-container'),
+    entries: () => page.getByTestId('timeline-container').getByTestId('timeline-entry'),
     networkButton: (item: Locator) => item.getByRole('button', { name: 'Network' }),
-    networkLogs: (item: Locator) => item.locator('.network-logs-container'),
-    clearButton: () => page.getByRole('button', { name: 'Clear Timeline' })
+    networkLogs: (item: Locator) => item.locator('.network-logs-container')
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
@@ -309,6 +303,8 @@ export const buildCommonLocators = (page: Page) => ({
     locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
     locationInput: () => page.locator('#collection-location'),
     fileInput: () => page.locator('input[type="file"]'),
+    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
     bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
     bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
@@ -329,6 +325,15 @@ export const buildCommonLocators = (page: Page) => ({
         issuesToastUrlTooLongWarning: () => issuesToast().getByTestId('import-issues-url-too-long-warning')
       };
     })()
+  },
+  export: {
+    postmanModal: () => page.getByTestId('export-to-postman-modal'),
+    postmanFormatCard: () => page.getByTestId('export-format-postman'),
+    nameInput: () => page.getByLabel('Name', { exact: true }),
+    locationInput: () => page.getByLabel('Location', { exact: true }),
+    optionsButton: () => page.getByRole('button', { name: 'Options' }),
+    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle')
   },
   /**
    * Build generic table locators for any table with a testId

@@ -148,7 +148,7 @@ export const sanitizeUrl = (url) => {
   return sanitizedUrl;
 };
 
-export const brunoToPostman = (collection) => {
+export const brunoToPostman = (collection, { preserveScripts = false } = {}) => {
   delete collection.uid;
   delete collection.processEnvVariables;
   deleteUidsInItems(collection.items);
@@ -215,6 +215,11 @@ export const brunoToPostman = (collection) => {
     return Array.from(finalVarsMap.values());
   };
   const translateScriptSafely = (script = '') => {
+    // When preserving scripts option is enabled, return the
+    // script as-is without any bru.* -> pm.* translation
+    if (preserveScripts) {
+      return script;
+    }
     try {
       return translateBruToPostman(script);
     } catch (err) {

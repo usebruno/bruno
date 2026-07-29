@@ -4,7 +4,8 @@ export {
   parseQueryParams,
   buildQueryString,
   stripOrigin,
-  safeDecodeURIComponent
+  safeDecodeURIComponent,
+  isSameOrigin
 } from './url';
 
 export {
@@ -53,6 +54,11 @@ export {
   hasWireBlock,
   sentHeadersToObject
 } from './sent-headers';
+
+export {
+  toBool,
+  toNumber
+} from './type-helpers';
 
 export {
   MAX_BODY_SIZE_DEFAULT,
