@@ -1,5 +1,5 @@
 import { buildHar } from '@usebruno/common';
-import { hasExplicitScheme, stripOrigin } from '@usebruno/common/utils';
+import { DEFAULT_SCHEME, hasExplicitScheme, stripOrigin } from '@usebruno/common/utils';
 import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from 'utils/collections/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { get } from 'lodash';
@@ -42,7 +42,7 @@ const prependDefaultScheme = (url) => {
 
   if (url.startsWith('{{')) return url;
 
-  return `http://${url}`;
+  return `${DEFAULT_SCHEME}${url}`;
 };
 
 const generateSnippet = async ({ language, item, collection, shouldInterpolate = false }) => {

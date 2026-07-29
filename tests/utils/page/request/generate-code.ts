@@ -54,13 +54,17 @@ const setInterpolateVariables = async (page: Page, enabled: boolean) => {
 };
 
 /**
- * Close the Generate Code dialog and wait for it to disappear.
+ * Close the Generate Code dialog and wait for it to disappear. A no-op when no
+ * dialog is open, so it is safe to call from `afterEach` cleanup.
  * @param page - The page object
  * @returns void
  */
 const closeGenerateCodeDialog = async (page: Page) => {
   await test.step('Close Generate Code dialog', async () => {
     const { modal } = buildCommonLocators(page);
+    if (!(await modal.closeButton().isVisible())) {
+      return;
+    }
     await modal.closeButton().click();
     await modal.closeButton().waitFor({ state: 'hidden' });
   });

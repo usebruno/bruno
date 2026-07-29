@@ -12,6 +12,10 @@ const COLLECTION = 'generate-code-encoding';
 const FOLDER = 'requests';
 
 test.describe('Generate Code – URL variable interpolation toggle', () => {
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    await closeGenerateCodeDialog(page);
+  });
+
   test('resolves {{var}} in URL when interpolation is ON, keeps template when OFF', async ({
     pageWithUserData: page
   }) => {
@@ -30,8 +34,6 @@ test.describe('Generate Code – URL variable interpolation toggle', () => {
     const templated = await readGeneratedSnippet(page);
     expect(templated).toContain('{{host}}/api/echo/anything/ping');
     expect(templated).not.toContain('http://localhost:8081/api/echo/anything/ping');
-
-    await closeGenerateCodeDialog(page);
   });
 
   test('resolves :pathParam when interpolation is ON, keeps :pathParam when OFF', async ({
@@ -53,7 +55,5 @@ test.describe('Generate Code – URL variable interpolation toggle', () => {
     const templated = await readGeneratedSnippet(page);
     expect(templated).toContain('{{host}}/api/echo/anything/users/:userId');
     expect(templated).not.toContain('/users/123');
-
-    await closeGenerateCodeDialog(page);
   });
 });

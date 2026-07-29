@@ -29,7 +29,7 @@
 
 import { cloneDeep, find, get } from 'lodash';
 import interpolate, { interpolateObject } from '../../interpolate';
-import { encodeUrl, hasExplicitScheme, parseQueryParams, patternHasher } from '../../utils';
+import { DEFAULT_SCHEME, encodeUrl, getExplicitScheme, hasExplicitScheme, parseQueryParams, patternHasher } from '../../utils';
 import { signEdgeGridRequest } from './edgegrid';
 
 // ---------------------------------------------------------------------------
@@ -589,9 +589,6 @@ const buildPostData = (body: BrunoBody | undefined): any => {
 // Main
 // ---------------------------------------------------------------------------
 
-// Stand-in scheme for URLs whose real scheme arrives via a `{{var}}`. Only ever
-const SYNTHETIC_SCHEME = 'http://';
-
 export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   const variables = input.variables || {};
   const shouldInterpolate = input.shouldInterpolate ?? true;
@@ -617,12 +614,19 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   // client will use. Gating on a *leading* placeholder keeps the gate strict for
   // everything else: `not a url` must stay rejected, not become `http://not a url`.
   const needsSyntheticScheme = (working.url || '').startsWith('{{') && !hasExplicitScheme(hashedUrl);
-  const syntheticSchemeIsRedundant = needsSyntheticScheme
-    && hasExplicitScheme(interpolate(working.url || '', variables) || '');
+  // Mirror the scheme the variable resolves to rather than always standing in `http://`:
+  // targets that pick a client per scheme read it off the HAR URL (python3 emits
+  // `HTTPSConnection` vs `HTTPConnection`), and stripping the prefix afterwards
+  // can't walk that choice back.
+  const resolvedScheme = needsSyntheticScheme
+    ? getExplicitScheme(interpolate(working.url || '', variables) || '')
+    : null;
+  const syntheticScheme = resolvedScheme ? `${resolvedScheme}://` : DEFAULT_SCHEME;
+  const syntheticSchemeIsRedundant = resolvedScheme !== null;
   // The token the synthetic scheme was prepended to, so the strip below can target
   // that one position instead of every `http://` in the snippet.
   const leadingToken = needsSyntheticScheme ? hashedUrl.match(/^[A-Za-z0-9._-]+/)?.[0] ?? '' : '';
-  const urlForPipeline = needsSyntheticScheme ? SYNTHETIC_SCHEME + hashedUrl : hashedUrl;
+  const urlForPipeline = needsSyntheticScheme ? syntheticScheme + hashedUrl : hashedUrl;
 
   // Step 3 — Hash path-param positions via `patternHasher`. The URL now
   // contains opaque `bruno-var-hash-XXX` tokens instead of `:id`, so the
@@ -707,7 +711,7 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   const unhash = (s: string): string => {
     if (typeof s !== 'string') return s;
     const withoutSyntheticScheme = syntheticSchemeIsRedundant
-      ? s.replaceAll(SYNTHETIC_SCHEME + leadingToken, leadingToken)
+      ? s.replaceAll(syntheticScheme + leadingToken, leadingToken)
       : s;
     return queryValueRestorers.reduce(
       (restored, restore) => restore(restored),

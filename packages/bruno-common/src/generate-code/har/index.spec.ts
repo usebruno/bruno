@@ -721,6 +721,42 @@ describe('buildHar — interpolation', () => {
   });
 });
 
+// A URL like `{{host}}/ping` has no literal scheme once the variable is hashed, so
+// buildHar prepends a stand-in one to keep the URL parseable. Which scheme it picks is
+// visible to snippet targets that choose a client per scheme (python3's
+// HTTPSConnection vs HTTPConnection), so it has to match what the variable resolves to.
+describe('buildHar — scheme supplied by a leading {{var}} (toggle OFF)', () => {
+  const buildTemplatedHost = (host: string) =>
+    buildHar({
+      request: baseRequest({ url: '{{host}}/ping' }),
+      variables: { host },
+      shouldInterpolate: false
+    });
+
+  it('uses https in the HAR url when the variable resolves to an https origin', async () => {
+    const { har, unhash } = await buildTemplatedHost('https://api.example.com');
+
+    expect(har.url.startsWith('https://')).toBe(true);
+    expect(unhash(har.url)).toBe('{{host}}/ping');
+  });
+
+  it('uses http in the HAR url when the variable resolves to an http origin', async () => {
+    const { har, unhash } = await buildTemplatedHost('http://localhost:8081');
+
+    expect(har.url.startsWith('http://')).toBe(true);
+    expect(unhash(har.url)).toBe('{{host}}/ping');
+  });
+
+  it('keeps the default scheme in the output when the variable carries none', async () => {
+    // `localhost:8081` is what the client would send over plain HTTP, so the
+    // stand-in scheme is real information here and stays in the snippet.
+    const { har, unhash } = await buildTemplatedHost('localhost:8081');
+
+    expect(har.url.startsWith('http://')).toBe(true);
+    expect(unhash(har.url)).toBe('http://{{host}}/ping');
+  });
+});
+
 // HTTPSnippet runs encodeURIComponent over every queryString value when it renders,
 // so a raw `{{var}}` there would reach the snippet as `%7B%7Bvar%7D%7D` with nothing
 // left to restore. These lock in that query values are hashed like the URL's are.
