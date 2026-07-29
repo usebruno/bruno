@@ -9,7 +9,8 @@ import {
   getExampleFromSchema,
   createBrunoExample,
   groupRequestsByTags,
-  groupRequestsByPath
+  groupRequestsByPath,
+  normalizeItemName
 } from './openapi-common';
 
 const getContentLevelExample = (bodyContent) => {
@@ -162,15 +163,11 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
   let _operationObject = request.operationObject;
 
   let operationName = _operationObject.summary || _operationObject.operationId || _operationObject.description;
+  operationName = operationName ? normalizeItemName(operationName) : '';
   if (!operationName) {
     operationName = `${request.method} ${request.path}`;
   }
 
-  // Sanitize operation name to prevent Bruno parsing issues
-  if (operationName) {
-    // Replace line breaks and normalize whitespace
-    operationName = operationName.replace(/[\r\n\s]+/g, ' ').trim();
-  }
   if (usedNames.has(operationName)) {
     // Make name unique to prevent filename collisions
     // Try adding method info first
