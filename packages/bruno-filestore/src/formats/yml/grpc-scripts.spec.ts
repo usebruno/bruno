@@ -16,7 +16,6 @@ const grpcItem = (script: Record<string, string | null>) => ({
     script,
     vars: { req: [], res: [] },
     assertions: [],
-    tests: '',
     docs: ''
   }
 }) as unknown as BrunoItem;

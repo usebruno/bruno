@@ -55,9 +55,6 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       case 'scripts': {
         return <Script item={item} collection={collection} />;
       }
-      case 'tests': {
-        return <Tests item={item} collection={collection} />;
-      }
       default: {
         return <div className="mt-4">404 | Not found</div>;
       }
@@ -68,7 +65,6 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
   const script = getPropertyFromDraftOrRequest(item, 'request.script');
-  const tests = getPropertyFromDraftOrRequest(item, 'request.tests');
   const hasTestError = item.testScriptErrorMessage;
 
   const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
@@ -121,14 +117,9 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
         key: 'scripts',
         label: 'Scripts',
         indicator: scriptPhases.some(({ FIELD }) => script?.[FIELD]) ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null
-      },
-      {
-        key: 'tests',
-        label: 'Tests',
-        indicator: tests && tests.length > 0 ? hasTestError ? <StatusDot type="error" /> : <StatusDot type="default" /> : null
       }
     ];
-  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, hasAuth, script, tests, hasTestError, docs, ...scriptPhases.map(({ ERROR_STATE_KEY }) => item[`${ERROR_STATE_KEY}Message`])]);
+  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, hasAuth, script, hasTestError, docs, ...scriptPhases.map(({ ERROR_STATE_KEY }) => item[`${ERROR_STATE_KEY}Message`])]);
 
   // Initialize tab to 'body' if no tab is currently set
   useEffect(() => {

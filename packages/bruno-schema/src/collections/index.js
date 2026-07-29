@@ -683,8 +683,8 @@ const itemSchema = Yup.object({
         timeout: Yup.mixed().nullable(),
         forwardAuthorizationHeader: Yup.boolean().nullable()
       }).noUnknown(true)
-        .strict()
-        .nullable()
+      .strict()
+      .nullable()
     }),
   fileContent: Yup.string().when('type', {
     // If the type is 'js', the fileContent field is expected to be a string.

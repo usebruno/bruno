@@ -240,24 +240,11 @@ const cleanCircularJson = (data) => {
   }
 };
 
-const hasJSONContentType = (headers) => {
-  const contentType = headers?.['Content-Type'] || headers?.['content-type'] || '';
-  return contentType.includes('json');
-};
-
 const safeParseJSON = (str) => {
   try {
     return JSON.parse(str);
   } catch (e) {
     return str;
-  }
-};
-
-const safeStringifyJSON = (obj) => {
-  try {
-    return JSON.stringify(obj);
-  } catch (e) {
-    return obj;
   }
 };
 
@@ -270,8 +257,6 @@ module.exports = {
   internalExpressionCache,
   cleanJson,
   cleanCircularJson,
-  hasJSONContentType,
   safeParseJSON,
-  safeStringifyJSON,
   isObject
 };

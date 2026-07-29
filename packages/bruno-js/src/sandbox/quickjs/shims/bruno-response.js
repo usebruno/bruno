@@ -27,8 +27,8 @@ const toHostQueryArg = (vm, arg) => {
   return vm.dump(arg);
 };
 
-const addHttpResponseShim = (vm, res) => {
-  let resFn = vm.newFunction('res', function (exprStr, ...queryArgs) {
+const addBrunoResponseShimToContext = (vm, res) => {
+  const resFn = vm.newFunction('res', function (exprStr, ...queryArgs) {
     const nativeArgs = queryArgs.map((arg) => toHostQueryArg(vm, arg));
     return marshallToVm(res(vm.dump(exprStr), ...nativeArgs), vm);
   });
@@ -72,55 +72,55 @@ const addHttpResponseShim = (vm, res) => {
     headerListObj.dispose();
   }
 
-  let getStatusText = vm.newFunction('getStatusText', function () {
+  const getStatusText = vm.newFunction('getStatusText', function () {
     return marshallToVm(res.getStatusText(), vm);
   });
   vm.setProp(resFn, 'getStatusText', getStatusText);
   getStatusText.dispose();
 
-  let getStatus = vm.newFunction('getStatus', function () {
+  const getStatus = vm.newFunction('getStatus', function () {
     return marshallToVm(res.getStatus(), vm);
   });
   vm.setProp(resFn, 'getStatus', getStatus);
   getStatus.dispose();
 
-  let getHeader = vm.newFunction('getHeader', function (name) {
+  const getHeader = vm.newFunction('getHeader', function (name) {
     return marshallToVm(res.getHeader(vm.dump(name)), vm);
   });
   vm.setProp(resFn, 'getHeader', getHeader);
   getHeader.dispose();
 
-  let getHeaders = vm.newFunction('getHeaders', function () {
+  const getHeaders = vm.newFunction('getHeaders', function () {
     return marshallToVm(res.getHeaders(), vm);
   });
   vm.setProp(resFn, 'getHeaders', getHeaders);
   getHeaders.dispose();
 
-  let getBody = vm.newFunction('getBody', function () {
+  const getBody = vm.newFunction('getBody', function () {
     return marshallToVm(res.getBody(), vm);
   });
   vm.setProp(resFn, 'getBody', getBody);
   getBody.dispose();
 
-  let getResponseTime = vm.newFunction('getResponseTime', function () {
+  const getResponseTime = vm.newFunction('getResponseTime', function () {
     return marshallToVm(res.getResponseTime(), vm);
   });
   vm.setProp(resFn, 'getResponseTime', getResponseTime);
   getResponseTime.dispose();
 
-  let getUrl = vm.newFunction('getUrl', function () {
+  const getUrl = vm.newFunction('getUrl', function () {
     return marshallToVm(res.getUrl(), vm);
   });
   vm.setProp(resFn, 'getUrl', getUrl);
   getUrl.dispose();
 
-  let setBody = vm.newFunction('setBody', function (data) {
+  const setBody = vm.newFunction('setBody', function (data) {
     res.setBody(vm.dump(data));
   });
   vm.setProp(resFn, 'setBody', setBody);
   setBody.dispose();
 
-  let getSize = vm.newFunction('getSize', function () {
+  const getSize = vm.newFunction('getSize', function () {
     return marshallToVm(res.getSize(), vm);
   });
   vm.setProp(resFn, 'getSize', getSize);
@@ -133,25 +133,6 @@ const addHttpResponseShim = (vm, res) => {
   // Wrapped in a block to avoid const redeclaration conflicts with req.headerList's evalCode
   if (resHeadersEvalCode) {
     vm.evalCode(`{ ${resHeadersEvalCode} }`);
-  }
-};
-
-const addGrpcResponseShim = (vm, res) => {
-  const resObject = vm.newObject();
-
-  const messages = marshallToVm(res.messages, vm);
-  vm.setProp(resObject, 'messages', messages);
-  messages.dispose();
-
-  vm.setProp(vm.global, 'res', resObject);
-  resObject.dispose();
-};
-
-const addBrunoResponseShimToContext = (vm, res) => {
-  if (res?.isGrpc) {
-    addGrpcResponseShim(vm, res);
-  } else {
-    addHttpResponseShim(vm, res);
   }
 };
 

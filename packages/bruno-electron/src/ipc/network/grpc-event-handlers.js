@@ -1,7 +1,7 @@
 // To implement grpc event handlers
 const { ipcMain, app } = require('electron');
 const { GrpcClient } = require('@usebruno/requests');
-const { ScriptRuntime, TestRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
+const { ScriptRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
 const decomment = require('decomment');
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 const { cloneDeep, get } = require('lodash');
@@ -432,79 +432,6 @@ const registerGrpcEventHandlers = (window) => {
     return { scriptResult, scriptError };
   };
 
-  // Run the request `tests` block once the call terminates, emitting the test results
-  const runTestFile = async ({
-    request,
-    collection,
-    envVars,
-    runtimeVariables,
-    processEnvVars,
-    scriptingConfig,
-    requestUid,
-    itemUid,
-    response,
-    sentMessages
-  }) => {
-    const testFile = get(request, 'tests');
-    if (typeof testFile !== 'string' || !testFile.length) {
-      return { testResults: null, testError: null };
-    }
-
-    const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
-    let testResults = null;
-    let testError = null;
-    const afterCallEndFinalResponse = { ...response, sentMessages };
-    try {
-      testResults = await testRuntime.runTests(
-        decomment(testFile, { space: true }),
-        request,
-        afterCallEndFinalResponse,
-        envVars,
-        runtimeVariables,
-        collection.pathname,
-        onConsoleLog,
-        processEnvVars,
-        scriptingConfig,
-        null,
-        collection.name
-      );
-    } catch (error) {
-      testError = error;
-      // Preserve any test() calls that passed before the script errored
-      testResults = error.partialResults || {
-        request,
-        envVariables: envVars,
-        runtimeVariables,
-        globalEnvironmentVariables: request?.globalEnvironmentVariables || {},
-        results: [],
-        nextRequestName: null
-      };
-    }
-
-    sendEvent('main:run-request-event', {
-      type: 'test-results',
-      results: testResults.results,
-      requestUid,
-      itemUid,
-      collectionUid: collection.uid
-    });
-
-    sendEvent('main:run-request-event', {
-      type: 'test-script-execution',
-      requestUid,
-      itemUid,
-      collectionUid: collection.uid,
-      errorMessage: testError ? (testError.message || 'An error occurred while executing the test script') : null,
-      errorContext: testError
-        ? formatErrorWithContextV2(testError, 'test', request?.testsMetadata, collection.pathname)
-        : null
-    });
-
-    propagateScriptEnvUpdates(testResults, request, collection);
-
-    return { testResults, testError };
-  };
-
   ipcMain.handle('connections-changed', (event) => {
     sendEvent('grpc:connections-changed', event);
   });
@@ -577,20 +504,11 @@ const registerGrpcEventHandlers = (window) => {
 
       // ── After Call End ─────────────────────────────────────────────────────
       const hasAfterCallEndScript = !!get(preparedRequest, `script.${SCRIPT_PHASES.GRPC.AFTER_CALL_END.FIELD}`)?.length;
-      const testFile = get(preparedRequest, 'tests');
-      const hasTests = typeof testFile === 'string' && testFile.length > 0;
-      const afterCallEnd = (hasAfterCallEndScript || hasTests)
+      const afterCallEnd = hasAfterCallEndScript
         ? (response = {}) => {
           if (afterMessageReceiveErrored) return;
-          (async () => {
-            if (hasAfterCallEndScript) {
-              await runAfterCallEnd({ ...scriptContext, response });
-            }
-            if (hasTests) {
-              await runTestFile({ ...scriptContext, response });
-            }
-          })().catch((err) => {
-            console.error('Error running gRPC afterCallEnd script/tests:', err);
+          runAfterCallEnd({ ...scriptContext, response }).catch((err) => {
+            console.error('Error running gRPC afterCallEnd script:', err);
           });
         }
         : undefined;

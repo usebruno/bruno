@@ -260,7 +260,7 @@ describe('runtime', () => {
         bru.setGlobalEnvVar('globalBool', false);
       `;
       const runtime = new ScriptRuntime({ runtime: 'quickjs' });
-      const onConsoleLog = () => { };
+      const onConsoleLog = () => {};
 
       const result = await runtime.runRequestScript(script, {}, {}, {}, '.', onConsoleLog, process.env);
 
@@ -292,7 +292,7 @@ describe('runtime', () => {
       await quickJsLoader();
       const script = `bru.setEnvVar('only_env', 'val');`;
       const runtime = new ScriptRuntime({ runtime: 'quickjs' });
-      const onConsoleLog = () => { };
+      const onConsoleLog = () => {};
 
       const result = await runtime.runRequestScript(script, {}, {}, {}, '.', onConsoleLog, process.env);
 
@@ -329,7 +329,7 @@ describe('runtime', () => {
       const scriptTrue = `bru.setEnvVar('key1', 'val1', { persist: true });`;
       const scriptFalse = `bru.setEnvVar('key2', 'val2', { persist: false });`;
       const runtime = new ScriptRuntime({ runtime: 'quickjs' });
-      const onConsoleLog = () => { };
+      const onConsoleLog = () => {};
 
       const result1 = await runtime.runRequestScript(scriptTrue, {}, {}, {}, '.', onConsoleLog, process.env);
       expect(result1.envVariables.key1).toBe('val1');
