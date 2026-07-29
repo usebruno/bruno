@@ -590,7 +590,6 @@ const buildPostData = (body: BrunoBody | undefined): any => {
 // ---------------------------------------------------------------------------
 
 // Stand-in scheme for URLs whose real scheme arrives via a `{{var}}`. Only ever
-// visible to the URL pipeline; see Step 2b in `buildHar`.
 const SYNTHETIC_SCHEME = 'http://';
 
 export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
