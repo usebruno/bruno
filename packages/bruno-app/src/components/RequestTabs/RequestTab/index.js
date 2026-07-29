@@ -146,7 +146,12 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       e.preventDefault();
       e.stopPropagation();
 
-      // Close the tab
+      if (item?.type === 'ws-request') {
+        closeWsConnection(item.uid);
+      } else if (item?.type === 'graphql-subscription-request') {
+        disconnectGraphqlSubscription(item.uid);
+      }
+
       dispatch(
         closeTabs({
           tabUids: [tab.uid]
