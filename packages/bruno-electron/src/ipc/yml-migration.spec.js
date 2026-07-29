@@ -15,7 +15,8 @@ jest.mock('../app/collections', () => ({
   openCollection: jest.fn(async () => ({ opened: true }))
 }));
 jest.mock('../services/snapshot', () => ({
-  setCollection: jest.fn()
+  setCollection: jest.fn(),
+  remapCollectionTabPaths: jest.fn()
 }));
 jest.mock('../store/bruno-config', () => ({
   clearBrunoConfig: jest.fn()
@@ -130,7 +131,7 @@ describe('migrateCollectionOnDisk', () => {
   });
 
   it('converts every .bru file, removes the sources and leaves other files untouched', async () => {
-    const { brunoConfig } = await runMigration();
+    const { brunoConfig, tabPathMap } = await runMigration();
 
     const remaining = listFilesRecursive(collectionDir).map((file) => path.relative(collectionDir, file));
     expect(remaining).toEqual(
@@ -143,6 +144,10 @@ describe('migrateCollectionOnDisk', () => {
         path.join('environments', 'Local.yml')
       ].sort()
     );
+
+    expect(tabPathMap[filePath('ping.bru')]).toBe(filePath('ping.yml'));
+    expect(tabPathMap[filePath('api', 'get-users.bru')]).toBe(filePath('api', 'get-users.yml'));
+    expect(tabPathMap[filePath('environments', 'Local.bru')]).toBe(filePath('environments', 'Local.yml'));
 
     const ocYml = fs.readFileSync(filePath('opencollection.yml'), 'utf8');
     expect(ocYml).toContain('opencollection:');

@@ -3645,9 +3645,9 @@ export const migrateCollectionToYml = (collectionUid) => async (dispatch, getSta
   dispatch(closeAllCollectionTabs({ collectionUid }));
   dispatch(ensureActiveTabInCurrentWorkspace());
   // Flush the snapshot while the collection is still in the store: its entry serializes
-  // with the now-empty tab list, replacing any stale .bru tabs on disk. serializeSnapshot
-  // carries entries of absent collections over verbatim, so flushing after removal would
-  // preserve the old tabs.
+  // with the now-empty tab list, replacing any stale .bru tabs on disk for the active
+  // workspace. Inactive workspace entries for a shared collection are remapped in main
+  // (remapCollectionTabPaths) after the disk convert — force-flush alone cannot touch them.
   await flushSnapshotNow(getState);
   // Drop the collection from the store only — not from the workspace file — so it
   // disappears from the ui during migration and comes back on reopen.

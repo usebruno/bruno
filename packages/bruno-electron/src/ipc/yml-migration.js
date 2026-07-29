@@ -86,6 +86,8 @@ const migrateCollectionOnDisk = async ({
     // every cancel message).
     const parseErrors = [];
     const conversionPlan = [];
+    // bru → yml path map for remapping persisted tabs across all workspace snapshot entries
+    const tabPathMap = {};
 
     for (let i = 0; i < bruFiles.length; i++) {
       checkCancelled();
@@ -125,6 +127,7 @@ const migrateCollectionOnDisk = async ({
 
         checkCancelled();
         conversionPlan.push({ ymlPath, ymlContent });
+        tabPathMap[bruFilePath] = ymlPath;
       } catch (parseError) {
         if (parseError?.message === MIGRATION_CANCELLED_MESSAGE) {
           throw parseError;
@@ -193,7 +196,7 @@ const migrateCollectionOnDisk = async ({
       console.error('Failed to compute collection stats after migration:', statsError);
     }
 
-    return { brunoConfig: ymlBrunoConfig };
+    return { brunoConfig: ymlBrunoConfig, tabPathMap };
   } catch (error) {
     // Restore removed originals first (data safety), then clean up what this run added
     for (const { originalPath, backupPath } of restorePlan) {
@@ -275,12 +278,14 @@ const migrateCollectionToYml = async ({ mainWindow, watcher, collectionPathname,
       reportError
     });
 
-    // The persisted ui snapshot may still hold this collection's .bru tabs (renderer
-    // snapshot saves are debounced); clear them so a later restore can't resurrect them.
+    // Remap .bru → .yml tab paths across EVERY workspace snapshot entry for this
+    // collection. Force-flushing only rewrites the active workspace; shared
+    // collections keep per-workspace tab lists that would otherwise restore as
+    // dead "Not Found" tabs after switching workspaces.
     try {
-      snapshotManager.setCollection(collectionPathname, { tabs: [], activeTab: null });
+      snapshotManager.remapCollectionTabPaths(collectionPathname, result.tabPathMap || {});
     } catch (snapshotError) {
-      console.error('Failed to clear snapshot tabs after migration:', snapshotError);
+      console.error('Failed to remap snapshot tabs after migration:', snapshotError);
     }
 
     await reopenCollection();
