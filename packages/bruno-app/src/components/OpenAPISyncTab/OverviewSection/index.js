@@ -2,12 +2,15 @@ import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
 import { countEndpoints } from '../utils';
-import moment from 'moment';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { IconCheck } from '@tabler/icons';
 import Button from 'ui/Button';
 import Help from 'components/Help';
 
 const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
+
+dayjs.extend(relativeTime);
 
 const SUMMARY_CARDS = [
   {
@@ -89,7 +92,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   const details = [
     { label: 'Spec Version', value: version ? `v${version}` : '–' },
     { label: 'Endpoints in Spec', value: endpointCount != null ? endpointCount : '–' },
-    { label: 'Last Synced At', value: lastSyncDate ? moment(lastSyncDate).fromNow() : '–', tooltip: lastSyncDate ? moment(lastSyncDate).format('MMMM D, YYYY [at] h:mm A') : undefined },
+    { label: 'Last Synced At', value: lastSyncDate ? dayjs(lastSyncDate).fromNow() : '–', tooltip: lastSyncDate ? dayjs(lastSyncDate).format('MMMM D, YYYY [at] h:mm A') : undefined },
     { label: 'Folder Grouping', value: capitalize(groupBy) },
     { label: 'Auto Check for Updates', value: autoCheckEnabled ? `Every ${autoCheckInterval} min` : 'Disabled' }
   ];

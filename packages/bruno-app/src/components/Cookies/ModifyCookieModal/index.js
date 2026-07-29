@@ -7,8 +7,12 @@ import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import ToggleSwitch from 'components/ToggleSwitch/index';
 import { IconInfoCircle } from '@tabler/icons';
-import moment from 'moment';
-import 'moment-timezone';
+import dayjs from 'dayjs';
+import timezone from 'dayjs/plugin/timezone';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(timezone);
+dayjs.extend(utc);
 import { Tooltip } from 'react-tooltip';
 import { isEmpty } from 'lodash';
 import StyledWrapper from './StyledWrapper';
@@ -31,7 +35,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
       value: cookie?.value || '',
       path: cookie?.path || '/',
       domain: cookie?.domain || domain || '',
-      expires: cookie?.expires ? moment(cookie.expires).format(moment.HTML5_FMT.DATETIME_LOCAL) : '',
+      expires: cookie?.expires ? dayjs(cookie.expires).format('YYYY-MM-DDTHH:mm') : '',
       secure: cookie?.secure || false,
       httpOnly: cookie?.httpOnly || false
     },
@@ -45,11 +49,11 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
         .nullable()
         .transform((value) => {
           if (!value || value === '') return null;
-          return moment(value).isValid() ? moment(value).toDate() : null;
+          return dayjs(value).isValid() ? dayjs(value).toDate() : null;
         })
         .test('future-date', 'Expiration date must be in the future', (value) => {
           if (!value) return true;
-          return moment(value).isAfter(moment());
+          return dayjs(value).isAfter(dayjs());
         })
     }),
     onSubmit: (values) => {
@@ -57,8 +61,8 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
         ...(cookie ? cookie : {}),
         ...values,
         expires: values.expires
-          ? moment(values.expires).isValid()
-            ? moment(values.expires).toDate()
+          ? dayjs(values.expires).isValid()
+            ? dayjs(values.expires).toDate()
             : Infinity
           : Infinity
       });
@@ -102,8 +106,8 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
           ...formik.values,
           ...cookieObj,
           expires: cookieObj?.expires
-            ? moment(cookieObj.expires).isValid()
-              ? moment(cookieObj.expires).toDate()
+            ? dayjs(cookieObj.expires).isValid()
+              ? dayjs(cookieObj.expires).toDate()
               : Infinity
             : Infinity
         });
@@ -118,8 +122,8 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
             ...values,
             ...modifiedCookie,
             expires:
-              modifiedCookie?.expires && moment(modifiedCookie.expires).isValid()
-                ? moment(new Date(modifiedCookie.expires)).format(moment.HTML5_FMT.DATETIME_LOCAL)
+              modifiedCookie?.expires && dayjs(modifiedCookie.expires).isValid()
+                ? dayjs(new Date(modifiedCookie.expires)).format('YYYY-MM-DDTHH:mm')
                 : ''
           }),
           true
@@ -186,8 +190,8 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
               ...values,
               ...removeEmptyValues(cookieObj),
               expires:
-                cookieObj?.expires && moment(cookieObj.expires).isValid()
-                  ? moment(new Date(cookieObj.expires)).format(moment.HTML5_FMT.DATETIME_LOCAL)
+                cookieObj?.expires && dayjs(cookieObj.expires).isValid()
+                  ? dayjs(new Date(cookieObj.expires)).format('YYYY-MM-DDTHH:mm')
                   : ''
             }),
             true
@@ -322,7 +326,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
               {/* Date Picker */}
               <div className="w-full flex items-end">
                 <div>
-                  <label className="block mb-1">Expiration ({moment.tz.guess()})</label>
+                  <label className="block mb-1">Expiration ({dayjs.tz.guess()})</label>
                   <input
                     type="datetime-local"
                     name="expires"
@@ -331,7 +335,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                       formik.handleChange(e);
                     }}
                     className="block textbox non-passphrase-input w-full"
-                    min={moment().format(moment.HTML5_FMT.DATETIME_LOCAL)}
+                    min={dayjs().format('YYYY-MM-DDTHH:mm')}
                   />
                   {formik.touched.expires && formik.errors.expires && (
                     <div className="error-message mt-1">{formik.errors.expires}</div>
