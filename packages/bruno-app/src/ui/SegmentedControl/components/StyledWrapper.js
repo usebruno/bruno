@@ -118,7 +118,7 @@ const StyledWrapper = styled.div`
 
   .segment.disabled {
     cursor: not-allowed;
-    opacity: 0.5;
+    color: ${(props) => props.theme.overlay.overlay0};
   }
 
   ${(props) => variantStyles[props.$variant] || variantStyles.solid}
