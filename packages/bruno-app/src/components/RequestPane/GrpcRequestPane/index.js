@@ -121,15 +121,25 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
     return null;
   }
 
-  const rightContent = requestPaneTab === 'auth' ? (
-    <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
-      <GrpcAuthMode item={item} collection={collection} />
-    </div>
-  ) : requestPaneTab === 'docs' ? (
-    <div ref={rightContentRef}>
-      <DocsAction />
-    </div>
-  ) : null;
+  let rightContent = null;
+  switch (requestPaneTab) {
+    case 'auth':
+      rightContent = (
+        <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
+          <GrpcAuthMode item={item} collection={collection} />
+        </div>
+      );
+      break;
+    case 'docs':
+      rightContent = (
+        <div ref={rightContentRef}>
+          <DocsAction />
+        </div>
+      );
+      break;
+    default:
+      rightContent = null;
+  }
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">

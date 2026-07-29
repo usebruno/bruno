@@ -133,20 +133,37 @@ export const buildToolbarActions = (onLinkClick) => [
           .unsetBlockquote() // unwrap any existing blockquotes to prevent nesting
           .setBlockquote()
           .command(({ tr }) => {
-            let pos = 0;
-            while (pos < tr.doc.content.size) {
-              const node = tr.doc.nodeAt(pos);
-              if (!node) {
-                pos++;
-                continue;
+            // Only merge the blockquote we just created/extended with an
+            // immediately adjacent one — not every adjacent pair in the doc.
+            // `tr.selection` (unlike the chain's original `state.selection`)
+            // stays mapped through the unsetBlockquote/setBlockquote steps
+            // already applied earlier in this same chain.
+            const findBlockquoteStart = ($pos) => {
+              for (let depth = $pos.depth; depth >= 0; depth--) {
+                if ($pos.node(depth).type.name === 'blockquote') {
+                  return $pos.before(depth);
+                }
               }
-              const $pos = tr.doc.resolve(pos);
-              if ($pos.nodeBefore && $pos.nodeBefore.type.name === 'blockquote' && node.type.name === 'blockquote') {
-                tr.join(pos);
-                continue;
-              }
-              pos += node.nodeSize;
+              return null;
+            };
+
+            const start = findBlockquoteStart(tr.selection.$from);
+            if (start === null) return true;
+
+            if (tr.doc.resolve(start).nodeBefore?.type.name === 'blockquote') {
+              tr.join(start);
             }
+
+            const mergedStart = findBlockquoteStart(tr.selection.$from);
+            if (mergedStart === null) return true;
+
+            const $mergedStart = tr.doc.resolve(mergedStart);
+            const end = mergedStart + ($mergedStart.nodeAfter?.nodeSize ?? 0);
+
+            if (tr.doc.resolve(end).nodeAfter?.type.name === 'blockquote') {
+              tr.join(end);
+            }
+
             return true;
           })
           .run();

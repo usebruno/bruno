@@ -4,6 +4,7 @@ import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
 import { buildSidebarLocators } from './sidebar';
+import { buildDocsLocators } from './docs';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
 import { buildWebsocketCommonLocators } from './websocket';
 
@@ -50,18 +51,7 @@ export const buildCommonLocators = (page: Page) => ({
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
     tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`)
   },
-  docs: {
-    docsTab: () => page.getByTestId('responsive-tab-docs'),
-    moreTabs: () => page.locator('.more-tabs'),
-    proseMirror: () => page.locator('.ProseMirror'),
-    toolbarBtn: (label: string) => page.locator(`.toolbar-btn[aria-label="${label}"]`),
-    headingDropdown: () => page.locator('button.heading-dropdown-trigger'),
-    editToggle: () => page.locator('.docs-edit-toggle'),
-    modeSwitchDocs: () => page.locator('.docs-mode-switch button').filter({ hasText: 'Rich Text' }),
-    modeSwitchMarkdown: () => page.locator('.docs-mode-switch button').filter({ hasText: 'Markdown' }),
-    tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
-    codeEditor: () => page.locator('.editor-container .CodeMirror-scroll')
-  },
+  docs: buildDocsLocators(page),
   folder: {
     chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
   },

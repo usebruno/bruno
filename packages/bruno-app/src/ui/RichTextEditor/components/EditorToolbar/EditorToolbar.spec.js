@@ -1,16 +1,16 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Editor } from '@tiptap/core';
-import { ThemeProvider } from 'styled-components';
+import ThemeProvider from 'providers/Theme/index';
 import themes from 'themes/index';
-import extensions from '../extensions';
-import EditorToolbar from './EditorToolbar';
+import createExtensions from '../../extensions';
+import EditorToolbar from './index';
 
 const mockTheme = themes.light;
 
 const createEditor = () => {
   return new Editor({
-    extensions,
+    extensions: createExtensions().filter((ext) => ext.name !== 'rawHtmlBlock'),
     content: '<p>Hello world</p>'
   });
 };

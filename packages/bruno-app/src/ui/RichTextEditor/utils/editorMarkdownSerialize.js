@@ -1,5 +1,6 @@
 import { getHTMLFromFragment } from '@tiptap/core';
 import { Fragment } from '@tiptap/pm/model';
+import { ALIGNMENTS } from '../extensions/EditorTableAlignment';
 
 const childNodes = (node) => node?.content?.content ?? [];
 
@@ -166,13 +167,57 @@ const serializeInlineBlocks = (state, parent, separator = '<br/>') => {
   });
 };
 
-const serializeTableCell = (state, cell) => {
-  serializeInlineBlocks(state, cell);
+const CODE_SPAN_PATTERN = /(`+)[\s\S]*?\1/g;
+
+const escapePipesAndNewlines = (text) => text.replace(/\|/g, '\\|').replace(/\r\n|\r|\n/g, '<br/>');
+
+// Backslash escapes (and the table-cell delimiter itself) aren't processed
+// inside a code span, so pipes/newlines captured from one must be left as-is
+// — only the text outside code spans needs escaping.
+const escapeTableCellText = (text) => {
+  let result = '';
+  let lastIndex = 0;
+
+  for (const match of text.matchAll(CODE_SPAN_PATTERN)) {
+    result += escapePipesAndNewlines(text.slice(lastIndex, match.index));
+    result += match[0];
+    lastIndex = match.index + match[0].length;
+  }
+  result += escapePipesAndNewlines(text.slice(lastIndex));
+
+  return result;
 };
+
+const serializeTableCell = (state, cell) => {
+  const start = state.out.length;
+  serializeInlineBlocks(state, cell);
+  state.out = state.out.slice(0, start) + escapeTableCellText(state.out.slice(start));
+};
+
+const getColumnAlignment = (cell) => {
+  const { alignment } = cell?.attrs || {};
+  return ALIGNMENTS.includes(alignment) ? alignment : null;
+};
+
+const serializeDelimiterCell = (alignment) => {
+  if (alignment === 'center') return ':---:';
+  if (alignment === 'right') return '---:';
+  if (alignment === 'left') return ':---';
+  return '---';
+};
+
+// getHTMLFromFragment renders through the schema's own toDOM, which carries
+// editor-only presentation (the `editor-table` class, resize-tracking
+// `colgroup`/`colwidth`/inline widths) that has no meaning once it's sitting
+// in the user's markdown file.
+const stripEditorPresentationMarkup = (html) => html
+  .replace(/<colgroup>[\s\S]*?<\/colgroup>/g, '')
+  .replace(/\s(?:class|style|colwidth)="[^"]*"/g, '');
 
 const serializeTableAsHtml = (state, node) => {
   const html = getHTMLFromFragment(Fragment.from(node), node.type.schema);
-  const formatted = html.replace(/><(?!\/table)/g, '>\n<');
+  const cleaned = stripEditorPresentationMarkup(html);
+  const formatted = cleaned.replace(/><(?!\/table)/g, '>\n<');
 
   state.write(formatted);
   state.closeBlock(node);
@@ -201,8 +246,8 @@ const serializeTable = (state, node) => {
     state.ensureNewLine();
 
     if (!rowIndex) {
-      const delimiterRow = Array.from({ length: row.childCount })
-        .map(() => '---')
+      const delimiterRow = childNodes(row)
+        .map((headerCell) => serializeDelimiterCell(getColumnAlignment(headerCell)))
         .join(' | ');
 
       state.write(`| ${delimiterRow} |`);

@@ -1,13 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { useEditorState } from '@tiptap/react';
-import { getMarkRange } from '@tiptap/core';
+import React from 'react';
 import { IconCaretDown, IconDots, IconTableOptions } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
 import ToolHint from 'components/ToolHint';
-import ToolbarStyledWrapper from './ToolbarStyledWrapper';
-import EditorTableMenu from './EditorTableMenu';
-import { EDITOR_MENU_DROPDOWN_PROPS, EDITOR_TOOLBAR_TOOLTIP_PROPS } from '../utils/editorToolbarUi';
-import { useToolbarOverflow } from '../hooks/useToolbarOverflow';
+import StyledWrapper from './StyledWrapper';
+import EditorTableMenu from '../EditorTableMenu';
+import { EDITOR_MENU_DROPDOWN_PROPS, EDITOR_TOOLBAR_TOOLTIP_PROPS } from '../../utils/editorToolbarUi';
+import { useToolbarOverflow } from '../../hooks/useToolbarOverflow';
 
 const ToolbarButton = ({ tooltip, Icon, isActive, disabled, onClick, showLabel = false }) => {
   return (
@@ -63,7 +61,7 @@ const EditorToolbar = ({ editor }) => {
   }
 
   return (
-    <ToolbarStyledWrapper>
+    <StyledWrapper>
       <div className="editor-toolbar" ref={toolbarRef}>
         <div className="editor-toolbar-measure" ref={measureRef} aria-hidden="true">
           <div data-toolbar-part="heading" className="heading-dropdown-trigger">
@@ -128,7 +126,7 @@ const EditorToolbar = ({ editor }) => {
         )}
       </div>
       <ToolHint tooltipId="editor-toolbar-tooltip" {...EDITOR_TOOLBAR_TOOLTIP_PROPS} />
-    </ToolbarStyledWrapper>
+    </StyledWrapper>
   );
 };
 

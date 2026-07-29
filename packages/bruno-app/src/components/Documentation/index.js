@@ -29,10 +29,17 @@ const Documentation = ({ item, collection }) => {
   const preferences = useSelector((state) => state.app.preferences);
 
   const wrapperRef = useRef(null);
-  const skipDocsSyncRef = useRef(false);
+  const lastEmittedDocsRef = useRef(null);
   const isMarkdownModeRef = useRef(isMarkdownMode);
+  const isEditingRef = useRef(isEditing);
   const [scroll, setScroll] = usePersistedState({ key: `request-docs-scroll-${item?.uid}`, default: 0 });
-  useTrackScroll({ ref: wrapperRef, onChange: setScroll, enabled: !isEditing, initialValue: scroll });
+  useTrackScroll({
+    ref: wrapperRef,
+    selector: '.rich-text-editor-content',
+    onChange: setScroll,
+    enabled: !isEditing,
+    initialValue: scroll
+  });
 
   const onEdit = useCallback(
     (value) => {
@@ -53,31 +60,35 @@ const Documentation = ({ item, collection }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   }, [collection.uid, dispatch, item]);
 
-  const editor = useEditor({
-    extensions: RichTextEditor.extensions,
-    content: docs || '',
-    onUpdate: ({ editor: currentEditor, transaction }) => {
-      if (isMarkdownModeRef.current) return;
-      if (transaction && !transaction.docChanged) return;
-      skipDocsSyncRef.current = true;
-      onEdit(currentEditor.storage.markdown.getMarkdown());
-    },
-    editorProps: {
-      handleKeyDown: (_view, event) => {
-        if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
-          event.preventDefault();
-          onSave();
-          return true;
+  const editor = useEditor(
+    {
+      extensions: RichTextEditor.extensions({ collectionPath: collection?.pathname }),
+      content: docs || '',
+      editable: isEditing && !isMarkdownMode,
+      onUpdate: ({ editor: currentEditor, transaction }) => {
+        if (isMarkdownModeRef.current) return;
+        // A task checkbox stays clickable in preview (EditorTaskList's own
+        // node view), but that shouldn't dirty the request — only persist
+        // edits made while the docs tab is actually in edit mode.
+        if (!isEditingRef.current) return;
+        if (transaction && !transaction.docChanged) return;
+        const markdown = currentEditor.storage.markdown.getMarkdown();
+        lastEmittedDocsRef.current = markdown;
+        onEdit(markdown);
+      },
+      editorProps: {
+        handleKeyDown: (_view, event) => {
+          if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            onSave();
+            return true;
+          }
+          return false;
         }
-        return false;
       }
-    }
-  });
-
-  useEffect(() => {
-    if (!editor) return;
-    const dom = editor.view.dom;
-  }, [editor]);
+    },
+    [collection?.pathname]
+  );
 
   const { requestContext, variables: aiVariables } = useMemo(
     () => (item ? buildAiContextPayload(item, collection) : { requestContext: null, variables: [] }),
@@ -89,18 +100,17 @@ const Documentation = ({ item, collection }) => {
   }, [isMarkdownMode]);
 
   useEffect(() => {
-    if (editor) {
-      editor.setEditable(isEditing && !isMarkdownMode);
-    }
-  }, [editor, isEditing, isMarkdownMode]);
+    isEditingRef.current = isEditing;
+  }, [isEditing]);
 
   useEffect(() => {
     if (!editor) return;
 
-    if (skipDocsSyncRef.current) {
-      skipDocsSyncRef.current = false;
-      return;
-    }
+    // `docs` echoing our own last edit (e.g. a table resize that leaves the
+    // serialized markdown unchanged) shouldn't reset editor content — but
+    // unlike a one-shot skip flag, this comparison never gets stuck, so a
+    // later *external* docs change (AI Assist, file-watcher reload) still syncs.
+    if (docs === lastEmittedDocsRef.current) return;
 
     if (isEditing && isMarkdownMode) return;
 
@@ -133,8 +143,8 @@ const Documentation = ({ item, collection }) => {
             </div>
           )}
           <ModeSwitch
-            checked={isMarkdownMode}
-            onChange={() => setIsMarkdownMode((prev) => !prev)}
+            isMarkdownMode={isMarkdownMode}
+            onToggle={() => setIsMarkdownMode((prev) => !prev)}
             className="docs-mode-switch"
           />
         </div>

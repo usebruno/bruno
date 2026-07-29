@@ -104,6 +104,38 @@ export const useToolbarOverflow = (editor) => {
     return () => observer.disconnect();
   }, [actions.length, activeHeadingId, isInTable]);
 
+  const visibleActions = actions.slice(0, visibleCount);
+  const overflowActions = actions.slice(visibleCount);
+  const overflowActiveItemIds = activeItemIds.filter((id) => overflowActions.some((action) => action.id === id));
+
+  // These stay unconditional (guarded internally) rather than after an early
+  // `!editor` return, so a null→instance transition can't change the hook count.
+  const overflowMenuItems = useMemo(() => {
+    if (!editor) return [];
+    return overflowActions.map((action) => ({
+      id: action.id,
+      label: action.tooltip,
+      leftSection: action.Icon,
+      onClick: () => action.run(editor),
+      disabled: disabledById[action.id]
+    }));
+  }, [overflowActions, disabledById, editor]);
+
+  const headingMenuItems = useMemo(() => {
+    if (!editor) return [];
+    return HEADING_OPTIONS.map((option) => ({
+      id: option.id,
+      label: option.label,
+      onClick: () => {
+        if (!option.level) {
+          editor.chain().focus().setParagraph().run();
+        } else {
+          editor.chain().focus().setHeading({ level: option.level }).run();
+        }
+      }
+    }));
+  }, [editor]);
+
   if (!editor) {
     return {
       toolbarRef,
@@ -121,30 +153,6 @@ export const useToolbarOverflow = (editor) => {
       isInTable: false
     };
   }
-
-  const visibleActions = actions.slice(0, visibleCount);
-  const overflowActions = actions.slice(visibleCount);
-  const overflowActiveItemIds = activeItemIds.filter((id) => overflowActions.some((action) => action.id === id));
-
-  const overflowMenuItems = useMemo(() => overflowActions.map((action) => ({
-    id: action.id,
-    label: action.tooltip,
-    leftSection: action.Icon,
-    onClick: () => action.run(editor),
-    disabled: disabledById[action.id]
-  })), [overflowActions, disabledById, editor]);
-
-  const headingMenuItems = useMemo(() => HEADING_OPTIONS.map((option) => ({
-    id: option.id,
-    label: option.label,
-    onClick: () => {
-      if (!option.level) {
-        editor.chain().focus().setParagraph().run();
-      } else {
-        editor.chain().focus().setHeading({ level: option.level }).run();
-      }
-    }
-  })), [editor]);
 
   return {
     toolbarRef,

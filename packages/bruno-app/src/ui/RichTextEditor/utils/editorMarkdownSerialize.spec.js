@@ -1,9 +1,9 @@
 import { Editor } from '@tiptap/core';
-import extensions from '../extensions';
+import createExtensions from '../extensions';
 
 const createEditor = (content) =>
   new Editor({
-    extensions,
+    extensions: createExtensions().filter((ext) => ext.name !== 'rawHtmlBlock'),
     content
   });
 
@@ -69,47 +69,43 @@ describe('Editor markdown serialization', () => {
     expect(getListItemCount(editor)).toBe(2);
   });
 
-  it('splits a multi-paragraph list item into separate markdown entries', () => {
+  it('keeps multi-paragraph list items as a single markdown entry', () => {
     editor = createEditor('<ul><li><p>one</p><p>two</p></li></ul>');
 
     const markdown = getMarkdown(editor);
 
-    expect(markdown).toMatch(/- one/);
-    expect(markdown).toMatch(/- two/);
-    expect(markdown).not.toMatch(/\n\n {2}two/);
+    expect(markdown).toMatch(/- one\n  two/);
 
     editor.commands.setContent(markdown);
 
-    expect(getListItemCount(editor)).toBe(2);
-    expect(getListItemParagraphCount(editor)).toBe(2);
+    expect(getListItemCount(editor)).toBe(1);
+    expect(getListItemParagraphCount(editor)).toBe(1); // TipTap parses soft breaks as hard breaks in a single paragraph
   });
 
-  it('splits a multi-paragraph ordered list item into separate markdown entries', () => {
+  it('keeps multi-paragraph ordered list items as a single markdown entry', () => {
     editor = createEditor('<ol><li><p>first</p><p>second</p></li></ol>');
 
     const markdown = getMarkdown(editor);
 
-    expect(markdown).toMatch(/first/);
-    expect(markdown).toMatch(/second/);
+    expect(markdown).toMatch(/1\. first\n   second/);
 
     editor.commands.setContent(markdown);
 
-    expect(getListItemCount(editor)).toBe(2);
+    expect(getListItemCount(editor)).toBe(1);
   });
 
-  it('splits a multi-paragraph task item into separate markdown entries', () => {
+  it('keeps multi-paragraph task items as a single markdown entry', () => {
     editor = createEditor(
       '<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>todo one</p><p>todo two</p></li></ul>'
     );
 
     const markdown = getMarkdown(editor);
 
-    expect(markdown).toMatch(/todo one/);
-    expect(markdown).toMatch(/todo two/);
+    expect(markdown).toMatch(/- \[ \] todo one\n  todo two/);
 
     editor.commands.setContent(markdown);
 
-    expect(getListItemCount(editor, 'taskItem')).toBe(2);
+    expect(getListItemCount(editor, 'taskItem')).toBe(1);
   });
 
   it('serializes task lists using github-flavored checkbox syntax', () => {

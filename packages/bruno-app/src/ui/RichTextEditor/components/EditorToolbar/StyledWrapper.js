@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import { transparentize } from 'polished';
 
-const ToolbarStyledWrapper = styled.div`
+const StyledWrapper = styled.div`
   .editor-toolbar {
     display: flex;
     align-items: center;
@@ -99,4 +99,4 @@ const ToolbarStyledWrapper = styled.div`
   }
 `;
 
-export default ToolbarStyledWrapper;
+export default StyledWrapper;

@@ -2,22 +2,22 @@ import React from 'react';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
 
-const ModeSwitch = ({ checked, onChange, className, ...props }) => {
+const ModeSwitch = ({ isMarkdownMode, onToggle, className, ...props }) => {
   return (
     <StyledWrapper className={className} {...props}>
       <Button
         variant="ghost"
         size="sm"
-        className={`${!checked ? 'is-active' : ''}`}
-        onClick={() => { if (checked) onChange(); }}
+        className={`${!isMarkdownMode ? 'is-active' : ''}`}
+        onClick={() => { if (isMarkdownMode) onToggle(); }}
       >
         <span className="mode-text">Rich Text</span>
       </Button>
       <Button
         variant="ghost"
         size="sm"
-        className={`${checked ? 'is-active' : ''}`}
-        onClick={() => { if (!checked) onChange(); }}
+        className={`${isMarkdownMode ? 'is-active' : ''}`}
+        onClick={() => { if (!isMarkdownMode) onToggle(); }}
       >
         <span className="mode-text">Markdown</span>
       </Button>

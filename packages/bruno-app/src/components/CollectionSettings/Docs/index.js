@@ -1,7 +1,7 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
 import find from 'lodash/find';
-import { updateCollectionDocs, deleteCollectionDraft } from 'providers/ReduxStore/slices/collections';
+import { updateCollectionDocs } from 'providers/ReduxStore/slices/collections';
 import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
 import { useMemo, useRef } from 'react';
@@ -12,7 +12,7 @@ import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
 import { buildAiVariablesPayload, buildDocsContextFromCollection } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
-import { IconEdit, IconX, IconFileText } from '@tabler/icons';
+import { IconEdit, IconFileText } from '@tabler/icons';
 import Button from 'ui/Button/index';
 import ActionIcon from 'ui/ActionIcon/index';
 import { usePersistedState } from 'hooks/usePersistedState';
@@ -109,8 +109,8 @@ const Docs = ({ collection }) => {
           <div className="h-[1px] min-h-[500px]">
             {
               docs?.length > 0
-                ? <Markdown onDoubleClick={toggleViewMode} content={docs} />
-                : <Markdown onDoubleClick={toggleViewMode} content={documentationPlaceholder} />
+                ? <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
+                : <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={documentationPlaceholder} />
             }
           </div>
         </div>

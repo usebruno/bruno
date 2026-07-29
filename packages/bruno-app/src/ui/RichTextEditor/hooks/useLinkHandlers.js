@@ -1,18 +1,15 @@
 import { useCallback } from 'react';
+import toast from 'react-hot-toast';
+import { isSafeUrl } from 'utils/url/index';
 
 const useLinkHandlers = (editor) => {
   const handleLinkSubmit = useCallback(({ text, url }) => {
     if (!editor) return;
 
     const trimmedUrl = url.trim();
-    const parsedUrl = trimmedUrl.toLowerCase();
 
-    if (
-      parsedUrl.startsWith('javascript:')
-      || parsedUrl.startsWith('vbscript:')
-      || parsedUrl.startsWith('data:')
-      || parsedUrl.startsWith('file:')
-    ) {
+    if (!isSafeUrl(trimmedUrl)) {
+      toast.error('This link isn\'t allowed');
       return;
     }
 

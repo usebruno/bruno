@@ -1,25 +1,26 @@
-import Image from '@tiptap/extension-image';
-import Link from '@tiptap/extension-link';
 import Table from '@tiptap/extension-table';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
 import TableRow from '@tiptap/extension-table-row';
 import TextStyle from '@tiptap/extension-text-style';
+import Paragraph from '@tiptap/extension-paragraph';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
-import EditorGapCursor from './utils/EditorGapCursor';
-import EditorHardBreak from './utils/EditorHardBreak';
-import EditorListKeyboard from './utils/EditorListKeyboard';
+import EditorGapCursor from './extensions/EditorGapCursor';
+import EditorHardBreak from './extensions/EditorHardBreak';
+import { EditorKbd, EditorSuperscript } from './extensions/EditorInlineHtmlMarks';
+import EditorListKeyboard from './extensions/EditorListKeyboard';
 import { serializeTable } from './utils/editorMarkdownSerialize';
-import EditorTableKeyboard from './utils/EditorTableKeyboard';
-import EditorTableView from './utils/EditorTableView';
+import { createEditorImage, createEditorLink } from './extensions/EditorRelativeAssets';
+import EditorRawHtmlBlock from './extensions/EditorRawHtmlBlock';
+import { EditorTableCell, EditorTableHeader } from './extensions/EditorTableAlignment';
+import EditorTableKeyboard from './extensions/EditorTableKeyboard';
+import EditorTableView from './extensions/EditorTableView';
 import {
   EditorBulletList,
   EditorListItem,
   EditorOrderedList,
   EditorTaskItem,
   EditorTaskList
-} from './utils/EditorTaskList';
+} from './extensions/EditorTaskList';
 
 const EditorTable = Table.extend({
   parseHTML() {
@@ -44,15 +45,35 @@ const EditorTable = Table.extend({
   }
 });
 
-const extensions = [
+const EditorParagraph = Paragraph.extend({
+  addStorage() {
+    return {
+      markdown: {
+        serialize(state, node) {
+          if (node.content.size === 0) {
+            state.write('<br/>');
+            state.closeBlock(node);
+          } else {
+            state.renderInline(node);
+            state.closeBlock(node);
+          }
+        }
+      }
+    };
+  }
+});
+
+const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
   TextStyle.configure({ types: [EditorListItem.name] }),
   StarterKit.configure({
     bulletList: false,
     listItem: false,
     orderedList: false,
     hardBreak: false,
-    gapcursor: false
+    gapcursor: false,
+    paragraph: false
   }),
+  EditorParagraph,
   EditorHardBreak,
   EditorListKeyboard,
   EditorBulletList.configure({
@@ -84,9 +105,9 @@ const extensions = [
     }
   }),
   TableRow,
-  TableHeader,
-  TableCell,
-  Image.configure({
+  EditorTableHeader,
+  EditorTableCell,
+  createEditorImage(collectionPath).configure({
     inline: true,
     allowBase64: true,
     HTMLAttributes: {
@@ -94,7 +115,10 @@ const extensions = [
     }
   }),
   EditorTableKeyboard,
-  Link.configure({
+  ...(allowHtml ? [EditorRawHtmlBlock] : []),
+  EditorKbd,
+  EditorSuperscript,
+  createEditorLink(collectionPath).configure({
     openOnClick: 'whenNotEditable',
     autolink: true,
     linkOnPaste: true,
@@ -105,7 +129,7 @@ const extensions = [
     }
   }),
   Markdown.configure({
-    html: true,
+    html: allowHtml,
     breaks: true,
     linkify: true,
     transformPastedText: true,
@@ -113,4 +137,4 @@ const extensions = [
   })
 ];
 
-export default extensions;
+export default createExtensions;

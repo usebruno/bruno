@@ -6,13 +6,13 @@ import TaskList from '@tiptap/extension-task-list';
 import {
   setupTaskListParser,
   updateTaskListDOM
-} from './editorMarkdownParse';
+} from '../utils/editorMarkdownParse';
 import {
   serializeBulletList,
   serializeListItemContent,
   serializeOrderedList,
   serializeTaskList
-} from './editorMarkdownSerialize';
+} from '../utils/editorMarkdownSerialize';
 
 const isTaskListElement = (node) =>
   node.getAttribute('data-type') === 'taskList'
@@ -198,11 +198,8 @@ const EditorTaskItem = TaskItem.extend({
         toggleCheckbox(event.target.checked);
       });
 
-      content.addEventListener('click', (event) => {
+      checkboxWrapper.addEventListener('click', (event) => {
         if (!editor.isEditable) {
-          if (event.target.tagName.toLowerCase() === 'a') {
-            return; // Allow clicking links
-          }
           event.preventDefault();
           checkbox.checked = !checkbox.checked;
           toggleCheckbox(checkbox.checked);

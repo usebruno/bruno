@@ -1,4 +1,5 @@
 import taskListPlugin from 'markdown-it-task-lists';
+import runMarkdownitSetupOnce from './markdownitSetupOnce';
 
 const TASK_LIST_LINE_PATTERN = /^(\s*[-*+]\s+)\[([\sxX]*?)\]\s*(.*)$/;
 
@@ -8,6 +9,10 @@ const normalizeTaskListMarkdown = (content) => {
   }
 
   return content
+    // `.` doesn't match `\r` in JS regex, so a line ending in a stray `\r`
+    // (CRLF split only on `\n`) would fail TASK_LIST_LINE_PATTERN's `(.*)$`
+    // entirely and silently skip normalization — normalize line endings first.
+    .replace(/\r\n?/g, '\n')
     .split('\n')
     .map((line) => {
       const match = line.match(TASK_LIST_LINE_PATTERN);
@@ -25,34 +30,28 @@ const normalizeTaskListMarkdown = (content) => {
 };
 
 const setupTaskListParser = (markdownit) => {
-  if (!markdownit.__docsTaskListsNormalized) {
-    const originalRender = markdownit.render.bind(markdownit);
-    const originalParse = markdownit.parse.bind(markdownit);
+  runMarkdownitSetupOnce(markdownit, '__docsTaskListsNormalized', (md) => {
+    const originalRender = md.render.bind(md);
+    const originalParse = md.parse.bind(md);
 
-    markdownit.render = (src, env) => originalRender(
+    md.render = (src, env) => originalRender(
       typeof src === 'string' ? normalizeTaskListMarkdown(src) : src,
       env
     );
 
-    markdownit.parse = (src, env) => originalParse(
+    md.parse = (src, env) => originalParse(
       typeof src === 'string' ? normalizeTaskListMarkdown(src) : src,
       env
     );
-
-    markdownit.__docsTaskListsNormalized = true;
-  }
-
-  if (markdownit.__docsTaskListsApplied) {
-    return;
-  }
-
-  markdownit.use(taskListPlugin, {
-    enabled: true,
-    label: false,
-    labelAfter: false
   });
 
-  markdownit.__docsTaskListsApplied = true;
+  runMarkdownitSetupOnce(markdownit, '__docsTaskListsApplied', (md) => {
+    md.use(taskListPlugin, {
+      enabled: true,
+      label: false,
+      labelAfter: false
+    });
+  });
 };
 
 const updateTaskListDOM = (element) => {

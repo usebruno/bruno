@@ -1,19 +1,19 @@
 import HardBreak from '@tiptap/extension-hard-break';
+import runMarkdownitSetupOnce from '../utils/markdownitSetupOnce';
 
 const setupSoftBreakParser = (markdownit) => {
-  if (!markdownit.__docsSoftBreakNormalized) {
-    const originalSoftBreak = markdownit.renderer.rules.softbreak;
-    markdownit.renderer.rules.softbreak = function (tokens, idx, options, env, self) {
+  runMarkdownitSetupOnce(markdownit, '__docsSoftBreakNormalized', (md) => {
+    const originalSoftBreak = md.renderer.rules.softbreak;
+    md.renderer.rules.softbreak = function (tokens, idx, options, env, self) {
       if (options.breaks) {
-        return '</p><p>';
+        return '<br>';
       }
       if (originalSoftBreak) {
         return originalSoftBreak(tokens, idx, options, env, self);
       }
       return '\n';
     };
-    markdownit.__docsSoftBreakNormalized = true;
-  }
+  });
 };
 
 const EditorHardBreak = HardBreak.extend({

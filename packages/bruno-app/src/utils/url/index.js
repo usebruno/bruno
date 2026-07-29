@@ -120,6 +120,21 @@ export const isHttpUrl = (url) => {
   }
 };
 
+// Allowlist rather than denylist: accept http(s) URLs and scheme-less
+// references (e.g. a docs-relative path like ./assets/logo.png), reject
+// anything else with an explicit protocol (javascript:, data:, file:, ...).
+export const isSafeUrl = (url) => {
+  if (typeof url !== 'string' || !url.length) {
+    return false;
+  }
+
+  if (isHttpUrl(url)) {
+    return true;
+  }
+
+  return !/^[a-z][a-z0-9+.-]*:/i.test(url);
+};
+
 export const interpolateUrl = ({ url, variables }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;

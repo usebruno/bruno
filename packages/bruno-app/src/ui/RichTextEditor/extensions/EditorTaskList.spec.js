@@ -67,18 +67,18 @@ describe('EditorTaskItem NodeView edge cases', () => {
     expect(editor.getHTML()).toContain('<li data-checked="false" data-type="taskItem"><label><input type="checkbox"><span></span></label><div><p>Hello World</p></div></li>');
   });
 
-  it('should toggle checkbox and strikethrough when content text is clicked in PREVIEW mode (isEditable: false)', () => {
+  it('should toggle checkbox and strikethrough when checkbox is clicked in PREVIEW mode (isEditable: false)', () => {
     // In read-only mode (Preview mode)
     editor.setEditable(false);
 
     const dom = editor.view.dom;
     const firstTask = dom.querySelectorAll('li')[0];
-    const contentDiv = firstTask.querySelector('div');
+    const checkboxWrapper = firstTask.querySelector('label');
     const checkbox = firstTask.querySelector('input[type="checkbox"]');
 
-    // Click on the text
+    // Click on the checkbox wrapper
     const event = new Event('click');
-    contentDiv.dispatchEvent(event);
+    checkboxWrapper.dispatchEvent(event);
 
     // Should now be checked and struck through
     expect(checkbox.checked).toBe(true);

@@ -10,7 +10,7 @@ import {
   IconTrash
 } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
-import { EDITOR_MENU_DROPDOWN_PROPS } from '../utils/editorToolbarUi';
+import { EDITOR_MENU_DROPDOWN_PROPS } from '../../utils/editorToolbarUi';
 
 const TABLE_MENU_GROUPS = [
   {
