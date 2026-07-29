@@ -38,11 +38,14 @@ const parseCollection = (ymlString: string): ParsedCollection => {
     // presets
     if (brunoExtension?.presets) {
       const presets = brunoExtension.presets as BrunoPresetsExtension;
-      if (presets.request) {
+      if (presets.request || presets.defaultEnvironment) {
         brunoConfig.presets = {
-          requestType: presets.request.type || '',
-          requestUrl: presets.request.url || ''
+          requestType: presets.request?.type || '',
+          requestUrl: presets.request?.url || ''
         };
+        if (presets.defaultEnvironment) {
+          brunoConfig.presets.defaultEnvironment = presets.defaultEnvironment;
+        }
       }
     }
 

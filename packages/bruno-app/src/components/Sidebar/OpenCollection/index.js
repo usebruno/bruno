@@ -176,6 +176,9 @@ const OpenCollectionModal = ({ onClose }) => {
         )}
       >
         <StyledWrapper>
+          <p className="modal-description">
+            These collections were found inside your selection. Choose which ones to open.
+          </p>
           <div className="w-full min-w-0 flex flex-col gap-3">
             <SkippedPathsWarning paths={skippedCollectionPaths} itemNoun="collections" />
             <SelectionList
