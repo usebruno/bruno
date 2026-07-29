@@ -166,6 +166,7 @@ const WSMessageItem = memo(({ message, isOpen, onToggle }) => {
               enableLineWrapping={showHex ? false : true}
               font={preferences.codeFont || 'default'}
               value={showHex ? contentHexdump : parsedContent.content}
+              readOnly
             />
           </div>
         </>

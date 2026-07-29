@@ -299,7 +299,13 @@ class CodeEditor extends React.Component {
     }
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps, prevState) {
+    // Notify parent when the search bar opens or closes (e.g. so a fixed-height
+    // container like a WS message accordion can reserve enough room for the bar).
+    if (prevState.searchBarVisible !== this.state.searchBarVisible) {
+      this.props.onSearchBarVisibilityChange?.(this.state.searchBarVisible);
+    }
+
     // Ensure the changes caused by this update are not interpreted as
     // user-input changes which could otherwise result in an infinite
     // event loop.

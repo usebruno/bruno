@@ -54,6 +54,7 @@ export const SingleWSMessage = ({
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(displayName);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const labelTooltipId = `ws-msg-label-${message.uid ?? index}`;
 
   // Auto-focus the name input when this is a newly created message
@@ -256,7 +257,11 @@ export const SingleWSMessage = ({
         <div
           className="accordion-body"
           data-testid={`ws-message-body-${index}`}
-          style={{ height: editorHeight }}
+          style={{
+            height: isSearchOpen
+              ? `${Math.max(parseInt(editorHeight), 110)}px`
+              : editorHeight
+          }}
         >
           <CodeEditor
             collection={collection}
@@ -271,6 +276,7 @@ export const SingleWSMessage = ({
             enableVariableHighlighting={true}
             docKey={`${item.uid}:ws-msg:${message.uid ?? index}`}
             containScroll={true}
+            onSearchBarVisibilityChange={setIsSearchOpen}
           />
         </div>
       )}
