@@ -667,16 +667,26 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   // Step 7 — Query string array. HAR's queryString is the single source of
   // truth for what HTTPSnippet renders into the URL slot. The URL itself
   // (next step) has its query stripped to avoid the legacy-polyfill merge bug.
-  // Pass the RAW URL (pre-encodeUrl) as the fallback source: HTTPSnippet
-  // re-encodes each queryString value via encodeURIComponent when rendering,
-  // so the entries here must carry user-typed bytes. Feeding the encoded URL
-  // here would cause double-encoding (`:` → `%3A` from encodeUrl, then
-  // `%3A` → `%253A` from HTTPSnippet's encodeURIComponent pass).
-  // Pass the *hashed* URL: HTTPSnippet re-encodes each queryString value with
-  // encodeURIComponent, which would mangle a raw `{{var}}` into `%7B%7Bvar%7D%7D`
-  // beyond what `unhash` can restore. Hash tokens are alphanumeric+dash, so they
-  // pass through untouched.
-  const harQueryString = buildQueryString(working, hashedUrl);
+  // The fallback source is the *hashed* URL rather than the encoded one, so that
+  // when it is used its values carry user-typed bytes: feeding the encoded URL
+  // here would double-encode (`:` → `%3A` from encodeUrl, then `%3A` → `%253A`
+  // from HTTPSnippet's encodeURIComponent pass).
+  //
+  // Hashing the assembled values is what keeps `{{var}}` alive in a query when the
+  // caller wants templates preserved. HTTPSnippet runs encodeURIComponent over every
+  // queryString value, which would render `{{apiKey}}` as `%7B%7BapiKey%7D%7D` with
+  // nothing left for `unhash` to map back. Hash tokens are alphanumeric+dash, so they
+  // survive that pass untouched. Hashing here rather than in `working.params` also
+  // covers the auth-driven params `buildQueryString` appends (apikey in queryparams).
+  const queryValueRestorers: ((input: string) => string)[] = [];
+  const harQueryString = buildQueryString(working, hashedUrl).map((param) => {
+    if (shouldInterpolate || typeof param.value !== 'string') {
+      return param;
+    }
+    const { hashed, restore } = patternHasher(param.value);
+    queryValueRestorers.push(restore);
+    return { ...param, value: hashed };
+  });
 
   // Step 8 — Strip the URL's query before storing in HAR (the bracket-key fix).
   const harUrl = stripQueryStringFromUrl(encodedUrl);
@@ -700,7 +710,10 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
     const withoutSyntheticScheme = syntheticSchemeIsRedundant
       ? s.replaceAll(SYNTHETIC_SCHEME + leadingToken, leadingToken)
       : s;
-    return restoreUrlVars(withoutSyntheticScheme);
+    return queryValueRestorers.reduce(
+      (restored, restore) => restore(restored),
+      restoreUrlVars(withoutSyntheticScheme)
+    );
   };
 
   return {

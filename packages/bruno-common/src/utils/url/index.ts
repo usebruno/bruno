@@ -214,9 +214,10 @@ const encodeUrl = (url: string): string => {
  * @example
  * stripOrigin('https://example.com/api/users?name=foo') // '/api/users?name=foo'
  * stripOrigin('http://localhost:3000')                   // '/'
+ * stripOrigin('ftp://files.example.com/pub')             // '/pub'
  */
 const stripOrigin = (url: string): string => {
-  return url.replace(/^https?:\/\/[^/?#]*/, '') || '/';
+  return url.replace(/^[A-Za-z][A-Za-z0-9+.-]*:\/\/[^/?#]*/, '') || '/';
 };
 
 export {

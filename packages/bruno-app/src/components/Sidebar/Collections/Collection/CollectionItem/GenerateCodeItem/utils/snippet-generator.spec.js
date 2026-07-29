@@ -1436,7 +1436,8 @@ describe('generateSnippet – URL templates survive real httpsnippet targets', (
     globalEnvironmentVariables: {
       host: 'https://api.example.com',
       webhookUrl: 'https://hooks.example.com/services/T00/B00/SECRET',
-      signingKey: 'sk-live+AbC123'
+      signingKey: 'sk-live+AbC123',
+      proto: 'https'
     },
     runtimeVariables: {},
     processEnvVariables: {}
@@ -1510,6 +1511,56 @@ describe('generateSnippet – URL templates survive real httpsnippet targets', (
     expect(result).toContain('https://api.example.com/users/123');
     expect(result).not.toContain('{{host}}');
     expect(result).not.toContain(':userId');
+  });
+
+  // The URL bar syncs query params into request.params, so that array — not the URL
+  // string — is what reaches har.queryString. HTTPSnippet percent-encodes those values.
+  it('keeps {{var}} in a query value, matching how the URL and headers behave', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem('{{host}}/get?token={{signingKey}}', [
+        { name: 'token', value: '{{signingKey}}', type: 'query', enabled: true }
+      ]),
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('{{host}}/get?token={{signingKey}}');
+    expect(result).not.toContain('%7B%7B');
+    expect(result).not.toContain('sk-live+AbC123');
+  });
+
+  it('resolves a query value when shouldInterpolate is true', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem('{{host}}/get?token={{signingKey}}', [
+        { name: 'token', value: '{{signingKey}}', type: 'query', enabled: true }
+      ]),
+      collection: baseCollection,
+      shouldInterpolate: true
+    });
+
+    // The `+` stays literal: encodeUrl is off, and OFF is byte-for-byte by contract.
+    expect(result).toContain('token=sk-live+AbC123');
+    expect(result).not.toContain('{{signingKey}}');
+  });
+
+  it.each([
+    ['scheme from a variable', '{{proto}}://api.example.com/ping'],
+    ['scheme and host from variables', '{{proto}}://{{host}}/ping'],
+    ['user-typed non-http scheme', 'ftp://files.example.com/pub']
+  ])('emits the origin exactly once — %s', async (_label, url) => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem(url),
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    const [, origin, path] = url.match(/^(.*:\/\/[^/?#]*)(.*)$/);
+    expect(result).toContain(url);
+    expect(result).not.toContain(`${origin}${origin}`);
+    expect(result).not.toContain(`${origin}${path}${path}`);
   });
 
   describe('clients that split host from path', () => {
