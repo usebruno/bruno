@@ -3675,7 +3675,7 @@ export const migrateCollectionToYml = (collectionUid) => async (dispatch, getSta
     if (wasCancelled) {
       toast('Migration cancelled');
     } else {
-      toast.error(`Migration failed: ${err.message || 'Unknown error'}`);
+      toast.error(`Migration failed: ${err?.message || 'Unknown error'}`);
     }
     // Main restored the disk and re-opened the original collection; hold the locked
     // modal open until it is back in the store so the sidebar never sits empty.

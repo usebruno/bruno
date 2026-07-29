@@ -224,13 +224,19 @@ const migrateCollectionOnDisk = async ({
 };
 
 const migrateCollectionToYml = async ({ mainWindow, watcher, collectionPathname, collectionUid }) => {
-  const format = getCollectionFormat(collectionPathname);
-  if (format === 'yml') {
-    throw new Error('Collection is already in YML format');
-  }
   const brunoJsonPath = path.join(collectionPathname, 'bruno.json');
-  const brunoConfig = JSON.parse(fs.readFileSync(brunoJsonPath, 'utf8'));
-
+  let brunoConfig;
+  try {
+    if (getCollectionFormat(collectionPathname) === 'yml') {
+      throw new Error('Collection is already in YML format');
+    }
+    brunoConfig = JSON.parse(fs.readFileSync(brunoJsonPath, 'utf8'));
+  } catch (error) {
+    try {
+      await openCollection(mainWindow, watcher, collectionPathname);
+    } catch (_) { }
+    throw error;
+  }
   // Unmount before touching disk: detach the watcher (for a file-cache v2 mount this also
   // stops the cache write-through riding on it, so migration's own writes/deletes aren't
   // double-processed as live changes) and clear every cache keyed by the deterministic
