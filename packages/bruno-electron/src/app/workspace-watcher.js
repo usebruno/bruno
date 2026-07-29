@@ -10,10 +10,12 @@ const { parseValueByDataType } = require('@usebruno/common/utils');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const { decryptStringSafe } = require('../utils/encryption');
 const dotEnvWatcher = require('./dotenv-watcher');
+const { getWorkspaceStorePath } = require('./mock-server/mock-response-store');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
 const DEFAULT_WORKSPACE_NAME = 'My Workspace';
+const MOCK_STORE_DEBOUNCE_MS = 150;
 
 const envHasSecrets = (environment) => {
   const secrets = _.filter(environment.variables, (v) => v.secret === true);
@@ -114,10 +116,81 @@ const handleGlobalEnvironmentFileUnlink = async (win, pathname, workspaceUid) =>
   }
 };
 
+const handleMockServerStoreUpdated = (win, workspacePath, workspaceUid) => {
+  if (win.isDestroyed()) {
+    return;
+  }
+
+  win.webContents.send('main:mock-server-store-updated', workspacePath, workspaceUid);
+};
+
 class WorkspaceWatcher {
   constructor() {
     this.watchers = {};
     this.environmentWatchers = {};
+    this.mockStoreWatchers = {};
+    this.mockStoreDebounceTimers = {};
+  }
+
+  _closeMockStoreWatcher(workspacePath) {
+    if (this.mockStoreDebounceTimers[workspacePath]) {
+      clearTimeout(this.mockStoreDebounceTimers[workspacePath]);
+      delete this.mockStoreDebounceTimers[workspacePath];
+    }
+
+    if (this.mockStoreWatchers[workspacePath]) {
+      this.mockStoreWatchers[workspacePath].close();
+      delete this.mockStoreWatchers[workspacePath];
+    }
+  }
+
+  _scheduleMockStoreEmit(win, workspacePath, workspaceUid) {
+    clearTimeout(this.mockStoreDebounceTimers[workspacePath]);
+    this.mockStoreDebounceTimers[workspacePath] = setTimeout(() => {
+      handleMockServerStoreUpdated(win, workspacePath, workspaceUid);
+    }, MOCK_STORE_DEBOUNCE_MS);
+  }
+
+  _addMockStoreWatcher(win, workspacePath, workspaceUid) {
+    const mocksDir = path.join(workspacePath, 'mocks');
+    const mockStorePath = getWorkspaceStorePath(workspacePath);
+    const self = this;
+
+    this._closeMockStoreWatcher(workspacePath);
+
+    if (!fs.existsSync(mocksDir)) {
+      const dirWatcher = chokidar.watch(mocksDir, {
+        ignoreInitial: false,
+        persistent: true,
+        ignorePermissionErrors: true,
+        depth: 0
+      });
+
+      dirWatcher.on('addDir', () => {
+        dirWatcher.close();
+        self._addMockStoreWatcher(win, workspacePath, workspaceUid);
+      });
+
+      this.mockStoreWatchers[workspacePath] = dirWatcher;
+      return;
+    }
+
+    const mockWatcher = chokidar.watch(mockStorePath, {
+      ignoreInitial: true,
+      persistent: true,
+      ignorePermissionErrors: true,
+      awaitWriteFinish: {
+        stabilityThreshold: 100,
+        pollInterval: 10
+      }
+    });
+
+    const emit = () => self._scheduleMockStoreEmit(win, workspacePath, workspaceUid);
+    mockWatcher.on('add', emit);
+    mockWatcher.on('change', emit);
+    mockWatcher.on('unlink', emit);
+
+    this.mockStoreWatchers[workspacePath] = mockWatcher;
   }
 
   addWatcher(win, workspacePath) {
@@ -131,6 +204,7 @@ class WorkspaceWatcher {
     if (this.environmentWatchers[workspacePath]) {
       this.environmentWatchers[workspacePath].close();
     }
+    this._closeMockStoreWatcher(workspacePath);
 
     const self = this;
     setTimeout(() => {
@@ -153,6 +227,7 @@ class WorkspaceWatcher {
       self.watchers[workspacePath] = watcher;
 
       dotEnvWatcher.addWorkspaceWatcher(win, workspacePath, workspaceUid);
+      self._addMockStoreWatcher(win, workspacePath, workspaceUid);
 
       if (fs.existsSync(environmentsDir)) {
         const envWatcher = chokidar.watch(path.join(environmentsDir, `*.yml`), {
@@ -206,6 +281,7 @@ class WorkspaceWatcher {
         this.environmentWatchers[workspacePath].close();
         delete this.environmentWatchers[workspacePath];
       }
+      this._closeMockStoreWatcher(workspacePath);
       dotEnvWatcher.removeWorkspaceWatcher(workspacePath);
     } catch (error) {
       console.error('Error removing workspace watcher:', error);
@@ -230,6 +306,10 @@ class WorkspaceWatcher {
 
     for (const [watchPath, watcher] of Object.entries(this.environmentWatchers)) collect(watcher);
     this.environmentWatchers = {};
+
+    for (const workspacePath of Object.keys(this.mockStoreWatchers)) {
+      this._closeMockStoreWatcher(workspacePath);
+    }
 
     const dotEnvResult = dotEnvWatcher.closeAll();
     if (dotEnvResult && typeof dotEnvResult.then === 'function') pending.push(dotEnvResult);

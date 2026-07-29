@@ -11,6 +11,7 @@ import {
   syncRunningMockServers
 } from 'providers/ReduxStore/slices/mock-server/index';
 import { isMockServerLogListening } from 'utils/mock-server/mock-server-log-subscription';
+import { syncMockServersFromWorkspaceStore } from 'utils/mock-server/mock-server-instances';
 import {
   addTab
 } from 'providers/ReduxStore/slices/tabs';
@@ -386,6 +387,15 @@ const useIpcEvents = () => {
       dispatch(addRequestLogEntries(val));
     });
 
+    const removeMockServerStoreUpdatedListener = ipcRenderer.on('main:mock-server-store-updated', (workspacePath, workspaceUid) => {
+      const state = store.getState();
+      if (state.workspaces.activeWorkspaceUid !== workspaceUid) {
+        return;
+      }
+
+      dispatch(syncMockServersFromWorkspaceStore(workspacePath, workspaceUid));
+    });
+
     const removeLoadNotificationsListener = ipcRenderer.on('main:load-notifications', (notifications) => {
       dispatch(loadNotifications(notifications));
     });
@@ -444,6 +454,7 @@ const useIpcEvents = () => {
       gitVersionListener();
       removeMockServerStatusListener();
       removeMockServerRequestLogListener();
+      removeMockServerStoreUpdatedListener();
       removeLoadNotificationsListener();
     };
   }, [isElectron]);

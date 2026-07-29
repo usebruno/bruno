@@ -4,7 +4,9 @@ import { normalizePath } from 'utils/common/path';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { addTab, closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
 import {
+  loadAllMockResponses,
   loadMockServerInstances,
+  refreshMockRoutes,
   removeMockServerData,
   removeMockServerInstance,
   stopMockServer,
@@ -105,6 +107,52 @@ export const hydrateMockServerInstances = (workspacePath, workspaceUid) => async
   }
 
   return result.instances || [];
+};
+
+// Thin disk sync for workspace watcher / git pull while the workspace is open.
+export const syncMockServersFromWorkspaceStore = (workspacePath, workspaceUid) => async (dispatch, getState) => {
+  const previousUids = getMockServerInstances(getState(), workspaceUid).map((instance) => instance.uid);
+  const instances = await dispatch(hydrateMockServerInstances(workspacePath, workspaceUid));
+  const nextUids = new Set(instances.map((instance) => instance.uid));
+
+  previousUids.forEach((mockServerUid) => {
+    if (!nextUids.has(mockServerUid)) {
+      dispatch(removeMockServerData({ mockServerUid }));
+    }
+  });
+
+  const state = getState();
+  const collections = state.collections.collections;
+  const activeWorkspace = state.workspaces.workspaces.find((workspace) => workspace.uid === workspaceUid) || null;
+
+  const locations = instances.map((instance) => ({
+    mockServerUid: instance.uid,
+    sourceType: instance.sourceType,
+    collectionPath: instance.sourceType === 'collection'
+      ? collections.find((collection) => collection.uid === instance.collectionUid)?.pathname || null
+      : null,
+    workspacePath: resolveMockServerWorkspacePath(instance, state.workspaces.workspaces, activeWorkspace) || workspacePath
+  }));
+
+  if (locations.length) {
+    await dispatch(loadAllMockResponses({ locations })).unwrap();
+  }
+
+  const servers = state.mockServer?.servers || {};
+  await Promise.all(locations.map(async (location) => {
+    const status = servers[location.mockServerUid]?.status;
+    if (status !== 'running' && status !== 'starting') {
+      return;
+    }
+
+    try {
+      await dispatch(refreshMockRoutes(location)).unwrap();
+    } catch {
+      // Running server may have stopped between hydrate and refresh.
+    }
+  }));
+
+  return instances;
 };
 
 export const saveMockServerInstance = (instance) => async (dispatch, getState) => {
