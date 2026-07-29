@@ -1,5 +1,5 @@
 import { test, expect } from '../../../../../playwright';
-import { setSandboxMode, openRequest } from '../../../../utils/page';
+import { setSandboxMode, openRequest, disconnectWs } from '../../../../utils/page';
 import { buildCommonLocators } from '../../../../utils/page/locators';
 
 const COLLECTION = 'client-certs-disabled-yml';
@@ -12,15 +12,18 @@ test.describe('wss with collection client certificate (disabled, yml)', () => {
   // belongs on the describe so it covers fixture setup too, which test.setTimeout cannot reach.
   test.describe.configure({ timeout: 60_000 });
 
+  // tests in this file share one app instance and one request — leave the next test a closed
+  // connection, or the connect button it clicks is not rendered
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    await disconnectWs(page);
+  });
+
   for (const mode of ['developer', 'safe'] as const) {
     test(`${mode} mode`, async ({ pageWithUserData: page }) => {
       const locators = buildCommonLocators(page).websocket;
 
       await setSandboxMode(page, COLLECTION, mode);
-      // A request per mode: messages are stored per request, so the error row this test asserts on
-      // can only be its own. Sharing one request would leave the previous test's error row in the
-      // list, satisfying the assertion before this connection is even attempted.
-      await openRequest(page, COLLECTION, `wss-${mode}`);
+      await openRequest(page, COLLECTION, 'wss-request');
 
       await test.step('Connect and assert the handshake is rejected', async () => {
         await locators.connectionControls.connect().click();

@@ -1,5 +1,5 @@
 info:
-  name: wss-developer
+  name: wss-request
   type: websocket
   seq: 3
 
