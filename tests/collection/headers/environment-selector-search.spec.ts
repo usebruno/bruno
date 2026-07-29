@@ -123,6 +123,13 @@ test.describe.serial('Environment Selector Search', () => {
 
     await locators.environment.globalTab().click();
     await expect(searchInput).toHaveValue('');
+    await expect(locators.environment.listItem('Global Development')).toBeVisible();
+    await expect(locators.environment.listItem('Global Staging')).toBeVisible();
+    await expect(locators.environment.listItem('Global Production')).toBeVisible();
+
+    await searchInput.fill('staging');
+    await expect(locators.environment.listItem('Global Staging')).toBeVisible();
+    await expect(locators.environment.listItem('Global Production')).not.toBeVisible();
 
     await locators.environment.collectionTab().click();
     await expect(searchInput).toHaveValue('');
