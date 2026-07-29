@@ -13,8 +13,8 @@ import {
   sendRequestAndWaitForResponse
 } from '../../utils/page';
 
-test.describe.skip('Migrate collection from bru to yml format', () => {
-  test.afterAll(async ({ page }) => {
+test.describe('Migrate collection from bru to yml format', () => {
+  test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 

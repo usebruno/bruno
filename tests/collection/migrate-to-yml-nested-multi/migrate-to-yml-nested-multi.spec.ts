@@ -10,7 +10,7 @@ import {
 } from '../../utils/page';
 
 test.describe('Migrating one collection to yml closes its tabs and leaves other collections untouched', () => {
-  test.afterAll(async ({ page }) => {
+  test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 

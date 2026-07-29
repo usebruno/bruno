@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { test, expect } from '../../../playwright';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import {
   buildCommonLocators,
   waitForReadyPage,
@@ -74,6 +74,6 @@ test.describe('Cancelling a bru to yml migration restores the collection', () =>
 
     expect(pageErrors).toHaveLength(0);
 
-    await app.close();
+    await closeElectronApp(app);
   });
 });
