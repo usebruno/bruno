@@ -1,5 +1,6 @@
-const { ipcMain, app } = require('electron');
+const { ipcMain } = require('electron');
 const { WsClient } = require('@usebruno/requests');
+const { registerAppQuitTeardown } = require('./register-app-quit-teardown');
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 const { cloneDeep, each, get } = require('lodash');
 const interpolateVars = require('./interpolate-vars');
@@ -94,7 +95,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
   wsRequest = setAuthHeaders(wsRequest, request, collection);
 
   if (wsRequest.oauth2) {
-    let requestCopy = cloneDeep(wsRequest);
+    const requestCopy = cloneDeep(wsRequest);
     const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
 
     // Get cert/proxy configs for token and refresh URLs
@@ -299,6 +300,8 @@ const registerWsEventHandlers = (window) => {
 
   wsClient = new WsClient(sendEvent);
 
+  registerAppQuitTeardown(wsClient, { label: 'WebSocket' });
+
   // Start a new WebSocket connection
   ipcMain.handle(
     'renderer:ws:start-connection',
@@ -472,8 +475,10 @@ const registerWsEventHandlers = (window) => {
   });
 };
 
+const getWsClient = () => wsClient;
+
 module.exports = {
   registerWsEventHandlers,
-  wsClient,
+  getWsClient,
   prepareWsRequest
 };

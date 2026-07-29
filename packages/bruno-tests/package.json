@@ -24,6 +24,7 @@
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "graphql": "^16.10.0",
+    "graphql-ws": "^5.16.0",
     "graphql-yoga": "^5.10.6",
     "express-basic-auth": "^1.2.1",
     "fast-xml-parser": "^5.5.7",

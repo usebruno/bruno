@@ -24,7 +24,7 @@ import CloneCollectionItem from 'components/Sidebar/Collections/Collection/Colle
 import NewRequest from 'components/Sidebar/NewRequest/index';
 import GradientCloseButton from './GradientCloseButton';
 import { flattenItems } from 'utils/collections/index';
-import { closeWsConnection } from 'utils/network/index';
+import { closeWsConnection, disconnectGraphqlSubscription } from 'utils/network/index';
 import { getInvalidVariableNames } from 'utils/common/variables';
 import ExampleTab from '../ExampleTab';
 import toast from 'react-hot-toast';
@@ -54,7 +54,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       || tab.type === 'http-request'
       || tab.type === 'graphql-request'
       || tab.type === 'grpc-request'
-      || tab.type === 'ws-request';
+      || tab.type === 'ws-request'
+      || tab.type === 'graphql-subscription-request';
     const shouldSyncUid = isRequestType || tab.type === 'folder-settings';
 
     if (!shouldSyncUid || !tab.pathname || !item?.uid || tab.uid === item.uid) {
@@ -73,6 +74,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         return 'WS';
       case 'graphql-request':
         return 'GQL';
+      case 'graphql-subscription-request':
+        return 'SUB';
       default:
         return item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
     }
@@ -85,6 +88,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   }, [collection?.mountStatus, collection]);
 
   const isWS = item?.type === 'ws-request';
+  const isGraphqlSubscription = item?.type === 'graphql-subscription-request';
 
   useEffect(() => {
     if (!item || !tabNameRef.current || !setHasOverflow) return;
@@ -142,7 +146,12 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       e.preventDefault();
       e.stopPropagation();
 
-      // Close the tab
+      if (item?.type === 'ws-request') {
+        closeWsConnection(item.uid);
+      } else if (item?.type === 'graphql-subscription-request') {
+        disconnectGraphqlSubscription(item.uid);
+      }
+
       dispatch(
         closeTabs({
           tabUids: [tab.uid]
@@ -214,12 +223,14 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   // Close tab shortcut — draft-aware, only active for the focused tab
   useKeybinding('closeTab', () => {
-    if (tab.type === 'request' || tab.type === 'http-request' || tab.type === 'grpc-request' || tab.type === 'ws-request' || tab.type === 'graphql-request') {
+    if (tab.type === 'request' || tab.type === 'http-request' || tab.type === 'grpc-request' || tab.type === 'ws-request' || tab.type === 'graphql-request' || tab.type === 'graphql-subscription-request') {
       if (hasChanges) {
         setShowConfirmClose(true);
       } else {
         if (item?.type === 'ws-request') {
           closeWsConnection(item.uid);
+        } else if (item?.type === 'graphql-subscription-request') {
+          disconnectGraphqlSubscription(item.uid);
         }
         dispatch(closeTabs({ tabUids: [tab.uid] }));
       }
@@ -564,6 +575,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           onCancel={() => setShowConfirmClose(false)}
           onCloseWithoutSave={() => {
             isWS && closeWsConnection(item.uid);
+            isGraphqlSubscription && disconnectGraphqlSubscription(item.uid);
             dispatch(
               deleteRequestDraft({
                 itemUid: item.uid,
@@ -640,6 +652,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         onClick={(e) => {
           if (!hasChanges) {
             isWS && closeWsConnection(item.uid);
+            isGraphqlSubscription && disconnectGraphqlSubscription(item.uid);
             return handleCloseClick(e);
           }
 

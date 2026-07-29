@@ -1,0 +1,26 @@
+meta {
+  name: on-failing
+  type: graphql-subscription
+  seq: 3
+}
+
+graphql:subscription {
+  url: ws://localhost:8081/api/graphql
+  auth: none
+}
+
+headers {
+}
+
+body:graphql {
+  subscription OnFailing { failing { count } }
+}
+
+body:graphql:vars {
+  {}
+}
+
+settings {
+  timeout: 0
+  keepAliveInterval: 0
+}

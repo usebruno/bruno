@@ -218,6 +218,62 @@ const initiatedWsResponse = {
   trailers: []
 };
 
+const initiatedGraphqlSubscriptionResponse = {
+  status: 'PENDING',
+  statusText: 'PENDING',
+  statusCode: 0,
+  headers: [],
+  body: '',
+  size: 0,
+  duration: 0,
+  sortOrder: -1,
+  responses: [],
+  isError: false,
+  error: null,
+  errorDetails: null,
+  metadata: [],
+  trailers: []
+};
+
+const graphqlSubscriptionCloseCodes = {
+  4400: 'Bad Request',
+  4401: 'Unauthorized',
+  4403: 'Forbidden',
+  4406: 'Subprotocol Not Acceptable',
+  4408: 'Connection Initialisation Timeout',
+  4409: 'Subscriber Already Exists',
+  4429: 'Too Many Initialisation Requests',
+  4500: 'Internal Error'
+};
+
+// Translates a raw graphql-transport-ws wire frame into a simplified, human-facing
+// message-history entry for the Messages tab.
+const buildGraphqlSubscriptionMessageEntry = (frame) => {
+  switch (frame.type) {
+    case 'subscribe': {
+      let payload = null;
+      try {
+        payload = JSON.parse(frame.raw)?.payload ?? null;
+      } catch {
+        payload = frame.raw;
+      }
+      return { type: 'outgoing', message: payload, timestamp: frame.timestamp };
+    }
+
+    case 'next':
+      return { type: 'incoming', message: frame.message?.payload ?? null, timestamp: frame.timestamp };
+
+    case 'error':
+      return { type: 'error', message: frame.message?.payload ?? null, timestamp: frame.timestamp };
+
+    case 'unparsable':
+      return { type: 'error', message: frame.raw, timestamp: frame.timestamp };
+
+    default:
+      return null;
+  }
+};
+
 // Properties prefixed with `_` (e.g. `_scriptEnvBaseline`) are transient runtime state —
 // never persisted to disk or included in exports.
 export const collectionsSlice = createSlice({
@@ -737,7 +793,7 @@ export const collectionsSlice = createSlice({
       // Get current response state or create initial state
       const currentResponse = item.response || initiatedGrpcResponse;
       const timestamp = item?.requestSent?.timestamp;
-      let updatedResponse = { ...currentResponse, duration: Date.now() - (timestamp || Date.now()) };
+      const updatedResponse = { ...currentResponse, duration: Date.now() - (timestamp || Date.now()) };
 
       // Process based on event type
       switch (eventType) {
@@ -1943,6 +1999,20 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateGraphqlSubscriptionConnectionParams: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.connectionParams = action.payload.connectionParams;
+        }
+      }
+    },
     updateRequestScript: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -2527,7 +2597,7 @@ export const collectionsSlice = createSlice({
           folder.draft = cloneDeep(folder.root);
         }
         if (type === 'request') {
-          let vars = get(folder, 'draft.request.vars.req', []);
+          const vars = get(folder, 'draft.request.vars.req', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -2537,7 +2607,7 @@ export const collectionsSlice = createSlice({
           }
           set(folder, 'draft.request.vars.req', vars);
         } else if (type === 'response') {
-          let vars = get(folder, 'draft.request.vars.res', []);
+          const vars = get(folder, 'draft.request.vars.res', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -2771,7 +2841,7 @@ export const collectionsSlice = createSlice({
           };
         }
         if (type === 'request') {
-          let vars = get(collection, 'draft.root.request.vars.req', []);
+          const vars = get(collection, 'draft.root.request.vars.req', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -2781,7 +2851,7 @@ export const collectionsSlice = createSlice({
           }
           set(collection, 'draft.root.request.vars.req', vars);
         } else if (type === 'response') {
-          let vars = get(collection, 'draft.root.request.vars.res', []);
+          const vars = get(collection, 'draft.root.request.vars.res', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -3604,7 +3674,7 @@ export const collectionsSlice = createSlice({
       if (!collection.oauth2Credentials) {
         collection.oauth2Credentials = [];
       }
-      let collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
+      const collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
 
       // Remove existing credentials for the same combination
       const filteredOauth2Credentials = filter(
@@ -3661,7 +3731,7 @@ export const collectionsSlice = createSlice({
       if (!collection) return;
 
       if (collection.oauth2Credentials) {
-        let collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
+        const collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
         const filteredOauth2Credentials = filter(
           collectionOauth2Credentials,
           (creds) =>
@@ -3823,7 +3893,7 @@ export const collectionsSlice = createSlice({
       // Get current response state or create initial state
       const currentResponse = item.response || initiatedWsResponse;
       const timestamp = item?.requestSent?.timestamp;
-      let updatedResponse = {
+      const updatedResponse = {
         ...currentResponse,
         isError: false,
         error: '',
@@ -3921,6 +3991,171 @@ export const collectionsSlice = createSlice({
           item.response.sortOrder = item.response.sortOrder ? -item.response.sortOrder : -1;
         }
       }
+    },
+    runGraphqlSubscriptionRequestEvent: (state, action) => {
+      const { itemUid, collectionUid, eventType, eventData } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      if (eventType === 'request') {
+        item.requestSent = eventData;
+        item.requestSent.timestamp = Date.now();
+        item.response = {
+          ...initiatedGraphqlSubscriptionResponse,
+          responses: [],
+          statusText: 'CONNECTING'
+        };
+      }
+
+      if (!collection.timeline) {
+        collection.timeline = [];
+      }
+
+      collection.timeline.push({
+        type: 'request',
+        eventType: eventType,
+        collectionUid: collection.uid,
+        folderUid: null,
+        itemUid: item.uid,
+        timestamp: Date.now(),
+        data: {
+          request: eventData || item.requestSent || item.request,
+          timestamp: Date.now(),
+          eventData: eventData
+        }
+      });
+    },
+    graphqlSubscriptionResponseReceived: (state, action) => {
+      const { itemUid, collectionUid, eventType, eventData } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+
+      if (!item) return;
+
+      const currentResponse = item.response || initiatedGraphqlSubscriptionResponse;
+      const timestamp = item?.requestSent?.timestamp;
+      const updatedResponse = {
+        ...currentResponse,
+        isError: false,
+        error: '',
+        duration: Date.now() - (timestamp || Date.now())
+      };
+
+      // Every entry pushed to `responses` in this (or any prior) dispatch gets a
+      // fresh seq continuing from the current history length. `timestamp` alone
+      // isn't a safe fallback key — multiple entries can land in the same
+      // millisecond (a burst of `next` frames, or an info entry pushed alongside
+      // one), and WSMessagesList keys/tracks open-state per row by `seq ?? timestamp`;
+      // a collision there means two unrelated rows share one open/closed state.
+      updatedResponse.responses = [...(currentResponse.responses || [])];
+      let nextSeq = updatedResponse.responses.length;
+      const pushResponse = (entry) => {
+        updatedResponse.responses.push({ ...entry, seq: nextSeq++ });
+      };
+
+      switch (eventType) {
+        case 'connecting':
+          updatedResponse.status = 'CONNECTING';
+          updatedResponse.statusText = 'CONNECTING';
+          break;
+
+        case 'upgrade':
+          updatedResponse.headers = eventData.headers;
+          break;
+
+        case 'redirect':
+          updatedResponse.requestHeaders = eventData.headers;
+          pushResponse({ message: eventData.message, type: 'info', timestamp: eventData.timestamp });
+          break;
+
+        case 'open':
+          updatedResponse.status = 'CONNECTED';
+          updatedResponse.statusText = 'CONNECTED';
+          updatedResponse.statusCode = 0;
+          pushResponse({ message: 'Connected', type: 'info', timestamp: eventData.timestamp });
+          break;
+
+        // Wire frames drive the Messages tab, but as a simplified history rather
+        // than the raw exchange — see buildGraphqlSubscriptionMessageEntry.
+        case 'frames': {
+          (eventData.frames || [])
+            .map(buildGraphqlSubscriptionMessageEntry)
+            .filter(Boolean)
+            .forEach(pushResponse);
+
+          if (eventData.droppedCount) {
+            pushResponse({
+              type: 'info',
+              message: `${eventData.droppedCount} frame(s) dropped — buffer cap exceeded`,
+              timestamp: Date.now()
+            });
+          }
+          break;
+        }
+
+        case 'operation-state': {
+          (eventData.states || []).forEach((opState) => {
+            if (opState.type === 'started') {
+              // A (re)subscribe over an already-open connection doesn't get a fresh
+              // 'open' event, so this is what flips the UI back to "subscribed".
+              updatedResponse.status = 'CONNECTED';
+              updatedResponse.statusText = 'CONNECTED';
+            } else if (opState.type === 'error') {
+              updatedResponse.isError = true;
+              updatedResponse.error = JSON.stringify(opState.errors);
+              updatedResponse.statusText = 'ERROR';
+            } else if (opState.type === 'complete') {
+              const isUserInitiated = opState.initiator === 'user';
+              updatedResponse.statusText = isUserInitiated ? 'UNSUBSCRIBED' : 'COMPLETED';
+              pushResponse({
+                type: 'info',
+                message: isUserInitiated ? 'Unsubscribed' : 'Completed',
+                timestamp: opState.timestamp
+              });
+            }
+          });
+          break;
+        }
+
+        case 'close': {
+          const { code, reason } = eventData;
+          updatedResponse.status = 'CLOSED';
+          updatedResponse.statusCode = code;
+          updatedResponse.statusText = graphqlSubscriptionCloseCodes[code] || (code === 1000 ? 'CLOSED' : 'ERROR');
+          updatedResponse.statusDescription = reason;
+          updatedResponse.isError = code !== 1000;
+
+          pushResponse({
+            type: code === 1000 ? 'info' : 'error',
+            message: reason && reason.trim().length ? ['Closed:', reason.trim()].join(' ') : 'Closed',
+            timestamp: eventData.timestamp
+          });
+          break;
+        }
+
+        case 'error': {
+          const errorDetails = eventData.error || eventData.message;
+          updatedResponse.isError = true;
+          updatedResponse.error = errorDetails || 'GraphQL subscription error occurred';
+          updatedResponse.status = 'ERROR';
+          updatedResponse.statusText = 'ERROR';
+
+          pushResponse({
+            type: 'error',
+            message: errorDetails || 'GraphQL subscription error occurred',
+            timestamp: eventData.timestamp
+          });
+          break;
+        }
+      }
+
+      item.response = updatedResponse;
     },
 
     addTransientDirectory: (state, action) => {
@@ -4072,6 +4307,7 @@ export const {
   updateRequestBody,
   updateRequestGraphqlQuery,
   updateRequestGraphqlVariables,
+  updateGraphqlSubscriptionConnectionParams,
   updateRequestScript,
   updateResponseScript,
   updateRequestTests,
@@ -4152,6 +4388,8 @@ export const {
   runWsRequestEvent,
   wsResponseReceived,
   wsUpdateResponseSortOrder,
+  runGraphqlSubscriptionRequestEvent,
+  graphqlSubscriptionResponseReceived,
 
   /* Response Example Actions - Start */
   addResponseExample,

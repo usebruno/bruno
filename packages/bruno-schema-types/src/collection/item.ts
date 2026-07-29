@@ -10,7 +10,8 @@ export type ItemType
     | 'js'
     | 'app'
     | 'grpc-request'
-    | 'ws-request';
+    | 'ws-request'
+    | 'graphql-subscription-request';
 
 export interface HttpItemSettings {
   encodeUrl?: boolean | null;
@@ -26,7 +27,12 @@ export interface WebSocketItemSettings {
   } | null;
 }
 
-export type ItemSettings = HttpItemSettings | WebSocketItemSettings | null;
+export interface GraphqlSubscriptionItemSettings {
+  timeout?: number | null;
+  keepAliveInterval?: number | null;
+}
+
+export type ItemSettings = HttpItemSettings | WebSocketItemSettings | GraphqlSubscriptionItemSettings | null;
 
 export interface App {
   code?: string | null;

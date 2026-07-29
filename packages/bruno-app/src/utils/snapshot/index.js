@@ -4,7 +4,7 @@ import { uuid } from 'utils/common';
 
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
-const REQUEST_TAB_TYPES = new Set(['http-request', 'graphql-request', 'grpc-request', 'ws-request']);
+const REQUEST_TAB_TYPES = new Set(['http-request', 'graphql-request', 'grpc-request', 'ws-request', 'graphql-subscription-request']);
 const SINGLETON_TAB_TYPES = new Set([
   'variables',
   'collection-runner',
@@ -419,7 +419,7 @@ const getDefaultRequestPaneTabForType = (type) => {
     return 'body';
   }
 
-  if (type === 'graphql-request') {
+  if (type === 'graphql-request' || type === 'graphql-subscription-request') {
     return 'query';
   }
 

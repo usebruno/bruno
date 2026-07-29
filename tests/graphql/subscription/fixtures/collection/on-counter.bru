@@ -1,0 +1,30 @@
+meta {
+  name: on-counter
+  type: graphql-subscription
+  seq: 2
+}
+
+graphql:subscription {
+  url: ws://localhost:8081/api/graphql
+  auth: none
+}
+
+headers {
+}
+
+body:graphql {
+  subscription OnCounter { counter { count } }
+}
+
+body:graphql:vars {
+  {}
+}
+
+graphql:subscription:connection-params {
+  {"authToken": "{{token}}"}
+}
+
+settings {
+  timeout: 0
+  keepAliveInterval: 0
+}

@@ -24,10 +24,10 @@ const FORMAT_CONFIG = {
 
 const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
   const { includeDisabledHeaders = false } = options;
-  let headers = new Map();
-  let disabledHeaders = new Map();
+  const headers = new Map();
+  const disabledHeaders = new Map();
 
-  let collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
+  const collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       if (header?.name?.toLowerCase?.() === 'content-type') {
@@ -40,10 +40,10 @@ const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
     }
   });
 
-  for (let i of requestTreePath) {
+  for (const i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
-      let _headers = get(folderRoot, 'request.headers', []);
+      const _headers = get(folderRoot, 'request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
           if (header.name.toLowerCase() === 'content-type') {
@@ -78,10 +78,10 @@ const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
 };
 
 const mergeVars = (collection, request, requestTreePath = []) => {
-  let reqVars = new Map();
+  const reqVars = new Map();
   const collectionRoot = collection?.draft?.root || collection?.root || {};
-  let collectionRequestVars = get(collectionRoot, 'request.vars.req', []);
-  let collectionVariables = {};
+  const collectionRequestVars = get(collectionRoot, 'request.vars.req', []);
+  const collectionVariables = {};
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
       const typed = resolveTypedValue(_var);
@@ -89,12 +89,12 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       collectionVariables[_var.name] = typed;
     }
   });
-  let folderVariables = {};
-  let requestVariables = {};
-  for (let i of requestTreePath) {
+  const folderVariables = {};
+  const requestVariables = {};
+  for (const i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
-      let vars = get(folderRoot, 'request.vars.req', []);
+      const vars = get(folderRoot, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           const typed = resolveTypedValue(_var);
@@ -127,17 +127,17 @@ const mergeVars = (collection, request, requestTreePath = []) => {
     }));
   }
 
-  let resVars = new Map();
-  let collectionResponseVars = get(collectionRoot, 'request.vars.res', []);
+  const resVars = new Map();
+  const collectionResponseVars = get(collectionRoot, 'request.vars.res', []);
   collectionResponseVars.forEach((_var) => {
     if (_var.enabled) {
       resVars.set(_var.name, resolveTypedValue(_var));
     }
   });
-  for (let i of requestTreePath) {
+  for (const i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
-      let vars = get(folderRoot, 'request.vars.res', []);
+      const vars = get(folderRoot, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           resVars.set(_var.name, resolveTypedValue(_var));
@@ -273,9 +273,9 @@ const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, reques
 
 const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   const collectionRoot = collection?.draft?.root || collection?.root || {};
-  let collectionPreReqScript = get(collectionRoot, 'request.script.req', '');
-  let collectionPostResScript = get(collectionRoot, 'request.script.res', '');
-  let collectionTests = get(collectionRoot, 'request.tests', '');
+  const collectionPreReqScript = get(collectionRoot, 'request.script.req', '');
+  const collectionPostResScript = get(collectionRoot, 'request.script.res', '');
+  const collectionTests = get(collectionRoot, 'request.tests', '');
 
   // Build source file info for error trace mapping
   const format = collection.format || 'bru';
@@ -295,14 +295,14 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   const withContent = (source, script) =>
     script?.trim() ? { ...source, scriptContent: script } : source;
 
-  let combinedPreReqScript = [];
-  let combinedPreReqSources = [];
-  let combinedPostResScript = [];
-  let combinedPostResSources = [];
-  let combinedTests = [];
-  let combinedTestsSources = [];
+  const combinedPreReqScript = [];
+  const combinedPreReqSources = [];
+  const combinedPostResScript = [];
+  const combinedPostResSources = [];
+  const combinedTests = [];
+  const combinedTestsSources = [];
 
-  for (let i of requestTreePath) {
+  for (const i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
       const folderSource = {
@@ -311,19 +311,19 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
         displayPath: posixifyPath(path.relative(collection.pathname, path.join(i.pathname, config.folderFile)))
       };
 
-      let preReqScript = get(folderRoot, 'request.script.req', '');
+      const preReqScript = get(folderRoot, 'request.script.req', '');
       if (preReqScript && preReqScript.trim() !== '') {
         combinedPreReqScript.push(preReqScript);
         combinedPreReqSources.push(withContent(folderSource, preReqScript));
       }
 
-      let postResScript = get(folderRoot, 'request.script.res', '');
+      const postResScript = get(folderRoot, 'request.script.res', '');
       if (postResScript && postResScript.trim() !== '') {
         combinedPostResScript.push(postResScript);
         combinedPostResSources.push(withContent(folderSource, postResScript));
       }
 
-      let tests = get(folderRoot, 'request.tests', '');
+      const tests = get(folderRoot, 'request.tests', '');
       if (tests && tests?.trim?.() !== '') {
         combinedTests.push(tests);
         combinedTestsSources.push(withContent(folderSource, tests));
@@ -435,13 +435,13 @@ const findItem = (items = [], itemUid) => {
 };
 
 const findItemInCollection = (collection, itemUid) => {
-  let flattenedItems = flattenItems(collection.items);
+  const flattenedItems = flattenItems(collection.items);
 
   return findItem(flattenedItems, itemUid);
 };
 
 const findParentItemInCollection = (collection, itemUid) => {
-  let flattenedItems = flattenItems(collection.items);
+  const flattenedItems = flattenItems(collection.items);
 
   return find(flattenedItems, (item) => {
     return item.items && find(item.items, (i) => i.uid === itemUid);
@@ -449,7 +449,7 @@ const findParentItemInCollection = (collection, itemUid) => {
 };
 
 const findParentItemInCollectionByPathname = (collection, pathname) => {
-  let flattenedItems = flattenItems(collection.items);
+  const flattenedItems = flattenItems(collection.items);
 
   return find(flattenedItems, (item) => {
     return item.items && find(item.items, (i) => i.pathname === pathname);
@@ -457,7 +457,7 @@ const findParentItemInCollectionByPathname = (collection, pathname) => {
 };
 
 const getTreePathFromCollectionToItem = (collection, _item) => {
-  let path = [];
+  const path = [];
   let item = findItemInCollection(collection, _item.uid);
   while (item) {
     path.unshift(item);
@@ -540,10 +540,11 @@ const parseYmlFileMeta = (data) => {
     // Transform to the format expected by bruno-app
     let requestType = metaJson.type;
     const typeMap = {
-      http: 'http-request',
-      graphql: 'graphql-request',
-      grpc: 'grpc-request',
-      ws: 'ws-request'
+      'http': 'http-request',
+      'graphql': 'graphql-request',
+      'grpc': 'grpc-request',
+      'ws': 'ws-request',
+      'graphql-subscription': 'graphql-subscription-request'
     };
     requestType = typeMap[requestType] || 'http-request';
 
@@ -635,7 +636,7 @@ const findItemByPathname = (items = [], pathname) => {
 };
 
 const findItemInCollectionByPathname = (collection, pathname) => {
-  let flattenedItems = flattenItems(collection.items);
+  const flattenedItems = flattenItems(collection.items);
 
   return findItemByPathname(flattenedItems, pathname);
 };
@@ -799,7 +800,7 @@ const getEnvVars = (environment = {}) => {
 };
 
 const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => {
-  let credentialsVariables = {};
+  const credentialsVariables = {};
   oauth2Credentials.forEach(({ credentialsId, credentials }) => {
     if (credentials) {
       Object.entries(credentials).forEach(([key, value]) => {
@@ -813,12 +814,12 @@ const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => 
 const mergeAuth = (collection, request, requestTreePath) => {
   // Start with collection level auth (always consider collection auth as base)
   const collectionRoot = collection?.draft?.root || collection?.root || {};
-  let collectionAuth = get(collectionRoot, 'request.auth', { mode: 'none' });
+  const collectionAuth = get(collectionRoot, 'request.auth', { mode: 'none' });
   let effectiveAuth = collectionAuth;
   let lastFolderWithAuth = null;
 
   // Traverse through the path to find the closest auth configuration
-  for (let i of requestTreePath) {
+  for (const i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
       const folderAuth = get(folderRoot, 'request.auth');

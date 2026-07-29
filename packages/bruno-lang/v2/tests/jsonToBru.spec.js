@@ -74,6 +74,64 @@ describe('jsonToBru stringify', () => {
     });
   });
 
+  describe('graphql:subscription', () => {
+    it('stringifies the url/auth dictionary, body:graphql blocks, and connection-params', () => {
+      const input = {
+        graphqlSubscription: {
+          url: 'wss://api.example.com/graphql',
+          auth: 'inherit'
+        },
+        graphqlSubscriptionConnectionParams: '{"authToken": "{{token}}"}',
+        body: {
+          mode: 'graphql',
+          graphql: {
+            query: 'subscription OnTick { tick { count } }',
+            variables: '{}'
+          }
+        }
+      };
+
+      const output = stringify(input);
+
+      expect(output).toMatchInlineSnapshot(`
+        "graphql:subscription {
+          url: wss://api.example.com/graphql
+          auth: inherit
+        }
+
+        graphql:subscription:connection-params {
+          {"authToken": "{{token}}"}
+        }
+
+        body:graphql {
+          subscription OnTick { tick { count } }
+        }
+
+        body:graphql:vars {
+          {}
+        }
+        "
+      `);
+    });
+
+    it('omits the connection-params block entirely when unset', () => {
+      const input = {
+        graphqlSubscription: {
+          url: 'wss://api.example.com/graphql'
+        },
+        body: {
+          mode: 'graphql',
+          graphql: {
+            query: 'subscription OnTick { tick { count } }'
+          }
+        }
+      };
+
+      const output = stringify(input);
+      expect(output).not.toContain('graphql:subscription:connection-params');
+    });
+  });
+
   describe('body:multipart-form file values', () => {
     it('stringifies an empty file value without a leading pipe', () => {
       const input = {

@@ -299,6 +299,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
     if (activeItem.type === 'grpc-request') return 'GRPC';
     if (activeItem.type === 'ws-request') return 'WS';
     if (activeItem.type === 'graphql-request') return 'GQL';
+    if (activeItem.type === 'graphql-subscription-request') return 'SUB';
     if (activeItem.type === 'app') return 'APP';
     if (appEnabled) return 'APP';
     return activeItem.draft
@@ -444,9 +445,11 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
         if (isItemAFolder(item)) {
           return { id: tabUid, name: item.name || 'Untitled', method: 'FOLDER', messageCount: chat.messages.length };
         }
-        const method = item.draft
-          ? get(item, 'draft.request.method', 'GET')
-          : get(item, 'request.method', 'GET');
+        const method = item.type === 'graphql-subscription-request'
+          ? 'SUB'
+          : item.draft
+            ? get(item, 'draft.request.method', 'GET')
+            : get(item, 'request.method', 'GET');
         return {
           id: tabUid,
           name: item.name || 'Untitled',

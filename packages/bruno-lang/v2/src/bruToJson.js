@@ -41,7 +41,7 @@ const ANNOTATIONS_KEY = Symbol('annotations');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | app | settings | docs | example)*
+  BruFile = (meta | http | grpc | ws | graphqlsubscriptionconnectionparams | graphqlsubscription | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | app | settings | docs | example)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authedgegrid | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
@@ -123,6 +123,8 @@ const grammar = ohm.grammar(`Bru {
   http = get | post | put | delete | patch | options | head | connect | trace | httpcustom
   grpc = "grpc" dictionary
   ws = "ws" dictionary
+  graphqlsubscriptionconnectionparams = "graphql:subscription:connection-params" st* "{" nl* textblock tagend
+  graphqlsubscription = "graphql:subscription" dictionary
   get = "get" dictionary
   post = "post" dictionary
   put = "put" dictionary
@@ -199,7 +201,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true, extractTyp
   }
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
-    let value = pair[name];
+    const value = pair[name];
     const rawAnnotations = pair[ANNOTATIONS_KEY];
 
     if (!parseEnabled) {
@@ -231,7 +233,7 @@ const mapRequestParams = (pairList = [], type) => {
   }
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
-    let value = pair[name];
+    const value = pair[name];
     const rawAnnotations = pair[ANNOTATIONS_KEY];
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
@@ -281,7 +283,7 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
     multipartExtractContentType(pair);
 
     if (_.isString(pair.value) && pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
-      let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+      const filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.type = 'file';
       pair.value = filestr.split('|').filter(Boolean);
     }
@@ -296,7 +298,7 @@ const mapPairListToKeyValPairsFile = (pairList = [], parseEnabled = true) => {
     fileExtractContentType(pair);
 
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
-      let filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+      const filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.filePath = filePath;
       pair.selected = pair.enabled;
 
@@ -431,7 +433,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return value.ast;
   },
   pair(_1, annotations, _keyindent, key, _2, _3, _4, value, _5) {
-    let res = {};
+    const res = {};
     if (Array.isArray(value.ast)) {
       res[key.ast] = value.ast;
     } else {
@@ -461,7 +463,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return [pair.ast, ...rest.ast];
   },
   assertpair(_1, annotations, _2, key, _3, _4, _5, value, _6) {
-    let res = {};
+    const res = {};
     res[key.ast] = value.ast ? value.ast.trim() : '';
     const annotationList = annotations.ast;
     if (annotationList && annotationList.length > 0) {
@@ -523,7 +525,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return elements.map((e) => e.ast);
   },
   meta(_1, dictionary) {
-    let meta = mapPairListToKeyValPair(dictionary.ast);
+    const meta = mapPairListToKeyValPair(dictionary.ast);
 
     if (!meta.seq) {
       meta.seq = 1;
@@ -547,7 +549,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     };
   },
   settings(_1, dictionary) {
-    let settings = mapPairListToKeyValPair(dictionary.ast);
+    const settings = mapPairListToKeyValPair(dictionary.ast);
     const getNumFromRecord = createGetNumFromRecord(settings);
 
     const keepAliveInterval = getNumFromRecord('keepAliveInterval');
@@ -590,7 +592,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       _settings.maxRedirects = parsedSettings.maxRedirects;
     }
 
-    if (keepAliveInterval) {
+    if (keepAliveInterval !== undefined) {
       _settings.keepAliveInterval = keepAliveInterval;
     }
 
@@ -606,6 +608,16 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   ws(_1, dictionary) {
     return {
       ws: mapPairListToKeyValPair(dictionary.ast)
+    };
+  },
+  graphqlsubscription(_1, dictionary) {
+    return {
+      graphqlSubscription: mapPairListToKeyValPair(dictionary.ast)
+    };
+  },
+  graphqlsubscriptionconnectionparams(_1, _2, _3, _4, textblock, _5) {
+    return {
+      graphqlSubscriptionConnectionParams: outdentString(textblock.sourceString)
     };
   },
   get(_1, dictionary) {
@@ -1133,7 +1145,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   varsreq(_1, dictionary) {
     const vars = mapPairListToKeyValPairs(dictionary.ast, true, true);
     _.each(vars, (v) => {
-      let name = v.name;
+      const name = v.name;
       if (name && name.length && name.charAt(0) === '@') {
         v.name = name.slice(1);
         v.local = true;
@@ -1154,7 +1166,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     // annotations only (preserved on round-trip) without populating `dataType`.
     const vars = mapPairListToKeyValPairs(dictionary.ast, true, false);
     _.each(vars, (v) => {
-      let name = v.name;
+      const name = v.name;
       if (name && name.length && name.charAt(0) === '@') {
         v.name = name.slice(1);
         v.local = true;
@@ -1258,7 +1270,7 @@ const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    let ast = sem(match).ast;
+    const ast = sem(match).ast;
 
     return ast;
   } else {

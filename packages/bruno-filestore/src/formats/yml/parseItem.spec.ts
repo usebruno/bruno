@@ -1,3 +1,7 @@
+import type { HttpRequest } from '@usebruno/schema-types/requests/http';
+import type { GrpcRequest } from '@usebruno/schema-types/requests/grpc';
+import type { WebSocketRequest } from '@usebruno/schema-types/requests/websocket';
+import type { GraphqlSubscriptionRequest } from '@usebruno/schema-types/requests/graphql-subscription';
 import parseItem from './parseItem';
 
 // Typed `runtime.variables` propagate through parseItem with their dataType
@@ -40,7 +44,7 @@ runtime:
 `;
 
     const item = parseItem(yml);
-    const reqVars = item.request!.vars!.req!;
+    const reqVars = (item.request as HttpRequest).vars!.req!;
 
     expect(reqVars).toHaveLength(6);
     expect(reqVars[0]).toMatchObject({ name: 'count', value: 42, dataType: 'number' });
@@ -83,7 +87,7 @@ runtime:
 `;
 
     const item = parseItem(yml);
-    const reqVars = item.request!.vars!.req!;
+    const reqVars = (item.request as HttpRequest).vars!.req!;
 
     // type=string: raw YAML number → string; no dataType field.
     expect(reqVars[0]).toMatchObject({ name: 'stringy', value: '42' });
@@ -108,7 +112,7 @@ runtime:
     - name: count
       value: { type: number, data: '7' }
 `;
-    expect(parseItem(graphqlYml).request!.vars!.req![0]).toMatchObject({
+    expect((parseItem(graphqlYml).request as HttpRequest).vars!.req![0]).toMatchObject({
       name: 'count', value: 7, dataType: 'number'
     });
 
@@ -124,7 +128,7 @@ runtime:
     - name: flag
       value: { type: boolean, data: 'false' }
 `;
-    expect(parseItem(grpcYml).request!.vars!.req![0]).toMatchObject({
+    expect((parseItem(grpcYml).request as GrpcRequest).vars!.req![0]).toMatchObject({
       name: 'flag', value: false, dataType: 'boolean'
     });
 
@@ -140,8 +144,76 @@ runtime:
     - name: payload
       value: { type: object, data: '{"k":1}' }
 `;
-    expect(parseItem(wsYml).request!.vars!.req![0]).toMatchObject({
+    expect((parseItem(wsYml).request as WebSocketRequest).vars!.req![0]).toMatchObject({
       name: 'payload', value: { k: 1 }, dataType: 'object'
     });
+  });
+});
+
+describe('parseItem — graphql-subscription', () => {
+  it('parses url, headers, auth, body, connectionParams, settings and docs', () => {
+    const yml = `info:
+  name: On Tick
+  type: graphql-subscription
+  seq: 3
+  tags:
+    - realtime
+
+graphqlSubscription:
+  url: wss://api.example.com/graphql
+  headers:
+    - name: X-Test
+      value: '1'
+  auth: inherit
+  body:
+    query: |-
+      subscription OnTick { tick { count } }
+    variables: |-
+      {}
+  connectionParams: |-
+    {"authToken": "{{token}}"}
+
+settings:
+  timeout: 15
+  keepAliveInterval: 30
+
+docs: some docs
+`;
+
+    const item = parseItem(yml);
+    const request = item.request as GraphqlSubscriptionRequest;
+
+    expect(item.type).toBe('graphql-subscription-request');
+    expect(item.seq).toBe(3);
+    expect(item.tags).toEqual(['realtime']);
+    expect(request.url).toBe('wss://api.example.com/graphql');
+    expect(request.headers).toEqual([expect.objectContaining({ name: 'X-Test', value: '1' })]);
+    expect(request.auth).toMatchObject({ mode: 'inherit' });
+    expect(request.body).toEqual({
+      mode: 'graphql',
+      graphql: {
+        query: 'subscription OnTick { tick { count } }',
+        variables: '{}'
+      }
+    });
+    expect(request.connectionParams).toBe('{"authToken": "{{token}}"}');
+    expect(item.settings).toMatchObject({ timeout: 15, keepAliveInterval: 30 });
+    expect(request.docs).toBe('some docs');
+  });
+
+  it('defaults connectionParams to null and settings to zero when absent', () => {
+    const yml = `info:
+  name: On Tick
+  type: graphql-subscription
+
+graphqlSubscription:
+  url: wss://api.example.com/graphql
+`;
+
+    const item = parseItem(yml);
+    const request = item.request as GraphqlSubscriptionRequest;
+
+    expect(request.connectionParams).toBeNull();
+    expect(item.settings).toMatchObject({ timeout: 0, keepAliveInterval: 0 });
   });
 });

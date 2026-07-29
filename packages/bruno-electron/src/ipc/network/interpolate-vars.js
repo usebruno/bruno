@@ -126,6 +126,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (isGraphqlRequest && request.data && typeof request.data === 'object') {
     request.data.query = _interpolate(request.data.query, { escapeJSONStrings: true });
     request.data.variables = _interpolate(request.data.variables, { escapeJSONStrings: true });
+    if (request.data.connectionParams) {
+      request.data.connectionParams = _interpolate(request.data.connectionParams, { escapeJSONStrings: true });
+    }
   }
 
   if (typeof contentType === 'string' && !isGraphqlRequest) {

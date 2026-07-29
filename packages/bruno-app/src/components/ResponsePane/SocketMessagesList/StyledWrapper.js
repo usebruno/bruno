@@ -1,8 +1,10 @@
 import styled from 'styled-components';
 
+// `classPrefix` (e.g. "ws", "gql-subscription") keeps each socket-backed request
+// type's rendered class names distinct.
 const StyledWrapper = styled.div`
   flex: 1;
-  min-height: 0; 
+  min-height: 0;
   height: 100%;
 
   .empty-state {
@@ -10,7 +12,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
-  .ws-message {
+  .${(props) => props.$classPrefix}-message {
     background: ${(props) => props.theme.bg};
 
     &.new {
@@ -39,20 +41,24 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .ws-incoming .message-type-icon {
+  .${(props) => props.$classPrefix}-incoming .message-type-icon {
     color: ${(props) => props.theme.colors.text.green};
   }
 
-  .ws-outgoing .message-type-icon {
+  .${(props) => props.$classPrefix}-outgoing .message-type-icon {
     color: ${(props) => props.theme.colors.text.yellow};
   }
 
-  .ws-info .message-type-icon {
+  .${(props) => props.$classPrefix}-info .message-type-icon {
     color: ${(props) => props.theme.colors.text.blue};
   }
 
-  .ws-error .message-type-icon {
+  .${(props) => props.$classPrefix}-error .message-type-icon {
     color: ${(props) => props.theme.colors.text.danger};
+  }
+
+  .message-datatype {
+    color: ${(props) => props.theme.colors.text.muted};
   }
 
   .CodeMirror {

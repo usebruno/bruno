@@ -39,6 +39,22 @@ settings {
       expect(output).toEqual(expected);
     });
 
+    it('preserves an explicit keepAliveInterval: 0 rather than dropping it as falsy', () => {
+      const input = `
+settings {
+      timeout: 0
+      keepAliveInterval: 0
+}
+`;
+
+      const output = parser(input);
+      expect(output.settings).toEqual({
+        encodeUrl: false,
+        timeout: 0,
+        keepAliveInterval: 0
+      });
+    });
+
     it('parses a single message flagged with selected: true', () => {
       const input = `
 body:ws {
@@ -184,6 +200,63 @@ body:ws {
 
       const output = parser(input);
       expect(output.body.ws[0].selected).toBe(false);
+    });
+  });
+
+  describe('graphql:subscription', () => {
+    it('parses the url and auth dictionary', () => {
+      const input = `
+graphql:subscription {
+  url: wss://api.example.com/graphql
+  auth: inherit
+}
+`;
+
+      const expected = {
+        graphqlSubscription: {
+          url: 'wss://api.example.com/graphql',
+          auth: 'inherit'
+        }
+      };
+
+      const output = parser(input);
+      expect(output).toEqual(expected);
+    });
+
+    it('parses the connection-params text block distinctly from the subscription dictionary', () => {
+      const input = `
+graphql:subscription {
+  url: wss://api.example.com/graphql
+}
+
+graphql:subscription:connection-params {
+  {"authToken": "{{token}}"}
+}
+`;
+
+      const output = parser(input);
+      expect(output.graphqlSubscription).toEqual({
+        url: 'wss://api.example.com/graphql'
+      });
+      expect(output.graphqlSubscriptionConnectionParams).toBe('{"authToken": "{{token}}"}');
+    });
+
+    it('parses the connection-params block when it precedes the subscription dictionary', () => {
+      const input = `
+graphql:subscription:connection-params {
+  {"authToken": "{{token}}"}
+}
+
+graphql:subscription {
+  url: wss://api.example.com/graphql
+}
+`;
+
+      const output = parser(input);
+      expect(output.graphqlSubscription).toEqual({
+        url: 'wss://api.example.com/graphql'
+      });
+      expect(output.graphqlSubscriptionConnectionParams).toBe('{"authToken": "{{token}}"}');
     });
   });
 

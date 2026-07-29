@@ -4,11 +4,13 @@ import type { HttpRequest } from '@opencollection/types/requests/http';
 import type { GraphQLRequest } from '@opencollection/types/requests/graphql';
 import type { GrpcRequest } from '@opencollection/types/requests/grpc';
 import type { WebSocketRequest } from '@opencollection/types/requests/websocket';
+import type { GraphQLSubscriptionRequest } from './types/graphql-subscription';
 import { parseYml } from './utils';
 import parseHttpRequest from './items/parseHttpRequest';
 import parseGraphQLRequest from './items/parseGraphQLRequest';
 import parseGrpcRequest from './items/parseGrpcRequest';
 import parseWebsocketRequest from './items/parseWebsocketRequest';
+import parseGraphQLSubscriptionRequest from './items/parseGraphQLSubscriptionRequest';
 import parseScript from './items/parseScript';
 import parseApp, { type AppFile } from './items/parseApp';
 
@@ -84,6 +86,9 @@ const parseItem = (ymlString: string): BrunoItem => {
 
       case 'websocket':
         return parseWebsocketRequest(ocItem as WebSocketRequest);
+
+      case 'graphql-subscription':
+        return parseGraphQLSubscriptionRequest(ocItem as unknown as GraphQLSubscriptionRequest);
 
       case 'script':
         return parseScript(ocItem as ScriptFile);

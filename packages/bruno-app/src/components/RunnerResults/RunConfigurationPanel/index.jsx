@@ -13,8 +13,8 @@ import Button from 'ui/Button/index';
 import { isRequestTagsIncluded } from '@usebruno/common';
 
 const isRequestDisabled = (item, tags) => {
-  // WS and gRPC are not supported by the collection runner
-  if (item.type === 'ws-request' || item.type === 'grpc-request') return true;
+  // WS, gRPC and GraphQL subscriptions are not supported by the collection runner
+  if (item.type === 'ws-request' || item.type === 'grpc-request' || item.type === 'graphql-subscription-request') return true;
 
   // Check tag filtering
   const requestTags = item.draft?.tags || item.tags || [];
@@ -36,6 +36,7 @@ const getMethodInfo = (item) => {
   const isGrpc = item.type === 'grpc-request';
   const isWS = item.type === 'ws-request';
   const isGraphQL = item.type === 'graphql-request';
+  const isGraphQLSubscription = item.type === 'graphql-subscription-request';
 
   let methodText;
   let methodClass;
@@ -48,6 +49,9 @@ const getMethodInfo = (item) => {
     methodClass = 'method-ws';
   } else if (isGraphQL) {
     methodText = 'GQL';
+    methodClass = 'method-gql';
+  } else if (isGraphQLSubscription) {
+    methodText = 'SUB';
     methodClass = 'method-gql';
   } else {
     const method = item.request?.method || '';
