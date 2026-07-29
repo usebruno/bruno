@@ -89,10 +89,13 @@ describe('stringifyItem — graphql-subscription', () => {
 
     const reparsed = parseItem(yml);
     expect(reparsed.type).toBe('graphql-subscription-request');
+    expect(reparsed.tags).toEqual(['realtime']);
     expect(reparsed.request).toMatchObject({
       url: 'wss://api.example.com/graphql',
       connectionParams: '{"authToken": "{{token}}"}',
       docs: 'some docs',
+      headers: [{ name: 'X-Test', value: '1', enabled: true }],
+      auth: { mode: 'inherit' },
       body: {
         mode: 'graphql',
         graphql: {
