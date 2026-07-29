@@ -113,7 +113,8 @@ const runSingleRequest = async function (
         globalEnvFile: persistPaths.globalEnvFile,
         collection,
         collectionRootPath: persistPaths.collectionRootPath,
-        envVarOverrides: persistPaths.envVarOverrides
+        envVarOverrides: persistPaths.envVarOverrides,
+        globalEnvVarOverrides: persistPaths.globalEnvVarOverrides
       });
     } catch (err) {
       console.warn(chalk.yellow(`Warning: failed to persist variable updates: ${err.message}`));
