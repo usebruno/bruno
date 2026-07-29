@@ -193,8 +193,8 @@ const prepareGraphQLSubscriptionRequest = async (item, collection, environment, 
         debugInfo,
         folderUid: request.oauth2Credentials?.folderUid
       };
-      if (tokenPlacement === 'header') {
-        preparedRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
+      if (tokenPlacement === 'header' && credentials?.access_token) {
+        preparedRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials.access_token}`;
       } else {
         try {
           const url = new URL(preparedRequest.url);
