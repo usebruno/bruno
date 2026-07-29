@@ -8,7 +8,7 @@ import {
   updateWorkspaceLoadingState,
   setWorkspaceScratchCollection
 } from '../workspaces';
-import { createCollection, openCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, hydrateCollectionWithUiStateSnapshot } from '../collections/actions';
+import { createCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, hydrateCollectionWithUiStateSnapshot } from '../collections/actions';
 import { removeCollection, addTransientDirectory, updateCollectionMountStatus, expandCollection, sortCollections } from '../collections';
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
@@ -371,8 +371,12 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
         getState().collections.collections.map((c) => normalizePath(c.pathname))
       );
 
+      const unopened = updatedWorkspace.collections
+        .filter((wc) => wc.failedToOpen)
+        .map((wc) => wc.path);
+
       const collectionPaths = updatedWorkspace.collections
-        .filter((wc) => !wc.notFoundLocally)
+        .filter((wc) => !wc.notFoundLocally && !wc.failedToOpen)
         .map((wc) => wc.path)
         .filter((p) => p && !alreadyOpenCollections.includes(normalizePath(p)));
 
@@ -388,11 +392,20 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
 
         if (Array.isArray(openResult?.failed) && openResult.failed.length > 0) {
           console.warn('Some workspace collections failed to open during switch:', openResult.failed);
+          unopened.push(...openResult.failed.map((f) => f.path));
         }
 
         if (Array.isArray(openResult?.invalid) && openResult.invalid.length > 0) {
           console.warn('Some workspace collection paths were invalid during switch:', openResult.invalid);
+          unopened.push(...openResult.invalid);
         }
+      }
+
+      if (unopened.length > 0) {
+        const message = unopened.length === 1
+          ? `Collection could not be opened: ${unopened[0]}`
+          : `${unopened.length} collections could not be opened`;
+        toast.error(message);
       }
     }
 
@@ -636,7 +649,9 @@ export const switchWorkspace = (workspaceUid) => {
           workspace.pathname || null
         );
         return dispatch(hydrateCollectionWithUiStateSnapshot(
-          collectionSnapshotState ? { pathname: collection.pathname, ...collectionSnapshotState } : null
+          collectionSnapshotState
+            ? { pathname: collection.pathname, ...collectionSnapshotState, hasSnapshotEntry: true }
+            : { pathname: collection.pathname, hasSnapshotEntry: false }
         ));
       }));
 
@@ -937,7 +952,7 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
 
         if (workspace?.collections?.length > 0) {
           const newCollectionPaths = workspace.collections
-            .filter((workspaceCollection) => !workspaceCollection.notFoundLocally)
+            .filter((workspaceCollection) => !workspaceCollection.notFoundLocally && !workspaceCollection.failedToOpen)
             .map((workspaceCollection) => workspaceCollection.path)
             .filter((collectionPath) => collectionPath && !openCollections.includes(normalizePath(collectionPath)));
 
@@ -1003,10 +1018,6 @@ export const createCollectionInWorkspace = (collectionName, collectionFolderName
   };
 };
 
-export const openCollectionInWorkspace = () => {
-  return (dispatch) => dispatch(openCollection());
-};
-
 const handleWorkspaceAction = async (action, workspaceUid, ...args) => {
   try {
     await action(workspaceUid, ...args);
@@ -1053,7 +1064,20 @@ export const closeWorkspaceAction = (workspaceUid) => {
       }
 
       await ipcRenderer.invoke('renderer:close-workspace', workspace.pathname);
+
+      if (workspace.scratchCollectionUid) {
+        dispatch(removeCollection({ collectionUid: workspace.scratchCollectionUid }));
+      }
+
+      const wasActive = getState().workspaces.activeWorkspaceUid === workspaceUid;
       dispatch(removeWorkspace(workspaceUid));
+
+      if (wasActive) {
+        const defaultWorkspace = getState().workspaces.workspaces.find((w) => w.type === 'default');
+        if (defaultWorkspace) {
+          await dispatch(switchWorkspace(defaultWorkspace.uid));
+        }
+      }
     } catch (error) {
       toast.error(error.message || 'Failed to close workspace');
       throw error;

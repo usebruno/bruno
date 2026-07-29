@@ -22,6 +22,7 @@ import { getGlobalEnvironmentVariables } from 'utils/collections';
 import { stripEnvVarUid } from 'utils/environments';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { reconcileSavedChange } from './reconcile';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
@@ -310,7 +311,13 @@ const EnvironmentVariablesTable = ({
   }, [environment.uid, environment.variables]);
 
   const formik = useFormik({
-    enableReinitialize: true,
+    // enableReinitialize is intentionally OFF. It used to blindly reset the form
+    // to `environment.variables` whenever the saved snapshot changed — including
+    // when our own autosave echoed back — which discarded keystrokes typed during
+    // the async save window. Reconciliation is handled explicitly below (see the
+    // reconcileSavedChange effect), so in-flight edits always win. Environment
+    // switches are handled by the `key={environment.uid}` remount, not reinit.
+    enableReinitialize: false,
     initialValues: initialValues,
     validationSchema: Yup.array().of(
       Yup.object({
@@ -388,6 +395,24 @@ const EnvironmentVariablesTable = ({
   const savedValuesJson = useMemo(() => {
     return JSON.stringify((environment.variables || []).map(stripEnvVarUid));
   }, [environment.variables]);
+
+  // Controlled replacement for enableReinitialize. When the persisted snapshot
+  // changes (autosave echo, script env update, external file reload, or an edit
+  // made outside the table) adopt it ONLY if the form has no unsaved edits.
+  // If the user is typing ahead, keep their edits — the draft/autosave cycle
+  // persists them — so nothing typed during an async save is lost.
+  const prevSavedValuesJsonRef = useRef(savedValuesJson);
+  useEffect(() => {
+    const prevSaved = prevSavedValuesJsonRef.current;
+    prevSavedValuesJsonRef.current = savedValuesJson;
+
+    const currentNamed = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
+    const currentJson = JSON.stringify(currentNamed.map(stripEnvVarUid));
+
+    if (reconcileSavedChange({ prevSaved, nextSaved: savedValuesJson, current: currentJson }) === 'adopt') {
+      formik.resetForm({ values: initialValues });
+    }
+  }, [savedValuesJson]);
 
   useEffect(() => {
     setPinnedData({ query: '', uids: new Set() });
