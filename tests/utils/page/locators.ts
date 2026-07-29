@@ -8,6 +8,7 @@ import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
 import { buildWebsocketCommonLocators } from './websocket';
+import { buildRequestLocators } from '../request';
 
 export const buildCommonLocators = (page: Page) => ({
   runner: () => page.getByTestId('run-button'),
@@ -20,6 +21,7 @@ export const buildCommonLocators = (page: Page) => ({
   ai: buildAiPreferencesLocators(page),
   requestSettings: buildRequestSettingsLocators(page),
   websocket: buildWebsocketCommonLocators(page),
+  request: buildRequestLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
@@ -168,33 +170,6 @@ export const buildCommonLocators = (page: Page) => ({
     // Yellow warning icon shown when a value can't be coerced to its dataType.
     mismatchIcon: (row: Locator) => row.locator('svg.text-yellow-600'),
     menuItem: (type: string) => page.locator('[role="menu"]').last().getByText(type, { exact: true })
-  },
-  request: {
-    urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
-    urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
-    sendButton: () => page.getByTestId('send-arrow-icon'),
-    methodDropdown: () => page.getByTestId('request-method-selector'),
-    newRequestUrl: () => page.locator('#new-request-url .CodeMirror'),
-    requestNameInput: () => page.getByPlaceholder('Request Name'),
-    requestTestId: () => page.getByTestId('request-name'),
-    generateCodeButton: () => page.getByTestId('generate-code-button'),
-    bodyModeSelector: () => page.getByTestId('request-body-mode-selector'),
-    bodyModeLabel: () => page.getByTestId('request-body-mode-label'),
-    exampleBodyModeLabel: () => page.getByTestId('example-body-mode-label'),
-    bodyEditor: () => page.getByTestId('request-body-editor'),
-    bodyVariableToken: (name: string, state?: 'valid' | 'invalid') => {
-      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
-      return page.getByTestId('request-body-editor').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
-    },
-    urlVariableToken: (name: string, state?: 'valid' | 'invalid') => {
-      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
-      return page.getByTestId('request-url').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
-    },
-    headerVariableToken: (row: Locator, name: string, state?: 'valid' | 'invalid') => {
-      const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
-      return row.locator('.CodeMirror').nth(1).locator(selector).filter({ hasText: name }).first();
-    },
-    pane: () => page.getByTestId('request-pane')
   },
   filePicker: {
     warningTooltip: () => page.getByTestId('file-picker-warning-tooltip')
