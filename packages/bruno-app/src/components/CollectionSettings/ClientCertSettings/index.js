@@ -12,6 +12,7 @@ import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField/index';
 import { useTheme } from 'styled-components';
 import { useDispatch } from 'react-redux';
 import { updateCollectionClientCertificates } from 'providers/ReduxStore/slices/collections';
+import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import get from 'lodash/get';
 import Button from 'ui/Button';
 import ActionIcon from 'ui/ActionIcon';
@@ -239,6 +240,8 @@ const ClientCertSettings = ({ collection }) => {
     if (inputRef.current) inputRef.current.value = '';
   };
 
+  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
+
   return (
     <StyledWrapper className="w-full h-full">
       <h1 className="font-medium text-[0.9375rem]">Client Certificates</h1>
@@ -259,6 +262,11 @@ const ClientCertSettings = ({ collection }) => {
           icon: <IconPlus size={15} strokeWidth={1.5} />,
           dataTestId: 'add-client-cert'
         }}
+        footerActions={(
+          <Button type="button" size="sm" data-testid="client-cert-save-btn" onClick={handleSave}>
+            Save
+          </Button>
+        )}
         renderItem={(clientCert, index) => (
           <ListGroup.Item
             disabled={clientCert.disabled}

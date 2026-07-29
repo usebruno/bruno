@@ -70,8 +70,17 @@ const StyledWrapper = styled.div`
     margin-top: 1px;
   }
 
-  .listgroup-add {
+  .listgroup-footer {
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
     margin-top: 1rem;
+
+    /* a Button's icon slot is taller than a text-only label, so the add button would otherwise
+       sit a couple of pixels taller than the buttons beside it */
+    button {
+      height: 100%;
+    }
   }
 
   .listgroup-empty-action {

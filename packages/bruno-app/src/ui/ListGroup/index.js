@@ -35,9 +35,19 @@ const ListGroupItem = ({ leading, actions, disabled = false, className = '', chi
  * @param {Function} [getKey]   - (item, index) => key; defaults to index
  * @param {Object}   [emptyState] - { icon, title, text } shown when items is empty
  * @param {Object}   [addButton]  - { label, onClick, icon, dataTestId } action button
+ * @param {ReactNode} [footerActions] - extra controls placed alongside the add button (e.g. a Save button)
  * @param {number|string} [maxWidth=800] - width cap for the list/empty frame; a number is treated as px
  */
-const ListGroup = ({ items = [], renderItem, getKey, emptyState, addButton, className = '', maxWidth = 800 }) => {
+const ListGroup = ({
+  items = [],
+  renderItem,
+  getKey,
+  emptyState,
+  addButton,
+  footerActions,
+  className = '',
+  maxWidth = 800
+}) => {
   const hasItems = items.length > 0;
   const resolvedMaxWidth = typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth;
 
@@ -67,7 +77,13 @@ const ListGroup = ({ items = [], renderItem, getKey, emptyState, addButton, clas
         </ul>
       ) : null}
 
-      {hasItems && addButton ? <div className="listgroup-add">{renderAddButton()}</div> : null}
+      {/* the add button lives inside the empty frame when there are no rows, so the footer only carries it once rows exist */}
+      {(hasItems && addButton) || footerActions ? (
+        <div className="listgroup-footer">
+          {hasItems ? renderAddButton() : null}
+          {footerActions}
+        </div>
+      ) : null}
     </StyledWrapper>
   );
 };
