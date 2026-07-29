@@ -17,7 +17,7 @@ const sameWidthModifier = {
   }
 };
 
-const Dropdown = ({ icon, children, onCreate, placement, transparent, visible, appendTo, onMouseEnter, onMouseLeave, sameWidth = false, popperOptions, ...props }) => {
+const Dropdown = ({ icon, children, onCreate, placement, transparent, visible, appendTo, onMouseEnter, onMouseLeave, sameWidth = false, popperOptions, noPadding, ...props }) => {
   // Merge the caller's popperOptions with the sameWidth modifier when requested.
   const resolvedPopperOptions = sameWidth
     ? {
@@ -42,6 +42,7 @@ const Dropdown = ({ icon, children, onCreate, placement, transparent, visible, a
         <StyledWrapper
           className="tippy-box dropdown"
           transparent={transparent}
+          noPadding={noPadding}
           tabIndex={-1}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
