@@ -484,7 +484,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   };
 
   return (
-    <StyledWrapper>
+    <StyledWrapper data-testid="collection-header">
       {closeWorkspaceModalOpen && currentWorkspace?.uid && (
         <CloseWorkspace
           workspaceUid={currentWorkspace.uid}
