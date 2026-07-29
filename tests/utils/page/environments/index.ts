@@ -89,7 +89,7 @@ export const openEnvironmentSelector = async (page: Page) => {
   const searchInput = locators.environment.searchInput();
 
   await test.step('Open dropdown', async () => {
-    await buildCommonLocators(page).sidebar.collection().first().click();
+    await trigger.waitFor({ state: 'visible' });
     await trigger.click();
     await searchInput.waitFor({ state: 'visible' });
   });
@@ -104,7 +104,5 @@ export const openEnvironmentSelector = async (page: Page) => {
 export const closeEnvironmentSelector = async (page: Page) => {
   const locators = buildCommonLocators(page);
   const trigger = locators.collectionHeader.envSelectorTrigger();
-
-  await trigger.waitFor({ state: 'visible' });
   await trigger.click();
 };

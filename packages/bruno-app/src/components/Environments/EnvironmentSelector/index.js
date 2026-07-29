@@ -182,6 +182,7 @@ const EnvironmentSelector = ({ collection }) => {
   const [showImportGlobalModal, setShowImportGlobalModal] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
   const [showImportCollectionModal, setShowImportCollectionModal] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
@@ -265,6 +266,7 @@ const EnvironmentSelector = ({ collection }) => {
       <div className="environment-selector flex align-center cursor-pointer">
         <Dropdown
           onCreate={(ref) => (dropdownTippyRef.current = ref)}
+          onHidden={() => setSearchText('')}
           icon={<DropdownTrigger collectionEnv={activeCollectionEnvironment} globalEnv={activeGlobalEnvironment} />}
           placement="bottom-end"
           popperOptions={{ strategy: 'fixed' }}
@@ -292,6 +294,8 @@ const EnvironmentSelector = ({ collection }) => {
           <div className="tab-content">
             <EnvironmentListContent
               key={activeTab}
+              searchText={searchText}
+              setSearchText={setSearchText}
               environments={activeTab === 'collection' ? environments : globalEnvironments}
               activeEnvironmentUid={activeTab === 'collection' ? activeEnvironmentUid : activeGlobalEnvironmentUid}
               description={description}

@@ -1,9 +1,14 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, buildCommonLocators } from '../../utils/page';
+import { closeAllCollections, buildCommonLocators, openCollection } from '../../utils/page';
 import { openEnvironmentSelector, closeEnvironmentSelector } from '../../utils/page/environments';
 
-test.describe('Environment Selector Search', () => {
+// TODO: We need to revisit and make it parallel safe
+test.describe.serial('Environment Selector Search', () => {
   test.beforeAll(async ({ pageWithUserData: page }) => {
+    const collectionName = await buildCommonLocators(page).sidebar.collection().first().innerText();
+    await openCollection(page, collectionName);
+  });
+  test.beforeEach(async ({ pageWithUserData: page }) => {
     await openEnvironmentSelector(page);
   });
   test.afterEach(async ({ pageWithUserData: page }) => {
@@ -22,7 +27,6 @@ test.describe('Environment Selector Search', () => {
 
     await page.keyboard.press('Backspace');
     await expect(searchInput).toBeFocused();
-    await closeEnvironmentSelector(page);
   });
 
   test('should focus search input when a printable key is pressed', async ({ pageWithUserData: page }) => {
@@ -36,7 +40,6 @@ test.describe('Environment Selector Search', () => {
     await page.keyboard.press('a');
     await expect(searchInput).toBeFocused();
     await expect(searchInput).toHaveValue('a');
-    await closeEnvironmentSelector(page);
   });
 
   test('should display all environments initially', async ({ pageWithUserData: page }) => {
@@ -45,7 +48,6 @@ test.describe('Environment Selector Search', () => {
     await expect(locators.environment.listItem('Production')).toBeVisible();
     await expect(locators.environment.listItem('Staging')).toBeVisible();
     await expect(locators.environment.noEnvironmentItem()).toBeVisible();
-    await closeEnvironmentSelector(page);
   });
 
   test('should filter environments by search text', async ({ pageWithUserData: page }) => {
@@ -57,7 +59,6 @@ test.describe('Environment Selector Search', () => {
     await expect(locators.environment.noEnvironmentItem()).toBeVisible();
     await expect(locators.environment.listItem('Development')).not.toBeVisible();
     await expect(locators.environment.listItem('Production')).not.toBeVisible();
-    await closeEnvironmentSelector(page);
   });
 
   test('should clear search on Escape key', async ({ pageWithUserData: page }) => {
@@ -70,7 +71,6 @@ test.describe('Environment Selector Search', () => {
     await expect(locators.environment.listItem('Development')).toBeVisible();
     await expect(locators.environment.listItem('Production')).toBeVisible();
     await expect(locators.environment.listItem('Staging')).toBeVisible();
-    await closeEnvironmentSelector(page);
   });
 
   test('should show "No results found" for non-matching search', async ({ pageWithUserData: page }) => {
@@ -81,7 +81,6 @@ test.describe('Environment Selector Search', () => {
     await expect(locators.environment.listItem()).toHaveCount(0);
     await expect(locators.environment.noResults()).toBeVisible();
     await expect(locators.environment.noEnvironmentItem()).toBeVisible();
-    await closeEnvironmentSelector(page);
   });
 
   test('should clear search via clear button', async ({ pageWithUserData: page }) => {
@@ -96,6 +95,22 @@ test.describe('Environment Selector Search', () => {
     await expect(locators.environment.listItem('Development')).toBeVisible();
     await expect(locators.environment.listItem('Production')).toBeVisible();
     await expect(locators.environment.listItem('Staging')).toBeVisible();
+  });
+
+  test('should not persist search text when closed and reopened', async ({ pageWithUserData: page }) => {
+    const locators = buildCommonLocators(page);
+    const searchInput = locators.environment.searchInput();
+
+    // Type something in the search input
+    await searchInput.fill('prod');
+    await expect(searchInput).toHaveValue('prod');
+
     await closeEnvironmentSelector(page);
+    await openEnvironmentSelector(page);
+
+    await expect(searchInput).toHaveValue('');
+    await expect(locators.environment.listItem('Development')).toBeVisible();
+    await expect(locators.environment.listItem('Production')).toBeVisible();
+    await expect(locators.environment.listItem('Staging')).toBeVisible();
   });
 });

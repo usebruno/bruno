@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { IconPlus, IconDownload, IconSettings, IconSearch, IconX } from '@tabler/icons';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { IconPlus, IconDownload, IconSettings } from '@tabler/icons';
 import ToolHint from 'components/ToolHint';
 import ColorBadge from 'components/ColorBadge';
 import SearchInput from 'components/SearchInput';
@@ -11,9 +11,10 @@ const EnvironmentListContent = ({
   onEnvironmentSelect,
   onSettingsClick,
   onCreateClick,
-  onImportClick
+  onImportClick,
+  searchText,
+  setSearchText
 }) => {
-  const [searchText, setSearchText] = useState('');
   const searchInputRef = useRef(null);
 
   // Handle keydown events for the search input
