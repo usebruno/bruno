@@ -37,6 +37,7 @@ describe('brunoToOpenCollection / openCollectionToBruno: graphql-subscription-re
       url: 'wss://api.example.com/graphql',
       auth: 'inherit',
       connectionParams: '{"authToken": "{{token}}"}',
+      headers: [{ name: 'X-Test', value: '1' }],
       body: {
         query: 'subscription OnTick { tick { count } }',
         variables: '{}'
@@ -49,6 +50,9 @@ describe('brunoToOpenCollection / openCollectionToBruno: graphql-subscription-re
     expect(item.type).toBe('graphql-subscription-request');
     expect(item.request.url).toBe('wss://api.example.com/graphql');
     expect(item.request.connectionParams).toBe('{"authToken": "{{token}}"}');
+    expect(item.request.headers).toEqual([
+      expect.objectContaining({ name: 'X-Test', value: '1', enabled: true })
+    ]);
     expect(item.request.body).toEqual({
       mode: 'graphql',
       graphql: {
