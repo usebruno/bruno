@@ -465,7 +465,7 @@ const registerGrpcEventHandlers = (window) => {
       const globalCerts = preferencesUtil.getGlobalClientCertificates();
       const clientCertConfig = [...collectionCerts, ...globalCerts];
 
-      for (let clientCert of clientCertConfig) {
+      for (const clientCert of clientCertConfig) {
         if (clientCert?.disabled) {
           continue;
         }
@@ -481,6 +481,8 @@ const registerGrpcEventHandlers = (window) => {
               keyFilePath = interpolateString(clientCert?.keyFilePath, interpolationOptions);
               keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collection.pathname, keyFilePath);
             }
+            // collection certs precede global ones, so the first match wins
+            break;
           }
         }
       }
