@@ -1,6 +1,10 @@
 const ws = require('ws');
 const { useServer } = require('graphql-ws/lib/use/ws');
 
+const onSocketError = (err) => {
+  console.error(err);
+};
+
 /**
  * Builds a `/api/graphql` upgrade handler backed by graphql-ws's reference
  * server implementation.
@@ -31,6 +35,8 @@ const createGraphQLSubscriptionsUpgradeHandler = (schema) => {
   );
 
   return (request, socket, head) => {
+    socket.on('error', onSocketError);
+
     wss.handleUpgrade(request, socket, head, (client) => {
       wss.emit('connection', client, request);
     });
