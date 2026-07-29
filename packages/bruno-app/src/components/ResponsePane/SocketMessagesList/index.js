@@ -210,6 +210,12 @@ const SocketMessagesList = ({ messages = [], classPrefix, supportsHexdump = fals
   }, []);
 
   useEffect(() => {
+    if (!messages.length) {
+      setOpenMessages(new Set());
+    }
+  }, [messages.length]);
+
+  useEffect(() => {
     if (!scrollerElement) return;
 
     const handleWheel = (e) => {
