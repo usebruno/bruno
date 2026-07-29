@@ -1,3 +1,4 @@
+import { describe, expect, it } from '@jest/globals';
 import { encodeUrl, parseQueryParams, buildQueryString, hasExplicitScheme, safeDecodeURIComponent, extractMockRoutePath, getMockResponseRouteKey } from './index';
 
 describe('encodeUrl', () => {
