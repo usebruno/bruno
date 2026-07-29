@@ -30,26 +30,3 @@ export const setLocalStorageValue = (key, value) => {
     window.localStorage.setItem(key, value);
   } catch (err) { }
 };
-
-/**
- * Check if a key exists in localStorage.
- * @param {string} key - The localStorage key.
- * @returns {boolean} True if the key exists, false otherwise.
- */
-export const hasLocalStorageValue = (key) => {
-  try {
-    return window.localStorage.getItem(key) !== null;
-  } catch (err) {
-    return false;
-  }
-};
-
-/**
- * Delete a key from localStorage.
- * @param {string} key - The localStorage key.
- */
-export const deleteLocalStorageValue = (key) => {
-  try {
-    window.localStorage.removeItem(key);
-  } catch (err) { }
-};

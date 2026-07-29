@@ -354,28 +354,29 @@ export const hydrateSidebarState = () => async (dispatch) => {
   if (!window.ipcRenderer) {
     return;
   }
-
   try {
-    const localWidth = getLocalStorageValue(SIDEBAR_WIDTH_KEY, null, (val) => parseInt(val, 10));
+    const localWidth = getLocalStorageValue(SIDEBAR_WIDTH_KEY, null, (val) => {
+      const width = parseInt(val, 10);
+      return Number.isFinite(width) ? width : null;
+    });
     const localCollapsed = getLocalStorageValue(SIDEBAR_COLLAPSED_KEY, null, (val) => val === 'true');
-    if (localWidth && localCollapsed) {
+    const hasLocalWidth = localWidth !== null;
+    const hasLocalCollapsed = localCollapsed !== null;
+    if (hasLocalWidth && hasLocalCollapsed) {
       dispatch(setSidebarState({
         width: localWidth,
         collapsed: localCollapsed
       }));
     }
-
     const sidebar = await window.ipcRenderer.invoke('renderer:snapshot:get-sidebar');
-
     dispatch(setSidebarState({
-      width: localWidth ?? sidebar?.width ?? DEFAULT_SIDEBAR_WIDTH,
-      collapsed: localCollapsed ?? sidebar?.collapsed ?? DEFAULT_SIDEBAR_COLLAPSED
+      width: hasLocalWidth ? localWidth : sidebar?.width ?? DEFAULT_SIDEBAR_WIDTH,
+      collapsed: hasLocalCollapsed ? localCollapsed : sidebar?.collapsed ?? DEFAULT_SIDEBAR_COLLAPSED
     }));
-
-    if (!localWidth) {
+    if (!hasLocalWidth) {
       setLocalStorageValue(SIDEBAR_WIDTH_KEY, sidebar?.width ?? DEFAULT_SIDEBAR_WIDTH);
     }
-    if (!localCollapsed) {
+    if (!hasLocalCollapsed) {
       setLocalStorageValue(SIDEBAR_COLLAPSED_KEY, sidebar?.collapsed ?? DEFAULT_SIDEBAR_COLLAPSED);
     }
   } catch (error) {
