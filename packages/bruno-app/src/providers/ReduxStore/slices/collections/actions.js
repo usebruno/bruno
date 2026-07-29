@@ -114,7 +114,7 @@ const generateUniqueName = (originalName, existingItems, isFolder) => {
   const existingFilenames = existingItems
     .filter((item) => isFolder ? item.type === 'folder' : item.type !== 'folder')
     .map((item) => {
-      const filename = trim(item.filename);
+      let filename = trim(item.filename);
       // For requests, remove file extension (.bru, .yml, .yaml)
       return isFolder ? filename : filename.replace(/\.(bru|yml|yaml)$/, '');
     });
@@ -228,7 +228,7 @@ export const saveFile = (content, itemUid, collectionUid, silent = false) => asy
   const { ipcRenderer } = window;
   try {
     if (['http-request', 'graphql-request'].includes(item?.type)) {
-      const json = await ipcRenderer.invoke('renderer:convert-to-json', item, content, collection.format);
+      let json = await ipcRenderer.invoke('renderer:convert-to-json', item, content, collection.format);
       delete json.isTransient;
       await itemSchema.validate(json);
     }
@@ -407,7 +407,7 @@ export const saveMultipleCollections = (collectionDrafts) => (dispatch, getState
         const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
         const { ipcRenderer } = window;
 
-        const savePromises = [];
+        let savePromises = [];
 
         savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig));
 
@@ -487,7 +487,7 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
       return reject(new Error('Collection not found'));
     }
 
-    const collectionCopy = cloneDeep(collection);
+    let collectionCopy = cloneDeep(collection);
 
     // add selected global env variables to the collection object
     const globalEnvironmentVariables = getGlobalEnvironmentVariables({
@@ -524,7 +524,7 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
-    const collectionCopy = cloneDeep(collection);
+    let collectionCopy = cloneDeep(collection);
 
     const itemCopy = cloneDeep(item);
 
@@ -576,7 +576,7 @@ const extractPromptVariablesForRequest = async (item, collection) => {
     // Get request auth or inherited auth
     const resolvedAuthRequest = resolveInheritedAuth(item, collection);
 
-    for (const clientCert of clientCertConfig) {
+    for (let clientCert of clientCertConfig) {
       const domain = interpolateUrl({ url: clientCert?.domain, variables: allVariables });
 
       if (domain) {
@@ -635,7 +635,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       await dispatch(cancelRequest(item.cancelTokenUid, item, collection));
     }
 
-    const collectionCopy = cloneDeep(collection);
+    let collectionCopy = cloneDeep(collection);
 
     const itemCopy = cloneDeep(item);
 
@@ -774,7 +774,7 @@ export const runCollectionFolder
         return reject(new Error('Collection not found'));
       }
 
-      const collectionCopy = cloneDeep(collection);
+      let collectionCopy = cloneDeep(collection);
 
       // add selected global env variables to the collection object
       const globalEnvironmentVariables = getGlobalEnvironmentVariables({

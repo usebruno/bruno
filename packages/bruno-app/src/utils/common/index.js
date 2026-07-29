@@ -319,7 +319,7 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
       return typeof data === 'string' ? data : safeStringifyJSON(data, false);
     }
 
-    const parsed = safeParseXML(data, { collapseContent: true });
+    let parsed = safeParseXML(data, { collapseContent: true });
     if (typeof parsed === 'string') {
       return parsed;
     }
@@ -341,7 +341,7 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
     }
 
     // Get HTML string from rawData
-    const htmlString = rawData;
+    let htmlString = rawData;
     // Prettify HTML
     try {
       return prettifyHtmlString(htmlString);
@@ -365,7 +365,7 @@ export const formatResponse = (data, dataBufferString, mode, filter, bufferThres
     }
 
     // Get JavaScript string from rawData
-    const jsString = rawData;
+    let jsString = rawData;
 
     // Prettify JavaScript
     try {

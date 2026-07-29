@@ -400,7 +400,7 @@ const RequestTabPanel = () => {
     }
   }, [isConsoleOpen, isVerticalLayout, responsePaneCollapsed]);
 
-  if (typeof window === 'undefined') {
+  if (typeof window == 'undefined') {
     return <div></div>;
   }
 

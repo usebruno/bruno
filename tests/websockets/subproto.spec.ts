@@ -13,7 +13,7 @@ test.describe.serial('subprotocol tests', () => {
     await page.locator('[role=tab].headers').click();
 
     // Check if the original / correct protocol is in place and then send a request
-    for (const proto of originalProtocols) {
+    for (let proto of originalProtocols) {
       await expect(page.locator('pre').filter({ hasText: proto })).toBeAttached();
     }
   });

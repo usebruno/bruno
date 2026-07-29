@@ -592,7 +592,7 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   // When the caller wants templates preserved in the snippet (shouldInterpolate=false),
   // we replace `{{var}}` with deterministic URL-safe hashes BEFORE any URL parsing
   // or encoding runs. The returned `unhash` lets the caller restore originals at the end.
-  const working = shouldInterpolate ? interpolateRequest(input.request, variables) : cloneDeep(input.request);
+  let working = shouldInterpolate ? interpolateRequest(input.request, variables) : cloneDeep(input.request);
 
   // The hashers operate at the URL-string layer specifically. Headers/body
   // /auth/params with `{{var}}` would only render in the snippet text;

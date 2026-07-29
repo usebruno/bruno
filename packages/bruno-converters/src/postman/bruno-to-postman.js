@@ -144,7 +144,7 @@ const collapseDuplicateSlashes = (url) => {
  *
  */
 export const sanitizeUrl = (url) => {
-  const sanitizedUrl = collapseDuplicateSlashes(url.replace(/\\/g, '//'));
+  let sanitizedUrl = collapseDuplicateSlashes(url.replace(/\\/g, '//'));
   return sanitizedUrl;
 };
 
@@ -165,7 +165,7 @@ export const brunoToPostman = (collection) => {
 
   const generateCollectionVars = (collection) => {
     const pattern = /{{[^{}]+}}/g;
-    const collectionVars = [];
+    let collectionVars = [];
 
     const findOccurrences = (obj, results) => {
       if (typeof obj === 'object') {
@@ -191,13 +191,13 @@ export const brunoToPostman = (collection) => {
     findOccurrences(collection, collectionVars);
 
     // Add request and response vars
-    const reqVars = (collection.root?.request?.vars?.req || []).map((v) => ({
+    let reqVars = (collection.root?.request?.vars?.req || []).map((v) => ({
       key: v.name,
       value: v.value,
       type: 'default'
     }));
 
-    const resVars = (collection.root?.request?.vars?.res || []).map((v) => ({
+    let resVars = (collection.root?.request?.vars?.res || []).map((v) => ({
       key: v.name,
       value: v.value,
       type: 'default'

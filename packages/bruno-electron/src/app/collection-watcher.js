@@ -125,7 +125,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
     };
 
     const format = getCollectionFormat(collectionPath);
-    const content = fs.readFileSync(pathname, 'utf8');
+    let content = fs.readFileSync(pathname, 'utf8');
 
     file.data = await parseEnvironment(content, { format });
     stageToCache(collectionPath, pathname, file.data);
@@ -260,8 +260,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     };
 
     try {
-      const content = fs.readFileSync(pathname, 'utf8');
-      const parsed = await parseCollection(content, { format });
+      let content = fs.readFileSync(pathname, 'utf8');
+      let parsed = await parseCollection(content, { format });
 
       let collectionRoot, brunoConfig;
       if (format === 'yml') {
@@ -311,8 +311,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     };
 
     try {
-      const format = getCollectionFormat(collectionPath);
-      const content = fs.readFileSync(pathname, 'utf8');
+      let format = getCollectionFormat(collectionPath);
+      let content = fs.readFileSync(pathname, 'utf8');
       file.data = await parseFolder(content, { format });
       stageToCache(collectionPath, pathname, file.data);
 
@@ -338,7 +338,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     };
 
     const fileStats = fs.statSync(pathname);
-    const content = fs.readFileSync(pathname, 'utf8');
+    let content = fs.readFileSync(pathname, 'utf8');
 
     // If worker thread is not used, we can directly parse the file
     if (!useWorkerThread) {
@@ -442,8 +442,8 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
 
   try {
     if (fs.existsSync(folderFilePath)) {
-      const folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
-      const folderData = await parseFolder(folderFileContent, { format });
+      let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
+      let folderData = await parseFolder(folderFileContent, { format });
       name = folderData?.meta?.name || name;
       seq = folderData?.meta?.seq;
     }
@@ -505,9 +505,9 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     };
 
     try {
-      const content = fs.readFileSync(pathname, 'utf8');
-      const format = getCollectionFormat(collectionPath);
-      const parsed = await parseCollection(content, { format });
+      let content = fs.readFileSync(pathname, 'utf8');
+      let format = getCollectionFormat(collectionPath);
+      let parsed = await parseCollection(content, { format });
 
       let collectionRoot, brunoConfig;
       if (format === 'yml') {
@@ -557,8 +557,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     };
 
     try {
-      const format = getCollectionFormat(collectionPath);
-      const content = fs.readFileSync(pathname, 'utf8');
+      let format = getCollectionFormat(collectionPath);
+      let content = fs.readFileSync(pathname, 'utf8');
       file.data = await parseFolder(content, { format });
       stageToCache(collectionPath, pathname, file.data);
 
@@ -682,8 +682,8 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
     let name = path.basename(pathname);
 
     if (fs.existsSync(folderFilePath)) {
-      const folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
-      const folderData = await parseFolder(folderFileContent, { format });
+      let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
+      let folderData = await parseFolder(folderFileContent, { format });
       name = folderData?.meta?.name || name;
     }
 

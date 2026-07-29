@@ -375,14 +375,14 @@ const sizeInMB = (size) => {
 
 const getSafePathToWrite = (filePath) => {
   const MAX_FILENAME_LENGTH = 255; // Common limit on most filesystems
-  const dir = path.dirname(filePath);
-  const ext = path.extname(filePath);
+  let dir = path.dirname(filePath);
+  let ext = path.extname(filePath);
   let base = path.basename(filePath, ext);
   if (base.length + ext.length > MAX_FILENAME_LENGTH) {
     base = sanitizeName(base);
     base = base.slice(0, MAX_FILENAME_LENGTH - ext.length);
   }
-  const safePath = path.join(dir, base + ext);
+  let safePath = path.join(dir, base + ext);
   return safePath;
 };
 
@@ -405,7 +405,7 @@ function safeWriteFileSync(filePath, data) {
 
 // Recursively copies a source <file/directory> to a destination <directory>.
 const copyPath = async (source, destination) => {
-  const targetPath = `${destination}/${path.basename(source)}`;
+  let targetPath = `${destination}/${path.basename(source)}`;
 
   const targetPathExists = await fsPromises.access(targetPath).then(() => true).catch(() => false);
   if (targetPathExists) {
@@ -478,7 +478,7 @@ const moveCollectionDirectory = async (source, destination) => {
 
 // Recursively gets paths.
 const getPaths = async (source) => {
-  const paths = [];
+  let paths = [];
   const _getPaths = async (source) => {
     const stat = await fsPromises.lstat(source);
     paths.push(source);

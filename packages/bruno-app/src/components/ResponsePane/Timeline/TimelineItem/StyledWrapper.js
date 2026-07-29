@@ -1,5 +1,5 @@
-import { rgba } from 'polished';
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   .tl-row-wrap {

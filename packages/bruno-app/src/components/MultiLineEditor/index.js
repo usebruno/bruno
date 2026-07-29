@@ -138,7 +138,7 @@ class MultiLineEditor extends Component {
     // event loop.
     this.ignoreChangeEvent = true;
 
-    const variables = getAllVariables(this.props.collection, this.props.item);
+    let variables = getAllVariables(this.props.collection, this.props.item);
     if (!isEqual(variables, this.variables)) {
       if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
         this.editor.options.brunoVarInfo.variables = variables;

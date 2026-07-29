@@ -27,7 +27,7 @@ const AUTH_TYPES = Object.freeze({
 
 const parseGraphQLRequest = (graphqlSource) => {
   try {
-    const queryResultObject = {
+    let queryResultObject = {
       query: '',
       variables: ''
     };
@@ -931,9 +931,9 @@ const searchLanguageByHeader = (headers) => {
   let contentType;
   each(normalizeHeaders(headers), (header) => {
     if (header.key?.toLowerCase() === 'content-type' && !header.disabled) {
-      if (typeof header.value === 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(header.value)) {
+      if (typeof header.value == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(header.value)) {
         contentType = 'json';
-      } else if (typeof header.value === 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(header.value)) {
+      } else if (typeof header.value == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(header.value)) {
         contentType = 'xml';
       }
       return false;
@@ -1158,9 +1158,9 @@ const parsePostmanCollection = async (collection, { useWorkers = false }) => {
     // Newer Postman exports wrap the collection in a { collection: { ... } } envelope
     const parsedCollection = collection.collection?.info ? collection.collection : collection;
 
-    const schema = get(parsedCollection, 'info.schema');
+    let schema = get(parsedCollection, 'info.schema');
 
-    const v2Schemas = [
+    let v2Schemas = [
       'https://schema.getpostman.com/json/collection/v2.0.0/collection.json',
       'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
       'https://schema.postman.com/json/collection/v2.0.0/collection.json',

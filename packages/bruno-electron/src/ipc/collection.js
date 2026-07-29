@@ -617,7 +617,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // save multiple requests
   ipcMain.handle('renderer:save-multiple-requests', async (event, requestsToSave) => {
     try {
-      for (const r of requestsToSave) {
+      for (let r of requestsToSave) {
         const request = r.item;
         const pathname = r.pathname;
 
@@ -1084,7 +1084,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         const requestFilesAtSource = await searchForRequestFiles(oldPath, collectionPathname);
 
-        for (const requestFile of requestFilesAtSource) {
+        for (let requestFile of requestFilesAtSource) {
           const newRequestFilePath = requestFile.replace(oldPath, newPath);
           moveRequestUid(requestFile, newRequestFilePath);
         }
@@ -1175,7 +1175,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         // delete the request uid mappings
         const requestFilesAtSource = await searchForRequestFiles(pathname, collectionPathname);
-        for (const requestFile of requestFilesAtSource) {
+        for (let requestFile of requestFilesAtSource) {
           deleteRequestUid(requestFile);
         }
 
@@ -1306,12 +1306,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:import-collection', async (_, collection, collectionLocation, options = {}) => {
     const format = options.format || DEFAULT_COLLECTION_FORMAT;
     const rawOpenAPISpec = options.rawOpenAPISpec;
-    const collections = Array.isArray(collection) ? collection : [collection];
+    let collections = Array.isArray(collection) ? collection : [collection];
     let completedImports = 0;
     let failedImports = 0;
-    const successfulImports = [];
+    let successfulImports = [];
 
-    for (const coll of collections) {
+    for (let coll of collections) {
       try {
         // Sending a "started" and "ended" event to renderer to start and stop the spinner.
         mainWindow.webContents.send('main:collection-import-started', coll.uid);
@@ -1342,13 +1342,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const parseCollectionItems = async (items = [], currentPath) => {
           await Promise.all(items.map(async (item) => {
             if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
-              const sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
+              let sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
               const content = await stringifyRequestViaWorker(item, { format });
               const filePath = path.join(currentPath, sanitizedFilename);
               safeWriteFileSync(filePath, content);
             }
             if (item.type === 'folder') {
-              const sanitizedFolderName = sanitizeName(item?.filename || item?.name);
+              let sanitizedFolderName = sanitizeName(item?.filename || item?.name);
               const folderPath = path.join(currentPath, sanitizedFolderName);
               fs.mkdirSync(folderPath, { recursive: true });
 
@@ -1365,7 +1365,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             }
             // Handle items of type 'js'
             if (item.type === 'js') {
-              const sanitizedFilename = sanitizeName(item?.filename || `${item.name}.js`);
+              let sanitizedFilename = sanitizeName(item?.filename || `${item.name}.js`);
               const filePath = path.join(currentPath, sanitizedFilename);
               safeWriteFileSync(filePath, item.fileContent);
             }
@@ -1380,7 +1380,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
           await Promise.all(environments.map(async (env) => {
             const content = await stringifyEnvironment(env, { format });
-            const sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
+            let sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
             const filePath = path.join(envDirPath, sanitizedEnvFilename);
             safeWriteFileSync(filePath, content);
           }));
@@ -1559,7 +1559,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     try {
       const format = getCollectionFormat(collectionPathname);
 
-      for (const item of itemsToResequence) {
+      for (let item of itemsToResequence) {
         if (item?.type === 'folder') {
           const folderRootPath = path.join(item.pathname, `folder.${format}`);
           let folderJsonData = {
@@ -1691,7 +1691,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const requestFilesAtSource = await searchForRequestFiles(folderPath);
 
-      for (const requestFile of requestFilesAtSource) {
+      for (let requestFile of requestFilesAtSource) {
         const newRequestFilePath = requestFile.replace(folderPath, newFolderPath);
         moveRequestUid(requestFile, newRequestFilePath);
       }
@@ -1860,7 +1860,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:fetch-oauth2-credentials', async (event, { itemUid, request, collection }) => {
     try {
       if (request.oauth2) {
-        const requestCopy = _.cloneDeep(request);
+        let requestCopy = _.cloneDeep(request);
         const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
         const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
         const envVars = getEnvVars(environment);
@@ -1888,7 +1888,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             processEnvVars,
             promptVariables
           });
-          const tokenRequestForConfig = { ...requestCopy, url: interpolatedTokenUrl };
+          let tokenRequestForConfig = { ...requestCopy, url: interpolatedTokenUrl };
           certsAndProxyConfigForTokenUrl = await getCertsAndProxyConfig({
             collectionUid,
             collection,
@@ -1914,7 +1914,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             processEnvVars,
             promptVariables
           });
-          const refreshRequestForConfig = { ...requestCopy, url: interpolatedRefreshUrl };
+          let refreshRequestForConfig = { ...requestCopy, url: interpolatedRefreshUrl };
           certsAndProxyConfigForRefreshUrl = await getCertsAndProxyConfig({
             collectionUid,
             collection,
@@ -1991,7 +1991,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:refresh-oauth2-credentials', async (event, { itemUid, request, collection }) => {
     try {
       if (request.oauth2) {
-        const requestCopy = _.cloneDeep(request);
+        let requestCopy = _.cloneDeep(request);
         const { uid: collectionUid, pathname: collectionPath, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
         const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
         const envVars = getEnvVars(environment);
@@ -2013,7 +2013,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           globalEnvironmentVariables
         });
 
-        const { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
+        let { credentials, url, credentialsId, debugInfo } = await refreshOauth2Token({ requestCopy, collectionUid, certsAndProxyConfig });
         return { credentials, url, collectionUid, credentialsId, debugInfo };
       }
     } catch (error) {
@@ -2047,7 +2047,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             name: path.basename(pathname)
           }
         };
-        const bruContent = fs.readFileSync(pathname, 'utf8');
+        let bruContent = fs.readFileSync(pathname, 'utf8');
         const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.loading = true;
@@ -2071,7 +2071,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             name: path.basename(pathname)
           }
         };
-        const bruContent = fs.readFileSync(pathname, 'utf8');
+        let bruContent = fs.readFileSync(pathname, 'utf8');
         const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.partial = true;
@@ -2097,7 +2097,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             name: path.basename(pathname)
           }
         };
-        const bruContent = fs.readFileSync(pathname, 'utf8');
+        let bruContent = fs.readFileSync(pathname, 'utf8');
         const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.loading = true;
@@ -2121,7 +2121,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             name: path.basename(pathname)
           }
         };
-        const bruContent = fs.readFileSync(pathname, 'utf8');
+        let bruContent = fs.readFileSync(pathname, 'utf8');
         const metaJson = parseBruFileMeta(bruContent);
         file.data = metaJson;
         file.partial = true;
@@ -2427,10 +2427,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
             if (isBruEnvironmentConfig(filePath, collectionPath)) {
               try {
-                const bruContent = fs.readFileSync(filePath, 'utf8');
+                let bruContent = fs.readFileSync(filePath, 'utf8');
                 const environmentFilepathBasename = path.basename(filePath);
                 const environmentName = environmentFilepathBasename.substring(0, environmentFilepathBasename.length - 4);
-                const data = await parseEnvironment(bruContent);
+                let data = await parseEnvironment(bruContent);
                 variables = {
                   ...variables,
                   envVariables: {
@@ -2446,8 +2446,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
             if (isCollectionRootBruFile(filePath, collectionPath)) {
               try {
-                const bruContent = fs.readFileSync(filePath, 'utf8');
-                const data = await parseCollection(bruContent);
+                let bruContent = fs.readFileSync(filePath, 'utf8');
+                let data = await parseCollection(bruContent);
                 // TODO
                 continue;
               } catch (err) {
