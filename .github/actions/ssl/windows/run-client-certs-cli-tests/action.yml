@@ -18,7 +18,7 @@ runs:
         Write-Host "client cert (pem, bru) presented"
         # cert enabled → attached → mTLS handshake succeeds → assertions pass
         Set-Location pem-bru
-        Start-Process -FilePath "node" -ArgumentList "$bru run .\request.bru --output junit1.xml --cacert $cacert --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul" | Out-Null
+        Start-Process -FilePath "node" -ArgumentList "$bru run .\request.bru --output junit1.xml --cacert $cacert --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru | Out-Null
         [xml]$xml1 = Get-Content junit1.xml
         $testsuites1 = if ($xml1.testsuites) { $xml1.testsuites.testsuite } else { $xml1.testsuite }
         $passCount1 = ($testsuites1 | Where-Object { $_.errors -eq "0" -and $_.failures -eq "0" } | Measure-Object).Count
@@ -27,7 +27,7 @@ runs:
         Write-Host "client cert (pfx, bru) presented"
         # pfx cert attached → mTLS handshake succeeds → assertions pass
         Set-Location ..\pfx-bru
-        Start-Process -FilePath "node" -ArgumentList "$bru run .\request.bru --output junit2.xml --cacert $cacert --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul" | Out-Null
+        Start-Process -FilePath "node" -ArgumentList "$bru run .\request.bru --output junit2.xml --cacert $cacert --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru | Out-Null
         [xml]$xml2 = Get-Content junit2.xml
         $testsuites2 = if ($xml2.testsuites) { $xml2.testsuites.testsuite } else { $xml2.testsuite }
         $passCount2 = ($testsuites2 | Where-Object { $_.errors -eq "0" -and $_.failures -eq "0" } | Measure-Object).Count
@@ -43,12 +43,15 @@ runs:
         $testsuites3 = if ($xml3.testsuites) { $xml3.testsuites.testsuite } else { $xml3.testsuite }
         $errorCount3 = ($testsuites3 | Where-Object { $_.errors -eq "1" } | Measure-Object).Count
         if ($errorCount3 -ne 1) { exit 1 }
+        # the recorded error must be the mTLS rejection — any other failure also yields errors="1"
+        $errorMessage3 = ($testsuites3.testcase.error.message) -join " "
+        if ($errorMessage3 -notlike "*certificate required*") { exit 1 }
 
         # yml (opencollection.yml) format parity — pem/pkcs12/disabled parsed via the yml path
 
         Write-Host "client cert (pem, yml) presented"
         Set-Location ..\pem-yml
-        Start-Process -FilePath "node" -ArgumentList "$bru run .\request.yml --output junit4.xml --cacert $cacert --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul" | Out-Null
+        Start-Process -FilePath "node" -ArgumentList "$bru run .\request.yml --output junit4.xml --cacert $cacert --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru | Out-Null
         [xml]$xml4 = Get-Content junit4.xml
         $testsuites4 = if ($xml4.testsuites) { $xml4.testsuites.testsuite } else { $xml4.testsuite }
         $passCount4 = ($testsuites4 | Where-Object { $_.errors -eq "0" -and $_.failures -eq "0" } | Measure-Object).Count
@@ -56,7 +59,7 @@ runs:
 
         Write-Host "client cert (pkcs12, yml) presented"
         Set-Location ..\pfx-yml
-        Start-Process -FilePath "node" -ArgumentList "$bru run .\request.yml --output junit5.xml --cacert $cacert --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul" | Out-Null
+        Start-Process -FilePath "node" -ArgumentList "$bru run .\request.yml --output junit5.xml --cacert $cacert --ignore-truststore --format junit" -NoNewWindow -Wait -PassThru | Out-Null
         [xml]$xml5 = Get-Content junit5.xml
         $testsuites5 = if ($xml5.testsuites) { $xml5.testsuites.testsuite } else { $xml5.testsuite }
         $passCount5 = ($testsuites5 | Where-Object { $_.errors -eq "0" -and $_.failures -eq "0" } | Measure-Object).Count
@@ -71,3 +74,6 @@ runs:
         $testsuites6 = if ($xml6.testsuites) { $xml6.testsuites.testsuite } else { $xml6.testsuite }
         $errorCount6 = ($testsuites6 | Where-Object { $_.errors -eq "1" } | Measure-Object).Count
         if ($errorCount6 -ne 1) { exit 1 }
+        # the recorded error must be the mTLS rejection — any other failure also yields errors="1"
+        $errorMessage6 = ($testsuites6.testcase.error.message) -join " "
+        if ($errorMessage6 -notlike "*certificate required*") { exit 1 }

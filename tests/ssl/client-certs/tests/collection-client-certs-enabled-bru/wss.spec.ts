@@ -1,5 +1,5 @@
 import { test, expect } from '../../../../../playwright';
-import { setSandboxMode, openRequest } from '../../../../utils/page';
+import { setSandboxMode, openRequest, resetWsResponse } from '../../../../utils/page';
 import { buildCommonLocators } from '../../../../utils/page/locators';
 
 const COLLECTION = 'client-certs-enabled-bru';
@@ -8,6 +8,11 @@ const COLLECTION = 'client-certs-enabled-bru';
 // so Bruno attaches it over WSS. The WebSocket upgrade completes the mTLS handshake and
 // the server replies with the peer-cert info, confirming the cert was presented.
 test.describe('wss with collection client certificate (enabled, bru)', () => {
+  // tests in this file share one app instance — hand the next test a closed connection and an empty message list
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    await resetWsResponse(page);
+  });
+
   for (const mode of ['developer', 'safe'] as const) {
     test(`${mode} mode`, async ({ pageWithUserData: page }) => {
       test.setTimeout(60 * 1000);

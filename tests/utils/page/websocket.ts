@@ -1,4 +1,4 @@
-import { Page } from '../../../playwright';
+import { Page, test } from '../../../playwright';
 
 export const buildWebsocketCommonLocators = (page: Page) => ({
   connectionControls: {
@@ -40,3 +40,27 @@ export const buildWebsocketCommonLocators = (page: Page) => ({
     clearResponse: () => page.getByTestId('response-clear-btn')
   }
 });
+
+/**
+ * Closes the connection and clears the message list of the open ws request.
+ *
+ * Tests in the same file share one app instance, so without this a later test inherits a live
+ * socket and the previous test's messages — stale rows satisfy assertions on message indices
+ * before the new connection is even open, and the still-open socket hides the connect button.
+ * Disconnect first, then clear, so the "Closed" entry is cleared too.
+ */
+export const resetWsResponse = async (page: Page) => {
+  await test.step('Disconnect and clear the ws response', async () => {
+    const locators = buildWebsocketCommonLocators(page);
+
+    if (await locators.connectionControls.disconnect().isVisible()) {
+      await locators.connectionControls.disconnect().click();
+      await locators.connectionControls.connect().waitFor();
+    }
+
+    if (await locators.toolbar.clearResponse().isVisible()) {
+      await locators.toolbar.clearResponse().click();
+      await locators.messages().first().waitFor({ state: 'detached' });
+    }
+  });
+};

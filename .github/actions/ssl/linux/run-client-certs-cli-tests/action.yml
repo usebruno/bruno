@@ -32,6 +32,8 @@ runs:
         cd ../disabled-bru
         node "$BRU" run ./request.bru --output junit3.xml --cacert "$CACERT" --ignore-truststore --format junit 2>/dev/null || true
         xmllint --xpath 'count(//testsuite[@errors="1"])' junit3.xml | grep -q "^1$" || exit 1
+        # the recorded error must be the mTLS rejection — any other failure also yields errors="1"
+        xmllint --xpath 'string(//testsuite/testcase/error/@message)' junit3.xml | grep -q "certificate required" || exit 1
 
         # yml (opencollection.yml) format parity — pem/pkcs12/disabled parsed via the yml path
 
@@ -50,3 +52,5 @@ runs:
         cd ../disabled-yml
         node "$BRU" run ./request.yml --output junit6.xml --cacert "$CACERT" --ignore-truststore --format junit 2>/dev/null || true
         xmllint --xpath 'count(//testsuite[@errors="1"])' junit6.xml | grep -q "^1$" || exit 1
+        # the recorded error must be the mTLS rejection — any other failure also yields errors="1"
+        xmllint --xpath 'string(//testsuite/testcase/error/@message)' junit6.xml | grep -q "certificate required" || exit 1

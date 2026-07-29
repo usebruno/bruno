@@ -71,9 +71,11 @@ function createHttpsServer(certsDir, port) {
   server.on('tlsClientError', (err) => console.log('🔒 HTTPS/WSS rejected TLS client:', err.message));
 
   return new Promise((resolve, reject) => {
-    server.listen(port, (error) => {
-      if (error) reject(error);
-      else resolve(server);
+    // bind failures (e.g. EADDRINUSE) arrive on the error event — listen()'s callback never gets one
+    server.once('error', reject);
+    server.listen(port, () => {
+      server.off('error', reject);
+      resolve(server);
     });
   });
 }
