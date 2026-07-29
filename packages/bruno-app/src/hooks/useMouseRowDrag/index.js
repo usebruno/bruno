@@ -14,6 +14,18 @@ const findRowKeyAt = (overlay, x, y) => {
   return row?.getAttribute(DRAG_ROW_KEY_ATTR) ?? null;
 };
 
+const findScrollParent = (element) => {
+  let parent = element?.parentElement;
+  while (parent) {
+    const { overflowY } = getComputedStyle(parent);
+    if ((overflowY === 'auto' || overflowY === 'scroll') && parent.scrollHeight > parent.clientHeight) {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return null;
+};
+
 export const useMouseRowDrag = ({ enabled, onReorder }) => {
   const [draggingKey, setDraggingKey] = useState(null);
   const [dragOverKey, setDragOverKey] = useState(null);
@@ -51,16 +63,36 @@ export const useMouseRowDrag = ({ enabled, onReorder }) => {
     const prevUserSelect = document.body.style.userSelect;
     document.body.style.userSelect = 'none';
 
+    const scrollParent = findScrollParent(e.currentTarget);
+    const pointer = { x: e.clientX, y: e.clientY };
+    let scrollFrame;
     setDraggingKey(key);
 
     const handleMouseMove = (moveEvent) => {
-      movePreviewTo(preview, moveEvent.clientX, moveEvent.clientY);
-      setDragOverKey(findRowKeyAt(overlay, moveEvent.clientX, moveEvent.clientY));
+      pointer.x = moveEvent.clientX;
+      pointer.y = moveEvent.clientY;
+      movePreviewTo(preview, pointer.x, pointer.y);
+      setDragOverKey(findRowKeyAt(overlay, pointer.x, pointer.y));
+    };
+
+    const autoScroll = () => {
+      if (scrollParent) {
+        const rect = scrollParent.getBoundingClientRect();
+        const nearTop = pointer.y >= rect.top && pointer.y < rect.top + 40;
+        const nearBottom = pointer.y <= rect.bottom && pointer.y > rect.bottom - 40;
+        const delta = nearTop ? -12 : nearBottom ? 12 : 0;
+        if (delta) {
+          scrollParent.scrollTop += delta;
+          setDragOverKey(findRowKeyAt(overlay, pointer.x, pointer.y));
+        }
+      }
+      scrollFrame = requestAnimationFrame(autoScroll);
     };
 
     const cleanup = () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      cancelAnimationFrame(scrollFrame);
       overlay.remove();
       preview.remove();
       document.body.style.userSelect = prevUserSelect;
@@ -80,6 +112,7 @@ export const useMouseRowDrag = ({ enabled, onReorder }) => {
     cleanupRef.current = cleanup;
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+    scrollFrame = requestAnimationFrame(autoScroll);
   }, [enabled, onReorder]);
 
   const cancelDrag = useCallback(() => {

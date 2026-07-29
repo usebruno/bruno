@@ -402,11 +402,14 @@ const EnvironmentVariablesTable = ({
   const sortOrderRef = useRef(null);
   const prevSortModeRef = useRef();
   const prevIsDraftRef = useRef(hasDraftForThisEnv);
+  const prevEnvironmentVariablesRef = useRef(environment.variables);
   const justCommitted = prevIsDraftRef.current === true && hasDraftForThisEnv === false;
+  const savedVariablesChanged = prevEnvironmentVariablesRef.current !== environment.variables;
   prevIsDraftRef.current = hasDraftForThisEnv;
-  if (prevSortModeRef.current !== sortMode || justCommitted) {
+  prevEnvironmentVariablesRef.current = environment.variables;
+  if (prevSortModeRef.current !== sortMode || justCommitted || savedVariablesChanged) {
     prevSortModeRef.current = sortMode;
-    sortOrderRef.current = buildSortOrder(formik.values, sortMode);
+    sortOrderRef.current = buildSortOrder(savedVariablesChanged ? environment.variables || [] : formik.values, sortMode);
   }
 
   const handleRowReorder = useCallback((fromUid, toUid) => {
@@ -891,7 +894,9 @@ const EnvironmentVariablesTable = ({
               <td
                 style={{ width: columnWidths.name }}
                 className={!isSecretTab ? 'sortable-header' : ''}
-                onClick={!isSecretTab ? cycleSortMode : undefined}
+                onClick={!isSecretTab ? (e) => {
+                  if (!e.target.closest('.resize-handle')) cycleSortMode();
+                } : undefined}
               >
                 {isSecretTab ? 'Name' : (
                   <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} />

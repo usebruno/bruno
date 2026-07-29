@@ -5,17 +5,26 @@ import { sortRowsByName, reconcileEditsToRealOrder } from 'utils/sortableRows';
 export const useSortableEditableTableRows = ({ storageKey, rows, onChange, isDraft, getSortValue }) => {
   const { sortMode, cycleSortMode, SortIcon, sortLabel } = useSortCycle({ storageKey });
 
-  const [prevSortMode, setPrevSortMode] = useState('default');
-  const [prevIsDraft, setPrevIsDraft] = useState(isDraft);
+  const [previous, setPrevious] = useState({
+    sortMode: 'default',
+    isDraft,
+    committedRows: isDraft === false ? rows : null
+  });
   const [order, setOrder] = useState(null);
 
-  const justCommitted = prevIsDraft && isDraft === false;
-  if (prevIsDraft !== isDraft) {
-    setPrevIsDraft(isDraft);
+  const justCommitted = previous.isDraft && isDraft === false;
+  const committedRowsChanged = isDraft === false && previous.committedRows !== rows;
+  const sortModeChanged = previous.sortMode !== sortMode;
+
+  if (previous.isDraft !== isDraft || sortModeChanged || committedRowsChanged) {
+    setPrevious({
+      sortMode,
+      isDraft,
+      committedRows: isDraft === false ? rows : previous.committedRows
+    });
   }
 
-  if (prevSortMode !== sortMode || justCommitted) {
-    setPrevSortMode(sortMode);
+  if (sortModeChanged || justCommitted || committedRowsChanged) {
     setOrder(sortMode === 'default' ? null : sortRowsByName(rows, sortMode, getSortValue).map((row) => row.uid));
   }
 

@@ -24,7 +24,16 @@ const findScrollParent = (element) => {
 const TableRow = React.memo(
   ({ children, item, context, ...rest }) => {
     const rowIndex = Number(rest['data-item-index']);
-    const { reorderable, reorderableRowCount, isLastEmptyRow, dragOverKey, draggingKey, keyColumn } = context;
+    const {
+      reorderable,
+      reorderableRowCount,
+      isLastEmptyRow,
+      dragOverKey,
+      draggingKey,
+      keyColumn,
+      showCheckbox,
+      handleDragHandleMouseDown
+    } = context;
     const isEmpty = isLastEmptyRow(item, rowIndex);
     const canDrag = reorderable && !isEmpty && rowIndex < reorderableRowCount;
     const isDragOver = canDrag && dragOverKey === item?.uid;
@@ -40,6 +49,19 @@ const TableRow = React.memo(
         data-row-name={rowName || undefined}
         {...(canDrag ? { [DRAG_ROW_KEY_ATTR]: item.uid } : {})}
       >
+        {!showCheckbox && reorderable && (
+          <td className="text-center relative" style={{ width: '32px' }}>
+            {canDrag && (
+              <div
+                className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
+                onMouseDown={(e) => handleDragHandleMouseDown(e, item.uid, rowName)}
+              >
+                <IconGripVertical size={14} className="icon-grip hidden group-hover:block" />
+                <IconMinusVertical size={14} className="icon-minus block group-hover:hidden" />
+              </div>
+            )}
+          </td>
+        )}
         {children}
       </tr>
     );
@@ -362,11 +384,14 @@ const EditableTable = ({
     isLastEmptyRow,
     dragOverKey,
     draggingKey,
-    keyColumn
-  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverKey, draggingKey, keyColumn]);
+    keyColumn,
+    showCheckbox,
+    handleDragHandleMouseDown
+  }), [reorderable, reorderableRowCount, isLastEmptyRow, dragOverKey, draggingKey, keyColumn, showCheckbox, handleDragHandleMouseDown]);
 
   const fixedHeaderContent = useCallback(() => (
     <tr>
+      {!showCheckbox && reorderable && <td className="text-center" style={{ width: '32px' }}></td>}
       {showCheckbox && (
         <td className="text-center">{checkboxLabel}</td>
       )}
@@ -391,6 +416,7 @@ const EditableTable = ({
                 className={`resize-handle ${resizing === column.key ? 'resizing' : ''}`}
                 style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
                 onMouseDown={(e) => handleResizeStart(e, column.key)}
+                onClick={(e) => e.stopPropagation()}
               />
             )}
           </td>
@@ -404,7 +430,7 @@ const EditableTable = ({
         </td>
       )}
     </tr>
-  ), [showCheckbox, checkboxLabel, columns, getColumnWidth, resizing, tableHeight, handleResizeStart, showDelete, sortColumn, cycleSortMode, SortIcon, sortLabel, testId]);
+  ), [showCheckbox, checkboxLabel, columns, getColumnWidth, resizing, tableHeight, handleResizeStart, showDelete, sortColumn, cycleSortMode, SortIcon, sortLabel, testId, reorderable]);
 
   const itemContent = useCallback((rowIndex, row) => {
     const isEmpty = isLastEmptyRow(row, rowIndex);
