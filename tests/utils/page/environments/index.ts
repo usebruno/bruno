@@ -100,3 +100,18 @@ export const openEnvironmentSelector = async (page: Page) => {
     }
   });
 };
+
+/**
+ * Closes the environment selector dropdown if it is open.
+ * Uses the Escape key to handle both clearing search input and closing the dropdown.
+ * @param page - The page object
+ * @returns void
+ */
+export const closeEnvironmentSelector = async (page: Page) => {
+  const locators = buildCommonLocators(page);
+  const trigger = locators.collectionHeader.envSelectorTrigger();
+
+  if (await trigger.isVisible()) {
+    await trigger.click();
+  }
+};
