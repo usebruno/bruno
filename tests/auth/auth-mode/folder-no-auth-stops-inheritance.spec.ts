@@ -66,7 +66,11 @@ test('Request inherits No Auth from the folder — collection Bearer Token is ov
   await test.step('Open the latest timeline entry and verify no Authorization header was sent', async () => {
     const timelineItem = locators.timeline.lastItem();
     await locators.timeline.itemHeader(timelineItem).click();
-    await expect(timelineItem).toContainText('No Headers');
+    // The table lists the transport headers Bruno/axios always add (accept, host, connection, ...),
+    // so assert Authorization is absent specifically rather than that the table is empty — and
+    // assert the table rendered, so a headers regression can't make this pass vacuously.
+    await expect(locators.timelineHeaders.table()).toBeVisible();
+    await expect(locators.timelineHeaders.row('authorization')).toHaveCount(0);
     await locators.timeline.clearButton().click();
   });
 

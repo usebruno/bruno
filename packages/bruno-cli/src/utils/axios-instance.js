@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { parseSentHeaders, sentHeadersToObject } = require('@usebruno/common/utils');
 const { CLI_VERSION } = require('../constants');
 const { addCookieToJar, getCookieStringForUrl } = require('./cookies');
 const { createFormData } = require('./form-data');
@@ -130,16 +131,37 @@ function makeAxiosInstance({
     return config;
   });
 
+  // config.headers describes the request Bruno prepared, not the one it sent: axios builds a fresh
+  // AxiosHeaders per call (so the interceptor's own additions never reach the caller's object) and the
+  // Node http adapter appends Host, Connection, Accept-Encoding and the body headers afterwards.
+  // Record the serialized wire headers here so reporters can describe the real request.
+  //
+  // request-start-time is Bruno's own timing carrier, not something the user configured; it holds a
+  // raw epoch millisecond value, so reporting it would put a value that changes on every run into
+  // --reporter-json/--reporter-html output and make those files non-comparable between runs.
+  const INTERNAL_HEADERS = new Set(['request-start-time']);
+  const recordSentHeaders = (target, req) => {
+    if (!target) return;
+    const sent = parseSentHeaders(req).filter((h) => !INTERNAL_HEADERS.has(h.name.toLowerCase()));
+    if (sent.length) target.sentHeaders = sentHeadersToObject(sent);
+  };
+
   instance.interceptors.response.use(
     (response) => {
       const end = Date.now();
       const start = response.config.headers['request-start-time'];
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
+      recordSentHeaders(response, response.request);
 
       return response;
     },
     async (error) => {
+      // A 4xx/5xx rejects here and the runner still reports that request, so record on the error and
+      // on its response — the runner reads whichever of the two it ends up holding.
+      const req = error.request || error.response?.request;
+      recordSentHeaders(error, req);
+      recordSentHeaders(error.response, req);
       if (error.response) {
         const end = Date.now();
         const start = error.config.headers['request-start-time'];

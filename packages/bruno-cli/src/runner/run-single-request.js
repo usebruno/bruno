@@ -69,7 +69,7 @@ const extractPromptVariablesForRequest = ({ request, collection, envVariables, r
 
   // client certificate config
   const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
-  for (const clientCert of clientCertConfig) {
+  for (let clientCert of clientCertConfig) {
     const domain = interpolateString(clientCert?.domain, interpolationOptions);
     if (domain) {
       const hostRegex = getCACertHostRegex(domain);
@@ -385,8 +385,8 @@ const runSingleRequest = async function (
       httpsAgentRequestFields['rejectUnauthorized'] = false;
     } else {
       const caCertFilePath = options['cacert'];
-      const caCertificatesData = getCACertificates({ caCertFilePath, shouldKeepDefaultCerts: !options['ignoreTruststore'] });
-      const caCertificates = caCertificatesData.caCertificates;
+      let caCertificatesData = getCACertificates({ caCertFilePath, shouldKeepDefaultCerts: !options['ignoreTruststore'] });
+      let caCertificates = caCertificatesData.caCertificates;
       httpsAgentRequestFields['ca'] = caCertificates || [];
     }
 
@@ -399,7 +399,7 @@ const runSingleRequest = async function (
 
     // client certificate config
     const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
-    for (const clientCert of clientCertConfig) {
+    for (let clientCert of clientCertConfig) {
       const domain = interpolateString(clientCert?.domain, interpolationOptions);
       const type = clientCert?.type || 'cert';
       if (domain) {
@@ -518,7 +518,7 @@ const runSingleRequest = async function (
       if (typeof request.data !== 'string' && !isFormData(request?.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
-        const form = createFormData(request.data, collectionPath);
+        let form = createFormData(request.data, collectionPath);
         request.data = form;
 
         if (contentType !== 'multipart/form-data') {
@@ -736,7 +736,9 @@ const runSingleRequest = async function (
           request: {
             method: request.method,
             url: request.url,
-            headers: request.headers,
+            // The request reached the wire before failing, so report what was sent; a failure before
+            // serialization (DNS, agent setup) leaves no wire headers and falls back to the definition.
+            headers: err?.sentHeaders || request.headers,
             data: request.data
           },
           response: {
@@ -942,7 +944,9 @@ const runSingleRequest = async function (
       request: {
         method: request.method,
         url: request.url,
-        headers: request.headers,
+        // What actually went on the wire, including the transport headers (Host, Connection,
+        // Accept-Encoding, Content-Length) that only exist once the request is serialized.
+        headers: response?.sentHeaders || request.headers,
         data: request.data
       },
       response: {

@@ -194,6 +194,7 @@ const TimelineItem = ({
                   key={tab.id}
                   type="button"
                   className={`tl-tab ${activeTab === tab.id ? 'is-active' : ''}`}
+                  data-testid={`tl-tab-${tab.id}`}
                   onClick={() => handleTabClick(tab.id)}
                 >
                   {tab.label}
@@ -214,7 +215,7 @@ const TimelineItem = ({
               )}
               {showNetworkLogs && visitedTabs.network && (
                 <div style={{ display: activeTab === 'network' ? 'block' : 'none' }}>
-                  <Network logs={response?.timeline} request={request} item={item} collection={collection} />
+                  <Network logs={response?.timeline} />
                 </div>
               )}
             </div>

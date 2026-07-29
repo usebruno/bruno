@@ -50,7 +50,7 @@ const saveCookies = (url, headers) => {
       setCookieHeaders = Array.isArray(headers['set-cookie'])
         ? headers['set-cookie']
         : [headers['set-cookie']];
-      for (const setCookieHeader of setCookieHeaders) {
+      for (let setCookieHeader of setCookieHeaders) {
         if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
           addCookieToJar(setCookieHeader, url);
         }
@@ -152,7 +152,7 @@ const configureRequest = async (
   request.maxRedirects = 0;
 
   const { promptVariables = {} } = collection;
-  const { proxyMode, proxyModeReason, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
+  let { proxyMode, proxyModeReason, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
   let axiosInstance = makeAxiosInstance({
     proxyMode,
     proxyModeReason,
@@ -177,7 +177,7 @@ const configureRequest = async (
   }
 
   if (request.oauth2) {
-    const requestCopy = cloneDeep(request);
+    let requestCopy = cloneDeep(request);
     const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
 
     // Get cert/proxy configs for token and refresh URLs
@@ -663,7 +663,7 @@ const registerNetworkIpc = (mainWindow) => {
       if (typeof request.data !== 'string' && !isFormData(request.data)) {
         request._originalMultipartData = request.data;
         request.collectionPath = collectionPath;
-        const form = createFormData(request.data, collectionPath);
+        let form = createFormData(request.data, collectionPath);
         request.data = form;
         if (contentType !== 'multipart/form-data') {
           // Patch: Axios leverages getHeaders method to get the headers so FormData should be monkey patched
@@ -971,7 +971,6 @@ const registerNetworkIpc = (mainWindow) => {
       if (preRequestError) {
         return Promise.reject(preRequestError);
       }
-
       const axiosInstance = await configureRequest(
         collectionUid,
         collection,
@@ -1564,7 +1563,7 @@ const registerNetworkIpc = (mainWindow) => {
         let folderRequests = [];
 
         if (recursive) {
-          const sortedFolder = sortFolder(folder);
+          let sortedFolder = sortFolder(folder);
           folderRequests = getAllRequestsInFolderRecursively(sortedFolder);
         } else {
           each(folder.items, (item) => {
@@ -1609,7 +1608,7 @@ const registerNetworkIpc = (mainWindow) => {
         while (currentRequestIndex < folderRequests.length) {
           // user requested to cancel runner
           if (abortController.signal.aborted) {
-            const error = new Error('Runner execution cancelled');
+            let error = new Error('Runner execution cancelled');
             error.isCancel = true;
             throw error;
           }
@@ -1797,10 +1796,11 @@ const registerNetworkIpc = (mainWindow) => {
               }
             });
 
-            const requestSent = {
+            let requestSent = {
               url: request.url,
               method: request.method,
               headers: headersSent,
+              scriptSetHeaders: request.scriptSetHeaders || [],
               data: requestData,
               dataBuffer: requestDataBuffer,
               timestamp: Date.now()

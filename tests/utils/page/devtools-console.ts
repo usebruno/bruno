@@ -29,6 +29,22 @@ export const buildDevToolsLocators = (page: Page) => {
       rows: reqHeaderRows,
       row: reqHeaderRow,
       value: (name: string) => reqHeaderRow(name).getByTestId('request-details-header-value')
+    },
+    // The details panel's Network sub-tab: the same wire trace the response-pane Timeline shows.
+    // Scoped to the final hop for the same reason — a multi-hop request logs every hop here, while
+    // the Request tab shows only the hop that produced the response.
+    lastHopRequestHeaderLines: async () => {
+      const entries = await page
+        .locator('.details-panel-wrapper')
+        .getByTestId('network-log-entry')
+        .evaluateAll((nodes) =>
+          nodes.map((node) => ({
+            type: node.getAttribute('data-log-type'),
+            text: (node.textContent || '').trim()
+          }))
+        );
+      const hopStart = entries.reduce((last, entry, i) => (entry.type === 'request' ? i : last), 0);
+      return entries.slice(hopStart).filter((e) => e.type === 'requestHeader').map((e) => e.text);
     }
   };
 };

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   IconX,
@@ -11,8 +11,8 @@ import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 import Network from 'components/ResponsePane/Timeline/TimelineItem/Network';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common/index';
-import { findItemInCollection, getTreePathFromCollectionToItem } from 'utils/collections/index';
-import { buildHeaderRows } from '@usebruno/common/utils';
+import { findItemInCollection } from 'utils/collections/index';
+import useSentHeaderRows from 'hooks/useSentHeaderRows';
 
 const RequestTab = ({ request, response, item, collection }) => {
   const formatBody = (body) => {
@@ -21,10 +21,7 @@ const RequestTab = ({ request, response, item, collection }) => {
     return JSON.stringify(body, null, 2);
   };
 
-  const headerRows = useMemo(
-    () => buildHeaderRows({ collection, item, treePath: getTreePathFromCollectionToItem(collection, item), request, timeline: response?.timeline }),
-    [collection, item, request, response?.timeline]
-  );
+  const headerRows = useSentHeaderRows({ collection, item, request, timeline: response?.timeline });
 
   return (
     <div className="tab-content">
@@ -135,7 +132,7 @@ const ResponseTab = ({ response, collection }) => {
   );
 };
 
-const NetworkTab = ({ response, request, item, collection }) => {
+const NetworkTab = ({ response }) => {
   const timeline = response?.timeline || [];
 
   return (
@@ -144,7 +141,7 @@ const NetworkTab = ({ response, request, item, collection }) => {
         <h4>Network Logs</h4>
         <div className="network-logs-wrapper">
           {timeline.length > 0 ? (
-            <Network logs={timeline} request={request} item={item} collection={collection} />
+            <Network logs={timeline} />
           ) : (
             <div className="empty-state">No network logs available</div>
           )}
@@ -184,7 +181,7 @@ const RequestDetailsPanel = () => {
       case 'response':
         return <ResponseTab response={response} collection={collection} />;
       case 'network':
-        return <NetworkTab response={response} request={request} item={item} collection={collection} />;
+        return <NetworkTab response={response} />;
       default:
         return <RequestTab request={request} response={response} item={item} collection={collection} />;
     }

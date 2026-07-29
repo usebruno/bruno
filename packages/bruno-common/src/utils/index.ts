@@ -49,6 +49,12 @@ export {
 } from './headers-source';
 
 export {
+  parseSentHeaders,
+  hasWireBlock,
+  sentHeadersToObject
+} from './sent-headers';
+
+export {
   MAX_BODY_SIZE_DEFAULT,
   isStrPresent,
   makeEdgeGridTimestamp,

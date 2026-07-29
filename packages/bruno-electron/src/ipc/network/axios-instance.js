@@ -8,6 +8,7 @@ const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies')
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
+const { parseSentHeaders, hasWireBlock } = require('@usebruno/common/utils');
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -64,6 +65,77 @@ const checkConnection = (host, port) =>
       socket.connect(port, host);
     }
   });
+
+// Reconcile the current hop's logged request headers with what the request actually sent.
+//
+// The request interceptor logs config.headers, which is neither complete nor faithful: the Node http
+// adapter appends transport headers (Host, Connection, Accept-Encoding, Content-Length,
+// Transfer-Encoding) afterwards, axios carries a Content-Type of `undefined` on every request, and a
+// non-string value logs as its JS rendering rather than its wire serialization. The serialized block
+// on the ClientRequest is authoritative, so when it's available the hop's logged block is replaced
+// wholesale — that is what makes the timeline match a packet capture.
+//
+// Redirects accumulate every hop in one timeline with a 'request' marker per hop, so this is scoped
+// to the last hop: earlier hops keep the block they were reconciled with when they completed.
+const reconcileSentHeaders = (timeline, req) => {
+  if (!Array.isArray(timeline) || !req) return;
+  // This only enriches the timeline for display, and it runs on the core success/error (and
+  // redirect) path, so a failure here must never break request execution. Swallow and log.
+  try {
+    const sent = parseSentHeaders(req);
+    if (!sent.length) return;
+
+    let hopStart = 0;
+    for (let i = timeline.length - 1; i >= 0; i--) {
+      if (timeline[i]?.type === 'request') {
+        hopStart = i;
+        break;
+      }
+    }
+
+    // Every requestHeader entry in the hop is a candidate for replacement, parseable or not — the
+    // wire block is the whole truth about this hop, so a malformed entry must not outlive it.
+    const headerIndexes = [];
+    for (let i = hopStart; i < timeline.length; i++) {
+      if (timeline[i]?.type === 'requestHeader') headerIndexes.push(i);
+    }
+
+    const entryFor = (h) => ({ timestamp: new Date(), type: 'requestHeader', message: `${h.name}: ${h.value}` });
+
+    // getHeaders() can't stand in for the wire block: Node emits Connection and Transfer-Encoding
+    // only while serializing, so replacing with it would drop headers we know were sent. Fall back
+    // to adding just the names missing from the log.
+    if (!hasWireBlock(req)) {
+      const logged = new Set();
+      headerIndexes.forEach((i) => {
+        const message = timeline[i]?.message;
+        if (typeof message !== 'string') return;
+        const idx = message.indexOf(':');
+        if (idx !== -1) logged.add(message.slice(0, idx).trim().toLowerCase());
+      });
+      const additions = sent.filter((h) => !logged.has(h.name.toLowerCase())).map(entryFor);
+      if (!additions.length) return;
+      const lastIdx = headerIndexes[headerIndexes.length - 1];
+      timeline.splice(lastIdx === undefined ? timeline.length : lastIdx + 1, 0, ...additions);
+      return;
+    }
+
+    const replacement = sent.map(entryFor);
+    if (!headerIndexes.length) {
+      timeline.splice(hopStart + 1, 0, ...replacement);
+      return;
+    }
+    // The logged block is contiguous in practice, but splicing at the first index and removing
+    // exactly the logged entries keeps surrounding entries intact either way.
+    const firstIdx = headerIndexes[0];
+    for (let i = headerIndexes.length - 1; i >= 0; i--) {
+      timeline.splice(headerIndexes[i], 1);
+    }
+    timeline.splice(firstIdx, 0, ...replacement);
+  } catch (err) {
+    console.error('Failed to reconcile sent headers into the timeline:', err);
+  }
+};
 
 /**
  * Function that configures axios with timing interceptors
@@ -186,14 +258,17 @@ function makeAxiosInstance({
       delete config.__headersToDelete;
     }
 
-    // Log request headers AFTER deletion so the timeline reflects what is actually sent.
-    // Skip null values (headers marked for deletion) and false values (e.g. content-type
-    // suppressed for no-body requests — see https://github.com/usebruno/bruno/issues/1693).
+    // Log request headers AFTER deletion so the timeline reflects what is actually sent. Skip null
+    // (headers marked for deletion), false (e.g. content-type suppressed for no-body requests — see
+    // https://github.com/usebruno/bruno/issues/1693), and undefined: axios carries
+    // defaults.headers.common['Content-Type'] = undefined on every request, and logging it would both
+    // show a phantom "Content-Type: undefined" row and mask the real value the adapter goes on to set.
+    // reconcileSentHeaders replaces this block with the wire block once the request is serialized.
     Object.entries(config.headers).forEach(([key, value]) => {
-      if (value === null || value === false) return;
+      if (value === null || value === false || value === undefined) return;
       // Scripts can set a non-string value (e.g. req.setHeader('x', {...})); JSON-encode it so the
       // log shows the value instead of "[object Object]".
-      const printableValue = value !== null && typeof value === 'object' ? safeStringifyJSON(value) : value;
+      const printableValue = typeof value === 'object' ? safeStringifyJSON(value) : value;
       timeline.push({
         timestamp: new Date(),
         type: 'requestHeader',
@@ -231,57 +306,6 @@ function makeAxiosInstance({
 
   let redirectCount = 0;
 
-  // The Node http adapter appends transport headers (Host, Connection, Accept-Encoding,
-  // Content-Length) after the request interceptor logged config.headers, so they're missing from the
-  // timeline. Read the real serialized header block off the ClientRequest and backfill the ones we
-  // didn't already log, inserted right after the existing request-header block so ordering holds.
-  const parseSentHeaders = (req) => {
-    const raw = req?._header;
-    if (typeof raw === 'string') {
-      return raw
-        .split('\r\n')
-        .slice(1) // drop the request line (e.g. "GET /path HTTP/1.1")
-        .filter(Boolean)
-        .map((line) => {
-          const idx = line.indexOf(':');
-          return idx === -1 ? null : { name: line.slice(0, idx).trim(), value: line.slice(idx + 1).trim() };
-        })
-        .filter((h) => h && h.name);
-    }
-    const hdrs = typeof req?.getHeaders === 'function' ? req.getHeaders() : null;
-    return hdrs
-      ? Object.entries(hdrs).map(([name, value]) => ({ name, value: Array.isArray(value) ? value.join(', ') : String(value) }))
-      : [];
-  };
-
-  const backfillSentHeaders = (timeline, req) => {
-    if (!Array.isArray(timeline) || !req) return;
-    // Redirects reuse a single timeline with one 'request' marker per hop. Scope the backfill to the
-    // current (last) hop only, so prior hops' identically-named headers don't mask this hop's, and so
-    // insertion lands inside this hop's header block.
-    let hopStart = 0;
-    for (let i = timeline.length - 1; i >= 0; i--) {
-      if (timeline[i]?.type === 'request') {
-        hopStart = i;
-        break;
-      }
-    }
-    const existing = new Set();
-    let lastIdx = -1;
-    for (let i = hopStart; i < timeline.length; i++) {
-      const entry = timeline[i];
-      if (entry?.type !== 'requestHeader' || typeof entry.message !== 'string') continue;
-      const idx = entry.message.indexOf(':');
-      if (idx !== -1) existing.add(entry.message.slice(0, idx).trim().toLowerCase());
-      lastIdx = i;
-    }
-    const additions = parseSentHeaders(req)
-      .filter((h) => !existing.has(h.name.toLowerCase()))
-      .map((h) => ({ timestamp: new Date(), type: 'requestHeader', message: `${h.name}: ${h.value}` }));
-    if (!additions.length) return;
-    timeline.splice(lastIdx >= 0 ? lastIdx + 1 : timeline.length, 0, ...additions);
-  };
-
   instance.interceptors.response.use(
     (response) => {
       let timeline;
@@ -292,7 +316,7 @@ function makeAxiosInstance({
 
       const config = response.config;
       timeline = config?.metadata?.timeline || [];
-      backfillSentHeaders(timeline, response.request);
+      reconcileSentHeaders(timeline, response.request);
       const duration = end - config?.metadata.startTime;
 
       const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
@@ -328,7 +352,7 @@ function makeAxiosInstance({
     async (error) => {
       const config = error.config;
       const timeline = config?.metadata?.timeline || [];
-      backfillSentHeaders(timeline, error.request || error.response?.request);
+      reconcileSentHeaders(timeline, error.request || error.response?.request);
       timeline?.push({
         timestamp: new Date(),
         type: 'error',
@@ -564,5 +588,6 @@ function makeAxiosInstance({
 }
 
 module.exports = {
-  makeAxiosInstance
+  makeAxiosInstance,
+  reconcileSentHeaders
 };

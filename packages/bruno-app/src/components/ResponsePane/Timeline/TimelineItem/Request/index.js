@@ -1,6 +1,4 @@
-import { useMemo } from 'react';
-import { getTreePathFromCollectionToItem } from 'utils/collections/index';
-import { buildHeaderRows } from '@usebruno/common/utils';
+import useSentHeaderRows from 'hooks/useSentHeaderRows';
 import BodyBlock from '../Common/Body/index';
 import Headers from '../Common/Headers/index';
 
@@ -20,14 +18,11 @@ const Request = ({ collection, request, item, timeline }) => {
     dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');
   }
 
-  const headerRows = useMemo(
-    () => buildHeaderRows({ collection, item, treePath: getTreePathFromCollectionToItem(collection, item), request, timeline }),
-    [collection, item, request, timeline]
-  );
+  const headerRows = useSentHeaderRows({ collection, item, request, timeline });
 
   return (
     <>
-      <Headers rows={headerRows} />
+      <Headers rows={headerRows} variant="request" />
       <BodyBlock
         collection={collection}
         data={data}
