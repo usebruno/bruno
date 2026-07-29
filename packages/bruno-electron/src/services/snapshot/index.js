@@ -91,11 +91,17 @@ const devToolsSchema = yup.object({
   })
 });
 
+const sidebarSchema = yup.object({
+  collapsed: yup.boolean().optional(),
+  width: yup.number().optional()
+});
+
 const snapshotSchema = yup.object({
   version: yup.string().defined(),
   activeWorkspacePath: yup.string().nullable(),
   extras: yup.object({
-    devTools: devToolsSchema.required()
+    devTools: devToolsSchema.required(),
+    sidebar: sidebarSchema.optional()
   }).required(),
   workspaces: yup.array().of(workspaceSchema).required(),
   collections: yup.array().of(collectionSchema).required()
@@ -177,6 +183,11 @@ class SnapshotManager {
       activeTab: tabsEntry.activeTab,
       tabs: tabsEntry.tabs
     };
+  }
+
+  getSidebar() {
+    const snapshot = this._normalizeSnapshot(this.store.store);
+    return snapshot?.extras?.sidebar || null;
   }
 
   // --- Writes ---
@@ -393,15 +404,34 @@ class SnapshotManager {
   }
 
   _normalizeSnapshot(snapshot = {}) {
+    const sidebar = this._normalizeSidebar(snapshot?.extras?.sidebar);
+    const extras = {
+      devTools: this._normalizeDevTools(snapshot?.extras?.devTools)
+    };
+    if (sidebar !== undefined) {
+      extras.sidebar = sidebar;
+    }
     return {
       version: snapshot.version ?? SNAPSHOT_VERSION,
       activeWorkspacePath: typeof snapshot.activeWorkspacePath === 'string' ? snapshot.activeWorkspacePath : null,
-      extras: {
-        devTools: this._normalizeDevTools(snapshot?.extras?.devTools)
-      },
+      extras,
       workspaces: this._normalizeWorkspaceList(snapshot.workspaces),
       collections: this._normalizeCollectionList(snapshot.collections, snapshot.tabs)
     };
+  }
+
+  _normalizeSidebar(sidebar) {
+    if (!sidebar) {
+      return undefined;
+    }
+    const result = {};
+    if (typeof sidebar.collapsed === 'boolean') {
+      result.collapsed = sidebar.collapsed;
+    }
+    if (typeof sidebar.width === 'number') {
+      result.width = sidebar.width;
+    }
+    return Object.keys(result).length > 0 ? result : undefined;
   }
 
   _normalizeDevTools(devTools = {}) {
