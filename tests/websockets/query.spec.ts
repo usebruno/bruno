@@ -4,7 +4,7 @@ import { buildCommonLocators } from '../utils/page/locators';
 const BRU_REQ_NAME = /^ws-test-request-with-query$/;
 
 test.describe.serial('query params', () => {
-  test('query params are returned if passed', async ({ pageWithUserData: page }) => {
+  test('query params are returned if passed', { tag: '@smoke' }, async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
 
     // Open the most recent collection

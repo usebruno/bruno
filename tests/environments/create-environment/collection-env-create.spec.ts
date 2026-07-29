@@ -12,7 +12,7 @@ import {
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe('Collection Environment Create Tests', () => {
-  test('should import collection and create environment for request usage', async ({
+  test('should import collection and create environment for request usage', { tag: '@smoke' }, async ({
     page,
     createTmpDir
   }) => {

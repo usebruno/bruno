@@ -5,7 +5,7 @@ const COLLECTION_NAME = 'apikey-auth-mode-test';
 
 test.describe.serial('API Key Auth Mode Runner', () => {
   for (const mode of ['safe', 'developer'] as const) {
-    test(`detects API key auth in ${mode} mode`, async ({ pageWithUserData: page }) => {
+    test(`detects API key auth in ${mode} mode`, { tag: '@smoke' }, async ({ pageWithUserData: page }) => {
       await setSandboxMode(page, COLLECTION_NAME, mode);
       await runCollection(page, COLLECTION_NAME);
 

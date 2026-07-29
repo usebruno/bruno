@@ -28,7 +28,7 @@ test.describe.serial('Response pane updates when focused and request is re-sent'
     await closeAllCollections(page);
   });
 
-  test('Response pane shows new response after re-send with Cmd+Enter while focused in response', async ({
+  test('Response pane shows new response after re-send with Cmd+Enter while focused in response', { tag: '@smoke' }, async ({
     page
   }) => {
     const locators = buildCommonLocators(page);

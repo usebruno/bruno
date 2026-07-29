@@ -13,7 +13,7 @@ test.describe('Create GraphQL Requests', () => {
     await closeAllCollections(page);
   });
 
-  test('Verifies that GraphQL requests are created at the expected locations', async ({ pageWithUserData: page }) => {
+  test('Verifies that GraphQL requests are created at the expected locations', { tag: '@smoke' }, async ({ pageWithUserData: page }) => {
     await test.step('Navigate to collection and verify it exists', async () => {
       await expect(locators.sidebar.collection('create-requests')).toBeVisible();
     });

@@ -20,7 +20,7 @@ test.describe('Open Multiple Collections', () => {
     });
   });
 
-  test('Should open multiple collections using Open Collection feature', async ({
+  test('Should open multiple collections using Open Collection feature', { tag: '@smoke' }, async ({
     page,
     electronApp,
     createTmpDir

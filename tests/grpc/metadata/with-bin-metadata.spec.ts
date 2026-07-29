@@ -6,7 +6,7 @@ test.describe('grpc metadata', () => {
     await closeAllCollections(page);
   });
 
-  test('should handle binary metadata', async ({ pageWithUserData: page }) => {
+  test('should handle binary metadata', { tag: '@smoke' }, async ({ pageWithUserData: page }) => {
     await test.step('Open the request', async () => {
       const collection = page.locator('#sidebar-collection-name').filter({ hasText: 'Grpcbin' });
       await collection.click();

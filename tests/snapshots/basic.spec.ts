@@ -60,7 +60,7 @@ const expectSnapshotWorkspaceSortings = async (userDataPath: string, expectedSor
 
 // ─── Tab Persistence ────────────────────────────────────────────────────────
 
-test.describe('Snapshot: Tab Persistence', () => {
+test.describe('Snapshot: Tab Persistence', { tag: '@smoke' }, () => {
   test('open tabs are restored after app restart in the same order', async ({ launchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('snap-tabs-order');
     const colPath = await createTmpDir('col');
@@ -216,7 +216,7 @@ test.describe('Snapshot: Tab Persistence', () => {
 
 // ─── Workspace State ────────────────────────────────────────────────────────
 
-test.describe('Snapshot: Workspace State', () => {
+test.describe('Snapshot: Workspace State', { tag: '@smoke' }, () => {
   test('active workspace is remembered after restart', async ({ launchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('snap-active-ws');
     const workspaceBPath = await createTmpDir('workspace-b');
@@ -428,7 +428,7 @@ test.describe('Snapshot: Workspace State', () => {
 
 // ─── Collection State ───────────────────────────────────────────────────────
 
-test.describe('Snapshot: Collection State', () => {
+test.describe('Snapshot: Collection State', { tag: '@smoke' }, () => {
   test('collection expanded state persists after restart', async ({ launchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('snap-col-expanded');
     const colPath = await createTmpDir('col');
