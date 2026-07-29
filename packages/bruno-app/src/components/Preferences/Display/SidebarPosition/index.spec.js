@@ -65,6 +65,9 @@ describe('SidebarPosition', () => {
 
     fireEvent.click(screen.getByLabelText('Right'));
 
+    expect(screen.getByLabelText('Right')).toBeChecked();
+    expect(screen.getByLabelText('Left')).not.toBeChecked();
+
     expect(mockSavePreferences).toHaveBeenCalledWith({
       layout: {
         responsePaneOrientation: 'horizontal',

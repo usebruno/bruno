@@ -26,6 +26,7 @@ const SidebarPosition = () => {
       <div className="flex items-center mt-2">
         <input
           id="sidebar-position-left"
+          data-testid="sidebar-position-left"
           className="cursor-pointer"
           type="radio"
           name="sidebar-position"
@@ -39,6 +40,7 @@ const SidebarPosition = () => {
 
         <input
           id="sidebar-position-right"
+          data-testid="sidebar-position-right"
           className="ml-4 cursor-pointer"
           type="radio"
           name="sidebar-position"
