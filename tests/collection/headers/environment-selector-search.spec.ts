@@ -3,13 +3,18 @@ import { closeAllCollections, buildCommonLocators } from '../../utils/page';
 import { openEnvironmentSelector, closeEnvironmentSelector } from '../../utils/page/environments';
 
 test.describe('Environment Selector Search', () => {
+  test.beforeAll(async ({ pageWithUserData: page }) => {
+    await openEnvironmentSelector(page);
+  });
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    await closeEnvironmentSelector(page);
+  });
   test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
   test('should focus search input when Backspace is pressed', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
-    await openEnvironmentSelector(page);
 
     const searchInput = locators.environment.searchInput();
     await expect(searchInput).toBeVisible();
@@ -22,7 +27,6 @@ test.describe('Environment Selector Search', () => {
 
   test('should focus search input when a printable key is pressed', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
-    await openEnvironmentSelector(page);
 
     const searchInput = locators.environment.searchInput();
     await searchInput.blur();
@@ -37,8 +41,6 @@ test.describe('Environment Selector Search', () => {
 
   test('should display all environments initially', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
-    await openEnvironmentSelector(page);
-
     await expect(locators.environment.listItem('Development')).toBeVisible();
     await expect(locators.environment.listItem('Production')).toBeVisible();
     await expect(locators.environment.listItem('Staging')).toBeVisible();
@@ -48,8 +50,6 @@ test.describe('Environment Selector Search', () => {
 
   test('should filter environments by search text', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
-    await openEnvironmentSelector(page);
-
     const searchInput = locators.environment.searchInput();
     await searchInput.fill('StAgInG');
 
@@ -62,8 +62,6 @@ test.describe('Environment Selector Search', () => {
 
   test('should clear search on Escape key', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
-    await openEnvironmentSelector(page);
-
     const searchInput = locators.environment.searchInput();
     await searchInput.fill('prod');
     await searchInput.press('Escape');
@@ -77,8 +75,6 @@ test.describe('Environment Selector Search', () => {
 
   test('should show "No results found" for non-matching search', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
-    await openEnvironmentSelector(page);
-
     const searchInput = locators.environment.searchInput();
     await searchInput.fill('nonexistentenv');
 
@@ -90,8 +86,6 @@ test.describe('Environment Selector Search', () => {
 
   test('should clear search via clear button', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
-    await openEnvironmentSelector(page);
-
     const searchInput = locators.environment.searchInput();
     await searchInput.fill('prod');
 

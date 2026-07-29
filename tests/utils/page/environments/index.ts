@@ -89,15 +89,9 @@ export const openEnvironmentSelector = async (page: Page) => {
   const searchInput = locators.environment.searchInput();
 
   await test.step('Open dropdown', async () => {
-    // pre-check: ensure the trigger is visible, otherwise click collection name to reveal
-    if (!(await trigger.isVisible())) {
-      await buildCommonLocators(page).sidebar.collection().first().click();
-    }
-
-    if (!(await searchInput.isVisible())) {
-      await trigger.click();
-      await searchInput.waitFor({ state: 'visible' });
-    }
+    await buildCommonLocators(page).sidebar.collection().first().click();
+    await trigger.click();
+    await searchInput.waitFor({ state: 'visible' });
   });
 };
 
@@ -111,7 +105,6 @@ export const closeEnvironmentSelector = async (page: Page) => {
   const locators = buildCommonLocators(page);
   const trigger = locators.collectionHeader.envSelectorTrigger();
 
-  if (await trigger.isVisible()) {
-    await trigger.click();
-  }
+  await trigger.waitFor({ state: 'visible' });
+  await trigger.click();
 };
