@@ -9,7 +9,7 @@ export const buildDocsLocators = (page: Page) => ({
   proseMirror: () => page.locator('.ProseMirror'),
   toolbarBtn: (label: string) => page.locator(`.toolbar-btn[aria-label="${label}"]`),
   headingDropdown: () => page.locator('button.heading-dropdown-trigger'),
-  editToggle: () => page.locator('.docs-edit-toggle'),
+  editToggle: () => page.getByTestId('docs-edit-toggle'),
   modeSwitchDocs: () => page.locator('.docs-mode-switch button').filter({ hasText: 'Rich Text' }),
   modeSwitchMarkdown: () => page.locator('.docs-mode-switch button').filter({ hasText: 'Markdown' }),
   tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),

@@ -13,7 +13,8 @@ const DocsAction = () => {
         variant="ghost"
         color="secondary"
         size="sm"
-        className="docs-edit-toggle opacity-70 hover:opacity-100"
+        data-testid="docs-edit-toggle"
+        className="opacity-70 hover:opacity-100"
         onClick={() => setEditing(!isEditing)}
         icon={isEditing ? <IconEye strokeWidth={1.5} /> : <IconEdit strokeWidth={1.5} />}
       >
