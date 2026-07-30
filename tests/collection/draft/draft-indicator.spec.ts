@@ -117,32 +117,46 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
     await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
 
     // Click on Client Certificates tab
-    await page.locator('.tab.clientCert').click();
+    await page.getByTestId('collection-settings-tab-clientCert').click();
+
+    // Open the add certificate modal
+    await page.getByTestId('add-client-cert').click();
+    const addCertModal = page.getByTestId('add-client-cert-modal');
+    await expect(addCertModal).toBeVisible();
 
     // Fill domain
-    await page.locator('#domain').fill('test.com');
+    await addCertModal.locator('#domain').fill('test.com');
+
+    // The file inputs are hidden; the visible "Choose file" button next to each one opens the picker
+    const chooseFileButton = (inputId: string) =>
+      addCertModal.locator(`div:has(> input#${inputId})`).getByRole('button', { name: 'Choose file' });
 
     // Select cert file using file picker (using grpcbin.proto as a dummy file)
     const certFileChooserPromise = page.waitForEvent('filechooser');
-    await page.locator('input#certFilePath[type="file"]').click();
+    await chooseFileButton('certFilePath').click();
     const certFileChooser = await certFileChooserPromise;
     await certFileChooser.setFiles('./tests/collection/draft/fixtures/grpcbin.proto');
 
     // Select key file using file picker (using grpcbin.proto as a dummy file)
     const keyFileChooserPromise = page.waitForEvent('filechooser');
-    await page.locator('input#keyFilePath[type="file"]').click();
+    await chooseFileButton('keyFilePath').click();
     const keyFileChooser = await keyFileChooserPromise;
     await keyFileChooser.setFiles('./tests/collection/draft/fixtures/grpcbin.proto');
 
-    // Click Add button
-    await page.getByTestId('add-client-cert').click();
+    // Both file paths must land in the form before submitting, else validation blocks the add
+    await expect(addCertModal.locator('.file-chip').filter({ hasText: 'grpcbin.proto' })).toHaveCount(2);
+
+    // Add the certificate
+    await page.getByTestId('add-client-cert-modal-submit-btn').click();
+    await expect(addCertModal).not.toBeVisible();
+    await expect(page.locator('.listgroup-item').filter({ hasText: 'test.com' })).toBeVisible();
 
     // Verify draft indicator appears
     await expect(collectionTab.locator('.has-changes-icon')).toBeVisible();
     await expect(collectionTab.locator('.close-icon')).not.toBeVisible();
 
     // Save the changes
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByTestId('client-cert-save-btn').click();
 
     // Verify draft indicator is gone after saving
     await expect(collectionTab.locator('.close-icon')).toBeVisible();
