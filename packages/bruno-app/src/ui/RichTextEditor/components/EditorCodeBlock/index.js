@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useRef } from 'react';
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/react';
-import Dropdown from 'components/Dropdown';
+import Dropdown from '../../../../components/Dropdown';
 import { IconChevronDown, IconCopy, IconCheck } from '@tabler/icons';
 import { lowlight } from 'lowlight';
 
@@ -28,7 +28,7 @@ const LANGUAGES = [
   'protobuf'
 ];
 
-export const DocsCodeBlock = ({ node, updateAttributes, extension }) => {
+export const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
   const language = node.attrs.language || 'auto';
   const [copied, setCopied] = useState(false);
   const preRef = useRef(null);
@@ -61,45 +61,48 @@ export const DocsCodeBlock = ({ node, updateAttributes, extension }) => {
     });
   }, [node.textContent]);
 
-  const onDropdownCreate = (ref) => {};
+  const onDropdownCreate = (ref) => { };
 
   const isSingleLine = !node.textContent.includes('\n');
 
   return (
-    <NodeViewWrapper className={`docs-code-block relative ${isSingleLine ? 'single-line' : ''}`}>
-      <div className="docs-code-block-header absolute top-2 right-2 text-xs font-mono text-gray-500 z-10 flex items-center gap-1">
+    <NodeViewWrapper className={`editor-code-block relative ${isSingleLine ? 'single-line' : ''}`}>
+      <div className="editor-code-block-header absolute top-2 right-2 text-xs font-mono text-gray-500 z-10 flex items-center gap-1">
         {!isSingleLine && (
           <Dropdown
             onCreate={onDropdownCreate}
+            appendTo={() => document.body}
             icon={(
-              <div className="docs-code-block-lang-selector flex items-center gap-1 cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 px-2 py-1 rounded transition-colors duration-150">
+              <div className="editor-code-block-lang-selector flex items-center gap-1 cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 px-2 py-1 rounded transition-colors duration-150">
                 <span>{language}</span>
                 <IconChevronDown size={14} />
               </div>
             )}
             placement="bottom-end"
           >
-            <div
-              className={`dropdown-item ${language === 'auto' ? 'active' : ''} px-2 py-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700`}
-              data-language="auto"
-              onClick={setLanguage}
-            >
-              auto
-            </div>
-            {LANGUAGES.map((lang) => (
+            <div className="flex flex-col max-h-64 overflow-y-auto">
               <div
-                key={lang}
-                className={`dropdown-item ${language === lang ? 'active' : ''} px-2 py-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700`}
-                data-language={lang}
+                className={`dropdown-item ${language === 'auto' ? 'active' : ''} px-2 py-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700`}
+                data-language="auto"
                 onClick={setLanguage}
               >
-                {lang}
+                auto
               </div>
-            ))}
+              {LANGUAGES.map((lang) => (
+                <div
+                  key={lang}
+                  className={`dropdown-item ${language === lang ? 'active' : ''} px-2 py-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700`}
+                  data-language={lang}
+                  onClick={setLanguage}
+                >
+                  {lang}
+                </div>
+              ))}
+            </div>
           </Dropdown>
         )}
         <div
-          className="docs-code-block-copy flex items-center justify-center cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 p-1 rounded transition-colors duration-150"
+          className="editor-code-block-copy flex items-center justify-center cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 p-1 rounded transition-colors duration-150"
           onClick={handleCopy}
           title="Copy code"
         >
