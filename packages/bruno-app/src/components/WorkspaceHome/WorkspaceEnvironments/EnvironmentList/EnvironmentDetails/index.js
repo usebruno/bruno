@@ -1,5 +1,5 @@
 import { IconCopy, IconEdit, IconTrash, IconCheck, IconX, IconSearch, IconDeviceFloppy } from '@tabler/icons';
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { renameGlobalEnvironment, updateGlobalEnvironmentColor } from 'providers/ReduxStore/slices/global-environments';
 import { updateTabState } from 'providers/ReduxStore/slices/tabs';
@@ -11,7 +11,7 @@ import EnvironmentVariables from './EnvironmentVariables';
 import ColorPicker from 'components/ColorPicker';
 import ActionIcon from 'ui/ActionIcon';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-import { stripEnvVarUid } from 'utils/environments';
+import useEnvironmentTabs from 'hooks/useEnvironmentTabs';
 import StyledWrapper from './StyledWrapper';
 
 const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuery, setSearchQuery, isSearchExpanded, setIsSearchExpanded, debouncedSearchQuery, searchInputRef }) => {
@@ -28,40 +28,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
   const activeTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.environment?.tab) || 'variables';
   const setActiveTab = (tab) => dispatch(updateTabState({ uid: activeTabUid, tabState: { environment: { tab } } }));
 
-  // A tab shows an unsaved-changes dot when its slice of the environment draft differs from what's
-  // saved: Variables/Secrets compare their own (non-)secret variables.
-  const environmentsDraft = globalEnvironmentDraft?.environmentUid === environment?.uid ? globalEnvironmentDraft : null;
-
-  const tabs = useMemo(() => {
-    const variablesTabDirty = (isSecret) => {
-      if (!environmentsDraft?.variables) return false;
-      const belongsToTab = (v) => (isSecret ? !!v.secret : !v.secret);
-      const normalize = (list) => JSON.stringify((list || []).filter(belongsToTab).map(stripEnvVarUid));
-      return normalize(environmentsDraft.variables) !== normalize(environment?.variables);
-    };
-    // Count of named, enabled variables per tab, rendered exactly like the request pane's
-    // Headers/Params count; only its colour changes — it takes the draft colour when this tab has
-    // unsaved changes. Reflects the live draft while editing, else the saved values.
-    const liveVariables = environmentsDraft?.variables || environment?.variables || [];
-    const countForTab = (isSecret) =>
-      liveVariables.filter(
-        (v) => (isSecret ? !!v.secret : !v.secret) && v.enabled && v.name && v.name.trim() !== ''
-      ).length;
-    const tabIndicator = (isSecret) => {
-      const count = countForTab(isSecret);
-      if (count === 0) return null;
-      const dirty = variablesTabDirty(isSecret);
-      return (
-        <sup className={`env-tab-count font-medium${dirty ? ' unsaved' : ''}`} data-testid="env-tab-count">
-          {count}
-        </sup>
-      );
-    };
-    return [
-      { key: 'variables', label: 'Variables', indicator: tabIndicator(false) },
-      { key: 'secrets', label: 'Secrets', indicator: tabIndicator(true) }
-    ];
-  }, [environmentsDraft, environment?.variables]);
+  const tabs = useEnvironmentTabs({ environment, draft: globalEnvironmentDraft });
 
   // Use the immediate query on a tab switch (debounced value lags and briefly
   // flashes the unfiltered table).

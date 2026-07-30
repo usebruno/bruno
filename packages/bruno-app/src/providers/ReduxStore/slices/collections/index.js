@@ -419,6 +419,10 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.environments = filter(collection.environments, (e) => e.uid !== environment.uid);
+
+        if (collection.environmentsDraft?.environmentUid === environment.uid) {
+          collection.environmentsDraft = null;
+        }
       }
     },
     saveEnvironment: (state, action) => {

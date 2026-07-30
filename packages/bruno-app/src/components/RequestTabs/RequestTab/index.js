@@ -25,7 +25,7 @@ import NewRequest from 'components/Sidebar/NewRequest/index';
 import GradientCloseButton from './GradientCloseButton';
 import { flattenItems } from 'utils/collections/index';
 import { closeWsConnection } from 'utils/network/index';
-import { getInvalidVariableNames } from 'utils/common/variables';
+import { getInvalidVariableNames, invalidVariableNamesError, INVALID_VARIABLE_NAMES_ERROR_PREFIX } from 'utils/common/variables';
 import { DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
 import ExampleTab from '../ExampleTab';
 import toast from 'react-hot-toast';
@@ -254,8 +254,13 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     return false;
   }, { enabled: isActive, deps: [isActive, tab, hasChanges, item, collection, folder, globalEnvironmentDraft] });
 
-  const showSaveError = (err) =>
-    toast.error(err?.message === DUPLICATE_SECRET_NAMES_ERROR ? DUPLICATE_SECRET_NAMES_ERROR : 'An error occurred while saving the changes');
+  // Validation rejections name what the user has to fix, so they are surfaced verbatim; every other
+  // failure keeps the wording of the flow it came from.
+  const isValidationError = (err) =>
+    err?.message === DUPLICATE_SECRET_NAMES_ERROR || !!err?.message?.startsWith(INVALID_VARIABLE_NAMES_ERROR_PREFIX);
+
+  const saveErrorHandler = (fallbackMessage) => (err) =>
+    toast.error(isValidationError(err) ? err.message : fallbackMessage);
 
   // Save shortcut — tab-type-aware, only active for the focused tab
   useKeybinding('save', () => {
@@ -267,7 +272,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         } else {
           dispatch(saveEnvironment(variables, environmentUid, collection.uid))
             .then(() => toast.success('Changes saved successfully'))
-            .catch(showSaveError);
+            .catch(saveErrorHandler('Failed to save environment'));
         }
       }
     } else if (tab.type === 'global-environment-settings' || tab.type === 'workspaceEnvironments') {
@@ -278,7 +283,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         } else {
           dispatch(saveGlobalEnvironment({ variables, environmentUid }))
             .then(() => toast.success('Changes saved successfully'))
-            .catch(showSaveError);
+            .catch(saveErrorHandler('Failed to save global environment'));
         }
       }
     } else if (tab.type === 'folder-settings') {
@@ -430,7 +435,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
               } else if (draft?.environmentUid && draft?.variables) {
                 const invalidNames = getInvalidVariableNames(draft.variables);
                 if (invalidNames.length > 0) {
-                  toast.error(`Invalid variable name(s): ${invalidNames.join(', ')}`);
+                  toast.error(invalidVariableNamesError(invalidNames));
                   return;
                 }
                 dispatch(saveEnvironment(draft.variables, draft.environmentUid, collection.uid))
@@ -440,7 +445,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                     setShowConfirmEnvironmentClose(false);
                     toast.success('Environment saved');
                   })
-                  .catch(showSaveError);
+                  .catch(saveErrorHandler('Failed to save environment'));
               }
             }}
           />
@@ -478,7 +483,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
               } else if (draft?.environmentUid && draft?.variables) {
                 const invalidNames = getInvalidVariableNames(draft.variables);
                 if (invalidNames.length > 0) {
-                  toast.error(`Invalid variable name(s): ${invalidNames.join(', ')}`);
+                  toast.error(invalidVariableNamesError(invalidNames));
                   return;
                 }
                 dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }))
@@ -488,7 +493,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
                     setShowConfirmGlobalEnvironmentClose(false);
                     toast.success('Global environment saved');
                   })
-                  .catch(showSaveError);
+                  .catch(saveErrorHandler('Failed to save global environment'));
               }
             }}
           />

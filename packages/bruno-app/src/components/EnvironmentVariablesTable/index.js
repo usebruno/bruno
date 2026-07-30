@@ -474,7 +474,7 @@ const EnvironmentVariablesTable = ({
     const isDuplicateSecret = variable?.secret && !isEmptyRow && duplicateSecretNames.has(variable.name.trim());
     const error = meta.error || (isDuplicateSecret ? DUPLICATE_SECRET_NAME_FIELD_ERROR : null);
 
-    if (!error || (!meta.touched && !isDuplicateSecret)) {
+    if (!error) {
       return null;
     }
     return (

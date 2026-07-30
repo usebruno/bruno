@@ -11,6 +11,7 @@ const envLocators = (page: Page) => buildCommonLocators(page).environment;
 const DUPLICATE_SECRET_TOAST = 'Duplicate secret names are not allowed';
 const toastByMessage = (page: Page, message: string) => buildCommonLocators(page).toast.byMessage(message);
 const varErrors = (page: Page) => envLocators(page).varErrors();
+const varRowError = (page: Page, name: string) => envLocators(page).varRowError(name);
 const varNameInput = (page: Page, name: string) => envLocators(page).varRow(name).last().getByTestId('env-var-name-input');
 const varNameInputAt = (page: Page, name: string, index: number) =>
   envLocators(page).varRow(name).nth(index).getByTestId('env-var-name-input');
@@ -454,12 +455,12 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     });
 
     await test.step('Both colliding rows are flagged inline', async () => {
-      await expect(varErrors(page)).toHaveCount(2);
+      await expect(varRowError(page, 'apiToken')).toHaveCount(2);
     });
 
     await test.step('A third row with the same name flags all three', async () => {
       await fillNewRowName(page, 'apiToken');
-      await expect(varErrors(page)).toHaveCount(3);
+      await expect(varRowError(page, 'apiToken')).toHaveCount(3);
     });
 
     await test.step('Saving is blocked with a duplicate-name error', async () => {
@@ -469,7 +470,8 @@ test.describe('Environment Variables / Secrets tab separation', () => {
 
     await test.step('Renaming one twin away keeps the surviving collision flagged', async () => {
       await varNameInputAt(page, 'apiToken', 1).fill('apiTokenStaging');
-      await expect(varErrors(page)).toHaveCount(2);
+      await expect(varRowError(page, 'apiToken')).toHaveCount(2);
+      await expect(varRowError(page, 'apiTokenStaging')).toHaveCount(0);
     });
 
     await test.step('Renaming the rest to unique names clears the error and lets it save', async () => {
@@ -483,7 +485,7 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     // on a row Formik has not marked touched.
     await test.step('Renaming an existing key into a name a row below already holds flags both', async () => {
       await varNameInput(page, 'apiTokenStaging').fill('apiTokenBackup');
-      await expect(varErrors(page)).toHaveCount(2);
+      await expect(varRowError(page, 'apiTokenBackup')).toHaveCount(2);
     });
   });
 
@@ -511,7 +513,7 @@ test.describe('Environment Variables / Secrets tab separation', () => {
     });
 
     await test.step('Both rows are flagged without any interaction', async () => {
-      await expect(varErrors(page)).toHaveCount(2);
+      await expect(varRowError(page, 'apiToken')).toHaveCount(2);
     });
 
     // An untouched editor has nothing to save, so reach the save gate through an unrelated edit —
@@ -520,7 +522,8 @@ test.describe('Environment Variables / Secrets tab separation', () => {
       await addRowToActiveTab(page, 'apiTokenExtra', 'another-value');
       await saveEnvironment(page);
       await expect(toastByMessage(page, DUPLICATE_SECRET_TOAST)).toBeVisible();
-      await expect(varErrors(page)).toHaveCount(2);
+      await expect(varRowError(page, 'apiToken')).toHaveCount(2);
+      await expect(varRowError(page, 'apiTokenExtra')).toHaveCount(0);
     });
   });
 
@@ -963,12 +966,12 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     });
 
     await test.step('Both colliding rows are flagged inline', async () => {
-      await expect(varErrors(page)).toHaveCount(2);
+      await expect(varRowError(page, 'apiToken')).toHaveCount(2);
     });
 
     await test.step('A third row with the same name flags all three', async () => {
       await fillNewRowName(page, 'apiToken');
-      await expect(varErrors(page)).toHaveCount(3);
+      await expect(varRowError(page, 'apiToken')).toHaveCount(3);
     });
 
     await test.step('Saving is blocked with a duplicate-name error', async () => {
@@ -978,7 +981,8 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
 
     await test.step('Renaming one twin away keeps the surviving collision flagged', async () => {
       await varNameInputAt(page, 'apiToken', 1).fill('apiTokenStaging');
-      await expect(varErrors(page)).toHaveCount(2);
+      await expect(varRowError(page, 'apiToken')).toHaveCount(2);
+      await expect(varRowError(page, 'apiTokenStaging')).toHaveCount(0);
     });
 
     await test.step('Renaming the rest to unique names clears the error and lets it save', async () => {
@@ -992,7 +996,7 @@ test.describe('Global Environment Variables / Secrets tab separation', () => {
     // on a row Formik has not marked touched.
     await test.step('Renaming an existing key into a name a row below already holds flags both', async () => {
       await varNameInput(page, 'apiTokenStaging').fill('apiTokenBackup');
-      await expect(varErrors(page)).toHaveCount(2);
+      await expect(varRowError(page, 'apiTokenBackup')).toHaveCount(2);
     });
   });
 
