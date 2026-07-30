@@ -14,6 +14,7 @@ import StatusDot from 'components/StatusDot';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
 import { getPhasesByRequestType, REQUEST_TYPES } from '@usebruno/common';
+import { useMemo } from 'react';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
