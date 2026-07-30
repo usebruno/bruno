@@ -1,7 +1,5 @@
 // A header as stored in a request/collection/folder definition.
 type Header = { name?: string; value?: unknown; enabled?: boolean };
-// A resolved name/value pair (value may be non-string until toHeaderValue stringifies it).
-type HeaderEntry = { name?: string; value?: unknown };
 // A row ready for display: name + stringified value.
 type HeaderRow = { name: string; value: string };
 // The `root` of a collection/folder holds its request-level headers.
@@ -14,15 +12,9 @@ type TimelineEntry = { type?: string; message?: unknown };
 
 const norm = (name: unknown): string => String(name ?? '').trim().toLowerCase();
 
-// Normalize a headers collection (array of {name,value} or a plain name->value object) to a list.
-export const toEntries = (headers: Header[] | Record<string, unknown> | null | undefined): HeaderEntry[] => {
-  if (!headers) return [];
-  if (Array.isArray(headers)) return headers.map((h) => ({ name: h?.name, value: h?.value }));
-  return Object.entries(headers).map(([name, value]) => ({ name, value }));
-};
-
 // Header values are strings on the wire, but a script may set a non-string (req.setHeader('x', {...}))
-// — JSON-encode objects/arrays so the UI shows the value instead of "[object Object]".
+// and a response header may arrive as an array (set-cookie) or a number — JSON-encode objects/arrays
+// so the UI shows the value instead of "[object Object]" (React would throw on a raw object child).
 const toHeaderValue = (value: unknown): string => {
   if (value === null || value === undefined) return '';
   if (typeof value === 'string') return value;
@@ -36,6 +28,19 @@ const toHeaderValue = (value: unknown): string => {
   return String(value);
 };
 
+/**
+ * Normalize a headers collection (array of {name,value} or a plain name->value object) to display
+ * rows. Values are stringified here so every consumer can render them directly — callers must not
+ * have to know whether a value arrived as a string, a number, an array, or an object.
+ */
+export const toEntries = (headers: Header[] | Record<string, unknown> | null | undefined): HeaderRow[] => {
+  if (!headers) return [];
+  const list = Array.isArray(headers)
+    ? headers.map((h) => ({ name: h?.name, value: h?.value }))
+    : Object.entries(headers).map(([name, value]) => ({ name, value }));
+  return list.map(({ name, value }) => ({ name: name ?? '', value: toHeaderValue(value) }));
+};
+
 // Lowercased names of the enabled headers in a definition list.
 const enabledHeaderNames = (headers: Header[]): Set<string> => {
   const names = new Set<string>();
@@ -45,10 +50,20 @@ const enabledHeaderNames = (headers: Header[]): Set<string> => {
   return names;
 };
 
+// A requestHeader entry's message is "name: value"; null when it isn't a parseable header line.
+const splitHeaderMessage = (message: unknown): HeaderRow | null => {
+  if (typeof message !== 'string') return null;
+  const idx = message.indexOf(':');
+  if (idx === -1) return null;
+  const name = message.slice(0, idx).trim();
+  if (!name) return null;
+  return { name, value: message.slice(idx + 1).trim() };
+};
+
 // The transport-level "default" headers (Accept, User-Agent, Accept-Encoding, Host, Connection, …)
 // are added by the axios instance/adapter and never make it into the request definition. They exist
 // only as `requestHeader` entries in the network timeline (the same source the Network tab reads).
-const parseTimelineHeaders = (timeline: TimelineEntry[] | undefined): HeaderEntry[] => {
+const parseTimelineHeaders = (timeline: TimelineEntry[] | undefined): HeaderRow[] => {
   if (!Array.isArray(timeline)) return [];
   // A followed redirect accumulates every hop in one timeline (one 'request' marker per hop). The
   // headers that belong to the response being shown are the final hop's, so scan only from the last
@@ -62,15 +77,12 @@ const parseTimelineHeaders = (timeline: TimelineEntry[] | undefined): HeaderEntr
       break;
     }
   }
-  const out: HeaderEntry[] = [];
+  const out: HeaderRow[] = [];
   for (let i = hopStart; i < timeline.length; i++) {
     const entry = timeline[i];
-    if (entry?.type !== 'requestHeader' || typeof entry.message !== 'string') continue;
-    const idx = entry.message.indexOf(':');
-    if (idx === -1) continue;
-    const name = entry.message.slice(0, idx).trim();
-    if (!name) continue;
-    out.push({ name, value: entry.message.slice(idx + 1).trim() });
+    if (entry?.type !== 'requestHeader') continue;
+    const header = splitHeaderMessage(entry.message);
+    if (header) out.push(header);
   }
   return out;
 };
@@ -128,12 +140,11 @@ export const buildHeaderRows = ({
     request: [],
     script: []
   };
-  sentEntries.forEach((h) => {
-    const key = norm(h.name);
+  sentEntries.forEach((row) => {
+    const key = norm(row.name);
     if (!key) return;
     // Every sent occurrence gets a row: a header may legitimately be sent more than once, and the
     // Network tab lists each one, so collapsing here would make the two views disagree.
-    const row: HeaderRow = { name: h.name ?? '', value: toHeaderValue(h.value) };
     // A script setting a header wins over any definition it overrides, so it's checked first.
     if (scriptSetNames.has(key)) buckets.script.push(row);
     else if (requestNames.has(key)) buckets.request.push(row);
@@ -149,4 +160,81 @@ export const buildHeaderRows = ({
     ...buckets.request,
     ...buckets.script
   ];
+};
+
+type HeaderSourceContext = Parameters<typeof buildHeaderRows>[0];
+
+// Reorder one hop's requestHeader entries to buildHeaderRows' order. Entries of any other type keep
+// their position, so the surrounding trace (request line, TLS/proxy info, response) is untouched.
+const orderHopHeaders = (hop: TimelineEntry[], context: HeaderSourceContext): TimelineEntry[] => {
+  const slots: number[] = [];
+  hop.forEach((entry, i) => {
+    if (entry?.type === 'requestHeader') slots.push(i);
+  });
+  if (slots.length < 2) return hop;
+
+  // Ranked from this hop alone: hops of a redirect carry different headers, so a rank map built from
+  // one hop would sink another hop's unique headers (Content-Length dropped on a 302 -> GET) to its tail.
+  // A name sent more than once gets one rank per occurrence, in order, so the k-th occurrence on the
+  // wire lands on the k-th row of that name - duplicates keep their wire order instead of collapsing
+  // onto the first one's position.
+  const ranks = new Map<string, number[]>();
+  buildHeaderRows({ ...context, timeline: hop }).forEach((row, i) => {
+    const key = norm(row.name);
+    if (!key) return;
+    const queue = ranks.get(key);
+    if (queue) queue.push(i);
+    else ranks.set(key, [i]);
+  });
+
+  const nextRankOf = (entry: TimelineEntry): number => {
+    const header = splitHeaderMessage(entry?.message);
+    const queue = header ? ranks.get(norm(header.name)) : undefined;
+    // An unparseable line has no source; keep it after the ranked ones rather than dropping it.
+    if (!queue?.length) return Number.MAX_SAFE_INTEGER;
+    return queue.shift() as number;
+  };
+
+  // Ranks are claimed walking the hop in wire order, so this must map before it sorts.
+  const ordered = slots
+    .map((i) => ({ entry: hop[i], rank: nextRankOf(hop[i]) }))
+    .sort((a, b) => a.rank - b.rank)
+    .map((slot) => slot.entry);
+  const out = [...hop];
+  slots.forEach((slot, k) => {
+    out[slot] = ordered[k];
+  });
+  return out;
+};
+
+/**
+ * The network timeline with each hop's request headers reordered by source, matching what
+ * buildHeaderRows shows in the request-headers table.
+ *
+ * Serialization order interleaves the transport headers — axios puts Accept and User-Agent ahead of the
+ * definition headers while Node appends request-start-time, Accept-Encoding, Host and Connection after
+ * them — so a log in pure wire order splits that group and reads inconsistently with the table for the
+ * same request. The header *set* is unchanged; only the order within each hop's block moves.
+ *
+ * A followed redirect (or a digest/NTLM retry) accumulates every hop in one timeline, one 'request'
+ * marker per hop, and each hop is ordered independently so headers never move between hops.
+ */
+export const orderTimelineHeadersBySource = (
+  timeline: TimelineEntry[] | undefined,
+  context: HeaderSourceContext
+): TimelineEntry[] => {
+  if (!Array.isArray(timeline)) return [];
+
+  const out: TimelineEntry[] = [];
+  let hop: TimelineEntry[] = [];
+  const flushHop = () => {
+    if (hop.length) out.push(...orderHopHeaders(hop, context));
+    hop = [];
+  };
+  timeline.forEach((entry) => {
+    if (entry?.type === 'request') flushHop();
+    hop.push(entry);
+  });
+  flushHop();
+  return out;
 };

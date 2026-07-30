@@ -46,7 +46,8 @@ export {
 
 export {
   toEntries,
-  buildHeaderRows
+  buildHeaderRows,
+  orderTimelineHeadersBySource
 } from './headers-source';
 
 export {

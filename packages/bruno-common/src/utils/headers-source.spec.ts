@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { toEntries, buildHeaderRows } from './headers-source';
+import { toEntries, buildHeaderRows, orderTimelineHeadersBySource } from './headers-source';
 
 describe('toEntries', () => {
   it('returns an empty list for null/undefined', () => {
@@ -18,6 +18,21 @@ describe('toEntries', () => {
     expect(toEntries({ 'Accept': '*/*', 'X-A': '1' })).toEqual([
       { name: 'Accept', value: '*/*' },
       { name: 'X-A', value: '1' }
+    ]);
+  });
+
+  it('stringifies non-string values so consumers can render them directly', () => {
+    expect(toEntries({ 'set-cookie': ['a=1', 'b=2'], 'content-length': 42, 'x-obj': { a: 1 } })).toEqual([
+      { name: 'set-cookie', value: '["a=1","b=2"]' },
+      { name: 'content-length', value: '42' },
+      { name: 'x-obj', value: '{"a":1}' }
+    ]);
+  });
+
+  it('renders a null/undefined value as an empty string rather than "null"', () => {
+    expect(toEntries({ 'x-null': null, 'x-undef': undefined })).toEqual([
+      { name: 'x-null', value: '' },
+      { name: 'x-undef', value: '' }
     ]);
   });
 });
@@ -57,6 +72,50 @@ describe('buildHeaderRows', () => {
       'folder-header', // folder
       'request-header', // request
       'collection-script-header' // script
+    ]);
+  });
+
+  it('attributes a header to the script when the script overrides a definition', () => {
+    // The header is defined at collection, folder AND request level, and the script then overwrote
+    // it. Only the winning level should claim it, and the row carries the value that went on the wire.
+    const headers = [{ name: 'x-token', value: 'from-definition', enabled: true }];
+    const collection = { root: { request: { headers } } };
+    const request = { headers, scriptSetHeaders: ['x-token'] };
+    const item = { request };
+    const treePath = [{ type: 'folder', root: { request: { headers } } }, item];
+
+    const rows = buildHeaderRows({
+      collection,
+      item,
+      treePath,
+      request,
+      timeline: [{ type: 'request', message: 'GET /' }, reqHeader('x-token: from-script')]
+    });
+
+    expect(rows).toEqual([{ name: 'x-token', value: 'from-script' }]);
+  });
+
+  it('attributes a header to the request level when it also exists at folder and collection level', () => {
+    // Same precedence chain one step down: request beats folder beats collection.
+    const headers = [{ name: 'x-scope', value: 'v', enabled: true }];
+    const collection = { root: { request: { headers } } };
+    const request = { headers };
+    const item = { request };
+    const treePath = [{ type: 'folder', root: { request: { headers } } }, item];
+
+    const rows = buildHeaderRows({
+      collection,
+      item,
+      treePath,
+      request,
+      timeline: [{ type: 'request', message: 'GET /' }, reqHeader('x-scope: v'), reqHeader('accept: */*')]
+    });
+
+    // One row only, and it sorts after the transport default — i.e. it landed in the request bucket,
+    // not the collection or folder one.
+    expect(rows).toEqual([
+      { name: 'accept', value: '*/*' },
+      { name: 'x-scope', value: 'v' }
     ]);
   });
 
@@ -171,5 +230,147 @@ describe('buildHeaderRows', () => {
       expect(rows.some((r) => r.name === 'content-length')).toBe(false);
       expect(rows.map((r) => r.name)).toEqual(['accept', 'host']);
     });
+  });
+});
+
+/**
+ * The network log rendered by the Response pane's Timeline > Network tab and by the DevTools
+ * Console > Network > request-details Network tab. Both render this timeline directly, so ordering it
+ * here is what keeps them consistent with the request-headers table for the same request.
+ */
+describe('orderTimelineHeadersBySource', () => {
+  // The wire order Bruno actually produces: axios' Accept/User-Agent, then the definition headers,
+  // then the transport headers Node appends while serializing.
+  const wireOrderTimeline = [
+    { type: 'separator' },
+    { type: 'info', message: 'Preparing request to http://localhost:6000/x' },
+    { type: 'request', message: 'GET http://localhost:6000/x' },
+    reqHeader('Accept: application/json, text/plain, */*'),
+    reqHeader('User-Agent: bruno-runtime/2.0.0'),
+    reqHeader('collection-header-1: cv'),
+    reqHeader('folder-header-1: fv'),
+    reqHeader('request-header-1: rv'),
+    reqHeader('script-header-1: sv'),
+    reqHeader('request-start-time: 1785410976047'),
+    reqHeader('Accept-Encoding: gzip, compress, deflate, br'),
+    reqHeader('Host: localhost:6000'),
+    reqHeader('Connection: keep-alive'),
+    { type: 'response', message: 'HTTP/1.1 200 OK' }
+  ];
+
+  const definition = (name: string) => [{ name, value: 'v', enabled: true }];
+  const request = { headers: definition('request-header-1'), scriptSetHeaders: ['script-header-1'] };
+  const item = { request };
+  const context = {
+    collection: { root: { request: { headers: definition('collection-header-1') } } },
+    item,
+    treePath: [{ type: 'folder', root: { request: { headers: definition('folder-header-1') } } }, item],
+    request
+  };
+
+  const headerLines = (timeline: Array<{ type?: string; message?: unknown }>) =>
+    timeline.filter((e) => e.type === 'requestHeader').map((e) => e.message);
+
+  it('groups the transport defaults ahead of the definition headers they were serialized between', () => {
+    const ordered = orderTimelineHeadersBySource(wireOrderTimeline, context);
+
+    expect(headerLines(ordered)).toEqual([
+      // default (transport) — request-start-time/Accept-Encoding/Host/Connection are pulled up from
+      // after the definition headers, where the wire had them.
+      'Accept: application/json, text/plain, */*',
+      'User-Agent: bruno-runtime/2.0.0',
+      'request-start-time: 1785410976047',
+      'Accept-Encoding: gzip, compress, deflate, br',
+      'Host: localhost:6000',
+      'Connection: keep-alive',
+      'collection-header-1: cv',
+      'folder-header-1: fv',
+      'request-header-1: rv',
+      'script-header-1: sv'
+    ]);
+  });
+
+  it('orders the log the same way the request-headers table orders its rows', () => {
+    // The invariant the two views share: same names, same order, for the same request.
+    const ordered = orderTimelineHeadersBySource(wireOrderTimeline, context);
+    const rows = buildHeaderRows({ ...context, timeline: wireOrderTimeline });
+
+    const loggedNames = headerLines(ordered).map((line) => String(line).split(':')[0]);
+    expect(loggedNames).toEqual(rows.map((r) => r.name));
+  });
+
+  it('leaves every non-header entry in place', () => {
+    const ordered = orderTimelineHeadersBySource(wireOrderTimeline, context);
+
+    expect(ordered.map((entry) => entry.type)).toEqual(wireOrderTimeline.map((entry) => entry.type));
+    expect(ordered).toHaveLength(wireOrderTimeline.length);
+  });
+
+  it('keeps each hop of a redirect ordered by its own headers', () => {
+    // hop 1 sends Content-Length, hop 2 does not. Ranking both hops from the final hop would leave
+    // hop 1's content-length stranded at the end of its own block.
+    const timeline = [
+      { type: 'request', message: 'POST http://a.example/old' },
+      reqHeader('Content-Length: 12'),
+      reqHeader('collection-header-1: cv'),
+      reqHeader('Host: a.example'),
+      { type: 'response', message: 'HTTP/1.1 302 Found' },
+      { type: 'request', message: 'GET http://b.example/new' },
+      reqHeader('collection-header-1: cv'),
+      reqHeader('Host: b.example')
+    ];
+
+    const ordered = orderTimelineHeadersBySource(timeline, context);
+
+    expect(headerLines(ordered)).toEqual([
+      // hop 1: its own transport defaults first, then the collection header.
+      'Content-Length: 12',
+      'Host: a.example',
+      'collection-header-1: cv',
+      // hop 2: same grouping, its own Host value.
+      'Host: b.example',
+      'collection-header-1: cv'
+    ]);
+  });
+
+  it('keeps both occurrences of a header sent twice, in wire order', () => {
+    const timeline = [
+      { type: 'request', message: 'GET /' },
+      reqHeader('x-multi: first'),
+      reqHeader('Host: localhost'),
+      reqHeader('x-multi: second')
+    ];
+
+    const ordered = orderTimelineHeadersBySource(timeline, { collection: {}, item: {}, treePath: [], request: {} });
+
+    // All three are transport defaults here, so the block keeps wire order and neither x-multi is lost.
+    expect(headerLines(ordered)).toEqual(['x-multi: first', 'Host: localhost', 'x-multi: second']);
+  });
+
+  it('keeps an unparseable header line rather than dropping it', () => {
+    const timeline = [
+      { type: 'request', message: 'GET /' },
+      reqHeader('collection-header-1: cv'),
+      { type: 'requestHeader', message: 'malformed-no-colon' },
+      reqHeader('Host: localhost')
+    ];
+
+    const ordered = orderTimelineHeadersBySource(timeline, context);
+
+    // Host (default) leads, the collection header follows, and the unrankable line lands last.
+    expect(headerLines(ordered)).toEqual(['Host: localhost', 'collection-header-1: cv', 'malformed-no-colon']);
+  });
+
+  it('returns [] for a missing timeline and leaves a header-free timeline untouched', () => {
+    expect(orderTimelineHeadersBySource(undefined, context)).toEqual([]);
+
+    const noHeaders = [{ type: 'request', message: 'GET /' }, { type: 'response', message: 'HTTP/1.1 200 OK' }];
+    expect(orderTimelineHeadersBySource(noHeaders, context)).toEqual(noHeaders);
+  });
+
+  it('does not reorder a hop with a single header', () => {
+    const timeline = [{ type: 'request', message: 'GET /' }, reqHeader('Host: localhost')];
+
+    expect(orderTimelineHeadersBySource(timeline, context)).toEqual(timeline);
   });
 });
