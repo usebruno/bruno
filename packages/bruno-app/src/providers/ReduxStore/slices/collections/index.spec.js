@@ -4,6 +4,7 @@ const {
   setRequestVars,
   setFolderVars,
   setCollectionVars,
+  selectEnvironment,
   updateFile,
   wsResponseReceived
 } = collectionsSlice.actions;
@@ -32,6 +33,52 @@ const assertGuardedVars = (vars) => {
   expect(vars[2]).toMatchObject({ name: 'plain', value: 'hello' });
   expect(vars[2].dataType).toBeUndefined();
 };
+
+describe('selectEnvironment — isolates runtime variables by environment', () => {
+  const makeState = () => ({
+    collections: [
+      {
+        uid: 'col1',
+        activeEnvironmentUid: 'env-a',
+        environments: [
+          { uid: 'env-a', name: 'A' },
+          { uid: 'env-b', name: 'B' }
+        ],
+        runtimeVariables: { title: 'runtime-value' }
+      }
+    ]
+  });
+
+  it('clears runtime variables when the active environment changes', () => {
+    const next = reducer(
+      makeState(),
+      selectEnvironment({ collectionUid: 'col1', environmentUid: 'env-b' })
+    );
+
+    expect(next.collections[0].activeEnvironmentUid).toBe('env-b');
+    expect(next.collections[0].runtimeVariables).toEqual({});
+  });
+
+  it('keeps runtime variables when the active environment is selected again', () => {
+    const next = reducer(
+      makeState(),
+      selectEnvironment({ collectionUid: 'col1', environmentUid: 'env-a' })
+    );
+
+    expect(next.collections[0].activeEnvironmentUid).toBe('env-a');
+    expect(next.collections[0].runtimeVariables).toEqual({ title: 'runtime-value' });
+  });
+
+  it('clears runtime variables when no environment is selected', () => {
+    const next = reducer(
+      makeState(),
+      selectEnvironment({ collectionUid: 'col1', environmentUid: null })
+    );
+
+    expect(next.collections[0].activeEnvironmentUid).toBeNull();
+    expect(next.collections[0].runtimeVariables).toEqual({});
+  });
+});
 
 describe('setRequestVars — strips dataType: \'string\' (implicit default)', () => {
   it('drops a stray string-dataType on request vars and preserves typed datatypes', () => {

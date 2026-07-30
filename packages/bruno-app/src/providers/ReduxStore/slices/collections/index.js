@@ -407,6 +407,8 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
+        const previousEnvironmentUid = collection.activeEnvironmentUid || null;
+
         if (environmentUid) {
           const environment = findEnvironmentInCollection(collection, environmentUid);
 
@@ -416,6 +418,12 @@ export const collectionsSlice = createSlice({
         } else {
           collection.activeEnvironmentUid = null;
         }
+
+        const activeEnvironmentUid = collection.activeEnvironmentUid || null;
+        if (previousEnvironmentUid !== activeEnvironmentUid) {
+          collection.runtimeVariables = {};
+        }
+
         // Any explicit selection (including "No Environment") cancels a pending default
         // so a late-loading environment file can't re-apply the default over this choice.
         collection.pendingDefaultEnvironment = null;

@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, openCollection, sendRequest } from '../../utils/page';
+import { closeAllCollections, openCollection, selectEnvironment, sendRequest } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe.serial('Dynamic Variable Interpolation', () => {
@@ -42,5 +42,24 @@ test.describe.serial('Dynamic Variable Interpolation', () => {
     expect(actualTitle).toBeDefined();
     expect(typeof actualTitle).toBe('string');
     expect(actualTitle.length).toBeGreaterThan(0);
+  });
+
+  test('Runtime variables do not leak across collection environments', async ({ pageWithUserData: page }) => {
+    const locators = buildCommonLocators(page);
+    const responsePane = page.locator('.response-pane');
+
+    await openCollection(page, 'dynamic-variable-interpolation');
+    await selectEnvironment(page, 'A');
+
+    await locators.sidebar.request('set-var-dynamic-variable').click();
+    await sendRequest(page, 200);
+
+    await expect(responsePane).not.toContainText('"title": "environment-a"');
+
+    await selectEnvironment(page, 'B');
+    await locators.sidebar.request('read-environment-variable').click();
+    await sendRequest(page, 200);
+
+    await expect(responsePane).toContainText('"title": "environment-b"');
   });
 });
