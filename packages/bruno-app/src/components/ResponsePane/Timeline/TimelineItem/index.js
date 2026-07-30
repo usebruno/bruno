@@ -215,7 +215,7 @@ const TimelineItem = ({
               )}
               {showNetworkLogs && visitedTabs.network && (
                 <div style={{ display: activeTab === 'network' ? 'block' : 'none' }}>
-                  <Network logs={response?.timeline} />
+                  <Network logs={response?.timeline} request={request} item={item} collection={collection} />
                 </div>
               )}
             </div>

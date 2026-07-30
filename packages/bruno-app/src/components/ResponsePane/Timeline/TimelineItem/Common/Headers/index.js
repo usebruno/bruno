@@ -10,7 +10,7 @@ const HeaderTable = ({ entries, variant }) => {
         {entries.map((h, i) => (
           <tr key={i} data-testid={`tl-header-row-${variant}`}>
             <td className="tl-headers-key" data-testid={`tl-header-name-${variant}`}>{h.name}</td>
-            <td className="tl-headers-val" data-testid={`tl-header-value-${variant}`}>{String(h.value)}</td>
+            <td className="tl-headers-val" data-testid={`tl-header-value-${variant}`}>{h.value}</td>
           </tr>
         ))}
       </tbody>
@@ -23,7 +23,7 @@ const HeaderTable = ({ entries, variant }) => {
 // `headers` (response tab): a raw headers object/array.
 // `variant` ('request' | 'response') namespaces the test ids: the request and response tabs stay
 // mounted together (display toggled), so a shared test id would match both tables at once.
-const Headers = ({ headers, rows, variant = 'request' }) => {
+const Headers = ({ headers, rows, variant }) => {
   const [isOpen, setIsOpen] = useState(true);
   const entries = Array.isArray(rows) ? rows : toEntries(headers);
 

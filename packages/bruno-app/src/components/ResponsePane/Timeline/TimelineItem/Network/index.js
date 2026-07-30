@@ -1,15 +1,9 @@
+import { useOrderedTimeline } from 'hooks/useSentHeaderRows';
 import StyledWrapper from './StyledWrapper';
 
-// The network log is a wire trace: entries render in the order they were serialized, so it can be
-// compared line-for-line against a packet capture. Source grouping belongs to the Request tab's
-// header table, which reads the same timeline.
-//
-// The two describe different scopes on purpose. A request that took more than one hop — a followed
-// redirect, or a digest/NTLM auth retry — accumulates every hop here, while the Request tab shows
-// only the hop that produced the response being viewed. So this log is a superset for multi-hop
-// requests; the two agree hop-for-hop, not line-for-line.
-const Network = ({ logs }) => {
-  const entries = Array.isArray(logs) ? logs : [];
+const Network = ({ logs, request, collection, item }) => {
+  // Request headers render grouped by source, matching the request-headers table for the same request.
+  const entries = useOrderedTimeline({ collection, item, request, timeline: logs });
 
   return (
     <StyledWrapper>

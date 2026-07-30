@@ -54,7 +54,7 @@ const RequestTab = ({ request, response, item, collection }) => {
                 {headerRows.map((header, index) => (
                   <tr key={index} data-testid="request-details-header-row">
                     <td className="header-name" data-testid="request-details-header-name">{header.name}</td>
-                    <td className="header-value" data-testid="request-details-header-value">{String(header.value)}</td>
+                    <td className="header-value" data-testid="request-details-header-value">{header.value}</td>
                   </tr>
                 ))}
               </tbody>
@@ -132,7 +132,7 @@ const ResponseTab = ({ response, collection }) => {
   );
 };
 
-const NetworkTab = ({ response }) => {
+const NetworkTab = ({ response, request, item, collection }) => {
   const timeline = response?.timeline || [];
 
   return (
@@ -141,7 +141,7 @@ const NetworkTab = ({ response }) => {
         <h4>Network Logs</h4>
         <div className="network-logs-wrapper">
           {timeline.length > 0 ? (
-            <Network logs={timeline} />
+            <Network logs={timeline} request={request} item={item} collection={collection} />
           ) : (
             <div className="empty-state">No network logs available</div>
           )}
@@ -181,7 +181,7 @@ const RequestDetailsPanel = () => {
       case 'response':
         return <ResponseTab response={response} collection={collection} />;
       case 'network':
-        return <NetworkTab response={response} />;
+        return <NetworkTab response={response} request={request} item={item} collection={collection} />;
       default:
         return <RequestTab request={request} response={response} item={item} collection={collection} />;
     }
@@ -208,6 +208,7 @@ const RequestDetailsPanel = () => {
       <div className="panel-tabs">
         <button
           className={`tab-button ${activeTab === 'request' ? 'active' : ''}`}
+          data-testid="details-panel-tab"
           onClick={() => setActiveTab('request')}
         >
           <IconArrowRight size={14} strokeWidth={1.5} />
@@ -216,6 +217,7 @@ const RequestDetailsPanel = () => {
 
         <button
           className={`tab-button ${activeTab === 'response' ? 'active' : ''}`}
+          data-testid="details-panel-tab"
           onClick={() => setActiveTab('response')}
         >
           <IconFileText size={14} strokeWidth={1.5} />
@@ -224,6 +226,7 @@ const RequestDetailsPanel = () => {
 
         <button
           className={`tab-button ${activeTab === 'network' ? 'active' : ''}`}
+          data-testid="details-panel-tab"
           onClick={() => setActiveTab('network')}
         >
           <IconNetwork size={14} strokeWidth={1.5} />
