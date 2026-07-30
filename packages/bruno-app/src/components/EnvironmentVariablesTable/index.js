@@ -19,7 +19,12 @@ import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
-import { stripEnvVarUid } from 'utils/environments';
+import {
+  stripEnvVarUid,
+  getDuplicateSecretNames,
+  DUPLICATE_SECRET_NAMES_ERROR,
+  DUPLICATE_SECRET_NAME_FIELD_ERROR
+} from 'utils/environments';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 import { reconcileSavedChange } from './reconcile';
@@ -345,6 +350,7 @@ const EnvironmentVariablesTable = ({
     ),
     validate: (values) => {
       const errors = {};
+      const duplicateSecrets = getDuplicateSecretNames(values);
       values.forEach((variable, index) => {
         const isLastRow = index === values.length - 1;
         const isEmptyRow = !variable.name || variable.name.trim() === '';
@@ -360,6 +366,9 @@ const EnvironmentVariablesTable = ({
           if (!errors[index]) errors[index] = {};
           errors[index].name
             = 'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.';
+        } else if (variable.secret && duplicateSecrets.has(variable.name.trim())) {
+          if (!errors[index]) errors[index] = {};
+          errors[index].name = DUPLICATE_SECRET_NAME_FIELD_ERROR;
         }
       });
       return Object.keys(errors).length > 0 ? errors : {};
@@ -448,6 +457,8 @@ const EnvironmentVariablesTable = ({
     return () => clearTimeout(timeoutId);
   }, [formik.values, savedValuesJson, environment.uid, hasDraftForThisEnv, draft?.variables, onDraftChange, onDraftClear]);
 
+  const duplicateSecretNames = useMemo(() => getDuplicateSecretNames(formik.values), [formik.values]);
+
   const ErrorMessage = ({ name, index }) => {
     const meta = formik.getFieldMeta(name);
     const id = `error-${name}-${index}`;
@@ -460,13 +471,16 @@ const EnvironmentVariablesTable = ({
       return null;
     }
 
-    if (!meta.error || !meta.touched) {
+    const isDuplicateSecret = variable?.secret && !isEmptyRow && duplicateSecretNames.has(variable.name.trim());
+    const error = meta.error || (isDuplicateSecret ? DUPLICATE_SECRET_NAME_FIELD_ERROR : null);
+
+    if (!error) {
       return null;
     }
     return (
       <span>
-        <IconAlertCircle id={id} className="text-red-600 cursor-pointer" size={20} />
-        <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
+        <IconAlertCircle id={id} data-testid="env-var-name-error" className="text-red-600 cursor-pointer" size={20} />
+        <Tooltip className="tooltip-mod" anchorId={id} html={error} />
       </span>
     );
   };
@@ -515,6 +529,8 @@ const EnvironmentVariablesTable = ({
 
   const handleNameChange = (index, e) => {
     formik.handleChange(e);
+    // Touch the field as it changes so its validation icon surfaces while typing, not only after blur.
+    formik.setFieldTouched(`${index}.name`, true, false);
     const isLastRow = index === formik.values.length - 1;
 
     if (isLastRow) {
@@ -580,6 +596,11 @@ const EnvironmentVariablesTable = ({
 
     if (hasValidationErrors) {
       toast.error('Please fix validation errors before saving');
+      return;
+    }
+
+    if (getDuplicateSecretNames(activeCurrent).size > 0) {
+      toast.error(DUPLICATE_SECRET_NAMES_ERROR);
       return;
     }
 
@@ -688,6 +709,11 @@ const EnvironmentVariablesTable = ({
 
     if (hasValidationErrors) {
       toast.error('Please fix validation errors before saving');
+      return;
+    }
+
+    if (getDuplicateSecretNames(namedValues).size > 0) {
+      toast.error(DUPLICATE_SECRET_NAMES_ERROR);
       return;
     }
 
@@ -849,6 +875,7 @@ const EnvironmentVariablesTable = ({
                         className="mousetrap"
                         id={`${actualIndex}.name`}
                         name={`${actualIndex}.name`}
+                        data-testid="env-var-name-input"
                         value={variable.name}
                         placeholder={!variable.name || (typeof variable.name === 'string' && variable.name.trim() === '') ? 'Name' : ''}
                         onChange={(e) => handleNameChange(actualIndex, e)}

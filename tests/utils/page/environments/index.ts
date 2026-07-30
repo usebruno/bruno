@@ -30,6 +30,11 @@ export const buildEnvironmentLocators = (page: Page) => ({
     page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror-line').first(),
   varRowLine: (name: string) =>
     page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror-line').first(),
+  // Inline name-validation error icon(s) — within a named row, or across the whole editor.
+  varRowError: (name: string) => page.getByTestId(`env-var-row-${name}`).getByTestId('env-var-name-error'),
+  varErrors: () => page.getByTestId('env-var-name-error'),
+  // The trailing empty "add new variable" row's name input.
+  addRowNameInput: () => page.getByTestId('env-var-name-input').last(),
   addVariableButton: () => page.getByTestId('add-variable'),
   variableNameInput: (index: number) => page.locator(`input[name="${index}.name"]`),
   variableSecretCheckbox: (index: number) => page.locator(`input[name="${index}.secret"]`),
@@ -57,11 +62,9 @@ export const buildEnvironmentLocators = (page: Page) => ({
   // Variables and secrets each live on their own tab in the environment editor.
   variablesTab: () => page.getByTestId('responsive-tab-variables'),
   secretsTab: () => page.getByTestId('responsive-tab-secrets'),
-  // The per-tab unsaved-changes dot, scoped to its tab (the visible tab carries the
-  // responsive-tab testid; the hidden measurement copy does not, so this stays unique).
-  // The dot is always in the DOM and toggles via visibility, so assert with
-  // toBeVisible()/toBeHidden() rather than presence.
-  tabDot: (tab: string) => page.getByTestId(`responsive-tab-${tab}`).getByTestId('env-tab-draft-indicator'),
+  // Count badge on a tab ('variables' | 'secrets'); scoped to the visible tab so the hidden
+  // measurement copy (which carries no responsive-tab testid) is excluded.
+  tabCount: (tab: string) => page.getByTestId(`responsive-tab-${tab}`).getByTestId('env-tab-count'),
   saveTab: () => page.getByTestId('save-env'),
   saveAll: () => page.getByTestId('save-all-env'),
   searchInput: () => page.getByTestId('env-search-input'),
