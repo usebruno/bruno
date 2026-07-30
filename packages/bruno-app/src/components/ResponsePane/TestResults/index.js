@@ -10,7 +10,10 @@ import {
 } from '@tabler/icons';
 
 const ResultIcon = ({ status }) => (
-  <span className={`inline-flex items-center ${status === 'pass' ? 'test-success' : 'test-failure'}`}>
+  <span
+    data-testid={status === 'pass' ? 'test-result-icon-pass' : 'test-result-icon-fail'}
+    className={`inline-flex items-center ${status === 'pass' ? 'test-success' : 'test-failure'}`}
+  >
     {status === 'pass' ? (
       <IconCircleCheck size={14} className="mr-1" aria-label="Test passed" />
     ) : (
@@ -29,7 +32,7 @@ const ErrorMessage = ({ error }) => error && (
 );
 
 const ResultItem = ({ result, type }) => (
-  <div className="test-result-item">
+  <div className="test-result-item" data-testid="test-result-item">
     <ResultIcon status={result.status} />
     <span className={result.status === 'pass' ? 'test-success' : 'test-failure'}>
       {type === 'assertion'

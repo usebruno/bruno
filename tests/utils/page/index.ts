@@ -3,6 +3,7 @@ export * from './code-editor-search';
 export * from './file-mode';
 export * from './runner';
 export * from './locators';
+export * from './websocket';
 export * from './sidebar';
 export * from './workspace-overview';
 export * from './mounting';
