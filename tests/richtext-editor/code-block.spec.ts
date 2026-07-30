@@ -56,4 +56,40 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
     await expect(keywords).toHaveCount(2);
     await expect(keywords.first()).toContainText('const');
   });
+
+  test('Code Block Auto-detect on paste', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-code-paste');
+    const prosemirror = locators.docs.proseMirror();
+    await expect(prosemirror).toBeVisible();
+
+    await prosemirror.click();
+    await locators.docs.toolbarBtn('Code block').click();
+
+    // Paste a javascript snippet
+    const snippet = `async function fetchUsers() {
+        try {
+          const response = await fetch("https://jsonplaceholder.typicode.com/users");
+          const users = await response.json();
+          console.log(users);
+        } catch (error) {
+          console.error("Error:", error);
+        }
+      }
+
+      fetchUsers();`;
+
+    await page.evaluate(async (text) => {
+      await navigator.clipboard.writeText(text);
+    }, snippet);
+
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+    await page.keyboard.press(`${modifier}+V`);
+
+    // After paste, the code block becomes multi-line, so the language selector becomes visible
+    const langSelector = prosemirror.locator('.editor-code-block-lang-selector');
+    await expect(langSelector).toBeVisible();
+
+    // Verify language changed to javascript automatically
+    await expect(langSelector).toContainText('javascript', { timeout: 5000 });
+  });
 });

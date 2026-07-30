@@ -39,8 +39,8 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
         const text = preRef.current.textContent;
         if (!text) return;
         const result = lowlight.highlightAuto(text);
-        if (result.language && LANGUAGES.includes(result.language)) {
-          updateAttributes({ language: result.language });
+        if (result.data && result.data.language && LANGUAGES.includes(result.data.language)) {
+          updateAttributes({ language: result.data.language });
         }
       }
     }, 10);
@@ -61,7 +61,7 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
     });
   }, [node.textContent]);
 
-  const onDropdownCreate = (ref) => { };
+  const onDropdownCreate = (ref) => {};
 
   const isSingleLine = !node.textContent.includes('\n');
 
