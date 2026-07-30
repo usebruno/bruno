@@ -399,18 +399,11 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
       }
     }
 
-    if (updatedWorkspace?.pathname) {
-      const unopenableCollections = await ipcRenderer
-        .invoke('renderer:load-unopenable-workspace-collections', updatedWorkspace.pathname)
-        .catch((error) => {
-          console.warn('Could not determine which workspace collections are unopenable:', error);
-          return [];
-        });
+    const unopenableCollections = await dispatch(loadUnopenableWorkspaceCollections(workspace.uid));
 
-      unopenableCollections
-        .filter((collection) => collection?.path)
-        .forEach((collection) => unopenedCollectionPaths.add(normalizePath(collection.path)));
-    }
+    unopenableCollections
+      .filter((collection) => collection?.path)
+      .forEach((collection) => unopenedCollectionPaths.add(normalizePath(collection.path)));
 
     if (unopenedCollectionPaths.size > 0) {
       const unopenedCount = unopenedCollectionPaths.size;
@@ -775,9 +768,7 @@ export const loadWorkspaceCollections = (workspaceUid, force = false) => {
 
       let collections = [];
 
-      if (!workspace.pathname) {
-        collections = [];
-      } else {
+      if (workspace.pathname) {
         const rawCollections = await ipcRenderer.invoke('renderer:load-workspace-collections', workspace.pathname);
 
         collections = rawCollections.map((collection) => {
@@ -799,6 +790,26 @@ export const loadWorkspaceCollections = (workspaceUid, force = false) => {
       dispatch(updateWorkspaceLoadingState({ workspaceUid, loadingState: 'error' }));
       throw error;
     }
+  };
+};
+
+export const loadUnopenableWorkspaceCollections = (workspaceUid) => {
+  return async (dispatch, getState) => {
+    const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
+    if (!workspace?.pathname) {
+      return [];
+    }
+
+    const unopenableCollections = await ipcRenderer
+      .invoke('renderer:load-unopenable-workspace-collections', workspace.pathname)
+      .catch((error) => {
+        console.warn('Failed to identify which workspace collections cannot be opened', error);
+        return [];
+      });
+
+    dispatch(updateWorkspace({ uid: workspaceUid, unopenableCollections }));
+
+    return unopenableCollections;
   };
 };
 
@@ -954,6 +965,7 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
     if (activeWorkspaceUid === workspaceUid) {
       try {
         await dispatch(loadWorkspaceCollections(workspaceUid, true));
+        await dispatch(loadUnopenableWorkspaceCollections(workspaceUid));
 
         const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
         const openCollections = getState().collections.collections.map((c) => normalizePath(c.pathname));
