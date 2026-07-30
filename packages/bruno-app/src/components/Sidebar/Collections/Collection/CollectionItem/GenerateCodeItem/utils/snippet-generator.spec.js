@@ -1238,6 +1238,32 @@ describe('generateSnippet – encodeUrl setting', () => {
     expect(result).toBe(`curl -X GET 'http://localhost:6000/echo-request'`);
     expect(result).not.toContain('localhost%3A6000');
   });
+
+  it.each([false, true])('preserves a colon inside a path segment when encodeUrl is %s', async (encodeUrl) => {
+    const item = makeItem('http://localhost:6000/values:colon', { encodeUrl });
+
+    const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('http://localhost:6000/values:colon');
+    expect(result).not.toContain('%3A');
+  });
+
+  it('preserves a colon path segment alongside a declared path param', async () => {
+    const item = {
+      ...makeItem('http://localhost:6000/users/:userId/values:colon', { encodeUrl: true }),
+      request: {
+        method: 'GET',
+        url: 'http://localhost:6000/users/:userId/values:colon',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: [{ name: 'userId', value: '123', type: 'path', enabled: true }]
+      }
+    };
+
+    const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: true });
+    expect(result).toContain('/users/123/values:colon');
+    expect(result).not.toContain('%3A');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1404,6 +1430,57 @@ describe('generateSnippet – URL interpolation behavior', () => {
     expect(result).not.toContain(':userId');
   });
 
+  // A variable with no value behind it must not be treated differently from one that
+  // resolves: interpolation off renders the URL as typed either way. `validateTemplateUrl`
+  // is what lets this case reach the generator at all — see url-validation.spec.js.
+  it('should render an unresolved {{var}} when shouldInterpolate is false', async () => {
+    const item = {
+      uid: 'url-test-unresolved-host',
+      request: {
+        method: 'GET',
+        url: '{{missingHost}}/ping',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: []
+      }
+    };
+
+    const result = await generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).not.toBe('Error generating code snippet');
+    expect(result).toContain('{{missingHost}}/ping');
+  });
+
+  it('should render a mix of resolvable and unresolved variables when shouldInterpolate is false', async () => {
+    const item = {
+      uid: 'url-test-unresolved-segment',
+      request: {
+        method: 'GET',
+        url: '{{host}}/users/{{missingId}}',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: []
+      }
+    };
+
+    const result = await generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('{{host}}/users/{{missingId}}');
+    expect(result).not.toContain('%7B%7B');
+  });
+
   it('should preserve template URL when rawUrl is set and shouldInterpolate is false', async () => {
     const item = {
       uid: 'url-test-rawurl',
@@ -1498,6 +1575,55 @@ describe('generateSnippet – URL templates survive real httpsnippet targets', (
     expect(result).toContain('/users/:userId');
     expect(result).not.toContain('%3AuserId');
     expect(result).not.toContain('/users/123');
+  });
+
+  it('keeps a literal colon in a path segment (issue #8771)', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem('http://localhost:6000/values:colon'),
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('http://localhost:6000/values:colon');
+    expect(result).not.toContain('%3A');
+  });
+
+  // The URL gate only inspects the URL, so interpolation ON with an unresolved *header*
+  // variable does reach the generator — it has to render the `{{var}}` rather than throw.
+  it('renders an unresolved header {{var}} when interpolation is on', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: {
+        uid: 'real-snippet-unresolved-header',
+        request: {
+          method: 'GET',
+          url: '{{host}}/ping',
+          headers: [{ name: 'x-api-key', value: '{{missingKey}}', enabled: true }],
+          body: { mode: 'none' },
+          auth: { mode: 'none' },
+          params: []
+        }
+      },
+      collection: baseCollection,
+      shouldInterpolate: true
+    });
+
+    expect(result).not.toBe('Error generating code snippet');
+    expect(result).toContain('{{missingKey}}');
+    expect(result).toContain('https://api.example.com/ping');
+  });
+
+  it('renders an unresolved {{var}} rather than erroring when interpolation is off', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem('{{missingHost}}/ping'),
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).not.toBe('Error generating code snippet');
+    expect(result).toContain('{{missingHost}}/ping');
   });
 
   it('resolves variables and path params when shouldInterpolate is true', async () => {

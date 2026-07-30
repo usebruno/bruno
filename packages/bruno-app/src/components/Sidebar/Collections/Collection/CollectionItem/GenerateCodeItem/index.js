@@ -3,7 +3,6 @@ import { useMemo } from 'react';
 import CodeView from './CodeView';
 import CodeViewToolbar from './CodeViewToolbar';
 import StyledWrapper from './StyledWrapper';
-import { isValidUrl } from 'utils/url';
 import { get } from 'lodash';
 import {
   findEnvironmentInCollection
@@ -13,14 +12,7 @@ import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { resolveInheritedAuth } from 'utils/auth';
-
-const TEMPLATE_VAR_PATTERN = /\{\{([^}]+)\}\}/;
-
-const validateURLWithVars = (url) => {
-  const isValid = isValidUrl(url);
-  const hasMissingInterpolations = TEMPLATE_VAR_PATTERN.test(url);
-  return isValid && !hasMissingInterpolations;
-};
+import { validateInterpolatedUrl, validateTemplateUrl } from './utils/url-validation';
 
 const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exampleUid = null }) => {
   const languages = getLanguages();
@@ -91,11 +83,14 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
     url: requestData.url,
     variables
   }) || '';
-  const validationUrl = interpolateUrlPathParams(
-    interpolatedUrl,
-    requestData.params,
-    variables
-  );
+
+  // Judge the URL the snippet will actually show: the resolved one when interpolation is on,
+  // the URL as typed when it is off.
+  const { shouldInterpolate } = generateCodePrefs;
+  const validationUrl = shouldInterpolate
+    ? interpolateUrlPathParams(interpolatedUrl, requestData.params, variables)
+    : requestData.url;
+  const isUrlValid = shouldInterpolate ? validateInterpolatedUrl(validationUrl) : validateTemplateUrl(validationUrl);
 
   // Get the full language object based on current preferences
   const selectedLanguage = useMemo(() => {
@@ -130,7 +125,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
           <CodeViewToolbar />
 
           <div className="editor-container">
-            {validateURLWithVars(validationUrl) ? (
+            {isUrlValid ? (
               <CodeView
                 language={selectedLanguage}
                 item={finalItem}

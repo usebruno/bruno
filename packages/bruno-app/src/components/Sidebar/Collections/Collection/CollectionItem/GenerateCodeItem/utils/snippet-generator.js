@@ -1,9 +1,9 @@
 import { buildHar } from '@usebruno/common';
-import { DEFAULT_SCHEME, hasExplicitScheme, stripOrigin } from '@usebruno/common/utils';
+import { stripOrigin } from '@usebruno/common/utils';
 import { getAllVariables, getTreePathFromCollectionToItem, mergeHeaders } from 'utils/collections/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { get } from 'lodash';
-import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
+import { interpolateUrl, interpolateUrlPathParams, prependDefaultScheme } from 'utils/url/index';
 import { parse } from 'url';
 import { stringify } from 'query-string';
 
@@ -30,19 +30,6 @@ const addCurlAuthFlags = (curlCommand, auth) => {
   }
 
   return curlCommand;
-};
-
-// `localhost:6000/x` needs to become `http://localhost:6000/x`: buildHar rejects a URL with no
-// scheme, and `http` is what the request would actually use.
-const prependDefaultScheme = (url) => {
-  // No URL to work with — let buildHar report it rather than inventing one here.
-  if (!url) return url;
-
-  if (hasExplicitScheme(url)) return url;
-
-  if (url.startsWith('{{')) return url;
-
-  return `${DEFAULT_SCHEME}${url}`;
 };
 
 const generateSnippet = async ({ language, item, collection, shouldInterpolate = false }) => {
