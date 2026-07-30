@@ -20,5 +20,12 @@ export const buildDocsLocators = (page: Page) => ({
   collectionDocsSaveBtn: () => page.locator('.collection-settings-content').getByRole('button', { name: 'Save', exact: true }),
   collectionDocsCancelBtn: () => page.locator('.collection-settings-content').getByRole('button', { name: 'Cancel', exact: true }),
   folderDocsEditToggle: () => page.locator('.folder-settings-content .editing-mode'),
-  folderDocsSaveBtn: () => page.locator('.folder-settings-content').getByRole('button', { name: 'Save', exact: true })
+  folderDocsSaveBtn: () => page.locator('.folder-settings-content').getByRole('button', { name: 'Save', exact: true }),
+  // Code block locators
+  codeBlockPre: () => page.getByTestId('code-block-pre'),
+  codeBlockLangSelector: () => page.getByTestId('code-block-lang-selector'),
+  codeBlockLangOption: (language: string) => page.getByTestId('code-block-lang-option').filter({ hasAttribute: 'data-language', hasText: language }).or(page.getByTestId('code-block-lang-option').filter({ hasAttribute: 'data-language', has: page.locator(`[data-language="${language}"]`) })),
+  codeBlockCopyBtn: () => page.getByTestId('code-block-copy-btn'),
+  codeBlockContent: () => page.locator('[data-testid="code-block-pre"] code'),
+  codeBlockSyntaxHighlight: (className: string) => page.locator(`[data-testid="code-block-pre"] code .${className}`)
 });

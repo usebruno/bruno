@@ -7,9 +7,9 @@ import { lowlight } from 'lowlight';
 // Mock Tiptap components
 jest.mock('@tiptap/react', () => ({
   NodeViewWrapper: ({ children, className }) => <div data-testid="node-view-wrapper" className={className}>{children}</div>,
-  NodeViewContent: ({ as }) => {
+  NodeViewContent: ({ as, children }) => {
     const Tag = as || 'div';
-    return <Tag data-testid="node-view-content" />;
+    return <Tag data-testid="node-view-content">{children}</Tag>;
   }
 }));
 
@@ -27,14 +27,21 @@ jest.mock('lowlight', () => ({
 
 describe('EditorCodeBlock', () => {
   let updateAttributesMock;
+  let preElement;
 
   beforeEach(() => {
     updateAttributesMock = jest.fn();
     lowlight.highlightAuto.mockReset();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   const renderComponent = (nodeProps) => {
-    return render(
+    const result = render(
       <EditorCodeBlock
         node={{
           attrs: { language: 'auto' },
@@ -45,73 +52,78 @@ describe('EditorCodeBlock', () => {
         extension={{}}
       />
     );
+    preElement = result.container.querySelector('pre');
+    return result;
   };
 
-  it('should auto-detect language on paste (large text content jump)', () => {
-    lowlight.highlightAuto.mockReturnValue({ language: 'javascript' });
+  const dispatchPasteEvent = (textContent = '') => {
+    // Set textContent on the pre element before dispatching paste
+    if (preElement) {
+      preElement.textContent = textContent;
+    }
+    const pasteEvent = new Event('paste', { bubbles: true });
+    preElement.dispatchEvent(pasteEvent);
+    jest.advanceTimersByTime(10);
+  };
 
-    const { rerender } = renderComponent({
-      attrs: { language: null }, // 'auto'
-      textContent: 'short'
+  it('should auto-detect language on paste with code content', () => {
+    lowlight.highlightAuto.mockReturnValue({ data: { language: 'javascript' } });
+
+    const codeContent = 'const a = 1;\nconsole.log(a);';
+    renderComponent({
+      attrs: { language: null },
+      textContent: codeContent
     });
 
-    expect(updateAttributesMock).not.toHaveBeenCalled();
+    dispatchPasteEvent(codeContent);
 
-    // Simulate a paste by jumping the text content length by > 5
-    rerender(
-      <EditorCodeBlock
-        node={{
-          attrs: { language: null },
-          textContent: 'short\nconst a = 1;\nconsole.log(a);' // +27 chars
-        }}
-        updateAttributes={updateAttributesMock}
-        extension={{}}
-      />
-    );
-
-    expect(lowlight.highlightAuto).toHaveBeenCalledWith('short\nconst a = 1;\nconsole.log(a);');
+    expect(lowlight.highlightAuto).toHaveBeenCalledWith(codeContent);
     expect(updateAttributesMock).toHaveBeenCalledWith({ language: 'javascript' });
   });
 
-  it('should not auto-detect language if length jump is small (typing)', () => {
-    const { rerender } = renderComponent({
-      attrs: { language: null },
-      textContent: 'short'
+  it('should call highlightAuto on paste even when language is already set', () => {
+    lowlight.highlightAuto.mockReturnValue({ data: { language: 'python' } });
+
+    const codeContent = 'def foo(): pass';
+    renderComponent({
+      attrs: { language: 'python' },
+      textContent: codeContent
     });
 
-    rerender(
-      <EditorCodeBlock
-        node={{
-          attrs: { language: null },
-          textContent: 'shorta' // +1 char
-        }}
-        updateAttributes={updateAttributesMock}
-        extension={{}}
-      />
-    );
+    dispatchPasteEvent(codeContent);
 
-    expect(lowlight.highlightAuto).not.toHaveBeenCalled();
+    // Should call highlightAuto on paste and update attributes if detected language is in list
+    expect(lowlight.highlightAuto).toHaveBeenCalledWith(codeContent);
+    expect(updateAttributesMock).toHaveBeenCalledWith({ language: 'python' });
+  });
+
+  it('should not update language if detected language is not in LANGUAGES list', () => {
+    lowlight.highlightAuto.mockReturnValue({ data: { language: 'unknown-lang' } });
+
+    const codeContent = 'some code';
+    renderComponent({
+      attrs: { language: null },
+      textContent: codeContent
+    });
+
+    dispatchPasteEvent(codeContent);
+
+    expect(lowlight.highlightAuto).toHaveBeenCalledWith(codeContent);
     expect(updateAttributesMock).not.toHaveBeenCalled();
   });
 
-  it('should not auto-detect language if language is already explicitly set', () => {
-    const { rerender } = renderComponent({
-      attrs: { language: 'python' },
-      textContent: 'short'
+  it('should not update language if highlightAuto returns no language', () => {
+    lowlight.highlightAuto.mockReturnValue({ data: {} });
+
+    const codeContent = 'some code';
+    renderComponent({
+      attrs: { language: null },
+      textContent: codeContent
     });
 
-    rerender(
-      <EditorCodeBlock
-        node={{
-          attrs: { language: 'python' },
-          textContent: 'short\ndef foo(): pass' // large jump
-        }}
-        updateAttributes={updateAttributesMock}
-        extension={{}}
-      />
-    );
+    dispatchPasteEvent(codeContent);
 
-    expect(lowlight.highlightAuto).not.toHaveBeenCalled();
+    expect(lowlight.highlightAuto).toHaveBeenCalledWith(codeContent);
     expect(updateAttributesMock).not.toHaveBeenCalled();
   });
 });

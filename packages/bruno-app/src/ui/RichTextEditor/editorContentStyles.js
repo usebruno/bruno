@@ -333,6 +333,5 @@ const editorContentStyles = css`
   .hljs-deletion {
     color: ${(props) => props.theme.codemirror.tokens.tag};
   }
-    
 `;
 export default editorContentStyles;

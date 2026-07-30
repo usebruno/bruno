@@ -61,8 +61,6 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
     });
   }, [node.textContent]);
 
-  const onDropdownCreate = (ref) => {};
-
   const isSingleLine = !node.textContent.includes('\n');
 
   return (
@@ -70,10 +68,12 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
       <div className="editor-code-block-header absolute top-2 right-2 text-xs font-mono text-gray-500 z-10 flex items-center gap-1">
         {!isSingleLine && (
           <Dropdown
-            onCreate={onDropdownCreate}
             appendTo={() => document.body}
             icon={(
-              <div className="editor-code-block-lang-selector flex items-center gap-1 cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 px-2 py-1 rounded transition-colors duration-150">
+              <div
+                className="editor-code-block-lang-selector flex items-center gap-1 cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 px-2 py-1 rounded transition-colors duration-150"
+                data-testid="code-block-lang-selector"
+              >
                 <span>{language}</span>
                 <IconChevronDown size={14} />
               </div>
@@ -84,6 +84,7 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
               <div
                 className={`dropdown-item ${language === 'auto' ? 'active' : ''} px-2 py-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700`}
                 data-language="auto"
+                data-testid="code-block-lang-option"
                 onClick={setLanguage}
               >
                 auto
@@ -93,6 +94,7 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
                   key={lang}
                   className={`dropdown-item ${language === lang ? 'active' : ''} px-2 py-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700`}
                   data-language={lang}
+                  data-testid="code-block-lang-option"
                   onClick={setLanguage}
                 >
                   {lang}
@@ -103,13 +105,14 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
         )}
         <div
           className="editor-code-block-copy flex items-center justify-center cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 p-1 rounded transition-colors duration-150"
+          data-testid="code-block-copy-btn"
           onClick={handleCopy}
           title="Copy code"
         >
           {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
         </div>
       </div>
-      <pre ref={preRef} onPaste={handlePaste}>
+      <pre ref={preRef} onPaste={handlePaste} data-testid="code-block-pre">
         <NodeViewContent as="code" />
       </pre>
     </NodeViewWrapper>
