@@ -29,7 +29,10 @@ import HeightBoundContainer from 'ui/HeightBoundContainer';
 import Settings from 'components/RequestPane/Settings';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import AuthMode from '../Auth/AuthMode/index';
+import TabBarAiAssist from '../TabBarAiAssist';
 import StatusDot from 'components/StatusDot';
+
+const AI_TABS = ['script', 'tests', 'docs'];
 
 const TAB_CONFIG = [
   { key: 'query', label: 'Query' },
@@ -331,6 +334,10 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
           <IconDots size={16} strokeWidth={1.5} />
         </ActionIcon>
       </MenuDropdown>
+    </div>
+  ) : AI_TABS.includes(requestPaneTab) ? (
+    <div ref={schemaActionsRef} className="flex items-center">
+      <TabBarAiAssist item={item} collection={collection} activeTab={requestPaneTab} />
     </div>
   ) : null;
 

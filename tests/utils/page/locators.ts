@@ -10,8 +10,12 @@ import { buildDeleteCollectionItemModalLocators } from './collection/delete-coll
 import { buildWebsocketCommonLocators } from './websocket';
 import { buildToastLocators } from './toast';
 import { buildRequestLocators } from '../request';
+import { buildWorkspaceOverviewLocators } from './workspace-overview';
+import { buildCollectionHeaderLocators } from './collection/collection-header';
+import { buildEnvironmentLocators } from './environments';
 
 export const buildCommonLocators = (page: Page) => ({
+  collectionHeader: buildCollectionHeaderLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
   codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
@@ -28,7 +32,9 @@ export const buildCommonLocators = (page: Page) => ({
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
+  workspaceOverview: buildWorkspaceOverviewLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
+  environment: buildEnvironmentLocators(page),
   actions: {
     collectionActions: (collectionName: string) =>
       page.getByTestId('collections').locator('.collection-name')
@@ -58,6 +64,16 @@ export const buildCommonLocators = (page: Page) => ({
     folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
     tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`)
+  },
+  aiAssist: {
+    trigger: (scriptType: string) => page.getByTestId(`ai-assist-trigger-${scriptType}`),
+    requestPaneTabBarTrigger: (scriptType: string) =>
+      page.locator('[data-testid="request-pane"] [role="tablist"]').getByTestId(`ai-assist-trigger-${scriptType}`),
+    settingsTabBarTrigger: (scriptType: string) =>
+      page.getByTestId('settings-tab-bar').getByTestId(`ai-assist-trigger-${scriptType}`)
+  },
+  documentation: {
+    editToggle: () => page.locator('.editing-mode')
   },
   folder: {
     chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
@@ -258,7 +274,11 @@ export const buildCommonLocators = (page: Page) => ({
   },
   response: {
     statusCode: () => page.getByTestId('response-status-code'),
+    // Rendered by every response pane (http, grpc, ws) only while a response exists, so its
+    // absence doubles as the "response is cleared" signal.
+    clearButton: () => page.getByTestId('response-clear-btn'),
     pane: () => page.locator('.response-pane'),
+    errorMessage: () => page.getByTestId('response-pane').locator('.error'),
     copyButton: () => page.locator('button[title="Copy response to clipboard"]'),
     body: () => page.locator('.response-pane'),
     editorContainer: () => page.locator('.response-pane .editor-container'),
@@ -270,7 +290,14 @@ export const buildCommonLocators = (page: Page) => ({
     jsonTreeLine: () => page.locator('.response-pane .object-content'),
     // Tests-tab summary line ("Tests (N), Passed: X, Failed: Y") and failure rows.
     testSummary: () => page.locator('.test-summary').filter({ hasText: 'Tests' }),
-    testFailures: () => page.locator('.test-result-item .test-failure')
+    // Match the fail icon (one per row) rather than a class shared by both the icon and
+    // label spans, so each failure counts once, not twice.
+    testFailures: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-fail') }),
+    assertionResults: {
+      rows: () => page.getByTestId('test-result-item'),
+      passed: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-pass') }),
+      failed: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-fail') })
+    }
   },
   timeline: {
     items: () => page.getByTestId('timeline-item'),
