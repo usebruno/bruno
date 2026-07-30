@@ -10,7 +10,9 @@ import {
   createBrunoExample,
   groupRequestsByTags,
   groupRequestsByPath,
-  normalizeItemName
+  normalizeItemName,
+  getTagDescriptions,
+  toSpecString
 } from './openapi-common';
 
 const getContentLevelExample = (bodyContent) => {
@@ -162,7 +164,7 @@ const getParameterEntries = (param) => {
 const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {}) => {
   let _operationObject = request.operationObject;
 
-  let operationName = _operationObject.summary || _operationObject.operationId || _operationObject.description;
+  let operationName = _operationObject.summary || _operationObject.operationId || toSpecString(_operationObject.description);
   operationName = operationName ? normalizeItemName(operationName) : '';
   if (!operationName) {
     operationName = `${request.method} ${request.path}`;
@@ -196,7 +198,7 @@ const transformOpenapiRequestItem = (request, usedNames = new Set(), options = {
     },
     tags: sanitizeTags(request.operationObject.tags || [], options),
     request: {
-      docs: _operationObject.description,
+      docs: toSpecString(_operationObject.description),
       url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
@@ -908,8 +910,9 @@ export const parseOpenApiCollection = (data, options = {}) => {
     } else {
       // Default tag-based grouping
       let [groups, ungroupedRequests] = groupRequestsByTags(allRequests, options);
+      const tagDescriptions = getTagDescriptions(collectionData.tags, options);
       let brunoFolders = groups.map((group) => {
-        return {
+        const folder = {
           uid: uuid(),
           name: group.name,
           type: 'folder',
@@ -930,6 +933,11 @@ export const parseOpenApiCollection = (data, options = {}) => {
           },
           items: group.requests.map((req) => transformOpenapiRequestItem(req, usedNames, options))
         };
+        const docs = tagDescriptions[group.name];
+        if (docs) {
+          folder.root.docs = docs;
+        }
+        return folder;
       });
 
       let ungroupedItems = ungroupedRequests.map((req) => transformOpenapiRequestItem(req, usedNames, options));
@@ -1030,7 +1038,8 @@ export const parseOpenApiCollection = (data, options = {}) => {
       },
       meta: {
         name: brunoCollection.name
-      }
+      },
+      docs: toSpecString(collectionData.info?.description)
     };
 
     return brunoCollection;
