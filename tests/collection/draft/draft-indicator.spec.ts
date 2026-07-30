@@ -128,8 +128,8 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
     await addCertModal.locator('#domain').fill('test.com');
 
     // The file inputs are hidden; the visible "Choose file" button next to each one opens the picker
-    const chooseFileButton = (inputId: string) =>
-      addCertModal.locator(`div:has(> input#${inputId})`).getByRole('button', { name: 'Choose file' });
+    const chooseFileButton = (field: string) => addCertModal.getByTestId(`choose-file-${field}`);
+    const fileChip = (field: string) => addCertModal.getByTestId(`file-chip-${field}`);
 
     // Select cert file using file picker (using grpcbin.proto as a dummy file)
     const certFileChooserPromise = page.waitForEvent('filechooser');
@@ -144,7 +144,8 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
     await keyFileChooser.setFiles('./tests/collection/draft/fixtures/grpcbin.proto');
 
     // Both file paths must land in the form before submitting, else validation blocks the add
-    await expect(addCertModal.locator('.file-chip').filter({ hasText: 'grpcbin.proto' })).toHaveCount(2);
+    await expect(fileChip('certFilePath')).toHaveText(/grpcbin\.proto/);
+    await expect(fileChip('keyFilePath')).toHaveText(/grpcbin\.proto/);
 
     // Add the certificate
     await page.getByTestId('add-client-cert-modal-submit-btn').click();
