@@ -1,6 +1,8 @@
 import { saveRequest, saveCollectionSettings, saveFolderRoot, saveFile, saveEnvironment } from '../../slices/collections/actions';
 import { saveGlobalEnvironment } from '../../slices/global-environments';
 import { flattenItems, isItemARequest, isItemAFolder, findItemInCollection, findCollectionByUid, isItemTransientRequest } from 'utils/collections';
+import { isEnvironmentValidationError } from 'utils/environments';
+import toast from 'react-hot-toast';
 
 const actionsToIntercept = [
   // Request-level actions
@@ -64,6 +66,7 @@ const actionsToIntercept = [
   'collections/updateFolderVar',
   'collections/deleteFolderVar',
   'collections/setFolderVars',
+  'collections/moveFolderVar',
   'collections/updateFolderRequestScript',
   'collections/updateFolderResponseScript',
   'collections/updateFolderTests',
@@ -80,6 +83,7 @@ const actionsToIntercept = [
   'collections/updateCollectionVar',
   'collections/deleteCollectionVar',
   'collections/setCollectionVars',
+  'collections/moveCollectionVar',
   'collections/updateCollectionAuth',
   'collections/updateCollectionAuthMode',
   'collections/updateCollectionRequestScript',
@@ -97,6 +101,12 @@ const actionsToIntercept = [
 
 // Simple object to track pending save timers
 const pendingTimers = {};
+
+// Auto-save runs unattended, so a rejected save has nowhere to surface — the user would keep
+// editing believing their changes are on disk. A fixed toast id replaces the previous notice
+// instead of stacking one per debounce tick while the draft stays unsaveable.
+const reportAutoSaveError = (err) =>
+  toast.error(isEnvironmentValidationError(err) ? err.message : 'Auto-save failed', { id: 'autosave-error' });
 
 // Helper to schedule autosave for an item
 const scheduleAutoSave = (key, save, interval) => {
@@ -127,7 +137,11 @@ const saveExistingDrafts = (dispatch, getState, interval) => {
       const { environmentUid, variables } = collection.environmentsDraft;
       if (environmentUid && variables) {
         const key = `environment-${collection.uid}-${environmentUid}`;
-        scheduleAutoSave(key, () => dispatch(saveEnvironment(variables, environmentUid, collection.uid)), interval);
+        scheduleAutoSave(
+          key,
+          () => dispatch(saveEnvironment(variables, environmentUid, collection.uid)).catch(reportAutoSaveError),
+          interval
+        );
       }
     }
 
@@ -164,7 +178,11 @@ const saveExistingDrafts = (dispatch, getState, interval) => {
     const { environmentUid, variables } = globalEnvironmentDraft;
     if (environmentUid && variables) {
       const key = `global-environment-${environmentUid}`;
-      scheduleAutoSave(key, () => dispatch(saveGlobalEnvironment({ variables, environmentUid })), interval);
+      scheduleAutoSave(
+        key,
+        () => dispatch(saveGlobalEnvironment({ variables, environmentUid })).catch(reportAutoSaveError),
+        interval
+      );
     }
   }
 };
@@ -183,7 +201,7 @@ const determineSaveHandler = (actionType, payload, dispatch, getState) => {
         const collection = state.collections.collections.find((c) => c.uid === collectionUid);
         const draft = collection?.environmentsDraft;
         if (draft?.environmentUid === environmentUid && draft?.variables) {
-          dispatch(saveEnvironment(draft.variables, environmentUid, collectionUid));
+          dispatch(saveEnvironment(draft.variables, environmentUid, collectionUid)).catch(reportAutoSaveError);
         }
       }
     };
@@ -197,7 +215,7 @@ const determineSaveHandler = (actionType, payload, dispatch, getState) => {
         const state = getState();
         const draft = state.globalEnvironments?.globalEnvironmentDraft;
         if (draft?.environmentUid === environmentUid && draft?.variables) {
-          dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid }));
+          dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid })).catch(reportAutoSaveError);
         }
       }
     };

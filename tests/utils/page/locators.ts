@@ -1,5 +1,6 @@
 import { Locator, Page } from '../../../playwright';
 import { buildApiSpecPanelLocators } from './openapi/render-spec';
+import { buildMockServerLocators } from './mock-server';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
@@ -8,11 +9,12 @@ import { buildDevToolsLocators } from './devtools-console';
 import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
+import { buildDocsLocators } from './docs';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
 import { buildWebsocketCommonLocators } from './websocket';
+import { buildToastLocators } from './toast';
 import { buildRequestLocators } from '../request';
-import { buildWorkspaceOverviewLocators } from './workspace-overview';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildEnvironmentLocators } from './environments';
 
@@ -30,12 +32,12 @@ export const buildCommonLocators = (page: Page) => ({
   ai: buildAiPreferencesLocators(page),
   requestSettings: buildRequestSettingsLocators(page),
   websocket: buildWebsocketCommonLocators(page),
+  toast: buildToastLocators(page),
   request: buildRequestLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
-  workspaceOverview: buildWorkspaceOverviewLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),
@@ -54,6 +56,7 @@ export const buildCommonLocators = (page: Page) => ({
     tippyItem: (text: string) => page.locator('.tippy-box .dropdown-item').filter({ hasText: text })
   },
   tabs: {
+    allRequestTabs: () => page.locator('.request-tab'),
     requestTab: (requestName: string) => page.locator('.request-tab .tab-label').filter({ hasText: requestName }),
     folderTab: (folderName: string) => page.locator('.request-tab .tab-label').filter({ hasText: folderName }),
     collectionSettingsTab: () =>
@@ -69,15 +72,13 @@ export const buildCommonLocators = (page: Page) => ({
     folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
     tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`)
   },
+  docs: buildDocsLocators(page),
   aiAssist: {
     trigger: (scriptType: string) => page.getByTestId(`ai-assist-trigger-${scriptType}`),
     requestPaneTabBarTrigger: (scriptType: string) =>
       page.locator('[data-testid="request-pane"] [role="tablist"]').getByTestId(`ai-assist-trigger-${scriptType}`),
     settingsTabBarTrigger: (scriptType: string) =>
       page.getByTestId('settings-tab-bar').getByTestId(`ai-assist-trigger-${scriptType}`)
-  },
-  documentation: {
-    editToggle: () => page.locator('.editing-mode')
   },
   folder: {
     chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
@@ -90,7 +91,8 @@ export const buildCommonLocators = (page: Page) => ({
     card: () => page.locator('.bruno-modal-card'),
     footer: () => page.locator('.bruno-modal-footer'),
     submitButton: () => page.locator('.bruno-modal-footer .submit'),
-    newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`)
+    newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`),
+    backdrop: () => page.locator('.bruno-modal-backdrop')
   },
   openCollectionPicker: {
     list: () => page.getByTestId('selection-list'),
@@ -328,7 +330,7 @@ export const buildCommonLocators = (page: Page) => ({
   }
 });
 
-export const getTableCell = (row, index) => row.locator('td').nth(index + 1);
+export const getTableCell = (row: any, index: number) => row.locator('td').nth(index + 1);
 
 export const buildGrpcCommonLocators = (page: Page) => ({
   ...buildCommonLocators(page),

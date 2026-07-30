@@ -1,4 +1,5 @@
 export * from './actions';
+export * from './request/generate-code';
 export * from './code-editor-search';
 export * from './file-mode';
 export * from './runner';
@@ -10,6 +11,7 @@ export * from './mounting';
 export * from './collection/migrate-to-yml';
 export * from './preferences';
 export * from './ai';
+export * from './mock-server';
 export * from './timeline-headers';
 export * from './devtools-console';
 export * from '../snapshot';

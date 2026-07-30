@@ -27,6 +27,7 @@ import { getUniqueTagsFromItems } from 'utils/collections/index';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
+import * as mockResponseEditorReducers from './mockResponseEditorReducers';
 
 const FILE_DERIVED_REQUEST_FIELDS = [
   'name',
@@ -180,6 +181,14 @@ const REQUEST_UID_PATHS = [
 
 const ROOT_UID_PATHS = ['request.headers', 'request.vars.req', 'request.vars.res'];
 
+const applyReorder = (params, updateReorderedItem) => {
+  const byUid = new Map(params.map((param) => [param.uid, param]));
+  const reordered = updateReorderedItem.map((uid) => byUid.get(uid)).filter(Boolean);
+  const reorderedUids = new Set(updateReorderedItem);
+  const missing = params.filter((param) => !reorderedUids.has(param.uid));
+  return [...reordered, ...missing];
+};
+
 const mergeRequestWithPreservedUids = (existingRequest, newRequest) =>
   preserveUidsAtPaths(existingRequest, newRequest, REQUEST_UID_PATHS);
 
@@ -191,7 +200,8 @@ const initialState = {
   collectionSortOrder: 'default',
   activeConnections: [],
   tempDirectories: {},
-  saveTransientRequestModals: []
+  saveTransientRequestModals: [],
+  mockResponseEditors: {}
 };
 
 const initiatedGrpcResponse = {
@@ -384,6 +394,10 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.environments = filter(collection.environments, (e) => e.uid !== environment.uid);
+
+        if (collection.environmentsDraft?.environmentUid === environment.uid) {
+          collection.environmentsDraft = null;
+        }
       }
     },
     saveEnvironment: (state, action) => {
@@ -2562,6 +2576,26 @@ export const collectionsSlice = createSlice({
         set(folder, 'draft.request.vars.res', mappedVars);
       }
     },
+    moveFolderVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      const type = action.payload.type;
+
+      if (folder) {
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+
+        const { updateReorderedItem } = action.payload;
+        if (type === 'request') {
+          const params = get(folder, 'draft.request.vars.req', []);
+          set(folder, 'draft.request.vars.req', applyReorder(params, updateReorderedItem));
+        } else if (type === 'response') {
+          const params = get(folder, 'draft.request.vars.res', []);
+          set(folder, 'draft.request.vars.res', applyReorder(params, updateReorderedItem));
+        }
+      }
+    },
     updateFolderRequestScript: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
@@ -2804,6 +2838,27 @@ export const collectionsSlice = createSlice({
         set(collection, 'draft.root.request.vars.req', mappedVars);
       } else if (type === 'response') {
         set(collection, 'draft.root.request.vars.res', mappedVars);
+      }
+    },
+    moveCollectionVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
+
+        const { updateReorderedItem } = action.payload;
+        if (type === 'request') {
+          const params = get(collection, 'draft.root.request.vars.req', []);
+          set(collection, 'draft.root.request.vars.req', applyReorder(params, updateReorderedItem));
+        } else if (type === 'response') {
+          const params = get(collection, 'draft.root.request.vars.res', []);
+          set(collection, 'draft.root.request.vars.res', applyReorder(params, updateReorderedItem));
+        }
       }
     },
     scriptUpdateCollectionVars: (state, action) => {
@@ -3894,11 +3949,11 @@ export const collectionsSlice = createSlice({
       state.tempDirectories[action.payload.collectionUid] = action.payload.pathname;
     },
     addSaveTransientRequestModal: (state, action) => {
-      const { item, collection } = action.payload;
+      const { item, collection, closeAfterSave = false } = action.payload;
       // Avoid duplicates - check if this item is already in the array
       const exists = state.saveTransientRequestModals.some((modal) => modal.item.uid === item.uid);
       if (!exists) {
-        state.saveTransientRequestModals.push({ item, collection });
+        state.saveTransientRequestModals.push({ item, collection, closeAfterSave });
       }
     },
     removeSaveTransientRequestModal: (state, action) => {
@@ -3951,7 +4006,12 @@ export const collectionsSlice = createSlice({
     deleteResponseExampleFormUrlEncodedParam: exampleReducers.deleteResponseExampleFormUrlEncodedParam,
     addResponseExampleMultipartFormParam: exampleReducers.addResponseExampleMultipartFormParam,
     updateResponseExampleMultipartFormParam: exampleReducers.updateResponseExampleMultipartFormParam,
-    deleteResponseExampleMultipartFormParam: exampleReducers.deleteResponseExampleMultipartFormParam
+    deleteResponseExampleMultipartFormParam: exampleReducers.deleteResponseExampleMultipartFormParam,
+    initMockResponseEditor: mockResponseEditorReducers.initMockResponseEditor,
+    syncMockResponseEditorSaved: mockResponseEditorReducers.syncMockResponseEditorSaved,
+    updateMockResponseRules: mockResponseEditorReducers.updateMockResponseRules,
+    cancelMockResponseEditorEdit: mockResponseEditorReducers.cancelMockResponseEditorEdit,
+    removeMockResponseEditor: mockResponseEditorReducers.removeMockResponseEditor
     /* End Response Example Actions */
   }
 });
@@ -4060,6 +4120,7 @@ export const {
   updateFolderVar,
   deleteFolderVar,
   setFolderVars,
+  moveFolderVar,
   updateFolderRequestScript,
   updateFolderResponseScript,
   updateFolderTests,
@@ -4070,6 +4131,7 @@ export const {
   updateCollectionVar,
   deleteCollectionVar,
   setCollectionVars,
+  moveCollectionVar,
   scriptUpdateCollectionVars,
   setScriptCollVarBaseline,
   _clearScriptCollectionBaselines,
@@ -4151,7 +4213,21 @@ export const {
   moveResponseExampleRequestHeader,
   setResponseExampleRequestHeaders,
   setResponseExampleParams,
-  /* Response Example Actions - End */
+  updateResponseExampleBody,
+  addResponseExampleFileParam,
+  updateResponseExampleFileParam,
+  deleteResponseExampleFileParam,
+  addResponseExampleFormUrlEncodedParam,
+  updateResponseExampleFormUrlEncodedParam,
+  deleteResponseExampleFormUrlEncodedParam,
+  addResponseExampleMultipartFormParam,
+  updateResponseExampleMultipartFormParam,
+  deleteResponseExampleMultipartFormParam,
+  initMockResponseEditor,
+  syncMockResponseEditorSaved,
+  updateMockResponseRules,
+  cancelMockResponseEditorEdit,
+  removeMockResponseEditor,
   addTransientDirectory,
   addSaveTransientRequestModal,
   removeSaveTransientRequestModal,

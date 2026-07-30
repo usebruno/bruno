@@ -49,7 +49,7 @@ test.describe('AI Assist tab-bar placement', () => {
       await selectRequestPaneTab(page, 'Docs');
       await expect(locators.aiAssist.trigger('docs')).toHaveCount(0);
 
-      await locators.documentation.editToggle().click();
+      await locators.docs.editToggle().click();
       await expect(locators.aiAssist.requestPaneTabBarTrigger('docs')).toBeVisible();
     });
   });
@@ -127,7 +127,7 @@ test.describe('AI Assist tab-bar placement', () => {
       await selectRequestPaneTab(page, 'Docs');
       await expect(locators.aiAssist.trigger('docs')).toHaveCount(0);
 
-      await locators.documentation.editToggle().click();
+      await locators.docs.editToggle().click();
       await expect(locators.aiAssist.requestPaneTabBarTrigger('docs')).toBeVisible();
     });
   });
@@ -160,7 +160,7 @@ test.describe('AI Assist tab-bar placement', () => {
         await selectRequestPaneTab(page, 'Docs');
         await expect(locators.aiAssist.trigger('docs')).toHaveCount(0);
 
-        await locators.documentation.editToggle().click();
+        await locators.docs.editToggle().click();
         await expect(locators.aiAssist.requestPaneTabBarTrigger('docs')).toBeVisible();
       });
     });
@@ -190,7 +190,7 @@ test.describe('AI Assist tab-bar placement', () => {
       await selectCollectionPaneTab(page, 'Overview');
       await expect(locators.aiAssist.trigger('docs')).toHaveCount(0);
 
-      await locators.documentation.editToggle().click();
+      await locators.docs.editToggle().click();
       await expect(locators.aiAssist.settingsTabBarTrigger('docs')).toBeVisible();
     });
   });
@@ -221,7 +221,7 @@ test.describe('AI Assist tab-bar placement', () => {
       await selectfolderPaneTab(page, 'Docs');
       await expect(locators.aiAssist.trigger('docs')).toHaveCount(0);
 
-      await locators.documentation.editToggle().click();
+      await locators.docs.editToggle().click();
       await expect(locators.aiAssist.settingsTabBarTrigger('docs')).toBeVisible();
     });
   });

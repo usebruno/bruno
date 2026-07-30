@@ -26,6 +26,7 @@ const {
   clearCollectionGitRemote,
   reorderWorkspaceCollections,
   getWorkspaceCollections,
+  getUnopenableWorkspaceCollections,
   resolveAndFilterWorkspaceCollections,
   normalizeCollectionEntry,
   validateWorkspacePath,
@@ -179,6 +180,19 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
       validateWorkspacePath(workspacePath);
       return getWorkspaceCollections(workspacePath);
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  ipcMain.handle('renderer:load-unopenable-workspace-collections', async (event, workspacePath) => {
+    try {
+      if (!workspacePath) {
+        throw new Error('Workspace path is undefined');
+      }
+
+      validateWorkspacePath(workspacePath);
+      return getUnopenableWorkspaceCollections(workspacePath);
     } catch (error) {
       throw error;
     }

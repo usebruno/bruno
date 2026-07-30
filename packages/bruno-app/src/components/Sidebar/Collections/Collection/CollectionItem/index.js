@@ -49,6 +49,7 @@ import CollectionItemIcon from './CollectionItemIcon';
 import ExampleItem from './ExampleItem';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import {
   getTabUidForItem as getTabUidForItemSelector,
   isTabForItemActive as isTabForItemActiveSelector,
@@ -72,6 +73,7 @@ import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext'
 import useKeybinding from 'hooks/useKeybinding';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
+  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const selectorInput = {
     itemUid: item.uid,
@@ -352,7 +354,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     menuDropdownRef.current?.show();
   };
 
-  let indents = range(item.depth);
+  const indents = range(item.depth);
 
   // Build menu items for MenuDropdown
   const buildMenuItems = () => {
@@ -538,17 +540,20 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     });
   };
 
-  const handleCreateExample = async (name, description = '') => {
-    // Create example with default values
+  const handleCreateExample = async (name, description = '', mockFields) => {
+    const statusCode = mockFields?.statusCode || 200;
+    const bodyType = mockFields?.bodyType || 'text';
+    const defaultContent = bodyType === 'json' ? '{}' : '';
+
     const exampleData = {
       name: name,
       description: description,
-      status: 200,
+      status: statusCode,
       statusText: 'OK',
       headers: [],
       body: {
-        type: 'text',
-        content: ''
+        type: bodyType,
+        content: defaultContent
       }
     };
 
@@ -575,7 +580,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       type: 'OPEN_EXAMPLE',
       collectionUid: collectionUid,
       itemUid: item.uid,
-      exampleIndex: exampleIndex
+      exampleIndex: exampleIndex,
+      // Freshly created examples start blank, so open the tab in edit mode.
+      openInEditMode: true
     }));
 
     toast.success(`Example "${name}" created successfully`);
@@ -690,6 +697,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onSave={handleCreateExample}
         title="Create Response Example"
         initialName={getInitialExampleName(item)}
+        showMockFields={isMockServerEnabled}
       />
       <div
         className={itemRowClassName}
@@ -755,6 +763,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               <span className="item-name" title={item.name}>
                 {item.name}
               </span>
+              {hasExamples && (
+                <sup className="ml-1 example-count-badge" title={`${item.examples.length} example${item.examples.length > 1 ? 's' : ''}`} data-testid="example-count-badge">
+                  {item.examples.length}
+                </sup>
+              )}
             </div>
           </div>
           <div className="pr-2">

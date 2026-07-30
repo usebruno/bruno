@@ -13,7 +13,6 @@ import StyledWrapper from './StyledWrapper';
  * - leftSection:  ReactNode rendered before children (e.g. icon)
  * - rightSection: ReactNode rendered after children (e.g. Help tooltip)
  * - className:    passthrough for additional styling
- * - ...rest:      forwarded to the root element (e.g. data-testid)
  *
  * @example
  * <StatusBadge status="danger">Error</StatusBadge>
@@ -28,8 +27,7 @@ const StatusBadge = ({
   radius,
   leftSection,
   rightSection,
-  className = '',
-  ...rest
+  className = ''
 }) => {
   return (
     <StyledWrapper
@@ -38,7 +36,6 @@ const StatusBadge = ({
       $size={size}
       $radius={radius}
       className={className}
-      {...rest}
     >
       {leftSection}
       {children}
