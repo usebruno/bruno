@@ -244,7 +244,8 @@ const registerGrpcEventHandlers = (window) => {
     requestUid,
     itemUid
   }) => {
-    const { FIELD, SCRIPT_TYPE } = SCRIPT_PHASES.GRPC.BEFORE_CALL_START;
+    const phase = SCRIPT_PHASES.GRPC.BEFORE_CALL_START;
+    const { FIELD, SCRIPT_TYPE } = phase;
     const beforeMessageScript = get(request, `script.${FIELD}`);
     if (!beforeMessageScript?.length) {
       return { scriptResult: null, scriptError: null };
@@ -254,18 +255,18 @@ const registerGrpcEventHandlers = (window) => {
     let scriptError = null;
     let scriptResult = null;
     try {
-      scriptResult = await scriptRuntime.runGrpcBeforeCallStartScript(
-        decomment(beforeMessageScript, { space: true }),
+      scriptResult = await scriptRuntime.runGrpcScript({
+        phase,
+        script: decomment(beforeMessageScript, { space: true }),
         request,
-        envVars,
+        envVariables: envVars,
         runtimeVariables,
-        collection.pathname,
+        collectionPath: collection.pathname,
         onConsoleLog,
         processEnvVars,
         scriptingConfig,
-        null,
-        collection.name
-      );
+        collectionName: collection.name
+      });
     } catch (error) {
       scriptError = error;
     }
@@ -290,7 +291,8 @@ const registerGrpcEventHandlers = (window) => {
     const { request, collection, envVars, runtimeVariables, processEnvVars, scriptingConfig, requestUid, itemUid }
       = scriptContext;
 
-    const { FIELD, SCRIPT_TYPE } = SCRIPT_PHASES.GRPC.BEFORE_MESSAGE_SEND;
+    const phase = SCRIPT_PHASES.GRPC.BEFORE_MESSAGE_SEND;
+    const { FIELD, SCRIPT_TYPE } = phase;
     const beforeMessageSendScript = get(request, `script.${FIELD}`);
     if (!beforeMessageSendScript?.length) {
       return { message: outgoingMessage, scriptError: null };
@@ -300,19 +302,19 @@ const registerGrpcEventHandlers = (window) => {
     let scriptError = null;
     let scriptResult = null;
     try {
-      scriptResult = await scriptRuntime.runGrpcBeforeMessageSendScript(
-        decomment(beforeMessageSendScript, { space: true }),
+      scriptResult = await scriptRuntime.runGrpcScript({
+        phase,
+        script: decomment(beforeMessageSendScript, { space: true }),
         request,
-        outgoingMessage,
-        envVars,
+        phaseData: { message: outgoingMessage },
+        envVariables: envVars,
         runtimeVariables,
-        collection.pathname,
+        collectionPath: collection.pathname,
         onConsoleLog,
         processEnvVars,
         scriptingConfig,
-        null,
-        collection.name
-      );
+        collectionName: collection.name
+      });
     } catch (error) {
       scriptError = error;
     }
@@ -329,7 +331,7 @@ const registerGrpcEventHandlers = (window) => {
     sendVariableUpdates(scriptResult, request, collection);
     emitPhaseTestResults({ scriptResult, scriptType: SCRIPT_TYPE, requestUid, collection, itemUid });
 
-    return { message: scriptError ? outgoingMessage : scriptResult.message, scriptError };
+    return { message: outgoingMessage, scriptError };
   };
 
   // Run the afterMessageReceive script for each received message
@@ -345,7 +347,8 @@ const registerGrpcEventHandlers = (window) => {
     message,
     messageReceivedAt
   }) => {
-    const { FIELD, SCRIPT_TYPE } = SCRIPT_PHASES.GRPC.AFTER_MESSAGE_RECEIVE;
+    const phase = SCRIPT_PHASES.GRPC.AFTER_MESSAGE_RECEIVE;
+    const { FIELD, SCRIPT_TYPE } = phase;
     const onAfterMessageScript = get(request, `script.${FIELD}`);
     if (!onAfterMessageScript?.length) {
       return { scriptResult: null, scriptError: null };
@@ -355,20 +358,20 @@ const registerGrpcEventHandlers = (window) => {
     let scriptError = null;
     let scriptResult = null;
     try {
-      scriptResult = await scriptRuntime.runGrpcAfterMessageReceiveScript(
-        decomment(onAfterMessageScript, { space: true }),
+      scriptResult = await scriptRuntime.runGrpcScript({
+        phase,
+        script: decomment(onAfterMessageScript, { space: true }),
         request,
-        message,
-        envVars,
+        phaseData: { message, timestamp: messageReceivedAt },
+        primary: { response: message },
+        envVariables: envVars,
         runtimeVariables,
-        collection.pathname,
+        collectionPath: collection.pathname,
         onConsoleLog,
         processEnvVars,
         scriptingConfig,
-        null,
-        collection.name,
-        messageReceivedAt
-      );
+        collectionName: collection.name
+      });
     } catch (error) {
       scriptError = error;
     }
@@ -401,7 +404,8 @@ const registerGrpcEventHandlers = (window) => {
     response,
     sentMessages
   }) => {
-    const { FIELD, SCRIPT_TYPE } = SCRIPT_PHASES.GRPC.AFTER_CALL_END;
+    const phase = SCRIPT_PHASES.GRPC.AFTER_CALL_END;
+    const { FIELD, SCRIPT_TYPE } = phase;
     const afterResponseScript = get(request, `script.${FIELD}`);
     if (!afterResponseScript?.length) {
       return { scriptResult: null, scriptError: null };
@@ -412,19 +416,20 @@ const registerGrpcEventHandlers = (window) => {
     let scriptResult = null;
     const afterCallEndFinalResponse = { ...response, sentMessages };
     try {
-      scriptResult = await scriptRuntime.runGrpcAfterCallEndScript(
-        decomment(afterResponseScript, { space: true }),
+      scriptResult = await scriptRuntime.runGrpcScript({
+        phase,
+        script: decomment(afterResponseScript, { space: true }),
         request,
-        afterCallEndFinalResponse,
-        envVars,
+        phaseData: afterCallEndFinalResponse,
+        primary: { response: afterCallEndFinalResponse },
+        envVariables: envVars,
         runtimeVariables,
-        collection.pathname,
+        collectionPath: collection.pathname,
         onConsoleLog,
         processEnvVars,
         scriptingConfig,
-        null,
-        collection.name
-      );
+        collectionName: collection.name
+      });
     } catch (error) {
       scriptError = error;
     }

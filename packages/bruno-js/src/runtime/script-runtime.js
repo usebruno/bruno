@@ -288,19 +288,31 @@ class ScriptRuntime {
 
   // ── gRPC phases ─────────────────────────────────────────────────────────────
 
-  /** gRPC beforeCallStart — builds `bru` with the `bru.grpc.request.*` namespace. */
-  async runGrpcBeforeCallStartScript(
+  /**
+   * Runs one gRPC phase's script. Every phase builds the same `bru`, sandbox context and result
+   * shape; a phase differs only in which registry entry it is, the `phaseData` exposed through
+   * `bru.grpc`, and whether the result reports the request or the response side of the call.
+   *
+   * @param {object} args
+   * @param {import('@usebruno/common').ScriptPhase} args.phase - the `SCRIPT_PHASES.GRPC.*` entry
+   * @param {object} [args.phaseData] - payload for the `bru.grpc` namespace (message, response, ...)
+   * @param {object} [args.primary] - `{ request }` before the call, `{ response }` after it
+   */
+  async runGrpcScript({
+    phase,
     script,
     request,
+    phaseData,
+    primary = { request },
     envVariables,
     runtimeVariables,
     collectionPath,
     onConsoleLog,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname,
+    runRequestByItemPathname = null,
     collectionName
-  ) {
+  }) {
     const {
       globalEnvironmentVariables,
       oauth2CredentialVariables,
@@ -328,7 +340,8 @@ class ScriptRuntime {
       certsAndProxyConfig,
       requestUrl: request?.url,
       request,
-      phaseType: SCRIPT_PHASES.GRPC.BEFORE_CALL_START.FIELD
+      phaseType: phase.FIELD,
+      phaseData
     });
 
     const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
@@ -347,8 +360,8 @@ class ScriptRuntime {
 
     bindRunRequest(bru, runRequestByItemPathname);
 
-    const buildRequestScriptResult = () => this.#buildScriptResult({
-      primary: { request },
+    const buildResult = () => this.#buildScriptResult({
+      primary,
       bru,
       testResults: __brunoTestResults,
       envVariables,
@@ -357,231 +370,7 @@ class ScriptRuntime {
       globalEnvironmentVariables
     });
 
-    return this.#executeInSandbox({ script, context, collectionPath, scriptingConfig, scriptPath }, buildRequestScriptResult);
-  }
-
-  // beforeMessageSend — mutate one outgoing message; returns the script result + the final `message`.
-  async runGrpcBeforeMessageSendScript(
-    script,
-    request,
-    outgoingMessage,
-    envVariables,
-    runtimeVariables,
-    collectionPath,
-    onConsoleLog,
-    processEnvVars,
-    scriptingConfig,
-    runRequestByItemPathname,
-    collectionName
-  ) {
-    const {
-      globalEnvironmentVariables,
-      oauth2CredentialVariables,
-      collectionVariables,
-      folderVariables,
-      requestVariables,
-      promptVariables,
-      assertionResults,
-      certsAndProxyConfig,
-      scriptPath
-    } = this.#extractScriptVars(request);
-    const bru = new Bru({
-      runtime: this.runtime,
-      envVariables,
-      runtimeVariables,
-      processEnvVars,
-      collectionPath,
-      collectionVariables,
-      folderVariables,
-      requestVariables,
-      globalEnvironmentVariables,
-      oauth2CredentialVariables,
-      collectionName,
-      promptVariables,
-      certsAndProxyConfig,
-      requestUrl: request?.url,
-      request,
-      phaseType: SCRIPT_PHASES.GRPC.BEFORE_MESSAGE_SEND.FIELD,
-      phaseData: { message: outgoingMessage }
-    });
-
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
-
-    const context = {
-      bru,
-      test,
-      expect: chai.expect,
-      assert: chai.assert,
-      __brunoTestResults: __brunoTestResults,
-      __bruSetScope: createScopeSetter(bru)
-    };
-
-    const bruConsole = this.#buildConsole(onConsoleLog);
-    if (bruConsole) context.console = bruConsole;
-
-    bindRunRequest(bru, runRequestByItemPathname);
-
-    const buildRequestScriptResult = () => this.#buildScriptResult({
-      primary: { request },
-      bru,
-      testResults: __brunoTestResults,
-      envVariables,
-      runtimeVariables,
-      collectionVariables,
-      globalEnvironmentVariables
-    });
-
-    const result = await this.#executeInSandbox({ script, context, collectionPath, scriptingConfig, scriptPath }, buildRequestScriptResult);
-    return { ...result, message: outgoingMessage };
-  }
-
-  /** gRPC afterMessageReceive — read a received message (and its receive time) as it arrives. */
-  async runGrpcAfterMessageReceiveScript(
-    script,
-    request,
-    message,
-    envVariables,
-    runtimeVariables,
-    collectionPath,
-    onConsoleLog,
-    processEnvVars,
-    scriptingConfig,
-    runRequestByItemPathname,
-    collectionName,
-    messageReceivedAt
-  ) {
-    const {
-      globalEnvironmentVariables,
-      oauth2CredentialVariables,
-      collectionVariables,
-      folderVariables,
-      requestVariables,
-      promptVariables,
-      assertionResults,
-      certsAndProxyConfig,
-      scriptPath
-    } = this.#extractScriptVars(request);
-    const bru = new Bru({
-      runtime: this.runtime,
-      envVariables,
-      runtimeVariables,
-      processEnvVars,
-      collectionPath,
-      collectionVariables,
-      folderVariables,
-      requestVariables,
-      globalEnvironmentVariables,
-      oauth2CredentialVariables,
-      collectionName,
-      promptVariables,
-      certsAndProxyConfig,
-      requestUrl: request?.url,
-      request,
-      phaseType: SCRIPT_PHASES.GRPC.AFTER_MESSAGE_RECEIVE.FIELD,
-      phaseData: { message, timestamp: messageReceivedAt }
-    });
-
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
-
-    const context = {
-      bru,
-      test,
-      expect: chai.expect,
-      assert: chai.assert,
-      __brunoTestResults: __brunoTestResults,
-      __bruSetScope: createScopeSetter(bru)
-    };
-
-    const bruConsole = this.#buildConsole(onConsoleLog);
-    if (bruConsole) context.console = bruConsole;
-
-    bindRunRequest(bru, runRequestByItemPathname);
-
-    const buildResponseScriptResult = () => this.#buildScriptResult({
-      primary: { response: message },
-      bru,
-      testResults: __brunoTestResults,
-      envVariables,
-      runtimeVariables,
-      collectionVariables,
-      globalEnvironmentVariables
-    });
-
-    return this.#executeInSandbox({ script, context, collectionPath, scriptingConfig, scriptPath }, buildResponseScriptResult);
-  }
-
-  /** gRPC afterCallEnd — builds `bru` with the `bru.grpc.response.*` namespace. */
-  async runGrpcAfterCallEndScript(
-    script,
-    request,
-    response,
-    envVariables,
-    runtimeVariables,
-    collectionPath,
-    onConsoleLog,
-    processEnvVars,
-    scriptingConfig,
-    runRequestByItemPathname,
-    collectionName
-  ) {
-    const {
-      globalEnvironmentVariables,
-      oauth2CredentialVariables,
-      collectionVariables,
-      folderVariables,
-      requestVariables,
-      promptVariables,
-      assertionResults,
-      certsAndProxyConfig,
-      scriptPath
-    } = this.#extractScriptVars(request);
-    const bru = new Bru({
-      runtime: this.runtime,
-      envVariables,
-      runtimeVariables,
-      processEnvVars,
-      collectionPath,
-      collectionVariables,
-      folderVariables,
-      requestVariables,
-      globalEnvironmentVariables,
-      oauth2CredentialVariables,
-      collectionName,
-      promptVariables,
-      certsAndProxyConfig,
-      requestUrl: request?.url,
-      request,
-      phaseType: SCRIPT_PHASES.GRPC.AFTER_CALL_END.FIELD,
-      phaseData: response // { responses, statusCode, statusText, trailers }
-    });
-
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
-
-    const context = {
-      bru,
-      test,
-      expect: chai.expect,
-      assert: chai.assert,
-      __brunoTestResults: __brunoTestResults,
-      __bruSetScope: createScopeSetter(bru)
-    };
-
-    const bruConsole = this.#buildConsole(onConsoleLog);
-    if (bruConsole) context.console = bruConsole;
-
-    bindRunRequest(bru, runRequestByItemPathname);
-
-    const buildResponseScriptResult = () => this.#buildScriptResult({
-      primary: { response },
-      bru,
-      testResults: __brunoTestResults,
-      envVariables,
-      runtimeVariables,
-      collectionVariables,
-      globalEnvironmentVariables
-    });
-
-    return this.#executeInSandbox({ script, context, collectionPath, scriptingConfig, scriptPath }, buildResponseScriptResult);
+    return this.#executeInSandbox({ script, context, collectionPath, scriptingConfig, scriptPath }, buildResult);
   }
 
   // ── Shared helpers ──────────────────────────────────────────────────────────
