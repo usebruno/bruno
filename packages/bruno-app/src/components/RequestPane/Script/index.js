@@ -3,7 +3,6 @@ import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
-import AIAssist from 'components/AIAssist';
 import { buildAiContextPayload } from 'utils/ai';
 import { updateScript } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -132,12 +131,6 @@ const Script = ({ item, collection }) => {
               ...scrollMap,
               [SCRIPT_TYPE]: pos
             })}
-        />
-        <AIAssist
-          scriptType={SCRIPT_TYPE}
-          currentScript={value || ''}
-          requestContext={requestContext}
-          onApply={(val) => onScriptEdit(FIELD, val)}
         />
       </div>
     );

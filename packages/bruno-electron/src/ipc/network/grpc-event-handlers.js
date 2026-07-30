@@ -512,25 +512,25 @@ const registerGrpcEventHandlers = (window) => {
       const hasAfterMessageReceiveScript = !!get(preparedRequest, `script.${SCRIPT_PHASES.GRPC.AFTER_MESSAGE_RECEIVE.FIELD}`)?.length;
       const afterMessageReceive = hasAfterMessageReceiveScript
         ? (message, messageReceivedAt) => {
-          runAfterMessageReceive({ ...scriptContext, message, messageReceivedAt })
-            .then(({ scriptError }) => {
-              if (scriptError) afterMessageReceiveErrored = true;
-            })
-            .catch((err) => {
-              console.error('Error running gRPC afterMessageReceive script:', err);
-            });
-        }
+            runAfterMessageReceive({ ...scriptContext, message, messageReceivedAt })
+              .then(({ scriptError }) => {
+                if (scriptError) afterMessageReceiveErrored = true;
+              })
+              .catch((err) => {
+                console.error('Error running gRPC afterMessageReceive script:', err);
+              });
+          }
         : undefined;
 
       // ── After Call End ─────────────────────────────────────────────────────
       const hasAfterCallEndScript = !!get(preparedRequest, `script.${SCRIPT_PHASES.GRPC.AFTER_CALL_END.FIELD}`)?.length;
       const afterCallEnd = hasAfterCallEndScript
         ? (response = {}) => {
-          if (afterMessageReceiveErrored) return;
-          runAfterCallEnd({ ...scriptContext, response }).catch((err) => {
-            console.error('Error running gRPC afterCallEnd script:', err);
-          });
-        }
+            if (afterMessageReceiveErrored) return;
+            runAfterCallEnd({ ...scriptContext, response }).catch((err) => {
+              console.error('Error running gRPC afterCallEnd script:', err);
+            });
+          }
         : undefined;
 
       // Get certificates and proxy configuration
@@ -573,6 +573,7 @@ const registerGrpcEventHandlers = (window) => {
 
       // Resolve proxy configuration for gRPC
       const grpcProxyConfig = await resolveGrpcProxyConfig(proxyMode, proxyConfig, preparedRequest.url, interpolationOptions);
+      const startedAt = Date.now();
 
       const requestSent = {
         type: 'request',
@@ -581,7 +582,7 @@ const registerGrpcEventHandlers = (window) => {
         methodType: preparedRequest.methodType,
         headers: preparedRequest.headers,
         body: preparedRequest.body,
-        timestamp: Date.now(),
+        timestamp: startedAt,
         proxy: {
           mode: proxyMode,
           url: grpcProxyConfig.proxyUrl || null
@@ -603,7 +604,8 @@ const registerGrpcEventHandlers = (window) => {
         includeDirs,
         proxyConfig: grpcProxyConfig,
         onAfterMessageReceive: afterMessageReceive,
-        onAfterCallEnd: afterCallEnd
+        onAfterCallEnd: afterCallEnd,
+        startedAt
       });
 
       sendEvent('grpc:request', preparedRequest.uid, collection.uid, requestSent);

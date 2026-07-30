@@ -324,7 +324,7 @@ const phaseBuilders = new Map([
   [
     AFTER_CALL_END.FIELD,
     (request, phaseData) => {
-      const { responses, statusCode, statusText, trailers, sentMessages } = phaseData;
+      const { responses, statusCode, statusText, trailers, sentMessages, duration } = phaseData;
       return {
         request: {
           messages: new GrpcMessageList(request, sentMessages ?? [], { readOnly: true }).expose(),
@@ -334,7 +334,8 @@ const phaseBuilders = new Map([
           messages: new GrpcResponseMessageList(() => responses).expose(),
           trailers: new GrpcMetadataList({ headers: trailers ?? {} }, { readOnly: true }).expose(),
           statusCode: statusCode ?? null,
-          statusText: statusText ?? null
+          statusText: statusText ?? null,
+          duration: duration ?? null
         }
       };
     }

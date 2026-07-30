@@ -142,12 +142,14 @@ describe('afterCallEnd phase', () => {
         statusCode: 0,
         statusText: 'OK',
         trailers: { 'x-ratelimit-remaining': '99' },
-        sentMessages: [messageEntry('message 1', { greeting: 'Alice' })]
+        sentMessages: [messageEntry('message 1', { greeting: 'Alice' })],
+        duration: 128
       }
     });
 
     expect(api.response.statusCode).toBe(0);
     expect(api.response.statusText).toBe('OK');
+    expect(api.response.duration).toBe(128);
     expect(api.response.trailers.get('x-ratelimit-remaining')).toBe('99');
     expect(api.response.messages.count()).toBe(2);
     expect(api.response.messages.first()).toEqual({ data: { reply: 'Hello, Alice!' } });
@@ -159,8 +161,14 @@ describe('afterCallEnd phase', () => {
     const api = buildGrpcScriptApi({ phaseType: 'afterCallEnd', request: makeRequest(), phaseData: {} });
     expect(api.response.statusCode).toBeNull();
     expect(api.response.statusText).toBeNull();
+    expect(api.response.duration).toBeNull();
     expect(api.response.messages.count()).toBe(0);
     expect(api.request.messages.count()).toBe(0);
+  });
+
+  it('keeps a zero duration rather than coercing it to null', () => {
+    const api = buildGrpcScriptApi({ phaseType: 'afterCallEnd', request: makeRequest(), phaseData: { duration: 0 } });
+    expect(api.response.duration).toBe(0);
   });
 
   it('metadata is read-only in this phase (every write throws)', () => {

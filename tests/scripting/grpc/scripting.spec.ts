@@ -156,7 +156,8 @@ test.describe('grpc scripting', () => {
     ].join('\n');
     const responseValuesScript = [
       'console.log("statusCode=" + bru.grpc.response.statusCode);',
-      'console.log("statusText=" + bru.grpc.response.statusText);'
+      'console.log("statusText=" + bru.grpc.response.statusText);',
+      'console.log("durationIsNumber=" + (typeof bru.grpc.response.duration === "number"));'
     ].join('\n');
 
     const locators = await setupPhaseScripts(page, 'SayHello', 'SayHello', [
@@ -176,7 +177,8 @@ test.describe('grpc scripting', () => {
         'methodType=unary',
         'authMode=none',
         'statusCode=0',
-        'statusText=OK'
+        'statusText=OK',
+        'durationIsNumber=true'
       ];
       for (const text of expected) {
         await expect(locators.devtools.logMessage(text).first()).toBeVisible();

@@ -679,7 +679,7 @@ export const collectionsSlice = createSlice({
 
       if (eventType === 'request') {
         item.requestSent = eventData;
-        item.requestSent.timestamp = Date.now();
+        item.requestSent.timestamp = eventData?.timestamp ?? Date.now();
         item.response = {
           initiatedGrpcResponse,
           statusText: isUnary ? 'PENDING' : 'STREAMING'
@@ -717,7 +717,10 @@ export const collectionsSlice = createSlice({
       // Get current response state or create initial state
       const currentResponse = item.response || initiatedGrpcResponse;
       const timestamp = item?.requestSent?.timestamp;
-      let updatedResponse = { ...currentResponse, duration: Date.now() - (timestamp || Date.now()) };
+      const elapsed = Date.now() - (timestamp || Date.now());
+      // Terminating events carry the duration measured in the main process — the same number
+      // `bru.grpc.response.duration` reports. Everything else shows elapsed-so-far.
+      let updatedResponse = { ...currentResponse, duration: eventData?.duration ?? elapsed };
 
       // Process based on event type
       switch (eventType) {

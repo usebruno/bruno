@@ -298,7 +298,8 @@ const GRPC_API_HINTS = {
           messages: GRPC_MESSAGE_READ_METHODS,
           trailers: GRPC_METADATA_READ_METHODS,
           statusCode: [],
-          statusText: []
+          statusText: [],
+          duration: []
         }
       }
     }
