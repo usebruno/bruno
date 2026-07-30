@@ -1,4 +1,4 @@
-import { validateInterpolatedUrl, validateTemplateUrl } from './url-validation';
+import { validateInterpolatedUrl, validateTemplateUrl } from './index';
 
 describe('generate-code url validation', () => {
   describe('validateInterpolatedUrl', () => {

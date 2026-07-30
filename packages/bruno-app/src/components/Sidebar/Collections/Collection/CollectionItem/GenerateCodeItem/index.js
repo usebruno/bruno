@@ -3,16 +3,33 @@ import { useMemo } from 'react';
 import CodeView from './CodeView';
 import CodeViewToolbar from './CodeViewToolbar';
 import StyledWrapper from './StyledWrapper';
+import { patternHasher } from '@usebruno/common/utils';
 import { get } from 'lodash';
 import {
   findEnvironmentInCollection
 } from 'utils/collections';
-import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
+import { interpolateUrl, interpolateUrlPathParams, isValidUrl, prependDefaultScheme } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { resolveInheritedAuth } from 'utils/auth';
-import { validateInterpolatedUrl, validateTemplateUrl } from './utils/url-validation';
+
+// `patternHasher` rewrites every `{{var}}` to a URL-safe token, so a string it leaves
+// untouched had none to begin with.
+const containsUnresolvedVariable = (url) => patternHasher(url).hashed !== url;
+
+/**
+ * Interpolation ON: the snippet shows resolved values, so a `{{var}}` that outlived
+ * interpolation means the URL the user is about to copy is incomplete (BRU-2095).
+ */
+export const validateInterpolatedUrl = (url) => isValidUrl(url) && !containsUnresolvedVariable(url);
+
+/**
+ * Interpolation OFF: the snippet shows the URL as typed, so whether a variable resolves is
+ * beside the point — only the URL's shape matters. `patternHasher` swaps each `{{var}}` for a
+ * URL-safe token — its stated purpose — so `new URL()` can judge the rest of it.
+ */
+export const validateTemplateUrl = (url) => Boolean(url) && isValidUrl(prependDefaultScheme(patternHasher(url).hashed));
 
 const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exampleUid = null }) => {
   const languages = getLanguages();
