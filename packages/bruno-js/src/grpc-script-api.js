@@ -4,6 +4,18 @@ const { safeParseJSON, isObject } = require('./utils');
 const { BEFORE_CALL_START, BEFORE_MESSAGE_SEND, AFTER_MESSAGE_RECEIVE, AFTER_CALL_END } = SCRIPT_PHASES.GRPC;
 
 /**
+ * gRPC metadata keys are case-insensitive, like the HTTP headers they mirror (see HeaderList).
+ * Returns the key as actually stored in `metadata`, or undefined when nothing matches.
+ */
+const resolveMetadataKey = (metadata, key) => {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return undefined;
+  if (Object.prototype.hasOwnProperty.call(metadata, key)) return key;
+  if (typeof key !== 'string') return undefined;
+  const lowered = key.toLowerCase();
+  return Object.keys(metadata).find((stored) => stored.toLowerCase() === lowered);
+};
+
+/**
  * GrpcMessage — a single read-only gRPC message. `expose()` returns plain data so it logs cleanly:
  * `bru.grpc.request.message` → `{ data }` (beforeMessageSend), `bru.grpc.response.message` →
  * `{ data, timestamp }` (afterMessageReceive). Frozen when read-only.
@@ -117,6 +129,11 @@ class GrpcMetadataList extends GrpcList {
     }
   }
 
+  /** The key as actually stored, matched case-insensitively; undefined when nothing matches. */
+  _resolveKey(key) {
+    return resolveMetadataKey(this._metadata(), key);
+  }
+
   /** Ensure metadata is a plain object, then return it. */
   _metadata() {
     const headers = this.request.headers;
@@ -132,11 +149,12 @@ class GrpcMetadataList extends GrpcList {
   }
 
   get(key) {
-    return this._metadata()[key];
+    const stored = this._resolveKey(key);
+    return stored === undefined ? undefined : this._metadata()[stored];
   }
 
   has(key) {
-    return Object.prototype.hasOwnProperty.call(this._metadata(), key);
+    return this._resolveKey(key) !== undefined;
   }
 
   count() {
@@ -169,7 +187,8 @@ class GrpcMetadataList extends GrpcList {
   // ── write ─────────────────────────────────────────────────────────────────
   set(key, value) {
     this._assertWritable('set');
-    this._metadata()[key] = value;
+    // Overwrite an entry that differs only in case instead of adding a duplicate.
+    this._metadata()[this._resolveKey(key) ?? key] = value;
   }
 
   setAll(data) {
@@ -182,7 +201,7 @@ class GrpcMetadataList extends GrpcList {
 
   remove(key) {
     this._assertWritable('remove');
-    delete this._metadata()[key];
+    delete this._metadata()[this._resolveKey(key) ?? key];
   }
 
   clear() {
