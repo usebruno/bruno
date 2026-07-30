@@ -1,13 +1,12 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
 import { updateRequestDocs } from 'providers/ReduxStore/slices/collections';
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { buildAiContextPayload } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
-import { useTrackScroll } from 'hooks/useTrackScroll';
 import { useDocsEditingState } from './useDocsEditingState';
 import DocsEditor from './DocsEditor';
 
@@ -16,15 +15,9 @@ const Documentation = ({ item, collection }) => {
   const { isEditing, setEditing } = useDocsEditingState();
   const docs = item?.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
 
-  const wrapperRef = useRef(null);
+  // Scroll tracking (both the rich-text preview/edit view and markdown mode's
+  // CodeEditor) lives in DocsEditor itself; this just owns the persisted value.
   const [scroll, setScroll] = usePersistedState({ key: `request-docs-scroll-${item?.uid}`, default: 0 });
-  useTrackScroll({
-    ref: wrapperRef,
-    selector: '.rich-text-editor-content',
-    onChange: setScroll,
-    enabled: !isEditing,
-    initialValue: scroll
-  });
 
   const onEdit = useCallback(
     (value) => {
@@ -55,7 +48,7 @@ const Documentation = ({ item, collection }) => {
   }
 
   return (
-    <StyledWrapper className="h-full w-full relative" ref={wrapperRef}>
+    <StyledWrapper className="h-full w-full relative">
       <DocsEditor
         docs={docs}
         onEdit={onEdit}
@@ -66,6 +59,8 @@ const Documentation = ({ item, collection }) => {
         requestContext={requestContext}
         variables={aiVariables}
         onRequestEdit={() => setEditing(true)}
+        initialScroll={scroll}
+        onScroll={setScroll}
         testId="docs-editor"
       />
     </StyledWrapper>

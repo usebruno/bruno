@@ -1,13 +1,12 @@
 import get from 'lodash/get';
 import { updateFolderDocs } from 'providers/ReduxStore/slices/collections';
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { buildAiVariablesPayload, buildDocsContextFromFolder } from 'utils/ai';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
-import { useTrackScroll } from 'hooks/useTrackScroll';
 import { useDocsEditingState } from 'components/Documentation/useDocsEditingState';
 import DocsEditor from 'components/Documentation/DocsEditor';
 
@@ -16,15 +15,9 @@ const Documentation = ({ collection, folder }) => {
   const { isEditing, setEditing } = useDocsEditingState();
   const docs = folder.draft ? get(folder, 'draft.docs', '') : get(folder, 'root.docs', '');
 
-  const wrapperRef = useRef(null);
+  // Scroll tracking (both the rich-text preview/edit view and markdown mode's
+  // CodeEditor) lives in DocsEditor itself; this just owns the persisted value.
   const [scroll, setScroll] = usePersistedState({ key: `folder-docs-scroll-${folder.uid}`, default: 0 });
-  useTrackScroll({
-    ref: wrapperRef,
-    selector: '.rich-text-editor-content',
-    onChange: setScroll,
-    enabled: !isEditing,
-    initialValue: scroll
-  });
 
   const toggleViewMode = () => {
     setEditing(!isEditing);
@@ -49,7 +42,7 @@ const Documentation = ({ collection, folder }) => {
   }
 
   return (
-    <StyledWrapper className="w-full relative flex flex-col" ref={wrapperRef}>
+    <StyledWrapper className="w-full relative flex flex-col">
       <div className="editing-mode flex justify-between items-center flex-shrink-0" role="tab" onClick={toggleViewMode}>
         {isEditing ? 'Preview' : 'Edit'}
       </div>
