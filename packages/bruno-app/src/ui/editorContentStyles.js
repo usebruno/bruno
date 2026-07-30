@@ -108,6 +108,12 @@ const editorContentStyles = css`
     flex-shrink: 0;
     cursor: pointer;
     vertical-align: top;
+    background-color: transparent;
+    color-scheme: dark;
+
+    html.light & {
+      color-scheme: light;
+    }
   }
 
   ul[data-type='taskList'] > li > div,
