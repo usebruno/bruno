@@ -44,9 +44,11 @@ export const fromOpenCollectionEnvironments = (environments: Environment[] | und
       if (isSecret) {
         // Secret values are not present in the source; never carry a dataType.
         if (variable.description) {
-          result.description = typeof variable.description === 'string'
-            ? variable.description
-            : (variable.description as { content?: string })?.content || '';
+          result.description = 
+          	typeof variable.description === 'string'
+            	? variable.description
+	            : (variable.description as { content?: string })?.content || '';
+	      
         }
         return result;
       }
