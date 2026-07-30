@@ -1,4 +1,5 @@
 import { test, expect } from '../../../playwright';
+import { selectEnvironment } from '../../utils/page/actions';
 
 test.describe('Grpc Collection - Method Search Functionality', () => {
   test.beforeAll(async ({ pageWithUserData: page }) => {
@@ -6,11 +7,7 @@ test.describe('Grpc Collection - Method Search Functionality', () => {
       await page.locator('#sidebar-collection-name').filter({ hasText: 'grpc-collection' }).click();
     });
 
-    await test.step('Switch to GrpcEnv environment', async () => {
-      await page.locator('div.current-environment').click();
-      await page.getByTestId('env-list-item').filter({ hasText: 'GrpcEnv' }).click();
-      await expect(page.locator('.current-environment').filter({ hasText: /GrpcEnv/ })).toBeVisible();
-    });
+    await selectEnvironment(page, 'GrpcEnv');
   });
 
   test.afterEach(async ({ pageWithUserData: page }) => {
