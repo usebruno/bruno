@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StatusDot from 'components/StatusDot';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
-import { getPhasesByRequestType } from '@usebruno/common';
+import { getPhasesByRequestType, REQUEST_TYPES } from '@usebruno/common';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -41,6 +41,11 @@ const Script = ({ item, collection }) => {
   };
 
   const getDefaultTab = () => {
+    if (item?.type === REQUEST_TYPES.GRPC) {
+      const firstPhaseWithScript = SCRIPT_PHASES.find(({ FIELD }) => getScript(FIELD)?.length);
+      return (firstPhaseWithScript || SCRIPT_PHASES[0])?.SCRIPT_TYPE;
+    }
+
     const hasFirstScript = getScript(SCRIPT_PHASES[0].FIELD);
     return hasFirstScript ? SCRIPT_PHASES[0].SCRIPT_TYPE : SCRIPT_PHASES[1]?.SCRIPT_TYPE;
   };

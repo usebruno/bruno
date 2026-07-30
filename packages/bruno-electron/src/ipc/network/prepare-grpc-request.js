@@ -1,7 +1,7 @@
 const { cloneDeep, each, get } = require('lodash');
 const { REQUEST_TYPES } = require('@usebruno/common');
 const interpolateVars = require('./interpolate-vars');
-const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, mergeAuth, getFormattedCollectionOauth2Credentials } = require('../../utils/collection');
+const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeGrpcScripts, mergeVars, mergeAuth, getFormattedCollectionOauth2Credentials } = require('../../utils/collection');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingAuthorizationCode } = require('../../utils/oauth2');
 const { setAuthHeaders } = require('./prepare-request');
@@ -125,12 +125,11 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
   const url = request.url;
   const { promptVariables = {} } = collection;
 
-  const scriptFlow = collection?.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
     mergeAuth(collection, request, requestTreePath);
     mergeHeaders(collection, request, requestTreePath);
-    mergeScripts(collection, request, requestTreePath, scriptFlow, REQUEST_TYPES.GRPC);
+    mergeGrpcScripts(collection, request, requestTreePath);
     mergeVars(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
     request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });

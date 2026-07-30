@@ -140,14 +140,14 @@ describe('afterCallEnd phase', () => {
       phaseData: {
         responses: [{ data: { reply: 'Hello, Alice!' } }, { data: { reply: 'Hello, Bob!' } }],
         statusCode: 0,
-        statusMessage: 'OK',
+        statusText: 'OK',
         trailers: { 'x-ratelimit-remaining': '99' },
         sentMessages: [messageEntry('message 1', { greeting: 'Alice' })]
       }
     });
 
     expect(api.response.statusCode).toBe(0);
-    expect(api.response.statusMessage).toBe('OK');
+    expect(api.response.statusText).toBe('OK');
     expect(api.response.trailers.get('x-ratelimit-remaining')).toBe('99');
     expect(api.response.messages.count()).toBe(2);
     expect(api.response.messages.first()).toEqual({ data: { reply: 'Hello, Alice!' } });
@@ -158,7 +158,7 @@ describe('afterCallEnd phase', () => {
   it('falls back to null status and empty collections when phaseData is empty', () => {
     const api = buildGrpcScriptApi({ phaseType: 'afterCallEnd', request: makeRequest(), phaseData: {} });
     expect(api.response.statusCode).toBeNull();
-    expect(api.response.statusMessage).toBeNull();
+    expect(api.response.statusText).toBeNull();
     expect(api.response.messages.count()).toBe(0);
     expect(api.request.messages.count()).toBe(0);
   });
@@ -231,5 +231,38 @@ describe('afterCallEnd phase', () => {
       expect(messages.first()).toBeNull();
       expect(messages.last()).toBeNull();
     });
+  });
+});
+
+describe('request.authMode', () => {
+  const authModeOf = (overrides, phaseType = 'beforeCallStart') =>
+    buildGrpcScriptApi({ phaseType, request: makeRequest(overrides), phaseData: {} }).request.authMode;
+
+  test.each([
+    ['oauth2', 'oauth2', { oauth2: { grantType: 'client_credentials' } }],
+    ['a Bearer Authorization entry', 'bearer', { headers: { Authorization: 'Bearer token123' } }],
+    ['a Basic Authorization entry', 'basic', { headers: { Authorization: 'Basic dXNlcjpwYXNz' } }],
+    ['a basicAuth username', 'basic', { basicAuth: { username: 'user', password: 'pass' } }],
+    ['an api key in query params', 'apikey', { apiKeyAuthValueForQueryParams: { key: 'api_key', value: 'secret' } }],
+    ['a named api-key entry', 'apikey', { apiKeyHeaderName: 'x-api-key', headers: { 'x-api-key': 'secret' } }],
+    ['a named api-key entry with an empty value', 'apikey', { apiKeyHeaderName: 'x-api-key', headers: { 'x-api-key': '' } }],
+    ['apiKeyHeaderName but no such entry', 'none', { apiKeyHeaderName: 'x-api-key', headers: {} }],
+    ['an X-WSSE entry', 'wsse', { headers: { 'X-WSSE': 'UsernameToken ...' } }],
+    ['no auth at all', 'none', {}],
+    ['malformed metadata', 'none', { headers: ['Authorization: Bearer token123'] }]
+  ])('resolves %s to "%s"', (_label, expected, overrides) => {
+    expect(authModeOf(overrides)).toBe(expected);
+  });
+
+  it('resolves in declaration order — oauth2 outranks a Bearer entry, Bearer outranks X-WSSE', () => {
+    expect(authModeOf({ oauth2: { grantType: 'client_credentials' }, headers: { Authorization: 'Bearer t' } })).toBe('oauth2');
+    expect(authModeOf({ headers: { 'Authorization': 'Bearer t', 'X-WSSE': 'UsernameToken ...' } })).toBe('bearer');
+  });
+
+  it('is exposed on request in every phase', () => {
+    const overrides = { headers: { Authorization: 'Bearer token123' } };
+    expect(authModeOf(overrides, 'beforeMessageSend')).toBe('bearer');
+    expect(authModeOf(overrides, 'afterMessageReceive')).toBe('bearer');
+    expect(authModeOf(overrides, 'afterCallEnd')).toBe('bearer');
   });
 });

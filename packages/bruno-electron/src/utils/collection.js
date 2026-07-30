@@ -25,10 +25,10 @@ const FORMAT_CONFIG = {
 
 const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
   const { includeDisabledHeaders = false } = options;
-  let headers = new Map();
-  let disabledHeaders = new Map();
+  const headers = new Map();
+  const disabledHeaders = new Map();
 
-  let collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
+  const collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       if (header?.name?.toLowerCase?.() === 'content-type') {
@@ -41,10 +41,10 @@ const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
     }
   });
 
-  for (let i of requestTreePath) {
+  for (const i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
-      let _headers = get(folderRoot, 'request.headers', []);
+      const _headers = get(folderRoot, 'request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
           if (header.name.toLowerCase() === 'content-type') {
@@ -79,10 +79,10 @@ const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
 };
 
 const mergeVars = (collection, request, requestTreePath = []) => {
-  let reqVars = new Map();
+  const reqVars = new Map();
   const collectionRoot = collection?.draft?.root || collection?.root || {};
-  let collectionRequestVars = get(collectionRoot, 'request.vars.req', []);
-  let collectionVariables = {};
+  const collectionRequestVars = get(collectionRoot, 'request.vars.req', []);
+  const collectionVariables = {};
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
       const typed = resolveTypedValue(_var);
@@ -90,12 +90,12 @@ const mergeVars = (collection, request, requestTreePath = []) => {
       collectionVariables[_var.name] = typed;
     }
   });
-  let folderVariables = {};
-  let requestVariables = {};
-  for (let i of requestTreePath) {
+  const folderVariables = {};
+  const requestVariables = {};
+  for (const i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
-      let vars = get(folderRoot, 'request.vars.req', []);
+      const vars = get(folderRoot, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           const typed = resolveTypedValue(_var);
@@ -128,17 +128,17 @@ const mergeVars = (collection, request, requestTreePath = []) => {
     }));
   }
 
-  let resVars = new Map();
-  let collectionResponseVars = get(collectionRoot, 'request.vars.res', []);
+  const resVars = new Map();
+  const collectionResponseVars = get(collectionRoot, 'request.vars.res', []);
   collectionResponseVars.forEach((_var) => {
     if (_var.enabled) {
       resVars.set(_var.name, resolveTypedValue(_var));
     }
   });
-  for (let i of requestTreePath) {
+  for (const i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
-      let vars = get(folderRoot, 'request.vars.res', []);
+      const vars = get(folderRoot, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           resVars.set(_var.name, resolveTypedValue(_var));
@@ -272,8 +272,11 @@ const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, reques
   return { code, metadata };
 };
 
-const mergeScripts = (collection, request, requestTreePath, scriptFlow, requestType = REQUEST_TYPES.HTTP) => {
+const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   const collectionRoot = collection?.draft?.root || collection?.root || {};
+  const collectionPreReqScript = get(collectionRoot, 'request.script.req', '');
+  const collectionPostResScript = get(collectionRoot, 'request.script.res', '');
+  const collectionTests = get(collectionRoot, 'request.tests', '');
 
   // Build source file info for error trace mapping
   const format = collection.format || 'bru';
@@ -293,7 +296,49 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow, requestT
   const withContent = (source, script) =>
     script?.trim() ? { ...source, scriptContent: script } : source;
 
-  // Wrap each segment in its own closure (isolates scope) and tag metadata with the request script.
+  const combinedPreReqScript = [];
+  const combinedPreReqSources = [];
+  const combinedPostResScript = [];
+  const combinedPostResSources = [];
+  const combinedTests = [];
+  const combinedTestsSources = [];
+
+  for (const i of requestTreePath) {
+    if (i.type === 'folder') {
+      const folderRoot = i?.draft || i?.root;
+      const folderSource = {
+        type: 'folder',
+        filePath: path.join(i.pathname, config.folderFile),
+        displayPath: posixifyPath(path.relative(collection.pathname, path.join(i.pathname, config.folderFile)))
+      };
+
+      const preReqScript = get(folderRoot, 'request.script.req', '');
+      if (preReqScript && preReqScript.trim() !== '') {
+        combinedPreReqScript.push(preReqScript);
+        combinedPreReqSources.push(withContent(folderSource, preReqScript));
+      }
+
+      const postResScript = get(folderRoot, 'request.script.res', '');
+      if (postResScript && postResScript.trim() !== '') {
+        combinedPostResScript.push(postResScript);
+        combinedPostResSources.push(withContent(folderSource, postResScript));
+      }
+
+      const tests = get(folderRoot, 'request.tests', '');
+      if (tests && tests?.trim?.() !== '') {
+        combinedTests.push(tests);
+        combinedTestsSources.push(withContent(folderSource, tests));
+      }
+    }
+  }
+
+  // Capture original request script content before overwriting with combined code
+  const originalPreReqScript = request?.script?.req || '';
+  const originalPostResScript = request?.script?.res || '';
+  const originalTests = request?.tests || '';
+
+  // Wrap scripts, join them, and annotate metadata with the original request script content.
+  // Returns { code, metadata } where metadata.requestScriptContent is set.
   const buildCombinedScript = (scripts, requestIndex, sources, originalScript) => {
     const result = wrapAndJoinScripts(scripts, requestIndex, sources, requestSegmentSource);
     if (result.metadata) {
@@ -302,53 +347,95 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow, requestT
     return result;
   };
 
-  // Folder roots on the path from collection to request (outer -> inner), with their source info.
-  const folders = [];
-  for (const treeItem of requestTreePath) {
-    if (treeItem.type === 'folder') {
-      folders.push({
-        folderRoot: treeItem?.draft || treeItem?.root,
-        folderSource: {
-          type: 'folder',
-          filePath: path.join(treeItem.pathname, config.folderFile),
-          displayPath: posixifyPath(path.relative(collection.pathname, path.join(treeItem.pathname, config.folderFile)))
-        }
-      });
-    }
+  // Wrap each script segment in its own closure and join them
+  // This allows each script to run separately with its own scope,
+  // preventing variable re-declaration errors and allowing early returns
+  // to only affect that specific script segment
+  const collectionPreReqSource = withContent(collectionSource, collectionPreReqScript);
+  const preReqScripts = [
+    collectionPreReqScript,
+    ...combinedPreReqScript,
+    originalPreReqScript
+  ];
+  const preReqSources = [collectionPreReqSource, ...combinedPreReqSources, null];
+  const preReq = buildCombinedScript(preReqScripts, preReqScripts.length - 1, preReqSources, originalPreReqScript);
+  request.script.req = preReq.code;
+  request.script.reqMetadata = preReq.metadata;
+
+  // Handle post-response scripts based on scriptFlow
+  const collectionPostResSource = withContent(collectionSource, collectionPostResScript);
+  if (scriptFlow === 'sequential') {
+    const postResScripts = [
+      collectionPostResScript,
+      ...combinedPostResScript,
+      originalPostResScript
+    ];
+    const postResSources = [collectionPostResSource, ...combinedPostResSources, null];
+    const postRes = buildCombinedScript(postResScripts, postResScripts.length - 1, postResSources, originalPostResScript);
+    request.script.res = postRes.code;
+    request.script.resMetadata = postRes.metadata;
+  } else {
+    // Reverse order for non-sequential flow
+    const postResScripts = [
+      originalPostResScript,
+      ...[...combinedPostResScript].reverse(),
+      collectionPostResScript
+    ];
+    const postResSources = [null, ...[...combinedPostResSources].reverse(), collectionPostResSource];
+    const postRes = buildCombinedScript(postResScripts, 0, postResSources, originalPostResScript);
+    request.script.res = postRes.code;
+    request.script.resMetadata = postRes.metadata;
   }
 
-  // gRPC runs only request-level scripts/tests; collection & folder scripts are not inherited.
-  const isGrpc = requestType === REQUEST_TYPES.GRPC;
+  // Handle tests based on scriptFlow
+  const collectionTestsSource = withContent(collectionSource, collectionTests);
+  if (scriptFlow === 'sequential') {
+    const testScripts = [
+      collectionTests,
+      ...combinedTests,
+      originalTests
+    ];
+    const testSources = [collectionTestsSource, ...combinedTestsSources, null];
+    const tests = buildCombinedScript(testScripts, testScripts.length - 1, testSources, originalTests);
+    request.tests = tests.code;
+    request.testsMetadata = tests.metadata;
+  } else {
+    // Reverse order for non-sequential flow
+    const testScripts = [
+      originalTests,
+      ...[...combinedTests].reverse(),
+      collectionTests
+    ];
+    const testSources = [null, ...[...combinedTestsSources].reverse(), collectionTestsSource];
+    const tests = buildCombinedScript(testScripts, 0, testSources, originalTests);
+    request.tests = tests.code;
+    request.testsMetadata = tests.metadata;
+  }
+};
 
-  // Combine collection/folder/request scripts per phase under its FIELD; RUNS_BEFORE phases go
-  // collection→folder→request, the rest reverse (sandwich: request inner, collection outer).
-  for (const phase of getPhasesByRequestType(requestType)) {
-    const field = phase.FIELD;
-    const originalScript = request?.script?.[field] || '';
+/**
+ * gRPC twin of {@link mergeScripts}: combines scripts per gRPC phase under its FIELD.
+ * gRPC runs only request-level scripts/tests — collection & folder scripts are not inherited.
+ */
+const mergeGrpcScripts = (collection, request, requestTreePath) => {
+  const requestItem = requestTreePath?.[requestTreePath.length - 1];
+  const requestPathname = request?.pathname || requestItem?.pathname;
+  const requestSegmentSource = requestPathname && collection?.pathname
+    ? { displayPath: posixifyPath(path.relative(collection.pathname, requestPathname)) }
+    : null;
 
-    const collectionScript = isGrpc ? '' : get(collectionRoot, `request.script.${field}`, '');
-    const collectionSrc = withContent(collectionSource, collectionScript);
-
-    const folderScripts = [];
-    const folderSources = [];
-    if (!isGrpc) {
-      for (const { folderRoot, folderSource } of folders) {
-        const folderScript = get(folderRoot, `request.script.${field}`, '');
-        if (folderScript && folderScript.trim() !== '') {
-          folderScripts.push(folderScript);
-          folderSources.push(withContent(folderSource, folderScript));
-        }
-      }
+  // Wrap the script in its own closure (isolates scope) and tag metadata with the request script.
+  const buildRequestScript = (originalScript) => {
+    const result = wrapAndJoinScripts([originalScript], 0, [null], requestSegmentSource);
+    if (result.metadata) {
+      result.metadata.requestScriptContent = originalScript;
     }
+    return result;
+  };
 
-    const collectionFirst = phase.RUNS_BEFORE || scriptFlow === 'sequential';
-    const scripts = collectionFirst
-      ? [collectionScript, ...folderScripts, originalScript]
-      : [originalScript, ...[...folderScripts].reverse(), collectionScript];
-    const sources = collectionFirst
-      ? [collectionSrc, ...folderSources, null]
-      : [null, ...[...folderSources].reverse(), collectionSrc];
-    const combined = buildCombinedScript(scripts, collectionFirst ? scripts.length - 1 : 0, sources, originalScript);
+  for (const phase of getPhasesByRequestType(REQUEST_TYPES.GRPC)) {
+    const field = phase.FIELD;
+    const combined = buildRequestScript(request?.script?.[field] || '');
 
     if (request.script) {
       request.script[field] = combined.code;
@@ -356,29 +443,8 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow, requestT
     }
   }
 
-  // Tests are not a script phase — combine them separately (after-style flow, same as post-response).
-  const originalTests = request?.tests || '';
-  const collectionTests = isGrpc ? '' : get(collectionRoot, 'request.tests', '');
-  const collectionTestsSource = withContent(collectionSource, collectionTests);
-  const folderTests = [];
-  const folderTestsSrcs = [];
-  if (!isGrpc) {
-    for (const { folderRoot, folderSource } of folders) {
-      const folderTest = get(folderRoot, 'request.tests', '');
-      if (folderTest && folderTest.trim?.() !== '') {
-        folderTests.push(folderTest);
-        folderTestsSrcs.push(withContent(folderSource, folderTest));
-      }
-    }
-  }
-  const testsCollectionFirst = scriptFlow === 'sequential';
-  const testScripts = testsCollectionFirst
-    ? [collectionTests, ...folderTests, originalTests]
-    : [originalTests, ...[...folderTests].reverse(), collectionTests];
-  const testSources = testsCollectionFirst
-    ? [collectionTestsSource, ...folderTestsSrcs, null]
-    : [null, ...[...folderTestsSrcs].reverse(), collectionTestsSource];
-  const tests = buildCombinedScript(testScripts, testsCollectionFirst ? testScripts.length - 1 : 0, testSources, originalTests);
+  // Tests are not a script phase — handle them separately.
+  const tests = buildRequestScript(request?.tests || '');
   request.tests = tests.code;
   request.testsMetadata = tests.metadata;
 };
@@ -406,13 +472,13 @@ const findItem = (items = [], itemUid) => {
 };
 
 const findItemInCollection = (collection, itemUid) => {
-  let flattenedItems = flattenItems(collection.items);
+  const flattenedItems = flattenItems(collection.items);
 
   return findItem(flattenedItems, itemUid);
 };
 
 const findParentItemInCollection = (collection, itemUid) => {
-  let flattenedItems = flattenItems(collection.items);
+  const flattenedItems = flattenItems(collection.items);
 
   return find(flattenedItems, (item) => {
     return item.items && find(item.items, (i) => i.uid === itemUid);
@@ -420,7 +486,7 @@ const findParentItemInCollection = (collection, itemUid) => {
 };
 
 const findParentItemInCollectionByPathname = (collection, pathname) => {
-  let flattenedItems = flattenItems(collection.items);
+  const flattenedItems = flattenItems(collection.items);
 
   return find(flattenedItems, (item) => {
     return item.items && find(item.items, (i) => i.pathname === pathname);
@@ -428,7 +494,7 @@ const findParentItemInCollectionByPathname = (collection, pathname) => {
 };
 
 const getTreePathFromCollectionToItem = (collection, _item) => {
-  let path = [];
+  const path = [];
   let item = findItemInCollection(collection, _item.uid);
   while (item) {
     path.unshift(item);
@@ -606,7 +672,7 @@ const findItemByPathname = (items = [], pathname) => {
 };
 
 const findItemInCollectionByPathname = (collection, pathname) => {
-  let flattenedItems = flattenItems(collection.items);
+  const flattenedItems = flattenItems(collection.items);
 
   return findItemByPathname(flattenedItems, pathname);
 };
@@ -770,7 +836,7 @@ const getEnvVars = (environment = {}) => {
 };
 
 const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => {
-  let credentialsVariables = {};
+  const credentialsVariables = {};
   oauth2Credentials.forEach(({ credentialsId, credentials }) => {
     if (credentials) {
       Object.entries(credentials).forEach(([key, value]) => {
@@ -784,12 +850,12 @@ const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => 
 const mergeAuth = (collection, request, requestTreePath) => {
   // Start with collection level auth (always consider collection auth as base)
   const collectionRoot = collection?.draft?.root || collection?.root || {};
-  let collectionAuth = get(collectionRoot, 'request.auth', { mode: 'none' });
+  const collectionAuth = get(collectionRoot, 'request.auth', { mode: 'none' });
   let effectiveAuth = collectionAuth;
   let lastFolderWithAuth = null;
 
   // Traverse through the path to find the closest auth configuration
-  for (let i of requestTreePath) {
+  for (const i of requestTreePath) {
     if (i.type === 'folder') {
       const folderRoot = i?.draft || i?.root;
       const folderAuth = get(folderRoot, 'request.auth');
@@ -899,6 +965,7 @@ module.exports = {
   mergeHeaders,
   mergeVars,
   mergeScripts,
+  mergeGrpcScripts,
   mergeAuth,
   wrapAndJoinScripts,
   getTreePathFromCollectionToItem,

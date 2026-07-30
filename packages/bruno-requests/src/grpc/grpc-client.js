@@ -1,4 +1,4 @@
-import { makeGenericClientConstructor, ChannelCredentials, Metadata, status, credentials, CallCredentials } from '@grpc/grpc-js';
+import { makeGenericClientConstructor, ChannelCredentials, Metadata, status as grpcStatusCodeNames, credentials, CallCredentials } from '@grpc/grpc-js';
 import { GrpcReflection } from 'grpc-js-reflection-client';
 import * as protoLoader from '@grpc/proto-loader';
 import { generateGrpcSampleMessage } from './grpcMessageGenerator';
@@ -152,12 +152,12 @@ const getParsedGrpcUrlObject = (url) => {
  */
 const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc, onComplete) => {
   let completed = false;
-  let finalResponse = { statusCode: null, statusMessage: null, trailers: {} };
+  let finalResponse = { statusCode: null, statusText: null, trailers: {} };
   const normalizeMetadata = (metadata) => (metadata?.getMap ? metadata.getMap() : metadata) || {};
   const captureFinalResponse = (source) => {
     finalResponse = {
       statusCode: source.code,
-      statusMessage: source.details,
+      statusText: grpcStatusCodeNames[source.code] || 'UNKNOWN',
       trailers: normalizeMetadata(source.metadata)
     };
   };
