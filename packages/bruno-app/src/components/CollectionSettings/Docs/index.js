@@ -70,11 +70,7 @@ const Docs = ({ collection }) => {
                 Save
               </Button>
             </>
-          ) : (
-            <ActionIcon className="editing-mode" onClick={toggleViewMode}>
-              <IconEdit className="cursor-pointer" size={16} strokeWidth={1.5} />
-            </ActionIcon>
-          )}
+          ) : null}
         </div>
       </div>
       <div className="flex-1 min-h-0">

@@ -16,9 +16,9 @@ export const buildDocsLocators = (page: Page) => ({
   codeEditor: () => page.locator('.editor-container .CodeMirror-scroll'),
   tableMenuTrigger: () => page.getByTestId('toolbar-table-menu'),
   overflowMenuTrigger: () => page.getByTestId('toolbar-overflow-menu'),
-  collectionDocsEditToggle: () => page.locator('.collection-settings-content .editing-mode'),
+  collectionDocsEditToggle: () => page.getByTestId('settings-tab-bar').getByTestId('docs-edit-toggle'),
   collectionDocsSaveBtn: () => page.locator('.collection-settings-content').getByRole('button', { name: 'Save', exact: true }),
   collectionDocsCancelBtn: () => page.locator('.collection-settings-content').getByRole('button', { name: 'Cancel', exact: true }),
-  folderDocsEditToggle: () => page.locator('.folder-settings-content .editing-mode'),
+  folderDocsEditToggle: () => page.getByTestId('settings-tab-bar').getByTestId('docs-edit-toggle'),
   folderDocsSaveBtn: () => page.locator('.folder-settings-content').getByRole('button', { name: 'Save', exact: true })
 });
