@@ -1,3 +1,5 @@
+import { toDisplayString } from './string';
+
 // A header as stored in a request/collection/folder definition.
 type Header = { name?: string; value?: unknown; enabled?: boolean };
 // A row ready for display: name + stringified value.
@@ -15,18 +17,9 @@ const norm = (name: unknown): string => String(name ?? '').trim().toLowerCase();
 // Header values are strings on the wire, but a script may set a non-string (req.setHeader('x', {...}))
 // and a response header may arrive as an array (set-cookie) or a number — JSON-encode objects/arrays
 // so the UI shows the value instead of "[object Object]" (React would throw on a raw object child).
-const toHeaderValue = (value: unknown): string => {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'object') {
-    try {
-      return JSON.stringify(value);
-    } catch (e) {
-      return String(value);
-    }
-  }
-  return String(value);
-};
+
+const toHeaderValue = (value: unknown): string =>
+  toDisplayString(value, value == null ? '' : String(value), 0);
 
 /**
  * Normalize a headers collection (array of {name,value} or a plain name->value object) to display
@@ -122,7 +115,15 @@ export const buildHeaderRows = ({
     enabledHeaderNames(folderRoot?.request?.headers || []).forEach((n) => folderNames.add(n));
   });
 
-  const itemHeaders = item?.draft ? item?.draft?.request?.headers || [] : item?.request?.headers || [];
+  // treePath's leaf is the collection item itself, resolved out of the tree by uid, so prefer it over
+  // the passed `item`. The runner's result items carry a uid and the sent/received payloads but no
+  // headers, so reading them off `item` there leaves every request-level header unattributed and sinks
+  // it into the default bucket. `item` stays the fallback for a request that isn't in the tree.
+  const leaf = treePath.length ? treePath[treePath.length - 1] : null;
+  const requestNode = leaf && leaf.type !== 'folder' ? leaf : item;
+  const itemHeaders = requestNode?.draft
+    ? requestNode?.draft?.request?.headers || []
+    : requestNode?.request?.headers || [];
   const requestNames = enabledHeaderNames(itemHeaders);
 
   // Headers the pre-request script added/changed via req.setHeader (recorded by the network layer).

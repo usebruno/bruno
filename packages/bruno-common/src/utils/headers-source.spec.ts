@@ -231,6 +231,88 @@ describe('buildHeaderRows', () => {
       expect(rows.map((r) => r.name)).toEqual(['accept', 'host']);
     });
   });
+
+  /**
+   * The collection runner renders its timeline from a result item that carries a uid and the
+   * sent/received payloads but no headers of its own, so the request's own headers have to come from
+   * the resolved tree path rather than from the item that was passed in.
+   */
+  describe('runner result items', () => {
+    const treeItem = {
+      uid: 'req-1',
+      type: 'http',
+      request: { headers: [{ name: 'request-header-1', value: 'rv', enabled: true }] }
+    };
+    const folder = {
+      type: 'folder',
+      root: { request: { headers: [{ name: 'folder-header-1', value: 'fv', enabled: true }] } }
+    };
+    const collection = {
+      root: { request: { headers: [{ name: 'collection-header-1', value: 'cv', enabled: true }] } }
+    };
+    const timeline = [
+      { type: 'request', message: 'GET /' },
+      reqHeader('Host: localhost'),
+      reqHeader('collection-header-1: cv'),
+      reqHeader('folder-header-1: fv'),
+      reqHeader('request-header-1: rv')
+    ];
+    const expectedOrder = ['Host', 'collection-header-1', 'folder-header-1', 'request-header-1'];
+
+    it('attributes request-level headers for a result item that has no headers of its own', () => {
+      // Without reading the tree path's leaf, request-header-1 matches no definition level and sinks
+      // into the default bucket, rendering up among the transport headers.
+      const rows = buildHeaderRows({
+        collection,
+        item: { uid: 'req-1', type: 'http', status: 'completed' },
+        treePath: [folder, treeItem],
+        request: {},
+        timeline
+      });
+
+      expect(rows.map((r) => r.name)).toEqual(expectedOrder);
+    });
+
+    it('orders a runner item exactly as the same request ordered outside the runner', () => {
+      const context = { collection, treePath: [folder, treeItem], request: {}, timeline };
+
+      const runnerRows = buildHeaderRows({ ...context, item: { uid: 'req-1', type: 'http' } });
+      const singleRows = buildHeaderRows({ ...context, item: treeItem });
+
+      expect(runnerRows).toEqual(singleRows);
+    });
+
+    it('still prefers a draft on the resolved item over its saved headers', () => {
+      // Unsaved edits have to win in the runner view too, so the leaf is read the same way `item` was.
+      const draftedItem = {
+        ...treeItem,
+        draft: { request: { headers: [{ name: 'draft-only-header', value: 'dv', enabled: true }] } }
+      };
+
+      const rows = buildHeaderRows({
+        collection,
+        item: { uid: 'req-1' },
+        treePath: [folder, draftedItem],
+        request: {},
+        timeline: [{ type: 'request', message: 'GET /' }, reqHeader('draft-only-header: dv'), reqHeader('Host: localhost')]
+      });
+
+      expect(rows.map((r) => r.name)).toEqual(['Host', 'draft-only-header']);
+    });
+
+    it('falls back to the passed item when the request is not in the tree', () => {
+      // A transient request resolves to an empty tree path, so `item` remains the only source.
+      const rows = buildHeaderRows({
+        collection: {},
+        item: treeItem,
+        treePath: [],
+        request: {},
+        timeline: [{ type: 'request', message: 'GET /' }, reqHeader('Host: localhost'), reqHeader('request-header-1: rv')]
+      });
+
+      expect(rows.map((r) => r.name)).toEqual(['Host', 'request-header-1']);
+    });
+  });
 });
 
 /**
