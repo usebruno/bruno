@@ -10,6 +10,7 @@ export const buildSidebarLocators = (page: Page) => {
   return {
     collectionsContainer: () => page.getByTestId('collections'),
     collection: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
+    collectionChevron: (name: string) => collectionRow(name).getByTestId('collection-chevron'),
     folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     folderRequest: (folderName: string, requestName: string) => {

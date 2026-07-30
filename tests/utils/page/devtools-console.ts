@@ -1,5 +1,6 @@
 import { Page, test } from '../../../playwright';
 import { escapeRegExp } from '../helpers';
+import { readLastHopRequestHeaderLines } from './network-log';
 
 /**
  * DevTools console (bottom panel): its tab strip, the Network request list, and the
@@ -18,12 +19,12 @@ export const buildDevToolsLocators = (page: Page) => {
 
   return {
     trigger: () => page.locator('button[data-trigger="dev-tools"]'),
-    header: () => page.locator('.console-header'),
-    tab: (name: string) => page.locator('.console-tab').filter({ hasText: name }),
+    header: () => page.getByTestId('console-header'),
+    tab: (name: string) => page.getByTestId('console-tab').filter({ hasText: name }),
     networkRows: () => page.getByTestId('network-request-row'),
     closeButton: () => page.getByTitle('Close console'),
-    detailsPanel: () => page.locator('.details-panel-wrapper'),
-    detailsSubTab: (name: string) => page.locator('.details-panel-wrapper .tab-button').filter({ hasText: name }),
+    detailsPanel: () => page.getByTestId('details-panel'),
+    detailsSubTab: (name: string) => page.getByTestId('details-panel-tab').filter({ hasText: name }),
     requestHeadersTable: () => page.getByTestId('request-details-request-headers'),
     requestHeaders: {
       rows: reqHeaderRows,
@@ -31,21 +32,7 @@ export const buildDevToolsLocators = (page: Page) => {
       value: (name: string) => reqHeaderRow(name).getByTestId('request-details-header-value')
     },
     // The details panel's Network sub-tab: the same wire trace the response-pane Timeline shows.
-    // Scoped to the final hop for the same reason — a multi-hop request logs every hop here, while
-    // the Request tab shows only the hop that produced the response.
-    lastHopRequestHeaderLines: async () => {
-      const entries = await page
-        .locator('.details-panel-wrapper')
-        .getByTestId('network-log-entry')
-        .evaluateAll((nodes) =>
-          nodes.map((node) => ({
-            type: node.getAttribute('data-log-type'),
-            text: (node.textContent || '').trim()
-          }))
-        );
-      const hopStart = entries.reduce((last, entry, i) => (entry.type === 'request' ? i : last), 0);
-      return entries.slice(hopStart).filter((e) => e.type === 'requestHeader').map((e) => e.text);
-    }
+    lastHopRequestHeaderLines: () => readLastHopRequestHeaderLines(page.getByTestId('details-panel'))
   };
 };
 

@@ -282,6 +282,31 @@ describe('HeaderList (req.headerList)', () => {
       expect(list.count()).toBe(1);
       expect(list.get('X-Only')).toBe('one');
     });
+
+    test('merges headers passed to BrunoRequest.setHeaders as an array of entries', () => {
+      const { list, brunoReq } = createReqHeaders();
+      brunoReq.setHeaders([{ 'X-One': '1' }, { 'X-Two': '2', 'Accept': 'text/plain' }]);
+
+      // The array form adds to the existing set instead of replacing it, so the untouched
+      // Content-Type/Authorization survive while Accept takes the new value.
+      expect(list.count()).toBe(5);
+      expect(list.get('X-One')).toBe('1');
+      expect(list.get('X-Two')).toBe('2');
+      expect(list.get('Accept')).toBe('text/plain');
+      expect(list.get('Content-Type')).toBe('application/json');
+    });
+
+    test('ignores non-object entries and prototype keys in the array form', () => {
+      const { list, brunoReq, rawReq } = createReqHeaders();
+      // JSON.parse (not a literal, which would set the prototype instead) gives __proto__ as a real
+      // own key — the form a script could reach via a parsed API response.
+      const polluting = JSON.parse('{"__proto__":{"polluted":true}}');
+      brunoReq.setHeaders([null, 'not-an-object', polluting, { 'X-Ok': 'yes' }]);
+
+      expect(list.get('X-Ok')).toBe('yes');
+      expect(Object.getPrototypeOf(rawReq.headers)).toBe(Object.prototype);
+      expect({}.polluted).toBeUndefined();
+    });
   });
 
   // ── Write methods ─────────────────────────────────────────────────────

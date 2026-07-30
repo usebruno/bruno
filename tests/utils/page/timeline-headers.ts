@@ -1,5 +1,6 @@
 import { Page } from '../../../playwright';
 import { escapeRegExp } from '../helpers';
+import { readLastHopRequestHeaderLines } from './network-log';
 
 /**
  * Locators for the read-only headers table rendered inside an expanded timeline
@@ -24,26 +25,7 @@ export const buildTimelineHeaderLocators = (page: Page) => {
 
   // The expanded entry's Network tab: the raw wire trace.
   const networkTab = () => page.getByTestId('timeline-detail').getByTestId('tl-tab-network');
-  const networkLogEntries = () => page.getByTestId('timeline-detail').getByTestId('network-log-entry');
-
-  /**
-   * The final hop's sent headers from the network log, as "name: value" strings in wire order.
-   *
-   * Scoped to the last hop deliberately: a followed redirect (or a digest/NTLM retry) logs every hop
-   * here, while the Request tab's table shows only the hop that produced the response. Comparing the
-   * two therefore has to start at the last `request` marker, or a multi-hop request looks like a
-   * mismatch when the views actually agree.
-   */
-  const lastHopRequestHeaderLines = async () => {
-    const entries = await networkLogEntries().evaluateAll((nodes) =>
-      nodes.map((node) => ({
-        type: node.getAttribute('data-log-type'),
-        text: (node.textContent || '').trim()
-      }))
-    );
-    const hopStart = entries.reduce((last, entry, i) => (entry.type === 'request' ? i : last), 0);
-    return entries.slice(hopStart).filter((e) => e.type === 'requestHeader').map((e) => e.text);
-  };
+  const lastHopRequestHeaderLines = () => readLastHopRequestHeaderLines(page.getByTestId('timeline-detail'));
 
   return { table, rows, names, row, value, networkTab, lastHopRequestHeaderLines };
 };

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { expect, Locator, test } from '../../../playwright';
-import { closeAllCollections, expandFolder, selectResponsePaneTab, sendRequestAndWaitForResponse } from '../../utils/page/actions';
+import { closeAllCollections, expandCollection, expandFolder, selectResponsePaneTab, sendRequestAndWaitForResponse } from '../../utils/page/actions';
 import { closeDevToolsConsole, openNetworkRequestDetails } from '../../utils/page/devtools-console';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { openCollectionFromPath, waitForCollectionMount } from '../../utils/page/mounting';
@@ -74,8 +74,7 @@ type HeadersSurface = {
   value: (name: string) => Locator;
 };
 
-// Every header the Request-tab table shows, as a lowercased "name: value" set. The network log is a
-// wire trace so its ordering differs by design — the *set* is what must match.
+// Every header the Request-tab table shows, as a lowercased "name: value" set.
 const expectedHeaderSet = (userAgent: string, startTime: string) =>
   new Set(
     [
@@ -90,7 +89,7 @@ const expectedHeaderSet = (userAgent: string, startTime: string) =>
 
 // The network log renders "Name: value" lines; compare case-insensitively since the wire casing
 // (Host, Accept-Encoding) differs from the lowercased definition names.
-const assertSameHeaderSet = (lines: string[], surface: string) => {
+const assertNetworkLogHeaders = (lines: string[], surface: string) => {
   const actual = lines.map((line) => line.toLowerCase());
   expect(actual, `${surface}: one line per sent header`).toHaveLength(TOTAL_HEADER_COUNT);
 
@@ -102,6 +101,15 @@ const assertSameHeaderSet = (lines: string[], surface: string) => {
 
   expect(new Set(actual), `${surface}: same header set as the Request tab`).toEqual(
     expectedHeaderSet(valueOf('user-agent'), valueOf('request-start-time'))
+  );
+
+  // The log is grouped by source like the Request tab's table, so the entity block is its tail in the
+  // same order. Serialization interleaves the transport defaults among the definition headers, so
+  // without that grouping this block would be split apart.
+  const names = actual.map((line) => line.slice(0, line.indexOf(':')));
+  const expectedEntityOrder = ENTITY_HEADERS.map(([name]) => name.toLowerCase());
+  expect(names.slice(-expectedEntityOrder.length), `${surface}: entity headers grouped after the defaults`).toEqual(
+    expectedEntityOrder
   );
 };
 
@@ -141,15 +149,8 @@ test.describe('Timeline — response headers by source', () => {
       });
 
       await test.step('Reveal and open the request nested in folder-1/folder-2', async () => {
-        const folder1 = sidebar.folder('folder-1');
-        if (!(await folder1.isVisible().catch(() => false))) {
-          await sidebar.collection(COLLECTION).click();
-          await expect(folder1).toBeVisible();
-        }
-        // expandFolder decides from the chevron's state, so it's a no-op when already expanded —
-        // unlike a bare click, which would collapse a folder that opened while we were looking.
+        await expandCollection(page, COLLECTION);
         await expandFolder(page, 'folder-1');
-        await expect(sidebar.folder('folder-2')).toBeVisible();
         await expandFolder(page, 'folder-2');
 
         const request = sidebar.request(REQUEST);
@@ -181,7 +182,7 @@ test.describe('Timeline — response headers by source', () => {
 
       await test.step('The Timeline Network tab shows the same headers as its Request tab', async () => {
         await timelineHeaders.networkTab().click();
-        assertSameHeaderSet(await timelineHeaders.lastHopRequestHeaderLines(), 'timeline Network tab');
+        assertNetworkLogHeaders(await timelineHeaders.lastHopRequestHeaderLines(), 'timeline Network tab');
       });
 
       await test.step('DevTools Console → Network → request details lists the identical headers', async () => {
@@ -191,7 +192,7 @@ test.describe('Timeline — response headers by source', () => {
 
       await test.step('The DevTools Network sub-tab shows the same headers too', async () => {
         await devtools.detailsSubTab('Network').click();
-        assertSameHeaderSet(await devtools.lastHopRequestHeaderLines(), 'devtools Network tab');
+        assertNetworkLogHeaders(await devtools.lastHopRequestHeaderLines(), 'devtools Network tab');
       });
     });
   };

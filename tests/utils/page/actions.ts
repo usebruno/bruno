@@ -665,6 +665,16 @@ const expandFolder = async (page: Page, folderName: string) => {
   });
 };
 
+const expandCollection = async (page: Page, collectionName: string) => {
+  await test.step(`Expand collection "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const chevron = locators.sidebar.collectionChevron(collectionName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (!isExpanded) await chevron.click();
+  });
+};
+
 type EnvironmentType = 'collection' | 'global';
 
 /**
@@ -2659,6 +2669,7 @@ export {
   addFolderScript,
   addCollectionScript,
   expandFolder,
+  expandCollection,
   sendAndWaitForErrorCard,
   sendAndWaitForResponse,
   selectAuthMode,
