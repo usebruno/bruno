@@ -1,5 +1,6 @@
 import { isEqual } from 'lodash';
 import { uuid } from './common/index';
+import { INVALID_VARIABLE_NAMES_ERROR_PREFIX } from './common/variables';
 
 export const buildEnvVariable = ({ envVariable: obj, withUuid = false }) => {
   const isSecret = !!obj.secret;
@@ -130,6 +131,14 @@ export const getScriptModifiedKeys = (scriptVars, baseline, { skipKeys = [] } = 
 
 export const DUPLICATE_SECRET_NAMES_ERROR = 'Duplicate secret names are not allowed';
 export const DUPLICATE_SECRET_NAME_FIELD_ERROR = 'Secret names must be unique';
+
+/**
+ * `saveEnvironment` / `saveGlobalEnvironment` reject either because the variables are unfit to save
+ * or because the write itself failed. The former name what the user has to fix, so callers show
+ * them verbatim; the latter keep the wording of the flow they came from.
+ */
+export const isEnvironmentValidationError = (err) =>
+  err?.message === DUPLICATE_SECRET_NAMES_ERROR || !!err?.message?.startsWith(INVALID_VARIABLE_NAMES_ERROR_PREFIX);
 
 /**
  * Secret values are persisted in a name-keyed side store and re-attached on read by name, so two

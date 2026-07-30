@@ -3,7 +3,8 @@ jest.mock('nanoid', () => ({
   customAlphabet: () => () => 'aaaaaaaaaaaaaaaaaaaa1'
 }));
 
-import { applyScriptEnvVars, buildEnvVariable, stripEnvVarUid, getDuplicateSecretNames, writesCollidingSecrets, resolveSecretNameCollision, dedupeImportedSecrets } from './environments';
+import { applyScriptEnvVars, buildEnvVariable, stripEnvVarUid, getDuplicateSecretNames, writesCollidingSecrets, resolveSecretNameCollision, dedupeImportedSecrets, isEnvironmentValidationError, DUPLICATE_SECRET_NAMES_ERROR } from './environments';
+import { invalidVariableNamesError } from './common/variables';
 
 describe('buildEnvVariable — dataType preservation for env export/import', () => {
   it('preserves non-string datatypes on non-secret variables', () => {
@@ -503,6 +504,25 @@ describe('getDuplicateSecretNames', () => {
       { name: 'TOKEN', secret: true }
     ];
     expect(getDuplicateSecretNames(vars).size).toBe(0);
+  });
+});
+
+describe('isEnvironmentValidationError', () => {
+  it('recognises the duplicate-secret-names rejection', () => {
+    expect(isEnvironmentValidationError(new Error(DUPLICATE_SECRET_NAMES_ERROR))).toBe(true);
+  });
+
+  it('recognises an invalid-variable-names rejection regardless of the names listed', () => {
+    expect(isEnvironmentValidationError(new Error(invalidVariableNamesError(['my var', 'a b'])))).toBe(true);
+  });
+
+  it('does not claim an unrelated save failure', () => {
+    expect(isEnvironmentValidationError(new Error('Environment not found'))).toBe(false);
+  });
+
+  it('tolerates a missing or message-less rejection', () => {
+    expect(isEnvironmentValidationError(undefined)).toBe(false);
+    expect(isEnvironmentValidationError({})).toBe(false);
   });
 });
 
