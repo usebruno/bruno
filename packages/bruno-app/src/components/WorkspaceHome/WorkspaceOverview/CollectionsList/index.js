@@ -44,9 +44,34 @@ const CollectionsList = ({ workspace }) => {
 
   const isDefaultWorkspace = workspace?.type === 'default';
 
+  const unopenableCollections = useMemo(() => {
+    return (workspace.unopenableCollections || []).map((wc) => ({
+      uid: `unopenable-${wc.path}`,
+      name: wc.name,
+      pathname: wc.path,
+      items: [],
+      environments: [],
+      isGitBacked: false,
+      isLoaded: false,
+      failedToOpen: true,
+      git: { gitRootPath: null },
+      brunoConfig: {},
+      root: {
+        request: {
+          headers: [],
+          auth: { mode: 'none' },
+          vars: { req: [], res: [] },
+          script: { req: '', res: '' },
+          tests: ''
+        },
+        docs: ''
+      }
+    }));
+  }, [workspace.unopenableCollections]);
+
   const workspaceCollections = useMemo(() => {
     if (!workspace.collections || workspace.collections.length === 0) {
-      return [];
+      return unopenableCollections;
     }
 
     const filteredCollections = workspace.collections.filter((wc) => {
@@ -56,12 +81,12 @@ const CollectionsList = ({ workspace }) => {
       return true;
     });
 
-    return filteredCollections.map((wc) => {
+    const resolvedCollections = filteredCollections.map((wc) => {
       const loadedCollection = collections.find(
         (c) => normalizePath(c.pathname) === normalizePath(wc.path)
       );
 
-      if (loadedCollection && !wc.failedToOpen) {
+      if (loadedCollection) {
         return {
           ...loadedCollection,
           isGitBacked: !!wc.remote,
@@ -77,8 +102,6 @@ const CollectionsList = ({ workspace }) => {
         environments: [],
         isGitBacked: !!wc.remote,
         isLoaded: false,
-        failedToOpen: !!wc.failedToOpen,
-        failureReason: wc.failureReason,
         gitRemoteUrl: wc.remote,
         git: { gitRootPath: null },
         brunoConfig: {},
@@ -94,7 +117,9 @@ const CollectionsList = ({ workspace }) => {
         }
       };
     });
-  }, [workspace.collections, workspace.scratchTempDirectory, collections]);
+
+    return [...resolvedCollections, ...unopenableCollections];
+  }, [workspace.collections, workspace.scratchTempDirectory, collections, unopenableCollections]);
 
   const handleOpenCollectionClick = (collection, event) => {
     if (event.target.closest('.collection-menu')) {
@@ -102,7 +127,7 @@ const CollectionsList = ({ workspace }) => {
     }
 
     if (collection.failedToOpen) {
-      toast.error(`Collection could not be opened: ${collection.pathname}`);
+      toast.error(`Collection "${collection.name}" could not be opened`);
       return;
     }
 
@@ -309,7 +334,6 @@ const CollectionsList = ({ workspace }) => {
             <div
               key={collection.uid || index}
               className="collection-card"
-              data-testid="collection-card"
               onClick={(e) => handleOpenCollectionClick(collection, e)}
             >
               <div className="collection-info">
@@ -322,21 +346,16 @@ const CollectionsList = ({ workspace }) => {
                     <StatusBadge
                       status="info"
                       size="xs"
-                      data-testid="collection-git-badge"
                       leftSection={<IconBrandGit size={11} strokeWidth={2} />}
                     >
                       Git
                     </StatusBadge>
                   )}
                   {collection.failedToOpen && (
-                    <StatusBadge status="danger" size="xs" data-testid="collection-failed-badge">
-                      {collection.failureReason === 'not-found' ? 'Missing' : 'Failed to open'}
-                    </StatusBadge>
+                    <StatusBadge status="danger" size="xs">Failed to open</StatusBadge>
                   )}
                   {!isDefaultWorkspace && collection.isLoaded === false && !collection.failedToOpen && (
-                    <StatusBadge status="warning" size="xs" data-testid="collection-not-cloned-badge">
-                      Not cloned
-                    </StatusBadge>
+                    <StatusBadge status="warning" size="xs">Not cloned</StatusBadge>
                   )}
                 </div>
                 <div className="collection-path">{collection.pathname}</div>

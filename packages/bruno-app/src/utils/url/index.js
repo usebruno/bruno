@@ -1,6 +1,7 @@
 import find from 'lodash/find';
 
 import { interpolate } from '@usebruno/common';
+import { DEFAULT_SCHEME, hasExplicitScheme } from '@usebruno/common/utils';
 import { version as appVersion } from '../../../package.json';
 
 /**
@@ -118,6 +119,20 @@ export const isValidUrl = (url) => {
   } catch (err) {
     return false;
   }
+};
+
+/**
+ * `localhost:6000/x` becomes `http://localhost:6000/x`. A schemeless URL is sent over plain
+ * HTTP, but `new URL()` and HAR generation both reject it, so callers that have to parse one
+ * supply the scheme first. An empty URL is left alone for the caller to report, and so is a
+ * leading `{{var}}` — the variable may carry the scheme itself.
+ */
+export const prependDefaultScheme = (url) => {
+  if (!url || hasExplicitScheme(url) || url.startsWith('{{')) {
+    return url;
+  }
+
+  return `${DEFAULT_SCHEME}${url}`;
 };
 
 export const isHttpUrl = (url) => {

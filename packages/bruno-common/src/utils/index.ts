@@ -1,10 +1,14 @@
 export {
+  DEFAULT_SCHEME,
+  getExplicitScheme,
   hasExplicitScheme,
   encodeUrl,
   parseQueryParams,
   buildQueryString,
   stripOrigin,
   safeDecodeURIComponent,
+  extractMockRoutePath,
+  getMockResponseRouteKey,
   isSameOrigin
 } from './url';
 

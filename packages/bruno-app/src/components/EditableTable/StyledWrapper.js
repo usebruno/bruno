@@ -46,6 +46,10 @@ const StyledWrapper = styled.div`
         border-right: none;
       }
 
+      &.sortable-header {
+        cursor: pointer;
+      }
+
       .column-name {
         display: block;
         overflow: hidden;
@@ -240,6 +244,10 @@ const StyledWrapper = styled.div`
   tbody tr:hover .drag-handle,
   tbody tr.drag-over .drag-handle {
     opacity: 1;
+  }
+
+  tbody tr.dragging-source {
+    opacity: 0.4;
   }
 
   select {

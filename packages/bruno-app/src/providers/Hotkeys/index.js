@@ -13,6 +13,8 @@ import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, sav
 import { toggleSidebarCollapse, savePreferences } from 'providers/ReduxStore/slices/app';
 import { setLocalStorageValue, SIDEBAR_COLLAPSED_KEY } from 'utils/common/localStorage';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
+import { isEnvironmentValidationError } from 'utils/environments';
+import toast from 'react-hot-toast';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
 export const HotkeysContext = React.createContext();
@@ -225,7 +227,10 @@ export const HotkeysProvider = (props) => {
         const { environmentUid, variables } = collection.environmentsDraft;
         const environment = findEnvironmentInCollection(collection, environmentUid);
         if (environment && variables) {
-          dispatch(saveEnvironment(variables, environmentUid, collectionUid));
+          dispatch(saveEnvironment(variables, environmentUid, collectionUid))
+            .catch((err) =>
+              toast.error(isEnvironmentValidationError(err) ? err.message : 'Failed to save environment')
+            );
         }
       }
 

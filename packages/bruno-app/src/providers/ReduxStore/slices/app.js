@@ -49,6 +49,9 @@ const initialState = {
       timeout: 0,
       oauth2: {
         useSystemBrowser: false
+      },
+      clientCertificates: {
+        certs: []
       }
     },
     font: {

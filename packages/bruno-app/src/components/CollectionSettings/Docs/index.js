@@ -1,7 +1,7 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
 import { updateCollectionDocs } from 'providers/ReduxStore/slices/collections';
-import { useRef, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { buildAiVariablesPayload, buildDocsContextFromCollection } from 'utils/ai';
@@ -10,7 +10,6 @@ import { IconEdit, IconFileText } from '@tabler/icons';
 import Button from 'ui/Button/index';
 import ActionIcon from 'ui/ActionIcon/index';
 import { usePersistedState } from 'hooks/usePersistedState';
-import { useTrackScroll } from 'hooks/useTrackScroll';
 import { useDocsEditingState } from 'components/Documentation/useDocsEditingState';
 import DocsEditor from 'components/Documentation/DocsEditor';
 
@@ -22,17 +21,9 @@ const Docs = ({ collection }) => {
   const docsContext = useMemo(() => buildDocsContextFromCollection(collection), [collection]);
   const aiVariables = useMemo(() => buildAiVariablesPayload(collection, null), [collection]);
 
-  // The rich text editor owns its own scroll container. Preview and rich-text
-  // edit mode track scroll there; markdown mode uses CodeEditor's onScroll/initialScroll.
-  const wrapperRef = useRef(null);
+  // Scroll tracking (both the rich-text preview/edit view and markdown mode's
+  // CodeEditor) lives in DocsEditor itself; this just owns the persisted value.
   const [scroll, setScroll] = usePersistedState({ key: `collection-docs-scroll-${collection.uid}`, default: 0 });
-  useTrackScroll({
-    ref: wrapperRef,
-    selector: '.rich-text-editor-content',
-    onChange: setScroll,
-    enabled: !isEditing,
-    initialValue: scroll
-  });
 
   const toggleViewMode = () => {
     setEditing(!isEditing);
@@ -63,7 +54,7 @@ const Docs = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="h-full w-full relative flex flex-col" ref={wrapperRef}>
+    <StyledWrapper className="h-full w-full relative flex flex-col">
       <div className="flex flex-row w-full justify-between items-center mb-4">
         <div className="text-lg font-medium flex items-center gap-2">
           <IconFileText size={20} strokeWidth={1.5} />
@@ -79,11 +70,7 @@ const Docs = ({ collection }) => {
                 Save
               </Button>
             </>
-          ) : (
-            <ActionIcon className="editing-mode" onClick={toggleViewMode}>
-              <IconEdit className="cursor-pointer" size={16} strokeWidth={1.5} />
-            </ActionIcon>
-          )}
+          ) : null}
         </div>
       </div>
       <div className="flex-1 min-h-0">

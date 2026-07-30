@@ -9,7 +9,7 @@ export const buildSidebarLocators = (page: Page) => {
 
   return {
     collectionsContainer: () => page.getByTestId('collections'),
-    collection: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
+    collection: (name?: string) => name ? page.locator('#sidebar-collection-name').filter({ hasText: name }) : page.locator('#sidebar-collection-name'),
     folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     folderRequest: (folderName: string, requestName: string) => {

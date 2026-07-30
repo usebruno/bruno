@@ -7,6 +7,7 @@ import AIAssist from 'components/AIAssist';
 import RichTextEditor from 'ui/RichTextEditor';
 import ModeSwitch from 'components/ModeSwitch';
 import { useEditor } from '@tiptap/react';
+import { useTrackScroll } from 'hooks/useTrackScroll';
 import StyledWrapper from './StyledWrapper';
 
 // Distinct from any real `docs` value (including `null`, which a fresh
@@ -110,6 +111,20 @@ const DocsEditor = ({
     }
   }, [docs, editor, isMarkdownMode, isEditing, emptyPreviewContent]);
 
+  // The rich-text view (preview AND WYSIWYG edit mode) stays mounted the
+  // whole time — only markdown mode swaps it out for CodeEditor below. So
+  // scroll tracking here should only pause when markdown mode's CodeEditor
+  // (which has its own initialScroll/onScroll) is the one actually visible;
+  // gating on `isEditing` alone left WYSIWYG edit mode with no tracking at all.
+  const richTextWrapperRef = useRef(null);
+  useTrackScroll({
+    ref: richTextWrapperRef,
+    selector: '.rich-text-editor-content',
+    onChange: onScroll || (() => {}),
+    enabled: !(isEditing && isMarkdownMode),
+    initialValue: initialScroll
+  });
+
   return (
     <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative" data-testid={testId}>
       {isEditing && (
@@ -152,6 +167,7 @@ const DocsEditor = ({
         </div>
       )}
       <section
+        ref={richTextWrapperRef}
         className={`flex flex-col flex-1 min-h-0 w-full ${isEditing && isMarkdownMode ? 'hidden' : ''}`}
         onDoubleClick={() => !isEditing && onRequestEdit && onRequestEdit()}
       >

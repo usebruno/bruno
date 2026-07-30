@@ -29,13 +29,23 @@ const buildWorkspaceCollectionLookupKey = (workspacePathname, collectionPathname
 
 const tabSchema = yup.object({
   type: yup.string().required(),
-  accessor: yup.string().oneOf(['pathname', 'pathname::exampleName', 'pathname::exampleIndex', 'type']).required(),
+  accessor: yup.string().oneOf([
+    'pathname',
+    'pathname::exampleName',
+    'pathname::exampleIndex',
+    'type',
+    'type::mockServerUid',
+    'type::mockResponseUid'
+  ]).required(),
   pathname: yup.string().nullable(),
   permanent: yup.boolean().required(),
   name: yup.string().optional(),
   exampleName: yup.string().optional(),
   exampleIndex: yup.number().integer().min(0).optional(),
   exampleUid: yup.string().optional(),
+  mockServerUid: yup.string().nullable().optional(),
+  responseUid: yup.string().optional(),
+  tabName: yup.string().optional(),
   request: yup.object({
     tab: yup.string(),
     width: yup.number().nullable(),
@@ -52,7 +62,14 @@ const tabSchema = yup.object({
 });
 
 const activeTabSchema = yup.object({
-  accessor: yup.string().oneOf(['pathname', 'pathname::exampleName', 'pathname::exampleIndex', 'type']).required(),
+  accessor: yup.string().oneOf([
+    'pathname',
+    'pathname::exampleName',
+    'pathname::exampleIndex',
+    'type',
+    'type::mockServerUid',
+    'type::mockResponseUid'
+  ]).required(),
   value: yup.string().required()
 });
 
@@ -223,6 +240,8 @@ class SnapshotManager {
     }));
   }
 
+  // Remaps .bru → .yml tab pathnames across every workspace entry for this collection.
+  // Shared collections keep per-workspace tab lists; migrate must update all of them.
   remapCollectionTabPaths(collectionPathname, pathMap) {
     const normalizedCollectionPath = normalizeLookupKey(collectionPathname);
     if (!normalizedCollectionPath || !isObject(pathMap)) {
@@ -332,8 +351,8 @@ class SnapshotManager {
         ...(isObject(existingCollection?.environment) ? existingCollection.environment : {}),
         ...(isObject(data?.environment) ? data.environment : {})
       },
-      activeTab: data?.activeTab ?? existingCollection?.activeTab,
-      tabs: data?.tabs ?? existingCollection?.tabs,
+      activeTab: isObject(data) && 'activeTab' in data ? data.activeTab : existingCollection?.activeTab,
+      tabs: isObject(data) && 'tabs' in data ? data.tabs : existingCollection?.tabs,
       environmentPath: data?.environmentPath ?? existingCollection?.environmentPath,
       selectedEnvironment: data?.selectedEnvironment ?? existingCollection?.selectedEnvironment
     };
@@ -689,7 +708,14 @@ class SnapshotManager {
       return null;
     }
 
-    if (!['pathname', 'pathname::exampleName', 'pathname::exampleIndex', 'type'].includes(activeTab.accessor) || typeof activeTab.value !== 'string') {
+    if (![
+      'pathname',
+      'pathname::exampleName',
+      'pathname::exampleIndex',
+      'type',
+      'type::mockServerUid',
+      'type::mockResponseUid'
+    ].includes(activeTab.accessor) || typeof activeTab.value !== 'string') {
       return null;
     }
 

@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react'
 import { TableVirtuoso } from 'react-virtuoso';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
-import { IconTrash, IconAlertCircle, IconInfoCircle } from '@tabler/icons';
+import { IconTrash, IconAlertCircle, IconInfoCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
@@ -19,9 +19,18 @@ import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
-import { stripEnvVarUid } from 'utils/environments';
+import {
+  stripEnvVarUid,
+  getDuplicateSecretNames,
+  DUPLICATE_SECRET_NAMES_ERROR,
+  DUPLICATE_SECRET_NAME_FIELD_ERROR
+} from 'utils/environments';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { useSortCycle } from 'hooks/useSortCycle';
+import { sortRowsByName, reorderWithinSubset } from 'utils/sortableRows';
+import { useMouseRowDrag, DRAG_ROW_KEY_ATTR } from 'hooks/useMouseRowDrag';
+import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
 import { reconcileSavedChange } from './reconcile';
 
 const MIN_H = 35 * 2;
@@ -38,10 +47,21 @@ const orderVarsBySecret = (vars) => {
 };
 
 const TableRow = React.memo(
-  ({ children, item, style, ...rest }) => {
+  ({ children, item, style, context, ...rest }) => {
     const variable = item?.variable ?? item;
+    const canDrag = !!context?.dragEnabled && item?.index !== context?.lastFormikIndex;
+    const isDragOver = canDrag && context?.dragOverKey === variable?.uid;
+    const isBeingDragged = canDrag && context?.draggingKey === variable?.uid;
+
     return (
-      <tr key={variable?.uid} style={style} {...rest} data-testid={`env-var-row-${variable?.name}`}>
+      <tr
+        key={variable?.uid}
+        style={style}
+        {...rest}
+        className={`${rest.className || ''} ${isDragOver ? 'drag-over' : ''} ${isBeingDragged ? 'dragging-source' : ''}`.trim()}
+        data-testid={`env-var-row-${variable?.name}`}
+        {...(canDrag ? { [DRAG_ROW_KEY_ATTR]: variable.uid } : {})}
+      >
         {children}
       </tr>
     );
@@ -49,7 +69,15 @@ const TableRow = React.memo(
   (prevProps, nextProps) => {
     const prevUid = prevProps?.item?.variable?.uid ?? prevProps?.item?.uid;
     const nextUid = nextProps?.item?.variable?.uid ?? nextProps?.item?.uid;
-    return prevUid === nextUid && prevProps.children === nextProps.children;
+    const prevCtx = prevProps.context || {};
+    const nextCtx = nextProps.context || {};
+    return (
+      prevUid === nextUid
+      && prevProps.children === nextProps.children
+      && prevCtx.dragEnabled === nextCtx.dragEnabled
+      && prevCtx.dragOverKey === nextCtx.dragOverKey
+      && prevCtx.draggingKey === nextCtx.draggingKey
+    );
   }
 );
 
@@ -172,7 +200,7 @@ const EnvironmentVariablesTable = ({
   const hasDraftForThisEnv = draft?.environmentUid === environment.uid;
 
   const rowCount = (environment.variables?.length || 0) + 1;
-  const [tableHeight, setTableHeight] = useState(rowCount * MIN_ROW_HEIGHT);
+  const [tableHeight, setTableHeight] = useState(Math.max(rowCount * MIN_ROW_HEIGHT, MIN_H));
 
   const [scroll, setScroll] = usePersistedState({
     key: `persisted::${activeTabUid}::collection-envs-scroll-${environment.uid}`,
@@ -198,6 +226,10 @@ const EnvironmentVariablesTable = ({
 
   const [resizing, setResizing] = useState(null);
   const [pinnedData, setPinnedData] = useState({ query: '', uids: new Set() });
+  const isSearchActive = !!searchQuery?.trim();
+
+  const { sortMode, cycleSortMode, SortIcon, sortLabel } = useSortCycle({ storageKey: `env-var-sort::${environment.uid}` });
+  const dragEnabled = sortMode === 'default' && !isSecretTab && !isSearchActive;
 
   const handleColumnWidthsChange = (id, widths) => {
     dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId: id, widths }));
@@ -254,7 +286,7 @@ const EnvironmentVariablesTable = ({
   }, [handleColumnWidthsChange]);
 
   const handleTotalHeightChanged = useCallback((h) => {
-    setTableHeight(h);
+    setTableHeight(Math.max(h, MIN_H));
   }, []);
 
   const handleRowFocus = useCallback((uid) => {
@@ -345,6 +377,7 @@ const EnvironmentVariablesTable = ({
     ),
     validate: (values) => {
       const errors = {};
+      const duplicateSecrets = getDuplicateSecretNames(values);
       values.forEach((variable, index) => {
         const isLastRow = index === values.length - 1;
         const isEmptyRow = !variable.name || variable.name.trim() === '';
@@ -360,12 +393,58 @@ const EnvironmentVariablesTable = ({
           if (!errors[index]) errors[index] = {};
           errors[index].name
             = 'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.';
+        } else if (variable.secret && duplicateSecrets.has(variable.name.trim())) {
+          if (!errors[index]) errors[index] = {};
+          errors[index].name = DUPLICATE_SECRET_NAME_FIELD_ERROR;
         }
       });
       return Object.keys(errors).length > 0 ? errors : {};
     },
     onSubmit: () => { }
   });
+  const buildSortOrder = useCallback((variables, mode) => {
+    if (mode === 'default') return null;
+    const activeTabVars = variables.filter((v) => !!v.secret === isSecretTab && v.name && v.name.trim() !== '');
+    return sortRowsByName(activeTabVars, mode, (v) => v.name).map((v) => v.uid);
+  }, [isSecretTab]);
+
+  const sortOrderRef = useRef(null);
+  const prevSortModeRef = useRef();
+  const prevIsDraftRef = useRef(hasDraftForThisEnv);
+  const prevEnvironmentVariablesRef = useRef(environment.variables);
+  const justCommitted = prevIsDraftRef.current === true && hasDraftForThisEnv === false;
+  const savedVariablesChanged = prevEnvironmentVariablesRef.current !== environment.variables;
+  prevIsDraftRef.current = hasDraftForThisEnv;
+  prevEnvironmentVariablesRef.current = environment.variables;
+  if (prevSortModeRef.current !== sortMode || justCommitted || savedVariablesChanged) {
+    prevSortModeRef.current = sortMode;
+    // After a save/reparse, `environment.variables` gets new uids; `initialValues` keeps stable ones for reorder.
+    sortOrderRef.current = buildSortOrder(savedVariablesChanged ? initialValues : formik.values, sortMode);
+  }
+
+  const handleRowReorder = useCallback((fromUid, toUid) => {
+    const belongsToActiveTab = (variable) => !!variable.secret === isSecretTab;
+    const reordered = reorderWithinSubset(formik.values, belongsToActiveTab, fromUid, toUid);
+    if (reordered !== formik.values) {
+      formik.setValues(reordered);
+    }
+  }, [formik, isSecretTab]);
+
+  const { draggingKey, dragOverKey, handleDragHandleMouseDown, cancelDrag } = useMouseRowDrag({
+    enabled: dragEnabled,
+    onReorder: handleRowReorder
+  });
+
+  useEffect(() => {
+    cancelDrag();
+  }, [variableType, cancelDrag]);
+
+  const dragContext = useMemo(() => ({
+    dragEnabled,
+    dragOverKey,
+    draggingKey,
+    lastFormikIndex: formik.values.length - 1
+  }), [dragEnabled, dragOverKey, draggingKey, formik.values.length]);
 
   // Restore draft values on mount or environment switch (not on external filesystem reloads)
   useEffect(() => {
@@ -448,6 +527,8 @@ const EnvironmentVariablesTable = ({
     return () => clearTimeout(timeoutId);
   }, [formik.values, savedValuesJson, environment.uid, hasDraftForThisEnv, draft?.variables, onDraftChange, onDraftClear]);
 
+  const duplicateSecretNames = useMemo(() => getDuplicateSecretNames(formik.values), [formik.values]);
+
   const ErrorMessage = ({ name, index }) => {
     const meta = formik.getFieldMeta(name);
     const id = `error-${name}-${index}`;
@@ -460,13 +541,16 @@ const EnvironmentVariablesTable = ({
       return null;
     }
 
-    if (!meta.error || !meta.touched) {
+    const isDuplicateSecret = variable?.secret && !isEmptyRow && duplicateSecretNames.has(variable.name.trim());
+    const error = meta.error || (isDuplicateSecret ? DUPLICATE_SECRET_NAME_FIELD_ERROR : null);
+
+    if (!error) {
       return null;
     }
     return (
       <span>
-        <IconAlertCircle id={id} className="text-red-600 cursor-pointer" size={20} />
-        <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
+        <IconAlertCircle id={id} data-testid="env-var-name-error" className="text-red-600 cursor-pointer" size={20} />
+        <Tooltip className="tooltip-mod" anchorId={id} html={error} />
       </span>
     );
   };
@@ -515,6 +599,8 @@ const EnvironmentVariablesTable = ({
 
   const handleNameChange = (index, e) => {
     formik.handleChange(e);
+    // Touch the field as it changes so its validation icon surfaces while typing, not only after blur.
+    formik.setFieldTouched(`${index}.name`, true, false);
     const isLastRow = index === formik.values.length - 1;
 
     if (isLastRow) {
@@ -583,6 +669,11 @@ const EnvironmentVariablesTable = ({
       return;
     }
 
+    if (getDuplicateSecretNames(activeCurrent).size > 0) {
+      toast.error(DUPLICATE_SECRET_NAMES_ERROR);
+      return;
+    }
+
     // Persist the active tab's edits alongside the other tab's last-saved rows (unchanged).
     const persistedVariables = orderVarsBySecret([...activeCurrent, ...otherSaved]);
 
@@ -603,6 +694,8 @@ const EnvironmentVariablesTable = ({
           onDraftClear();
         }
 
+        sortOrderRef.current = buildSortOrder(retainedVariables, sortMode);
+
         formik.resetForm({
           values: [
             ...retainedVariables,
@@ -622,7 +715,7 @@ const EnvironmentVariablesTable = ({
         console.error(error);
         toast.error('An error occurred while saving the changes');
       });
-  }, [formik.values, environment.variables, onSave, onDraftChange, onDraftClear, setIsModified, isSecretTab]);
+  }, [formik.values, environment.variables, onSave, onDraftChange, onDraftClear, setIsModified, isSecretTab, buildSortOrder, sortMode]);
 
   const handleReset = useCallback(() => {
     const belongsToActiveTab = (variable) => (isSecretTab ? !!variable.secret : !variable.secret);
@@ -647,6 +740,8 @@ const EnvironmentVariablesTable = ({
       onDraftClear();
     }
 
+    sortOrderRef.current = buildSortOrder(resetVariables, sortMode);
+
     formik.resetForm({
       values: [
         ...resetVariables,
@@ -661,7 +756,7 @@ const EnvironmentVariablesTable = ({
       ]
     });
     setIsModified(otherDirty);
-  }, [environment.variables, formik.values, isSecretTab, onDraftChange, onDraftClear, setIsModified]);
+  }, [environment.variables, formik.values, isSecretTab, onDraftChange, onDraftClear, setIsModified, buildSortOrder, sortMode]);
 
   const handleSaveAll = useCallback(() => {
     const namedValues = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
@@ -691,10 +786,17 @@ const EnvironmentVariablesTable = ({
       return;
     }
 
+    if (getDuplicateSecretNames(namedValues).size > 0) {
+      toast.error(DUPLICATE_SECRET_NAMES_ERROR);
+      return;
+    }
+
     onSave(cloneDeep(persistedVariables))
       .then(() => {
         toast.success('Changes saved successfully');
         onDraftClear();
+
+        sortOrderRef.current = buildSortOrder(persistedVariables, sortMode);
 
         formik.resetForm({
           values: [
@@ -715,7 +817,7 @@ const EnvironmentVariablesTable = ({
         console.error(error);
         toast.error('An error occurred while saving the changes');
       });
-  }, [formik.values, environment.variables, onSave, onDraftClear, setIsModified, isSecretTab]);
+  }, [formik.values, environment.variables, onSave, onDraftClear, setIsModified, isSecretTab, buildSortOrder, sortMode]);
 
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
@@ -778,11 +880,29 @@ const EnvironmentVariablesTable = ({
     });
   }, [formik.values, searchQuery, pinnedData, isSecretTab]);
 
-  const isSearchActive = !!searchQuery?.trim();
+  const displayedVariables = (() => {
+    if (isSecretTab || sortMode === 'default' || !sortOrderRef.current) {
+      return filteredVariables;
+    }
+
+    const lastFormikIndex = formik.values.length - 1;
+    const trailingIdx = filteredVariables.findIndex((entry) => entry.index === lastFormikIndex);
+    const hasTrailing = trailingIdx !== -1;
+    const trailing = hasTrailing ? filteredVariables[trailingIdx] : null;
+    const sortable = hasTrailing ? filteredVariables.filter((_, i) => i !== trailingIdx) : filteredVariables;
+
+    const byUid = new Map(sortable.map((entry) => [entry.variable.uid, entry]));
+    const knownUids = new Set(sortOrderRef.current);
+    const ordered = sortOrderRef.current.filter((uid) => byUid.has(uid)).map((uid) => byUid.get(uid));
+    const added = sortable.filter((entry) => !knownUids.has(entry.variable.uid));
+    const sorted = [...ordered, ...added];
+
+    return hasTrailing ? [...sorted, trailing] : sorted;
+  })();
 
   return (
     <StyledWrapper className={`${resizing ? 'is-resizing' : ''} has-description-column`.trim()}>
-      {isSearchActive && filteredVariables.length === 0 ? (
+      {isSearchActive && displayedVariables.length === 0 ? (
         <div className="no-results">No results found for &ldquo;{searchQuery.trim()}&rdquo;</div>
       ) : (
         <TableVirtuoso
@@ -790,15 +910,24 @@ const EnvironmentVariablesTable = ({
           style={{ height: tableHeight }}
           scrollerRef={setScrollerEl}
           initialTopMostItemIndex={initialTopMostItemIndex}
-          overscan={Math.min(30, filteredVariables.length)}
+          overscan={Math.min(30, displayedVariables.length)}
           components={{ TableRow }}
-          data={filteredVariables}
+          context={dragContext}
+          data={displayedVariables}
           totalListHeightChanged={handleTotalHeightChanged}
           fixedHeaderContent={() => (
             <tr>
               <td className="text-center"></td>
-              <td style={{ width: columnWidths.name }}>
-                Name
+              <td
+                style={{ width: columnWidths.name }}
+                className={!isSecretTab ? 'sortable-header' : ''}
+                onClick={!isSecretTab ? (e) => {
+                  if (!e.target.closest('.resize-handle')) cycleSortMode();
+                } : undefined}
+              >
+                {isSecretTab ? 'Name' : (
+                  <ColumnSortHeader label="Name" SortIcon={SortIcon} sortLabel={sortLabel} />
+                )}
                 <div
                   className={`resize-handle ${resizing === 'name' ? 'resizing' : ''}`}
                   style={{ height: tableHeight > 0 ? `${tableHeight}px` : undefined }}
@@ -826,7 +955,17 @@ const EnvironmentVariablesTable = ({
 
             return (
               <>
-                <td className="text-center">
+                <td className="text-center relative">
+                  {dragEnabled && !isLastEmptyRow && (
+                    <div
+                      data-testid="drag-handle"
+                      className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
+                      onMouseDown={(e) => handleDragHandleMouseDown(e, variable.uid, variable.name)}
+                    >
+                      <IconGripVertical size={14} className="icon-grip hidden group-hover:block" />
+                      <IconMinusVertical size={14} className="icon-minus block group-hover:hidden" />
+                    </div>
+                  )}
                   {!isLastEmptyRow && (
                     <input
                       type="checkbox"
@@ -849,6 +988,7 @@ const EnvironmentVariablesTable = ({
                         className="mousetrap"
                         id={`${actualIndex}.name`}
                         name={`${actualIndex}.name`}
+                        data-testid="env-var-name-input"
                         value={variable.name}
                         placeholder={!variable.name || (typeof variable.name === 'string' && variable.name.trim() === '') ? 'Name' : ''}
                         onChange={(e) => handleNameChange(actualIndex, e)}

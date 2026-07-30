@@ -11,6 +11,7 @@ import Documentation from './Documentation';
 import Auth from './Auth';
 import StatusDot from 'components/StatusDot';
 import SettingsAiAssist from 'components/SettingsAiAssist';
+import DocsAction from 'components/Documentation/DocsAction';
 import { hasEffectiveAuth } from 'utils/auth';
 
 const AI_TABS = ['script', 'test', 'docs'];
@@ -109,7 +110,8 @@ const FolderSettings = ({ collection, folder }) => {
             </div>
           </div>
           {AI_TABS.includes(tab) && (
-            <div className="flex items-center flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {tab === 'docs' && <DocsAction />}
               <SettingsAiAssist collection={collection} folder={folder} activeTab={tab} />
             </div>
           )}
