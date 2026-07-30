@@ -4,6 +4,7 @@ export * from './file-mode';
 export * from './runner';
 export * from './locators';
 export * from './sidebar';
+export * from './workspace-overview';
 export * from './mounting';
 export * from './preferences';
 export * from './ai';

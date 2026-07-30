@@ -3,6 +3,7 @@ const { CLI_VERSION } = require('../constants');
 const { addCookieToJar, getCookieStringForUrl } = require('./cookies');
 const { createFormData } = require('./form-data');
 const { setupProxyAgents } = require('./proxy-util');
+const { isSameOrigin } = require('@usebruno/common').utils;
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
@@ -76,6 +77,7 @@ function makeAxiosInstance({
   requestMaxRedirects = 5,
   disableCookies,
   followRedirects = true,
+  forwardAuthorizationHeader = true,
   proxyMode,
   proxyConfig,
   systemProxyConfig,
@@ -178,6 +180,15 @@ function makeAxiosInstance({
           }
 
           const requestConfig = createRedirectConfig(error, redirectUrl);
+
+          if (!forwardAuthorizationHeader && !isSameOrigin(error.config.url, redirectUrl)) {
+            Object.keys(requestConfig.headers).forEach((key) => {
+              const lowerKey = key.toLowerCase();
+              if (lowerKey === 'authorization' || lowerKey === 'proxy-authorization') {
+                delete requestConfig.headers[key];
+              }
+            });
+          }
 
           await setupProxyAgents({
             requestConfig,

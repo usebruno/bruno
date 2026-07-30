@@ -154,6 +154,9 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
     uid: uuid(),
     name: operationName,
     type: 'http-request',
+    settings: {
+      forwardAuthorizationHeader: false
+    },
     tags: sanitizeTags(op.tags || [], options),
     request: {
       docs: op.description,
