@@ -27,6 +27,7 @@ async function setup() {
     console.log('🎉 Certificate setup completed successfully');
     console.log(`   Client PEM : client-cert.pem + client-key.pem  (type: cert)`);
     console.log(`   Client PFX : client.pfx  (type: pfx, passphrase: "${PFX_PASSPHRASE}")`);
+    console.log(`   Untrusted  : untrusted-client-cert.pem + untrusted-client-key.pem  (rejected by the server)`);
     console.log(`   Trust CA   : ca-cert.pem  (set as custom CA in Bruno, or disable TLS verification)`);
     return true;
   } catch (error) {

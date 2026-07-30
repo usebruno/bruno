@@ -17,6 +17,8 @@ function createCertsDir(certsDir) {
  *   server-cert.pem / server-key.pem  - server cert (CN=localhost, SAN localhost/127.0.0.1)
  *   client-cert.pem / client-key.pem  - client cert (extendedKeyUsage=clientAuth, CN=bruno-client)
  *   client.pfx                        - PKCS#12 bundle of the client cert (passphrase: "bruno")
+ *   untrusted-client-cert.pem / untrusted-client-key.pem
+ *                                     - self-signed client cert the server rejects (CN=untrusted-client)
  *
  * Point Bruno's client-certificate config at client-cert.pem/client-key.pem (type "cert")
  * or client.pfx (type "pfx"). The CA (ca-cert.pem) must be trusted by Bruno for the TLS
@@ -75,6 +77,22 @@ basicConstraints = critical, CA:FALSE`);
   execCommand('openssl req -new -key client-key.pem -out client.csr -config client.conf', certsDir);
   execCommand('openssl x509 -req -in client.csr -CA ca-cert.pem -CAkey ca-key.pem -CAcreateserial -out client-cert.pem -days 730 -extensions v3_req -extfile client.conf', certsDir);
 
+  // --- Untrusted client cert (self-signed, so the server's CA cannot verify it) ---
+  // Well-formed and loadable, but rejected at the handshake. Configure it at the level a test
+  // expects to be overridden: a successful mTLS call then proves the other level won.
+  execCommand('openssl genrsa -out untrusted-client-key.pem 4096', certsDir);
+  write('untrusted-client.conf', `[req]
+distinguished_name = dn
+x509_extensions = v3_req
+prompt = no
+[dn]
+CN = untrusted-client
+[v3_req]
+keyUsage = critical, digitalSignature
+extendedKeyUsage = clientAuth
+basicConstraints = critical, CA:FALSE`);
+  execCommand('openssl req -new -x509 -key untrusted-client-key.pem -out untrusted-client-cert.pem -days 730 -config untrusted-client.conf', certsDir);
+
   // --- Client PFX (PKCS#12) ---
   // Force AES-256-CBC + SHA-256 MAC. macOS ships LibreSSL, whose default pkcs12
   // export uses the legacy pbeWithSHA1And40BitRC2-CBC cipher; Node's OpenSSL 3
@@ -83,7 +101,7 @@ basicConstraints = critical, CA:FALSE`);
   execCommand(`openssl pkcs12 -export -out client.pfx -inkey client-key.pem -in client-cert.pem -certfile ca-cert.pem -certpbe AES-256-CBC -keypbe AES-256-CBC -macalg sha256 -password pass:${PFX_PASSPHRASE}`, certsDir);
 
   // Cleanup intermediates
-  ['ca.conf', 'server.conf', 'client.conf', 'server.csr', 'client.csr', 'ca-cert.srl'].forEach((file) => {
+  ['ca.conf', 'server.conf', 'client.conf', 'untrusted-client.conf', 'server.csr', 'client.csr', 'ca-cert.srl'].forEach((file) => {
     const filePath = path.join(certsDir, file);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   });
@@ -122,7 +140,9 @@ function verifyCertificates(certsDir) {
     'server-key.pem',
     'client-cert.pem',
     'client-key.pem',
-    'client.pfx'
+    'client.pfx',
+    'untrusted-client-cert.pem',
+    'untrusted-client-key.pem'
   ];
 
   for (const file of requiredFiles) {
