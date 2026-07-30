@@ -73,7 +73,7 @@ const StyledWrapper = styled.div`
   }
 
   .preset-field .preset-input.textbox {
-    padding: 0.4rem 0.6rem;
+    padding: 0.3rem 0.6rem;
   }
 
   .default-env-dropdown {
@@ -88,7 +88,7 @@ const StyledWrapper = styled.div`
       width: 100%;
       box-sizing: border-box;
       gap: 0.5rem;
-      padding: 0.4rem 0.6rem;
+      padding: 0.3rem 0.6rem;
       border-radius: 3px;
       background-color: ${(props) => props.theme.input.bg};
       border: 1px solid ${(props) => props.theme.input.border};
