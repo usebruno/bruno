@@ -7,6 +7,7 @@ import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
+import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
 import { buildWebsocketCommonLocators } from './websocket';
 import { buildToastLocators } from './toast';
 import { buildRequestLocators } from '../request';
@@ -34,6 +35,7 @@ export const buildCommonLocators = (page: Page) => ({
   sidebar: buildSidebarLocators(page),
   workspaceOverview: buildWorkspaceOverviewLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
+  migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),
   actions: {
     collectionActions: (collectionName: string) =>
@@ -50,6 +52,7 @@ export const buildCommonLocators = (page: Page) => ({
     tippyItem: (text: string) => page.locator('.tippy-box .dropdown-item').filter({ hasText: text })
   },
   tabs: {
+    allRequestTabs: () => page.locator('.request-tab'),
     requestTab: (requestName: string) => page.locator('.request-tab .tab-label').filter({ hasText: requestName }),
     folderTab: (folderName: string) => page.locator('.request-tab .tab-label').filter({ hasText: folderName }),
     collectionSettingsTab: () =>
