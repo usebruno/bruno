@@ -9,10 +9,27 @@ request:
       value: folder-1-header-value-1
     - name: folder-1-header-2
       value: folder-1-header-value-2
+    - name: folder-1-set-header-1
+      value: folder-1-set-header-definition-1
+    - name: folder-1-interpolated-1
+      value: "{{folder-1-token-1}}"
+    - name: folder-1-delete-header-1
+      value: folder-1-delete-header-value-1
+    - name: folder-1-delete-headers-1
+      value: folder-1-delete-headers-value-1
+    - name: folder-1-delete-headers-2
+      value: folder-1-delete-headers-value-2
+    - name: shared-header-1
+      value: folder-1-shared-value-1
   scripts:
     - type: before-request
       code: |-
+        req.setHeader('folder-1-set-header-1', 'folder-1-set-header-script-1');
+        req.setHeader('folder-1-set-header-2', 'folder-1-set-header-script-2');
         req.setHeaders([
-          { 'folder-1-script-header-1': 'folder-1-script-value-1' },
-          { 'folder-1-script-header-2': 'folder-1-script-value-2' }
+          { 'folder-1-set-headers-1': 'folder-1-set-headers-script-1' },
+          { 'folder-1-set-headers-2': 'folder-1-set-headers-script-2' }
         ]);
+        req.deleteHeader('folder-1-delete-header-1');
+        req.deleteHeaders(['folder-1-delete-headers-1', 'folder-1-delete-headers-2']);
+        bru.setVar('folder-1-token-1', 'folder-1-interpolated-script-1');

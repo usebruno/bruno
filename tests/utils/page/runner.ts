@@ -23,7 +23,10 @@ export const buildRunnerLocators = (page: Page) => ({
   delayInput: () => page.getByTestId('runner-delay-input'),
   resultItems: () => page.getByTestId('runner-result-item'),
   requestLoader: () => page.getByTestId('runner-result-item').locator('.animate-spin'),
-  requestStatusLabel: () => page.getByTestId('runner-iteration-status-label')
+  requestStatusLabel: () => page.getByTestId('runner-iteration-status-label'),
+  // RunnerTimeline renders TimelineItem directly, without the response pane's `timeline-item`
+  // wrapper (and without its `timeline-container`), so a runner row is the TimelineItem root itself.
+  resultTimelineEntries: () => page.getByTestId('timeline-entry')
 });
 
 /**
@@ -123,6 +126,32 @@ export const runCollection = async (page: Page, collectionName: string) => {
 
     // Wait for the run to complete
     await locators.runAgainButton().waitFor({ timeout: 2 * 60 * 1000 });
+  });
+};
+
+/**
+ * Opens a completed runner result, switches its response pane to the Timeline tab, and expands the
+ * timeline entry so its Request/Network tabs are rendered.
+ *
+ * The runner renders its own response pane (RunnerResults/ResponsePane) rather than the request
+ * tab's, so its tab strip carries no data-testid and has to be reached by role. `.last()` picks the
+ * runner's strip over the request pane's, which stays mounted behind it.
+ * @param page - The Playwright page object
+ * @param requestName - The name of the request whose result should be opened
+ */
+export const openRunnerResultTimeline = async (page: Page, requestName: string) => {
+  await test.step(`Open the "${requestName}" runner result on its Timeline tab`, async () => {
+    const locators = buildRunnerLocators(page);
+    const result = locators.resultItems().filter({ hasText: requestName });
+    await result.first().waitFor({ state: 'visible', timeout: 10000 });
+    await result.locator('.link').first().click();
+
+    const timelineTab = page.locator('[role="tab"]').filter({ hasText: 'Timeline' }).last();
+    await timelineTab.click();
+
+    const entry = locators.resultTimelineEntries().first();
+    await entry.waitFor({ state: 'visible', timeout: 10000 });
+    await entry.getByTestId('timeline-item-header').click();
   });
 };
 

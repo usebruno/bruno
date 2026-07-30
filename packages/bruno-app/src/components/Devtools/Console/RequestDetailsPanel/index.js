@@ -208,7 +208,7 @@ const RequestDetailsPanel = () => {
       <div className="panel-tabs">
         <button
           className={`tab-button ${activeTab === 'request' ? 'active' : ''}`}
-          data-testid="details-panel-tab"
+          data-testid="request-details-panel"
           onClick={() => setActiveTab('request')}
         >
           <IconArrowRight size={14} strokeWidth={1.5} />
@@ -217,7 +217,7 @@ const RequestDetailsPanel = () => {
 
         <button
           className={`tab-button ${activeTab === 'response' ? 'active' : ''}`}
-          data-testid="details-panel-tab"
+          data-testid="response-details-panel"
           onClick={() => setActiveTab('response')}
         >
           <IconFileText size={14} strokeWidth={1.5} />
@@ -226,7 +226,7 @@ const RequestDetailsPanel = () => {
 
         <button
           className={`tab-button ${activeTab === 'network' ? 'active' : ''}`}
-          data-testid="details-panel-tab"
+          data-testid="network-details-panel"
           onClick={() => setActiveTab('network')}
         >
           <IconNetwork size={14} strokeWidth={1.5} />

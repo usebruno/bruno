@@ -15,8 +15,15 @@ export const buildTimelineHeaderLocators = (page: Page) => {
   // mounted together, so the test ids are namespaced by variant; this targets the Request tab.
   const table = () => page.getByTestId('timeline-detail').getByTestId('tl-headers-table-request');
   const rows = () => table().getByTestId('tl-header-row-request');
-  // Header-name cells in render order — for asserting the source ordering of the whole table.
+  // Header-name and value cells in render order — for asserting the source ordering of the whole table.
   const names = () => table().getByTestId('tl-header-name-request');
+  const values = () => table().getByTestId('tl-header-value-request');
+
+  /** Every row as a "name: value" line in render order, matching how the network log prints them. */
+  const headerLines = async () => {
+    const [rowNames, rowValues] = await Promise.all([names().allTextContents(), values().allTextContents()]);
+    return rowNames.map((name, i) => `${name.trim()}: ${(rowValues[i] ?? '').trim()}`);
+  };
   const row = (name: string) =>
     rows().filter({
       has: page.getByTestId('tl-header-name-request').filter({ hasText: new RegExp(`^${escapeRegExp(name)}$`, 'i') })
@@ -27,5 +34,5 @@ export const buildTimelineHeaderLocators = (page: Page) => {
   const networkTab = () => page.getByTestId('timeline-detail').getByTestId('tl-tab-network');
   const lastHopRequestHeaderLines = () => readLastHopRequestHeaderLines(page.getByTestId('timeline-detail'));
 
-  return { table, rows, names, row, value, networkTab, lastHopRequestHeaderLines };
+  return { table, rows, names, values, headerLines, row, value, networkTab, lastHopRequestHeaderLines };
 };

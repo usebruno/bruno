@@ -16,19 +16,33 @@ export const buildDevToolsLocators = (page: Page) => {
     reqHeaderRows().filter({
       has: page.getByTestId('request-details-header-name').filter({ hasText: new RegExp(`^${escapeRegExp(name)}$`, 'i') })
     });
+  const reqHeaderNames = () =>
+    page.getByTestId('request-details-request-headers').getByTestId('request-details-header-name');
+  const reqHeaderValues = () =>
+    page.getByTestId('request-details-request-headers').getByTestId('request-details-header-value');
+
+  /** Every row as a "name: value" line in render order, matching how the network log prints them. */
+  const reqHeaderLines = async () => {
+    const [names, values] = await Promise.all([reqHeaderNames().allTextContents(), reqHeaderValues().allTextContents()]);
+    return names.map((name, i) => `${name.trim()}: ${(values[i] ?? '').trim()}`);
+  };
 
   return {
     trigger: () => page.locator('button[data-trigger="dev-tools"]'),
     header: () => page.getByTestId('console-header'),
-    tab: (name: string) => page.getByTestId('console-tab').filter({ hasText: name }),
+    // Per-tab test ids: console tabs are `<id>-tab`, details-panel sub-tabs are `<id>-details-panel`.
+    tab: (id: string) => page.getByTestId(`${id}-tab`),
     networkRows: () => page.getByTestId('network-request-row'),
     closeButton: () => page.getByTitle('Close console'),
     detailsPanel: () => page.getByTestId('details-panel'),
-    detailsSubTab: (name: string) => page.getByTestId('details-panel-tab').filter({ hasText: name }),
+    detailsSubTab: (id: string) => page.getByTestId(`${id}-details-panel`),
     requestHeadersTable: () => page.getByTestId('request-details-request-headers'),
     requestHeaders: {
       rows: reqHeaderRows,
       row: reqHeaderRow,
+      names: reqHeaderNames,
+      values: reqHeaderValues,
+      headerLines: reqHeaderLines,
       value: (name: string) => reqHeaderRow(name).getByTestId('request-details-header-value')
     },
     // The details panel's Network sub-tab: the same wire trace the response-pane Timeline shows.
@@ -46,14 +60,14 @@ export const openNetworkRequestDetails = async (page: Page) => {
     await devtools.trigger().click();
     await devtools.header().waitFor({ state: 'visible' });
 
-    await devtools.tab('Network').click();
+    await devtools.tab('network').click();
     const row = devtools.networkRows().last();
     await row.waitFor({ state: 'visible' });
     await row.click();
 
     await devtools.detailsPanel().waitFor({ state: 'visible' });
     // Request is the default sub-tab, but click it so the Request Headers table is guaranteed active.
-    await devtools.detailsSubTab('Request').click();
+    await devtools.detailsSubTab('request').click();
     // The console occupies the lower half of the app and the details panel scrolls independently, so
     // the Request Headers table can start below the fold — scroll it into view before asserting.
     const table = devtools.requestHeadersTable();

@@ -452,7 +452,7 @@ const Console = () => {
 
           <button
             className={`console-tab ${activeTab === 'network' ? 'active' : ''}`}
-            data-testid="console-tab"
+            data-testid="network-tab"
             onClick={() => handleTabChange('network')}
           >
             <IconNetwork size={16} strokeWidth={1.5} />
@@ -461,7 +461,7 @@ const Console = () => {
 
           <button
             className={`console-tab ${activeTab === 'performance' ? 'active' : ''}`}
-            data-testid="console-tab"
+            data-testid="performance-tab"
             onClick={() => handleTabChange('performance')}
           >
             <IconDashboard size={16} strokeWidth={1.5} />
@@ -470,7 +470,7 @@ const Console = () => {
 
           <button
             className={`console-tab ${activeTab === 'terminal' ? 'active' : ''}`}
-            data-testid="console-tab"
+            data-testid="terminal-tab"
             onClick={() => handleTabChange('terminal')}
           >
             <IconTerminal2 size={16} strokeWidth={1.5} />
