@@ -43,6 +43,64 @@ const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType }
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
 
+/**
+ * Header attribution for the sent-headers views: the surfaces that group a request's headers by
+ * source need to know which names the pre-request script owns, and the script mutates request.headers
+ * in place, so the only way to tell is to compare against a snapshot taken before it ran.
+ *
+ * Keyed lowercase because a script setting 'Content-Type' overrides a definition's 'content-type' —
+ * the same header, so it must be recognised as a change rather than as a second header.
+ */
+const snapshotHeaderState = (headers) => {
+  const state = new Map();
+  Object.keys(headers || {}).forEach((name) => {
+    state.set(name.toLowerCase(), headers[name]);
+  });
+  return state;
+};
+
+/**
+ * The header names a pre-request script added or changed, as they appear in the current headers.
+ *
+ * Only names still present are returned, so a header the script deleted is absent from the result
+ * rather than reported as script-set. A name the script left untouched is absent too, keeping it
+ * attributed to the definition level that declared it.
+ */
+const scriptSetHeaderNames = (headers, preScriptHeaderState) =>
+  Object.keys(headers || {}).filter((name) => {
+    const lower = name.toLowerCase();
+    return !preScriptHeaderState.has(lower) || preScriptHeaderState.get(lower) !== headers[name];
+  });
+
+/**
+ * The `request-sent` payload the renderer receives, shared by the single-request and the
+ * collection/folder runner paths so the two cannot drift. The surfaces that group sent headers by
+ * source read `scriptSetHeaders` off this payload, and a field added to only one path would group a
+ * single send correctly while leaving a run ungrouped.
+ */
+const buildRequestSentPayload = (request) => {
+  const { data, dataBuffer } = parseDataFromRequest(request);
+
+  // A false Content-Type is the flag that stops axios auto-setting one, so no Content-Type was
+  // actually set or sent.
+  const headersSent = { ...request.headers };
+  Object.keys(headersSent).forEach((key) => {
+    if (key.toLowerCase() === 'content-type' && headersSent[key] === false) {
+      delete headersSent[key];
+    }
+  });
+
+  return {
+    url: request.url,
+    method: request.method,
+    headers: headersSent,
+    scriptSetHeaders: request.scriptSetHeaders || [],
+    data,
+    dataBuffer,
+    timestamp: Date.now()
+  };
+};
+
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
     let setCookieHeaders = [];
@@ -589,13 +647,11 @@ const registerNetworkIpc = (mainWindow) => {
     let scriptResult;
     const { promptVariables = {}, name: collectionName } = collection;
 
-    // Snapshot headers before the pre-request script so we can tell which ones the script
-    // added/changed via req.setHeader (for source attribution in the timeline). Captured here,
-    // before interpolateVars below, so variable resolution doesn't register as a script change.
-    const preScriptHeaderState = new Map();
-    Object.keys(request.headers || {}).forEach((name) => {
-      preScriptHeaderState.set(name.toLowerCase(), request.headers[name]);
-    });
+    // Snapshot the headers the request definition contributed, so the diff below can tell which ones
+    // the pre-request script went on to add or change. mergeScripts combines the collection, folder
+    // and request pre-request scripts into this one script.req, so every level's setHeader calls are
+    // attributed to the script rather than to a definition.
+    const preScriptHeaderState = snapshotHeaderState(request.headers);
 
     const requestScript = get(request, 'script.req');
     if (requestScript?.length) {
@@ -620,10 +676,10 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
     }
 
-    request.scriptSetHeaders = Object.keys(request.headers || {}).filter((name) => {
-      const lower = name.toLowerCase();
-      return !preScriptHeaderState.has(lower) || preScriptHeaderState.get(lower) !== request.headers[name];
-    });
+    // Must stay above interpolateVars: that rewrites every header name and value in place, so a
+    // definition header holding a {{var}} would compare unequal to its snapshot and be misread as
+    // script-set. Both sides of the comparison are pre-interpolation here.
+    request.scriptSetHeaders = scriptSetHeaderNames(request.headers, preScriptHeaderState);
 
     // interpolate variables inside request
     interpolateVars(request, envVars, runtimeVariables, processEnvVars, promptVariables);
@@ -986,25 +1042,7 @@ const registerNetworkIpc = (mainWindow) => {
         collection.globalEnvironmentVariables
       );
 
-      const { data: requestData, dataBuffer: requestDataBuffer } = parseDataFromRequest(request);
-
-      // Remove false Content-Type header (used to stop axios from auto-setting it); no Content-Type was actually set or sent.
-      const headersSent = { ...request.headers };
-      Object.keys(headersSent).forEach((key) => {
-        if (key.toLowerCase() === 'content-type' && headersSent[key] === false) {
-          delete headersSent[key];
-        }
-      });
-
-      requestSent = {
-        url: request.url,
-        method: request.method,
-        headers: headersSent,
-        scriptSetHeaders: request.scriptSetHeaders || [],
-        data: requestData,
-        dataBuffer: requestDataBuffer,
-        timestamp: Date.now()
-      };
+      requestSent = buildRequestSentPayload(request);
 
       !runInBackground && mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
@@ -1790,25 +1828,7 @@ const registerNetworkIpc = (mainWindow) => {
               continue;
             }
 
-            const { data: requestData, dataBuffer: requestDataBuffer } = parseDataFromRequest(request);
-
-            // Remove false Content-Type header (used to stop axios from auto-setting it); no Content-Type was actually set or sent.
-            const headersSent = { ...request.headers };
-            Object.keys(headersSent).forEach((key) => {
-              if (key.toLowerCase() === 'content-type' && headersSent[key] === false) {
-                delete headersSent[key];
-              }
-            });
-
-            let requestSent = {
-              url: request.url,
-              method: request.method,
-              headers: headersSent,
-              scriptSetHeaders: request.scriptSetHeaders || [],
-              data: requestData,
-              dataBuffer: requestDataBuffer,
-              timestamp: Date.now()
-            };
+            let requestSent = buildRequestSentPayload(request);
 
             // todo:
             // i have no clue why electron can't send the request object
@@ -2284,3 +2304,6 @@ module.exports.getCertsAndProxyConfig = getCertsAndProxyConfig;
 module.exports.fetchGqlSchemaHandler = fetchGqlSchemaHandler;
 module.exports.executeRequestOnFailHandler = executeRequestOnFailHandler;
 module.exports.buildResponseBodyFromStreamChunks = buildResponseBodyFromStreamChunks;
+module.exports.snapshotHeaderState = snapshotHeaderState;
+module.exports.scriptSetHeaderNames = scriptSetHeaderNames;
+module.exports.buildRequestSentPayload = buildRequestSentPayload;
