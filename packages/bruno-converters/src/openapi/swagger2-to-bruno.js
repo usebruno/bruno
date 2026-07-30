@@ -11,7 +11,8 @@ import {
   getExampleFromSchema,
   createBrunoExample,
   groupRequestsByTags,
-  groupRequestsByPath
+  groupRequestsByPath,
+  normalizeItemName
 } from './openapi-common';
 
 /**
@@ -131,10 +132,8 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
 
   // Determine operation name
   let operationName = op.summary || op.operationId || op.description;
+  operationName = operationName ? normalizeItemName(operationName) : '';
   if (!operationName) operationName = `${request.method} ${request.path}`;
-
-  // Sanitize operation name to prevent Bruno parsing issues
-  if (operationName) operationName = operationName.replace(/[\r\n\s]+/g, ' ').trim();
 
   // Make names unique to prevent filename collisions
   if (usedNames.has(operationName)) {

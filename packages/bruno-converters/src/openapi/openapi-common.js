@@ -13,6 +13,16 @@ export const CONTENT_TYPE_PATTERNS = {
   HTML: /^[\w\-.+]+\/([\w\-.+]+\+)?html$/
 };
 
+// An item's name is what the import writers turn into its filename, by appending the
+// format extension and running the result through the filesystem sanitizer. That
+// sanitizer trims trailing dots and spaces at end-of-string only.
+export const normalizeItemName = (name) => {
+  return name
+    .replace(/[\r\n\s]+/g, ' ')
+    .trim()
+    .replace(/[.\s]+$/, '');
+};
+
 export const ensureUrl = (url) => {
   // removing multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
   return url.replace(/([^:])\/{2,}/g, '$1/');
