@@ -105,7 +105,9 @@ describe('toOpenCollectionEnvironments — exports environment variable descript
           { uid: 'v1', name: 'baseUrl', value: 'https://api.example.com', type: 'text', enabled: true, secret: false, description: 'Base API URL' },
           { uid: 'v2', name: 'apiKey', value: '', type: 'text', enabled: true, secret: true, description: 'Secret auth key' },
           { uid: 'v3', name: 'plain', value: 'v', type: 'text', enabled: true, secret: false },
-          { uid: 'v4', name: 'ws', value: 'v', type: 'text', enabled: true, secret: false, description: '   ' }
+          { uid: 'v4', name: 'ws', value: 'v', type: 'text', enabled: true, secret: false, description: '   ' },
+          { uid: 'v5', name: 'port', value: 8080, type: 'text', enabled: true, secret: false, dataType: 'number', description: 'Server port' },
+          { uid: 'v6', name: 'config', value: { region: 'us' }, type: 'text', enabled: true, secret: false, dataType: 'object', description: 'Service config' }
         ],
         color: null
       }
@@ -117,6 +119,8 @@ describe('toOpenCollectionEnvironments — exports environment variable descript
     expect(env.variables[1]).toMatchObject({ name: 'apiKey', secret: true, description: 'Secret auth key' });
     expect(env.variables[2]).not.toHaveProperty('description');
     expect(env.variables[3]).not.toHaveProperty('description');
+    expect(env.variables[4]).toMatchObject({ name: 'port', value: { type: 'number', data: '8080' }, description: 'Server port' });
+    expect(env.variables[5]).toMatchObject({ name: 'config', value: { type: 'object', data: '{\n  "region": "us"\n}' }, description: 'Service config' });
   });
 });
 
