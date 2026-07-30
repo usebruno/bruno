@@ -1431,8 +1431,7 @@ describe('generateSnippet – URL interpolation behavior', () => {
   });
 
   // A variable with no value behind it must not be treated differently from one that
-  // resolves: interpolation off renders the URL as typed either way. `validateTemplateUrl`
-  // is what lets this case reach the generator at all — see url-validation.spec.js.
+  // resolves: interpolation off renders the URL as typed either way.
   it('should render an unresolved {{var}} when shouldInterpolate is false', async () => {
     const item = {
       uid: 'url-test-unresolved-host',

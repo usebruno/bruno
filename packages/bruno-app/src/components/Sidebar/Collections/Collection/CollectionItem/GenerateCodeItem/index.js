@@ -3,33 +3,24 @@ import { useMemo } from 'react';
 import CodeView from './CodeView';
 import CodeViewToolbar from './CodeViewToolbar';
 import StyledWrapper from './StyledWrapper';
-import { patternHasher } from '@usebruno/common/utils';
+import { isValidUrl } from 'utils/url';
 import { get } from 'lodash';
 import {
   findEnvironmentInCollection
 } from 'utils/collections';
-import { interpolateUrl, interpolateUrlPathParams, isValidUrl, prependDefaultScheme } from 'utils/url/index';
+import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getAllVariables, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { resolveInheritedAuth } from 'utils/auth';
 
-// `patternHasher` rewrites every `{{var}}` to a URL-safe token, so a string it leaves
-// untouched had none to begin with.
-const containsUnresolvedVariable = (url) => patternHasher(url).hashed !== url;
+const TEMPLATE_VAR_PATTERN = /\{\{([^}]+)\}\}/;
 
-/**
- * Interpolation ON: the snippet shows resolved values, so a `{{var}}` that outlived
- * interpolation means the URL the user is about to copy is incomplete (BRU-2095).
- */
-export const validateInterpolatedUrl = (url) => isValidUrl(url) && !containsUnresolvedVariable(url);
-
-/**
- * Interpolation OFF: the snippet shows the URL as typed, so whether a variable resolves is
- * beside the point — only the URL's shape matters. `patternHasher` swaps each `{{var}}` for a
- * URL-safe token — its stated purpose — so `new URL()` can judge the rest of it.
- */
-export const validateTemplateUrl = (url) => Boolean(url) && isValidUrl(prependDefaultScheme(patternHasher(url).hashed));
+const validateURLWithVars = (url) => {
+  const isValid = isValidUrl(url);
+  const hasMissingInterpolations = TEMPLATE_VAR_PATTERN.test(url);
+  return isValid && !hasMissingInterpolations;
+};
 
 const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exampleUid = null }) => {
   const languages = getLanguages();
@@ -101,13 +92,11 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
     variables
   }) || '';
 
-  // Judge the URL the snippet will actually show: the resolved one when interpolation is on,
-  // the URL as typed when it is off.
-  const { shouldInterpolate } = generateCodePrefs;
-  const validationUrl = shouldInterpolate
-    ? interpolateUrlPathParams(interpolatedUrl, requestData.params, variables)
-    : requestData.url;
-  const isUrlValid = shouldInterpolate ? validateInterpolatedUrl(validationUrl) : validateTemplateUrl(validationUrl);
+  const validationUrl = interpolateUrlPathParams(interpolatedUrl, requestData.params, variables);
+
+  // Interpolation off renders the URL as typed, so an unresolved `{{var}}` is expected there;
+  // buildHar's own gate still rejects genuinely malformed input in that mode.
+  const isUrlValid = !generateCodePrefs.shouldInterpolate || validateURLWithVars(validationUrl);
 
   // Get the full language object based on current preferences
   const selectedLanguage = useMemo(() => {
