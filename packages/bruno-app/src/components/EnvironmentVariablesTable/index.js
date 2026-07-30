@@ -19,9 +19,15 @@ import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { getGlobalEnvironmentVariables } from 'utils/collections';
-import { stripEnvVarUid } from 'utils/environments';
+import {
+  stripEnvVarUid,
+  getDuplicateSecretNames,
+  DUPLICATE_SECRET_NAMES_ERROR,
+  DUPLICATE_SECRET_NAME_FIELD_ERROR
+} from 'utils/environments';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { reconcileSavedChange } from './reconcile';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
@@ -68,16 +74,18 @@ const EnvVarValueCell = ({
 }) => {
   const editorRef = useRef(null);
   const [compact, setCompact] = useState(true);
-  const [masked, setMasked] = useState(variable.secret);
+
+  const showAsSecret = variable.secret && !isLastEmptyRow;
+  const [masked, setMasked] = useState(showAsSecret);
 
   useEffect(() => {
-    setMasked(variable.secret);
-  }, [variable.secret]);
+    setMasked(showAsSecret);
+  }, [showAsSecret]);
 
   return (
     <VarValueCell
       onCompactChange={setCompact}
-      trailingContent={variable.secret ? (
+      trailingContent={showAsSecret ? (
         <SecretEyeButton
           masked={masked}
           testId="secret-reveal-toggle"
@@ -97,8 +105,8 @@ const EnvVarValueCell = ({
             name={`${actualIndex}.value`}
             value={valueToString(variable.value, 2)}
             placeholder={variable.value == null || (typeof variable.value === 'string' && variable.value.trim() === '') ? 'Value' : ''}
-            isSecret={variable.secret}
-            hideSecretEye={variable.secret}
+            isSecret={showAsSecret}
+            hideSecretEye={showAsSecret}
             onMaskChange={setMasked}
             onChange={(newValue) => {
               formik.setFieldValue(`${actualIndex}.value`, newValue, true);
@@ -308,7 +316,13 @@ const EnvironmentVariablesTable = ({
   }, [environment.uid, environment.variables]);
 
   const formik = useFormik({
-    enableReinitialize: true,
+    // enableReinitialize is intentionally OFF. It used to blindly reset the form
+    // to `environment.variables` whenever the saved snapshot changed — including
+    // when our own autosave echoed back — which discarded keystrokes typed during
+    // the async save window. Reconciliation is handled explicitly below (see the
+    // reconcileSavedChange effect), so in-flight edits always win. Environment
+    // switches are handled by the `key={environment.uid}` remount, not reinit.
+    enableReinitialize: false,
     initialValues: initialValues,
     validationSchema: Yup.array().of(
       Yup.object({
@@ -336,6 +350,7 @@ const EnvironmentVariablesTable = ({
     ),
     validate: (values) => {
       const errors = {};
+      const duplicateSecrets = getDuplicateSecretNames(values);
       values.forEach((variable, index) => {
         const isLastRow = index === values.length - 1;
         const isEmptyRow = !variable.name || variable.name.trim() === '';
@@ -351,6 +366,9 @@ const EnvironmentVariablesTable = ({
           if (!errors[index]) errors[index] = {};
           errors[index].name
             = 'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.';
+        } else if (variable.secret && duplicateSecrets.has(variable.name.trim())) {
+          if (!errors[index]) errors[index] = {};
+          errors[index].name = DUPLICATE_SECRET_NAME_FIELD_ERROR;
         }
       });
       return Object.keys(errors).length > 0 ? errors : {};
@@ -387,21 +405,27 @@ const EnvironmentVariablesTable = ({
     return JSON.stringify((environment.variables || []).map(stripEnvVarUid));
   }, [environment.variables]);
 
+  // Controlled replacement for enableReinitialize. When the persisted snapshot
+  // changes (autosave echo, script env update, external file reload, or an edit
+  // made outside the table) adopt it ONLY if the form has no unsaved edits.
+  // If the user is typing ahead, keep their edits — the draft/autosave cycle
+  // persists them — so nothing typed during an async save is lost.
+  const prevSavedValuesJsonRef = useRef(savedValuesJson);
+  useEffect(() => {
+    const prevSaved = prevSavedValuesJsonRef.current;
+    prevSavedValuesJsonRef.current = savedValuesJson;
+
+    const currentNamed = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
+    const currentJson = JSON.stringify(currentNamed.map(stripEnvVarUid));
+
+    if (reconcileSavedChange({ prevSaved, nextSaved: savedValuesJson, current: currentJson }) === 'adopt') {
+      formik.resetForm({ values: initialValues });
+    }
+  }, [savedValuesJson]);
+
   useEffect(() => {
     setPinnedData({ query: '', uids: new Set() });
   }, [savedValuesJson]);
-
-  // Keep the trailing empty "add new" row's secret flag in sync with the active
-  // tab, so typing into it creates a variable of the correct type. The empty row
-  // is filtered out of save/draft, so this never affects persisted data.
-  useEffect(() => {
-    const lastIndex = formik.values.length - 1;
-    const last = formik.values[lastIndex];
-    const isEmpty = !last?.name || (typeof last.name === 'string' && last.name.trim() === '');
-    if (last && isEmpty && !!last.secret !== isSecretTab) {
-      formik.setFieldValue(`${lastIndex}.secret`, isSecretTab, false);
-    }
-  }, [isSecretTab, formik.values]);
 
   // Sync modified state
   useEffect(() => {
@@ -433,6 +457,8 @@ const EnvironmentVariablesTable = ({
     return () => clearTimeout(timeoutId);
   }, [formik.values, savedValuesJson, environment.uid, hasDraftForThisEnv, draft?.variables, onDraftChange, onDraftClear]);
 
+  const duplicateSecretNames = useMemo(() => getDuplicateSecretNames(formik.values), [formik.values]);
+
   const ErrorMessage = ({ name, index }) => {
     const meta = formik.getFieldMeta(name);
     const id = `error-${name}-${index}`;
@@ -445,13 +471,16 @@ const EnvironmentVariablesTable = ({
       return null;
     }
 
-    if (!meta.error || !meta.touched) {
+    const isDuplicateSecret = variable?.secret && !isEmptyRow && duplicateSecretNames.has(variable.name.trim());
+    const error = meta.error || (isDuplicateSecret ? DUPLICATE_SECRET_NAME_FIELD_ERROR : null);
+
+    if (!error) {
       return null;
     }
     return (
       <span>
-        <IconAlertCircle id={id} className="text-red-600 cursor-pointer" size={20} />
-        <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
+        <IconAlertCircle id={id} data-testid="env-var-name-error" className="text-red-600 cursor-pointer" size={20} />
+        <Tooltip className="tooltip-mod" anchorId={id} html={error} />
       </span>
     );
   };
@@ -500,6 +529,8 @@ const EnvironmentVariablesTable = ({
 
   const handleNameChange = (index, e) => {
     formik.handleChange(e);
+    // Touch the field as it changes so its validation icon surfaces while typing, not only after blur.
+    formik.setFieldTouched(`${index}.name`, true, false);
     const isLastRow = index === formik.values.length - 1;
 
     if (isLastRow) {
@@ -565,6 +596,11 @@ const EnvironmentVariablesTable = ({
 
     if (hasValidationErrors) {
       toast.error('Please fix validation errors before saving');
+      return;
+    }
+
+    if (getDuplicateSecretNames(activeCurrent).size > 0) {
+      toast.error(DUPLICATE_SECRET_NAMES_ERROR);
       return;
     }
 
@@ -673,6 +709,11 @@ const EnvironmentVariablesTable = ({
 
     if (hasValidationErrors) {
       toast.error('Please fix validation errors before saving');
+      return;
+    }
+
+    if (getDuplicateSecretNames(namedValues).size > 0) {
+      toast.error(DUPLICATE_SECRET_NAMES_ERROR);
       return;
     }
 
@@ -834,6 +875,7 @@ const EnvironmentVariablesTable = ({
                         className="mousetrap"
                         id={`${actualIndex}.name`}
                         name={`${actualIndex}.name`}
+                        data-testid="env-var-name-input"
                         value={variable.name}
                         placeholder={!variable.name || (typeof variable.name === 'string' && variable.name.trim() === '') ? 'Name' : ''}
                         onChange={(e) => handleNameChange(actualIndex, e)}
@@ -853,6 +895,7 @@ const EnvironmentVariablesTable = ({
                     actualIndex={actualIndex}
                     isLastRow={isLastRow}
                     isLastEmptyRow={isLastEmptyRow}
+                    isSecretTab={isSecretTab}
                     storedTheme={storedTheme}
                     collection={_collection}
                     formik={formik}

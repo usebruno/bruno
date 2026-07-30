@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import {
   updateCookies,
   updatePreferences,
-  setGitVersion
+  setGitVersion,
+  setIsOpeningCollection
 } from 'providers/ReduxStore/slices/app';
 import {
   addTab
@@ -39,6 +40,7 @@ import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState, collectionLoadedFromTree } from 'providers/ReduxStore/slices/collections/index';
+import { migrationProgressEvent } from 'providers/ReduxStore/slices/collection-migration';
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import { loadNotifications } from 'providers/ReduxStore/slices/notifications';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
@@ -123,9 +125,16 @@ const useIpcEvents = () => {
 
     const removeApiSpecTreeUpdateListener = ipcRenderer.on('main:apispec-tree-updated', _apiSpecTreeUpdated);
 
-    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', async (pathname, uid, brunoConfig) => {
+    const removeCollectionMigrationProgressListener = ipcRenderer.on(
+      'main:collection-migration-progress',
+      (progress) => {
+        dispatch(migrationProgressEvent(progress));
+      }
+    );
+
+    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', async (pathname, uid, brunoConfig, options) => {
       try {
-        await dispatch(openCollectionEvent(uid, pathname, brunoConfig));
+        await dispatch(openCollectionEvent(uid, pathname, brunoConfig, options));
       } finally {
         dispatch(hydrateSnapshotForOpenedCollection(pathname));
       }
@@ -133,6 +142,10 @@ const useIpcEvents = () => {
 
     const removeOpenWorkspaceListener = ipcRenderer.on('main:workspace-opened', (workspacePath, workspaceUid, workspaceConfig) => {
       dispatch(workspaceOpenedEvent(workspacePath, workspaceUid, workspaceConfig));
+    });
+
+    const removeOpenCollectionModalListener = ipcRenderer.on('main:open-collection', () => {
+      dispatch(setIsOpeningCollection(true));
     });
 
     const removeWorkspacesReadyListener = ipcRenderer.on('main:workspaces-ready', () => {
@@ -385,7 +398,9 @@ const useIpcEvents = () => {
       removeCollectionTreeUpdateListener();
       removeApiSpecTreeUpdateListener();
       removeOpenCollectionListener();
+      removeCollectionMigrationProgressListener();
       removeOpenWorkspaceListener();
+      removeOpenCollectionModalListener();
       removeWorkspacesReadyListener();
       removeWorkspaceConfigUpdatedListener();
       removeWorkspaceEnvironmentAddedListener();

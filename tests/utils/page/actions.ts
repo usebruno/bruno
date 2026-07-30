@@ -1,6 +1,7 @@
 import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as waitForReadyPageImpl } from '../../../playwright';
 import process from 'node:process';
 import * as path from 'path';
+import * as fs from 'fs';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
@@ -158,13 +159,13 @@ const createCollection = async (
 
     if (format) {
       const advancedBtn = createCollectionModal.locator('.advanced-options .btn-advanced');
-      const showFileFormatToggle = page.getByTestId('show-file-format-toggle');
+      const showAdvancedOptionsToggle = page.getByTestId('show-advanced-options-toggle');
       const formatSelect = createCollectionModal.locator('#format');
 
       await expect(async () => {
         if (!(await formatSelect.isVisible())) {
           await advancedBtn.click();
-          await showFileFormatToggle.click({ timeout: 2000 });
+          await showAdvancedOptionsToggle.click({ timeout: 2000 });
         }
         await expect(formatSelect).toBeVisible({ timeout: 2000 });
       }).toPass({ timeout: 15000 });
@@ -477,6 +478,7 @@ type ImportCollectionOptions = {
   expectedCollectionName?: string;
   expectIssues?: boolean;
   sidebarTimeout?: number;
+  preserveScripts?: boolean;
 };
 
 const importCollection = async (
@@ -507,6 +509,15 @@ const importCollection = async (
     // Verify expected collection name if provided
     if (options.expectedCollectionName) {
       await expect(locationModal.getByText(options.expectedCollectionName)).toBeVisible();
+    }
+
+    // Enable 'Preserve scripts' option via the Advanced Options toggle
+    if (options.preserveScripts) {
+      await locationModal.getByRole('button', { name: 'Options' }).click();
+      await locators.import.advancedOptionsToggle().click();
+      const preserveScriptsCheckbox = locators.import.preserveScriptsToggle();
+      await preserveScriptsCheckbox.check();
+      await expect(preserveScriptsCheckbox).toBeChecked();
     }
 
     // Set location and import
@@ -548,6 +559,20 @@ const openBulkImportModal = async (page: Page, filePaths: string[]) => {
 
     await locators.import.fileInput().setInputFiles(filePaths);
     await expect(locators.import.bulkModal()).toBeVisible();
+  });
+};
+
+const toggleOpenCollectionItem = async (page: Page, name: string) => {
+  await test.step(`Toggle open collection checkbox for "${name}"`, async () => {
+    await buildCommonLocators(page).openCollectionPicker.itemCheckbox(name).click();
+  });
+};
+
+const closeOpenCollectionModal = async (page: Page) => {
+  await test.step('Close the Open Collection modal', async () => {
+    const locators = buildCommonLocators(page);
+    await locators.modal.closeButton().click();
+    await locators.modal.byTitle('Open Collection').waitFor({ state: 'hidden' });
   });
 };
 
@@ -813,13 +838,16 @@ const addRowToActiveTab = async (
 
     const codeMirror = row.getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first();
     await codeMirror.scrollIntoViewIfNeeded();
-    await codeMirror.click();
+    // Target the editor's left edge: when the value column is narrow the DataTypeSelector
+    // renders as a compact overlay pinned to the cell's right side, which otherwise
+    // intercepts a centered click/hover.
+    await codeMirror.click({ position: { x: 5, y: 5 } });
     if (dataType) {
       await expect(codeMirror).toHaveClass(/CodeMirror-focused/);
       await page.keyboard.insertText(value);
 
       const { dataTypeSelector } = buildCommonLocators(page);
-      await codeMirror.hover();
+      await codeMirror.hover({ position: { x: 5, y: 5 } });
       await dataTypeSelector.typeLabel(row).click();
       await dataTypeSelector.menuItem(dataType).click();
       await expect(dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', dataType);
@@ -1878,6 +1906,32 @@ const sendAndWaitForResponse = async (page: Page) => {
   });
 };
 
+/**
+ * Clears the response of the open request.
+ *
+ * Tests in the same file share one app instance, so without this a later test inherits the
+ * previous response. The send helpers only wait for a status code to become *visible*, which a
+ * stale response already satisfies — so they return before the new response lands and the
+ * assertions read the previous test's status, body and test results.
+ *
+ * Note the clear control is absent while a response carries a transport-level error, so this is a
+ * no-op for a request that failed before any response arrived.
+ * @param page - The page object
+ */
+const resetResponse = async (page: Page) => {
+  await test.step('Clear the response', async () => {
+    const { response } = buildCommonLocators(page);
+    const clearButton = response.clearButton();
+
+    // A snapshot rather than a wait: the caller has just asserted on a rendered response, and a
+    // test that failed before one arrived should skip the reset instead of stalling on it.
+    if (await clearButton.isVisible()) {
+      await clearButton.click();
+      await expect(clearButton).toBeHidden();
+    }
+  });
+};
+
 const fieldEditor = (page: Page, labelText: string) =>
   page
     .locator('label')
@@ -1983,38 +2037,6 @@ const openExampleFromSidebar = async (page: Page, requestName: string, exampleNa
 };
 
 /**
- * Open the Generate Code dialog and return the visible snippet text.
- * @param page - The page object
- * @returns The text content of the generated code snippet
- */
-const getGeneratedSnippet = async (page: Page): Promise<string> => {
-  return await test.step('Open Generate Code dialog and read snippet', async () => {
-    const { request } = buildCommonLocators(page);
-
-    await request.generateCodeButton().click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-
-    const codeEditor = page.locator('.editor-content .CodeMirror').first();
-    await expect(codeEditor).toBeVisible();
-
-    return (await codeEditor.textContent()) ?? '';
-  });
-};
-
-/**
- * Close the Generate Code dialog and wait for it to disappear.
- * @param page - The page object
- * @returns void
- */
-const closeGenerateCodeDialog = async (page: Page) => {
-  await test.step('Close Generate Code dialog', async () => {
-    const { modal } = buildCommonLocators(page);
-    await modal.closeButton().click();
-    await modal.closeButton().waitFor({ state: 'hidden' });
-  });
-};
-
-/**
  * Open a request inside a folder by exact request name.
  * @param page - The page object
  * @param folderName - The name of the folder containing the request
@@ -2032,25 +2054,6 @@ const openRequestInFolder = async (page: Page, folderName: string, requestName: 
       has: page.locator('.item-name').filter({ hasText: new RegExp(`^${escapedName}$`) })
     });
     await requestRow.click();
-  });
-};
-
-/**
- * Toggle the URL encoding setting on the current request idempotently.
- * @param page - The page object
- * @param enabled - Whether URL encoding should be enabled
- * @returns void
- */
-const setUrlEncoding = async (page: Page, enabled: boolean) => {
-  await test.step(`Set URL encoding ${enabled ? 'ON' : 'OFF'}`, async () => {
-    await selectRequestPaneTab(page, 'Settings');
-    const toggle = page.getByTestId('encode-url-toggle');
-    await expect(toggle).toBeVisible();
-    const current = (await toggle.getAttribute('aria-checked')) === 'true';
-    if (current !== enabled) {
-      await toggle.click();
-      await expect(toggle).toHaveAttribute('aria-checked', String(enabled));
-    }
   });
 };
 
@@ -2160,6 +2163,77 @@ const generateCollectionDocs = async (
     await expect(modal).toBeHidden({ timeout: 5000 });
 
     return { content, fileName };
+  });
+};
+
+const openExportToPostmanModal = async (page: Page, collectionName: string) => {
+  await test.step(`Open Export to Postman for "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    await openCollection(page, collectionName);
+
+    const collectionAction = locators.actions.collectionActions(collectionName);
+    await locators.sidebar.collection(collectionName).hover();
+    await expect(collectionAction).toBeVisible({ timeout: 2000 });
+    await collectionAction.click();
+    await locators.dropdown.item('Share').click();
+    await expect(locators.modal.title('Share Collection')).toBeVisible();
+
+    await locators.export.postmanFormatCard().click();
+    await locators.modal.button('Proceed').click();
+    await expect(locators.modal.title('Export to Postman')).toBeVisible();
+  });
+};
+
+const closeExportToPostmanModal = async (page: Page) => {
+  await test.step('Close the export modal', async () => {
+    const locators = buildCommonLocators(page);
+
+    await locators.export.postmanModal().getByTestId('modal-close-button').click();
+    await expect(locators.modal.title('Export to Postman')).toBeHidden();
+    await expect(locators.modal.title('Share Collection')).toBeHidden();
+  });
+};
+
+// Dismiss an open modal if one is present
+const dismissModalIfOpen = async (page: Page) => {
+  const { modal } = buildCommonLocators(page);
+  if (await modal.closeButton().isVisible()) {
+    await modal.closeButton().click({ force: true });
+    await expect(modal.card()).toBeHidden();
+  }
+};
+
+const exportCollectionToPostman = async (
+  page: Page,
+  collectionName: string,
+  outputDir: string,
+  { preserveScripts = false }: { preserveScripts?: boolean } = {}
+) => {
+  const locators = buildCommonLocators(page);
+
+  await openExportToPostmanModal(page, collectionName);
+
+  await test.step('Set the export location', async () => {
+    await locators.export.locationInput().fill(outputDir);
+  });
+
+  await test.step('Configure preserve scripts', async () => {
+    if (preserveScripts) {
+      await locators.export.optionsButton().click();
+      await locators.export.advancedOptionsToggle().click();
+      const checkbox = locators.export.preserveScriptsToggle();
+      await expect(checkbox).toBeVisible();
+      await checkbox.check();
+      await expect(checkbox).toBeChecked();
+    }
+  });
+
+  return await test.step('Export and read the written file', async () => {
+    await locators.modal.button('Export').click();
+    const filePath = path.join(outputDir, `${collectionName}.json`);
+    await expect.poll(() => fs.existsSync(filePath), { timeout: 5000 }).toBe(true);
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   });
 };
 
@@ -2504,6 +2578,8 @@ export {
   deleteCollectionFromOverview,
   importCollection,
   openBulkImportModal,
+  toggleOpenCollectionItem,
+  closeOpenCollectionModal,
   removeCollection,
   createFolder,
   openEnvironmentSelector,
@@ -2561,17 +2637,19 @@ export {
   expandFolder,
   sendAndWaitForErrorCard,
   sendAndWaitForResponse,
+  resetResponse,
   selectAuthMode,
   typeIntoField,
   readField,
   createExampleFromSidebar,
   openExampleFromSidebar,
   openWorkspaceFromDialog,
-  getGeneratedSnippet,
-  closeGenerateCodeDialog,
   openRequestInFolder,
-  setUrlEncoding,
   generateCollectionDocs,
+  openExportToPostmanModal,
+  closeExportToPostmanModal,
+  dismissModalIfOpen,
+  exportCollectionToPostman,
   openFolderSettings,
   setTableRowDescriptionValue,
   setAppCode,

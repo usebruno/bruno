@@ -16,8 +16,7 @@ import {
   IconFileCode,
   IconFileOff,
   IconCode,
-  IconAppWindow,
-  IconTransform
+  IconAppWindow
 } from '@tabler/icons';
 import IconSparkles from 'components/Icons/IconSparkles';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
@@ -26,7 +25,6 @@ import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections';
 import { toggleAiSidebar } from 'providers/ReduxStore/slices/chat';
-import MigrateToYmlModal from 'components/CollectionSettings/Overview/Migration/MigrateToYmlModal';
 import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
 import find from 'lodash/find';
 import get from 'lodash/get';
@@ -46,19 +44,6 @@ import { normalizePath } from 'utils/common/path';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
-
-const MIGRATE_PILL_DISMISSED_KEY = 'bruno.migrateToYmlPill.dismissed';
-
-const readDismissedCollections = () => {
-  try {
-    const raw = localStorage.getItem(MIGRATE_PILL_DISMISSED_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
 
 const CollectionHeader = ({ collection, isScratchCollection }) => {
   const dispatch = useDispatch();
@@ -100,28 +85,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const [workspaceNameError, setWorkspaceNameError] = useState('');
   const [closeWorkspaceModalOpen, setCloseWorkspaceModalOpen] = useState(false);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
-  const [showMigrateModal, setShowMigrateModal] = useState(false);
-
-  // Migrate-to-YML pill dismissal state (persisted by collection pathname)
-  const [migratePillDismissed, setMigratePillDismissed] = useState(true);
-  useEffect(() => {
-    if (!collection?.pathname) return;
-    const dismissed = readDismissedCollections();
-    setMigratePillDismissed(dismissed.includes(collection.pathname));
-  }, [collection?.pathname]);
-
-  const dismissMigratePill = (e) => {
-    e?.stopPropagation();
-    if (!collection?.pathname) return;
-    const dismissed = readDismissedCollections();
-    if (!dismissed.includes(collection.pathname)) {
-      dismissed.push(collection.pathname);
-      try {
-        localStorage.setItem(MIGRATE_PILL_DISMISSED_KEY, JSON.stringify(dismissed));
-      } catch { }
-    }
-    setMigratePillDismissed(true);
-  };
 
   const switcherRef = useRef();
   const workspaceActionsRef = useRef();
@@ -484,7 +447,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   };
 
   return (
-    <StyledWrapper>
+    <StyledWrapper data-testid="collection-header">
       {closeWorkspaceModalOpen && currentWorkspace?.uid && (
         <CloseWorkspace
           workspaceUid={currentWorkspace.uid}
@@ -557,7 +520,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                 appendTo={() => document.body}
                 icon={(
                   <button className="switcher-trigger">
-                    <span className={classNames('switcher-name', { 'scratch-collection': isScratchCollection })}>{displayName}</span>
+                    <span data-testid="workspace-switcher-name" className={classNames('switcher-name', { 'scratch-collection': isScratchCollection })}>{displayName}</span>
                     <IconChevronDown size={14} strokeWidth={1.5} className="chevron" />
                   </button>
                 )}
@@ -622,7 +585,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
               placement="bottom-start"
               onCreate={onWorkspaceActionsCreate}
               appendTo={() => document.body}
-              icon={<IconDots size={18} strokeWidth={1.5} className="workspace-actions-trigger" />}
+              icon={<IconDots size={18} strokeWidth={1.5} data-testid="workspace-actions-trigger" className="workspace-actions-trigger" />}
             >
               <div className="dropdown-item" onClick={handleRenameWorkspaceClick}>
                 <div className="dropdown-icon">
@@ -714,31 +677,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   </ActionIcon>
                 </ToolHint>
               )}
-              {/* {collection.format === 'bru' && !migratePillDismissed && (
-                <div
-                  className="migrate-yml-pill"
-                  data-testid="migrate-yml-pill"
-                  title="Migrate this collection to YML"
-                >
-                  <button
-                    type="button"
-                    className="pill-main"
-                    onClick={() => setShowMigrateModal(true)}
-                  >
-                    <IconTransform size={13} strokeWidth={1.5} />
-                    <span className="pill-label">Migrate to YML</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="pill-dismiss"
-                    onClick={dismissMigratePill}
-                    aria-label="Dismiss"
-                    data-testid="migrate-yml-pill-dismiss"
-                  >
-                    <IconX size={12} strokeWidth={2} />
-                  </button>
-                </div>
-              )} */}
               {/* OpenAPI Sync - standalone only when configured and beta enabled */}
               {hasOpenApiSyncConfigured && (
                 <ToolHint
@@ -776,12 +714,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
           )}
         </div>
       </div>
-      {showMigrateModal && (
-        <MigrateToYmlModal
-          collection={collection}
-          onClose={() => setShowMigrateModal(false)}
-        />
-      )}
     </StyledWrapper>
   );
 };

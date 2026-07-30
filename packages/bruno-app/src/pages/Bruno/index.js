@@ -7,6 +7,7 @@ import AppPreviewKeepAlive from 'components/AppPreviewKeepAlive';
 import AiChatSidebar from 'components/AiChatSidebar';
 import AiChatPopout from 'components/AiChatSidebar/Popout';
 import Sidebar from 'components/Sidebar';
+import OpenCollection from 'components/Sidebar/OpenCollection';
 import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
 import ApiSpecPanel from 'components/ApiSpecPanel';
@@ -60,6 +61,7 @@ require('codemirror-graphql/mode');
 require('utils/codemirror/brunoVarInfo');
 require('utils/codemirror/javascript-lint');
 require('utils/codemirror/autocomplete');
+require('utils/codemirror/codeMirrorInfoFontSize');
 
 const TransientRequestModalsRenderer = ({ modals }) => {
   if (modals.length === 0) {
@@ -72,6 +74,7 @@ const TransientRequestModalsRenderer = ({ modals }) => {
         item={modals[0].item}
         collection={modals[0].collection}
         isOpen={true}
+        closeAfterSave={modals[0].closeAfterSave}
       />
     );
   }
@@ -187,6 +190,7 @@ export default function Main() {
       <Devtools mainSectionRef={mainSectionRef} />
       <StatusBar />
       <TransientRequestModalsRenderer modals={saveTransientRequestModals} />
+      <OpenCollection />
     </div>
     // </ErrorCapture>
   );

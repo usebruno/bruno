@@ -136,6 +136,9 @@ const configureRequest = async (
   // Get followRedirects setting, default to true for backward compatibility
   const followRedirects = request.settings?.followRedirects ?? true;
 
+  // Get forwardAuthorizationHeader setting, default to true for backward compatibility
+  const forwardAuthorizationHeader = request.settings?.forwardAuthorizationHeader ?? true;
+
   // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
   let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
 
@@ -160,7 +163,8 @@ const configureRequest = async (
     requestMaxRedirects,
     httpsAgentRequestFields,
     interpolationOptions,
-    followRedirects
+    followRedirects,
+    forwardAuthorizationHeader
   });
 
   if (request.ntlmConfig) {
@@ -610,6 +614,14 @@ const registerNetworkIpc = (mainWindow) => {
 
     // interpolate variables inside request
     interpolateVars(request, envVars, runtimeVariables, processEnvVars, promptVariables);
+
+    if (!hasExplicitScheme(request.url)) {
+      // The scheme must be present before encoding. Without a `://`, encodeUrl
+      // treats a `host:port` authority as a path segment and percent-encodes the
+      // port colon (localhost:6000 → localhost%3A6000), which then resolves to a
+      // bogus host once configureRequest prepends http://.
+      request.url = `http://${request.url}`;
+    }
 
     if (request.settings?.encodeUrl) {
       request.url = encodeUrl(request.url);
@@ -2069,6 +2081,10 @@ const registerNetworkIpc = (mainWindow) => {
                 nextRequestName = testResults.nextRequestName;
               }
 
+              if (testResults?.stopExecution) {
+                stopRunnerExecution = true;
+              }
+
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'test-results',
                 testResults: testResults.results,
@@ -2133,12 +2149,14 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         deleteCancelToken(cancelTokenUid);
-        mainWindow.webContents.send('main:run-folder-event', {
-          type: 'testrun-ended',
-          collectionUid,
-          folderUid,
-          runCompletionTime: new Date().toISOString()
-        });
+        if (!stopRunnerExecution) {
+          mainWindow.webContents.send('main:run-folder-event', {
+            type: 'testrun-ended',
+            collectionUid,
+            folderUid,
+            runCompletionTime: new Date().toISOString()
+          });
+        }
       } catch (error) {
         console.log('error', error);
         deleteCancelToken(cancelTokenUid);

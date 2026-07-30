@@ -24,6 +24,7 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
+import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
 
@@ -53,6 +54,13 @@ const FILE_DERIVED_FOLDER_FIELDS = [
   'type',
   'root'
 ];
+
+// Derive from the config on disk only — never keep a previous collection.format.
+// After a migrate-to-yml followed by a git revert to bru, a stale 'yml' would hide
+// the "Convert to YML" action forever.
+const deriveCollectionFormat = (brunoConfig) => {
+  return brunoConfig?.opencollection ? 'yml' : brunoConfig?.format || 'bru';
+};
 
 const mergeTreeItems = (existingItems, newItems) => {
   if (!Array.isArray(existingItems) || existingItems.length === 0) return newItems;
@@ -237,13 +245,8 @@ export const collectionsSlice = createSlice({
       // values can be 'unmounted', 'mounting', 'mounted'
       collection.mountStatus = 'unmounted';
 
-      // Add format property from brunoConfig for easy access
-      // YAML collections have 'opencollection' field, BRU collections have 'version' field
-      if (collection.brunoConfig?.opencollection) {
-        collection.format = 'yml';
-      } else {
-        collection.format = collection.brunoConfig?.format || 'bru';
-      }
+      // YAML collections have an 'opencollection' field, BRU collections a 'version' field
+      collection.format = deriveCollectionFormat(collection.brunoConfig);
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
@@ -311,46 +314,8 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.brunoConfig = brunoConfig;
+        collection.format = deriveCollectionFormat(brunoConfig);
       }
-    },
-    migrateCollectionToYmlInPlace: (state, action) => {
-      const { collectionUid, brunoConfig } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      if (!collection) {
-        return;
-      }
-
-      if (brunoConfig) {
-        collection.brunoConfig = brunoConfig;
-        if (collection.draft?.brunoConfig) {
-          collection.draft.brunoConfig = brunoConfig;
-        }
-      }
-      collection.format = 'yml';
-
-      const rewriteItemPaths = (items) => {
-        (items || []).forEach((item) => {
-          if (item.isTransient) {
-            return;
-          }
-          if (typeof item.pathname === 'string') {
-            item.pathname = item.pathname.replace(/\.bru$/, '.yml');
-          }
-          if (typeof item.filename === 'string') {
-            item.filename = item.filename.replace(/\.bru$/, '.yml');
-          }
-          if (item.items && item.items.length) {
-            rewriteItemPaths(item.items);
-          }
-        });
-      };
-      rewriteItemPaths(collection.items);
-
-      (collection.environments || []).forEach((environment) => {
-        if (typeof environment.pathname === 'string') {
-          environment.pathname = environment.pathname.replace(/\.bru$/, '.yml');
-        }
-      });
     },
     renameCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -419,6 +384,10 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.environments = filter(collection.environments, (e) => e.uid !== environment.uid);
+
+        if (collection.environmentsDraft?.environmentUid === environment.uid) {
+          collection.environmentsDraft = null;
+        }
       }
     },
     saveEnvironment: (state, action) => {
@@ -447,6 +416,27 @@ export const collectionsSlice = createSlice({
         } else {
           collection.activeEnvironmentUid = null;
         }
+        // Any explicit selection (including "No Environment") cancels a pending default
+        // so a late-loading environment file can't re-apply the default over this choice.
+        collection.pendingDefaultEnvironment = null;
+      }
+    },
+    applyDefaultEnvironment: (state, action) => {
+      const { collectionUid, defaultEnvironmentName } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      // Never override an existing selection.
+      if (collection.activeEnvironmentUid) return;
+
+      const environment = (collection.environments || []).find((env) => env?.name === defaultEnvironmentName);
+      if (environment) {
+        collection.activeEnvironmentUid = environment.uid;
+        collection.pendingDefaultEnvironment = null;
+      } else {
+        // Environment files aren't loaded yet - remember to apply the default once the
+        // matching environment file arrives (see collectionAddEnvFileEvent).
+        collection.pendingDefaultEnvironment = defaultEnvironmentName;
       }
     },
     updateEnvironmentColor: (state, action) => {
@@ -995,6 +985,7 @@ export const collectionsSlice = createSlice({
               content: null
             }
           },
+          settings: { ...DEFAULT_HTTP_ITEM_SETTINGS },
           draft: null
         };
         item.draft = cloneDeep(item);
@@ -3134,6 +3125,17 @@ export const collectionsSlice = createSlice({
             }
           }
         }
+
+        // Apply a pending default environment once its file has loaded (first open only,
+        // and only while nothing else has been selected).
+        if (
+          collection.pendingDefaultEnvironment
+          && !collection.activeEnvironmentUid
+          && environment.name === collection.pendingDefaultEnvironment
+        ) {
+          collection.activeEnvironmentUid = environment.uid;
+          collection.pendingDefaultEnvironment = null;
+        }
       }
     },
     collectionRenamedEvent: (state, action) => {
@@ -3546,6 +3548,7 @@ export const collectionsSlice = createSlice({
       }
       if (tree?.brunoConfig) {
         collection.brunoConfig = tree.brunoConfig;
+        collection.format = deriveCollectionFormat(tree.brunoConfig);
       }
       const tempDirectory = state.tempDirectories?.[collectionUid];
       if (tempDirectory) {
@@ -3871,6 +3874,11 @@ export const collectionsSlice = createSlice({
           updatedResponse.status = 'CONNECTING';
           updatedResponse.statusText = 'CONNECTING';
           break;
+
+        case 'disconnecting':
+          updatedResponse.status = 'DISCONNECTING';
+          updatedResponse.statusText = 'DISCONNECTING';
+          break;
       }
 
       item.response = updatedResponse;
@@ -3890,11 +3898,11 @@ export const collectionsSlice = createSlice({
       state.tempDirectories[action.payload.collectionUid] = action.payload.pathname;
     },
     addSaveTransientRequestModal: (state, action) => {
-      const { item, collection } = action.payload;
+      const { item, collection, closeAfterSave = false } = action.payload;
       // Avoid duplicates - check if this item is already in the array
       const exists = state.saveTransientRequestModals.some((modal) => modal.item.uid === item.uid);
       if (!exists) {
-        state.saveTransientRequestModals.push({ item, collection });
+        state.saveTransientRequestModals.push({ item, collection, closeAfterSave });
       }
     },
     removeSaveTransientRequestModal: (state, action) => {
@@ -3960,7 +3968,6 @@ export const {
   setCollectionSecurityConfig,
   updateCollectionVersion,
   brunoConfigUpdateEvent,
-  migrateCollectionToYmlInPlace,
   renameCollection,
   removeCollection,
   sortCollections,
@@ -3970,6 +3977,7 @@ export const {
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,
+  applyDefaultEnvironment,
   updateEnvironmentColor,
   newItem,
   deleteItem,

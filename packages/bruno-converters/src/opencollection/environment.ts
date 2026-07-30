@@ -43,6 +43,13 @@ export const fromOpenCollectionEnvironments = (environments: Environment[] | und
 
       if (isSecret) {
         // Secret values are not present in the source; never carry a dataType.
+        if (variable.description) {
+          result.description = 
+          	typeof variable.description === 'string'
+            	? variable.description
+	            : (variable.description as { content?: string })?.content || '';
+	      
+        }
         return result;
       }
 
@@ -90,6 +97,10 @@ export const toOpenCollectionEnvironments = (environments: BrunoEnvironment[] | 
 
         if (v.enabled === false) {
           ocVar.disabled = true;
+        }
+
+        if (v.description && typeof v.description === 'string' && v.description.trim().length) {
+          ocVar.description = v.description;
         }
 
         return ocVar;

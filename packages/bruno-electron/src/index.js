@@ -37,6 +37,7 @@ const menuTemplate = require('./app/menu-template');
 const { openCollection } = require('./app/collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
+const { registerYmlMigrationIpc } = require('./ipc/yml-migration');
 const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
 const registerSnapshotIpc = require('./ipc/snapshot');
@@ -48,6 +49,7 @@ const registerOpenAPISyncIpc = require('./ipc/openapi-sync');
 const registerAiIpc = require('./ipc/ai');
 const registerAiAutocompleteIpc = require('./ipc/ai/autocomplete');
 const { registerMountIpc } = require('./ipc/mount');
+const { registerSqliteIpc } = require('./ipc/sqlite');
 const collectionWatcher = require('./app/collection-watcher');
 const WorkspaceWatcher = require('./app/workspace-watcher');
 const ApiSpecWatcher = require('./app/apiSpecsWatcher');
@@ -510,6 +512,7 @@ app.on('ready', async () => {
   registerNetworkIpc(mainWindow);
   registerGlobalEnvironmentsIpc(mainWindow, globalEnvironmentsManager);
   registerCollectionsIpc(mainWindow, collectionWatcher);
+  registerYmlMigrationIpc(mainWindow, collectionWatcher);
   registerPreferencesIpc(mainWindow, collectionWatcher);
   registerSnapshotIpc();
   registerWorkspaceIpc(mainWindow, workspaceWatcher);
@@ -522,6 +525,7 @@ app.on('ready', async () => {
   registerAiIpc(mainWindow);
   registerAiAutocompleteIpc(mainWindow);
   registerMountIpc();
+  registerSqliteIpc(mainWindow);
 
   // Internal delegator
   ipcMain.handle('main:cache-clear', async () => {
@@ -550,7 +554,9 @@ app.on('before-quit', (event) => {
       ]);
     } catch {}
 
-    try { await require('./ipc/mount').shutdown(); } catch {}
+    try { await require('./ipc/mount').shutdown(); } catch { }
+
+    try { require('./ipc/sqlite').shutdown(); } catch {}
 
     if (useSingleInstance && gotTheLock) {
       try { app.releaseSingleInstanceLock(); } catch {}

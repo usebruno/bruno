@@ -9,7 +9,7 @@ export const buildSidebarLocators = (page: Page) => {
 
   return {
     collectionsContainer: () => page.getByTestId('collections'),
-    collection: (name: string) => page.locator('#sidebar-collection-name').filter({ hasText: name }),
+    collection: (name?: string) => name ? page.locator('#sidebar-collection-name').filter({ hasText: name }) : page.locator('#sidebar-collection-name'),
     folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     folderRequest: (folderName: string, requestName: string) => {
@@ -39,6 +39,9 @@ export const buildSidebarLocators = (page: Page) => {
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
     // The sidebar tree wraps each collection in `#collection-<slug>`; scope queries
     // to it to disambiguate items that share names across collections.
-    collectionScope: (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`)
+    collectionScope: (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`),
+    dragHandle: () => page.getByTestId('sidebar-drag-handle'),
+    toggleSidebarButton: () => page.getByTestId('toggle-sidebar-button'),
+    sidebarContainer: () => page.getByTestId('sidebar')
   };
 };
