@@ -1,6 +1,6 @@
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
-import { setupCollectionDocs, setupFolderDocs } from './utils';
+import { setupCollectionDocs, setupFolderDocs } from './actions';
 
 test.describe('Rich Text Editor Edge Cases - Collection and Folder Docs Entry Points', () => {
   test.beforeEach(async ({ page }) => {

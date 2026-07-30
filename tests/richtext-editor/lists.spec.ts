@@ -1,6 +1,6 @@
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
-import { setupRequestDocs } from './utils';
+import { setupRequestDocs } from './actions';
 
 test.describe('Rich Text Docs Editor Edge Cases - Lists', () => {
   test.beforeEach(async ({ page }) => {

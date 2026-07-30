@@ -1,6 +1,6 @@
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
-import { setupRequestDocs, setMarkdownSource, getMarkdownSource } from './utils';
+import { setupRequestDocs, setMarkdownSource, getMarkdownSource } from './actions';
 
 const MARKDOWN_SOURCE = [
   '# Heading 1',

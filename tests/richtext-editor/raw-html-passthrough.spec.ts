@@ -1,6 +1,6 @@
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
-import { setupRequestDocs, setMarkdownSource, getMarkdownSource } from './utils';
+import { setupRequestDocs, setMarkdownSource, getMarkdownSource } from './actions';
 
 const VIDEO_SRC = 'https://example.com/movie.mp4';
 
