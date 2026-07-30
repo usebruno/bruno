@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection } from '../../utils/page';
+import { buildCommonLocators, closeAllCollections, createCollection } from '../../utils/page';
 
 test.describe.serial('Draft indicator in collection and folder settings', () => {
   test.afterAll(async ({ page }) => {
@@ -117,7 +117,7 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
     await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
 
     // Click on Client Certificates tab
-    await page.getByTestId('collection-settings-tab-clientCert').click();
+    await buildCommonLocators(page).paneTabs.collectionSettingsTab('clientCert').click();
 
     // Open the add certificate modal
     await page.getByTestId('add-client-cert').click();
