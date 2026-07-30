@@ -842,7 +842,7 @@ test.describe('Scroll Position Persistence', () => {
       });
 
       await test.step('Click Edit and switch to Markdown mode', async () => {
-        const editToggle = page.locator('.editing-mode');
+        const editToggle = page.getByTestId('settings-tab-bar').getByTestId('docs-edit-toggle');
         await editToggle.click({ timeout: 2000 });
         await markdownToggle().click({ timeout: 2000 });
       });
@@ -896,7 +896,7 @@ test.describe('Scroll Position Persistence', () => {
         await openCollection(page, 'scroll-fixtures');
         await locators.sidebar.folder('test-folder').click({ timeout: 2000 });
         await locators.paneTabs.folderSettingsTab('docs').click({ timeout: 2000 });
-        await page.locator('.editing-mode').click({ timeout: 2000 });
+        await page.getByTestId('settings-tab-bar').getByTestId('docs-edit-toggle').click({ timeout: 2000 });
       });
 
       await test.step('Reset to a known scroll baseline', async () => {
@@ -1220,7 +1220,7 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Click Edit and switch to Markdown mode', async () => {
         // Collection docs has an edit icon button
-        const editBtn = page.locator('.editing-mode');
+        const editBtn = page.getByTestId('settings-tab-bar').getByTestId('docs-edit-toggle');
         await editBtn.click({ timeout: 2000 });
         await markdownToggle().click({ timeout: 2000 });
       });
