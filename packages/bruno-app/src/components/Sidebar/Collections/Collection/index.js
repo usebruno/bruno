@@ -127,7 +127,7 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const ensureCollectionIsMounted = () => {
-    if (collection.mountStatus === 'mounted') {
+    if (collection.mountStatus === 'mounted' || collection.mountStatus === 'mounting') {
       return;
     }
     dispatch(mountCollection({
