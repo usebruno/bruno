@@ -2,6 +2,7 @@ import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import { Plugin } from '@tiptap/pm/state';
 import { isSafeUrl } from 'utils/url/index';
+import { setupLinkifyExtendedUrls } from '../utils/editorMarkdownParse';
 
 const isRelativePath = (path) => typeof path === 'string' && path.startsWith('.');
 
@@ -127,6 +128,17 @@ const createEditorLink = (collectionPath) => Link.extend({
         }
       })
     ];
+  },
+  addStorage() {
+    return {
+      markdown: {
+        parse: {
+          setup(markdownit) {
+            setupLinkifyExtendedUrls(markdownit);
+          }
+        }
+      }
+    };
   }
 });
 

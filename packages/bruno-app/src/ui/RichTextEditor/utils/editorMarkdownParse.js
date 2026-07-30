@@ -1,4 +1,5 @@
 import taskListPlugin from 'markdown-it-task-lists';
+import { patchLinkifyToExtendUrls } from 'utils/linkify';
 import runMarkdownitSetupOnce from './markdownitSetupOnce';
 
 const TASK_LIST_LINE_PATTERN = /^(\s*[-*+]\s+)\[([\sxX]*?)\]\s*(.*)$/;
@@ -52,6 +53,10 @@ const setupTaskListParser = (markdownit) => {
       labelAfter: false
     });
   });
+};
+
+const setupLinkifyExtendedUrls = (markdownit) => {
+  runMarkdownitSetupOnce(markdownit, '__docsLinkifyExtended', patchLinkifyToExtendUrls);
 };
 
 // markdown-it-task-lists renders one <ul> per source list even when task and
@@ -114,4 +119,9 @@ const updateTaskListDOM = (element) => {
   });
 };
 
-export { normalizeTaskListMarkdown, setupTaskListParser, updateTaskListDOM };
+export {
+  normalizeTaskListMarkdown,
+  setupLinkifyExtendedUrls,
+  setupTaskListParser,
+  updateTaskListDOM
+};
