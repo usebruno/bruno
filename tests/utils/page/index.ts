@@ -7,6 +7,7 @@ export * from './websocket';
 export * from './sidebar';
 export * from './workspace-overview';
 export * from './mounting';
+export * from './collection/migrate-to-yml';
 export * from './preferences';
 export * from './ai';
 export * from '../snapshot';

@@ -71,11 +71,11 @@ import {
   addTransientDirectory,
   addSaveTransientRequestModal,
   updatePathParam,
-  migrateCollectionToYmlInPlace
+  toggleCollection
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab, migrateCollectionTabsToYml } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
@@ -99,6 +99,8 @@ import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
+import { migrationStarted, migrationCancelRequested, migrationEnded } from 'providers/ReduxStore/slices/collection-migration';
+import { flushSnapshotNow } from 'providers/ReduxStore/middlewares/snapshot/middleware';
 import { saveGlobalEnvironment, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
@@ -3589,36 +3591,104 @@ export const reopenClosedTab = ({ collectionUid } = {}) => async (dispatch) => {
   await dispatch(ensureActiveTabInCurrentWorkspace());
 };
 
-export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) => {
-  const { ipcRenderer } = window;
-
+const waitForCollectionInStore = (getState, collectionUid, { timeoutMs = 15000, intervalMs = 50 } = {}) => {
   return new Promise((resolve, reject) => {
-    const state = getState();
-    const collection = findCollectionByUid(state.collections.collections, collectionUid);
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
-
-    const collectionPathname = collection.pathname;
-    ipcRenderer
-      .invoke('renderer:migrate-collection-to-yml', collectionPathname, collectionUid)
-      .then((updatedBrunoConfig) => {
-        dispatch(migrateCollectionToYmlInPlace({ collectionUid, brunoConfig: updatedBrunoConfig }));
-        dispatch(migrateCollectionTabsToYml({ collectionUid }));
-
-        dispatch(addTab({
-          uid: collectionUid,
-          collectionUid: collectionUid,
-          type: 'collection-settings'
-        }));
-        dispatch(updateSettingsSelectedTab({ collectionUid: collectionUid, tab: 'overview' }));
-
-        toast.success('Collection migrated to YML format successfully');
-        resolve();
-      })
-      .catch((err) => {
-        toast.error(`Migration failed: ${err.message || 'Unknown error'}`);
-        reject(err);
-      });
+    const startedAt = Date.now();
+    const check = () => {
+      const collection = findCollectionByUid(getState().collections.collections, collectionUid);
+      if (collection) {
+        return resolve(collection);
+      }
+      if (Date.now() - startedAt >= timeoutMs) {
+        return reject(new Error('Collection did not reopen after migration'));
+      }
+      setTimeout(check, intervalMs);
+    };
+    check();
   });
+};
+
+export const migrateCollectionToYml = (collectionUid) => async (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  const state = getState();
+
+  if (state.collectionMigration.status === 'migrating' || state.collectionMigration.status === 'cancelling') {
+    return;
+  }
+
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection) {
+    throw new Error('Collection not found');
+  }
+  const collectionPathname = collection.pathname;
+  const { workspaces } = state;
+  const activeWorkspace = workspaces.workspaces.find((w) => w.uid === workspaces.activeWorkspaceUid);
+  const workspacePathname = activeWorkspace?.pathname || null;
+
+  // The collection re-opens through the normal main:collection-opened flow, but that event
+  // arrives before this thunk regains control and openCollectionEvent awaits nested IPC —
+  // so poll for the collection to land in the store, then mount it (nothing else mounts a
+  // freshly opened collection outside boot hydration and sidebar clicks).
+  const remountReopenedCollection = async () => {
+    const reopenedCollection = await waitForCollectionInStore(getState, collectionUid);
+    await dispatch(mountCollection({
+      collectionUid,
+      collectionPathname: reopenedCollection.pathname,
+      brunoConfig: reopenedCollection.brunoConfig,
+      skipTabRestore: true,
+      workspacePathname
+    }));
+  };
+
+  dispatch(migrationStarted());
+  dispatch(closeAllCollectionTabs({ collectionUid }));
+  dispatch(ensureActiveTabInCurrentWorkspace());
+  // Flush the snapshot while the collection is still in the store: its entry serializes
+  // with the now-empty tab list, replacing any stale .bru tabs on disk for the active
+  // workspace. Inactive workspace entries for a shared collection are remapped in main
+  // (remapCollectionTabPaths) after the disk convert — force-flush alone cannot touch them.
+  await flushSnapshotNow(getState);
+  // Drop the collection from the store only — not from the workspace file — so it
+  // disappears from the ui during migration and comes back on reopen.
+  dispatch(_removeCollection({ collectionUid }));
+
+  try {
+    await ipcRenderer.invoke('renderer:migrate-collection-to-yml', collectionPathname, collectionUid);
+
+    await remountReopenedCollection();
+    // Freshly created collections start collapsed; expand it back like before migration
+    const migratedCollection = findCollectionByUid(getState().collections.collections, collectionUid);
+    if (migratedCollection?.collapsed) {
+      dispatch(toggleCollection(collectionUid));
+    }
+    dispatch(updateSettingsSelectedTab({ collectionUid, tab: 'overview' }));
+    dispatch(addTab({
+      uid: collectionUid,
+      collectionUid,
+      type: 'collection-settings'
+    }));
+    toast.success('Collection migrated to YML format successfully');
+  } catch (err) {
+    const wasCancelled = getState().collectionMigration.status === 'cancelling'
+      || /migration cancelled/i.test(err?.message || '');
+    if (wasCancelled) {
+      toast('Migration cancelled');
+    } else {
+      toast.error(`Migration failed: ${err?.message || 'Unknown error'}`);
+    }
+    // Main restored the disk and re-opened the original collection; hold the locked
+    // modal open until it is back in the store so the sidebar never sits empty.
+    await remountReopenedCollection().catch(() => {
+      toast.error('Collection could not be reopened automatically. Please reopen it manually.');
+    });
+    throw err;
+  } finally {
+    dispatch(migrationEnded());
+  }
+};
+
+export const cancelMigrateCollectionToYml = (collectionUid) => (dispatch) => {
+  const { ipcRenderer } = window;
+  dispatch(migrationCancelRequested());
+  return ipcRenderer.invoke('renderer:cancel-migrate-collection-to-yml', collectionUid);
 };

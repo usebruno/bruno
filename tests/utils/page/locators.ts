@@ -7,6 +7,7 @@ import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
+import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
 import { buildWebsocketCommonLocators } from './websocket';
 import { buildRequestLocators } from '../request';
 import { buildWorkspaceOverviewLocators } from './workspace-overview';
@@ -32,6 +33,7 @@ export const buildCommonLocators = (page: Page) => ({
   sidebar: buildSidebarLocators(page),
   workspaceOverview: buildWorkspaceOverviewLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
+  migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),
   actions: {
     collectionActions: (collectionName: string) =>
