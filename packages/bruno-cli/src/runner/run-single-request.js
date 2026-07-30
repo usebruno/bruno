@@ -70,6 +70,9 @@ const extractPromptVariablesForRequest = ({ request, collection, envVariables, r
   // client certificate config
   const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
   for (let clientCert of clientCertConfig) {
+    if (clientCert?.disabled) {
+      continue;
+    }
     const domain = interpolateString(clientCert?.domain, interpolationOptions);
     if (domain) {
       const hostRegex = getCACertHostRegex(domain);
@@ -113,7 +116,8 @@ const runSingleRequest = async function (
         globalEnvFile: persistPaths.globalEnvFile,
         collection,
         collectionRootPath: persistPaths.collectionRootPath,
-        envVarOverrides: persistPaths.envVarOverrides
+        envVarOverrides: persistPaths.envVarOverrides,
+        globalEnvVarOverrides: persistPaths.globalEnvVarOverrides
       });
     } catch (err) {
       console.warn(chalk.yellow(`Warning: failed to persist variable updates: ${err.message}`));
@@ -400,6 +404,9 @@ const runSingleRequest = async function (
     // client certificate config
     const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
     for (let clientCert of clientCertConfig) {
+      if (clientCert?.disabled) {
+        continue;
+      }
       const domain = interpolateString(clientCert?.domain, interpolationOptions);
       const type = clientCert?.type || 'cert';
       if (domain) {

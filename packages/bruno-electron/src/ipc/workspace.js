@@ -545,6 +545,20 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       const { deleteFiles = false } = options;
       const result = await removeCollectionFromWorkspace(workspacePath, collectionPath);
 
+      if (result.removedCollection) {
+        // Detach and clear every cache keyed by this collection's (deterministic, path-derived)
+        // uid — otherwise re-adding the same folder later resurfaces a stale mount/config/uid
+        // cache instead of loading it fresh.
+        const { generateUidBasedOnHash } = require('../utils/common');
+        const collectionUid = generateUidBasedOnHash(collectionPath);
+        const collectionWatcher = require('../app/collection-watcher');
+        collectionWatcher.removeWatcher(collectionPath, mainWindow, collectionUid);
+        await require('./mount').unmount(collectionUid).catch(() => {});
+        require('./mount').clearCollectionIndex(collectionPath);
+        require('../store/bruno-config').clearBrunoConfig(collectionUid);
+        require('../cache/requestUids').clearRequestUidsForCollection(collectionPath);
+      }
+
       if (deleteFiles && result.removedCollection && fs.existsSync(collectionPath)) {
         await fsExtra.remove(collectionPath);
       }

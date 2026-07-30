@@ -7,8 +7,10 @@ import { get } from 'lodash';
 import Button from 'ui/Button';
 import Dropdown from 'components/Dropdown';
 import Help from 'components/Help';
+import SegmentedControl from 'ui/SegmentedControl';
 import { IconCaretDown, IconFilePlus, IconWorld } from '@tabler/icons';
-import { DEFAULT_PRESET_REQUEST_TYPE, PRESET_REQUEST_TYPES } from 'utils/common/constants';
+import { DEFAULT_PRESET_REQUEST_TYPE } from 'utils/common/constants';
+import { requestTypeItems } from './constants';
 
 const PresetsSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -55,8 +57,8 @@ const PresetsSettings = ({ collection }) => {
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
-  const handleRequestTypeChange = (e) => {
-    updatePresets({ requestType: e.target.value });
+  const handleRequestTypeChange = (value) => {
+    updatePresets({ requestType: value });
   };
 
   const handleRequestUrlChange = (e) => {
@@ -84,55 +86,13 @@ const PresetsSettings = ({ collection }) => {
                   New requests start with this type selected.
                 </Help>
               </div>
-              <div className="flex items-center">
-                <input
-                  id="http"
-                  data-testid="presets-request-type-http"
-                  className="cursor-pointer"
-                  type="radio"
-                  name="requestType"
-                  onChange={handleRequestTypeChange}
-                  value={PRESET_REQUEST_TYPES.HTTP}
-                  checked={requestType === PRESET_REQUEST_TYPES.HTTP}
-                />
-                <label htmlFor="http" className="ml-1 cursor-pointer select-none">HTTP</label>
-
-                <input
-                  id="graphql"
-                  data-testid="presets-request-type-graphql"
-                  className="ml-4 cursor-pointer"
-                  type="radio"
-                  name="requestType"
-                  onChange={handleRequestTypeChange}
-                  value={PRESET_REQUEST_TYPES.GRAPHQL}
-                  checked={requestType === PRESET_REQUEST_TYPES.GRAPHQL}
-                />
-                <label htmlFor="graphql" className="ml-1 cursor-pointer select-none">GraphQL</label>
-
-                <input
-                  id="grpc"
-                  data-testid="presets-request-type-grpc"
-                  className="ml-4 cursor-pointer"
-                  type="radio"
-                  name="requestType"
-                  onChange={handleRequestTypeChange}
-                  value={PRESET_REQUEST_TYPES.GRPC}
-                  checked={requestType === PRESET_REQUEST_TYPES.GRPC}
-                />
-                <label htmlFor="grpc" className="ml-1 cursor-pointer select-none">gRPC</label>
-
-                <input
-                  id="ws"
-                  data-testid="presets-request-type-ws"
-                  className="ml-4 cursor-pointer"
-                  type="radio"
-                  name="requestType"
-                  onChange={handleRequestTypeChange}
-                  value={PRESET_REQUEST_TYPES.WS}
-                  checked={requestType === PRESET_REQUEST_TYPES.WS}
-                />
-                <label htmlFor="ws" className="ml-1 cursor-pointer select-none">WebSocket</label>
-              </div>
+              <SegmentedControl
+                ariaLabel="Request Type"
+                name="requestType"
+                value={requestType}
+                onChange={handleRequestTypeChange}
+                items={requestTypeItems}
+              />
             </div>
 
             <div className="preset-field">

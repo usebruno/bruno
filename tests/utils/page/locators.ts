@@ -9,11 +9,15 @@ import { buildCodeEditorSearchLocators } from './code-editor-search';
 import { buildRequestSettingsLocators } from './request-settings';
 import { buildSidebarLocators } from './sidebar';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
+import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
 import { buildWebsocketCommonLocators } from './websocket';
 import { buildRequestLocators } from '../request';
 import { buildWorkspaceOverviewLocators } from './workspace-overview';
+import { buildCollectionHeaderLocators } from './collection/collection-header';
+import { buildEnvironmentLocators } from './environments';
 
 export const buildCommonLocators = (page: Page) => ({
+  collectionHeader: buildCollectionHeaderLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
   timelineHeaders: buildTimelineHeaderLocators(page),
@@ -33,6 +37,8 @@ export const buildCommonLocators = (page: Page) => ({
   sidebar: buildSidebarLocators(page),
   workspaceOverview: buildWorkspaceOverviewLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
+  migrateToYml: buildMigrateToYmlLocators(page),
+  environment: buildEnvironmentLocators(page),
   actions: {
     collectionActions: (collectionName: string) =>
       page.getByTestId('collections').locator('.collection-name')
@@ -101,79 +107,6 @@ export const buildCommonLocators = (page: Page) => ({
     count: () => page.getByTestId('selection-count'),
     selectAllToggle: () => page.getByTestId('selection-select-all-toggle').getByRole('checkbox'),
     searchInput: () => page.getByTestId('selection-search-input')
-  },
-  environment: {
-    selector: () => page.getByTestId('environment-selector-trigger'),
-    collectionTab: () => page.getByTestId('env-tab-collection'),
-    globalTab: () => page.getByTestId('env-tab-global'),
-    envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
-    listOption: (name: string) => page.locator('.environment-list .dropdown-item', { hasText: name }),
-    currentEnvironment: () => page.locator('.current-environment'),
-    configureButton: () => page.locator('#configure-env'),
-    saveButton: () => page.getByTestId('save-env'),
-    varRow: (name: string) => page.getByTestId(`env-var-row-${name}`),
-    // Prefix match — keep as a CSS selector since getByTestId is exact-match only.
-    varRows: () => page.locator('tbody tr[data-testid^="env-var-row-"]'),
-    // Rows for `name` whose CodeMirror value matches `value`. Useful when two rows
-    // share a name (e.g. enabled + disabled twins after a script write).
-    varRowsByValue: (name: string, value: string | RegExp) =>
-      page.getByTestId(`env-var-row-${name}`)
-        .filter({ has: page.getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror-line', { hasText: value }) }),
-    // Each env-var row has an `enabled` and a `secret` checkbox; target the latter
-    // by its `<index>.secret` name (the formik index is dynamic).
-    varRowSecretCheckbox: (name: string) => page.getByTestId(`env-var-row-${name}`).locator('input[name$=".secret"]'),
-    // Eye icon that masks/reveals a secret variable's value.
-    varRowEyeToggle: (name: string) => page.getByTestId(`env-var-row-${name}`).getByTestId('secret-reveal-toggle'),
-    varRowValueCell: (name: string) => page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.value$/),
-    varRowValueEditor: (name: string) =>
-      page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first(),
-    varRowValueLine: (name: string) =>
-      page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror-line').first(),
-    varRowLine: (name: string) =>
-      page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror-line').first(),
-    addVariableButton: () => page.getByTestId('add-variable'),
-    variableNameInput: (index: number) => page.locator(`input[name="${index}.name"]`),
-    variableSecretCheckbox: (index: number) => page.locator(`input[name="${index}.secret"]`),
-    variableRow: (index: number) => page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) }),
-    variableDescriptionEditor: (index: number) =>
-      page.locator(`[data-testid="test-multiline-editor-${index}.description"]`).locator('.CodeMirror'),
-    varRowDescriptionEditor: (name: string) =>
-      page.getByTestId(`env-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.description$/).locator('.CodeMirror').first(),
-    variableRowByName: (name: string) => page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }),
-    // Targets the `.CodeMirror` wrapper (not `.CodeMirror-line`) so single-line and
-    // multi-line values (e.g. formatted JSON for @object vars) are both covered —
-    // CodeMirror renders each visual line as a separate `.CodeMirror-line`, so
-    // matching on the wrapper is the only way to get the full concatenated text.
-    variableValue: (name: string) =>
-      page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first(),
-    createEnvButton: () => page.locator('button[id="create-env"]'),
-    settingsCreateButton: () =>
-      page.locator('.environments-container .sidebar button[title="Create environment"]'),
-    settingsCreateNameInput: () => page.locator('.environment-item.creating .environment-name-input'),
-    settingsCreateSaveButton: () => page.locator('.environment-item.creating .inline-action-btn.save'),
-    createModal: () => page.locator('.bruno-modal').filter({ hasText: /Create( Global)? Environment/ }),
-    createModalNameInput: () => page.locator('.bruno-modal #environment-name'),
-    createModalCreateButton: () => page.locator('.bruno-modal').getByRole('button', { name: 'Create', exact: true }),
-    envNameInput: () => page.locator('input[name="name"]'),
-    // Variables and secrets each live on their own tab in the environment editor.
-    variablesTab: () => page.getByTestId('responsive-tab-variables'),
-    secretsTab: () => page.getByTestId('responsive-tab-secrets'),
-    // The per-tab unsaved-changes dot, scoped to its tab (the visible tab carries the
-    // responsive-tab testid; the hidden measurement copy does not, so this stays unique).
-    // The dot is always in the DOM and toggles via visibility, so assert with
-    // toBeVisible()/toBeHidden() rather than presence.
-    tabDot: (tab: string) => page.getByTestId(`responsive-tab-${tab}`).getByTestId('env-tab-draft-indicator'),
-    saveTab: () => page.getByTestId('save-env'),
-    saveAll: () => page.getByTestId('save-all-env'),
-    searchInput: () => page.getByTestId('env-search-input'),
-    searchAction: () => page.getByTestId('env-search-action'),
-    collectionEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Environments$/ }),
-    globalEnvTab: () => page.locator('.request-tab').filter({ hasText: /^Global Environments$/ }),
-    unsavedModal: {
-      closeWithoutSave: () => page.getByTestId('env-unsaved-close-without-save'),
-      cancel: () => page.getByTestId('env-unsaved-cancel'),
-      saveAndClose: () => page.getByTestId('env-unsaved-save-and-close')
-    }
   },
   codeMirror: {
     byTestId: (testId: string) => page.getByTestId(testId).locator('.CodeMirror').first()
@@ -269,7 +202,11 @@ export const buildCommonLocators = (page: Page) => ({
   },
   response: {
     statusCode: () => page.getByTestId('response-status-code'),
+    // Rendered by every response pane (http, grpc, ws) only while a response exists, so its
+    // absence doubles as the "response is cleared" signal.
+    clearButton: () => page.getByTestId('response-clear-btn'),
     pane: () => page.locator('.response-pane'),
+    errorMessage: () => page.getByTestId('response-pane').locator('.error'),
     copyButton: () => page.locator('button[title="Copy response to clipboard"]'),
     body: () => page.locator('.response-pane'),
     editorContainer: () => page.locator('.response-pane .editor-container'),
@@ -281,7 +218,14 @@ export const buildCommonLocators = (page: Page) => ({
     jsonTreeLine: () => page.locator('.response-pane .object-content'),
     // Tests-tab summary line ("Tests (N), Passed: X, Failed: Y") and failure rows.
     testSummary: () => page.locator('.test-summary').filter({ hasText: 'Tests' }),
-    testFailures: () => page.locator('.test-result-item .test-failure')
+    // Match the fail icon (one per row) rather than a class shared by both the icon and
+    // label spans, so each failure counts once, not twice.
+    testFailures: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-fail') }),
+    assertionResults: {
+      rows: () => page.getByTestId('test-result-item'),
+      passed: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-pass') }),
+      failed: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-fail') })
+    }
   },
   timeline: {
     items: () => page.getByTestId('timeline-item'),

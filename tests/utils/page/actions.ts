@@ -1915,6 +1915,32 @@ const sendAndWaitForResponse = async (page: Page) => {
   });
 };
 
+/**
+ * Clears the response of the open request.
+ *
+ * Tests in the same file share one app instance, so without this a later test inherits the
+ * previous response. The send helpers only wait for a status code to become *visible*, which a
+ * stale response already satisfies — so they return before the new response lands and the
+ * assertions read the previous test's status, body and test results.
+ *
+ * Note the clear control is absent while a response carries a transport-level error, so this is a
+ * no-op for a request that failed before any response arrived.
+ * @param page - The page object
+ */
+const resetResponse = async (page: Page) => {
+  await test.step('Clear the response', async () => {
+    const { response } = buildCommonLocators(page);
+    const clearButton = response.clearButton();
+
+    // A snapshot rather than a wait: the caller has just asserted on a rendered response, and a
+    // test that failed before one arrived should skip the reset instead of stalling on it.
+    if (await clearButton.isVisible()) {
+      await clearButton.click();
+      await expect(clearButton).toBeHidden();
+    }
+  });
+};
+
 const fieldEditor = (page: Page, labelText: string) =>
   page
     .locator('label')
@@ -2672,6 +2698,7 @@ export {
   expandCollection,
   sendAndWaitForErrorCard,
   sendAndWaitForResponse,
+  resetResponse,
   selectAuthMode,
   typeIntoField,
   readField,
