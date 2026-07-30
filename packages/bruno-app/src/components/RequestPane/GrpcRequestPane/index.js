@@ -6,6 +6,7 @@ import GrpcBody from 'components/RequestPane/GrpcBody';
 import GrpcAuth from './GrpcAuth/index';
 import GrpcAuthMode from './GrpcAuth/GrpcAuthMode/index';
 import StatusDot from 'components/StatusDot/index';
+import StatusBadge from 'ui/StatusBadge/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import find from 'lodash/find';
 import Documentation from 'components/Documentation/index';
@@ -114,7 +115,12 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       },
       {
         key: 'scripts',
-        label: 'Scripts',
+        label: (
+          <span className="flex items-center gap-2">
+            Scripts
+            <StatusBadge status="info" size="xs">Beta</StatusBadge>
+          </span>
+        ),
         indicator: scriptPhases.some(({ FIELD }) => script?.[FIELD]) ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null
       }
     ];
