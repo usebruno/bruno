@@ -56,6 +56,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const methodDropdownRef = useRef(null);
   const protoDropdownRef = useRef(null);
   const haveFetchedMethodsRef = useRef(false);
+  const latestReflectionRequestIdRef = useRef(0);
 
   const protoFileManagement = useProtoFileManagement(collection, protoFilePath);
   const reflectionManagement = useReflectionManagement(item, collection);
@@ -119,7 +120,13 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   };
 
   const handleReflection = async (url, isManualRefresh = false) => {
+    // Guard against out-of-order completion: rapid env switches (or URL edits) can queue
+    // multiple in-flight reflection calls, and the older one resolving last would clobber
+    // the newer one's methods, selection, and toasts. Each call takes a monotonic id and
+    // bails after the await if a newer call has since started.
+    const requestId = ++latestReflectionRequestIdRef.current;
     const { methods, error, fromCache } = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
+    if (requestId !== latestReflectionRequestIdRef.current) return;
 
     if (error) {
       toast.error(`Failed to load gRPC methods: ${error.message || 'Unknown error'}`);

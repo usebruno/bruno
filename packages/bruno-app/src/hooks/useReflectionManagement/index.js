@@ -47,7 +47,7 @@ export default function useReflectionManagement(item, collection) {
 
     setIsLoadingMethods(true);
     try {
-      const { methods, error } = await dispatch(loadGrpcMethodsFromReflection(item, collection.uid, url));
+      const { methods, error } = await dispatch(loadGrpcMethodsFromReflection(item, collection.uid, cacheKey));
 
       if (error) {
         console.error('Error loading gRPC methods:', error);
