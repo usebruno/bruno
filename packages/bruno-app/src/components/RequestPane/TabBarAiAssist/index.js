@@ -9,11 +9,9 @@ import {
   updateRequestScript,
   updateResponseScript,
   updateRequestDocs,
-  updateAppCode,
-  updateScript
+  updateAppCode
 } from 'providers/ReduxStore/slices/collections';
 import { getActiveScriptTab } from 'utils/tabs';
-import { getPhasesByRequestType, REQUEST_TYPES } from '@usebruno/common';
 
 const getFromItem = (item, path) => (item.draft ? get(item, `draft.${path}`) : get(item, path));
 
