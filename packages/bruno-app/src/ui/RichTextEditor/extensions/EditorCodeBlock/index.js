@@ -58,6 +58,8 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
     navigator.clipboard.writeText(node.textContent).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      setCopied(false);
     });
   }, [node.textContent]);
 
@@ -81,16 +83,16 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
             placement="bottom-end"
           >
             <div className="flex flex-col max-h-64 overflow-y-auto">
-              <div
+              <button
                 className={`dropdown-item ${language === 'auto' ? 'active' : ''} px-2 py-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700`}
                 data-language="auto"
                 data-testid="code-block-lang-option"
                 onClick={setLanguage}
               >
                 auto
-              </div>
+              </button>
               {LANGUAGES.map((lang) => (
-                <div
+                <button
                   key={lang}
                   className={`dropdown-item ${language === lang ? 'active' : ''} px-2 py-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700`}
                   data-language={lang}
@@ -98,7 +100,7 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
                   onClick={setLanguage}
                 >
                   {lang}
-                </div>
+                </button>
               ))}
             </div>
           </Dropdown>
