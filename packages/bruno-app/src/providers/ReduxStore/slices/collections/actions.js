@@ -94,7 +94,8 @@ import {
   isPathOrDescendant
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
-import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, resolveSecretNameCollision, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
+import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common/variables';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -2144,6 +2145,17 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       return reject(new Error('Environment not found'));
     }
 
+    // Guarded here rather than only in the editor panes, because cmd+S, autosave and the
+    // save-all-drafts hotkey reach this thunk directly and `environmentSchema` accepts any name.
+    const invalidNames = getInvalidVariableNames(variables);
+    if (invalidNames.length > 0) {
+      return reject(new Error(invalidVariableNamesError(invalidNames)));
+    }
+
+    if (writesCollidingSecrets(variables, environment.variables)) {
+      return reject(new Error(DUPLICATE_SECRET_NAMES_ERROR));
+    }
+
     environment.variables = variables;
 
     const { ipcRenderer } = window;
@@ -2264,15 +2276,14 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
     try {
       const { type, data } = scopeInfo;
 
-      // Handle read-only variables early
+      // Handle read-only variables early. These reject with the message the user should see — the
+      // caller surfaces every rejection from here, so toasting as well would double up.
       if (type === 'process.env') {
-        toast.error('Process environment variables cannot be edited');
-        return reject(new Error('Process environment variables are read-only'));
+        return reject(new Error('Process environment variables cannot be edited'));
       }
 
       if (type === 'runtime' || (collection && collection.runtimeVariables && collection.runtimeVariables[variableName])) {
-        toast.error('Runtime variables are set by scripts and cannot be edited');
-        return reject(new Error('Runtime variables are read-only'));
+        return reject(new Error('Runtime variables are set by scripts and cannot be edited'));
       }
 
       // Validate collection for non-global scopes
@@ -2295,7 +2306,9 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return v;
           });
 
-          return dispatch(saveEnvironment(updatedVariables, environment.uid, collectionUid))
+          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
+
+          return dispatch(saveEnvironment(resolvedVariables, environment.uid, collectionUid))
             .then(() => {
               toast.success(`Variable "${variableName}" updated`);
             })
@@ -2409,7 +2422,12 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return v;
           });
 
-          return dispatch(saveGlobalEnvironment({ variables: updatedVariables, environmentUid: activeGlobalEnvUid }))
+          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
+
+          return dispatch(saveGlobalEnvironment({
+            variables: resolvedVariables,
+            environmentUid: activeGlobalEnvUid
+          }))
             .then(() => {
               toast.success(`Variable "${variableName}" updated`);
             })

@@ -1,4 +1,6 @@
 export {
+  DEFAULT_SCHEME,
+  getExplicitScheme,
   hasExplicitScheme,
   encodeUrl,
   parseQueryParams,

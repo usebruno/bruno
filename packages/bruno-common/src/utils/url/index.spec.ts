@@ -1,5 +1,14 @@
 import { describe, expect, it } from '@jest/globals';
-import { encodeUrl, parseQueryParams, buildQueryString, hasExplicitScheme, safeDecodeURIComponent, extractMockRoutePath, getMockResponseRouteKey } from './index';
+import {
+  encodeUrl,
+  parseQueryParams,
+  buildQueryString,
+  hasExplicitScheme,
+  safeDecodeURIComponent,
+  stripOrigin,
+  extractMockRoutePath,
+  getMockResponseRouteKey
+} from './index';
 
 describe('encodeUrl', () => {
   describe('basic functionality', () => {
@@ -477,4 +486,32 @@ describe('getMockResponseRouteKey', () => {
       response: { status: 200 }
     })).toBe('GET /users::200');
   });
+});
+
+describe('stripOrigin', () => {
+  const cases: [string, string, string][] = [
+    ['http origin', 'http://example.com/api/users?name=foo', '/api/users?name=foo'],
+    ['https origin', 'https://example.com/api/users?name=foo', '/api/users?name=foo'],
+    ['no path component', 'http://localhost:3000', '/'],
+    ['port in authority', 'http://localhost:3000/ping', '/ping'],
+    ['fragment kept', 'https://example.com/docs#intro', '/docs#intro'],
+    ['query only', 'https://example.com?a=1', '?a=1'],
+    // Non-http schemes: the origin must still go, or the snippet display-swap
+    // re-grafts it onto the path.
+    ['ftp origin', 'ftp://files.example.com/pub', '/pub'],
+    ['ws origin', 'ws://example.com/socket', '/socket'],
+    ['scheme with +/-/.', 'my-app.v2+beta://host/x', '/x'],
+    // The scheme is a `{{var}}` hashed to an opaque token during code generation.
+    ['hashed placeholder scheme', 'bruno-var-hash--163450413://api.example.com/ping', '/ping'],
+    // Nothing to strip — leave these untouched.
+    ['already origin-relative', '/api/users', '/api/users'],
+    ['schemeless host:port', 'localhost:6000/x', 'localhost:6000/x'],
+    ['unresolved template', '{{baseUrl}}/ping', '{{baseUrl}}/ping']
+  ];
+
+  for (const [label, input, expected] of cases) {
+    it(`${label} — ${input}`, () => {
+      expect(stripOrigin(input)).toBe(expected);
+    });
+  }
 });

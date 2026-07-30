@@ -10,6 +10,7 @@ import { buildSidebarLocators } from './sidebar';
 import { buildDeleteCollectionItemModalLocators } from './collection/delete-collection-item';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
 import { buildWebsocketCommonLocators } from './websocket';
+import { buildToastLocators } from './toast';
 import { buildRequestLocators } from '../request';
 import { buildWorkspaceOverviewLocators } from './workspace-overview';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
@@ -27,7 +28,7 @@ export const buildCommonLocators = (page: Page) => ({
   ai: buildAiPreferencesLocators(page),
   requestSettings: buildRequestSettingsLocators(page),
   websocket: buildWebsocketCommonLocators(page),
-  mockServer: buildMockServerLocators(page),
+  toast: buildToastLocators(page),
   request: buildRequestLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
