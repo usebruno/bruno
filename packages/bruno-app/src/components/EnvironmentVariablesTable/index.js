@@ -409,7 +409,8 @@ const EnvironmentVariablesTable = ({
   prevEnvironmentVariablesRef.current = environment.variables;
   if (prevSortModeRef.current !== sortMode || justCommitted || savedVariablesChanged) {
     prevSortModeRef.current = sortMode;
-    sortOrderRef.current = buildSortOrder(savedVariablesChanged ? environment.variables || [] : formik.values, sortMode);
+    // After a save/reparse, `environment.variables` gets new uids; `initialValues` keeps stable ones for reorder.
+    sortOrderRef.current = buildSortOrder(savedVariablesChanged ? initialValues : formik.values, sortMode);
   }
 
   const handleRowReorder = useCallback((fromUid, toUid) => {
