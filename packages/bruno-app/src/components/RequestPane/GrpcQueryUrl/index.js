@@ -58,7 +58,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const haveFetchedMethodsRef = useRef(false);
 
   const protoFileManagement = useProtoFileManagement(collection, protoFilePath);
-  const reflectionManagement = useReflectionManagement(item, collection.uid);
+  const reflectionManagement = useReflectionManagement(item, collection);
 
   const onMethodSelect = ({ path, type }) => {
     if (isConnectionActive) {
@@ -280,21 +280,27 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   const debouncedOnUrlChange = debounce(onUrlChange, 1000);
 
+  // Reflection fetch on mount, and re-fetch whenever the active environment changes.
+  // The URL may contain `{{var}}` placeholders (e.g. `{{host}}`) that only resolve
+  // once the env is active in Redux — if the pane mounts before the env has landed,
+  // the mount-time call reaches electron with un-interpolated placeholders and
+  // gRPC-js reports "Name resolution failed for target dns:{{host}}". Env changes
+  // also mean the same `{{host}}` may now point at a different endpoint, so the
+  // env-change re-fetch bypasses the URL-keyed reflection cache.
   useEffect(() => {
-    if (haveFetchedMethodsRef.current) {
-      return;
-    }
-    haveFetchedMethodsRef.current = true;
-
     if (protoFilePath) {
+      if (haveFetchedMethodsRef.current) return;
+      haveFetchedMethodsRef.current = true;
       setIsReflectionMode(false);
       handleProtoFileLoad(protoFilePath);
       return;
     }
     if (!url) return;
+    const isEnvChange = haveFetchedMethodsRef.current;
+    haveFetchedMethodsRef.current = true;
     setIsReflectionMode(true);
-    handleReflection(url);
-  }, []);
+    handleReflection(url, isEnvChange);
+  }, [collection.activeEnvironmentUid]);
 
   return (
     <StyledWrapper className="flex items-center relative" data-testid="grpc-query-url-container">
