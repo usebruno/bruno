@@ -3,7 +3,7 @@ import get from 'lodash/get';
 import { makeTabPermanent, syncTabUid } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, saveCollectionRoot, saveFolderRoot, saveEnvironment, saveCollectionSettings, closeTabs, saveFile } from 'providers/ReduxStore/slices/collections/actions';
 import useKeybinding from 'hooks/useKeybinding';
-import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft } from 'providers/ReduxStore/slices/collections';
+import { deleteRequestDraft, deleteCollectionDraft, deleteFolderDraft, clearEnvironmentsDraft, addSaveTransientRequestModal } from 'providers/ReduxStore/slices/collections';
 import { clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { useTheme } from 'providers/Theme';
@@ -579,9 +579,16 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }}
           onSaveAndClose={() => {
             const useFileSave = collection.fileMode || item.type === 'js';
+
+            if (!useFileSave && isItemTransientRequest(item)) {
+              dispatch(addSaveTransientRequestModal({ item, collection, closeAfterSave: true }));
+              setShowConfirmClose(false);
+              return;
+            }
+
             const savePromise = useFileSave
               ? dispatch(saveFile(item?.draft?.raw ?? item?.raw, item.uid, collection.uid))
-              : dispatch(saveRequest(item.uid, collection.uid, false, true));
+              : dispatch(saveRequest(item.uid, collection.uid));
 
             savePromise
               .then(() => {
