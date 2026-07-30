@@ -2,10 +2,13 @@ import { test, expect } from '../../../playwright';
 import type { Page } from '@playwright/test';
 import { buildGrpcCommonLocators, buildScriptErrorLocators } from '../../utils/page/locators';
 import {
-  editCodeMirrorEditor,
   openCollectionFromPath,
+  openConsoleAndClearLogs,
+  refreshGrpcMethodsAndSelect,
   selectRequestPaneTab,
   selectResponsePaneTab,
+  setGrpcPhaseScript,
+  streamGrpcMessagesAndEnd,
   waitForCollectionMount
 } from '../../utils/page';
 
@@ -49,34 +52,14 @@ const setupPhaseScripts = async (
   const codeByPhase = new Map(phaseScripts.map(({ scriptType, code }) => [scriptType, code]));
 
   await test.step('add the phase scripts', async () => {
-    await selectRequestPaneTab(page, 'Scripts');
+    await selectRequestPaneTab(page, 'Script');
     for (const { scriptType } of GRPC_SCRIPT_PHASES) {
-      await locators.paneTabs.tabTrigger(scriptType).click();
-      await editCodeMirrorEditor(page, `${scriptType}-script-editor`, codeByPhase.get(scriptType) ?? '');
+      await setGrpcPhaseScript(page, scriptType, codeByPhase.get(scriptType) ?? '');
     }
   });
 
-  await test.step(`refresh server reflection and choose the ${methodName} method`, async () => {
-    await locators.method.refresh().click();
-
-    await expect(async () => {
-      const item = locators.method.item(methodName).first();
-      if (!(await item.isVisible())) {
-        await locators.method.dropdownTrigger().click();
-      }
-      await item.click({ timeout: 2000 });
-      await expect(locators.method.selectedName()).toContainText(methodName, { timeout: 2000 });
-    }).toPass({ timeout: NETWORK_TIMEOUT });
-  });
-
-  await test.step('open the console and clear any prior logs', async () => {
-    const consoleTab = locators.devtools.tab('Console');
-    if (!(await consoleTab.isVisible())) {
-      await locators.devtools.toggleButton().click();
-    }
-    await consoleTab.click();
-    await locators.devtools.clearLogs().click();
-  });
+  await refreshGrpcMethodsAndSelect(page, methodName, { timeout: NETWORK_TIMEOUT });
+  await openConsoleAndClearLogs(page);
 
   return locators;
 };
@@ -109,29 +92,15 @@ const assertPhaseLogCounts = async (
   });
 };
 
-const streamMessagesAndEnd = async (
-  page: Page,
-  locators: ReturnType<typeof buildGrpcCommonLocators>,
-  messageCount: number
-) => {
-  await selectRequestPaneTab(page, 'Message');
-  await locators.request.sendButton().click();
-  for (let index = 0; index < messageCount; index++) {
-    await locators.request.sendMessage(index).click();
-  }
-  await locators.request.endConnectionButton().click();
-};
-
 test.describe('grpc scripting', () => {
   test.beforeEach(async ({ page, electronApp, collectionFixturePath }) => {
     test.setTimeout(2 * 60 * 1000);
 
-    const locators = buildGrpcCommonLocators(page);
-    if (await locators.sidebar.collection(COLLECTION_NAME).isVisible()) {
-      return;
+    const collection = buildGrpcCommonLocators(page).sidebar.collection(COLLECTION_NAME);
+    if (!(await collection.isVisible())) {
+      await openCollectionFromPath(page, electronApp, collectionFixturePath!);
     }
 
-    await openCollectionFromPath(page, electronApp, collectionFixturePath!);
     await waitForCollectionMount(page, COLLECTION_NAME);
   });
 
@@ -248,7 +217,7 @@ test.describe('grpc scripting', () => {
   test('client streaming', async ({ page }) => {
     const locators = await setupPhaseScripts(page, 'LotOfGreetings', 'LotsOfGreetings');
     await test.step('stream two messages and end the call', async () => {
-      await streamMessagesAndEnd(page, locators, 2);
+      await streamGrpcMessagesAndEnd(page, 2);
     });
     await assertPhaseLogCounts(locators, { send: 2, minReceive: 1 });
   });
@@ -256,7 +225,7 @@ test.describe('grpc scripting', () => {
   test('bidi streaming', async ({ page }) => {
     const locators = await setupPhaseScripts(page, 'BidiHello', 'BidiHello');
     await test.step('stream two messages and end the call', async () => {
-      await streamMessagesAndEnd(page, locators, 2);
+      await streamGrpcMessagesAndEnd(page, 2);
     });
     await assertPhaseLogCounts(locators, { send: 2, minReceive: 2 });
   });

@@ -19,12 +19,18 @@ export interface ScriptPhase {
   REQUEST_TYPE: RequestType;
   /** field under `request.script` */
   FIELD: string;
+  /** field under `request.script` holding this phase's combined-script metadata (error-trace mapping) */
+  METADATA_FIELD: string;
   /** `.yml` block `type` */
   YML_TYPE: string;
   /** `.bru` block `type` (mirrors YML_TYPE) */
   BRU_TYPE: string;
   /** Script-pane tab key / error-formatter value */
   SCRIPT_TYPE: string;
+  /** `main:run-request-event` type carrying this phase's test() results */
+  TEST_RESULTS_EVENT: string;
+  /** `main:run-request-event` type reporting this phase's script execution (and any error) */
+  SCRIPT_EXECUTION_EVENT: string;
   /** label shown on the tab */
   LABEL: string;
   /** autocomplete hint roots */
@@ -53,9 +59,12 @@ export const SCRIPT_PHASES = deepFreeze({
     PRE_REQUEST: {
       REQUEST_TYPE: 'http-request',
       FIELD: 'req',
+      METADATA_FIELD: 'reqMetadata',
       YML_TYPE: 'before-request',
       BRU_TYPE: 'pre-request',
       SCRIPT_TYPE: 'pre-request',
+      TEST_RESULTS_EVENT: 'test-results-pre-request',
+      SCRIPT_EXECUTION_EVENT: 'pre-request-script-execution',
       LABEL: 'Pre Request',
       HINTS: ['req', 'bru'],
       RUNS_BEFORE: true,
@@ -65,9 +74,12 @@ export const SCRIPT_PHASES = deepFreeze({
     POST_RESPONSE: {
       REQUEST_TYPE: 'http-request',
       FIELD: 'res',
+      METADATA_FIELD: 'resMetadata',
       YML_TYPE: 'after-response',
       BRU_TYPE: 'post-response',
       SCRIPT_TYPE: 'post-response',
+      TEST_RESULTS_EVENT: 'test-results-post-response',
+      SCRIPT_EXECUTION_EVENT: 'post-response-script-execution',
       LABEL: 'Post Response',
       HINTS: ['req', 'res', 'bru'],
       ERROR_STATE_KEY: 'postResponseScriptError',
@@ -78,9 +90,12 @@ export const SCRIPT_PHASES = deepFreeze({
     BEFORE_CALL_START: {
       REQUEST_TYPE: 'grpc-request',
       FIELD: 'beforeCallStart',
+      METADATA_FIELD: 'beforeCallStartMetadata',
       YML_TYPE: 'grpc:before-call-start',
       BRU_TYPE: 'grpc:before-call-start',
       SCRIPT_TYPE: 'grpc:before-call-start',
+      TEST_RESULTS_EVENT: 'test-results-grpc:before-call-start',
+      SCRIPT_EXECUTION_EVENT: 'grpc:before-call-start-script-execution',
       LABEL: 'Before Call',
       HINTS: ['bru'],
       RUNS_BEFORE: true,
@@ -90,9 +105,12 @@ export const SCRIPT_PHASES = deepFreeze({
     BEFORE_MESSAGE_SEND: {
       REQUEST_TYPE: 'grpc-request',
       FIELD: 'beforeMessageSend',
+      METADATA_FIELD: 'beforeMessageSendMetadata',
       YML_TYPE: 'grpc:before-message-send',
       BRU_TYPE: 'grpc:before-message-send',
       SCRIPT_TYPE: 'grpc:before-message-send',
+      TEST_RESULTS_EVENT: 'test-results-grpc:before-message-send',
+      SCRIPT_EXECUTION_EVENT: 'grpc:before-message-send-script-execution',
       LABEL: 'Before Message',
       HINTS: ['bru'],
       RUNS_BEFORE: true,
@@ -102,9 +120,12 @@ export const SCRIPT_PHASES = deepFreeze({
     AFTER_MESSAGE_RECEIVE: {
       REQUEST_TYPE: 'grpc-request',
       FIELD: 'afterMessageReceive',
+      METADATA_FIELD: 'afterMessageReceiveMetadata',
       YML_TYPE: 'grpc:after-message-receive',
       BRU_TYPE: 'grpc:after-message-receive',
       SCRIPT_TYPE: 'grpc:after-message-receive',
+      TEST_RESULTS_EVENT: 'test-results-grpc:after-message-receive',
+      SCRIPT_EXECUTION_EVENT: 'grpc:after-message-receive-script-execution',
       LABEL: 'After Message',
       HINTS: ['bru'],
       ERROR_STATE_KEY: 'afterMessageReceiveScriptError',
@@ -113,9 +134,12 @@ export const SCRIPT_PHASES = deepFreeze({
     AFTER_CALL_END: {
       REQUEST_TYPE: 'grpc-request',
       FIELD: 'afterCallEnd',
+      METADATA_FIELD: 'afterCallEndMetadata',
       YML_TYPE: 'grpc:after-call-end',
       BRU_TYPE: 'grpc:after-call-end',
       SCRIPT_TYPE: 'grpc:after-call-end',
+      TEST_RESULTS_EVENT: 'test-results-grpc:after-call-end',
+      SCRIPT_EXECUTION_EVENT: 'grpc:after-call-end-script-execution',
       LABEL: 'After Call',
       HINTS: ['bru'],
       ERROR_STATE_KEY: 'afterCallEndScriptError',
@@ -126,9 +150,12 @@ export const SCRIPT_PHASES = deepFreeze({
     PRE_REQUEST: {
       REQUEST_TYPE: 'graphql-request',
       FIELD: 'req',
+      METADATA_FIELD: 'reqMetadata',
       YML_TYPE: 'before-request',
       BRU_TYPE: 'pre-request',
       SCRIPT_TYPE: 'pre-request',
+      TEST_RESULTS_EVENT: 'test-results-pre-request',
+      SCRIPT_EXECUTION_EVENT: 'pre-request-script-execution',
       LABEL: 'Pre Request',
       HINTS: ['req', 'bru'],
       RUNS_BEFORE: true,
@@ -138,9 +165,12 @@ export const SCRIPT_PHASES = deepFreeze({
     POST_RESPONSE: {
       REQUEST_TYPE: 'graphql-request',
       FIELD: 'res',
+      METADATA_FIELD: 'resMetadata',
       YML_TYPE: 'after-response',
       BRU_TYPE: 'post-response',
       SCRIPT_TYPE: 'post-response',
+      TEST_RESULTS_EVENT: 'test-results-post-response',
+      SCRIPT_EXECUTION_EVENT: 'post-response-script-execution',
       LABEL: 'Post Response',
       HINTS: ['req', 'res', 'bru'],
       ERROR_STATE_KEY: 'postResponseScriptError',

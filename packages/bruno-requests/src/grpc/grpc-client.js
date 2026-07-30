@@ -166,7 +166,7 @@ const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc, onCompl
   const complete = () => {
     if (completed) return;
     completed = true;
-    onComplete({ ...finalResponse, duration: elapsed() });
+    if (typeof onComplete === 'function') onComplete({ ...finalResponse, duration: elapsed() });
   };
 
   rpc.on('status', (status, res) => {
@@ -511,21 +511,21 @@ class GrpcClient {
   /**
    * Handle unary responses
    */
-  #fireOnAfterMessageReceive(onAfterMessageReceive, res) {
-    if (typeof onAfterMessageReceive !== 'function') return;
+  #fireOnAfterMessageReceive(callback, res) {
+    if (typeof callback !== 'function') return;
     try {
-      onAfterMessageReceive(res);
+      callback(res);
     } catch (err) {
       console.error('gRPC onAfterMessageReceive callback threw:', err);
     }
   }
 
-  #buildOnComplete(requestId, onAfterCallEnd) {
+  #buildOnComplete(requestId, callback) {
     return (completion) => {
       this.#removeConnection(requestId);
-      if (typeof onAfterCallEnd !== 'function') return;
+      if (typeof callback !== 'function') return;
       try {
-        onAfterCallEnd(completion);
+        callback(completion);
       } catch (err) {
         console.error('gRPC onAfterCallEnd callback threw:', err);
       }

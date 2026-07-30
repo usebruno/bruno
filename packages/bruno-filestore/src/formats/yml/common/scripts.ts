@@ -3,9 +3,11 @@ import type { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types
 import type { HttpRequest as BrunoHttpRequest } from '@usebruno/schema-types/requests/http';
 import type { WebSocketRequest as BrunoWebSocketRequest } from '@usebruno/schema-types/requests/websocket';
 import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
+import type { Script as BrunoScript } from '@usebruno/schema-types/common/scripts';
 import { getPhasesByRequestType, REQUEST_TYPES, type RequestType } from '@usebruno/common';
 
-type BrunoScriptMap = Record<string, string | null | undefined>;
+type ScriptField = keyof BrunoScript;
+type BrunoScriptMap = Partial<Record<ScriptField, string | null>>;
 
 export const toOpenCollectionScripts = (
   request: BrunoFolderRequest | BrunoHttpRequest | BrunoWebSocketRequest | BrunoGrpcRequest | null | undefined,
@@ -15,7 +17,7 @@ export const toOpenCollectionScripts = (
 
   const script = request?.script as BrunoScriptMap | undefined;
   for (const phase of getPhasesByRequestType(requestType)) {
-    const code = script?.[phase.FIELD];
+    const code = script?.[phase.FIELD as ScriptField];
     if (code?.trim().length) {
       ocScripts.push({ type: phase.YML_TYPE, code: code.trim() } as unknown as Script);
     }
@@ -55,7 +57,7 @@ export const toBrunoScripts = (
     const phase = phases.find((phase) => phase.YML_TYPE === script.type);
     if (phase) {
       brunoScripts.script = brunoScripts.script || {};
-      brunoScripts.script[phase.FIELD] = script.code;
+      brunoScripts.script[phase.FIELD as ScriptField] = script.code;
     }
     if (script.type === 'tests') {
       brunoScripts.tests = script.code;
@@ -80,8 +82,9 @@ export const applyBrunoScripts = <T extends { script?: any }>(
   const targetScript = brunoRequest.script as BrunoScriptMap | undefined | null;
   if (sourceScript && targetScript) {
     for (const { FIELD } of getPhasesByRequestType(requestType)) {
-      if (sourceScript[FIELD] != null) {
-        targetScript[FIELD] = sourceScript[FIELD];
+      const field = FIELD as ScriptField;
+      if (sourceScript[field] != null) {
+        targetScript[field] = sourceScript[field];
       }
     }
   }

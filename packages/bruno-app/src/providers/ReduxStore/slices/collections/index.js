@@ -26,7 +26,7 @@ import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
-import { getPhasesByRequestType } from '@usebruno/common';
+import { getPhasesByRequestType, SCRIPT_PHASES } from '@usebruno/common';
 import * as exampleReducers from './exampleReducers';
 import * as mockResponseEditorReducers from './mockResponseEditorReducers';
 
@@ -1943,7 +1943,7 @@ export const collectionsSlice = createSlice({
       }
     },
     updateScript: (state, action) => {
-      const { collectionUid, itemUid, script, field = 'req' } = action.payload;
+      const { collectionUid, itemUid, script, field = SCRIPT_PHASES.HTTP.PRE_REQUEST.FIELD } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -3260,7 +3260,7 @@ export const collectionsSlice = createSlice({
           // ignore outdated updates in case multiple requests are fired rapidly to avoid state inconsistency
           if (item.requestUid !== requestUid) return;
 
-          const scriptPhase = getPhasesByRequestType(item?.type).find(({ SCRIPT_TYPE }) => `${SCRIPT_TYPE}-script-execution` === type);
+          const scriptPhase = getPhasesByRequestType(item?.type).find(({ SCRIPT_EXECUTION_EVENT }) => SCRIPT_EXECUTION_EVENT === type);
           if (scriptPhase) {
             item[`${scriptPhase.ERROR_STATE_KEY}Message`] = action.payload.errorMessage;
             item[`${scriptPhase.ERROR_STATE_KEY}Context`] = action.payload.errorContext || null;
@@ -3334,12 +3334,13 @@ export const collectionsSlice = createSlice({
           }
 
           const testResultsPhase = getPhasesByRequestType(item?.type).find(
-            ({ SCRIPT_TYPE }) => `test-results-${SCRIPT_TYPE}` === type
+            ({ TEST_RESULTS_EVENT }) => TEST_RESULTS_EVENT === type
           );
 
           if (testResultsPhase) {
             const { results } = action.payload;
-            item[testResultsPhase.TEST_RESULTS_KEY] = results;
+            const resultsKey = testResultsPhase.TEST_RESULTS_KEY;
+            item[resultsKey] = [...(item[resultsKey] || []), ...results];
           }
         }
       }
@@ -3409,12 +3410,12 @@ export const collectionsSlice = createSlice({
           item.testResults = action.payload.testResults;
         }
 
-        if (type === 'test-results-pre-request') {
+        if (type === SCRIPT_PHASES.HTTP.PRE_REQUEST.TEST_RESULTS_EVENT) {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.preRequestTestResults = action.payload.preRequestTestResults;
         }
 
-        if (type === 'test-results-post-response') {
+        if (type === SCRIPT_PHASES.HTTP.POST_RESPONSE.TEST_RESULTS_EVENT) {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.postResponseTestResults = action.payload.postResponseTestResults;
         }

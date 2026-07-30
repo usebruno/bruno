@@ -942,7 +942,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       if (preRequestScriptResult?.results) {
         mainWindow.webContents.send('main:run-request-event', {
-          type: `test-results-${SCRIPT_PHASES.HTTP.PRE_REQUEST.SCRIPT_TYPE}`,
+          type: SCRIPT_PHASES.HTTP.PRE_REQUEST.TEST_RESULTS_EVENT,
           results: preRequestScriptResult.results,
           itemUid: item.uid,
           requestUid,
@@ -956,7 +956,7 @@ const registerNetworkIpc = (mainWindow) => {
         scriptType: SCRIPT_PHASES.HTTP.PRE_REQUEST.SCRIPT_TYPE,
         error: preRequestError,
         collectionPath,
-        scriptMetadata: request.script?.[`${SCRIPT_PHASES.HTTP.PRE_REQUEST.FIELD}Metadata`]
+        scriptMetadata: request.script?.[SCRIPT_PHASES.HTTP.PRE_REQUEST.METADATA_FIELD]
       });
 
       if (preRequestError) {
@@ -1142,7 +1142,7 @@ const registerNetworkIpc = (mainWindow) => {
 
         if (postResponseScriptResult?.results) {
           mainWindow.webContents.send('main:run-request-event', {
-            type: `test-results-${SCRIPT_PHASES.HTTP.POST_RESPONSE.SCRIPT_TYPE}`,
+            type: SCRIPT_PHASES.HTTP.POST_RESPONSE.TEST_RESULTS_EVENT,
             results: postResponseScriptResult.results,
             itemUid: item.uid,
             requestUid,
@@ -1157,7 +1157,7 @@ const registerNetworkIpc = (mainWindow) => {
           error: postResponseError,
           itemPathname: item.pathname,
           collectionPath,
-          scriptMetadata: request.script?.[`${SCRIPT_PHASES.HTTP.POST_RESPONSE.FIELD}Metadata`]
+          scriptMetadata: request.script?.[SCRIPT_PHASES.HTTP.POST_RESPONSE.METADATA_FIELD]
         });
 
         // run assertions
@@ -1728,7 +1728,7 @@ const registerNetworkIpc = (mainWindow) => {
 
             if (preRequestScriptResult?.results) {
               mainWindow.webContents.send('main:run-folder-event', {
-                type: `test-results-${SCRIPT_PHASES.HTTP.PRE_REQUEST.SCRIPT_TYPE}`,
+                type: SCRIPT_PHASES.HTTP.PRE_REQUEST.TEST_RESULTS_EVENT,
                 preRequestTestResults: preRequestScriptResult.results,
                 ...eventData
               });
@@ -1741,7 +1741,7 @@ const registerNetworkIpc = (mainWindow) => {
               error: preRequestError,
               itemPathname: item.pathname,
               collectionPath,
-              scriptMetadata: request.script?.[`${SCRIPT_PHASES.HTTP.PRE_REQUEST.FIELD}Metadata`]
+              scriptMetadata: request.script?.[SCRIPT_PHASES.HTTP.PRE_REQUEST.METADATA_FIELD]
             });
 
             const domainsWithCookiesPreRequest = await getDomainsWithCookies();
@@ -1992,7 +1992,7 @@ const registerNetworkIpc = (mainWindow) => {
               error: postResponseError,
               itemPathname: item.pathname,
               collectionPath,
-              scriptMetadata: request.script?.[`${SCRIPT_PHASES.HTTP.POST_RESPONSE.FIELD}Metadata`]
+              scriptMetadata: request.script?.[SCRIPT_PHASES.HTTP.POST_RESPONSE.METADATA_FIELD]
             });
 
             const domainsWithCookiesPostResponse = await getDomainsWithCookies();
@@ -2009,7 +2009,7 @@ const registerNetworkIpc = (mainWindow) => {
             // Send post-response test results if available
             if (postResponseScriptResult?.results) {
               mainWindow.webContents.send('main:run-folder-event', {
-                type: `test-results-${SCRIPT_PHASES.HTTP.POST_RESPONSE.SCRIPT_TYPE}`,
+                type: SCRIPT_PHASES.HTTP.POST_RESPONSE.TEST_RESULTS_EVENT,
                 postResponseTestResults: postResponseScriptResult.results,
                 ...eventData
               });

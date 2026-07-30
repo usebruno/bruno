@@ -434,12 +434,12 @@ const mergeGrpcScripts = (collection, request, requestTreePath) => {
   };
 
   for (const phase of getPhasesByRequestType(REQUEST_TYPES.GRPC)) {
-    const field = phase.FIELD;
-    const combined = buildRequestScript(request?.script?.[field] || '');
+    const { FIELD, METADATA_FIELD } = phase;
+    const combined = buildRequestScript(request?.script?.[FIELD] || '');
 
     if (request.script) {
-      request.script[field] = combined.code;
-      request.script[`${field}Metadata`] = combined.metadata;
+      request.script[FIELD] = combined.code;
+      request.script[METADATA_FIELD] = combined.metadata;
     }
   }
 

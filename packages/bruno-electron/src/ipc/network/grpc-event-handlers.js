@@ -201,12 +201,12 @@ const registerGrpcEventHandlers = (window) => {
 
   /**
    * Emit the test() results produced by a gRPC phase script so they show in the Tests tab.
-   * The event type is `test-results-<scriptType>`; the renderer stores it under the matching phase bucket.
+   * The event type is the phase's TEST_RESULTS_EVENT; the renderer stores it in the matching bucket.
    */
-  const emitPhaseTestResults = ({ scriptResult, scriptType, requestUid, collection, itemUid }) => {
+  const emitPhaseTestResults = ({ scriptResult, phase, requestUid, collection, itemUid }) => {
     if (!scriptResult?.results?.length) return;
     sendEvent('main:run-request-event', {
-      type: `test-results-${scriptType}`,
+      type: phase.TEST_RESULTS_EVENT,
       results: scriptResult.results,
       itemUid,
       requestUid,
@@ -214,19 +214,20 @@ const registerGrpcEventHandlers = (window) => {
     });
   };
 
-  /** Emit a `main:run-request-event` for a gRPC script phase (event type `${scriptType}-script-execution`). */
+  /** Emit a `main:run-request-event` for a gRPC script phase (the phase's SCRIPT_EXECUTION_EVENT). */
   const notifyScriptExecution = ({
     channel,
     basePayload,
-    scriptType,
+    phase,
     error,
     collectionPath,
     scriptMetadata
   }) => {
+    const { SCRIPT_TYPE: scriptType, SCRIPT_EXECUTION_EVENT } = phase;
     const errorContext = error ? formatErrorWithContextV2(error, scriptType, scriptMetadata, collectionPath) : null;
 
     sendEvent(channel, {
-      type: `${scriptType}-script-execution`,
+      type: SCRIPT_EXECUTION_EVENT,
       ...basePayload,
       errorMessage: error ? (error.message || `An error occurred in ${scriptType.replace('-', ' ')} script`) : null,
       errorContext
@@ -245,7 +246,7 @@ const registerGrpcEventHandlers = (window) => {
     itemUid
   }) => {
     const phase = SCRIPT_PHASES.GRPC.BEFORE_CALL_START;
-    const { FIELD, SCRIPT_TYPE } = phase;
+    const { FIELD, METADATA_FIELD } = phase;
     const beforeMessageScript = get(request, `script.${FIELD}`);
     if (!beforeMessageScript?.length) {
       return { scriptResult: null, scriptError: null };
@@ -274,14 +275,14 @@ const registerGrpcEventHandlers = (window) => {
     notifyScriptExecution({
       channel: 'main:run-request-event',
       basePayload: { requestUid, collectionUid: collection.uid, itemUid },
-      scriptType: SCRIPT_TYPE,
+      phase,
       error: scriptError,
       collectionPath: collection.pathname,
-      scriptMetadata: request.script?.[`${FIELD}Metadata`]
+      scriptMetadata: request.script?.[METADATA_FIELD]
     });
 
     sendVariableUpdates(scriptResult, request, collection);
-    emitPhaseTestResults({ scriptResult, scriptType: SCRIPT_TYPE, requestUid, collection, itemUid });
+    emitPhaseTestResults({ scriptResult, phase, requestUid, collection, itemUid });
 
     return { scriptResult, scriptError };
   };
@@ -292,7 +293,7 @@ const registerGrpcEventHandlers = (window) => {
       = scriptContext;
 
     const phase = SCRIPT_PHASES.GRPC.BEFORE_MESSAGE_SEND;
-    const { FIELD, SCRIPT_TYPE } = phase;
+    const { FIELD, METADATA_FIELD } = phase;
     const beforeMessageSendScript = get(request, `script.${FIELD}`);
     if (!beforeMessageSendScript?.length) {
       return { message: outgoingMessage, scriptError: null };
@@ -322,14 +323,14 @@ const registerGrpcEventHandlers = (window) => {
     notifyScriptExecution({
       channel: 'main:run-request-event',
       basePayload: { requestUid, collectionUid: collection.uid, itemUid },
-      scriptType: SCRIPT_TYPE,
+      phase,
       error: scriptError,
       collectionPath: collection.pathname,
-      scriptMetadata: request.script?.[`${FIELD}Metadata`]
+      scriptMetadata: request.script?.[METADATA_FIELD]
     });
 
     sendVariableUpdates(scriptResult, request, collection);
-    emitPhaseTestResults({ scriptResult, scriptType: SCRIPT_TYPE, requestUid, collection, itemUid });
+    emitPhaseTestResults({ scriptResult, phase, requestUid, collection, itemUid });
 
     return { message: outgoingMessage, scriptError };
   };
@@ -348,7 +349,7 @@ const registerGrpcEventHandlers = (window) => {
     messageReceivedAt
   }) => {
     const phase = SCRIPT_PHASES.GRPC.AFTER_MESSAGE_RECEIVE;
-    const { FIELD, SCRIPT_TYPE } = phase;
+    const { FIELD, METADATA_FIELD } = phase;
     const onAfterMessageScript = get(request, `script.${FIELD}`);
     if (!onAfterMessageScript?.length) {
       return { scriptResult: null, scriptError: null };
@@ -379,14 +380,14 @@ const registerGrpcEventHandlers = (window) => {
     notifyScriptExecution({
       channel: 'main:run-request-event',
       basePayload: { requestUid, collectionUid: collection.uid, itemUid },
-      scriptType: SCRIPT_TYPE,
+      phase,
       error: scriptError,
       collectionPath: collection.pathname,
-      scriptMetadata: request.script?.[`${FIELD}Metadata`]
+      scriptMetadata: request.script?.[METADATA_FIELD]
     });
 
     sendVariableUpdates(scriptResult, request, collection);
-    emitPhaseTestResults({ scriptResult, scriptType: SCRIPT_TYPE, requestUid, collection, itemUid });
+    emitPhaseTestResults({ scriptResult, phase, requestUid, collection, itemUid });
 
     return { scriptResult, scriptError };
   };
@@ -405,7 +406,7 @@ const registerGrpcEventHandlers = (window) => {
     sentMessages
   }) => {
     const phase = SCRIPT_PHASES.GRPC.AFTER_CALL_END;
-    const { FIELD, SCRIPT_TYPE } = phase;
+    const { FIELD, METADATA_FIELD } = phase;
     const afterResponseScript = get(request, `script.${FIELD}`);
     if (!afterResponseScript?.length) {
       return { scriptResult: null, scriptError: null };
@@ -437,14 +438,14 @@ const registerGrpcEventHandlers = (window) => {
     notifyScriptExecution({
       channel: 'main:run-request-event',
       basePayload: { requestUid, collectionUid: collection.uid, itemUid },
-      scriptType: SCRIPT_TYPE,
+      phase,
       error: scriptError,
       collectionPath: collection.pathname,
-      scriptMetadata: request.script?.[`${FIELD}Metadata`]
+      scriptMetadata: request.script?.[METADATA_FIELD]
     });
 
     sendVariableUpdates(scriptResult, request, collection);
-    emitPhaseTestResults({ scriptResult, scriptType: SCRIPT_TYPE, requestUid, collection, itemUid });
+    emitPhaseTestResults({ scriptResult, phase, requestUid, collection, itemUid });
 
     return { scriptResult, scriptError };
   };

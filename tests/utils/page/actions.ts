@@ -1705,6 +1705,88 @@ const selectGrpcMethod = async (page: Page, methodName: string) => {
 };
 
 /**
+ * Refresh the gRPC method list via server reflection, then select a method.
+ * Reflection resolves asynchronously and the dropdown can re-render mid-click, so the
+ * refresh → open → pick → verify sequence is retried until it holds.
+ * @param page - The page object
+ * @param methodName - The name of the gRPC method to select (e.g. "SayHello")
+ * @param options.timeout - How long to keep retrying (default: 15000ms)
+ */
+const refreshGrpcMethodsAndSelect = async (
+  page: Page,
+  methodName: string,
+  options: { timeout?: number } = {}
+) => {
+  const { timeout = 15000 } = options;
+  await test.step(`Refresh reflection and select gRPC method "${methodName}"`, async () => {
+    const locators = buildGrpcCommonLocators(page);
+    await locators.method.refresh().click();
+
+    await expect(async () => {
+      await locators.method.dropdownTrigger().click();
+      await expect(locators.method.dropdown()).toBeVisible({ timeout: 2000 });
+
+      const item = locators.method.item(methodName).first();
+      await expect(item).toBeVisible({ timeout: 2000 });
+      await item.click({ timeout: 2000 });
+      await expect(locators.method.selectedName()).toContainText(methodName, { timeout: 2000 });
+    }).toPass({ timeout });
+  });
+};
+
+/**
+ * Open a streaming gRPC call, send N messages, then end the connection.
+ * @param page - The page object
+ * @param messageCount - How many of the request's messages to send, in order
+ */
+const streamGrpcMessagesAndEnd = async (page: Page, messageCount: number) => {
+  await test.step(`Stream ${messageCount} gRPC message(s) and end the call`, async () => {
+    const locators = buildGrpcCommonLocators(page);
+    await selectRequestPaneTab(page, 'Message');
+    await locators.request.sendButton().click();
+    for (let index = 0; index < messageCount; index++) {
+      await locators.request.sendMessage(index).click();
+    }
+    await locators.request.endConnectionButton().click();
+  });
+};
+
+/**
+ * Write a script into one gRPC phase editor. Assumes the Script request-pane tab is already open.
+ * @param page - The page object
+ * @param scriptType - The phase's script type (e.g. "grpc:before-call-start")
+ * @param code - The script contents; pass '' to clear the phase
+ */
+const setGrpcPhaseScript = async (page: Page, scriptType: string, code: string) => {
+  await test.step(`Set the ${scriptType} script`, async () => {
+    const locators = buildGrpcCommonLocators(page);
+    await locators.paneTabs.tabTrigger(scriptType).click();
+    await editCodeMirrorEditor(page, `${scriptType}-script-editor`, code);
+  });
+};
+
+/**
+ * Open the devtools Console tab (if the panel is closed) and clear any prior logs.
+ * @param page - The page object
+ */
+const openConsoleAndClearLogs = async (page: Page) => {
+  await test.step('Open the console and clear any prior logs', async () => {
+    const locators = buildCommonLocators(page);
+    const consoleTab = locators.devtools.tab('Console');
+
+    // The toggle flips the panel, so a run that starts with it already open closes it here and
+    // reopens on the retry.
+    await expect(async () => {
+      await locators.devtools.toggleButton().click();
+      await expect(consoleTab).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 10000 });
+
+    await consoleTab.click();
+    await locators.devtools.clearLogs().click();
+  });
+};
+
+/**
  * Close all open request tabs using the right-click context menu
  * @param page - The page object
  * @returns void
@@ -2698,7 +2780,11 @@ export {
   selectAppView,
   renameWsMessage,
   elementIsInsideDropdown,
-  openSystemProxyPanel
+  openSystemProxyPanel,
+  refreshGrpcMethodsAndSelect,
+  streamGrpcMessagesAndEnd,
+  setGrpcPhaseScript,
+  openConsoleAndClearLogs
 };
 
 export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput };
