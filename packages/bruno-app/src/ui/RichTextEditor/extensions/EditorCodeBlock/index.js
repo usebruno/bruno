@@ -28,7 +28,7 @@ const LANGUAGES = [
   'protobuf'
 ];
 
-export const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
+const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
   const language = node.attrs.language || 'auto';
   const [copied, setCopied] = useState(false);
   const preRef = useRef(null);
@@ -39,8 +39,8 @@ export const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
         const text = preRef.current.textContent;
         if (!text) return;
         const result = lowlight.highlightAuto(text);
-        if (result.data && result.data.language && LANGUAGES.includes(result.data.language)) {
-          updateAttributes({ language: result.data.language });
+        if (result.language && LANGUAGES.includes(result.language)) {
+          updateAttributes({ language: result.language });
         }
       }
     }, 10);
@@ -115,3 +115,5 @@ export const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
     </NodeViewWrapper>
   );
 };
+
+export default EditorCodeBlock;

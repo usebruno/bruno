@@ -137,7 +137,7 @@ const DocsEditor = ({
             value={docs || ''}
             onEdit={onEdit}
             onSave={onSave}
-            mode="application/text"
+            mode="gfm"
             initialScroll={initialScroll}
             onScroll={onScroll}
           />
