@@ -2,12 +2,13 @@ import React from 'react';
 import { IconEdit, IconEye } from '@tabler/icons';
 import Button from 'ui/Button';
 import { useDocsEditingState } from '../useDocsEditingState';
+import StyledWrapper from './StyledWrapper';
 
 const DocsAction = () => {
   const { isEditing, setEditing } = useDocsEditingState();
 
   return (
-    <div className="flex flex-grow justify-end items-center mr-2">
+    <StyledWrapper>
       <Button
         variant="ghost"
         color="secondary"
@@ -18,7 +19,7 @@ const DocsAction = () => {
       >
         {isEditing ? 'Preview' : 'Edit'}
       </Button>
-    </div>
+    </StyledWrapper>
   );
 };
 
