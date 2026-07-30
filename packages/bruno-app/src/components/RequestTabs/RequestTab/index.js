@@ -579,16 +579,17 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
           }}
           onSaveAndClose={() => {
             const useFileSave = collection.fileMode || item.type === 'js';
+            let savePromise;
 
-            if (!useFileSave && isItemTransientRequest(item)) {
+            if (useFileSave) {
+              savePromise = dispatch(saveFile(item?.draft?.raw ?? item?.raw, item.uid, collection.uid));
+            } else if (isItemTransientRequest(item)) {
               dispatch(addSaveTransientRequestModal({ item, collection, closeAfterSave: true }));
               setShowConfirmClose(false);
               return;
+            } else {
+              savePromise = dispatch(saveRequest(item.uid, collection.uid));
             }
-
-            const savePromise = useFileSave
-              ? dispatch(saveFile(item?.draft?.raw ?? item?.raw, item.uid, collection.uid))
-              : dispatch(saveRequest(item.uid, collection.uid));
 
             savePromise
               .then(() => {
