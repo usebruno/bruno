@@ -1,6 +1,6 @@
 import { OpenCollection } from "@opencollection/types";
 import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, PemCertificate, Pkcs12Certificate } from "./types";
-import { fromOpenCollectionAuth, fromOpenCollectionHeaders, fromOpenCollectionScripts, fromOpenCollectionVariables } from "./common";
+import { fromOpenCollectionActions, fromOpenCollectionAuth, fromOpenCollectionHeaders, fromOpenCollectionScripts, fromOpenCollectionVariables } from "./common";
 import { uuid } from "../common";
 import { fromOpenCollectionItems } from "./items";
 import { fromOpenCollectionFolder } from "./folder";
@@ -108,7 +108,10 @@ const fromOpenCollectionRoot = (oc: OpenCollection): BrunoCollectionRoot => {
       headers: fromOpenCollectionHeaders(oc.request.headers),
       auth: fromOpenCollectionAuth(oc.request.auth),
       script: scripts?.script,
-      vars: fromOpenCollectionVariables(oc.request.variables),
+      vars: {
+        ...fromOpenCollectionVariables(oc.request.variables),
+        res: fromOpenCollectionActions(oc.request.actions)
+      },
       tests: scripts?.tests
     };
   }
