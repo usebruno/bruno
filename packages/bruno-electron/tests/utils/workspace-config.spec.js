@@ -179,26 +179,9 @@ describe('Git remote on workspace collections', () => {
     expect(missing.remote).toBe('https://github.com/x/missing');
   });
 
-  test('getWorkspaceCollections keeps local entries that fail to open and flags them', () => {
+  test('getWorkspaceCollections still drops missing entries that have no remote', () => {
     writeYml([collection('Missing', 'collections/missing')]);
-
-    const result = getWorkspaceCollections(workspacePath);
-
-    expect(result).toHaveLength(1);
-    expect(result[0].name).toBe('Missing');
-    expect(result[0].failedToOpen).toBe(true);
-    expect(result[0].failureReason).toBe('not-found');
-  });
-
-  test('getWorkspaceCollections flags existing directories without a collection config as failed', () => {
-    fs.mkdirSync(path.join(workspacePath, 'collections/empty'), { recursive: true });
-    writeYml([collection('Empty', 'collections/empty')]);
-
-    const result = getWorkspaceCollections(workspacePath);
-
-    expect(result).toHaveLength(1);
-    expect(result[0].failedToOpen).toBe(true);
-    expect(result[0].failureReason).toBe('invalid');
+    expect(getWorkspaceCollections(workspacePath)).toHaveLength(0);
   });
 
   test('setCollectionGitRemote adds the collection path to .gitignore', async () => {
@@ -283,6 +266,94 @@ describe('Git remote on workspace collections', () => {
     } finally {
       fs.rmSync(outsideDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('getUnopenableWorkspaceCollections', () => {
+  const { getUnopenableWorkspaceCollections } = require('../../src/utils/workspace-config');
+
+  let workspacePath;
+
+  const writeYml = (collections) => {
+    const lines = ['opencollection: 1.0.0', 'info:', '  name: "Test"', '  type: workspace', 'collections:'];
+    for (const c of collections) {
+      lines.push(`  - name: "${c.name}"`);
+      lines.push(`    path: "${c.path}"`);
+      if (c.remote) lines.push(`    remote: "${c.remote}"`);
+    }
+    lines.push('specs: []');
+    lines.push('docs: \'\'');
+    fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), lines.join('\n'));
+  };
+
+  const absPath = (relativePath) => path.resolve(workspacePath, relativePath);
+
+  const ensureCollectionDir = (relativePath) => {
+    const dir = path.join(workspacePath, relativePath);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'bruno.json'), JSON.stringify({ name: 'x', version: '1', type: 'collection' }));
+  };
+
+  beforeEach(() => {
+    workspacePath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-ws-unopenable-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(workspacePath, { recursive: true, force: true });
+  });
+
+  test('leaves out entries that point at a valid collection directory', () => {
+    ensureCollectionDir('collections/api');
+    writeYml([collection('API', 'collections/api')]);
+
+    expect(getUnopenableWorkspaceCollections(workspacePath)).toEqual([]);
+  });
+
+  test('reports an entry whose folder does not exist', () => {
+    writeYml([collection('Missing', 'collections/missing')]);
+
+    expect(getUnopenableWorkspaceCollections(workspacePath)).toEqual([
+      { name: 'Missing', path: absPath('collections/missing') }
+    ]);
+  });
+
+  test('reports an entry whose folder has no collection config', () => {
+    fs.mkdirSync(path.join(workspacePath, 'collections/empty'), { recursive: true });
+    writeYml([collection('Empty', 'collections/empty')]);
+
+    expect(getUnopenableWorkspaceCollections(workspacePath)).toEqual([
+      { name: 'Empty', path: absPath('collections/empty') }
+    ]);
+  });
+
+  test('leaves out git-backed entries that are not cloned yet', () => {
+    writeYml([collection('Ghost', 'collections/ghost', { remote: 'https://github.com/x/ghost' })]);
+
+    expect(getUnopenableWorkspaceCollections(workspacePath)).toEqual([]);
+  });
+
+  test('reports a duplicated broken entry only once', () => {
+    writeYml([
+      collection('Missing', 'collections/missing'),
+      collection('Missing Again', 'collections/missing')
+    ]);
+
+    expect(getUnopenableWorkspaceCollections(workspacePath)).toEqual([
+      { name: 'Missing', path: absPath('collections/missing') }
+    ]);
+  });
+
+  test('reports only the broken entries when the workspace mixes healthy and broken ones', () => {
+    ensureCollectionDir('collections/api');
+    fs.mkdirSync(path.join(workspacePath, 'collections/empty'), { recursive: true });
+    writeYml([
+      collection('API', 'collections/api'),
+      collection('Missing', 'collections/missing'),
+      collection('Empty', 'collections/empty'),
+      collection('Ghost', 'collections/ghost', { remote: 'https://github.com/x/ghost' })
+    ]);
+
+    expect(getUnopenableWorkspaceCollections(workspacePath).map((c) => c.name)).toEqual(['Missing', 'Empty']);
   });
 });
 

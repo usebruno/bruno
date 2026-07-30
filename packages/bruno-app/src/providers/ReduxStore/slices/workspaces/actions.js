@@ -355,11 +355,12 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
 
 const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
   const openCollectionsFunction = (collectionPaths, workspacePath) => {
-    return dispatch(openMultipleCollections(collectionPaths, { workspacePath }));
+    return dispatch(openMultipleCollections(collectionPaths, { workspacePath, dontSendDisplayErrors: true }));
   };
 
   let updatedWorkspace = null;
   let openedCollectionPaths = [];
+  const unopenedCollectionPaths = new Set();
 
   try {
     const shouldRefreshCollections = workspace.collections?.some((collection) => collection.notFoundLocally);
@@ -371,12 +372,8 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
         getState().collections.collections.map((c) => normalizePath(c.pathname))
       );
 
-      const unopened = updatedWorkspace.collections
-        .filter((wc) => wc.failedToOpen)
-        .map((wc) => wc.path);
-
       const collectionPaths = updatedWorkspace.collections
-        .filter((wc) => !wc.notFoundLocally && !wc.failedToOpen)
+        .filter((wc) => !wc.notFoundLocally)
         .map((wc) => wc.path)
         .filter((p) => p && !alreadyOpenCollections.includes(normalizePath(p)));
 
@@ -392,21 +389,32 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
 
         if (Array.isArray(openResult?.failed) && openResult.failed.length > 0) {
           console.warn('Some workspace collections failed to open during switch:', openResult.failed);
-          unopened.push(...openResult.failed.map((f) => f.path));
+          openResult.failed.forEach((failure) => unopenedCollectionPaths.add(normalizePath(failure.path)));
         }
 
         if (Array.isArray(openResult?.invalid) && openResult.invalid.length > 0) {
           console.warn('Some workspace collection paths were invalid during switch:', openResult.invalid);
-          unopened.push(...openResult.invalid);
+          openResult.invalid.forEach((invalidPath) => unopenedCollectionPaths.add(normalizePath(invalidPath)));
         }
       }
+    }
 
-      if (unopened.length > 0) {
-        const message = unopened.length === 1
-          ? `Collection could not be opened: ${unopened[0]}`
-          : `${unopened.length} collections could not be opened`;
-        toast.error(message);
-      }
+    if (updatedWorkspace?.pathname) {
+      const unopenableCollections = await ipcRenderer
+        .invoke('renderer:load-unopenable-workspace-collections', updatedWorkspace.pathname)
+        .catch((error) => {
+          console.warn('Could not determine which workspace collections are unopenable:', error);
+          return [];
+        });
+
+      unopenableCollections
+        .filter((collection) => collection?.path)
+        .forEach((collection) => unopenedCollectionPaths.add(normalizePath(collection.path)));
+    }
+
+    if (unopenedCollectionPaths.size > 0) {
+      const unopenedCount = unopenedCollectionPaths.size;
+      toast.error(`Failed to open ${unopenedCount} collection${unopenedCount === 1 ? '' : 's'}`);
     }
 
     // Load API specs for this workspace
@@ -952,7 +960,7 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
 
         if (workspace?.collections?.length > 0) {
           const newCollectionPaths = workspace.collections
-            .filter((workspaceCollection) => !workspaceCollection.notFoundLocally && !workspaceCollection.failedToOpen)
+            .filter((workspaceCollection) => !workspaceCollection.notFoundLocally)
             .map((workspaceCollection) => workspaceCollection.path)
             .filter((collectionPath) => collectionPath && !openCollections.includes(normalizePath(collectionPath)));
 
