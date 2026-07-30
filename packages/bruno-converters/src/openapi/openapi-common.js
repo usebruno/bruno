@@ -563,7 +563,7 @@ export const toSpecString = (value) => (typeof value === 'string' ? value : '');
 export const getTagDescriptions = (tags, options = {}) => {
   const descriptions = Object.create(null);
   each(tags || [], (tag) => {
-    if (tag && typeof tag === 'object' && tag.name) {
+    if (tag && typeof tag === 'object' && typeof tag.name === 'string') {
       const docs = toSpecString(tag.description);
       const key = sanitizeTag(tag.name, options);
       if (key && docs) {
