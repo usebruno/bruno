@@ -48,7 +48,13 @@ const PresetsSettings = ({ collection }) => {
   };
 
   const defaultEnvTrigger = (
-    <div className="default-env-trigger flex items-center justify-between cursor-pointer" data-testid="presets-default-environment">
+    <div
+      id="default-environment"
+      role="button"
+      tabIndex={0}
+      className="default-env-trigger flex items-center justify-between cursor-pointer"
+      data-testid="presets-default-environment"
+    >
       <span className="truncate">{defaultEnvironmentName || 'None'}</span>
       <IconCaretDown className="caret" size={14} strokeWidth={2} />
     </div>
@@ -72,10 +78,10 @@ const PresetsSettings = ({ collection }) => {
         <p className="presets-intro">These presets will be used as the default values in this collection.</p>
 
         <div className="preset-field">
-          <label className="preset-field-label">Default Request type</label>
+          <label className="preset-field-label">Default Request Type</label>
           <p className="preset-field-subtitle">Selected by default for new requests.</p>
           <SegmentedControl
-            ariaLabel="Default Request type"
+            ariaLabel="Default Request Type"
             name="requestType"
             value={requestType}
             onChange={handleRequestTypeChange}
