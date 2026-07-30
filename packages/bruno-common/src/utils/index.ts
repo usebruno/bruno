@@ -7,6 +7,8 @@ export {
   buildQueryString,
   stripOrigin,
   safeDecodeURIComponent,
+  extractMockRoutePath,
+  getMockResponseRouteKey,
   isSameOrigin
 } from './url';
 

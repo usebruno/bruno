@@ -240,6 +240,82 @@ const stripOrigin = (url: string): string => {
   return url.replace(/^[A-Za-z][A-Za-z0-9+.-]*:\/\/[^/?#]*/, '') || '/';
 };
 
+/**
+ * Normalize a Bruno request URL to a mock-server route path.
+ * Strips scheme/host, leading `{{var}}`, query strings; turns remaining `{{var}}` into `:var`.
+ */
+const extractMockRoutePath = (rawUrl: unknown): string => {
+  if (!rawUrl) {
+    return '/';
+  }
+
+  let cleaned = String(rawUrl).trim();
+  cleaned = cleaned.replace(/^\{\{[^}]+\}\}/, '');
+
+  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
+    try {
+      cleaned = new URL(cleaned).pathname;
+    } catch {
+      const withoutScheme = cleaned.replace(/^https?:\/\//, '');
+      const slashIndex = withoutScheme.indexOf('/');
+      cleaned = slashIndex === -1 ? '/' : withoutScheme.slice(slashIndex);
+      const qIndex = cleaned.indexOf('?');
+      if (qIndex !== -1) {
+        cleaned = cleaned.substring(0, qIndex);
+      }
+    }
+  } else {
+    const ipHostMatch = cleaned.match(/^(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?(\/[^?#]*)?/);
+    if (ipHostMatch) {
+      cleaned = ipHostMatch[1] || '/';
+    } else {
+      const domainHostMatch = cleaned.match(/^(?:[a-zA-Z0-9-]+\.)+[a-zA-Z0-9-]+(?::\d+)?(\/[^?#]*)?/);
+      if (domainHostMatch) {
+        cleaned = domainHostMatch[1] || '/';
+      } else {
+        const bareHostMatch = cleaned.match(/^[a-zA-Z0-9-]+:\d+(\/[^?#]*)?/);
+        if (bareHostMatch) {
+          cleaned = bareHostMatch[1] || '/';
+        }
+      }
+    }
+
+    const qIndex = cleaned.indexOf('?');
+    if (qIndex !== -1) {
+      cleaned = cleaned.substring(0, qIndex);
+    }
+  }
+
+  cleaned = cleaned.replace(/\{\{([^}]+)\}\}/g, ':$1');
+
+  if (!cleaned.startsWith('/')) {
+    cleaned = `/${cleaned}`;
+  }
+  if (cleaned.length > 1 && cleaned.endsWith('/')) {
+    cleaned = cleaned.slice(0, -1);
+  }
+  cleaned = cleaned.replace(/\/+/g, '/');
+
+  return cleaned || '/';
+};
+
+interface MockResponseRouteKeyInput {
+  request?: {
+    method?: string;
+    url?: string;
+  } | null;
+  response?: {
+    status?: number | string;
+  } | null;
+}
+
+const getMockResponseRouteKey = (response?: MockResponseRouteKeyInput | null): string => {
+  const method = (response?.request?.method || 'GET').toUpperCase();
+  const url = extractMockRoutePath(response?.request?.url);
+  const status = Number(response?.response?.status) || 200;
+  return `${method} ${url}::${status}`;
+};
+
 const isSameOrigin = (url1: string, url2: string): boolean => {
   try {
     const parsed1 = new URL(url1);
@@ -259,8 +335,11 @@ export {
   buildQueryString,
   stripOrigin,
   safeDecodeURIComponent,
+  extractMockRoutePath,
+  getMockResponseRouteKey,
   isSameOrigin,
   type QueryParam,
   type BuildQueryStringOptions,
-  type ExtractQueryParamsOptions
+  type ExtractQueryParamsOptions,
+  type MockResponseRouteKeyInput
 };
