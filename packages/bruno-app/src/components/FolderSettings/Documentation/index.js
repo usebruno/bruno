@@ -1,37 +1,33 @@
-import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
-import find from 'lodash/find';
 import { updateFolderDocs } from 'providers/ReduxStore/slices/collections';
-import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
-import { useTheme } from 'providers/Theme';
 import { useMemo, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
-import Markdown from 'components/MarkDown';
-import CodeEditor from 'components/CodeEditor';
-import AIAssist from 'components/AIAssist';
 import { buildAiVariablesPayload, buildDocsContextFromFolder } from 'utils/ai';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { useDocsEditingState } from 'components/Documentation/useDocsEditingState';
+import DocsEditor from 'components/Documentation/DocsEditor';
 
 const Documentation = ({ collection, folder }) => {
   const dispatch = useDispatch();
-  const { displayedTheme } = useTheme();
-  const preferences = useSelector((state) => state.app.preferences);
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  const isEditing = focusedTab?.docsEditing || false;
+  const { isEditing, setEditing } = useDocsEditingState();
   const docs = folder.draft ? get(folder, 'draft.docs', '') : get(folder, 'root.docs', '');
 
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `folder-docs-scroll-${folder.uid}`, default: 0 });
-  useTrackScroll({ ref: wrapperRef, selector: '.folder-settings-content', onChange: setScroll, enabled: !isEditing, initialValue: scroll });
+  useTrackScroll({
+    ref: wrapperRef,
+    selector: '.rich-text-editor-content',
+    onChange: setScroll,
+    enabled: !isEditing,
+    initialValue: scroll
+  });
 
   const toggleViewMode = () => {
-    dispatch(updateDocsEditing({ uid: activeTabUid, docsEditing: !isEditing }));
+    setEditing(!isEditing);
   };
 
   const onEdit = (value) => {
@@ -58,32 +54,27 @@ const Documentation = ({ collection, folder }) => {
         {isEditing ? 'Preview' : 'Edit'}
       </div>
 
-      {isEditing ? (
-        <div className="flex flex-col flex-1 min-h-0">
-          <div className="mt-2 flex-1 overflow-auto min-h-0 relative">
-            <CodeEditor
-              collection={collection}
-              theme={displayedTheme}
-              value={docs || ''}
-              onEdit={onEdit}
-              onSave={onSave}
-              font={get(preferences, 'font.codeFont', 'default')}
-              fontSize={get(preferences, 'font.codeFontSize')}
-              mode="application/text"
-              initialScroll={scroll}
-              onScroll={setScroll}
-            />
-            <AIAssist scriptType="docs" currentScript={docs || ''} docsContext={docsContext} variables={aiVariables} onApply={onEdit} />
-          </div>
-          <div className="mt-6 flex-shrink-0">
-            <Button type="submit" size="sm" onClick={onSave}>
-              Save
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="h-full">
-          <Markdown onDoubleClick={toggleViewMode} content={docs} />
+      <div className="flex-1 min-h-0 flex flex-col">
+        <DocsEditor
+          docs={docs}
+          onEdit={onEdit}
+          onSave={onSave}
+          isEditing={isEditing}
+          collection={collection}
+          collectionPath={collection.pathname}
+          docsContext={docsContext}
+          variables={aiVariables}
+          onRequestEdit={toggleViewMode}
+          initialScroll={scroll}
+          onScroll={setScroll}
+        />
+      </div>
+
+      {isEditing && (
+        <div className="mt-6 flex-shrink-0">
+          <Button type="submit" size="sm" onClick={onSave}>
+            Save
+          </Button>
         </div>
       )}
     </StyledWrapper>

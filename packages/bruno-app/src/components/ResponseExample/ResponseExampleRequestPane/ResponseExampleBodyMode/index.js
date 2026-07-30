@@ -88,6 +88,7 @@ const ResponseExampleBodyMode = ({ item, collection, exampleUid, body, bodyMode,
         currentMode={bodyMode}
         onModeChange={onModeChange}
         disabled={!editMode}
+        data-testid="example-body-mode-label"
       />
     </div>
   );

@@ -30,6 +30,7 @@ import { hasEffectiveAuth } from 'utils/auth';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import AuthMode from '../Auth/AuthMode/index';
+import TabBarAiAssist from '../TabBarAiAssist';
 import StatusDot from 'components/StatusDot';
 
 const TAB_CONFIG = [
@@ -340,8 +341,17 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
       break;
     case 'docs':
       rightContent = (
-        <div ref={schemaActionsRef}>
+        <div ref={schemaActionsRef} className="flex items-center gap-2">
           <DocsAction />
+          <TabBarAiAssist item={item} collection={collection} activeTab={requestPaneTab} />
+        </div>
+      );
+      break;
+    case 'script':
+    case 'tests':
+      rightContent = (
+        <div ref={schemaActionsRef} className="flex items-center gap-2">
+          <TabBarAiAssist item={item} collection={collection} activeTab={requestPaneTab} />
         </div>
       );
       break;

@@ -21,6 +21,7 @@ import StyledWrapper from './StyledWrapper';
 import WSAuth from './WSAuth';
 import WSAuthMode from './WSAuth/WSAuthMode';
 import WSSettingsPane from '../WSSettingsPane/index';
+import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
 import { AUTH_MODES_WS } from 'utils/common/constants';
 
@@ -187,8 +188,9 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
       break;
     case 'docs':
       rightContent = (
-        <div ref={rightContentRef}>
+        <div ref={rightContentRef} className="flex items-center gap-2">
           <DocsAction />
+          <TabBarAiAssist item={item} collection={collection} activeTab={requestPaneTab} />
         </div>
       );
       break;

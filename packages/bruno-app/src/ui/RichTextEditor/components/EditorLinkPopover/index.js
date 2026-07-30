@@ -4,10 +4,11 @@ import { IconEdit, IconUnlink, IconCopy, IconExternalLink } from '@tabler/icons'
 import toast from 'react-hot-toast';
 import ToolHint from 'components/ToolHint';
 import Button from 'ui/Button';
+import { isSafeUrl } from 'utils/url/index';
 import EditorLinkEditPopover from '../EditorLinkEditPopover';
 import StyledWrapper from './StyledWrapper';
 
-const POPOVER_WIDTH = 280;
+const POPOVER_WIDTH = 272; // matches the popover's `width: 17rem` in StyledWrapper.js
 
 /**
  * Resolves link text + doc range from the TipTap document for a given anchor element.
@@ -67,7 +68,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
   const [editLink, setEditLink] = useState({ text: '', url: '' });
 
   const hoverTimerRef = useRef(null);
-  const isHoverHovered = useRef(false);
+  const isPointerOverHoverPopover = useRef(false);
   const currentAnchorRef = useRef(null);
 
   const isEditable = editor?.isEditable ?? false;
@@ -92,7 +93,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
   }, [editor, getContainer]);
 
   const closeHover = useCallback(() => {
-    if (!isHoverHovered.current) {
+    if (!isPointerOverHoverPopover.current) {
       setHoverOpen(false);
       currentAnchorRef.current = null;
     }
@@ -196,11 +197,11 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
           data-hover-popover="true"
           style={{ top: `${hoverCoords.top}px`, left: `${hoverCoords.left}px` }}
           onMouseEnter={() => {
-            isHoverHovered.current = true;
+            isPointerOverHoverPopover.current = true;
             clearTimeout(hoverTimerRef.current);
           }}
           onMouseLeave={() => {
-            isHoverHovered.current = false;
+            isPointerOverHoverPopover.current = false;
             hoverTimerRef.current = setTimeout(closeHover, 200);
           }}
         >
@@ -212,7 +213,14 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
               className="link-url"
               title={hoverLink.url}
               onClick={(e) => {
-                if (isEditable) e.preventDefault();
+                // Always block the native anchor navigation — a link already
+                // in the document (e.g. from a shared collection) hasn't been
+                // through our own submit-time validation, so it must go
+                // through the same isSafeUrl check as everything else.
+                e.preventDefault();
+                if (!isEditable && isSafeUrl(hoverLink.url)) {
+                  window.open(hoverLink.url, '_blank', 'noopener,noreferrer');
+                }
               }}
             >
               {hoverLink.url}
@@ -254,8 +262,9 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
                   type="button"
                   className="action-icon-btn"
                   onClick={() => {
-                    navigator.clipboard.writeText(hoverLink.url);
-                    toast.success('Link copied to clipboard');
+                    navigator.clipboard.writeText(hoverLink.url).then(() => {
+                      toast.success('Link copied to clipboard');
+                    });
                     setHoverOpen(false);
                   }}
                 >
@@ -266,7 +275,11 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
                 <button
                   type="button"
                   className="action-icon-btn"
-                  onClick={() => window.open(hoverLink.url, '_blank', 'noreferrer')}
+                  onClick={() => {
+                    if (isSafeUrl(hoverLink.url)) {
+                      window.open(hoverLink.url, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
                 >
                   <IconExternalLink size={14} strokeWidth={1.5} />
                 </button>
@@ -278,7 +291,6 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
 
       {/* ── Edit popover (edit mode only) ── */}
       <EditorLinkEditPopover
-        editor={editor}
         isOpen={editOpen}
         externalCoords={editCoords}
         onClose={() => setEditOpen(false)}

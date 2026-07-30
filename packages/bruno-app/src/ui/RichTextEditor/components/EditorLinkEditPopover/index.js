@@ -2,17 +2,27 @@ import React, { useState, useEffect, useRef } from 'react';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 
-const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, initialText, initialUrl, externalCoords }) => {
+const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, onUnlink, initialText, initialUrl, externalCoords }) => {
   const [text, setText] = useState(initialText || '');
   const [url, setUrl] = useState(initialUrl || '');
-  const [coords, setCoords] = useState({ top: 0, left: 0 });
   const popoverRef = useRef(null);
   const urlInputRef = useRef(null);
 
-  useEffect(() => {
-    setText(initialText || '');
-    setUrl(initialUrl || '');
-  }, [initialText, initialUrl]);
+  // Parent provides fully-computed coords before opening — no state/effect needed.
+  const coords = externalCoords || { top: 0, left: 0 };
+
+  // Re-seed on every open transition, not just when the link identity changes —
+  // otherwise reopening on the same link shows a previously abandoned draft edit.
+  // Adjusted during render (rather than an effect) so the reset lands in the
+  // same render as the isOpen change.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) {
+      setText(initialText || '');
+      setUrl(initialUrl || '');
+    }
+  }
 
   // Focus the URL input without scrolling the page.
   // We can't use autoFocus because the popover is position:absolute inside a
@@ -25,15 +35,6 @@ const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, initialText, initial
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    // Parent provides coords which are relative to the editor container
-    if (!isOpen) return;
-
-    if (externalCoords) {
-      setCoords(externalCoords);
-    }
-  }, [isOpen, externalCoords]);
 
   useEffect(() => {
     let timerId;
@@ -106,6 +107,17 @@ const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, initialText, initial
           />
         </div>
         <div className="popover-actions">
+          {initialUrl && onUnlink && (
+            <Button
+              type="button"
+              color="secondary"
+              variant="ghost"
+              size="sm"
+              onClick={onUnlink}
+            >
+              Remove
+            </Button>
+          )}
           <Button
             type="button"
             color="secondary"

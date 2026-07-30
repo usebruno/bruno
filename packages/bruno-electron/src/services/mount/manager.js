@@ -24,14 +24,13 @@ const hydrateEnvironments = (collectionPath, environments) => {
   for (const env of environments) {
     if (!Array.isArray(env.variables)) continue;
     env.variables.forEach((variable, i) => {
-      const key = variable.name || `index:${i}`;
-      variable.uid = uidForSeed(`${env.uid}#var#${key}`);
+      variable.uid = uidForSeed(`${env.uid}#var#${i}#${variable.name || ''}`);
     });
     if (!envHasSecrets(env)) continue;
     try {
       const envSecrets = getEnvSecretsStore().getEnvSecrets(collectionPath, env);
       for (const secret of envSecrets || []) {
-        const variable = env.variables.find((v) => v.name === secret.name);
+        const variable = env.variables.find((v) => v.name === secret.name && v.secret);
         if (variable && secret.value) {
           const decrypted = decryptStringSafe(secret.value);
           variable.value = decrypted.value;

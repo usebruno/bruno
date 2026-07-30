@@ -6,12 +6,9 @@ const StyledWrapper = styled.div`
   font-size: ${(props) => props.theme.font.size.sm};
   color: ${(props) => props.theme.dropdown.color};
   background-color: ${(props) => props.theme.dropdown.bg};
-  border: 1px solid ${(props) => props.theme.dropdown.border || props.theme.border.border1};
+  border: 1px solid ${(props) => props.theme.dropdown.border};
   border-radius: ${(props) => props.theme.border.radius.base};
-  ${(props) =>
-    props.theme.dropdown.shadow && props.theme.dropdown.shadow !== 'none'
-      ? `box-shadow: ${props.theme.dropdown.shadow};`
-      : 'box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);'}
+  box-shadow: ${(props) => props.theme.dropdown.shadow || 'none'};
 
   .hover-link-view {
     display: flex;
@@ -20,7 +17,7 @@ const StyledWrapper = styled.div`
     padding: 0.35rem 0.55rem;
 
     .link-url {
-      color: ${(props) => props.theme.colors.text.blue || '#3b82f6'};
+      color: ${(props) => props.theme.textLink};
       text-decoration: none;
       max-width: 200px;
       overflow: hidden;
@@ -45,7 +42,7 @@ const StyledWrapper = styled.div`
       display: flex;
       align-items: center;
       gap: 0.1rem;
-      color: ${(props) => props.theme.dropdown.iconColor || props.theme.colors.text.muted};
+      color: ${(props) => props.theme.dropdown.iconColor};
 
       .action-icon-btn {
         display: flex;
@@ -61,7 +58,7 @@ const StyledWrapper = styled.div`
         transition: background 0.1s ease, color 0.1s ease;
 
         &:hover {
-          background-color: ${(props) => props.theme.dropdown.hoverBg || 'rgba(0,0,0,0.05)'};
+          background-color: ${(props) => props.theme.dropdown.hoverBg};
           color: ${(props) => props.theme.text};
         }
       }

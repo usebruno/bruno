@@ -1,4 +1,6 @@
 import taskListPlugin from 'markdown-it-task-lists';
+import { patchLinkifyToExtendUrls } from 'utils/linkify';
+import runMarkdownitSetupOnce from './markdownitSetupOnce';
 
 const TASK_LIST_LINE_PATTERN = /^(\s*[-*+]\s+)\[([\sxX]*?)\]\s*(.*)$/;
 
@@ -8,6 +10,10 @@ const normalizeTaskListMarkdown = (content) => {
   }
 
   return content
+    // `.` doesn't match `\r` in JS regex, so a line ending in a stray `\r`
+    // (CRLF split only on `\n`) would fail TASK_LIST_LINE_PATTERN's `(.*)$`
+    // entirely and silently skip normalization — normalize line endings first.
+    .replace(/\r\n?/g, '\n')
     .split('\n')
     .map((line) => {
       const match = line.match(TASK_LIST_LINE_PATTERN);
@@ -25,36 +31,41 @@ const normalizeTaskListMarkdown = (content) => {
 };
 
 const setupTaskListParser = (markdownit) => {
-  if (!markdownit.__docsTaskListsNormalized) {
-    const originalRender = markdownit.render.bind(markdownit);
-    const originalParse = markdownit.parse.bind(markdownit);
+  runMarkdownitSetupOnce(markdownit, '__docsTaskListsNormalized', (md) => {
+    const originalRender = md.render.bind(md);
+    const originalParse = md.parse.bind(md);
 
-    markdownit.render = (src, env) => originalRender(
+    md.render = (src, env) => originalRender(
       typeof src === 'string' ? normalizeTaskListMarkdown(src) : src,
       env
     );
 
-    markdownit.parse = (src, env) => originalParse(
+    md.parse = (src, env) => originalParse(
       typeof src === 'string' ? normalizeTaskListMarkdown(src) : src,
       env
     );
-
-    markdownit.__docsTaskListsNormalized = true;
-  }
-
-  if (markdownit.__docsTaskListsApplied) {
-    return;
-  }
-
-  markdownit.use(taskListPlugin, {
-    enabled: true,
-    label: false,
-    labelAfter: false
   });
 
-  markdownit.__docsTaskListsApplied = true;
+  runMarkdownitSetupOnce(markdownit, '__docsTaskListsApplied', (md) => {
+    md.use(taskListPlugin, {
+      enabled: true,
+      label: false,
+      labelAfter: false
+    });
+  });
 };
 
+const setupLinkifyExtendedUrls = (markdownit) => {
+  runMarkdownitSetupOnce(markdownit, '__docsLinkifyExtended', patchLinkifyToExtendUrls);
+};
+
+// markdown-it-task-lists renders one <ul> per source list even when task and
+// non-task items are interleaved, but it marks the *whole* <ul> as a task
+// list as soon as any item in it has a checkbox — so a mixed list would parse
+// into a single taskList node containing plain listItems. The ProseMirror
+// schema has no such mixed node, so each run of same-kind items is split into
+// its own <ul>, and each item's checkbox <label>/text siblings are unwrapped
+// into a <div> to match the taskItem node's expected content shape.
 const updateTaskListDOM = (element) => {
   element.querySelectorAll('ul.contains-task-list, ul[data-type="taskList"]').forEach((ul) => {
     let currentList = null;
@@ -108,4 +119,9 @@ const updateTaskListDOM = (element) => {
   });
 };
 
-export { normalizeTaskListMarkdown, setupTaskListParser, updateTaskListDOM };
+export {
+  normalizeTaskListMarkdown,
+  setupLinkifyExtendedUrls,
+  setupTaskListParser,
+  updateTaskListDOM
+};

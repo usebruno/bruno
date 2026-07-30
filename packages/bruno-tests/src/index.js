@@ -12,6 +12,7 @@ const wsRouter = require('./ws');
 const setupGraphQL = require('./graphql');
 const sseRouter = require('./sse');
 const fileBinaryRouter = require('./file-binary');
+const waitForRouter = require('./wait-for');
 
 const app = new express();
 const port = process.env.PORT || 8081;
@@ -57,6 +58,7 @@ app.use('/api/multipart', multipartRouter);
 app.use('/api/redirect', redirectRouter);
 app.use('/api/mix', mixRouter);
 app.use('/api/sse', sseRouter);
+app.use('/api/wait-for', waitForRouter);
 
 app.get('/ping', function (req, res) {
   return res.send('pong');

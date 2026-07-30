@@ -247,7 +247,9 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.text};
     border: none;
     outline: none;
-    padding: 2px 8px;
+    padding: 2px 2px;
+    width: 100%;
+    box-sizing: border-box;
     font-size: 12px;
     cursor: pointer;
 

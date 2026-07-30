@@ -1,6 +1,15 @@
 import find from 'lodash/find';
 
 import { interpolate } from '@usebruno/common';
+import { version as appVersion } from '../../../package.json';
+
+/**
+ * Tags a docs URL with the running app version, e.g. /docs/ai -> /docs/ai?version=2.0.0.
+ */
+export const getDocsUrlWithVersion = (url) => {
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}version=${appVersion}`;
+};
 
 const hasLength = (str) => {
   if (!str || !str.length) {
@@ -118,6 +127,21 @@ export const isHttpUrl = (url) => {
   } catch {
     return false;
   }
+};
+
+// Allowlist rather than denylist: accept http(s) URLs and scheme-less
+// references (e.g. a docs-relative path like ./assets/logo.png), reject
+// anything else with an explicit protocol (javascript:, data:, file:, ...).
+export const isSafeUrl = (url) => {
+  if (typeof url !== 'string' || !url.length) {
+    return false;
+  }
+
+  if (isHttpUrl(url)) {
+    return true;
+  }
+
+  return !/^[a-z][a-z0-9+.-]*:/i.test(url);
 };
 
 export const interpolateUrl = ({ url, variables }) => {

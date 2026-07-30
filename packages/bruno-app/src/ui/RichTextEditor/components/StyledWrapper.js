@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import editorContentStyles from 'ui/editorContentStyles';
+import editorContentStyles from '../editorContentStyles';
 
 const StyledWrapper = styled.div`
   .rich-text-editor-content {

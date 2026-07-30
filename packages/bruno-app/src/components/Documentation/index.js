@@ -1,38 +1,30 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
-import find from 'lodash/find';
 import { updateRequestDocs } from 'providers/ReduxStore/slices/collections';
-import { updateDocsEditing } from 'providers/ReduxStore/slices/tabs';
-import { useTheme } from 'providers/Theme';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useCallback, useMemo, useRef } from 'react';
+import { useDispatch } from 'react-redux';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import CodeEditor from 'components/CodeEditor';
-import AIAssist from 'components/AIAssist';
 import { buildAiContextPayload } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
-import RichTextEditor from 'ui/RichTextEditor';
-import ModeSwitch from 'components/ModeSwitch';
-import { useEditor } from '@tiptap/react';
+import { useDocsEditingState } from './useDocsEditingState';
+import DocsEditor from './DocsEditor';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { displayedTheme } = useTheme();
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  const isEditing = focusedTab?.docsEditing || false;
-  const [isMarkdownMode, setIsMarkdownMode] = useState(false);
+  const { isEditing, setEditing } = useDocsEditingState();
   const docs = item?.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
-  const preferences = useSelector((state) => state.app.preferences);
 
   const wrapperRef = useRef(null);
-  const skipDocsSyncRef = useRef(false);
-  const isMarkdownModeRef = useRef(isMarkdownMode);
   const [scroll, setScroll] = usePersistedState({ key: `request-docs-scroll-${item?.uid}`, default: 0 });
-  useTrackScroll({ ref: wrapperRef, onChange: setScroll, enabled: !isEditing, initialValue: scroll });
+  useTrackScroll({
+    ref: wrapperRef,
+    selector: '.rich-text-editor-content',
+    onChange: setScroll,
+    enabled: !isEditing,
+    initialValue: scroll
+  });
 
   const onEdit = useCallback(
     (value) => {
@@ -53,122 +45,29 @@ const Documentation = ({ item, collection }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   }, [collection.uid, dispatch, item]);
 
-  const editor = useEditor({
-    extensions: RichTextEditor.extensions,
-    content: docs || '',
-    onUpdate: ({ editor: currentEditor, transaction }) => {
-      if (isMarkdownModeRef.current) return;
-      if (transaction && !transaction.docChanged) return;
-      skipDocsSyncRef.current = true;
-      onEdit(currentEditor.storage.markdown.getMarkdown());
-    },
-    editorProps: {
-      handleKeyDown: (_view, event) => {
-        if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
-          event.preventDefault();
-          onSave();
-          return true;
-        }
-        return false;
-      }
-    }
-  });
-
-  useEffect(() => {
-    if (!editor) return;
-    const dom = editor.view.dom;
-  }, [editor]);
-
   const { requestContext, variables: aiVariables } = useMemo(
     () => (item ? buildAiContextPayload(item, collection) : { requestContext: null, variables: [] }),
     [item, collection]
   );
-
-  useEffect(() => {
-    isMarkdownModeRef.current = isMarkdownMode;
-  }, [isMarkdownMode]);
-
-  useEffect(() => {
-    if (editor) {
-      editor.setEditable(isEditing && !isMarkdownMode);
-    }
-  }, [editor, isEditing, isMarkdownMode]);
-
-  useEffect(() => {
-    if (!editor) return;
-
-    if (skipDocsSyncRef.current) {
-      skipDocsSyncRef.current = false;
-      return;
-    }
-
-    if (isEditing && isMarkdownMode) return;
-
-    if (!editor.isDestroyed) {
-      editor.commands.setContent(docs || '', false);
-    }
-  }, [docs, editor, isMarkdownMode, isEditing]);
-
-  useEffect(() => {
-    if (isEditing) {
-      setIsMarkdownMode(false);
-    }
-  }, [isEditing]);
-
-  const setEditing = (editing) => {
-    dispatch(updateDocsEditing({ uid: activeTabUid, docsEditing: editing }));
-  };
 
   if (!item) {
     return null;
   }
 
   return (
-    <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative" ref={wrapperRef}>
-      {isEditing && (
-        <div className="docs-tab-strip">
-          {!isMarkdownMode && (
-            <div className="docs-toolbar-slot">
-              <RichTextEditor.MenuBar editor={editor} />
-            </div>
-          )}
-          <ModeSwitch
-            checked={isMarkdownMode}
-            onChange={() => setIsMarkdownMode((prev) => !prev)}
-            className="docs-mode-switch"
-          />
-        </div>
-      )}
-
-      {isEditing && isMarkdownMode && (
-        <div className="relative flex-1 min-h-0">
-          <CodeEditor
-            collection={collection}
-            theme={displayedTheme}
-            font={get(preferences, 'font.codeFont', 'default')}
-            fontSize={get(preferences, 'font.codeFontSize')}
-            value={docs || ''}
-            onEdit={onEdit}
-            onSave={onSave}
-            mode="gfm"
-            initialScroll={scroll}
-            onScroll={setScroll}
-          />
-          <AIAssist
-            scriptType="docs"
-            currentScript={docs || ''}
-            requestContext={requestContext}
-            variables={aiVariables}
-            onApply={onEdit}
-          />
-        </div>
-      )}
-      <section
-        className={`flex flex-col flex-1 min-h-0 w-full ${isEditing && isMarkdownMode ? 'hidden' : ''}`}
-        onDoubleClick={() => !isEditing && setEditing(true)}
-      >
-        <RichTextEditor editor={editor} />
-      </section>
+    <StyledWrapper className="h-full w-full relative" ref={wrapperRef}>
+      <DocsEditor
+        docs={docs}
+        onEdit={onEdit}
+        onSave={onSave}
+        isEditing={isEditing}
+        collection={collection}
+        collectionPath={collection?.pathname}
+        requestContext={requestContext}
+        variables={aiVariables}
+        onRequestEdit={() => setEditing(true)}
+        testId="docs-editor"
+      />
     </StyledWrapper>
   );
 };

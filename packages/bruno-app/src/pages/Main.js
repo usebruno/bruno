@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { AppProvider } from 'providers/App';
 import { ToastProvider } from 'providers/Toaster';
 import { HotkeysProvider } from 'providers/Hotkeys';
 import { PromptVariablesProvider } from 'providers/PromptVariables';
-
+import { SQLiteProvider } from '@usebruno/sqlite/web';
 import ReduxStore from 'providers/ReduxStore';
 import ThemeProvider from 'providers/Theme/index';
 import ErrorBoundary from './ErrorBoundary';
@@ -43,17 +42,19 @@ function Main({ children }) {
   return (
     <ErrorBoundary>
       <Provider store={ReduxStore}>
-        <ThemeProvider>
-          <ToastProvider>
-            <PromptVariablesProvider>
-              <AppProvider>
-                <HotkeysProvider>
-                  {children}
-                </HotkeysProvider>
-              </AppProvider>
-            </PromptVariablesProvider>
-          </ToastProvider>
-        </ThemeProvider>
+        <SQLiteProvider bridge={window.ipcRenderer}>
+          <ThemeProvider>
+            <ToastProvider>
+              <PromptVariablesProvider>
+                <AppProvider>
+                  <HotkeysProvider>
+                    {children}
+                  </HotkeysProvider>
+                </AppProvider>
+              </PromptVariablesProvider>
+            </ToastProvider>
+          </ThemeProvider>
+        </SQLiteProvider>
       </Provider>
     </ErrorBoundary>
   );

@@ -46,8 +46,8 @@ describe('signEdgeGridRequest — Akamai official vectors (core)', () => {
     }
   ];
 
-  test.each(cases)('$name', ({ config, request, expected }) => {
-    expect(sig(signEdgeGridRequest(config, request))).toBe(expected);
+  test.each(cases)('$name', async ({ config, request, expected }) => {
+    expect(sig(await signEdgeGridRequest(config, request))).toBe(expected);
   });
 });
 
@@ -85,14 +85,14 @@ describe('signEdgeGridRequest — Akamai official vectors (headers_to_sign)', ()
     }
   ];
 
-  test.each(cases)('$name', ({ request, expected }) => {
-    expect(sig(signEdgeGridRequest(config, request))).toBe(expected);
+  test.each(cases)('$name', async ({ request, expected }) => {
+    expect(sig(await signEdgeGridRequest(config, request))).toBe(expected);
   });
 });
 
 describe('signEdgeGridRequest — body hashing rules', () => {
-  test('non-POST methods are NOT body-hashed (PUT with data)', () => {
-    const header = signEdgeGridRequest(CREDS, {
+  test('non-POST methods are NOT body-hashed (PUT with data)', async () => {
+    const header = await signEdgeGridRequest(CREDS, {
       method: 'PUT',
       url: `${HOST}/testapi/v1/t6`,
       data: 'PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP'
@@ -101,44 +101,44 @@ describe('signEdgeGridRequest — body hashing rules', () => {
     expect(sig(header)).toBe('GNBWEYSEWOLtu+7dD52da2C39aX/Jchpon3K/AmBqBU=');
   });
 
-  test('POST body is hashed as-sent (no JSON re-compaction)', () => {
+  test('POST body is hashed as-sent (no JSON re-compaction)', async () => {
     const pretty = '{\n  "name": "bruno"\n}';
     const compact = '{"name":"bruno"}';
     const req = (data) => ({ method: 'POST', url: `${HOST}/x`, data });
     // Different bytes on the wire ⇒ different signature (proves we hash what we send).
-    expect(sig(signEdgeGridRequest(CREDS, req(pretty)))).not.toBe(sig(signEdgeGridRequest(CREDS, req(compact))));
+    expect(sig(await signEdgeGridRequest(CREDS, req(pretty)))).not.toBe(sig(await signEdgeGridRequest(CREDS, req(compact))));
   });
 
-  test('POST body is truncated to maxBodySize before hashing', () => {
+  test('POST body is truncated to maxBodySize before hashing', async () => {
     const config = { ...CREDS, maxBodySize: 16 };
     const a = { method: 'POST', url: `${HOST}/x`, data: 'd'.repeat(16) + 'AAAAAAAA' };
     const b = { method: 'POST', url: `${HOST}/x`, data: 'd'.repeat(16) + 'BBBBBBBB' };
     // Bytes beyond maxBodySize are ignored ⇒ identical signature.
-    expect(sig(signEdgeGridRequest(config, a))).toBe(sig(signEdgeGridRequest(config, b)));
+    expect(sig(await signEdgeGridRequest(config, a))).toBe(sig(await signEdgeGridRequest(config, b)));
   });
 });
 
 describe('signEdgeGridRequest — config behaviour', () => {
-  test('throws when accessToken is missing', () => {
-    expect(() => signEdgeGridRequest({ ...CREDS, accessToken: '' }, { method: 'GET', url: `${HOST}/` })).toThrow(
+  test('throws when accessToken is missing', async () => {
+    await expect(signEdgeGridRequest({ ...CREDS, accessToken: '' }, { method: 'GET', url: `${HOST}/` })).rejects.toThrow(
       /accessToken is required/
     );
   });
 
-  test('throws when clientToken is missing', () => {
-    expect(() => signEdgeGridRequest({ ...CREDS, clientToken: '' }, { method: 'GET', url: `${HOST}/` })).toThrow(
+  test('throws when clientToken is missing', async () => {
+    await expect(signEdgeGridRequest({ ...CREDS, clientToken: '' }, { method: 'GET', url: `${HOST}/` })).rejects.toThrow(
       /clientToken is required/
     );
   });
 
-  test('throws when clientSecret is missing', () => {
-    expect(() => signEdgeGridRequest({ ...CREDS, clientSecret: '' }, { method: 'GET', url: `${HOST}/` })).toThrow(
+  test('throws when clientSecret is missing', async () => {
+    await expect(signEdgeGridRequest({ ...CREDS, clientSecret: '' }, { method: 'GET', url: `${HOST}/` })).rejects.toThrow(
       /clientSecret is required/
     );
   });
 
-  test('auto-generates nonce and timestamp when not provided', () => {
-    const header = signEdgeGridRequest(
+  test('auto-generates nonce and timestamp when not provided', async () => {
+    const header = await signEdgeGridRequest(
       { clientToken: CREDS.clientToken, accessToken: CREDS.accessToken, clientSecret: CREDS.clientSecret },
       { method: 'GET', url: `${HOST}/` }
     );
@@ -148,10 +148,10 @@ describe('signEdgeGridRequest — config behaviour', () => {
     expect(header).toMatch(/signature=.+$/);
   });
 
-  test('baseURL overrides the host the request is signed against', () => {
+  test('baseURL overrides the host the request is signed against', async () => {
     // Signing the request URL directly vs. signing via a different baseURL host ⇒ different signature
-    const direct = signEdgeGridRequest(CREDS, { method: 'GET', url: `${HOST}/path` });
-    const viaBase = signEdgeGridRequest(
+    const direct = await signEdgeGridRequest(CREDS, { method: 'GET', url: `${HOST}/path` });
+    const viaBase = await signEdgeGridRequest(
       { ...CREDS, baseURL: 'https://other-host.luna.akamaiapis.net' },
       { method: 'GET', url: `${HOST}/path` }
     );
@@ -168,30 +168,30 @@ describe('signEdgeGridRequest — config behaviour', () => {
 describe('signEdgeGridRequest — baseURL host/scheme override (httpie test_localhost equivalents)', () => {
   const REAL_HOST = 'https://realhost-xxxxxxxx.luna.akamaiapis.net';
 
-  test('localhost is replaced by the baseURL host (test_localhost)', () => {
-    const viaBase = signEdgeGridRequest(
+  test('localhost is replaced by the baseURL host (test_localhost)', async () => {
+    const viaBase = await signEdgeGridRequest(
       { ...CREDS, baseURL: REAL_HOST },
       { method: 'GET', url: 'https://localhost/identity-management/v3/user-profile?q=1' }
     );
-    const direct = signEdgeGridRequest(CREDS, {
+    const direct = await signEdgeGridRequest(CREDS, {
       method: 'GET',
       url: `${REAL_HOST}/identity-management/v3/user-profile?q=1`
     });
     expect(sig(viaBase)).toBe(sig(direct));
   });
 
-  test('an http request is signed against the https baseURL (test_http_to_https_conversion)', () => {
-    const viaBase = signEdgeGridRequest({ ...CREDS, baseURL: REAL_HOST }, { method: 'GET', url: 'http://localhost/path' });
-    const direct = signEdgeGridRequest(CREDS, { method: 'GET', url: `${REAL_HOST}/path` });
+  test('an http request is signed against the https baseURL (test_http_to_https_conversion)', async () => {
+    const viaBase = await signEdgeGridRequest({ ...CREDS, baseURL: REAL_HOST }, { method: 'GET', url: 'http://localhost/path' });
+    const direct = await signEdgeGridRequest(CREDS, { method: 'GET', url: `${REAL_HOST}/path` });
     expect(sig(viaBase)).toBe(sig(direct));
   });
 
-  test('scheme-less baseURL ("host:port") borrows the request scheme', () => {
-    const viaBase = signEdgeGridRequest(
+  test('scheme-less baseURL ("host:port") borrows the request scheme', async () => {
+    const viaBase = await signEdgeGridRequest(
       { ...CREDS, baseURL: 'localhost:6000' },
       { method: 'GET', url: 'http://localhost:9999/path' }
     );
-    const direct = signEdgeGridRequest(CREDS, { method: 'GET', url: 'http://localhost:6000/path' });
+    const direct = await signEdgeGridRequest(CREDS, { method: 'GET', url: 'http://localhost:6000/path' });
     expect(sig(viaBase)).toBe(sig(direct));
   });
 });

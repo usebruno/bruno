@@ -4,12 +4,9 @@ const StyledWrapper = styled.div`
   font-size: ${(props) => props.theme.font.size.sm};
   color: ${(props) => props.theme.dropdown.color};
   background-color: ${(props) => props.theme.dropdown.bg};
-  ${(props) =>
-    props.theme.dropdown.shadow && props.theme.dropdown.shadow !== 'none'
-      ? `box-shadow: ${props.theme.dropdown.shadow};`
-      : 'box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);'}
+  box-shadow: ${(props) => props.theme.dropdown.shadow || 'none'};
   border-radius: ${(props) => props.theme.border.radius.base};
-  border: 1px solid ${(props) => props.theme.dropdown.border || props.theme.border.border1};
+  border: 1px solid ${(props) => props.theme.dropdown.border};
   z-index: 9999;
   position: absolute;
 
@@ -57,8 +54,6 @@ const StyledWrapper = styled.div`
       margin-top: 0.25rem;
     }
   }
-
-
 `;
 
 export default StyledWrapper;

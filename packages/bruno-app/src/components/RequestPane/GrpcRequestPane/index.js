@@ -13,6 +13,7 @@ import DocsAction from 'components/Documentation/DocsAction';
 import { getPropertyFromDraftOrRequest } from 'utils/collections/index';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import StyledWrapper from './StyledWrapper';
+import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
 import { AUTH_MODES_GRPC } from 'utils/common/constants';
 
@@ -121,15 +122,26 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
     return null;
   }
 
-  const rightContent = requestPaneTab === 'auth' ? (
-    <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
-      <GrpcAuthMode item={item} collection={collection} />
-    </div>
-  ) : requestPaneTab === 'docs' ? (
-    <div ref={rightContentRef}>
-      <DocsAction />
-    </div>
-  ) : null;
+  let rightContent = null;
+  switch (requestPaneTab) {
+    case 'auth':
+      rightContent = (
+        <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
+          <GrpcAuthMode item={item} collection={collection} />
+        </div>
+      );
+      break;
+    case 'docs':
+      rightContent = (
+        <div ref={rightContentRef} className="flex items-center gap-2">
+          <DocsAction />
+          <TabBarAiAssist item={item} collection={collection} activeTab={requestPaneTab} />
+        </div>
+      );
+      break;
+    default:
+      rightContent = null;
+  }
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">

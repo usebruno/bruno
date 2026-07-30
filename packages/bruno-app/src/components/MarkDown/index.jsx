@@ -1,14 +1,17 @@
 import React, { useEffect } from 'react';
 import { useEditor } from '@tiptap/react';
 import RichTextEditor from 'ui/RichTextEditor';
-import { isValidUrl } from 'utils/url/index';
+import { isSafeUrl } from 'utils/url/index';
 
-const Markdown = ({ onDoubleClick, content }) => {
-  const editor = useEditor({
-    extensions: RichTextEditor.extensions,
-    content: content || '',
-    editable: false
-  });
+const Markdown = ({ onDoubleClick, content, allowHtml = true, collectionPath = '' }) => {
+  const editor = useEditor(
+    {
+      extensions: RichTextEditor.extensions({ allowHtml, collectionPath }),
+      content: content || '',
+      editable: false
+    },
+    [allowHtml, collectionPath]
+  );
 
   useEffect(() => {
     if (editor) {
@@ -18,12 +21,15 @@ const Markdown = ({ onDoubleClick, content }) => {
 
   const handleOnClick = (event) => {
     const target = event.target.closest('a');
-    if (target && target.tagName === 'A') {
-      const href = target.getAttribute('href');
-      if (href && isValidUrl(href)) {
-        event.preventDefault();
-        window.open(href, '_blank', 'noopener,noreferrer');
-      }
+    if (!target) return;
+
+    const href = target.getAttribute('href');
+    // Always prevent the anchor's default navigation — falling through to it
+    // for a link that fails the safety check would navigate the renderer itself.
+    event.preventDefault();
+
+    if (href && isSafeUrl(href)) {
+      window.open(href, '_blank', 'noopener,noreferrer');
     }
   };
 
