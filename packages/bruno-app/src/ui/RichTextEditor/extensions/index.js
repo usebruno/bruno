@@ -2,24 +2,24 @@ import TableRow from '@tiptap/extension-table-row';
 import TextStyle from '@tiptap/extension-text-style';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
-import EditorGapCursor from './extensions/EditorGapCursor';
-import EditorHardBreak from './extensions/EditorHardBreak';
-import { EditorKbd, EditorSuperscript } from './extensions/EditorInlineHtmlMarks';
-import EditorListKeyboard from './extensions/EditorListKeyboard';
-import EditorParagraph from './extensions/EditorParagraph';
-import { createEditorImage, createEditorLink } from './extensions/EditorRelativeAssets';
-import EditorRawHtmlBlock from './extensions/EditorRawHtmlBlock';
-import EditorTable from './extensions/EditorTable';
-import { EditorTableCell, EditorTableHeader } from './extensions/EditorTableAlignment';
-import EditorTableKeyboard from './extensions/EditorTableKeyboard';
-import EditorTableView from './extensions/EditorTableView';
+import EditorGapCursor from './EditorGapCursor';
+import EditorHardBreak from './EditorHardBreak';
+import { EditorKbd, EditorSuperscript } from './EditorInlineHtmlMarks';
+import EditorListKeyboard from './EditorListKeyboard';
+import EditorParagraph from './EditorParagraph';
+import { createEditorImage, createEditorLink } from './EditorRelativeAssets';
+import EditorRawHtmlBlock from './EditorRawHtmlBlock';
+import EditorTable from './EditorTable';
+import { EditorTableCell, EditorTableHeader } from './EditorTableAlignment';
+import EditorTableKeyboard from './EditorTableKeyboard';
+import EditorTableView from './EditorTableView';
 import {
   EditorBulletList,
   EditorListItem,
   EditorOrderedList,
   EditorTaskItem,
   EditorTaskList
-} from './extensions/EditorTaskList';
+} from './EditorTaskList';
 
 const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
   TextStyle.configure({ types: [EditorListItem.name] }),

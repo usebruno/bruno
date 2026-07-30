@@ -1,5 +1,5 @@
 import Table from '@tiptap/extension-table';
-import { serializeTable } from '../utils/editorMarkdownSerialize';
+import { serializeTable } from '../../utils/editorMarkdownSerialize';
 
 const EditorTable = Table.extend({
   parseHTML() {

@@ -1,8 +1,8 @@
 import { css } from 'styled-components';
 
 /**
- * Shared prose styles for docs preview (.markdown-body) and Rich Text editor (.tiptap).
- * Keeps typography and table appearance consistent between edit and preview.
+ * Prose styles for the Rich Text editor's `.tiptap` content, shared between
+ * the editable and read-only (docs preview) editor instances.
  */
 const editorContentStyles = css`
   color: ${(props) => props.theme.text};

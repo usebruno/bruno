@@ -1,5 +1,5 @@
 import HardBreak from '@tiptap/extension-hard-break';
-import runMarkdownitSetupOnce from '../utils/markdownitSetupOnce';
+import runMarkdownitSetupOnce from '../../utils/markdownitSetupOnce';
 
 const setupSoftBreakParser = (markdownit) => {
   runMarkdownitSetupOnce(markdownit, '__docsSoftBreakNormalized', (md) => {

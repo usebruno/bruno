@@ -1,6 +1,6 @@
 import { Node } from '@tiptap/core';
 import DOMPurify from 'dompurify';
-import runMarkdownitSetupOnce from '../utils/markdownitSetupOnce';
+import runMarkdownitSetupOnce from '../../utils/markdownitSetupOnce';
 
 const RAW_HTML_BLOCK_ATTR = 'data-raw-html-block';
 

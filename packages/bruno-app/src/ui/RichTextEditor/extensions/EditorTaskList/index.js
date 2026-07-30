@@ -6,13 +6,13 @@ import TaskList from '@tiptap/extension-task-list';
 import {
   setupTaskListParser,
   updateTaskListDOM
-} from '../utils/editorMarkdownParse';
+} from '../../utils/editorMarkdownParse';
 import {
   serializeBulletList,
   serializeListItemContent,
   serializeOrderedList,
   serializeTaskList
-} from '../utils/editorMarkdownSerialize';
+} from '../../utils/editorMarkdownSerialize';
 
 const isTaskListElement = (node) =>
   node.getAttribute('data-type') === 'taskList'
