@@ -92,6 +92,7 @@ const PresetsSettings = ({ collection }) => {
                 value={requestType}
                 onChange={handleRequestTypeChange}
                 items={requestTypeItems}
+                size="sm"
               />
             </div>
 
@@ -139,7 +140,7 @@ const PresetsSettings = ({ collection }) => {
               <div className="default-env-dropdown">
                 <Dropdown onCreate={(ref) => (defaultEnvDropdownRef.current = ref)} icon={defaultEnvTrigger} placement="bottom-start" sameWidth>
                   <div
-                    className={`dropdown-item ${!defaultEnvironmentName ? 'active' : ''}`}
+                    className={`dropdown-item ${!defaultEnvironmentName ? 'dropdown-item-active' : ''}`}
                     onClick={() => handleDefaultEnvironmentChange('')}
                   >
                     None
@@ -147,7 +148,7 @@ const PresetsSettings = ({ collection }) => {
                   {environments.map((env) => (
                     <div
                       key={env.uid}
-                      className={`dropdown-item ${env.name === defaultEnvironmentName ? 'active' : ''}`}
+                      className={`dropdown-item ${env.name === defaultEnvironmentName ? 'dropdown-item-active' : ''}`}
                       onClick={() => handleDefaultEnvironmentChange(env.name)}
                     >
                       {env.name}
