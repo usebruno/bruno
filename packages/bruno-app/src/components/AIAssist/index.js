@@ -25,27 +25,6 @@ const SUGGESTIONS = {
     { label: 'Save id', prompt: 'Extract the primary id from the response body and save it to a variable' },
     { label: 'Log response', prompt: 'Log the response status and a short summary of the body' }
   ],
-  'grpc:before-call-start': [
-    { label: 'Auth metadata', prompt: 'Set an authorization metadata entry from an environment token variable' },
-    { label: 'Request id', prompt: 'Set an "x-request-id" metadata entry containing a random UUID-style id' },
-    { label: 'Log the call', prompt: 'Log the method, method type and auth mode before the call starts' }
-  ],
-  'grpc:before-message-send': [
-    { label: 'Log message', prompt: 'Log the outgoing message payload before it is sent' },
-    { label: 'Check fields', prompt: 'Add a test asserting the outgoing message contains the required fields' },
-    { label: 'Save a field', prompt: 'Save a field from the outgoing message to a runtime variable' }
-  ],
-  'grpc:after-message-receive': [
-    { label: 'Check message', prompt: 'Add a test validating the structure and key fields of the received message' },
-    { label: 'Save a field', prompt: 'Extract a field from the received message and save it to an environment variable' },
-    { label: 'Log message', prompt: 'Log the received message together with its timestamp' }
-  ],
-  'grpc:after-call-end': [
-    { label: 'Status OK', prompt: 'Add a test asserting the call ended with status code 0' },
-    { label: 'Duration', prompt: 'Add a test asserting the call duration is below 1000ms' },
-    { label: 'Message count', prompt: 'Add a test asserting how many messages the server sent' },
-    { label: 'Trailers', prompt: 'Add a test checking a trailing metadata value' }
-  ],
   'docs': [
     { label: 'Overview', prompt: 'Write an overview section describing the purpose and key features' },
     { label: 'Request', prompt: 'Document the request method, URL, headers, parameters, and body' },
@@ -70,10 +49,6 @@ const TITLES = {
   'tests': 'Generate Tests',
   'pre-request': 'Generate Pre-Request Script',
   'post-response': 'Generate Post-Response Script',
-  'grpc:before-call-start': 'Generate Before Call Script',
-  'grpc:before-message-send': 'Generate Before Message Script',
-  'grpc:after-message-receive': 'Generate After Message Script',
-  'grpc:after-call-end': 'Generate After Call Script',
   'docs': 'Generate Documentation',
   'app-request': 'Generate App',
   'app-collection': 'Generate App'

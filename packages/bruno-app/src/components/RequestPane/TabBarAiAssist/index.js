@@ -55,28 +55,6 @@ const TabBarAiAssist = ({ item, collection, activeTab }) => {
             dispatch(updateAppCode({ code: value, itemUid: item.uid, collectionUid: collection.uid }))
         };
       case 'script': {
-        if (item?.type === REQUEST_TYPES.GRPC) {
-          const phases = getPhasesByRequestType(REQUEST_TYPES.GRPC);
-          const phase
-            = phases.find(({ SCRIPT_TYPE }) => SCRIPT_TYPE === scriptPaneTab)
-              || phases.find(({ FIELD }) => getFromItem(item, `request.script.${FIELD}`)?.length)
-              || phases[0];
-
-          return {
-            scriptType: phase.SCRIPT_TYPE,
-            currentScript: getFromItem(item, `request.script.${phase.FIELD}`) || '',
-            onApply: (value) =>
-              dispatch(
-                updateScript({
-                  script: value,
-                  itemUid: item.uid,
-                  collectionUid: collection.uid,
-                  field: phase.FIELD
-                })
-              )
-          };
-        }
-
         const requestScript = getFromItem(item, 'request.script.req') || '';
         const responseScript = getFromItem(item, 'request.script.res') || '';
         if (getActiveScriptTab(scriptPaneTab, requestScript) === 'pre-request') {

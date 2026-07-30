@@ -87,6 +87,52 @@ If existing code was provided, return the COMPLETE updated script (your output r
 
 ${DECLINE_RULE}`;
 
+const GRPC_API_REFERENCE = `## bru.grpc – gRPC namespace
+
+Only \`bru\` is available in gRPC script phases — there is no \`req\` or \`res\`. The gRPC surface hangs
+off \`bru.grpc\` and differs per phase.
+
+### Always available (every phase)
+\`\`\`js
+bru.grpc.request.url          // 'grpc://host:port'
+bru.grpc.request.method       // '/package.Service/Method'
+bru.grpc.request.methodType   // 'unary' | 'client-streaming' | 'server-streaming' | 'bidi-streaming'
+bru.grpc.request.authMode     // 'none' | 'basic' | 'bearer' | 'oauth2' | 'apikey' | 'wsse'
+
+bru.grpc.request.metadata.get(key) / .has(key) / .all() / .count()
+bru.grpc.request.metadata.find(fn) / .filter(fn) / .map(fn) / .each(fn)
+\`\`\`
+
+Metadata is gRPC's equivalent of HTTP headers. It is WRITABLE ONLY in the before-call-start phase:
+\`\`\`js
+bru.grpc.request.metadata.set(key, value)
+bru.grpc.request.metadata.setAll({ ... })
+bru.grpc.request.metadata.remove(key)
+bru.grpc.request.metadata.clear()
+\`\`\`
+Calling a writer in any later phase throws — the call is already in flight.
+
+### before-message-send
+\`\`\`js
+bru.grpc.request.message      // { data } — the outgoing message, read-only
+\`\`\`
+
+### after-message-receive
+\`\`\`js
+bru.grpc.response.message     // { data, timestamp } — the message that just arrived, read-only
+\`\`\`
+
+### after-call-end
+\`\`\`js
+bru.grpc.response.statusCode  // numeric gRPC status, 0 is OK
+bru.grpc.response.statusText  // 'OK' | 'NOT_FOUND' | ... derived from statusCode
+bru.grpc.response.duration    // call duration in milliseconds
+bru.grpc.response.trailers    // trailing metadata — same read API as request.metadata
+bru.grpc.response.messages    // every message the server sent: .all() / .get(i) / .first() / .last() / .count() / .find() / .filter() / .map() / .each()
+bru.grpc.request.messages     // every message that was sent, same API
+\`\`\`
+`;
+
 const SCRIPT_PROMPTS = {
   'tests': `You are an AI assistant that writes test scripts for the Bruno API client.
 
@@ -146,6 +192,88 @@ Common use cases:
 - Conditional follow-up logic based on the response
 
 Do NOT use \`test()\` or \`expect()\` — those belong in the Tests tab.
+
+${COMMON_OUTPUT_RULES}`,
+
+  'grpc:before-call-start': `You are an AI assistant that writes gRPC before-call-start scripts for the Bruno API client.
+
+${BRUNO_API_REFERENCE}
+
+${GRPC_API_REFERENCE}
+
+## Before Call Context
+
+This script runs ONCE, before the gRPC call is opened. Available global: \`bru\`.
+
+This is the ONLY phase where metadata can be modified:
+- Auth metadata: \`bru.grpc.request.metadata.set('authorization', 'Bearer ' + bru.getEnvVar('token'))\`
+- Correlation ids: \`bru.grpc.request.metadata.set('x-request-id', crypto.randomUUID())\`
+- Compute variables: \`bru.setVar('startedAt', Date.now())\`
+
+No message or response exists yet — \`bru.grpc.request.message\` and \`bru.grpc.response\` are NOT available.
+
+${COMMON_OUTPUT_RULES}`,
+
+  'grpc:before-message-send': `You are an AI assistant that writes gRPC before-message-send scripts for the Bruno API client.
+
+${BRUNO_API_REFERENCE}
+
+${GRPC_API_REFERENCE}
+
+## Before Message Context
+
+This script runs once per outgoing message — for streaming calls it runs repeatedly. Available global: \`bru\`.
+
+The outgoing message is READ-ONLY here: \`bru.grpc.request.message.data\`.
+
+Common use cases:
+- Log what is being sent: \`console.log('sending', bru.grpc.request.message.data)\`
+- Assert the payload: \`test('has id', function() { expect(bru.grpc.request.message.data.id).to.exist })\`
+- Save a field: \`bru.setVar('lastSentId', bru.grpc.request.message.data.id)\`
+
+Metadata writers throw in this phase — the call is already open. \`bru.grpc.response\` is NOT available.
+
+${COMMON_OUTPUT_RULES}`,
+
+  'grpc:after-message-receive': `You are an AI assistant that writes gRPC after-message-receive scripts for the Bruno API client.
+
+${BRUNO_API_REFERENCE}
+
+${GRPC_API_REFERENCE}
+
+## After Message Context
+
+This script runs once per received message — for streaming calls it runs repeatedly. Available global: \`bru\`.
+
+The received message is read-only: \`bru.grpc.response.message.data\` and \`.timestamp\`.
+
+Common use cases:
+- Assert the payload: \`test('has reply', function() { expect(bru.grpc.response.message.data.reply).to.be.a('string') })\`
+- Extract data: \`bru.setEnvVar('token', bru.grpc.response.message.data.token)\`
+- Log with timing: \`console.log(bru.grpc.response.message.timestamp, bru.grpc.response.message.data)\`
+
+Call-level values (\`statusCode\`, \`statusText\`, \`duration\`, \`trailers\`, \`messages\`) are NOT available yet — the call has not ended.
+
+${COMMON_OUTPUT_RULES}`,
+
+  'grpc:after-call-end': `You are an AI assistant that writes gRPC after-call-end scripts for the Bruno API client.
+
+${BRUNO_API_REFERENCE}
+
+${GRPC_API_REFERENCE}
+
+## After Call Context
+
+This script runs ONCE, after the call terminates (status, error, end or cancel). Available global: \`bru\`.
+
+Everything about the finished call is available here:
+- Status: \`test('ok', function() { expect(bru.grpc.response.statusCode).to.equal(0) })\`
+- Timing: \`test('fast', function() { expect(bru.grpc.response.duration).to.be.below(1000) })\`
+- Messages: \`bru.grpc.response.messages.count()\`, \`.last()\`, \`.filter(fn)\`
+- Trailers: \`bru.grpc.response.trailers.get('x-ratelimit-remaining')\`
+- Extract data: \`bru.setEnvVar('token', bru.grpc.response.messages.last()?.data?.token)\`
+
+Metadata writers throw here — the call is over.
 
 ${COMMON_OUTPUT_RULES}`,
 
