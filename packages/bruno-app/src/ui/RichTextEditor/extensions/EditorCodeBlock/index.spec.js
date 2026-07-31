@@ -4,7 +4,6 @@ import { render } from '@testing-library/react';
 import EditorCodeBlock from './index';
 import { lowlight } from 'lowlight';
 
-// Mock Tiptap components
 jest.mock('@tiptap/react', () => ({
   NodeViewWrapper: ({ children, className }) => <div data-testid="node-view-wrapper" className={className}>{children}</div>,
   NodeViewContent: ({ as, children }) => {
@@ -13,7 +12,6 @@ jest.mock('@tiptap/react', () => ({
   }
 }));
 
-// Mock MenuDropdown
 jest.mock('ui/MenuDropdown', () => {
   return ({ items, children }) => (
     <div data-testid="menu-dropdown">
@@ -29,7 +27,6 @@ jest.mock('ui/MenuDropdown', () => {
   );
 });
 
-// Mock lowlight
 jest.mock('lowlight', () => ({
   lowlight: {
     highlightAuto: jest.fn(),
