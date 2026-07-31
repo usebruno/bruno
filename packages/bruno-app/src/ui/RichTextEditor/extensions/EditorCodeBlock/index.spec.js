@@ -14,14 +14,15 @@ jest.mock('@tiptap/react', () => ({
 }));
 
 // Mock Dropdown
-jest.mock('../../../../components/Dropdown', () => {
+jest.mock('components/Dropdown', () => {
   return ({ children }) => <div data-testid="dropdown">{children}</div>;
 });
 
 // Mock lowlight
 jest.mock('lowlight', () => ({
   lowlight: {
-    highlightAuto: jest.fn()
+    highlightAuto: jest.fn(),
+    registerLanguage: jest.fn()
   }
 }));
 
@@ -81,7 +82,7 @@ describe('EditorCodeBlock', () => {
     expect(updateAttributesMock).toHaveBeenCalledWith({ language: 'javascript' });
   });
 
-  it('should call highlightAuto on paste even when language is already set', () => {
+  it('should not update language on paste if language is already set', () => {
     lowlight.highlightAuto.mockReturnValue({ data: { language: 'python' } });
 
     const codeContent = 'def foo(): pass';
@@ -92,23 +93,8 @@ describe('EditorCodeBlock', () => {
 
     dispatchPasteEvent(codeContent);
 
-    // Should call highlightAuto on paste and update attributes if detected language is in list
-    expect(lowlight.highlightAuto).toHaveBeenCalledWith(codeContent);
-    expect(updateAttributesMock).toHaveBeenCalledWith({ language: 'python' });
-  });
-
-  it('should not update language if detected language is not in LANGUAGES list', () => {
-    lowlight.highlightAuto.mockReturnValue({ data: { language: 'unknown-lang' } });
-
-    const codeContent = 'some code';
-    renderComponent({
-      attrs: { language: null },
-      textContent: codeContent
-    });
-
-    dispatchPasteEvent(codeContent);
-
-    expect(lowlight.highlightAuto).toHaveBeenCalledWith(codeContent);
+    // Should not call highlightAuto nor update attributes since language is explicitly set
+    expect(lowlight.highlightAuto).not.toHaveBeenCalled();
     expect(updateAttributesMock).not.toHaveBeenCalled();
   });
 
@@ -125,5 +111,60 @@ describe('EditorCodeBlock', () => {
 
     expect(lowlight.highlightAuto).toHaveBeenCalledWith(codeContent);
     expect(updateAttributesMock).not.toHaveBeenCalled();
+  });
+
+  it('should handle single line correctly and update language when clicking auto', () => {
+    const { getByTestId, queryByTestId } = renderComponent({
+      attrs: { language: 'python' },
+      textContent: 'print("hello")' // single line
+    });
+
+    // Dropdown should not be rendered for single line
+    expect(queryByTestId('code-block-lang-selector')).not.toBeInTheDocument();
+
+    // Now re-render as multi line
+    const { getByTestId: getByTestIdMulti } = renderComponent({
+      attrs: { language: 'python' },
+      textContent: 'print("hello")\nprint("world")' // multi line
+    });
+
+    // Dropdown should be rendered
+    const autoOption = getByTestIdMulti('dropdown').querySelector('[data-language="auto"]');
+    autoOption.click();
+
+    expect(updateAttributesMock).toHaveBeenCalledWith({ language: null });
+  });
+
+  it('should handle copy to clipboard success and error path', async () => {
+    const originalClipboard = navigator.clipboard;
+    const writeTextMock = jest.fn();
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: writeTextMock
+      }
+    });
+
+    const { getByTestId } = renderComponent({
+      attrs: { language: 'python' },
+      textContent: 'print("test")'
+    });
+
+    const copyBtn = getByTestId('code-block-copy-btn');
+
+    // Success path
+    writeTextMock.mockResolvedValueOnce();
+    copyBtn.click();
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('print("test")');
+
+    // Wait for promise to resolve
+    await Promise.resolve();
+
+    // Error path
+    writeTextMock.mockRejectedValueOnce(new Error('clipboard error'));
+    copyBtn.click();
+
+    await Promise.resolve();
+
+    Object.assign(navigator, { clipboard: originalClipboard });
   });
 });

@@ -1,8 +1,11 @@
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/react';
 import Dropdown from '../../../../components/Dropdown';
 import { IconChevronDown, IconCopy, IconCheck } from '@tabler/icons';
 import { lowlight } from 'lowlight';
+import protobuf from 'highlight.js/lib/languages/protobuf';
+
+lowlight.registerLanguage('protobuf', protobuf);
 
 const LANGUAGES = [
   'javascript',
@@ -32,23 +35,36 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
   const language = node.attrs.language || 'auto';
   const [copied, setCopied] = useState(false);
   const preRef = useRef(null);
+  const pasteTimeoutRef = useRef(null);
+  const copyTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (pasteTimeoutRef.current) clearTimeout(pasteTimeoutRef.current);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
 
   const handlePaste = useCallback(() => {
-    setTimeout(() => {
+    pasteTimeoutRef.current = setTimeout(() => {
       if (preRef.current) {
         const text = preRef.current.textContent;
         if (!text) return;
-        const result = lowlight.highlightAuto(text);
-        if (result.data && result.data.language && LANGUAGES.includes(result.data.language)) {
-          updateAttributes({ language: result.data.language });
+
+        const currentLang = node.attrs.language;
+        if (!currentLang || currentLang === 'auto') {
+          const result = lowlight.highlightAuto(text);
+          if (result.data && result.data.language) {
+            updateAttributes({ language: result.data.language });
+          }
         }
       }
     }, 10);
-  }, [updateAttributes]);
+  }, [node.attrs.language, updateAttributes]);
 
   const setLanguage = useCallback((event) => {
     event.preventDefault();
-    const lang = event.target.dataset.language;
+    const lang = event.currentTarget.dataset.language;
     updateAttributes({ language: lang === 'auto' ? null : lang });
   }, [updateAttributes]);
 
@@ -57,7 +73,7 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
     e.preventDefault();
     navigator.clipboard.writeText(node.textContent).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     }).catch(() => {
       setCopied(false);
     });
@@ -105,14 +121,16 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
             </div>
           </Dropdown>
         )}
-        <div
+        <button
+          type="button"
           className="editor-code-block-copy flex items-center justify-center cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 p-1 rounded transition-colors duration-150"
           data-testid="code-block-copy-btn"
           onClick={handleCopy}
           title="Copy code"
+          aria-label="Copy code"
         >
           {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
-        </div>
+        </button>
       </div>
       <pre ref={preRef} onPaste={handlePaste} data-testid="code-block-pre">
         <NodeViewContent as="code" />

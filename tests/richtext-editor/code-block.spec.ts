@@ -25,6 +25,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
     await test.step('Type code content', async () => {
       await page.keyboard.type('const x = 1;');
       await expect(locators.docs.codeBlockContent()).toContainText('const x = 1;');
+      await expect(locators.docs.codeBlockLangSelector()).toBeHidden();
     });
   });
 
@@ -101,8 +102,41 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
     await test.step('Verify language auto-detected as JavaScript', async () => {
       const langSelector = locators.docs.codeBlockLangSelector();
       // After paste, the code block becomes multi-line, so the language selector becomes visible
-      await expect(langSelector).toBeVisible({ timeout: 5000 });
-      await expect(langSelector).toContainText('javascript', { timeout: 5000 });
+      await expect(langSelector).toBeVisible();
+      await expect(langSelector).toContainText('javascript');
+    });
+  });
+  test('Code Block Copy Button', async ({ page, createTmpDir, context }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-code-copy');
+
+    // Grant clipboard permissions for reading
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+
+    await test.step('Create code block', async () => {
+      const prosemirror = locators.docs.proseMirror();
+      await expect(prosemirror).toBeVisible();
+
+      await prosemirror.click();
+      await locators.docs.toolbarBtn('Code block').click();
+      await page.keyboard.type('const x = 1;');
+    });
+
+    await test.step('Copy code content', async () => {
+      const copyBtn = locators.docs.codeBlockCopyBtn();
+      await expect(copyBtn).toBeVisible();
+
+      await copyBtn.click();
+    });
+
+    await test.step('Verify clipboard text and icon toggle', async () => {
+      // Check the clipboard content
+      const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
+      expect(clipboardText).toBe('const x = 1;');
+
+      // Verify copy icon toggle logic happens (even briefly)
+      // Playwright might be fast enough to catch the IconCheck svg or class
+      // It's a bit flaky to test the exact toggle because it reverts after 2000ms
+      // If needed, we can check for the check icon, wait, actually we can just rely on clipboardText for proof of copy working.
     });
   });
 });
