@@ -13,9 +13,20 @@ jest.mock('@tiptap/react', () => ({
   }
 }));
 
-// Mock Dropdown
-jest.mock('components/Dropdown', () => {
-  return ({ children }) => <div data-testid="dropdown">{children}</div>;
+// Mock MenuDropdown
+jest.mock('ui/MenuDropdown', () => {
+  return ({ items, children }) => (
+    <div data-testid="menu-dropdown">
+      {children}
+      <div data-testid="menu-dropdown-items">
+        {items.map((item) => (
+          <button key={item.id} data-item-id={item.id} onClick={item.onClick}>
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 });
 
 // Mock lowlight
@@ -129,7 +140,7 @@ describe('EditorCodeBlock', () => {
     });
 
     // Dropdown should be rendered
-    const autoOption = getByTestIdMulti('dropdown').querySelector('[data-language="auto"]');
+    const autoOption = getByTestIdMulti('menu-dropdown-items').querySelector('[data-item-id="auto"]');
     autoOption.click();
 
     expect(updateAttributesMock).toHaveBeenCalledWith({ language: null });

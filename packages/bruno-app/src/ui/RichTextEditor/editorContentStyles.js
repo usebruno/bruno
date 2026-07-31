@@ -173,6 +173,20 @@ const editorContentStyles = css`
     padding-right: 2.5rem;
   }
 
+  .editor-code-block-header {
+    color: ${(props) => props.theme.dropdown.iconColor};
+  }
+
+  .editor-code-block-lang-selector,
+  .editor-code-block-copy {
+    background: transparent;
+
+    &:hover {
+      background: ${(props) => props.theme.dropdown.hoverBg};
+      color: ${(props) => props.theme.dropdown.color};
+    }
+  }
+
   blockquote {
     border-left: 3px solid ${(props) => props.theme.primary.solid};
     margin: 1rem 0;

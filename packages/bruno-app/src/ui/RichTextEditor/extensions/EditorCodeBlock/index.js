@@ -1,9 +1,10 @@
-import React, { useCallback, useState, useRef, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/react';
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
 import { IconChevronDown, IconCopy, IconCheck } from '@tabler/icons';
 import { lowlight } from 'lowlight';
 import protobuf from 'highlight.js/lib/languages/protobuf';
+import { EDITOR_MENU_DROPDOWN_PROPS } from '../../utils/editorToolbarUi';
 
 lowlight.registerLanguage('protobuf', protobuf);
 
@@ -62,11 +63,17 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
     }, 10);
   }, [node.attrs.language, updateAttributes]);
 
-  const setLanguage = useCallback((event) => {
-    event.preventDefault();
-    const lang = event.currentTarget.dataset.language;
+  const setLanguage = useCallback((lang) => {
     updateAttributes({ language: lang === 'auto' ? null : lang });
   }, [updateAttributes]);
+
+  const languageItems = useMemo(() => (
+    ['auto', ...LANGUAGES].map((lang) => ({
+      id: lang,
+      label: lang,
+      onClick: () => setLanguage(lang)
+    }))
+  ), [setLanguage]);
 
   const handleCopy = useCallback((e) => {
     e.stopPropagation();
@@ -83,47 +90,27 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
 
   return (
     <NodeViewWrapper className={`editor-code-block relative ${isSingleLine ? 'single-line' : ''}`}>
-      <div className="editor-code-block-header absolute top-2 right-2 text-xs font-mono text-gray-500 z-10 flex items-center gap-1">
+      <div className="editor-code-block-header absolute top-2 right-2 text-xs font-mono z-10 flex items-center gap-1">
         {!isSingleLine && (
-          <Dropdown
-            appendTo={() => document.body}
-            icon={(
-              <div
-                className="editor-code-block-lang-selector flex items-center gap-1 cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 px-2 py-1 rounded transition-colors duration-150"
-                data-testid="code-block-lang-selector"
-              >
-                <span>{language}</span>
-                <IconChevronDown size={14} />
-              </div>
-            )}
+          <MenuDropdown
+            items={languageItems}
+            selectedItemId={language}
+            showTickMark={false}
             placement="bottom-end"
+            {...EDITOR_MENU_DROPDOWN_PROPS}
           >
-            <div className="flex flex-col max-h-64 overflow-y-auto">
-              <button
-                className={`dropdown-item ${language === 'auto' ? 'active' : ''} px-2 py-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700`}
-                data-language="auto"
-                data-testid="code-block-lang-option"
-                onClick={setLanguage}
-              >
-                auto
-              </button>
-              {LANGUAGES.map((lang) => (
-                <button
-                  key={lang}
-                  className={`dropdown-item ${language === lang ? 'active' : ''} px-2 py-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700`}
-                  data-language={lang}
-                  data-testid="code-block-lang-option"
-                  onClick={setLanguage}
-                >
-                  {lang}
-                </button>
-              ))}
+            <div
+              className="editor-code-block-lang-selector flex items-center gap-1 cursor-pointer px-2 py-1 rounded transition-colors duration-150"
+              data-testid="code-block-lang-selector"
+            >
+              <span>{language}</span>
+              <IconChevronDown size={14} />
             </div>
-          </Dropdown>
+          </MenuDropdown>
         )}
         <button
           type="button"
-          className="editor-code-block-copy flex items-center justify-center cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 p-1 rounded transition-colors duration-150"
+          className="editor-code-block-copy flex items-center justify-center cursor-pointer p-1 rounded transition-colors duration-150"
           data-testid="code-block-copy-btn"
           onClick={handleCopy}
           title="Copy code"

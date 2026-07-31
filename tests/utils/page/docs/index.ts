@@ -24,7 +24,7 @@ export const buildDocsLocators = (page: Page) => ({
   // Code block locators
   codeBlockPre: () => page.getByTestId('code-block-pre'),
   codeBlockLangSelector: () => page.getByTestId('code-block-lang-selector'),
-  codeBlockLangOption: (language: string) => page.locator(`[data-testid="code-block-lang-option"][data-language="${language}"]`),
+  codeBlockLangOption: (language: string) => page.locator(`[role="menuitem"][data-item-id="${language}"]`),
   codeBlockCopyBtn: () => page.getByTestId('code-block-copy-btn'),
   codeBlockContent: () => page.locator('[data-testid="code-block-pre"] code'),
   codeBlockSyntaxHighlight: (className: string) => page.locator(`[data-testid="code-block-pre"] code .${className}`)

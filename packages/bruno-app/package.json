@@ -58,6 +58,7 @@
     "graphql": "^16.6.0",
     "graphql-request": "4.2.0",
     "hexy": "^0.3.5",
+    "highlight.js": "~11.8.0",
     "httpsnippet": "^3.0.9",
     "i18next": "24.1.2",
     "idb": "^7.0.0",
