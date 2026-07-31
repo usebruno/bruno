@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react';
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/react';
 import MenuDropdown from 'ui/MenuDropdown';
 import { IconChevronDown, IconCopy, IconCheck } from '@tabler/icons';
@@ -33,17 +33,29 @@ const LANGUAGES = [
   'protobuf'
 ];
 
-const EditorCodeBlock = ({ node, updateAttributes }) => {
+const EditorCodeBlock = ({ node, updateAttributes, editor }) => {
   const language = node.attrs.language || 'auto';
   const preRef = useRef(null);
   const pasteTimeoutRef = useRef(null);
   const { copied, copyToClipboard } = useCopyToClipboard();
+  const [isEditable, setIsEditable] = useState(editor.isEditable);
 
   useEffect(() => {
     return () => {
       if (pasteTimeoutRef.current) clearTimeout(pasteTimeoutRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    const handleTransaction = () => {
+      setIsEditable(editor.isEditable);
+    };
+
+    editor.on('transaction', handleTransaction);
+    return () => {
+      editor.off('transaction', handleTransaction);
+    };
+  }, [editor]);
 
   const handlePaste = useCallback(() => {
     pasteTimeoutRef.current = setTimeout(() => {
@@ -85,7 +97,7 @@ const EditorCodeBlock = ({ node, updateAttributes }) => {
   return (
     <NodeViewWrapper className={`editor-code-block relative ${isSingleLine ? 'single-line' : ''}`}>
       <div className="editor-code-block-header absolute top-2 right-2 text-xs font-mono z-10 flex items-center gap-1">
-        {!isSingleLine && (
+        {!isSingleLine && isEditable && (
           <MenuDropdown
             items={languageItems}
             selectedItemId={language}

@@ -58,6 +58,7 @@ describe('EditorCodeBlock', () => {
           ...nodeProps
         }}
         updateAttributes={updateAttributesMock}
+        editor={{ isEditable: true }}
         extension={{}}
       />
     );

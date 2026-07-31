@@ -152,7 +152,7 @@ const editorContentStyles = css`
     color: ${(props) => props.theme.text};
     font-family: ${(props) => props.theme.font.monospace || 'monospace'};
     margin: 1rem 0;
-    padding: 2.5rem 1rem 0.75rem 1rem;
+    padding: 0.75rem 1rem;
     border-radius: ${(props) => props.theme.border.radius.base};
     overflow-x: auto;
 
@@ -179,7 +179,9 @@ const editorContentStyles = css`
 
   .editor-code-block-lang-selector,
   .editor-code-block-copy {
-    background: transparent;
+    background: ${(props) => props.theme.bg};
+    border: solid 1px ${(props) => props.theme.border.border0};
+    border-radius: ${(props) => props.theme.border.radius.base};
 
     &:hover {
       background: ${(props) => props.theme.dropdown.hoverBg};
