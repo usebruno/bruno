@@ -75,8 +75,6 @@ const PresetsSettings = ({ collection }) => {
   return (
     <StyledWrapper className="h-full w-full">
       <div className="bruno-form">
-        <p className="presets-intro">These presets will be used as the default values in this collection.</p>
-
         <div className="preset-field">
           <label className="preset-field-label">Default Request Type</label>
           <p className="preset-field-subtitle">Selected by default for new requests.</p>
