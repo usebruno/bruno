@@ -5,6 +5,7 @@ const {
   setFolderVars,
   setCollectionVars,
   selectEnvironment,
+  runtimeVariablesUpdateEvent,
   updateFile,
   wsResponseReceived
 } = collectionsSlice.actions;
@@ -77,6 +78,40 @@ describe('selectEnvironment — isolates runtime variables by environment', () =
 
     expect(next.collections[0].activeEnvironmentUid).toBeNull();
     expect(next.collections[0].runtimeVariables).toEqual({});
+  });
+
+  it('ignores runtime variable updates from the previously active environment', () => {
+    const switchedState = reducer(
+      makeState(),
+      selectEnvironment({ collectionUid: 'col1', environmentUid: 'env-b' })
+    );
+    const next = reducer(
+      switchedState,
+      runtimeVariablesUpdateEvent({
+        collectionUid: 'col1',
+        environmentUid: 'env-a',
+        runtimeVariables: { title: 'stale-runtime-value' }
+      })
+    );
+
+    expect(next.collections[0].runtimeVariables).toEqual({});
+  });
+
+  it('applies runtime variable updates from the active environment', () => {
+    const switchedState = reducer(
+      makeState(),
+      selectEnvironment({ collectionUid: 'col1', environmentUid: 'env-b' })
+    );
+    const next = reducer(
+      switchedState,
+      runtimeVariablesUpdateEvent({
+        collectionUid: 'col1',
+        environmentUid: 'env-b',
+        runtimeVariables: { title: 'current-runtime-value' }
+      })
+    );
+
+    expect(next.collections[0].runtimeVariables).toEqual({ title: 'current-runtime-value' });
   });
 });
 

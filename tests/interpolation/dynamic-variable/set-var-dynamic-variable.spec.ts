@@ -3,7 +3,7 @@ import { closeAllCollections, openCollection, selectEnvironment, sendRequest } f
 import { buildCommonLocators } from '../../utils/page/locators';
 
 test.describe.serial('Dynamic Variable Interpolation', () => {
-  test.afterEach(async ({ pageWithUserData: page }) => {
+  test.afterAll(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
@@ -20,7 +20,7 @@ test.describe.serial('Dynamic Variable Interpolation', () => {
     await sendRequest(page, 200);
 
     // Verify response contains the title field and that it's not the literal interpolation string
-    const responsePane = page.locator('.response-pane');
+    const responsePane = locators.response.pane();
 
     // Check that the response contains a title field
     await expect(responsePane).toContainText('"title":');
@@ -46,7 +46,7 @@ test.describe.serial('Dynamic Variable Interpolation', () => {
 
   test('Runtime variables do not leak across collection environments', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
-    const responsePane = page.locator('.response-pane');
+    const responsePane = locators.response.pane();
 
     await openCollection(page, 'dynamic-variable-interpolation');
     await selectEnvironment(page, 'A');

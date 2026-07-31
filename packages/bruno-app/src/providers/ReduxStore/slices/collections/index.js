@@ -552,9 +552,11 @@ export const collectionsSlice = createSlice({
       }
     },
     runtimeVariablesUpdateEvent: (state, action) => {
-      const { collectionUid, runtimeVariables } = action.payload;
+      const { collectionUid, environmentUid, runtimeVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
-      if (collection) {
+      const activeEnvironmentUid = collection?.activeEnvironmentUid || null;
+
+      if (collection && activeEnvironmentUid === (environmentUid || null)) {
         collection.runtimeVariables = runtimeVariables;
       }
     },
