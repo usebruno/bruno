@@ -128,15 +128,25 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
       await copyBtn.click();
     });
 
-    await test.step('Verify clipboard text and icon toggle', async () => {
-      // Check the clipboard content
+    await test.step('Verify clipboard text', async () => {
       const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
       expect(clipboardText).toBe('const x = 1;');
+    });
+  });
 
-      // Verify copy icon toggle logic happens (even briefly)
-      // Playwright might be fast enough to catch the IconCheck svg or class
-      // It's a bit flaky to test the exact toggle because it reverts after 2000ms
-      // If needed, we can check for the check icon, wait, actually we can just rely on clipboardText for proof of copy working.
+  test('Markdown Editor Syntax Highlighting', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-markdown-highlight');
+
+    await test.step('Switch to markdown editor', async () => {
+      await locators.docs.modeSwitchMarkdown().click();
+      await expect(locators.docs.codeEditor()).toBeVisible();
+    });
+
+    await test.step('Type markdown and verify syntax highlighting', async () => {
+      await locators.docs.codeEditor().click();
+      await page.keyboard.type('# Heading');
+
+      await expect(locators.docs.codeEditor().locator('.cm-header')).toBeVisible();
     });
   });
 });

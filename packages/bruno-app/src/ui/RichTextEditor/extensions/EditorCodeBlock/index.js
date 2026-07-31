@@ -4,6 +4,7 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { IconChevronDown, IconCopy, IconCheck } from '@tabler/icons';
 import { lowlight } from 'lowlight';
 import protobuf from 'highlight.js/lib/languages/protobuf';
+import useCopyToClipboard from 'hooks/useCopyToClipboard';
 import { EDITOR_MENU_DROPDOWN_PROPS } from '../../utils/editorToolbarUi';
 
 lowlight.registerLanguage('protobuf', protobuf);
@@ -34,15 +35,13 @@ const LANGUAGES = [
 
 const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
   const language = node.attrs.language || 'auto';
-  const [copied, setCopied] = useState(false);
   const preRef = useRef(null);
   const pasteTimeoutRef = useRef(null);
-  const copyTimeoutRef = useRef(null);
+  const [copyToClipboard, copied] = useCopyToClipboard();
 
   useEffect(() => {
     return () => {
       if (pasteTimeoutRef.current) clearTimeout(pasteTimeoutRef.current);
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
     };
   }, []);
 
@@ -78,13 +77,8 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
   const handleCopy = useCallback((e) => {
     e.stopPropagation();
     e.preventDefault();
-    navigator.clipboard.writeText(node.textContent).then(() => {
-      setCopied(true);
-      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
-    }).catch(() => {
-      setCopied(false);
-    });
-  }, [node.textContent]);
+    copyToClipboard(node.textContent).catch(() => {});
+  }, [node.textContent, copyToClipboard]);
 
   const isSingleLine = !node.textContent.includes('\n');
 
