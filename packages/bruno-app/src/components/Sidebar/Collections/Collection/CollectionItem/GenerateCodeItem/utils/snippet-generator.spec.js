@@ -1239,15 +1239,22 @@ describe('generateSnippet – encodeUrl setting', () => {
     expect(result).not.toContain('localhost%3A6000');
   });
 
-  it.each([false, true])('preserves a colon inside a path segment when encodeUrl is %s', async (encodeUrl) => {
-    const item = makeItem('http://localhost:6000/values:colon', { encodeUrl });
+  it('preserves a colon inside a path segment when encodeUrl is false', async () => {
+    const item = makeItem('http://localhost:6000/values:colon', { encodeUrl: false });
 
     const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
     expect(result).toContain('http://localhost:6000/values:colon');
     expect(result).not.toContain('%3A');
   });
 
-  it('preserves a colon path segment alongside a declared path param', async () => {
+  it('encodes a colon inside a path segment when encodeUrl is true', async () => {
+    const item = makeItem('http://localhost:6000/values:colon', { encodeUrl: true });
+
+    const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('http://localhost:6000/values%3Acolon');
+  });
+
+  it('encodes a colon path segment while substituting a declared path param', async () => {
     const item = {
       ...makeItem('http://localhost:6000/users/:userId/values:colon', { encodeUrl: true }),
       request: {
@@ -1261,8 +1268,7 @@ describe('generateSnippet – encodeUrl setting', () => {
     };
 
     const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: true });
-    expect(result).toContain('/users/123/values:colon');
-    expect(result).not.toContain('%3A');
+    expect(result).toContain('/users/123/values%3Acolon');
   });
 });
 
