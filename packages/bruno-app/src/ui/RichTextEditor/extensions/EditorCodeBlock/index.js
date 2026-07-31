@@ -33,7 +33,7 @@ const LANGUAGES = [
   'protobuf'
 ];
 
-const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
+const EditorCodeBlock = ({ node, updateAttributes }) => {
   const language = node.attrs.language || 'auto';
   const preRef = useRef(null);
   const pasteTimeoutRef = useRef(null);
