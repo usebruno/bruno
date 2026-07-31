@@ -3,12 +3,6 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   max-width: 800px;
 
-  .presets-intro {
-    font-size: ${(props) => props.theme.font.size.sm};
-    color: ${(props) => props.theme.colors.text.muted};
-    margin-bottom: 1.5rem;
-  }
-
   .preset-field {
     margin-top: 1.5rem;
 
