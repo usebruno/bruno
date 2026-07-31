@@ -646,7 +646,12 @@ const createFolder = async (
     await locators.dropdown.item('New Folder').click();
     await page.getByTestId('new-folder-input').fill(folderName);
     await locators.modal.button('Create').click();
-    await expect(locators.sidebar.folder(folderName)).toBeVisible();
+
+    // Scope to the parent so same-named folders in other collections don't trip strict mode.
+    const parentScope = isCollection
+      ? locators.sidebar.collectionScope(parentName)
+      : locators.sidebar.folder(parentName).locator('..');
+    await expect(parentScope.locator('.collection-item-name').filter({ hasText: folderName })).toBeVisible();
   });
 };
 
@@ -2044,6 +2049,12 @@ const createExampleFromSidebar = async (page: Page, requestName: string, example
   await descriptionInput.fill(description);
   await page.getByRole('button', { name: 'Create Example' }).click();
   await expect(page.locator('text=Create Response Example')).not.toBeAttached();
+
+  // Sidebar-created examples open in edit mode (openInEditMode: true).
+  await expect(page.getByTestId('response-example-name-input')).toHaveValue(exampleName);
+  if (description) {
+    await expect(page.getByTestId('response-example-description-input')).toHaveValue(description);
+  }
 };
 
 const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {

@@ -8,7 +8,7 @@ test.describe('Grpc Collection - Method Search Functionality', () => {
 
     await test.step('Switch to GrpcEnv environment', async () => {
       await page.locator('div.current-environment').click();
-      await page.getByText('GrpcEnv').click();
+      await page.getByTestId('env-list-item').filter({ hasText: 'GrpcEnv' }).click();
       await expect(page.locator('.current-environment').filter({ hasText: /GrpcEnv/ })).toBeVisible();
     });
   });

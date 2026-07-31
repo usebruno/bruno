@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, createCollection } from '../../utils/page';
+import { buildCommonLocators, closeAllCollections, createCollection, createFolder } from '../../utils/page';
 
 test.describe.serial('Draft indicator in collection and folder settings', () => {
   test.afterAll(async ({ page }) => {
@@ -227,18 +227,7 @@ test.describe.serial('Draft indicator in collection and folder settings', () => 
   test('Verify draft indicator appears when changing folder settings - Headers', async ({ page }) => {
     const collectionName = 'test-draft';
 
-    // Create a folder in the collection
-    const collection = page.locator('.collection-name').filter({ hasText: collectionName });
-    await collection.hover(); // Hover on collection to reveal action buttons
-    await collection.locator('.collection-actions .icon').click();
-    await page.locator('.dropdown-item').filter({ hasText: 'New Folder' }).click();
-
-    // Fill folder name
-    await expect(page.locator('#folder-name')).toBeVisible();
-    await page.locator('#folder-name').fill('test-folder');
-    await page.getByRole('button', { name: 'Create' }).click();
-
-    await expect(page.locator('.collection-item-name').filter({ hasText: 'test-folder' })).toBeVisible();
+    await createFolder(page, 'test-folder', collectionName);
 
     // Open folder settings by double-clicking the folder
     await page.locator('.collection-item-name').filter({ hasText: 'test-folder' }).dblclick();
