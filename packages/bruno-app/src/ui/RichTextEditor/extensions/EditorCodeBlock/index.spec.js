@@ -114,7 +114,7 @@ describe('EditorCodeBlock', () => {
   });
 
   it('should handle single line correctly and update language when clicking auto', () => {
-    const { getByTestId, queryByTestId } = renderComponent({
+    const { queryByTestId } = renderComponent({
       attrs: { language: 'python' },
       textContent: 'print("hello")' // single line
     });
