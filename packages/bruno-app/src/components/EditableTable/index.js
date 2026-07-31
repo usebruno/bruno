@@ -76,6 +76,7 @@ const EditableTable = ({
   defaultRow,
   getRowError,
   showCheckbox = true,
+  showSelectAll = false,
   showDelete = true,
   disableCheckbox = false,
   checkboxLabel = '',
@@ -94,6 +95,7 @@ const EditableTable = ({
   const virtuosoRef = useRef(null);
   const emptyRowUidRef = useRef(null);
   const prevRowCountRef = useRef(0);
+  const selectAllRef = useRef(null);
   const [resizing, setResizing] = useState(null);
   const [tableHeight, setTableHeight] = useState(0);
   const [scrollParent, setScrollParent] = useState(null);
@@ -124,10 +126,19 @@ const EditableTable = ({
   const rows = sortable ? displayRows : rowsProp;
   const onChange = sortable ? handleChange : onChangeProp;
   const reorderable = reorderableProp && sortAllowsReorder;
+  const checkedRowCount = rows.filter((row) => row[checkboxKey] ?? true).length;
+  const allRowsChecked = rows.length > 0 && checkedRowCount === rows.length;
+  const someRowsChecked = checkedRowCount > 0 && !allRowsChecked;
 
   useLayoutEffect(() => {
     setScrollParent(findScrollParent(wrapperRef.current));
   }, []);
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someRowsChecked;
+    }
+  }, [someRowsChecked, scrollParent]);
 
   const handleTotalHeightChanged = useCallback((h) => {
     setTableHeight(h);
@@ -298,6 +309,13 @@ const EditableTable = ({
     handleValueChange(rowUid, checkboxKey, checked);
   }, [handleValueChange, checkboxKey]);
 
+  const handleSelectAllChange = useCallback((checked) => {
+    onChange(rows.map((row) => ({
+      ...row,
+      [checkboxKey]: checked
+    })));
+  }, [rows, checkboxKey, onChange]);
+
   const handleRemoveRow = useCallback((rowUid) => {
     const filteredRows = rows.filter((row) => row.uid !== rowUid);
     onChange(filteredRows);
@@ -393,7 +411,20 @@ const EditableTable = ({
     <tr>
       {!showCheckbox && reorderable && <td className="text-center" style={{ width: '32px' }}></td>}
       {showCheckbox && (
-        <td className="text-center">{checkboxLabel}</td>
+        <td className="text-center">
+          {showSelectAll ? (
+            <input
+              ref={selectAllRef}
+              type="checkbox"
+              className="mousetrap"
+              data-testid="select-all-checkbox"
+              aria-label={checkboxLabel || 'Toggle all rows'}
+              checked={allRowsChecked}
+              disabled={disableCheckbox || rows.length === 0}
+              onChange={(e) => handleSelectAllChange(e.target.checked)}
+            />
+          ) : checkboxLabel}
+        </td>
       )}
       {columns.map((column, colIndex) => {
         const isSortColumn = column === sortColumn;
@@ -430,7 +461,7 @@ const EditableTable = ({
         </td>
       )}
     </tr>
-  ), [showCheckbox, checkboxLabel, columns, getColumnWidth, resizing, tableHeight, handleResizeStart, showDelete, sortColumn, cycleSortMode, SortIcon, sortLabel, testId, reorderable]);
+  ), [showCheckbox, showSelectAll, checkboxLabel, allRowsChecked, disableCheckbox, rows.length, handleSelectAllChange, columns, getColumnWidth, resizing, tableHeight, handleResizeStart, showDelete, sortColumn, cycleSortMode, SortIcon, sortLabel, testId, reorderable]);
 
   const itemContent = useCallback((rowIndex, row) => {
     const isEmpty = isLastEmptyRow(row, rowIndex);
