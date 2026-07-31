@@ -27,7 +27,7 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, mergeAuth, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials, clearOauth2CredentialsByCredentialsId } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -382,6 +382,11 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const resolvedRequest = cloneDeep(_request);
     // mergeVars modifies the request in place, but we'll assign it to ensure consistency
     mergeVars(collection, resolvedRequest, requestTreePath);
+    // The auth block is nullable in bruno-schema, and both mergeAuth and
+    // setAuthHeaders read `auth.mode` unguarded, so normalise it once.
+    resolvedRequest.auth = resolvedRequest.auth || { mode: 'none' };
+    // Resolve `inherit` against the folder chain, like prepareRequest does.
+    mergeAuth(collection, resolvedRequest, requestTreePath);
     const envVars = getEnvVars(environment);
 
     const globalEnvironmentVars = collection.globalEnvironmentVariables;
@@ -410,7 +415,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     );
 
     const collectionRoot = collection?.draft?.root || collection?.root || {};
-    const request = prepareGqlIntrospectionRequest(endpoint, resolvedVars, _request, collectionRoot);
+    const request = prepareGqlIntrospectionRequest(endpoint, resolvedVars, resolvedRequest, collectionRoot);
 
     // Get timeout from request settings, resolve inheritance if needed
     const resolvedSettings = resolveInheritedSettings(request.settings || {});
