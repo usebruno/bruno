@@ -125,8 +125,6 @@ const envHasSecrets = (environment = {}) => {
   return secrets && secrets.length > 0;
 };
 
-const LastOpenedCollections = require('../store/last-opened-collections');
-
 const findCollectionPathByItemPath = (filePath) => {
   const normalizedFilePath = path.normalize(filePath);
 
