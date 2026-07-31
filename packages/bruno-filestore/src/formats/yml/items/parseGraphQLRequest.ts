@@ -6,7 +6,7 @@ import { toBrunoHttpHeaders } from '../common/headers';
 import { toBrunoParams } from '../common/params';
 import { toBrunoVariables } from '../common/variables';
 import { toBrunoPostResponseVariables } from '../common/actions';
-import { toBrunoScripts, applyBrunoScripts } from '../common/scripts';
+import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
 import { uuid, ensureString } from '../../../utils';
 import { utils } from '@usebruno/common';
@@ -52,9 +52,14 @@ const parseGraphQLRequest = (ocRequest: GraphQLRequest): BrunoItem => {
 
   // scripts
   const scripts = toBrunoScripts(runtime?.scripts);
-  applyBrunoScripts(brunoRequest, scripts);
-
-  // tests
+  if (scripts?.script && brunoRequest.script) {
+    if (scripts.script.req) {
+      brunoRequest.script.req = scripts.script.req;
+    }
+    if (scripts.script.res) {
+      brunoRequest.script.res = scripts.script.res;
+    }
+  }
   if (scripts?.tests) {
     brunoRequest.tests = scripts.tests;
   }
