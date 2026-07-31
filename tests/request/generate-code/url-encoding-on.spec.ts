@@ -279,6 +279,7 @@ test.describe('Generate Code – URL Encoding ON', () => {
 
       const snippet = await getGeneratedSnippet(page);
       expect(snippet).toContain('http://localhost:8081/api/echo/anything/values%3Acolon');
+      expect(snippet).not.toContain('http://localhost:8081/api/echo/anything/values:colon');
 
       await closeGenerateCodeDialog(page);
     });
