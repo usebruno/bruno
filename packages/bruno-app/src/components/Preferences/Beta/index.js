@@ -71,7 +71,8 @@ const BETA_FEATURES = [
     id: BETA_FEATURE_IDS.GRPC_SCRIPTING,
     label: 'gRPC scripting',
     description:
-      'Write scripts and assertions for gRPC requests. Inspect messages, metadata, and status across the call lifecycle.'
+      'Write scripts and assertions for gRPC requests. Inspect messages, metadata, and status across the call lifecycle.',
+    docsUrl: 'https://docs.usebruno.com/send-requests/grpc/scripting'
   }
 ];
 
