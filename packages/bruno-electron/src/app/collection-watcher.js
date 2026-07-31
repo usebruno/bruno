@@ -803,8 +803,9 @@ class CollectionWatcher {
   }
 
   addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false, useWorkerThread, options = {}) {
-    if (this.watchers[watchPath]) {
-      this.watchers[watchPath].close();
+    const existingWatcher = this.watchers[watchPath];
+    if (existingWatcher && typeof existingWatcher.close === 'function') {
+      existingWatcher.close();
     }
 
     // v2 already loaded the tree from cache; skip startup scan and stage live edits
@@ -817,11 +818,20 @@ class CollectionWatcher {
 
     this.startCollectionDiscovery(win, collectionUid);
 
+    // Reserve the path immediately so path-confinement checks succeed during the
+    // brief window before chokidar is attached (addWatcher defers that by 100ms).
+    this.watchers[watchPath] = true;
+
     // Always ignore node_modules and .git, regardless of user config
     // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
     const defaultIgnores = ['node_modules', '.git'];
 
     setTimeout(() => {
+      // Collection was removed while the deferred setup was pending.
+      if (!this.watchers[watchPath]) {
+        return;
+      }
+
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial,
         usePolling: isWSLPath(watchPath) || forcePolling ? true : false,
@@ -910,8 +920,11 @@ class CollectionWatcher {
   }
 
   removeWatcher(watchPath, win, collectionUid) {
-    if (this.watchers[watchPath]) {
-      this.watchers[watchPath].close();
+    const existingWatcher = this.watchers[watchPath];
+    if (existingWatcher && typeof existingWatcher.close === 'function') {
+      existingWatcher.close();
+    }
+    if (existingWatcher) {
       this.watchers[watchPath] = null;
     }
 
@@ -921,7 +934,10 @@ class CollectionWatcher {
 
     const tempDirectoryPath = this.tempDirectoryMap[watchPath];
     if (tempDirectoryPath && this.watchers[tempDirectoryPath]) {
-      this.watchers[tempDirectoryPath].close();
+      const tempWatcher = this.watchers[tempDirectoryPath];
+      if (typeof tempWatcher.close === 'function') {
+        tempWatcher.close();
+      }
       delete this.watchers[tempDirectoryPath];
       delete this.tempDirectoryMap[watchPath];
     }

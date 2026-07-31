@@ -125,6 +125,8 @@ const envHasSecrets = (environment = {}) => {
   return secrets && secrets.length > 0;
 };
 
+const LastOpenedCollections = require('../store/last-opened-collections');
+
 const findCollectionPathByItemPath = (filePath) => {
   const normalizedFilePath = path.normalize(filePath);
 
@@ -152,11 +154,17 @@ const findCollectionPathByItemPath = (filePath) => {
     return null;
   }
 
-  const allCollectionPaths = collectionWatcher.getAllWatcherPaths();
+  // Watchers cover mounted collections; lastOpenedCollections also covers
+  // workspace collections that are still lazy-unmounted (visible in the sidebar
+  // but not yet watched). Dropping into those must still pass path confinement.
+  const knownCollectionPaths = _.uniq([
+    ...collectionWatcher.getAllWatcherPaths(),
+    ...new LastOpenedCollections().getAll()
+  ]);
 
   // Find the collection path that contains this file
   // Sort by length descending to find the most specific (deepest) match first
-  const sortedPaths = allCollectionPaths.sort((a, b) => b.length - a.length);
+  const sortedPaths = knownCollectionPaths.sort((a, b) => b.length - a.length);
 
   for (const collectionPath of sortedPaths) {
     const normalizedCollectionPath = path.normalize(collectionPath);
