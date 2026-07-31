@@ -1,0 +1,17 @@
+name: 'Run OAuth2 E2E Tests - macOS'
+description: 'Run OAuth2 (Keycloak) E2E tests on macOS'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run OAuth2 E2E tests
+      shell: bash
+      run: |
+        npm run test:e2e:auth:oauth2
+
+    - name: Upload Playwright Report
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report-oauth2-macos
+        path: playwright-report/
+        retention-days: 30

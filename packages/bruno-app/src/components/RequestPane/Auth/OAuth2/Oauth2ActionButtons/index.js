@@ -5,7 +5,7 @@ import { cloneDeep, find, get } from 'lodash';
 import { IconLoader2, IconX } from '@tabler/icons';
 import { interpolate } from '@usebruno/common';
 import { fetchOauth2Credentials, clearOauth2Cache, refreshOauth2Credentials, cancelOauth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } from 'providers/ReduxStore/slices/collections/actions';
-import { responseReceived } from 'providers/ReduxStore/slices/collections';
+import { responseReceived, responseCleared } from 'providers/ReduxStore/slices/collections';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import { getAllVariables } from 'utils/collections/index';
 import { formatIpcError } from 'utils/common/error';
@@ -61,6 +61,10 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
     dispatch(updateResponsePaneTab({ uid: item.uid, responsePaneTab: 'response' }));
   };
 
+  const clearOauth2Error = () => {
+    dispatch(responseCleared({ itemUid: item.uid, collectionUid }));
+  };
+
   const handleFetchOauth2Credentials = async () => {
     let requestCopy = cloneDeep(request);
     requestCopy.oauth2 = requestCopy?.auth.oauth2;
@@ -83,6 +87,7 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
         return;
       }
 
+      clearOauth2Error();
       toast.success('Token fetched successfully!');
     } catch (error) {
       console.error('could not fetch the token!');

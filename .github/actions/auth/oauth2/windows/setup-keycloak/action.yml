@@ -1,0 +1,62 @@
+name: 'Setup Keycloak - Windows'
+description: 'Provision Keycloak (download + realm import prep) for the OAuth2 e2e tests on Windows'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check for existing Java 21
+      id: check-java
+      shell: pwsh
+      run: |
+        $present = 'false'
+        if (Get-Command java -ErrorAction SilentlyContinue) {
+          $ver = (& java -version 2>&1) -join "`n"
+          if ($ver -match 'version "21') {
+            Write-Host "Java 21 already available:`n$ver"
+            $present = 'true'
+          }
+        }
+        if ($present -ne 'true') { Write-Host "Java 21 not found; will install via setup-java." }
+        "present=$present" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+    - name: Setup Java 21 (Temurin)
+      if: steps.check-java.outputs.present != 'true'
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+
+    - name: Verify Java 21 is active
+      shell: pwsh
+      run: |
+        $ver = (& java -version 2>&1) -join "`n"
+        Write-Host $ver
+        if ($ver -notmatch 'version "21') {
+          Write-Error "Expected Java 21 to be active"
+          exit 1
+        }
+
+    # NOTE: Keycloak is intentionally NOT started here. On Windows, GitHub Actions runs
+    # each step inside a Job Object that terminates the step's entire child-process tree
+    # when the step completes — so a Keycloak started in this step would be killed before
+    # the test step runs. It is downloaded/prepared here and started in the same step that
+    # runs the tests (run-oauth2-e2e-tests). KC_HOME is exported for that step.
+    - name: Download and prepare Keycloak
+      shell: pwsh
+      env:
+        KEYCLOAK_VERSION: 26.3.3
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $version = $env:KEYCLOAK_VERSION
+        $zip = "$env:RUNNER_TEMP\keycloak.zip"
+        $kcHome = "$env:RUNNER_TEMP\keycloak-$version"
+
+        Invoke-WebRequest -Uri "https://github.com/keycloak/keycloak/releases/download/$version/keycloak-$version.zip" -OutFile $zip
+        Expand-Archive -Path $zip -DestinationPath $env:RUNNER_TEMP -Force
+
+        New-Item -ItemType Directory -Force -Path "$kcHome\data\import" | Out-Null
+        Copy-Item "$env:GITHUB_WORKSPACE\tests\auth\oauth2\fixtures\keycloak\realm-export.json" `
+          "$kcHome\data\import\realm-export.json"
+
+        "KC_HOME=$kcHome" | Out-File -FilePath $env:GITHUB_ENV -Append
+        Write-Host "Keycloak prepared at $kcHome"
