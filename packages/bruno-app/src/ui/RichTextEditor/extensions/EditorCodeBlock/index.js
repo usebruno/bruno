@@ -37,7 +37,7 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
   const language = node.attrs.language || 'auto';
   const preRef = useRef(null);
   const pasteTimeoutRef = useRef(null);
-  const [copyToClipboard, copied] = useCopyToClipboard();
+  const { copied, copyToClipboard } = useCopyToClipboard();
 
   useEffect(() => {
     return () => {
@@ -59,7 +59,7 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
           }
         }
       }
-    }, 10);
+    }, 100);
   }, [node.attrs.language, updateAttributes]);
 
   const setLanguage = useCallback((lang) => {

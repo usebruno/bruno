@@ -10,14 +10,14 @@ const useCopyToClipboard = (resetDelay = 2000) => {
     };
   }, []);
 
-  const copy = useCallback((text) => {
+  const copyToClipboard = useCallback((text) => {
     return navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       resetTimeoutRef.current = setTimeout(() => setCopied(false), resetDelay);
     });
   }, [resetDelay]);
 
-  return [copied, copy];
+  return { copied, copyToClipboard };
 };
 
 export default useCopyToClipboard;
