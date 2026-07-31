@@ -209,24 +209,38 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
   );
 };
 
+// A request errors in the phases its protocol has: HTTP/GraphQL in pre-request & post-response, a gRPC
+// call in its four call phases. Only the phases that ran can carry a message, so all of them are read.
 const ScriptError = ({ item, collection, onClose }) => {
   const preRequestError = item?.preRequestScriptErrorMessage;
   const postResponseError = item?.postResponseScriptErrorMessage;
+  const beforeCallStartError = item?.beforeCallStartScriptErrorMessage;
+  const beforeMessageSendError = item?.beforeMessageSendScriptErrorMessage;
+  const afterMessageReceiveError = item?.afterMessageReceiveScriptErrorMessage;
+  const afterCallEndError = item?.afterCallEndScriptErrorMessage;
   const testScriptError = item?.testScriptErrorMessage;
 
-  if (!preRequestError && !postResponseError && !testScriptError) return null;
+  if (!preRequestError && !postResponseError && !beforeCallStartError && !beforeMessageSendError && !afterMessageReceiveError && !afterCallEndError && !testScriptError) return null;
 
   const preRequestContext = item?.preRequestScriptErrorContext;
   const postResponseContext = item?.postResponseScriptErrorContext;
+  const beforeCallStartContext = item?.beforeCallStartScriptErrorContext;
+  const beforeMessageSendContext = item?.beforeMessageSendScriptErrorContext;
+  const afterMessageReceiveContext = item?.afterMessageReceiveScriptErrorContext;
+  const afterCallEndContext = item?.afterCallEndScriptErrorContext;
   const testContext = item?.testScriptErrorContext;
 
-  const hasAnyContext = preRequestContext || postResponseContext || testContext;
+  const hasAnyContext = preRequestContext || postResponseContext || beforeCallStartContext || beforeMessageSendContext || afterMessageReceiveContext || afterCallEndContext || testContext;
 
   // If no error context available for any error, fall back to ErrorBanner
   if (!hasAnyContext) {
     const errors = [];
     if (preRequestError) errors.push({ title: 'Pre-Request Script Error', message: preRequestError });
     if (postResponseError) errors.push({ title: 'Post-Response Script Error', message: postResponseError });
+    if (beforeCallStartError) errors.push({ title: 'Before-Call Script Error', message: beforeCallStartError });
+    if (beforeMessageSendError) errors.push({ title: 'Before-Message Script Error', message: beforeMessageSendError });
+    if (afterMessageReceiveError) errors.push({ title: 'After-Message Script Error', message: afterMessageReceiveError });
+    if (afterCallEndError) errors.push({ title: 'After-Call Script Error', message: afterCallEndError });
     if (testScriptError) errors.push({ title: 'Test Script Error', message: testScriptError });
     return <ErrorBanner errors={errors} onClose={onClose} className="mb-2" />;
   }
@@ -252,6 +266,50 @@ const ScriptError = ({ item, collection, onClose }) => {
           item={item}
           collection={collection}
           scriptPhase="post-response"
+          onClose={onClose}
+        />
+      )}
+      {beforeCallStartError && (
+        <ScriptErrorCard
+          title="Before-Call Script Error"
+          message={beforeCallStartError}
+          errorContext={beforeCallStartContext}
+          item={item}
+          collection={collection}
+          scriptPhase="grpc:before-call-start"
+          onClose={onClose}
+        />
+      )}
+      {beforeMessageSendError && (
+        <ScriptErrorCard
+          title="Before-Message Script Error"
+          message={beforeMessageSendError}
+          errorContext={beforeMessageSendContext}
+          item={item}
+          collection={collection}
+          scriptPhase="grpc:before-message-send"
+          onClose={onClose}
+        />
+      )}
+      {afterMessageReceiveError && (
+        <ScriptErrorCard
+          title="After-Message Script Error"
+          message={afterMessageReceiveError}
+          errorContext={afterMessageReceiveContext}
+          item={item}
+          collection={collection}
+          scriptPhase="grpc:after-message-receive"
+          onClose={onClose}
+        />
+      )}
+      {afterCallEndError && (
+        <ScriptErrorCard
+          title="After-Call Script Error"
+          message={afterCallEndError}
+          errorContext={afterCallEndContext}
+          item={item}
+          collection={collection}
+          scriptPhase="grpc:after-call-end"
           onClose={onClose}
         />
       )}

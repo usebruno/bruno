@@ -44,6 +44,7 @@ const ResultItem = ({ result, type }) => (
 );
 
 const TestSection = ({
+  sectionKey,
   title,
   results,
   isExpanded,
@@ -59,6 +60,7 @@ const TestSection = ({
     <div className="mb-4">
       <div
         className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2"
+        data-testid={`test-results-summary-${sectionKey}`}
         onClick={onToggle}
       >
         <span className="dropdown-icon mr-2 flex items-center">
@@ -83,11 +85,27 @@ const TestSection = ({
   );
 };
 
-const TestResults = ({ item, results, assertionResults, preRequestTestResults, postResponseTestResults }) => {
+// A request reports tests from the phases its protocol has: HTTP/GraphQL in pre-request &
+// post-response plus its own tests and assertions, a gRPC call in its four call phases.
+const TestResults = ({
+  item,
+  results,
+  assertionResults,
+  preRequestTestResults,
+  postResponseTestResults,
+  beforeCallStartTestResults,
+  beforeMessageSendTestResults,
+  afterMessageReceiveTestResults,
+  afterCallEndTestResults
+}) => {
   results = results || [];
   assertionResults = assertionResults || [];
   preRequestTestResults = preRequestTestResults || [];
   postResponseTestResults = postResponseTestResults || [];
+  beforeCallStartTestResults = beforeCallStartTestResults || [];
+  beforeMessageSendTestResults = beforeMessageSendTestResults || [];
+  afterMessageReceiveTestResults = afterMessageReceiveTestResults || [];
+  afterCallEndTestResults = afterCallEndTestResults || [];
 
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `response-tests-scroll-${item?.uid}`, default: 0 });
@@ -97,7 +115,11 @@ const TestResults = ({ item, results, assertionResults, preRequestTestResults, p
     preRequest: true,
     tests: true,
     postResponse: true,
-    assertions: true
+    assertions: true,
+    beforeCallStart: true,
+    beforeMessageSend: true,
+    afterMessageReceive: true,
+    afterCallEnd: true
   });
 
   useEffect(() => {
@@ -105,9 +127,13 @@ const TestResults = ({ item, results, assertionResults, preRequestTestResults, p
       preRequest: preRequestTestResults.length > 0,
       tests: results.length > 0,
       postResponse: postResponseTestResults.length > 0,
-      assertions: assertionResults.length > 0
+      assertions: assertionResults.length > 0,
+      beforeCallStart: beforeCallStartTestResults.length > 0,
+      beforeMessageSend: beforeMessageSendTestResults.length > 0,
+      afterMessageReceive: afterMessageReceiveTestResults.length > 0,
+      afterCallEnd: afterCallEndTestResults.length > 0
     });
-  }, [results.length, assertionResults.length, preRequestTestResults.length, postResponseTestResults.length]);
+  }, [results.length, assertionResults.length, preRequestTestResults.length, postResponseTestResults.length, beforeCallStartTestResults.length, beforeMessageSendTestResults.length, afterMessageReceiveTestResults.length, afterCallEndTestResults.length]);
 
   const toggleSection = (section) => {
     setExpandedSections({
@@ -116,13 +142,14 @@ const TestResults = ({ item, results, assertionResults, preRequestTestResults, p
     });
   };
 
-  if (!results.length && !assertionResults.length && !preRequestTestResults.length && !postResponseTestResults.length) {
+  if (!results.length && !assertionResults.length && !preRequestTestResults.length && !postResponseTestResults.length && !beforeCallStartTestResults.length && !beforeMessageSendTestResults.length && !afterMessageReceiveTestResults.length && !afterCallEndTestResults.length) {
     return <div>No tests found</div>;
   }
 
   return (
     <StyledWrapper className="flex flex-col" ref={wrapperRef}>
       <TestSection
+        sectionKey="pre-request"
         title="Pre-Request Tests"
         results={preRequestTestResults}
         isExpanded={expandedSections.preRequest}
@@ -131,6 +158,7 @@ const TestResults = ({ item, results, assertionResults, preRequestTestResults, p
       />
 
       <TestSection
+        sectionKey="post-response"
         title="Post-Response Tests"
         results={postResponseTestResults}
         isExpanded={expandedSections.postResponse}
@@ -139,6 +167,43 @@ const TestResults = ({ item, results, assertionResults, preRequestTestResults, p
       />
 
       <TestSection
+        sectionKey="grpc:before-call-start"
+        title="Before-Call Tests"
+        results={beforeCallStartTestResults}
+        isExpanded={expandedSections.beforeCallStart}
+        onToggle={() => toggleSection('beforeCallStart')}
+        type="test"
+      />
+
+      <TestSection
+        sectionKey="grpc:before-message-send"
+        title="Before-Message Tests"
+        results={beforeMessageSendTestResults}
+        isExpanded={expandedSections.beforeMessageSend}
+        onToggle={() => toggleSection('beforeMessageSend')}
+        type="test"
+      />
+
+      <TestSection
+        sectionKey="grpc:after-message-receive"
+        title="After-Message Tests"
+        results={afterMessageReceiveTestResults}
+        isExpanded={expandedSections.afterMessageReceive}
+        onToggle={() => toggleSection('afterMessageReceive')}
+        type="test"
+      />
+
+      <TestSection
+        sectionKey="grpc:after-call-end"
+        title="After-Call Tests"
+        results={afterCallEndTestResults}
+        isExpanded={expandedSections.afterCallEnd}
+        onToggle={() => toggleSection('afterCallEnd')}
+        type="test"
+      />
+
+      <TestSection
+        sectionKey="tests"
         title="Tests"
         results={results}
         isExpanded={expandedSections.tests}
@@ -147,6 +212,7 @@ const TestResults = ({ item, results, assertionResults, preRequestTestResults, p
       />
 
       <TestSection
+        sectionKey="assertions"
         title="Assertions"
         results={assertionResults}
         isExpanded={expandedSections.assertions}

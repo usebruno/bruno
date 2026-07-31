@@ -16,10 +16,10 @@ import ResponseTrailers from './ResponseTrailers';
 import GrpcQueryResult from './GrpcQueryResult';
 import ResponseLayoutToggle from '../ResponseLayoutToggle';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-import GrpcScriptError from '../ScriptError/grpcIndex';
+import ScriptError from '../ScriptError';
 import ScriptErrorIcon from '../ScriptErrorIcon';
-import GrpcTestResults from '../TestResults/grpcIndex';
-import GrpcTestResultsLabel from '../TestResultsLabel/grpcIndex';
+import TestResults from '../TestResults';
+import TestResultsLabel from '../TestResultsLabel';
 
 const GrpcResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -85,7 +85,7 @@ const GrpcResponsePane = ({ item, collection }) => {
     {
       key: 'tests',
       label: (
-        <GrpcTestResultsLabel
+        <TestResultsLabel
           beforeCallStartTestResults={item.beforeCallStartTestResults}
           beforeMessageSendTestResults={item.beforeMessageSendTestResults}
           afterMessageReceiveTestResults={item.afterMessageReceiveTestResults}
@@ -112,7 +112,7 @@ const GrpcResponsePane = ({ item, collection }) => {
       }
       case 'tests': {
         return (
-          <GrpcTestResults
+          <TestResults
             item={item}
             beforeCallStartTestResults={item.beforeCallStartTestResults}
             beforeMessageSendTestResults={item.beforeMessageSendTestResults}
@@ -191,7 +191,7 @@ const GrpcResponsePane = ({ item, collection }) => {
       <section className={`response-pane-content ${hasScriptError && showScriptErrorCard ? 'has-script-error' : ''}`}>
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {hasScriptError && showScriptErrorCard && (
-          <GrpcScriptError
+          <ScriptError
             item={item}
             onClose={() => setShowScriptErrorCard(false)}
             collection={collection}
