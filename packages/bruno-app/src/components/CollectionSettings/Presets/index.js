@@ -1,11 +1,11 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { updateCollectionPresets } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { get } from 'lodash';
 import Button from 'ui/Button';
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
 import SegmentedControl from 'ui/SegmentedControl';
 import { IconCaretDown } from '@tabler/icons';
 import { DEFAULT_PRESET_REQUEST_TYPE } from 'utils/common/constants';
@@ -33,11 +33,8 @@ const PresetsSettings = ({ collection }) => {
   // it is written to the draft and persisted via the Save button (or autosave).
   const environments = collection?.environments || [];
   const defaultEnvironmentName = currentPresets.defaultEnvironment || '';
-  const defaultEnvDropdownRef = useRef(null);
-  const closeDefaultEnvDropdown = () => defaultEnvDropdownRef.current?.hide();
 
   const handleDefaultEnvironmentChange = (name) => {
-    closeDefaultEnvDropdown();
     if (name) {
       updatePresets({ defaultEnvironment: name });
     } else {
@@ -47,18 +44,14 @@ const PresetsSettings = ({ collection }) => {
     }
   };
 
-  const defaultEnvTrigger = (
-    <div
-      id="default-environment"
-      role="button"
-      tabIndex={0}
-      className="default-env-trigger flex items-center justify-between cursor-pointer"
-      data-testid="presets-default-environment"
-    >
-      <span className="truncate">{defaultEnvironmentName || 'None'}</span>
-      <IconCaretDown className="caret" size={14} strokeWidth={2} />
-    </div>
-  );
+  const defaultEnvironmentItems = [
+    { id: '', label: 'None', onClick: () => handleDefaultEnvironmentChange('') },
+    ...environments.map((env) => ({
+      id: env.name,
+      label: env.name,
+      onClick: () => handleDefaultEnvironmentChange(env.name)
+    }))
+  ];
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
@@ -111,23 +104,23 @@ const PresetsSettings = ({ collection }) => {
           <label className="preset-field-label" htmlFor="default-environment">Default Environment</label>
           <p className="preset-field-subtitle">Automatically selected in the Environment when the collection is exported and opened first.</p>
           <div className="default-env-dropdown">
-            <Dropdown onCreate={(ref) => (defaultEnvDropdownRef.current = ref)} icon={defaultEnvTrigger} placement="bottom-start" sameWidth>
+            <MenuDropdown
+              items={defaultEnvironmentItems}
+              selectedItemId={defaultEnvironmentName}
+              data-testid="presets-default-environment"
+              placement="bottom-start"
+              sameWidth
+            >
               <div
-                className={`dropdown-item ${!defaultEnvironmentName ? 'dropdown-item-active' : ''}`}
-                onClick={() => handleDefaultEnvironmentChange('')}
+                id="default-environment"
+                role="button"
+                tabIndex={0}
+                className="default-env-trigger flex items-center justify-between cursor-pointer"
               >
-                None
+                <span className="truncate">{defaultEnvironmentName || 'None'}</span>
+                <IconCaretDown className="caret" size={14} strokeWidth={2} />
               </div>
-              {environments.map((env) => (
-                <div
-                  key={env.uid}
-                  className={`dropdown-item ${env.name === defaultEnvironmentName ? 'dropdown-item-active' : ''}`}
-                  onClick={() => handleDefaultEnvironmentChange(env.name)}
-                >
-                  {env.name}
-                </div>
-              ))}
-            </Dropdown>
+            </MenuDropdown>
           </div>
         </div>
 

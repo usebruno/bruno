@@ -12,7 +12,7 @@ const StyledWrapper = styled.div`
 
     .preset-field-label {
       display: block;
-      font-weight: 600;
+      font-weight: 500;
       color: ${(props) => props.theme.text};
     }
 
@@ -39,6 +39,12 @@ const StyledWrapper = styled.div`
     /* Tippy renders the trigger as the reference element; make it fill the field. */
     > * {
       width: 100%;
+    }
+
+    /* MenuDropdown renders its items inside a role="menu" container */
+    [role='menu'] {
+      max-height: 16rem;
+      overflow-y: auto;
     }
 
     .default-env-trigger {
