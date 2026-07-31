@@ -45,7 +45,7 @@ const CertFileInput = ({ label, name, value, inputRef, onSelect, onClear, error,
         ref={inputRef}
       />
       {value ? (
-        <div className="file-chip">
+        <div className="file-chip" data-testid={`file-chip-${name}`}>
           <IconFile size={14} strokeWidth={1.5} className="flex-shrink-0" />
           <span className="truncate max-w-[260px]" title={value}>
             {path.basename(value)}
@@ -60,6 +60,7 @@ const CertFileInput = ({ label, name, value, inputRef, onSelect, onClear, error,
           variant="outline"
           icon={<IconUpload size={13} strokeWidth={1.5} />}
           onClick={() => inputRef.current?.click()}
+          data-testid={`choose-file-${name}`}
         >
           Choose file
         </Button>
