@@ -34,7 +34,7 @@ const columns = [
   }
 ];
 
-const ControlledTable = ({ initialRows }) => {
+const ControlledTable = ({ initialRows, showSelectAll = true }) => {
   const [rows, setRows] = useState(initialRows);
 
   return (
@@ -45,7 +45,7 @@ const ControlledTable = ({ initialRows }) => {
         rows={rows}
         onChange={setRows}
         defaultRow={{ name: '' }}
-        showSelectAll
+        showSelectAll={showSelectAll}
         checkboxLabel="Toggle all query parameters"
         showAddRow={false}
         showDelete={false}
@@ -105,6 +105,26 @@ describe('EditableTable select all checkbox', () => {
     screen.getAllByTestId('column-checkbox').forEach((checkbox) => {
       expect(checkbox).not.toBeChecked();
     });
+  });
+
+  it('shows an indeterminate state when select all becomes visible', () => {
+    const rows = [
+      { uid: 'first', name: 'First', enabled: true },
+      { uid: 'second', name: 'Second', enabled: false }
+    ];
+    const { rerender } = render(
+      <ControlledTable initialRows={rows} showSelectAll={false} />
+    );
+
+    expect(screen.queryByRole('checkbox', {
+      name: 'Toggle all query parameters'
+    })).not.toBeInTheDocument();
+
+    rerender(<ControlledTable initialRows={rows} showSelectAll />);
+
+    expect(screen.getByRole('checkbox', {
+      name: 'Toggle all query parameters'
+    })).toBePartiallyChecked();
   });
 
   it('disables the select all checkbox when there are no rows', () => {

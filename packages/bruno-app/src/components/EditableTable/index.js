@@ -138,7 +138,7 @@ const EditableTable = ({
     if (selectAllRef.current) {
       selectAllRef.current.indeterminate = someRowsChecked;
     }
-  }, [someRowsChecked, scrollParent]);
+  }, [someRowsChecked, showSelectAll, scrollParent]);
 
   const handleTotalHeightChanged = useCallback((h) => {
     setTableHeight(h);
