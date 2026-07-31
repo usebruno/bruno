@@ -2406,18 +2406,16 @@ const selectViewMode = async (page: Page, mode: 'request' | 'app' | 'file') => {
 };
 
 /**
- * Read the decoded HTML the app webview is loading (its data: URL src).
- * Useful for asserting the injected ctx bootstrap and user code.
- * @param page - The page object
- * @returns The decoded HTML document string
+ * The document URL of the active app's <webview>. Guest URLs are unique per
+ * app, so this identifies one guest exactly — preferable to picking the newest
+ * WebContents, which silently binds to a leftover guest from an earlier test in
+ * the same worker. Throws if no webview attaches within the timeout; callers
+ * polling for a guest should catch and retry.
  */
-const getAppWebviewHtml = async (page: Page): Promise<string> => {
+const getAppWebviewSrc = async (page: Page): Promise<string> => {
   const webview = activeAppView(page).locator('webview');
   await webview.waitFor({ state: 'attached', timeout: 5000 });
-  const src = await webview.getAttribute('src');
-  if (!src) return '';
-  const comma = src.indexOf(',');
-  return decodeURIComponent(src.slice(comma + 1));
+  return (await webview.getAttribute('src')) || '';
 };
 
 /**
@@ -2704,7 +2702,7 @@ export {
   previewApp,
   exitApp,
   selectViewMode,
-  getAppWebviewHtml,
+  getAppWebviewSrc,
   createApp,
   selectAppView,
   renameWsMessage,

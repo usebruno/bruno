@@ -28,11 +28,10 @@ import EmptyAppState from '../AppView/EmptyAppState';
 import { buildVariables } from '../AppView/buildVariables';
 import {
   SENTINEL,
-  wrapHtml,
-  toDataUrl,
   serializeTimeline,
   projectResponse,
-  useAppWebview
+  useAppWebview,
+  useAppDocumentUrl
 } from '../AppView/webview-bridge';
 
 /*
@@ -187,10 +186,7 @@ const CollectionApp = ({ item, collection }) => {
 
   // Preview HTML is keyed on the *saved* code so typing doesn't reload the guest
   // on every keystroke. The user toggles to Preview after saving to see updates.
-  const src = useMemo(
-    () => toDataUrl(wrapHtml(COLLECTION_CTX_BOOTSTRAP, code || '')),
-    [code]
-  );
+  const { url: src, error: appDocumentError } = useAppDocumentUrl(`collection-app:${item.uid}`, COLLECTION_CTX_BOOTSTRAP, code);
 
   const environment = useMemo(
     () => findEnvironmentInCollection(collection, collection.activeEnvironmentUid),
@@ -390,13 +386,19 @@ const CollectionApp = ({ item, collection }) => {
         </div>
       ) : code && code.trim().length ? (
         <div className="app-pane app-webview-container" data-testid="collection-app-preview">
-          <webview
-            ref={webviewRef}
-            src={src}
-            partition="persist:bruno-app-view"
-            webpreferences="disableDialogs=true, javascript=yes"
-            className="app-webview"
-          />
+          {src ? (
+            <webview
+              ref={webviewRef}
+              src={src}
+              partition="bruno-app-view"
+              webpreferences="disableDialogs=true, javascript=yes"
+              className="app-webview"
+            />
+          ) : appDocumentError ? (
+            <EmptyAppState title="App failed to load" hint={appDocumentError} />
+          ) : (
+            <div className="p-4 text-xs opacity-60">Loading app…</div>
+          )}
         </div>
       ) : (
         <div className="app-pane" data-testid="collection-app-preview">

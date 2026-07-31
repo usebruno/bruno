@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /*
  * Shared transport for Bruno apps that run inside an Electron <webview>:
@@ -65,8 +65,66 @@ ${code}
 </html>`;
 };
 
-export const toDataUrl = (html) =>
-  `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+/**
+ * Resolves the `bruno-app://` URL a guest <webview> should load, publishing
+ * the wrapped document in the main process's document registry.
+ *
+ * Guests were previously inlined as `data:text/html`, which gives them an
+ * opaque origin and therefore no secure context — `crypto.subtle` is absent and
+ * third-party SDKs that require a secure context refuse to initialise. The
+ * privileged scheme is registered as `secure`, which restores those APIs
+ * without opening a socket.
+ *
+ * Returns `{ url, error }`. `url` is null until the document is registered (and
+ * stays null when `code` is blank — nothing renders a webview then); render the
+ * <webview> only once it is set, or the guest loads about:blank and never comes
+ * back. `error` carries the registration failure so callers can show it instead
+ * of a silently blank panel.
+ */
+export const useAppDocumentUrl = (ownerKey, bootstrap, code) => {
+  const [url, setUrl] = useState(null);
+  const [error, setError] = useState(null);
+  const html = useMemo(
+    () => (code && code.trim().length ? wrapHtml(bootstrap, code) : null),
+    [bootstrap, code]
+  );
+
+  useEffect(() => {
+    if (html === null) {
+      setUrl(null);
+      setError(null);
+      return;
+    }
+    let cancelled = false;
+    window.ipcRenderer
+      .invoke('renderer:register-app-document', { ownerKey, html })
+      .then((next) => {
+        if (cancelled) return;
+        setUrl(next);
+        setError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error('Failed to register app document', err);
+        setUrl(null);
+        setError(err?.message || 'Failed to register the app document');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ownerKey, html]);
+
+  // Frees the document (and its bruno-app:// URL) when the app closes. Keyed on
+  // ownerKey only — running it per html change would tear the token down while
+  // the guest is still mounted.
+  useEffect(() => {
+    return () => {
+      window.ipcRenderer.invoke('renderer:unregister-app-document', { ownerKey }).catch(() => {});
+    };
+  }, [ownerKey]);
+
+  return { url, error };
+};
 
 export const serializeTimeline = (timeline) => {
   if (!Array.isArray(timeline)) return timeline;
