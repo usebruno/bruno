@@ -1705,39 +1705,6 @@ const selectGrpcMethod = async (page: Page, methodName: string) => {
 };
 
 /**
- * Refresh the gRPC method list via server reflection, then select a method.
- * Reflection resolves asynchronously and the dropdown can re-render mid-click, so the
- * refresh → open → pick → verify sequence is retried until it holds.
- * @param page - The page object
- * @param methodName - The name of the gRPC method to select (e.g. "SayHello")
- * @param options.timeout - How long to keep retrying (default: 15000ms)
- */
-const refreshGrpcMethodsAndSelect = async (
-  page: Page,
-  methodName: string,
-  options: { timeout?: number } = {}
-) => {
-  const { timeout = 15000 } = options;
-  await test.step(`Refresh reflection and select gRPC method "${methodName}"`, async () => {
-    const locators = buildGrpcCommonLocators(page);
-
-    const refreshIcon = locators.method.refresh();
-    await expect(refreshIcon).not.toHaveClass(/animate-spin/, { timeout });
-    await refreshIcon.click();
-
-    await expect(async () => {
-      await locators.method.dropdownTrigger().click();
-      await expect(locators.method.dropdown()).toBeVisible({ timeout: 2000 });
-
-      const item = locators.method.item(methodName).first();
-      await expect(item).toBeVisible({ timeout: 2000 });
-      await item.click({ timeout: 2000 });
-      await expect(locators.method.selectedName()).toContainText(methodName, { timeout: 2000 });
-    }).toPass({ timeout });
-  });
-};
-
-/**
  * Open a streaming gRPC call, send N messages, then end the connection.
  * @param page - The page object
  * @param messageCount - How many of the request's messages to send, in order
@@ -2784,7 +2751,6 @@ export {
   renameWsMessage,
   elementIsInsideDropdown,
   openSystemProxyPanel,
-  refreshGrpcMethodsAndSelect,
   streamGrpcMessagesAndEnd,
   setGrpcPhaseScript,
   openConsoleAndClearLogs
