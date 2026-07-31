@@ -16,8 +16,6 @@ export default function useReflectionManagement(item, collection) {
   const [reflectionCache, setReflectionCache] = useLocalStorage('bruno.grpc.reflectionCache', {});
   const [isLoadingMethods, setIsLoadingMethods] = useState(false);
 
-  // Interpolated URL is the cache key so distinct envs get distinct slots;
-  // falls back to the raw string when placeholders can't resolve.
   const resolveUrl = (url) => {
     if (!url) return null;
     const vars = getAllVariables(collection, item);
