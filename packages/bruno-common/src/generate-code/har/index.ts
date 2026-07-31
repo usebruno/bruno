@@ -277,14 +277,9 @@ const hashPathParamPositions = (
   pathParams: BrunoKV[] | undefined
 ): { url: string; restore: (input: string, opts: { encode: boolean }) => string } => {
   const noopRestore = (input: string) => input;
-  if (!url) {
+  if (!url || !Array.isArray(pathParams) || pathParams.length === 0) {
     return { url, restore: noopRestore };
   }
-  // Hash `:id` positions even with no path params to substitute: `encodePathSegments`
-  // runs `encodeURIComponent` per segment, so an unhashed `:id` would reach the
-  // snippet as `%3Aid`. With no matching param, `restore` puts the `:id` literal
-  // back — which is what a caller preserving templates wants.
-  const enabledPathParams = Array.isArray(pathParams) ? pathParams : [];
 
   let prefix = '';
   let working = url;
@@ -303,7 +298,7 @@ const hashPathParamPositions = (
   const path = authorityMatch?.[2] ?? pathPart;
 
   const enabledByName = new Map<string, string>(
-    enabledPathParams
+    pathParams
       .filter((p) => p && p.enabled !== false && (p.type === undefined || p.type === 'path'))
       .map((p) => [p.name, p.value == null ? '' : String(p.value)])
   );
