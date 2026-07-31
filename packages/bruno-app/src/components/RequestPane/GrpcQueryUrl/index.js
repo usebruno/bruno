@@ -120,10 +120,8 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   };
 
   const handleReflection = async (url, isManualRefresh = false) => {
-    // Guard against out-of-order completion: rapid env switches (or URL edits) can queue
-    // multiple in-flight reflection calls, and the older one resolving last would clobber
-    // the newer one's methods, selection, and toasts. Each call takes a monotonic id and
-    // bails after the await if a newer call has since started.
+    // Concurrent reflection calls (e.g. from rapid env switches) can resolve out of order;
+    // drop any result that isn't from the most recent call so older methods can't clobber newer.
     const requestId = ++latestReflectionRequestIdRef.current;
     const { methods, error, fromCache } = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
     if (requestId !== latestReflectionRequestIdRef.current) return;
@@ -287,13 +285,8 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   const debouncedOnUrlChange = debounce(onUrlChange, 1000);
 
-  // Reflection fetch on mount, and re-fetch whenever the active environment changes.
-  // The URL may contain `{{var}}` placeholders (e.g. `{{host}}`) that only resolve
-  // once the env is active in Redux — if the pane mounts before the env has landed,
-  // the mount-time call reaches electron with un-interpolated placeholders and
-  // gRPC-js reports "Name resolution failed for target dns:{{host}}". Env changes
-  // also mean the same `{{host}}` may now point at a different endpoint, so the
-  // env-change re-fetch bypasses the URL-keyed reflection cache.
+  // Re-fetch on env change because a `{{host}}` in the URL may now resolve to a different
+  // endpoint; bypass the URL-keyed cache in that case so the new endpoint isn't served stale.
   useEffect(() => {
     if (protoFilePath) {
       if (haveFetchedMethodsRef.current) return;

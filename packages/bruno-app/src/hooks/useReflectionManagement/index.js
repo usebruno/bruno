@@ -16,13 +16,11 @@ export default function useReflectionManagement(item, collection) {
   const [reflectionCache, setReflectionCache] = useLocalStorage('bruno.grpc.reflectionCache', {});
   const [isLoadingMethods, setIsLoadingMethods] = useState(false);
 
-  // Cache keys use the *interpolated* URL, not the raw one. The same template
-  // (e.g. `{{host}}`) resolves to different endpoints under different envs;
-  // keying on the raw string would let a cache hit serve methods for the wrong
-  // server. If interpolation leaves `{{...}}` behind (var not found in scope),
-  // the key falls back to that partially-resolved string — reflection will fail
-  // anyway, but distinct unresolved keys stay distinct.
-  const resolveCacheKey = (url) => {
+  // The URL template (e.g. `{{host}}`) resolves to different endpoints under
+  // different envs, so the interpolated form is both what reflection dials and
+  // what the cache is keyed on. Falls back to the raw string if interpolation
+  // leaves placeholders behind — distinct unresolved templates stay distinct.
+  const resolveUrl = (url) => {
     if (!url) return null;
     const vars = getAllVariables(collection, item);
     return interpolate(url, vars) || url;
@@ -39,25 +37,25 @@ export default function useReflectionManagement(item, collection) {
       return { methods: [], error: new Error('No URL provided') };
     }
 
-    const cacheKey = resolveCacheKey(url);
-    const cachedMethods = cacheKey ? reflectionCache[cacheKey] : null;
+    const resolvedUrl = resolveUrl(url);
+    const cachedMethods = resolvedUrl ? reflectionCache[resolvedUrl] : null;
     if (!isManualRefresh && cachedMethods && !isLoadingMethods) {
       return { methods: cachedMethods, error: null, fromCache: true };
     }
 
     setIsLoadingMethods(true);
     try {
-      const { methods, error } = await dispatch(loadGrpcMethodsFromReflection(item, collection.uid, cacheKey));
+      const { methods, error } = await dispatch(loadGrpcMethodsFromReflection(item, collection.uid, resolvedUrl));
 
       if (error) {
         console.error('Error loading gRPC methods:', error);
         return { methods: [], error };
       }
 
-      if (cacheKey) {
+      if (resolvedUrl) {
         setReflectionCache((prevCache) => ({
           ...prevCache,
-          [cacheKey]: methods
+          [resolvedUrl]: methods
         }));
       }
 
@@ -76,8 +74,8 @@ export default function useReflectionManagement(item, collection) {
    * @returns {boolean}
    */
   const hasCachedMethods = (url) => {
-    const cacheKey = resolveCacheKey(url);
-    return !!(cacheKey && reflectionCache[cacheKey] && reflectionCache[cacheKey].length > 0);
+    const resolvedUrl = resolveUrl(url);
+    return !!(resolvedUrl && reflectionCache[resolvedUrl] && reflectionCache[resolvedUrl].length > 0);
   };
 
   /**
@@ -86,8 +84,8 @@ export default function useReflectionManagement(item, collection) {
    * @returns {Array}
    */
   const getCachedMethods = (url) => {
-    const cacheKey = resolveCacheKey(url);
-    return (cacheKey && reflectionCache[cacheKey]) || [];
+    const resolvedUrl = resolveUrl(url);
+    return (resolvedUrl && reflectionCache[resolvedUrl]) || [];
   };
 
   /**
@@ -95,11 +93,11 @@ export default function useReflectionManagement(item, collection) {
    * @param {string} url - The gRPC server URL
    */
   const clearCacheForUrl = (url) => {
-    const cacheKey = resolveCacheKey(url);
-    if (!cacheKey) return;
+    const resolvedUrl = resolveUrl(url);
+    if (!resolvedUrl) return;
     setReflectionCache((prevCache) => {
       const newCache = { ...prevCache };
-      delete newCache[cacheKey];
+      delete newCache[resolvedUrl];
       return newCache;
     });
   };
