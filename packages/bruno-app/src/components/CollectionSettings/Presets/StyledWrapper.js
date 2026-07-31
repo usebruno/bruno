@@ -54,7 +54,6 @@ const StyledWrapper = styled.div`
     .preset-field-label-row {
       display: flex;
       align-items: center;
-      gap: 0.25rem;
       margin-bottom: 0.375rem;
 
       /* the Help info icon */
@@ -73,6 +72,10 @@ const StyledWrapper = styled.div`
     max-width: 420px;
   }
 
+  .preset-field .preset-input.textbox {
+    padding: 0.3rem 0.6rem;
+  }
+
   .default-env-dropdown {
     max-width: 420px;
 
@@ -85,7 +88,7 @@ const StyledWrapper = styled.div`
       width: 100%;
       box-sizing: border-box;
       gap: 0.5rem;
-      padding: 0.25rem 0.5rem;
+      padding: 0.3rem 0.6rem;
       border-radius: 3px;
       background-color: ${(props) => props.theme.input.bg};
       border: 1px solid ${(props) => props.theme.input.border};

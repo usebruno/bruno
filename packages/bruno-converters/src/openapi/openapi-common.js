@@ -13,6 +13,16 @@ export const CONTENT_TYPE_PATTERNS = {
   HTML: /^[\w\-.+]+\/([\w\-.+]+\+)?html$/
 };
 
+// An item's name is what the import writers turn into its filename, by appending the
+// format extension and running the result through the filesystem sanitizer. That
+// sanitizer trims trailing dots and spaces at end-of-string only.
+export const normalizeItemName = (name) => {
+  return name
+    .replace(/[\r\n\s]+/g, ' ')
+    .trim()
+    .replace(/[.\s]+$/, '');
+};
+
 export const ensureUrl = (url) => {
   // removing multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
   return url.replace(/([^:])\/{2,}/g, '$1/');
@@ -531,6 +541,37 @@ export const groupRequestsByTags = (requests, options = {}) => {
   });
 
   return [groups, ungrouped];
+};
+
+/**
+ * Coerces a value into a string.
+ * The spec is unvalidated, so a description can arrive as any YAML type. A bad
+ * value is dropped rather than failing the whole import.
+ * @param {*} value - A value straight off the parsed spec
+ * @returns {string} The value, or '' when it isn't a usable string
+ */
+export const toSpecString = (value) => (typeof value === 'string' ? value : '');
+
+/**
+ * Builds a lookup of tag description keyed by sanitized tag name.
+ * Folders are named from the sanitized first tag (see groupRequestsByTags), so the
+ * spec's top-level tags[] descriptions are keyed the same way to line up with folder names.
+ * @param {Array} tags - The spec's top-level tags array (each { name, description })
+ * @param {Object} options - Sanitization options (forwarded to sanitizeTag)
+ * @returns {Object} Map of sanitized tag name -> description
+ */
+export const getTagDescriptions = (tags, options = {}) => {
+  const descriptions = Object.create(null);
+  each(tags || [], (tag) => {
+    if (tag && typeof tag === 'object' && typeof tag.name === 'string') {
+      const docs = toSpecString(tag.description);
+      const key = sanitizeTag(tag.name, options);
+      if (key && docs) {
+        descriptions[key] = docs;
+      }
+    }
+  });
+  return descriptions;
 };
 
 /**

@@ -299,7 +299,13 @@ class CodeEditor extends React.Component {
     }
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps, prevState) {
+    // Notify parent when the search bar opens or closes (e.g. so a fixed-height
+    // container like a WS message accordion can reserve enough room for the bar).
+    if (prevState.searchBarVisible !== this.state.searchBarVisible) {
+      this.props.onSearchBarVisibilityChange?.(this.state.searchBarVisible);
+    }
+
     // Ensure the changes caused by this update are not interpreted as
     // user-input changes which could otherwise result in an infinite
     // event loop.
@@ -437,6 +443,12 @@ class CodeEditor extends React.Component {
 
       this.editor = null;
     }
+
+    // Notify the parent that the search bar is gone so it can reset any
+    // height reservation it made (e.g. SingleWSMessage accordion body).
+    if (this.state.searchBarVisible) {
+      this.props.onSearchBarVisibilityChange?.(false);
+    }
   }
 
   render() {
@@ -445,7 +457,7 @@ class CodeEditor extends React.Component {
     }
     return (
       <StyledWrapper
-        className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''}`}
+        className={`h-full w-full flex flex-col relative graphiql-container ${this.props.readOnly ? 'read-only' : ''} ${this.state.searchBarVisible ? 'search-bar-visible' : ''}`}
         aria-label="Code Editor"
         data-testid={this.props.testId}
         font={this.props.font}
@@ -462,7 +474,7 @@ class CodeEditor extends React.Component {
           onClose={() => this.setState({ searchBarVisible: false })}
         />
         <div
-          className={`editor-container${this.state.searchBarVisible ? ' search-bar-visible' : ''}`}
+          className="editor-container"
           ref={(node) => { this._node = node; }}
           style={{ height: '100%', width: '100%' }}
         />

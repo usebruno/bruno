@@ -2,7 +2,8 @@
   "maximized": false,
   "lastOpenedCollections": [
     "{{collectionPath}}/requests-settings-bru",
-    "{{collectionPath}}/requests-settings-yml"
+    "{{collectionPath}}/requests-settings-yml",
+    "{{collectionPath}}/encode-url-default-behaviour-bru"
   ],
   "preferences": {
     "onboarding": {

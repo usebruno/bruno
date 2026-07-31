@@ -125,7 +125,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
     };
 
     const format = getCollectionFormat(collectionPath);
-    let content = fs.readFileSync(pathname, 'utf8');
+    const content = fs.readFileSync(pathname, 'utf8');
 
     file.data = await parseEnvironment(content, { format });
     stageToCache(collectionPath, pathname, file.data);
@@ -260,8 +260,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     };
 
     try {
-      let content = fs.readFileSync(pathname, 'utf8');
-      let parsed = await parseCollection(content, { format });
+      const content = fs.readFileSync(pathname, 'utf8');
+      const parsed = await parseCollection(content, { format });
 
       let collectionRoot, brunoConfig;
       if (format === 'yml') {
@@ -311,8 +311,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     };
 
     try {
-      let format = getCollectionFormat(collectionPath);
-      let content = fs.readFileSync(pathname, 'utf8');
+      const format = getCollectionFormat(collectionPath);
+      const content = fs.readFileSync(pathname, 'utf8');
       file.data = await parseFolder(content, { format });
       stageToCache(collectionPath, pathname, file.data);
 
@@ -338,7 +338,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     };
 
     const fileStats = fs.statSync(pathname);
-    let content = fs.readFileSync(pathname, 'utf8');
+    const content = fs.readFileSync(pathname, 'utf8');
 
     // If worker thread is not used, we can directly parse the file
     if (!useWorkerThread) {
@@ -442,8 +442,8 @@ const addDirectory = async (win, pathname, collectionUid, collectionPath) => {
 
   try {
     if (fs.existsSync(folderFilePath)) {
-      let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
-      let folderData = await parseFolder(folderFileContent, { format });
+      const folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
+      const folderData = await parseFolder(folderFileContent, { format });
       name = folderData?.meta?.name || name;
       seq = folderData?.meta?.seq;
     }
@@ -505,9 +505,9 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     };
 
     try {
-      let content = fs.readFileSync(pathname, 'utf8');
-      let format = getCollectionFormat(collectionPath);
-      let parsed = await parseCollection(content, { format });
+      const content = fs.readFileSync(pathname, 'utf8');
+      const format = getCollectionFormat(collectionPath);
+      const parsed = await parseCollection(content, { format });
 
       let collectionRoot, brunoConfig;
       if (format === 'yml') {
@@ -557,8 +557,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     };
 
     try {
-      let format = getCollectionFormat(collectionPath);
-      let content = fs.readFileSync(pathname, 'utf8');
+      const format = getCollectionFormat(collectionPath);
+      const content = fs.readFileSync(pathname, 'utf8');
       file.data = await parseFolder(content, { format });
       stageToCache(collectionPath, pathname, file.data);
 
@@ -682,8 +682,8 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
     let name = path.basename(pathname);
 
     if (fs.existsSync(folderFilePath)) {
-      let folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
-      let folderData = await parseFolder(folderFileContent, { format });
+      const folderFileContent = fs.readFileSync(folderFilePath, 'utf8');
+      const folderData = await parseFolder(folderFileContent, { format });
       name = folderData?.meta?.name || name;
     }
 
@@ -838,6 +838,12 @@ class CollectionWatcher {
           // Check if any path segment matches a default ignore pattern (handles symlinks)
           const pathSegments = relativePath.split(path.sep);
           if (pathSegments.some((segment) => defaultIgnores.includes(segment))) {
+            return true;
+          }
+
+          // mocks/ at the collection root holds mock-server data; a nested folder
+          // that happens to be named "mocks" elsewhere in the collection stays watched
+          if (pathSegments[0] === 'mocks') {
             return true;
           }
 

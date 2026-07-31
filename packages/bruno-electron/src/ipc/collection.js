@@ -42,7 +42,6 @@ const {
   isWindowsOS,
   hasRequestExtension,
   getCollectionFormat,
-  searchForFiles,
   searchForRequestFiles,
   validateName,
   getCollectionStats,
@@ -78,7 +77,6 @@ const { setBrunoConfig } = require('../store/bruno-config');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, refreshOauth2Token } = require('../utils/oauth2');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const collectionWatcher = require('../app/collection-watcher');
-const { remount: remountCollectionV2 } = require('./mount');
 const { transformBrunoConfigBeforeSave, transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { REQUEST_TYPES } = require('../utils/constants');
 const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress } = require('../utils/oauth2-protocol-handler');
@@ -176,6 +174,19 @@ const validatePathIsInsideCollection = (filePath) => {
   if (!collectionPath) {
     throw new Error(`Path: ${filePath} should be inside a collection`);
   }
+};
+
+const resolveEnvironmentFilePath = (collectionPathname, environmentName, format) => {
+  validatePathIsInsideCollection(collectionPathname);
+
+  const envDirPath = path.join(collectionPathname, 'environments');
+  const envFilePath = path.join(envDirPath, `${environmentName}.${format}`);
+
+  if (path.dirname(path.resolve(envFilePath)) !== path.resolve(envDirPath)) {
+    throw new Error(`environment: ${environmentName} is not a valid environment name`);
+  }
+
+  return envFilePath;
 };
 
 const registerRendererEventHandlers = (mainWindow, watcher) => {
@@ -488,6 +499,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     try {
       const { name: folderName, root: folderRoot = {}, folderPathname, collectionPathname } = folder;
 
+      validatePathIsInsideCollection(folderPathname);
+
       const format = getCollectionFormat(collectionPathname);
       const folderFilePath = path.join(folderPathname, `folder.${format}`);
 
@@ -507,6 +520,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // save collection root
   ipcMain.handle('renderer:save-collection-root', async (event, collectionPathname, collectionRoot, brunoConfig) => {
     try {
+      validatePathIsInsideCollection(collectionPathname);
+
       const format = getCollectionFormat(collectionPathname);
       const filename = format === 'yml' ? 'opencollection.yml' : 'collection.bru';
       const content = await stringifyCollection(collectionRoot, brunoConfig, { format });
@@ -554,6 +569,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
       }
+
+      validatePathIsInsideCollection(pathname);
 
       // Sync example UIDs cache to maintain consistency when examples are added/deleted/reordered
       syncExampleUidsCache(pathname, request.examples);
@@ -626,6 +643,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           throw new Error(`path: ${pathname} does not exist`);
         }
 
+        validatePathIsInsideCollection(pathname);
+
         const content = await stringifyRequestViaWorker(request, { format: r.format });
         await writeFile(pathname, content);
       }
@@ -691,6 +710,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // update variable in request/folder/collection file
   ipcMain.handle('renderer:update-variable-in-file', async (event, pathname, variable, scopeType, collectionRoot, format) => {
     try {
+      validatePathIsInsideCollection(pathname);
+
       if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
       }
@@ -716,6 +737,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // create environment
   ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name, variables, color) => {
     try {
+      validatePathIsInsideCollection(collectionPathname);
+
       const envDirPath = path.join(collectionPathname, 'environments');
       if (!fs.existsSync(envDirPath)) {
         await createDirectory(envDirPath);
@@ -756,14 +779,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // save environment
   ipcMain.handle('renderer:save-environment', async (event, collectionPathname, environment) => {
     try {
-      const envDirPath = path.join(collectionPathname, 'environments');
+      const format = getCollectionFormat(collectionPathname);
+      const envFilePath = resolveEnvironmentFilePath(collectionPathname, environment.name, format);
+
+      const envDirPath = path.dirname(envFilePath);
       if (!fs.existsSync(envDirPath)) {
         await createDirectory(envDirPath);
       }
-
-      const format = getCollectionFormat(collectionPathname);
-      // Determine filetype from collection
-      const envFilePath = path.join(envDirPath, `${environment.name}.${format}`);
 
       if (!fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
@@ -793,14 +815,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:rename-environment', async (event, collectionPathname, environmentName, newName) => {
     try {
       const format = getCollectionFormat(collectionPathname);
-      const envDirPath = path.join(collectionPathname, 'environments');
-      const envFilePath = path.join(envDirPath, `${environmentName}.${format}`);
+      const envFilePath = resolveEnvironmentFilePath(collectionPathname, environmentName, format);
 
       if (!fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
-      const newEnvFilePath = path.join(envDirPath, `${newName}.${format}`);
+      const newEnvFilePath = resolveEnvironmentFilePath(collectionPathname, newName, format);
       if (!safeToRename(envFilePath, newEnvFilePath)) {
         throw new Error(`environment: ${newEnvFilePath} already exists`);
       }
@@ -818,8 +839,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:delete-environment', async (event, collectionPathname, environmentName) => {
     try {
       const format = getCollectionFormat(collectionPathname);
-      const envDirPath = path.join(collectionPathname, 'environments');
-      const envFilePath = path.join(envDirPath, `${environmentName}.${format}`);
+      const envFilePath = resolveEnvironmentFilePath(collectionPathname, environmentName, format);
       if (!fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
@@ -839,6 +859,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error('Invalid .env filename');
       }
 
+      validatePathIsInsideCollection(collectionPathname);
+
       const dotEnvPath = path.join(collectionPathname, filename);
       const content = utils.jsonToDotenv(variables);
       await writeFile(dotEnvPath, content);
@@ -857,6 +879,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error('Invalid .env filename');
       }
 
+      validatePathIsInsideCollection(collectionPathname);
+
       const dotEnvPath = path.join(collectionPathname, filename);
       await writeFile(dotEnvPath, content);
       return { success: true };
@@ -872,6 +896,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (!isValidDotEnvFilename(filename)) {
         throw new Error('Invalid .env filename');
       }
+
+      validatePathIsInsideCollection(collectionPathname);
 
       const dotEnvPath = path.join(collectionPathname, filename);
 
@@ -895,6 +921,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error('Invalid .env filename');
       }
 
+      validatePathIsInsideCollection(collectionPathname);
+
       const dotEnvPath = path.join(collectionPathname, filename);
 
       if (!fs.existsSync(dotEnvPath)) {
@@ -914,8 +942,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:update-environment-color', async (event, collectionPathname, environmentName, color) => {
     try {
       const format = getCollectionFormat(collectionPathname);
-      const envDirPath = path.join(collectionPathname, 'environments');
-      const envFilePath = path.join(envDirPath, `${environmentName}.${format}`);
+      const envFilePath = resolveEnvironmentFilePath(collectionPathname, environmentName, format);
 
       if (!fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
@@ -936,6 +963,16 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // Generic environment export handler
   ipcMain.handle('renderer:export-environment', async (event, { environments, environmentType, filePath, exportFormat = 'folder' }) => {
     try {
+      if (!filePath || typeof filePath !== 'string' || !path.isAbsolute(filePath)) {
+        throw new Error('Export path must be an absolute directory path');
+      }
+      if (!fs.existsSync(filePath) || !isDirectory(filePath)) {
+        throw new Error(`Export path: ${filePath} is not an existing directory`);
+      }
+      if (environmentType !== 'collection' && environmentType !== 'global') {
+        throw new Error(`Unsupported environment type: ${environmentType}`);
+      }
+
       const { app } = require('electron');
       const appVersion = app?.getVersion() || '2.0.0';
 
@@ -1008,6 +1045,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // rename item
   ipcMain.handle('renderer:rename-item-name', async (event, { itemPath, newName, collectionPathname }) => {
     try {
+      validatePathIsInsideCollection(itemPath);
+
       if (!fs.existsSync(itemPath)) {
         throw new Error(`path: ${itemPath} does not exist`);
       }
@@ -1054,6 +1093,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
     const isWindowsOSAndNotWSLPathAndItemHasSubDirectories = isDirectory(oldPath) && isWindowsOS() && !isWSLPath(oldPath) && hasSubDirectories(oldPath);
     try {
+      validatePathIsInsideCollection(oldPath);
+      validatePathIsInsideCollection(newPath);
+
       // Check if the old path exists
       if (!fs.existsSync(oldPath)) {
         throw new Error(`path: ${oldPath} does not exist`);
@@ -1153,6 +1195,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     const resolvedFolderName = sanitizeName(path.basename(pathname));
     pathname = path.join(path.dirname(pathname), resolvedFolderName);
     try {
+      validatePathIsInsideCollection(pathname);
+
       if (!fs.existsSync(pathname)) {
         fs.mkdirSync(pathname);
         const folderFilePath = path.join(pathname, `folder.${format}`);
@@ -1169,6 +1213,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // delete file/folder
   ipcMain.handle('renderer:delete-item', async (event, pathname, type, collectionPathname) => {
     try {
+      validatePathIsInsideCollection(pathname);
+
       if (type === 'folder') {
         if (!fs.existsSync(pathname)) {
           return Promise.reject(new Error('The directory does not exist'));
@@ -1498,6 +1544,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:clone-folder', async (event, itemFolder, collectionPath, collectionPathname) => {
     try {
+      validatePathIsInsideCollection(collectionPath);
+
       if (fs.existsSync(collectionPath)) {
         throw new Error(`folder: ${collectionPath} already exists`);
       }
@@ -1561,6 +1609,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const format = getCollectionFormat(collectionPathname);
 
       for (let item of itemsToResequence) {
+        validatePathIsInsideCollection(item.pathname);
+
         if (item?.type === 'folder') {
           const folderRootPath = path.join(item.pathname, `folder.${format}`);
           let folderJsonData = {
@@ -1613,6 +1663,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:move-file-item', async (event, itemPath, destinationPath) => {
     try {
+      validatePathIsInsideCollection(itemPath);
+      validatePathIsInsideCollection(destinationPath);
+
       const itemContent = fs.readFileSync(itemPath, 'utf8');
       const newItemPath = path.join(destinationPath, path.basename(itemPath));
 
@@ -1627,6 +1680,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:move-item', async (event, { targetDirname, sourcePathname }) => {
     try {
+      validatePathIsInsideCollection(sourcePathname);
+      validatePathIsInsideCollection(targetDirname);
+
       if (fs.existsSync(targetDirname)) {
         const sourceDirname = path.dirname(sourcePathname);
         const pathnamesBefore = await getPaths(sourcePathname);
@@ -1651,6 +1707,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       if (!fs.existsSync(targetDirname)) {
         throw new Error(`Target directory: ${targetDirname} does not exist`);
       }
+
+      validatePathIsInsideCollection(sourcePathname);
+      validatePathIsInsideCollection(targetDirname);
 
       const sourceBasename = path.basename(sourcePathname);
       const filenameWithoutExt = sourceBasename.replace(/\.(bru|yml|yaml)$/, '');
@@ -1679,6 +1738,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:move-folder-item', async (event, folderPath, destinationPath) => {
     try {
+      validatePathIsInsideCollection(folderPath);
+      validatePathIsInsideCollection(destinationPath);
+
       const folderName = path.basename(folderPath);
       const newFolderPath = path.join(destinationPath, folderName);
 
@@ -2721,159 +2783,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw error;
       }
     } catch (error) {
-      throw error;
-    }
-  });
-
-  ipcMain.handle('renderer:migrate-collection-to-yml', async (event, collectionPathname, collectionUid) => {
-    const format = getCollectionFormat(collectionPathname);
-    if (format === 'yml') {
-      throw new Error('Collection is already in YML format');
-    }
-
-    // Stop the watcher during migration to avoid triggering events
-    if (watcher) {
-      watcher.removeWatcher(collectionPathname, mainWindow, collectionUid);
-    }
-
-    // Track all written yml files so we can roll back on failure
-    const writtenYmlFiles = [];
-
-    const tabPathMap = {};
-
-    try {
-      const brunoJsonPath = path.join(collectionPathname, 'bruno.json');
-      const brunoJsonContent = fs.readFileSync(brunoJsonPath, 'utf8');
-      const brunoConfig = JSON.parse(brunoJsonContent);
-
-      const collectionBruPath = path.join(collectionPathname, 'collection.bru');
-      let collectionRoot = {};
-      if (fs.existsSync(collectionBruPath)) {
-        const collectionBruContent = fs.readFileSync(collectionBruPath, 'utf8');
-        collectionRoot = parseCollection(collectionBruContent, { format: 'bru' });
-      }
-
-      const ymlBrunoConfig = { ...brunoConfig };
-      delete ymlBrunoConfig.version; // drop the bru format marker
-      ymlBrunoConfig.opencollection = '1.0.0';
-      // Carry the user-facing version: bru's collectionVersion becomes yml's info.version.
-      if (ymlBrunoConfig.collectionVersion) {
-        ymlBrunoConfig.version = ymlBrunoConfig.collectionVersion;
-      }
-      delete ymlBrunoConfig.collectionVersion;
-
-      const ocYmlPath = path.join(collectionPathname, 'opencollection.yml');
-      const ymlCollectionContent = stringifyCollection(collectionRoot, ymlBrunoConfig, { format: 'yml' });
-      await writeFile(ocYmlPath, ymlCollectionContent);
-      writtenYmlFiles.push(ocYmlPath);
-
-      const bruFiles = searchForFiles(collectionPathname, '.bru');
-      const envDirPath = path.join(collectionPathname, 'environments');
-      const bruFilesToDelete = [];
-
-      for (const bruFilePath of bruFiles) {
-        const basename = path.basename(bruFilePath);
-        const dirname = path.dirname(bruFilePath);
-
-        if (basename === 'collection.bru' && path.normalize(dirname) === path.normalize(collectionPathname)) {
-          bruFilesToDelete.push(bruFilePath);
-          continue;
-        }
-
-        if (path.normalize(dirname) === path.normalize(envDirPath)) {
-          continue;
-        }
-
-        if (basename === 'folder.bru') {
-          const folderBruContent = fs.readFileSync(bruFilePath, 'utf8');
-          const folderData = parseFolder(folderBruContent, { format: 'bru' });
-          const ymlContent = stringifyFolder(folderData, { format: 'yml' });
-          const ymlFilePath = path.join(dirname, 'folder.yml');
-          await writeFile(ymlFilePath, ymlContent);
-          writtenYmlFiles.push(ymlFilePath);
-          bruFilesToDelete.push(bruFilePath);
-          continue;
-        }
-
-        const bruContent = fs.readFileSync(bruFilePath, 'utf8');
-        const requestData = parseRequest(bruContent, { format: 'bru' });
-        const ymlContent = stringifyRequest(requestData, { format: 'yml' });
-        const ymlFilePath = bruFilePath.replace(/\.bru$/, '.yml');
-        await writeFile(ymlFilePath, ymlContent);
-        moveRequestUid(bruFilePath, ymlFilePath);
-        tabPathMap[bruFilePath] = ymlFilePath;
-        writtenYmlFiles.push(ymlFilePath);
-        bruFilesToDelete.push(bruFilePath);
-      }
-
-      if (fs.existsSync(envDirPath)) {
-        const envBruFiles = searchForFiles(envDirPath, '.bru');
-        for (const envBruFilePath of envBruFiles) {
-          const envBruContent = fs.readFileSync(envBruFilePath, 'utf8');
-          const envData = parseEnvironment(envBruContent, { format: 'bru' });
-          const ymlContent = stringifyEnvironment(envData, { format: 'yml' });
-          const ymlFilePath = envBruFilePath.replace(/\.bru$/, '.yml');
-          await writeFile(ymlFilePath, ymlContent);
-          moveRequestUid(envBruFilePath, ymlFilePath);
-          writtenYmlFiles.push(ymlFilePath);
-          bruFilesToDelete.push(envBruFilePath);
-        }
-      }
-
-      for (const bruFile of bruFilesToDelete) {
-        fs.unlinkSync(bruFile);
-      }
-      fs.unlinkSync(brunoJsonPath);
-
-      try {
-        snapshotManager.remapCollectionTabPaths(collectionPathname, tabPathMap);
-      } catch (_) {
-      }
-
-      const { size, filesCount } = await getCollectionStats(collectionPathname);
-      ymlBrunoConfig.size = size;
-      ymlBrunoConfig.filesCount = filesCount;
-
-      try {
-        const remounted = await remountCollectionV2({ collectionUid, brunoConfig: ymlBrunoConfig });
-        if (!remounted && watcher) {
-          watcher.addWatcher(mainWindow, collectionPathname, collectionUid, ymlBrunoConfig, false, undefined, { ignoreInitial: true });
-        }
-      } catch (watcherError) {
-        console.error('Failed to re-attach watcher after migration:', watcherError);
-        try {
-          if (watcher) {
-            watcher.addWatcher(mainWindow, collectionPathname, collectionUid, ymlBrunoConfig, false, undefined, { ignoreInitial: true });
-          }
-        } catch (fallbackError) {
-          console.error('Fallback watcher attach failed after migration:', fallbackError);
-          mainWindow.webContents.send('main:display-error', {
-            message: `Collection migrated to yml, but live sync could not be re-enabled: ${fallbackError.message}. Please reopen the collection.`
-          });
-        }
-      }
-
-      return ymlBrunoConfig;
-    } catch (error) {
-      for (const ymlFile of writtenYmlFiles) {
-        try {
-          if (fs.existsSync(ymlFile)) {
-            fs.unlinkSync(ymlFile);
-          }
-        } catch (_) {
-        }
-      }
-
-      // Restart the watcher on the original bru collection
-      try {
-        const config = JSON.parse(fs.readFileSync(path.join(collectionPathname, 'bruno.json'), 'utf8'));
-        const remounted = await remountCollectionV2({ collectionUid, brunoConfig: config });
-        if (!remounted && watcher) {
-          watcher.addWatcher(mainWindow, collectionPathname, collectionUid, config);
-        }
-      } catch (watcherError) {
-        console.error('Failed to restart watcher after migration error:', watcherError);
-      }
       throw error;
     }
   });

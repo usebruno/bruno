@@ -857,6 +857,33 @@ const addRowToActiveTab = async (
   });
 };
 
+// Clicks the sort toggle once: default -> asc -> desc -> default.
+const cycleVariableSort = async (page: Page) => {
+  await test.step('Cycle variable sort mode', async () => {
+    await buildCommonLocators(page).environment.sortToggle().click();
+  });
+};
+
+// Displayed variable names, top to bottom, excluding the trailing empty row.
+const getVisibleVariableNames = async (page: Page): Promise<string[]> => {
+  const values = await buildCommonLocators(page)
+    .environment.visibleNameInputs()
+    .evaluateAll((inputs) => inputs.map((el) => (el as HTMLInputElement).value));
+  return values.filter((name) => name !== '');
+};
+
+// Drags row `fromName` onto row `toName` (Manual sort mode only).
+const dragVariableRow = async (page: Page, fromName: string, toName: string) => {
+  await test.step(`Drag variable row "${fromName}" onto "${toName}"`, async () => {
+    const common = buildCommonLocators(page);
+    await common.environment.varRow(fromName).hover();
+    await common.environment.dragHandle(fromName).dragTo(common.environment.varRow(toName), {
+      targetPosition: { x: 5, y: 5 },
+      force: true
+    });
+  });
+};
+
 /**
  * Delete every global environment in the workspace. Global environments persist at
  * the workspace level (closeAllCollections does not remove them), so call this to keep
@@ -1906,6 +1933,32 @@ const sendAndWaitForResponse = async (page: Page) => {
   });
 };
 
+/**
+ * Clears the response of the open request.
+ *
+ * Tests in the same file share one app instance, so without this a later test inherits the
+ * previous response. The send helpers only wait for a status code to become *visible*, which a
+ * stale response already satisfies — so they return before the new response lands and the
+ * assertions read the previous test's status, body and test results.
+ *
+ * Note the clear control is absent while a response carries a transport-level error, so this is a
+ * no-op for a request that failed before any response arrived.
+ * @param page - The page object
+ */
+const resetResponse = async (page: Page) => {
+  await test.step('Clear the response', async () => {
+    const { response } = buildCommonLocators(page);
+    const clearButton = response.clearButton();
+
+    // A snapshot rather than a wait: the caller has just asserted on a rendered response, and a
+    // test that failed before one arrived should skip the reset instead of stalling on it.
+    if (await clearButton.isVisible()) {
+      await clearButton.click();
+      await expect(clearButton).toBeHidden();
+    }
+  });
+};
+
 const fieldEditor = (page: Page, labelText: string) =>
   page
     .locator('label')
@@ -2011,38 +2064,6 @@ const openExampleFromSidebar = async (page: Page, requestName: string, exampleNa
 };
 
 /**
- * Open the Generate Code dialog and return the visible snippet text.
- * @param page - The page object
- * @returns The text content of the generated code snippet
- */
-const getGeneratedSnippet = async (page: Page): Promise<string> => {
-  return await test.step('Open Generate Code dialog and read snippet', async () => {
-    const { request } = buildCommonLocators(page);
-
-    await request.generateCodeButton().click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-
-    const codeEditor = page.locator('.editor-content .CodeMirror').first();
-    await expect(codeEditor).toBeVisible();
-
-    return (await codeEditor.textContent()) ?? '';
-  });
-};
-
-/**
- * Close the Generate Code dialog and wait for it to disappear.
- * @param page - The page object
- * @returns void
- */
-const closeGenerateCodeDialog = async (page: Page) => {
-  await test.step('Close Generate Code dialog', async () => {
-    const { modal } = buildCommonLocators(page);
-    await modal.closeButton().click();
-    await modal.closeButton().waitFor({ state: 'hidden' });
-  });
-};
-
-/**
  * Open a request inside a folder by exact request name.
  * @param page - The page object
  * @param folderName - The name of the folder containing the request
@@ -2060,25 +2081,6 @@ const openRequestInFolder = async (page: Page, folderName: string, requestName: 
       has: page.locator('.item-name').filter({ hasText: new RegExp(`^${escapedName}$`) })
     });
     await requestRow.click();
-  });
-};
-
-/**
- * Toggle the URL encoding setting on the current request idempotently.
- * @param page - The page object
- * @param enabled - Whether URL encoding should be enabled
- * @returns void
- */
-const setUrlEncoding = async (page: Page, enabled: boolean) => {
-  await test.step(`Set URL encoding ${enabled ? 'ON' : 'OFF'}`, async () => {
-    await selectRequestPaneTab(page, 'Settings');
-    const toggle = page.getByTestId('encode-url-toggle');
-    await expect(toggle).toBeVisible();
-    const current = (await toggle.getAttribute('aria-checked')) === 'true';
-    if (current !== enabled) {
-      await toggle.click();
-      await expect(toggle).toHaveAttribute('aria-checked', String(enabled));
-    }
   });
 };
 
@@ -2613,6 +2615,9 @@ export {
   addEnvironmentVariable,
   addEnvironmentVariables,
   addRowToActiveTab,
+  cycleVariableSort,
+  getVisibleVariableNames,
+  dragVariableRow,
   deleteAllGlobalEnvironments,
   saveEnvironment,
   closeEnvironmentPanel,
@@ -2662,16 +2667,14 @@ export {
   expandFolder,
   sendAndWaitForErrorCard,
   sendAndWaitForResponse,
+  resetResponse,
   selectAuthMode,
   typeIntoField,
   readField,
   createExampleFromSidebar,
   openExampleFromSidebar,
   openWorkspaceFromDialog,
-  getGeneratedSnippet,
-  closeGenerateCodeDialog,
   openRequestInFolder,
-  setUrlEncoding,
   generateCollectionDocs,
   openExportToPostmanModal,
   closeExportToPostmanModal,

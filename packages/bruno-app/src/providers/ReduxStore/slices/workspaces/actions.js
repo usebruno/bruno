@@ -22,6 +22,7 @@ import {
 } from '../app';
 import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab, TAB_IDENFIERS as DEVTOOL_TABS } from '../logs';
 import { normalizePath } from 'utils/common/path';
+import { hydrateMockServerInstances } from 'utils/mock-server/mock-server-instances';
 import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups, getCollectionSnapshotFromLookups, WORKSPACE_TAB_UID_SUFFIX_BY_TYPE } from 'utils/snapshot';
 import toast from 'react-hot-toast';
 import { closeAiSidebar } from '../chat';
@@ -355,11 +356,12 @@ export const removeCollectionFromWorkspaceAction = (workspaceUid, collectionPath
 
 const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
   const openCollectionsFunction = (collectionPaths, workspacePath) => {
-    return dispatch(openMultipleCollections(collectionPaths, { workspacePath }));
+    return dispatch(openMultipleCollections(collectionPaths, { workspacePath, dontSendDisplayErrors: true }));
   };
 
   let updatedWorkspace = null;
   let openedCollectionPaths = [];
+  const unopenedCollectionPaths = new Set();
 
   try {
     const shouldRefreshCollections = workspace.collections?.some((collection) => collection.notFoundLocally);
@@ -388,12 +390,25 @@ const loadWorkspaceCollectionsForSwitch = async (dispatch, workspace) => {
 
         if (Array.isArray(openResult?.failed) && openResult.failed.length > 0) {
           console.warn('Some workspace collections failed to open during switch:', openResult.failed);
+          openResult.failed.forEach((failure) => unopenedCollectionPaths.add(normalizePath(failure.path)));
         }
 
         if (Array.isArray(openResult?.invalid) && openResult.invalid.length > 0) {
           console.warn('Some workspace collection paths were invalid during switch:', openResult.invalid);
+          openResult.invalid.forEach((invalidPath) => unopenedCollectionPaths.add(normalizePath(invalidPath)));
         }
       }
+    }
+
+    const unopenableCollections = await dispatch(loadUnopenableWorkspaceCollections(workspace.uid));
+
+    unopenableCollections
+      .filter((collection) => collection?.path)
+      .forEach((collection) => unopenedCollectionPaths.add(normalizePath(collection.path)));
+
+    if (unopenedCollectionPaths.size > 0) {
+      const unopenedCount = unopenedCollectionPaths.size;
+      toast.error(`Failed to open ${unopenedCount} collection${unopenedCount === 1 ? '' : 's'}`);
     }
 
     // Load API specs for this workspace
@@ -608,6 +623,10 @@ export const switchWorkspace = (workspaceUid) => {
       const scratchCollection = await dispatch(mountScratchCollection(workspaceUid));
       const { updatedWorkspace, openedCollectionPaths } = await loadWorkspaceCollectionsForSwitch(dispatch, workspace);
 
+      if (workspace.pathname) {
+        await dispatch(hydrateMockServerInstances(workspace.pathname, workspaceUid));
+      }
+
       const latestWorkspace = updatedWorkspace || getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
       const workspaceCollectionPaths = [...new Map(
         (latestWorkspace?.collections || [])
@@ -754,9 +773,7 @@ export const loadWorkspaceCollections = (workspaceUid, force = false) => {
 
       let collections = [];
 
-      if (!workspace.pathname) {
-        collections = [];
-      } else {
+      if (workspace.pathname) {
         const rawCollections = await ipcRenderer.invoke('renderer:load-workspace-collections', workspace.pathname);
 
         collections = rawCollections.map((collection) => {
@@ -778,6 +795,26 @@ export const loadWorkspaceCollections = (workspaceUid, force = false) => {
       dispatch(updateWorkspaceLoadingState({ workspaceUid, loadingState: 'error' }));
       throw error;
     }
+  };
+};
+
+export const loadUnopenableWorkspaceCollections = (workspaceUid) => {
+  return async (dispatch, getState) => {
+    const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
+    if (!workspace?.pathname) {
+      return [];
+    }
+
+    const unopenableCollections = await ipcRenderer
+      .invoke('renderer:load-unopenable-workspace-collections', workspace.pathname)
+      .catch((error) => {
+        console.warn('Failed to identify which workspace collections cannot be opened', error);
+        return [];
+      });
+
+    dispatch(updateWorkspace({ uid: workspaceUid, unopenableCollections }));
+
+    return unopenableCollections;
   };
 };
 
@@ -933,6 +970,7 @@ export const workspaceConfigUpdatedEvent = (workspacePath, workspaceUid, workspa
     if (activeWorkspaceUid === workspaceUid) {
       try {
         await dispatch(loadWorkspaceCollections(workspaceUid, true));
+        await dispatch(loadUnopenableWorkspaceCollections(workspaceUid));
 
         const workspace = getState().workspaces.workspaces.find((w) => w.uid === workspaceUid);
         const openCollections = getState().collections.collections.map((c) => normalizePath(c.pathname));

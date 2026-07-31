@@ -54,6 +54,7 @@ export const SingleWSMessage = ({
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(displayName);
+  const [isSearchBarVisible, setIsSearchBarVisible] = useState(false);
   const labelTooltipId = `ws-msg-label-${message.uid ?? index}`;
 
   // Auto-focus the name input when this is a newly created message
@@ -107,6 +108,7 @@ export const SingleWSMessage = ({
   const lineHeight = fontSize * 1.5;
 
   const HEADER_ALLOWANCE = 44;
+  const SEARCH_BAR_MIN_HEIGHT = 110;
   const maxEditorHeight = paneHeight
     ? Math.max(160, paneHeight - HEADER_ALLOWANCE)
     : Math.round((typeof window !== 'undefined' ? window.innerHeight : 900) * 0.6);
@@ -114,8 +116,9 @@ export const SingleWSMessage = ({
     const lineCount = (content || '').split('\n').length;
     const lines = lineCount + 1;
     const contentHeight = lines * lineHeight + 10;
-    return `${Math.min(contentHeight, maxEditorHeight)}px`;
-  }, [content, lineHeight, maxEditorHeight]);
+    const naturalHeight = Math.min(contentHeight, maxEditorHeight);
+    return `${isSearchBarVisible ? Math.max(naturalHeight, SEARCH_BAR_MIN_HEIGHT) : naturalHeight}px`;
+  }, [content, lineHeight, maxEditorHeight, isSearchBarVisible]);
 
   const onUpdateMessageType = (newMode) => {
     const currentMessages = [...(body.ws || [])];
@@ -271,6 +274,7 @@ export const SingleWSMessage = ({
             enableVariableHighlighting={true}
             docKey={`${item.uid}:ws-msg:${message.uid ?? index}`}
             containScroll={true}
+            onSearchBarVisibilityChange={setIsSearchBarVisible}
           />
         </div>
       )}

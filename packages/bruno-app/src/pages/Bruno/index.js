@@ -61,6 +61,7 @@ require('codemirror-graphql/mode');
 require('utils/codemirror/brunoVarInfo');
 require('utils/codemirror/javascript-lint');
 require('utils/codemirror/autocomplete');
+require('utils/codemirror/codeMirrorInfoFontSize');
 
 const TransientRequestModalsRenderer = ({ modals }) => {
   if (modals.length === 0) {
@@ -73,6 +74,7 @@ const TransientRequestModalsRenderer = ({ modals }) => {
         item={modals[0].item}
         collection={modals[0].collection}
         isOpen={true}
+        closeAfterSave={modals[0].closeAfterSave}
       />
     );
   }

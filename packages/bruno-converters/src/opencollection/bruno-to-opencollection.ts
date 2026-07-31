@@ -1,4 +1,4 @@
-import { toOpenCollectionAuth, toOpenCollectionHeaders, toOpenCollectionScripts, toOpenCollectionVariables } from "./common";
+import { toOpenCollectionActions, toOpenCollectionAuth, toOpenCollectionHeaders, toOpenCollectionScripts, toOpenCollectionVariables } from "./common";
 import { toOpenCollectionEnvironments } from "./environment";
 import { toOpenCollectionFolder } from "./folder";
 import { toOpenCollectionItems } from "./items";
@@ -53,6 +53,9 @@ const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): Collectio
           if (cert.passphrase) {
             pemCert.passphrase = cert.passphrase;
           }
+          if (cert.disabled === true) {
+            pemCert.disabled = true;
+          }
           return pemCert;
         } else if (cert.type === 'pkcs12') {
           const pkcs12Cert: Pkcs12Certificate = {
@@ -62,6 +65,9 @@ const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): Collectio
           };
           if (cert.passphrase) {
             pkcs12Cert.passphrase = cert.passphrase;
+          }
+          if (cert.disabled === true) {
+            pkcs12Cert.disabled = true;
           }
           return pkcs12Cert;
         }
@@ -78,6 +84,7 @@ const hasRequestDefaults = (root: BrunoCollectionRoot | undefined): boolean => {
   return Boolean(
     request?.headers?.length ||
     request?.vars?.req?.length ||
+    request?.vars?.res?.length ||
     request?.script?.req ||
     request?.script?.res ||
     request?.tests ||
@@ -134,6 +141,11 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
     const variables = toOpenCollectionVariables(request?.vars);
     if (variables) {
       openCollection.request.variables = variables;
+    }
+
+    const actions = toOpenCollectionActions(request?.vars?.res);
+    if (actions) {
+      openCollection.request.actions = actions;
     }
 
     const scripts = toOpenCollectionScripts(request as any);
