@@ -57,6 +57,11 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const protoDropdownRef = useRef(null);
   const haveFetchedMethodsRef = useRef(false);
   const latestReflectionRequestIdRef = useRef(0);
+  // Records the (url, envUid) pair the mount-effect last dispatched a reflection for.
+  // Used to short-circuit repeat runs of the same effect (React 18 StrictMode fires
+  // effects twice in dev, and the ref persists across the fake unmount/remount) so we
+  // don't fire two network reflections + toasts for the same environment.
+  const lastReflectionKeyRef = useRef(null);
 
   const protoFileManagement = useProtoFileManagement(collection, protoFilePath);
   const reflectionManagement = useReflectionManagement(item, collection);
@@ -90,6 +95,18 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
+  // Debounce reflection so rapid URL edits don't spam the network. The debounce
+  // instance is created once per component instance via `useState`'s lazy
+  // initializer, and routed through a ref to the latest `handleReflection`
+  // closure (set below, after `handleReflection` is declared) so it always calls
+  // the current version. Cancel on unmount so a pending timer can't fire against
+  // a dead component.
+  const handleReflectionRef = useRef(null);
+  const [debouncedReflection] = useState(() =>
+    debounce((value) => handleReflectionRef.current?.(value), 3000)
+  );
+  useEffect(() => () => debouncedReflection.cancel(), [debouncedReflection]);
+
   const onUrlChange = (value) => {
     if (!editorRef.current?.editor) return;
     const editor = editorRef.current.editor;
@@ -115,7 +132,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
     if (!protoFilePath && value) {
       setIsReflectionMode(true);
-      handleReflection(finalUrl);
+      debouncedReflection(finalUrl);
     }
   };
 
@@ -165,6 +182,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       }
     }
   };
+  handleReflectionRef.current = handleReflection;
 
   const handleProtoFileLoad = async (filePath, isManualRefresh = false) => {
     const { methods, error, fromCache } = await protoFileManagement.loadMethodsFromProtoFile(filePath, isManualRefresh);
@@ -283,10 +301,11 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
-  const debouncedOnUrlChange = debounce(onUrlChange, 1000);
-
-  // Re-fetch on env change because a `{{host}}` in the URL may now resolve to a different
-  // endpoint; bypass the URL-keyed cache in that case so the new endpoint isn't served stale.
+  // Fire reflection on mount and re-fetch when the active environment changes. We key on
+  // `(url, envUid)` and short-circuit if the same pair has already been dispatched — this
+  // both dedupes React 18 StrictMode's dev double-effect (refs persist across the fake
+  // remount, so the second invocation sees the same key and bails) and prevents redundant
+  // env-change re-fires when the dep evaluates to the same UID.
   useEffect(() => {
     if (protoFilePath) {
       if (haveFetchedMethodsRef.current) return;
@@ -296,10 +315,16 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       return;
     }
     if (!url) return;
-    const isEnvChange = haveFetchedMethodsRef.current;
+    const envUid = collection.activeEnvironmentUid ?? null;
+    const last = lastReflectionKeyRef.current;
+    if (last && last.url === url && last.envUid === envUid) return;
+    lastReflectionKeyRef.current = { url, envUid };
     haveFetchedMethodsRef.current = true;
     setIsReflectionMode(true);
-    handleReflection(url, isEnvChange);
+    // The interpolated URL is the ultimate decider for whether to fetch: the cache is
+    // keyed on it, so a hit is always the right result. Only the explicit refresh
+    // button should bypass the cache.
+    handleReflection(url);
   }, [collection.activeEnvironmentUid]);
 
   return (
@@ -315,7 +340,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           value={url}
           onSave={(finalValue) => onSave(finalValue)}
           theme={storedTheme}
-          onChange={(newValue) => debouncedOnUrlChange(newValue)}
+          onChange={onUrlChange}
           onRun={handleRun}
           collection={collection}
           highlightPathParams={true}
