@@ -91,6 +91,7 @@ const EditorCodeBlock = ({ node, updateAttributes, extension }) => {
             selectedItemId={language}
             showTickMark={false}
             placement="bottom-end"
+            menuClassName="flex flex-col max-h-64 overflow-y-auto"
             {...EDITOR_MENU_DROPDOWN_PROPS}
           >
             <div
