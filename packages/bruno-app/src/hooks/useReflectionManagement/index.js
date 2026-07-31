@@ -16,10 +16,8 @@ export default function useReflectionManagement(item, collection) {
   const [reflectionCache, setReflectionCache] = useLocalStorage('bruno.grpc.reflectionCache', {});
   const [isLoadingMethods, setIsLoadingMethods] = useState(false);
 
-  // The URL template (e.g. `{{host}}`) resolves to different endpoints under
-  // different envs, so the interpolated form is both what reflection dials and
-  // what the cache is keyed on. Falls back to the raw string if interpolation
-  // leaves placeholders behind — distinct unresolved templates stay distinct.
+  // Interpolated URL is the cache key so distinct envs get distinct slots;
+  // falls back to the raw string when placeholders can't resolve.
   const resolveUrl = (url) => {
     if (!url) return null;
     const vars = getAllVariables(collection, item);

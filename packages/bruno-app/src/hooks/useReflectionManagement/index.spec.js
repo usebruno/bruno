@@ -1,16 +1,12 @@
 import { renderHook, act } from '@testing-library/react';
 
-// react-redux's `useDispatch` is the only hook boundary we need to stub. We
-// resolve `dispatch(...)` ourselves so we can assert both what was dispatched
-// (the action creator's return) and what came back (the reflection result).
+// Stub `dispatch` so we can assert both the action dispatched and the resolved result.
 let mockDispatch;
 jest.mock('react-redux', () => ({
   useDispatch: () => mockDispatch
 }));
 
-// Mock the action creator so we can inspect exactly which URL the hook hands
-// off to the electron IPC. Its real body wires up an IPC roundtrip we don't
-// care about here.
+// Stub the action creator to inspect the URL passed through to IPC.
 jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   loadGrpcMethodsFromReflection: jest.fn((item, uid, url) => ({
     type: 'MOCK/loadGrpcMethodsFromReflection',
@@ -164,8 +160,7 @@ describe('useReflectionManagement', () => {
     });
 
     expect(loadGrpcMethodsFromReflection).toHaveBeenCalledTimes(2);
-    // Second call is also under the interpolated URL — manual refresh doesn't
-    // change the endpoint, only whether we trust the cache.
+    // Manual refresh bypasses the cache but still dispatches the interpolated URL.
     expect(loadGrpcMethodsFromReflection).toHaveBeenNthCalledWith(2, item, 'coll-1', 'grpc://server-a:9000');
     expect(refreshed.fromCache).toBe(false);
   });
@@ -182,9 +177,8 @@ describe('useReflectionManagement', () => {
       await result.current.loadMethodsFromReflection('{{host}}');
     });
 
-    // The raw `{{host}}` is what gets dispatched *and* what the cache is keyed
-    // on — reflection will fail on the electron side, but we don't mask the
-    // failure by turning the missing var into something else.
+    // Missing var: raw `{{host}}` is dispatched and cached as-is; reflection fails on the
+    // electron side rather than us silently substituting something else.
     expect(loadGrpcMethodsFromReflection).toHaveBeenCalledWith(item, 'coll-1', '{{host}}');
     const cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
     expect(Object.keys(cache)).toEqual(['{{host}}']);
