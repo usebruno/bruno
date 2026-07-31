@@ -1,6 +1,6 @@
 const { cloneDeep, isEqual } = require('lodash');
 const xmlFormat = require('xml-formatter');
-const { interpolate: _interpolate, REQUEST_TYPES } = require('@usebruno/common');
+const { interpolate: _interpolate } = require('@usebruno/common');
 const { createSendRequest } = require('@usebruno/requests').scripting;
 const { jar: createCookieJar, getCookiesForUrl } = require('@usebruno/requests').cookies;
 const CookieList = require('./cookie-list');
@@ -144,7 +144,7 @@ class Bru {
     };
 
     // gRPC-only namespace: `bru.grpc.request.*` / `bru.grpc.response.*`.
-    if (request?.type === REQUEST_TYPES.GRPC) {
+    if (request?.type === 'grpc-request') {
       const grpc = buildGrpcScriptApi({ phaseType, request, phaseData });
       if (grpc) {
         this.grpc = grpc;

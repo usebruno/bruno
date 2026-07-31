@@ -20,12 +20,12 @@ class GrpcScriptRuntime {
 
   /**
    * @param {object} args
-   * @param {import('@usebruno/common').ScriptPhase} args.phase - the `SCRIPT_PHASES.GRPC.*` entry
+   * @param {string} args.phaseType - the phase's `request.script` field, e.g. `beforeCallStart`
    * @param {object} [args.phaseData] - payload for the `bru.grpc` namespace (message, response, ...)
    * @param {object} [args.primary] - `{ request }` before the call, `{ response }` after it
    */
   async runGrpcScript({
-    phase,
+    phaseType,
     script,
     request,
     phaseData,
@@ -64,7 +64,7 @@ class GrpcScriptRuntime {
       certsAndProxyConfig,
       requestUrl: request?.url,
       request,
-      phaseType: phase.FIELD,
+      phaseType,
       phaseData
     });
 

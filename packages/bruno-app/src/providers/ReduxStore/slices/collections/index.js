@@ -26,7 +26,6 @@ import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
-import { REQUEST_TYPES } from '@usebruno/common';
 import * as exampleReducers from './exampleReducers';
 import * as mockResponseEditorReducers from './mockResponseEditorReducers';
 
@@ -845,6 +844,18 @@ export const collectionsSlice = createSlice({
           item.preRequestTestResults = [];
           item.postResponseTestResults = [];
           item.testResults = [];
+          item.beforeCallStartTestResults = [];
+          item.beforeMessageSendTestResults = [];
+          item.afterMessageReceiveTestResults = [];
+          item.afterCallEndTestResults = [];
+          item.beforeCallStartScriptErrorMessage = null;
+          item.beforeMessageSendScriptErrorMessage = null;
+          item.afterMessageReceiveScriptErrorMessage = null;
+          item.afterCallEndScriptErrorMessage = null;
+          item.beforeCallStartScriptErrorContext = null;
+          item.beforeMessageSendScriptErrorContext = null;
+          item.afterMessageReceiveScriptErrorContext = null;
+          item.afterCallEndScriptErrorContext = null;
         }
       }
     },
@@ -3242,7 +3253,7 @@ export const collectionsSlice = createSlice({
       item.testResults = [];
       item.assertionResults = [];
 
-      if (item.type === REQUEST_TYPES.GRPC) {
+      if (item.type === 'grpc-request') {
         item.beforeCallStartTestResults = [];
         item.beforeMessageSendTestResults = [];
         item.afterMessageReceiveTestResults = [];

@@ -1,7 +1,4 @@
-const { SCRIPT_PHASES } = require('@usebruno/common');
 const { safeParseJSON, isObject } = require('./utils');
-
-const { BEFORE_CALL_START, BEFORE_MESSAGE_SEND, AFTER_MESSAGE_RECEIVE, AFTER_CALL_END } = SCRIPT_PHASES.GRPC;
 
 /**
  * gRPC metadata keys are case-insensitive, like the HTTP headers they mirror (see HeaderList).
@@ -283,52 +280,50 @@ const resolveGrpcAuth = (request) => {
   }
 };
 
-/**
- * The call-level request fields every phase exposes. Metadata is writable only in the
- * BEFORE_CALL_START phase — once the call is in flight, mutating it would have no effect.
- */
-const baseRequestView = (request, { metadataReadOnly = true } = {}) => {
-  const authMode = resolveGrpcAuth(request);
-  return {
-    metadata: new GrpcMetadataList(request, { readOnly: metadataReadOnly }).expose(),
-    url: request.url ?? null,
-    method: request.method ?? null,
-    methodType: request.methodType ?? null,
-    authMode
-  };
-};
-
-/** `phaseType` is a phase's `FIELD` — the same value callers pass from the registry. */
+/** Keyed by `phaseType` — the phase's `request.script` field, as passed by the caller. */
 const phaseBuilders = new Map([
   [
-    BEFORE_CALL_START.FIELD,
+    'beforeCallStart',
     (request) => ({
       request: {
         messages: new GrpcMessageList(request, [], { readOnly: true }).expose(),
-        ...baseRequestView(request, { metadataReadOnly: false })
+        // The only phase that runs before the call, so the only one where metadata is writable.
+        metadata: new GrpcMetadataList(request, { readOnly: false }).expose(),
+        url: request.url ?? null,
+        method: request.method ?? null,
+        methodType: request.methodType ?? null,
+        authMode: resolveGrpcAuth(request)
       }
     })
   ],
-
   [
-    BEFORE_MESSAGE_SEND.FIELD,
+    'beforeMessageSend',
     (request, phaseData) => ({
       request: {
         message: new GrpcMessage({
           read: () => phaseData.message ?? null,
           readOnly: true
         }).expose(),
-        ...baseRequestView(request)
+        metadata: new GrpcMetadataList(request, { readOnly: true }).expose(),
+        url: request.url ?? null,
+        method: request.method ?? null,
+        methodType: request.methodType ?? null,
+        authMode: resolveGrpcAuth(request)
       }
     })
   ],
-
   [
-    AFTER_MESSAGE_RECEIVE.FIELD,
+    'afterMessageReceive',
     (request, phaseData) => {
       const { message, timestamp } = phaseData;
       return {
-        request: baseRequestView(request),
+        request: {
+          metadata: new GrpcMetadataList(request, { readOnly: true }).expose(),
+          url: request.url ?? null,
+          method: request.method ?? null,
+          methodType: request.methodType ?? null,
+          authMode: resolveGrpcAuth(request)
+        },
         response: {
           message: new GrpcMessage({
             read: () => message ?? null,
@@ -339,15 +334,18 @@ const phaseBuilders = new Map([
       };
     }
   ],
-
   [
-    AFTER_CALL_END.FIELD,
+    'afterCallEnd',
     (request, phaseData) => {
       const { responses, statusCode, statusText, trailers, sentMessages, duration } = phaseData;
       return {
         request: {
           messages: new GrpcMessageList(request, sentMessages ?? [], { readOnly: true }).expose(),
-          ...baseRequestView(request)
+          metadata: new GrpcMetadataList(request, { readOnly: true }).expose(),
+          url: request.url ?? null,
+          method: request.method ?? null,
+          methodType: request.methodType ?? null,
+          authMode: resolveGrpcAuth(request)
         },
         response: {
           messages: new GrpcResponseMessageList(() => responses).expose(),

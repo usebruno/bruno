@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
-import { getGrpcScriptingPhases } from '@usebruno/common';
 import CodeEditor from 'components/CodeEditor';
 import { updateScript } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -14,7 +13,37 @@ import { usePersistedState } from 'hooks/usePersistedState';
 import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
 import { getActiveGrpcScriptTab } from 'utils/tabs';
 
-const GRPC_SCRIPT_PHASES = getGrpcScriptingPhases();
+// The four phases of a gRPC call, in the order they run.
+const GRPC_SCRIPT_PHASES = [
+  {
+    field: 'beforeCallStart',
+    scriptType: 'grpc:before-call-start',
+    label: 'Before Call',
+    hints: ['bru'],
+    errorMessageKey: 'beforeCallStartScriptErrorMessage'
+  },
+  {
+    field: 'beforeMessageSend',
+    scriptType: 'grpc:before-message-send',
+    label: 'Before Message',
+    hints: ['bru'],
+    errorMessageKey: 'beforeMessageSendScriptErrorMessage'
+  },
+  {
+    field: 'afterMessageReceive',
+    scriptType: 'grpc:after-message-receive',
+    label: 'After Message',
+    hints: ['bru'],
+    errorMessageKey: 'afterMessageReceiveScriptErrorMessage'
+  },
+  {
+    field: 'afterCallEnd',
+    scriptType: 'grpc:after-call-end',
+    label: 'After Call',
+    hints: ['bru'],
+    errorMessageKey: 'afterCallEndScriptErrorMessage'
+  }
+];
 
 const GrpcScript = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -89,45 +118,45 @@ const GrpcScript = ({ item, collection }) => {
     <div className="w-full h-full flex flex-col">
       <Tabs value={activeTab} onValueChange={onScriptTabChange}>
         <TabsList>
-          {GRPC_SCRIPT_PHASES.map(({ SCRIPT_TYPE, FIELD, LABEL, ERROR_STATE_KEY }) => {
-            const script = getScript(FIELD);
+          {GRPC_SCRIPT_PHASES.map(({ scriptType, field, label, errorMessageKey }) => {
+            const script = getScript(field);
             const hasScript = script && script.trim().length > 0;
 
             return (
-              <TabsTrigger key={SCRIPT_TYPE} value={SCRIPT_TYPE}>
-                {LABEL}
-                {hasScript && <StatusDot type={item[`${ERROR_STATE_KEY}Message`] ? 'error' : 'default'} />}
+              <TabsTrigger key={scriptType} value={scriptType}>
+                {label}
+                {hasScript && <StatusDot type={item[errorMessageKey] ? 'error' : 'default'} />}
               </TabsTrigger>
             );
           })}
         </TabsList>
 
-        {GRPC_SCRIPT_PHASES.map(({ SCRIPT_TYPE, FIELD, HINTS }) => (
+        {GRPC_SCRIPT_PHASES.map(({ scriptType, field, hints }) => (
           <TabsContent
-            key={SCRIPT_TYPE}
-            value={SCRIPT_TYPE}
+            key={scriptType}
+            value={scriptType}
             className="mt-2"
-            dataTestId={`${SCRIPT_TYPE}-script-editor`}
+            dataTestId={`${scriptType}-script-editor`}
           >
             <div className="relative h-full">
               <CodeEditor
-                ref={getEditorRef(SCRIPT_TYPE)}
+                ref={getEditorRef(scriptType)}
                 collection={collection}
                 item={item}
                 requestType={item.type}
-                docKey={`script:${SCRIPT_TYPE}`}
-                value={getScript(FIELD) || ''}
+                docKey={`script:${scriptType}`}
+                value={getScript(field) || ''}
                 theme={displayedTheme}
                 font={get(preferences, 'font.codeFont', 'default')}
                 fontSize={get(preferences, 'font.codeFontSize')}
-                onEdit={(value) => onScriptEdit(FIELD, value)}
+                onEdit={(value) => onScriptEdit(field, value)}
                 mode="javascript"
                 onRun={onRun}
                 onSave={onSave}
-                showHintsFor={HINTS}
-                scriptType={SCRIPT_TYPE}
-                initialScroll={scrollMap?.[SCRIPT_TYPE] || 0}
-                onScroll={(pos) => setScrollMap({ ...scrollMap, [SCRIPT_TYPE]: pos })}
+                showHintsFor={hints}
+                scriptType={scriptType}
+                initialScroll={scrollMap?.[scriptType] || 0}
+                onScroll={(pos) => setScrollMap({ ...scrollMap, [scriptType]: pos })}
               />
             </div>
           </TabsContent>

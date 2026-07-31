@@ -9,7 +9,6 @@ const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 const { SANDBOX } = require('../utils/sandbox');
 const { bindRunRequest, createScopeSetter } = require('./scripted-entries');
-const { REQUEST_TYPES } = require('@usebruno/common');
 
 class TestRuntime {
   constructor(props) {
@@ -54,7 +53,7 @@ class TestRuntime {
       certsAndProxyConfig,
       requestUrl: request?.url,
       request,
-      phaseType: request?.type === REQUEST_TYPES.GRPC ? 'afterCallEnd' : undefined,
+      phaseType: request?.type === 'grpc-request' ? 'afterCallEnd' : undefined,
       phaseData: response
     });
     const req = new BrunoRequest(request);

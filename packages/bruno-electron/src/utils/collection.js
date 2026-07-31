@@ -8,7 +8,6 @@ const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
 const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
-const { getGrpcScriptingPhases } = require('@usebruno/common');
 
 /**
  * Returns the variable's runtime value with datatype-driven coercion applied.
@@ -414,7 +413,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
 };
 
 /**
- * gRPC twin of {@link mergeScripts}: combines scripts per gRPC phase under its FIELD.
+ * gRPC twin of {@link mergeScripts}: combines scripts per gRPC phase under its own field.
  * gRPC runs only request-level scripts/tests — collection & folder scripts are not inherited.
  */
 const mergeGrpcScripts = (collection, request, requestTreePath) => {
@@ -433,14 +432,22 @@ const mergeGrpcScripts = (collection, request, requestTreePath) => {
     return result;
   };
 
-  for (const phase of getGrpcScriptingPhases()) {
-    const { FIELD, METADATA_FIELD } = phase;
-    const combined = buildRequestScript(request?.script?.[FIELD] || '');
+  if (request.script) {
+    const beforeCallStart = buildRequestScript(request.script.beforeCallStart || '');
+    request.script.beforeCallStart = beforeCallStart.code;
+    request.script.beforeCallStartMetadata = beforeCallStart.metadata;
 
-    if (request.script) {
-      request.script[FIELD] = combined.code;
-      request.script[METADATA_FIELD] = combined.metadata;
-    }
+    const beforeMessageSend = buildRequestScript(request.script.beforeMessageSend || '');
+    request.script.beforeMessageSend = beforeMessageSend.code;
+    request.script.beforeMessageSendMetadata = beforeMessageSend.metadata;
+
+    const afterMessageReceive = buildRequestScript(request.script.afterMessageReceive || '');
+    request.script.afterMessageReceive = afterMessageReceive.code;
+    request.script.afterMessageReceiveMetadata = afterMessageReceive.metadata;
+
+    const afterCallEnd = buildRequestScript(request.script.afterCallEnd || '');
+    request.script.afterCallEnd = afterCallEnd.code;
+    request.script.afterCallEndMetadata = afterCallEnd.metadata;
   }
 
   // Tests are not a script phase — handle them separately.

@@ -1,4 +1,3 @@
-import { REQUEST_TYPES } from '@usebruno/common';
 import { uuid } from '../../common/index.js';
 import {
   fromOpenCollectionAuth,

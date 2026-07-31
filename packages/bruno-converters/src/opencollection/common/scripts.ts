@@ -3,7 +3,6 @@ import type { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types
 import type { HttpRequest as BrunoHttpRequest } from '@usebruno/schema-types/requests/http';
 import type { WebSocketRequest as BrunoWebSocketRequest } from '@usebruno/schema-types/requests/websocket';
 import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
-import { getGrpcScriptingPhases } from '@usebruno/common';
 
 export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpRequest | BrunoWebSocketRequest | BrunoGrpcRequest | null | undefined): Scripts | undefined => {
   const ocScripts: Scripts = [];
@@ -65,26 +64,26 @@ export const fromOpenCollectionScripts = (scripts: Scripts | null | undefined): 
 };
 
 /**
- * The gRPC counterparts of the two functions above. A gRPC call has four script phases instead of
- * HTTP's before-request/after-response pair, so the mapping between a Bruno `script.<field>` and an
- * OpenCollection script `type` comes from the phase registry (`grpc:before-call-start`, …) rather
- * than being written out. Tests are handled the same way in both.
+ * The gRPC counterparts of the two functions above: a gRPC call has one script per call phase
+ * instead of HTTP's before-request/after-response pair. Tests are handled the same way in both.
  */
-const GRPC_SCRIPT_PHASES = getGrpcScriptingPhases();
-
 type BrunoGrpcScriptMap = Record<string, string | null | undefined>;
 
 export const toOpenCollectionGrpcScripts = (request: BrunoGrpcRequest | null | undefined): Scripts | undefined => {
   const ocScripts: Scripts = [];
+  const script = request?.script as BrunoGrpcScriptMap | undefined;
 
-  for (const { FIELD, YML_TYPE } of GRPC_SCRIPT_PHASES) {
-    const code = (request?.script as BrunoGrpcScriptMap | undefined)?.[FIELD];
-    if (code?.trim().length) {
-      ocScripts.push({
-        type: YML_TYPE,
-        code: code.trim()
-      } as unknown as Script);
-    }
+  if (script?.beforeCallStart?.trim().length) {
+    ocScripts.push({ type: 'grpc:before-call-start', code: script.beforeCallStart.trim() } as unknown as Script);
+  }
+  if (script?.beforeMessageSend?.trim().length) {
+    ocScripts.push({ type: 'grpc:before-message-send', code: script.beforeMessageSend.trim() } as unknown as Script);
+  }
+  if (script?.afterMessageReceive?.trim().length) {
+    ocScripts.push({ type: 'grpc:after-message-receive', code: script.afterMessageReceive.trim() } as unknown as Script);
+  }
+  if (script?.afterCallEnd?.trim().length) {
+    ocScripts.push({ type: 'grpc:after-call-end', code: script.afterCallEnd.trim() } as unknown as Script);
   }
 
   if (request?.tests?.trim().length) {
@@ -115,13 +114,26 @@ export const fromOpenCollectionGrpcScripts = (scripts: Scripts | null | undefine
       continue;
     }
 
-    const phase = GRPC_SCRIPT_PHASES.find(({ YML_TYPE }) => YML_TYPE === script.type);
-    if (phase) {
-      brunoScripts.script = brunoScripts.script || {};
-      brunoScripts.script[phase.FIELD] = script.code;
-    }
+    // OpenCollection's ScriptType doesn't carry the gRPC phase types yet, hence the widening.
+    const type = script.type as string;
 
-    if (script.type === 'tests') {
+    if (type === 'grpc:before-call-start') {
+      brunoScripts.script = brunoScripts.script || {};
+      brunoScripts.script.beforeCallStart = script.code;
+    }
+    if (type === 'grpc:before-message-send') {
+      brunoScripts.script = brunoScripts.script || {};
+      brunoScripts.script.beforeMessageSend = script.code;
+    }
+    if (type === 'grpc:after-message-receive') {
+      brunoScripts.script = brunoScripts.script || {};
+      brunoScripts.script.afterMessageReceive = script.code;
+    }
+    if (type === 'grpc:after-call-end') {
+      brunoScripts.script = brunoScripts.script || {};
+      brunoScripts.script.afterCallEnd = script.code;
+    }
+    if (type === 'tests') {
       brunoScripts.tests = script.code;
     }
   }

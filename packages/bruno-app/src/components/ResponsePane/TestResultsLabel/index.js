@@ -1,8 +1,6 @@
 import React from 'react';
 import { IconCircleCheck, IconCircleX } from '@tabler/icons';
 
-// Counts the tests of whichever phases the protocol has: HTTP/GraphQL in pre-request &
-// post-response plus its own tests and assertions, a gRPC call in its four call phases.
 const TestResultsLabel = ({
   results,
   assertionResults,

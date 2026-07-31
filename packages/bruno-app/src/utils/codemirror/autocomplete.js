@@ -1,4 +1,4 @@
-import { mockDataFunctions, SCRIPT_PHASES, REQUEST_TYPES } from '@usebruno/common';
+import { mockDataFunctions } from '@usebruno/common';
 
 const CodeMirror = require('codemirror');
 
@@ -235,7 +235,7 @@ const GRPC_COMMON_BRU_HINTS = {
 };
 
 const GRPC_API_HINTS = {
-  [SCRIPT_PHASES.GRPC.BEFORE_CALL_START.SCRIPT_TYPE]: {
+  'grpc:before-call-start': {
     bru: {
       ...GRPC_COMMON_BRU_HINTS,
       grpc: {
@@ -250,7 +250,7 @@ const GRPC_API_HINTS = {
       }
     }
   },
-  [SCRIPT_PHASES.GRPC.BEFORE_MESSAGE_SEND.SCRIPT_TYPE]: {
+  'grpc:before-message-send': {
     bru: {
       ...GRPC_COMMON_BRU_HINTS,
       grpc: {
@@ -265,7 +265,7 @@ const GRPC_API_HINTS = {
       }
     }
   },
-  [SCRIPT_PHASES.GRPC.AFTER_MESSAGE_RECEIVE.SCRIPT_TYPE]: {
+  'grpc:after-message-receive': {
     bru: {
       ...GRPC_COMMON_BRU_HINTS,
       grpc: {
@@ -282,7 +282,7 @@ const GRPC_API_HINTS = {
       }
     }
   },
-  [SCRIPT_PHASES.GRPC.AFTER_CALL_END.SCRIPT_TYPE]: {
+  'grpc:after-call-end': {
     bru: {
       ...GRPC_COMMON_BRU_HINTS,
       grpc: {
@@ -321,15 +321,15 @@ const buildGrpcHints = (scriptType) => {
 };
 
 const getApiHints = (requestType, scriptType) => {
-  if (requestType !== REQUEST_TYPES.GRPC) return HTTP_API_HINTS;
+  if (requestType !== 'grpc-request') return HTTP_API_HINTS;
   // gRPC tests run in the afterCallEnd phase, so the Tests tab (scriptType 'tests') uses its hints.
-  const phase = scriptType === 'tests' ? SCRIPT_PHASES.GRPC.AFTER_CALL_END.SCRIPT_TYPE : scriptType;
+  const phase = scriptType === 'tests' ? 'grpc:after-call-end' : scriptType;
   return buildGrpcHints(phase);
 };
 
 // Returns the top-level root identifiers for a protocol: `['bru']` for gRPC, `['req', 'res', 'bru']` for HTTP.
 const getApiRoots = (requestType, scriptType) =>
-  requestType === REQUEST_TYPES.GRPC ? Object.keys(getApiHints(requestType, scriptType)) : Object.keys(HTTP_API_HINTS);
+  requestType === 'grpc-request' ? Object.keys(getApiHints(requestType, scriptType)) : Object.keys(HTTP_API_HINTS);
 
 // Mock data functions - prefixed with $
 const MOCK_DATA_HINTS = Object.keys(mockDataFunctions).map((key) => `$${key}`);
@@ -396,7 +396,7 @@ const transformVariablesToHints = (allVariables = {}) => {
  * @param {Set} apiHints - Set to add API hints to
  * @param {string[]} showHintsFor - Array of hint types to show
  */
-const addApiHintsToSet = (apiHints, showHintsFor, requestType = REQUEST_TYPES.HTTP, scriptType) => {
+const addApiHintsToSet = (apiHints, showHintsFor, requestType = 'http-request', scriptType) => {
   const source = getApiHints(requestType, scriptType);
 
   Object.keys(source).forEach((apiType) => {
@@ -768,7 +768,7 @@ const createStandardHintList = (filteredHints, from, to) => {
  * @param {string[]} showHintsFor - Array of hint types to show (e.g., ['req', 'res', 'bru'])
  * @returns {boolean} True if hints were shown, false otherwise
  */
-export const showRootHints = (cm, showHintsFor = [], requestType = REQUEST_TYPES.HTTP, scriptType) => {
+export const showRootHints = (cm, showHintsFor = [], requestType = 'http-request', scriptType) => {
   const wordInfo = getCurrentWordWithContext(cm, requestType, scriptType);
   // If user is currently typing a word, let handleKeyupForAutocomplete
   // handle it instead of showing root hints.

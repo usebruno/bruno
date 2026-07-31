@@ -18,7 +18,6 @@ import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
 import { AUTH_MODES_GRPC } from 'utils/common/constants';
 import GrpcScript from 'components/RequestPane/Script/grpcIndex';
-import { getGrpcScriptingPhases } from '@usebruno/common';
 
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -27,7 +26,6 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const rightContentRef = useRef(null);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const requestPaneTab = focusedTab?.requestPaneTab;
-  const scriptPhases = getGrpcScriptingPhases();
 
   const selectTab = useCallback((tab) => {
     dispatch(
@@ -78,7 +76,8 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const request = item.draft ? item.draft.request : item.request;
   const isClientStreaming = request.methodType === 'client-streaming' || request.methodType === 'bidi-streaming';
 
-  const hasScriptError = scriptPhases.some((phase) => item[`${phase.ERROR_STATE_KEY}Message`]);
+  const hasScriptError = item.beforeCallStartScriptErrorMessage || item.beforeMessageSendScriptErrorMessage || item.afterMessageReceiveScriptErrorMessage || item.afterCallEndScriptErrorMessage;
+  const hasAnyScript = script?.beforeCallStart || script?.beforeMessageSend || script?.afterMessageReceive || script?.afterCallEnd;
 
   const allTabs = useMemo(() => {
     const getMessageIndicator = () => {
@@ -121,10 +120,10 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
             <StatusBadge status="info" size="xs">Beta</StatusBadge>
           </span>
         ),
-        indicator: scriptPhases.some(({ FIELD }) => script?.[FIELD]) ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null
+        indicator: hasAnyScript ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null
       }
     ];
-  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, hasAuth, script, docs, hasScriptError]);
+  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, hasAuth, hasAnyScript, docs, hasScriptError]);
 
   // Initialize tab to 'body' if no tab is currently set
   useEffect(() => {

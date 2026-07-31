@@ -1,27 +1,49 @@
-import type { Scripts, Script } from '@opencollection/types/common/scripts';
+import type { Scripts } from '@opencollection/types/common/scripts';
 import type { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types/collection/folder';
 import type { HttpRequest as BrunoHttpRequest } from '@usebruno/schema-types/requests/http';
 import type { WebSocketRequest as BrunoWebSocketRequest } from '@usebruno/schema-types/requests/websocket';
 import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
 import type { Script as BrunoScript } from '@usebruno/schema-types/common/scripts';
-import { getGrpcScriptingPhases, REQUEST_TYPES, type RequestType } from '@usebruno/common';
+import type { RequestType } from '@usebruno/common';
 
 type ScriptField = keyof BrunoScript;
 type BrunoScriptMap = Partial<Record<ScriptField, string | null>>;
 
+/** A `Script` with a widened `type`: OpenCollection's ScriptType doesn't list the gRPC phases yet. */
+type OcScriptEntry = { type: string; code: string };
+
 export const toOpenCollectionScripts = (
   request: BrunoFolderRequest | BrunoHttpRequest | BrunoWebSocketRequest | BrunoGrpcRequest | null | undefined,
-  requestType: RequestType = REQUEST_TYPES.HTTP
+  requestType: RequestType = 'http-request'
 ): Scripts | undefined => {
-  const ocScripts: Scripts = [];
+  const ocScripts: OcScriptEntry[] = [];
 
-  if (requestType === REQUEST_TYPES.GRPC) {
+  if (requestType === 'grpc-request') {
     const script = request?.script as BrunoScriptMap | undefined;
-    for (const { FIELD, YML_TYPE } of getGrpcScriptingPhases()) {
-      const code = script?.[FIELD as ScriptField];
-      if (code?.trim().length) {
-        ocScripts.push({ type: YML_TYPE, code: code.trim() } as unknown as Script);
-      }
+
+    if (script?.beforeCallStart?.trim().length) {
+      ocScripts.push({
+        type: 'grpc:before-call-start',
+        code: script.beforeCallStart.trim()
+      });
+    }
+    if (script?.beforeMessageSend?.trim().length) {
+      ocScripts.push({
+        type: 'grpc:before-message-send',
+        code: script.beforeMessageSend.trim()
+      });
+    }
+    if (script?.afterMessageReceive?.trim().length) {
+      ocScripts.push({
+        type: 'grpc:after-message-receive',
+        code: script.afterMessageReceive.trim()
+      });
+    }
+    if (script?.afterCallEnd?.trim().length) {
+      ocScripts.push({
+        type: 'grpc:after-call-end',
+        code: script.afterCallEnd.trim()
+      });
     }
   } else {
     if (request?.script?.req?.trim().length) {
@@ -44,12 +66,12 @@ export const toOpenCollectionScripts = (
     }
   }
 
-  return ocScripts.length > 0 ? ocScripts : undefined;
+  return ocScripts.length > 0 ? (ocScripts as unknown as Scripts) : undefined;
 };
 
 export const toBrunoScripts = (
   scripts: Scripts | null | undefined,
-  requestType: RequestType = REQUEST_TYPES.HTTP
+  requestType: RequestType = 'http-request'
 ): {
   script?: BrunoScriptMap;
   tests?: string;
@@ -63,7 +85,7 @@ export const toBrunoScripts = (
     tests?: string;
   } = {};
 
-  if (requestType === REQUEST_TYPES.GRPC) {
+  if (requestType === 'grpc-request') {
     for (const script of scripts) {
       // OpenCollection's ScriptType doesn't carry the gRPC phase types yet, hence the widening.
       const type = script.type as string;

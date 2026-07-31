@@ -1,5 +1,4 @@
 import type { Item as BrunoItem } from '@usebruno/schema-types/collection/item';
-import { REQUEST_TYPES } from '@usebruno/common';
 import type { KeyValue as BrunoKeyValue } from '@usebruno/schema-types/common/key-value';
 import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
 import type { GrpcRequest, GrpcMetadata, GrpcMessageVariant, GrpcMessage, GrpcRequestInfo, GrpcRequestDetails, GrpcRequestRuntime } from '@opencollection/types/requests/grpc';
@@ -104,7 +103,7 @@ const stringifyGrpcRequest = (item: BrunoItem): string => {
     }
 
     // scripts
-    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest, REQUEST_TYPES.GRPC);
+    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest, 'grpc-request');
     if (scripts) {
       runtime.scripts = scripts;
       hasRuntime = true;
