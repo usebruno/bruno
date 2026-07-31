@@ -20,8 +20,6 @@ import { AUTH_MODES_GRPC } from 'utils/common/constants';
 import Script from 'components/RequestPane/Script';
 import { getPhasesByRequestType, REQUEST_TYPES } from '@usebruno/common';
 
-const AI_TABS = ['docs'];
-
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
