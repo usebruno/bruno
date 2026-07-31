@@ -1,12 +1,10 @@
 import { renderHook, act } from '@testing-library/react';
 
-// Stub `dispatch` so we can assert both the action dispatched and the resolved result.
 let mockDispatch;
 jest.mock('react-redux', () => ({
   useDispatch: () => mockDispatch
 }));
 
-// Stub the action creator to inspect the URL passed through to IPC.
 jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   loadGrpcMethodsFromReflection: jest.fn((item, uid, url) => ({
     type: 'MOCK/loadGrpcMethodsFromReflection',
@@ -85,7 +83,6 @@ describe('useReflectionManagement', () => {
       envWithHost('env-b', 'grpc://server-b:9000')
     ];
 
-    // Populate the cache under env A.
     let collection = makeCollection({ activeEnvUid: 'env-a', envs });
     mockDispatch.mockResolvedValue({ methods: [{ path: '/A/Only' }], error: null });
     const { result, rerender } = renderHook(({ coll }) => useReflectionManagement(item, coll), {
@@ -95,7 +92,6 @@ describe('useReflectionManagement', () => {
       await result.current.loadMethodsFromReflection('{{host}}');
     });
 
-    // Switch to env B — env-A's cache entry must not be served to env B.
     collection = makeCollection({ activeEnvUid: 'env-b', envs });
     mockDispatch.mockResolvedValue({ methods: [{ path: '/B/Only' }], error: null });
     rerender({ coll: collection });
@@ -104,13 +100,11 @@ describe('useReflectionManagement', () => {
       envBResult = await result.current.loadMethodsFromReflection('{{host}}');
     });
 
-    // Two distinct dispatches, one per env, each with its own resolved URL.
     expect(loadGrpcMethodsFromReflection).toHaveBeenNthCalledWith(1, item, 'coll-1', 'grpc://server-a:9000');
     expect(loadGrpcMethodsFromReflection).toHaveBeenNthCalledWith(2, item, 'coll-1', 'grpc://server-b:9000');
     expect(envBResult.fromCache).toBe(false);
     expect(envBResult.methods).toEqual([{ path: '/B/Only' }]);
 
-    // Both cache slots should now exist, keyed on the interpolated URLs.
     const cache = JSON.parse(localStorage.getItem(CACHE_KEY));
     expect(cache['grpc://server-a:9000']).toEqual([{ path: '/A/Only' }]);
     expect(cache['grpc://server-b:9000']).toEqual([{ path: '/B/Only' }]);
@@ -160,14 +154,12 @@ describe('useReflectionManagement', () => {
     });
 
     expect(loadGrpcMethodsFromReflection).toHaveBeenCalledTimes(2);
-    // Manual refresh bypasses the cache but still dispatches the interpolated URL.
     expect(loadGrpcMethodsFromReflection).toHaveBeenNthCalledWith(2, item, 'coll-1', 'grpc://server-a:9000');
     expect(refreshed.fromCache).toBe(false);
   });
 
   it('keys on the un-interpolated string when a variable is missing from scope', async () => {
     const item = makeItem('{{host}}');
-    // No env active — `{{host}}` has no resolver.
     const collection = makeCollection({ activeEnvUid: null, envs: [] });
     mockDispatch.mockResolvedValue({ methods: [], error: null });
 
@@ -177,8 +169,6 @@ describe('useReflectionManagement', () => {
       await result.current.loadMethodsFromReflection('{{host}}');
     });
 
-    // Missing var: raw `{{host}}` is dispatched and cached as-is; reflection fails on the
-    // electron side rather than us silently substituting something else.
     expect(loadGrpcMethodsFromReflection).toHaveBeenCalledWith(item, 'coll-1', '{{host}}');
     const cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
     expect(Object.keys(cache)).toEqual(['{{host}}']);

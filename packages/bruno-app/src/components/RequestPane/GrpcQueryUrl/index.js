@@ -57,8 +57,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const protoDropdownRef = useRef(null);
   const haveFetchedMethodsRef = useRef(false);
   const latestReflectionRequestIdRef = useRef(0);
-  // Dedupes the mount-effect against React 18 StrictMode's dev double-invoke: the ref
-  // survives the fake unmount, so the second run sees the same (url, envUid) and bails.
   const lastReflectionKeyRef = useRef(null);
 
   const protoFileManagement = useProtoFileManagement(collection, protoFilePath);
@@ -93,8 +91,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
-  // Debounce URL edits; route through a ref so the timer always calls the current
-  // `handleReflection` closure. Cancel on unmount so a pending fire can't hit a dead component.
   const handleReflectionRef = useRef(null);
   const [debouncedReflection] = useState(() =>
     debounce((value) => handleReflectionRef.current?.(value), 3000)
@@ -131,7 +127,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   };
 
   const handleReflection = async (url, isManualRefresh = false) => {
-    // Drop stale results so an out-of-order response can't clobber a newer one.
     const requestId = ++latestReflectionRequestIdRef.current;
     const { methods, error, fromCache } = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
     if (requestId !== latestReflectionRequestIdRef.current) return;
@@ -294,8 +289,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
-  // Fetch on mount and on env switch, keyed on `(url, envUid)` to dedupe StrictMode's
-  // dev double-effect and skip re-fires when the env UID hasn't actually changed.
   useEffect(() => {
     if (protoFilePath) {
       if (haveFetchedMethodsRef.current) return;
