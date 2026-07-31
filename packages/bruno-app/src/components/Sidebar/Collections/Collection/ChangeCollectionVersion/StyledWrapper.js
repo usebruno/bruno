@@ -10,7 +10,7 @@ export const ModalTitle = styled.div`
 const StyledWrapper = styled.div`
   max-width: 100%;
   .subheader {
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
     color: ${(props) => props.theme.colors.text.muted};
     font-weight: 400;
     font-size: ${(props) => props.theme.font.size.base};
