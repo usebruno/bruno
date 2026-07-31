@@ -1720,7 +1720,10 @@ const refreshGrpcMethodsAndSelect = async (
   const { timeout = 15000 } = options;
   await test.step(`Refresh reflection and select gRPC method "${methodName}"`, async () => {
     const locators = buildGrpcCommonLocators(page);
-    await locators.method.refresh().click();
+
+    const refreshIcon = locators.method.refresh();
+    await expect(refreshIcon).not.toHaveClass(/animate-spin/, { timeout });
+    await refreshIcon.click();
 
     await expect(async () => {
       await locators.method.dropdownTrigger().click();

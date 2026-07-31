@@ -4,7 +4,6 @@ import { buildGrpcCommonLocators, buildScriptErrorLocators } from '../../utils/p
 import {
   openCollectionFromPath,
   openConsoleAndClearLogs,
-  refreshGrpcMethodsAndSelect,
   selectRequestPaneTab,
   selectResponsePaneTab,
   setGrpcPhaseScript,
@@ -58,7 +57,7 @@ const setupPhaseScripts = async (
     }
   });
 
-  await refreshGrpcMethodsAndSelect(page, methodName, { timeout: NETWORK_TIMEOUT });
+  await expect(locators.method.selectedName()).toContainText(methodName, { timeout: NETWORK_TIMEOUT });
   await openConsoleAndClearLogs(page);
 
   return locators;
