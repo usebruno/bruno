@@ -41,7 +41,6 @@ const StyledWrapper = styled.div`
       width: 100%;
     }
 
-    /* MenuDropdown renders its items inside a role="menu" container */
     [role='menu'] {
       max-height: 16rem;
       overflow-y: auto;
