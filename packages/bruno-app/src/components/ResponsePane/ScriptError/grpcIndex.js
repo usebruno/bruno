@@ -10,6 +10,13 @@ import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'pro
 import StyledWrapper from './StyledWrapper';
 
 /**
+ * The gRPC counterpart of ./index.js: same card, but the errors come from gRPC's four call phases
+ * instead of HTTP's pre-request/post-response/tests trio — a gRPC call has no Tests tab of its own.
+ * The card rendering below is a copy of the one in ./index.js: a change to how a script error is
+ * presented has to be made in both files.
+ */
+
+/**
  * Determines the source of a script error (request, folder, or collection)
  * based on the filePath from the error context.
  *
@@ -209,60 +216,74 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
   );
 };
 
-const ScriptError = ({ item, collection, onClose }) => {
-  const preRequestError = item?.preRequestScriptErrorMessage;
-  const postResponseError = item?.postResponseScriptErrorMessage;
-  const testScriptError = item?.testScriptErrorMessage;
+const GrpcScriptError = ({ item, collection, onClose }) => {
+  const beforeCallStartError = item?.beforeCallStartScriptErrorMessage;
+  const beforeMessageSendError = item?.beforeMessageSendScriptErrorMessage;
+  const afterMessageReceiveError = item?.afterMessageReceiveScriptErrorMessage;
+  const afterCallEndError = item?.afterCallEndScriptErrorMessage;
 
-  if (!preRequestError && !postResponseError && !testScriptError) return null;
+  if (!beforeCallStartError && !beforeMessageSendError && !afterMessageReceiveError && !afterCallEndError) return null;
 
-  const preRequestContext = item?.preRequestScriptErrorContext;
-  const postResponseContext = item?.postResponseScriptErrorContext;
-  const testContext = item?.testScriptErrorContext;
+  const beforeCallStartContext = item?.beforeCallStartScriptErrorContext;
+  const beforeMessageSendContext = item?.beforeMessageSendScriptErrorContext;
+  const afterMessageReceiveContext = item?.afterMessageReceiveScriptErrorContext;
+  const afterCallEndContext = item?.afterCallEndScriptErrorContext;
 
-  const hasAnyContext = preRequestContext || postResponseContext || testContext;
+  const hasAnyContext = beforeCallStartContext || beforeMessageSendContext || afterMessageReceiveContext || afterCallEndContext;
 
   // If no error context available for any error, fall back to ErrorBanner
   if (!hasAnyContext) {
     const errors = [];
-    if (preRequestError) errors.push({ title: 'Pre-Request Script Error', message: preRequestError });
-    if (postResponseError) errors.push({ title: 'Post-Response Script Error', message: postResponseError });
-    if (testScriptError) errors.push({ title: 'Test Script Error', message: testScriptError });
+    if (beforeCallStartError) errors.push({ title: 'Before-Call Script Error', message: beforeCallStartError });
+    if (beforeMessageSendError) errors.push({ title: 'Before-Message Script Error', message: beforeMessageSendError });
+    if (afterMessageReceiveError) errors.push({ title: 'After-Message Script Error', message: afterMessageReceiveError });
+    if (afterCallEndError) errors.push({ title: 'After-Call Script Error', message: afterCallEndError });
     return <ErrorBanner errors={errors} onClose={onClose} className="mb-2" />;
   }
 
   return (
     <div className="mb-2 flex flex-col gap-2">
-      {preRequestError && (
+      {beforeCallStartError && (
         <ScriptErrorCard
-          title="Pre-Request Script Error"
-          message={preRequestError}
-          errorContext={preRequestContext}
+          title="Before-Call Script Error"
+          message={beforeCallStartError}
+          errorContext={beforeCallStartContext}
           item={item}
           collection={collection}
-          scriptPhase="pre-request"
+          scriptPhase="grpc:before-call-start"
           onClose={onClose}
         />
       )}
-      {postResponseError && (
+      {beforeMessageSendError && (
         <ScriptErrorCard
-          title="Post-Response Script Error"
-          message={postResponseError}
-          errorContext={postResponseContext}
+          title="Before-Message Script Error"
+          message={beforeMessageSendError}
+          errorContext={beforeMessageSendContext}
           item={item}
           collection={collection}
-          scriptPhase="post-response"
+          scriptPhase="grpc:before-message-send"
           onClose={onClose}
         />
       )}
-      {testScriptError && (
+      {afterMessageReceiveError && (
         <ScriptErrorCard
-          title="Test Script Error"
-          message={testScriptError}
-          errorContext={testContext}
+          title="After-Message Script Error"
+          message={afterMessageReceiveError}
+          errorContext={afterMessageReceiveContext}
           item={item}
           collection={collection}
-          scriptPhase="test"
+          scriptPhase="grpc:after-message-receive"
+          onClose={onClose}
+        />
+      )}
+      {afterCallEndError && (
+        <ScriptErrorCard
+          title="After-Call Script Error"
+          message={afterCallEndError}
+          errorContext={afterCallEndContext}
+          item={item}
+          collection={collection}
+          scriptPhase="grpc:after-call-end"
           onClose={onClose}
         />
       )}
@@ -270,4 +291,4 @@ const ScriptError = ({ item, collection, onClose }) => {
   );
 };
 
-export default ScriptError;
+export default GrpcScriptError;

@@ -8,7 +8,8 @@ export {
   SCRIPT_PHASES,
   SCRIPTING_PHASES,
   REQUEST_TYPES,
-  getPhasesByRequestType
+  getPhasesByRequestType,
+  getGrpcScriptingPhases
 } from './scripting/phases';
 export type { RequestType, ScriptPhase } from './scripting/phases';
 

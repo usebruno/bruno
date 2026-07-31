@@ -26,7 +26,7 @@ import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
-import { getPhasesByRequestType, SCRIPT_PHASES } from '@usebruno/common';
+import { REQUEST_TYPES } from '@usebruno/common';
 import * as exampleReducers from './exampleReducers';
 import * as mockResponseEditorReducers from './mockResponseEditorReducers';
 
@@ -1943,7 +1943,7 @@ export const collectionsSlice = createSlice({
       }
     },
     updateScript: (state, action) => {
-      const { collectionUid, itemUid, script, field = SCRIPT_PHASES.HTTP.PRE_REQUEST.FIELD } = action.payload;
+      const { collectionUid, itemUid, script, field } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -3242,11 +3242,29 @@ export const collectionsSlice = createSlice({
       item.testResults = [];
       item.assertionResults = [];
 
-      getPhasesByRequestType(item?.type).forEach((phase) => {
-        item[`${phase.ERROR_STATE_KEY}Message`] = null;
-        item[`${phase.ERROR_STATE_KEY}Context`] = null;
-        item[phase.TEST_RESULTS_KEY] = [];
-      });
+      if (item.type === REQUEST_TYPES.GRPC) {
+        item.beforeCallStartTestResults = [];
+        item.beforeMessageSendTestResults = [];
+        item.afterMessageReceiveTestResults = [];
+        item.afterCallEndTestResults = [];
+
+        item.beforeCallStartScriptErrorMessage = null;
+        item.beforeMessageSendScriptErrorMessage = null;
+        item.afterMessageReceiveScriptErrorMessage = null;
+        item.afterCallEndScriptErrorMessage = null;
+
+        item.beforeCallStartScriptErrorContext = null;
+        item.beforeMessageSendScriptErrorContext = null;
+        item.afterMessageReceiveScriptErrorContext = null;
+        item.afterCallEndScriptErrorContext = null;
+      } else {
+        item.preRequestTestResults = [];
+        item.postResponseTestResults = [];
+        item.preRequestScriptErrorMessage = null;
+        item.postResponseScriptErrorMessage = null;
+        item.preRequestScriptErrorContext = null;
+        item.postResponseScriptErrorContext = null;
+      }
       item.testScriptErrorMessage = null;
       item.testScriptErrorContext = null;
     },
@@ -3260,10 +3278,34 @@ export const collectionsSlice = createSlice({
           // ignore outdated updates in case multiple requests are fired rapidly to avoid state inconsistency
           if (item.requestUid !== requestUid) return;
 
-          const scriptPhase = getPhasesByRequestType(item?.type).find(({ SCRIPT_EXECUTION_EVENT }) => SCRIPT_EXECUTION_EVENT === type);
-          if (scriptPhase) {
-            item[`${scriptPhase.ERROR_STATE_KEY}Message`] = action.payload.errorMessage;
-            item[`${scriptPhase.ERROR_STATE_KEY}Context`] = action.payload.errorContext || null;
+          if (type === 'pre-request-script-execution') {
+            item.preRequestScriptErrorMessage = action.payload.errorMessage;
+            item.preRequestScriptErrorContext = action.payload.errorContext || null;
+          }
+
+          if (type === 'post-response-script-execution') {
+            item.postResponseScriptErrorMessage = action.payload.errorMessage;
+            item.postResponseScriptErrorContext = action.payload.errorContext || null;
+          }
+
+          if (type === 'grpc:before-call-start-script-execution') {
+            item.beforeCallStartScriptErrorMessage = action.payload.errorMessage;
+            item.beforeCallStartScriptErrorContext = action.payload.errorContext || null;
+          }
+
+          if (type === 'grpc:before-message-send-script-execution') {
+            item.beforeMessageSendScriptErrorMessage = action.payload.errorMessage;
+            item.beforeMessageSendScriptErrorContext = action.payload.errorContext || null;
+          }
+
+          if (type === 'grpc:after-message-receive-script-execution') {
+            item.afterMessageReceiveScriptErrorMessage = action.payload.errorMessage;
+            item.afterMessageReceiveScriptErrorContext = action.payload.errorContext || null;
+          }
+
+          if (type === 'grpc:after-call-end-script-execution') {
+            item.afterCallEndScriptErrorMessage = action.payload.errorMessage;
+            item.afterCallEndScriptErrorContext = action.payload.errorContext || null;
           }
 
           if (type === 'test-script-execution') {
@@ -3333,14 +3375,36 @@ export const collectionsSlice = createSlice({
             item.testResults = results;
           }
 
-          const testResultsPhase = getPhasesByRequestType(item?.type).find(
-            ({ TEST_RESULTS_EVENT }) => TEST_RESULTS_EVENT === type
-          );
-
-          if (testResultsPhase) {
+          if (type === 'test-results-pre-request') {
             const { results } = action.payload;
-            const resultsKey = testResultsPhase.TEST_RESULTS_KEY;
-            item[resultsKey] = [...(item[resultsKey] || []), ...results];
+            item.preRequestTestResults = results;
+          }
+
+          if (type === 'test-results-post-response') {
+            const { results } = action.payload;
+            item.postResponseTestResults = results;
+          }
+
+          if (type === 'test-results-grpc:before-call-start') {
+            const { results } = action.payload;
+            item.beforeCallStartTestResults = results;
+          }
+
+          // beforeMessageSend runs once per outgoing message and afterMessageReceive once per received
+          // one, so a streaming call emits these repeatedly and their results accumulate.
+          if (type === 'test-results-grpc:before-message-send') {
+            const { results } = action.payload;
+            item.beforeMessageSendTestResults = [...(item.beforeMessageSendTestResults || []), ...results];
+          }
+
+          if (type === 'test-results-grpc:after-message-receive') {
+            const { results } = action.payload;
+            item.afterMessageReceiveTestResults = [...(item.afterMessageReceiveTestResults || []), ...results];
+          }
+
+          if (type === 'test-results-grpc:after-call-end') {
+            const { results } = action.payload;
+            item.afterCallEndTestResults = results;
           }
         }
       }
@@ -3410,12 +3474,12 @@ export const collectionsSlice = createSlice({
           item.testResults = action.payload.testResults;
         }
 
-        if (type === SCRIPT_PHASES.HTTP.PRE_REQUEST.TEST_RESULTS_EVENT) {
+        if (type === 'test-results-pre-request') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.preRequestTestResults = action.payload.preRequestTestResults;
         }
 
-        if (type === SCRIPT_PHASES.HTTP.POST_RESPONSE.TEST_RESULTS_EVENT) {
+        if (type === 'test-results-post-response') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.postResponseTestResults = action.payload.postResponseTestResults;
         }

@@ -1,7 +1,7 @@
 // To implement grpc event handlers
 const { ipcMain, app } = require('electron');
 const { GrpcClient } = require('@usebruno/requests');
-const { ScriptRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
+const { GrpcScriptRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
 const decomment = require('decomment');
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 const { cloneDeep, get } = require('lodash');
@@ -252,7 +252,7 @@ const registerGrpcEventHandlers = (window) => {
       return { scriptResult: null, scriptError: null };
     }
 
-    const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
+    const scriptRuntime = new GrpcScriptRuntime({ runtime: scriptingConfig?.runtime });
     let scriptError = null;
     let scriptResult = null;
     try {
@@ -299,7 +299,7 @@ const registerGrpcEventHandlers = (window) => {
       return { message: outgoingMessage, scriptError: null };
     }
 
-    const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
+    const scriptRuntime = new GrpcScriptRuntime({ runtime: scriptingConfig?.runtime });
     let scriptError = null;
     let scriptResult = null;
     try {
@@ -355,7 +355,7 @@ const registerGrpcEventHandlers = (window) => {
       return { scriptResult: null, scriptError: null };
     }
 
-    const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
+    const scriptRuntime = new GrpcScriptRuntime({ runtime: scriptingConfig?.runtime });
     let scriptError = null;
     let scriptResult = null;
     try {
@@ -412,7 +412,7 @@ const registerGrpcEventHandlers = (window) => {
       return { scriptResult: null, scriptError: null };
     }
 
-    const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
+    const scriptRuntime = new GrpcScriptRuntime({ runtime: scriptingConfig?.runtime });
     let scriptError = null;
     let scriptResult = null;
     const afterCallEndFinalResponse = { ...response, sentMessages };

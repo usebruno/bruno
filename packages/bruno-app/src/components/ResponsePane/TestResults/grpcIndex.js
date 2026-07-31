@@ -9,6 +9,13 @@ import {
   IconCircleX
 } from '@tabler/icons';
 
+/**
+ * The gRPC counterpart of ./index.js: a gRPC call has no Tests or Assert tab of its own — tests are
+ * written with `test()` inside the four phase scripts and reported per phase — so these are the only
+ * sections. The rows and sections below are a copy of the ones in ./index.js: a change to how a
+ * result renders has to be made in both files.
+ */
+
 const ResultIcon = ({ status }) => (
   <span
     data-testid={status === 'pass' ? 'test-result-icon-pass' : 'test-result-icon-fail'}
@@ -44,6 +51,7 @@ const ResultItem = ({ result, type }) => (
 );
 
 const TestSection = ({
+  sectionKey,
   title,
   results,
   isExpanded,
@@ -59,6 +67,7 @@ const TestSection = ({
     <div className="mb-4">
       <div
         className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2"
+        data-testid={`test-results-summary-${sectionKey}`}
         onClick={onToggle}
       >
         <span className="dropdown-icon mr-2 flex items-center">
@@ -83,31 +92,37 @@ const TestSection = ({
   );
 };
 
-const TestResults = ({ item, results, assertionResults, preRequestTestResults, postResponseTestResults }) => {
-  results = results || [];
-  assertionResults = assertionResults || [];
-  preRequestTestResults = preRequestTestResults || [];
-  postResponseTestResults = postResponseTestResults || [];
+const GrpcTestResults = ({
+  item,
+  beforeCallStartTestResults,
+  beforeMessageSendTestResults,
+  afterMessageReceiveTestResults,
+  afterCallEndTestResults
+}) => {
+  beforeCallStartTestResults = beforeCallStartTestResults || [];
+  beforeMessageSendTestResults = beforeMessageSendTestResults || [];
+  afterMessageReceiveTestResults = afterMessageReceiveTestResults || [];
+  afterCallEndTestResults = afterCallEndTestResults || [];
 
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `response-tests-scroll-${item?.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: '.response-tab-content', onChange: setScroll, initialValue: scroll });
 
   const [expandedSections, setExpandedSections] = useState({
-    preRequest: true,
-    tests: true,
-    postResponse: true,
-    assertions: true
+    beforeCallStart: true,
+    beforeMessageSend: true,
+    afterMessageReceive: true,
+    afterCallEnd: true
   });
 
   useEffect(() => {
     setExpandedSections({
-      preRequest: preRequestTestResults.length > 0,
-      tests: results.length > 0,
-      postResponse: postResponseTestResults.length > 0,
-      assertions: assertionResults.length > 0
+      beforeCallStart: beforeCallStartTestResults.length > 0,
+      beforeMessageSend: beforeMessageSendTestResults.length > 0,
+      afterMessageReceive: afterMessageReceiveTestResults.length > 0,
+      afterCallEnd: afterCallEndTestResults.length > 0
     });
-  }, [results.length, assertionResults.length, preRequestTestResults.length, postResponseTestResults.length]);
+  }, [beforeCallStartTestResults.length, beforeMessageSendTestResults.length, afterMessageReceiveTestResults.length, afterCallEndTestResults.length]);
 
   const toggleSection = (section) => {
     setExpandedSections({
@@ -116,45 +131,49 @@ const TestResults = ({ item, results, assertionResults, preRequestTestResults, p
     });
   };
 
-  if (!results.length && !assertionResults.length && !preRequestTestResults.length && !postResponseTestResults.length) {
+  if (!beforeCallStartTestResults.length && !beforeMessageSendTestResults.length && !afterMessageReceiveTestResults.length && !afterCallEndTestResults.length) {
     return <div>No tests found</div>;
   }
 
   return (
     <StyledWrapper className="flex flex-col" ref={wrapperRef}>
       <TestSection
-        title="Pre-Request Tests"
-        results={preRequestTestResults}
-        isExpanded={expandedSections.preRequest}
-        onToggle={() => toggleSection('preRequest')}
+        sectionKey="grpc:before-call-start"
+        title="Before-Call Tests"
+        results={beforeCallStartTestResults}
+        isExpanded={expandedSections.beforeCallStart}
+        onToggle={() => toggleSection('beforeCallStart')}
         type="test"
       />
 
       <TestSection
-        title="Post-Response Tests"
-        results={postResponseTestResults}
-        isExpanded={expandedSections.postResponse}
-        onToggle={() => toggleSection('postResponse')}
+        sectionKey="grpc:before-message-send"
+        title="Before-Message Tests"
+        results={beforeMessageSendTestResults}
+        isExpanded={expandedSections.beforeMessageSend}
+        onToggle={() => toggleSection('beforeMessageSend')}
         type="test"
       />
 
       <TestSection
-        title="Tests"
-        results={results}
-        isExpanded={expandedSections.tests}
-        onToggle={() => toggleSection('tests')}
+        sectionKey="grpc:after-message-receive"
+        title="After-Message Tests"
+        results={afterMessageReceiveTestResults}
+        isExpanded={expandedSections.afterMessageReceive}
+        onToggle={() => toggleSection('afterMessageReceive')}
         type="test"
       />
 
       <TestSection
-        title="Assertions"
-        results={assertionResults}
-        isExpanded={expandedSections.assertions}
-        onToggle={() => toggleSection('assertions')}
-        type="assertion"
+        sectionKey="grpc:after-call-end"
+        title="After-Call Tests"
+        results={afterCallEndTestResults}
+        isExpanded={expandedSections.afterCallEnd}
+        onToggle={() => toggleSection('afterCallEnd')}
+        type="test"
       />
     </StyledWrapper>
   );
 };
 
-export default TestResults;
+export default GrpcTestResults;

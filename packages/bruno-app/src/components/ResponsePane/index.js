@@ -24,7 +24,6 @@ import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
 import WSMessagesList from './WsResponsePane/WSMessagesList';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-import { getPhasesByRequestType, REQUEST_TYPES } from '@usebruno/common';
 
 // Width threshold for expanded right-side action buttons
 const RIGHT_CONTENT_EXPANDED_WIDTH = 135;
@@ -86,16 +85,11 @@ const ResponsePane = ({ item, collection }) => {
     if (obj.itemUid === item.uid) return true;
   });
 
-  const scriptPhases = useMemo(() => getPhasesByRequestType(REQUEST_TYPES.HTTP), []);
-
-  const hasScriptOrTestError
-    = scriptPhases.some((phase) => item?.[`${phase.ERROR_STATE_KEY}Message`]) || item?.testScriptErrorMessage;
-
   useEffect(() => {
-    if (hasScriptOrTestError) {
+    if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage) {
       setShowScriptErrorCard(true);
     }
-  }, [hasScriptOrTestError]);
+  }, [item?.preRequestScriptErrorMessage, item?.postResponseScriptErrorMessage, item?.testScriptErrorMessage]);
 
   const selectTab = (tab) => {
     dispatch(
@@ -122,6 +116,8 @@ const ResponsePane = ({ item, collection }) => {
   }, [response.size, response.dataBuffer]);
   const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
 
+  const hasScriptError = item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage;
+
   const allTabs = useMemo(() => {
     return [
       {
@@ -142,7 +138,12 @@ const ResponsePane = ({ item, collection }) => {
       {
         key: 'tests',
         label: (
-          <TestResultsLabel item={item} />
+          <TestResultsLabel
+            results={item.testResults}
+            assertionResults={item.assertionResults}
+            preRequestTestResults={item.preRequestTestResults}
+            postResponseTestResults={item.postResponseTestResults}
+          />
         ),
         indicator: null
       }
@@ -182,7 +183,13 @@ const ResponsePane = ({ item, collection }) => {
       }
       case 'tests': {
         return (
-          <TestResults item={item} />
+          <TestResults
+            item={item}
+            results={item.testResults}
+            assertionResults={item.assertionResults}
+            preRequestTestResults={item.preRequestTestResults}
+            postResponseTestResults={item.postResponseTestResults}
+          />
         );
       }
 
@@ -226,7 +233,7 @@ const ResponsePane = ({ item, collection }) => {
 
   const rightContent = !isLoading ? (
     <div ref={rightContentRef} className="flex justify-end items-center right-side-container gap-3">
-      {hasScriptOrTestError && !showScriptErrorCard && (
+      {hasScriptError && !showScriptErrorCard && (
         <ScriptErrorIcon
           itemUid={item.uid}
           onClick={() => setShowScriptErrorCard(true)}
@@ -290,9 +297,9 @@ const ResponsePane = ({ item, collection }) => {
           rightContentExpandedWidth={RIGHT_CONTENT_EXPANDED_WIDTH}
         />
       </div>
-      <section className={`response-pane-content ${hasScriptOrTestError && showScriptErrorCard ? 'has-script-error' : ''}`}>
+      <section className={`response-pane-content ${hasScriptError && showScriptErrorCard ? 'has-script-error' : ''}`}>
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
-        {hasScriptOrTestError && showScriptErrorCard && (
+        {hasScriptError && showScriptErrorCard && (
           <ScriptError
             item={item}
             onClose={() => setShowScriptErrorCard(false)}

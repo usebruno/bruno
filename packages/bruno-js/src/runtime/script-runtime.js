@@ -8,16 +8,15 @@ const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 const { SANDBOX } = require('../utils/sandbox');
 const { bindRunRequest, createScopeSetter } = require('./scripted-entries');
-const { SCRIPT_PHASES } = require('@usebruno/common');
 
 class ScriptRuntime {
   constructor(props) {
     this.runtime = props?.runtime || 'quickjs';
   }
 
-  // ── HTTP phases ─────────────────────────────────────────────────────────────
-
-  async runHttpPreRequestScript(
+  // This approach is getting out of hand
+  // Need to refactor this to use a single arg (object) instead of 7
+  async runRequestScript(
     script,
     request,
     envVariables,
@@ -150,7 +149,7 @@ class ScriptRuntime {
     return buildRequestScriptResult();
   }
 
-  async runHttpPostResponseScript(
+  async runResponseScript(
     script,
     request,
     response,
@@ -284,168 +283,6 @@ class ScriptRuntime {
     }
 
     return buildResponseScriptResult();
-  }
-
-  // ── gRPC phases ─────────────────────────────────────────────────────────────
-
-  /**
-   * Runs one gRPC phase's script. Every phase builds the same `bru`, sandbox context and result
-   * shape; a phase differs only in which registry entry it is, the `phaseData` exposed through
-   * `bru.grpc`, and whether the result reports the request or the response side of the call.
-   *
-   * @param {object} args
-   * @param {import('@usebruno/common').ScriptPhase} args.phase - the `SCRIPT_PHASES.GRPC.*` entry
-   * @param {object} [args.phaseData] - payload for the `bru.grpc` namespace (message, response, ...)
-   * @param {object} [args.primary] - `{ request }` before the call, `{ response }` after it
-   */
-  async runGrpcScript({
-    phase,
-    script,
-    request,
-    phaseData,
-    primary = { request },
-    envVariables,
-    runtimeVariables,
-    collectionPath,
-    onConsoleLog,
-    processEnvVars,
-    scriptingConfig,
-    runRequestByItemPathname = null,
-    collectionName
-  }) {
-    const {
-      globalEnvironmentVariables,
-      oauth2CredentialVariables,
-      collectionVariables,
-      folderVariables,
-      requestVariables,
-      promptVariables,
-      assertionResults,
-      certsAndProxyConfig,
-      scriptPath
-    } = this.#extractScriptVars(request);
-    const bru = new Bru({
-      runtime: this.runtime,
-      envVariables,
-      runtimeVariables,
-      processEnvVars,
-      collectionPath,
-      collectionVariables,
-      folderVariables,
-      requestVariables,
-      globalEnvironmentVariables,
-      oauth2CredentialVariables,
-      collectionName,
-      promptVariables,
-      certsAndProxyConfig,
-      requestUrl: request?.url,
-      request,
-      phaseType: phase.FIELD,
-      phaseData
-    });
-
-    const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
-
-    const context = {
-      bru,
-      test,
-      expect: chai.expect,
-      assert: chai.assert,
-      __brunoTestResults: __brunoTestResults,
-      __bruSetScope: createScopeSetter(bru)
-    };
-
-    const bruConsole = this.#buildConsole(onConsoleLog);
-    if (bruConsole) context.console = bruConsole;
-
-    bindRunRequest(bru, runRequestByItemPathname);
-
-    const buildResult = () => this.#buildScriptResult({
-      primary,
-      bru,
-      testResults: __brunoTestResults,
-      envVariables,
-      runtimeVariables,
-      collectionVariables,
-      globalEnvironmentVariables
-    });
-
-    return this.#executeInSandbox({ script, context, collectionPath, scriptingConfig, scriptPath }, buildResult);
-  }
-
-  // ── Shared helpers ──────────────────────────────────────────────────────────
-
-  // Build the sandbox `console` proxy that forwards to onConsoleLog (or undefined if none).
-  #buildConsole(onConsoleLog) {
-    if (typeof onConsoleLog !== 'function') return undefined;
-    const customLogger = (type) => {
-      return (...args) => {
-        onConsoleLog(type, cleanJson(args));
-      };
-    };
-    return {
-      log: customLogger('log'),
-      debug: customLogger('debug'),
-      info: customLogger('info'),
-      warn: customLogger('warn'),
-      error: customLogger('error')
-    };
-  }
-
-  // Run the script in the configured sandbox (nodevm or quickjs). On error, attach the partial
-  // result (so passed test() calls are preserved) and re-throw; otherwise return the built result.
-  async #executeInSandbox({ script, context, collectionPath, scriptingConfig, scriptPath }, buildResult) {
-    let scriptError = null;
-    try {
-      if (this.runtime === SANDBOX.NODEVM) {
-        await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig, scriptPath });
-      } else {
-        // default runtime is `quickjs`
-        await executeQuickJsVmAsync({ script, context, collectionPath, scriptPath });
-      }
-    } catch (error) {
-      scriptError = error;
-    }
-
-    if (scriptError) {
-      scriptError.partialResults = buildResult();
-      throw scriptError;
-    }
-    return buildResult();
-  }
-
-  // Pull the per-request values used to build `bru` (each defaults to empty).
-  #extractScriptVars(request) {
-    return {
-      globalEnvironmentVariables: request?.globalEnvironmentVariables || {},
-      oauth2CredentialVariables: request?.oauth2CredentialVariables || {},
-      collectionVariables: request?.collectionVariables || {},
-      folderVariables: request?.folderVariables || {},
-      requestVariables: request?.requestVariables || {},
-      promptVariables: request?.promptVariables || {},
-      assertionResults: request?.assertionResults || [],
-      certsAndProxyConfig: request?.certsAndProxyConfig,
-      scriptPath: request?.pathname
-    };
-  }
-
-  // Script result, shared by all phases. `primary` is `{ request }` before / `{ response }` after;
-  // a variable scope is null when the script didn't write to it, so callers can skip the write.
-  #buildScriptResult({ primary, bru, testResults, envVariables, runtimeVariables, collectionVariables, globalEnvironmentVariables }) {
-    return {
-      ...primary,
-      envVariables: bru._envDirty ? cleanJson(envVariables) : null,
-      runtimeVariables: bru._runtimeVarsDirty ? cleanJson(runtimeVariables) : null,
-      collectionVariables: bru._collVarsDirty ? cleanJson(collectionVariables) : null,
-      persistentEnvVariables: cleanJson(bru.persistentEnvVariables),
-      globalEnvironmentVariables: bru._globalEnvDirty ? cleanJson(globalEnvironmentVariables) : null,
-      oauth2CredentialsToReset: bru.oauth2CredentialsToReset,
-      results: cleanJson(testResults.getResults()),
-      nextRequestName: bru.nextRequest,
-      skipRequest: bru.skipRequest,
-      stopExecution: bru.stopExecution,
-      scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
-    };
   }
 }
 

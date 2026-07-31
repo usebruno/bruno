@@ -246,7 +246,7 @@ const runSingleRequest = async function (
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       try {
-        const result = await scriptRuntime.runHttpPreRequestScript(decomment(requestScriptFile, { space: true }),
+        const result = await scriptRuntime.runRequestScript(decomment(requestScriptFile, { space: true }),
           request,
           envVariables,
           runtimeVariables,
@@ -805,7 +805,7 @@ const runSingleRequest = async function (
     if (responseScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       try {
-        const result = await scriptRuntime.runHttpPostResponseScript(
+        const result = await scriptRuntime.runResponseScript(
           decomment(responseScriptFile, { space: true }),
           request,
           response,

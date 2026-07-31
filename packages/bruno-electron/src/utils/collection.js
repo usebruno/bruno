@@ -8,7 +8,7 @@ const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
 const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
-const { getPhasesByRequestType, REQUEST_TYPES } = require('@usebruno/common');
+const { getGrpcScriptingPhases } = require('@usebruno/common');
 
 /**
  * Returns the variable's runtime value with datatype-driven coercion applied.
@@ -433,7 +433,7 @@ const mergeGrpcScripts = (collection, request, requestTreePath) => {
     return result;
   };
 
-  for (const phase of getPhasesByRequestType(REQUEST_TYPES.GRPC)) {
+  for (const phase of getGrpcScriptingPhases()) {
     const { FIELD, METADATA_FIELD } = phase;
     const combined = buildRequestScript(request?.script?.[FIELD] || '');
 

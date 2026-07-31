@@ -17,8 +17,8 @@ import StyledWrapper from './StyledWrapper';
 import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
 import { AUTH_MODES_GRPC } from 'utils/common/constants';
-import Script from 'components/RequestPane/Script';
-import { getPhasesByRequestType, REQUEST_TYPES } from '@usebruno/common';
+import GrpcScript from 'components/RequestPane/Script/grpcIndex';
+import { getGrpcScriptingPhases } from '@usebruno/common';
 
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -27,7 +27,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const rightContentRef = useRef(null);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const requestPaneTab = focusedTab?.requestPaneTab;
-  const scriptPhases = getPhasesByRequestType(REQUEST_TYPES.GRPC);
+  const scriptPhases = getGrpcScriptingPhases();
 
   const selectTab = useCallback((tab) => {
     dispatch(
@@ -53,7 +53,7 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
         return <Documentation item={item} collection={collection} />;
       }
       case 'script': {
-        return <Script item={item} collection={collection} />;
+        return <GrpcScript item={item} collection={collection} />;
       }
       default: {
         return <div className="mt-4">404 | Not found</div>;

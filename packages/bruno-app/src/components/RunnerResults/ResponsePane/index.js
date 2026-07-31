@@ -18,7 +18,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const [selectedTab, setSelectedTab] = useState('response');
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
 
-  const { requestSent, responseReceived, error } = item;
+  const { requestSent, responseReceived, testResults, assertionResults, preRequestTestResults, postResponseTestResults, error } = item;
 
   useEffect(() => {
     if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage) {
@@ -67,7 +67,12 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
       }
       case 'tests': {
         return (
-          <TestResults item={item} />
+          <TestResults
+            results={testResults}
+            assertionResults={assertionResults}
+            preRequestTestResults={preRequestTestResults}
+            postResponseTestResults={postResponseTestResults}
+          />
         );
       }
 
@@ -105,7 +110,12 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           Timeline
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
-          <TestResultsLabel item={item} />
+          <TestResultsLabel
+            results={testResults}
+            assertionResults={assertionResults}
+            preRequestTestResults={preRequestTestResults}
+            postResponseTestResults={postResponseTestResults}
+          />
         </div>
         <div className="flex flex-grow justify-end items-center">
           {hasScriptError && !showScriptErrorCard && (

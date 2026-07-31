@@ -3,8 +3,8 @@ import { uuid } from '../../common/index.js';
 import {
   fromOpenCollectionAuth,
   toOpenCollectionAuth,
-  fromOpenCollectionScripts,
-  toOpenCollectionScripts,
+  fromOpenCollectionGrpcScripts,
+  toOpenCollectionGrpcScripts,
   fromOpenCollectionVariables,
   toOpenCollectionVariables,
   fromOpenCollectionActions,
@@ -60,7 +60,7 @@ export const fromOpenCollectionGrpcItem = (item: GrpcRequest): BrunoItem => {
     }
   }
 
-  const scripts = fromOpenCollectionScripts(runtime.scripts, REQUEST_TYPES.GRPC);
+  const scripts = fromOpenCollectionGrpcScripts(runtime.scripts);
 
   // variables (pre-request from variables, post-response from actions)
   const variables = fromOpenCollectionVariables(runtime.variables);
@@ -68,7 +68,7 @@ export const fromOpenCollectionGrpcItem = (item: GrpcRequest): BrunoItem => {
 
   const brunoItem: BrunoItem = {
     uid: uuid(),
-    type: REQUEST_TYPES.GRPC,
+    type: 'grpc-request',
     name: info.name || 'Untitled Request',
     seq: info.seq || 1,
     request: {
@@ -178,7 +178,7 @@ export const toOpenCollectionGrpcItem = (item: BrunoItem): GrpcRequest => {
     grpc
   };
 
-  const scripts = toOpenCollectionScripts(request as Parameters<typeof toOpenCollectionScripts>[0], REQUEST_TYPES.GRPC);
+  const scripts = toOpenCollectionGrpcScripts(request as unknown as Parameters<typeof toOpenCollectionGrpcScripts>[0]);
   const variables = toOpenCollectionVariables(request.vars as Parameters<typeof toOpenCollectionVariables>[0]);
   const assertions = toOpenCollectionAssertions(request.assertions as BrunoKeyValue[]);
 

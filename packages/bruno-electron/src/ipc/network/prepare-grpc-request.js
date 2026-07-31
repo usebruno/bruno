@@ -1,5 +1,4 @@
 const { cloneDeep, each, get } = require('lodash');
-const { REQUEST_TYPES } = require('@usebruno/common');
 const interpolateVars = require('./interpolate-vars');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeGrpcScripts, mergeVars, mergeAuth, getFormattedCollectionOauth2Credentials } = require('../../utils/collection');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -148,7 +147,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
   let grpcRequest = {
     uid: item.uid,
     pathname: item.pathname,
-    type: REQUEST_TYPES.GRPC,
+    type: 'grpc-request',
     mode: request.body.mode,
     method: request.method,
     methodType: request.methodType,

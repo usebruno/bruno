@@ -1,5 +1,4 @@
 const _ = require('lodash');
-const { getPhasesByRequestType, REQUEST_TYPES } = require('@usebruno/common');
 const { indentString, getValueString, getKeyString, getValueUrl, serializeVar, serializeAnnotations, buildAnnotationsFromKVItem } = require('./utils');
 const jsonToExampleBru = require('./example/jsonToBru');
 
@@ -747,17 +746,54 @@ ${indentString(body.sparql)}
     bru += '\n}\n\n';
   }
 
-  if (script) {
-    const requestType = grpc ? REQUEST_TYPES.GRPC : REQUEST_TYPES.HTTP;
-    for (const { FIELD, BRU_TYPE } of getPhasesByRequestType(requestType)) {
-      const code = script[FIELD];
-      if (code && code.length) {
-        bru += `script:${BRU_TYPE} {
-${indentString(code)}
+  if (grpc) {
+    // A gRPC call has one script block per call phase instead of the pre-request/post-response pair.
+    if (script && script.beforeCallStart && script.beforeCallStart.length) {
+      bru += `script:grpc:before-call-start {
+${indentString(script.beforeCallStart)}
 }
 
 `;
-      }
+    }
+
+    if (script && script.beforeMessageSend && script.beforeMessageSend.length) {
+      bru += `script:grpc:before-message-send {
+${indentString(script.beforeMessageSend)}
+}
+
+`;
+    }
+
+    if (script && script.afterMessageReceive && script.afterMessageReceive.length) {
+      bru += `script:grpc:after-message-receive {
+${indentString(script.afterMessageReceive)}
+}
+
+`;
+    }
+
+    if (script && script.afterCallEnd && script.afterCallEnd.length) {
+      bru += `script:grpc:after-call-end {
+${indentString(script.afterCallEnd)}
+}
+
+`;
+    }
+  } else {
+    if (script && script.req && script.req.length) {
+      bru += `script:pre-request {
+${indentString(script.req)}
+}
+
+`;
+    }
+
+    if (script && script.res && script.res.length) {
+      bru += `script:post-response {
+${indentString(script.res)}
+}
+
+`;
     }
   }
 

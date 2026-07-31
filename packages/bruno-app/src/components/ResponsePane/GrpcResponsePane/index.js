@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -16,11 +16,10 @@ import ResponseTrailers from './ResponseTrailers';
 import GrpcQueryResult from './GrpcQueryResult';
 import ResponseLayoutToggle from '../ResponseLayoutToggle';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-import ScriptError from '../ScriptError';
+import GrpcScriptError from '../ScriptError/grpcIndex';
 import ScriptErrorIcon from '../ScriptErrorIcon';
-import TestResults from '../TestResults';
-import TestResultsLabel from '../TestResultsLabel';
-import { getPhasesByRequestType, REQUEST_TYPES } from '@usebruno/common';
+import GrpcTestResults from '../TestResults/grpcIndex';
+import GrpcTestResultsLabel from '../TestResultsLabel/grpcIndex';
 
 const GrpcResponsePane = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -30,16 +29,13 @@ const GrpcResponsePane = ({ item, collection }) => {
   const rightContentRef = useRef(null);
   const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
 
-  const scriptPhases = useMemo(() => getPhasesByRequestType(REQUEST_TYPES.GRPC), []);
-
-  const hasScriptOrTestError
-    = scriptPhases.some((phase) => item?.[`${phase.ERROR_STATE_KEY}Message`]) || item?.testScriptErrorMessage;
+  const hasScriptError = item?.beforeCallStartScriptErrorMessage || item?.beforeMessageSendScriptErrorMessage || item?.afterMessageReceiveScriptErrorMessage || item?.afterCallEndScriptErrorMessage;
 
   useEffect(() => {
-    if (hasScriptOrTestError) {
+    if (hasScriptError) {
       setShowScriptErrorCard(true);
     }
-  }, [hasScriptOrTestError]);
+  }, [hasScriptError]);
 
   const requestTimeline = [...(collection?.timeline || [])].filter((obj) => {
     if (obj.itemUid === item.uid) return true;
@@ -89,7 +85,12 @@ const GrpcResponsePane = ({ item, collection }) => {
     {
       key: 'tests',
       label: (
-        <TestResultsLabel item={item} />
+        <GrpcTestResultsLabel
+          beforeCallStartTestResults={item.beforeCallStartTestResults}
+          beforeMessageSendTestResults={item.beforeMessageSendTestResults}
+          afterMessageReceiveTestResults={item.afterMessageReceiveTestResults}
+          afterCallEndTestResults={item.afterCallEndTestResults}
+        />
       ),
       indicator: null
     }
@@ -111,7 +112,13 @@ const GrpcResponsePane = ({ item, collection }) => {
       }
       case 'tests': {
         return (
-          <TestResults item={item} />
+          <GrpcTestResults
+            item={item}
+            beforeCallStartTestResults={item.beforeCallStartTestResults}
+            beforeMessageSendTestResults={item.beforeMessageSendTestResults}
+            afterMessageReceiveTestResults={item.afterMessageReceiveTestResults}
+            afterCallEndTestResults={item.afterCallEndTestResults}
+          />
         );
       }
       default: {
@@ -128,7 +135,7 @@ const GrpcResponsePane = ({ item, collection }) => {
     );
   }
 
-  if (!item.response && !requestTimeline?.length && !hasScriptOrTestError) {
+  if (!item.response && !requestTimeline?.length && !hasScriptError) {
     return (
       <HeightBoundContainer>
         <Placeholder />
@@ -147,7 +154,7 @@ const GrpcResponsePane = ({ item, collection }) => {
 
   const rightContent = !isLoading ? (
     <div ref={rightContentRef} className="flex items-center">
-      {hasScriptOrTestError && !showScriptErrorCard && (
+      {hasScriptError && !showScriptErrorCard && (
         <ScriptErrorIcon itemUid={item.uid} onClick={() => setShowScriptErrorCard(true)} />
       )}
       {focusedTab?.responsePaneTab === 'timeline' ? (
@@ -181,10 +188,10 @@ const GrpcResponsePane = ({ item, collection }) => {
           rightContentRef={rightContentRef}
         />
       </div>
-      <section className={`response-pane-content ${hasScriptOrTestError && showScriptErrorCard ? 'has-script-error' : ''}`}>
+      <section className={`response-pane-content ${hasScriptError && showScriptErrorCard ? 'has-script-error' : ''}`}>
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
-        {hasScriptOrTestError && showScriptErrorCard && (
-          <ScriptError
+        {hasScriptError && showScriptErrorCard && (
+          <GrpcScriptError
             item={item}
             onClose={() => setShowScriptErrorCard(false)}
             collection={collection}

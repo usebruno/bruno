@@ -187,3 +187,11 @@ export const SCRIPTING_PHASES: ScriptPhase[] = Object.values(SCRIPT_PHASES).flat
 /** The script phases for a request type, in order (empty for types with no phases yet). */
 export const getPhasesByRequestType = (requestType: RequestType): ScriptPhase[] =>
   SCRIPTING_PHASES.filter((phase) => phase.REQUEST_TYPE === requestType);
+
+/** The four phases of a gRPC call, in the order they run. */
+export const getGrpcScriptingPhases = (): ScriptPhase[] => [
+  SCRIPT_PHASES.GRPC.BEFORE_CALL_START,
+  SCRIPT_PHASES.GRPC.BEFORE_MESSAGE_SEND,
+  SCRIPT_PHASES.GRPC.AFTER_MESSAGE_RECEIVE,
+  SCRIPT_PHASES.GRPC.AFTER_CALL_END
+];

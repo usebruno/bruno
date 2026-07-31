@@ -50,13 +50,12 @@ const mockErrorContext = {
 
 describe('ScriptError', () => {
   it('should render nothing when no errors', () => {
-    const { container } = renderWithProviders(<ScriptError item={{ type: 'http-request' }} collection={mockCollection} onClose={jest.fn()} />);
+    const { container } = renderWithProviders(<ScriptError item={{}} collection={mockCollection} onClose={jest.fn()} />);
     expect(container.firstChild).toBeNull();
   });
 
   it('should fall back to ErrorBanner when no errorContext', () => {
     const item = {
-      type: 'http-request',
       preRequestScriptErrorMessage: 'something broke'
     };
     renderWithProviders(<ScriptError item={item} collection={mockCollection} onClose={jest.fn()} />);
@@ -66,7 +65,6 @@ describe('ScriptError', () => {
 
   it('should show CodeSnippet when errorContext is available', () => {
     const item = {
-      type: 'http-request',
       preRequestScriptErrorMessage: 'undefinedVar is not defined',
       preRequestScriptErrorContext: mockErrorContext
     };
@@ -77,7 +75,6 @@ describe('ScriptError', () => {
 
   it('should show error line highlighted', () => {
     const item = {
-      type: 'http-request',
       preRequestScriptErrorMessage: 'undefinedVar is not defined',
       preRequestScriptErrorContext: mockErrorContext
     };
@@ -87,7 +84,6 @@ describe('ScriptError', () => {
 
   it('should show error type and message', () => {
     const item = {
-      type: 'http-request',
       preRequestScriptErrorMessage: 'undefinedVar is not defined',
       preRequestScriptErrorContext: mockErrorContext
     };
@@ -97,7 +93,6 @@ describe('ScriptError', () => {
 
   it('should show file path with source label', () => {
     const item = {
-      type: 'http-request',
       preRequestScriptErrorMessage: 'undefinedVar is not defined',
       preRequestScriptErrorContext: mockErrorContext
     };
@@ -109,7 +104,6 @@ describe('ScriptError', () => {
 
   it('should show "Collection Script" label for collection-level errors', () => {
     const item = {
-      type: 'http-request',
       preRequestScriptErrorMessage: 'collection error',
       preRequestScriptErrorContext: {
         ...mockErrorContext,
@@ -123,7 +117,6 @@ describe('ScriptError', () => {
 
   it('should show "Folder Script" label for folder-level errors', () => {
     const item = {
-      type: 'http-request',
       preRequestScriptErrorMessage: 'folder error',
       preRequestScriptErrorContext: {
         ...mockErrorContext,
@@ -137,7 +130,6 @@ describe('ScriptError', () => {
 
   it('should show "Request Script" label for request-level errors', () => {
     const item = {
-      type: 'http-request',
       postResponseScriptErrorMessage: 'request error',
       postResponseScriptErrorContext: {
         ...mockErrorContext,
@@ -151,7 +143,6 @@ describe('ScriptError', () => {
 
   it('should toggle stack trace visibility', () => {
     const item = {
-      type: 'http-request',
       preRequestScriptErrorMessage: 'undefinedVar is not defined',
       preRequestScriptErrorContext: mockErrorContext
     };
@@ -174,7 +165,6 @@ describe('ScriptError', () => {
   it('should call onClose when close button is clicked', () => {
     const onClose = jest.fn();
     const item = {
-      type: 'http-request',
       preRequestScriptErrorMessage: 'error',
       preRequestScriptErrorContext: mockErrorContext
     };
@@ -186,7 +176,6 @@ describe('ScriptError', () => {
 
   it('should fallback to "Error" when errorType is missing', () => {
     const item = {
-      type: 'http-request',
       preRequestScriptErrorMessage: 'something went wrong',
       preRequestScriptErrorContext: {
         ...mockErrorContext,
@@ -199,7 +188,6 @@ describe('ScriptError', () => {
 
   it('should not show pointer cursor on non-navigable file path', () => {
     const item = {
-      type: 'http-request',
       preRequestScriptErrorMessage: 'error',
       preRequestScriptErrorContext: mockErrorContext
     };
@@ -211,7 +199,6 @@ describe('ScriptError', () => {
 
   it('should detect folder-level errors with Windows backslash paths', () => {
     const item = {
-      type: 'http-request',
       preRequestScriptErrorMessage: 'folder error',
       preRequestScriptErrorContext: {
         ...mockErrorContext,
@@ -225,7 +212,6 @@ describe('ScriptError', () => {
 
   it('should detect request-level errors with Windows backslash paths', () => {
     const item = {
-      type: 'http-request',
       postResponseScriptErrorMessage: 'request error',
       postResponseScriptErrorContext: {
         ...mockErrorContext,
@@ -239,7 +225,6 @@ describe('ScriptError', () => {
 
   it('should handle multiple errors with their own context', () => {
     const item = {
-      type: 'http-request',
       preRequestScriptErrorMessage: 'pre error',
       preRequestScriptErrorContext: mockErrorContext,
       testScriptErrorMessage: 'test error',
