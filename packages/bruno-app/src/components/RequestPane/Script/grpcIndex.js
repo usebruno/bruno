@@ -13,7 +13,6 @@ import { usePersistedState } from 'hooks/usePersistedState';
 import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
 import { getActiveGrpcScriptTab } from 'utils/tabs';
 
-// The four phases of a gRPC call, in the order they run.
 const GRPC_SCRIPT_PHASES = [
   {
     field: 'beforeCallStart',
@@ -73,10 +72,7 @@ const GrpcScript = ({ item, collection }) => {
 
   const [scrollMap, setScrollMap] = usePersistedState({ key: `grpc-script-scroll-${item.uid}`, default: {} });
 
-  // Refresh CodeMirror when tab becomes visible and restore scroll position.
-  // CodeMirror's scrollTo() is silently ignored when the editor is inside a display:none container
-  // (TabsContent hides inactive tabs via display:none). So the scroll set during componentDidMount
-  // is lost for the hidden editor. After refresh() recalculates layout, we re-apply scrollTo().
+  // scrollTo() is ignored while a tab is hidden (display:none), so re-apply it once it's visible.
   useEffect(() => {
     const timer = setTimeout(() => {
       const editor = getEditorRef(activeTab).current?.editor;
@@ -89,7 +85,7 @@ const GrpcScript = ({ item, collection }) => {
     return () => clearTimeout(timer);
   }, [activeTab]);
 
-  // One subscription that follows the visible tab, since only the active phase's editor is on screen.
+  // One subscription, following the visible tab — only that phase's editor is on screen.
   useFocusErrorLine({
     uid: item.uid,
     editorRef: getEditorRef(activeTab),

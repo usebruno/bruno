@@ -85,8 +85,6 @@ const TestSection = ({
   );
 };
 
-// A request reports tests from the phases its protocol has: HTTP/GraphQL in pre-request &
-// post-response plus its own tests and assertions, a gRPC call in its four call phases.
 const TestResults = ({
   item,
   results,
