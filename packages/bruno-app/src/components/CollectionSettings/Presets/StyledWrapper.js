@@ -56,8 +56,15 @@ const StyledWrapper = styled.div`
       border: 1px solid ${(props) => props.theme.input.border};
       color: ${(props) => props.theme.text};
       transition: border-color ease-in-out 0.1s;
+      font: inherit;
+      appearance: none;
 
       &:hover {
+        border-color: ${(props) => props.theme.input.focusBorder};
+      }
+
+      &:focus-visible {
+        outline: none;
         border-color: ${(props) => props.theme.input.focusBorder};
       }
 

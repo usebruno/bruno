@@ -111,15 +111,14 @@ const PresetsSettings = ({ collection }) => {
               placement="bottom-start"
               sameWidth
             >
-              <div
+              <button
+                type="button"
                 id="default-environment"
-                role="button"
-                tabIndex={0}
                 className="default-env-trigger flex items-center justify-between cursor-pointer"
               >
                 <span className="truncate">{defaultEnvironmentName || 'None'}</span>
                 <IconCaretDown className="caret" size={14} strokeWidth={2} />
-              </div>
+              </button>
             </MenuDropdown>
           </div>
         </div>
