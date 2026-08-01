@@ -117,9 +117,10 @@ export const transformUrl = (url, params) => {
     .filter((param) => param.type === 'query')
     .map(({ name, value, description }) => ({ key: name, value, description }));
 
-  // Construct path params.
+  // Construct path params. A name can carry disabled alternate rows; exporting
+  // them would emit duplicate Postman variable keys.
   postmanUrl.variable = params
-    .filter((param) => param.type === 'path')
+    .filter((param) => param.type === 'path' && param.enabled !== false)
     .map(({ name, value, description }) => ({ key: name, value, description }));
 
   return postmanUrl;

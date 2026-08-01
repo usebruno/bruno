@@ -605,7 +605,7 @@ export const updateResponseExampleRequestUrl = (state, action) => {
   const existingParams = example.request.params || [];
   const disabledQueryParams = filter(existingParams, (p) => !p.enabled && p.type === 'query');
   let enabledQueryParams = filter(existingParams, (p) => p.enabled && p.type === 'query');
-  let oldPathParams = filter(existingParams, (p) => p.enabled && p.type === 'path');
+  let oldPathParams = filter(existingParams, (p) => p.type === 'path');
   let newPathParams = [];
 
   each(urlQueryParams, (urlQueryParam) => {

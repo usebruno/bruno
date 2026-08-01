@@ -1,12 +1,14 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import get from 'lodash/get';
+import { IconPlus } from '@tabler/icons';
 import InfoTip from 'components/InfoTip';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import {
   moveQueryParam,
   updatePathParam,
-  setQueryParams
+  setQueryParams,
+  setPathParams
 } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
@@ -68,6 +70,29 @@ const QueryParams = ({ item, collection }) => {
     },
     [dispatch, pathParams, item.uid, collection.uid]
   );
+
+  const handlePathParamsChange = useCallback((updatedParams) => {
+    dispatch(setPathParams({
+      collectionUid: collection.uid,
+      itemUid: item.uid,
+      params: updatedParams
+    }));
+  }, [dispatch, collection.uid, item.uid]);
+
+  const handlePathParamSelect = useCallback((rowUid) => {
+    handlePathParamChange(rowUid, 'enabled', true);
+  }, [handlePathParamChange]);
+
+  const addPathParamAlternate = useCallback((name) => {
+    handlePathParamsChange([...pathParams, { name, value: '', description: '', enabled: false }]);
+  }, [handlePathParamsChange, pathParams]);
+
+  const pathParamNameCounts = useMemo(
+    () => pathParams.reduce((counts, param) => counts.set(param.name, (counts.get(param.name) || 0) + 1), new Map()),
+    [pathParams]
+  );
+
+  const canDeletePathParam = useCallback((row) => pathParamNameCounts.get(row.name) > 1, [pathParamNameCounts]);
 
   const handleQueryParamDrag = useCallback(({ updateReorderedItem }) => {
     dispatch(moveQueryParam({
@@ -133,7 +158,19 @@ const QueryParams = ({ item, collection }) => {
       name: 'Name',
       isKeyField: true,
       width: '20%',
-      readOnly: true
+      render: ({ row, value }) => (
+        <div className="flex items-center justify-between gap-2 w-full">
+          <span className="truncate">{value}</span>
+          <button
+            className="add-alternate"
+            title={`Add another value for :${value}`}
+            data-testid="path-param-add-alternate"
+            onClick={() => addPathParamAlternate(row.name)}
+          >
+            <IconPlus strokeWidth={1.5} size={14} />
+          </button>
+        </div>
+      )
     },
     {
       key: 'value',
@@ -219,10 +256,11 @@ const QueryParams = ({ item, collection }) => {
             testId="path-params-table"
             columns={pathColumns}
             rows={pathParams}
-            onChange={() => {}}
+            onChange={handlePathParamsChange}
             defaultRow={{}}
-            showCheckbox={false}
-            showDelete={false}
+            radioGroupKey="name"
+            onCheckboxChange={handlePathParamSelect}
+            canDeleteRow={canDeletePathParam}
             showAddRow={false}
             columnWidths={pathParamsWidths}
             onColumnWidthsChange={(widths) => handleColumnWidthsChange('path-params', widths)}

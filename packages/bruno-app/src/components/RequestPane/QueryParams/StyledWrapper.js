@@ -58,10 +58,25 @@ const Wrapper = styled.div`
     }
   }
 
-  input[type='checkbox'] {
+  input[type='checkbox'],
+  input[type='radio'] {
     cursor: pointer;
     position: relative;
     top: 1px;
+  }
+
+  .add-alternate {
+    color: ${(props) => props.theme.colors.text.muted};
+    opacity: 0;
+
+    &:hover {
+      color: ${(props) => props.theme.colors.text.yellow};
+    }
+  }
+
+  tr:hover .add-alternate,
+  .add-alternate:focus-visible {
+    opacity: 1;
   }
 `;
 

@@ -1054,7 +1054,7 @@ export const collectionsSlice = createSlice({
 
           const disabledQueryParams = filter(item?.draft?.request?.params, (p) => !p.enabled && p.type === 'query');
           let enabledQueryParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'query');
-          let oldPathParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'path');
+          let oldPathParams = filter(item?.draft?.request?.params, (p) => p.type === 'path');
           let newPathParams = [];
 
           // try and connect as much as old params uid's as possible
@@ -1233,6 +1233,55 @@ export const collectionsSlice = createSlice({
         item.draft.request.url = parts[0];
       }
     },
+    setPathParams: (state, action) => {
+      const { collectionUid, itemUid, params } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) {
+        return;
+      }
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item || !isItemARequest(item)) {
+        return;
+      }
+
+      if (!item.draft) {
+        item.draft = cloneDeep(item);
+      }
+
+      const existingOtherParams = item.draft.request.params?.filter((p) => p.type !== 'path') || [];
+
+      const newPathParams = map(
+        params,
+        ({ uid, name = '', value = '', description = '', annotations = null, enabled = true }) => ({
+          uid: uid || uuid(),
+          name,
+          value,
+          description,
+          annotations,
+          type: 'path',
+          enabled
+        })
+      );
+
+      const namesWithSelection = new Set();
+      each(newPathParams, (param) => {
+        if (param.enabled && !namesWithSelection.has(param.name)) {
+          namesWithSelection.add(param.name);
+        } else {
+          param.enabled = false;
+        }
+      });
+      each(newPathParams, (param) => {
+        if (!namesWithSelection.has(param.name)) {
+          param.enabled = true;
+          namesWithSelection.add(param.name);
+        }
+      });
+
+      item.draft.request.params = [...existingOtherParams, ...newPathParams];
+    },
     moveQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1362,6 +1411,14 @@ export const collectionsSlice = createSlice({
             }
             if ('enabled' in action.payload.pathParam) {
               param.enabled = action.payload.pathParam.enabled;
+
+              if (param.enabled) {
+                each(item.draft.request.params, (p) => {
+                  if (p.type === 'path' && p.name === param.name && p.uid !== param.uid) {
+                    p.enabled = false;
+                  }
+                });
+              }
             }
           }
         }
@@ -4069,6 +4126,7 @@ export const {
   updateAuth,
   addQueryParam,
   setQueryParams,
+  setPathParams,
   moveQueryParam,
   updateQueryParam,
   deleteQueryParam,

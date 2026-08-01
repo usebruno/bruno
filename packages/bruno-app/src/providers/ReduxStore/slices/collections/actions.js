@@ -2437,7 +2437,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
         case 'pathParam': {
           const { item } = data;
           const params = item.draft ? get(item, 'draft.request.params', []) : get(item, 'request.params', []);
-          const pathParam = params.find((p) => p.type === 'path' && p.name === variableName);
+          const pathParam = params.find((p) => p.type === 'path' && p.name === variableName && p.enabled !== false);
 
           if (pathParam) {
             const updatedParam = { ...pathParam, value: newValue };

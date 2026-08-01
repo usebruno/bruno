@@ -429,6 +429,30 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
 
     expect(result).toEqual('https://httpbin.org/anything/:analyze-text');
   });
+
+  it('should skip a disabled row and use the enabled one sharing its name', () => {
+    const url = 'https://example.com/v1/images/:kind';
+    const params = [
+      { name: 'kind', type: 'path', enabled: false, value: 'Logo' },
+      { name: 'kind', type: 'path', enabled: true, value: 'Signature' }
+    ];
+
+    const result = interpolateUrlPathParams(url, params);
+
+    expect(result).toEqual('https://example.com/v1/images/Signature');
+  });
+
+  it('should keep the colon segment when every row sharing a name is disabled', () => {
+    const url = 'https://example.com/v1/images/:kind';
+    const params = [
+      { name: 'kind', type: 'path', enabled: false, value: 'Logo' },
+      { name: 'kind', type: 'path', enabled: false, value: 'Signature' }
+    ];
+
+    const result = interpolateUrlPathParams(url, params);
+
+    expect(result).toEqual('https://example.com/v1/images/:kind');
+  });
 });
 
 describe('Url Utils - interpolateUrlPathParams with { raw: true }', () => {

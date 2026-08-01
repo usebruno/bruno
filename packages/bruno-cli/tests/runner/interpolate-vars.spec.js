@@ -2,6 +2,34 @@ const { describe, it, expect } = require('@jest/globals');
 const interpolateVars = require('../../src/runner/interpolate-vars');
 
 describe('interpolate-vars: interpolateVars', () => {
+  it('skips a disabled path param row and uses the enabled one sharing its name', () => {
+    const request = {
+      method: 'PUT',
+      url: 'http://example.com/v1/images/:kind',
+      pathParams: [
+        { type: 'path', name: 'kind', value: 'Logo', enabled: false },
+        { type: 'path', name: 'kind', value: 'Signature', enabled: true }
+      ]
+    };
+
+    const result = interpolateVars(request, {}, {}, {});
+    expect(result.url).toBe('http://example.com/v1/images/Signature');
+  });
+
+  it('keeps the colon segment when every path param row sharing a name is disabled', () => {
+    const request = {
+      method: 'PUT',
+      url: 'http://example.com/v1/images/:kind',
+      pathParams: [
+        { type: 'path', name: 'kind', value: 'Logo', enabled: false },
+        { type: 'path', name: 'kind', value: 'Signature', enabled: false }
+      ]
+    };
+
+    const result = interpolateVars(request, {}, {}, {});
+    expect(result.url).toBe('http://example.com/v1/images/:kind');
+  });
+
   it('keeps stream-backed JSON request bodies intact', () => {
     const streamPayload = {
       pipe: jest.fn(),
