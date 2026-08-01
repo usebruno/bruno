@@ -1,0 +1,34 @@
+info:
+  name: EdgeGrid Signed Headers 200
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{localhost}}/api/auth/edgegrid/resource"
+  headers:
+    - name: X-Test1
+      value: my-signed-value
+    - name: x-eg-headers-to-sign
+      value: X-Test1
+  auth:
+    type: akamai-edgegrid
+    accessToken: akab-access-token-bruno-test
+    clientToken: akab-client-token-bruno-test
+    clientSecret: dGVzdC1jbGllbnQtc2VjcmV0LWZvci1icnVuby1lZGdlZ3JpZA==
+    headersToSign: X-Test1
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.authenticated
+      operator: eq
+      value: "true"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

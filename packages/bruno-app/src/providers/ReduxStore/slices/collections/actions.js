@@ -1,5 +1,6 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
 import { parseQueryParams, extractPromptVariables, getDataTypeFromValue } from '@usebruno/common/utils';
+import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
 import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
@@ -8,7 +9,7 @@ import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
 import path, { normalizePath, isPathExternalToBasePath } from 'utils/common/path';
-import { insertTaskIntoQueue, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
 import SaveFileErrorModal from 'components/Errors/SaveFileErrorModal/index';
@@ -35,15 +36,19 @@ import {
   createCollection as _createCollection,
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
+  applyDefaultEnvironment as _applyDefaultEnvironment,
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
   moveCollection,
+  deleteItem as _deleteItemFromState,
+  brunoConfigUpdateEvent as _brunoConfigUpdateEvent,
   workspaceEnvUpdateEvent,
   requestCancelled,
   resetRunResults,
   responseReceived,
   updateLastAction,
   setCollectionSecurityConfig,
+  updateCollectionVersion as _updateCollectionVersion,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrlAndCredentialsId,
   initRunRequestEvent,
@@ -85,14 +90,18 @@ import {
   calculateDraggedItemNewPathname,
   transformFolderRootToSave,
   getTreePathFromCollectionToItem,
-  mergeHeaders
+  mergeHeaders,
+  isPathOrDescendant
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
-import { applyScriptEnvVars, getScriptModifiedKeys } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, resolveSecretNameCollision, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
+import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common/variables';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from './index';
+import { migrationStarted, migrationCancelRequested, migrationEnded } from 'providers/ReduxStore/slices/collection-migration';
+import { flushSnapshotNow } from 'providers/ReduxStore/middlewares/snapshot/middleware';
 import { saveGlobalEnvironment, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
@@ -313,6 +322,40 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   });
 };
 
+export const saveCollectionVersion = (collectionUid, version) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const updatedVersion = typeof version === 'string' ? version.trim() : '';
+
+    const brunoConfigToSave = { ...(collection.brunoConfig || {}) };
+    if (updatedVersion) {
+      brunoConfigToSave.version = updatedVersion;
+    } else {
+      delete brunoConfigToSave.version;
+    }
+
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:update-bruno-config', brunoConfigToSave, collection.pathname, collection.root)
+      .then(() => {
+        dispatch(_updateCollectionVersion({ collectionUid, version: updatedVersion }));
+        toast.success('Collection version updated');
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to update collection version');
+        reject(err);
+      });
+  });
+};
+
 export const saveFolderRoot = (collectionUid, folderUid, silent = false) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -505,8 +548,6 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
 
     // WS connect does not run user scripts — no baseline to clear.
-    // Wiping baselines here would also wipe collection._scriptRequestUid, opening
-    // a window where a late HTTP post-response could pass the stale-update gate.
 
     connectWS(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables, { connectOnly: true })
       .then(resolve)
@@ -1233,8 +1274,8 @@ export const handleCollectionItemDrop
           }
         }
 
-        // Update sequences in the target directory (if dropping adjacent)
-        if (dropType === 'adjacent') {
+        // Update sequences in the target directory (if dropping above/below)
+        if (dropType === 'above' || dropType === 'below') {
           const targetItemSequence = targetItemDirectoryItems.find((i) => i.uid === targetItemUid)?.seq;
 
           const draggedItemWithNewPathAndSequence = {
@@ -1247,7 +1288,8 @@ export const handleCollectionItemDrop
           const reorderedTargetItems = getReorderedItemsInTargetDirectory({
             items: [...targetItemDirectoryItems, draggedItemWithNewPathAndSequence],
             targetItemUid,
-            draggedItemUid
+            draggedItemUid,
+            dropType
           });
 
           if (reorderedTargetItems?.length) {
@@ -1256,7 +1298,7 @@ export const handleCollectionItemDrop
         }
       };
 
-      const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems }) => {
+      const handleReorderInSameLocation = async ({ draggedItem, targetItem, targetItemDirectoryItems, dropType }) => {
         const { uid: targetItemUid } = targetItem;
         const { uid: draggedItemUid } = draggedItem;
 
@@ -1264,7 +1306,8 @@ export const handleCollectionItemDrop
         const reorderedItems = getReorderedItemsInTargetDirectory({
           items: targetItemDirectoryItems,
           targetItemUid,
-          draggedItemUid
+          draggedItemUid,
+          dropType
         });
 
         if (reorderedItems?.length) {
@@ -1281,7 +1324,7 @@ export const handleCollectionItemDrop
             collectionPathname: collection.pathname
           });
           if (!newPathname) return;
-          if (targetItemPathname?.startsWith(draggedItemPathname)) return;
+          if (isPathOrDescendant(targetItemPathname, draggedItemPathname)) return;
 
           if (isCrossFormatMove && isItemAFolder(draggedItem)) {
             toast.error('Moving folders between collections with different formats is not supported');
@@ -1305,7 +1348,7 @@ export const handleCollectionItemDrop
               dropType
             });
           } else {
-            await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem });
+            await handleReorderInSameLocation({ draggedItem, targetItemDirectoryItems, targetItem, dropType });
           }
 
           if (isCrossCollectionMove) {
@@ -1409,9 +1452,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           mode: 'inherit'
         }
       },
-      settings: settings ?? {
-        encodeUrl: true
-      }
+      settings: settings ?? cloneDeep(DEFAULT_HTTP_ITEM_SETTINGS)
     };
 
     // itemUid is null when we are creating a new request at the root level
@@ -1678,7 +1719,7 @@ export const newWsRequest = (params) => (dispatch, getState) => {
               uid: uuid(),
               name: 'message 1',
               type: 'json',
-              content: '{}'
+              content: ''
             }
           ]
         },
@@ -1798,7 +1839,7 @@ const DEFAULT_APP_STARTER = `<!DOCTYPE html>
   <script>
     const out = document.getElementById('out');
     document.getElementById('refresh').addEventListener('click', async () => {
-      const requests = await ctx.listRequests();
+      const requests = await bru.ctx.listRequests();
       out.textContent = requests.map(r => \`\${r.method || r.type}  \${r.name}\`).join('\\n') || '(no requests)';
     });
   </script>
@@ -2104,6 +2145,17 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       return reject(new Error('Environment not found'));
     }
 
+    // Guarded here rather than only in the editor panes, because cmd+S, autosave and the
+    // save-all-drafts hotkey reach this thunk directly and `environmentSchema` accepts any name.
+    const invalidNames = getInvalidVariableNames(variables);
+    if (invalidNames.length > 0) {
+      return reject(new Error(invalidVariableNamesError(invalidNames)));
+    }
+
+    if (writesCollidingSecrets(variables, environment.variables)) {
+      return reject(new Error(DUPLICATE_SECRET_NAMES_ERROR));
+    }
+
     environment.variables = variables;
 
     const { ipcRenderer } = window;
@@ -2224,15 +2276,14 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
     try {
       const { type, data } = scopeInfo;
 
-      // Handle read-only variables early
+      // Handle read-only variables early. These reject with the message the user should see — the
+      // caller surfaces every rejection from here, so toasting as well would double up.
       if (type === 'process.env') {
-        toast.error('Process environment variables cannot be edited');
-        return reject(new Error('Process environment variables are read-only'));
+        return reject(new Error('Process environment variables cannot be edited'));
       }
 
       if (type === 'runtime' || (collection && collection.runtimeVariables && collection.runtimeVariables[variableName])) {
-        toast.error('Runtime variables are set by scripts and cannot be edited');
-        return reject(new Error('Runtime variables are read-only'));
+        return reject(new Error('Runtime variables are set by scripts and cannot be edited'));
       }
 
       // Validate collection for non-global scopes
@@ -2255,7 +2306,9 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return v;
           });
 
-          return dispatch(saveEnvironment(updatedVariables, environment.uid, collectionUid))
+          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
+
+          return dispatch(saveEnvironment(resolvedVariables, environment.uid, collectionUid))
             .then(() => {
               toast.success(`Variable "${variableName}" updated`);
             })
@@ -2369,7 +2422,12 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return v;
           });
 
-          return dispatch(saveGlobalEnvironment({ variables: updatedVariables, environmentUid: activeGlobalEnvUid }))
+          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
+
+          return dispatch(saveGlobalEnvironment({
+            variables: resolvedVariables,
+            environmentUid: activeGlobalEnvUid
+          }))
             .then(() => {
               toast.success(`Variable "${variableName}" updated`);
             })
@@ -2412,14 +2470,10 @@ export const clearScriptVariableBaselines = (collectionUid) => (dispatch) => {
   dispatch(_clearScriptGlobalEnvBaseline());
 };
 
-export const persistActiveEnvironment = (collectionUid, requestUid) => (dispatch, getState) => {
+export const persistActiveEnvironment = (collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   if (!collection) return;
-
-  // Ignore stale updates from superseded requests so an in-flight pre/post
-  // from request N-1 can't trigger a disk write for request N.
-  if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) return;
 
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   if (!environment) return;
@@ -2441,17 +2495,12 @@ export const persistActiveEnvironment = (collectionUid, requestUid) => (dispatch
     .catch((err) => console.error('Failed to persist environment during script execution:', err));
 };
 
-export const collectionVariablesUpdateEvent = ({ collectionVariables, collectionUid, requestUid }) => (dispatch, getState) => {
+export const collectionVariablesUpdateEvent = ({ collectionVariables, collectionUid }) => (dispatch, getState) => {
   if (!collectionVariables || !collectionUid) return;
 
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   if (!collection) return;
-
-  // Ignore stale updates from superseded requests.
-  if (requestUid && collection._scriptRequestUid && requestUid !== collection._scriptRequestUid) {
-    return;
-  }
 
   const savedVars = get(collection, 'root.request.vars.req', []);
   const draftVars = collection.draft?.root
@@ -2502,6 +2551,7 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
@@ -2519,6 +2569,7 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
       type: 'COLLECTION_ENVIRONMENT',
       data: {
         collectionPath: collection?.pathname,
+        workspacePathname: activeWorkspace?.pathname || null,
         environmentPath: getCollectionEnvironmentPath(collection, environment),
         selectedEnvironment: environment?.name || ''
       }
@@ -2651,11 +2702,30 @@ export const browseDirectory = () => (dispatch, getState) => {
   });
 };
 
+export const browseDirectories = () => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    ipcRenderer.invoke('renderer:browse-directories').then(resolve).catch(reject);
+  });
+};
+
 export const browseFiles = (filters, properties) => (_dispatch, _getState) => {
   const { ipcRenderer } = window;
 
   return new Promise((resolve, reject) => {
     ipcRenderer.invoke('renderer:browse-files', filters, properties).then(resolve).catch(reject);
+  });
+};
+
+export const exportCollectionToPostman = (location, fileName, content, overwrite = false) => (_dispatch, _getState) => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    ipcRenderer
+      .invoke('renderer:export-collection-postman', location, fileName, content, overwrite)
+      .then(resolve)
+      .catch(reject);
   });
 };
 
@@ -2718,6 +2788,32 @@ export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getS
   });
 };
 
+export const ignoreFolder = (itemUid, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const item = findItemInCollection(collection, itemUid);
+    if (!item) {
+      return reject(new Error('Unable to locate item'));
+    }
+
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('renderer:ignore-folder', collectionUid, collection.pathname, collection.root, collection.brunoConfig || {}, item.pathname)
+      .then((updatedBrunoConfig) => {
+        dispatch(_brunoConfigUpdateEvent({ collectionUid, brunoConfig: updatedBrunoConfig }));
+        dispatch(_deleteItemFromState({ itemUid, collectionUid }));
+        resolve();
+      })
+      .catch(reject);
+  });
+};
+
 /**
  * Opens a scratch collection and creates it in Redux state.
  * This is a simplified version of openCollectionEvent for scratch collections,
@@ -2765,7 +2861,7 @@ export const openScratchCollectionEvent = (uid, pathname, brunoConfig) => (dispa
   });
 };
 
-export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
+export const openCollectionEvent = (uid, pathname, brunoConfig, options = {}) => (dispatch, getState) => {
   const { ipcRenderer } = window;
 
   return new Promise((resolve, reject) => {
@@ -2782,16 +2878,14 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     );
 
     if (existingCollection && isAlreadyInWorkspace) {
-      toast.success('Collection is already opened');
+      if (!options.silent) {
+        toast.success('Collection is already opened');
+      }
       resolve();
       return;
     }
 
     if (existingCollection) {
-      if (state.app.sidebarCollapsed) {
-        dispatch(toggleSidebarCollapse());
-      }
-
       if (activeWorkspace) {
         const workspaceCollection = {
           name: brunoConfig.name,
@@ -2801,7 +2895,9 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         ipcRenderer
           .invoke('renderer:add-collection-to-workspace', activeWorkspace.pathname, workspaceCollection)
           .then(() => {
-            toast.success('Collection added to workspace');
+            if (!options.silent) {
+              toast.success('Collection added to workspace');
+            }
           })
           .catch((err) => {
             console.error('Failed to add collection to workspace', err);
@@ -2845,9 +2941,6 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
         .then(() => {
           const currentState = getState();
-          if (currentState.app.sidebarCollapsed) {
-            dispatch(toggleSidebarCollapse());
-          }
 
           const currentWorkspace = currentState.workspaces.workspaces.find(
             (w) => w.uid === currentState.workspaces.activeWorkspaceUid
@@ -2914,25 +3007,6 @@ export const cloneCollection = (collectionName, collectionFolderName, collection
     previousPath
   );
 };
-export const openCollection = (options = {}) => (dispatch, getState) => {
-  return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window;
-
-    const state = getState();
-    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
-
-    if (!options.workspaceId) {
-      options.workspaceId = activeWorkspace?.pathname || 'default';
-    }
-
-    ipcRenderer.invoke('renderer:open-collection', options)
-      .then((result) => {
-        resolve(result);
-      })
-      .catch(reject);
-  });
-};
-
 export const openMultipleCollections = (collectionPaths, options = {}) => () => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
@@ -2951,6 +3025,9 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, meta.collectionUid);
+    const activeWorkspace = state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid);
+    const shouldPersistSelectionFromLastAction = collection?.lastAction?.type === 'ADD_ENVIRONMENT'
+      && collection?.lastAction?.payload === environment?.name;
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
@@ -2973,6 +3050,22 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
           })
         )
       )
+      .then(() => {
+        if (!shouldPersistSelectionFromLastAction) {
+          return;
+        }
+
+        const { ipcRenderer } = window;
+        ipcRenderer.invoke('renderer:update-ui-state-snapshot', {
+          type: 'COLLECTION_ENVIRONMENT',
+          data: {
+            collectionPath: collection?.pathname,
+            workspacePathname: activeWorkspace?.pathname || null,
+            environmentPath: getCollectionEnvironmentPath(collection, environment, environment?.pathname),
+            selectedEnvironment: environment?.name || ''
+          }
+        });
+      })
       .then(resolve)
       .catch(reject);
   });
@@ -3098,10 +3191,21 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
       const collectionUid = collectionCopy?.uid;
 
       // update selected environment
+      // Precedence:
+      //   1. The environment saved in the ui-state-snapshot always wins.
+      //   2. The collection's configured default environment (brunoConfig.presets.defaultEnvironment)
+      //      is applied ONLY the first time a collection is opened/imported.
       const environment = findCollectionEnvironmentFromSnapshot(collectionCopy, collectionSnapshotData);
 
       if (environment) {
         dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
+      } else if (collectionSnapshotData?.hasSnapshotEntry === false) {
+        const defaultEnvironmentName = collectionCopy?.brunoConfig?.presets?.defaultEnvironment;
+        if (defaultEnvironmentName && collectionUid) {
+          // Apply the default now if its environment file is already loaded; otherwise mark
+          // it pending so it's applied as soon as the file arrives (collectionAddEnvFileEvent).
+          dispatch(_applyDefaultEnvironment({ collectionUid, defaultEnvironmentName }));
+        }
       }
 
       // todo: add any other redux state that you want to save
@@ -3240,14 +3344,25 @@ export const mountCollection
       const fileCacheEnabled = getState().app?.preferences?.cache?.file?.enabled;
       const channel = fileCacheEnabled ? 'renderer:mount-collection-v2' : 'renderer:mount-collection';
       return new Promise(async (resolve, reject) => {
-        callIpc(channel, { collectionUid, collectionPathname, brunoConfig })
+        callIpc(channel, { collectionUid, collectionPathname, brunoConfig, workspacePathname })
           .then(async (transientDirPath) => {
             dispatch(updateCollectionMountStatus({ collectionUid, mountStatus: 'mounted' }));
             dispatch(addTransientDirectory({ collectionUid, pathname: transientDirPath }));
 
             const collection = getState().collections.collections.find((c) => c.uid === collectionUid);
-            if (!skipTabRestore && collection?.pathname) {
-              await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+            if (collection?.pathname) {
+              if (!skipTabRestore) {
+                await hydrateCollectionTabs(collection, dispatch, restoreTabs, null, workspacePathname);
+              }
+
+              const collectionSnapshotState = await window.ipcRenderer
+                .invoke('renderer:snapshot:get-collection', collection.pathname, workspacePathname)
+                .catch(() => null);
+              await dispatch(hydrateCollectionWithUiStateSnapshot(
+                collectionSnapshotState
+                  ? { pathname: collection.pathname, ...collectionSnapshotState, hasSnapshotEntry: true }
+                  : { pathname: collection.pathname, hasSnapshotEntry: false }
+              ));
             }
           })
           .then(resolve)
@@ -3494,72 +3609,104 @@ export const reopenClosedTab = ({ collectionUid } = {}) => async (dispatch) => {
   await dispatch(ensureActiveTabInCurrentWorkspace());
 };
 
-export const migrateCollectionToYml = (collectionUid) => (dispatch, getState) => {
-  const { ipcRenderer } = window;
-
+const waitForCollectionInStore = (getState, collectionUid, { timeoutMs = 15000, intervalMs = 50 } = {}) => {
   return new Promise((resolve, reject) => {
-    const state = getState();
-    const collection = findCollectionByUid(state.collections.collections, collectionUid);
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
-
-    const collectionPathname = collection.pathname;
-    const uid = collection.uid;
-    ipcRenderer
-      .invoke('renderer:migrate-collection-to-yml', collectionPathname, collectionUid)
-      .then(async (updatedBrunoConfig) => {
-        // Remove old collection state so we can recreate it with the new yml config.
-        // openCollectionEvent requires no existing collection with the same pathname.
-        dispatch(_removeCollection({ collectionUid }));
-        dispatch(closeAllCollectionTabs({ collectionUid }));
-
-        try {
-          // Reopen the collection with updated config (now yml format)
-          await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
-
-          // Mount the collection (starts the watcher and loads items)
-          await dispatch(mountCollection({
-            collectionUid: uid,
-            collectionPathname: collectionPathname,
-            brunoConfig: updatedBrunoConfig
-          }));
-        } catch (reopenError) {
-          // Files on disk are already yml; best-effort recovery so the
-          // collection doesn't disappear from the UI. openCollectionEvent is
-          // a no-op if it already succeeded, and mountCollection is what we
-          // retry when it was the failing step.
-          try {
-            await dispatch(openCollectionEvent(uid, collectionPathname, updatedBrunoConfig));
-            await dispatch(mountCollection({
-              collectionUid: uid,
-              collectionPathname: collectionPathname,
-              brunoConfig: updatedBrunoConfig
-            }));
-          } catch (_) {}
-          throw reopenError;
-        }
-
-        // Expand the collection in the sidebar (only if collapsed)
-        const reopenedCollection = findCollectionByUid(getState().collections.collections, uid);
-        if (reopenedCollection?.collapsed) {
-          dispatch(toggleCollection(uid));
-        }
-
-        // Reopen collection settings on the overview tab
-        dispatch(addTab({
-          uid: uid,
-          collectionUid: uid,
-          type: 'collection-settings'
-        }));
-        dispatch(updateSettingsSelectedTab({ collectionUid: uid, tab: 'overview' }));
-
-        toast.success('Collection migrated to YML format successfully');
-        resolve();
-      })
-      .catch((err) => {
-        toast.error(`Migration failed: ${err.message || 'Unknown error'}`);
-        reject(err);
-      });
+    const startedAt = Date.now();
+    const check = () => {
+      const collection = findCollectionByUid(getState().collections.collections, collectionUid);
+      if (collection) {
+        return resolve(collection);
+      }
+      if (Date.now() - startedAt >= timeoutMs) {
+        return reject(new Error('Collection did not reopen after migration'));
+      }
+      setTimeout(check, intervalMs);
+    };
+    check();
   });
+};
+
+export const migrateCollectionToYml = (collectionUid) => async (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  const state = getState();
+
+  if (state.collectionMigration.status === 'migrating' || state.collectionMigration.status === 'cancelling') {
+    return;
+  }
+
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection) {
+    throw new Error('Collection not found');
+  }
+  const collectionPathname = collection.pathname;
+  const { workspaces } = state;
+  const activeWorkspace = workspaces.workspaces.find((w) => w.uid === workspaces.activeWorkspaceUid);
+  const workspacePathname = activeWorkspace?.pathname || null;
+
+  // The collection re-opens through the normal main:collection-opened flow, but that event
+  // arrives before this thunk regains control and openCollectionEvent awaits nested IPC —
+  // so poll for the collection to land in the store, then mount it (nothing else mounts a
+  // freshly opened collection outside boot hydration and sidebar clicks).
+  const remountReopenedCollection = async () => {
+    const reopenedCollection = await waitForCollectionInStore(getState, collectionUid);
+    await dispatch(mountCollection({
+      collectionUid,
+      collectionPathname: reopenedCollection.pathname,
+      brunoConfig: reopenedCollection.brunoConfig,
+      skipTabRestore: true,
+      workspacePathname
+    }));
+  };
+
+  dispatch(migrationStarted());
+  dispatch(closeAllCollectionTabs({ collectionUid }));
+  dispatch(ensureActiveTabInCurrentWorkspace());
+  // Flush the snapshot while the collection is still in the store: its entry serializes
+  // with the now-empty tab list, replacing any stale .bru tabs on disk for the active
+  // workspace. Inactive workspace entries for a shared collection are remapped in main
+  // (remapCollectionTabPaths) after the disk convert — force-flush alone cannot touch them.
+  await flushSnapshotNow(getState);
+  // Drop the collection from the store only — not from the workspace file — so it
+  // disappears from the ui during migration and comes back on reopen.
+  dispatch(_removeCollection({ collectionUid }));
+
+  try {
+    await ipcRenderer.invoke('renderer:migrate-collection-to-yml', collectionPathname, collectionUid);
+
+    await remountReopenedCollection();
+    // Freshly created collections start collapsed; expand it back like before migration
+    const migratedCollection = findCollectionByUid(getState().collections.collections, collectionUid);
+    if (migratedCollection?.collapsed) {
+      dispatch(toggleCollection(collectionUid));
+    }
+    dispatch(updateSettingsSelectedTab({ collectionUid, tab: 'overview' }));
+    dispatch(addTab({
+      uid: collectionUid,
+      collectionUid,
+      type: 'collection-settings'
+    }));
+    toast.success('Collection migrated to YML format successfully');
+  } catch (err) {
+    const wasCancelled = getState().collectionMigration.status === 'cancelling'
+      || /migration cancelled/i.test(err?.message || '');
+    if (wasCancelled) {
+      toast('Migration cancelled');
+    } else {
+      toast.error(`Migration failed: ${err?.message || 'Unknown error'}`);
+    }
+    // Main restored the disk and re-opened the original collection; hold the locked
+    // modal open until it is back in the store so the sidebar never sits empty.
+    await remountReopenedCollection().catch(() => {
+      toast.error('Collection could not be reopened automatically. Please reopen it manually.');
+    });
+    throw err;
+  } finally {
+    dispatch(migrationEnded());
+  }
+};
+
+export const cancelMigrateCollectionToYml = (collectionUid) => (dispatch) => {
+  const { ipcRenderer } = window;
+  dispatch(migrationCancelRequested());
+  return ipcRenderer.invoke('renderer:cancel-migrate-collection-to-yml', collectionUid);
 };

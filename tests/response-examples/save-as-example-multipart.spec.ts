@@ -36,10 +36,8 @@ test.describe('Response Example - multipart files preserved when creating exampl
       await page.getByRole('button', { name: 'Create Example' }).click();
     });
 
-    await test.step('Example tab opens with the right title', async () => {
-      const title = page.getByTestId('response-example-title');
-      await expect(title).toBeVisible();
-      await expect(title).toContainText('Created From Request');
+    await test.step('Example tab opens in edit mode with the right name', async () => {
+      await expect(page.getByTestId('response-example-name-input')).toHaveValue('Created From Request');
     });
 
     await test.step('File chips show real names', async () => {

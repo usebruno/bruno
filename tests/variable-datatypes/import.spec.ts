@@ -53,7 +53,7 @@ const tableRowByName = (table: ReturnType<ReturnType<typeof buildCommonLocators>
   table.rowByName(name);
 
 const expectTypeLabel = async (row: Locator, label: string) => {
-  await expect(buildCommonLocators(row.page()).dataTypeSelector.typeLabel(row)).toHaveText(label);
+  await expect(buildCommonLocators(row.page()).dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', label);
 };
 
 const openImportedRequest = async (page: Page) => {
@@ -143,7 +143,7 @@ test.describe('DataType selector — imported OpenCollection (.yml) collection',
     await expect(locators.tabs.activeRequestTab()).toContainText('Environments');
 
     for (const [name, label] of ENV_ROWS) {
-      await expect(locators.dataTypeSelector.typeLabel(locators.environment.varRow(name))).toHaveText(label);
+      await expect(locators.dataTypeSelector.typeLabel(locators.environment.varRow(name))).toHaveAttribute('data-selected-type', label);
     }
   });
 });

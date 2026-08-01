@@ -2,8 +2,6 @@ const { describe, it, expect, beforeAll } = require('@jest/globals');
 const TestRuntime = require('../src/runtime/test-runtime');
 const ScriptRuntime = require('../src/runtime/script-runtime');
 const AssertRuntime = require('../src/runtime/assert-runtime');
-const Bru = require('../src/bru');
-const VarsRuntime = require('../src/runtime/vars-runtime');
 const { loader: quickJsLoader } = require('../src/sandbox/quickjs');
 
 describe('runtime', () => {
@@ -89,6 +87,58 @@ describe('runtime', () => {
       expect(result.results.map((el) => ({ description: el.description, status: el.status }))).toEqual([
         { description: 'format valid', status: 'pass' }
       ]);
+    });
+
+    it('should return stopExecution when bru.runner.stopExecution() is called in tests (nodevm)', async () => {
+      const testFile = `bru.runner.stopExecution();`;
+
+      const runtime = new TestRuntime({ runtime: 'nodevm' });
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        null,
+        process.env
+      );
+      expect(result.stopExecution).toBe(true);
+    });
+
+    it('should return stopExecution when bru.runner.stopExecution() is called in tests (quickjs)', async () => {
+      const testFile = `bru.runner.stopExecution();`;
+
+      const runtime = new TestRuntime({ runtime: 'quickjs' });
+      const onConsoleLog = () => {};
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        onConsoleLog,
+        process.env
+      );
+      expect(result.stopExecution).toBe(true);
+    });
+
+    it('should not set stopExecution when bru.runner.stopExecution() is not called', async () => {
+      const testFile = `test('noop', () => { expect(true).to.be.true; });`;
+
+      const runtime = new TestRuntime({ runtime: 'nodevm' });
+      const result = await runtime.runTests(
+        testFile,
+        { ...baseRequest },
+        { ...baseResponse },
+        {},
+        {},
+        '.',
+        null,
+        process.env
+      );
+      expect(result.stopExecution).toBeFalsy();
     });
   });
 
@@ -250,15 +300,6 @@ describe('runtime', () => {
       expect(result.envVariables.only_env).toBe('val');
       expect(result.collectionVariables).toBeNull();
       expect(result.globalEnvironmentVariables).toBeNull();
-    });
-
-    it('should not include persistentEnvVariables in result', async () => {
-      const script = `bru.setEnvVar('key', 'val');`;
-      const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-
-      const result = await runtime.runRequestScript(script, {}, {}, {}, '.', null, process.env);
-
-      expect(result).not.toHaveProperty('persistentEnvVariables');
     });
 
     it('should include collectionVariables in result', async () => {

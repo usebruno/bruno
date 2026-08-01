@@ -1,6 +1,13 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
-const { safeParseJson, outdentString, extractTypedAnnotations } = require('./utils');
+const {
+  safeParseJson,
+  outdentString,
+  unescapeAnnotationDoubleQuotedArg,
+  parseAnnotationMultilineTextBlock,
+  applyDescriptionFromAnnotations,
+  extractTypedAnnotations
+} = require('./utils');
 const parseExample = require('./example/bruToJson');
 
 // this is done to avoid breaking existing pairlist mapping so
@@ -35,17 +42,17 @@ const ANNOTATIONS_KEY = Symbol('annotations');
  */
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | grpc | ws | query | params | headers | metadata | auths | bodies | varsandassert | script | tests | app | settings | docs | example)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authOauth2Configs
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM | authOAuth1 | authOAuth2 | authwsse | authapikey | authedgegrid | authOauth2Configs
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body | bodygrpc | bodyws
   bodyforms = bodyformurlencoded | bodymultipart | bodyfile
   params = paramspath | paramsquery
-  
+
   // Oauth2 additional parameters
   authOauth2Configs = oauth2AuthReqConfig | oauth2AccessTokenReqConfig | oauth2RefreshTokenReqConfig
-  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams 
+  oauth2AuthReqConfig = oauth2AuthReqHeaders | oauth2AuthReqQueryParams
   oauth2AccessTokenReqConfig = oauth2AccessTokenReqHeaders | oauth2AccessTokenReqQueryParams | oauth2AccessTokenReqBody
   oauth2RefreshTokenReqConfig = oauth2RefreshTokenReqHeaders | oauth2RefreshTokenReqQueryParams | oauth2RefreshTokenReqBody
- 
+
   nl = "\\r"? "\\n"
   st = " " | "\\t"
   stnl = st | nl
@@ -64,7 +71,9 @@ const grammar = ohm.grammar(`Bru {
   annotationchar = ~("(" | ")" | " " | "\\t" | "\\r" | "\\n" | ":") any
   annotationsinglequotedargchar = ~"'" any
   annotationsinglequotedarg = "'" annotationsinglequotedargchar* "'"
-  annotationdoublequotedargchar = ~"\\"" any
+  annotationdoublequotedargchar = annotationdoublequotedargesc | annotationdoublequotedargnorm
+  annotationdoublequotedargesc = "\\\\" any
+  annotationdoublequotedargnorm = ~"\\"" any
   annotationdoublequotedarg = "\\"" annotationdoublequotedargchar* "\\""
   annotationunquotedargchar = ~")" any
   annotationunquotedarg = annotationunquotedargchar*
@@ -147,6 +156,7 @@ const grammar = ohm.grammar(`Bru {
   authOAuth2 = "auth:oauth2" dictionary
   authwsse = "auth:wsse" dictionary
   authapikey = "auth:apikey" dictionary
+  authedgegrid = "auth:akamai-edgegrid" dictionary
 
   oauth2AuthReqHeaders = "auth:oauth2:additional_params:auth_req:headers" dictionary
   oauth2AuthReqQueryParams = "auth:oauth2:additional_params:auth_req:queryparams" dictionary
@@ -175,7 +185,7 @@ const grammar = ohm.grammar(`Bru {
   // Examples - multiple example blocks
   example = "example" st* "{" nl* examplecontent tagend
   examplecontent = (~tagend any)*
-  
+
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
   scriptres = "script:post-response" st* "{" nl* textblock tagend
@@ -189,7 +199,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true, extractTyp
   }
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
-    let value = pair[name];
+    const value = pair[name];
     const rawAnnotations = pair[ANNOTATIONS_KEY];
 
     if (!parseEnabled) {
@@ -206,7 +216,10 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true, extractTyp
     }
 
     const result = { name, value, enabled };
-    if (rawAnnotations && rawAnnotations.length) result.annotations = rawAnnotations;
+    if (rawAnnotations && rawAnnotations.length) {
+      result.annotations = rawAnnotations;
+      applyDescriptionFromAnnotations(result, rawAnnotations);
+    }
     if (extractTypes) extractTypedAnnotations(rawAnnotations, result);
     return result;
   });
@@ -218,7 +231,7 @@ const mapRequestParams = (pairList = [], type) => {
   }
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
-    let value = pair[name];
+    const value = pair[name];
     const rawAnnotations = pair[ANNOTATIONS_KEY];
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
@@ -227,7 +240,10 @@ const mapRequestParams = (pairList = [], type) => {
     }
 
     const result = { name, value, enabled, type };
-    if (rawAnnotations && rawAnnotations.length) result.annotations = rawAnnotations;
+    if (rawAnnotations && rawAnnotations.length) {
+      result.annotations = rawAnnotations;
+      applyDescriptionFromAnnotations(result, rawAnnotations);
+    }
     return result;
   });
 };
@@ -261,12 +277,13 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
 
   return pairs.map((pair) => {
     pair.type = 'text';
+    // Description is already handled inside mapPairListToKeyValPairs
     multipartExtractContentType(pair);
 
-    if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
-      let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+    if (_.isString(pair.value) && pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
+      const filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.type = 'file';
-      pair.value = filestr.split('|');
+      pair.value = filestr.split('|').filter(Boolean);
     }
 
     return pair;
@@ -279,7 +296,7 @@ const mapPairListToKeyValPairsFile = (pairList = [], parseEnabled = true) => {
     fileExtractContentType(pair);
 
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
-      let filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+      const filePath = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.filePath = filePath;
       pair.selected = pair.enabled;
 
@@ -320,6 +337,9 @@ const createGetNumFromRecord = (obj) => (key, { fallback } = {}) => {
   }
   return asNumber;
 };
+
+// Dictionary values arrive as strings; booleans may already be coerced upstream.
+const toBool = (value) => (typeof value === 'boolean' ? value : value === 'true');
 
 // Parse example content using dedicated example parser
 const parseExampleContent = (content) => {
@@ -393,7 +413,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString;
   },
   annotationdoublequotedarg(_open, chars, _close) {
-    return chars.sourceString;
+    return unescapeAnnotationDoubleQuotedArg(chars.sourceString);
   },
   annotationunquotedarg(chars) {
     return chars.sourceString;
@@ -402,13 +422,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return alt.ast;
   },
   annotationmultilinetextblock(_1, content, _2) {
-    const lines = content.sourceString.split('\n');
-    // NOTE: the number 4 is taken from the `multilinetextblock` implementation
-    let minIndent = 4;
-    const dedented = lines.map((line) => (line.trim() === '' ? '' : line.substring(minIndent)));
-    if (dedented.length > 0 && dedented[0] === '') dedented.shift();
-    if (dedented.length > 0 && dedented[dedented.length - 1] === '') dedented.pop();
-    return dedented.join('\n');
+    return parseAnnotationMultilineTextBlock(content.sourceString);
   },
   annotationargscontents(alt) {
     return alt.ast;
@@ -417,7 +431,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return value.ast;
   },
   pair(_1, annotations, _keyindent, key, _2, _3, _4, value, _5) {
-    let res = {};
+    const res = {};
     if (Array.isArray(value.ast)) {
       res[key.ast] = value.ast;
     } else {
@@ -447,7 +461,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return [pair.ast, ...rest.ast];
   },
   assertpair(_1, annotations, _2, key, _3, _4, _5, value, _6) {
-    let res = {};
+    const res = {};
     res[key.ast] = value.ast ? value.ast.trim() : '';
     const annotationList = annotations.ast;
     if (annotationList && annotationList.length > 0) {
@@ -509,7 +523,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return elements.map((e) => e.ast);
   },
   meta(_1, dictionary) {
-    let meta = mapPairListToKeyValPair(dictionary.ast);
+    const meta = mapPairListToKeyValPair(dictionary.ast);
 
     if (!meta.seq) {
       meta.seq = 1;
@@ -527,19 +541,24 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const appData = mapPairListToKeyValPair(dictionary.ast);
     return {
       app: {
-        code: appData.code || null
+        code: appData.code || null,
+        enabled: toBool(appData.enabled)
       }
     };
   },
   settings(_1, dictionary) {
-    let settings = mapPairListToKeyValPair(dictionary.ast);
+    const settings = mapPairListToKeyValPair(dictionary.ast);
     const getNumFromRecord = createGetNumFromRecord(settings);
 
     const keepAliveInterval = getNumFromRecord('keepAliveInterval');
 
     const parsedSettings = {};
     if (settings.followRedirects !== undefined) {
-      parsedSettings.followRedirects = typeof settings.followRedirects === 'boolean' ? settings.followRedirects : settings.followRedirects === 'true';
+      parsedSettings.followRedirects = toBool(settings.followRedirects);
+    }
+
+    if (settings.forwardAuthorizationHeader !== undefined) {
+      parsedSettings.forwardAuthorizationHeader = toBool(settings.forwardAuthorizationHeader);
     }
 
     // Parse maxRedirects as number
@@ -563,7 +582,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     }
 
     const _settings = {
-      encodeUrl: typeof settings.encodeUrl === 'boolean' ? settings.encodeUrl : settings.encodeUrl === 'true',
+      encodeUrl: toBool(settings.encodeUrl),
       timeout: parsedSettings.timeout !== undefined ? parsedSettings.timeout : 0
     };
 
@@ -573,6 +592,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 
     if (parsedSettings.maxRedirects !== undefined) {
       _settings.maxRedirects = parsedSettings.maxRedirects;
+    }
+
+    if (parsedSettings.forwardAuthorizationHeader !== undefined) {
+      _settings.forwardAuthorizationHeader = parsedSettings.forwardAuthorizationHeader;
     }
 
     if (keepAliveInterval) {
@@ -1005,6 +1028,39 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  authedgegrid(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+
+    const findValueByName = (name) => {
+      const item = _.find(auth, { name });
+      return item ? item.value : '';
+    };
+
+    const accessToken = findValueByName('accessToken');
+    const clientToken = findValueByName('clientToken');
+    const clientSecret = findValueByName('clientSecret');
+    const nonce = findValueByName('nonce');
+    const timestamp = findValueByName('timestamp');
+    const baseURL = findValueByName('baseURL');
+    const headersToSign = findValueByName('headersToSign');
+    const maxBodySizeRaw = findValueByName('maxBodySize');
+    const maxBodySize = maxBodySizeRaw === '' || isNaN(Number(maxBodySizeRaw)) ? null : Number(maxBodySizeRaw);
+
+    return {
+      auth: {
+        akamaiEdgegrid: {
+          accessToken,
+          clientToken,
+          clientSecret,
+          nonce,
+          timestamp,
+          baseURL,
+          headersToSign,
+          maxBodySize
+        }
+      }
+    };
+  },
   bodyformurlencoded(_1, dictionary) {
     return {
       body: {
@@ -1085,7 +1141,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   varsreq(_1, dictionary) {
     const vars = mapPairListToKeyValPairs(dictionary.ast, true, true);
     _.each(vars, (v) => {
-      let name = v.name;
+      const name = v.name;
       if (name && name.length && name.charAt(0) === '@') {
         v.name = name.slice(1);
         v.local = true;
@@ -1106,7 +1162,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     // annotations only (preserved on round-trip) without populating `dataType`.
     const vars = mapPairListToKeyValPairs(dictionary.ast, true, false);
     _.each(vars, (v) => {
-      let name = v.name;
+      const name = v.name;
       if (name && name.length && name.charAt(0) === '@') {
         v.name = name.slice(1);
         v.local = true;
@@ -1210,7 +1266,7 @@ const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    let ast = sem(match).ast;
+    const ast = sem(match).ast;
 
     return ast;
   } else {

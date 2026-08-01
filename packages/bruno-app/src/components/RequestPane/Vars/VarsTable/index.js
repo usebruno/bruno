@@ -7,13 +7,15 @@ import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
 import DataTypeSelector from 'components/DataTypeSelector';
+import VarValueCell from 'components/VarValueCell';
 import { valueToString } from '@usebruno/common/utils';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 
-const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
+const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, isDraft }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -57,13 +59,23 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
     return null;
   }, []);
 
+  const descriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    onRun: handleRun,
+    collection,
+    item,
+    nameFromRowIndex: true
+  });
+
   const columns = [
     {
       key: 'name',
       name: 'Name',
       isKeyField: true,
+      sortable: true,
       placeholder: 'Name',
-      width: '35%'
+      width: '20%'
     },
     {
       key: 'value',
@@ -74,11 +86,12 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',
-      render: ({ row, value, onChange, isLastEmptyRow }) => (
-        <div className="flex items-center w-full gap-2">
-          <div className="flex-1 min-w-0">
+      render: ({ row, value, onChange, isLastEmptyRow, rowIndex }) => (
+        <VarValueCell
+          editor={(
             <MultiLineEditor
               value={valueToString(value)}
+              name={`${rowIndex}.value`}
               theme={storedTheme}
               onSave={onSave}
               onChange={onChange}
@@ -87,27 +100,31 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
               item={item}
               placeholder={value == null || (typeof value === 'string' && value.trim() === '') ? (varType === 'request' ? 'Value' : 'Expr') : ''}
             />
-          </div>
-          {/* DataTypes apply to literal values, not to the JS expression that produces a post-response value. */}
-          {!isLastEmptyRow && varType === 'request' && (
-            <DataTypeSelector
-              variable={row}
-              theme={storedTheme}
-              collection={collection}
-              onChange={(fields) => {
-                const updated = (vars || []).map((v) => v.uid === row.uid ? { ...v, ...fields } : v);
-                handleVarsChange(updated);
-              }}
-            />
           )}
-        </div>
+          renderTypeSelector={!isLastEmptyRow && varType === 'request'
+            ? ({ compact }) => (
+                <DataTypeSelector
+                  compact={compact}
+                  variable={row}
+                  theme={storedTheme}
+                  collection={collection}
+                  onChange={(fields) => {
+                    const updated = (vars || []).map((v) => v.uid === row.uid ? { ...v, ...fields } : v);
+                    handleVarsChange(updated);
+                  }}
+                />
+              )
+            : null}
+        />
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
     name: '',
     value: '',
+    description: '',
     ...(varType === 'response' ? { local: false } : {})
   };
 
@@ -121,8 +138,10 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
         onChange={handleVarsChange}
         defaultRow={defaultRow}
         getRowError={getRowError}
-        reorderable={true}
+        reorderable
         onReorder={handleVarDrag}
+        sortStorageKey={`request-vars-sort::${item.uid}::${varType}`}
+        isDraft={isDraft}
         columnWidths={varsWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('request-vars', widths)}
         initialScroll={initialScroll}

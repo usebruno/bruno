@@ -7,6 +7,13 @@ const StyledWrapper = styled.div`
     }
   }
 
+  /* Ensure the search bar (position: absolute; top: 8px; ~66px tall with replace open)
+     never clips in a short editor that can grow freely (e.g. flex parent).
+     Fixed-height parents like SingleWSMessage handle this via onSearchBarVisibilityChange. */
+  &.search-bar-visible {
+    min-height: 90px;
+  }
+
   div.CodeMirror {
     background: ${(props) => props.theme.codemirror.bg};
     border: solid 1px ${(props) => props.theme.codemirror.border};
@@ -19,8 +26,8 @@ const StyledWrapper = styled.div`
   }
 
   .CodeMirror-placeholder {
-    color: ${(props) => props.theme.text} !important;
-    opacity: 0.5 !important;
+    color: ${(props) => props.theme.codemirror.placeholder.color} !important;
+    opacity: ${(props) => props.theme.codemirror.placeholder.opacity} !important;
   }
 
   .CodeMirror-linenumber {

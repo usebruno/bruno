@@ -23,6 +23,9 @@ const defaultPreferences = {
     timeout: 0,
     oauth2: {
       useSystemBrowser: false
+    },
+    clientCertificates: {
+      certs: []
     }
   },
   font: {
@@ -46,8 +49,13 @@ const defaultPreferences = {
   layout: {
     responsePaneOrientation: 'horizontal'
   },
+  mockServer: {
+    mode: 'isolated',
+    instances: []
+  },
   beta: {
-    'openapi-sync': false
+    'openapi-sync': false,
+    'mock-server': true
   },
   onboarding: {
     hasLaunchedBefore: false,
@@ -86,6 +94,14 @@ const defaultPreferences = {
       enabled: true,
       model: '',
       triggerMode: 'debounced'
+    },
+    security: {
+      redactHeaders: true,
+      redactBody: true,
+      redactVariables: true,
+      redactResponse: true,
+      customRedactedHeaders: [],
+      customRedactedVariables: []
     }
   }
 };
@@ -105,7 +121,20 @@ const preferencesSchema = Yup.object().shape({
     timeout: Yup.number(),
     oauth2: Yup.object({
       useSystemBrowser: Yup.boolean()
-    })
+    }),
+    clientCertificates: Yup.object({
+      certs: Yup.array().of(
+        Yup.object({
+          domain: Yup.string().max(1024),
+          type: Yup.string().oneOf(['cert', 'pfx']),
+          certFilePath: Yup.string().nullable(),
+          keyFilePath: Yup.string().nullable(),
+          pfxFilePath: Yup.string().nullable(),
+          passphrase: Yup.string().nullable(),
+          disabled: Yup.boolean()
+        })
+      )
+    }).optional()
   }),
   font: Yup.object().shape({
     codeFont: Yup.string().nullable(),
@@ -132,8 +161,23 @@ const preferencesSchema = Yup.object().shape({
   layout: Yup.object({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
   }),
+  mockServer: Yup.object({
+    instances: Yup.array().of(Yup.object({
+      uid: Yup.string().required(),
+      name: Yup.string().required(),
+      sourceType: Yup.string().oneOf(['collection', 'spec', 'manual']).required(),
+      collectionUid: Yup.string().nullable(),
+      specUid: Yup.string().nullable(),
+      specPath: Yup.string().nullable(),
+      specName: Yup.string().nullable(),
+      port: Yup.number().min(1).max(65535).required(),
+      globalDelay: Yup.number().min(0).required(),
+      workspaceUid: Yup.string().required()
+    })).optional()
+  }),
   beta: Yup.object({
-    'openapi-sync': Yup.boolean()
+    'openapi-sync': Yup.boolean(),
+    'mock-server': Yup.boolean()
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean(),
@@ -182,6 +226,14 @@ const preferencesSchema = Yup.object().shape({
       enabled: Yup.boolean(),
       model: Yup.string().max(200).nullable(),
       triggerMode: Yup.string().oneOf(['aggressive', 'debounced', 'manual']).nullable()
+    }).optional(),
+    security: Yup.object({
+      redactHeaders: Yup.boolean(),
+      redactBody: Yup.boolean(),
+      redactVariables: Yup.boolean(),
+      redactResponse: Yup.boolean(),
+      customRedactedHeaders: Yup.array().of(Yup.string().max(200)).max(200),
+      customRedactedVariables: Yup.array().of(Yup.string().max(200)).max(200)
     }).optional()
   }).optional()
 });
@@ -195,7 +247,7 @@ class PreferencesStore {
   }
 
   getPreferences() {
-    let preferences = this.store.get('preferences', {});
+    const preferences = this.store.get('preferences', {});
 
     // Handle existing users without proxy settings
     // They should get disabled proxy by default, not inherit from system
@@ -224,7 +276,7 @@ class PreferencesStore {
       const hasOldFormat = proxy.hasOwnProperty('enabled') || proxy.hasOwnProperty('mode');
 
       if (hasOldFormat) {
-        let newProxy = {
+        const newProxy = {
           source: 'inherit',
           pac: { source: '' },
           config: {
@@ -388,6 +440,9 @@ const preferencesUtil = {
   },
   hasLaunchedBefore: () => {
     return get(getPreferences(), 'onboarding.hasLaunchedBefore', false);
+  },
+  getGlobalClientCertificates: () => {
+    return get(getPreferences(), 'request.clientCertificates.certs', []);
   },
   markAsLaunched: async () => {
     const preferences = getPreferences();
