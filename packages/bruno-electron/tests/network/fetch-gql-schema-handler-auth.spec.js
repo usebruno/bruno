@@ -1,3 +1,6 @@
+const os = require('os');
+const path = require('path');
+
 const { makeAxiosInstance } = require('../../src/ipc/network/axios-instance');
 
 // The axios instance is the only thing stubbed: prepareGqlIntrospectionRequest
@@ -10,7 +13,7 @@ const { fetchGqlSchemaHandler } = require('../../src/ipc/network');
 
 const collectionWith = (folderAuth) => ({
   uid: 'test-collection',
-  pathname: '/test',
+  pathname: path.join(os.tmpdir(), 'bruno-gql-auth-test'),
   runtimeVariables: {},
   globalEnvironmentVariables: {},
   items: [
