@@ -1,4 +1,3 @@
-export const DEFAULT_SECTION_WEIGHT = 1;
 // A section can be dragged down to this height but no further; dragging never
 // collapses a section. Close it by clicking its header instead.
 export const MIN_SECTION_PX = 100;
