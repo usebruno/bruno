@@ -8,13 +8,15 @@
 
 import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
 import { toDisplayString } from '@usebruno/common/utils';
-import { getVariableScope, isVariableSecret, getAllVariables, findCollectionByUid, findItemInCollectionByItemUid } from 'utils/collections';
+import { getVariableScope, isVariableSecret, getAllVariables, findCollectionByUid, findItemInCollectionByItemUid, getAvailableAddToScopes } from 'utils/collections';
 import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
 import store from 'providers/ReduxStore';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { variableNameRegex } from 'utils/common/regex';
+import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -602,6 +604,61 @@ export const renderVarInfo = (token, options) => {
     valueContainer._cmEditor = cmEditor;
     valueContainer._maskedEditor = maskedEditor;
     valueContainer._autoCompleteCleanup = autoCompleteCleanup;
+
+    // for a new variable provide a way to switch the scope (collection, request, environment, global)
+    if (isNewVariable) {
+      const buildScopeInfoForSwitch = (scope) => {
+        switch (scope.type) {
+          case VARIABLE_ADD_SCOPES.COLLECTION:
+            return { type: 'collection', value: '', data: { collection, variable: null } };
+          case VARIABLE_ADD_SCOPES.REQUEST:
+            return { type: 'request', value: '', data: { item, variable: null } };
+          case VARIABLE_ADD_SCOPES.ENVIRONMENT: {
+            const freshState = store.getState();
+            const freshCollection = findCollectionByUid(freshState.collections.collections, collection.uid);
+            const environment = (freshCollection?.environments || []).find(
+              (env) => env.uid === freshCollection?.activeEnvironmentUid
+            );
+            return { type: 'environment', value: '', data: { environment, variable: null, secret: false } };
+          }
+          case VARIABLE_ADD_SCOPES.GLOBAL:
+            return { type: 'global', value: '', data: { secret: false } };
+          default:
+            return null;
+        }
+      };
+
+      const onSwitchScope = (scope) => {
+        const newScopeInfo = buildScopeInfoForSwitch(scope);
+        if (!newScopeInfo) {
+          return;
+        }
+
+        const alreadySaved = !(scopeInfo && scopeInfo.data && scopeInfo.data.variable === null);
+        if (alreadySaved) {
+          console.log('TODO: move variable to new scope', { variableName, from: scopeInfo, to: newScopeInfo });
+        }
+
+        scopeInfo = newScopeInfo;
+        scopeBadge.textContent = getScopeLabel(newScopeInfo.type);
+      };
+
+      const onCreateEnvironment = (scope, name) => {
+        console.log('TODO: create environment', { scope, name, collectionUid: collection?.uid });
+        return Promise.resolve();
+      };
+
+      const addToScopesState = store.getState();
+      const globalEnvironmentsState = (addToScopesState && addToScopesState.globalEnvironments) || {};
+      const addToScopes = getAvailableAddToScopes(
+        collection?.activeEnvironmentUid,
+        globalEnvironmentsState.activeGlobalEnvironmentUid,
+        item
+      );
+
+      const addToSwitcher = createAddToScopeSwitcher({ scopes: addToScopes, onSwitchScope, onCreateEnvironment });
+      valueContainer._addToSwitcher = addToSwitcher;
+    }
   } else {
     // Read-only display (for runtime, process.env, undefined variables)
     let isRevealed = false;
@@ -672,6 +729,10 @@ export const renderVarInfo = (token, options) => {
   }
 
   into.appendChild(valueContainer);
+
+  if (valueContainer._addToSwitcher) {
+    into.appendChild(valueContainer._addToSwitcher);
+  }
 
   return into;
 };
