@@ -48,3 +48,13 @@ export const AUTH_MODES_GRPC = [
   AUTH_MODES.NONE,
   AUTH_MODES.INHERIT
 ];
+
+// Scopes an undefined `{{variable}}` can be added to from the variable hover tooltip's
+// "Add to" flow. Values match the `type` literals switched on in updateVariableInScope.
+export const VARIABLE_ADD_SCOPES = {
+  GLOBAL: 'global',
+  ENVIRONMENT: 'environment',
+  COLLECTION: 'collection',
+  REQUEST: 'request',
+  FOLDER: 'folder'
+};

@@ -3,6 +3,7 @@ import { uuid } from 'utils/common';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path, { normalizePath } from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
+import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -95,18 +96,18 @@ export const findItemByPathname = (items = [], pathname) => {
 };
 
 export const findItemInCollectionByPathname = (collection, pathname) => {
-  let flattenedItems = flattenItems(collection.items);
+  const flattenedItems = flattenItems(collection.items);
 
   return findItemByPathname(flattenedItems, pathname);
 };
 
 export const findItemInCollectionByItemUid = (collection, itemUid) => {
-  let flattenedItems = flattenItems(collection.items);
+  const flattenedItems = flattenItems(collection.items);
   return findItem(flattenedItems, itemUid);
 };
 
 export const findParentItemInCollectionByPathname = (collection, pathname) => {
-  let flattenedItems = flattenItems(collection.items);
+  const flattenedItems = flattenItems(collection.items);
 
   return find(flattenedItems, (item) => {
     return item.items && find(item.items, (i) => i.pathname === pathname);
@@ -117,13 +118,13 @@ export const findItemInCollection = (collection, itemUid) => {
   if (!collection || !collection.items) {
     return null;
   }
-  let flattenedItems = flattenItems(collection.items);
+  const flattenedItems = flattenItems(collection.items);
 
   return findItem(flattenedItems, itemUid);
 };
 
 export const findParentItemInCollection = (collection, itemUid) => {
-  let flattenedItems = flattenItems(collection.items);
+  const flattenedItems = flattenItems(collection.items);
 
   return find(flattenedItems, (item) => {
     return item.items && find(item.items, (i) => i.uid === itemUid);
@@ -131,7 +132,7 @@ export const findParentItemInCollection = (collection, itemUid) => {
 };
 
 export const recursivelyGetAllItemUids = (items = []) => {
-  let flattenedItems = flattenItems(items);
+  const flattenedItems = flattenItems(items);
 
   return map(flattenedItems, (i) => i.uid);
 };
@@ -149,7 +150,7 @@ export const areItemsLoading = (folder) => {
     return true;
   }
 
-  let flattenedItems = flattenItems(folder.items);
+  const flattenedItems = flattenItems(folder.items);
   return flattenedItems?.reduce((isLoading, i) => {
     if (i?.loading) {
       isLoading = true;
@@ -160,7 +161,7 @@ export const areItemsLoading = (folder) => {
 
 export const getItemsLoadStats = (folder) => {
   let loadingCount = 0;
-  let flattenedItems = flattenItems(folder.items);
+  const flattenedItems = flattenItems(folder.items);
   flattenedItems?.forEach((i) => {
     if (i?.loading) {
       loadingCount += 1;
@@ -406,7 +407,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             };
             break;
           case 'oauth2':
-            let grantType = get(si.request, 'auth.oauth2.grantType', '');
+            const grantType = get(si.request, 'auth.oauth2.grantType', '');
             switch (grantType) {
               case 'password':
                 di.request.auth.oauth2 = {
@@ -539,8 +540,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           request: {}
         };
 
-        let { request, meta, docs } = si?.root || {};
-        let { auth, headers, script = {}, vars = {}, tests } = request || {};
+        const { request, meta, docs } = si?.root || {};
+        const { auth, headers, script = {}, vars = {}, tests } = request || {};
 
         // folder level auth
         if (auth?.mode) {
@@ -621,8 +622,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     request: {}
   };
 
-  let { request, docs, meta } = collection?.root || {};
-  let { auth, headers, script = {}, vars = {}, tests } = request || {};
+  const { request, docs, meta } = collection?.root || {};
+  const { auth, headers, script = {}, vars = {}, tests } = request || {};
 
   // collection level auth
   if (auth?.mode) {
@@ -888,7 +889,7 @@ export const transformFolderRootToSave = (folder) => {
 export const deleteItemInCollection = (itemUid, collection) => {
   collection.items = filter(collection.items, (i) => i.uid !== itemUid);
 
-  let flattenedItems = flattenItems(collection.items);
+  const flattenedItems = flattenItems(collection.items);
   each(flattenedItems, (i) => {
     if (i.items && i.items.length) {
       i.items = filter(i.items, (i) => i.uid !== itemUid);
@@ -899,7 +900,7 @@ export const deleteItemInCollection = (itemUid, collection) => {
 export const deleteItemInCollectionByPathname = (pathname, collection) => {
   collection.items = filter(collection.items, (i) => i.pathname !== pathname);
 
-  let flattenedItems = flattenItems(collection.items);
+  const flattenedItems = flattenItems(collection.items);
   each(flattenedItems, (i) => {
     if (i.items && i.items.length) {
       i.items = filter(i.items, (i) => i.pathname !== pathname);
@@ -1210,7 +1211,7 @@ export const getDefaultRequestPaneTab = (item) => {
 };
 
 export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
-  let variables = {};
+  const variables = {};
   const environment = globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
   if (environment) {
     each(environment.variables, (variable) => {
@@ -1235,7 +1236,7 @@ export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, active
 };
 
 export const getEnvironmentVariables = (collection) => {
-  let variables = {};
+  const variables = {};
   if (collection) {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment) {
@@ -1270,7 +1271,7 @@ export const getEnvironmentVariablesMasked = (collection) => {
 };
 
 const getPathParams = (item) => {
-  let pathParams = {};
+  const pathParams = {};
   if (item && item.request && item.request.params) {
     item.request.params.forEach((param) => {
       if (param.type === 'path' && param.name && param.value) {
@@ -1302,7 +1303,7 @@ export const getAllVariables = (collection, item) => {
   if (!collection) return {};
   const envVariables = getEnvironmentVariables(collection);
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-  let { collectionVariables, folderVariables, requestVariables } = mergeVars(collection, requestTreePath);
+  const { collectionVariables, folderVariables, requestVariables } = mergeVars(collection, requestTreePath);
   const pathParams = getPathParams(item);
   const { globalEnvironmentVariables = {} } = collection;
 
@@ -1364,8 +1365,8 @@ export const getAllVariables = (collection, item) => {
 // Merge headers from collection, folders, and request
 export const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
   const { includeDisabledHeaders = false } = options;
-  let headers = new Map();
-  let disabledHeaders = new Map();
+  const headers = new Map();
+  const disabledHeaders = new Map();
 
   // Add collection headers first
   const collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
@@ -1379,7 +1380,7 @@ export const mergeHeaders = (collection, request, requestTreePath, options = {})
 
   // Add folder headers next, traversing from root to leaf
   if (requestTreePath && requestTreePath.length > 0) {
-    for (let i of requestTreePath) {
+    for (const i of requestTreePath) {
       if (i.type === 'folder') {
         const folderHeaders = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'root.request.headers', []);
         folderHeaders.forEach((header) => {
@@ -1422,7 +1423,7 @@ export const maskInputValue = (value) => {
 };
 
 export const getTreePathFromCollectionToItem = (collection, _item) => {
-  let path = [];
+  const path = [];
   let item = findItemInCollection(collection, _item?.uid);
   while (item) {
     path.unshift(item);
@@ -1432,17 +1433,17 @@ export const getTreePathFromCollectionToItem = (collection, _item) => {
 };
 
 const mergeVars = (collection, requestTreePath = []) => {
-  let collectionVariables = {};
-  let folderVariables = {};
-  let requestVariables = {};
+  const collectionVariables = {};
+  const folderVariables = {};
+  const requestVariables = {};
   const collectionRoot = collection?.draft?.root || collection?.root || {};
-  let collectionRequestVars = get(collectionRoot, 'request.vars.req', []);
+  const collectionRequestVars = get(collectionRoot, 'request.vars.req', []);
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
       collectionVariables[_var.name] = _var.value;
     }
   });
-  for (let i of requestTreePath) {
+  for (const i of requestTreePath) {
     if (!i) {
       continue;
     }
@@ -1450,14 +1451,14 @@ const mergeVars = (collection, requestTreePath = []) => {
     if (i.type === 'folder') {
       // Check draft first, then fall back to root
       const folderRoot = i.draft || i.root;
-      let vars = get(folderRoot, 'request.vars.req', []);
+      const vars = get(folderRoot, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           folderVariables[_var.name] = _var.value;
         }
       });
     } else {
-      let vars = i.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
+      const vars = i.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           requestVariables[_var.name] = _var.value;
@@ -1494,7 +1495,7 @@ export const getEnvVars = (environment = {}) => {
 };
 
 export const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => {
-  let credentialsVariables = {};
+  const credentialsVariables = {};
   oauth2Credentials.forEach(({ credentialsId, credentials }) => {
     if (credentials) {
       Object.entries(credentials).forEach(([key, value]) => {
@@ -1856,6 +1857,70 @@ export const isVariableSecret = (scopeInfo) => {
   }
 
   return false;
+};
+
+const SCOPE_CONFIG = [
+  {
+    type: VARIABLE_ADD_SCOPES.GLOBAL,
+    label: 'Global Environment',
+    supportsSecret: true,
+    enabled: ({ activeGlobalEnvironmentUid }) => !!activeGlobalEnvironmentUid
+  },
+  {
+    type: VARIABLE_ADD_SCOPES.ENVIRONMENT,
+    label: 'Collection Environment',
+    supportsSecret: true,
+    enabled: ({ activeEnvironmentUid }) => !!activeEnvironmentUid
+  },
+  {
+    type: VARIABLE_ADD_SCOPES.COLLECTION,
+    label: 'Collection Variables',
+    supportsSecret: false,
+    enabled: () => true
+  },
+  {
+    type: VARIABLE_ADD_SCOPES.REQUEST,
+    label: 'Request Variable',
+    supportsSecret: false,
+    include: ({ item }) => item && isItemARequest(item),
+    enabled: () => true
+  },
+  {
+    type: VARIABLE_ADD_SCOPES.FOLDER,
+    label: 'Immediate Parent Folder',
+    supportsSecret: false,
+    enabled: () => false,
+    disabledReason: 'Not yet supported'
+  }
+];
+
+/**
+ * Resolves which scopes an undefined `{{variable}}` can be added to.
+ * @param {string} [activeEnvironmentUid] - The collection's active environment uid, if any.
+ * @param {string} [activeGlobalEnvironmentUid] - The active global environment uid, if any.
+ * @param {Object} [item] - The request/folder item the tooltip was opened from, if any. Request
+ *   Variable is only included when this is a request (see isItemARequest).
+ * @returns {Array<{type: string, label: string, enabled: boolean, disabledReason?: string, supportsSecret: boolean}>}
+ */
+
+export const getAvailableAddToScopes = (
+  activeEnvironmentUid,
+  activeGlobalEnvironmentUid,
+  item
+) => {
+  const context = {
+    activeEnvironmentUid,
+    activeGlobalEnvironmentUid,
+    item
+  };
+
+  const filteredScopes = SCOPE_CONFIG.filter((scope) => !scope.include || scope.include(context));
+
+  return filteredScopes
+    .map(({ enabled, include, ...scope }) => ({
+      ...scope,
+      enabled: enabled(context)
+    }));
 };
 
 /**
