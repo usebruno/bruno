@@ -207,6 +207,18 @@ test.describe('Generate Code – URL Encoding OFF', () => {
       await closeGenerateCodeDialog(page);
     });
 
+    test('preserves a literal colon inside a path segment (issue #8771)', async ({ pageWithUserData: page }) => {
+      await openCollection(page, COLLECTION);
+      await openRequestInFolder(page, FOLDER, 'path-literal-colon');
+      await setUrlEncoding(page, false);
+
+      const snippet = await getGeneratedSnippet(page);
+      expect(snippet).toContain('http://localhost:8081/api/echo/anything/values:colon');
+      expect(snippet).not.toContain('%3A');
+
+      await closeGenerateCodeDialog(page);
+    });
+
     test('preserves URL fragment in snippet (intentional asymmetry vs ON)', async ({ pageWithUserData: page }) => {
       // Raw mode honors user intent — fragment is kept verbatim. ON mode
       // encodes `#` to %23 as data. See snippet-generator.spec.js for the

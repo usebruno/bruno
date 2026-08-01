@@ -99,17 +99,11 @@ const Wrapper = styled.div`
       overflow: hidden;
     }
 
-    input.item-name-input {
-      background: transparent;
-      border: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
-      border-radius: 2px;
-      color: inherit;
-      font-size: inherit;
-      font-family: inherit;
-      outline: none;
-      width: 100%;
-      padding: 0 2px;
-      line-height: 1;
+    .example-count-badge {
+      font-size: 10px;
+      font-weight: 500;
+      color: ${(props) => props.theme.colors.text.muted};
+      flex-shrink: 0;
     }
 
     /* Single source of truth for hover/focus states: background and menu icon visibility */

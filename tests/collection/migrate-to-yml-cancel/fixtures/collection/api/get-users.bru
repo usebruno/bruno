@@ -1,0 +1,24 @@
+meta {
+  name: get-users
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/echo/json
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+}
+
+script:pre-request {
+  // pre-request script in folder request
+  bru.setVar("requestVar", "test");
+}
+
+assert {
+  res.status: eq 200
+}

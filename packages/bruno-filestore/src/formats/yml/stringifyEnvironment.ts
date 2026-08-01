@@ -22,6 +22,9 @@ export const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironment
         if (v.enabled === false) {
           secretVar.disabled = true;
         }
+        if (v.description !== undefined) {
+          secretVar.description = v.description;
+        }
         return secretVar;
       }
 
@@ -34,6 +37,10 @@ export const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironment
 
       if (v.enabled === false) {
         variable.disabled = true;
+      }
+
+      if (v.description !== undefined) {
+        variable.description = v.description;
       }
 
       return variable;

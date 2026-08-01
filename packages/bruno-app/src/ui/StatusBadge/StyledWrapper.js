@@ -43,9 +43,11 @@ const getVariantStyles = (props) => {
 
   switch ($variant) {
     case 'filled':
+      // Solid intent fill with white text (the tint token used before matched the
+      // fill hue, making the label blend in).
       return css`
         background: ${tokens.text};
-        color: ${tokens.background};
+        color: #fff;
         border: 1px solid ${tokens.text};
       `;
     case 'outline':

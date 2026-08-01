@@ -1,0 +1,66 @@
+info:
+  name: request-with-descriptions
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: https://example.com/api
+  headers:
+    - name: X-Version
+      value: "2.0"
+      description: Single-line header desc
+    - name: X-Multi
+      value: value
+      description: |-
+        Header line one
+        Header line two
+    - name: X-Plain
+      value: plain-value
+  params:
+    - name: q
+      value: search
+      type: query
+      description: Single-line query desc
+    - name: page
+      value: "1"
+      type: query
+      description: |-
+        Multi-line query desc line one
+        Multi-line query desc line two
+    - name: plain-query
+      value: value
+      type: query
+
+runtime:
+  variables:
+    - name: apiKey
+      value: secret
+      description: Single-line var desc
+    - name: baseUrl
+      value: https://example.com
+      description: |-
+        Multi-line var desc line one
+        Multi-line var desc line two
+    - name: plainVar
+      value: value
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+      description: Single-line assert desc
+    - expression: res.body.ok
+      operator: eq
+      value: "true"
+      description: |-
+        Multi-line assert line one
+        Multi-line assert line two
+    - expression: plainAssert
+      operator: eq
+      value: foo
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

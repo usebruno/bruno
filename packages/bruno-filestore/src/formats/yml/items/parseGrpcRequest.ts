@@ -21,6 +21,13 @@ const toBrunoGrpcMetadata = (metadata: GrpcMetadata[] | null | undefined): Bruno
       enabled: meta.disabled !== true
     };
 
+    if (meta.description) {
+      const desc = typeof meta.description === 'string' ? meta.description : (meta.description as any)?.content || '';
+      if (desc.trim().length) {
+        brunoMeta.description = desc;
+      }
+    }
+
     return brunoMeta;
   });
 
@@ -115,6 +122,14 @@ const parseGrpcRequest = (ocRequest: GrpcRequest): BrunoItem => {
     filename: null,
     pathname: null
   };
+
+  // description
+  if (info?.description) {
+    const desc = typeof info.description === 'string' ? info.description : (info.description as any)?.content || '';
+    if (desc.trim().length) {
+      brunoItem.description = desc;
+    }
+  }
 
   return brunoItem;
 };

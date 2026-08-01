@@ -10,7 +10,8 @@
           "value": "http://localhost:3000",
           "type": "text",
           "enabled": true,
-          "secret": false
+          "secret": false,
+          "description": "Single-line host desc"
         },
         {
           "uid": "3WEAWueN0Ov99uOX0uuuM",
@@ -18,7 +19,8 @@
           "value": "",
           "type": "text",
           "enabled": true,
-          "secret": true
+          "secret": true,
+          "description": "Secret line one\nSecret line two"
         }
       ]
     },
@@ -32,7 +34,8 @@
           "value": "https://echo.usebruno.com",
           "type": "text",
           "enabled": true,
-          "secret": false
+          "secret": false,
+          "description": "Single-line host desc"
         },
         {
           "uid": "fSxTRpngl8fxkhrl3z7hA",
@@ -40,7 +43,8 @@
           "value": "",
           "type": "text",
           "enabled": true,
-          "secret": true
+          "secret": true,
+          "description": "Secret line one\nSecret line two"
         }
       ]
     }

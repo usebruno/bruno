@@ -13,6 +13,8 @@ const {
 } = require('@usebruno/filestore');
 const { openApiToBruno } = require('@usebruno/converters');
 const { writeFile, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
+
+const RESERVED_FOLDER_NAMES = ['node_modules', '.git', 'environments', 'mocks'];
 const { getEnvVars } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
@@ -331,7 +333,7 @@ const findRequestFileOnDisk = (dirPath, method, urlPath) => {
   for (const file of files) {
     const filePath = path.join(dirPath, file);
     const stats = fs.statSync(filePath);
-    if (stats.isDirectory() && !['node_modules', '.git', 'environments'].includes(file)) {
+    if (stats.isDirectory() && !RESERVED_FOLDER_NAMES.includes(file)) {
       const found = findRequestFileOnDisk(filePath, method, urlPath);
       if (found) return found;
     } else if (file.endsWith('.bru') || file.endsWith('.yml') || file.endsWith('.yaml')) {
@@ -701,8 +703,6 @@ const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false, pr
  * Creates the folder and its folder.bru/folder.yml file if missing.
  * Returns the resolved target folder path (falls back to collectionPath on reserved/traversal names).
  */
-const RESERVED_FOLDER_NAMES = ['node_modules', '.git', 'environments'];
-
 const ensureTagFolder = async (collectionPath, folderName, format) => {
   const safeFolderName = sanitizeName(folderName);
   if (RESERVED_FOLDER_NAMES.some((r) => r.toLowerCase() === safeFolderName.toLowerCase())) {
@@ -1129,7 +1129,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
         for (const entry of entries) {
           const fullPath = path.join(dirPath, entry);
           const relPath = relativePath ? path.join(relativePath, entry) : entry;
-          if (['node_modules', '.git', 'environments'].includes(entry)) continue;
+          if (RESERVED_FOLDER_NAMES.includes(entry)) continue;
           const stats = fs.statSync(fullPath);
           if (stats.isDirectory()) {
             files.push(...scanCollectionFiles(fullPath, relPath));
@@ -1397,7 +1397,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
             const filePath = path.join(dirPath, file);
             const stats = fs.statSync(filePath);
 
-            if (stats.isDirectory() && !['node_modules', '.git', 'environments'].includes(file)) {
+            if (stats.isDirectory() && !RESERVED_FOLDER_NAMES.includes(file)) {
               await findAndResetRequest(filePath);
             } else if ((file.endsWith('.bru') || file.endsWith('.yml') || file.endsWith('.yaml'))
               && !file.startsWith('folder.') && !file.startsWith('collection.')) {
@@ -1482,7 +1482,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
             const filePath = path.join(dirPath, file);
             const stats = fs.statSync(filePath);
 
-            if (stats.isDirectory() && !['node_modules', '.git', 'environments'].includes(file)) {
+            if (stats.isDirectory() && !RESERVED_FOLDER_NAMES.includes(file)) {
               findAndRemoveRequest(filePath);
             } else if ((file.endsWith('.bru') || file.endsWith('.yml') || file.endsWith('.yaml'))
               && !file.startsWith('folder.') && !file.startsWith('collection.')) {

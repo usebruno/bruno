@@ -40,6 +40,10 @@ export const isLinuxOS = () => {
   return osFamily.includes('linux') || osFamily.includes('ubuntu') || osFamily.includes('debian') || osFamily.includes('fedora') || osFamily.includes('centos') || osFamily.includes('arch');
 };
 
+export const getPlatformModifierKey = () => {
+  return isMacOS() ? '⌘' : 'Ctrl';
+};
+
 export const getRevealInFolderLabel = () => {
   if (isMacOS()) return 'Reveal in Finder';
   if (isWindowsOS()) return 'Reveal in File Explorer';

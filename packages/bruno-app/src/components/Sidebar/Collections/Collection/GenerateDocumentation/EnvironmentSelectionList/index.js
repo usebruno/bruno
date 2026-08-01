@@ -2,14 +2,14 @@ import React, { useCallback, useEffect, useMemo, useRef, memo } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import ColorBadge from 'components/ColorBadge';
 
-// Show at most 5 environments at a glance; the list virtualises and scrolls beyond
+// Show at most 6 environments at a glance; the list virtualises and scrolls beyond
 // that, so it stays performant even for collections with hundreds of environments
 // (only the visible rows are ever in the DOM).
-const MAX_VISIBLE_ROWS = 5;
+const MAX_VISIBLE_ROWS = 6;
 
 // Fixed row height (px). MUST stay in sync with the `.env-row` height in StyledWrapper.js,
 // since it is passed to Virtuoso as `fixedItemHeight`.
-const ENV_ROW_HEIGHT = 34;
+const ENV_ROW_HEIGHT = 28;
 
 /**
  * A selectable, virtualised list of collection environments (checkbox + color dot + name)

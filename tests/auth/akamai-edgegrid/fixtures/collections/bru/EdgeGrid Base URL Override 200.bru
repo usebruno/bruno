@@ -1,0 +1,27 @@
+meta {
+  name: EdgeGrid Base URL Override 200
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{localhost}}/api/auth/edgegrid/resource
+  body: none
+  auth: akamai-edgegrid
+}
+
+auth:akamai-edgegrid {
+  accessToken: akab-access-token-bruno-test
+  clientToken: akab-client-token-bruno-test
+  clientSecret: dGVzdC1jbGllbnQtc2VjcmV0LWZvci1icnVuby1lZGdlZ3JpZA==
+  nonce:
+  timestamp:
+  baseURL: http://localhost:8081
+  headersToSign:
+  maxBodySize:
+}
+
+assert {
+  res.status: eq 200
+  res.body.authenticated: eq true
+}

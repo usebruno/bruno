@@ -3,7 +3,6 @@ import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
-import AIAssist from 'components/AIAssist';
 import { updateFolderRequestScript, updateFolderResponseScript } from 'providers/ReduxStore/slices/collections';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
@@ -146,11 +145,6 @@ const Script = ({ collection, folder }) => {
               initialScroll={preReqScroll}
               onScroll={setPreReqScroll}
             />
-            <AIAssist
-              scriptType="pre-request"
-              currentScript={requestScript || ''}
-              onApply={onRequestScriptEdit}
-            />
           </div>
         </TabsContent>
 
@@ -171,11 +165,6 @@ const Script = ({ collection, folder }) => {
               scriptType="post-response"
               initialScroll={postResScroll}
               onScroll={setPostResScroll}
-            />
-            <AIAssist
-              scriptType="post-response"
-              currentScript={responseScript || ''}
-              onApply={onResponseScriptEdit}
             />
           </div>
         </TabsContent>

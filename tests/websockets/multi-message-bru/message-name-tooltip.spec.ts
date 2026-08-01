@@ -1,6 +1,6 @@
 import { expect, test } from '../../../playwright';
 import { openRequest, closeAllCollections, renameWsMessage } from '../../utils/page/actions';
-import { buildWebsocketCommonLocators } from '../../utils/page/locators';
+import { buildCommonLocators } from '../../utils/page/locators';
 
 const COLLECTION_NAME = 'ws-multi-message';
 const SINGLE_MSG_REQ = 'ws-single-msg';
@@ -16,11 +16,11 @@ test.describe('websocket message name tooltip', () => {
   test('shows the full name in a tooltip on hover', async ({
     pageWithUserData: page
   }) => {
-    const ws = buildWebsocketCommonLocators(page);
+    const { websocket } = buildCommonLocators(page);
     await openRequest(page, COLLECTION_NAME, SINGLE_MSG_REQ);
 
-    const messageLabel = ws.message.label(0);
-    const tooltip = ws.message.nameTooltip();
+    const messageLabel = websocket.message.label(0);
+    const tooltip = websocket.message.nameTooltip();
 
     await test.step('short name → tooltip shows the name on hover', async () => {
       await renameWsMessage(page, 0, 'hi');
