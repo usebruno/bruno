@@ -21,8 +21,6 @@ const Wrapper = styled.div`
       height: 100%;
     }
 
-    /* Expanded section fills its wrapper; the wrapper's inline flex-grow (the
-       section weight) decides how much of the sidebar the wrapper gets. */
     .sidebar-section.expanded {
       flex: 1 1 0%;
       min-height: 0;
@@ -32,19 +30,16 @@ const Wrapper = styled.div`
       }
     }
 
-    /* Collapsed sections only take header height */
     .sidebar-section:not(.expanded) {
       flex: 0 0 auto;
     }
 
-    /* Always push bottom accordions wrapper to the bottom */
     .bottom-accordions-wrapper {
       display: flex;
       flex-direction: column;
       flex: 0 0 auto;
     }
 
-    /* Generic accordion section wrapper - applies to all accordion sections */
     .accordion-section-wrapper {
       display: flex;
       flex-direction: column;
@@ -53,21 +48,15 @@ const Wrapper = styled.div`
       overflow: visible;
     }
 
-    /* Add border-top to all accordion items except the first child */
     .accordion-section-wrapper:not(:first-child) {
       border-top: 1px solid ${(props) => props.theme.sidebar.collection.item.hoverBg};
     }
 
-    /* Expanded wrappers fill in proportion to their inline flex-grow (weight),
-       floored so a section can't be crushed below a usable height. */
     .accordion-section-wrapper.expanded-wrapper {
       min-height: ${MIN_SECTION_PX}px;
       overflow: hidden;
     }
 
-    /* Collapsed wrappers take only header height. An expanded section fills the
-       remaining space and pushes trailing collapsed headers to the bottom, so no
-       auto margin is needed (and it would otherwise starve the flex-grow). */
     .accordion-section-wrapper:not(.expanded-wrapper) {
       flex: 0 0 auto;
     }

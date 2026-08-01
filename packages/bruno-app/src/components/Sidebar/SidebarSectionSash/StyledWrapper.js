@@ -10,7 +10,6 @@ const StyledWrapper = styled.div`
   position: relative;
   z-index: 2;
 
-  /* Extend the grab area beyond the 4px line without affecting layout. */
   &::before {
     content: '';
     position: absolute;

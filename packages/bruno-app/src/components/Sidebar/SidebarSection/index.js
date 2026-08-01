@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import { IconChevronRight, IconChevronDown } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { useSidebarAccordion } from '../SidebarAccordionContext';
@@ -14,16 +13,12 @@ const SidebarSection = ({
 }) => {
   const { isExpanded, setSectionExpanded } = useSidebarAccordion();
   const expanded = isExpanded(id);
-  const sectionRef = useRef(null);
 
   const handleToggle = () => setSectionExpanded(id, !expanded);
 
   return (
     <StyledWrapper className={className}>
-      <div
-        ref={sectionRef}
-        className={`sidebar-section ${expanded ? 'expanded' : ''}`}
-      >
+      <div className={`sidebar-section ${expanded ? 'expanded' : ''}`}>
         <div
           className="section-header"
           onClick={handleToggle}
