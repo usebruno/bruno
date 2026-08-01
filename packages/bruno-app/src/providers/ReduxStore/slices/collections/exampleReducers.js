@@ -637,6 +637,18 @@ export const updateResponseExampleRequestUrl = (state, action) => {
   });
 
   example.request.params = concat(urlQueryParams, newPathParams, disabledQueryParams, oldPathParams);
+
+  // A path name whose retained rows are all disabled would never resolve;
+  // promote its first candidate so the URL placeholder stays functional.
+  const enabledPathNames = new Set(
+    filter(example.request.params, (p) => p.type === 'path' && p.enabled !== false).map((p) => p.name)
+  );
+  each(example.request.params, (p) => {
+    if (p.type === 'path' && !enabledPathNames.has(p.name)) {
+      p.enabled = true;
+      enabledPathNames.add(p.name);
+    }
+  });
 };
 
 export const updateResponseExampleResponse = (state, action) => {

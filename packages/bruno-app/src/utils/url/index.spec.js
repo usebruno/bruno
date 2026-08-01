@@ -453,6 +453,30 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
 
     expect(result).toEqual('https://example.com/v1/images/:kind');
   });
+
+  it('should skip a disabled row inside an OData segment and use the enabled sibling', () => {
+    const url = 'https://example.com/odata/Products(\':productId\')';
+    const params = [
+      { name: 'productId', type: 'path', enabled: false, value: 'OLD' },
+      { name: 'productId', type: 'path', enabled: true, value: 'NEW' }
+    ];
+
+    const result = interpolateUrlPathParams(url, params);
+
+    expect(result).toEqual('https://example.com/odata/Products(\'NEW\')');
+  });
+
+  it('should keep an OData segment literal when every row sharing its name is disabled', () => {
+    const url = 'https://example.com/odata/Products(\':productId\')';
+    const params = [
+      { name: 'productId', type: 'path', enabled: false, value: 'OLD' },
+      { name: 'productId', type: 'path', enabled: false, value: 'NEW' }
+    ];
+
+    const result = interpolateUrlPathParams(url, params);
+
+    expect(result).toEqual('https://example.com/odata/Products(\':productId\')');
+  });
 });
 
 describe('Url Utils - interpolateUrlPathParams with { raw: true }', () => {

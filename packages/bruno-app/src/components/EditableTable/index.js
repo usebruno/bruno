@@ -478,6 +478,7 @@ const EditableTable = ({
                 className="mousetrap"
                 data-testid="column-radio"
                 name={`${testId}-${row[radioGroupKey]}`}
+                aria-label={`Use ${row[keyColumn?.key] ?? row[radioGroupKey]}: ${row.value ?? ''}`}
                 checked={row[checkboxKey] !== false}
                 disabled={disableCheckbox}
                 onChange={() => handleCheckboxChange(row.uid, true)}

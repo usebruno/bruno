@@ -162,8 +162,10 @@ const QueryParams = ({ item, collection }) => {
         <div className="flex items-center justify-between gap-2 w-full">
           <span className="truncate">{value}</span>
           <button
+            type="button"
             className="add-alternate"
             title={`Add another value for :${value}`}
+            aria-label={`Add another value for :${value}`}
             data-testid="path-param-add-alternate"
             onClick={() => addPathParamAlternate(row.name)}
           >

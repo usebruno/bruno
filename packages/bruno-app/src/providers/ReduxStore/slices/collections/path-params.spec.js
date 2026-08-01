@@ -89,6 +89,17 @@ describe('path params with several candidate values per name', () => {
     expect(pathParamsOf(state)).toHaveLength(2);
   });
 
+  it('editing the url promotes a candidate when every row of a name is disabled', () => {
+    const params = candidates().map((p) => ({ ...p, enabled: false }));
+
+    const state = reducer(
+      makeState(params),
+      requestUrlChanged({ collectionUid: COLLECTION_UID, itemUid: ITEM_UID, url: `${URL}?page=1` })
+    );
+
+    expect(pathParamsOf(state).map((p) => p.enabled)).toEqual([true, false]);
+  });
+
   it('setPathParams promotes a remaining candidate when the selected row is deleted', () => {
     const state = reducer(
       makeState(candidates()),

@@ -23,7 +23,7 @@ const hasLength = (str) => {
 };
 
 const findActivePathParam = (params, name) =>
-  params.find((p) => p?.name === name && p?.type === 'path' && p?.enabled !== false);
+  (params || []).find((p) => p?.name === name && p?.type === 'path' && p?.enabled !== false);
 
 const hasResolvablePathParamValue = (pathParam) => {
   if (!pathParam || pathParam.enabled === false) {

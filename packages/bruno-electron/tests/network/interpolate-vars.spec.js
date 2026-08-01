@@ -83,6 +83,34 @@ describe('interpolate-vars: interpolateVars', () => {
         expect(result.url).toBe('http://example.com/v1/images/:kind');
       });
 
+      it('skips a disabled row inside an OData segment and uses the enabled sibling', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/odata/Products(\':productId\')',
+          pathParams: [
+            { type: 'path', name: 'productId', value: 'OLD', enabled: false },
+            { type: 'path', name: 'productId', value: 'NEW', enabled: true }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/odata/Products(\'NEW\')');
+      });
+
+      it('keeps an OData segment literal when every row sharing its name is disabled', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/odata/Products(\':productId\')',
+          pathParams: [
+            { type: 'path', name: 'productId', value: 'OLD', enabled: false },
+            { type: 'path', name: 'productId', value: 'NEW', enabled: false }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/odata/Products(\':productId\')');
+      });
+
       it('keeps the original url search params as is', async () => {
         const request = {
           method: 'GET',

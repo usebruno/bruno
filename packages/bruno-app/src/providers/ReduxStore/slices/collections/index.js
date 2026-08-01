@@ -1094,6 +1094,18 @@ export const collectionsSlice = createSlice({
           // the query params are the source of truth, the url in the queryurl input gets constructed using these params
           // we however are also storing the full url (with params) in the url itself
           item.draft.request.params = concat(urlQueryParams, newPathParams, disabledQueryParams, oldPathParams);
+
+          // A path name whose retained rows are all disabled would never resolve;
+          // promote its first candidate so the URL placeholder stays functional.
+          const enabledPathNames = new Set(
+            filter(item.draft.request.params, (p) => p.type === 'path' && p.enabled !== false).map((p) => p.name)
+          );
+          each(item.draft.request.params, (p) => {
+            if (p.type === 'path' && !enabledPathNames.has(p.name)) {
+              p.enabled = true;
+              enabledPathNames.add(p.name);
+            }
+          });
         }
       }
     },
