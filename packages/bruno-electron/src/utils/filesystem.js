@@ -241,6 +241,7 @@ const searchForRequestFiles = (dir, collectionPath = null) => {
 
 const sanitizeName = (name) => {
   const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
+  name = name.replace(/\.\.\./g, '_');
   name = name
     .replace(invalidCharacters, '-') // replace invalid characters with hyphens
     .replace(/^[\s\-]+/, '') // remove leading spaces and hyphens
