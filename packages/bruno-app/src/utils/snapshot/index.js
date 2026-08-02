@@ -53,7 +53,6 @@ export const SAVE_TRIGGERS = new Map([
   ['app/toggleSidebarCollapse', null],
   ['app/updateLeftSidebarWidth', null],
   ['app/updateSidebarSectionSizes', null],
-  ['app/removeSidebarSectionSize', null],
   ['app/setSidebarSectionExpanded', null],
   ['tabs/addTab', null],
   ['tabs/closeTabs', null],

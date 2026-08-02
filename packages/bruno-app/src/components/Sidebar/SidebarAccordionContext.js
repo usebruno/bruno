@@ -1,6 +1,6 @@
 import { createContext, useContext, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { setSidebarSectionExpanded, removeSidebarSectionSize } from 'providers/ReduxStore/slices/app';
+import { setSidebarSectionExpanded } from 'providers/ReduxStore/slices/app';
 
 const SidebarAccordionContext = createContext();
 
@@ -23,10 +23,6 @@ export const SidebarAccordionProvider = ({ children }) => {
 
   const setSectionExpanded = (sectionId, expanded) => {
     dispatch(setSidebarSectionExpanded({ id: sectionId, expanded }));
-    // Closing a section drops its stored height so it reopens at the 1/N default.
-    if (!expanded) {
-      dispatch(removeSidebarSectionSize(sectionId));
-    }
   };
 
   const isExpanded = (sectionId) => expandedSections.includes(sectionId);
