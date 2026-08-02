@@ -70,6 +70,9 @@ const extractPromptVariablesForRequest = ({ request, collection, envVariables, r
   // client certificate config
   const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
   for (let clientCert of clientCertConfig) {
+    if (clientCert?.disabled) {
+      continue;
+    }
     const domain = interpolateString(clientCert?.domain, interpolationOptions);
     if (domain) {
       const hostRegex = getCACertHostRegex(domain);
@@ -113,7 +116,8 @@ const runSingleRequest = async function (
         globalEnvFile: persistPaths.globalEnvFile,
         collection,
         collectionRootPath: persistPaths.collectionRootPath,
-        envVarOverrides: persistPaths.envVarOverrides
+        envVarOverrides: persistPaths.envVarOverrides,
+        globalEnvVarOverrides: persistPaths.globalEnvVarOverrides
       });
     } catch (err) {
       console.warn(chalk.yellow(`Warning: failed to persist variable updates: ${err.message}`));
@@ -400,6 +404,9 @@ const runSingleRequest = async function (
     // client certificate config
     const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
     for (let clientCert of clientCertConfig) {
+      if (clientCert?.disabled) {
+        continue;
+      }
       const domain = interpolateString(clientCert?.domain, interpolationOptions);
       const type = clientCert?.type || 'cert';
       if (domain) {
@@ -542,6 +549,9 @@ const runSingleRequest = async function (
     // Get followRedirects setting, default to true for backward compatibility
     const followRedirects = request.settings?.followRedirects ?? true;
 
+    // Get forwardAuthorizationHeader setting, default to true for backward compatibility
+    const forwardAuthorizationHeader = request.settings?.forwardAuthorizationHeader ?? true;
+
     // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
     let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
 
@@ -648,6 +658,7 @@ const runSingleRequest = async function (
         requestMaxRedirects: requestMaxRedirects,
         disableCookies: options.disableCookies,
         followRedirects: followRedirects,
+        forwardAuthorizationHeader: forwardAuthorizationHeader,
         proxyMode,
         proxyConfig,
         systemProxyConfig: cachedSystemProxy,

@@ -96,42 +96,26 @@ class MountManager {
     };
     this.#mounts.set(collectionUid, entry);
 
-    await this.#coldLoad(collectionUid, entry);
-    return tempDirectoryPath;
-  }
-
-  async remount({ collectionUid, brunoConfig }) {
-    const entry = this.#mounts.get(collectionUid);
-    if (!entry) return false;
-
-    if (brunoConfig) entry.brunoConfig = brunoConfig;
-
-    // the caller tore the watcher down (e.g. yml migration rewrote every file);
-    // clear it before re-reconciling the cache against disk and re-attaching
-    const collectionWatcher = require('../../app/collection-watcher');
-    collectionWatcher.removeWatcher(entry.collectionPath, entry.win, collectionUid);
-
-    await this.#coldLoad(collectionUid, entry);
-    return true;
-  }
-
-  async #coldLoad(collectionUid, entry) {
     entry.emit.loading(true);
     try {
-      entry.state = this.#getIndex().entries(entry.collectionPath);
+      entry.state = this.#getIndex().entries(collectionPath);
       await this.#reconcile(entry);
       await this.#emitTree(collectionUid, entry);
 
       // skip the startup walk (already done) and stage live edits into the cache
       const collectionWatcher = require('../../app/collection-watcher');
-      collectionWatcher.addWatcher(entry.win, entry.collectionPath, collectionUid, entry.brunoConfig, false, false, {
+      collectionWatcher.addWatcher(entry.win, collectionPath, collectionUid, brunoConfig, false, false, {
         ignoreInitial: true,
         fileIndex: this.#getIndex()
       });
-      collectionWatcher.addTempDirectoryWatcher(entry.win, entry.tempDirectoryPath, collectionUid, entry.collectionPath);
+      collectionWatcher.addTempDirectoryWatcher(entry.win, tempDirectoryPath, collectionUid, collectionPath);
+    } catch (err) {
+      this.#mounts.delete(collectionUid);
+      throw err;
     } finally {
       entry.emit.loading(false);
     }
+    return tempDirectoryPath;
   }
 
   async unmount(collectionUid) {
@@ -166,6 +150,10 @@ class MountManager {
 
   clearCache() {
     this.#getIndex().clear();
+  }
+
+  clearCollectionIndex(collectionPath) {
+    this.#getIndex().clearCollection(path.resolve(collectionPath));
   }
 
   async #reconcile(entry) {

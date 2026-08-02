@@ -7,6 +7,7 @@ import { useDispatch } from 'react-redux';
 import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
 import { pluralizeWord } from 'utils/common';
 import { getInvalidVariableNames } from 'utils/common/variables';
+import { isEnvironmentValidationError } from 'utils/environments';
 import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
 import { saveRequest, saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, saveEnvironment, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { saveGlobalEnvironment, clearGlobalEnvironmentDraft } from 'providers/ReduxStore/slices/global-environments';
@@ -188,14 +189,25 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
         const invalidNames = getInvalidVariableNames(draft.variables);
         if (invalidNames.length > 0) {
           hasSkippedEnvs = true;
-          toast.error(`Cannot save "${draft.name}": invalid variable name(s) — ${invalidNames.join(', ')}`);
+          toast.error(`Cannot save environment "${draft.name}": invalid variable name(s) — ${invalidNames.join(', ')}`);
           continue;
         }
 
-        if (draft.type === 'collection-environment') {
-          await dispatch(saveEnvironment(draft.variables, draft.environmentUid, draft.collectionUid));
-        } else {
-          await dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }));
+        // Each draft is saved on its own: a rejection here must not abort the drafts queued behind
+        // it, and must not carry past the loop and skip the close/quit below.
+        try {
+          if (draft.type === 'collection-environment') {
+            await dispatch(saveEnvironment(draft.variables, draft.environmentUid, draft.collectionUid));
+          } else {
+            await dispatch(saveGlobalEnvironment({ variables: draft.variables, environmentUid: draft.environmentUid }));
+          }
+        } catch (err) {
+          hasSkippedEnvs = true;
+          toast.error(
+            isEnvironmentValidationError(err)
+              ? `Cannot save environment "${draft.name}": ${err.message}`
+              : `Failed to save environment "${draft.name}"`
+          );
         }
       }
 
