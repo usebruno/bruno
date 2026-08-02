@@ -21,6 +21,7 @@ import {
   IconTerminal2,
   IconFolder,
   IconBook,
+  IconServer,
   IconFileArrowRight,
   IconAppWindow
 } from '@tabler/icons';
@@ -57,12 +58,17 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import useKeybinding from 'hooks/useKeybinding';
+import { useBetaFeature } from 'utils/beta-features';
+import { BETA_FEATURES } from 'utils/beta-features';
+import StatusBadge from 'ui/StatusBadge';
+import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 
 // Delay before showing empty collection state (ms)
 // This prevents flicker from race condition between loading state and item batch updates
 const EMPTY_STATE_DELAY_MS = 300;
 
 const Collection = ({ collection, searchText }) => {
+  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
@@ -73,6 +79,7 @@ const Collection = ({ collection, searchText }) => {
   const [showGenerateDocumentationModal, setShowGenerateDocumentationModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [showMoveToWorkspaceModal, setShowMoveToWorkspaceModal] = useState(false);
+  const [showCreateMockServerModal, setShowCreateMockServerModal] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const [showEmptyState, setShowEmptyState] = useState(false);
@@ -105,6 +112,10 @@ const Collection = ({ collection, searchText }) => {
     );
   };
 
+  const openMockServerDashboard = () => {
+    setShowCreateMockServerModal(true);
+  };
+
   const handleRun = () => {
     dispatch(
       addTab({
@@ -116,7 +127,7 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const ensureCollectionIsMounted = () => {
-    if (collection.mountStatus === 'mounted') {
+    if (collection.mountStatus === 'mounted' || collection.mountStatus === 'mounting') {
       return;
     }
     dispatch(mountCollection({
@@ -269,13 +280,22 @@ const Collection = ({ collection, searchText }) => {
         // For collection items, always show full highlight (inside drop)
         setDropType('inside');
       } else {
-        // For collections, show line indicator (adjacent drop)
-        setDropType('adjacent');
+        // For collections, show line indicator (above drop)
+        setDropType('above');
       }
     },
-    drop: (draggedItem, monitor) => {
+    drop: async (draggedItem, monitor) => {
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
+        // Lazy-unmounted workspace collections are droppable in the sidebar but
+        // have no watcher yet — mount first so the move writes through and the UI updates.
+        if (collection.mountStatus !== 'mounted' && collection.mountStatus !== 'mounting') {
+          await dispatch(mountCollection({
+            collectionUid: collection.uid,
+            collectionPathname: collection.pathname,
+            brunoConfig: collection.brunoConfig
+          }));
+        }
         dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }));
       } else {
         dispatch(moveCollectionAndPersist({ draggedItem, targetItem: collection }));
@@ -326,7 +346,7 @@ const Collection = ({ collection, searchText }) => {
   }
 
   const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
-    'item-hovered': isOver && dropType === 'adjacent', // For collection-to-collection moves (show line)
+    'item-hovered': isOver && dropType === 'above', // For collection-to-collection moves (show line)
     'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)
     'collection-focused-in-tab': isCollectionFocused && !isKeyboardFocused,
     'collection-keyboard-focused': isKeyboardFocused
@@ -444,6 +464,13 @@ const Collection = ({ collection, searchText }) => {
       label: getRevealInFolderLabel(),
       onClick: handleShowInFolder
     },
+    ...(isMockServerEnabled ? [{
+      id: 'create-mock-server',
+      leftSection: IconServer,
+      label: 'Create Mock server',
+      rightSection: <StatusBadge status="info" size="xs">Beta</StatusBadge>,
+      onClick: openMockServerDashboard
+    }] : []),
     {
       id: 'divider-1',
       type: 'divider'
@@ -508,6 +535,12 @@ const Collection = ({ collection, searchText }) => {
       )}
       {showCloneCollectionModalOpen && (
         <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
+      )}
+      {showCreateMockServerModal && (
+        <CreateMockServerModal
+          defaultCollectionUid={collection.uid}
+          onClose={() => setShowCreateMockServerModal(false)}
+        />
       )}
       <CollectionItemDragPreview />
       <div
