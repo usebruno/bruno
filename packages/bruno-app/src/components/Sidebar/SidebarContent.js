@@ -14,7 +14,8 @@ import {
  * height in proportion to their stored target heights (app.sidebarSectionSizes);
  * a draggable sash between two adjacent expanded sections resizes them. Dragging
  * only shrinks a section to its minimum; a section is closed by clicking its
- * header, which clears its stored height so it reopens at the 1/N default.
+ * header. A section opens at 1/N of the shared area the first time it is expanded,
+ * and reopens at its last height once it has been sized.
  */
 const SidebarContent = ({ sections }) => {
   const { isExpanded } = useSidebarAccordion();

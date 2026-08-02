@@ -174,9 +174,6 @@ export const appSlice = createSlice({
         }
       });
     },
-    removeSidebarSectionSize: (state, action) => {
-      delete state.sidebarSectionSizes[action.payload];
-    },
     setSidebarSectionExpanded: (state, action) => {
       const { id, expanded } = action.payload;
       const has = state.sidebarExpandedSections.includes(id);
@@ -313,7 +310,6 @@ export const {
   refreshScreenWidth,
   updateLeftSidebarWidth,
   updateSidebarSectionSizes,
-  removeSidebarSectionSize,
   setSidebarSectionExpanded,
   setSidebarExpandedSections,
   updateIsDragging,

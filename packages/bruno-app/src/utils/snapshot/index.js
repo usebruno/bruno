@@ -41,7 +41,6 @@ export const WORKSPACE_TAB_TYPES = new Set(Object.keys(WORKSPACE_TAB_UID_SUFFIX_
 export const SAVE_TRIGGERS = new Map([
   ['app/setSnapshotReady', null],
   ['app/updateSidebarSectionSizes', null],
-  ['app/removeSidebarSectionSize', null],
   ['app/setSidebarSectionExpanded', null],
   ['tabs/addTab', null],
   ['tabs/closeTabs', null],
