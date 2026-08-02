@@ -1041,6 +1041,16 @@ if (!SERVER_RENDERED) {
           valueContainer._cmEditor.getWrapperElement().remove();
           valueContainer._cmEditor = null;
         }
+
+        // Cleanup the "Add to" scope switcher's document-level mousedown listener (only
+        // attached while an inline create-environment form is open — see
+        // registerActiveCreateForm/destroy in addToScopeSwitcher.js). Without this, hiding the
+        // popup while that form is open would leave the listener attached, referencing this
+        // now-detached switcher/row.
+        if (valueContainer._addToSwitcher && typeof valueContainer._addToSwitcher._destroy === 'function') {
+          valueContainer._addToSwitcher._destroy();
+          valueContainer._addToSwitcher = null;
+        }
       }
 
       // Clear the active popup reference

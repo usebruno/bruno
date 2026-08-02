@@ -226,8 +226,7 @@ export const createAddToScopeSwitcher = ({
   };
 
   // Tracks whichever row currently has its inline "Create Environment" form open, so at most one
-  // is ever open at a time, and so a click anywhere outside that specific row — whether that's
-  // elsewhere in this dropdown (another row) or elsewhere in the tooltip entirely — closes it.
+  // is ever open at a time.
   let activeCreateFormRevert = null;
   let activeCreateFormRow = null;
 
@@ -285,6 +284,15 @@ export const createAddToScopeSwitcher = ({
   }
 
   addToList.appendChild(fragment);
+
+  // Removes the document-level mousedown listener registerActiveCreateForm may have attached.
+  const destroy = () => {
+    activeCreateFormRevert = null;
+    activeCreateFormRow = null;
+    document.removeEventListener('mousedown', handleOutsideClick);
+  };
+
+  container._destroy = destroy;
 
   return container;
 };
