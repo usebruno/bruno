@@ -36,60 +36,95 @@ const renderScopeOption = (row, scope, { handleScopeSwitch, clearError }) => {
   row.appendChild(trigger);
 };
 
+const submitCreateEnvironment = ({
+  scope,
+  nameInput,
+  createButton,
+  actions,
+  revert
+}) => {
+  const {
+    handleScopeSwitch,
+    onCreateEnvironment,
+    showError,
+    clearError,
+    unregisterActiveCreateForm
+  } = actions;
+
+  const name = nameInput.value.trim();
+
+  if (!name) {
+    showError('Environment name is required');
+    return;
+  }
+
+  clearError();
+
+  createButton.disabled = true;
+  createButton.textContent = 'Creating…';
+  nameInput.disabled = true;
+
+  onCreateEnvironment(scope, name)
+    .then(() => {
+      unregisterActiveCreateForm(revert);
+      handleScopeSwitch(scope);
+    })
+    .catch((err) => {
+      showError(err?.message || 'Failed to create environment');
+
+      createButton.disabled = false;
+      createButton.textContent = 'Create';
+      nameInput.disabled = false;
+    });
+};
+
 // Renders the "Create Environment" inline form when the user clicks "Create One" in the "No Environment" message.
 const renderCreateEnvironment = (row, scope, actions) => {
   clearRow(row);
 
-  const { handleScopeSwitch, onCreateEnvironment, showError, clearError, registerActiveCreateForm, unregisterActiveCreateForm } = actions;
+  const {
+    registerActiveCreateForm,
+    unregisterActiveCreateForm
+  } = actions;
 
   const nameInput = document.createElement('input');
   nameInput.type = 'text';
   nameInput.className = 'var-add-to-inline-env-name-input';
-  nameInput.setAttribute('data-testid', 'var-info-add-to-create-env-name-input');
   nameInput.placeholder = 'Enter environment name';
-  row.appendChild(nameInput);
+  nameInput.setAttribute(
+    'data-testid',
+    'var-info-add-to-create-env-name-input'
+  );
 
   const createButton = document.createElement('button');
   createButton.type = 'button';
   createButton.className = 'var-add-to-inline-create-button';
-  createButton.setAttribute('data-testid', 'var-info-add-to-create-env-submit');
   createButton.textContent = 'Create';
-  row.appendChild(createButton);
+  createButton.setAttribute(
+    'data-testid',
+    'var-info-add-to-create-env-submit'
+  );
 
+  row.append(nameInput, createButton);
+
+  // Restores this row back to the "No Environment" state.
   const revert = () => {
     unregisterActiveCreateForm(revert);
     renderNoEnvironmentInline(row, scope, actions);
   };
 
+  // Register this form so any previously open form is closed and outside clicks
+  // can restore this row via `revert`.
   registerActiveCreateForm(revert, row);
 
-  const submit = () => {
-    const name = nameInput.value.trim();
-
-    if (!name) {
-      showError('Environment name is required');
-      return;
-    }
-
-    clearError();
-
-    createButton.disabled = true;
-    createButton.textContent = 'Creating…';
-    nameInput.disabled = true;
-
-    onCreateEnvironment(scope, name)
-      .then(() => {
-        unregisterActiveCreateForm(revert);
-        handleScopeSwitch(scope);
-      })
-      .catch((err) => {
-        showError(err?.message || 'Failed to create environment');
-
-        createButton.disabled = false;
-        createButton.textContent = 'Create';
-        nameInput.disabled = false;
-      });
-  };
+  const submit = () =>
+    submitCreateEnvironment({
+      scope,
+      nameInput,
+      createButton,
+      actions,
+      revert
+    });
 
   createButton.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -99,16 +134,17 @@ const renderCreateEnvironment = (row, scope, actions) => {
   nameInput.addEventListener('click', (e) => e.stopPropagation());
 
   nameInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      submit();
+    if (e.key !== 'Enter') {
+      return;
     }
+
+    e.preventDefault();
+    submit();
   });
 
   nameInput.focus();
 };
 
-// Renders the "No Environment" message with a "Create One" link when no environment is selected.
 const renderNoEnvironmentInline = (row, scope, actions) => {
   clearRow(row);
 
@@ -147,6 +183,166 @@ const buildScopeRow = (scope, actions) => {
   return row;
 };
 
+function createAddToScopeSwitcherDOM() {
+  const container = document.createElement('div');
+  container.className = 'var-add-to-switcher';
+  container.setAttribute('data-testid', 'var-info-add-to');
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'var-add-to-toggle';
+  toggle.setAttribute('data-testid', 'var-info-add-to-toggle');
+  container.appendChild(toggle);
+
+  const toggleLabel = document.createElement('span');
+  toggleLabel.className = 'var-add-to-toggle-label';
+  toggleLabel.textContent = 'Add to';
+  toggle.appendChild(toggleLabel);
+
+  const toggleChevron = document.createElement('span');
+  toggleChevron.className = 'var-add-to-toggle-chevron';
+  toggleChevron.innerHTML = CHEVRON_ICON_SVG_TEXT;
+  toggle.appendChild(toggleChevron);
+
+  const list = document.createElement('div');
+  list.className = 'var-add-to-list';
+  list.setAttribute('data-testid', 'var-info-add-to-list');
+  list.style.display = 'none';
+  container.appendChild(list);
+
+  const errorNote = document.createElement('div');
+  errorNote.className = 'var-warning-note';
+  errorNote.setAttribute('data-testid', 'var-info-add-to-error');
+  errorNote.style.display = 'none';
+  container.appendChild(errorNote);
+
+  return {
+    container,
+    toggle,
+    toggleChevron,
+    list,
+    errorNote
+  };
+}
+
+function createDropdownController({ toggle, list, toggleChevron }) {
+  const open = () => {
+    list.style.display = 'block';
+    toggleChevron.classList.add('var-add-to-toggle-chevron-open');
+  };
+
+  const close = () => {
+    list.style.display = 'none';
+    toggleChevron.classList.remove('var-add-to-toggle-chevron-open');
+  };
+
+  toggle.addEventListener('click', () => {
+    if (list.style.display === 'none') {
+      open();
+    } else {
+      close();
+    }
+  });
+
+  return {
+    open,
+    close
+  };
+}
+
+function createErrorController(errorNote) {
+  const show = (message) => {
+    errorNote.textContent = message;
+    errorNote.style.display = 'block';
+  };
+
+  const clear = () => {
+    errorNote.textContent = '';
+    errorNote.style.display = 'none';
+  };
+
+  return {
+    show,
+    clear
+  };
+}
+
+// Ensures only one inline "Create Environment" form is open at a time and
+// closes it when the user clicks outside.
+function createInlineCreateFormManager() {
+  let activeRevert = null;
+  let activeRow = null;
+
+  // Closes the active inline create form when clicking outside its row.
+  const handleOutsideClick = (e) => {
+    if (!activeRevert || !activeRow || activeRow.contains(e.target)) {
+      return;
+    }
+
+    const revert = activeRevert;
+
+    activeRevert = null;
+    activeRow = null;
+    document.removeEventListener('mousedown', handleOutsideClick);
+
+    revert();
+  };
+
+  const register = (revert, row) => {
+    // Only one inline create form can be active at a time.
+    if (activeRevert && activeRevert !== revert) {
+      const previousRevert = activeRevert;
+
+      activeRevert = null;
+      activeRow = null;
+
+      previousRevert();
+    }
+
+    activeRevert = revert;
+    activeRow = row;
+
+    document.addEventListener('mousedown', handleOutsideClick);
+  };
+
+  const unregister = (revert) => {
+    if (activeRevert !== revert) {
+      return;
+    }
+
+    activeRevert = null;
+    activeRow = null;
+
+    document.removeEventListener('mousedown', handleOutsideClick);
+  };
+
+  const destroy = () => {
+    activeRevert = null;
+    activeRow = null;
+    document.removeEventListener('mousedown', handleOutsideClick);
+  };
+
+  return {
+    register,
+    unregister,
+    destroy
+  };
+}
+
+function renderScopeRows({ list, scopes, rowActions }) {
+  const fragment = document.createDocumentFragment();
+
+  for (const scope of scopes) {
+    if (scope.type === VARIABLE_ADD_SCOPES.FOLDER) {
+      continue;
+    }
+
+    fragment.appendChild(buildScopeRow(scope, rowActions));
+  }
+
+  list.appendChild(fragment);
+}
+
 /**
  * Builds the "Add to" button with the scope list dropdown.
  *
@@ -159,140 +355,32 @@ export const createAddToScopeSwitcher = ({
   onSwitchScope,
   onCreateEnvironment
 }) => {
-  const container = document.createElement('div');
-  container.className = 'var-add-to-switcher';
-  container.setAttribute('data-testid', 'var-info-add-to');
+  const switcherElements = createAddToScopeSwitcherDOM();
 
-  const addToToggle = document.createElement('button');
-  addToToggle.type = 'button';
-  addToToggle.className = 'var-add-to-toggle';
-  addToToggle.setAttribute('data-testid', 'var-info-add-to-toggle');
-  container.appendChild(addToToggle);
-
-  const addToToggleLabel = document.createElement('span');
-  addToToggleLabel.className = 'var-add-to-toggle-label';
-  addToToggleLabel.textContent = 'Add to';
-  addToToggle.appendChild(addToToggleLabel);
-
-  const addToToggleChevron = document.createElement('span');
-  addToToggleChevron.className = 'var-add-to-toggle-chevron';
-  addToToggleChevron.innerHTML = CHEVRON_ICON_SVG_TEXT;
-  addToToggle.appendChild(addToToggleChevron);
-
-  const addToList = document.createElement('div');
-  addToList.className = 'var-add-to-list';
-  addToList.setAttribute('data-testid', 'var-info-add-to-list');
-  addToList.style.display = 'none';
-  container.appendChild(addToList);
-
-  const errorNote = document.createElement('div');
-  errorNote.className = 'var-warning-note';
-  errorNote.setAttribute('data-testid', 'var-info-add-to-error');
-  errorNote.style.display = 'none';
-  container.appendChild(errorNote);
-
-  const showError = (message) => {
-    errorNote.textContent = message;
-    errorNote.style.display = 'block';
-  };
-
-  const clearError = () => {
-    errorNote.textContent = '';
-    errorNote.style.display = 'none';
-  };
-
-  const closeList = () => {
-    addToList.style.display = 'none';
-    addToToggleChevron.classList.remove('var-add-to-toggle-chevron-open');
-  };
-
-  const openList = () => {
-    addToList.style.display = 'block';
-    addToToggleChevron.classList.add('var-add-to-toggle-chevron-open');
-  };
-
-  addToToggle.addEventListener('click', () => {
-    if (addToList.style.display === 'none') {
-      openList();
-    } else {
-      closeList();
-    }
-  });
+  const dropdown = createDropdownController(switcherElements);
+  const error = createErrorController(switcherElements.errorNote);
+  const createFormManager = createInlineCreateFormManager();
 
   const handleScopeSwitch = (scope) => {
-    closeList();
-    clearError();
+    dropdown.close();
+    error.clear();
     onSwitchScope(scope);
   };
 
-  // Tracks whichever row currently has its inline "Create Environment" form open, so at most one
-  // is ever open at a time.
-  let activeCreateFormRevert = null;
-  let activeCreateFormRow = null;
-
-  const handleOutsideClick = (e) => {
-    if (activeCreateFormRevert && activeCreateFormRow && !activeCreateFormRow.contains(e.target)) {
-      const revert = activeCreateFormRevert;
-      activeCreateFormRevert = null;
-      activeCreateFormRow = null;
-      document.removeEventListener('mousedown', handleOutsideClick);
-      revert();
+  renderScopeRows({
+    list: switcherElements.list,
+    scopes,
+    rowActions: {
+      handleScopeSwitch,
+      onCreateEnvironment,
+      showError: error.show,
+      clearError: error.clear,
+      registerActiveCreateForm: createFormManager.register,
+      unregisterActiveCreateForm: createFormManager.unregister
     }
-  };
+  });
 
-  // Called by a row when it opens its inline create form. Closes any other row's open form
-  // first, then starts listening for clicks outside this row to close it.
-  const registerActiveCreateForm = (revert, row) => {
-    if (activeCreateFormRevert && activeCreateFormRevert !== revert) {
-      const previousRevert = activeCreateFormRevert;
-      activeCreateFormRevert = null;
-      activeCreateFormRow = null;
-      previousRevert();
-    }
-    activeCreateFormRevert = revert;
-    activeCreateFormRow = row;
-    document.addEventListener('mousedown', handleOutsideClick);
-  };
+  switcherElements.container._destroy = createFormManager.destroy;
 
-  // Called by a row when its create form closes through any other path (success, or being
-  // reverted itself) so we stop tracking/listening for it.
-  const unregisterActiveCreateForm = (revert) => {
-    if (activeCreateFormRevert === revert) {
-      activeCreateFormRevert = null;
-      activeCreateFormRow = null;
-      document.removeEventListener('mousedown', handleOutsideClick);
-    }
-  };
-
-  const rowActions = {
-    handleScopeSwitch,
-    onCreateEnvironment,
-    showError,
-    clearError,
-    registerActiveCreateForm,
-    unregisterActiveCreateForm
-  };
-
-  const fragment = document.createDocumentFragment();
-
-  for (const scope of scopes) {
-    if (scope.type === VARIABLE_ADD_SCOPES.FOLDER) {
-      continue;
-    }
-
-    fragment.appendChild(buildScopeRow(scope, rowActions));
-  }
-
-  addToList.appendChild(fragment);
-
-  // Removes the document-level mousedown listener registerActiveCreateForm may have attached.
-  const destroy = () => {
-    activeCreateFormRevert = null;
-    activeCreateFormRow = null;
-    document.removeEventListener('mousedown', handleOutsideClick);
-  };
-
-  container._destroy = destroy;
-
-  return container;
+  return switcherElements.container;
 };
