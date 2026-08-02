@@ -903,6 +903,18 @@ describe('buildHar — regression: known issues map to single fixes', () => {
     });
     expect(rawUrl).toBe('https://example.com/odata/Products(ABC123)');
   });
+
+  it('literal colon in a path segment is encoded when the toggle is ON and there are no path params', async () => {
+    const { rawUrl, encodedUrl } = await buildHar({
+      request: baseRequest({
+        url: 'https://example.com/values:colon',
+        settings: { encodeUrl: true }
+      }),
+      shouldInterpolate: false
+    });
+    expect(rawUrl).toBe('https://example.com/values:colon');
+    expect(encodedUrl).toBe('https://example.com/values%3Acolon');
+  });
 });
 
 describe('buildHar — does not mutate caller inputs', () => {

@@ -153,7 +153,6 @@ const findCollectionPathByItemPath = (filePath) => {
   }
 
   const allCollectionPaths = collectionWatcher.getAllWatcherPaths();
-
   // Find the collection path that contains this file
   // Sort by length descending to find the most specific (deepest) match first
   const sortedPaths = allCollectionPaths.sort((a, b) => b.length - a.length);
