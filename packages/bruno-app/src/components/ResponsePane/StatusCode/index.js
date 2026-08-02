@@ -8,13 +8,13 @@ const StatusCode = ({ status, statusText, isStreaming }) => {
     return classnames({
       'text-ok': status >= 200 && status < 300,
       'text-redirect': status >= 300 && status < 400,
-      'text-error': status >= 400 && status < 600
+      'text-error': status >= 400
     });
   };
 
   return (
     <StyledWrapper className={`response-status-code ${getTabClassname(status)}`} data-testid="response-status-code">
-      {status} {statusText || statusCodePhraseMap[status]} {isStreaming ? ' - STREAMING' : null}
+      {status} {statusText || statusCodePhraseMap[status] || 'Unknown Status'} {isStreaming ? ' - STREAMING' : null}
     </StyledWrapper>
   );
 };
