@@ -155,6 +155,7 @@ const nordTheme = {
       lg: '10px',
       xl: '12px'
     },
+    border3: colors.NORD4,
     border2: colors.NORD3,
     border1: colors.NORD2,
     border0: colors.NORD1
