@@ -3,6 +3,7 @@ import { uuid } from 'utils/common';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path, { normalizePath } from 'utils/common/path';
 import { isRequestTagsIncluded } from '@usebruno/common';
+import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -1945,4 +1946,67 @@ export const filterTransientItems = (items) => {
 export const isScratchCollection = (collection, workspaces) => {
   if (!collection || !workspaces) return false;
   return workspaces.some((w) => w.scratchCollectionUid === collection.uid);
+};
+
+const SCOPE_CONFIG = [
+  {
+    type: VARIABLE_ADD_SCOPES.GLOBAL,
+    label: 'Global Environment',
+    supportsSecret: true,
+    enabled: ({ activeGlobalEnvironmentUid }) => !!activeGlobalEnvironmentUid
+  },
+  {
+    type: VARIABLE_ADD_SCOPES.ENVIRONMENT,
+    label: 'Collection Environment',
+    supportsSecret: true,
+    enabled: ({ activeEnvironmentUid }) => !!activeEnvironmentUid
+  },
+  {
+    type: VARIABLE_ADD_SCOPES.COLLECTION,
+    label: 'Collection Variables',
+    supportsSecret: false,
+    enabled: () => true
+  },
+  {
+    type: VARIABLE_ADD_SCOPES.REQUEST,
+    label: 'Request Variable',
+    supportsSecret: false,
+    include: ({ item }) => item && isItemARequest(item),
+    enabled: () => true
+  },
+  {
+    type: VARIABLE_ADD_SCOPES.FOLDER,
+    label: 'Immediate Parent Folder',
+    supportsSecret: false,
+    enabled: () => false,
+    disabledReason: 'Not yet supported'
+  }
+];
+
+/**
+ * Resolves which scopes an undefined `{{variable}}` can be added to.
+ * @param {string} [activeEnvironmentUid] - The collection's active environment uid, if any.
+ * @param {string} [activeGlobalEnvironmentUid] - The active global environment uid, if any.
+ * @param {Object} [item] - The request/folder item the tooltip was opened from, if any. Request
+ *   Variable is only included when this is a request (see isItemARequest).
+ * @returns {Array<{type: string, label: string, enabled: boolean, disabledReason?: string, supportsSecret: boolean}>}
+ */
+export const getAvailableAddToScopes = (
+  activeEnvironmentUid,
+  activeGlobalEnvironmentUid,
+  item
+) => {
+  const context = {
+    activeEnvironmentUid,
+    activeGlobalEnvironmentUid,
+    item
+  };
+
+  const filteredScopes = SCOPE_CONFIG.filter((scope) => !scope.include || scope.include(context));
+
+  return filteredScopes
+    .map(({ enabled, include, ...scope }) => ({
+      ...scope,
+      enabled: enabled(context)
+    }));
 };
