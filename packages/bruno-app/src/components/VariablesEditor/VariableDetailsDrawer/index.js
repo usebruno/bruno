@@ -17,11 +17,15 @@ const VariableDetailsDrawer = ({
   section,
   name,
   value,
+  environmentUid,
   onClose
 }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const editorValue = toDisplayString(value, '');
+  const docKey = section === 'environment'
+    ? `variables-drawer:environment:${environmentUid}:${name}`
+    : `variables-drawer:${section}:${name}`;
 
   return (
     <StyledWrapper data-testid="variable-details-drawer">
@@ -54,7 +58,7 @@ const VariableDetailsDrawer = ({
           readOnly
           enableBrunoVarInfo={false}
           enableVariableHighlighting={false}
-          docKey={`variables-drawer:${section}:${name}`}
+          docKey={docKey}
         />
       </div>
     </StyledWrapper>

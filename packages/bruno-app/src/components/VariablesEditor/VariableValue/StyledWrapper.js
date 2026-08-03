@@ -26,7 +26,6 @@ const StyledWrapper = styled.div`
     line-height: 33px;
   }
 
-  /* Match CodeMirror brunovariables token colors */
   .var-ref {
     cursor: default;
   }
@@ -75,9 +74,6 @@ const StyledWrapper = styled.div`
     align-items: center;
     flex-shrink: 0;
     gap: 2px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.12s ease;
   }
 
   .row-action-btn {
@@ -92,6 +88,14 @@ const StyledWrapper = styled.div`
     cursor: pointer;
     border-radius: 4px;
     line-height: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+
+    &.is-pinned {
+      opacity: 1;
+      pointer-events: auto;
+    }
 
     &:hover {
       color: ${(props) => props.theme.text};

@@ -16,10 +16,6 @@ const COPY_FEEDBACK_MS = 1200;
 
 const isObjectOrArray = (value) => value !== null && typeof value === 'object';
 
-/**
- * Same validity rules as defineCodeMirrorBrunoVariablesMode so {{var}} colors
- * match editors elsewhere (green valid / red invalid / blue prompt).
- */
 export const getVarRefStatus = (tokenString, variables) => {
   const word = String(tokenString || '').replace(/^\{\{|\}\}$/g, '');
   if (!word) return 'invalid';
@@ -156,14 +152,14 @@ const VariableValue = ({
 
   const displayValue = useMemo(() => {
     if (isMasked) {
-      if (typeof value === 'string') {
-        return value.replace(/./g, '*');
-      }
       return '********';
     }
     return value;
   }, [value, isMasked]);
 
+  /**
+   * Clear hover timers when the mouse leaves the row.
+   */
   const clearHoverTimers = useCallback(() => {
     clearTimeout(hoverTimeoutRef.current);
     clearTimeout(leaveTimeoutRef.current);
@@ -197,8 +193,7 @@ const VariableValue = ({
   }, [collection, variables, clearHoverTimers]);
 
   const handleVarLeave = useCallback(() => {
-    clearTimeout(hoverTimeoutRef.current);
-    hoverTimeoutRef.current = null;
+    clearHoverTimers();
     leaveTimeoutRef.current = setTimeout(() => {
       const popup = popupRef.current;
       if (popup && popup.contains(document.activeElement)) return;
@@ -215,7 +210,7 @@ const VariableValue = ({
       clearTimeout(copyResetTimeoutRef.current);
       copyResetTimeoutRef.current = setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
     } catch {
-      // Clipboard can fail in insecure contexts — fail silently.
+      // Clipboard can fail in insecure contexts fail silently.
     }
   }, [value]);
 
@@ -230,7 +225,7 @@ const VariableValue = ({
       {secret && (
         <button
           type="button"
-          className="row-action-btn"
+          className={`row-action-btn ${revealed ? 'is-pinned' : ''}`}
           onClick={handleToggleReveal}
           title={revealed ? 'Hide value' : 'Show value'}
           data-testid="variable-row-secret-toggle"

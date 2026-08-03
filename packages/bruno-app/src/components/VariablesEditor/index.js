@@ -5,7 +5,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { findEnvironmentInCollection } from 'utils/collections';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import { usePersistedState } from 'hooks/usePersistedState';
+import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import { useResizablePanel } from 'hooks/useResizablePanel';
+import { STORAGE_PREFIX, STORAGE_SEGMENT } from 'components/CodeEditor/state-persistence';
 import VariablesTable from './VariablesTable';
 import VariableDetailsDrawer from './VariableDetailsDrawer';
 import StyledWrapper from './StyledWrapper';
@@ -23,8 +25,21 @@ const isObjectOrArray = (value) => value !== null && typeof value === 'object';
 
 const getScrollEl = (wrapper) => wrapper?.querySelector?.('.flex-boundary') || null;
 
+/** Drop Variables persistence that is tied to a specific environment's values. */
+const clearEnvironmentBoundPersistence = (scope) => {
+  if (!scope) return;
+
+  localStorage.removeItem(`${STORAGE_PREFIX}${scope}::variables-sort-environment`);
+
+  const editorPrefix = `${STORAGE_PREFIX}${scope}::${STORAGE_SEGMENT}::variables-drawer:environment:`;
+  Object.keys(localStorage)
+    .filter((key) => key.startsWith(editorPrefix))
+    .forEach((key) => localStorage.removeItem(key));
+};
+
 const VariablesEditor = ({ collection }) => {
   const dispatch = useDispatch();
+  const persistenceScope = usePersistenceScope();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
@@ -36,6 +51,7 @@ const VariablesEditor = ({ collection }) => {
   const scrollPosRef = useRef(null);
   const scrollSaveTimeoutRef = useRef(null);
   const scrollTopZeroTimeoutRef = useRef(null);
+  const prevEnvironmentUidRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
   const [scroll, setScroll] = usePersistedState({ key: 'variables-scroll', default: 0 });
@@ -54,6 +70,22 @@ const VariablesEditor = ({ collection }) => {
     default: DEFAULT_DRAWER_WIDTH
   });
 
+  const activeEnvironmentUid = collection.activeEnvironmentUid ?? null;
+
+  useEffect(() => {
+    const prev = prevEnvironmentUidRef.current;
+    prevEnvironmentUidRef.current = activeEnvironmentUid;
+    if (prev === null || prev === activeEnvironmentUid) return;
+
+    scrollPosRef.current = 0;
+    setScroll(0);
+    setDrawerSelection(null);
+    const el = getScrollEl(wrapperRef.current);
+    if (el) el.scrollTop = 0;
+
+    clearEnvironmentBoundPersistence(persistenceScope);
+  }, [activeEnvironmentUid]);
+
   const runtimeRows = useMemo(() => {
     const runtimeVariables = collection.runtimeVariables || {};
     return Object.entries(runtimeVariables)
@@ -66,7 +98,7 @@ const VariablesEditor = ({ collection }) => {
       .toSorted((a, b) => a.name.localeCompare(b.name));
   }, [collection.runtimeVariables]);
 
-  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  const environment = findEnvironmentInCollection(collection, activeEnvironmentUid);
   const envRows = useMemo(() => {
     if (!environment) return [];
     const envVars = get(environment, 'variables', []);
@@ -262,6 +294,7 @@ const VariablesEditor = ({ collection }) => {
             <div className="muted text-xs">No environment selected</div>
           ) : envRows.length > 0 ? (
             <VariablesTable
+              key={activeEnvironmentUid || 'no-env'}
               rows={envRows}
               collection={collection}
               section="environment"
@@ -274,14 +307,6 @@ const VariablesEditor = ({ collection }) => {
           ) : (
             <div className="muted text-xs">No environment variables found</div>
           )}
-        </div>
-
-        <div className="variables-note" data-testid="variables-note">
-          Runtime variables can only be set via the API —{' '}
-          <code className="font-medium">getVar()</code> and{' '}
-          <code className="font-medium">setVar()</code>
-          . Use them with the{' '}
-          <code className="font-medium">{'{{var}}'}</code> syntax.
         </div>
       </div>
 
@@ -299,6 +324,7 @@ const VariablesEditor = ({ collection }) => {
             section={drawerSelection.section}
             name={drawerSelection.name}
             value={selectedValue}
+            environmentUid={activeEnvironmentUid}
             onClose={handleCloseDrawer}
           />
         </div>

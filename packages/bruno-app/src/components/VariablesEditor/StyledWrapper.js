@@ -30,26 +30,6 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
   }
 
-  .variables-note {
-    flex-shrink: 0;
-    padding: 10px 16px;
-    border-top: 1px solid ${(props) => props.theme.border?.border0 || props.theme.table?.border};
-    background: ${(props) => props.theme.sidebar?.bg || props.theme.bg};
-    color: ${(props) => props.theme.colors.text.muted};
-    font-size: ${(props) => props.theme.font?.size?.xs || '11px'};
-    line-height: 1.5;
-
-    .font-medium {
-      color: ${(props) => props.theme.text};
-      font-weight: 500;
-    }
-
-    code {
-      font-family: ${(props) => props.theme.codemirror?.font || 'monospace'};
-      font-size: 0.95em;
-    }
-  }
-
   .details-panel-wrapper {
     position: relative;
     flex-shrink: 0;

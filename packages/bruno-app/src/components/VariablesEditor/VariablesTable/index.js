@@ -52,9 +52,6 @@ const VariablesTable = ({
         showAddRow={false}
         columnWidths={columnWidths}
         onColumnWidthsChange={onColumnWidthsChange}
-        // Do NOT pass page scroll as initialScroll — EditableTable treats it as
-        // initialTopMostItemIndex (scroll / 35). With two tables sharing one
-        // scroll parent that causes jump fights on remount.
         initialScroll={0}
         sortStorageKey={`variables-sort-${section}`}
       />
