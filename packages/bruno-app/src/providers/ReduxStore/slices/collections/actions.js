@@ -2293,24 +2293,32 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 
       switch (type) {
         case 'environment': {
-          const { environment, variable } = data;
+          const environment = findEnvironmentInCollection(collection, data.environment?.uid);
 
-          if (!variable) {
-            return reject(new Error('Variable not found'));
+          if (!environment) {
+            return reject(new Error('Environment not found'));
           }
 
-          const updatedVariables = environment.variables.map((v) => {
-            if (v.uid === variable.uid) {
-              return { ...v, value: newValue };
-            }
-            return v;
-          });
+          const variable = environment.variables.find((v) => v.name === variableName && v.enabled);
+
+          // Match script variable behavior: preserve disabled entries and create a separate enabled slot.
+          const updatedVariables = variable
+            ? environment.variables.map((v) => {
+                if (v.uid === variable.uid) {
+                  return { ...v, value: newValue };
+                }
+                return v;
+              })
+            : [
+                ...(environment.variables || []),
+                { uid: uuid(), name: variableName, value: newValue, enabled: true, secret: false }
+              ];
 
           const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
 
           return dispatch(saveEnvironment(resolvedVariables, environment.uid, collectionUid))
             .then(() => {
-              toast.success(`Variable "${variableName}" updated`);
+              toast.success(`Variable "${variableName}" ${variable ? 'updated' : 'created'}`);
             })
             .then(resolve)
             .catch(reject);
@@ -2409,18 +2417,20 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Global environment not found'));
           }
 
+          // Match script variable behavior: preserve disabled entries and create a separate enabled slot.
           const variable = environment.variables.find((v) => v.name === variableName && v.enabled);
 
-          if (!variable) {
-            return reject(new Error('Variable not found'));
-          }
-
-          const updatedVariables = environment.variables.map((v) => {
-            if (v.uid === variable.uid) {
-              return { ...v, value: newValue };
-            }
-            return v;
-          });
+          const updatedVariables = variable
+            ? environment.variables.map((v) => {
+                if (v.uid === variable.uid) {
+                  return { ...v, value: newValue };
+                }
+                return v;
+              })
+            : [
+                ...(environment.variables || []),
+                { uid: uuid(), name: variableName, value: newValue, enabled: true, secret: false }
+              ];
 
           const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
 
@@ -2429,7 +2439,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             environmentUid: activeGlobalEnvUid
           }))
             .then(() => {
-              toast.success(`Variable "${variableName}" updated`);
+              toast.success(`Variable "${variableName}" ${variable ? 'updated' : 'created'}`);
             })
             .then(resolve)
             .catch(reject);

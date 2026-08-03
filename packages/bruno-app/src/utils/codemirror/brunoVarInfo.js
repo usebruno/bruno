@@ -8,8 +8,18 @@
 
 import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
 import { toDisplayString } from '@usebruno/common/utils';
-import { getVariableScope, isVariableSecret, getAllVariables, findCollectionByUid, findItemInCollectionByItemUid } from 'utils/collections';
-import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
+import {
+  getVariableScope,
+  isVariableSecret,
+  getAllVariables,
+  findCollectionByUid,
+  findEnvironmentInCollection,
+  findItemInCollectionByItemUid,
+  getTreePathFromCollectionToItem
+} from 'utils/collections';
+import { openCollectionSettings, updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
+import { updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
+import { addTab, focusTab, updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import store from 'providers/ReduxStore';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
@@ -80,6 +90,202 @@ const getScopeLabel = (scopeType) => {
     'pathParam': 'Path Param'
   };
   return labels[scopeType] || scopeType;
+};
+
+const getActiveGlobalEnvironment = () => {
+  const state = store.getState();
+  const globalEnvironments = state.globalEnvironments?.globalEnvironments || [];
+  const activeGlobalEnvironmentUid = state.globalEnvironments?.activeGlobalEnvironmentUid;
+
+  if (!activeGlobalEnvironmentUid) {
+    return null;
+  }
+
+  return globalEnvironments.find((env) => env.uid === activeGlobalEnvironmentUid) || null;
+};
+
+const getCreatableScopeOptions = (collection, item) => {
+  if (!collection) {
+    return [];
+  }
+
+  const options = [];
+
+  if (item?.uid) {
+    if (item.type !== 'folder') {
+      options.push({
+        key: `request:${item.uid}`,
+        type: 'request',
+        label: getScopeLabel('request'),
+        scopeInfo: {
+          type: 'request',
+          value: '',
+          data: { item, variable: null }
+        }
+      });
+    }
+
+    const folderPath = getTreePathFromCollectionToItem(collection, item)
+      .filter((pathItem) => pathItem?.type === 'folder');
+
+    if (item.type === 'folder' && !folderPath.some((folder) => folder.uid === item.uid)) {
+      folderPath.push(item);
+    }
+
+    folderPath.forEach((folder, index) => {
+      const nestedLabel = folderPath
+        .slice(0, index + 1)
+        .map((pathItem) => pathItem.name)
+        .filter(Boolean)
+        .join(' / ');
+
+      options.push({
+        key: `folder:${folder.uid}`,
+        type: 'folder',
+        label: nestedLabel ? `Folder: ${nestedLabel}` : getScopeLabel('folder'),
+        scopeInfo: {
+          type: 'folder',
+          value: '',
+          data: { folder, variable: null }
+        }
+      });
+    });
+  }
+
+  options.push({
+    key: 'collection',
+    type: 'collection',
+    label: getScopeLabel('collection'),
+    scopeInfo: {
+      type: 'collection',
+      value: '',
+      data: { collection, variable: null }
+    }
+  });
+
+  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  if (environment) {
+    options.push({
+      key: `environment:${environment.uid}`,
+      type: 'environment',
+      label: getScopeLabel('environment'),
+      scopeInfo: {
+        type: 'environment',
+        value: '',
+        data: { environment, variable: null }
+      }
+    });
+  }
+
+  const globalEnvironment = getActiveGlobalEnvironment();
+  if (globalEnvironment) {
+    options.push({
+      key: `global:${globalEnvironment.uid}`,
+      type: 'global',
+      label: getScopeLabel('global'),
+      scopeInfo: {
+        type: 'global',
+        value: '',
+        data: { environment: globalEnvironment, variable: null }
+      }
+    });
+  }
+
+  return options;
+};
+
+const scrollDefinitionIntoView = (scopeType, variableName) => {
+  const selectorByScope = {
+    request: `[data-testid="request-vars-req"] [data-row-name="${variableName}"]`,
+    folder: `[data-testid="folder-vars-req"] [data-row-name="${variableName}"]`,
+    collection: `[data-testid="collection-vars-req"] [data-row-name="${variableName}"]`,
+    environment: `[data-testid="env-var-row-${variableName}"]`,
+    global: `[data-testid="env-var-row-${variableName}"]`
+  };
+
+  const selector = selectorByScope[scopeType];
+  if (!selector || typeof document === 'undefined') {
+    return;
+  }
+
+  let attempts = 0;
+  const maxAttempts = 12;
+
+  const tryScroll = () => {
+    const definitionRow = document.querySelector(selector);
+    if (definitionRow) {
+      definitionRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      definitionRow.classList.add('bruno-var-definition-target');
+      window.setTimeout(() => definitionRow.classList.remove('bruno-var-definition-target'), 1500);
+      return;
+    }
+
+    attempts += 1;
+    if (attempts < maxAttempts) {
+      window.setTimeout(tryScroll, 100);
+    }
+  };
+
+  window.setTimeout(tryScroll, 50);
+};
+
+const goToVariableDefinition = (scopeInfo, collection, item, variableName) => {
+  if (!scopeInfo || !collection || !variableName) {
+    return;
+  }
+
+  const dispatch = store.dispatch;
+
+  switch (scopeInfo.type) {
+    case 'request': {
+      const targetItem = scopeInfo.data?.item || item;
+      if (!targetItem?.uid) {
+        return;
+      }
+
+      dispatch(addTab({
+        uid: targetItem.uid,
+        collectionUid: collection.uid,
+        type: targetItem.type,
+        pathname: targetItem.pathname,
+        requestPaneTab: 'vars'
+      }));
+      dispatch(updateRequestPaneTab({ uid: targetItem.uid, requestPaneTab: 'vars' }));
+      dispatch(focusTab({ uid: targetItem.uid }));
+      break;
+    }
+
+    case 'folder': {
+      const folder = scopeInfo.data?.folder;
+      if (!folder?.uid) {
+        return;
+      }
+
+      dispatch(updatedFolderSettingsSelectedTab({ collectionUid: collection.uid, folderUid: folder.uid, tab: 'vars' }));
+      dispatch(addTab({ uid: folder.uid, collectionUid: collection.uid, type: 'folder-settings', pathname: folder.pathname }));
+      break;
+    }
+
+    case 'collection': {
+      dispatch(openCollectionSettings(collection.uid, 'vars'));
+      break;
+    }
+
+    case 'environment': {
+      dispatch(addTab({ uid: `${collection.uid}-environment-settings`, collectionUid: collection.uid, type: 'environment-settings' }));
+      break;
+    }
+
+    case 'global': {
+      dispatch(addTab({ uid: `${collection.uid}-global-environment-settings`, collectionUid: collection.uid, type: 'global-environment-settings' }));
+      break;
+    }
+
+    default:
+      return;
+  }
+
+  scrollDefinitionIntoView(scopeInfo.type, variableName);
 };
 
 // Get the masked display text based on the value length
@@ -310,13 +516,87 @@ export const renderVarInfo = (token, options) => {
 
   // Check if a runtime variable exists - if so, show Runtime scope (even if detected as collection/folder/environment)
   const displayScopeType = hasRuntimeVariable ? 'runtime' : (scopeInfo ? scopeInfo.type : 'Unknown');
-  // Show scope label with indication if it's a new variable
   const scopeLabel = getScopeLabel(displayScopeType);
   const isNewVariable = scopeInfo && scopeInfo.data && scopeInfo.data.variable === null;
-  scopeBadge.textContent = isNewVariable ? `${scopeLabel}` : scopeLabel;
+  const canGoToDefinition = !!collection && !isNewVariable && !hasRuntimeVariable && ['request', 'folder', 'collection', 'environment', 'global'].includes(scopeInfo?.type);
 
   header.appendChild(varName);
-  header.appendChild(scopeBadge);
+
+  if (isNewVariable) {
+    const scopeSelect = document.createElement('select');
+    scopeSelect.className = 'var-scope-select';
+
+    const scopeOptions = getCreatableScopeOptions(collection, item);
+    scopeOptions.forEach(({ key, label }) => {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = label;
+      scopeSelect.appendChild(option);
+    });
+
+    const selectedScope = scopeOptions.find(({ type, scopeInfo: optionScopeInfo }) => {
+      if (type !== scopeInfo.type) {
+        return false;
+      }
+
+      if (type === 'folder') {
+        return optionScopeInfo.data?.folder?.uid === scopeInfo.data?.folder?.uid;
+      }
+
+      if (type === 'request') {
+        return optionScopeInfo.data?.item?.uid === scopeInfo.data?.item?.uid;
+      }
+
+      if (type === 'environment') {
+        return optionScopeInfo.data?.environment?.uid === scopeInfo.data?.environment?.uid;
+      }
+
+      if (type === 'global') {
+        return optionScopeInfo.data?.environment?.uid === scopeInfo.data?.environment?.uid;
+      }
+
+      return true;
+    }) || scopeOptions[0];
+
+    const resizeScopeSelect = (scopeOption) => {
+      const labelLength = scopeOption?.label?.length || getScopeLabel('request').length;
+      const widthInCharacters = Math.min(Math.max(labelLength + 4, 14), 48);
+      scopeSelect.style.width = `${widthInCharacters}ch`;
+      into.style.width = `calc(${widthInCharacters}ch + 8rem)`;
+    };
+
+    if (selectedScope) {
+      scopeSelect.value = selectedScope.key;
+      resizeScopeSelect(selectedScope);
+    }
+
+    scopeSelect.addEventListener('change', (event) => {
+      const nextScope = scopeOptions.find(({ key }) => key === event.target.value);
+      if (nextScope) {
+        scopeInfo = nextScope.scopeInfo;
+        resizeScopeSelect(nextScope);
+      }
+    });
+
+    header.appendChild(scopeSelect);
+  } else {
+    scopeBadge.textContent = scopeLabel;
+    header.appendChild(scopeBadge);
+
+    if (canGoToDefinition) {
+      const definitionButton = document.createElement('button');
+      definitionButton.className = 'var-definition-button';
+      definitionButton.type = 'button';
+      definitionButton.textContent = 'Go to definition';
+      definitionButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        goToVariableDefinition(scopeInfo, collection, item, variableName);
+      });
+      header.appendChild(definitionButton);
+    }
+  }
+
   into.appendChild(header);
 
   // Check if variable name is valid
