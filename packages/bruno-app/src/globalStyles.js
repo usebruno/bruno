@@ -589,6 +589,14 @@ const GlobalStyle = createGlobalStyle`
     margin-top: 0.5rem;
   }
 
+  /* Toggle, Secret checkbox, and Confirm button all sit in one row. */
+  .CodeMirror-brunoVarInfo .var-add-to-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
   .CodeMirror-brunoVarInfo .var-add-to-toggle {
     display: inline-flex;
     align-items: center;
@@ -603,11 +611,50 @@ const GlobalStyle = createGlobalStyle`
     color: ${(props) => props.theme.dropdown.color};
     cursor: pointer;
     transition: background 0.15s;
-    margin-bottom: 0.25rem;
   }
 
   .CodeMirror-brunoVarInfo .var-add-to-toggle:hover {
     background: ${(props) => props.theme.dropdown.hoverBg};
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-secret-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.dropdown.color};
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-secret-checkbox {
+    margin: 0;
+    cursor: pointer;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-confirm-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.5rem;
+    box-sizing: border-box;
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid ${(props) => props.theme.border.border2};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    padding: 0 0.625rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.dropdown.color};
+    cursor: pointer;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-confirm-button:hover {
+    background: ${(props) => props.theme.dropdown.hoverBg};
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-confirm-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
   .CodeMirror-brunoVarInfo .var-add-to-toggle-chevron {
@@ -626,7 +673,10 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .var-add-to-list {
     display: flex;
     flex-direction: column;
+    gap: 0.125rem;
     margin-bottom: 0.375rem;
+    border-top: 1px solid ${(props) => props.theme.border.border2};
+    padding-top: 0.25rem;
   }
 
   .CodeMirror-brunoVarInfo .var-add-to-option {
@@ -659,8 +709,33 @@ const GlobalStyle = createGlobalStyle`
     background: ${(props) => props.theme.dropdown.hoverBg};
   }
 
+  /* Currently selected scope in the "Add to" list. */
+  .CodeMirror-brunoVarInfo .var-add-to-option-active {
+    background: ${(props) => props.theme.dropdown.hoverBg};
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option-active .var-add-to-option-badge {
+    background: ${(props) => props.theme.colors.text.green};
+    color: ${(props) => props.theme.colors.text.white};
+  }
+
   .CodeMirror-brunoVarInfo .var-add-to-option-label {
     flex: 1;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    border-radius: 50%;
+    background: ${(props) => props.theme.dropdown.hoverBg};
+    color: ${(props) => props.theme.dropdown.mutedText};
+    font-size: ${(props) => props.theme.font.size.xs};
+    font-weight: 600;
+    line-height: 1;
   }
 
   .CodeMirror-brunoVarInfo .var-add-to-option-note {

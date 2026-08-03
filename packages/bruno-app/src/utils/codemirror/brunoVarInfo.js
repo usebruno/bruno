@@ -79,6 +79,7 @@ const getScopeLabel = (scopeType) => {
     'dynamic': 'Dynamic',
     'oauth2': 'OAuth2',
     'undefined': 'Undefined',
+    'undefined-addable': 'Undefined',
     'pathParam': 'Path Param'
   };
   return labels[scopeType] || scopeType;
@@ -240,36 +241,17 @@ export const renderVarInfo = (token, options) => {
     // Detect variable scope
     scopeInfo = getVariableScope(variableName, collection, item);
 
-    // If variable doesn't exist in any scope, determine scope based on context
+    // If the variable doesn't exist in any scope, don't guess where it belongs.
+    // user picks the scope using the "Add to" list below.
     if (!scopeInfo) {
-      if (item && item.uid) {
-        // Determine if item is a folder or request
-        const isFolder = item.type === 'folder';
-
-        if (isFolder) {
-          // We're in folder settings - create as folder variable
-          scopeInfo = {
-            type: 'folder',
-            value: '', // Empty value for new variable
-            data: { folder: item, variable: null } // variable is null since it doesn't exist yet
-          };
-        } else {
-          // We're in a request - create as request variable
-          scopeInfo = {
-            type: 'request',
-            value: '', // Empty value for new variable
-            data: { item, variable: null } // variable is null since it doesn't exist yet
-          };
-        }
-      } else if (collection) {
-        // No item context but we have collection - create as collection variable
+      if (collection) {
         scopeInfo = {
-          type: 'collection',
+          type: 'undefined-addable',
           value: '',
-          data: { collection, variable: null }
+          data: { variable: null }
         };
       } else {
-        // No context at all, show as undefined
+        // No collection context at all — nowhere to add the variable to.
         scopeInfo = {
           type: 'undefined',
           value: '',
@@ -312,10 +294,10 @@ export const renderVarInfo = (token, options) => {
 
   // Check if a runtime variable exists - if so, show Runtime scope (even if detected as collection/folder/environment)
   const displayScopeType = hasRuntimeVariable ? 'runtime' : (scopeInfo ? scopeInfo.type : 'Unknown');
-  // Show scope label with indication if it's a new variable
   const scopeLabel = getScopeLabel(displayScopeType);
   const isNewVariable = scopeInfo && scopeInfo.data && scopeInfo.data.variable === null;
-  scopeBadge.textContent = isNewVariable ? `${scopeLabel}` : scopeLabel;
+
+  scopeBadge.textContent = isNewVariable ? 'Undefined' : scopeLabel;
 
   header.appendChild(varName);
   header.appendChild(scopeBadge);
@@ -562,42 +544,48 @@ export const renderVarInfo = (token, options) => {
       valueDisplay.style.display = 'block';
       isEditing = false;
 
-      if (newValue !== originalValue) {
-        // Dispatch Redux action to update variable
-        const dispatch = store.dispatch;
-        dispatch(updateVariableInScope(variableName, newValue, scopeInfo, collection.uid))
-          .then(() => {
-            originalValue = newValue;
-
-            // Re-fetch scopeInfo to get the updated variable reference after save
-            const state = store.getState();
-            const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
-            if (collection) {
-              const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
-              const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
-              if (updatedScopeInfo) {
-                scopeInfo = updatedScopeInfo;
-              }
-            }
-
-            // Re-interpolate the new value to show the resolved value in display.
-            // Use `??` so falsy-but-valid values (0 / false / '') survive the assignment.
-            const interpolatedValue = interpolate(newValue, allVariables);
-            currentInterpolatedValue = interpolatedValue ?? '';
-            // Check if the NEW value contains secret references and update live mask state
-            const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
-            currentShouldMaskValue = isSecret || newHasSecretRefs;
-            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
-          })
-          .catch((err) => {
-            console.error('Failed to update variable:', err);
-            // Revert on error to the last good state — currentInterpolatedValue and
-            // currentShouldMaskValue still hold pre-attempt values since the success
-            // block above never ran.
-            cmEditor.setValue(originalValue);
-            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
-          });
+      if (newValue === originalValue) {
+        return;
       }
+
+      // sync the displayed value with the new value (interpolated and masked if needed) before saving
+      const interpolatedValue = interpolate(newValue, allVariables);
+      currentInterpolatedValue = interpolatedValue ?? '';
+      const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
+      currentShouldMaskValue = isSecret || newHasSecretRefs;
+      updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
+
+      // save on blur only if it's not a new variable (new variables are saved via the Confirm button in the Add-to switcher).
+      const SAVE_ON_BLUR_ENABLED_FOR_NEW_VARIABLE = false;
+      if (isNewVariable && !SAVE_ON_BLUR_ENABLED_FOR_NEW_VARIABLE) {
+        return;
+      }
+
+      // Dispatch Redux action to update variable
+      const dispatch = store.dispatch;
+      dispatch(updateVariableInScope(variableName, newValue, scopeInfo, collection.uid))
+        .then(() => {
+          originalValue = newValue;
+
+          // Re-fetch scopeInfo to get the updated variable reference after save
+          const state = store.getState();
+          const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
+          if (collection) {
+            const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
+            const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
+            if (updatedScopeInfo) {
+              scopeInfo = updatedScopeInfo;
+            }
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to update variable:', err);
+          // Revert on error to the last good state — currentInterpolatedValue and
+          // currentShouldMaskValue still hold pre-attempt values since the success
+          // block above never ran.
+          cmEditor.setValue(originalValue);
+          updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
+        });
     });
 
     // Store references for cleanup
@@ -628,17 +616,22 @@ export const renderVarInfo = (token, options) => {
         }
       };
 
+      const addToScopesState = store.getState();
+      const globalEnvironmentsState = (addToScopesState && addToScopesState.globalEnvironments) || {};
+      const addToScopes = getAvailableAddToScopes(
+        collection?.activeEnvironmentUid,
+        globalEnvironmentsState.activeGlobalEnvironmentUid,
+        item
+      );
+
+      // no scope is selected by default, but if the current scope is in the addToScopes list, select it.
+      const initialScope = addToScopes.find((s) => s.type === scopeInfo.type) || null;
+
       const onSwitchScope = (scope) => {
         const newScopeInfo = buildScopeInfoForSwitch(scope);
         if (!newScopeInfo) {
           return;
         }
-
-        const alreadySaved = !(scopeInfo && scopeInfo.data && scopeInfo.data.variable === null);
-        if (alreadySaved) {
-          console.log('TODO: move variable to new scope', { variableName, from: scopeInfo, to: newScopeInfo });
-        }
-
         scopeInfo = newScopeInfo;
         scopeBadge.textContent = getScopeLabel(newScopeInfo.type);
       };
@@ -648,15 +641,49 @@ export const renderVarInfo = (token, options) => {
         return Promise.resolve();
       };
 
-      const addToScopesState = store.getState();
-      const globalEnvironmentsState = (addToScopesState && addToScopesState.globalEnvironments) || {};
-      const addToScopes = getAvailableAddToScopes(
-        collection?.activeEnvironmentUid,
-        globalEnvironmentsState.activeGlobalEnvironmentUid,
-        item
-      );
+      const onConfirm = (secret) => {
+        const value = cmEditor.getValue();
+        const scopeInfoToSave = scopeInfo && scopeInfo.data
+          ? { ...scopeInfo, data: { ...scopeInfo.data, secret } }
+          : scopeInfo;
 
-      const addToSwitcher = createAddToScopeSwitcher({ scopes: addToScopes, onSwitchScope, onCreateEnvironment });
+        const dispatch = store.dispatch;
+        return dispatch(updateVariableInScope(variableName, value, scopeInfoToSave, collection.uid))
+          .then(() => {
+            originalValue = value;
+
+            const state = store.getState();
+            const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
+            const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
+            const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
+            if (updatedScopeInfo) {
+              scopeInfo = updatedScopeInfo;
+              scopeBadge.textContent = getScopeLabel(updatedScopeInfo.type);
+            }
+
+            const interpolatedValue = interpolate(value, allVariables);
+            currentInterpolatedValue = interpolatedValue ?? '';
+            const newHasSecretRefs = containsSecretVariableReferences(value, collection, item);
+            currentShouldMaskValue = isSecret || newHasSecretRefs;
+            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
+
+            if (valueContainer._addToSwitcher) {
+              if (typeof valueContainer._addToSwitcher._destroy === 'function') {
+                valueContainer._addToSwitcher._destroy();
+              }
+              valueContainer._addToSwitcher.remove();
+              valueContainer._addToSwitcher = null;
+            }
+          });
+      };
+
+      const addToSwitcher = createAddToScopeSwitcher({
+        scopes: addToScopes,
+        initialScope,
+        onSwitchScope,
+        onCreateEnvironment,
+        onConfirm
+      });
       valueContainer._addToSwitcher = addToSwitcher;
     }
   } else {

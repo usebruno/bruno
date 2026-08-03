@@ -10,6 +10,21 @@ const isEnvironmentScope = (scope) =>
   scope.type === VARIABLE_ADD_SCOPES.GLOBAL
   || scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT;
 
+const SCOPE_BADGE_LETTERS = {
+  [VARIABLE_ADD_SCOPES.GLOBAL]: 'G',
+  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: 'E',
+  [VARIABLE_ADD_SCOPES.COLLECTION]: 'V',
+  [VARIABLE_ADD_SCOPES.REQUEST]: 'R'
+};
+
+const createScopeBadge = (scope) => {
+  const badge = document.createElement('span');
+  badge.className = 'var-add-to-option-badge';
+  badge.setAttribute('data-testid', `var-info-add-to-option-badge-${scope.type}`);
+  badge.textContent = SCOPE_BADGE_LETTERS[scope.type] || '?';
+  return badge;
+};
+
 const clearRow = (row) => {
   row.innerHTML = '';
 };
@@ -22,6 +37,8 @@ const renderScopeOption = (row, scope, { handleScopeSwitch, clearError }) => {
   trigger.type = 'button';
   trigger.className = 'var-add-to-option-trigger';
   trigger.setAttribute('data-testid', `var-info-add-to-option-${scope.type}`);
+
+  trigger.appendChild(createScopeBadge(scope));
 
   const label = document.createElement('span');
   label.className = 'var-add-to-option-label';
@@ -148,6 +165,8 @@ const renderCreateEnvironment = (row, scope, actions) => {
 const renderNoEnvironmentInline = (row, scope, actions) => {
   clearRow(row);
 
+  row.appendChild(createScopeBadge(scope));
+
   const note = document.createElement('span');
   note.className = 'var-add-to-option-note';
   note.setAttribute('data-testid', 'var-info-add-to-no-env-note');
@@ -188,11 +207,15 @@ function createAddToScopeSwitcherDOM() {
   container.className = 'var-add-to-switcher';
   container.setAttribute('data-testid', 'var-info-add-to');
 
+  const controlsRow = document.createElement('div');
+  controlsRow.className = 'var-add-to-controls';
+  container.appendChild(controlsRow);
+
   const toggle = document.createElement('button');
   toggle.type = 'button';
   toggle.className = 'var-add-to-toggle';
   toggle.setAttribute('data-testid', 'var-info-add-to-toggle');
-  container.appendChild(toggle);
+  controlsRow.appendChild(toggle);
 
   const toggleLabel = document.createElement('span');
   toggleLabel.className = 'var-add-to-toggle-label';
@@ -203,6 +226,29 @@ function createAddToScopeSwitcherDOM() {
   toggleChevron.className = 'var-add-to-toggle-chevron';
   toggleChevron.innerHTML = CHEVRON_ICON_SVG_TEXT;
   toggle.appendChild(toggleChevron);
+
+  // Only shown when the currently active scope(Global/Environment) supports secrets
+  const secretLabel = document.createElement('label');
+  secretLabel.className = 'var-add-to-secret-label';
+  secretLabel.style.display = 'none';
+  controlsRow.appendChild(secretLabel);
+
+  const secretCheckbox = document.createElement('input');
+  secretCheckbox.type = 'checkbox';
+  secretCheckbox.className = 'var-add-to-secret-checkbox';
+  secretCheckbox.setAttribute('data-testid', 'var-info-add-to-secret-checkbox');
+  secretLabel.appendChild(secretCheckbox);
+
+  const secretLabelText = document.createElement('span');
+  secretLabelText.textContent = 'Secret';
+  secretLabel.appendChild(secretLabelText);
+
+  const confirmButton = document.createElement('button');
+  confirmButton.type = 'button';
+  confirmButton.className = 'var-add-to-confirm-button';
+  confirmButton.setAttribute('data-testid', 'var-info-add-to-confirm');
+  confirmButton.textContent = 'Confirm';
+  controlsRow.appendChild(confirmButton);
 
   const list = document.createElement('div');
   list.className = 'var-add-to-list';
@@ -218,8 +264,12 @@ function createAddToScopeSwitcherDOM() {
 
   return {
     container,
+    controlsRow,
     toggle,
     toggleChevron,
+    secretLabel,
+    secretCheckbox,
+    confirmButton,
     list,
     errorNote
   };
@@ -331,43 +381,125 @@ function createInlineCreateFormManager() {
 
 function renderScopeRows({ list, scopes, rowActions }) {
   const fragment = document.createDocumentFragment();
+  const rowsByType = {};
 
   for (const scope of scopes) {
     if (scope.type === VARIABLE_ADD_SCOPES.FOLDER) {
       continue;
     }
 
-    fragment.appendChild(buildScopeRow(scope, rowActions));
+    const row = buildScopeRow(scope, rowActions);
+    rowsByType[scope.type] = row;
+    fragment.appendChild(row);
   }
 
   list.appendChild(fragment);
+
+  return rowsByType;
+}
+
+function createActiveRowTracker(rowsByType) {
+  let activeRow = null;
+
+  const setActiveScope = (scope) => {
+    if (activeRow) {
+      activeRow.classList.remove('var-add-to-option-active');
+      activeRow = null;
+    }
+
+    const row = scope && rowsByType[scope.type];
+    if (row) {
+      row.classList.add('var-add-to-option-active');
+      activeRow = row;
+    }
+  };
+
+  return { setActiveScope };
+}
+
+function createConfirmController({ confirmButton, secretLabel, secretCheckbox, errorController, onConfirm }) {
+  let currentScope = null;
+
+  const setCurrentScope = (scope) => {
+    currentScope = scope;
+    const supportsSecret = !!(scope && scope.supportsSecret);
+    secretLabel.style.display = supportsSecret ? 'inline-flex' : 'none';
+    if (!supportsSecret) {
+      secretCheckbox.checked = false;
+    }
+    confirmButton.disabled = !scope;
+  };
+
+  confirmButton.addEventListener('click', () => {
+    errorController.clear();
+    const secret = !!(currentScope && currentScope.supportsSecret) && secretCheckbox.checked;
+
+    confirmButton.disabled = true;
+    confirmButton.textContent = 'Confirming…';
+
+    onConfirm(secret)
+      .catch((err) => {
+        errorController.show((err && err.message) || 'Failed to add variable');
+      })
+      .then(() => {
+        confirmButton.disabled = false;
+        confirmButton.textContent = 'Confirm';
+      });
+  });
+
+  return { setCurrentScope };
 }
 
 /**
- * Builds the "Add to" button with the scope list dropdown.
+ * Builds the "Add to" toggle + scope list dropdown, a Secret checkbox and Confirm button
+ * next to the toggle.
  *
- * @param {Array<{type: string, label: string, enabled: boolean}>} scopes
- * @param {(scope: Object) => void} onSwitchScope
+ * @param {Array<{type: string, label: string, enabled: boolean, supportsSecret: boolean}>} scopes
+ * @param {{type: string, label: string, enabled: boolean, supportsSecret: boolean}} initialScope -
+ *   The scope currently active before any switch (the guessed scope) — used to set the secret
+ *   checkbox's initial visibility.
+ * @param {(scope: Object) => void} onSwitchScope - Repoints the pending target scope. Does not
+ *   save anything itself.
  * @param {(scope: Object, name: string) => Promise<void>} onCreateEnvironment
+ * @param {(secret: boolean) => Promise<void>} onConfirm - Called when Confirm is clicked, with
+ *   whether the secret checkbox was checked (always false for a scope that doesn't support
+ *   secrets). Persists the variable to whichever scope is currently active.
  */
 export const createAddToScopeSwitcher = ({
   scopes,
+  initialScope,
   onSwitchScope,
-  onCreateEnvironment
+  onCreateEnvironment,
+  onConfirm
 }) => {
   const switcherElements = createAddToScopeSwitcherDOM();
 
   const dropdown = createDropdownController(switcherElements);
   const error = createErrorController(switcherElements.errorNote);
   const createFormManager = createInlineCreateFormManager();
+  const confirmController = createConfirmController({
+    confirmButton: switcherElements.confirmButton,
+    secretLabel: switcherElements.secretLabel,
+    secretCheckbox: switcherElements.secretCheckbox,
+    errorController: error,
+    onConfirm
+  });
+
+  confirmController.setCurrentScope(initialScope);
+
+  let activeRowTracker = null;
 
   const handleScopeSwitch = (scope) => {
     dropdown.close();
     error.clear();
+    confirmController.setCurrentScope(scope);
+    if (activeRowTracker) {
+      activeRowTracker.setActiveScope(scope);
+    }
     onSwitchScope(scope);
   };
 
-  renderScopeRows({
+  const rowsByType = renderScopeRows({
     list: switcherElements.list,
     scopes,
     rowActions: {
@@ -379,6 +511,9 @@ export const createAddToScopeSwitcher = ({
       unregisterActiveCreateForm: createFormManager.unregister
     }
   });
+
+  activeRowTracker = createActiveRowTracker(rowsByType);
+  activeRowTracker.setActiveScope(initialScope);
 
   switcherElements.container._destroy = createFormManager.destroy;
 
