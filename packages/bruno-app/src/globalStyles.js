@@ -589,7 +589,8 @@ const GlobalStyle = createGlobalStyle`
     margin-top: 0.5rem;
   }
 
-  /* Toggle, Secret checkbox, and Confirm button all sit in one row. */
+  /* Toggle and Secret checkbox sit in one row (no Confirm button — persistence happens on
+     outside click / immediately after creating a new environment; see brunoVarInfo.js). */
   .CodeMirror-brunoVarInfo .var-add-to-controls {
     display: flex;
     align-items: center;
@@ -621,6 +622,7 @@ const GlobalStyle = createGlobalStyle`
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
+    margin-left: auto;
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.dropdown.color};
     cursor: pointer;
@@ -630,31 +632,6 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo .var-add-to-secret-checkbox {
     margin: 0;
     cursor: pointer;
-  }
-
-  .CodeMirror-brunoVarInfo .var-add-to-confirm-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 1.5rem;
-    box-sizing: border-box;
-    margin-left: auto;
-    background: transparent;
-    border: 1px solid ${(props) => props.theme.border.border2};
-    border-radius: ${(props) => props.theme.border.radius.base};
-    padding: 0 0.625rem;
-    font-size: ${(props) => props.theme.font.size.sm};
-    color: ${(props) => props.theme.dropdown.color};
-    cursor: pointer;
-  }
-
-  .CodeMirror-brunoVarInfo .var-add-to-confirm-button:hover {
-    background: ${(props) => props.theme.dropdown.hoverBg};
-  }
-
-  .CodeMirror-brunoVarInfo .var-add-to-confirm-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
   }
 
   .CodeMirror-brunoVarInfo .var-add-to-toggle-chevron {
@@ -674,9 +651,6 @@ const GlobalStyle = createGlobalStyle`
     display: flex;
     flex-direction: column;
     gap: 0.125rem;
-    margin-bottom: 0.375rem;
-    border-top: 1px solid ${(props) => props.theme.border.border2};
-    padding-top: 0.25rem;
   }
 
   .CodeMirror-brunoVarInfo .var-add-to-option {
@@ -687,7 +661,7 @@ const GlobalStyle = createGlobalStyle`
     padding: 0.0625rem 0.25rem 0.0625rem 0.5rem;
     box-sizing: border-box;
     border-radius: ${(props) => props.theme.border.radius.base};
-    margin-bottom: 0.125rem;
+    margin-top: 0.125rem;
   }
 
   .CodeMirror-brunoVarInfo .var-add-to-option-trigger {

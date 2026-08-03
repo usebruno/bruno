@@ -8,7 +8,8 @@
 
 import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
 import { toDisplayString } from '@usebruno/common/utils';
-import { getVariableScope, isVariableSecret, getAllVariables, findCollectionByUid, findItemInCollectionByItemUid, getAvailableAddToScopes } from 'utils/collections';
+import toast from 'react-hot-toast';
+import { getVariableScope, isVariableSecret, getAllVariables, findCollectionByUid, findItemInCollectionByItemUid, getAvailableAddToScopes, isItemARequest } from 'utils/collections';
 import { updateVariableInScope, addEnvironment, selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import store from 'providers/ReduxStore';
@@ -114,7 +115,6 @@ const getScopeLabel = (scopeType) => {
     'dynamic': 'Dynamic',
     'oauth2': 'OAuth2',
     'undefined': 'Undefined',
-    'undefined-addable': 'Undefined',
     'pathParam': 'Path Param'
   };
   return labels[scopeType] || scopeType;
@@ -276,15 +276,11 @@ export const renderVarInfo = (token, options) => {
     // Detect variable scope
     scopeInfo = getVariableScope(variableName, collection, item);
 
-    // If the variable doesn't exist in any scope, don't guess where it belongs.
-    // user picks the scope using the "Add to" list below.
     if (!scopeInfo) {
       if (collection) {
-        scopeInfo = {
-          type: 'undefined-addable',
-          value: '',
-          data: { variable: null }
-        };
+        scopeInfo = item && isItemARequest(item)
+          ? { type: 'request', value: '', data: { item, variable: null } }
+          : { type: 'collection', value: '', data: { collection, variable: null } };
       } else {
         // No collection context at all — nowhere to add the variable to.
         scopeInfo = {
@@ -332,7 +328,7 @@ export const renderVarInfo = (token, options) => {
   const scopeLabel = getScopeLabel(displayScopeType);
   const isNewVariable = scopeInfo && scopeInfo.data && scopeInfo.data.variable === null;
 
-  scopeBadge.textContent = isNewVariable ? 'Undefined' : scopeLabel;
+  scopeBadge.textContent = scopeLabel;
 
   header.appendChild(varName);
   header.appendChild(scopeBadge);
@@ -590,9 +586,10 @@ export const renderVarInfo = (token, options) => {
       currentShouldMaskValue = isSecret || newHasSecretRefs;
       updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
 
-      // save on blur only if it's not a new variable (new variables are saved via the Confirm button in the Add-to switcher).
-      const SAVE_ON_BLUR_ENABLED_FOR_NEW_VARIABLE = false;
-      if (isNewVariable && !SAVE_ON_BLUR_ENABLED_FOR_NEW_VARIABLE) {
+      // New variables are never saved on blur — only on outside click of the tooltip (see
+      // `valueContainer._persistNewVariable`, wired up in the `isNewVariable` block below and
+      // invoked from `onDocumentClick` in showPopup).
+      if (isNewVariable) {
         return;
       }
 
@@ -662,39 +659,29 @@ export const renderVarInfo = (token, options) => {
       // no scope is selected by default, but if the current scope is in the addToScopes list, select it.
       const initialScope = addToScopes.find((s) => s.type === scopeInfo.type) || null;
 
-      const onSwitchScope = (scope) => {
-        const newScopeInfo = buildScopeInfoForSwitch(scope);
-        if (!newScopeInfo) {
-          return;
+      // Tears down the Add-to switcher once the variable is actually persisted somewhere —
+      // it's no longer "new" at that point.
+      const removeAddToSwitcher = () => {
+        if (valueContainer._addToSwitcher) {
+          if (typeof valueContainer._addToSwitcher._destroy === 'function') {
+            valueContainer._addToSwitcher._destroy();
+          }
+          valueContainer._addToSwitcher.remove();
+          valueContainer._addToSwitcher = null;
         }
-        scopeInfo = newScopeInfo;
-        scopeBadge.textContent = getScopeLabel(newScopeInfo.type);
       };
 
-      const onCreateEnvironment = (scope, name) => {
-        const dispatch = store.dispatch;
-
-        if (scope.type === VARIABLE_ADD_SCOPES.GLOBAL) {
-          return dispatch(addGlobalEnvironment({ name, variables: [] }));
-        }
-
-        if (scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT) {
-          return dispatch(addEnvironment(name, collection.uid))
-            .then(() => waitForEnvironmentByName(collection.uid, name))
-            .then((newEnvironment) => dispatch(selectEnvironment(newEnvironment.uid, collection.uid)));
-        }
-
-        return Promise.reject(new Error(`"${scope.label}" does not support creating a new one`));
-      };
-
-      const onConfirm = (secret) => {
+      // Shared by both save paths: dismissing the tooltip via an outside click (see
+      // `valueContainer._persistNewVariable`, invoked from `onDocumentClick` in showPopup), and
+      // picking/creating an Environment or Global scope from the Add-to list (which saves
+      // immediately — see `onSwitchScope`'s `immediate` handling).
+      const persistNewVariable = (secret) => {
         const value = cmEditor.getValue();
         const scopeInfoToSave = scopeInfo && scopeInfo.data
           ? { ...scopeInfo, data: { ...scopeInfo.data, secret } }
           : scopeInfo;
 
-        const dispatch = store.dispatch;
-        return dispatch(updateVariableInScope(variableName, value, scopeInfoToSave, collection.uid))
+        return store.dispatch(updateVariableInScope(variableName, value, scopeInfoToSave, collection.uid))
           .then(() => {
             originalValue = value;
 
@@ -713,24 +700,64 @@ export const renderVarInfo = (token, options) => {
             currentShouldMaskValue = isSecret || newHasSecretRefs;
             updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
 
-            if (valueContainer._addToSwitcher) {
-              if (typeof valueContainer._addToSwitcher._destroy === 'function') {
-                valueContainer._addToSwitcher._destroy();
-              }
-              valueContainer._addToSwitcher.remove();
-              valueContainer._addToSwitcher = null;
-            }
+            removeAddToSwitcher();
           });
+      };
+
+      const onSwitchScope = (scope, { immediate = false } = {}) => {
+        const newScopeInfo = buildScopeInfoForSwitch(scope);
+        if (!newScopeInfo) {
+          return;
+        }
+        scopeInfo = newScopeInfo;
+        scopeBadge.textContent = getScopeLabel(newScopeInfo.type);
+
+        // Picking a scope from the list just repoints where blur-to-save will write to.
+        // Creating a brand new environment/global environment is different — there's no
+        // later "blur" guaranteed (the user may never touch the value box again), so save
+        // immediately once it's created rather than leaving the variable un-persisted.
+        if (immediate) {
+          persistNewVariable(false).catch((err) => {
+            toast.error(err?.message || 'Failed to save variable');
+          });
+        }
+      };
+
+      const onCreateEnvironment = (scope, name) => {
+        const dispatch = store.dispatch;
+
+        if (scope.type === VARIABLE_ADD_SCOPES.GLOBAL) {
+          return dispatch(addGlobalEnvironment({ name, variables: [] }));
+        }
+
+        if (scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT) {
+          return dispatch(addEnvironment(name, collection.uid))
+            .then(() => waitForEnvironmentByName(collection.uid, name))
+            .then((newEnvironment) => dispatch(selectEnvironment(newEnvironment.uid, collection.uid)));
+        }
+
+        return Promise.reject(new Error(`"${scope.label}" does not support creating a new one`));
       };
 
       const addToSwitcher = createAddToScopeSwitcher({
         scopes: addToScopes,
         initialScope,
         onSwitchScope,
-        onCreateEnvironment,
-        onConfirm
+        onCreateEnvironment
       });
       valueContainer._addToSwitcher = addToSwitcher;
+
+      // Called from `onDocumentClick` in showPopup when the tooltip is dismissed via an
+      // outside click — the only place a new variable gets saved now that Confirm/blur-save
+      // are both gone. Reads the current value straight from cmEditor and whatever secret
+      // checkbox state the Add-to switcher is holding at that moment.
+      valueContainer._persistNewVariable = () => {
+        const pendingSecret = valueContainer._addToSwitcher && typeof valueContainer._addToSwitcher._getPendingSecret === 'function'
+          ? valueContainer._addToSwitcher._getPendingSecret()
+          : false;
+
+        return persistNewVariable(pendingSecret);
+      };
     }
   } else {
     // Read-only display (for runtime, process.env, undefined variables)
@@ -1075,6 +1102,18 @@ if (!SERVER_RENDERED) {
 
       if (!popup.contains(e.target)) {
         isPinned = false;
+
+        // For a new (guessed-scope) variable, this outside click is what actually saves it —
+        // there's no Confirm button and blur no longer saves either. Whatever value/scope/
+        // secret is currently set (even untouched defaults) gets persisted now, since we
+        // always have a guessed scope to save to.
+        const valueContainer = popup.querySelector('.var-value-container');
+        if (valueContainer && typeof valueContainer._persistNewVariable === 'function') {
+          valueContainer._persistNewVariable().catch((err) => {
+            toast.error(err?.message || 'Failed to save variable');
+          });
+        }
+
         hidePopup();
       }
     };

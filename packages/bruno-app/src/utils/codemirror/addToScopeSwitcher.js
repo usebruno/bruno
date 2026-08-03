@@ -67,7 +67,8 @@ const submitCreateEnvironment = ({
   onCreateEnvironment(scope, name)
     .then(() => {
       unregisterActiveCreateForm(revert);
-      handleScopeSwitch(scope);
+      // once new env is created, add the variable to it and save immediately
+      handleScopeSwitch(scope, { immediate: true });
     })
     .catch((err) => {
       showError(err?.message || 'Failed to create environment');
@@ -208,7 +209,7 @@ function createAddToScopeSwitcherDOM() {
   toggleChevron.innerHTML = CHEVRON_ICON_SVG_TEXT;
   toggle.appendChild(toggleChevron);
 
-  // Only shown when the currently active scope(Global/Environment) supports secrets
+  // Only shown when the currently active scope (Global/Environment) supports secrets.
   const secretLabel = document.createElement('label');
   secretLabel.className = 'var-add-to-secret-label';
   secretLabel.style.display = 'none';
@@ -223,13 +224,6 @@ function createAddToScopeSwitcherDOM() {
   const secretLabelText = document.createElement('span');
   secretLabelText.textContent = 'Secret';
   secretLabel.appendChild(secretLabelText);
-
-  const confirmButton = document.createElement('button');
-  confirmButton.type = 'button';
-  confirmButton.className = 'var-add-to-confirm-button';
-  confirmButton.setAttribute('data-testid', 'var-info-add-to-confirm');
-  confirmButton.textContent = 'Confirm';
-  controlsRow.appendChild(confirmButton);
 
   const list = document.createElement('div');
   list.className = 'var-add-to-list';
@@ -250,7 +244,6 @@ function createAddToScopeSwitcherDOM() {
     toggleChevron,
     secretLabel,
     secretCheckbox,
-    confirmButton,
     list,
     errorNote
   };
@@ -398,7 +391,7 @@ function createActiveRowTracker(rowsByType) {
   return { setActiveScope };
 }
 
-function createConfirmController({ confirmButton, secretLabel, secretCheckbox, errorController, onConfirm }) {
+function createSecretController({ secretLabel, secretCheckbox }) {
   let currentScope = null;
 
   const setCurrentScope = (scope) => {
@@ -408,76 +401,54 @@ function createConfirmController({ confirmButton, secretLabel, secretCheckbox, e
     if (!supportsSecret) {
       secretCheckbox.checked = false;
     }
-    confirmButton.disabled = !scope;
   };
 
-  confirmButton.addEventListener('click', () => {
-    errorController.clear();
-    const secret = !!(currentScope && currentScope.supportsSecret) && secretCheckbox.checked;
+  const getSecret = () => !!(currentScope && currentScope.supportsSecret) && secretCheckbox.checked;
 
-    confirmButton.disabled = true;
-    confirmButton.textContent = 'Confirming…';
-
-    onConfirm(secret)
-      .catch((err) => {
-        errorController.show((err && err.message) || 'Failed to add variable');
-      })
-      .then(() => {
-        confirmButton.disabled = false;
-        confirmButton.textContent = 'Confirm';
-      });
-  });
-
-  return { setCurrentScope };
+  return { setCurrentScope, getSecret };
 }
 
 /**
- * Builds the "Add to" toggle + scope list dropdown, a Secret checkbox and Confirm button
- * next to the toggle.
+ * Builds the "Add to" toggle + scope list dropdown, plus a Secret checkbox that appears once
+ * a secret-capable scope is selected.
  *
  * @param {Array<{type: string, label: string, enabled: boolean, supportsSecret: boolean}>} scopes
  * @param {{type: string, label: string, enabled: boolean, supportsSecret: boolean}} initialScope -
  *   The scope currently active before any switch (the guessed scope) — used to set the secret
  *   checkbox's initial visibility.
- * @param {(scope: Object) => void} onSwitchScope - Repoints the pending target scope. Does not
- *   save anything itself.
+ * @param {(scope: Object, options?: {immediate?: boolean}) => void} onSwitchScope - Repoints the
+ *   pending target scope. When `immediate` is true (after creating a brand new environment),
+ *   the caller should save right away rather than waiting for the next blur.
  * @param {(scope: Object, name: string) => Promise<void>} onCreateEnvironment
- * @param {(secret: boolean) => Promise<void>} onConfirm - Called when Confirm is clicked, with
- *   whether the secret checkbox was checked (always false for a scope that doesn't support
- *   secrets). Persists the variable to whichever scope is currently active.
  */
 export const createAddToScopeSwitcher = ({
   scopes,
   initialScope,
   onSwitchScope,
-  onCreateEnvironment,
-  onConfirm
+  onCreateEnvironment
 }) => {
   const switcherElements = createAddToScopeSwitcherDOM();
 
   const dropdown = createDropdownController(switcherElements);
   const error = createErrorController(switcherElements.errorNote);
   const createFormManager = createInlineCreateFormManager();
-  const confirmController = createConfirmController({
-    confirmButton: switcherElements.confirmButton,
+  const secretController = createSecretController({
     secretLabel: switcherElements.secretLabel,
-    secretCheckbox: switcherElements.secretCheckbox,
-    errorController: error,
-    onConfirm
+    secretCheckbox: switcherElements.secretCheckbox
   });
 
-  confirmController.setCurrentScope(initialScope);
+  secretController.setCurrentScope(initialScope);
 
   let activeRowTracker = null;
 
-  const handleScopeSwitch = (scope) => {
+  const handleScopeSwitch = (scope, options) => {
     dropdown.close();
     error.clear();
-    confirmController.setCurrentScope(scope);
+    secretController.setCurrentScope(scope);
     if (activeRowTracker) {
       activeRowTracker.setActiveScope(scope);
     }
-    onSwitchScope(scope);
+    onSwitchScope(scope, options);
   };
 
   const rowsByType = renderScopeRows({
@@ -497,6 +468,7 @@ export const createAddToScopeSwitcher = ({
   activeRowTracker.setActiveScope(initialScope);
 
   switcherElements.container._destroy = createFormManager.destroy;
+  switcherElements.container._getPendingSecret = secretController.getSecret;
 
   return switcherElements.container;
 };
