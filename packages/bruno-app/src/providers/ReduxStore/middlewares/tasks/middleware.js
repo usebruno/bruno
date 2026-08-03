@@ -105,7 +105,8 @@ taskMiddleware.startListening({
                 itemUid: item.uid,
                 pathname: item.pathname,
                 exampleName: example.name,
-                exampleIndex: task.exampleIndex
+                exampleIndex: task.exampleIndex,
+                openInEditMode: !!task.openInEditMode
               }));
             }
           }

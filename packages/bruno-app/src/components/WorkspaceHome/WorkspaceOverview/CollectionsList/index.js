@@ -14,6 +14,7 @@ import {
 } from '@tabler/icons';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { mountCollection, showInFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { removeCollectionFromWorkspaceAction } from 'providers/ReduxStore/slices/workspaces/actions';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import { normalizePath } from 'utils/common/path';
 import toast from 'react-hot-toast';
@@ -43,9 +44,34 @@ const CollectionsList = ({ workspace }) => {
 
   const isDefaultWorkspace = workspace?.type === 'default';
 
+  const unopenableCollections = useMemo(() => {
+    return (workspace.unopenableCollections || []).map((wc) => ({
+      uid: `unopenable-${wc.path}`,
+      name: wc.name,
+      pathname: wc.path,
+      items: [],
+      environments: [],
+      isGitBacked: false,
+      isLoaded: false,
+      failedToOpen: true,
+      git: { gitRootPath: null },
+      brunoConfig: {},
+      root: {
+        request: {
+          headers: [],
+          auth: { mode: 'none' },
+          vars: { req: [], res: [] },
+          script: { req: '', res: '' },
+          tests: ''
+        },
+        docs: ''
+      }
+    }));
+  }, [workspace.unopenableCollections]);
+
   const workspaceCollections = useMemo(() => {
     if (!workspace.collections || workspace.collections.length === 0) {
-      return [];
+      return unopenableCollections;
     }
 
     const filteredCollections = workspace.collections.filter((wc) => {
@@ -55,7 +81,7 @@ const CollectionsList = ({ workspace }) => {
       return true;
     });
 
-    return filteredCollections.map((wc) => {
+    const resolvedCollections = filteredCollections.map((wc) => {
       const loadedCollection = collections.find(
         (c) => normalizePath(c.pathname) === normalizePath(wc.path)
       );
@@ -91,10 +117,17 @@ const CollectionsList = ({ workspace }) => {
         }
       };
     });
-  }, [workspace.collections, workspace.scratchTempDirectory, collections]);
+
+    return [...resolvedCollections, ...unopenableCollections];
+  }, [workspace.collections, workspace.scratchTempDirectory, collections, unopenableCollections]);
 
   const handleOpenCollectionClick = (collection, event) => {
     if (event.target.closest('.collection-menu')) {
+      return;
+    }
+
+    if (collection.failedToOpen) {
+      toast.error(`Collection "${collection.name}" could not be opened`);
       return;
     }
 
@@ -155,6 +188,12 @@ const CollectionsList = ({ workspace }) => {
 
   const handleRemoveCollection = (collection) => {
     dropdownRefs.current[collection.uid]?.hide();
+    if (collection.failedToOpen) {
+      dispatch(removeCollectionFromWorkspaceAction(workspace.uid, collection.pathname))
+        .then(() => toast.success('Collection removed from workspace'))
+        .catch(() => toast.error('An error occurred while removing the collection'));
+      return;
+    }
     if (collection.isLoaded === false) {
       toast.error('Cannot remove collections that are not loaded');
       return;
@@ -312,7 +351,10 @@ const CollectionsList = ({ workspace }) => {
                       Git
                     </StatusBadge>
                   )}
-                  {!isDefaultWorkspace && collection.isLoaded === false && (
+                  {collection.failedToOpen && (
+                    <StatusBadge status="danger" size="xs">Failed to open</StatusBadge>
+                  )}
+                  {!isDefaultWorkspace && collection.isLoaded === false && !collection.failedToOpen && (
                     <StatusBadge status="warning" size="xs">Not cloned</StatusBadge>
                   )}
                 </div>

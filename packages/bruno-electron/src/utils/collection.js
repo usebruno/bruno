@@ -786,10 +786,10 @@ const getEnvVars = (environment = {}) => {
   }
 
   const envVars = {};
-  each(variables, (variable) => {
-    if (variable.enabled) {
-      envVars[variable.name] = resolveTypedValue(variable);
-    }
+  // Apply secrets last so a secret wins over a plain variable of the same name.
+  const enabledVars = variables.filter((variable) => variable.enabled);
+  [...enabledVars.filter((v) => !v.secret), ...enabledVars.filter((v) => v.secret)].forEach((variable) => {
+    envVars[variable.name] = resolveTypedValue(variable);
   });
 
   return {

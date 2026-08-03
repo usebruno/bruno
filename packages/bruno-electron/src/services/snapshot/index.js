@@ -29,13 +29,23 @@ const buildWorkspaceCollectionLookupKey = (workspacePathname, collectionPathname
 
 const tabSchema = yup.object({
   type: yup.string().required(),
-  accessor: yup.string().oneOf(['pathname', 'pathname::exampleName', 'pathname::exampleIndex', 'type']).required(),
+  accessor: yup.string().oneOf([
+    'pathname',
+    'pathname::exampleName',
+    'pathname::exampleIndex',
+    'type',
+    'type::mockServerUid',
+    'type::mockResponseUid'
+  ]).required(),
   pathname: yup.string().nullable(),
   permanent: yup.boolean().required(),
   name: yup.string().optional(),
   exampleName: yup.string().optional(),
   exampleIndex: yup.number().integer().min(0).optional(),
   exampleUid: yup.string().optional(),
+  mockServerUid: yup.string().nullable().optional(),
+  responseUid: yup.string().optional(),
+  tabName: yup.string().optional(),
   request: yup.object({
     tab: yup.string(),
     width: yup.number().nullable(),
@@ -52,7 +62,14 @@ const tabSchema = yup.object({
 });
 
 const activeTabSchema = yup.object({
-  accessor: yup.string().oneOf(['pathname', 'pathname::exampleName', 'pathname::exampleIndex', 'type']).required(),
+  accessor: yup.string().oneOf([
+    'pathname',
+    'pathname::exampleName',
+    'pathname::exampleIndex',
+    'type',
+    'type::mockServerUid',
+    'type::mockResponseUid'
+  ]).required(),
   value: yup.string().required()
 });
 
@@ -91,11 +108,17 @@ const devToolsSchema = yup.object({
   })
 });
 
+const sidebarSchema = yup.object({
+  collapsed: yup.boolean().optional(),
+  width: yup.number().optional()
+});
+
 const snapshotSchema = yup.object({
   version: yup.string().defined(),
   activeWorkspacePath: yup.string().nullable(),
   extras: yup.object({
-    devTools: devToolsSchema.required()
+    devTools: devToolsSchema.required(),
+    sidebar: sidebarSchema.optional()
   }).required(),
   workspaces: yup.array().of(workspaceSchema).required(),
   collections: yup.array().of(collectionSchema).required()
@@ -179,6 +202,11 @@ class SnapshotManager {
     };
   }
 
+  getSidebar() {
+    const snapshot = this._normalizeSnapshot(this.store.store);
+    return snapshot?.extras?.sidebar || null;
+  }
+
   // --- Writes ---
 
   saveSnapshot(data) {
@@ -212,6 +240,8 @@ class SnapshotManager {
     }));
   }
 
+  // Remaps .bru → .yml tab pathnames across every workspace entry for this collection.
+  // Shared collections keep per-workspace tab lists; migrate must update all of them.
   remapCollectionTabPaths(collectionPathname, pathMap) {
     const normalizedCollectionPath = normalizeLookupKey(collectionPathname);
     if (!normalizedCollectionPath || !isObject(pathMap)) {
@@ -321,8 +351,8 @@ class SnapshotManager {
         ...(isObject(existingCollection?.environment) ? existingCollection.environment : {}),
         ...(isObject(data?.environment) ? data.environment : {})
       },
-      activeTab: data?.activeTab ?? existingCollection?.activeTab,
-      tabs: data?.tabs ?? existingCollection?.tabs,
+      activeTab: isObject(data) && 'activeTab' in data ? data.activeTab : existingCollection?.activeTab,
+      tabs: isObject(data) && 'tabs' in data ? data.tabs : existingCollection?.tabs,
       environmentPath: data?.environmentPath ?? existingCollection?.environmentPath,
       selectedEnvironment: data?.selectedEnvironment ?? existingCollection?.selectedEnvironment
     };
@@ -393,15 +423,34 @@ class SnapshotManager {
   }
 
   _normalizeSnapshot(snapshot = {}) {
+    const sidebar = this._normalizeSidebar(snapshot?.extras?.sidebar);
+    const extras = {
+      devTools: this._normalizeDevTools(snapshot?.extras?.devTools)
+    };
+    if (sidebar !== undefined) {
+      extras.sidebar = sidebar;
+    }
     return {
       version: snapshot.version ?? SNAPSHOT_VERSION,
       activeWorkspacePath: typeof snapshot.activeWorkspacePath === 'string' ? snapshot.activeWorkspacePath : null,
-      extras: {
-        devTools: this._normalizeDevTools(snapshot?.extras?.devTools)
-      },
+      extras,
       workspaces: this._normalizeWorkspaceList(snapshot.workspaces),
       collections: this._normalizeCollectionList(snapshot.collections, snapshot.tabs)
     };
+  }
+
+  _normalizeSidebar(sidebar) {
+    if (!sidebar) {
+      return undefined;
+    }
+    const result = {};
+    if (typeof sidebar.collapsed === 'boolean') {
+      result.collapsed = sidebar.collapsed;
+    }
+    if (typeof sidebar.width === 'number') {
+      result.width = sidebar.width;
+    }
+    return Object.keys(result).length > 0 ? result : undefined;
   }
 
   _normalizeDevTools(devTools = {}) {
@@ -659,7 +708,14 @@ class SnapshotManager {
       return null;
     }
 
-    if (!['pathname', 'pathname::exampleName', 'pathname::exampleIndex', 'type'].includes(activeTab.accessor) || typeof activeTab.value !== 'string') {
+    if (![
+      'pathname',
+      'pathname::exampleName',
+      'pathname::exampleIndex',
+      'type',
+      'type::mockServerUid',
+      'type::mockResponseUid'
+    ].includes(activeTab.accessor) || typeof activeTab.value !== 'string') {
       return null;
     }
 
@@ -680,6 +736,9 @@ class SnapshotManager {
     const collectionsByWorkspaceAndPath = {};
     const tabsByCollectionPath = {};
     const tabsByWorkspaceAndCollectionPath = {};
+    const activeWorkspacePath = typeof normalizedSnapshot.activeWorkspacePath === 'string'
+      ? normalizeLookupKey(normalizedSnapshot.activeWorkspacePath)
+      : null;
 
     normalizedSnapshot.workspaces.forEach((workspace) => {
       const normalizedPath = normalizeLookupKey(workspace.pathname);
@@ -696,11 +755,25 @@ class SnapshotManager {
         return;
       }
 
-      collectionsByPath[normalizedPath] = collection;
-      tabsByCollectionPath[normalizedPath] = {
-        activeTab: collection.activeTab,
-        tabs: collection.tabs
-      };
+      const existing = collectionsByPath[normalizedPath];
+      const incomingIsActive = Boolean(
+        activeWorkspacePath && normalizeLookupKey(collection.workspacePathname || '') === activeWorkspacePath
+      );
+      const existingIsActive = Boolean(
+        existing && activeWorkspacePath && normalizeLookupKey(existing.workspacePathname || '') === activeWorkspacePath
+      );
+      const shouldWritePath = !existing
+        || (incomingIsActive && !existingIsActive)
+        || (incomingIsActive && existingIsActive && Boolean(collection.selectedEnvironment || collection.environment?.collection))
+        || (!incomingIsActive && !existingIsActive);
+
+      if (shouldWritePath) {
+        collectionsByPath[normalizedPath] = collection;
+        tabsByCollectionPath[normalizedPath] = {
+          activeTab: collection.activeTab,
+          tabs: collection.tabs
+        };
+      }
 
       const workspaceCollectionKey = buildWorkspaceCollectionLookupKey(collection.workspacePathname, collection.pathname);
       if (workspaceCollectionKey) {
