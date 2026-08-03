@@ -588,7 +588,6 @@ const registerNetworkIpc = (mainWindow) => {
     // run pre-request script
     let scriptResult;
     const { promptVariables = {}, name: collectionName } = collection;
-    const existingHeaders = request.headers;
 
     const requestScript = get(request, 'script.req');
     if (requestScript?.length) {

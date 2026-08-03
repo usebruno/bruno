@@ -145,6 +145,7 @@ class ScriptRuntime {
       scriptError.partialResults = buildRequestScriptResult();
       throw scriptError;
     }
+
     return buildRequestScriptResult();
   }
 

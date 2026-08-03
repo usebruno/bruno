@@ -126,7 +126,6 @@ const Timeline = ({ collection, item }) => {
             return (
               <div key={index} className="timeline-event" data-testid="timeline-item">
                 <TimelineItem
-                  index={index}
                   timestamp={timestamp}
                   request={request}
                   response={response}

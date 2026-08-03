@@ -275,13 +275,14 @@ describe('HeaderList (req.headerList)', () => {
       expect(list.has('Accept')).toBe(false);
     });
 
-    // test('reflects headers replaced via BrunoRequest.setHeaders', () => {
-    //   const { list, brunoReq } = createReqHeaders();
-    //   expect(list.count()).toBe(3);
-    //   brunoReq.setHeaders({ 'X-Only': 'one' });
-    //   expect(list.count()).toBe(1);
-    //   expect(list.get('X-Only')).toBe('one');
-    // });
+    /** TODO: update to expect a merge once BrunoRequest.setHeaders upserts instead of replacing. */
+    test('reflects headers replaced via BrunoRequest.setHeaders', () => {
+      const { list, brunoReq } = createReqHeaders();
+      expect(list.count()).toBe(3);
+      brunoReq.setHeaders({ 'X-Only': 'one' });
+      expect(list.count()).toBe(1);
+      expect(list.get('X-Only')).toBe('one');
+    });
   });
 
   // ── Write methods ─────────────────────────────────────────────────────

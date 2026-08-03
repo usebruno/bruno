@@ -84,12 +84,12 @@ const getSortedOutgoingHeaders = (request) => {
 
   const rawHeaders = request[kOutHeadersSymbol] || {};
 
-  // 2. Exact priority order specified
+  // 2. Exact priority order specified — lowercase, to match the lowerKey compared against it
   const topDefaults = [
-    'Accept',
-    'User-Agent',
+    'accept',
+    'user-agent',
     'request-start-time',
-    'Accept-Encoding',
+    'accept-encoding',
     'host',
     'connection'
   ];
@@ -234,7 +234,6 @@ function makeAxiosInstance({
       present (blocking the guard) while toJSON() omits null values from the wire.
      */
     const headersToDelete = config.__headersToDelete;
-    // let deleteConnection = false;
 
     if (headersToDelete && Array.isArray(headersToDelete)) {
       headersToDelete.forEach((headerName) => {
@@ -242,25 +241,12 @@ function makeAxiosInstance({
         if (lower === 'host') return;
         if (lower === 'connection') {
           // Handled after setupProxyAgents to avoid being overwritten by keepAlive:true.
-          // deleteConnection = true;
           return;
         }
         config.headers.set(headerName, null);
       });
       delete config.__headersToDelete;
     }
-
-    // Log request headers AFTER deletion so the timeline reflects what is actually sent.
-    // Skip null values (headers marked for deletion) and false values (e.g. content-type
-    // suppressed for no-body requests — see https://github.com/usebruno/bruno/issues/1693).
-    Object.entries(config.headers).forEach(([key, value]) => {
-      if (value === null || value === false) return;
-      timeline.push({
-        timestamp: new Date(),
-        type: `'requestHeader'`,
-        message: `${key}: ${value}`
-      });
-    });
 
     const agentOptions = {
       ...httpsAgentRequestFields,
@@ -312,7 +298,7 @@ function makeAxiosInstance({
       // plain push would land the whole block one section too low.
       const sentHeaderEntries = sortedHeaders.map(({ displayKey, value }) => ({
         timestamp: new Date(),
-        type: 'requestSentHeader',
+        type: 'requestHeader',
         message: `${displayKey}: ${value}`
       }));
       let sentHeadersInsertAt = timeline.length;

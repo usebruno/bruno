@@ -137,16 +137,12 @@ class BrunoRequest {
     return this.req.headers;
   }
 
+  /**
+   * Replaces the whole header set, dropping headers set at collection/folder level.
+   * TODO: make this upsert instead — setHeaders is the bulk form of setHeader.
+   */
   setHeaders(headers) {
     this.req.headers = headers;
-    // Upsert (merge), never replace: setHeaders is the bulk form of setHeader
-    // if (!this.req.headers || typeof this.req.headers !== 'object' || Array.isArray(this.req.headers)) {
-    //   this.req.headers = {};
-    // }
-    // const entries = Array.isArray(headers) ? headers : [headers];
-    // entries.forEach((entry) => {
-    //   if (entry && typeof entry === 'object' && !Array.isArray(entry)) Object.assign(this.req.headers, entry);
-    // });
   }
 
   deleteHeaders(headers) {

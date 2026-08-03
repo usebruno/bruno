@@ -5,6 +5,7 @@ import {
   IconX
 } from '@tabler/icons';
 import QueryResponse from 'components/ResponsePane/QueryResponse/index';
+import { sentHeadersFromTimeline } from 'components/ResponsePane/Timeline/buildEntries';
 import Network from 'components/ResponsePane/Timeline/TimelineItem/Network';
 import { clearSelectedRequest } from 'providers/ReduxStore/slices/logs';
 import React, { useState } from 'react';
@@ -16,18 +17,6 @@ const formatHeaders = (headers) => {
   if (!headers) return [];
   if (Array.isArray(headers)) return headers;
   return Object.entries(headers).map(([key, value]) => ({ name: key, value }));
-};
-
-// The headers actually sent on the wire are pushed into the timeline as `requestSentHeader` entries
-// ("name: value") by the network layer — read them so Request Headers matches the Network tab.
-const sentHeadersFromTimeline = (timeline) => {
-  if (!Array.isArray(timeline)) return [];
-  return timeline.reduce((headers, entry) => {
-    if (entry?.type !== 'requestSentHeader' || typeof entry.message !== 'string') return headers;
-    const idx = entry.message.indexOf(':');
-    if (idx !== -1) headers.push({ name: entry.message.slice(0, idx).trim(), value: entry.message.slice(idx + 1).trim() });
-    return headers;
-  }, []);
 };
 
 const formatBody = (body) => {

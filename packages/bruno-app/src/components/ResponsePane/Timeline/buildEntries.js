@@ -1,3 +1,22 @@
+// The headers actually sent on the wire — including the transport ones (Host, Connection,
+// Accept-Encoding, ...) that the Node adapter appends after the request object is handed to the
+// renderer. They reach the app only as `requestHeader` timeline entries ("name: value"),
+// already ordered by the network layer.
+export const sentHeadersFromTimeline = (timeline) => {
+  if (!Array.isArray(timeline)) return [];
+  return timeline.reduce((headers, entry) => {
+    if (entry?.type !== 'requestHeader' || typeof entry.message !== 'string') return headers;
+    const separatorIdx = entry.message.indexOf(':');
+    if (separatorIdx !== -1) {
+      headers.push({
+        name: entry.message.slice(0, separatorIdx).trim(),
+        value: entry.message.slice(separatorIdx + 1).trim()
+      });
+    }
+    return headers;
+  }, []);
+};
+
 export const getEntryKind = (entry) => {
   if (entry.type === 'request') return 'main';
   if (entry.type === 'oauth2') return 'oauth';

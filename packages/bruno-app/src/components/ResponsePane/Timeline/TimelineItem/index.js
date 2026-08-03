@@ -25,7 +25,6 @@ const findFolderByScopeFile = (collection, sourceFile) => {
 };
 
 const TimelineItem = ({
-  index,
   timestamp,
   request,
   response,
@@ -205,7 +204,7 @@ const TimelineItem = ({
             <div className="tl-panel">
               {visitedTabs.request && (
                 <div style={{ display: activeTab === 'request' ? 'block' : 'none' }}>
-                  <Request request={request} response={response} item={item} collection={collection} index={index} />
+                  <Request request={request} response={response} item={item} collection={collection} />
                 </div>
               )}
               {visitedTabs.response && (

@@ -14,7 +14,6 @@ const Network = ({ logs }) => {
             return (
               <div key={index}>
                 <NetworkLogsEntry entry={currentLog} />
-                {/* {nextLog?.type} : <NetworkLogsEntry entry={currentLog} /> */}
                 {!isSameLogType && <div className="network-logs-spacing" />}
               </div>
             );
@@ -45,8 +44,7 @@ const NetworkLogsEntry = ({ entry }) => {
     case 'info':
       className = 'network-logs-entry network-logs-entry--info';
       break;
-    case 'requestSentHeader':
-    case 'responseHeader':
+    case 'requestHeader':
       className = 'network-logs-entry network-logs-entry--header';
       break;
     default:
