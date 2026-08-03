@@ -1,5 +1,5 @@
 import { BrunoError } from 'utils/common/error';
-import { buildEnvVariable } from 'utils/environments';
+import { buildEnvVariable, dedupeImportedSecrets } from 'utils/environments';
 
 const validateBrunoEnvironment = (env) => {
   if (!env || typeof env !== 'object') {
@@ -20,9 +20,11 @@ const validateBrunoEnvironment = (env) => {
     }
   });
 
+  const variables = env.variables.map((envVariable) => buildEnvVariable({ envVariable, withUuid: true }));
+
   return {
     name: env.name || 'Imported Environment',
-    variables: env.variables.map((envVariable) => buildEnvVariable({ envVariable, withUuid: true })),
+    variables: dedupeImportedSecrets(variables),
     color: env.color
   };
 };

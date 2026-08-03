@@ -8,8 +8,6 @@ import {
   findEnvironmentInCollection,
   findItemInCollectionByPathname,
   flattenItems,
-  getEnvironmentVariables,
-  getGlobalEnvironmentVariables,
   isItemARequest
 } from 'utils/collections';
 import { uuid } from 'utils/common';
@@ -20,12 +18,14 @@ import {
   updateAppCode
 } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { addLog } from 'providers/ReduxStore/slices/logs';
 import { useTheme } from 'providers/Theme';
 import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
 import { buildAiVariablesPayload, buildDocsContextFromCollection } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import EmptyAppState from '../AppView/EmptyAppState';
+import { buildVariables } from '../AppView/buildVariables';
 import {
   SENTINEL,
   wrapHtml,
@@ -155,20 +155,6 @@ const COLLECTION_CTX_BOOTSTRAP = `<script>
   }
 })();
 </script>`;
-
-const buildVariables = (collection) => {
-  const env = getEnvironmentVariables(collection);
-  const global = getGlobalEnvironmentVariables({
-    globalEnvironments: collection?.globalEnvironments || [],
-    activeGlobalEnvironmentUid: collection?.activeGlobalEnvironmentUid
-  });
-  return {
-    ...global,
-    ...env,
-    ...(collection?.collectionVariables || {}),
-    ...(collection?.runtimeVariables || {})
-  };
-};
 
 const listRequestSummaries = (collection) =>
   flattenItems(collection?.items || [])
@@ -303,6 +289,7 @@ const CollectionApp = ({ item, collection }) => {
           break;
         case 'log':
           console.log('[app]', ...(data.args || []));
+          dispatch(addLog({ type: 'log', args: ['[app]', ...(data.args || [])], timestamp: new Date().toISOString() }));
           break;
         case 'setRuntimeVariable':
           if (typeof data.key === 'string' && data.key.length) {
@@ -357,23 +344,34 @@ const CollectionApp = ({ item, collection }) => {
     <StyledWrapper data-testid="collection-app">
       <div className="app-toolbar">
         <span>App - {item.name}</span>
-        <div className="view-toggle" data-testid="collection-app-view-toggle">
-          <button
-            type="button"
-            data-testid="collection-app-view-code"
-            className={classnames('view-btn', { active: view === 'code' })}
-            onClick={() => setView('code')}
-          >
-            Code
-          </button>
-          <button
-            type="button"
-            data-testid="collection-app-view-preview"
-            className={classnames('view-btn', { active: view === 'preview' })}
-            onClick={() => setView('preview')}
-          >
-            Preview
-          </button>
+        <div className="flex items-center gap-2">
+          {view === 'code' && (
+            <AIAssist
+              scriptType="app-collection"
+              currentScript={code || ''}
+              docsContext={docsContext}
+              variables={aiVariables}
+              onApply={onEdit}
+            />
+          )}
+          <div className="view-toggle" data-testid="collection-app-view-toggle">
+            <button
+              type="button"
+              data-testid="collection-app-view-code"
+              className={classnames('view-btn', { active: view === 'code' })}
+              onClick={() => setView('code')}
+            >
+              Code
+            </button>
+            <button
+              type="button"
+              data-testid="collection-app-view-preview"
+              className={classnames('view-btn', { active: view === 'preview' })}
+              onClick={() => setView('preview')}
+            >
+              Preview
+            </button>
+          </div>
         </div>
       </div>
 
@@ -388,13 +386,6 @@ const CollectionApp = ({ item, collection }) => {
             onEdit={onEdit}
             onSave={onSave}
             mode="htmlmixed"
-          />
-          <AIAssist
-            scriptType="app-collection"
-            currentScript={code || ''}
-            docsContext={docsContext}
-            variables={aiVariables}
-            onApply={onEdit}
           />
         </div>
       ) : code && code.trim().length ? (

@@ -8,6 +8,7 @@ const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies')
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
+const { isSameOrigin } = require('@usebruno/common').utils;
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -71,6 +72,7 @@ const checkConnection = (host, port) =>
  * @see https://github.com/axios/axios/issues/695
  * @returns {axios.AxiosInstance}
  */
+
 function makeAxiosInstance({
   proxyMode = 'off',
   proxyModeReason = '',
@@ -78,7 +80,8 @@ function makeAxiosInstance({
   requestMaxRedirects = 5,
   httpsAgentRequestFields = {},
   interpolationOptions = {},
-  followRedirects = true
+  followRedirects = true,
+  forwardAuthorizationHeader = true
 } = {}) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
@@ -146,7 +149,15 @@ function makeAxiosInstance({
     // Resolve all *.localhost to localhost and check if it should use IPv6 or IPv4
     // RFC: 6761 section 6.3 (https://tools.ietf.org/html/rfc6761#section-6.3)
     // @see https://github.com/usebruno/bruno/issues/124
-    if (getTld(url.hostname) === LOCALHOST || url.hostname === LOCAL_IPV4 || url.hostname === LOCAL_IPV6) {
+    if (url.hostname === LOCAL_IPV4) {
+      config.lookup = (hostname, options, callback) => {
+        callback(null, LOCAL_IPV4, 4);
+      };
+    } else if (url.hostname === LOCAL_IPV6) {
+      config.lookup = (hostname, options, callback) => {
+        callback(null, LOCAL_IPV6, 6);
+      };
+    } else if (getTld(url.hostname) === LOCALHOST || url.hostname === LOCALHOST) {
       // use custom DNS lookup for localhost
       config.lookup = (hostname, options, callback) => {
         const portNumber = Number(url.port) || (url.protocol.includes('https') ? 443 : 80);
@@ -359,6 +370,23 @@ function makeAxiosInstance({
               ...error.config.headers
             }
           };
+
+          if (!forwardAuthorizationHeader) {
+            if (!isSameOrigin(error.config.url, redirectUrl)) {
+              Object.keys(requestConfig.headers).forEach((key) => {
+                const lowerKey = key.toLowerCase();
+                if (lowerKey === 'authorization' || lowerKey === 'proxy-authorization') {
+                  delete requestConfig.headers[key];
+                }
+              });
+
+              timeline.push({
+                timestamp: new Date(),
+                type: 'info',
+                message: `Cross-origin redirect: stripping Authorization and Proxy-Authorization headers`
+              });
+            }
+          }
 
           // Apply proper HTTP redirect behavior based on status code
           const statusCode = error.response.status;

@@ -40,6 +40,14 @@ const Wrapper = styled.div`
         width: 70px;
       }
     }
+
+
+    thead td div {
+      max-width: 100px;
+      text-overflow: ellipsis; 
+      overflow: hidden;   
+      white-space: nowrap;
+    }
   }
 
   .btn-add-param {
