@@ -623,6 +623,187 @@ const GlobalStyle = createGlobalStyle`
     line-height: 1.25rem;
   }
 
+  /* "Add to" scope switcher (shown below the value editor for brand new variables) */
+  .CodeMirror-brunoVarInfo .var-add-to-switcher {
+    margin-top: 0.5rem;
+  }
+
+  /* Toggle and Secret checkbox sit in one row. */
+  .CodeMirror-brunoVarInfo .var-add-to-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    width: auto;
+    max-width: max-content;
+    background: transparent;
+    border: none;
+    border-radius: ${(props) => props.theme.border.radius.base};
+    padding: 0.25rem 0.375rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.dropdown.color};
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-toggle:hover {
+    background: ${(props) => props.theme.dropdown.hoverBg};
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-secret-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: auto;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.dropdown.color};
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-secret-checkbox {
+    margin: 0;
+    cursor: pointer;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-toggle-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: ${(props) => props.theme.dropdown.mutedText};
+    line-height: 0;
+    transition: transform 0.15s;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-toggle-chevron-open {
+    transform: rotate(180deg);
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.0625rem 0.25rem 0.0625rem 0.5rem;
+    box-sizing: border-box;
+    border-radius: ${(props) => props.theme.border.radius.base};
+    margin-top: 0.125rem;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    width: 100%;
+    height: 1.5rem;
+    box-sizing: border-box;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.dropdown.color};
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option:has(.var-add-to-option-trigger:hover) {
+    background: ${(props) => props.theme.dropdown.hoverBg};
+  }
+
+  /* Currently selected scope in the "Add to" list — matches the selected-item treatment used by
+     the app's other dropdowns (see components/Dropdown, StatusBar/ThemeDropdown). */
+  .CodeMirror-brunoVarInfo .var-add-to-option-active {
+    background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.07)};
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option-active .var-add-to-option-trigger,
+  .CodeMirror-brunoVarInfo .var-add-to-option-active .var-add-to-option-label {
+    color: ${(props) => props.theme.dropdown.selectedColor};
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option-active:has(.var-add-to-option-trigger:hover) {
+    background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.12)};
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option-label {
+    flex: 1;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option-note {
+    flex: 1;
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.dropdown.mutedText};
+    line-height: 1.25rem;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-link-button {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.dropdown.color};
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-link-button:hover {
+    color: ${(props) => props.theme.textLink};
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-inline-env-name-input {
+    flex: 1;
+    min-width: 0;
+    height: 1.5rem;
+    box-sizing: border-box;
+    padding: 0 0.375rem;
+    font-size: ${(props) => props.theme.font.size.xs};
+    border: 1px solid ${(props) => props.theme.input.focusBorder};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    background: ${(props) => props.theme.input.bg};
+    color: ${(props) => props.theme.dropdown.color};
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-inline-env-name-input:focus {
+    outline: none;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-inline-create-button {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.5rem;
+    box-sizing: border-box;
+    background: transparent;
+    border: 1px solid ${(props) => props.theme.border.border2};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    padding: 0 0.5rem;
+    font-size: ${(props) => props.theme.font.size.xs};
+    color: ${(props) => props.theme.dropdown.color};
+    cursor: pointer;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-inline-create-button:hover {
+    background: ${(props) => props.theme.dropdown.hoverBg};
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-inline-create-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   // Active/selected hint - using theme colors instead of hardcoded blue
   .CodeMirror-hint-active {
     background: ${(props) => props.theme.dropdown.hoverBg} !important;
