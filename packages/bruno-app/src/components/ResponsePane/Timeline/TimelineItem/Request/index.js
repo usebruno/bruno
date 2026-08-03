@@ -54,13 +54,10 @@ const sortRequestHeaders = (headersObj) => {
 
 const Request = ({ collection, request, item, response, index }) => {
   let { headers, data, dataBuffer, error } = request || {};
-  console.log('Request-Response Timeline Headers : ', response);
 
   const rawRequestResponseHeaders = response?.data?.request?.Headers;
   const sortedRequestResponseDefaultHeaders = sortRequestHeaders(rawRequestResponseHeaders);
   const sortedRequestResponseAddedHeaders = collection.timeline[index].data.request.headers;
-  console.log({ sortedRequestResponseAddedHeaders });
-  console.log({ sortedRequestResponseDefaultHeaders });
 
   let allHeaders = { ...sortedRequestResponseDefaultHeaders, ...sortedRequestResponseAddedHeaders };
   if (!dataBuffer) {

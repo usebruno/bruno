@@ -1364,7 +1364,6 @@ export const getAllVariables = (collection, item) => {
 // Merge headers from collection, folders, and request
 export const mergeHeaders = (data) => {
   const { collection, request, requestTreePath, options = {} } = data;
-  console.log('Merge Headers 1');
   const { includeDisabledHeaders = false } = options;
   let headers = new Map();
   let disabledHeaders = new Map();
@@ -1409,7 +1408,6 @@ export const mergeHeaders = (data) => {
     ...Array.from(headers.values()),
     ...(includeDisabledHeaders ? Array.from(disabledHeaders.values()) : [])
   ];
-  console.log('Resulted Merge headers 1 : ', resultMergeHeaders);
   // Convert Map back to array
   return resultMergeHeaders;
 };

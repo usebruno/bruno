@@ -156,7 +156,6 @@ const configureRequest = async (
 
   const { promptVariables = {} } = collection;
   let { proxyMode, proxyModeReason, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
-  console.log('Before creating Instance : ', request.headers);
   let axiosInstance = makeAxiosInstance({
     proxyMode,
     proxyModeReason,
@@ -590,7 +589,6 @@ const registerNetworkIpc = (mainWindow) => {
     let scriptResult;
     const { promptVariables = {}, name: collectionName } = collection;
     const existingHeaders = request.headers;
-    console.log('Prepared Request Headers 6 : ', request.headers);
 
     const requestScript = get(request, 'script.req');
     if (requestScript?.length) {
@@ -607,19 +605,13 @@ const registerNetworkIpc = (mainWindow) => {
         runRequestByItemPathname,
         collectionName
       );
-      // console.log('Prepared Request Headers 6.1 : ', scriptResult);
-
-      console.log('Prepared Request Headers 6.1 : ', request.headers);
 
       sendVariableUpdates(scriptResult, { collectionUid, requestUid, collection });
       resetOauth2Credentials({ oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset, request, collectionUid });
-      console.log('Prepared Request Headers 6.2 : ', request.headers);
 
       const domainsWithCookies = await getDomainsWithCookies();
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
     }
-
-    console.log('Prepared Request Headers 7 : ', request.headers);
 
     // interpolate variables inside request
     interpolateVars(request, envVars, runtimeVariables, processEnvVars, promptVariables);
@@ -636,8 +628,6 @@ const registerNetworkIpc = (mainWindow) => {
       request.url = encodeUrl(request.url);
     }
 
-    console.log('Prepared Request Headers 8 : ', request.headers);
-
     // if this is a graphql request, parse the variables, only after interpolation
     // https://github.com/usebruno/bruno/issues/884
     if (request.mode === 'graphql' && typeof request.data?.variables === 'string') {
@@ -647,8 +637,6 @@ const registerNetworkIpc = (mainWindow) => {
         throw new Error(`Failed to parse GraphQL variables: ${err.message}`);
       }
     }
-
-    console.log('Prepared Request Headers 9 : ', request.headers);
 
     // stringify the request url encoded params
     const contentTypeHeader = Object.keys(request.headers).find((name) => name.toLowerCase() === 'content-type');
@@ -661,8 +649,6 @@ const registerNetworkIpc = (mainWindow) => {
       }
       // if `data` is of string type - return as-is (assumes already encoded)
     }
-
-    console.log('Prepared Request Headers 10 : ', request.headers);
 
     const contentType = contentTypeHeader ? request.headers[contentTypeHeader] : '';
     if (typeof contentType === 'string' && contentType.startsWith('multipart/')) {
@@ -688,7 +674,6 @@ const registerNetworkIpc = (mainWindow) => {
         extend(request.headers, form.getHeaders());
       }
     }
-    console.log('Prepared Request Headers 11 : ', request.headers);
     return scriptResult;
   };
 
@@ -892,15 +877,11 @@ const registerNetworkIpc = (mainWindow) => {
 
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
-    console.log('Prepared Request Headers 1 : ', request.headers);
     allMergedHeaders = request.headers;
-    console.log('All Merged Headers : 1 ', allMergedHeaders);
     // Every good boy deserves a response.
     if (request.method && request.method.toUpperCase() === 'WOOF') {
       return easterEggResponse(request);
     }
-
-    console.log('Prepared Request Headers 2 : ', request.headers);
 
     request.__bruno__executionMode = 'standalone';
     request.responseType = 'stream';
@@ -911,8 +892,6 @@ const registerNetworkIpc = (mainWindow) => {
     const brunoConfig = getBrunoConfig(collectionUid, collection);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = getJsSandboxRuntime(collection);
-
-    console.log('Prepared Request Headers 3 : ', request.headers);
 
     try {
       request.signal = abortController.signal;
@@ -931,7 +910,6 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Add certsAndProxyConfig to request object for bru.sendRequest
       request.certsAndProxyConfig = certsAndProxyConfig;
-      console.log('Prepared Request Headers 4 : ', request.headers);
       let preRequestScriptResult = null;
       let preRequestError = null;
       try {
@@ -950,8 +928,6 @@ const registerNetworkIpc = (mainWindow) => {
       } catch (error) {
         preRequestError = error;
       }
-
-      console.log('Prepared Request Headers 5 : ', request.headers);
 
       if (preRequestError?.partialResults) {
         preRequestScriptResult = preRequestError.partialResults;
@@ -986,8 +962,7 @@ const registerNetworkIpc = (mainWindow) => {
       if (preRequestError) {
         return Promise.reject(preRequestError);
       }
-      console.log({ preRequestScriptResult });
-      console.log('After runrequest 1 : ', request.headers);
+
       const axiosInstance = await configureRequest(
         collectionUid,
         collection,
@@ -1003,14 +978,12 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Remove false Content-Type header (used to stop axios from auto-setting it); no Content-Type was actually set or sent.
       const headersSent = { ...allMergedHeaders, ...request.headers };
-      console.log('Headers Sent final : ', headersSent);
       Object.keys(headersSent).forEach((key) => {
         if (key.toLowerCase() === 'content-type' && headersSent[key] === false) {
           delete headersSent[key];
         }
       });
 
-      console.log('Run Request 4 : ', headersSent);
       requestSent = {
         url: request.url,
         method: request.method,
@@ -1835,7 +1808,6 @@ const registerNetworkIpc = (mainWindow) => {
             currentAbortController = new AbortController();
             request.signal = currentAbortController.signal;
             request.responseType = 'stream';
-            console.log('After stream 1 : ', request.headers);
             const axiosInstance = await configureRequest(
               collectionUid,
               collection,

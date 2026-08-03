@@ -38,8 +38,6 @@ const TimelineItem = ({
   scope,
   phase
 }) => {
-  console.log({ request });
-  console.log({ collection });
   const dispatch = useDispatch();
   const [isExpanded, _toggleExpand] = usePersistedState({
     key: `timeline-${timestamp}`,

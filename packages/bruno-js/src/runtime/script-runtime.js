@@ -37,7 +37,6 @@ class ScriptRuntime {
     const assertionResults = request?.assertionResults || [];
     const certsAndProxyConfig = request?.certsAndProxyConfig;
     const scriptPath = request?.pathname;
-    const existingRequestHeaders = request?.headers || {};
     const bru = new Bru({
       runtime: this.runtime,
       envVariables,
@@ -84,8 +83,6 @@ class ScriptRuntime {
       };
     }
 
-    console.log('Prepared Request Headers 6.1.1 : ', request.headers);
-
     bindRunRequest(bru, runRequestByItemPathname);
 
     // Helper to build the result object for pre-request scripts
@@ -103,7 +100,6 @@ class ScriptRuntime {
       stopExecution: bru.stopExecution,
       scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
     });
-    console.log('Prepared Request Headers 6.1.2 : ', request.headers);
 
     // Track script errors to attach partial results before re-throwing
     // This ensures that any test() calls that passed before the error are preserved
@@ -133,8 +129,6 @@ class ScriptRuntime {
       return buildRequestScriptResult();
     }
 
-    console.log('Prepared Request Headers 6.1.3 : ', request.headers);
-
     // default runtime is `quickjs`
     try {
       await executeQuickJsVmAsync({
@@ -143,20 +137,14 @@ class ScriptRuntime {
         collectionPath,
         scriptPath
       });
-      console.log('Prepared Request Headers 6.1.4 : ', request.headers);
-      // request.headers = existingRequestHeaders
     } catch (error) {
       scriptError = error;
     }
-    console.log('Prepared Request Headers 6.1.5 : ', request.headers);
 
     if (scriptError) {
       scriptError.partialResults = buildRequestScriptResult();
       throw scriptError;
     }
-
-    console.log('Prepared Request Headers 6.1.6 : ', request.headers);
-    // request.headers = existingRequestHeaders
     return buildRequestScriptResult();
   }
 

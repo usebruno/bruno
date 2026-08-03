@@ -29,11 +29,9 @@ const FORMAT_CONFIG = {
  */
 const mergeHeaders = (data) => {
   const { collection, request, requestTreePath, options = {} } = data;
-  console.log('Merge Headers 3');
   const { includeDisabledHeaders = false } = options;
   let headers = new Map();
   let disabledHeaders = new Map();
-  console.log('Merge Headers 3 - collection : ', collection);
   let collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {

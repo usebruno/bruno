@@ -60,7 +60,6 @@ const Timeline = ({ collection, item }) => {
     [item, itemAuthMode, collection]
   );
   const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';
-  // console.log('Collection Timeline : ', collection.timeline)
   const entries = useMemo(
     () => buildTimelineEntries(collection?.timeline, item.uid, authSource),
     [collection?.timeline, item.uid, authSource]
@@ -101,7 +100,6 @@ const Timeline = ({ collection, item }) => {
 
       <div className="timeline-container" data-testid="timeline-container">
         {entries.map((entry, index) => {
-          // console.log({entry})
           const kind = getEntryKind(entry);
           if (activeFilter !== 'all' && activeFilter !== kind) return null;
 

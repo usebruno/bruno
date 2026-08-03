@@ -394,7 +394,6 @@ const prepareRequest = async (item, collection = {}, abortController) => {
 
   const scriptFlow = collection?.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-  // console.log('Prepare Request requestTreePath : ', requestTreePath)
   if (requestTreePath && requestTreePath.length > 0) {
     mergedHeaders = mergeHeaders({ collection, request, requestTreePath, options: { includeDisabledHeaders: true } });
     mergeScripts(collection, request, requestTreePath, scriptFlow);
@@ -418,8 +417,6 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     }
   });
 
-  console.log('mergedHeaders : ', mergedHeaders);
-
   const finalHeaders = {
     ...mergedHeaders.reduce((acc, curr) => {
       if (curr.enabled) {
@@ -429,8 +426,6 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     }, {}),
     ...headers
   };
-
-  console.log('Complete Headers : PrepareRequest: ', finalHeaders);
 
   let axiosRequest = {
     mode: request.body.mode,
