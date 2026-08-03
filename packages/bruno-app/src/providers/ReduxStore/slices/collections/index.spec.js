@@ -5,8 +5,8 @@ const {
   setFolderVars,
   setCollectionVars,
   updateFile,
-  wsResponseReceived,
-  requestUrlChanged
+  requestUrlChanged,
+  wsResponseReceived
 } = collectionsSlice.actions;
 const reducer = collectionsSlice.reducer;
 
