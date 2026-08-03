@@ -84,15 +84,32 @@ ${code}
 export const useAppDocumentUrl = (ownerKey, bootstrap, code) => {
   const [url, setUrl] = useState(null);
   const [error, setError] = useState(null);
+
+  // Which owner the current url belongs to. When ownerKey changes, the old
+  // url's document is about to be unregistered, so the url is dropped
+  // synchronously — otherwise a kept-alive webview would show the previous
+  // item's guest 404ing until the new registration resolves. Same-owner code
+  // edits keep the url mounted: the stable token keeps it resolving, and the
+  // webview swaps src in place when the versioned url arrives.
+  const urlOwnerRef = useRef(null);
+
   const html = useMemo(
     () => (code && code.trim().length ? wrapHtml(bootstrap, code) : null),
     [bootstrap, code]
   );
 
   useEffect(() => {
-    if (html === null) {
+    setError(null);
+    if (urlOwnerRef.current !== ownerKey) {
+      urlOwnerRef.current = null;
       setUrl(null);
-      setError(null);
+    }
+    if (html === null) {
+      urlOwnerRef.current = null;
+      setUrl(null);
+      // Nothing renders this document anymore; free it now rather than holding
+      // it until unmount.
+      window.ipcRenderer.invoke('renderer:unregister-app-document', { ownerKey }).catch(() => {});
       return;
     }
     let cancelled = false;
@@ -100,12 +117,13 @@ export const useAppDocumentUrl = (ownerKey, bootstrap, code) => {
       .invoke('renderer:register-app-document', { ownerKey, html })
       .then((next) => {
         if (cancelled) return;
+        urlOwnerRef.current = ownerKey;
         setUrl(next);
-        setError(null);
       })
       .catch((err) => {
         if (cancelled) return;
         console.error('Failed to register app document', err);
+        urlOwnerRef.current = null;
         setUrl(null);
         setError(err?.message || 'Failed to register the app document');
       });

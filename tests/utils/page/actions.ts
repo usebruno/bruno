@@ -2419,6 +2419,40 @@ const getAppWebviewSrc = async (page: Page): Promise<string> => {
 };
 
 /**
+ * Evaluate `code` inside the active app's <webview> guest. The guest runs
+ * out-of-process, so it is unreachable from the renderer page: the guest
+ * WebContents is located in the Electron main process by the exact document
+ * URL the active webview is showing, which identifies one guest even when
+ * guests from earlier tests are still alive in the same worker.
+ *
+ * Returns undefined while the webview has not attached yet (it mounts only
+ * after the document-registration IPC round-trip resolves), so expect.poll
+ * callers can keep retrying instead of failing on a slow mount.
+ */
+const evalInActiveAppGuest = async (page: Page, electronApp: ElectronApplication, code: string): Promise<unknown> => {
+  let src: string;
+  try {
+    src = await getAppWebviewSrc(page);
+  } catch {
+    return undefined;
+  }
+  return electronApp.evaluate(
+    async ({ webContents }, { src: wanted, code: c }) => {
+      const guest = webContents.getAllWebContents().find((wc) => {
+        try {
+          return wc.getType() === 'webview' && wc.getURL() === wanted;
+        } catch {
+          return false;
+        }
+      });
+      if (!guest) return undefined;
+      return await guest.executeJavaScript(c, true);
+    },
+    { src, code }
+  );
+};
+
+/**
  * Create a standalone (collection-level or folder-level) app via the sidebar
  * context menu. Opens the new tab once created.
  * @param page - The page object
@@ -2703,6 +2737,7 @@ export {
   exitApp,
   selectViewMode,
   getAppWebviewSrc,
+  evalInActiveAppGuest,
   createApp,
   selectAppView,
   renameWsMessage,

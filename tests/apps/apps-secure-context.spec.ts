@@ -1,11 +1,11 @@
-import { test, expect, ElectronApplication } from '../../playwright';
+import { test, expect } from '../../playwright';
 import {
   createCollection,
   createRequest,
   openRequest,
   setAppCode,
   previewApp,
-  getAppWebviewSrc
+  evalInActiveAppGuest as guestEval
 } from '../utils/page';
 
 /*
@@ -17,32 +17,6 @@ import {
  * `bruno-app://` scheme instead, with a per-app token in the host so each guest
  * keeps its own origin.
  */
-
-const guestEval = async (page, electronApp: ElectronApplication, code: string) => {
-  // The webview only mounts after the register IPC round-trip resolves, so it
-  // may not be attached yet; returning undefined lets expect.poll callers keep
-  // retrying instead of failing on the first slow mount.
-  let src;
-  try {
-    src = await getAppWebviewSrc(page);
-  } catch {
-    return undefined;
-  }
-  return electronApp.evaluate(
-    async ({ webContents }, { src: wanted, code: c }) => {
-      const guest = webContents.getAllWebContents().find((wc) => {
-        try {
-          return wc.getType() === 'webview' && wc.getURL() === wanted;
-        } catch {
-          return false;
-        }
-      });
-      if (!guest) return undefined;
-      return await guest.executeJavaScript(c, true);
-    },
-    { src, code }
-  );
-};
 
 const openAppWith = async (page, electronApp, createTmpDir, name: string, appCode: string) => {
   const collectionPath = await createTmpDir(`apps-secure-${name}`);

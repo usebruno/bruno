@@ -7,46 +7,8 @@ import {
   previewApp,
   saveRequest,
   selectRequestBodyMode,
-  getAppWebviewSrc
+  evalInActiveAppGuest as guestEval
 } from '../utils/page';
-
-/*
- * The app runs inside an out-of-process <webview> guest, so we can't reach it
- * through the renderer page. Instead we evaluate in the Electron main process,
- * locate the guest WebContents, and run JS inside it.
- *
- * Guests from earlier tests stay alive in the same worker, so the guest is
- * located by the active <webview>'s exact document-server URL. Picking the
- * newest WebContents instead would bind to whichever guest happens to hold the
- * highest id, which is not reliably the one under test.
- */
-const guestEval = async (page, electronApp: ElectronApplication, code: string) => {
-  // The webview only mounts after the register IPC round-trip resolves, so it
-  // may not be attached yet; returning undefined lets expect.poll callers keep
-  // retrying instead of failing on the first slow mount.
-  let src;
-  try {
-    src = await getAppWebviewSrc(page);
-  } catch {
-    return undefined;
-  }
-  return electronApp.evaluate(
-    async ({ webContents }, { src: wanted, code: c }) => {
-      const guest = webContents
-        .getAllWebContents()
-        .find((wc) => {
-          try {
-            return wc.getType() === 'webview' && wc.getURL() === wanted;
-          } catch {
-            return false;
-          }
-        });
-      if (!guest) return undefined;
-      return await guest.executeJavaScript(c, true);
-    },
-    { src, code }
-  );
-};
 
 const waitForGuestReady = async (page, electronApp: ElectronApplication) => {
   await expect

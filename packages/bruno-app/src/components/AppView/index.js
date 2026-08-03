@@ -13,6 +13,7 @@ import { addLog } from 'providers/ReduxStore/slices/logs';
 import { uuid } from 'utils/common';
 import { useTheme } from 'providers/Theme';
 import Button from 'ui/Button';
+import AppWebviewPane from 'components/AppWebviewPane';
 import StyledWrapper from './StyledWrapper';
 import EmptyAppState from './EmptyAppState';
 import { buildVariables } from './buildVariables';
@@ -308,19 +309,7 @@ const AppView = ({ item, collection, code }) => {
       </div>
       {code && code.trim().length ? (
         <div className="app-webview-container">
-          {src ? (
-            <webview
-              ref={webviewRef}
-              src={src}
-              partition="bruno-app-view"
-              webpreferences="disableDialogs=true, javascript=yes"
-              className="app-webview"
-            />
-          ) : appDocumentError ? (
-            <EmptyAppState title="App failed to load" hint={appDocumentError} />
-          ) : (
-            <div className="p-4 text-xs opacity-60">Loading app…</div>
-          )}
+          <AppWebviewPane src={src} error={appDocumentError} webviewRef={webviewRef} />
         </div>
       ) : (
         <EmptyAppState
