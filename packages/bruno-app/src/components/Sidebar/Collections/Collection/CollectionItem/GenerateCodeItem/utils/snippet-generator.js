@@ -47,8 +47,7 @@ const generateSnippet = async ({ language, item, collection, shouldInterpolate =
     }
 
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-    const mergedHeaders = mergeHeaders(collection, request, requestTreePath);
-
+    const mergedHeaders = mergeHeaders({ collection: collection, request: request, requestTreePath: requestTreePath, options: {} });
     const settings = item.draft ? get(item, 'draft.settings') : get(item, 'settings');
 
     // buildHar intentionally does NOT resolve `{{var}}` / `:pathParam` in the URL

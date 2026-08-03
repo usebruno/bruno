@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts } from './index';
+import { getCollectionItemCounts, mergeHeaders, transformRequestToSaveToFilesystem } from './index';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
@@ -30,7 +30,7 @@ describe('mergeHeaders', () => {
       ]
     };
 
-    const headers = mergeHeaders(collection, request, [folder]);
+    const headers = mergeHeaders({ collection, request, requestTreePath: [folder], options: {} });
     const names = headers.map((h) => h.name);
     expect(names).toEqual(expect.arrayContaining(['X-Collection', 'X-Folder', 'X-Request']));
   });

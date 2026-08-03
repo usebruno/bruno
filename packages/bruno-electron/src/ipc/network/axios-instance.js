@@ -73,6 +73,63 @@ const checkConnection = (host, port) =>
  * @returns {axios.AxiosInstance}
  */
 
+const getSortedOutgoingHeaders = (request) => {
+  console.log('getSortedOutgoingHeaders : ', request);
+  // No Node request object (e.g. a stubbed adapter, or an adapter/error path that doesn't attach
+  // one) — there are no sent headers to read, so bail before touching Object.getOwnPropertySymbols
+  // (which throws on undefined/null).
+  console.log('getSortedOutgoingHeaders after returning before : ', request);
+  if (!request || typeof request !== 'object') return [];
+  console.log('getSortedOutgoingHeaders after returning after : ', request);
+  // 1. Locate Symbol(kOutHeaders) on the Node.js request object
+  const kOutHeadersSymbol = Object.getOwnPropertySymbols(request)
+    .find((s) => s.toString() === 'Symbol(kOutHeaders)');
+
+  const rawHeaders = request[kOutHeadersSymbol] || {};
+
+  // 2. Exact priority order specified
+  const topDefaults = [
+    'Accept',
+    'User-Agent',
+    'request-start-time',
+    'Accept-Encoding',
+    'host',
+    'connection'
+  ];
+
+  // 3. Extract key, original display name, and header value
+  const parsedHeaders = Object.entries(rawHeaders).map(([key, entry]) => {
+    let rawName = key;
+    let value = entry;
+
+    // Node's kOutHeaders stores tuples: [rawHeaderName, headerValue]
+    if (Array.isArray(entry)) {
+      rawName = entry[0] || key;
+      value = entry[1];
+    }
+
+    return {
+      lowerKey: key.toLowerCase(),
+      displayKey: rawName,
+      value: Array.isArray(value) ? value.join(', ') : value
+    };
+  });
+
+  // 4. Sort according to specified topDefaults first, then alphabetical for the rest
+  parsedHeaders.sort((a, b) => {
+    const indexA = topDefaults.indexOf(a.lowerKey);
+    const indexB = topDefaults.indexOf(b.lowerKey);
+
+    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+    if (indexA !== -1) return -1;
+    if (indexB !== -1) return 1;
+
+    return a.displayKey.localeCompare(b.displayKey);
+  });
+
+  return parsedHeaders;
+};
+
 function makeAxiosInstance({
   proxyMode = 'off',
   proxyModeReason = '',
@@ -107,8 +164,9 @@ function makeAxiosInstance({
   // Assigning a new object (= { 'User-Agent': ... }) would nuke that default, causing servers that
   // rely on content-negotiation to receive requests with no Accept header.
   instance.defaults.headers.common['User-Agent'] = `bruno-runtime/${version}`;
-
+  // console.log('instance.interceptors.request : ', instance.interceptors.request)
   instance.interceptors.request.use(async (config) => {
+    // console.log('Interceptors Config : ', config.headers);
     const url = URL.parse(config.url);
     config.metadata = config.metadata || {};
     config.metadata.startTime = new Date().getTime();
@@ -181,7 +239,7 @@ function makeAxiosInstance({
       present (blocking the guard) while toJSON() omits null values from the wire.
      */
     const headersToDelete = config.__headersToDelete;
-    let deleteConnection = false;
+    // let deleteConnection = false;
 
     if (headersToDelete && Array.isArray(headersToDelete)) {
       headersToDelete.forEach((headerName) => {
@@ -189,7 +247,7 @@ function makeAxiosInstance({
         if (lower === 'host') return;
         if (lower === 'connection') {
           // Handled after setupProxyAgents to avoid being overwritten by keepAlive:true.
-          deleteConnection = true;
+          // deleteConnection = true;
           return;
         }
         config.headers.set(headerName, null);
@@ -200,11 +258,12 @@ function makeAxiosInstance({
     // Log request headers AFTER deletion so the timeline reflects what is actually sent.
     // Skip null values (headers marked for deletion) and false values (e.g. content-type
     // suppressed for no-body requests — see https://github.com/usebruno/bruno/issues/1693).
+    // console.log('Config Headers : ', config.headers);
     Object.entries(config.headers).forEach(([key, value]) => {
       if (value === null || value === false) return;
       timeline.push({
         timestamp: new Date(),
-        type: 'requestHeader',
+        type: `'requestHeader'`,
         message: `${key}: ${value}`
       });
     });
@@ -249,7 +308,32 @@ function makeAxiosInstance({
 
       const config = response.config;
       timeline = config?.metadata?.timeline || [];
+      // console.log('Interceptor request headers : ', responserequest.headers)
+      let sortedHeaders = getSortedOutgoingHeaders(response.request);
+      // 1. Get headers as a raw object (do NOT stringify)
+      // const requestHeaders = response.request.getHeaders();
+      // console.log('Timeline Headers Object:', requestHeaders);
+      console.log({ sortedHeaders });
       const duration = end - config?.metadata.startTime;
+
+      // Insert the sent headers right after the request line/body (before the proxy & connection
+      // info setupProxyAgents pushed), not at the tail — they're built here at response time, so a
+      // plain push would land the whole block one section too low.
+      const sentHeaderEntries = sortedHeaders.map(({ displayKey, value }) => ({
+        timestamp: new Date(),
+        type: 'requestSentHeader',
+        message: `${displayKey}: ${value}`
+      }));
+      let sentHeadersInsertAt = timeline.length;
+      for (let i = timeline.length - 1; i >= 0; i--) {
+        const entryType = timeline[i]?.type;
+        if (entryType === 'requestData' || entryType === 'request') {
+          sentHeadersInsertAt = i + 1;
+          break;
+        }
+      }
+      timeline.splice(sentHeadersInsertAt, 0, ...sentHeaderEntries);
+      // console.log('After timeline updated:', timeline);
 
       const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
       if (httpVersion?.startsWith('2')) {

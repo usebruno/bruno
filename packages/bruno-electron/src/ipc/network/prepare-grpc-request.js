@@ -128,7 +128,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
     mergeAuth(collection, request, requestTreePath);
-    mergeHeaders(collection, request, requestTreePath);
+    mergeHeaders({ collection, request, requestTreePath, options: {} });
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;

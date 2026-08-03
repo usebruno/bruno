@@ -1,8 +1,8 @@
-import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
+import { isRequestTagsIncluded } from '@usebruno/common';
+import { cloneDeep, each, filter, find, get, isEqual, isString, map, sortBy } from 'lodash';
 import { uuid } from 'utils/common';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path, { normalizePath } from 'utils/common/path';
-import { isRequestTagsIncluded } from '@usebruno/common';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -1362,7 +1362,9 @@ export const getAllVariables = (collection, item) => {
 };
 
 // Merge headers from collection, folders, and request
-export const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
+export const mergeHeaders = (data) => {
+  const { collection, request, requestTreePath, options = {} } = data;
+  console.log('Merge Headers 1');
   const { includeDisabledHeaders = false } = options;
   let headers = new Map();
   let disabledHeaders = new Map();
@@ -1403,11 +1405,13 @@ export const mergeHeaders = (collection, request, requestTreePath, options = {})
     }
   });
 
-  // Convert Map back to array
-  return [
+  let resultMergeHeaders = [
     ...Array.from(headers.values()),
     ...(includeDisabledHeaders ? Array.from(disabledHeaders.values()) : [])
   ];
+  console.log('Resulted Merge headers 1 : ', resultMergeHeaders);
+  // Convert Map back to array
+  return resultMergeHeaders;
 };
 
 export const maskInputValue = (value) => {

@@ -117,14 +117,14 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     );
 
     const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
-
+    // console.log('Req quickjs 1 : ', req.headers)
     consoleFn && addConsoleShimToContext(vm, consoleFn);
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
     addLocalModuleLoaderShimToContext(vm, collectionPath);
     addPathShimToContext(vm);
-
+    // console.log('Req quickjs 2 : ', req.headers)
     await addLibraryShimsToContext(vm);
 
     test && __brunoTestResults && addTestShimToContext(vm, __brunoTestResults);
@@ -137,6 +137,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     promiseHandle.dispose();
     const resolvedHandle = vm.unwrapResult(resolvedResult);
     resolvedHandle.dispose();
+    // console.log('Req quickjs 3 : ', req.headers)
     return;
   } catch (error) {
     error.__isQuickJS = true;
@@ -149,6 +150,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     try {
       await managedQuickJsContext?.waitForPendingDeferreds?.();
       managedQuickJsContext?.dispose();
+      // console.log('Req quickjs 4 : ')
     } catch (teardownError) {
       throw teardownError;
     }

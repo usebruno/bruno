@@ -22,11 +22,18 @@ const FORMAT_CONFIG = {
   bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
 };
 
-const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
+/**
+ * This function only and only merges all the headers present in headers table in the hierarchy from
+ * collection -> folder -> request
+ * no other headers are added from scripts
+ */
+const mergeHeaders = (data) => {
+  const { collection, request, requestTreePath, options = {} } = data;
+  console.log('Merge Headers 3');
   const { includeDisabledHeaders = false } = options;
   let headers = new Map();
   let disabledHeaders = new Map();
-
+  console.log('Merge Headers 3 - collection : ', collection);
   let collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
@@ -71,10 +78,11 @@ const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
     }
   }
 
-  request.headers = [
+  // Convert Map back to array
+  return ([
     ...Array.from(headers, ([name, value]) => ({ name, value, enabled: true })),
     ...(includeDisabledHeaders ? Array.from(disabledHeaders, ([name, value]) => ({ name, value, enabled: false })) : [])
-  ];
+  ]);
 };
 
 const mergeVars = (collection, request, requestTreePath = []) => {

@@ -1,30 +1,44 @@
-import React, { useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
 import {
-  IconX,
-  IconFileText,
   IconArrowRight,
-  IconNetwork
+  IconFileText,
+  IconNetwork,
+  IconX
 } from '@tabler/icons';
-import { clearSelectedRequest } from 'providers/ReduxStore/slices/logs';
 import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 import Network from 'components/ResponsePane/Timeline/TimelineItem/Network';
-import StyledWrapper from './StyledWrapper';
+import { clearSelectedRequest } from 'providers/ReduxStore/slices/logs';
+import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { uuid } from 'utils/common/index';
+import StyledWrapper from './StyledWrapper';
+
+const formatHeaders = (headers) => {
+  if (!headers) return [];
+  if (Array.isArray(headers)) return headers;
+  return Object.entries(headers).map(([key, value]) => ({ name: key, value }));
+};
+
+// The headers actually sent on the wire are pushed into the timeline as `requestSentHeader` entries
+// ("name: value") by the network layer — read them so Request Headers matches the Network tab.
+const sentHeadersFromTimeline = (timeline) => {
+  if (!Array.isArray(timeline)) return [];
+  return timeline.reduce((headers, entry) => {
+    if (entry?.type !== 'requestSentHeader' || typeof entry.message !== 'string') return headers;
+    const idx = entry.message.indexOf(':');
+    if (idx !== -1) headers.push({ name: entry.message.slice(0, idx).trim(), value: entry.message.slice(idx + 1).trim() });
+    return headers;
+  }, []);
+};
+
+const formatBody = (body) => {
+  if (!body) return 'No body';
+  if (typeof body === 'string') return body;
+  return JSON.stringify(body, null, 2);
+};
 
 const RequestTab = ({ request, response }) => {
-  const formatHeaders = (headers) => {
-    if (!headers) return [];
-    if (Array.isArray(headers)) return headers;
-    return Object.entries(headers).map(([key, value]) => ({ name: key, value }));
-  };
-
-  const formatBody = (body) => {
-    if (!body) return 'No body';
-    if (typeof body === 'string') return body;
-    return JSON.stringify(body, null, 2);
-  };
-
+  const sentHeaders = sentHeadersFromTimeline(response?.timeline);
+  const headers = sentHeaders.length ? sentHeaders : formatHeaders(request?.headers);
   return (
     <div className="tab-content">
       <div className="section">
@@ -43,7 +57,7 @@ const RequestTab = ({ request, response }) => {
 
       <div className="section">
         <h4>Request Headers</h4>
-        {formatHeaders(request?.headers).length > 0 ? (
+        {headers.length > 0 ? (
           <div className="headers-table">
             <table>
               <thead>
@@ -53,7 +67,7 @@ const RequestTab = ({ request, response }) => {
                 </tr>
               </thead>
               <tbody>
-                {formatHeaders(request.headers).map((header, index) => (
+                {headers.map((header, index) => (
                   <tr key={index}>
                     <td className="header-name">{header.name}</td>
                     <td className="header-value">{header.value}</td>
@@ -78,12 +92,6 @@ const RequestTab = ({ request, response }) => {
 };
 
 const ResponseTab = ({ response, request, collection }) => {
-  const formatHeaders = (headers) => {
-    if (!headers) return [];
-    if (Array.isArray(headers)) return headers;
-    return Object.entries(headers).map(([key, value]) => ({ name: key, value }));
-  };
-
   return (
     <div className="tab-content">
       <div className="section">

@@ -49,6 +49,7 @@ const StyledWrapper = styled.div`
 
   .network-logs-spacing {
     margin-top: 0.5rem;
+    border-top: 1px solid black;
   }
 `;
 

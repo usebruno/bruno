@@ -1,116 +1,114 @@
-import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
-import { parseQueryParams, extractPromptVariables, getDataTypeFromValue } from '@usebruno/common/utils';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
-import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT } from 'utils/common/constants';
+import { extractPromptVariables, getDataTypeFromValue, parseQueryParams } from '@usebruno/common/utils';
+import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
+import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
+import SaveFileErrorModal from 'components/Errors/SaveFileErrorModal/index';
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
-import path, { normalizePath, isPathExternalToBasePath } from 'utils/common/path';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
-import IpcErrorModal from 'components/Errors/IpcErrorModal/index';
-import SaveFileErrorModal from 'components/Errors/SaveFileErrorModal/index';
+import brunoClipboard from 'utils/bruno-clipboard';
 import {
   findCollectionByUid,
   findEnvironmentInCollection,
   findItemInCollection,
   findParentItemInCollection,
-  isItemAFolder,
-  refreshUidsInItem,
-  isItemARequest,
+  flattenItems,
   getAllVariables,
-  transformRequestToSaveToFilesystem,
+  isItemAFolder,
+  isItemARequest,
+  refreshUidsInItem,
   transformCollectionRootToSave,
-  flattenItems
+  transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
+import { DEFAULT_COLLECTION_FORMAT, REQUEST_TYPES } from 'utils/common/constants';
 import { callIpc } from 'utils/common/ipc';
-import brunoClipboard from 'utils/bruno-clipboard';
+import path, { isPathExternalToBasePath, normalizePath } from 'utils/common/path';
+import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
 
 import {
+  applyDefaultEnvironment as _applyDefaultEnvironment,
+  brunoConfigUpdateEvent as _brunoConfigUpdateEvent,
+  _clearScriptCollectionBaselines,
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
   createCollection as _createCollection,
-  removeCollection as _removeCollection,
-  selectEnvironment as _selectEnvironment,
-  applyDefaultEnvironment as _applyDefaultEnvironment,
-  sortCollections as _sortCollections,
-  updateCollectionMountStatus,
-  moveCollection,
   deleteItem as _deleteItemFromState,
-  brunoConfigUpdateEvent as _brunoConfigUpdateEvent,
-  workspaceEnvUpdateEvent,
-  requestCancelled,
-  resetRunResults,
-  responseReceived,
-  updateLastAction,
-  setCollectionSecurityConfig,
+  removeCollection as _removeCollection,
+  saveEnvironment as _saveEnvironment,
+  saveRequest as _saveRequest,
+  selectEnvironment as _selectEnvironment,
+  sortCollections as _sortCollections,
   updateCollectionVersion as _updateCollectionVersion,
+  updateEnvironmentColor as _updateEnvironmentColor,
+  updateRunnerConfiguration as _updateRunnerConfiguration,
+  addCollectionVar,
+  addFolderVar,
+  addSaveTransientRequestModal,
+  addTransientDirectory,
+  addVar,
   collectionAddOauth2CredentialsByUrl,
   collectionClearOauth2CredentialsByUrlAndCredentialsId,
   initRunRequestEvent,
-  updateRunnerConfiguration as _updateRunnerConfiguration,
-  updateActiveConnections,
-  saveRequest as _saveRequest,
-  saveEnvironment as _saveEnvironment,
-  updateEnvironmentColor as _updateEnvironmentColor,
+  moveCollection,
+  requestCancelled,
+  resetRunResults,
+  responseReceived,
   saveCollectionDraft,
   saveFolderDraft,
-  addVar,
-  updateVar,
-  addFolderVar,
-  updateFolderVar,
-  addCollectionVar,
-  updateCollectionVar,
   scriptUpdateCollectionVars,
+  setCollectionSecurityConfig,
   setScriptCollVarBaseline,
-  _clearScriptCollectionBaselines,
-  addTransientDirectory,
-  addSaveTransientRequestModal,
+  toggleCollection,
+  updateActiveConnections,
+  updateCollectionMountStatus,
+  updateCollectionVar,
+  updateFolderVar,
+  updateLastAction,
   updatePathParam,
-  toggleCollection
+  updateVar,
+  workspaceEnvUpdateEvent
 } from './index';
 
+import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, restoreTabs, reopenLastClosedTab } from 'providers/ReduxStore/slices/tabs';
+import { flushSnapshotNow } from 'providers/ReduxStore/middlewares/snapshot/middleware';
+import { migrationCancelRequested, migrationEnded, migrationStarted } from 'providers/ReduxStore/slices/collection-migration';
+import { _clearScriptGlobalEnvBaseline, saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
+import { closeTabs as _closeTabs, addTab, closeAllCollectionTabs, focusTab, reopenLastClosedTab, restoreTabs } from 'providers/ReduxStore/slices/tabs';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
+import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
+import { resolveInheritedAuth } from 'utils/auth';
+import {
+  calculateDraggedItemNewPathname,
+  findCollectionByPathname,
+  getGlobalEnvironmentVariables,
+  getReorderedItemsInSourceDirectory,
+  getReorderedItemsInTargetDirectory,
+  getTreePathFromCollectionToItem,
+  isPathOrDescendant,
+  mergeHeaders,
+  transformFolderRootToSave
+} from 'utils/collections/index';
+import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveRequestFilename } from 'utils/common/platform';
-import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
+import { sanitizeName } from 'utils/common/regex';
+import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common/variables';
+import { applyScriptEnvVars, DUPLICATE_SECRET_NAMES_ERROR, getScriptModifiedKeys, resolveSecretNameCollision, writesCollidingSecrets } from 'utils/environments';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import {
-  getGlobalEnvironmentVariables,
-  findCollectionByPathname,
-  getReorderedItemsInTargetDirectory,
-  resetSequencesInFolder,
-  getReorderedItemsInSourceDirectory,
-  calculateDraggedItemNewPathname,
-  transformFolderRootToSave,
-  getTreePathFromCollectionToItem,
-  mergeHeaders,
-  isPathOrDescendant
-} from 'utils/collections/index';
-import { sanitizeName } from 'utils/common/regex';
-import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, resolveSecretNameCollision, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
-import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common/variables';
-import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
-import { resolveInheritedAuth } from 'utils/auth';
-import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { updateSettingsSelectedTab } from './index';
-import { migrationStarted, migrationCancelRequested, migrationEnded } from 'providers/ReduxStore/slices/collection-migration';
-import { flushSnapshotNow } from 'providers/ReduxStore/middlewares/snapshot/middleware';
-import { saveGlobalEnvironment, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
-import { getTabToFocusForCurrentWorkspace } from 'providers/ReduxStore/slices/workspaces/getTabToFocusForCurrentWorkspace';
-import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
-import {
-  getCollectionEnvironmentPath,
   findCollectionEnvironmentFromSnapshot,
+  getCollectionEnvironmentPath,
   hydrateCollectionTabs,
   hydrateSnapshotLookups
 } from 'utils/snapshot';
+import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
+import { updateSettingsSelectedTab } from './index';
 
 // generate a unique names
 const generateUniqueName = (originalName, existingItems, isFolder) => {
@@ -580,7 +578,7 @@ const extractPromptVariablesForRequest = async (item, collection) => {
     const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
     // Get active headers from collection, folders, and request by priority order
-    const headers = mergeHeaders(collection, request, requestTreePath);
+    const headers = mergeHeaders({ collection, request, requestTreePath, options: {} });
     // Get request auth or inherited auth
     const resolvedAuthRequest = resolveInheritedAuth(item, collection);
 

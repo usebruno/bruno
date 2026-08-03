@@ -1,6 +1,12 @@
+import { IconChevronDown, IconChevronRight } from '@tabler/icons';
+import { usePersistedState } from 'hooks/usePersistedState/index';
+import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
+import { addTab, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { IconChevronDown, IconChevronRight } from '@tabler/icons';
+import { flattenItems } from 'utils/collections/index';
+import { getRelativePath } from 'utils/common/path';
+import { getBadge } from '../entryMeta';
 import Method from './Common/Method/index';
 import Status from './Common/Status/index';
 import { RelativeTime } from './Common/Time/index';
@@ -8,12 +14,6 @@ import Network from './Network/index';
 import Request from './Request/index';
 import Response from './Response/index';
 import StyledWrapper from './StyledWrapper';
-import { usePersistedState } from 'hooks/usePersistedState/index';
-import { flattenItems } from 'utils/collections/index';
-import { getRelativePath } from 'utils/common/path';
-import { addTab, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
-import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
-import { getBadge } from '../entryMeta';
 
 const findFolderByScopeFile = (collection, sourceFile) => {
   if (!collection?.pathname || !sourceFile) return null;
@@ -25,6 +25,7 @@ const findFolderByScopeFile = (collection, sourceFile) => {
 };
 
 const TimelineItem = ({
+  index,
   timestamp,
   request,
   response,
@@ -37,6 +38,8 @@ const TimelineItem = ({
   scope,
   phase
 }) => {
+  console.log({ request });
+  console.log({ collection });
   const dispatch = useDispatch();
   const [isExpanded, _toggleExpand] = usePersistedState({
     key: `timeline-${timestamp}`,
@@ -204,7 +207,7 @@ const TimelineItem = ({
             <div className="tl-panel">
               {visitedTabs.request && (
                 <div style={{ display: activeTab === 'request' ? 'block' : 'none' }}>
-                  <Request request={request} item={item} collection={collection} />
+                  <Request request={request} response={response} item={item} collection={collection} index={index} />
                 </div>
               )}
               {visitedTabs.response && (

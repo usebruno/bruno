@@ -381,6 +381,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   const collectionRoot = collection?.draft?.root ? get(collection, 'draft.root', {}) : get(collection, 'root', {});
   const collectionPath = collection?.pathname;
   const headers = {};
+  let mergedHeaders = [];
   let contentTypeDefined = false;
   let url = request.url;
 
@@ -393,8 +394,9 @@ const prepareRequest = async (item, collection = {}, abortController) => {
 
   const scriptFlow = collection?.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  // console.log('Prepare Request requestTreePath : ', requestTreePath)
   if (requestTreePath && requestTreePath.length > 0) {
-    mergeHeaders(collection, request, requestTreePath, { includeDisabledHeaders: true });
+    mergedHeaders = mergeHeaders({ collection, request, requestTreePath, options: { includeDisabledHeaders: true } });
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
     mergeAuth(collection, request, requestTreePath);
@@ -404,6 +406,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   }
 
   const disabledHeaders = [];
+  // Request Script Headers ---
   each(get(request, 'headers', []), (h) => {
     if (h.enabled && h.name?.length > 0) {
       headers[h.name] = h.value;
@@ -415,11 +418,25 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     }
   });
 
+  console.log('mergedHeaders : ', mergedHeaders);
+
+  const finalHeaders = {
+    ...mergedHeaders.reduce((acc, curr) => {
+      if (curr.enabled) {
+        acc[curr.name] = curr.value;
+      }
+      return acc;
+    }, {}),
+    ...headers
+  };
+
+  console.log('Complete Headers : PrepareRequest: ', finalHeaders);
+
   let axiosRequest = {
     mode: request.body.mode,
     method: request.method,
     url,
-    headers,
+    headers: finalHeaders,
     disabledHeaders,
     name: item.name,
     pathname: item.pathname,
