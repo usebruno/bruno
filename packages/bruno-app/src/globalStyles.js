@@ -568,6 +568,10 @@ const GlobalStyle = createGlobalStyle`
     cursor: pointer;
     color: ${(props) => props.theme.textLink} !important;
   }
+  .link-click-enabled .hovered-link.CodeMirror-link[data-url] {
+    cursor: pointer;
+    color: ${(props) => props.theme.textLink} !important;
+  }
 
   // Native select styling
   select {

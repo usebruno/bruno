@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { newHttpRequest, sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { Document, Page } from 'react-pdf';
 import 'pdfjs-dist/build/pdf.worker';
@@ -15,6 +15,49 @@ import TextPreview from './TextPreview';
 import HtmlPreview from './HtmlPreview';
 import VideoPreview from './VideoPreview';
 import JsonPreview from './JsonPreview';
+import { sanitizeName } from 'utils/common/regex';
+import { flattenItems, isItemARequest } from 'utils/collections';
+import toast from 'react-hot-toast';
+import { formatIpcError } from 'utils/common/error';
+
+const LINKED_REQUEST_FALLBACK_NAME = 'Linked Request';
+
+const getRequestNameFromUrl = (url) => {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const pathSegment = pathname.split('/').filter(Boolean).pop();
+    return decodeURIComponent(pathSegment || hostname || LINKED_REQUEST_FALLBACK_NAME) || LINKED_REQUEST_FALLBACK_NAME;
+  } catch (e) {
+    return LINKED_REQUEST_FALLBACK_NAME;
+  }
+};
+
+const getUniqueLinkedRequestFilename = (collection, requestName) => {
+  const baseFilename = sanitizeName(requestName) || LINKED_REQUEST_FALLBACK_NAME;
+  const existingFilenames = new Set(
+    flattenItems(collection?.items || [])
+      .filter(isItemARequest)
+      .map((requestItem) => String(requestItem.filename || '').replace(/\.(bru|ya?ml)$/i, '').trim())
+  );
+
+  if (!existingFilenames.has(baseFilename)) {
+    return baseFilename;
+  }
+
+  let suffix = 2;
+  while (existingFilenames.has(`${baseFilename} (${suffix})`)) {
+    suffix += 1;
+  }
+  return `${baseFilename} (${suffix})`;
+};
+
+const isPutObjectPresignedUrl = (url) => {
+  try {
+    return new URL(url).searchParams.get('x-id')?.toLowerCase() === 'putobject';
+  } catch (e) {
+    return false;
+  }
+};
 
 const QueryResultPreview = ({
   selectedTab,
@@ -50,6 +93,35 @@ const QueryResultPreview = ({
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
+  const handleResponseLinkClick = useCallback((url) => {
+    if (!url || !collection?.uid) {
+      return;
+    }
+
+    const requestName = getRequestNameFromUrl(url);
+    const isPutObject = isPutObjectPresignedUrl(url);
+
+    dispatch(
+      newHttpRequest({
+        requestName,
+        filename: getUniqueLinkedRequestFilename(collection, requestName),
+        requestType: 'http-request',
+        requestUrl: url,
+        requestMethod: isPutObject ? 'PUT' : 'GET',
+        collectionUid: collection.uid,
+        itemUid: null,
+        isTransient: true,
+        auth: {
+          mode: 'none'
+        },
+        settings: {
+          encodeUrl: false
+        },
+        ...(isPutObject ? { requestPaneTab: 'body' } : {})
+      })
+    ).catch((err) => toast.error(formatIpcError(err) || 'An error occurred while adding the request'));
+  }, [collection, dispatch]);
+
   if (selectedTab === 'editor') {
     return (
       <CodeEditor
@@ -65,6 +137,7 @@ const QueryResultPreview = ({
         mode={codeMirrorMode}
         initialScroll={responseScroll}
         onScroll={setResponseScroll}
+        onLinkClick={handleResponseLinkClick}
         readOnly
       />
     );
@@ -98,7 +171,7 @@ const QueryResultPreview = ({
       return <VideoPreview contentType={contentType} dataBuffer={dataBuffer} />;
     }
     case 'preview-json': {
-      return <JsonPreview data={data} displayedTheme={displayedTheme} />;
+      return <JsonPreview data={data} displayedTheme={displayedTheme} onLinkClick={handleResponseLinkClick} />;
     }
 
     case 'preview-text': {

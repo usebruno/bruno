@@ -260,7 +260,9 @@ class CodeEditor extends React.Component {
         autoCompleteOptions
       );
 
-      setupLinkAware(editor);
+      setupLinkAware(editor, {
+        onLinkClick: typeof this.props.onLinkClick === 'function' ? this.handleLinkClick : undefined
+      });
 
       // Setup lint error tooltip on line number hover
       this.cleanupLintErrorTooltip = setupLintErrorTooltip(editor);
@@ -465,6 +467,10 @@ class CodeEditor extends React.Component {
         this.props.onEdit(this.cachedValue);
       }
     }
+  };
+
+  handleLinkClick = (url) => {
+    this.props.onLinkClick?.(url);
   };
 }
 

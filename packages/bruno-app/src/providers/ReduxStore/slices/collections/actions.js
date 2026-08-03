@@ -1285,6 +1285,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     body,
     auth,
     settings,
+    requestPaneTab,
     isTransient = false
   } = params;
 
@@ -1378,7 +1379,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
                 type: 'OPEN_REQUEST',
                 collectionUid,
                 itemPathname: fullName,
-                preview: false
+                preview: false,
+                ...(requestPaneTab ? { requestPaneTab } : {})
               })
             );
             resolve();
@@ -1409,7 +1411,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
                 uid: uuid(),
                 type: 'OPEN_REQUEST',
                 collectionUid,
-                itemPathname: fullName
+                itemPathname: fullName,
+                ...(requestPaneTab ? { requestPaneTab } : {})
               })
             );
             resolve();
@@ -1439,7 +1442,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
                   uid: uuid(),
                   type: 'OPEN_REQUEST',
                   collectionUid,
-                  itemPathname: fullName
+                  itemPathname: fullName,
+                  ...(requestPaneTab ? { requestPaneTab } : {})
                 })
               );
               resolve();
