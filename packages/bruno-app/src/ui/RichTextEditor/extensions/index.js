@@ -20,6 +20,16 @@ import {
   EditorTaskItem,
   EditorTaskList
 } from './EditorTaskList';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { ReactNodeViewRenderer } from '@tiptap/react';
+import EditorCodeBlock from './EditorCodeBlock';
+import { lowlight } from 'lowlight';
+
+const EditorCodeBlockExtension = CodeBlockLowlight.extend({
+  addNodeView() {
+    return ReactNodeViewRenderer(EditorCodeBlock);
+  }
+}).configure({ lowlight, enableTabIndentation: true, tabSize: 2 });
 
 const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
   TextStyle.configure({ types: [EditorListItem.name] }),
@@ -29,7 +39,8 @@ const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
     orderedList: false,
     hardBreak: false,
     gapcursor: false,
-    paragraph: false
+    paragraph: false,
+    codeBlock: false
   }),
   EditorParagraph,
   EditorHardBreak,
@@ -44,6 +55,7 @@ const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
   }),
   EditorListItem,
   EditorGapCursor,
+  EditorCodeBlockExtension,
   EditorTaskList,
   EditorTaskItem.configure({
     nested: true,
