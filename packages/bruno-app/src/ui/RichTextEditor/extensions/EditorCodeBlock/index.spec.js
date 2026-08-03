@@ -58,7 +58,7 @@ describe('EditorCodeBlock', () => {
           ...nodeProps
         }}
         updateAttributes={updateAttributesMock}
-        editor={{ isEditable: true }}
+        editor={{ isEditable: true, on: jest.fn(), off: jest.fn() }}
         extension={{}}
       />
     );
@@ -73,7 +73,7 @@ describe('EditorCodeBlock', () => {
     }
     const pasteEvent = new Event('paste', { bubbles: true });
     preElement.dispatchEvent(pasteEvent);
-    jest.advanceTimersByTime(10);
+    jest.advanceTimersByTime(100);
   };
 
   it('should auto-detect language on paste with code content', () => {
