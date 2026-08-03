@@ -2311,7 +2311,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               })
             : [
                 ...(environment.variables || []),
-                { uid: uuid(), name: variableName, value: newValue, enabled: true, secret: false }
+                { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!data.secret }
               ];
 
           const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
@@ -2429,7 +2429,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               })
             : [
                 ...(environment.variables || []),
-                { uid: uuid(), name: variableName, value: newValue, enabled: true, secret: false }
+                { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!data.secret }
               ];
 
           const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);

@@ -390,8 +390,16 @@ function createActiveRowTracker(rowsByType) {
   return { setActiveScope };
 }
 
-function createSecretController({ secretLabel, secretCheckbox }) {
+function createSecretController({ secretLabel, secretCheckbox, onSecretChange }) {
   let currentScope = null;
+
+  const getSecret = () => !!(currentScope && currentScope.supportsSecret) && secretCheckbox.checked;
+
+  const notifyChange = () => {
+    if (typeof onSecretChange === 'function') {
+      onSecretChange(getSecret());
+    }
+  };
 
   const setCurrentScope = (scope) => {
     currentScope = scope;
@@ -400,9 +408,13 @@ function createSecretController({ secretLabel, secretCheckbox }) {
     if (!supportsSecret) {
       secretCheckbox.checked = false;
     }
+    notifyChange();
   };
 
-  const getSecret = () => !!(currentScope && currentScope.supportsSecret) && secretCheckbox.checked;
+  secretCheckbox.addEventListener('change', (e) => {
+    e.stopPropagation();
+    notifyChange();
+  });
 
   return { setCurrentScope, getSecret };
 }
@@ -419,12 +431,14 @@ function createSecretController({ secretLabel, secretCheckbox }) {
  *   pending target scope. When `immediate` is true (after creating a brand new environment),
  *   the caller should save right away rather than waiting for the next blur.
  * @param {(scope: Object, name: string) => Promise<void>} onCreateEnvironment
+ * @param {(secret: boolean) => void} [onSecretChange] - Called whenever the Secret checkbox is toggled or the active scope changes.
  */
 export const createAddToScopeSwitcher = ({
   scopes,
   initialScope,
   onSwitchScope,
-  onCreateEnvironment
+  onCreateEnvironment,
+  onSecretChange
 }) => {
   const switcherElements = createAddToScopeSwitcherDOM();
 
@@ -433,7 +447,8 @@ export const createAddToScopeSwitcher = ({
   const createFormManager = createInlineCreateFormManager();
   const secretController = createSecretController({
     secretLabel: switcherElements.secretLabel,
-    secretCheckbox: switcherElements.secretCheckbox
+    secretCheckbox: switcherElements.secretCheckbox,
+    onSecretChange
   });
 
   secretController.setCurrentScope(initialScope);
