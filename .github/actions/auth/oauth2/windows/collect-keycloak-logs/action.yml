@@ -1,0 +1,24 @@
+name: 'Collect Keycloak Logs - Windows'
+description: 'Stage and upload the Keycloak server logs from an OAuth2 e2e run on Windows'
+
+runs:
+  using: 'composite'
+  steps:
+    # Keycloak logs live in RUNNER_TEMP (outside the workspace), so stage them into the
+    # workspace where upload-artifact can pick them up. stdout and stderr are redirected to
+    # separate files by the test step, so a crash shows up in keycloak.err.log.
+    - name: Stage Keycloak logs
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force -Path keycloak-logs | Out-Null
+        foreach ($name in 'keycloak.log', 'keycloak.err.log') {
+          $src = Join-Path $env:RUNNER_TEMP $name
+          if (Test-Path $src) { Copy-Item $src keycloak-logs\ } else { Write-Host "No $name to collect." }
+        }
+
+    - name: Upload Keycloak logs
+      uses: actions/upload-artifact@v4
+      with:
+        name: keycloak-logs-oauth2-windows
+        path: keycloak-logs/
+        retention-days: 30

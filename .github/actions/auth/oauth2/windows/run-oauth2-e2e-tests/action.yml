@@ -52,5 +52,7 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: playwright-report-oauth2-windows
-        path: playwright-report/
+        path: |
+          playwright-report/
+          test-results/
         retention-days: 30

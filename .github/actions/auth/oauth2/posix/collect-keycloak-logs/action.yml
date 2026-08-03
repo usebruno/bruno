@@ -1,0 +1,26 @@
+name: 'Collect Keycloak Logs - POSIX'
+description: 'Stage and upload the Keycloak server logs from an OAuth2 e2e run on Linux and macOS'
+
+inputs:
+  artifact-suffix:
+    description: 'Suffix for the uploaded log artifact name'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    # Keycloak logs live in /tmp (outside the workspace), so stage them into the workspace
+    # where upload-artifact can pick them up.
+    - name: Stage Keycloak logs
+      shell: bash
+      run: |
+        set -uo pipefail
+        mkdir -p keycloak-logs
+        cp /tmp/keycloak.log keycloak-logs/ 2>/dev/null || echo "No /tmp/keycloak.log to collect."
+
+    - name: Upload Keycloak logs
+      uses: actions/upload-artifact@v4
+      with:
+        name: keycloak-logs-oauth2-${{ inputs.artifact-suffix }}
+        path: keycloak-logs/
+        retention-days: 30

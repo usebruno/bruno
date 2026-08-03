@@ -138,8 +138,6 @@ jobs:
     timeout-minutes: 60
     runs-on: macos-latest
     permissions:
-      checks: write
-      pull-requests: write
       contents: read
     steps:
       - uses: actions/checkout@v6
@@ -148,7 +146,16 @@ jobs:
         uses: ./.github/actions/common/setup-node-deps
 
       - name: Setup Keycloak
-        uses: ./.github/actions/auth/oauth2/macos/setup-keycloak
+        uses: ./.github/actions/auth/oauth2/posix/setup-keycloak
 
       - name: Run OAuth2 E2E Tests
-        uses: ./.github/actions/auth/oauth2/macos/run-oauth2-e2e-tests
+        uses: ./.github/actions/auth/oauth2/posix/run-oauth2-e2e-tests
+        with:
+          artifact-suffix: macos
+
+      # Runs even when setup-keycloak or the test step failed, so a broken IdP is debuggable.
+      - name: Collect Keycloak Logs
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/auth/oauth2/posix/collect-keycloak-logs
+        with:
+          artifact-suffix: macos
