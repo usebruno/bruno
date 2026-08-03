@@ -5,7 +5,8 @@ import {
   openRequest,
   setAppCode,
   previewApp,
-  evalInActiveAppGuest as guestEval
+  evalInActiveAppGuest as guestEval,
+  waitForAppGuestReady
 } from '../utils/page';
 
 /*
@@ -25,9 +26,7 @@ const openAppWith = async (page, electronApp, createTmpDir, name: string, appCod
   await openRequest(page, `secure-${name}`, `req-${name}`, { persist: true });
   await setAppCode(page, appCode);
   await previewApp(page);
-  await expect
-    .poll(async () => guestEval(page, electronApp, 'window.bru && typeof window.bru.ctx'), { timeout: 20000 })
-    .toBe('object');
+  await waitForAppGuestReady(page, electronApp, { timeout: 20000 });
 };
 
 // Publishes into #out[data-result] so the host can poll for a settled value.
@@ -75,33 +74,51 @@ const awaitResult = async (page, electronApp, timeoutMs: number) => {
   return parsed;
 };
 
+// The values every guest must report; a shared origin or a data: fallback
+// fails here regardless of which test surfaced the guest.
+const expectSecureGuest = (result) => {
+  expect(result.protocol, 'guest must not fall back to a data: URL').toBe('bruno-app:');
+  // A per-app token in the host keeps each guest on its own origin; a shared
+  // origin would let apps reach each other's storage.
+  expect(result.origin).toMatch(/^bruno-app:\/\/[0-9a-f-]{36}$/);
+  expect(result.isSecureContext).toBe(true);
+  expect(result.hasSubtleCrypto).toBe(true);
+};
+
 test.describe('Apps - secure context', () => {
   test('the guest runs in a secure context with a usable subtle crypto', async ({
     page,
     electronApp,
     createTmpDir
   }) => {
-    await openAppWith(page, electronApp, createTmpDir, 'context', REPORT_APP);
+    await test.step('Open an app previewing the report document', async () => {
+      await openAppWith(page, electronApp, createTmpDir, 'context', REPORT_APP);
+    });
 
-    const result = await awaitResult(page, electronApp, 20000);
+    const result = await test.step('Read the guest report', () => awaitResult(page, electronApp, 20000));
 
-    expect(result.protocol, 'guest must not fall back to a data: URL').toBe('bruno-app:');
-    // A per-app token in the host keeps each guest on its own origin; a shared
-    // origin would let apps reach each other's storage.
-    expect(result.origin).toMatch(/^bruno-app:\/\/[0-9a-f-]{36}$/);
-    expect(result.isSecureContext).toBe(true);
-    expect(result.hasSubtleCrypto).toBe(true);
-    expect(result.digestError).toBeNull();
-    expect(result.digest, 'SHA-256 digest is 32 bytes').toBe(32);
+    await test.step('Assert the guest runs in a secure context', async () => {
+      expectSecureGuest(result);
+      expect(result.digestError).toBeNull();
+      expect(result.digest, 'SHA-256 digest is 32 bytes').toBe(32);
+    });
   });
 
   test('two apps get separate origins', async ({ page, electronApp, createTmpDir }) => {
-    await openAppWith(page, electronApp, createTmpDir, 'origin-a', REPORT_APP);
-    const first = await awaitResult(page, electronApp, 20000);
+    const first = await test.step('Open the first app and read its report', async () => {
+      await openAppWith(page, electronApp, createTmpDir, 'origin-a', REPORT_APP);
+      return awaitResult(page, electronApp, 20000);
+    });
 
-    await openAppWith(page, electronApp, createTmpDir, 'origin-b', REPORT_APP);
-    const second = await awaitResult(page, electronApp, 20000);
+    const second = await test.step('Open a second app and read its report', async () => {
+      await openAppWith(page, electronApp, createTmpDir, 'origin-b', REPORT_APP);
+      return awaitResult(page, electronApp, 20000);
+    });
 
-    expect(first.origin).not.toBe(second.origin);
+    await test.step('Assert both guests are secure and isolated from each other', async () => {
+      expectSecureGuest(first);
+      expectSecureGuest(second);
+      expect(first.origin).not.toBe(second.origin);
+    });
   });
 });

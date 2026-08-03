@@ -7,14 +7,9 @@ import {
   previewApp,
   saveRequest,
   selectRequestBodyMode,
-  evalInActiveAppGuest as guestEval
+  evalInActiveAppGuest as guestEval,
+  waitForAppGuestReady as waitForGuestReady
 } from '../utils/page';
-
-const waitForGuestReady = async (page, electronApp: ElectronApplication) => {
-  await expect
-    .poll(async () => guestEval(page, electronApp, 'window.bru && typeof window.bru.ctx'), { timeout: 15000 })
-    .toBe('object');
-};
 
 const guestResult = (page, electronApp: ElectronApplication) =>
   guestEval(page, electronApp, `document.getElementById('out') && document.getElementById('out').getAttribute('data-result')`);

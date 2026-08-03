@@ -2453,6 +2453,18 @@ const evalInActiveAppGuest = async (page: Page, electronApp: ElectronApplication
 };
 
 /**
+ * Wait until the active app's guest has booted far enough that `window.bru.ctx`
+ * exists — the injected bootstrap has run and the ctx bridge is usable.
+ */
+const waitForAppGuestReady = async (page: Page, electronApp: ElectronApplication, options: { timeout?: number } = {}) => {
+  await expect
+    .poll(async () => evalInActiveAppGuest(page, electronApp, 'window.bru && typeof window.bru.ctx'), {
+      timeout: options.timeout ?? 15000
+    })
+    .toBe('object');
+};
+
+/**
  * Create a standalone (collection-level or folder-level) app via the sidebar
  * context menu. Opens the new tab once created.
  * @param page - The page object
@@ -2738,6 +2750,7 @@ export {
   selectViewMode,
   getAppWebviewSrc,
   evalInActiveAppGuest,
+  waitForAppGuestReady,
   createApp,
   selectAppView,
   renameWsMessage,

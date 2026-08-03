@@ -109,7 +109,8 @@ export const useAppDocumentUrl = (ownerKey, bootstrap, code) => {
       setUrl(null);
       // Nothing renders this document anymore; free it now rather than holding
       // it until unmount.
-      window.ipcRenderer.invoke('renderer:unregister-app-document', { ownerKey }).catch(() => {});
+      window.ipcRenderer.invoke('renderer:unregister-app-document', { ownerKey })
+        .catch((err) => console.error('Failed to unregister app document', err));
       return;
     }
     let cancelled = false;
@@ -137,7 +138,8 @@ export const useAppDocumentUrl = (ownerKey, bootstrap, code) => {
   // the guest is still mounted.
   useEffect(() => {
     return () => {
-      window.ipcRenderer.invoke('renderer:unregister-app-document', { ownerKey }).catch(() => {});
+      window.ipcRenderer.invoke('renderer:unregister-app-document', { ownerKey })
+        .catch((err) => console.error('Failed to unregister app document', err));
     };
   }, [ownerKey]);
 
