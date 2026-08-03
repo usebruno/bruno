@@ -42,7 +42,7 @@ const Documentation = ({ collection, folder }) => {
   }
 
   return (
-    <StyledWrapper className="w-full relative flex flex-col">
+    <StyledWrapper className="h-full w-full relative flex flex-col">
       <div className="flex-1 min-h-0 flex flex-col">
         <DocsEditor
           docs={docs}
