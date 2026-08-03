@@ -4,37 +4,11 @@ description: 'Provision Keycloak (download + realm import prep) for the OAuth2 e
 runs:
   using: 'composite'
   steps:
-    - name: Check for existing Java 21
-      id: check-java
-      shell: pwsh
-      run: |
-        $present = 'false'
-        if (Get-Command java -ErrorAction SilentlyContinue) {
-          $ver = (& java -version 2>&1) -join "`n"
-          if ($ver -match 'version "21') {
-            Write-Host "Java 21 already available:`n$ver"
-            $present = 'true'
-          }
-        }
-        if ($present -ne 'true') { Write-Host "Java 21 not found; will install via setup-java." }
-        "present=$present" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-
     - name: Setup Java 21 (Temurin)
-      if: steps.check-java.outputs.present != 'true'
       uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: '21'
-
-    - name: Verify Java 21 is active
-      shell: pwsh
-      run: |
-        $ver = (& java -version 2>&1) -join "`n"
-        Write-Host $ver
-        if ($ver -notmatch 'version "21') {
-          Write-Error "Expected Java 21 to be active"
-          exit 1
-        }
 
     # NOTE: Keycloak is intentionally NOT started here. On Windows, GitHub Actions runs
     # each step inside a Job Object that terminates the step's entire child-process tree

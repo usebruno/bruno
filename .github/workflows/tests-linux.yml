@@ -204,8 +204,6 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     permissions:
-      checks: write
-      pull-requests: write
       contents: read
     steps:
       - uses: actions/checkout@v6
@@ -217,7 +215,17 @@ jobs:
         uses: ./.github/actions/auth/oauth1/linux/setup-feature-specific-deps
 
       - name: Setup Keycloak
-        uses: ./.github/actions/auth/oauth2/linux/setup-keycloak
+        uses: ./.github/actions/auth/oauth2/posix/setup-keycloak
 
       - name: Run OAuth2 E2E Tests
-        uses: ./.github/actions/auth/oauth2/linux/run-oauth2-e2e-tests
+        uses: ./.github/actions/auth/oauth2/posix/run-oauth2-e2e-tests
+        with:
+          use-xvfb: 'true'
+          artifact-suffix: linux
+
+      # Runs even when setup-keycloak or the test step failed, so a broken IdP is debuggable.
+      - name: Collect Keycloak Logs
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/auth/oauth2/posix/collect-keycloak-logs
+        with:
+          artifact-suffix: linux
