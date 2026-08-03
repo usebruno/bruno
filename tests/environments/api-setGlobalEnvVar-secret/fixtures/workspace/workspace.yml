@@ -1,0 +1,12 @@
+opencollection: 1.0.0
+info:
+  name: "My Workspace"
+  type: workspace
+
+collections:
+  - name: "Test Collection"
+    path: "collections/test-collection"
+
+specs:
+
+docs: ''

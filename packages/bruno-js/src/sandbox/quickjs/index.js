@@ -11,7 +11,7 @@ const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscrip
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
 const getBundledCode = require('../bundle-browser-rollup');
 const addPathShimToContext = require('./shims/lib/path');
-const { marshallToVm } = require('./utils');
+const { marshallToVm, createManagedQuickJsContext } = require('./utils');
 const addCryptoUtilsShimToContext = require('./shims/lib/crypto-utils');
 const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
 
@@ -56,9 +56,10 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
 
     externalScript = removeQuotes(externalScript);
   }
-
+  let managedQuickJsContext;
   try {
-    const vm = QuickJSModule.newContext();
+    managedQuickJsContext = createManagedQuickJsContext(QuickJSModule);
+    const vm = managedQuickJsContext.vm;
     const { bru, req, res, ...variables } = externalContext;
 
     bru && addBruShimToContext(vm, bru);
@@ -74,7 +75,7 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
 
     let scriptText = scriptType === 'template-literal' ? templateLiteralText : jsExpressionText;
 
-    const result = vm.evalCode(scriptText);
+    const result = vm.evalCodeRetained(scriptText);
     if (result.error) {
       let e = vm.dump(result.error);
       result.error.dispose();
@@ -86,6 +87,8 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
     }
   } catch (error) {
     console.error('Error executing the script!', error);
+  } finally {
+    managedQuickJsContext?.dispose();
   }
 };
 
@@ -95,9 +98,11 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
   }
   externalScript = externalScript?.trim();
 
+  let managedQuickJsContext;
   try {
     const module = await loader();
-    const vm = module.newContext();
+    managedQuickJsContext = createManagedQuickJsContext(module);
+    const vm = managedQuickJsContext.vm;
 
     // add crypto utilities required by the crypto-js library in bundledCode
     await addCryptoUtilsShimToContext(vm);
@@ -126,17 +131,27 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
     const script = wrapScriptInClosure(externalScript, SANDBOX.QUICKJS);
 
-    const result = vm.evalCode(script, scriptPath);
+    const result = vm.evalCodeRetained(script, scriptPath);
     const promiseHandle = vm.unwrapResult(result);
     const resolvedResult = await vm.resolvePromise(promiseHandle);
     promiseHandle.dispose();
     const resolvedHandle = vm.unwrapResult(resolvedResult);
     resolvedHandle.dispose();
-    // vm.dispose();
     return;
   } catch (error) {
     error.__isQuickJS = true;
     throw error;
+  } finally {
+    // Wait for any in-flight async work (sendRequest, axios, cookie jar, timers,
+    // un-awaited promises) to settle before tearing down the VM. Disposing while
+    // a deferred is still pending lets its later host callback touch a freed
+    // context, throwing `QuickJSUseAfterFree`.
+    try {
+      await managedQuickJsContext?.waitForPendingDeferreds?.();
+      managedQuickJsContext?.dispose();
+    } catch (teardownError) {
+      throw teardownError;
+    }
   }
 };
 

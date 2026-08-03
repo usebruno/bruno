@@ -101,7 +101,7 @@ describe('Postman to Bruno Converter with Examples', () => {
   };
 
   test('should convert Postman collection with examples to Bruno format', async () => {
-    const brunoCollection = await postmanToBruno(postmanCollectionWithExamples);
+    const { collection: brunoCollection } = await postmanToBruno(postmanCollectionWithExamples);
 
     expect(brunoCollection).toBeDefined();
     expect(brunoCollection.name).toBe('collection with examples');
@@ -180,7 +180,7 @@ describe('Postman to Bruno Converter with Examples', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(postmanCollectionWithoutExamples);
+    const { collection: brunoCollection } = await postmanToBruno(postmanCollectionWithoutExamples);
 
     expect(brunoCollection).toBeDefined();
     expect(brunoCollection.name).toBe('collection without examples');
@@ -218,7 +218,7 @@ describe('Postman to Bruno Converter with Examples', () => {
       ]
     };
 
-    const brunoCollection = await postmanToBruno(postmanCollectionWithEmptyExamples);
+    const { collection: brunoCollection } = await postmanToBruno(postmanCollectionWithEmptyExamples);
 
     expect(brunoCollection).toBeDefined();
     expect(brunoCollection.name).toBe('collection with empty examples');

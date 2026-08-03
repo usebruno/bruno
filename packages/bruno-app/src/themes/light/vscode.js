@@ -232,6 +232,12 @@ const vscodeLightTheme = {
     }
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.TEXT_LINK
+    }
+  },
+
   request: {
     methods: {
       get: colors.GREEN,
@@ -275,16 +281,14 @@ const vscodeLightTheme = {
   },
 
   notifications: {
-    bg: colors.WHITE,
+    bg: colors.EDITOR_BG,
     list: {
-      bg: colors.GRAY_2,
-      borderRight: 'transparent',
+      bg: colors.EDITOR_BG,
       borderBottom: colors.BORDER,
-      hoverBg: colors.GRAY_3,
+      hoverBg: colors.GRAY_4,
       active: {
-        border: colors.BRAND,
         bg: colors.GRAY_3,
-        hoverBg: colors.GRAY_3
+        hoverBg: colors.GRAY_5
       }
     }
   },

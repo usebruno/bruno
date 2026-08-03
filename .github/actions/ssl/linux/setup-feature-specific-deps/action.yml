@@ -11,5 +11,8 @@ runs:
           libglib2.0-0 libnss3 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libgtk-3-0 libasound2t64 \
           xvfb libxml2-utils
 
-        sudo chown root /home/runner/work/bruno/bruno/node_modules/electron/dist/chrome-sandbox
-        sudo chmod 4755 /home/runner/work/bruno/bruno/node_modules/electron/dist/chrome-sandbox
+        CHROME_SANDBOX="${GITHUB_WORKSPACE}/node_modules/electron/dist/chrome-sandbox"
+        if [[ -f "$CHROME_SANDBOX" ]]; then
+          sudo chown root "$CHROME_SANDBOX"
+          sudo chmod 4755 "$CHROME_SANDBOX"
+        fi

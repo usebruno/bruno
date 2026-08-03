@@ -1,3 +1,4 @@
+import path from 'path';
 import { initializeShellEnv } from './shell-env';
 
 let mockShellEnvResult: Record<string, string> = {};
@@ -31,6 +32,32 @@ describe('initializeShellEnv', () => {
 
     expect(process.env.http_proxy).toBe('updated_value');
     delete process.env.http_proxy;
+  });
+
+  test('should prepend shell PATH to existing process.env.PATH', async () => {
+    const shellNodeBin = path.join('fixtures', 'shell-env', 'node-bin');
+    const systemBin = path.join('fixtures', 'shell-env', 'system-bin');
+    const otherBin = path.join('fixtures', 'shell-env', 'other-bin');
+    process.env.PATH = [systemBin, otherBin].join(path.delimiter);
+    mockShellEnvResult = { PATH: shellNodeBin };
+
+    await initializeShellEnv();
+
+    expect(process.env.PATH).toBe(
+      [shellNodeBin, systemBin, otherBin].join(path.delimiter)
+    );
+    delete process.env.PATH;
+  });
+
+  test('should set PATH from shell when not in process.env', async () => {
+    const shellBin = path.join('fixtures', 'shell-env', 'shell-bin');
+    delete process.env.PATH;
+    mockShellEnvResult = { PATH: shellBin };
+
+    await initializeShellEnv();
+
+    expect(process.env.PATH).toBe(shellBin);
+    delete process.env.PATH;
   });
 
   test('should preserve multiple existing env vars while adding new ones', async () => {

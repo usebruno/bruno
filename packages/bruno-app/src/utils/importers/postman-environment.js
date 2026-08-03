@@ -1,5 +1,6 @@
 import { BrunoError } from 'utils/common/error';
 import { postmanToBrunoEnvironment } from '@usebruno/converters';
+import { dedupeImportedSecrets } from 'utils/environments';
 
 const importEnvironment = async (parsedFiles) => {
   try {
@@ -8,7 +9,7 @@ const importEnvironment = async (parsedFiles) => {
     for (const parsedFile of parsedFiles) {
       try {
         const environment = postmanToBrunoEnvironment(parsedFile.content);
-        environments.push(environment);
+        environments.push({ ...environment, variables: dedupeImportedSecrets(environment.variables) });
       } catch (err) {
         console.error(`Error processing file: ${parsedFile.fileName}`, err);
         throw new BrunoError(`Failed to process ${parsedFile.fileName}: ${err.message}`);

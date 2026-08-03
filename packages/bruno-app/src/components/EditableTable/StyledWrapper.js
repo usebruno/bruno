@@ -46,6 +46,10 @@ const StyledWrapper = styled.div`
         border-right: none;
       }
 
+      &.sortable-header {
+        cursor: pointer;
+      }
+
       .column-name {
         display: block;
         overflow: hidden;
@@ -107,27 +111,53 @@ const StyledWrapper = styled.div`
           overflow: hidden;
         }
 
-        /* Handle CodeMirror editors overflow */
-        .cm-editor {
+        /* Single-line CodeMirror editors: clip overflow to one row */
+        .single-line-editor .CodeMirror {
           max-width: 100%;
           height: 33px !important;
           max-height: 33px !important;
 
-          .cm-scroller {
+          .CodeMirror-scroll {
             overflow: hidden !important;
             max-height: 33px;
           }
 
-          .cm-content {
+          .CodeMirror-vscrollbar,
+          .CodeMirror-hscrollbar,
+          .CodeMirror-scrollbar-filler {
+            display: none;
+          }
+
+          .CodeMirror-lines {
             max-width: 100%;
           }
 
-          .cm-line {
+          .CodeMirror-line {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
           }
         }
+
+        &:has(.multi-line-editor) {
+          height: auto;
+          max-height: none;
+          overflow: visible;
+          white-space: normal;
+          text-overflow: clip;
+
+          > div:not(.drag-handle) {
+            height: auto;
+            max-height: none;
+            overflow: visible;
+          }
+        }
+      }
+
+      &:has(.multi-line-editor) {
+        height: auto;
+        max-height: calc(35px * 3); 
+        overflow: auto;
       }
     }
   }
@@ -164,6 +194,11 @@ const StyledWrapper = styled.div`
 
     &:focus {
       outline: none !important;
+    }
+    
+    &::placeholder {
+      color: ${(props) => props.theme.codemirror.placeholder.color} !important;
+      opacity: ${(props) => props.theme.codemirror.placeholder.opacity} !important;
     }
   }
 
@@ -211,12 +246,18 @@ const StyledWrapper = styled.div`
     opacity: 1;
   }
 
+  tbody tr.dragging-source {
+    opacity: 0.4;
+  }
+
   select {
     background-color: transparent;
     color: ${(props) => props.theme.text};
     border: none;
     outline: none;
-    padding: 2px 8px;
+    padding: 2px 2px;
+    width: 100%;
+    box-sizing: border-box;
     font-size: 12px;
     cursor: pointer;
 

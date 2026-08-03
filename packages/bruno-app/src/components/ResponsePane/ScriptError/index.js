@@ -5,7 +5,7 @@ import ErrorBanner from 'ui/ErrorBanner';
 import CodeSnippet from 'components/CodeSnippet';
 import { getTreePathFromCollectionToItem } from 'utils/collections';
 import { normalizePath } from 'utils/common/path';
-import { addTab, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { addTab, updateRequestPaneTab, updateScriptPaneTab, setFocusErrorLine } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import StyledWrapper from './StyledWrapper';
 
@@ -114,18 +114,28 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
     const collectionSettingsTab = scriptPhase === 'test' ? 'tests' : 'script';
     const folderSettingsTab = scriptPhase === 'test' ? 'test' : 'script';
 
+    const errorLine = errorContext?.errorLine;
+    const focusPayload = (uid) =>
+      typeof errorLine === 'number'
+        ? { uid, scriptPhase, line: errorLine, requestedAt: Date.now() }
+        : null;
+
     if (sourceInfo.sourceType === 'collection') {
       dispatch(addTab({ uid: collection.uid, collectionUid: collection.uid, type: 'collection-settings' }));
       dispatch(updateSettingsSelectedTab({ collectionUid: collection.uid, tab: collectionSettingsTab }));
       if (collectionSettingsTab === 'script') {
         dispatch(updateScriptPaneTab({ uid: collection.uid, scriptPaneTab: scriptPhase }));
       }
+      const payload = focusPayload(collection.uid);
+      if (payload) dispatch(setFocusErrorLine(payload));
     } else if (sourceInfo.sourceType === 'folder' && sourceInfo.sourceUid) {
       dispatch(addTab({ uid: sourceInfo.sourceUid, collectionUid: collection.uid, type: 'folder-settings' }));
       dispatch(updatedFolderSettingsSelectedTab({ collectionUid: collection.uid, folderUid: sourceInfo.sourceUid, tab: folderSettingsTab }));
       if (folderSettingsTab === 'script') {
         dispatch(updateScriptPaneTab({ uid: sourceInfo.sourceUid, scriptPaneTab: scriptPhase }));
       }
+      const payload = focusPayload(sourceInfo.sourceUid);
+      if (payload) dispatch(setFocusErrorLine(payload));
     } else if (sourceInfo.sourceType === 'request') {
       dispatch(addTab({ uid: item.uid, collectionUid: collection.uid, type: 'request' }));
       if (scriptPhase === 'test') {
@@ -134,6 +144,8 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
         dispatch(updateRequestPaneTab({ uid: item.uid, requestPaneTab: 'script' }));
         dispatch(updateScriptPaneTab({ uid: item.uid, scriptPaneTab: scriptPhase }));
       }
+      const payload = focusPayload(item.uid);
+      if (payload) dispatch(setFocusErrorLine(payload));
     }
   };
 

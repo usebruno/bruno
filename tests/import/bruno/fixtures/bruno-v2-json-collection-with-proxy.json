@@ -1,0 +1,87 @@
+{
+  "name": "proxy-collection-v2",
+  "version": "1",
+  "items": [
+    {
+      "type": "http",
+      "name": "proxy-get",
+      "filename": "proxy-get.bru",
+      "seq": 1,
+      "settings": {
+        "encodeUrl": true,
+        "timeout": 0
+      },
+      "tags": [],
+      "request": {
+        "url": "https://httpbin.org/get?paramName=paramValue",
+        "method": "GET",
+        "headers": [
+          {
+            "name": "headerKey",
+            "value": "headerValue",
+            "enabled": true
+          }
+        ],
+        "params": [
+          {
+            "name": "paramName",
+            "value": "paramValue",
+            "type": "query",
+            "enabled": true
+          }
+        ],
+        "body": {
+          "mode": "none",
+          "formUrlEncoded": [],
+          "multipartForm": [],
+          "file": []
+        },
+        "script": {},
+        "vars": {},
+        "assertions": [],
+        "tests": "",
+        "docs": "",
+        "auth": {
+          "mode": "inherit"
+        }
+      }
+    }
+  ],
+  "environments": [],
+  "root": {
+    "request": {
+      "headers": [
+        {
+          "name": "collectionHeader",
+          "value": "collectionHeaderValue",
+          "enabled": true,
+          "uid": "ZPXDKmXFtuYkq1KLjYIlz"
+        }
+      ]
+    },
+    "docs": "This is collection Doc"
+  },
+  "brunoConfig": {
+    "version": "1",
+    "name": "proxy-collection-v2",
+    "type": "collection",
+    "ignore": [
+      "node_modules",
+      ".git"
+    ],
+    "size": 0.0001430511474609375,
+    "filesCount": 1,
+    "proxy": {
+      "enabled": true,
+      "protocol": "http",
+      "hostname": "127.0.0.1",
+      "port": 8080,
+      "auth": {
+        "enabled": false,
+        "username": "",
+        "password": ""
+      },
+      "bypassProxy": ""
+    }
+  }
+}

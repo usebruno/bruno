@@ -1,6 +1,16 @@
 import find from 'lodash/find';
 
 import { interpolate } from '@usebruno/common';
+import { DEFAULT_SCHEME, hasExplicitScheme } from '@usebruno/common/utils';
+import { version as appVersion } from '../../../package.json';
+
+/**
+ * Tags a docs URL with the running app version, e.g. /docs/ai -> /docs/ai?version=2.0.0.
+ */
+export const getDocsUrlWithVersion = (url) => {
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}version=${appVersion}`;
+};
 
 const hasLength = (str) => {
   if (!str || !str.length) {
@@ -10,6 +20,24 @@ const hasLength = (str) => {
   str = str.trim();
 
   return str.length > 0;
+};
+
+const hasResolvablePathParamValue = (pathParam) => {
+  if (!pathParam || pathParam.enabled === false) {
+    return false;
+  }
+
+  const { value } = pathParam;
+
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof value === 'string' && !hasLength(value)) {
+    return false;
+  }
+
+  return true;
 };
 
 export const parsePathParams = (url) => {
@@ -93,6 +121,20 @@ export const isValidUrl = (url) => {
   }
 };
 
+/**
+ * `localhost:6000/x` becomes `http://localhost:6000/x`. A schemeless URL is sent over plain
+ * HTTP, but `new URL()` and HAR generation both reject it, so callers that have to parse one
+ * supply the scheme first. An empty URL is left alone for the caller to report, and so is a
+ * leading `{{var}}` — the variable may carry the scheme itself.
+ */
+export const prependDefaultScheme = (url) => {
+  if (!url || hasExplicitScheme(url) || url.startsWith('{{')) {
+    return url;
+  }
+
+  return `${DEFAULT_SCHEME}${url}`;
+};
+
 export const isHttpUrl = (url) => {
   try {
     const parsed = new URL(url);
@@ -100,6 +142,21 @@ export const isHttpUrl = (url) => {
   } catch {
     return false;
   }
+};
+
+// Allowlist rather than denylist: accept http(s) URLs and scheme-less
+// references (e.g. a docs-relative path like ./assets/logo.png), reject
+// anything else with an explicit protocol (javascript:, data:, file:, ...).
+export const isSafeUrl = (url) => {
+  if (typeof url !== 'string' || !url.length) {
+    return false;
+  }
+
+  if (isHttpUrl(url)) {
+    return true;
+  }
+
+  return !/^[a-z][a-z0-9+.-]*:/i.test(url);
 };
 
 export const interpolateUrl = ({ url, variables }) => {
@@ -111,6 +168,11 @@ export const interpolateUrl = ({ url, variables }) => {
 };
 
 export const interpolateUrlPathParams = (url, params, variables = {}, options = {}) => {
+  const substituteValue = (value) => {
+    const v = value == null ? '' : String(value);
+    return options.encodeUrl ? encodeURIComponent(v) : v;
+  };
+
   const getInterpolatedBasePath = (pathname, params) => {
     let replacedPathname = pathname
       .split('/')
@@ -119,7 +181,8 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
         if (segment.startsWith(':')) {
           const name = segment.slice(1);
           const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
-          return pathParam ? pathParam.value : segment;
+          return hasResolvablePathParamValue(pathParam) ? substituteValue(pathParam.value) : segment;
+          // return pathParam ? substituteValue(pathParam.value) : segment;
         }
 
         // for OData-style parameters (parameters inside parentheses)
@@ -142,8 +205,8 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
           if (!name) continue;
 
           const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
-          if (pathParam) {
-            result = result.replace(':' + match[1], pathParam.value);
+          if (hasResolvablePathParamValue(pathParam)) {
+            result = result.replace(':' + match[1], substituteValue(pathParam.value));
           }
         }
         return result;

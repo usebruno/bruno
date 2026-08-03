@@ -13,7 +13,7 @@ import RunConfigurationPanel from './RunConfigurationPanel';
 import Button from 'ui/Button/index';
 
 const getDisplayName = (fullPath, pathname, name = '') => {
-  let relativePath = path.relative(fullPath, pathname);
+  const relativePath = path.relative(fullPath, pathname);
   const { dir = '' } = path.parse(relativePath);
   return path.join(dir, name);
 };
@@ -231,7 +231,7 @@ export default function RunnerResults({ collection }) {
     skipped: items.filter((i) => i.status === 'skipped').length
   };
 
-  let isCollectionLoading = areItemsLoading(collection);
+  const isCollectionLoading = areItemsLoading(collection);
   if ((!items || !items.length) && !isReRunningRef.current) {
     return (
       <StyledWrapper className="pl-4 overflow-hidden h-full">
@@ -334,6 +334,7 @@ export default function RunnerResults({ collection }) {
               size="sm"
               variant="filled"
               color="danger"
+              data-testid="runner-cancel-button"
             >
               Cancel Execution
             </Button>
@@ -429,7 +430,7 @@ export default function RunnerResults({ collection }) {
                         Tags: {item.tags.filter((t) => tags.include.includes(t)).join(', ')}
                       </div>
                     )}
-                    {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
+                    {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs" data-testid="runner-iteration-status-label">{item.error}</div> : null}
 
                     <ul className="pl-8">
                       {item.preRequestTestResults

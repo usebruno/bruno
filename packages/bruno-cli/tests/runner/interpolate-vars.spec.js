@@ -18,6 +18,58 @@ describe('interpolate-vars: interpolateVars', () => {
     const result = interpolateVars(request, { shouldNotApply: 'value' }, null, null);
     expect(result.data).toBe(streamPayload);
   });
+
+  it('preserves raw string body when Content-Type is multipart/mixed', () => {
+    const rawMultipartBody = [
+      '--TestBoundary123',
+      'Content-Type: application/json',
+      '',
+      '{"test": true}',
+      '--TestBoundary123--',
+      ''
+    ].join('\r\n');
+
+    const request = {
+      method: 'POST',
+      mode: 'text',
+      url: 'https://httpbin.dev/post',
+      headers: { 'content-type': 'multipart/mixed; boundary=TestBoundary123' },
+      data: rawMultipartBody
+    };
+
+    const result = interpolateVars(request, {}, null, null);
+    expect(result.data).toBe(rawMultipartBody);
+  });
+
+  it('interpolates variables in raw multipart/mixed string body', () => {
+    const boundary = 'CustomBoundary123';
+    const rawMultipartBody = [
+      `--${boundary}`,
+      'Content-Type: text/plain',
+      '',
+      'Token: {{token}}',
+      `--${boundary}`,
+      'Content-Type: application/json',
+      '',
+      '{"id": "{{id}}", "msg": "{{msg}}"}',
+      `--${boundary}--`,
+      ''
+    ].join('\r\n');
+
+    const request = {
+      method: 'POST',
+      mode: 'text',
+      url: 'https://api.example/send',
+      headers: { 'content-type': `multipart/mixed; boundary=${boundary}` },
+      data: rawMultipartBody
+    };
+
+    const result = interpolateVars(request, { token: 'abc123', id: 42, msg: 'hello' }, null, null);
+    expect(result.data).toContain('Token: abc123');
+    expect(result.data).toContain('{"id": "42", "msg": "hello"}');
+    expect(result.data).toContain(`--${boundary}`);
+    expect(result.data).toContain(`--${boundary}--`);
+  });
 });
 
 describe('interpolate-vars: api key header name sidecar', () => {

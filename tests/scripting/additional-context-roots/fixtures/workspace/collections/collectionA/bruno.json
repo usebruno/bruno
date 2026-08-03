@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "name": "Collection A",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "scripts": {
+    "additionalContextRoots": ["../../shared-scripts"]
+  }
+}

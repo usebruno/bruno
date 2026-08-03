@@ -1,0 +1,34 @@
+meta {
+  name: content-types-mixed-interpolation
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{echo-host}}
+  body: text
+  auth: inherit
+}
+
+body:text {
+  ------MyCustomBoundaryString
+  Content-Disposition: form-data; name="metadata"
+  Content-Type: application/json
+  
+  {{version}}
+  
+  ------MyCustomBoundaryString--
+}
+
+vars:pre-request {
+  version: 0.0.1
+}
+
+assert {
+  res.body: contains 0.0.1
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -228,6 +228,12 @@ const lightPastelTheme = {
     }
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.BRAND
+    }
+  },
+
   request: {
     methods: {
       get: '#3c9d7c', // Soft emerald - success
@@ -271,16 +277,14 @@ const lightPastelTheme = {
   },
 
   notifications: {
-    bg: colors.WHITE,
+    bg: colors.BACKGROUND,
     list: {
-      bg: colors.GRAY_2,
-      borderRight: 'transparent',
+      bg: colors.BACKGROUND,
       borderBottom: colors.GRAY_4,
-      hoverBg: colors.GRAY_3,
+      hoverBg: colors.GRAY_4,
       active: {
-        border: colors.BRAND,
         bg: colors.GRAY_3,
-        hoverBg: colors.GRAY_3
+        hoverBg: colors.GRAY_5
       }
     }
   },

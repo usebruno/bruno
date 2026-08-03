@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-import { mergeHeaders, transformRequestToSaveToFilesystem } from './index';
+import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts } from './index';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
@@ -84,5 +84,51 @@ describe('transformRequestToSaveToFilesystem', () => {
 
     expect(transformed.request.params[0].annotations).toEqual([{ name: 'param-note', value: 'keep me' }]);
     expect(transformed.request.headers[0].annotations).toEqual([{ name: 'header-note', value: 'keep me' }]);
+  });
+});
+
+describe('getCollectionItemCounts', () => {
+  it('counts folders and requests recursively at every depth', () => {
+    const items = [
+      {
+        type: 'folder',
+        name: 'Zoo',
+        items: [
+          { type: 'http-request', name: 'Lion', request: {} },
+          { type: 'graphql-request', name: 'Bear', request: {} }
+        ]
+      },
+      {
+        type: 'folder',
+        name: 'Aviary',
+        items: [
+          {
+            type: 'folder',
+            name: 'Nest',
+            items: [{ type: 'http-request', name: 'Egg', request: {} }]
+          }
+        ]
+      },
+      { type: 'http-request', name: 'RootReq', request: {} }
+    ];
+
+    // Folders: Zoo, Aviary, Nest -> 3. Requests: Lion, Bear, Egg, RootReq -> 4.
+    expect(getCollectionItemCounts(items)).toEqual({ folderCount: 3, requestCount: 4 });
+  });
+
+  it('counts every request transport type', () => {
+    const items = [
+      { type: 'http-request', request: {} },
+      { type: 'graphql-request', request: {} },
+      { type: 'grpc-request', request: {} },
+      { type: 'ws-request', request: {} }
+    ];
+
+    expect(getCollectionItemCounts(items)).toEqual({ folderCount: 0, requestCount: 4 });
+  });
+
+  it('returns zero counts for empty or missing items', () => {
+    expect(getCollectionItemCounts([])).toEqual({ folderCount: 0, requestCount: 0 });
+    expect(getCollectionItemCounts(undefined)).toEqual({ folderCount: 0, requestCount: 0 });
   });
 });

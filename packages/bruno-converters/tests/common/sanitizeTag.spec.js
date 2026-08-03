@@ -125,14 +125,50 @@ describe('sanitizeTag', () => {
     });
   });
 
-  describe('options handling', () => {
-    it('should ignore collectionFormat option and always sanitize', () => {
-      // The collectionFormat option is no longer used - always sanitize
-      // Spaces are replaced with underscores for BRU format compatibility
-      expect(sanitizeTag('User Management', { collectionFormat: 'yml' })).toBe('User_Management');
-      expect(sanitizeTag('api.v1', { collectionFormat: 'yml' })).toBe('api_v1');
-      // 'API (v1)' becomes 'API_v1' (space and parentheses become underscores)
-      expect(sanitizeTag('API (v1)', { collectionFormat: 'yml' })).toBe('API_v1');
+  describe('options.collectionFormat handling (BRU-3175)', () => {
+    describe('yml (OpenCollection) — preserves tag verbatim', () => {
+      it('preserves ampersand and spaces', () => {
+        expect(sanitizeTag('Pets & Dogs', { collectionFormat: 'yml' })).toBe('Pets & Dogs');
+        expect(sanitizeTag('R&D', { collectionFormat: 'yml' })).toBe('R&D');
+      });
+
+      it('preserves a single special character', () => {
+        expect(sanitizeTag('&', { collectionFormat: 'yml' })).toBe('&');
+      });
+
+      it('preserves dots, parentheses and other punctuation', () => {
+        expect(sanitizeTag('api.v1', { collectionFormat: 'yml' })).toBe('api.v1');
+        expect(sanitizeTag('API (v1)', { collectionFormat: 'yml' })).toBe('API (v1)');
+      });
+
+      it('trims surrounding whitespace but keeps inner whitespace verbatim', () => {
+        expect(sanitizeTag('  Pets & Dogs  ', { collectionFormat: 'yml' })).toBe('Pets & Dogs');
+      });
+
+      it('returns null for whitespace-only input', () => {
+        expect(sanitizeTag('   ', { collectionFormat: 'yml' })).toBeNull();
+      });
+
+      it('reads .name from tag-object input', () => {
+        expect(sanitizeTag({ name: 'R&D' }, { collectionFormat: 'yml' })).toBe('R&D');
+      });
+    });
+
+    describe('bru (legacy) — keeps existing strict sanitization', () => {
+      it('rewrites ampersand and spaces to underscores', () => {
+        expect(sanitizeTag('Pets & Dogs', { collectionFormat: 'bru' })).toBe('Pets_Dogs');
+        expect(sanitizeTag('R&D', { collectionFormat: 'bru' })).toBe('R_D');
+      });
+
+      it('drops a tag of only special characters', () => {
+        expect(sanitizeTag('&', { collectionFormat: 'bru' })).toBeNull();
+      });
+
+      it('matches default behavior when collectionFormat is omitted', () => {
+        expect(sanitizeTag('Pets & Dogs')).toBe('Pets_Dogs');
+        expect(sanitizeTag('R&D')).toBe('R_D');
+        expect(sanitizeTag('&')).toBeNull();
+      });
     });
   });
 });

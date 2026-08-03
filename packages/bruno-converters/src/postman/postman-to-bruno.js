@@ -1,9 +1,15 @@
-import get from 'lodash/get';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, uuid } from '../common';
+import mime from 'mime-types';
 import { transformExampleStatusInCollection } from '@usebruno/common';
 import each from 'lodash/each';
-import postmanTranslation from './postman-translations';
+import get from 'lodash/get';
+import { hydrateSeqInCollection, transformItemsInCollection, uuid, validateSchema } from '../common';
 import { invalidVariableCharacterRegex } from '../constants/index';
+import {
+  buildPackageReport,
+  extractPackagesFromScript,
+  TRANSLATOR_INJECTED_GLOBALS
+} from './postman-package-detector';
+import postmanTranslation from './postman-translations';
 
 const AUTH_TYPES = Object.freeze({
   BASIC: 'basic',
@@ -13,7 +19,9 @@ const AUTH_TYPES = Object.freeze({
   DIGEST: 'digest',
   OAUTH1: 'oauth1',
   OAUTH2: 'oauth2',
+  EDGEGRID: 'edgegrid',
   NOAUTH: 'noauth',
+  NTLM: 'ntlm',
   NONE: 'none'
 });
 
@@ -84,6 +92,23 @@ const ensureString = (value, fallback = '') => {
   if (typeof value === 'string') return value;
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
+};
+
+// EdgeGrid's maxBodySize is numeric in Bruno; coerce Postman's value (number or string) to a number or null.
+const ensureMaxBodySize = (value) => {
+  if (value == null || value === '') return null;
+  const num = Number(value);
+  return isNaN(num) ? null : num;
+};
+
+/**
+ * Postman's `mode: "file"` body carries no per-file content type. Infer it from the
+ * file extension; fall back to application/octet-stream (RFC 2046 §4.5.1) when the
+ * extension is missing or unknown.
+ * https://datatracker.ietf.org/doc/html/rfc2046#section-4.5.1
+ */
+const inferBinaryContentType = (filePath) => {
+  return mime.lookup(filePath || '') || 'application/octet-stream';
 };
 
 /**
@@ -173,7 +198,10 @@ const constructUrl = (url) => {
   return '';
 };
 
-const importScriptsFromEvents = (events, requestObject) => {
+const translateOrPreserve = (exec, preserveScripts) =>
+  preserveScripts ? (Array.isArray(exec) ? exec.join('\n') : exec) : postmanTranslation(exec);
+
+const importScriptsFromEvents = (events, requestObject, preserveScripts = false) => {
   events.forEach((event) => {
     if (event.script && event.script.exec) {
       if (event.listen === 'prerequest') {
@@ -182,7 +210,7 @@ const importScriptsFromEvents = (events, requestObject) => {
         }
 
         if (event.script.exec && event.script.exec.length > 0) {
-          requestObject.script.req = postmanTranslation(event.script.exec);
+          requestObject.script.req = translateOrPreserve(event.script.exec, preserveScripts);
         } else {
           requestObject.script.req = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -195,7 +223,7 @@ const importScriptsFromEvents = (events, requestObject) => {
         }
 
         if (event.script.exec && event.script.exec.length > 0) {
-          requestObject.script.res = postmanTranslation(event.script.exec);
+          requestObject.script.res = translateOrPreserve(event.script.exec, preserveScripts);
         } else {
           requestObject.script.res = '';
           console.warn('Unexpected event.script.exec type', typeof event.script.exec);
@@ -276,6 +304,28 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         password: ensureString(authValues.password)
       };
       break;
+    case AUTH_TYPES.EDGEGRID:
+      requestObject.auth.mode = 'akamai-edgegrid';
+      requestObject.auth.akamaiEdgegrid = {
+        accessToken: ensureString(authValues.accessToken),
+        clientToken: ensureString(authValues.clientToken),
+        clientSecret: ensureString(authValues.clientSecret),
+        nonce: ensureString(authValues.nonce),
+        timestamp: ensureString(authValues.timestamp),
+        baseURL: ensureString(authValues.baseURL),
+        headersToSign: ensureString(authValues.headersToSign),
+        maxBodySize: ensureMaxBodySize(authValues.maxBodySize)
+      };
+      break;
+    case AUTH_TYPES.NTLM:
+      // Postman's `workstation` field has no Bruno equivalent, so it is dropped here.
+      requestObject.auth.ntlm = {
+        username: ensureString(authValues.username),
+        password: ensureString(authValues.password),
+        domain: ensureString(authValues.domain)
+      };
+      break;
+
     case AUTH_TYPES.OAUTH1:
       requestObject.auth.oauth1 = {
         consumerKey: ensureString(authValues.consumerKey),
@@ -303,14 +353,42 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         authorization_code_with_pkce: 'authorization_code',
         authorization_code: 'authorization_code',
         client_credentials: 'client_credentials',
-        password_credentials: 'password'
+        password_credentials: 'password',
+        implicit: 'implicit'
       };
 
       const postmanGrantType = findValueUsingKey('grant_type');
       const targetGrantType = oauth2GrantTypeMaps[postmanGrantType] || 'client_credentials'; // Default
 
+      // Maps Postman's request-params arrays to Bruno's `additionalParameters`, converting `send_as`
+      // ('request_header'/'request_url'/'request_body') to Bruno's `sendIn` ('headers'/'queryparams'/'body').
+      const sendAsToSendIn = { request_header: 'headers', request_url: 'queryparams', request_body: 'body' };
+      const mapRequestParams = (params) => (Array.isArray(params) ? params : []).map((param) => ({
+        name: ensureString(param.key),
+        value: ensureString(param.value),
+        sendIn: sendAsToSendIn[param.send_as] || 'headers',
+        enabled: param.enabled !== false
+      }));
+      const additionalParameters = {};
+      if (Array.isArray(authValues.authRequestParams)) {
+        additionalParameters.authorization = mapRequestParams(authValues.authRequestParams);
+      }
+      if (Array.isArray(authValues.tokenRequestParams)) {
+        additionalParameters.token = mapRequestParams(authValues.tokenRequestParams);
+      }
+      if (Array.isArray(authValues.refreshRequestParams)) {
+        additionalParameters.refresh = mapRequestParams(authValues.refreshRequestParams);
+      }
+      const hasAdditionalParameters = Object.keys(additionalParameters).length > 0;
+      // The schema requires an `authorization` array for the authorization_code grant, so ensure it
+      // exists when any additional params are attached to this grant type.
+      if (hasAdditionalParameters && targetGrantType === 'authorization_code' && !additionalParameters.authorization) {
+        additionalParameters.authorization = [];
+      }
+
       // Common properties for all OAuth2 grant types
       const baseOAuth2Config = {
+        ...(hasAdditionalParameters ? { additionalParameters } : {}),
         grantType: targetGrantType,
         accessTokenUrl: findValueUsingKey('accessTokenUrl'),
         refreshTokenUrl: findValueUsingKey('refreshTokenUrl'),
@@ -319,7 +397,10 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         scope: findValueUsingKey('scope'),
         state: findValueUsingKey('state'),
         tokenPlacement: findValueUsingKey('addTokenTo') === 'header' ? 'header' : 'url',
-        tokenEndpointAuthMethod: findValueUsingKey('client_authentication') === 'body' ? 'client_secret_post' : 'client_secret_basic'
+        tokenHeaderPrefix: findValueUsingKey('headerPrefix'),
+        tokenQueryKey: 'access_token',
+        tokenEndpointAuthMethod: findValueUsingKey('client_authentication') === 'body' ? 'client_secret_post' : 'client_secret_basic',
+        credentialsId: findValueUsingKey('tokenName')
       };
 
       switch (postmanGrantType) {
@@ -349,6 +430,13 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
         case 'client_credentials':
           requestObject.auth.oauth2 = baseOAuth2Config;
           break;
+        case 'implicit':
+          requestObject.auth.oauth2 = {
+            ...baseOAuth2Config,
+            authorizationUrl: findValueUsingKey('authUrl'),
+            callbackUrl: findValueUsingKey('redirect_uri')
+          };
+          break;
         default:
           console.warn('Unexpected OAuth2 grant type after mapping:', targetGrantType);
           requestObject.auth.oauth2 = baseOAuth2Config; // Fallback to default which is Client Credentials
@@ -363,12 +451,20 @@ export const processAuth = (auth, requestObject, isCollection = false) => {
   }
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false } = {}, scriptMap) => {
+const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = false } = {}, scriptMap, issues = [], parentPath = '') => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
 
   item.forEach((i, index) => {
+    if (typeof i !== 'object' || i === null) {
+      issues.push({ path: parentPath ? `${parentPath} / Item ${index + 1}` : `Item ${index + 1}`, severity: 'error', message: 'Malformed collection item (not an object)' });
+      return;
+    }
+
+    const itemName = i.name || `Item ${index + 1}`;
+    const itemPath = parentPath ? `${parentPath} / ${itemName}` : itemName;
+
     if (isItemAFolder(i)) {
       const baseFolderName = i.name || 'Untitled Folder';
       let folderName = baseFolderName;
@@ -399,7 +495,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
               apikey: null,
               oauth1: null,
               oauth2: null,
-              digest: null
+              digest: null,
+              ntlm: null
             },
             headers: [],
             script: {},
@@ -415,393 +512,421 @@ const importPostmanV2CollectionItem = (brunoParent, item, { useWorkers = false }
       processAuth(i.auth, brunoFolderItem.root.request);
 
       if (i.item && i.item.length) {
-        importPostmanV2CollectionItem(brunoFolderItem, i.item, { useWorkers }, scriptMap);
+        importPostmanV2CollectionItem(brunoFolderItem, i.item, { preserveScripts }, scriptMap, issues, itemPath);
       }
 
       if (i.event) {
-        if (useWorkers) {
+        if (scriptMap) {
           scriptMap.set(brunoFolderItem.uid, {
             events: i.event,
             request: brunoFolderItem.root.request
           });
         } else {
-          importScriptsFromEvents(i.event, brunoFolderItem.root.request);
+          importScriptsFromEvents(i.event, brunoFolderItem.root.request, preserveScripts);
         }
       }
 
       folderMap[folderName] = brunoFolderItem;
     } else if (i.request) {
-      const method = i?.request?.method?.toUpperCase();
-      if (!method || typeof method !== 'string' || !method.trim()) {
-        console.warn('Missing or invalid request.method', method);
+      const rawMethod = i?.request?.method;
+      if (!rawMethod || typeof rawMethod !== 'string' || !rawMethod.trim()) {
+        issues.push({ path: itemPath, severity: 'error', message: 'Missing or invalid request method', sourceItem: i });
         return;
       }
+      const method = rawMethod.toUpperCase();
 
-      const baseRequestName = i.name || 'Untitled Request';
-      let requestName = baseRequestName;
-      let count = 1;
+      try {
+        const baseRequestName = i.name || 'Untitled Request';
+        let requestName = baseRequestName;
+        let count = 1;
 
-      while (requestMap[requestName]) {
-        requestName = `${baseRequestName}_${count}`;
-        count++;
-      }
-
-      const url = constructUrl(i.request.url);
-
-      const brunoRequestItem = {
-        uid: uuid(),
-        name: requestName,
-        type: 'http-request',
-        seq: index + 1,
-        request: {
-          url: url,
-          method: method,
-          auth: {
-            mode: 'inherit',
-            basic: null,
-            bearer: null,
-            awsv4: null,
-            apikey: null,
-            oauth1: null,
-            oauth2: null,
-            digest: null
-          },
-          headers: [],
-          params: [],
-          body: {
-            mode: 'none',
-            json: null,
-            text: null,
-            xml: null,
-            formUrlEncoded: [],
-            multipartForm: []
-          },
-          docs: transformDescription(i.request.description)
-        }
-      };
-
-      const settings = {
-        encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true
-      };
-
-      // Handle followRedirects setting
-      if (i.protocolProfileBehavior?.followRedirects !== undefined) {
-        settings.followRedirects = i.protocolProfileBehavior.followRedirects;
-      }
-
-      // Handle maxRedirects setting
-      if (i.protocolProfileBehavior?.maxRedirects !== undefined) {
-        settings.maxRedirects = i.protocolProfileBehavior.maxRedirects;
-      }
-
-      brunoRequestItem.settings = settings;
-
-      brunoParent.items.push(brunoRequestItem);
-
-      if (i.event) {
-        if (useWorkers) {
-          scriptMap.set(brunoRequestItem.uid, {
-            events: i.event,
-            request: brunoRequestItem.request
-          });
-        } else {
-          i.event.forEach((event) => {
-            if (event.listen === 'prerequest' && event.script && event.script.exec) {
-              if (!brunoRequestItem.request?.script) {
-                brunoRequestItem.request.script = {};
-              }
-              if (event.script.exec && event.script.exec.length > 0) {
-                brunoRequestItem.request.script.req = postmanTranslation(event.script.exec);
-              } else {
-                brunoRequestItem.request.script.req = '';
-                console.warn('Unexpected event.script.exec type', typeof event.script.exec);
-              }
-            }
-            if (event.listen === 'test' && event.script && event.script.exec) {
-              if (!brunoRequestItem.request?.script) {
-                brunoRequestItem.request.script = {};
-              }
-              if (event.script.exec && event.script.exec.length > 0) {
-                brunoRequestItem.request.script.res = postmanTranslation(event.script.exec);
-              } else {
-                brunoRequestItem.request.script.res = '';
-                console.warn('Unexpected event.script.exec type', typeof event.script.exec);
-              }
-            }
-          });
-        }
-      }
-
-      const bodyMode = get(i, 'request.body.mode');
-      if (bodyMode) {
-        if (bodyMode === 'formdata') {
-          brunoRequestItem.request.body.mode = 'multipartForm';
-
-          each(i.request.body.formdata, (param) => {
-            if (param.key == null && param.value == null) return;
-            const isFile = param.type === 'file' || (param.type === 'default' && param.src);
-            const value = isFile
-              ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
-              : (Array.isArray(param.value) ? param.value.join('') : ensureString(param.value));
-
-            brunoRequestItem.request.body.multipartForm.push({
-              uid: uuid(),
-              type: isFile ? 'file' : 'text',
-              name: ensureString(param.key),
-              value,
-              description: transformDescription(param.description),
-              enabled: !param.disabled,
-              ...(param.contentType && { contentType: param.contentType })
-            });
-          });
+        while (requestMap[requestName]) {
+          requestName = `${baseRequestName}_${count}`;
+          count++;
         }
 
-        if (bodyMode === 'urlencoded') {
-          brunoRequestItem.request.body.mode = 'formUrlEncoded';
-          each(i.request.body.urlencoded, (param) => {
-            if (param.key == null && param.value == null) return;
-            brunoRequestItem.request.body.formUrlEncoded.push({
-              uid: uuid(),
-              name: ensureString(param.key),
-              value: ensureString(param.value),
-              description: transformDescription(param.description),
-              enabled: !param.disabled
-            });
-          });
-        }
+        const url = constructUrl(i.request.url);
 
-        if (bodyMode === 'raw') {
-          let language = get(i, 'request.body.options.raw.language');
-          if (!language) {
-            language = searchLanguageByHeader(i.request.header);
-          }
-          if (language === 'json') {
-            brunoRequestItem.request.body.mode = 'json';
-            brunoRequestItem.request.body.json = i.request.body.raw;
-          } else if (language === 'xml') {
-            brunoRequestItem.request.body.mode = 'xml';
-            brunoRequestItem.request.body.xml = i.request.body.raw;
-          } else {
-            brunoRequestItem.request.body.mode = 'text';
-            brunoRequestItem.request.body.text = i.request.body.raw;
-          }
-        }
-      }
-
-      if (bodyMode === 'graphql') {
-        brunoRequestItem.type = 'graphql-request';
-        brunoRequestItem.request.body.mode = 'graphql';
-        brunoRequestItem.request.body.graphql = parseGraphQLRequest(i.request.body.graphql);
-      }
-
-      each(normalizeHeaders(i.request.header), (header) => {
-        if (header.key == null && header.value == null) return;
-        brunoRequestItem.request.headers.push({
+        const brunoRequestItem = {
           uid: uuid(),
-          name: ensureString(header.key),
-          value: ensureString(header.value),
-          description: transformDescription(header.description),
-          enabled: !header.disabled
-        });
-      });
-
-      // Request-level auth
-      processAuth(i.request.auth, brunoRequestItem.request);
-
-      each(get(i, 'request.url.query'), (param) => {
-        if (param.key == null && param.value == null) {
-          return;
-        }
-        brunoRequestItem.request.params.push({
-          uid: uuid(),
-          name: ensureString(param.key),
-          value: ensureString(param.value),
-          description: transformDescription(param.description),
-          type: 'query',
-          enabled: !param.disabled
-        });
-      });
-
-      each(get(i, 'request.url.variable', []), (param) => {
-        if (!param.key) {
-          // If no key, skip this iteration and discard the param
-          return;
-        }
-
-        brunoRequestItem.request.params.push({
-          uid: uuid(),
-          name: ensureString(param.key),
-          value: ensureString(param.value),
-          description: transformDescription(param.description),
-          type: 'path',
-          enabled: true
-        });
-      });
-
-      // Handle Postman examples (responses)
-      if (i.response && Array.isArray(i.response)) {
-        brunoRequestItem.examples = [];
-
-        i.response.forEach((response, responseIndex) => {
-          const sanitized = String(response.name ?? '').replace(/\r?\n/g, ' ').trim();
-          const exampleName = sanitized || `Example ${responseIndex + 1}`;
-
-          // Convert originalRequest to Bruno request format
-          const originalRequest = response.originalRequest || {};
-          const exampleUrl = constructUrl(originalRequest.url);
-          const exampleMethod = originalRequest.method?.toUpperCase() || method;
-
-          const example = {
-            uid: uuid(),
-            itemUid: brunoRequestItem.uid,
-            name: exampleName,
-            description: '',
-            type: 'http-request',
-            request: {
-              url: exampleUrl,
-              method: exampleMethod,
-              headers: [],
-              params: [],
-              body: {
-                mode: 'none',
-                json: null,
-                text: null,
-                xml: null,
-                formUrlEncoded: [],
-                multipartForm: []
-              }
+          name: requestName,
+          type: 'http-request',
+          seq: index + 1,
+          request: {
+            url: url,
+            method: method,
+            auth: {
+              mode: 'inherit',
+              basic: null,
+              bearer: null,
+              awsv4: null,
+              apikey: null,
+              oauth1: null,
+              oauth2: null,
+              digest: null,
+              ntlm: null
             },
-            response: {
-              status: response.code || null,
-              statusText: response.status || '',
-              headers: [],
-              body: {
-                type: getBodyTypeFromContentTypeHeader(response.header),
-                content: response.body || ''
-              }
-            }
-          };
+            headers: [],
+            params: [],
+            body: {
+              mode: 'none',
+              json: null,
+              text: null,
+              xml: null,
+              formUrlEncoded: [],
+              multipartForm: [],
+              file: []
+            },
+            docs: transformDescription(i.request.description)
+          }
+        };
 
-          // Convert original request headers
-          if (originalRequest.header) {
-            normalizeHeaders(originalRequest.header).forEach((header) => {
-              if (header.key == null && header.value == null) return;
-              example.request.headers.push({
+        const settings = {
+          encodeUrl: i.protocolProfileBehavior?.disableUrlEncoding !== true,
+          forwardAuthorizationHeader: i.protocolProfileBehavior?.followAuthorizationHeader ?? false
+        };
+
+        // Handle followRedirects setting
+        if (i.protocolProfileBehavior?.followRedirects !== undefined) {
+          settings.followRedirects = i.protocolProfileBehavior.followRedirects;
+        }
+
+        // Handle maxRedirects setting
+        if (i.protocolProfileBehavior?.maxRedirects !== undefined) {
+          settings.maxRedirects = i.protocolProfileBehavior.maxRedirects;
+        }
+
+        brunoRequestItem.settings = settings;
+
+        if (i.event) {
+          if (scriptMap) {
+            scriptMap.set(brunoRequestItem.uid, {
+              events: i.event,
+              request: brunoRequestItem.request
+            });
+          } else {
+            i.event.forEach((event) => {
+              if (event.listen === 'prerequest' && event.script && event.script.exec) {
+                if (!brunoRequestItem.request?.script) {
+                  brunoRequestItem.request.script = {};
+                }
+                if (event.script.exec && event.script.exec.length > 0) {
+                  brunoRequestItem.request.script.req = translateOrPreserve(event.script.exec, preserveScripts);
+                } else {
+                  brunoRequestItem.request.script.req = '';
+                  console.warn('Unexpected event.script.exec type', typeof event.script.exec);
+                }
+              }
+              if (event.listen === 'test' && event.script && event.script.exec) {
+                if (!brunoRequestItem.request?.script) {
+                  brunoRequestItem.request.script = {};
+                }
+                if (event.script.exec && event.script.exec.length > 0) {
+                  brunoRequestItem.request.script.res = translateOrPreserve(event.script.exec, preserveScripts);
+                } else {
+                  brunoRequestItem.request.script.res = '';
+                  console.warn('Unexpected event.script.exec type', typeof event.script.exec);
+                }
+              }
+            });
+          }
+        }
+
+        const bodyMode = get(i, 'request.body.mode');
+        if (bodyMode) {
+          if (bodyMode === 'formdata') {
+            brunoRequestItem.request.body.mode = 'multipartForm';
+
+            each(i.request.body.formdata, (param) => {
+              if (param.key == null && param.value == null) return;
+              const isFile = param.type === 'file' || (param.type === 'default' && param.src);
+              const value = isFile
+                ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
+                : (Array.isArray(param.value) ? param.value.join('') : ensureString(param.value));
+
+              brunoRequestItem.request.body.multipartForm.push({
                 uid: uuid(),
-                name: ensureString(header.key),
-                value: ensureString(header.value),
-                description: transformDescription(header.description),
-                enabled: !header.disabled
+                type: isFile ? 'file' : 'text',
+                name: ensureString(param.key),
+                value,
+                description: transformDescription(param.description),
+                enabled: !param.disabled,
+                ...(param.contentType && { contentType: param.contentType })
               });
             });
           }
 
-          // Convert original request query parameters
-          if (originalRequest.url && originalRequest.url.query && Array.isArray(originalRequest.url.query)) {
-            originalRequest.url.query.forEach((param) => {
-              if (param.key == null && param.value == null) {
-                return;
-              }
-              example.request.params.push({
+          if (bodyMode === 'urlencoded') {
+            brunoRequestItem.request.body.mode = 'formUrlEncoded';
+            each(i.request.body.urlencoded, (param) => {
+              if (param.key == null && param.value == null) return;
+              brunoRequestItem.request.body.formUrlEncoded.push({
                 uid: uuid(),
                 name: ensureString(param.key),
                 value: ensureString(param.value),
                 description: transformDescription(param.description),
-                type: 'query',
                 enabled: !param.disabled
               });
             });
           }
 
-          if (originalRequest.url && originalRequest.url.variable && Array.isArray(originalRequest.url.variable)) {
-            originalRequest.url.variable.forEach((param) => {
-              if (!param.key) return;
-              example.request.params.push({
-                uid: uuid(),
-                name: ensureString(param.key),
-                value: ensureString(param.value),
-                description: transformDescription(param.description),
-                type: 'path',
-                enabled: true
-              });
-            });
-          }
-
-          // Convert original request body
-          if (originalRequest.body) {
-            const bodyMode = originalRequest.body.mode;
-            if (bodyMode === 'formdata') {
-              example.request.body.mode = 'multipartForm';
-              if (originalRequest.body.formdata && Array.isArray(originalRequest.body.formdata)) {
-                originalRequest.body.formdata.forEach((param) => {
-                  if (param.key == null && param.value == null) return;
-                  const isFile = param.type === 'file' || (param.type === 'default' && param.src);
-                  const value = isFile
-                    ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
-                    : (Array.isArray(param.value) ? param.value.join('') : ensureString(param.value));
-
-                  example.request.body.multipartForm.push({
-                    uid: uuid(),
-                    type: isFile ? 'file' : 'text',
-                    name: ensureString(param.key),
-                    value,
-                    description: transformDescription(param.description),
-                    enabled: !param.disabled,
-                    ...(param.contentType && { contentType: param.contentType })
-                  });
-                });
-              }
-            } else if (bodyMode === 'urlencoded') {
-              example.request.body.mode = 'formUrlEncoded';
-              if (originalRequest.body.urlencoded && Array.isArray(originalRequest.body.urlencoded)) {
-                originalRequest.body.urlencoded.forEach((param) => {
-                  if (param.key == null && param.value == null) return;
-                  example.request.body.formUrlEncoded.push({
-                    uid: uuid(),
-                    name: ensureString(param.key),
-                    value: ensureString(param.value),
-                    description: transformDescription(param.description),
-                    enabled: !param.disabled
-                  });
-                });
-              }
-            } else if (bodyMode === 'raw') {
-              let language = get(originalRequest, 'body.options.raw.language');
-              if (!language) {
-                language = searchLanguageByHeader(originalRequest.header || []);
-              }
-              if (language === 'json') {
-                example.request.body.mode = 'json';
-                example.request.body.json = originalRequest.body.raw;
-              } else if (language === 'xml') {
-                example.request.body.mode = 'xml';
-                example.request.body.xml = originalRequest.body.raw;
-              } else {
-                example.request.body.mode = 'text';
-                example.request.body.text = originalRequest.body.raw;
-              }
+          if (bodyMode === 'raw') {
+            let language = get(i, 'request.body.options.raw.language');
+            if (!language) {
+              language = searchLanguageByHeader(i.request.header);
+            }
+            if (language === 'json') {
+              brunoRequestItem.request.body.mode = 'json';
+              brunoRequestItem.request.body.json = i.request.body.raw;
+            } else if (language === 'xml') {
+              brunoRequestItem.request.body.mode = 'xml';
+              brunoRequestItem.request.body.xml = i.request.body.raw;
+            } else {
+              brunoRequestItem.request.body.mode = 'text';
+              brunoRequestItem.request.body.text = i.request.body.raw;
             }
           }
 
-          // Convert response headers
-          if (response.header) {
-            normalizeHeaders(response.header).forEach((header) => {
-              if (header.key == null && header.value == null) return;
-              example.response.headers.push({
-                uid: uuid(),
-                name: ensureString(header.key),
-                value: ensureString(header.value),
-                description: transformDescription(header.description),
-                enabled: true
-              });
+          if (bodyMode === 'file') {
+            brunoRequestItem.request.body.mode = 'file';
+            const filePath = ensureString(i.request.body.file?.src);
+            brunoRequestItem.request.body.file.push({
+              uid: uuid(),
+              selected: true,
+              filePath,
+              contentType: inferBinaryContentType(filePath)
             });
           }
+        }
 
-          brunoRequestItem.examples.push(example);
+        if (bodyMode === 'graphql') {
+          brunoRequestItem.type = 'graphql-request';
+          brunoRequestItem.request.body.mode = 'graphql';
+          brunoRequestItem.request.body.graphql = parseGraphQLRequest(i.request.body.graphql);
+        }
+
+        each(normalizeHeaders(i.request.header), (header) => {
+          if (header.key == null && header.value == null) return;
+          brunoRequestItem.request.headers.push({
+            uid: uuid(),
+            name: ensureString(header.key),
+            value: ensureString(header.value),
+            description: transformDescription(header.description),
+            enabled: !header.disabled
+          });
         });
-      }
 
-      requestMap[requestName] = brunoRequestItem;
+        // Request-level auth
+        processAuth(i.request.auth, brunoRequestItem.request);
+
+        each(get(i, 'request.url.query'), (param) => {
+          if (param.key == null && param.value == null) {
+            return;
+          }
+          brunoRequestItem.request.params.push({
+            uid: uuid(),
+            name: ensureString(param.key),
+            value: ensureString(param.value),
+            description: transformDescription(param.description),
+            type: 'query',
+            enabled: !param.disabled
+          });
+        });
+
+        each(get(i, 'request.url.variable', []), (param) => {
+          if (!param.key) {
+          // If no key, skip this iteration and discard the param
+            return;
+          }
+
+          brunoRequestItem.request.params.push({
+            uid: uuid(),
+            name: ensureString(param.key),
+            value: ensureString(param.value),
+            description: transformDescription(param.description),
+            type: 'path',
+            enabled: true
+          });
+        });
+
+        // Handle Postman examples (responses)
+        if (i.response && Array.isArray(i.response)) {
+          brunoRequestItem.examples = [];
+
+          i.response.forEach((response, responseIndex) => {
+            const sanitized = String(response.name ?? '').replace(/\r?\n/g, ' ').trim();
+            const exampleName = sanitized || `Example ${responseIndex + 1}`;
+
+            // Convert originalRequest to Bruno request format
+            const originalRequest = response.originalRequest || {};
+            const exampleUrl = constructUrl(originalRequest.url);
+            const exampleMethod = originalRequest.method?.toUpperCase() || method;
+
+            const example = {
+              uid: uuid(),
+              itemUid: brunoRequestItem.uid,
+              name: exampleName,
+              description: '',
+              type: 'http-request',
+              request: {
+                url: exampleUrl,
+                method: exampleMethod,
+                headers: [],
+                params: [],
+                body: {
+                  mode: 'none',
+                  json: null,
+                  text: null,
+                  xml: null,
+                  formUrlEncoded: [],
+                  multipartForm: [],
+                  file: []
+                }
+              },
+              response: {
+                status: response.code || null,
+                statusText: response.status || '',
+                headers: [],
+                body: {
+                  type: getBodyTypeFromContentTypeHeader(response.header),
+                  content: response.body || ''
+                }
+              }
+            };
+
+            // Convert original request headers
+            if (originalRequest.header) {
+              normalizeHeaders(originalRequest.header).forEach((header) => {
+                if (header.key == null && header.value == null) return;
+                example.request.headers.push({
+                  uid: uuid(),
+                  name: ensureString(header.key),
+                  value: ensureString(header.value),
+                  description: transformDescription(header.description),
+                  enabled: !header.disabled
+                });
+              });
+            }
+
+            // Convert original request query parameters
+            if (originalRequest.url && originalRequest.url.query && Array.isArray(originalRequest.url.query)) {
+              originalRequest.url.query.forEach((param) => {
+                if (param.key == null && param.value == null) {
+                  return;
+                }
+                example.request.params.push({
+                  uid: uuid(),
+                  name: ensureString(param.key),
+                  value: ensureString(param.value),
+                  description: transformDescription(param.description),
+                  type: 'query',
+                  enabled: !param.disabled
+                });
+              });
+            }
+
+            if (originalRequest.url && originalRequest.url.variable && Array.isArray(originalRequest.url.variable)) {
+              originalRequest.url.variable.forEach((param) => {
+                if (!param.key) return;
+                example.request.params.push({
+                  uid: uuid(),
+                  name: ensureString(param.key),
+                  value: ensureString(param.value),
+                  description: transformDescription(param.description),
+                  type: 'path',
+                  enabled: true
+                });
+              });
+            }
+
+            // Convert original request body
+            if (originalRequest.body) {
+              const bodyMode = originalRequest.body.mode;
+              if (bodyMode === 'formdata') {
+                example.request.body.mode = 'multipartForm';
+                if (originalRequest.body.formdata && Array.isArray(originalRequest.body.formdata)) {
+                  originalRequest.body.formdata.forEach((param) => {
+                    if (param.key == null && param.value == null) return;
+                    const isFile = param.type === 'file' || (param.type === 'default' && param.src);
+                    const value = isFile
+                      ? (Array.isArray(param.src) ? param.src : param.src ? [param.src] : [])
+                      : (Array.isArray(param.value) ? param.value.join('') : ensureString(param.value));
+
+                    example.request.body.multipartForm.push({
+                      uid: uuid(),
+                      type: isFile ? 'file' : 'text',
+                      name: ensureString(param.key),
+                      value,
+                      description: transformDescription(param.description),
+                      enabled: !param.disabled,
+                      ...(param.contentType && { contentType: param.contentType })
+                    });
+                  });
+                }
+              } else if (bodyMode === 'urlencoded') {
+                example.request.body.mode = 'formUrlEncoded';
+                if (originalRequest.body.urlencoded && Array.isArray(originalRequest.body.urlencoded)) {
+                  originalRequest.body.urlencoded.forEach((param) => {
+                    if (param.key == null && param.value == null) return;
+                    example.request.body.formUrlEncoded.push({
+                      uid: uuid(),
+                      name: ensureString(param.key),
+                      value: ensureString(param.value),
+                      description: transformDescription(param.description),
+                      enabled: !param.disabled
+                    });
+                  });
+                }
+              } else if (bodyMode === 'raw') {
+                let language = get(originalRequest, 'body.options.raw.language');
+                if (!language) {
+                  language = searchLanguageByHeader(originalRequest.header || []);
+                }
+                if (language === 'json') {
+                  example.request.body.mode = 'json';
+                  example.request.body.json = originalRequest.body.raw;
+                } else if (language === 'xml') {
+                  example.request.body.mode = 'xml';
+                  example.request.body.xml = originalRequest.body.raw;
+                } else {
+                  example.request.body.mode = 'text';
+                  example.request.body.text = originalRequest.body.raw;
+                }
+              } else if (bodyMode === 'file') {
+                example.request.body.mode = 'file';
+                const filePath = ensureString(originalRequest.body.file?.src);
+                example.request.body.file.push({
+                  uid: uuid(),
+                  selected: true,
+                  filePath,
+                  contentType: inferBinaryContentType(filePath)
+                });
+              }
+            }
+
+            // Convert response headers
+            if (response.header) {
+              normalizeHeaders(response.header).forEach((header) => {
+                if (header.key == null && header.value == null) return;
+                example.response.headers.push({
+                  uid: uuid(),
+                  name: ensureString(header.key),
+                  value: ensureString(header.value),
+                  description: transformDescription(header.description),
+                  enabled: true
+                });
+              });
+            }
+
+            brunoRequestItem.examples.push(example);
+          });
+        }
+
+        brunoParent.items.push(brunoRequestItem);
+        requestMap[requestName] = brunoRequestItem;
+      } catch (err) {
+        issues.push({ path: itemPath, severity: 'error', message: err.message, sourceItem: i });
+      }
     }
   });
 };
@@ -841,7 +966,84 @@ const getBodyTypeFromContentTypeHeader = (headers) => {
   return 'text';
 };
 
-const importPostmanV2Collection = async (collection, { useWorkers = false }) => {
+const collectPackagesFromPostmanCollection = (postmanCollection) => {
+  const allPackages = new Set();
+
+  const collectFromEvents = (events) => {
+    if (!Array.isArray(events)) return;
+    events.forEach((event) => {
+      const exec = event?.script?.exec;
+      if (!exec) return;
+      const { packages } = extractPackagesFromScript(exec);
+      packages.forEach((pkg) => allPackages.add(pkg));
+    });
+  };
+
+  const visitItems = (items) => {
+    if (!Array.isArray(items)) return;
+    items.forEach((item) => {
+      collectFromEvents(item?.event);
+      if (item.item && item.item.length) {
+        visitItems(item.item);
+      }
+    });
+  };
+
+  collectFromEvents(postmanCollection?.event);
+  visitItems(postmanCollection?.item);
+
+  return Array.from(allPackages);
+};
+
+const rewriteRequiresInBrunoCollection = (brunoCollection) => {
+  const injected = new Set();
+
+  const processScriptString = (source) => {
+    const { translatedSource, packages } = extractPackagesFromScript(source);
+    for (const pkg of packages) {
+      if (TRANSLATOR_INJECTED_GLOBALS.has(pkg)) injected.add(pkg);
+    }
+    return translatedSource;
+  };
+
+  const processScriptField = (scriptObj, key) => {
+    if (!scriptObj || typeof scriptObj[key] !== 'string' || !scriptObj[key]) return;
+    const next = processScriptString(scriptObj[key]);
+    if (next !== scriptObj[key]) scriptObj[key] = next;
+  };
+
+  const visitRequest = (request) => {
+    if (!request) return;
+    if (request.script) {
+      processScriptField(request.script, 'req');
+      processScriptField(request.script, 'res');
+    }
+    if (typeof request.tests === 'string' && request.tests) {
+      const next = processScriptString(request.tests);
+      if (next !== request.tests) request.tests = next;
+    }
+  };
+
+  visitRequest(brunoCollection?.root?.request);
+
+  const visitItems = (items) => {
+    if (!Array.isArray(items)) return;
+    items.forEach((item) => {
+      if (item.type === 'folder') {
+        visitRequest(item?.root?.request);
+        visitItems(item.items);
+      } else {
+        visitRequest(item.request);
+      }
+    });
+  };
+
+  visitItems(brunoCollection.items);
+
+  return Array.from(injected);
+};
+
+const importPostmanV2Collection = async (collection, { useWorkers = false, preserveScripts = false }) => {
   const brunoCollection = {
     name: collection.info.name || 'Untitled Collection',
     uid: uuid(),
@@ -862,7 +1064,8 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
           apikey: null,
           oauth1: null,
           oauth2: null,
-          digest: null
+          digest: null,
+          ntlm: null
         },
         headers: [],
         script: {},
@@ -873,20 +1076,26 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
   };
 
   if (collection.event) {
-    importScriptsFromEvents(collection.event, brunoCollection.root.request);
+    importScriptsFromEvents(collection.event, brunoCollection.root.request, preserveScripts);
   }
 
+  const issues = [];
+
   if (collection?.variable) {
-    importCollectionLevelVariables(collection.variable, brunoCollection.root.request);
+    try {
+      importCollectionLevelVariables(collection.variable, brunoCollection.root.request);
+    } catch (err) {
+      issues.push({ path: 'Collection Variables', severity: 'warning', message: err.message });
+    }
   }
 
   // Collection level auth
   processAuth(collection.auth, brunoCollection.root.request, true);
 
   // Create a single scriptMap for all items
-  const scriptMap = useWorkers ? new Map() : null;
+  const scriptMap = useWorkers && !preserveScripts ? new Map() : null;
 
-  importPostmanV2CollectionItem(brunoCollection, collection.item, { useWorkers }, scriptMap);
+  importPostmanV2CollectionItem(brunoCollection, collection.item, { preserveScripts }, scriptMap, issues);
 
   // Process all scripts in a single call at the top level
   if (useWorkers && scriptMap && scriptMap.size > 0) {
@@ -945,10 +1154,10 @@ const importPostmanV2Collection = async (collection, { useWorkers = false }) => 
     }
   }
 
-  return brunoCollection;
+  return { collection: brunoCollection, issues };
 };
 
-const parsePostmanCollection = async (collection, { useWorkers = false }) => {
+const parsePostmanCollection = async (collection, { useWorkers = false, preserveScripts = false }) => {
   try {
     // Newer Postman exports wrap the collection in a { collection: { ... } } envelope
     const parsedCollection = collection.collection?.info ? collection.collection : collection;
@@ -963,7 +1172,7 @@ const parsePostmanCollection = async (collection, { useWorkers = false }) => {
     ];
 
     if (v2Schemas.includes(schema)) {
-      return await importPostmanV2Collection(parsedCollection, { useWorkers });
+      return await importPostmanV2Collection(parsedCollection, { useWorkers, preserveScripts });
     }
 
     throw new Error('Unsupported Postman schema version. Only Postman Collection v2.0 and v2.1 are supported.');
@@ -977,15 +1186,33 @@ const parsePostmanCollection = async (collection, { useWorkers = false }) => {
   }
 };
 
-const postmanToBruno = async (postmanCollection, { useWorkers = false } = {}) => {
+const postmanToBruno = async (postmanCollection, { useWorkers = false, preserveScripts = false } = {}) => {
   try {
-    const parsedPostmanCollection = await parsePostmanCollection(postmanCollection, { useWorkers });
-    const transformedCollection = transformItemsInCollection(parsedPostmanCollection);
+    // Resolve the actual collection envelope (Postman wraps newer exports
+    // in a `{ collection: {...} }` shell) so the raw scan sees real events.
+    const rawCollectionForScan = postmanCollection?.collection?.info
+      ? postmanCollection.collection
+      : postmanCollection;
+    const rawPackages = collectPackagesFromPostmanCollection(rawCollectionForScan);
+
+    const { collection: parsedCollection, issues } = await parsePostmanCollection(postmanCollection, { useWorkers, preserveScripts });
+    const transformedCollection = transformItemsInCollection(parsedCollection);
     const hydratedCollection = hydrateSeqInCollection(transformedCollection);
     // Apply backward compatibility transformation for string status to number
     const statusTransformedCollection = transformExampleStatusInCollection(hydratedCollection);
     const validatedCollection = validateSchema(statusTransformedCollection);
-    return validatedCollection;
+
+    // When preserving script option is enabled, skip any rewrite.
+    // Otherwise rewrite any pm.require() calls that survived the Bruno-side translator
+    // so the imported scripts use plain require(). The post-scan also picks
+    // up translator-injected globals (cheerio, tv4, ...) - packages Postman
+    // exposed as sandbox globals that the raw pre-scan can't see. The
+    // schema is strict + noUnknown so we attach the report by mutating
+    // the already-validated collection.
+    const injectedPackages = preserveScripts ? [] : rewriteRequiresInBrunoCollection(validatedCollection);
+    validatedCollection.packageReport = buildPackageReport([...rawPackages, ...injectedPackages]);
+
+    return { collection: validatedCollection, issues };
   } catch (err) {
     console.log(err);
     throw new Error(`Import collection failed: ${err.message}`);

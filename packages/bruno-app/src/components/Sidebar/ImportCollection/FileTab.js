@@ -23,7 +23,7 @@ const convertFileToObject = async (file) => {
       return JSON.parse(text);
     }
 
-    const parsed = jsyaml.load(text);
+    const parsed = jsyaml.load(text, { schema: jsyaml.JSON_SCHEMA });
     if (typeof parsed !== 'object' || parsed === null) {
       throw new Error();
     }

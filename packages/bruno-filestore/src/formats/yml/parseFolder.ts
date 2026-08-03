@@ -13,21 +13,19 @@ const parseFolder = (ymlString: string): FolderRoot => {
     const ocFolder: Folder = parseYml(ymlString);
 
     const info = ocFolder.info;
+    const seq = info?.seq;
 
     const folderRoot: FolderRoot = {
       meta: {
         name: ensureString(info?.name, 'Untitled Folder'),
-        seq: info?.seq || 1
+        // Only set seq when the source has a numeric value. Missing seq must stay absent:
+        // defaulting to 1 makes every seq-less folder look "ordered at position 1" to
+        // sortByNameThenSequence, pinning them all to slot 1 instead of alphabetical sort.
+        ...(typeof seq === 'number' && Number.isFinite(seq) ? { seq } : {})
       },
-      request: null,
-      docs: null
-    };
-
-    // request defaults
-    if (ocFolder.request) {
-      folderRoot.request = {
+      request: {
         headers: [],
-        auth: null,
+        auth: toBrunoAuth(ocFolder.request?.auth),
         script: {
           req: null,
           res: null
@@ -37,40 +35,39 @@ const parseFolder = (ymlString: string): FolderRoot => {
           res: []
         },
         tests: null
-      };
+      },
+      docs: null
+    };
+
+    if (ocFolder.request) {
+      const folderRequest = folderRoot.request!;
 
       // headers
       const headers = toBrunoHttpHeaders(ocFolder.request.headers);
       if (headers) {
-        folderRoot.request.headers = headers;
-      }
-
-      // auth
-      const auth = toBrunoAuth(ocFolder.request.auth);
-      if (auth) {
-        folderRoot.request.auth = auth;
+        folderRequest.headers = headers;
       }
 
       // variables
       const variables = toBrunoVariables(ocFolder.request.variables);
       const postResponseVars = toBrunoPostResponseVariables((ocFolder.request as any).actions);
-      folderRoot.request.vars = {
+      folderRequest.vars = {
         req: variables.req,
         res: postResponseVars
       };
 
       // scripts
       const scripts = toBrunoScripts(ocFolder.request.scripts);
-      if (scripts?.script && folderRoot.request.script) {
+      if (scripts?.script && folderRequest.script) {
         if (scripts.script.req) {
-          folderRoot.request.script.req = scripts.script.req;
+          folderRequest.script.req = scripts.script.req;
         }
         if (scripts.script.res) {
-          folderRoot.request.script.res = scripts.script.res;
+          folderRequest.script.res = scripts.script.res;
         }
       }
       if (scripts?.tests) {
-        folderRoot.request.tests = scripts.tests;
+        folderRequest.tests = scripts.tests;
       }
     }
 

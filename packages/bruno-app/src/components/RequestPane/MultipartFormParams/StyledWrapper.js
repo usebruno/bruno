@@ -13,6 +13,7 @@ const Wrapper = styled.div`
     cursor: pointer;
     border-radius: 4px;
     transition: color 0.15s ease;
+    flex: 0 0 auto;
 
     &:hover {
       color: ${(props) => props.theme.text};
@@ -21,15 +22,6 @@ const Wrapper = styled.div`
 
   .clear-file-btn:hover {
     color: ${(props) => props.theme.colors.text.danger};
-  }
-
-  .file-value-cell {
-    width: 100%;
-
-    .file-name {
-      font-size: 12px;
-      color: ${(props) => props.theme.text};
-    }
   }
 
   .value-cell {

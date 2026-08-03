@@ -35,6 +35,79 @@ vars {
     expect(output).toEqual(expected);
   });
 
+  it('should parse @description in vars', () => {
+    const input = `
+vars {
+  @description('''Base API URL.''')
+  url: http://localhost:3000
+  @description("Server port")
+  port: 3000
+}`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: true,
+          secret: false,
+          annotations: [
+            {
+              name: 'description',
+              value: 'Base API URL.'
+            }
+          ],
+          description: 'Base API URL.'
+        },
+        {
+          name: 'port',
+          value: '3000',
+          enabled: true,
+          secret: false,
+          annotations: [
+            {
+              name: 'description',
+              value: 'Server port'
+            }
+          ],
+          description: 'Server port'
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('should parse disabled variable with @description', () => {
+    const input = `
+vars {
+  @description("Disabled base URL")
+  ~url: http://localhost:3000
+}`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: false,
+          secret: false,
+          annotations: [
+            {
+              name: 'description',
+              value: 'Disabled base URL'
+            }
+          ],
+          description: 'Disabled base URL'
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
   it('should parse multiple var lines', () => {
     const input = `
 vars {
@@ -391,6 +464,116 @@ vars {
     expect(output).toEqual(expected);
   });
 
+  it('should parse @description with emoji', () => {
+    const input = `
+vars {
+  @description('''API key 🔐 required''')
+  token: secret
+  @description('''Region 🌍 selector''')
+  region: us-east
+}`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'token',
+          value: 'secret',
+          enabled: true,
+          secret: false,
+          annotations: [
+            {
+              name: 'description',
+              value: 'API key 🔐 required'
+            }
+          ],
+          description: 'API key 🔐 required'
+        },
+        {
+          name: 'region',
+          value: 'us-east',
+          enabled: true,
+          secret: false,
+          annotations: [
+            {
+              name: 'description',
+              value: 'Region 🌍 selector'
+            }
+          ],
+          description: 'Region 🌍 selector'
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('should parse @description with double-quoted \\n escape sequence as LF', () => {
+    const input = `
+vars {
+  @description("First\\nSecond\\nThird")
+  note: val
+}`;
+
+    const output = parser(input);
+    expect(output.variables[0]).toMatchObject({
+      name: 'note',
+      value: 'val',
+      annotations: [
+        {
+          name: 'description',
+          value: 'First\nSecond\nThird'
+        }
+      ],
+      description: 'First\nSecond\nThird'
+    });
+  });
+
+  it('should parse @description with double-quoted \\r\\n escape sequence as CRLF', () => {
+    const input = `
+vars {
+  @description("Line one\\r\\nLine two")
+  note: val
+}`;
+
+    const output = parser(input);
+    expect(output.variables[0]).toMatchObject({
+      name: 'note',
+      value: 'val',
+      annotations: [
+        {
+          name: 'description',
+          value: 'Line one\r\nLine two'
+        }
+      ],
+      description: 'Line one\r\nLine two'
+    });
+  });
+
+  it('should parse triple-quoted @description with literal newlines', () => {
+    const input = `
+vars {
+  @description('''
+    Line one
+    Line two
+  ''')
+  note: val
+}`;
+
+    const output = parser(input);
+    expect(output.variables[0]).toMatchObject({
+      name: 'note',
+      value: 'val',
+      annotations: [
+        {
+          name: 'description',
+          value: 'Line one\nLine two'
+        }
+      ],
+      description: 'Line one\nLine two'
+    });
+  });
+
   it('should parse multiple multiline variables', () => {
     const input = `
 vars {
@@ -424,5 +607,169 @@ vars {
     };
 
     expect(output).toEqual(expected);
+  });
+
+  describe('typed environment variables', () => {
+    it('should parse @number decorator and coerce value to number', () => {
+      const input = `
+vars {
+  @number
+  port: 3000
+}
+`;
+
+      const output = parser(input);
+      expect(output).toEqual({
+        variables: [
+          {
+            name: 'port',
+            value: 3000,
+            enabled: true,
+            secret: false,
+            annotations: [{ name: 'number' }],
+            dataType: 'number'
+          }
+        ]
+      });
+    });
+
+    it('should parse @boolean decorator and coerce value to boolean', () => {
+      const input = `
+vars {
+  @boolean
+  isEnabled: true
+}
+`;
+
+      const output = parser(input);
+      expect(output.variables[0]).toEqual({
+        name: 'isEnabled',
+        value: true,
+        enabled: true,
+        secret: false,
+        annotations: [{ name: 'boolean' }],
+        dataType: 'boolean'
+      });
+    });
+
+    it('should parse @object decorator and coerce multiline JSON value', () => {
+      const input = `
+vars {
+  @object
+  config: '''
+    {"a": 1, "b": "x"}
+  '''
+}
+`;
+
+      const output = parser(input);
+      expect(output.variables[0]).toEqual({
+        name: 'config',
+        value: { a: 1, b: 'x' },
+        enabled: true,
+        secret: false,
+        annotations: [{ name: 'object' }],
+        dataType: 'object'
+      });
+    });
+
+    it('should leave plain vars without dataType', () => {
+      const input = `
+vars {
+  apiKey: abc123
+}
+`;
+
+      const output = parser(input);
+      expect(output.variables[0]).toEqual({
+        name: 'apiKey',
+        value: 'abc123',
+        enabled: true,
+        secret: false
+      });
+      expect(output.variables[0].dataType).toBeUndefined();
+    });
+
+    it('extracts the dataType from a secret var decorator', () => {
+      const input = `
+vars:secret [
+  @number
+  api_key
+]
+`;
+
+      const output = parser(input);
+      expect(output.variables[0].secret).toBe(true);
+      expect(output.variables[0].dataType).toBe('number');
+    });
+
+    it('leaves a bare secret var without a dataType', () => {
+      const input = `
+vars:secret [
+  api_key
+]
+`;
+
+      const output = parser(input);
+      expect(output.variables[0].secret).toBe(true);
+      expect(output.variables[0].dataType).toBeUndefined();
+    });
+
+    it('should preserve the declared dataType and the raw value when coercion is impossible', () => {
+      // The UI's DataTypeSelector surfaces a warning icon for these rows; the
+      // declared dataType is retained so the user sees their intent.
+      const input = `
+vars {
+  @number
+  port: not-a-number
+  @boolean
+  flag: maybe
+  @object
+  config: plain
+}
+`;
+
+      const output = parser(input);
+      expect(output.variables).toEqual([
+        {
+          name: 'port',
+          value: 'not-a-number',
+          enabled: true,
+          secret: false,
+          annotations: [{ name: 'number' }],
+          dataType: 'number'
+        },
+        {
+          name: 'flag',
+          value: 'maybe',
+          enabled: true,
+          secret: false,
+          annotations: [{ name: 'boolean' }],
+          dataType: 'boolean'
+        },
+        {
+          name: 'config',
+          value: 'plain',
+          enabled: true,
+          secret: false,
+          annotations: [{ name: 'object' }],
+          dataType: 'object'
+        }
+      ]);
+    });
+
+    it('should keep only the last dataType when multiple are stacked', () => {
+      const input = `
+vars {
+  @object
+  @number
+  port: 3000
+}
+`;
+
+      const output = parser(input);
+      expect(output.variables[0].dataType).toBe('number');
+      expect(output.variables[0].value).toBe(3000);
+    });
   });
 });

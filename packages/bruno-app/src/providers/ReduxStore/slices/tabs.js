@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import last from 'lodash/last';
+import { uuid } from 'utils/common';
 import { isActiveTab as checkIsActiveTab, deserializeTab } from 'utils/snapshot';
 
 // todo: errors should be tracked in each slice and displayed as toasts
@@ -10,11 +11,26 @@ const MAX_RECENTLY_CLOSED_TABS = 50;
 
 export const NON_CLOSABLE_TAB_TYPES = ['workspaceOverview', 'workspaceEnvironments'];
 
+const ensureTabUid = (tab) => {
+  if (!tab.uid) {
+    tab.uid = uuid();
+  }
+  return tab.uid;
+};
+
 const initialState = {
   tabs: [],
   activeTabUid: null,
   recentlyClosedTabs: [] // LIFO stack of closed tabs, grouped by collection
 };
+
+const normalizeMockTabType = (type) => (
+  type === 'mock-server-dashboard' || type === 'mocker' ? 'mock-server' : type
+);
+
+const findMockServerTab = (tabs, mockServerUid) => find(tabs, (tab) => (
+  normalizeMockTabType(tab.type) === 'mock-server' && tab.mockServerUid === mockServerUid
+));
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
   return find(tabs, (tab) => tab.collectionUid === collectionUid && tab.type === type);
@@ -51,7 +67,23 @@ export const tabsSlice = createSlice({
   initialState,
   reducers: {
     addTab: (state, action) => {
-      const { uid, collectionUid, type, requestPaneTab, preview, exampleUid, itemUid, pathname, exampleName, exampleIndex, isTransient } = action.payload;
+      const {
+        uid,
+        collectionUid,
+        type,
+        requestPaneTab,
+        preview,
+        exampleUid,
+        itemUid,
+        pathname,
+        exampleName,
+        exampleIndex,
+        isTransient,
+        mockServerUid,
+        tabName,
+        responseName,
+        openInEditMode
+      } = action.payload;
 
       const nonReplaceableTabTypes = [
         'variables',
@@ -62,25 +94,37 @@ export const tabsSlice = createSlice({
         'workspaceOverview',
         'workspaceEnvironments',
         'openapi-sync',
-        'openapi-spec'
+        'openapi-spec',
+        'changelog',
+        'mock-server'
       ];
 
       const existingTab = find(state.tabs, (tab) => tab.uid === uid);
       if (existingTab) {
-        state.activeTabUid = existingTab.uid;
+        state.activeTabUid = ensureTabUid(existingTab);
         return;
       }
 
       const existingPathnameTab = findTabByPathname(state.tabs, { collectionUid, pathname, type, exampleName, exampleIndex });
       if (existingPathnameTab) {
-        state.activeTabUid = existingPathnameTab.uid;
+        state.activeTabUid = ensureTabUid(existingPathnameTab);
         return;
       }
 
       if (nonReplaceableTabTypes.includes(type)) {
-        const existingTab = tabTypeAlreadyExists(state.tabs, collectionUid, type);
+        let existingTab = null;
+
+        if (type === 'mock-server' && mockServerUid) {
+          existingTab = findMockServerTab(state.tabs, mockServerUid);
+          if (existingTab && existingTab.type !== 'mock-server') {
+            existingTab.type = 'mock-server';
+          }
+        } else {
+          existingTab = tabTypeAlreadyExists(state.tabs, collectionUid, type);
+        }
+
         if (existingTab) {
-          state.activeTabUid = existingTab.uid;
+          state.activeTabUid = ensureTabUid(existingTab);
           return;
         }
       }
@@ -119,7 +163,11 @@ export const tabsSlice = createSlice({
           ...(itemUid ? { itemUid } : {}),
           ...(exampleName ? { exampleName } : {}),
           ...(typeof exampleIndex === 'number' ? { exampleIndex } : {}),
-          ...(isTransient ? { isTransient: true } : {})
+          ...(isTransient ? { isTransient: true } : {}),
+          ...(mockServerUid ? { mockServerUid } : {}),
+          ...(tabName ? { tabName } : {}),
+          ...(responseName ? { responseName } : {}),
+          ...(openInEditMode ? { openInEditMode: true } : {})
         };
 
         state.activeTabUid = uid;
@@ -155,7 +203,11 @@ export const tabsSlice = createSlice({
         ...(itemUid ? { itemUid } : {}),
         ...(exampleName ? { exampleName } : {}),
         ...(typeof exampleIndex === 'number' ? { exampleIndex } : {}),
-        ...(isTransient ? { isTransient: true } : {})
+        ...(isTransient ? { isTransient: true } : {}),
+        ...(mockServerUid ? { mockServerUid } : {}),
+        ...(tabName ? { tabName } : {}),
+        ...(responseName ? { responseName } : {}),
+        ...(openInEditMode ? { openInEditMode: true } : {})
       });
       state.activeTabUid = uid;
     },
@@ -221,6 +273,22 @@ export const tabsSlice = createSlice({
         tab.responsePaneTab = action.payload.responsePaneTab;
       }
     },
+    updateTabMeta: (state, action) => {
+      const { uid, tabName, responseName } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+
+      if (!tab) {
+        return;
+      }
+
+      if (tabName !== undefined) {
+        tab.tabName = tabName;
+      }
+
+      if (responseName !== undefined) {
+        tab.responseName = responseName;
+      }
+    },
     updateResponseFormat: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
@@ -278,6 +346,24 @@ export const tabsSlice = createSlice({
 
       if (tab) {
         tab.scriptPaneTab = action.payload.scriptPaneTab;
+      }
+    },
+    setFocusErrorLine: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.focusErrorLine = {
+          scriptPhase: action.payload.scriptPhase,
+          line: action.payload.line,
+          requestedAt: action.payload.requestedAt
+        };
+      }
+    },
+    clearFocusErrorLine: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+
+      if (tab) {
+        tab.focusErrorLine = null;
       }
     },
     updateQueryBuilderOpen: (state, action) => {
@@ -344,7 +430,8 @@ export const tabsSlice = createSlice({
           if (siblingTabs && siblingTabs.length) {
             state.activeTabUid = last(siblingTabs).uid;
           } else {
-            state.activeTabUid = last(state.tabs).uid;
+            const overviewTab = find(state.tabs, (t) => t.type === 'workspaceOverview');
+            state.activeTabUid = overviewTab ? overviewTab.uid : last(state.tabs).uid;
           }
         }
       }
@@ -360,7 +447,12 @@ export const tabsSlice = createSlice({
 
       const activeTabStillExists = state.tabs.some((t) => t.uid === prevActiveTabUid);
       if (!activeTabStillExists) {
-        state.activeTabUid = state.tabs.length > 0 ? last(state.tabs).uid : null;
+        if (state.tabs.length === 0) {
+          state.activeTabUid = null;
+        } else {
+          const overviewTab = find(state.tabs, (t) => t.type === 'workspaceOverview');
+          state.activeTabUid = overviewTab ? overviewTab.uid : last(state.tabs).uid;
+        }
       }
     },
     makeTabPermanent: (state, action) => {
@@ -370,6 +462,13 @@ export const tabsSlice = createSlice({
         tab.preview = false;
       } else {
         console.error('Tab not found!');
+      }
+    },
+    // One-shot "just created" flag for response-example tabs — cleared after ResponseExample mounts.
+    clearOpenInEditMode: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+      if (tab) {
+        delete tab.openInEditMode;
       }
     },
     collapseRequestPane: (state, action) => {
@@ -440,6 +539,9 @@ export const tabsSlice = createSlice({
       const tab = find(state.tabs, (t) => t.uid === oldUid);
       if (tab) {
         tab.uid = newUid;
+        if (tab.type === 'folder-settings') {
+          tab.folderUid = newUid;
+        }
         if (state.activeTabUid === oldUid) {
           state.activeTabUid = newUid;
         }
@@ -459,8 +561,28 @@ export const tabsSlice = createSlice({
         state.activeTabUid = null;
       }
 
+      // Drop request tabs remapped by bru↔yml migrate that no longer match collection format
+      const staleExt = collection.format === 'yml' ? /\.bru$/i : /\.ya?ml$/i;
+
       (snapshotTabs || []).forEach((snapshotTab) => {
+        if (typeof snapshotTab.pathname === 'string' && staleExt.test(snapshotTab.pathname)) {
+          return;
+        }
+
         const tab = deserializeTab(snapshotTab, collection);
+        ensureTabUid(tab);
+
+        if (normalizeMockTabType(tab.type) === 'mock-server' && tab.mockServerUid) {
+          const existingTab = findMockServerTab(state.tabs, tab.mockServerUid);
+          if (existingTab) {
+            if (checkIsActiveTab(tab, activeTab, collection)) {
+              state.activeTabUid = ensureTabUid(existingTab);
+            }
+            return;
+          }
+          tab.type = 'mock-server';
+        }
+
         state.tabs.push(tab);
 
         if (checkIsActiveTab(tab, activeTab, collection)) {
@@ -470,6 +592,20 @@ export const tabsSlice = createSlice({
 
       if (!state.activeTabUid) {
         state.activeTabUid = state.tabs.find((t) => t.collectionUid === collectionUid)?.uid || null;
+      }
+    },
+    updateTabState: (state, action) => {
+      const { uid, tabState } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+      if (tab) {
+        tab.tabState = { ...tab.tabState, ...tabState };
+      }
+    },
+    setTabAppPreview: (state, action) => {
+      const { uid, appPreview } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+      if (tab) {
+        tab.appPreview = appPreview;
       }
     },
     reopenLastClosedTab: (state, action) => {
@@ -502,6 +638,7 @@ export const {
   updateApiSpecTabLeftPaneWidth,
   updateRequestPaneTab,
   updateResponsePaneTab,
+  updateTabMeta,
   updateResponseFormat,
   updateResponseViewTab,
   updateResponseFilter,
@@ -510,9 +647,12 @@ export const {
   updateGqlDocsOpen,
   updateTableColumnWidths,
   updateScriptPaneTab,
+  setFocusErrorLine,
+  clearFocusErrorLine,
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
+  clearOpenInEditMode,
   collapseRequestPane,
   collapseResponsePane,
   expandRequestPane,
@@ -520,6 +660,8 @@ export const {
   reorderTabs,
   syncTabUid,
   restoreTabs,
+  updateTabState,
+  setTabAppPreview,
   reopenLastClosedTab,
   updateQueryBuilderOpen,
   updateQueryBuilderWidth,

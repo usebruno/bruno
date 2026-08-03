@@ -1,5 +1,6 @@
 import { test, expect } from '../../../../../playwright';
 import path from 'path';
+import { buildCommonLocators } from '../../../../utils/page/locators';
 
 test.describe.serial('Global Environment Import Tests', () => {
   test('should import single global environment', async ({ pageWithUserData: page }) => {
@@ -58,8 +59,10 @@ test.describe.serial('Global Environment Import Tests', () => {
       await expect(envTab).toBeVisible();
 
       // Verify imported variables
-      await expect(page.getByRole('row', { name: 'host' }).getByRole('cell').nth(1)).toBeVisible();
-      await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
+      const locators = buildCommonLocators(page);
+      await expect(locators.environment.varRowValueCell('host')).toBeVisible();
+      await page.getByTestId('responsive-tab-secrets').click();
+      await expect(locators.environment.varRowValueCell('secretToken')).toBeVisible();
 
       await envTab.hover();
       await envTab.getByTestId('request-tab-close-icon').click({ force: true });
@@ -141,8 +144,12 @@ test.describe.serial('Global Environment Import Tests', () => {
       await expect(envTab).toBeVisible();
 
       // Verify imported variables
-      await expect(page.getByRole('row', { name: 'host' }).getByRole('cell').nth(1)).toBeVisible();
-      await expect(page.getByRole('row', { name: 'secretToken' }).getByRole('cell').nth(1)).toBeVisible();
+      const locators = buildCommonLocators(page);
+      await expect(locators.environment.varRowValueCell('host')).toBeVisible();
+
+      // secretToken was imported as a secret, so it lives on the Secrets tab, not Variables.
+      await page.getByTestId('responsive-tab-secrets').click();
+      await expect(locators.environment.varRowValueCell('secretToken')).toBeVisible();
 
       await envTab.hover();
       await envTab.getByTestId('request-tab-close-icon').click({ force: true });

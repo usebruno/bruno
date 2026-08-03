@@ -83,6 +83,12 @@ const darkPastelTheme = {
     subtle: colors.BRAND
   },
 
+  ws: {
+    activeMessage: {
+      label: colors.BRAND
+    }
+  },
+
   accents: {
     primary: colors.BRAND
   },
@@ -274,16 +280,14 @@ const darkPastelTheme = {
   },
 
   notifications: {
-    bg: colors.GRAY_3,
+    bg: colors.BG,
     list: {
-      bg: colors.GRAY_2,
-      borderRight: colors.GRAY_4,
+      bg: colors.BG,
       borderBottom: colors.GRAY_4,
-      hoverBg: colors.GRAY_3,
+      hoverBg: colors.GRAY_4,
       active: {
-        border: colors.BRAND,
-        bg: colors.GRAY_4,
-        hoverBg: colors.GRAY_4
+        bg: colors.GRAY_3,
+        hoverBg: colors.GRAY_5
       }
     }
   },

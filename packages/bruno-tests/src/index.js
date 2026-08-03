@@ -12,6 +12,7 @@ const wsRouter = require('./ws');
 const setupGraphQL = require('./graphql');
 const sseRouter = require('./sse');
 const fileBinaryRouter = require('./file-binary');
+const waitForRouter = require('./wait-for');
 
 const app = new express();
 const port = process.env.PORT || 8081;
@@ -57,6 +58,7 @@ app.use('/api/multipart', multipartRouter);
 app.use('/api/redirect', redirectRouter);
 app.use('/api/mix', mixRouter);
 app.use('/api/sse', sseRouter);
+app.use('/api/wait-for', waitForRouter);
 
 app.get('/ping', function (req, res) {
   return res.send('pong');
@@ -72,6 +74,32 @@ app.get('/query', function (req, res) {
 
 app.get('/redirect-to-ping', function (req, res) {
   return res.redirect('/ping');
+});
+
+// Echoes the request back in one flat shape
+app.all('/api/echo/everything', (req, res) => {
+  return res.json({
+    method: req.method,
+    url: req.originalUrl,
+    query: req.query,
+    headers: req.headers,
+    body: req.rawBody
+  });
+});
+
+// The global JSON parser rejects malformed bodies before the route above runs.
+// Recover that case by echoing the raw bytes instead of surfacing a 400.
+app.use((err, req, res, next) => {
+  if (req.path === '/api/echo/everything') {
+    return res.json({
+      method: req.method,
+      url: req.originalUrl,
+      query: req.query,
+      headers: req.headers,
+      body: req.rawBody
+    });
+  }
+  return next(err);
 });
 
 const server = require('http').createServer(app);

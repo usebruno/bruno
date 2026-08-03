@@ -341,3 +341,116 @@ describe('operation-level servers to request vars', () => {
     expect(postData.request.vars).toBeUndefined();
   });
 });
+
+describe('x-bruno-variants import', () => {
+  it('should import duplicate operation variants as separate requests', () => {
+    const spec = {
+      openapi: '3.0.0',
+      info: { title: 'Variant API', version: '1.0.0' },
+      servers: [{ url: 'https://api.example.com' }],
+      paths: {
+        '/users': {
+          get: {
+            'summary': 'Get active users',
+            'parameters': [{ name: 'status', in: 'query', example: 'active' }],
+            'responses': { 200: { description: 'OK' } },
+            'x-bruno-variants': [
+              {
+                summary: 'Get inactive users',
+                parameters: [{ name: 'status', in: 'query', example: 'inactive' }],
+                responses: { 200: { description: 'OK' } }
+              },
+              {
+                summary: 'Get pending users',
+                parameters: [{ name: 'status', in: 'query', example: 'pending' }],
+                responses: { 200: { description: 'OK' } }
+              }
+            ]
+          }
+        }
+      }
+    };
+
+    const result = openApiToBruno(spec);
+    const requests = result.items.filter((item) => item.type === 'http-request');
+
+    expect(requests.map((request) => request.name)).toEqual([
+      'Get active users',
+      'Get inactive users',
+      'Get pending users'
+    ]);
+    expect(requests.map((request) => request.request.params[0].value)).toEqual(['active', 'inactive', 'pending']);
+    expect(requests.every((request) => !request.request['x-bruno-variants'])).toBe(true);
+  });
+
+  it('should import variant operation-level servers as request baseUrl vars', () => {
+    const spec = {
+      openapi: '3.0.0',
+      info: { title: 'Variant Server API', version: '1.0.0' },
+      servers: [{ url: 'https://api.example.com' }],
+      paths: {
+        '/data': {
+          get: {
+            'summary': 'Get data',
+            'servers': [{ url: 'https://data.example.com' }],
+            'responses': { 200: { description: 'OK' } },
+            'x-bruno-variants': [
+              {
+                summary: 'Get audit data',
+                servers: [{ url: 'https://audit.example.com' }],
+                responses: { 200: { description: 'OK' } }
+              }
+            ]
+          }
+        }
+      }
+    };
+
+    const result = openApiToBruno(spec);
+    const data = result.items.find((item) => item.name === 'Get data');
+    const auditData = result.items.find((item) => item.name === 'Get audit data');
+
+    expect(data.request.vars.req[0]).toMatchObject({
+      name: 'baseUrl',
+      value: 'https://data.example.com'
+    });
+    expect(auditData.request.vars.req[0]).toMatchObject({
+      name: 'baseUrl',
+      value: 'https://audit.example.com'
+    });
+  });
+
+  it('should group variants by their own tags', () => {
+    const spec = {
+      openapi: '3.0.0',
+      info: { title: 'Variant Folder API', version: '1.0.0' },
+      servers: [{ url: 'https://api.example.com' }],
+      paths: {
+        '/users': {
+          get: {
+            'summary': 'Get active users',
+            'tags': ['Active Users'],
+            'responses': { 200: { description: 'OK' } },
+            'x-bruno-variants': [
+              {
+                summary: 'Get inactive users',
+                tags: ['Inactive Users'],
+                responses: { 200: { description: 'OK' } }
+              }
+            ]
+          }
+        }
+      }
+    };
+
+    const result = openApiToBruno(spec);
+
+    expect(result.items.map((folder) => ({
+      name: folder.name,
+      requests: folder.items.map((request) => request.name)
+    }))).toEqual([
+      { name: 'Active_Users', requests: ['Get active users'] },
+      { name: 'Inactive_Users', requests: ['Get inactive users'] }
+    ]);
+  });
+});

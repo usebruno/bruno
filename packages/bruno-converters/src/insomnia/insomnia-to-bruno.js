@@ -34,7 +34,7 @@ const addSuffixToDuplicateName = (item, index, allItems) => {
 const regexVariable = new RegExp('{{.*?}}', 'g');
 
 const normalizeVariables = (value) => {
-  value = value || '';
+  value = String(value ?? '');
   const variables = value.match(regexVariable) || [];
   each(variables, (variable) => {
     value = value.replace(variable, variable.replace('_.', '').replaceAll(' ', ''));
@@ -160,7 +160,8 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
   }
 
   const settings = {
-    encodeUrl: request.settings?.encodeUrl !== false && request.settingEncodeUrl !== false // handles v4 and v5 import
+    encodeUrl: request.settings?.encodeUrl !== false && request.settingEncodeUrl !== false, // handles v4 and v5 import
+    forwardAuthorizationHeader: false
   };
 
   brunoRequestItem.settings = settings;

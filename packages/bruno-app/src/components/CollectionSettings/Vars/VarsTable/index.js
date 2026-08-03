@@ -5,13 +5,17 @@ import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
 import InfoTip from 'components/InfoTip';
+import DataTypeSelector from 'components/DataTypeSelector';
+import VarValueCell from 'components/VarValueCell';
+import { valueToString } from '@usebruno/common/utils';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
-import { setCollectionVars } from 'providers/ReduxStore/slices/collections/index';
+import { setCollectionVars, moveCollectionVar } from 'providers/ReduxStore/slices/collections/index';
 
-const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
+const VarsTable = ({ collection, vars, varType, initialScroll = 0, isDraft }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -31,6 +35,10 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
     dispatch(setCollectionVars({ collectionUid: collection.uid, vars: updatedVars, type: varType }));
   }, [dispatch, collection.uid, varType]);
 
+  const handleReorder = useCallback(({ updateReorderedItem }) => {
+    dispatch(moveCollectionVar({ type: varType, collectionUid: collection.uid, updateReorderedItem }));
+  }, [dispatch, varType, collection.uid]);
+
   const getRowError = useCallback((row, index, key) => {
     if (key !== 'name') return null;
     if (!row.name || row.name.trim() === '') return null;
@@ -40,13 +48,21 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
     return null;
   }, []);
 
+  const descriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    collection,
+    nameFromRowIndex: true
+  });
+
   const columns = [
     {
       key: 'name',
       name: 'Name',
       isKeyField: true,
+      sortable: true,
       placeholder: 'Name',
-      width: '40%'
+      width: '25%'
     },
     {
       key: 'value',
@@ -57,22 +73,43 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',
-      render: ({ value, onChange }) => (
-        <MultiLineEditor
-          value={value || ''}
-          theme={storedTheme}
-          onSave={onSave}
-          onChange={onChange}
-          collection={collection}
-          placeholder={!value ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+      render: ({ row, value, onChange, isLastEmptyRow, rowIndex }) => (
+        <VarValueCell
+          editor={(
+            <MultiLineEditor
+              value={valueToString(value)}
+              name={`${rowIndex}.value`}
+              theme={storedTheme}
+              onSave={onSave}
+              onChange={onChange}
+              collection={collection}
+              placeholder={value == null || (typeof value === 'string' && value.trim() === '') ? (varType === 'request' ? 'Value' : 'Expr') : ''}
+            />
+          )}
+          renderTypeSelector={!isLastEmptyRow && varType === 'request'
+            ? ({ compact }) => (
+                <DataTypeSelector
+                  compact={compact}
+                  variable={row}
+                  theme={storedTheme}
+                  collection={collection}
+                  onChange={(fields) => {
+                    const updated = (vars || []).map((v) => v.uid === row.uid ? { ...v, ...fields } : v);
+                    handleVarsChange(updated);
+                  }}
+                />
+              )
+            : null}
         />
       )
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
     name: '',
     value: '',
+    description: '',
     ...(varType === 'response' ? { local: false } : {})
   };
 
@@ -80,9 +117,14 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0 }) => {
     <StyledWrapper className="w-full">
       <EditableTable
         tableId="collection-vars"
+        testId={`collection-vars-${varType === 'response' ? 'res' : 'req'}`}
         columns={columns}
-        rows={vars}
+        rows={vars || []}
         onChange={handleVarsChange}
+        reorderable
+        onReorder={handleReorder}
+        sortStorageKey={`collection-vars-sort::${collection.uid}::${varType}`}
+        isDraft={isDraft}
         defaultRow={defaultRow}
         getRowError={getRowError}
         columnWidths={collectionVarsWidths}

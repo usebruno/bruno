@@ -1,5 +1,7 @@
-const { sanitizeName, isWSLPath, normalizeWSLPath, normalizeAndResolvePath, isLargeFile } = require('./filesystem.js');
+const { sanitizeName, isWSLPath, normalizeWSLPath, normalizeAndResolvePath, isLargeFile, moveCollectionDirectory } = require('./filesystem.js');
 const fs = require('fs-extra');
+const os = require('os');
+const path = require('path');
 
 describe('sanitizeName', () => {
   it('should replace invalid characters with hyphens', () => {
@@ -133,5 +135,44 @@ describe('WSL Path Utilities', () => {
       const input = '\\\\wsl.localhost\\Ubuntu\\home\\user\\file.txt';
       expect(normalizeAndResolvePath(input)).toBe(input);
     });
+  });
+});
+
+describe('moveCollectionDirectory', () => {
+  let workDir;
+
+  beforeEach(async () => {
+    workDir = await fs.mkdtemp(path.join(os.tmpdir(), 'bruno-move-test-'));
+  });
+
+  afterEach(async () => {
+    await fs.remove(workDir);
+  });
+
+  it('moves a collection directory with its nested contents to a new location', async () => {
+    const source = path.join(workDir, 'source-collection');
+    const destination = path.join(workDir, 'collections', 'source-collection');
+    await fs.ensureDir(path.join(source, 'folder'));
+    await fs.writeFile(path.join(source, 'bruno.json'), '{"name":"test"}');
+    await fs.writeFile(path.join(source, 'folder', 'request.bru'), 'meta {}');
+
+    await moveCollectionDirectory(source, destination);
+
+    expect(fs.existsSync(source)).toBe(false);
+    expect(fs.readFileSync(path.join(destination, 'bruno.json'), 'utf8')).toBe('{"name":"test"}');
+    expect(fs.readFileSync(path.join(destination, 'folder', 'request.bru'), 'utf8')).toBe('meta {}');
+  });
+
+  it('throws and leaves the source intact when the destination already exists', async () => {
+    const source = path.join(workDir, 'source-collection');
+    const destination = path.join(workDir, 'existing-collection');
+    await fs.ensureDir(source);
+    await fs.writeFile(path.join(source, 'bruno.json'), '{"name":"test"}');
+    await fs.ensureDir(destination);
+
+    await expect(moveCollectionDirectory(source, destination)).rejects.toThrow();
+
+    // source must remain untouched so the caller can safely retry / roll back
+    expect(fs.existsSync(path.join(source, 'bruno.json'))).toBe(true);
   });
 });

@@ -1,0 +1,8 @@
+info:
+  name: GET-Request
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{host}}/api/resource"

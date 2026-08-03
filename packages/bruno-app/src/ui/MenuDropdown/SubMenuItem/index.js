@@ -3,6 +3,8 @@ import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 
 const SubMenuItem = ({
   item,
+  selectedItemId,
+  showTickMark,
   onRootClose,
   submenuPlacement,
   getMenuItemProps,
@@ -25,11 +27,14 @@ const SubMenuItem = ({
     };
   });
 
+  const hasSelectedChild = selectedItemId != null
+    && item.submenu.some((subItem) => subItem.id === selectedItemId);
+
   const itemProps = getMenuItemProps(item, {
-    'className': 'has-submenu',
+    'className': `has-submenu ${hasSelectedChild ? 'dropdown-item-active' : ''}`,
     'aria-haspopup': 'true',
     'aria-expanded': submenuOpen,
-    'aria-current': undefined // submenu triggers don't need aria-current
+    'aria-current': hasSelectedChild ? 'true' : undefined
   });
 
   const arrowElement = (
@@ -49,7 +54,8 @@ const SubMenuItem = ({
         placement={submenuTippyPlacement}
         opened={submenuOpen}
         onChange={setSubmenuOpen}
-        showTickMark={false}
+        selectedItemId={selectedItemId}
+        showTickMark={showTickMark}
         submenuPlacement={submenuPlacement}
         appendTo={() => document.body}
         offset={[0, 0]}

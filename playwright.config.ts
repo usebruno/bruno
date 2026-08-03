@@ -4,13 +4,15 @@ const reporter: any[] = [['list'], ['html'], ['json', { outputFile: 'playwright-
 
 if (process.env.CI) {
   reporter.push(['github']);
+  // Blob reports are mergeable across shards (see tests-linux.yml e2e-test-report).
+  reporter.push(['blob']);
 }
 
 export default defineConfig({
-  fullyParallel: false,
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? undefined : 1,
+  workers: undefined,
   reporter,
 
   use: {
@@ -24,7 +26,9 @@ export default defineConfig({
       testIgnore: [
         'ssl/**', // custom CA certificate tests require separate server setup and certificate generation
         'auth/**', // auth tests have their own project
-        'benchmarks/**'  
+        'benchmarks/**',
+        'proxy/system-pac/**', // shares ports with proxy/pac — runs in its own project after default
+        'mock-server/**' // own project; workerIndex ports + per-worker Electron state
       ]
     },
     {
@@ -34,6 +38,15 @@ export default defineConfig({
     {
       name: 'ssl',
       testDir: './tests/ssl'
+    },
+    {
+      // system-pac and pac specs share the same PAC/proxy/target ports.
+      name: 'system-pac',
+      testDir: './tests/proxy/system-pac',
+    },
+    {
+      name: 'mock-server',
+      testDir: './tests/mock-server'
     }
   ],
 

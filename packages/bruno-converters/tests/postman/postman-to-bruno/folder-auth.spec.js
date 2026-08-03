@@ -49,7 +49,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'inherit',
@@ -59,7 +59,8 @@ describe('Folder Authentication', () => {
       apikey: null,
       oauth2: null,
       digest: null,
-      oauth1: null
+      oauth1: null,
+      ntlm: null
     });
   });
 
@@ -113,7 +114,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'none',
@@ -123,7 +124,8 @@ describe('Folder Authentication', () => {
       apikey: null,
       oauth2: null,
       digest: null,
-      oauth1: null
+      oauth1: null,
+      ntlm: null
     });
   });
 
@@ -174,7 +176,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'basic',
@@ -187,7 +189,8 @@ describe('Folder Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -233,7 +236,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'bearer',
@@ -243,7 +246,8 @@ describe('Folder Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -294,7 +298,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'apikey',
@@ -304,7 +308,8 @@ describe('Folder Authentication', () => {
       apikey: { key: 'apikey', value: 'apikey', placement: 'header' },
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -360,7 +365,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'digest',
@@ -370,7 +375,8 @@ describe('Folder Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: { username: 'digest user', password: 'digest pass' }
+      digest: { username: 'digest user', password: 'digest pass' },
+      ntlm: null
     });
   });
 
@@ -410,7 +416,7 @@ describe('Folder Authentication', () => {
       ]
     };
 
-    const result = await postmanToBruno(postmanCollection);
+    const { collection: result } = await postmanToBruno(postmanCollection);
 
     expect(result.items[0].root.request.auth).toEqual({
       mode: 'basic',
@@ -423,7 +429,8 @@ describe('Folder Authentication', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 });

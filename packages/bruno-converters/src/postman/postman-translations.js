@@ -1,8 +1,5 @@
 import translateCode from '../utils/postman-to-bruno-translator';
 
-// TODO: Restore the commented-out translations once the UI update fixes are live.
-// Currently these APIs only work within the request lifecycle but fail to update the UI tables.
-// e.g., setCollectionVar only sets the variable in the request lifecycle, fails to update the table in the UI.
 const replacements = {
   'pm\\.environment\\.get\\(': 'bru.getEnvVar(',
   'pm\\.environment\\.set\\(': 'bru.setEnvVar(',
@@ -10,12 +7,15 @@ const replacements = {
   'pm\\.variables\\.set\\(': 'bru.setVar(',
   'pm\\.variables\\.replaceIn\\(': 'bru.interpolate(',
   'pm\\.collectionVariables\\.get\\(': 'bru.getCollectionVar(',
-  // 'pm\\.collectionVariables\\.set\\(': 'bru.setCollectionVar(',
+  'pm\\.collectionVariables\\.set\\(': 'bru.setCollectionVar(',
   'pm\\.collectionVariables\\.has\\(': 'bru.hasCollectionVar(',
-  // 'pm\\.collectionVariables\\.unset\\(': 'bru.deleteCollectionVar(',
-  // 'pm\\.collectionVariables\\.clear\\(': 'bru.deleteAllCollectionVars(',
-  // 'pm\\.collectionVariables\\.toObject\\(': 'bru.getAllCollectionVars(',
-  'pm\\.setNextRequest\\(': 'bru.setNextRequest(',
+  'pm\\.collectionVariables\\.unset\\(': 'bru.deleteCollectionVar(',
+  'pm\\.collectionVariables\\.clear\\(': 'bru.deleteAllCollectionVars(',
+  'pm\\.collectionVariables\\.toObject\\(': 'bru.getAllCollectionVars(',
+  // Only the actual null literal stops the runner; the string 'null' is a valid
+  // request name and falls through to setNextRequest.
+  'pm\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
+  'pm\\.setNextRequest\\(': 'bru.runner.setNextRequest(',
   'pm\\.test\\(': 'test(',
   'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
   'pm\\.response\\.to\\.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
@@ -28,9 +28,10 @@ const replacements = {
   'pm\\.response\\.responseTime': 'res.getResponseTime()',
   'pm\\.globals\\.set\\(': 'bru.setGlobalEnvVar(',
   'pm\\.globals\\.get\\(': 'bru.getGlobalEnvVar(',
-  // 'pm\\.globals\\.unset\\(': 'bru.deleteGlobalEnvVar(',
+  'pm\\.globals\\.has\\(': 'bru.hasGlobalEnvVar(',
+  'pm\\.globals\\.unset\\(': 'bru.deleteGlobalEnvVar(',
   'pm\\.globals\\.toObject\\(': 'bru.getAllGlobalEnvVars(',
-  // 'pm\\.globals\\.clear\\(': 'bru.deleteAllGlobalEnvVars(',
+  'pm\\.globals\\.clear\\(': 'bru.deleteAllGlobalEnvVars(',
   'pm\\.environment\\.toObject\\(': 'bru.getAllEnvVars(',
   'pm\\.environment\\.clear\\(': 'bru.deleteAllEnvVars(',
   'pm\\.variables\\.toObject\\(': 'bru.getAllVars(',
@@ -126,8 +127,9 @@ const replacements = {
   'postman\\.clearEnvironmentVariable\\(': 'bru.deleteEnvVar(',
   'pm\\.execution\\.skipRequest\\(\\)': 'bru.runner.skipRequest()',
   'pm\\.execution\\.skipRequest': 'bru.runner.skipRequest',
+  // Only the actual null literal stops the runner; the string 'null' falls through to setNextRequest.
   'pm\\.execution\\.setNextRequest\\(null\\)': 'bru.runner.stopExecution()',
-  'pm\\.execution\\.setNextRequest\\(\'null\'\\)': 'bru.runner.stopExecution()',
+  'pm\\.execution\\.setNextRequest\\(': 'bru.runner.setNextRequest(',
   // Cookie jar translations — order matters:
   // 1. Specific jar method patterns must come before the general jar() pattern,
   //    otherwise jar() consumes the prefix and the method patterns never match.

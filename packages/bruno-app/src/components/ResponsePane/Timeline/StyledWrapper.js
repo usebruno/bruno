@@ -10,153 +10,57 @@ const StyledWrapper = styled.div`
     flex: 1;
   }
 
-  .timeline-item {
-    border-color: ${(props) => props.theme.border.border1};
+  .timeline-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 0;
+    flex-wrap: wrap;
+    border-bottom: 1px solid ${(props) => props.theme.border.border1};
+    margin-bottom: 4px;
+  }
+
+  .timeline-chip {
+    padding: 4px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: ${(props) => props.theme.colors.text.muted};
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: color 0.1s ease, background-color 0.1s ease;
+
+    &:hover {
+      color: ${(props) => props.theme.text};
+      background: ${(props) => props.theme.bg2 || 'rgba(255, 255, 255, 0.04)'};
+    }
+
+    &.is-active {
+      color: ${(props) => props.theme.text};
+      background: ${(props) => props.theme.bg2 || 'rgba(255, 255, 255, 0.06)'};
+    }
+  }
+
+  .timeline-chip-count {
+    color: ${(props) => props.theme.colors.text.muted};
+    opacity: 0.6;
+    font-size: 11px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .timeline-chip.is-active .timeline-chip-count {
+    color: ${(props) => props.theme.tabs.active.border};
+    opacity: 1;
   }
 
   .timeline-event {
     cursor: pointer;
-  }
-
-  .timeline-event-content {
-    border-radius: 4px;
-    padding: 12px;
-    margin-top: 0.5rem;
-  }
-
-  .timeline-event-header {
-    color: ${(props) => props.theme.text};
-  }
-
-  .method-label {
-    font-weight: 500;
-  }
-
-  .status-code {
-    font-weight: 500;
-  }
-
-  .url-text {
-    color: ${(props) => props.theme.colors.text.muted};
-    font-size: ${(props) => props.theme.font.size.base};
-    margin-top: 0.25rem;
-  }
-
-  .timestamp {
-    color: ${(props) => props.theme.colors.text.muted};
-    font-size: ${(props) => props.theme.font.size.base};
-  }
-
-  .meta-info {
-    color: ${(props) => props.theme.colors.text.muted};
-    font-size: ${(props) => props.theme.font.size.base};
-  }
-
-  .oauth-section {
-    .oauth-header {
-      display: flex;
-      align-items: center;
-      color: ${(props) => props.theme.text};
-      font-weight: 500;
-
-      span {
-        margin-left: 0.5rem;
-      }
-    }
-  }
-
-  .tabs-switcher {
-    border-bottom: 1px solid ${(props) => props.theme.border.border1};
-    margin-bottom: 16px;
-
-    button {
-      position: relative;
-      padding: 8px 16px;
-      color: ${(props) => props.theme.colors.text.muted};
-
-      &.active {
-        color: ${(props) => props.theme.tabs.active.color};
-        &:after {
-          content: '';
-          position: absolute;
-          bottom: -1px;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: ${(props) => props.theme.tabs.active.border};
-        }
-      }
-    }
-  }
-
-  .network-logs {
-    background: ${(props) => props.theme.codemirror.bg};
-    color: ${(props) => props.theme.text};
-    border-radius: 4px;
-  }
-
-  .oauth-request-item-content {
-    border-radius: 4px;
-    margin-top: 0.5rem;
-  }
-
-  .collapsible-section {
-    margin-bottom: 12px;
-
-    .section-header {
-      cursor: pointer;
-      &:hover {
-        opacity: 0.8;
-      }
-    }
-  }
-
-  .line {
-    white-space: pre-line;
-    word-wrap: break-word;
-    word-break: break-all;
-    font-family: ${(props) => props.theme.font || 'Inter, sans-serif'} !important;
-
-    .arrow {
-      opacity: 0.5;
-    }
-
-    &.request {
-      color: ${(props) => props.theme.colors.text.green};
-    }
-
-    &.response {
-      color: ${(props) => props.theme.colors.text.purple};
-    }
-  }
-
-  .request-label {
-    font-size: ${(props) => props.theme.font.size.base};
-    padding: 2px 6px;
-    border-radius: 3px;
-    margin-left: 8px;
-    background: ${(props) => props.theme.requestTabs.bg};
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-weight: 500;
-    table-layout: fixed;
-
-    thead,
-    td {
-      border: 1px solid ${(props) => props.theme.table.border};
-    }
-
-    thead {
-      color: ${(props) => props.theme.table.thead.color};
-      font-size: ${(props) => props.theme.font.size.base};
-      user-select: none;
-    }
-    td {
-      padding: 6px 10px;
-    }
   }
 `;
 

@@ -10,14 +10,18 @@ export const fromOpenCollectionParams = (params: HttpRequestParam[] | undefined)
     return [];
   }
 
-  return params.map((param): BrunoHttpRequestParam => ({
-    uid: uuid(),
-    name: param.name || '',
-    value: param.value || '',
-    description: typeof param.description === 'string' ? param.description : param.description?.content || null,
-    type: (param.type || 'query') as BrunoHttpRequestParamType,
-    enabled: param.disabled !== true
-  }));
+  return params.map((param): BrunoHttpRequestParam => {
+    const entry: BrunoHttpRequestParam = {
+      uid: uuid(),
+      name: param.name || '',
+      value: param.value || '',
+      type: (param.type || 'query') as BrunoHttpRequestParamType,
+      enabled: param.disabled !== true
+    };
+    const desc = typeof param.description === 'string' ? param.description : param.description?.content;
+    if (desc && desc.trim().length) entry.description = desc;
+    return entry;
+  });
 };
 
 export const toOpenCollectionParams = (params: BrunoHttpRequestParam[] | null | undefined): HttpRequestParam[] | undefined => {

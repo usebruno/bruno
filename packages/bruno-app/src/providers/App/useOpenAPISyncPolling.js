@@ -2,16 +2,13 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { checkActiveWorkspaceCollectionsForUpdates } from 'providers/ReduxStore/slices/openapi-sync';
 import { normalizePath } from 'utils/common/path';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 
 const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 const useOpenAPISyncPolling = () => {
   const dispatch = useDispatch();
 
-  const isOpenAPISyncEnabled = useBetaFeature(BETA_FEATURES.OPENAPI_SYNC);
-  // Global toggle for pausing all OpenAPI sync polling
-  const pollingEnabled = useSelector((state) => state.openapiSync?.pollingEnabled ?? true) && isOpenAPISyncEnabled;
+  const pollingEnabled = useSelector((state) => state.openapiSync?.pollingEnabled ?? true);
   const collections = useSelector((state) => state.collections?.collections || []);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);

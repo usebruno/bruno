@@ -113,6 +113,11 @@ const expectRowNear = (actual: number, expected: number, tolerance: number = 5) 
   expect(actual).toBeLessThan(expected + tolerance);
 };
 
+// Under parallel workers the scroll → virtuoso re-window → render cycle can take
+// far longer than the default; give windowing assertions headroom so they don't
+// flake on a busy CI machine.
+const WINDOW_SETTLE_MS = 10_000;
+
 // Tests share an Electron worker, so localStorage carries scroll values from one
 // test into the next under the same `persisted::<tabUid>::<key>` namespace —
 // breaking the "initial scroll is 0" assertion. Wipe just the scroll-persistence
@@ -125,6 +130,37 @@ const clearPersistedScrollState = async (page: Page) => {
         .forEach((k) => localStorage.removeItem(k));
     } catch {}
   });
+};
+
+// Scrolls a virtualised Vars/EditableTable to the bottom and verifies the last row
+// renders its actual data (name + value) on screen — i.e. virtualisation mounts the
+// right row with content, not a blank/placeholder cell. The last row is the most
+// fragile to window (it sits next to the trailing empty "add" row).
+const assertVarsTableRendersAfterScroll = async (
+  page: Page,
+  { tableId, scrollContainer, namePrefix, lastVarIndex }: {
+    tableId: string;
+    scrollContainer: string;
+    namePrefix: string;
+    lastVarIndex: number;
+  }
+) => {
+  const table = page.getByTestId(tableId);
+  const container = page.locator(scrollContainer).first();
+  const lastRow = table.locator(`table > tbody > tr[data-row-name="${namePrefix}_var_${lastVarIndex}"]`);
+
+  // Re-scroll inside the retry: under parallel load the list may not be fully sized
+  // on the first scroll, so a one-shot scroll can stop short of the bottom.
+  await expect(async () => {
+    await container.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    await expect(lastRow).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: WINDOW_SETTLE_MS });
+
+  // <prefix>_var_N sits at data-index N-1; the row shows the matching value on
+  // screen, proving its data rendered (not a blank/off-screen cell) after scroll.
+  await expect(lastRow).toHaveAttribute('data-index', String(lastVarIndex - 1));
+  await expect(lastRow.getByTestId('column-value')).toContainText(`${namePrefix}-${lastVarIndex}`);
+  await expect(lastRow).toBeInViewport();
 };
 
 // ===========================================================================
@@ -422,7 +458,7 @@ test.describe('Scroll Position Persistence', () => {
     test('Request Headers - scroll persists with many headers across tab switches', async ({ pageWithUserData: page }) => {
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const scrollContainer = '.flex-boundary';
-      const firstVisibleRowLocator = () => page.getByTestId('editable-table').locator('table > tbody > tr:nth-child(2)');
+      const firstVisibleRowLocator = () => page.getByTestId('request-headers-table').locator('table > tbody > tr[data-index]').first();
 
       await test.step('Setup request and navigate to Headers tab', async () => {
         await openCollection(page, 'scroll-fixtures');
@@ -438,13 +474,14 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Scroll to ~middle of table (~row 50)', async () => {
         const container = page.locator(scrollContainer).first();
-        // Scroll halfway through the virtualised list so ~row 50 becomes the first visible row
-        await container.evaluate((el) => { el.scrollTop = el.scrollHeight / 2; });
-
-        // Auto-retry: wait for TableVirtuoso to land on a row in [45, 55]
-        // (matches the ~row 50 ± 5 range that expectRowNear asserts)
-        const element = firstVisibleRowLocator();
-        await expect(element).toHaveAttribute('data-index', /^(4[5-9]|5[0-5])$/, { timeout: 2000 });
+        // Re-scroll inside the retry: under parallel load the virtualised list may
+        // not be fully sized on the first scroll (scrollHeight too small), so a
+        // one-shot scroll lands near the top and never re-adjusts. Re-scrolling each
+        // attempt lets it catch up as the list grows, until row ~50 (±5) leads.
+        await expect(async () => {
+          await container.evaluate((el) => { el.scrollTop = el.scrollHeight / 2; });
+          await expect(firstVisibleRowLocator()).toHaveAttribute('data-index', /^(4[5-9]|5[0-5])$/, { timeout: 1000 });
+        }).toPass({ timeout: WINDOW_SETTLE_MS });
       });
 
       await test.step('Switch to Body tab and back to Headers', async () => {
@@ -456,6 +493,8 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Verify scroll restored to ~row 50', async () => {
         const element = firstVisibleRowLocator();
+        // Wait for the remounted table to re-window to the restored position before reading.
+        await expect(element).toHaveAttribute('data-index', /^(4[5-9]|5[0-5])$/, { timeout: WINDOW_SETTLE_MS });
         const current = parseInt(await element.getAttribute('data-index') as string);
         expectRowNear(current, 50);
       });
@@ -479,7 +518,7 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Verify initial scroll is 0', async () => {
         const container = page.locator(scrollContainer).first();
         await container.evaluate((el) => { el.scrollTop = 0; });
-        await expect(firstVisibleRowLocator()).toHaveAttribute('data-index', '0', { timeout: 2000 });
+        await expect(firstVisibleRowLocator()).toHaveAttribute('data-index', '0', { timeout: WINDOW_SETTLE_MS });
         const initial = await container.evaluate((el) => el.scrollTop);
         expect(initial).toBe(0);
       });
@@ -489,7 +528,7 @@ test.describe('Scroll Position Persistence', () => {
         await container.evaluate((el) => { el.scrollTop = el.scrollHeight / 2; });
 
         const element = firstVisibleRowLocator();
-        await expect(element).toHaveAttribute('data-index', /^(2[5-9]|3[0-5])$/, { timeout: 2000 });
+        await expect(element).toHaveAttribute('data-index', /^(2[5-9]|3[0-5])$/, { timeout: WINDOW_SETTLE_MS });
       });
 
       await test.step('Switch to Body tab and back to Assert', async () => {
@@ -501,9 +540,26 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Verify scroll restored to ~row 30', async () => {
         const element = firstVisibleRowLocator();
-        await expect(element).toHaveAttribute('data-index', /^(2[5-9]|3[0-5])$/, { timeout: 2000 });
+        await expect(element).toHaveAttribute('data-index', /^(2[5-9]|3[0-5])$/, { timeout: WINDOW_SETTLE_MS });
         const current = parseInt(await element.getAttribute('data-index') as string);
         expectRowNear(current, 30);
+      });
+    });
+
+    test('Request Vars - rows render correctly after scrolling', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+
+      await test.step('Setup request and navigate to Vars tab', async () => {
+        await openCollection(page, 'scroll-fixtures');
+        await openRequest(page, 'scroll-fixtures', 'vars-many');
+        await selectRequestPaneTab(page, 'Vars');
+      });
+
+      await assertVarsTableRendersAfterScroll(page, {
+        tableId: 'request-vars-req',
+        scrollContainer: '.flex-boundary',
+        namePrefix: 'req',
+        lastVarIndex: 100
       });
     });
   });
@@ -773,6 +829,11 @@ test.describe('Scroll Position Persistence', () => {
     test('Folder Docs - scroll persists in edit mode across tab switches', async ({ pageWithUserData: page }) => {
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
+      // Docs opens edit mode in WYSIWYG (Rich Text) by default; CodeMirror only
+      // mounts once Markdown mode is explicitly selected. The Docs pane also
+      // remounts on every folder-settings tab switch, resetting back to Rich
+      // Text, so the toggle has to be re-clicked after each switch back.
+      const markdownToggle = () => page.locator('.docs-mode-switch button').filter({ hasText: 'Markdown' });
 
       await test.step('Open folder and navigate to Docs tab', async () => {
         await openCollection(page, 'scroll-fixtures');
@@ -780,9 +841,10 @@ test.describe('Scroll Position Persistence', () => {
         await locators.paneTabs.folderSettingsTab('docs').click({ timeout: 2000 });
       });
 
-      await test.step('Click Edit', async () => {
-        const editToggle = page.locator('.editing-mode');
+      await test.step('Click Edit and switch to Markdown mode', async () => {
+        const editToggle = page.getByTestId('settings-tab-bar').getByTestId('docs-edit-toggle');
         await editToggle.click({ timeout: 2000 });
+        await markdownToggle().click({ timeout: 2000 });
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -795,6 +857,7 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Initialize hook via tab switch, then scroll', async () => {
         await locators.paneTabs.folderSettingsTab('headers').click({ timeout: 2000 });
         await locators.paneTabs.folderSettingsTab('docs').click({ timeout: 2000 });
+        await markdownToggle().click({ timeout: 2000 });
         await setEditorScroll(page, '.CodeMirror', 1500);
       });
 
@@ -806,10 +869,81 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Switch to headers and back to docs edit mode', async () => {
         await locators.paneTabs.folderSettingsTab('headers').click({ timeout: 2000 });
         await locators.paneTabs.folderSettingsTab('docs').click({ timeout: 2000 });
+        await markdownToggle().click({ timeout: 2000 });
       });
 
       await test.step('Verify scroll restored', async () => {
         const restored = await getEditorScroll(page, '.CodeMirror');
+        expectScrollRestored(restored, saved);
+      });
+    });
+
+    test('Folder Docs - scroll persists in rich text (WYSIWYG) edit mode across tab switches', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const locators = buildCommonLocators(page);
+      const richTextContent = () => page.locator('.rich-text-editor-content').first();
+      const markdownToggle = () => page.locator('.docs-mode-switch button').filter({ hasText: 'Markdown' });
+      const richTextToggle = () => page.locator('.docs-mode-switch button').filter({ hasText: 'Rich Text' });
+
+      const getScroll = async () => richTextContent().evaluate((el) => el.scrollTop);
+      const setScroll = async (value: number) => {
+        await richTextContent().evaluate((el, v) => { el.scrollTop = v; }, value);
+        // Wait for the debounced save (200ms) to complete.
+        await page.waitForTimeout(400);
+      };
+
+      await test.step('Open folder, navigate to Docs, and enter edit mode', async () => {
+        await openCollection(page, 'scroll-fixtures');
+        await locators.sidebar.folder('test-folder').click({ timeout: 2000 });
+        await locators.paneTabs.folderSettingsTab('docs').click({ timeout: 2000 });
+        await page.getByTestId('settings-tab-bar').getByTestId('docs-edit-toggle').click({ timeout: 2000 });
+      });
+
+      await test.step('Reset to a known scroll baseline', async () => {
+        // test-folder's docs fixture already has ~80 sections of content, so
+        // the rich-text view is tall enough to scroll from the moment it
+        // mounts. Whether it lands at exactly 0 on mount depends on leftover
+        // persisted state / mount timing when run alongside other specs, so
+        // force a known baseline here instead of asserting on the natural
+        // mount position.
+        await richTextContent().evaluate((el) => { el.scrollTop = 0; });
+        const initial = await getScroll();
+        expect(initial).toBe(0);
+      });
+
+      await test.step('Add enough long content to make the rich text view scrollable', async () => {
+        await markdownToggle().click({ timeout: 2000 });
+        const longContent = Array.from(
+          { length: 80 },
+          (_, i) => `## Heading ${i + 1}\n\nSome paragraph content for line ${i + 1}.`
+        ).join('\n\n');
+        await setEditorContent(page, '.CodeMirror', longContent);
+        // Switching back also drops us into Rich Text mode, matching the
+        // WYSIWYG-by-default behavior a fresh entry into edit mode gets.
+        await richTextToggle().click({ timeout: 2000 });
+        await page.waitForTimeout(200);
+      });
+
+      let saved: number;
+
+      await test.step('Scroll the rich text (WYSIWYG) editor and capture position', async () => {
+        // The content swap above (markdown -> rich text) can leave the
+        // container's scrollTop at a nonzero offset on its own (ProseMirror
+        // reflow / browser scroll-anchoring) — reset to a known baseline
+        // before scrolling so we're testing our own persistence, not that.
+        await richTextContent().evaluate((el) => { el.scrollTop = 0; });
+        await setScroll(600);
+        saved = await getScroll();
+        expect(saved).toBeGreaterThan(0);
+      });
+
+      await test.step('Switch to Headers then back to Docs (still in rich text edit mode)', async () => {
+        await locators.paneTabs.folderSettingsTab('headers').click({ timeout: 2000 });
+        await locators.paneTabs.folderSettingsTab('docs').click({ timeout: 2000 });
+      });
+
+      await test.step('Verify scroll restored', async () => {
+        const restored = await getScroll();
         expectScrollRestored(restored, saved);
       });
     });
@@ -897,6 +1031,24 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Verify scroll restored', async () => {
         const restored = await getEditorScroll(page, POST_SELECTOR);
         expectScrollRestored(restored, saved);
+      });
+    });
+
+    test('Folder Vars - rows render correctly after scrolling', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const locators = buildCommonLocators(page);
+
+      await test.step('Open folder settings and navigate to Vars tab', async () => {
+        await openCollection(page, 'scroll-fixtures');
+        await locators.sidebar.folder('test-folder').click({ timeout: 2000 });
+        await locators.paneTabs.folderSettingsTab('vars').click({ timeout: 2000 });
+      });
+
+      await assertVarsTableRendersAfterScroll(page, {
+        tableId: 'folder-vars-req',
+        scrollContainer: '.folder-settings-content',
+        namePrefix: 'fold',
+        lastVarIndex: 100
       });
     });
   });
@@ -1054,6 +1206,11 @@ test.describe('Scroll Position Persistence', () => {
     test('Collection Docs - scroll persists in edit mode across tab switches', async ({ pageWithUserData: page }) => {
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
+      // Docs opens edit mode in WYSIWYG (Rich Text) by default; CodeMirror only
+      // mounts once Markdown mode is explicitly selected. The Docs pane also
+      // remounts on every collection-settings tab switch, resetting back to
+      // Rich Text, so the toggle has to be re-clicked after each switch back.
+      const markdownToggle = () => page.locator('.docs-mode-switch button').filter({ hasText: 'Markdown' });
 
       await test.step('Open collection settings and navigate to Docs tab', async () => {
         await openCollection(page, 'scroll-fixtures');
@@ -1061,10 +1218,11 @@ test.describe('Scroll Position Persistence', () => {
         await locators.paneTabs.collectionSettingsTab('overview').click({ timeout: 2000 });
       });
 
-      await test.step('Click Edit', async () => {
+      await test.step('Click Edit and switch to Markdown mode', async () => {
         // Collection docs has an edit icon button
-        const editBtn = page.locator('.editing-mode');
+        const editBtn = page.getByTestId('settings-tab-bar').getByTestId('docs-edit-toggle');
         await editBtn.click({ timeout: 2000 });
+        await markdownToggle().click({ timeout: 2000 });
       });
 
       await test.step('Verify initial scroll is 0', async () => {
@@ -1077,6 +1235,7 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Init hook via tab switch, then scroll', async () => {
         await locators.paneTabs.collectionSettingsTab('headers').click({ timeout: 2000 });
         await locators.paneTabs.collectionSettingsTab('overview').click({ timeout: 2000 });
+        await markdownToggle().click({ timeout: 2000 });
         await setEditorScroll(page, '.CodeMirror', 1500);
       });
 
@@ -1088,6 +1247,7 @@ test.describe('Scroll Position Persistence', () => {
       await test.step('Switch to headers and back to docs edit mode', async () => {
         await locators.paneTabs.collectionSettingsTab('headers').click({ timeout: 2000 });
         await locators.paneTabs.collectionSettingsTab('overview').click({ timeout: 2000 });
+        await markdownToggle().click({ timeout: 2000 });
       });
 
       await test.step('Verify scroll restored', async () => {
@@ -1100,7 +1260,7 @@ test.describe('Scroll Position Persistence', () => {
       await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
       const locators = buildCommonLocators(page);
       const scrollContainer = '.collection-settings-content';
-      const firstVisibleRowLocator = () => page.getByTestId('editable-table').locator('table > tbody > tr:nth-child(2)');
+      const firstVisibleRowLocator = () => page.getByTestId('collection-headers').locator('table > tbody > tr[data-index]').first();
 
       await test.step('Open collection settings and navigate to Headers tab', async () => {
         await openCollection(page, 'scroll-fixtures');
@@ -1116,13 +1276,14 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Scroll to ~middle of table (~row 50)', async () => {
         const container = page.locator(scrollContainer).first();
-        // Scroll halfway through the virtualised list so ~row 50 becomes the first visible row
-        await container.evaluate((el) => { el.scrollTop = el.scrollHeight / 2; });
-
-        // Auto-retry: wait for TableVirtuoso to land on a row in [45, 55]
-        // (matches the ~row 50 ± 5 range that expectRowNear asserts)
-        const element = firstVisibleRowLocator();
-        await expect(element).toHaveAttribute('data-index', /^(4[5-9]|5[0-5])$/, { timeout: 2000 });
+        // Re-scroll inside the retry: under parallel load the virtualised list may
+        // not be fully sized on the first scroll (scrollHeight too small), so a
+        // one-shot scroll lands near the top and never re-adjusts. Re-scrolling each
+        // attempt lets it catch up as the list grows, until row ~50 (±5) leads.
+        await expect(async () => {
+          await container.evaluate((el) => { el.scrollTop = el.scrollHeight / 2; });
+          await expect(firstVisibleRowLocator()).toHaveAttribute('data-index', /^(4[5-9]|5[0-5])$/, { timeout: 1000 });
+        }).toPass({ timeout: WINDOW_SETTLE_MS });
       });
 
       await test.step('Switch to script tab and back to headers', async () => {
@@ -1134,8 +1295,28 @@ test.describe('Scroll Position Persistence', () => {
 
       await test.step('Verify scroll restored to ~row 50', async () => {
         const element = firstVisibleRowLocator();
+        // Wait for the remounted table to re-window to the restored position before reading.
+        await expect(element).toHaveAttribute('data-index', /^(4[5-9]|5[0-5])$/, { timeout: WINDOW_SETTLE_MS });
         const current = parseInt(await element.getAttribute('data-index') as string);
         expectRowNear(current, 50);
+      });
+    });
+
+    test('Collection Vars - rows render correctly after scrolling', async ({ pageWithUserData: page }) => {
+      await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+      const locators = buildCommonLocators(page);
+
+      await test.step('Open collection settings and navigate to Vars tab', async () => {
+        await openCollection(page, 'scroll-fixtures');
+        await openCollectionSettings(page, 'scroll-fixtures');
+        await locators.paneTabs.collectionSettingsTab('vars').click({ timeout: 2000 });
+      });
+
+      await assertVarsTableRendersAfterScroll(page, {
+        tableId: 'collection-vars-req',
+        scrollContainer: '.collection-settings-content',
+        namePrefix: 'coll',
+        lastVarIndex: 100
       });
     });
   });

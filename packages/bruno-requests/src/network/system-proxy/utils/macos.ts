@@ -82,6 +82,12 @@ export class MacOSProxyResolver implements ProxyResolver {
     let http_proxy: string | null = null;
     let https_proxy: string | null = null;
     let no_proxy: string | null = null;
+    let pac_url: string | null = null;
+
+    // Check PAC (Proxy Auto-Configuration)
+    if (config.ProxyAutoConfigEnable === 1 && config.ProxyAutoConfigURLString) {
+      pac_url = config.ProxyAutoConfigURLString;
+    }
 
     // Check HTTP proxy
     if (config.HTTPEnable === 1 && config.HTTPProxy) {
@@ -109,6 +115,7 @@ export class MacOSProxyResolver implements ProxyResolver {
       http_proxy,
       https_proxy,
       no_proxy: normalizeNoProxy(no_proxy),
+      pac_url,
       source: 'macos-system'
     };
   }

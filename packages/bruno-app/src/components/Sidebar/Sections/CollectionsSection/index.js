@@ -16,9 +16,9 @@ import {
   IconTerminal2
 } from '@tabler/icons';
 
-import { importCollection, openCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { importCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
-import { savePreferences, setIsCreatingCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
+import { savePreferences, setIsCreatingCollection, setIsOpeningCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
 import { normalizePath } from 'utils/common/path';
 import { isScratchCollection, flattenItems, isItemTransientRequest } from 'utils/collections';
 import { sanitizeName } from 'utils/common/regex';
@@ -32,6 +32,8 @@ import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectio
 import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
 import RemoveCollectionsModal from 'components/Sidebar/Collections/RemoveCollectionsModal/index';
 import CreateCollection from 'components/Sidebar/CreateCollection';
+import PostmanPackageReport from 'components/Sidebar/PostmanPackageReport';
+import usePostmanPackagePrompt from 'hooks/usePostmanPackagePrompt';
 import WelcomeModal from 'components/WelcomeModal';
 import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
@@ -58,6 +60,7 @@ const CollectionsSection = () => {
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [showCloneGitModal, setShowCloneGitModal] = useState(false);
   const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
+  const { postmanPackagePrompt, clearPostmanPackagePrompt, handleImportResolved } = usePostmanPackagePrompt();
 
   // Import collection shortcut
   useKeybinding('importCollection', () => {
@@ -115,9 +118,10 @@ const CollectionsSection = () => {
       : importCollection(convertedCollection, collectionLocation, options);
 
     dispatch(importAction)
-      .then(() => {
+      .then((importedItem) => {
         setImportCollectionLocationModalOpen(false);
         setImportData(null);
+        handleImportResolved(convertedCollection, importedItem);
       });
   };
 
@@ -180,14 +184,7 @@ const CollectionsSection = () => {
   };
 
   const handleOpenCollection = () => {
-    const options = {};
-    if (activeWorkspace?.pathname) {
-      options.workspaceId = activeWorkspace.pathname;
-    }
-
-    dispatch(openCollection(options)).catch((err) => {
-      toast.error('An error occurred while opening the collection');
-    });
+    dispatch(setIsOpeningCollection(true));
   };
 
   const handleStartRequest = () => {
@@ -394,6 +391,14 @@ const CollectionsSection = () => {
           onClose={handleCloseGitModal}
           onFinish={handleCloseGitModal}
           collectionRepositoryUrl={gitRepositoryUrl}
+        />
+      )}
+      {postmanPackagePrompt && (
+        <PostmanPackageReport
+          key={postmanPackagePrompt.collectionPath}
+          report={postmanPackagePrompt.report}
+          collectionPath={postmanPackagePrompt.collectionPath}
+          onClose={clearPostmanPackagePrompt}
         />
       )}
       <SidebarSection

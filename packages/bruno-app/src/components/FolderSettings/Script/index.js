@@ -13,6 +13,7 @@ import { flattenItems, isItemARequest } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import Button from 'ui/Button';
 import { usePersistedState } from 'hooks/usePersistedState';
+import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
 
 const Script = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -22,7 +23,9 @@ const Script = ({ collection, folder }) => {
   const responseScript = folder.draft ? get(folder, 'draft.request.script.res', '') : get(folder, 'root.request.script.res', '');
 
   const tabs = useSelector((state) => state.tabs.tabs);
-  const focusedTab = find(tabs, (t) => t.uid === folder.uid);
+  const focusedTab = find(tabs, (tab) => tab.type === 'folder-settings' && (tab.uid === folder.uid || tab.folderUid === folder.uid))
+    || find(tabs, (tab) => tab.type === 'folder-settings' && tab.pathname === folder.pathname);
+  const tabUid = focusedTab?.uid || folder.uid;
   const scriptPaneTab = focusedTab?.scriptPaneTab;
 
   // Default to post-response if pre-request script is empty (only when scriptPaneTab is null/undefined)
@@ -34,7 +37,7 @@ const Script = ({ collection, folder }) => {
   const activeTab = scriptPaneTab || getDefaultTab();
 
   const setActiveTab = (tab) => {
-    dispatch(updateScriptPaneTab({ uid: folder.uid, scriptPaneTab: tab }));
+    dispatch(updateScriptPaneTab({ uid: tabUid, scriptPaneTab: tab }));
   };
 
   const { displayedTheme } = useTheme();
@@ -59,6 +62,20 @@ const Script = ({ collection, folder }) => {
 
     return () => clearTimeout(timer);
   }, [activeTab]);
+
+  useFocusErrorLine({
+    uid: folder.uid,
+    editorRef: preRequestEditorRef,
+    scriptPhase: 'pre-request',
+    isVisible: activeTab === 'pre-request'
+  });
+
+  useFocusErrorLine({
+    uid: folder.uid,
+    editorRef: postResponseEditorRef,
+    scriptPhase: 'post-response',
+    isVisible: activeTab === 'post-response'
+  });
 
   const onRequestScriptEdit = (value) => {
     dispatch(
@@ -111,39 +128,45 @@ const Script = ({ collection, folder }) => {
         </TabsList>
 
         <TabsContent value="pre-request" className="mt-2" dataTestId="folder-pre-request-script-editor">
-          <CodeEditor
-            ref={preRequestEditorRef}
-            collection={collection}
-            docKey="folder-script:pre-request"
-            value={requestScript || ''}
-            theme={displayedTheme}
-            onEdit={onRequestScriptEdit}
-            mode="javascript"
-            onSave={handleSave}
-            font={get(preferences, 'font.codeFont', 'default')}
-            fontSize={get(preferences, 'font.codeFontSize')}
-            showHintsFor={['req', 'bru']}
-            initialScroll={preReqScroll}
-            onScroll={setPreReqScroll}
-          />
+          <div className="relative h-full">
+            <CodeEditor
+              ref={preRequestEditorRef}
+              collection={collection}
+              docKey="folder-script:pre-request"
+              value={requestScript || ''}
+              theme={displayedTheme}
+              onEdit={onRequestScriptEdit}
+              mode="javascript"
+              onSave={handleSave}
+              font={get(preferences, 'font.codeFont', 'default')}
+              fontSize={get(preferences, 'font.codeFontSize')}
+              showHintsFor={['req', 'bru']}
+              scriptType="pre-request"
+              initialScroll={preReqScroll}
+              onScroll={setPreReqScroll}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="post-response" className="mt-2" dataTestId="folder-post-response-script-editor">
-          <CodeEditor
-            ref={postResponseEditorRef}
-            collection={collection}
-            docKey="folder-script:post-response"
-            value={responseScript || ''}
-            theme={displayedTheme}
-            onEdit={onResponseScriptEdit}
-            mode="javascript"
-            onSave={handleSave}
-            font={get(preferences, 'font.codeFont', 'default')}
-            fontSize={get(preferences, 'font.codeFontSize')}
-            showHintsFor={['req', 'res', 'bru']}
-            initialScroll={postResScroll}
-            onScroll={setPostResScroll}
-          />
+          <div className="relative h-full">
+            <CodeEditor
+              ref={postResponseEditorRef}
+              collection={collection}
+              docKey="folder-script:post-response"
+              value={responseScript || ''}
+              theme={displayedTheme}
+              onEdit={onResponseScriptEdit}
+              mode="javascript"
+              onSave={handleSave}
+              font={get(preferences, 'font.codeFont', 'default')}
+              fontSize={get(preferences, 'font.codeFontSize')}
+              showHintsFor={['req', 'res', 'bru']}
+              scriptType="post-response"
+              initialScroll={postResScroll}
+              onScroll={setPostResScroll}
+            />
+          </div>
         </TabsContent>
       </Tabs>
 

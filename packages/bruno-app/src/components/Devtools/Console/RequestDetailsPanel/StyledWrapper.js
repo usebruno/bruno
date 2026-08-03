@@ -4,11 +4,8 @@ const StyledWrapper = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
   background: ${(props) => props.theme.console.contentBg};
-  border-left: 1px solid ${(props) => props.theme.console.border};
-  min-width: 400px;
-  max-width: 600px;
-  width: 40%;
   overflow: hidden;
 
   .panel-header {
@@ -317,6 +314,7 @@ const StyledWrapper = styled.div`
       height: 100% !important;
       max-height: 400px !important;
       padding: 0.5rem !important;
+      overflow: auto !important;
 
       .network-logs-pre {
         color: ${(props) => props.theme.console.messageColor} !important;

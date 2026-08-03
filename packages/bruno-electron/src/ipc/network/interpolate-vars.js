@@ -3,6 +3,24 @@ const { each, forOwn, cloneDeep } = require('lodash');
 const { isFormData } = require('@usebruno/common').utils;
 const { OAUTH2_INTERPOLATABLE_STRING_FIELDS } = require('./oauth2-fields');
 
+const hasResolvablePathParamValue = (pathParam) => {
+  if (!pathParam || pathParam.enabled === false) {
+    return false;
+  }
+
+  const { value } = pathParam;
+
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof value === 'string' && value.trim() === '') {
+    return false;
+  }
+
+  return true;
+};
+
 const isBinaryRequestBody = (data) => Buffer.isBuffer(data) || typeof data?.pipe === 'function';
 
 const getContentType = (headers = {}) => {
@@ -141,7 +159,9 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         }));
       }
     } else if (contentType.startsWith('multipart/')) {
-      if (Array.isArray(request?.data) && !isFormData(request.data)) {
+      if (request?.data && typeof request.data === 'string') {
+        request.data = _interpolate(request.data);
+      } else if (Array.isArray(request?.data) && !isFormData(request.data)) {
         try {
           request.data = request?.data?.map((d) => ({
             ...d,
@@ -179,7 +199,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         if (path.startsWith(':')) {
           const paramName = path.slice(1);
           const existingPathParam = request.pathParams.find((param) => param.name === paramName);
-          if (!existingPathParam) {
+          if (!hasResolvablePathParamValue(existingPathParam)) {
             return '/' + path;
           }
           return '/' + existingPathParam.value;
@@ -200,7 +220,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
               name = name.replace(/^[('"`]+/, '');
               if (name) {
                 const existingPathParam = request.pathParams.find((param) => param.name === name);
-                if (existingPathParam) {
+                if (hasResolvablePathParamValue(existingPathParam)) {
                   result = result.replace(':' + match[1], existingPathParam.value);
                 }
               }
@@ -319,6 +339,17 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
     request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
     request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';
+  }
+
+  // interpolate vars for edgegrid auth
+  if (request.edgeGridConfig) {
+    request.edgeGridConfig.accessToken = _interpolate(request.edgeGridConfig.accessToken) || '';
+    request.edgeGridConfig.clientToken = _interpolate(request.edgeGridConfig.clientToken) || '';
+    request.edgeGridConfig.clientSecret = _interpolate(request.edgeGridConfig.clientSecret) || '';
+    request.edgeGridConfig.nonce = _interpolate(request.edgeGridConfig.nonce) || '';
+    request.edgeGridConfig.timestamp = _interpolate(request.edgeGridConfig.timestamp) || '';
+    request.edgeGridConfig.baseURL = _interpolate(request.edgeGridConfig.baseURL) || '';
+    request.edgeGridConfig.headersToSign = _interpolate(request.edgeGridConfig.headersToSign) || '';
   }
 
   // interpolate vars for oauth1config auth

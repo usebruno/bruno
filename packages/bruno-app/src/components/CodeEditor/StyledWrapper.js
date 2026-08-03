@@ -7,6 +7,13 @@ const StyledWrapper = styled.div`
     }
   }
 
+  /* Ensure the search bar (position: absolute; top: 8px; ~66px tall with replace open)
+     never clips in a short editor that can grow freely (e.g. flex parent).
+     Fixed-height parents like SingleWSMessage handle this via onSearchBarVisibilityChange. */
+  &.search-bar-visible {
+    min-height: 90px;
+  }
+
   div.CodeMirror {
     background: ${(props) => props.theme.codemirror.bg};
     border: solid 1px ${(props) => props.theme.codemirror.border};
@@ -19,8 +26,8 @@ const StyledWrapper = styled.div`
   }
 
   .CodeMirror-placeholder {
-    color: ${(props) => props.theme.text} !important;
-    opacity: 0.5 !important;
+    color: ${(props) => props.theme.codemirror.placeholder.color} !important;
+    opacity: ${(props) => props.theme.codemirror.placeholder.opacity} !important;
   }
 
   .CodeMirror-linenumber {
@@ -43,6 +50,15 @@ const StyledWrapper = styled.div`
   .CodeMirror-lint-line-warning .CodeMirror-linenumber {
     color: ${(props) => props.theme.colors.text.warning} !important;
     text-decoration: underline;
+  }
+
+  .cm-ghost-text-ai {
+    opacity: 0.45;
+    color: ${(props) => props.theme.colors.text.muted};
+    font-style: italic;
+    pointer-events: none;
+    user-select: none;
+    white-space: pre;
   }
 
   /* Removes the glow outline around the folded json */
@@ -163,6 +179,32 @@ const StyledWrapper = styled.div`
 
   .cm-search-line-highlight {
     background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
+  }
+
+  @keyframes cm-error-line-flash {
+    0%, 60% {
+      background-color: ${(props) => props.theme.status.danger.background};
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  .CodeMirror .cm-error-line-flash {
+    background-color: transparent;
+    animation: cm-error-line-flash 3s ease-in-out;
+  }
+
+  .CodeMirror .cm-error-line-flash-gutter {
+    color: ${(props) => props.theme.colors.text.danger} !important;
+    font-weight: 600;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .CodeMirror .cm-error-line-flash {
+      animation: none;
+      background-color: ${(props) => props.theme.status.danger.background};
+    }
   }
 
   .cm-search-match {

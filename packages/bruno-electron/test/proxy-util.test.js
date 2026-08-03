@@ -12,16 +12,51 @@ const setupMocks = ({ pacDirectives = ['PROXY p.example:8080'] } = {}) => {
     }
   }));
 
-  // @usebruno/requests — agent factories + pac resolver
-  jest.doMock('@usebruno/requests', () => ({
-    getOrCreateHttpsAgent: jest.fn(() => ({ type: 'https-agent' })),
-    getOrCreateHttpAgent: jest.fn(() => ({ type: 'http-agent' })),
-    getPacResolver: jest.fn(async () => ({
+  // @usebruno/requests — agent factories + pac resolver + shared resolveAgentsFromPac
+  jest.doMock('@usebruno/requests', () => {
+    const getOrCreateHttpsAgent = jest.fn(() => ({ type: 'https-agent' }));
+    const getOrCreateHttpAgent = jest.fn(() => ({ type: 'http-agent' }));
+    const getPacResolver = jest.fn(async () => ({
       resolve: async () => pacDirectives,
       dispose: () => {}
-    })),
-    clearPacCache: jest.fn()
-  }));
+    }));
+    // Inline mock of resolveAgentsFromPac that wires through the mocked factories
+    // so existing assertions on getOrCreateHttp(s)Agent call args still hold.
+    const resolveAgentsFromPac = jest.fn(async ({ pacSource, requestUrl, tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname }) => {
+      const resolver = await getPacResolver({ pacSource, httpsAgentRequestFields });
+      const directives = await resolver.resolve(requestUrl);
+      if (!directives || !directives.length) return { directives: null };
+      const first = directives[0];
+      if (/^(PROXY|HTTPS?)\s+/i.test(first)) {
+        const parts = first.split(/\s+/);
+        const scheme = parts[0].toUpperCase() === 'HTTPS' ? 'https' : 'http';
+        const proxyUri = `${scheme}://${parts[1]}`;
+        return {
+          directives,
+          httpAgent: getOrCreateHttpAgent({ proxyUri, options: { keepAlive: true }, timeline, disableCache, hostname }),
+          httpsAgent: getOrCreateHttpsAgent({ proxyUri, options: tlsOptions, timeline, disableCache, hostname })
+        };
+      }
+      if (/^SOCKS/i.test(first)) {
+        const proto = /^SOCKS4\s/i.test(first) ? 'socks4' : 'socks5';
+        const proxyUri = `${proto}://${first.split(/\s+/)[1]}`;
+        return {
+          directives,
+          httpAgent: getOrCreateHttpAgent({ proxyUri, options: { keepAlive: true }, timeline, disableCache, hostname }),
+          httpsAgent: getOrCreateHttpsAgent({ proxyUri, options: tlsOptions, timeline, disableCache, hostname })
+        };
+      }
+      return { directives };
+    });
+    return {
+      getOrCreateHttpsAgent,
+      getOrCreateHttpAgent,
+      getPacResolver,
+      resolveAgentsFromPac,
+      PatchedHttpsProxyAgent: class {},
+      clearPacCache: jest.fn()
+    };
+  });
 };
 
 describe('proxy-util', () => {
@@ -120,6 +155,8 @@ describe('proxy-util', () => {
       getOrCreateHttpsAgent: jest.fn(() => ({ type: 'https-agent' })),
       getOrCreateHttpAgent: jest.fn(() => ({ type: 'http-agent' })),
       getPacResolver: jest.fn(async () => { throw new Error('PAC fetch timeout'); }),
+      resolveAgentsFromPac: jest.fn(async () => { throw new Error('PAC fetch timeout'); }),
+      PatchedHttpsProxyAgent: class {},
       clearPacCache: jest.fn()
     }));
 

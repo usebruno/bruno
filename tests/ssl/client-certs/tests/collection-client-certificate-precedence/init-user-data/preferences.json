@@ -1,0 +1,27 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": ["{{projectRoot}}/tests/ssl/client-certs/tests/collection-client-certificate-precedence/fixtures/collection"],
+  "preferences": {
+    "request": {
+      "sslVerification": true,
+      "customCaCertificate": {
+        "enabled": true,
+        "filePath": "{{projectRoot}}/tests/ssl/client-certs/server/certs/ca-cert.pem"
+      },
+      "keepDefaultCaCertificates": {
+        "enabled": true
+      },
+      "clientCertificates": {
+        "certs": [
+          {
+            "domain": "localhost",
+            "type": "cert",
+            "certFilePath": "{{projectRoot}}/tests/ssl/client-certs/server/certs/untrusted-client-cert.pem",
+            "keyFilePath": "{{projectRoot}}/tests/ssl/client-certs/server/certs/untrusted-client-key.pem",
+            "passphrase": ""
+          }
+        ]
+      }
+    }
+  }
+}

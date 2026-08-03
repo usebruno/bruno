@@ -8,6 +8,7 @@ import type { Assertion } from '@opencollection/types/common/assertions';
 import type { Action } from '@opencollection/types/common/actions';
 import type { HttpRequestParam, HttpRequestBody } from '@opencollection/types/requests/http';
 import { stringifyYml } from '../utils';
+import { toOpenCollectionApp, OpenCollectionApp } from '../common/app';
 import { toOpenCollectionAuth } from '../common/auth';
 import { toOpenCollectionHttpHeaders, toOpenCollectionResponseHeaders } from '../common/headers';
 import { toOpenCollectionParams } from '../common/params';
@@ -17,6 +18,7 @@ import { toOpenCollectionActions } from '../common/actions';
 import { toOpenCollectionScripts } from '../common/scripts';
 import { toOpenCollectionAssertions } from '../common/assertions';
 import { isNumber, isNonEmptyString } from '../../../utils';
+import { resolveTimeoutSetting } from '@usebruno/common/utils';
 
 const stringifyHttpRequest = (item: BrunoItem): string => {
   try {
@@ -33,6 +35,9 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     }
     if (item.tags?.length) {
       info.tags = item.tags;
+    }
+    if (isNonEmptyString(item.description)) {
+      info.description = item.description;
     }
     ocRequest.info = info;
 
@@ -116,12 +121,7 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
       settings.encodeUrl = true;
     }
 
-    const timeout = httpSettings?.timeout;
-    if (isNumber(timeout)) {
-      settings.timeout = timeout;
-    } else {
-      settings.timeout = 0;
-    }
+    settings.timeout = resolveTimeoutSetting(httpSettings?.timeout);
 
     if (httpSettings?.followRedirects === true) {
       settings.followRedirects = true;
@@ -137,6 +137,8 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     } else {
       settings.maxRedirects = 5;
     }
+
+    settings.forwardAuthorizationHeader = httpSettings?.forwardAuthorizationHeader ?? true;
 
     ocRequest.settings = settings;
 
@@ -210,6 +212,12 @@ const stringifyHttpRequest = (item: BrunoItem): string => {
     // docs
     if (isNonEmptyString(brunoRequest.docs)) {
       ocRequest.docs = brunoRequest.docs;
+    }
+
+    // app
+    const app: OpenCollectionApp | undefined = toOpenCollectionApp(item.app);
+    if (app) {
+      (ocRequest as any).app = app;
     }
 
     return stringifyYml(ocRequest);

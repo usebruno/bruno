@@ -1,0 +1,50 @@
+info:
+  name: form_urlencoded
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: '{{localhost}}/api/echo/everything'
+  body:
+    type: form-urlencoded
+    data:
+      - name: fu_str
+        value: "{{fu_str}}"
+      - name: fu_num
+        value: "{{fu_num}}"
+      - name: fu_bool
+        value: "{{fu_bool}}"
+      - name: fu_obj
+        value: "{{fu_obj}}"
+
+runtime:
+  variables:
+    - name: fu_str
+      value: form_string
+    - name: fu_num
+      value:
+        type: number
+        data: "42"
+    - name: fu_bool
+      value:
+        type: boolean
+        data: "true"
+    - name: fu_obj
+      value:
+        type: object
+        data: '{"key":"value"}'
+  scripts:
+    - type: tests
+      code: |-
+        test("form-urlencoded values stringify typed vars on the wire", () => {
+          const raw = res.getBody().body;
+          expect(raw).to.contain("fu_str=form_string");
+          expect(raw).to.contain("fu_num=42");
+          expect(raw).to.contain("fu_bool=true");
+          expect(raw).to.contain("fu_obj=%7B%22key%22%3A%22value%22%7D");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0

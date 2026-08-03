@@ -2,6 +2,14 @@ import { findItemInCollection, findItemInCollectionByPathname } from 'utils/coll
 import path, { normalizePath } from 'utils/common/path';
 import { uuid } from 'utils/common';
 
+const normalizeTabType = (type) => {
+  if (type === 'mock-server-dashboard' || type === 'mocker') {
+    return 'mock-server';
+  }
+
+  return type;
+};
+
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
 const REQUEST_TAB_TYPES = new Set(['http-request', 'graphql-request', 'grpc-request', 'ws-request']);
@@ -16,18 +24,34 @@ const SINGLETON_TAB_TYPES = new Set([
   'workspaceOverview',
   'workspaceEnvironments',
   'openapi-sync',
-  'openapi-spec'
+  'openapi-spec',
+  'mock-server'
 ]);
 
 const NON_REPLACEABLE_SINGLETON_TAB_TYPES = new Set([
   'collection-runner',
   'variables',
   'openapi-sync',
-  'openapi-spec'
+  'openapi-spec',
+  'mock-server'
 ]);
+
+const IGNORED_TAB_TYPES = new Set([
+  'v4-migration',
+  'changelog'
+]);
+
+export const WORKSPACE_TAB_UID_SUFFIX_BY_TYPE = {
+  workspaceOverview: 'overview',
+  workspaceEnvironments: 'environments'
+};
+
+export const WORKSPACE_TAB_TYPES = new Set(Object.keys(WORKSPACE_TAB_UID_SUFFIX_BY_TYPE));
 
 export const SAVE_TRIGGERS = new Map([
   ['app/setSnapshotReady', null],
+  ['app/toggleSidebarCollapse', null],
+  ['app/updateLeftSidebarWidth', null],
   ['tabs/addTab', null],
   ['tabs/closeTabs', null],
   ['tabs/focusTab', null],
@@ -56,8 +80,27 @@ export const SAVE_TRIGGERS = new Map([
 
 export const isRequestTab = (type) => REQUEST_TAB_TYPES.has(type);
 
+const isIgnoredTab = (tab) => IGNORED_TAB_TYPES.has(tab?.type);
+
+const isIgnoredActiveTab = (activeTab) => activeTab?.accessor === 'type' && IGNORED_TAB_TYPES.has(activeTab.value);
+
+// Strip ignored tab types from a snapshot read on any path (lookups or ipc fallback),
+// including an active tab that points at one.
+const sanitizeSnapshotTabs = (tabsSnapshot) => {
+  if (!tabsSnapshot || !Array.isArray(tabsSnapshot.tabs)) {
+    return tabsSnapshot;
+  }
+
+  return {
+    ...tabsSnapshot,
+    activeTab: isIgnoredActiveTab(tabsSnapshot.activeTab) ? null : tabsSnapshot.activeTab,
+    tabs: tabsSnapshot.tabs.filter((tab) => !isIgnoredTab(tab))
+  };
+};
+
 export const shouldExcludeTab = (tab, transientDirectory) => {
-  return transientDirectory && tab.pathname?.startsWith(transientDirectory);
+  return IGNORED_TAB_TYPES.has(tab?.type)
+    || (transientDirectory && tab.pathname?.startsWith(transientDirectory));
 };
 
 const normalizeSnapshotPathRef = (value) => {
@@ -107,8 +150,8 @@ const normalizeCollectionSnapshotEntry = (pathname, entry = {}, tabsEntry = {}) 
     isMounted: typeof entry.isMounted === 'boolean' ? entry.isMounted : false,
     activeTab: tabsEntry.activeTab ?? entry.activeTab ?? null,
     tabs: Array.isArray(tabsEntry.tabs)
-      ? tabsEntry.tabs.filter((tab) => isObject(tab))
-      : (Array.isArray(entry.tabs) ? entry.tabs.filter((tab) => isObject(tab)) : [])
+      ? tabsEntry.tabs.filter((tab) => isObject(tab) && !isIgnoredTab(tab))
+      : (Array.isArray(entry.tabs) ? entry.tabs.filter((tab) => isObject(tab) && !isIgnoredTab(tab)) : [])
   };
 };
 
@@ -121,6 +164,9 @@ const normalizeWorkspaceSnapshotEntry = (pathname, entry = {}) => {
       ? entry.lastActiveCollectionPathname
       : null,
     sorting: typeof entry.sorting === 'string' ? entry.sorting : 'default',
+    activeWorkspaceTabType: WORKSPACE_TAB_TYPES.has(entry.activeWorkspaceTabType)
+      ? entry.activeWorkspaceTabType
+      : null,
     collections
   };
 };
@@ -133,6 +179,10 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
   const workspacesByPath = {};
 
   if (Array.isArray(snapshot.collections)) {
+    const activeWorkspacePath = typeof snapshot.activeWorkspacePath === 'string'
+      ? normalizePath(snapshot.activeWorkspacePath)
+      : '';
+
     snapshot.collections.forEach((collectionEntry) => {
       if (!isObject(collectionEntry) || typeof collectionEntry.pathname !== 'string') {
         return;
@@ -144,43 +194,48 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         return;
       }
 
-      const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(
-        collection.workspacePathname,
-        collection.pathname
-      );
-
-      collectionsByPath[normalizedCollectionPathname] = {
+      const workspacePathname = typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '';
+      const collectionLookupEntry = {
         pathname: collection.pathname,
-        workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
+        workspacePathname,
         environment: collection.environment,
         environmentPath: collection.environmentPath,
         selectedEnvironment: collection.selectedEnvironment,
         isOpen: collection.isOpen,
         isMounted: collection.isMounted
       };
-
-      tabsByCollectionPath[normalizedCollectionPathname] = {
+      const tabsEntry = {
         pathname: collection.pathname,
         activeTab: collection.activeTab,
         tabs: collection.tabs
       };
 
-      if (workspaceCollectionKey) {
-        collectionsByWorkspaceAndPath[workspaceCollectionKey] = {
-          pathname: collection.pathname,
-          workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-          environment: collection.environment,
-          environmentPath: collection.environmentPath,
-          selectedEnvironment: collection.selectedEnvironment,
-          isOpen: collection.isOpen,
-          isMounted: collection.isMounted
-        };
+      const existing = collectionsByPath[normalizedCollectionPathname];
+      const incomingIsActive = Boolean(
+        activeWorkspacePath && normalizePath(workspacePathname) === activeWorkspacePath
+      );
+      const existingIsActive = Boolean(
+        existing && activeWorkspacePath && normalizePath(existing.workspacePathname || '') === activeWorkspacePath
+      );
+      const shouldWritePath = !existing
+        || (incomingIsActive && !existingIsActive)
+        || (incomingIsActive && existingIsActive && Boolean(collection.selectedEnvironment || collection.environment?.collection))
+        || (!incomingIsActive && !existingIsActive);
 
+      if (shouldWritePath) {
+        collectionsByPath[normalizedCollectionPathname] = collectionLookupEntry;
+        tabsByCollectionPath[normalizedCollectionPathname] = tabsEntry;
+      }
+
+      const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(
+        collection.workspacePathname,
+        collection.pathname
+      );
+      if (workspaceCollectionKey) {
+        collectionsByWorkspaceAndPath[workspaceCollectionKey] = collectionLookupEntry;
         tabsByWorkspaceAndCollectionPath[workspaceCollectionKey] = {
-          pathname: collection.pathname,
-          workspacePathname: typeof collection.workspacePathname === 'string' ? collection.workspacePathname : '',
-          activeTab: collection.activeTab,
-          tabs: collection.tabs
+          ...tabsEntry,
+          workspacePathname
         };
       }
     });
@@ -204,6 +259,7 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         pathname: workspace.pathname,
         lastActiveCollectionPathname: workspace.lastActiveCollectionPathname,
         sorting: workspace.sorting,
+        activeWorkspaceTabType: workspace.activeWorkspaceTabType,
         collections: workspace.collections
       };
 
@@ -298,6 +354,23 @@ const getTabsSnapshotFromLookups = (
   };
 };
 
+export const getCollectionSnapshotFromLookups = (collectionPathname, snapshotLookups = {}, workspacePathname = null) => {
+  const normalizedPathname = normalizePath(collectionPathname);
+  if (!normalizedPathname) {
+    return null;
+  }
+
+  if (workspacePathname) {
+    const workspaceCollectionKey = getWorkspaceCollectionSnapshotKey(workspacePathname, collectionPathname);
+    const workspaceCollectionEntry = snapshotLookups?.collectionsByWorkspaceAndPath?.[workspaceCollectionKey];
+    if (workspaceCollectionEntry) {
+      return workspaceCollectionEntry;
+    }
+  }
+
+  return snapshotLookups?.collectionsByPath?.[normalizedPathname] || null;
+};
+
 export const getCollectionEnvironmentPath = (collection, environment, defaultValue = null) => {
   if (!environment) {
     return defaultValue;
@@ -345,11 +418,17 @@ export const findCollectionEnvironmentFromSnapshot = (collection, snapshotData =
 
 const getAccessor = (tab) => {
   if (tab.type === 'response-example') return 'pathname::exampleIndex';
+  if (tab.type === 'mock-server' && tab.mockServerUid) return 'type::mockServerUid';
+  if (tab.type === 'mock-response' && tab.uid) return 'type::mockResponseUid';
   if (SINGLETON_TAB_TYPES.has(tab.type)) return 'type';
   return 'pathname';
 };
 
 const getDefaultRequestPaneTabForType = (type) => {
+  if (type === 'folder-settings') {
+    return 'headers';
+  }
+
   if (type === 'grpc-request' || type === 'ws-request') {
     return 'body';
   }
@@ -418,6 +497,28 @@ export const serializeTab = (tab, collection) => {
     };
   }
 
+  if (tab.type === 'mock-server' && tab.mockServerUid) {
+    serialized.mockServerUid = tab.mockServerUid;
+    if (tab.tabName) {
+      serialized.name = tab.tabName;
+    }
+  }
+
+  if (tab.type === 'mock-response') {
+    if (tab.mockServerUid) {
+      serialized.mockServerUid = tab.mockServerUid;
+    }
+    serialized.responseUid = tab.uid;
+    if (tab.responseName || tab.tabName) {
+      serialized.name = tab.responseName || tab.tabName;
+    }
+  }
+
+  const isEnvironmentTab = tab.type === 'environment-settings' || tab.type === 'global-environment-settings';
+  if (isEnvironmentTab && tab.tabState?.environment?.tab) {
+    serialized.environment = { tab: tab.tabState.environment.tab };
+  }
+
   return serialized;
 };
 
@@ -453,6 +554,14 @@ export const serializeActiveTab = (tab, collection) => {
     return { accessor, value: `${pathname}::-1` };
   }
 
+  if (tab.type === 'mock-server' && tab.mockServerUid) {
+    return { accessor: 'type::mockServerUid', value: tab.mockServerUid };
+  }
+
+  if (tab.type === 'mock-response' && tab.uid) {
+    return { accessor: 'type::mockResponseUid', value: tab.uid };
+  }
+
   return { accessor: 'type', value: tab.type };
 };
 
@@ -461,13 +570,25 @@ export const isActiveTab = (tab, activeTab, collection) => {
 
   const { accessor, value } = activeTab;
 
+  if (accessor === 'type::mockServerUid') {
+    return normalizeTabType(tab.type) === 'mock-server' && tab.mockServerUid === value;
+  }
+
+  if (accessor === 'type::mockResponseUid') {
+    return tab.type === 'mock-response' && tab.uid === value;
+  }
+
   if (accessor === 'type') {
-    return tab.type === value;
+    const normalizedValue = normalizeTabType(value);
+    const normalizedType = normalizeTabType(tab.type);
+    return normalizedType === normalizedValue;
   }
 
   if (accessor === 'pathname') {
     const item = findItemInCollection(collection, tab.uid);
-    return tab.type !== 'response-example' && (item?.pathname === value || tab.pathname === value);
+    return tab.type !== 'response-example'
+      && tab.type !== 'mock-response'
+      && (item?.pathname === value || tab.pathname === value);
   }
 
   if (accessor === 'pathname::exampleName') {
@@ -531,8 +652,52 @@ const resolveResponseExampleTabState = ({ item, pathname, exampleName, exampleIn
 };
 
 export const deserializeTab = (snapshotTab, collection) => {
-  const { accessor, pathname, exampleName, exampleIndex, exampleUid, type } = snapshotTab;
+  const { accessor, pathname, exampleName, exampleIndex, exampleUid } = snapshotTab;
+  const type = normalizeTabType(snapshotTab.type);
   const restoredRequestPaneTab = typeof snapshotTab.request?.tab === 'string' ? snapshotTab.request.tab : null;
+
+  if (type === 'mock-server') {
+    const mockServerUid = snapshotTab.mockServerUid || null;
+    return {
+      collectionUid: collection.uid,
+      type: 'mock-server',
+      mockServerUid,
+      tabName: snapshotTab.name || snapshotTab.tabName || null,
+      uid: mockServerUid || uuid(),
+      preview: !snapshotTab.permanent,
+      pathname: null,
+      requestPaneTab: 'params',
+      requestPaneWidth: null,
+      requestPaneHeight: null,
+      responsePaneTab: 'response',
+      responseFormat: null,
+      responseViewTab: null,
+      responsePaneScrollPosition: null,
+      scriptPaneTab: null
+    };
+  }
+
+  if (type === 'mock-response') {
+    const responseUid = snapshotTab.responseUid || snapshotTab.exampleUid || uuid();
+    return {
+      collectionUid: collection.uid,
+      type: 'mock-response',
+      mockServerUid: snapshotTab.mockServerUid || null,
+      responseName: snapshotTab.name || snapshotTab.responseName || snapshotTab.tabName || null,
+      tabName: snapshotTab.name || snapshotTab.tabName || null,
+      uid: responseUid,
+      preview: !snapshotTab.permanent,
+      pathname: null,
+      requestPaneTab: 'params',
+      requestPaneWidth: null,
+      requestPaneHeight: null,
+      responsePaneTab: 'response',
+      responseFormat: null,
+      responseViewTab: null,
+      responsePaneScrollPosition: null,
+      scriptPaneTab: null
+    };
+  }
 
   const tab = {
     collectionUid: collection.uid,
@@ -558,7 +723,7 @@ export const deserializeTab = (snapshotTab, collection) => {
 
   if (accessor === 'pathname' && pathname) {
     const item = findItemInCollectionByPathname(collection, pathname);
-    const resolvedType = item?.type || type;
+    const resolvedType = (item && isRequestTab(item.type)) ? item.type : type;
     tab.type = resolvedType;
     if (!restoredRequestPaneTab) {
       tab.requestPaneTab = getDefaultRequestPaneTabForType(resolvedType);
@@ -596,6 +761,13 @@ export const deserializeTab = (snapshotTab, collection) => {
     }
   }
 
+  if (!tab.uid && NON_REPLACEABLE_SINGLETON_TAB_TYPES.has(type)) {
+    tab.uid = uuid();
+  }
+  if (snapshotTab.environment?.tab) {
+    tab.tabState = { environment: { tab: snapshotTab.environment.tab } };
+  }
+
   return tab;
 };
 
@@ -609,13 +781,15 @@ export const hydrateCollectionTabs = async (
 ) => {
   const { ipcRenderer } = window;
 
-  const tabsSnapshot = getTabsSnapshotFromLookups(
-    collection.pathname,
-    snapshotLookups,
-    workspacePathname,
-    strictWorkspaceScope
-  )
-  || await ipcRenderer.invoke('renderer:snapshot:get-tabs', collection.pathname, workspacePathname).catch(() => null);
+  const tabsSnapshot = sanitizeSnapshotTabs(
+    getTabsSnapshotFromLookups(
+      collection.pathname,
+      snapshotLookups,
+      workspacePathname,
+      strictWorkspaceScope
+    )
+    || await ipcRenderer.invoke('renderer:snapshot:get-tabs', collection.pathname, workspacePathname).catch(() => null)
+  );
 
   const hasPersistedTabs = Array.isArray(tabsSnapshot?.tabs) && tabsSnapshot.tabs.length > 0;
   const hasPersistedActiveTab = Boolean(tabsSnapshot?.activeTab);
@@ -647,18 +821,31 @@ export const hydrateTabs = async (collections, dispatch, restoreTabs, snapshotLo
 export const getActiveTabFromSnapshot = async (collectionPathname, collection, snapshotLookups = null, workspacePathname = null) => {
   const { ipcRenderer } = window;
 
-  const tabsSnapshot = getTabsSnapshotFromLookups(collectionPathname, snapshotLookups, workspacePathname)
-    || await ipcRenderer.invoke('renderer:snapshot:get-tabs', collectionPathname, workspacePathname).catch(() => null);
+  const tabsSnapshot = sanitizeSnapshotTabs(
+    getTabsSnapshotFromLookups(collectionPathname, snapshotLookups, workspacePathname)
+    || await ipcRenderer.invoke('renderer:snapshot:get-tabs', collectionPathname, workspacePathname).catch(() => null)
+  );
 
   if (!tabsSnapshot?.activeTab || !tabsSnapshot?.tabs?.length) return null;
 
   const { accessor, value } = tabsSnapshot.activeTab;
   let snapshotTab = null;
 
-  if (accessor === 'type') {
-    snapshotTab = tabsSnapshot.tabs.find((t) => t.type === value);
+  if (accessor === 'type::mockServerUid') {
+    snapshotTab = tabsSnapshot.tabs.find((t) => (
+      normalizeTabType(t.type) === 'mock-server' && t.mockServerUid === value
+    ));
+  } else if (accessor === 'type::mockResponseUid') {
+    snapshotTab = tabsSnapshot.tabs.find((t) => (
+      t.type === 'mock-response' && (t.responseUid === value || t.exampleUid === value)
+    ));
+  } else if (accessor === 'type') {
+    const normalizedValue = normalizeTabType(value);
+    snapshotTab = tabsSnapshot.tabs.find((t) => normalizeTabType(t.type) === normalizedValue);
   } else if (accessor === 'pathname') {
-    snapshotTab = tabsSnapshot.tabs.find((t) => t.pathname === value && t.type !== 'response-example');
+    snapshotTab = tabsSnapshot.tabs.find((t) => (
+      t.pathname === value && t.type !== 'response-example' && t.type !== 'mock-response'
+    ));
   } else if (accessor === 'pathname::exampleName') {
     snapshotTab = tabsSnapshot.tabs.find((t) => `${t.pathname}::${t.exampleName}` === value);
   } else if (accessor === 'pathname::exampleIndex') {

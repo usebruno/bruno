@@ -18,7 +18,9 @@ import {
   IconTrash,
   IconSettings,
   IconInfoCircle,
-  IconTerminal2
+  IconTerminal2,
+  IconAppWindow,
+  IconEyeOff
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -29,9 +31,11 @@ import { uuid } from 'utils/common';
 import { copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
+import NewApp from 'components/Sidebar/NewApp';
 import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
+import IgnoreCollectionItem from './IgnoreCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
@@ -45,6 +49,7 @@ import CollectionItemIcon from './CollectionItemIcon';
 import ExampleItem from './ExampleItem';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import {
   getTabUidForItem as getTabUidForItemSelector,
   isTabForItemActive as isTabForItemActiveSelector,
@@ -52,7 +57,12 @@ import {
 } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
-import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection } from 'utils/collections/index';
+import {
+  canCollectionItemBeDropped,
+  determineCollectionItemDrop,
+  getInitialExampleName,
+  findParentItemInCollection
+} from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
@@ -63,6 +73,7 @@ import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext'
 import useKeybinding from 'hooks/useKeybinding';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
+  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const selectorInput = {
     itemUid: item.uid,
@@ -91,10 +102,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
   const [deleteItemModalOpen, setDeleteItemModalOpen] = useState(false);
+  const [ignoreItemModalOpen, setIgnoreItemModalOpen] = useState(false);
   const [createExampleModalOpen, setCreateExampleModalOpen] = useState(false);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
+  const [newAppModalOpen, setNewAppModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
   const [examplesExpanded, setExamplesExpanded] = useState(false);
@@ -127,7 +140,13 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     return false;
   }, { enabled: isKeyboardFocused, deps: [isKeyboardFocused] });
 
-  const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
+  useKeybinding('newRequest', () => {
+    if (!isFolder) return false;
+    setNewRequestModalOpen(true);
+    return false;
+  }, { enabled: isKeyboardFocused && isFolder, deps: [isKeyboardFocused, isFolder] });
+
+  const [dropType, setDropType] = useState(null); // 'above', 'inside' or 'below'
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
     type: 'collection-item',
@@ -155,39 +174,22 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   }, [isTabForItemActive]);
 
-  const determineDropType = (monitor) => {
-    const hoverBoundingRect = ref.current?.getBoundingClientRect();
-    const clientOffset = monitor.getClientOffset();
-    if (!hoverBoundingRect || !clientOffset) return null;
-
-    const clientY = clientOffset.y - hoverBoundingRect.top;
-    const folderUpperThreshold = hoverBoundingRect.height * 0.35;
-    const fileUpperThreshold = hoverBoundingRect.height * 0.5;
-
-    if (isItemAFolder(item)) {
-      return clientY < folderUpperThreshold ? 'adjacent' : 'inside';
-    } else {
-      return clientY < fileUpperThreshold ? 'adjacent' : null;
-    }
+  const resolveDropFromMonitor = (monitor) => {
+    return determineCollectionItemDrop({
+      item,
+      hoverBoundingRect: ref.current?.getBoundingClientRect(),
+      clientOffset: monitor.getClientOffset()
+    });
   };
 
   const canItemBeDropped = ({ draggedItem, targetItem, dropType }) => {
-    const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
-    const { uid: draggedItemUid, pathname: draggedItemPathname, sourceCollectionUid } = draggedItem;
-
-    if (draggedItemUid === targetItemUid) return false;
-
-    // For cross-collection moves, we allow the drop
-    if (sourceCollectionUid !== collectionUid) {
-      return true;
-    }
-
-    const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType, collectionPathname });
-    if (!newPathname) return false;
-
-    if (targetItemPathname?.startsWith(draggedItemPathname)) return false;
-
-    return true;
+    return canCollectionItemBeDropped({
+      draggedItem,
+      targetItem,
+      dropType,
+      collectionUid,
+      collectionPathname
+    });
   };
 
   const [{ isOver, canDrop }, drop] = useDrop({
@@ -198,7 +200,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
       if (draggedItemUid === targetItemUid) return;
 
-      const dropType = determineDropType(monitor);
+      const dropType = resolveDropFromMonitor(monitor);
+      if (!dropType) {
+        setDropType(null);
+        return;
+      }
 
       const _canItemBeDropped = canItemBeDropped({ draggedItem, targetItem: item, dropType });
 
@@ -210,17 +216,38 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
       if (draggedItemUid === targetItemUid) return;
 
-      const dropType = determineDropType(monitor);
+      const dropType = resolveDropFromMonitor(monitor);
       if (!dropType) return;
 
-      await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }));
+      if (!canItemBeDropped({ draggedItem, targetItem: item, dropType })) return;
+
+      await dispatch(handleCollectionItemDrop({
+        targetItem: item,
+        draggedItem,
+        dropType,
+        collectionUid
+      }));
       setDropType(null);
     },
-    canDrop: (draggedItem) => draggedItem.uid !== item.uid,
+    canDrop: (draggedItem, monitor) => {
+      if (draggedItem.uid === item.uid) return false;
+
+      const dropType = resolveDropFromMonitor(monitor);
+      if (!dropType) return false;
+
+      return canItemBeDropped({ draggedItem, targetItem: item, dropType });
+    },
     collect: (monitor) => ({
-      isOver: monitor.isOver()
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop()
     })
   });
+
+  useEffect(() => {
+    if (!isOver) {
+      setDropType(null);
+    }
+  }, [isOver]);
 
   const iconClassName = classnames({
     'rotate-90': !itemIsCollapsed
@@ -233,8 +260,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
     'item-focused-in-tab': isTabForItemActive,
     'item-hovered': isOver && canDrop,
-    'drop-target': isOver && dropType === 'inside',
-    'drop-target-above': isOver && dropType === 'adjacent',
+    'drop-target': isOver && canDrop && dropType === 'inside',
+    'drop-target-above': isOver && canDrop && dropType === 'above',
+    'drop-target-below': isOver && canDrop && dropType === 'below',
     'item-keyboard-focused': isKeyboardFocused
   });
 
@@ -251,7 +279,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     // scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);
-    if (isRequest) {
+    const isApp = item.type === 'app';
+    if (isRequest || isApp) {
       if (isTabForItemPresent) {
         dispatch(
           focusTab({
@@ -264,7 +293,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         addTab({
           uid: item.uid,
           collectionUid: collectionUid,
-          requestPaneTab: getDefaultRequestPaneTab(item),
+          ...(isRequest ? { requestPaneTab: getDefaultRequestPaneTab(item) } : {}),
           type: item.type,
           pathname: item.pathname
         })
@@ -325,7 +354,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     menuDropdownRef.current?.show();
   };
 
-  let indents = range(item.depth);
+  const indents = range(item.depth);
 
   // Build menu items for MenuDropdown
   const buildMenuItems = () => {
@@ -344,6 +373,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
           leftSection: IconFolderPlus,
           label: 'New Folder',
           onClick: () => setNewFolderModalOpen(true)
+        },
+        {
+          id: 'new-app',
+          leftSection: IconAppWindow,
+          label: 'New App',
+          onClick: () => setNewAppModalOpen(true)
         },
         {
           id: 'run',
@@ -424,6 +459,15 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       }
     );
 
+    if (isFolder) {
+      items.push({
+        id: 'ignore',
+        leftSection: IconEyeOff,
+        label: 'Ignore',
+        onClick: () => setIgnoreItemModalOpen(true)
+      });
+    }
+
     items.push({ id: 'separator-1', type: 'divider' });
 
     items.push({
@@ -496,17 +540,20 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     });
   };
 
-  const handleCreateExample = async (name, description = '') => {
-    // Create example with default values
+  const handleCreateExample = async (name, description = '', mockFields) => {
+    const statusCode = mockFields?.statusCode || 200;
+    const bodyType = mockFields?.bodyType || 'text';
+    const defaultContent = bodyType === 'json' ? '{}' : '';
+
     const exampleData = {
       name: name,
       description: description,
-      status: 200,
+      status: statusCode,
       statusText: 'OK',
       headers: [],
       body: {
-        type: 'text',
-        content: ''
+        type: bodyType,
+        content: defaultContent
       }
     };
 
@@ -533,7 +580,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       type: 'OPEN_EXAMPLE',
       collectionUid: collectionUid,
       itemUid: item.uid,
-      exampleIndex: exampleIndex
+      exampleIndex: exampleIndex,
+      // Freshly created examples start blank, so open the tab in edit mode.
+      openInEditMode: true
     }));
 
     toast.success(`Example "${name}" created successfully`);
@@ -541,8 +590,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   const folderItems = sortByNameThenSequence(filter(item.items, (i) => isItemAFolder(i) && !i.isTransient));
+  const appItems = sortItemsBySequence(filter(item.items, (i) => i.type === 'app' && !i.isTransient));
   const requestItems = sortItemsBySequence(filter(item.items, (i) => isItemARequest(i) && !i.isTransient));
-  const showEmptyFolderMessage = isFolder && !hasSearchText && !folderItems?.length && !requestItems?.length;
+  const showEmptyFolderMessage
+    = isFolder && !hasSearchText && !folderItems?.length && !appItems?.length && !requestItems?.length;
 
   const emptyFolderMenuItems = createEmptyStateMenuItems({ dispatch, collection, itemUid: item.uid });
 
@@ -619,11 +670,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       {deleteItemModalOpen && (
         <DeleteCollectionItem item={item} collectionUid={collectionUid} onClose={() => setDeleteItemModalOpen(false)} />
       )}
+      {ignoreItemModalOpen && (
+        <IgnoreCollectionItem item={item} collectionUid={collectionUid} onClose={() => setIgnoreItemModalOpen(false)} />
+      )}
       {newRequestModalOpen && (
         <NewRequest item={item} collectionUid={collectionUid} onClose={() => setNewRequestModalOpen(false)} />
       )}
       {newFolderModalOpen && (
         <NewFolder item={item} collectionUid={collectionUid} onClose={() => setNewFolderModalOpen(false)} />
+      )}
+      {newAppModalOpen && (
+        <NewApp item={item} collectionUid={collectionUid} onClose={() => setNewAppModalOpen(false)} />
       )}
       {runCollectionModalOpen && (
         <RunCollectionItem collectionUid={collectionUid} item={item} onClose={() => setRunCollectionModalOpen(false)} />
@@ -640,6 +697,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onSave={handleCreateExample}
         title="Create Response Example"
         initialName={getInitialExampleName(item)}
+        showMockFields={isMockServerEnabled}
       />
       <div
         className={itemRowClassName}
@@ -705,6 +763,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               <span className="item-name" title={item.name}>
                 {item.name}
               </span>
+              {hasExamples && (
+                <sup className="ml-1 example-count-badge" title={`${item.examples.length} example${item.examples.length > 1 ? 's' : ''}`} data-testid="example-count-badge">
+                  {item.examples.length}
+                </sup>
+              )}
             </div>
           </div>
           <div className="pr-2">
@@ -727,6 +790,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         <div>
           {folderItems && folderItems.length
             ? folderItems.map((i) => {
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
+              })
+            : null}
+          {appItems && appItems.length
+            ? appItems.map((i) => {
                 return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
               })
             : null}
