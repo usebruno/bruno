@@ -18,10 +18,6 @@ export default {
       control: 'boolean',
       description: 'Whether the checkbox is checked'
     },
-    indeterminate: {
-      control: 'boolean',
-      description: 'Visual-only indeterminate (dash) state'
-    },
     disabled: {
       control: 'boolean',
       description: 'Whether the checkbox is disabled'
@@ -71,7 +67,6 @@ export const States = {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <Checkbox label="Unchecked" checked={false} onChange={() => {}} />
       <Checkbox label="Checked" checked onChange={() => {}} />
-      <Checkbox label="Indeterminate" checked={false} indeterminate onChange={() => {}} />
       <Checkbox label="Disabled unchecked" checked={false} disabled onChange={() => {}} />
       <Checkbox label="Disabled checked" checked disabled onChange={() => {}} />
     </div>

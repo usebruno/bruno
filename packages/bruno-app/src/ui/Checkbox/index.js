@@ -1,9 +1,6 @@
-import React, { forwardRef, useEffect, useRef, useCallback } from 'react';
+import React, { forwardRef } from 'react';
 import StyledWrapper from './StyledWrapper';
 
-/**
- * Controlled checkbox. Always pass `checked` + `onChange`.
- */
 const CHECKBOX_ICON_VIEWBOX = 16;
 const checkboxIconSizeConfig = {
   sm: { iconSize: 8, targetStrokeWidth: 1 },
@@ -12,7 +9,7 @@ const checkboxIconSizeConfig = {
   xl: { iconSize: 14, targetStrokeWidth: 2 }
 };
 
-function CheckboxIcon({ size, indeterminate }) {
+function CheckboxIcon({ size }) {
   const { iconSize, targetStrokeWidth } = checkboxIconSizeConfig[size] ?? checkboxIconSizeConfig.md;
   const strokeWidth = (targetStrokeWidth * CHECKBOX_ICON_VIEWBOX) / iconSize;
 
@@ -26,7 +23,7 @@ function CheckboxIcon({ size, indeterminate }) {
       xmlns="http://www.w3.org/2000/svg"
     >
       <path
-        d={indeterminate ? 'M4 8H12' : 'M3.5 8.5L6.5 11.5L12.5 4.5'}
+        d="M3.5 8.5L6.5 11.5L12.5 4.5"
         stroke="currentColor"
         strokeWidth={strokeWidth}
         strokeLinecap="round"
@@ -36,15 +33,19 @@ function CheckboxIcon({ size, indeterminate }) {
   );
 }
 
+/**
+ * Controlled checkbox. Always pass `checked` + `onChange`.
+ */
 const Checkbox = forwardRef(
   (
     {
       checked = false,
-      indeterminate = false,
       disabled = false,
       onChange,
       size = 'md',
       label,
+      ariaLabel,
+      ariaLabelledBy,
       id,
       name,
       value,
@@ -54,48 +55,27 @@ const Checkbox = forwardRef(
     },
     forwardedRef
   ) => {
-    const innerRef = useRef(null);
-
-    useEffect(() => {
-      const node = innerRef.current;
-      if (node) {
-        node.indeterminate = !!indeterminate;
-      }
-    }, [indeterminate]);
-
-    const setRefs = useCallback((node) => {
-      innerRef.current = node;
-      if (typeof forwardedRef === 'function') {
-        forwardedRef(node);
-      } else if (forwardedRef) {
-        forwardedRef.current = node;
-      }
-    }, [forwardedRef]);
-
-    const handleChange = (e) => {
-      if (disabled) return;
-      onChange?.(e);
-    };
-
     return (
       <StyledWrapper $size={size} $disabled={disabled} className={className}>
         <label className="checkbox-root flex items-center gap-2">
           <span className="checkbox-box-wrapper inline-flex items-center justify-center">
             <input
-              ref={setRefs}
+              ref={forwardedRef}
               type="checkbox"
               id={id}
               name={name}
               value={value}
               checked={checked}
               disabled={disabled}
-              onChange={handleChange}
+              onChange={onChange}
               className="checkbox-input"
               data-testid={dataTestId}
+              aria-label={ariaLabel}
+              aria-labelledby={ariaLabelledBy}
               {...rest}
             />
             <span className="checkbox-box" aria-hidden="true">
-              <CheckboxIcon size={size} indeterminate={indeterminate} />
+              <CheckboxIcon size={size} />
             </span>
           </span>
           {label && <span className="checkbox-label">{label}</span>}

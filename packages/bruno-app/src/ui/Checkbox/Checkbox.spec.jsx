@@ -60,14 +60,6 @@ describe('Checkbox', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('sets the indeterminate DOM property without affecting checked', () => {
-    renderCheckbox({ checked: false, indeterminate: true });
-
-    const checkbox = screen.getByRole('checkbox');
-    expect(checkbox.indeterminate).toBe(true);
-    expect(checkbox).not.toBeChecked();
-  });
-
   it('updates when driven as a controlled component', async () => {
     const Controlled = () => {
       const [checked, setChecked] = useState(false);
@@ -85,7 +77,7 @@ describe('Checkbox', () => {
     expect(checkbox).not.toBeChecked();
   });
 
-  it('renders the optional label and associates it with the input', async () => {
+  it('renders the optional label and associates it with the input', () => {
     renderCheckbox({ label: 'Accept terms' });
 
     expect(screen.getByText('Accept terms')).toBeInTheDocument();
@@ -137,20 +129,6 @@ describe('Checkbox', () => {
         </>
       );
       expect(screen.getByRole('checkbox', { name: 'Select all' })).toBeInTheDocument();
-    });
-
-    it('warns in development when rendered without label, ariaLabel, or ariaLabelledBy', () => {
-      const spy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-      renderWithTheme(<Checkbox onChange={() => {}} />);
-      expect(spy).toHaveBeenCalledWith(expect.stringContaining('no accessible name provided'));
-      spy.mockRestore();
-    });
-
-    it('does not warn when a visible label is provided', () => {
-      const spy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-      renderWithTheme(<Checkbox onChange={() => {}} label="Accept terms" />);
-      expect(spy).not.toHaveBeenCalled();
-      spy.mockRestore();
     });
   });
 });

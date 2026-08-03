@@ -1,13 +1,8 @@
 import styled, { css } from 'styled-components';
-import { darken, rgba } from 'polished';
+import { darken, lighten, rgba } from 'polished';
 
-// theme.primary.solid is each theme's brand color (equals #D37F17 on light,
-// #E4AE49 on dark) -- same value as button2.color.primary.bg in every theme,
-// but this is the canonical token for it. button2.color.primary.text is kept
-// for the icon since it's already tuned per theme for contrast against that bg
-// (white on most, black-ish on themes with a lighter primary, e.g. dark/dark-pastel/nord).
-const getCheckedBg = (props) => props.theme.primary.solid;
-const getCheckIconColor = (props) => props.theme.button2.color.primary.text;
+// adjusts the color for hover state based on the theme mode
+const hoverAdjust = (color, props) => (props.theme.mode === 'dark' ? lighten(0.05, color) : darken(0.05, color));
 
 const sizeStyles = {
   sm: css`
@@ -35,7 +30,7 @@ const sizeStyles = {
 const StyledWrapper = styled.div`
   display: inline-flex;
 
-  ${(props) => sizeStyles[props.$size]}
+  ${(props) => sizeStyles[props.$size] || sizeStyles.md}
 
   .checkbox-root {
     cursor: ${(props) => (props.$disabled ? 'not-allowed' : 'pointer')};
@@ -73,15 +68,14 @@ const StyledWrapper = styled.div`
 
     .checkbox-icon {
       opacity: 0;
-      color: ${(props) => getCheckIconColor(props)};
+      color: ${(props) => props.theme.button2.color.primary.text};
       transition: opacity 0.1s ease;
     }
   }
 
-  .checkbox-input:checked + .checkbox-box,
-  .checkbox-input:indeterminate + .checkbox-box {
-    background-color: ${(props) => getCheckedBg(props)};
-    border-color: ${(props) => getCheckedBg(props)};
+  .checkbox-input:checked + .checkbox-box {
+    background-color: ${(props) => props.theme.primary.solid};
+    border-color: ${(props) => props.theme.primary.solid};
 
     .checkbox-icon {
       opacity: 1;
@@ -89,17 +83,16 @@ const StyledWrapper = styled.div`
   }
 
   .checkbox-input:not(:disabled):hover + .checkbox-box {
-    border-color: ${(props) => darken(0.05, props.theme.border.border3)};
+    border-color: ${(props) => hoverAdjust(props.theme.border.border3, props)};
   }
 
-  .checkbox-input:checked:not(:disabled):hover + .checkbox-box,
-  .checkbox-input:indeterminate:not(:disabled):hover + .checkbox-box {
-    background-color: ${(props) => darken(0.05, getCheckedBg(props))};
-    border-color: ${(props) => darken(0.05, getCheckedBg(props))};
+  .checkbox-input:checked:not(:disabled):hover + .checkbox-box {
+    background-color: ${(props) => hoverAdjust(props.theme.primary.solid, props)};
+    border-color: ${(props) => hoverAdjust(props.theme.primary.solid, props)};
   }
 
   .checkbox-input:focus-visible + .checkbox-box {
-    box-shadow: 0 0 0 2px ${(props) => rgba(getCheckedBg(props), 0.4)};
+    box-shadow: 0 0 0 2px ${(props) => rgba(props.theme.primary.solid, 0.4)};
   }
 
   .checkbox-label {

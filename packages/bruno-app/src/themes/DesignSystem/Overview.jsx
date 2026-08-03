@@ -283,7 +283,7 @@ export const IntroductionRender = () => {
             { name: 'Primary Colors', desc: '4 variants for brand identity', color: palette.primary.SOLID },
             { name: 'Backgrounds', desc: '6 layered surface colors', color: theme.background.mantle },
             { name: 'Text', desc: '8 semantic text colors', color: theme.text },
-            { name: 'Borders', desc: '3 hierarchy levels', color: theme.border.border2 },
+            { name: 'Borders', desc: '4 hierarchy levels', color: theme.border.border2 },
             { name: 'Overlays', desc: '3 depth levels', color: theme.overlay.overlay1 },
             { name: 'Hues', desc: '14 hue-spread colors', color: palette.hues.BLUE }
           ].map(({ name, desc, color }) => (
@@ -1306,7 +1306,8 @@ export const BordersAndOverlaysRender = () => {
           {[
             { name: 'border0', color: theme.border.border0, desc: 'Subtle separations, card outlines' },
             { name: 'border1', color: theme.border.border1, desc: 'Standard dividers, input borders' },
-            { name: 'border2', color: theme.border.border2, desc: 'Focus states, selected items' }
+            { name: 'border2', color: theme.border.border2, desc: 'Focus states, selected items' },
+            { name: 'border3', color: theme.border.border3, desc: 'Stronger outlines, e.g. unchecked checkboxes' }
           ].map(({ name, color, desc }) => (
             <div
               key={name}
