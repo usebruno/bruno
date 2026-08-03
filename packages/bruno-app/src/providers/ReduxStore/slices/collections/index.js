@@ -716,7 +716,7 @@ export const collectionsSlice = createSlice({
       // Get current response state or create initial state
       const currentResponse = item.response || initiatedGrpcResponse;
       const timestamp = item?.requestSent?.timestamp;
-      let updatedResponse = { ...currentResponse, duration: Date.now() - (timestamp || Date.now()) };
+      const updatedResponse = { ...currentResponse, duration: Date.now() - (timestamp || Date.now()) };
 
       // Process based on event type
       switch (eventType) {
@@ -1071,11 +1071,11 @@ export const collectionsSlice = createSlice({
             }
           });
 
-          const oldPathParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'path');
+          let remainingPathParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'path');
           const pathParamsInUrlOrder = urlPathParams.map((urlPath) => {
-            const existingPathParam = find(oldPathParams, (p) => p.name === urlPath.name);
-
+            const existingPathParam = find(remainingPathParams, (p) => p.name === urlPath.name);
             if (existingPathParam) {
+              remainingPathParams = filter(remainingPathParams, (p) => p.uid !== existingPathParam.uid);
               return {
                 ...existingPathParam,
                 uid: existingPathParam.uid,
@@ -1083,7 +1083,6 @@ export const collectionsSlice = createSlice({
                 type: 'path'
               };
             }
-
             return {
               ...urlPath,
               uid: uuid(),
@@ -2509,7 +2508,7 @@ export const collectionsSlice = createSlice({
           folder.draft = cloneDeep(folder.root);
         }
         if (type === 'request') {
-          let vars = get(folder, 'draft.request.vars.req', []);
+          const vars = get(folder, 'draft.request.vars.req', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -2519,7 +2518,7 @@ export const collectionsSlice = createSlice({
           }
           set(folder, 'draft.request.vars.req', vars);
         } else if (type === 'response') {
-          let vars = get(folder, 'draft.request.vars.res', []);
+          const vars = get(folder, 'draft.request.vars.res', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -2773,7 +2772,7 @@ export const collectionsSlice = createSlice({
           };
         }
         if (type === 'request') {
-          let vars = get(collection, 'draft.root.request.vars.req', []);
+          const vars = get(collection, 'draft.root.request.vars.req', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -2783,7 +2782,7 @@ export const collectionsSlice = createSlice({
           }
           set(collection, 'draft.root.request.vars.req', vars);
         } else if (type === 'response') {
-          let vars = get(collection, 'draft.root.request.vars.res', []);
+          const vars = get(collection, 'draft.root.request.vars.res', []);
           const _var = find(vars, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
@@ -3628,7 +3627,7 @@ export const collectionsSlice = createSlice({
       if (!collection.oauth2Credentials) {
         collection.oauth2Credentials = [];
       }
-      let collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
+      const collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
 
       // Remove existing credentials for the same combination
       const filteredOauth2Credentials = filter(
@@ -3685,7 +3684,7 @@ export const collectionsSlice = createSlice({
       if (!collection) return;
 
       if (collection.oauth2Credentials) {
-        let collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
+        const collectionOauth2Credentials = cloneDeep(collection.oauth2Credentials);
         const filteredOauth2Credentials = filter(
           collectionOauth2Credentials,
           (creds) =>
@@ -3847,7 +3846,7 @@ export const collectionsSlice = createSlice({
       // Get current response state or create initial state
       const currentResponse = item.response || initiatedWsResponse;
       const timestamp = item?.requestSent?.timestamp;
-      let updatedResponse = {
+      const updatedResponse = {
         ...currentResponse,
         isError: false,
         error: '',

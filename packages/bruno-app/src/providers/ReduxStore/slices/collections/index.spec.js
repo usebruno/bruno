@@ -161,7 +161,7 @@ describe('wsResponseReceived — disconnecting', () => {
 });
 
 describe('requestUrlChanged — preserves URL order for path params', () => {
-  it('orders existing and newly discovered path params according to the URL', () => {
+  it('orders existing and newly discovered path params according to the URL when new path parameter is added to end of URL', () => {
     const item = {
       uid: 'item1',
       type: 'http-request',
@@ -183,5 +183,33 @@ describe('requestUrlChanged — preserves URL order for path params', () => {
     expect(pathParams.map((param) => param.name)).toEqual(['id', 'postId']);
     expect(pathParams[0].uid).toBe('path-1');
     expect(pathParams[1].uid).not.toBe('path-1');
+  });
+});
+
+describe('requestUrlChanged — preserves URL order for path params', () => {
+  it('orders existing and newly discovered path params according to the URL when new path parameter is added between two existing ones', () => {
+    const item = {
+      uid: 'item1',
+      type: 'http-request',
+      request: {
+        url: 'https://example.com/users/:id/:postId',
+        params: [
+          { uid: 'path-1', name: 'id', value: '123', enabled: true, type: 'path' },
+          { uid: 'path-2', name: 'postId', value: '456', enabled: true, type: 'path' }
+        ]
+      }
+    };
+
+    const next = reducer(
+      makeStateWith(item),
+      requestUrlChanged({ collectionUid: 'col1', itemUid: 'item1', url: 'https://example.com/users/:id/:commentId/:postId' })
+    );
+
+    const pathParams = next.collections[0].items[0].draft.request.params.filter((param) => param.type === 'path');
+
+    expect(pathParams.map((param) => param.name)).toEqual(['id', 'commentId', 'postId']);
+    expect(pathParams[0].uid).toBe('path-1');
+    expect(pathParams[1].uid).not.toBe('path-2');
+    expect(pathParams[2].uid).toBe('path-2');
   });
 });
