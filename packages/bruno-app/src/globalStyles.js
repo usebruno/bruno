@@ -426,7 +426,7 @@ const GlobalStyle = createGlobalStyle`
 
   /* Value Display (Read-only) */
   .CodeMirror-brunoVarInfo .var-value-display {
-    padding: 0.375rem 1.5rem 0.375rem 0.5rem;
+    padding: 0.25rem 1.5rem 0.25rem 0.5rem;
     font-size: ${(props) => props.theme.font.size.base};
     font-family: Inter, sans-serif;
     font-weight: 400;
@@ -434,7 +434,7 @@ const GlobalStyle = createGlobalStyle`
     white-space: pre-wrap;
     line-height: 1.25rem;
     color: ${(props) => props.theme.dropdown.color};
-    min-height: 1.75rem;
+    min-height: 1.5rem;
     max-width: 17.1875rem;
   }
 
@@ -449,7 +449,7 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror {
     height: 100%;
-    min-height: 1.75rem;
+    min-height: 1.5rem;
     max-height: 11.125rem;
     font-size: ${(props) => props.theme.font.size.base};
     font-family: Inter, sans-serif;
@@ -463,7 +463,7 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-scroll {
-    min-height: 1.75rem;
+    min-height: 1.5rem;
     max-height: 11.125rem;
     overflow-y: auto !important;
     overflow-x: hidden !important;
@@ -475,7 +475,7 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .var-value-editor .CodeMirror-lines {
-    padding: 0.375rem 1.5rem 0.375rem 0.5rem;
+    padding: 0.25rem 1.5rem 0.25rem 0.5rem;
     max-width: 13.1875rem;
     font-family: Inter, sans-serif;
     font-weight: 400;
@@ -684,15 +684,16 @@ const GlobalStyle = createGlobalStyle`
     align-items: center;
     gap: 0.5rem;
     width: 100%;
-    padding: 0.125rem 0.25rem 0.125rem 0.5rem;
+    padding: 0.0625rem 0.25rem 0.0625rem 0.5rem;
     box-sizing: border-box;
     border-radius: ${(props) => props.theme.border.radius.base};
+    margin-bottom: 0.125rem;
   }
 
   .CodeMirror-brunoVarInfo .var-add-to-option-trigger {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.2rem;
     width: 100%;
     height: 1.5rem;
     box-sizing: border-box;
@@ -709,33 +710,23 @@ const GlobalStyle = createGlobalStyle`
     background: ${(props) => props.theme.dropdown.hoverBg};
   }
 
-  /* Currently selected scope in the "Add to" list. */
+  /* Currently selected scope in the "Add to" list — matches the selected-item treatment used by
+     the app's other dropdowns (see components/Dropdown, StatusBar/ThemeDropdown). */
   .CodeMirror-brunoVarInfo .var-add-to-option-active {
-    background: ${(props) => props.theme.dropdown.hoverBg};
+    background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.07)};
   }
 
-  .CodeMirror-brunoVarInfo .var-add-to-option-active .var-add-to-option-badge {
-    background: ${(props) => props.theme.colors.text.green};
-    color: ${(props) => props.theme.colors.text.white};
+  .CodeMirror-brunoVarInfo .var-add-to-option-active .var-add-to-option-trigger,
+  .CodeMirror-brunoVarInfo .var-add-to-option-active .var-add-to-option-label {
+    color: ${(props) => props.theme.dropdown.selectedColor};
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option-active:has(.var-add-to-option-trigger:hover) {
+    background: ${(props) => rgba(props.theme.dropdown.selectedColor, 0.12)};
   }
 
   .CodeMirror-brunoVarInfo .var-add-to-option-label {
     flex: 1;
-  }
-
-  .CodeMirror-brunoVarInfo .var-add-to-option-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 1.125rem;
-    height: 1.125rem;
-    border-radius: 50%;
-    background: ${(props) => props.theme.dropdown.hoverBg};
-    color: ${(props) => props.theme.dropdown.mutedText};
-    font-size: ${(props) => props.theme.font.size.xs};
-    font-weight: 600;
-    line-height: 1;
   }
 
   .CodeMirror-brunoVarInfo .var-add-to-option-note {

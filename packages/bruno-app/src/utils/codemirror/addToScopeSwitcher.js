@@ -10,21 +10,6 @@ const isEnvironmentScope = (scope) =>
   scope.type === VARIABLE_ADD_SCOPES.GLOBAL
   || scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT;
 
-const SCOPE_BADGE_LETTERS = {
-  [VARIABLE_ADD_SCOPES.GLOBAL]: 'G',
-  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: 'E',
-  [VARIABLE_ADD_SCOPES.COLLECTION]: 'V',
-  [VARIABLE_ADD_SCOPES.REQUEST]: 'R'
-};
-
-const createScopeBadge = (scope) => {
-  const badge = document.createElement('span');
-  badge.className = 'var-add-to-option-badge';
-  badge.setAttribute('data-testid', `var-info-add-to-option-badge-${scope.type}`);
-  badge.textContent = SCOPE_BADGE_LETTERS[scope.type] || '?';
-  return badge;
-};
-
 const clearRow = (row) => {
   row.innerHTML = '';
 };
@@ -37,8 +22,6 @@ const renderScopeOption = (row, scope, { handleScopeSwitch, clearError }) => {
   trigger.type = 'button';
   trigger.className = 'var-add-to-option-trigger';
   trigger.setAttribute('data-testid', `var-info-add-to-option-${scope.type}`);
-
-  trigger.appendChild(createScopeBadge(scope));
 
   const label = document.createElement('span');
   label.className = 'var-add-to-option-label';
@@ -164,8 +147,6 @@ const renderCreateEnvironment = (row, scope, actions) => {
 
 const renderNoEnvironmentInline = (row, scope, actions) => {
   clearRow(row);
-
-  row.appendChild(createScopeBadge(scope));
 
   const note = document.createElement('span');
   note.className = 'var-add-to-option-note';

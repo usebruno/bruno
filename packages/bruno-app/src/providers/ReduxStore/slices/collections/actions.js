@@ -2295,22 +2295,27 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
         case 'environment': {
           const { environment, variable } = data;
 
-          if (!variable) {
-            return reject(new Error('Variable not found'));
+          if (!environment) {
+            return reject(new Error('Environment not found'));
           }
 
-          const updatedVariables = environment.variables.map((v) => {
-            if (v.uid === variable.uid) {
-              return { ...v, value: newValue };
-            }
-            return v;
-          });
+          let editedVariable;
+          let updatedVariables;
 
-          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
+          if (variable) {
+            editedVariable = { ...variable, value: newValue };
+            updatedVariables = environment.variables.map((v) => (v.uid === variable.uid ? editedVariable : v));
+          } else {
+            // Create a new variable in this environment with the actual value and optional secret flag.
+            editedVariable = { uid: uuid(), name: variableName, value: newValue, type: 'text', secret: !!data.secret, enabled: true };
+            updatedVariables = [...environment.variables, editedVariable];
+          }
+
+          const resolvedVariables = resolveSecretNameCollision(updatedVariables, editedVariable);
 
           return dispatch(saveEnvironment(resolvedVariables, environment.uid, collectionUid))
             .then(() => {
-              toast.success(`Variable "${variableName}" updated`);
+              toast.success(`Variable "${variableName}" ${variable ? 'updated' : 'added'}`);
             })
             .then(resolve)
             .catch(reject);
@@ -2411,25 +2416,26 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 
           const variable = environment.variables.find((v) => v.name === variableName && v.enabled);
 
-          if (!variable) {
-            return reject(new Error('Variable not found'));
+          let editedVariable;
+          let updatedVariables;
+
+          if (variable) {
+            editedVariable = { ...variable, value: newValue };
+            updatedVariables = environment.variables.map((v) => (v.uid === variable.uid ? editedVariable : v));
+          } else {
+            // Create a new variable in this environment with the actual value and optional secret flag.
+            editedVariable = { uid: uuid(), name: variableName, value: newValue, type: 'text', secret: !!data.secret, enabled: true };
+            updatedVariables = [...environment.variables, editedVariable];
           }
 
-          const updatedVariables = environment.variables.map((v) => {
-            if (v.uid === variable.uid) {
-              return { ...v, value: newValue };
-            }
-            return v;
-          });
-
-          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
+          const resolvedVariables = resolveSecretNameCollision(updatedVariables, editedVariable);
 
           return dispatch(saveGlobalEnvironment({
             variables: resolvedVariables,
             environmentUid: activeGlobalEnvUid
           }))
             .then(() => {
-              toast.success(`Variable "${variableName}" updated`);
+              toast.success(`Variable "${variableName}" ${variable ? 'updated' : 'added'}`);
             })
             .then(resolve)
             .catch(reject);

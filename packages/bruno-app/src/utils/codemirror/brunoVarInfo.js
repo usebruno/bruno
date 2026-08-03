@@ -9,7 +9,8 @@
 import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
 import { toDisplayString } from '@usebruno/common/utils';
 import { getVariableScope, isVariableSecret, getAllVariables, findCollectionByUid, findItemInCollectionByItemUid, getAvailableAddToScopes } from 'utils/collections';
-import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
+import { updateVariableInScope, addEnvironment, selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import store from 'providers/ReduxStore';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
@@ -39,8 +40,42 @@ const COPY_SUCCESS_COLOR = '#22c55e';
 
 export const COPY_SUCCESS_TIMEOUT = 1000;
 
+const NEW_ENVIRONMENT_POLL_INTERVAL_MS = 50;
+const NEW_ENVIRONMENT_POLL_TIMEOUT_MS = 3000;
+
+// add a new environment to the collection and wait for it to be added to the Redux store
+// addEnvironment is async and the store may not be updated immediately
+// poll the store until the environment is found or timeout occurs.
+const waitForEnvironmentByName = (
+  collectionUid,
+  name,
+  { intervalMs = NEW_ENVIRONMENT_POLL_INTERVAL_MS, timeoutMs = NEW_ENVIRONMENT_POLL_TIMEOUT_MS } = {}
+) => {
+  const deadline = Date.now() + timeoutMs;
+
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      const state = store.getState();
+      const freshCollection = findCollectionByUid(state.collections.collections, collectionUid);
+      const found = (freshCollection?.environments || []).find((env) => env.name === name);
+
+      if (found) {
+        return resolve(found);
+      }
+
+      if (Date.now() >= deadline) {
+        return reject(new Error(`Timed out waiting for environment "${name}" to be created`));
+      }
+
+      setTimeout(check, intervalMs);
+    };
+
+    check();
+  });
+};
+
 // Editor height constraints
-const EDITOR_MIN_HEIGHT = 1.75;
+const EDITOR_MIN_HEIGHT = 1.5;
 const EDITOR_MAX_HEIGHT = 11.125;
 
 /**
@@ -637,8 +672,19 @@ export const renderVarInfo = (token, options) => {
       };
 
       const onCreateEnvironment = (scope, name) => {
-        console.log('TODO: create environment', { scope, name, collectionUid: collection?.uid });
-        return Promise.resolve();
+        const dispatch = store.dispatch;
+
+        if (scope.type === VARIABLE_ADD_SCOPES.GLOBAL) {
+          return dispatch(addGlobalEnvironment({ name, variables: [] }));
+        }
+
+        if (scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT) {
+          return dispatch(addEnvironment(name, collection.uid))
+            .then(() => waitForEnvironmentByName(collection.uid, name))
+            .then((newEnvironment) => dispatch(selectEnvironment(newEnvironment.uid, collection.uid)));
+        }
+
+        return Promise.reject(new Error(`"${scope.label}" does not support creating a new one`));
       };
 
       const onConfirm = (secret) => {
