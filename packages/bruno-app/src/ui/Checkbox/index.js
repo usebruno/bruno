@@ -1,34 +1,26 @@
 import React, { forwardRef } from 'react';
 import StyledWrapper from './StyledWrapper';
 
-const CHECKBOX_ICON_VIEWBOX = 16;
 const checkboxIconSizeConfig = {
-  sm: { iconSize: 8, targetStrokeWidth: 1 },
-  md: { iconSize: 10, targetStrokeWidth: 2 },
-  lg: { iconSize: 12, targetStrokeWidth: 2 },
-  xl: { iconSize: 14, targetStrokeWidth: 2 }
+  sm: { width: 9, height: 6, strokeWidth: 1, path: 'M0.6 3L3.2 5.4L8.4 0.6' },
+  md: { width: 11, height: 8, strokeWidth: 2, path: 'M0.8 4L3.9 7.2L10.2 0.8' },
+  lg: { width: 12, height: 9, strokeWidth: 2, path: 'M0.9 4.5L4.3 8.1L11.1 0.9' },
+  xl: { width: 14, height: 10, strokeWidth: 2, path: 'M1 5L5 9L13 1' }
 };
 
 function CheckboxIcon({ size }) {
-  const { iconSize, targetStrokeWidth } = checkboxIconSizeConfig[size] ?? checkboxIconSizeConfig.md;
-  const strokeWidth = (targetStrokeWidth * CHECKBOX_ICON_VIEWBOX) / iconSize;
+  const { width, height, strokeWidth, path } = checkboxIconSizeConfig[size] ?? checkboxIconSizeConfig.md;
 
   return (
     <svg
       className="checkbox-icon"
-      width={iconSize}
-      height={iconSize}
-      viewBox={`0 0 ${CHECKBOX_ICON_VIEWBOX} ${CHECKBOX_ICON_VIEWBOX}`}
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <path
-        d="M3.5 8.5L6.5 11.5L12.5 4.5"
-        stroke="currentColor"
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d={path} stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -50,6 +42,7 @@ const Checkbox = forwardRef(
       name,
       value,
       className = '',
+      inputClassName = '',
       'data-testid': dataTestId = 'checkbox',
       ...rest
     },
@@ -68,7 +61,7 @@ const Checkbox = forwardRef(
               checked={checked}
               disabled={disabled}
               onChange={onChange}
-              className="checkbox-input"
+              className={`checkbox-input ${inputClassName}`.trim()}
               data-testid={dataTestId}
               aria-label={ariaLabel}
               aria-labelledby={ariaLabelledBy}
