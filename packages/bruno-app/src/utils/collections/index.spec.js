@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts } from './index';
+import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts, getVariableScope, isVariableSecret } from './index';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
@@ -130,5 +130,35 @@ describe('getCollectionItemCounts', () => {
   it('returns zero counts for empty or missing items', () => {
     expect(getCollectionItemCounts([])).toEqual({ folderCount: 0, requestCount: 0 });
     expect(getCollectionItemCounts(undefined)).toEqual({ folderCount: 0, requestCount: 0 });
+  });
+});
+
+describe('getVariableScope — global environment secrets', () => {
+  it('flags a global-scoped variable as secret when its name is in globalEnvSecrets', () => {
+    const collection = {
+      globalEnvironmentVariables: { apiToken: 'super-secret' },
+      globalEnvSecrets: ['apiToken']
+    };
+
+    const scopeInfo = getVariableScope('apiToken', collection, null);
+
+    expect(scopeInfo).toEqual({
+      type: 'global',
+      value: 'super-secret',
+      data: { variableName: 'apiToken', value: 'super-secret', variable: { name: 'apiToken', secret: true } }
+    });
+    expect(isVariableSecret(scopeInfo)).toBe(true);
+  });
+
+  it('does not flag a global-scoped variable as secret when its name is not in globalEnvSecrets', () => {
+    const collection = {
+      globalEnvironmentVariables: { baseUrl: 'https://api.example.com' },
+      globalEnvSecrets: ['apiToken']
+    };
+
+    const scopeInfo = getVariableScope('baseUrl', collection, null);
+
+    expect(scopeInfo.data.variable).toEqual({ name: 'baseUrl', secret: false });
+    expect(isVariableSecret(scopeInfo)).toBe(false);
   });
 });
