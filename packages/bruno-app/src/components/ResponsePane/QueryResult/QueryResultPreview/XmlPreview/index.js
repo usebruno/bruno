@@ -4,27 +4,31 @@ import StyledWrapper from './StyledWrapper';
 
 // The expected "data" prop must be an XML string.
 export default function XmlPreview({ data, defaultExpanded = true }) {
-  const parseResult = useMemo(() => {
+  const { parseError, parsedData } = useMemo(() => {
     if (typeof data !== 'string') {
-      return { ok: false, message: 'Invalid input. Expected an XML string.' };
+      return {
+        parseError: 'Invalid input. Expected an XML string.',
+        parsedData: null
+      };
     }
 
     const parsed = parseXMLString(data);
-    if (parsed === null) {
-      return { ok: false, message: 'Failed to parse XML string. Invalid XML format.' };
-    }
-    return { ok: true, tree: parsed };
+
+    return {
+      parseError: parsed ? null : 'Failed to parse XML string. Invalid XML format.',
+      parsedData: parsed
+    };
   }, [data]);
 
-  if (!parseResult.ok) {
+  if (parseError) {
     return (
       <div className="px-2">
-        <ErrorBanner errors={[{ title: 'Cannot preview as XML', message: parseResult.message }]} />
+        <ErrorBanner
+          errors={[{ title: 'Cannot preview as XML', message: parseError }]}
+        />
       </div>
     );
   }
-
-  const parsedData = parseResult.tree;
 
   // Validate that data can be rendered as a tree
   const isValidTreeData = (data) => {
