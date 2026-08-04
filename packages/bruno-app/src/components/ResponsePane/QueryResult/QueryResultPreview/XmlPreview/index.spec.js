@@ -16,8 +16,8 @@ const renderXmlPreview = (data) =>
     </ThemeProvider>
   );
 
-// Asserts the strings render as one ErrorBanner entry's title/message pair — not merely
-// somewhere in the document — and that no tree is rendered beside the banner.
+// Asserts the strings render as one ErrorBanner entry's title/message pair
+// and that no tree is rendered beside the banner.
 const expectErrorBanner = (title, message) => {
   const entry = within(screen.getByTestId('error-banner')).getByTestId('error-banner-entry');
 
