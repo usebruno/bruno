@@ -4,7 +4,6 @@ import StyledWrapper from './StyledWrapper';
 
 // The expected "data" prop must be an XML string.
 export default function XmlPreview({ data, defaultExpanded = true }) {
-  // Parse the XML string into either { ok: true, tree } or { ok: false, message }.
   const parseResult = useMemo(() => {
     if (typeof data !== 'string') {
       return { ok: false, message: 'Invalid input. Expected an XML string.' };
