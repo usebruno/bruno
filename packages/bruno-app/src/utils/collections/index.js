@@ -1816,12 +1816,17 @@ export const getVariableScope = (variableName, collection, item) => {
   }
 
   // 5. Check Global Environment Variables
-  const { globalEnvironmentVariables = {} } = collection;
+  const { globalEnvironmentVariables = {}, globalEnvSecrets = [] } = collection;
   if (variableName in globalEnvironmentVariables) {
+    const isSecret = globalEnvSecrets.includes(variableName);
     return {
       type: 'global',
       value: globalEnvironmentVariables[variableName],
-      data: { variableName, value: globalEnvironmentVariables[variableName] }
+      data: {
+        variableName,
+        value: globalEnvironmentVariables[variableName],
+        variable: { name: variableName, secret: isSecret }
+      }
     };
   }
 
@@ -1846,14 +1851,9 @@ export const isVariableSecret = (scopeInfo) => {
     return false;
   }
 
-  // Only environment variables can be marked as secret
-  if (scopeInfo.type === 'environment') {
+  // Environment and global environment variables can be marked as secret
+  if (scopeInfo.type === 'environment' || scopeInfo.type === 'global') {
     return !!scopeInfo.data.variable?.secret;
-  }
-
-  // Global variables are not checked here
-  if (scopeInfo.type === 'global') {
-    return false;
   }
 
   return false;
