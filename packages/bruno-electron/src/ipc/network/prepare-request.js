@@ -2,7 +2,7 @@ const { get, each, filter, find } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
-const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
+const { getTreePathFromCollectionToItem, mergeHeaders, buildFinalHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
 const path = require('node:path');
 const { isLargeFile } = require('../../utils/filesystem');
 
@@ -395,7 +395,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   const scriptFlow = collection?.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
-    mergedHeaders = mergeHeaders({ collection, request, requestTreePath, options: { includeDisabledHeaders: true } });
+    mergeHeaders({ collection, request, requestTreePath, options: { includeDisabledHeaders: true } });
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
     mergeAuth(collection, request, requestTreePath);
@@ -417,15 +417,7 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     }
   });
 
-  const finalHeaders = {
-    ...mergedHeaders.reduce((acc, curr) => {
-      if (curr.enabled) {
-        acc[curr.name] = curr.value;
-      }
-      return acc;
-    }, {}),
-    ...headers
-  };
+  const finalHeaders = buildFinalHeaders(request.headers, headers);
 
   let axiosRequest = {
     mode: request.body.mode,

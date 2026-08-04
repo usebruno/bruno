@@ -119,6 +119,28 @@ const getSortedOutgoingHeaders = (request) => {
   return parsedHeaders;
 };
 
+/** Sent headers are only knowable at response time, so log them into this hop's header slot rather
+ *  than the tail, and keep them on the response for post-response vars and scripts. */
+const recordSentHeaders = (timeline, clientRequest, response) => {
+  const sentHeaders = getSortedOutgoingHeaders(clientRequest);
+  if (!Array.isArray(timeline) || !sentHeaders.length) return;
+  if (response) response.sentHeaders = sentHeaders;
+
+  let insertAt = timeline.length;
+  for (let i = timeline.length - 1; i >= 0; i--) {
+    const entryType = timeline[i]?.type;
+    if (entryType === 'requestData' || entryType === 'request') {
+      insertAt = i + 1;
+      break;
+    }
+  }
+  timeline.splice(insertAt, 0, ...sentHeaders.map(({ displayKey, value }) => ({
+    timestamp: new Date(),
+    type: 'requestHeader',
+    message: `${displayKey}: ${value}`
+  })));
+};
+
 function makeAxiosInstance({
   proxyMode = 'off',
   proxyModeReason = '',
@@ -280,24 +302,9 @@ function makeAxiosInstance({
 
       const config = response.config;
       timeline = config?.metadata?.timeline || [];
-      let sortedHeaders = getSortedOutgoingHeaders(response.request);
       const duration = end - config?.metadata.startTime;
 
-      /** Built at response time, so insert after the request line rather than pushing to the tail. */
-      const sentHeaderEntries = sortedHeaders.map(({ displayKey, value }) => ({
-        timestamp: new Date(),
-        type: 'requestHeader',
-        message: `${displayKey}: ${value}`
-      }));
-      let sentHeadersInsertAt = timeline.length;
-      for (let i = timeline.length - 1; i >= 0; i--) {
-        const entryType = timeline[i]?.type;
-        if (entryType === 'requestData' || entryType === 'request') {
-          sentHeadersInsertAt = i + 1;
-          break;
-        }
-      }
-      timeline.splice(sentHeadersInsertAt, 0, ...sentHeaderEntries);
+      recordSentHeaders(timeline, response.request, response);
 
       const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
       if (httpVersion?.startsWith('2')) {
@@ -332,6 +339,7 @@ function makeAxiosInstance({
     async (error) => {
       const config = error.config;
       const timeline = config?.metadata?.timeline || [];
+      recordSentHeaders(timeline, error.response?.request || error.request, error.response);
       timeline?.push({
         timestamp: new Date(),
         type: 'error',

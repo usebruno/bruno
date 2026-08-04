@@ -76,12 +76,22 @@ const mergeHeaders = (data) => {
     }
   }
 
-  // Convert Map back to array
-  return ([
+  request.headers = [
     ...Array.from(headers, ([name, value]) => ({ name, value, enabled: true })),
     ...(includeDisabledHeaders ? Array.from(disabledHeaders, ([name, value]) => ({ name, value, enabled: false })) : [])
-  ]);
+  ];
 };
+
+/** Enabled headers off the merged table, overlaid with the ones resolved later (scripts, auth). */
+const buildFinalHeaders = (mergedHeaders, headers) => ({
+  ...(mergedHeaders || []).reduce((acc, curr) => {
+    if (curr.enabled) {
+      acc[curr.name] = curr.value;
+    }
+    return acc;
+  }, {}),
+  ...headers
+});
 
 const mergeVars = (collection, request, requestTreePath = []) => {
   let reqVars = new Map();
@@ -932,6 +942,7 @@ const sortByNameThenSequence = (items) => {
 
 module.exports = {
   mergeHeaders,
+  buildFinalHeaders,
   mergeVars,
   mergeScripts,
   mergeAuth,

@@ -580,7 +580,7 @@ const extractPromptVariablesForRequest = async (item, collection) => {
     const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
     // Get active headers from collection, folders, and request by priority order
-    const headers = mergeHeaders({ collection, request, requestTreePath, options: {} });
+    mergeHeaders({ collection, request, requestTreePath, options: {} });
     // Get request auth or inherited auth
     const resolvedAuthRequest = resolveInheritedAuth(item, collection);
 
@@ -599,7 +599,7 @@ const extractPromptVariablesForRequest = async (item, collection) => {
     // Attempt to extract unique prompt variables from anywhere in the request and environment variables.
     prompts.push(...extractPromptVariables(allVariables));
     prompts.push(...extractPromptVariables(request.body?.[request.body.mode]));
-    prompts.push(...extractPromptVariables(headers));
+    prompts.push(...extractPromptVariables(request.headers));
     prompts.push(...extractPromptVariables(request.params));
     prompts.push(...extractPromptVariables(resolvedAuthRequest.auth));
     prompts.push(...extractPromptVariables(request.url));

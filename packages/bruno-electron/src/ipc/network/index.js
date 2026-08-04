@@ -75,6 +75,19 @@ const hasStreamHeaders = (headers) => {
   return headerSplit.indexOf('text/event-stream') > -1;
 };
 
+/** Transport headers (Host, Connection, ...) exist only once the request is on the wire, so fold
+ *  them in for post-response vars and scripts. Never overwrites, so the content-type sentinel
+ *  survives, and they lead the object the way they lead the timeline. */
+const applySentHeadersToRequest = (request, response) => {
+  if (!request?.headers || !response?.sentHeaders) return;
+  const existing = new Set(Object.keys(request.headers).map((name) => name.toLowerCase()));
+  const sentHeaders = {};
+  response.sentHeaders.forEach(({ lowerKey, displayKey, value }) => {
+    if (!existing.has(lowerKey)) sentHeaders[displayKey] = value;
+  });
+  request.headers = { ...sentHeaders, ...request.headers };
+};
+
 const buildResponseBodyFromStreamChunks = (sseChunks, headers, disableParsingResponseJson) => {
   const dataBuffer = Buffer.concat(sseChunks);
   const { data } = parseDataFromResponse({ data: dataBuffer, headers }, disableParsingResponseJson);
@@ -689,6 +702,7 @@ const registerNetworkIpc = (mainWindow) => {
     scriptingConfig,
     runRequestByItemPathname
   ) => {
+    applySentHeadersToRequest(request, response);
     // run post-response vars
     const postResponseVars = get(request, 'vars.res', []);
     if (postResponseVars?.length) {

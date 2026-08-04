@@ -1404,12 +1404,10 @@ export const mergeHeaders = (data) => {
     }
   });
 
-  let resultMergeHeaders = [
+  return [
     ...Array.from(headers.values()),
     ...(includeDisabledHeaders ? Array.from(disabledHeaders.values()) : [])
   ];
-  // Convert Map back to array
-  return resultMergeHeaders;
 };
 
 export const maskInputValue = (value) => {
