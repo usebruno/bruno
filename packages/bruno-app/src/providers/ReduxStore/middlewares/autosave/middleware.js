@@ -101,6 +101,7 @@ const actionsToIntercept = [
 
 // Simple object to track pending save timers
 const pendingTimers = {};
+const persistentTimerKeys = new Set();
 
 // Auto-save runs unattended, so a rejected save has nowhere to surface — the user would keep
 // editing believing their changes are on disk. A fixed toast id replaces the previous notice
@@ -109,14 +110,20 @@ const reportAutoSaveError = (err) =>
   toast.error(isEnvironmentValidationError(err) ? err.message : 'Auto-save failed', { id: 'autosave-error' });
 
 // Helper to schedule autosave for an item
-const scheduleAutoSave = (key, save, interval) => {
+const scheduleAutoSave = (key, save, interval, persistAlways = false) => {
   // Clear any existing timer for this entity
   clearTimeout(pendingTimers[key]);
+  if (persistAlways) {
+    persistentTimerKeys.add(key);
+  } else {
+    persistentTimerKeys.delete(key);
+  }
 
   // Schedule a new save
   pendingTimers[key] = setTimeout(() => {
     save();
     delete pendingTimers[key];
+    persistentTimerKeys.delete(key);
   }, interval);
 };
 
@@ -276,6 +283,9 @@ export const autosaveMiddleware = ({ dispatch, getState }) => (next) => (action)
 
   if (action.type === 'app/updatePreferences' && action.payload?.autoSave?.enabled === false) {
     Object.keys(pendingTimers).forEach((key) => {
+      if (persistentTimerKeys.has(key)) {
+        return;
+      }
       clearTimeout(pendingTimers[key]);
       delete pendingTimers[key];
     });
@@ -287,7 +297,7 @@ export const autosaveMiddleware = ({ dispatch, getState }) => (next) => (action)
 
   const handler = determineSaveHandler(action.type, action.payload, dispatch, getState);
   if (handler?.persistAlways) {
-    scheduleAutoSave(handler.key, handler.save, autoSave?.interval || 1000);
+    scheduleAutoSave(handler.key, handler.save, autoSave?.interval || 1000, true);
     return result;
   }
 

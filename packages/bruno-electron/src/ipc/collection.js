@@ -86,6 +86,7 @@ const {
   ensureCollectionTransientDirectory,
   ensureScratchTransientDirectory
 } = require('../utils/transient-directory');
+const { writeFileWithSuffix } = require('../utils/write-file-with-suffix');
 const {
   validateWorkspacePath,
   normalizeCollectionEntry,
@@ -601,45 +602,39 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const filename = targetFilename || path.basename(sourcePathname);
       const filenameWithoutExt = filename.replace(/\.(bru|yml)$/, '');
-      let finalBaseName = filenameWithoutExt;
-      let finalFilename = `${finalBaseName}.${targetFormat}`;
-      let targetPathname = path.join(targetDirname, finalFilename);
-      let counter = 1;
-
-      while (fs.existsSync(targetPathname)) {
-        finalBaseName = `${filenameWithoutExt} (${counter})`;
-        finalFilename = `${finalBaseName}.${targetFormat}`;
-        targetPathname = path.join(targetDirname, finalFilename);
-        counter += 1;
-      }
-
-      const requestToSave = {
-        ...request,
-        name: finalBaseName,
-        filename: finalFilename
-      };
-
       const actualSourceFormat = sourceFormat || 'yml';
       const needsConversion = actualSourceFormat !== targetFormat;
+      let savedRequest;
 
-      let finalContent;
-      if (needsConversion) {
-        const { parseRequest, stringifyRequest } = require('@usebruno/filestore');
-        const sourceContent = await fs.promises.readFile(sourcePathname, 'utf8');
-        const parsedRequest = parseRequest(sourceContent, { format: actualSourceFormat });
-        const mergedRequest = { ...parsedRequest, ...requestToSave };
-        syncExampleUidsCache(sourcePathname, mergedRequest.examples);
-        finalContent = stringifyRequest(mergedRequest, { format: targetFormat });
-      } else {
-        syncExampleUidsCache(sourcePathname, requestToSave.examples);
-        finalContent = await stringifyRequestViaWorker(requestToSave, { format: targetFormat });
-      }
+      const result = await writeFileWithSuffix({
+        dirname: targetDirname,
+        basename: filenameWithoutExt,
+        extension: targetFormat,
+        createContent: async ({ name, filename }) => {
+          const requestToSave = {
+            ...request,
+            name,
+            filename
+          };
 
-      await writeFile(targetPathname, finalContent);
+          if (needsConversion) {
+            const { parseRequest, stringifyRequest } = require('@usebruno/filestore');
+            const sourceContent = await fs.promises.readFile(sourcePathname, 'utf8');
+            const parsedRequest = parseRequest(sourceContent, { format: actualSourceFormat });
+            savedRequest = { ...parsedRequest, ...requestToSave };
+            return stringifyRequest(savedRequest, { format: targetFormat });
+          }
+
+          savedRequest = requestToSave;
+          return stringifyRequestViaWorker(requestToSave, { format: targetFormat });
+        }
+      });
+
+      syncExampleUidsCache(result.pathname, savedRequest.examples);
       return {
-        newPathname: targetPathname,
-        name: finalBaseName,
-        filename: finalFilename
+        newPathname: result.pathname,
+        name: result.name,
+        filename: result.filename
       };
     } catch (error) {
       return Promise.reject(error);

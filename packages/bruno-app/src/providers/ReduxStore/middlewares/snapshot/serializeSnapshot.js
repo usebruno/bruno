@@ -186,8 +186,13 @@ export const serializeSnapshot = async (state, options = {}) => {
     const isScratchCollection = scratchCollectionUids.has(collection.uid);
     const normalizedPath = normalizePath(collection.pathname);
 
-    if (activeWorkspace && !isScratchCollection && !activeWorkspaceCollectionPaths.has(normalizedPath)) {
-      return;
+    if (activeWorkspace) {
+      if (isScratchCollection && collection.uid !== activeWorkspace.scratchCollectionUid) {
+        return;
+      }
+      if (!isScratchCollection && !activeWorkspaceCollectionPaths.has(normalizedPath)) {
+        return;
+      }
     }
 
     const workspacePathname = activeWorkspace?.pathname || '';

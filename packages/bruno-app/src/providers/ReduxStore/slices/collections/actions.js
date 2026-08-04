@@ -289,7 +289,11 @@ export const persistTransientDraftsBeforeQuit = () => async (dispatch, getState)
   });
 
   try {
-    await Promise.all(saveOperations);
+    const results = await Promise.allSettled(saveOperations);
+    const rejected = results.find((result) => result.status === 'rejected');
+    if (rejected) {
+      throw rejected.reason;
+    }
   } finally {
     await flushSnapshotNow(getState);
   }

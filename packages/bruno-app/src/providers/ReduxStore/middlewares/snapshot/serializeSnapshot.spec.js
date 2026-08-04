@@ -126,6 +126,48 @@ describe('shouldPreserveCollectionEnvironmentInSnapshot', () => {
 });
 
 describe('serializeSnapshot workspace tab restoration', () => {
+  it('serializes only the active workspace scratch collection', async () => {
+    const state = makeState();
+    state.workspaces.workspaces = [
+      {
+        ...state.workspaces.workspaces[0],
+        scratchCollectionUid: 'scratch-1'
+      },
+      {
+        uid: 'ws-2',
+        pathname: '/tmp/workspace-2',
+        scratchCollectionUid: 'scratch-2',
+        collections: []
+      }
+    ];
+    state.collections.collections.push(
+      {
+        uid: 'scratch-1',
+        pathname: '/tmp/transient/scratch-1',
+        mountStatus: 'mounted',
+        environments: [],
+        activeEnvironmentUid: null,
+        items: []
+      },
+      {
+        uid: 'scratch-2',
+        pathname: '/tmp/transient/scratch-2',
+        mountStatus: 'mounted',
+        environments: [],
+        activeEnvironmentUid: null,
+        items: []
+      }
+    );
+
+    const snapshot = await serializeSnapshot(state, {
+      getExistingSnapshot: async () => null
+    });
+    const collectionPaths = snapshot.collections.map((collection) => collection.pathname);
+
+    expect(collectionPaths).toContain('/tmp/transient/scratch-1');
+    expect(collectionPaths).not.toContain('/tmp/transient/scratch-2');
+  });
+
   it('records the active workspace tab type when the scratch collection tab is focused', async () => {
     const scratchCollectionUid = 'scratch-1';
     const state = makeState();
