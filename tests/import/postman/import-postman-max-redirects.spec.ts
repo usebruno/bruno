@@ -8,8 +8,12 @@ import {
   selectRequestPaneTab
 } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
+import { captureClipboardWrites } from '../../utils/clipboard';
 
 const COLLECTION_NAME = 'Max Redirects Collection';
+
+// Requests whose maxRedirects cannot be honoured: each produces one warning and falls back to 5.
+const OFFENDERS = ['Null Limit', 'Negative Limit', 'Quoted Limit', 'Fractional Limit'];
 
 const importFixture = async (page: Page, tmpDir: string) => {
   const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-with-max-redirects.json');
@@ -32,22 +36,22 @@ test.describe('Import Postman Collection with maxRedirects', () => {
     await closeAllCollections(page);
   });
 
-  test('should preserve usable maxRedirects values, including above the former ceiling of 50', async ({
+  test('should preserve usable maxRedirects values, however large', async ({
     page,
     createTmpDir
   }) => {
     await importFixture(page, await createTmpDir('postman-max-redirects-happy'));
 
-    await test.step('a limit far above 50 survives the import', async () => {
-      await expectMaxRedirects(page, 'Above Old Ceiling', '1000');
+    await test.step('a limit of 1000 survives the import', async () => {
+      await expectMaxRedirects(page, 'Large Limit', '1000');
     });
 
     await test.step('an ordinary limit is untouched', async () => {
       await expectMaxRedirects(page, 'Ordinary Limit', '7');
     });
 
-    await test.step('exactly 50 is preserved', async () => {
-      await expectMaxRedirects(page, 'At Old Ceiling', '50');
+    await test.step('a limit of 50 is preserved', async () => {
+      await expectMaxRedirects(page, 'Fifty Limit', '50');
     });
 
     await test.step('zero is preserved rather than treated as absent', async () => {
@@ -60,7 +64,7 @@ test.describe('Import Postman Collection with maxRedirects', () => {
 
     await test.step('a nested request keeps its own limit', async () => {
       await expandFolder(page, 'Reporting');
-      await expectMaxRedirects(page, 'Nested Above Ceiling', '75');
+      await expectMaxRedirects(page, 'Nested Large Limit', '75');
     });
   });
 
@@ -74,11 +78,11 @@ test.describe('Import Postman Collection with maxRedirects', () => {
     await test.step('every request is imported, offenders included', async () => {
       for (const name of [
         'Ordinary Limit',
-        'Above Old Ceiling',
-        'At Old Ceiling',
+        'Large Limit',
+        'Fifty Limit',
         'No Redirects',
         'Unset Limit',
-        'Unlimited Limit',
+        'Null Limit',
         'Negative Limit',
         'Quoted Limit',
         'Fractional Limit'
@@ -87,21 +91,34 @@ test.describe('Import Postman Collection with maxRedirects', () => {
       }
 
       await expandFolder(page, 'Reporting');
-      await expect(locators.sidebar.request('Nested Above Ceiling')).toBeVisible();
+      await expect(locators.sidebar.request('Nested Large Limit')).toBeVisible();
     });
 
-    await test.step('the toast reports warnings and claims no skipped items', async () => {
+    await test.step('the toast reports the warning count', async () => {
       const toastTitle = locators.import.issuesToastTitle();
       await expect(toastTitle).toBeVisible();
-      await expect(toastTitle).toContainText('4 warning(s)');
-      await expect(toastTitle).not.toContainText('skipped');
+      await expect(toastTitle).toContainText(`${OFFENDERS.length} warning(s)`);
+    });
+
+    await test.step('every offending request gets its own maxRedirects warning', async () => {
+      const readCopiedText = await captureClipboardWrites(page);
+      await locators.import.issuesToastCopyBtn().click();
+      await expect(page.getByText('Copied to clipboard')).toBeVisible({ timeout: 3000 });
+
+      const issuesSummary = (await readCopiedText()) ?? '';
+      for (const requestName of OFFENDERS) {
+        expect(issuesSummary).toContain(`[WARNING] ${requestName}`);
+      }
+      expect(issuesSummary.match(/Invalid maxRedirects, ignored \(must be a whole number of 0 or more\)/g)).toHaveLength(
+        OFFENDERS.length
+      );
     });
 
     await test.step('warnings carry no request data, so no include-items checkbox appears', async () => {
       await expect(locators.import.issuesToastIncludeItemsCheckbox()).toBeHidden();
     });
 
-    for (const requestName of ['Unlimited Limit', 'Negative Limit', 'Quoted Limit', 'Fractional Limit']) {
+    for (const requestName of OFFENDERS) {
       await test.step(`${requestName} falls back to the default of 5`, async () => {
         await expectMaxRedirects(page, requestName, '5');
       });

@@ -22,7 +22,7 @@
       }
     },
     {
-      "name": "Above Old Ceiling",
+      "name": "Large Limit",
       "protocolProfileBehavior": {
         "maxRedirects": 1000
       },
@@ -38,7 +38,7 @@
       }
     },
     {
-      "name": "At Old Ceiling",
+      "name": "Fifty Limit",
       "protocolProfileBehavior": {
         "maxRedirects": 50
       },
@@ -83,7 +83,7 @@
       }
     },
     {
-      "name": "Unlimited Limit",
+      "name": "Null Limit",
       "protocolProfileBehavior": {
         "maxRedirects": null
       },
@@ -150,7 +150,7 @@
       "name": "Reporting",
       "item": [
         {
-          "name": "Nested Above Ceiling",
+          "name": "Nested Large Limit",
           "protocolProfileBehavior": {
             "maxRedirects": 75
           },

@@ -75,3 +75,16 @@ export const resolveTimeoutSetting = (value: unknown): number | typeof TIMEOUT_I
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
   return 0;
 };
+
+export const DEFAULT_MAX_REDIRECTS = 5;
+
+// Normalize a redirect ceiling: keep whole numbers of 0 or more, truncate fractions (0.9 becomes 0),
+// and fall back to the default for everything else (null/undefined, negatives, non-numeric values,
+// and NaN/±Infinity, which yml spells .nan/.inf and parses as real numbers). Strings aren't honoured,
+// as with the timeout setting above, since yml types its scalars.
+export const toMaxRedirects = (value: unknown): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    return DEFAULT_MAX_REDIRECTS;
+  }
+  return Math.trunc(value);
+};
