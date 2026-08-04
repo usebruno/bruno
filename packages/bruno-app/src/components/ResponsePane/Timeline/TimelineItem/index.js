@@ -1,12 +1,6 @@
-import { IconChevronDown, IconChevronRight } from '@tabler/icons';
-import { usePersistedState } from 'hooks/usePersistedState/index';
-import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
-import { addTab, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { flattenItems } from 'utils/collections/index';
-import { getRelativePath } from 'utils/common/path';
-import { getBadge } from '../entryMeta';
+import { IconChevronDown, IconChevronRight } from '@tabler/icons';
 import Method from './Common/Method/index';
 import Status from './Common/Status/index';
 import { RelativeTime } from './Common/Time/index';
@@ -14,6 +8,12 @@ import Network from './Network/index';
 import Request from './Request/index';
 import Response from './Response/index';
 import StyledWrapper from './StyledWrapper';
+import { usePersistedState } from 'hooks/usePersistedState/index';
+import { flattenItems } from 'utils/collections/index';
+import { getRelativePath } from 'utils/common/path';
+import { addTab, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
+import { getBadge } from '../entryMeta';
 
 const findFolderByScopeFile = (collection, sourceFile) => {
   if (!collection?.pathname || !sourceFile) return null;

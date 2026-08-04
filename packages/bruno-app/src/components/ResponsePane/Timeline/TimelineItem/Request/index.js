@@ -1,6 +1,6 @@
-import { sentHeadersFromTimeline } from '../../buildEntries';
-import BodyBlock from '../Common/Body/index';
 import Headers from '../Common/Headers/index';
+import BodyBlock from '../Common/Body/index';
+import { sentHeadersFromTimeline } from '../../buildEntries';
 
 const safeStringifyJSONIfNotString = (obj) => {
   if (obj === null || obj === undefined) return '';

@@ -1,13 +1,13 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import StyledWrapper from './StyledWrapper';
+import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
+import { get } from 'lodash';
+import TimelineItem from './TimelineItem/index';
+import GrpcTimelineItem from './GrpcTimelineItem/index';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
-import { get } from 'lodash';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { findItemInCollection, findParentItemInCollection } from 'utils/collections/index';
-import { buildTimelineEntries, countByKind, getEntryKind } from './buildEntries';
+import { buildTimelineEntries, getEntryKind, countByKind } from './buildEntries';
 import { FILTER_CHIPS } from './entryMeta';
-import GrpcTimelineItem from './GrpcTimelineItem/index';
-import StyledWrapper from './StyledWrapper';
-import TimelineItem from './TimelineItem/index';
 
 const getEffectiveAuthSource = (collection, item) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
@@ -60,6 +60,7 @@ const Timeline = ({ collection, item }) => {
     [item, itemAuthMode, collection]
   );
   const isGrpcRequest = item.type === 'grpc-request' || item.type === 'ws-request';
+
   const entries = useMemo(
     () => buildTimelineEntries(collection?.timeline, item.uid, authSource),
     [collection?.timeline, item.uid, authSource]

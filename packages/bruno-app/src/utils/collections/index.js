@@ -1,8 +1,8 @@
-import { isRequestTagsIncluded } from '@usebruno/common';
-import { cloneDeep, each, filter, find, get, isEqual, isString, map, sortBy } from 'lodash';
+import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path, { normalizePath } from 'utils/common/path';
+import { isRequestTagsIncluded } from '@usebruno/common';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {

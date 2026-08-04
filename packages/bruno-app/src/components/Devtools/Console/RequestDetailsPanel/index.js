@@ -1,17 +1,17 @@
-import {
-  IconArrowRight,
-  IconFileText,
-  IconNetwork,
-  IconX
-} from '@tabler/icons';
-import QueryResponse from 'components/ResponsePane/QueryResponse/index';
-import { sentHeadersFromTimeline } from 'components/ResponsePane/Timeline/buildEntries';
-import Network from 'components/ResponsePane/Timeline/TimelineItem/Network';
-import { clearSelectedRequest } from 'providers/ReduxStore/slices/logs';
 import React, { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { uuid } from 'utils/common/index';
+import { useSelector, useDispatch } from 'react-redux';
+import {
+  IconX,
+  IconFileText,
+  IconArrowRight,
+  IconNetwork
+} from '@tabler/icons';
+import { clearSelectedRequest } from 'providers/ReduxStore/slices/logs';
+import QueryResponse from 'components/ResponsePane/QueryResponse/index';
+import Network from 'components/ResponsePane/Timeline/TimelineItem/Network';
+import { sentHeadersFromTimeline } from 'components/ResponsePane/Timeline/buildEntries';
 import StyledWrapper from './StyledWrapper';
+import { uuid } from 'utils/common/index';
 
 const formatHeaders = (headers) => {
   if (!headers) return [];
@@ -28,6 +28,7 @@ const formatBody = (body) => {
 const RequestTab = ({ request, response }) => {
   const sentHeaders = sentHeadersFromTimeline(response?.timeline);
   const headers = sentHeaders.length ? sentHeaders : formatHeaders(request?.headers);
+
   return (
     <div className="tab-content">
       <div className="section">
