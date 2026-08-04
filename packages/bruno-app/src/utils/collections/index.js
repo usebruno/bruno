@@ -1,4 +1,4 @@
-import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
+import { cloneDeep, isEqual, sortBy, filter, map, isString, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path, { normalizePath } from 'utils/common/path';
@@ -1976,10 +1976,11 @@ const SCOPE_CONFIG = [
   },
   {
     type: VARIABLE_ADD_SCOPES.FOLDER,
-    label: 'Immediate Parent Folder',
+    label: ({ parentFolder }) => `Parent Folder(${parentFolder?.name || ''})`,
     supportsSecret: false,
-    enabled: () => false,
-    disabledReason: 'Not yet supported'
+    // Only the request/folder's direct containing folder is added.
+    include: ({ parentFolder }) => !!parentFolder,
+    enabled: () => true
   }
 ];
 
@@ -1989,24 +1990,29 @@ const SCOPE_CONFIG = [
  * @param {string} [activeGlobalEnvironmentUid] - The active global environment uid, if any.
  * @param {Object} [item] - The request/folder item the tooltip was opened from, if any. Request
  *   Variable is only included when this is a request (see isItemARequest).
+ * @param {Object} [parentFolder] - The immediate containing folder of `item`, if any. Folder
+ *   Variable is only included when this is present.
  * @returns {Array<{type: string, label: string, enabled: boolean, disabledReason?: string, supportsSecret: boolean}>}
  */
 export const getAvailableAddToScopes = (
   activeEnvironmentUid,
   activeGlobalEnvironmentUid,
-  item
+  item,
+  parentFolder
 ) => {
   const context = {
     activeEnvironmentUid,
     activeGlobalEnvironmentUid,
-    item
+    item,
+    parentFolder
   };
 
   const filteredScopes = SCOPE_CONFIG.filter((scope) => !scope.include || scope.include(context));
 
   return filteredScopes
-    .map(({ enabled, include, ...scope }) => ({
+    .map(({ enabled, include, label, ...scope }) => ({
       ...scope,
+      label: typeof label === 'function' ? label(context) : label,
       enabled: enabled(context)
     }));
 };

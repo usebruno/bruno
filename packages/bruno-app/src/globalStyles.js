@@ -715,6 +715,50 @@ const GlobalStyle = createGlobalStyle`
     background: ${(props) => props.theme.dropdown.hoverBg};
   }
 
+  .CodeMirror-brunoVarInfo .var-add-to-option-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    border-radius: ${(props) => props.theme.border.radius.sm || props.theme.border.radius.base};
+    font-size: 0.625rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option-icon-request {
+    color: ${(props) => props.theme.colors.text.purple};
+    background: ${(props) => rgba(props.theme.colors.text.purple, 0.14)};
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option-icon-folder {
+    color: ${(props) => props.theme.colors.text.yellow};
+    background: ${(props) => rgba(props.theme.colors.text.yellow, 0.14)};
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option-icon-collection {
+    color: ${(props) => props.theme.colors.text.subtext1};
+    background: ${(props) => rgba(props.theme.colors.text.subtext1, 0.14)};
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option-icon-environment {
+    color: ${(props) => props.theme.colors.text.green};
+    background: ${(props) => rgba(props.theme.colors.text.green, 0.14)};
+  }
+
+  .CodeMirror-brunoVarInfo .var-add-to-option-icon-global {
+    color: ${(props) => props.theme.textLink};
+    background: ${(props) => rgba(props.theme.textLink, 0.14)};
+  }
+
+  /* Disabled row badge */
+  .CodeMirror-brunoVarInfo .var-add-to-option-icon-muted {
+    color: ${(props) => props.theme.dropdown.mutedText};
+    background: ${(props) => rgba(props.theme.dropdown.mutedText, 0.14)};
+  }
+
   /* Currently selected scope in the "Add to" list — matches the selected-item treatment used by
      the app's other dropdowns (see components/Dropdown, StatusBar/ThemeDropdown). */
   .CodeMirror-brunoVarInfo .var-add-to-option-active {

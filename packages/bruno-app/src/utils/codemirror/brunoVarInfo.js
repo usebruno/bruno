@@ -15,6 +15,7 @@ import {
   getAllVariables,
   findCollectionByUid,
   findItemInCollectionByItemUid,
+  findParentItemInCollection,
   getAvailableAddToScopes
 } from 'utils/collections';
 import {
@@ -466,6 +467,12 @@ export const renderVarInfo = (token, options) => {
       e.stopPropagation();
       e.preventDefault();
       goToVariableDefinition(scopeInfo, collection, item, variableName);
+
+      // Close the tooltip once we've navigated to the definition.
+      const popup = varName.closest('.CodeMirror-brunoVarInfo');
+      if (popup && typeof popup._hidePopup === 'function') {
+        popup._hidePopup({ immediate: true });
+      }
     });
   }
 
@@ -788,7 +795,14 @@ export const renderVarInfo = (token, options) => {
       updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
     };
 
-    // for new variables, add a switcher to select the scope to add the variable to (collection, request, environment, global)
+    // Only the request/folder's direct containing folder is offered as a creatable scope — not
+    // any ancestor further up the tree. Doesn't apply when the tooltip itself was opened from
+    // folder settings (that folder is already the guessed default in that case).
+    const parentFolder = item && item.type !== 'folder' && collection
+      ? findParentItemInCollection(collection, item.uid)
+      : null;
+
+    // for new variables, add a switcher to select the scope to add the variable to (collection, request, folder, environment, global)
     if (isNewVariable) {
       const buildScopeInfoForSwitch = (scope) => {
         switch (scope.type) {
@@ -796,6 +810,8 @@ export const renderVarInfo = (token, options) => {
             return { type: 'collection', value: '', data: { collection, variable: null } };
           case VARIABLE_ADD_SCOPES.REQUEST:
             return { type: 'request', value: '', data: { item, variable: null } };
+          case VARIABLE_ADD_SCOPES.FOLDER:
+            return { type: 'folder', value: '', data: { folder: parentFolder, variable: null } };
           case VARIABLE_ADD_SCOPES.ENVIRONMENT: {
             const freshState = store.getState();
             const freshCollection = findCollectionByUid(freshState.collections.collections, collection.uid);
@@ -821,7 +837,8 @@ export const renderVarInfo = (token, options) => {
       const addToScopes = getAvailableAddToScopes(
         collection?.activeEnvironmentUid,
         globalEnvironmentsState.activeGlobalEnvironmentUid,
-        item
+        item,
+        parentFolder
       );
 
       // The guessed scope is selected by default (if it's in the addToScopes list).
@@ -909,8 +926,12 @@ export const renderVarInfo = (token, options) => {
       valueContainer._addToSwitcher = addToSwitcher;
 
       // Called from `onDocumentClick` in showPopup when the tooltip is dismissed via an
-      // outside click.
+      // outside click. update only if user has changed the value, otherwise do nothing.
       valueContainer._persistNewVariable = () => {
+        if (cmEditor.getValue() === originalValue) {
+          return Promise.resolve();
+        }
+
         const pendingSecret = valueContainer._addToSwitcher && typeof valueContainer._addToSwitcher._getPendingSecret === 'function'
           ? valueContainer._addToSwitcher._getPendingSecret()
           : false;

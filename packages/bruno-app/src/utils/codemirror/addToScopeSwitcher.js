@@ -10,6 +10,24 @@ const isEnvironmentScope = (scope) =>
   scope.type === VARIABLE_ADD_SCOPES.GLOBAL
   || scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT;
 
+const SCOPE_ICON_LETTER = {
+  [VARIABLE_ADD_SCOPES.REQUEST]: 'R',
+  [VARIABLE_ADD_SCOPES.FOLDER]: 'F',
+  [VARIABLE_ADD_SCOPES.COLLECTION]: 'C',
+  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: 'E',
+  [VARIABLE_ADD_SCOPES.GLOBAL]: 'G'
+};
+
+const createScopeIcon = (scope, { muted = false } = {}) => {
+  const icon = document.createElement('span');
+  icon.className = `var-add-to-option-icon var-add-to-option-icon-${scope.type}`;
+  if (muted) {
+    icon.classList.add('var-add-to-option-icon-muted');
+  }
+  icon.textContent = SCOPE_ICON_LETTER[scope.type] || scope.label?.charAt(0)?.toUpperCase() || '?';
+  return icon;
+};
+
 const clearRow = (row) => {
   row.innerHTML = '';
 };
@@ -21,6 +39,8 @@ const renderScopeOption = (row, scope, { handleScopeSwitch, clearError }) => {
   trigger.type = 'button';
   trigger.className = 'var-add-to-option-trigger';
   trigger.setAttribute('data-testid', `var-info-add-to-option-${scope.type}`);
+
+  trigger.appendChild(createScopeIcon(scope));
 
   const label = document.createElement('span');
   label.className = 'var-add-to-option-label';
@@ -146,6 +166,8 @@ const renderCreateEnvironment = (row, scope, actions) => {
 
 const renderNoEnvironmentInline = (row, scope, actions) => {
   clearRow(row);
+
+  row.appendChild(createScopeIcon(scope, { muted: true }));
 
   const note = document.createElement('span');
   note.className = 'var-add-to-option-note';
@@ -357,10 +379,6 @@ function renderScopeRows({ list, scopes, rowActions }) {
   const rowsByType = {};
 
   for (const scope of scopes) {
-    if (scope.type === VARIABLE_ADD_SCOPES.FOLDER) {
-      continue;
-    }
-
     const row = buildScopeRow(scope, rowActions);
     rowsByType[scope.type] = row;
     fragment.appendChild(row);
