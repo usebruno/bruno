@@ -8,23 +8,31 @@
 
 import { interpolate, mockDataFunctions, timeBasedDynamicVars } from '@usebruno/common';
 import { toDisplayString } from '@usebruno/common/utils';
+import toast from 'react-hot-toast';
 import {
   getVariableScope,
   isVariableSecret,
   getAllVariables,
   findCollectionByUid,
-  findEnvironmentInCollection,
   findItemInCollectionByItemUid,
-  getTreePathFromCollectionToItem
+  getAvailableAddToScopes
 } from 'utils/collections';
-import { openCollectionSettings, updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
+import {
+  openCollectionSettings,
+  updateVariableInScope,
+  addEnvironment,
+  selectEnvironment
+} from 'providers/ReduxStore/slices/collections/actions';
 import { updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { addTab, focusTab, updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import store from 'providers/ReduxStore';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { variableNameRegex } from 'utils/common/regex';
+import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -92,106 +100,37 @@ const getScopeLabel = (scopeType) => {
   return labels[scopeType] || scopeType;
 };
 
-const getActiveGlobalEnvironment = () => {
-  const state = store.getState();
-  const globalEnvironments = state.globalEnvironments?.globalEnvironments || [];
-  const activeGlobalEnvironmentUid = state.globalEnvironments?.activeGlobalEnvironmentUid;
+const NEW_ENVIRONMENT_POLL_INTERVAL_MS = 50;
+const NEW_ENVIRONMENT_POLL_TIMEOUT_MS = 3000;
 
-  if (!activeGlobalEnvironmentUid) {
-    return null;
-  }
+// `addEnvironment` only writes the file through IPC. The store is updated later, after the filesystem watcher picks up the change.
+// So, poll for the environment here instead of assuming it’s available immediately.
+const waitForEnvironmentByName = (
+  collectionUid,
+  name,
+  { intervalMs = NEW_ENVIRONMENT_POLL_INTERVAL_MS, timeoutMs = NEW_ENVIRONMENT_POLL_TIMEOUT_MS } = {}
+) => {
+  const deadline = Date.now() + timeoutMs;
 
-  return globalEnvironments.find((env) => env.uid === activeGlobalEnvironmentUid) || null;
-};
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      const state = store.getState();
+      const freshCollection = findCollectionByUid(state.collections.collections, collectionUid);
+      const found = (freshCollection?.environments || []).find((env) => env.name === name);
 
-const getCreatableScopeOptions = (collection, item) => {
-  if (!collection) {
-    return [];
-  }
+      if (found) {
+        return resolve(found);
+      }
 
-  const options = [];
+      if (Date.now() >= deadline) {
+        return reject(new Error(`Timed out waiting for environment "${name}" to be created`));
+      }
 
-  if (item?.uid) {
-    if (item.type !== 'folder') {
-      options.push({
-        key: `request:${item.uid}`,
-        type: 'request',
-        label: getScopeLabel('request'),
-        scopeInfo: {
-          type: 'request',
-          value: '',
-          data: { item, variable: null }
-        }
-      });
-    }
+      setTimeout(check, intervalMs);
+    };
 
-    const folderPath = getTreePathFromCollectionToItem(collection, item)
-      .filter((pathItem) => pathItem?.type === 'folder');
-
-    if (item.type === 'folder' && !folderPath.some((folder) => folder.uid === item.uid)) {
-      folderPath.push(item);
-    }
-
-    folderPath.forEach((folder, index) => {
-      const nestedLabel = folderPath
-        .slice(0, index + 1)
-        .map((pathItem) => pathItem.name)
-        .filter(Boolean)
-        .join(' / ');
-
-      options.push({
-        key: `folder:${folder.uid}`,
-        type: 'folder',
-        label: nestedLabel ? `Folder: ${nestedLabel}` : getScopeLabel('folder'),
-        scopeInfo: {
-          type: 'folder',
-          value: '',
-          data: { folder, variable: null }
-        }
-      });
-    });
-  }
-
-  options.push({
-    key: 'collection',
-    type: 'collection',
-    label: getScopeLabel('collection'),
-    scopeInfo: {
-      type: 'collection',
-      value: '',
-      data: { collection, variable: null }
-    }
+    check();
   });
-
-  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
-  if (environment) {
-    options.push({
-      key: `environment:${environment.uid}`,
-      type: 'environment',
-      label: getScopeLabel('environment'),
-      scopeInfo: {
-        type: 'environment',
-        value: '',
-        data: { environment, variable: null }
-      }
-    });
-  }
-
-  const globalEnvironment = getActiveGlobalEnvironment();
-  if (globalEnvironment) {
-    options.push({
-      key: `global:${globalEnvironment.uid}`,
-      type: 'global',
-      label: getScopeLabel('global'),
-      scopeInfo: {
-        type: 'global',
-        value: '',
-        data: { environment: globalEnvironment, variable: null }
-      }
-    });
-  }
-
-  return options;
 };
 
 const scrollDefinitionIntoView = (scopeType, variableName) => {
@@ -520,82 +459,20 @@ export const renderVarInfo = (token, options) => {
   const isNewVariable = scopeInfo && scopeInfo.data && scopeInfo.data.variable === null;
   const canGoToDefinition = !!collection && !isNewVariable && !hasRuntimeVariable && ['request', 'folder', 'collection', 'environment', 'global'].includes(scopeInfo?.type);
 
+  // If the variable is not new and has a valid scope, make the variable name clickable to go to its definition
+  if (canGoToDefinition) {
+    varName.classList.add('var-name-link');
+    varName.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      goToVariableDefinition(scopeInfo, collection, item, variableName);
+    });
+  }
+
   header.appendChild(varName);
 
-  if (isNewVariable) {
-    const scopeSelect = document.createElement('select');
-    scopeSelect.className = 'var-scope-select';
-
-    const scopeOptions = getCreatableScopeOptions(collection, item);
-    scopeOptions.forEach(({ key, label }) => {
-      const option = document.createElement('option');
-      option.value = key;
-      option.textContent = label;
-      scopeSelect.appendChild(option);
-    });
-
-    const selectedScope = scopeOptions.find(({ type, scopeInfo: optionScopeInfo }) => {
-      if (type !== scopeInfo.type) {
-        return false;
-      }
-
-      if (type === 'folder') {
-        return optionScopeInfo.data?.folder?.uid === scopeInfo.data?.folder?.uid;
-      }
-
-      if (type === 'request') {
-        return optionScopeInfo.data?.item?.uid === scopeInfo.data?.item?.uid;
-      }
-
-      if (type === 'environment') {
-        return optionScopeInfo.data?.environment?.uid === scopeInfo.data?.environment?.uid;
-      }
-
-      if (type === 'global') {
-        return optionScopeInfo.data?.environment?.uid === scopeInfo.data?.environment?.uid;
-      }
-
-      return true;
-    }) || scopeOptions[0];
-
-    const resizeScopeSelect = (scopeOption) => {
-      const labelLength = scopeOption?.label?.length || getScopeLabel('request').length;
-      const widthInCharacters = Math.min(Math.max(labelLength + 4, 14), 48);
-      scopeSelect.style.width = `${widthInCharacters}ch`;
-      into.style.width = `calc(${widthInCharacters}ch + 8rem)`;
-    };
-
-    if (selectedScope) {
-      scopeSelect.value = selectedScope.key;
-      resizeScopeSelect(selectedScope);
-    }
-
-    scopeSelect.addEventListener('change', (event) => {
-      const nextScope = scopeOptions.find(({ key }) => key === event.target.value);
-      if (nextScope) {
-        scopeInfo = nextScope.scopeInfo;
-        resizeScopeSelect(nextScope);
-      }
-    });
-
-    header.appendChild(scopeSelect);
-  } else {
-    scopeBadge.textContent = scopeLabel;
-    header.appendChild(scopeBadge);
-
-    if (canGoToDefinition) {
-      const definitionButton = document.createElement('button');
-      definitionButton.className = 'var-definition-button';
-      definitionButton.type = 'button';
-      definitionButton.textContent = 'Go to definition';
-      definitionButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        goToVariableDefinition(scopeInfo, collection, item, variableName);
-      });
-      header.appendChild(definitionButton);
-    }
-  }
+  scopeBadge.textContent = scopeLabel;
+  header.appendChild(scopeBadge);
 
   into.appendChild(header);
 
@@ -747,13 +624,14 @@ export const renderVarInfo = (token, options) => {
     const iconsContainer = document.createElement('div');
     iconsContainer.className = 'var-icons';
 
-    // Eye toggle button (show if the displayed value is masked)
-    if (shouldMaskValue || isMasked) {
-      const toggleButton = document.createElement('button');
+    let toggleButton = null;
+    if (shouldMaskValue || isMasked || isNewVariable) {
+      toggleButton = document.createElement('button');
       toggleButton.className = 'secret-toggle-button';
       toggleButton.setAttribute('data-testid', 'var-info-secret-toggle');
       toggleButton.innerHTML = EYE_ICON_SVG;
       toggleButton.type = 'button';
+      toggleButton.style.display = (shouldMaskValue || isMasked) ? '' : 'none';
 
       toggleButton.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -840,48 +718,206 @@ export const renderVarInfo = (token, options) => {
       valueDisplay.style.display = 'block';
       isEditing = false;
 
-      if (newValue !== originalValue) {
-        // Dispatch Redux action to update variable
-        const dispatch = store.dispatch;
-        dispatch(updateVariableInScope(variableName, newValue, scopeInfo, collection.uid))
-          .then(() => {
-            originalValue = newValue;
-
-            // Re-fetch scopeInfo to get the updated variable reference after save
-            const state = store.getState();
-            const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
-            if (collection) {
-              const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
-              const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
-              if (updatedScopeInfo) {
-                scopeInfo = updatedScopeInfo;
-              }
-            }
-
-            // Re-interpolate the new value to show the resolved value in display.
-            // Use `??` so falsy-but-valid values (0 / false / '') survive the assignment.
-            const interpolatedValue = interpolate(newValue, allVariables);
-            currentInterpolatedValue = interpolatedValue ?? '';
-            // Check if the NEW value contains secret references and update live mask state
-            const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
-            currentShouldMaskValue = isSecret || newHasSecretRefs;
-            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
-          })
-          .catch((err) => {
-            console.error('Failed to update variable:', err);
-            // Revert on error to the last good state — currentInterpolatedValue and
-            // currentShouldMaskValue still hold pre-attempt values since the success
-            // block above never ran.
-            cmEditor.setValue(originalValue);
-            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
-          });
+      if (newValue === originalValue) {
+        return;
       }
+
+      // Sync the displayed value with the new value (interpolated and masked if needed).
+      const interpolatedValue = interpolate(newValue, allVariables);
+      currentInterpolatedValue = interpolatedValue ?? '';
+      const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
+      currentShouldMaskValue = isSecret || newHasSecretRefs;
+      updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
+
+      // new variables are saved via the Add-to switcher, not on blur. so don't dispatch an update action here.
+      if (isNewVariable) {
+        return;
+      }
+
+      const dispatch = store.dispatch;
+      dispatch(updateVariableInScope(variableName, newValue, scopeInfo, collection.uid))
+        .then(() => {
+          originalValue = newValue;
+
+          // Re-fetch scopeInfo to get the updated variable reference after save
+          const state = store.getState();
+          const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
+          if (collection) {
+            const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
+            const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
+            if (updatedScopeInfo) {
+              scopeInfo = updatedScopeInfo;
+            }
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to update variable:', err);
+          cmEditor.setValue(originalValue);
+          updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
+        });
     });
 
     // Store references for cleanup
     valueContainer._cmEditor = cmEditor;
     valueContainer._maskedEditor = maskedEditor;
     valueContainer._autoCompleteCleanup = autoCompleteCleanup;
+
+    const applySecretMasking = (secretSelected) => {
+      const hasSecretRefs = containsSecretVariableReferences(cmEditor.getValue(), collection, item);
+      currentShouldMaskValue = secretSelected || hasSecretRefs;
+
+      if (!currentShouldMaskValue) {
+        isRevealed = false;
+      }
+
+      if (toggleButton) {
+        toggleButton.style.display = currentShouldMaskValue ? '' : 'none';
+        toggleButton.innerHTML = isRevealed ? EYE_OFF_ICON_SVG : EYE_ICON_SVG;
+      }
+
+      if (currentShouldMaskValue) {
+        if (!maskedEditor) {
+          maskedEditor = new MaskedEditor(cmEditor);
+          valueContainer._maskedEditor = maskedEditor;
+        }
+        isRevealed ? maskedEditor.disable() : maskedEditor.enable();
+      } else if (maskedEditor) {
+        maskedEditor.disable();
+      }
+
+      updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
+    };
+
+    // for new variables, add a switcher to select the scope to add the variable to (collection, request, environment, global)
+    if (isNewVariable) {
+      const buildScopeInfoForSwitch = (scope) => {
+        switch (scope.type) {
+          case VARIABLE_ADD_SCOPES.COLLECTION:
+            return { type: 'collection', value: '', data: { collection, variable: null } };
+          case VARIABLE_ADD_SCOPES.REQUEST:
+            return { type: 'request', value: '', data: { item, variable: null } };
+          case VARIABLE_ADD_SCOPES.ENVIRONMENT: {
+            const freshState = store.getState();
+            const freshCollection = findCollectionByUid(freshState.collections.collections, collection.uid);
+            const environment = (freshCollection?.environments || []).find(
+              (env) => env.uid === freshCollection?.activeEnvironmentUid
+            );
+            return { type: 'environment', value: '', data: { environment, variable: null, secret: false } };
+          }
+          case VARIABLE_ADD_SCOPES.GLOBAL: {
+            const freshGlobalState = store.getState();
+            const globalEnvironments = freshGlobalState.globalEnvironments?.globalEnvironments || [];
+            const activeGlobalEnvironmentUid = freshGlobalState.globalEnvironments?.activeGlobalEnvironmentUid;
+            const globalEnvironment = globalEnvironments.find((env) => env.uid === activeGlobalEnvironmentUid);
+            return { type: 'global', value: '', data: { environment: globalEnvironment, variable: null, secret: false } };
+          }
+          default:
+            return null;
+        }
+      };
+
+      const addToScopesState = store.getState();
+      const globalEnvironmentsState = (addToScopesState && addToScopesState.globalEnvironments) || {};
+      const addToScopes = getAvailableAddToScopes(
+        collection?.activeEnvironmentUid,
+        globalEnvironmentsState.activeGlobalEnvironmentUid,
+        item
+      );
+
+      // The guessed scope is selected by default (if it's in the addToScopes list).
+      const initialScope = addToScopes.find((s) => s.type === scopeInfo.type) || null;
+
+      const removeAddToSwitcher = () => {
+        if (valueContainer._addToSwitcher) {
+          if (typeof valueContainer._addToSwitcher._destroy === 'function') {
+            valueContainer._addToSwitcher._destroy();
+          }
+          valueContainer._addToSwitcher.remove();
+          valueContainer._addToSwitcher = null;
+        }
+      };
+
+      const persistNewVariable = (secret) => {
+        const value = cmEditor.getValue();
+        const scopeInfoToSave = scopeInfo && scopeInfo.data
+          ? { ...scopeInfo, data: { ...scopeInfo.data, secret } }
+          : scopeInfo;
+
+        return store.dispatch(updateVariableInScope(variableName, value, scopeInfoToSave, collection.uid))
+          .then(() => {
+            originalValue = value;
+
+            const state = store.getState();
+            const freshCollection = findCollectionByUid(state.collections.collections, collection.uid);
+            const freshItem = item ? findItemInCollectionByItemUid(freshCollection, item.uid) : null;
+            const updatedScopeInfo = getVariableScope(variableName, freshCollection, freshItem);
+            if (updatedScopeInfo) {
+              scopeInfo = updatedScopeInfo;
+              scopeBadge.textContent = getScopeLabel(updatedScopeInfo.type);
+            }
+
+            const interpolatedValue = interpolate(value, allVariables);
+            currentInterpolatedValue = interpolatedValue ?? '';
+            const newHasSecretRefs = containsSecretVariableReferences(value, collection, item);
+            currentShouldMaskValue = isSecret || newHasSecretRefs;
+            updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
+
+            removeAddToSwitcher();
+          });
+      };
+
+      const onSwitchScope = (scope, { immediate = false } = {}) => {
+        const newScopeInfo = buildScopeInfoForSwitch(scope);
+        if (!newScopeInfo) {
+          return;
+        }
+        scopeInfo = newScopeInfo;
+        scopeBadge.textContent = getScopeLabel(newScopeInfo.type);
+
+        // If immediate is true, persist the new variable immediately after switching scope.
+        // for create environment flow, the new variable is persisted immediately after the environment is created and selected.
+        if (immediate) {
+          persistNewVariable(false).catch((err) => {
+            toast.error(err?.message || 'Failed to save variable');
+          });
+        }
+      };
+
+      const onCreateEnvironment = (scope, name) => {
+        const dispatch = store.dispatch;
+
+        if (scope.type === VARIABLE_ADD_SCOPES.GLOBAL) {
+          return dispatch(addGlobalEnvironment({ name, variables: [] }));
+        }
+
+        if (scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT) {
+          return dispatch(addEnvironment(name, collection.uid))
+            .then(() => waitForEnvironmentByName(collection.uid, name))
+            .then((newEnvironment) => dispatch(selectEnvironment(newEnvironment.uid, collection.uid)));
+        }
+
+        return Promise.reject(new Error(`"${scope.label}" does not support creating a new one`));
+      };
+
+      const addToSwitcher = createAddToScopeSwitcher({
+        scopes: addToScopes,
+        initialScope,
+        onSwitchScope,
+        onCreateEnvironment,
+        onSecretChange: applySecretMasking
+      });
+      valueContainer._addToSwitcher = addToSwitcher;
+
+      // Called from `onDocumentClick` in showPopup when the tooltip is dismissed via an
+      // outside click.
+      valueContainer._persistNewVariable = () => {
+        const pendingSecret = valueContainer._addToSwitcher && typeof valueContainer._addToSwitcher._getPendingSecret === 'function'
+          ? valueContainer._addToSwitcher._getPendingSecret()
+          : false;
+
+        return persistNewVariable(pendingSecret);
+      };
+    }
   } else {
     // Read-only display (for runtime, process.env, undefined variables)
     let isRevealed = false;
@@ -952,6 +988,10 @@ export const renderVarInfo = (token, options) => {
   }
 
   into.appendChild(valueContainer);
+
+  if (valueContainer._addToSwitcher) {
+    into.appendChild(valueContainer._addToSwitcher);
+  }
 
   return into;
 };
@@ -1221,6 +1261,14 @@ if (!SERVER_RENDERED) {
 
       if (!popup.contains(e.target)) {
         isPinned = false;
+
+        const valueContainer = popup.querySelector('.var-value-container');
+        if (valueContainer && typeof valueContainer._persistNewVariable === 'function') {
+          valueContainer._persistNewVariable().catch((err) => {
+            toast.error(err?.message || 'Failed to save variable');
+          });
+        }
+
         hidePopup();
       }
     };
@@ -1259,6 +1307,12 @@ if (!SERVER_RENDERED) {
         if (valueContainer._cmEditor) {
           valueContainer._cmEditor.getWrapperElement().remove();
           valueContainer._cmEditor = null;
+        }
+
+        // Cleanup the "Add to" switcher (outside-click listener for its inline create form, etc.)
+        if (valueContainer._addToSwitcher && typeof valueContainer._addToSwitcher._destroy === 'function') {
+          valueContainer._addToSwitcher._destroy();
+          valueContainer._addToSwitcher = null;
         }
       }
 

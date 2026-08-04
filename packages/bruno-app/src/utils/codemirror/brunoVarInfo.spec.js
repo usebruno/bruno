@@ -1,6 +1,15 @@
 import { interpolate } from '@usebruno/common';
+import RealCodeMirror from 'codemirror';
 import store from 'providers/ReduxStore';
-import { getVariableScope, findEnvironmentInCollection, getTreePathFromCollectionToItem } from 'utils/collections';
+import {
+  getVariableScope,
+  findEnvironmentInCollection,
+  getTreePathFromCollectionToItem,
+  findCollectionByUid,
+  findItemInCollectionByItemUid,
+  getAvailableAddToScopes
+} from 'utils/collections';
+import { updateVariableInScope, addEnvironment, selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { COPY_SUCCESS_TIMEOUT, extractVariableInfo, renderVarInfo } from './brunoVarInfo';
 
 // Mock the dependencies
@@ -27,7 +36,13 @@ jest.mock('providers/ReduxStore', () => ({
 
 jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   updateVariableInScope: jest.fn(),
-  openCollectionSettings: jest.fn()
+  openCollectionSettings: jest.fn(),
+  addEnvironment: jest.fn(),
+  selectEnvironment: jest.fn()
+}));
+
+jest.mock('providers/ReduxStore/slices/global-environments', () => ({
+  addGlobalEnvironment: jest.fn()
 }));
 
 jest.mock('utils/collections', () => ({
@@ -35,7 +50,11 @@ jest.mock('utils/collections', () => ({
   isVariableSecret: jest.fn(),
   getAllVariables: jest.fn(),
   findEnvironmentInCollection: jest.fn(),
-  getTreePathFromCollectionToItem: jest.fn()
+  getTreePathFromCollectionToItem: jest.fn(),
+  findCollectionByUid: jest.fn(),
+  findItemInCollectionByItemUid: jest.fn(),
+  getAvailableAddToScopes: jest.fn(() => []),
+  isItemARequest: jest.fn((item) => !!item && item.type !== 'folder')
 }));
 
 jest.mock('utils/common/codemirror', () => ({
@@ -340,6 +359,9 @@ describe('renderVarInfo', () => {
 
     findEnvironmentInCollection.mockReturnValue(null);
     getTreePathFromCollectionToItem.mockReturnValue([]);
+    getAvailableAddToScopes.mockReturnValue([]);
+    findCollectionByUid.mockImplementation((collections, uid) => (collections || []).find((c) => c.uid === uid) || null);
+    findItemInCollectionByItemUid.mockReturnValue(null);
     getVariableScope.mockReturnValue({
       type: 'request',
       value: 'test-value',
@@ -540,21 +562,15 @@ describe('renderVarInfo', () => {
     });
   });
 
-  describe('new variable scope selection', () => {
-    it('should show scope selector for undefined variables with available scopes', () => {
+  describe('new variable — Add to switcher', () => {
+    it('shows the Add-to switcher with the guessed scope pre-selected, excluding Folder', () => {
       getVariableScope.mockReturnValue(null);
-      getTreePathFromCollectionToItem.mockReturnValue([
-        { uid: 'folder-1', type: 'folder', name: 'parent' },
-        { uid: 'folder-2', type: 'folder', name: 'child' },
-        { uid: 'req-1', type: 'http-request' }
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'request', label: 'Request Variable', enabled: true, supportsSecret: false },
+        { type: 'collection', label: 'Collection Variables', enabled: true, supportsSecret: false },
+        { type: 'environment', label: 'Collection Environment', enabled: true, supportsSecret: true },
+        { type: 'global', label: 'Global Environment', enabled: true, supportsSecret: true }
       ]);
-      findEnvironmentInCollection.mockReturnValue({ uid: 'env-1', name: 'Dev', variables: [] });
-      store.getState.mockReturnValue({
-        globalEnvironments: {
-          globalEnvironments: [{ uid: 'global-1', name: 'Global', variables: [] }],
-          activeGlobalEnvironmentUid: 'global-1'
-        }
-      });
 
       const result = renderVarInfo(
         { string: '{{missingVar}}' },
@@ -565,59 +581,173 @@ describe('renderVarInfo', () => {
         }
       );
 
-      const scopeSelect = result.querySelector('.var-scope-select');
-      expect(scopeSelect).not.toBeNull();
-      expect(Array.from(scopeSelect.options).map((option) => option.textContent)).toEqual([
-        'Request',
-        'Folder: parent',
-        'Folder: parent / child',
-        'Collection',
-        'Environment',
-        'Global'
-      ]);
-      expect(scopeSelect.value).toBe('request:req-1');
-      expect(scopeSelect.style.width).toBe('14ch');
-      expect(result.style.width).toBe('calc(14ch + 8rem)');
+      // Guessed scope shows up as the header badge, same as any other variable.
+      const scopeBadge = result.querySelector('.var-scope-badge');
+      expect(scopeBadge.textContent).toBe('Request');
 
-      scopeSelect.value = 'folder:folder-2';
-      scopeSelect.dispatchEvent(new Event('change'));
+      const switcher = result.querySelector('.var-add-to-switcher');
+      expect(switcher).not.toBeNull();
 
-      expect(scopeSelect.style.width).toBe('26ch');
-      expect(result.style.width).toBe('calc(26ch + 8rem)');
+      switcher.querySelector('.var-add-to-toggle').click();
+
+      expect(switcher.querySelector('[data-testid="var-info-add-to-option-request"]')).not.toBeNull();
+      expect(switcher.querySelector('[data-testid="var-info-add-to-option-collection"]')).not.toBeNull();
+      expect(switcher.querySelector('[data-testid="var-info-add-to-option-environment"]')).not.toBeNull();
+      expect(switcher.querySelector('[data-testid="var-info-add-to-option-global"]')).not.toBeNull();
+      // Folder is not offered as a creatable scope yet.
+      expect(switcher.querySelector('[data-testid="var-info-add-to-option-folder"]')).toBeNull();
+
+      const activeRow = switcher.querySelector('.var-add-to-option-active');
+      expect(activeRow.querySelector('[data-testid="var-info-add-to-option-request"]')).not.toBeNull();
     });
 
-    it('should show every ancestor folder when creating from nested folder settings', () => {
-      const parentFolder = { uid: 'folder-1', type: 'folder', name: 'parent' };
-      const childFolder = { uid: 'folder-2', type: 'folder', name: 'child' };
+    it('repoints the scope badge when a different scope is picked, without saving immediately', () => {
       getVariableScope.mockReturnValue(null);
-      getTreePathFromCollectionToItem.mockReturnValue([parentFolder, childFolder]);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'request', label: 'Request Variable', enabled: true, supportsSecret: false },
+        { type: 'collection', label: 'Collection Variables', enabled: true, supportsSecret: false }
+      ]);
 
       const result = renderVarInfo(
         { string: '{{missingVar}}' },
         {
           variables: {},
           collection: { uid: 'col-1' },
-          item: childFolder
+          item: { uid: 'req-1', type: 'http-request' }
         }
       );
 
-      const scopeSelect = result.querySelector('.var-scope-select');
-      expect(Array.from(scopeSelect.options).map((option) => option.textContent)).toEqual([
-        'Folder: parent',
-        'Folder: parent / child',
-        'Collection'
+      const scopeBadge = result.querySelector('.var-scope-badge');
+      expect(scopeBadge.textContent).toBe('Request');
+
+      const switcher = result.querySelector('.var-add-to-switcher');
+      switcher.querySelector('.var-add-to-toggle').click();
+      switcher.querySelector('[data-testid="var-info-add-to-option-collection"]').click();
+
+      expect(scopeBadge.textContent).toBe('Collection');
+      // Picking an existing scope only repoints where the next blur-save writes to.
+      expect(updateVariableInScope).not.toHaveBeenCalled();
+    });
+
+    it('shows "Create One" when no environment exists, and saves the variable immediately once it is created', async () => {
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'collection', label: 'Collection Variables', enabled: true, supportsSecret: false },
+        { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
       ]);
-      expect(scopeSelect.value).toBe('folder:folder-2');
+
+      const collectionAfterCreate = {
+        uid: 'col-1',
+        activeEnvironmentUid: 'env-new',
+        environments: [{ uid: 'env-new', name: 'Dev', variables: [] }]
+      };
+
+      store.getState.mockReturnValue({
+        globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
+        collections: { collections: [collectionAfterCreate] }
+      });
+      findCollectionByUid.mockReturnValue(collectionAfterCreate);
+      addEnvironment.mockReturnValue(() => Promise.resolve());
+      selectEnvironment.mockReturnValue(() => Promise.resolve());
+      getVariableScope.mockReturnValue(null);
+      store.dispatch.mockImplementation(() => Promise.resolve());
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: null
+        }
+      );
+
+      const switcher = result.querySelector('.var-add-to-switcher');
+      switcher.querySelector('.var-add-to-toggle').click();
+
+      const createLink = switcher.querySelector('[data-testid="var-info-add-to-create-env-button"]');
+      expect(createLink).not.toBeNull();
+      createLink.click();
+
+      const nameInput = switcher.querySelector('[data-testid="var-info-add-to-create-env-name-input"]');
+      nameInput.value = 'Dev';
+      switcher.querySelector('[data-testid="var-info-add-to-create-env-submit"]').click();
+
+      await jest.runAllTimersAsync();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(addEnvironment).toHaveBeenCalledWith('Dev', 'col-1');
+      expect(updateVariableInScope).toHaveBeenCalled();
+    });
+
+    it('does not save on blur for a brand new variable, even if the value changed', () => {
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'request', label: 'Request Variable', enabled: true, supportsSecret: false }
+      ]);
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: { uid: 'req-1', type: 'http-request' }
+        }
+      );
+
+      // brunoVarInfo.js uses the real `codemirror` package (not the `global.CodeMirror` mock
+      // defined above, which nothing in the source references) — grab the real editor instance
+      // it stashed on the value container and fire its registered blur handler directly via
+      // CodeMirror's own signal API instead of simulating real DOM focus/blur.
+      const cmEditor = result.querySelector('.var-value-container')._cmEditor;
+      cmEditor.getValue = () => 'a-new-value';
+      RealCodeMirror.signal(cmEditor, 'blur');
+
+      expect(updateVariableInScope).not.toHaveBeenCalled();
+    });
+
+    it('saves the pending value via _persistNewVariable when the tooltip is dismissed with an outside click', async () => {
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'request', label: 'Request Variable', enabled: true, supportsSecret: false }
+      ]);
+      store.dispatch.mockImplementation(() => Promise.resolve());
+      store.getState.mockReturnValue({
+        globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
+        collections: { collections: [{ uid: 'col-1' }] }
+      });
+      findCollectionByUid.mockReturnValue({ uid: 'col-1' });
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: { uid: 'req-1', type: 'http-request' }
+        }
+      );
+
+      const valueContainer = result.querySelector('.var-value-container');
+      expect(typeof valueContainer._persistNewVariable).toBe('function');
+
+      await valueContainer._persistNewVariable();
+
+      expect(updateVariableInScope).toHaveBeenCalledWith(
+        'missingVar',
+        expect.any(String),
+        expect.objectContaining({ type: 'request' }),
+        'col-1'
+      );
     });
   });
 
   describe('go to definition', () => {
-    it('should show go to definition button for persisted variables', () => {
+    it('should render the variable name as the go-to-definition link for persisted variables', () => {
       const { containerDiv } = setupRender({ apiKey: 'test-value' }, { uid: 'col-1' }, { uid: 'req-1' });
-      const definitionButton = containerDiv.querySelector('.var-definition-button');
+      const varName = containerDiv.querySelector('.var-name');
 
-      expect(definitionButton).not.toBeNull();
-      expect(definitionButton.textContent).toBe('Go to definition');
+      expect(varName.classList.contains('var-name-link')).toBe(true);
+      expect(containerDiv.querySelector('.var-definition-button')).toBeNull();
     });
 
     it('should open the target request before navigating to its variable definition', () => {
@@ -630,9 +760,9 @@ describe('renderVarInfo', () => {
       });
 
       const { containerDiv } = setupRender({ apiKey: 'test-value' }, { uid: 'col-1' }, renderedItem);
-      const definitionButton = containerDiv.querySelector('.var-definition-button');
+      const varName = containerDiv.querySelector('.var-name-link');
 
-      definitionButton.click();
+      varName.click();
 
       expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({
         payload: {

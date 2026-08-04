@@ -407,10 +407,18 @@ const GlobalStyle = createGlobalStyle`
     white-space: nowrap;
   }
 
+  .CodeMirror-brunoVarInfo .var-name-link {
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 0.125rem;
+  }
+
+  .CodeMirror-brunoVarInfo .var-name-link:hover {
+    color: ${(props) => props.theme.brand};
+  }
+
   /* Scope Badge */
-  .CodeMirror-brunoVarInfo .var-scope-badge,
-  .CodeMirror-brunoVarInfo .var-scope-select,
-  .CodeMirror-brunoVarInfo .var-definition-button {
+  .CodeMirror-brunoVarInfo .var-scope-badge {
     display: inline-block;
     padding: 0.125rem 0.375rem;
     background: ${(props) => rgba(props.theme.brand, 0.07)};
@@ -420,21 +428,6 @@ const GlobalStyle = createGlobalStyle`
     color: ${(props) => props.theme.brand};
     letter-spacing: 0.03125rem;
     flex-shrink: 0;
-  }
-
-  .CodeMirror-brunoVarInfo .var-scope-select,
-  .CodeMirror-brunoVarInfo .var-definition-button {
-    cursor: pointer;
-  }
-
-  .CodeMirror-brunoVarInfo .var-scope-select {
-    min-width: 7rem;
-    max-width: min(32rem, calc(100vw - 8rem));
-    text-overflow: ellipsis;
-  }
-
-  .CodeMirror-brunoVarInfo .var-definition-button {
-    background: transparent;
   }
 
   .bruno-var-definition-target {
