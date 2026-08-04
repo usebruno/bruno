@@ -284,9 +284,18 @@ const Collection = ({ collection, searchText }) => {
         setDropType('above');
       }
     },
-    drop: (draggedItem, monitor) => {
+    drop: async (draggedItem, monitor) => {
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
+        // Lazy-unmounted workspace collections are droppable in the sidebar but
+        // have no watcher yet — mount first so the move writes through and the UI updates.
+        if (collection.mountStatus !== 'mounted' && collection.mountStatus !== 'mounting') {
+          await dispatch(mountCollection({
+            collectionUid: collection.uid,
+            collectionPathname: collection.pathname,
+            brunoConfig: collection.brunoConfig
+          }));
+        }
         dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }));
       } else {
         dispatch(moveCollectionAndPersist({ draggedItem, targetItem: collection }));

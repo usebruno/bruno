@@ -803,8 +803,9 @@ class CollectionWatcher {
   }
 
   addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false, useWorkerThread, options = {}) {
-    if (this.watchers[watchPath]) {
-      this.watchers[watchPath].close();
+    const existingWatcher = this.watchers[watchPath];
+    if (existingWatcher) {
+      existingWatcher.close();
     }
 
     // v2 already loaded the tree from cache; skip startup scan and stage live edits
@@ -821,88 +822,86 @@ class CollectionWatcher {
     // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
     const defaultIgnores = ['node_modules', '.git'];
 
-    setTimeout(() => {
-      const watcher = chokidar.watch(watchPath, {
-        ignoreInitial,
-        usePolling: isWSLPath(watchPath) || forcePolling ? true : false,
-        ignored: (filepath) => {
-          const normalizedPath = normalizeAndResolvePath(filepath);
-          const relativePath = path.relative(watchPath, normalizedPath);
-          const basename = path.basename(filepath);
+    const watcher = chokidar.watch(watchPath, {
+      ignoreInitial,
+      usePolling: isWSLPath(watchPath) || forcePolling ? true : false,
+      ignored: (filepath) => {
+        const normalizedPath = normalizeAndResolvePath(filepath);
+        const relativePath = path.relative(watchPath, normalizedPath);
+        const basename = path.basename(filepath);
 
-          // Ignore .env files - handled by dotenv-watcher
-          if (basename === '.env' || basename.startsWith('.env.')) {
-            return true;
+        // Ignore .env files - handled by dotenv-watcher
+        if (basename === '.env' || basename.startsWith('.env.')) {
+          return true;
+        }
+
+        // Check if any path segment matches a default ignore pattern (handles symlinks)
+        const pathSegments = relativePath.split(path.sep);
+        if (pathSegments.some((segment) => defaultIgnores.includes(segment))) {
+          return true;
+        }
+
+        // mocks/ at the collection root holds mock-server data; a nested folder
+        // that happens to be named "mocks" elsewhere in the collection stays watched
+        if (pathSegments[0] === 'mocks') {
+          return true;
+        }
+
+        const userIgnores = getBrunoConfig(collectionUid)?.ignore || [];
+        const ignores = [...new Set([...defaultIgnores, ...userIgnores])];
+        const normalizedRelativePath = relativePath.split(path.sep).join('/');
+
+        return ignores.some((ignorePattern) => {
+          const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');
+          if (!normalizedIgnorePattern) {
+            return false;
           }
+          return normalizedRelativePath === normalizedIgnorePattern || normalizedRelativePath.startsWith(`${normalizedIgnorePattern}/`);
+        });
+      },
+      persistent: true,
+      ignorePermissionErrors: true,
+      awaitWriteFinish: {
+        stabilityThreshold: 80,
+        pollInterval: 10
+      },
+      depth: 20,
+      disableGlobbing: true
+    });
 
-          // Check if any path segment matches a default ignore pattern (handles symlinks)
-          const pathSegments = relativePath.split(path.sep);
-          if (pathSegments.some((segment) => defaultIgnores.includes(segment))) {
-            return true;
-          }
-
-          // mocks/ at the collection root holds mock-server data; a nested folder
-          // that happens to be named "mocks" elsewhere in the collection stays watched
-          if (pathSegments[0] === 'mocks') {
-            return true;
-          }
-
-          const userIgnores = getBrunoConfig(collectionUid)?.ignore || [];
-          const ignores = [...new Set([...defaultIgnores, ...userIgnores])];
-          const normalizedRelativePath = relativePath.split(path.sep).join('/');
-
-          return ignores.some((ignorePattern) => {
-            const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');
-            if (!normalizedIgnorePattern) {
-              return false;
-            }
-            return normalizedRelativePath === normalizedIgnorePattern || normalizedRelativePath.startsWith(`${normalizedIgnorePattern}/`);
-          });
-        },
-        persistent: true,
-        ignorePermissionErrors: true,
-        awaitWriteFinish: {
-          stabilityThreshold: 80,
-          pollInterval: 10
-        },
-        depth: 20,
-        disableGlobbing: true
+    let startedNewWatcher = false;
+    watcher
+      .on('ready', () => onWatcherSetupComplete(win, watchPath, collectionUid, this, workspacePathname))
+      .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread, this))
+      .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
+      .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
+      .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
+      .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath))
+      .on('error', (error) => {
+        // `EMFILE` is an error code thrown when to many files are watched at the same time see: https://github.com/usebruno/bruno/issues/627
+        // `ENOSPC` stands for "Error No space" but is also thrown if the file watcher limit is reached.
+        // To prevent loops `!forcePolling` is checked.
+        if ((error.code === 'ENOSPC' || error.code === 'EMFILE') && !startedNewWatcher && !forcePolling) {
+          // This callback is called for every file the watcher is trying to watch. To prevent a spam of messages and
+          // Multiple watcher being started `startedNewWatcher` is set to prevent this.
+          startedNewWatcher = true;
+          watcher.close();
+          console.error(
+            `\nCould not start watcher for ${watchPath}:`,
+            'ENOSPC: System limit for number of file watchers reached!',
+            'Trying again with polling, this will be slower!\n',
+            'Update your system config to allow more concurrently watched files with:',
+            '"echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p"'
+          );
+          this.addWatcher(win, watchPath, collectionUid, brunoConfig, true, useWorkerThread, options);
+        } else {
+          console.error(`An error occurred in the watcher for: ${watchPath}`, error);
+        }
       });
 
-      let startedNewWatcher = false;
-      watcher
-        .on('ready', () => onWatcherSetupComplete(win, watchPath, collectionUid, this, workspacePathname))
-        .on('add', (pathname) => add(win, pathname, collectionUid, watchPath, useWorkerThread, this))
-        .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
-        .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
-        .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
-        .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath))
-        .on('error', (error) => {
-          // `EMFILE` is an error code thrown when to many files are watched at the same time see: https://github.com/usebruno/bruno/issues/627
-          // `ENOSPC` stands for "Error No space" but is also thrown if the file watcher limit is reached.
-          // To prevent loops `!forcePolling` is checked.
-          if ((error.code === 'ENOSPC' || error.code === 'EMFILE') && !startedNewWatcher && !forcePolling) {
-            // This callback is called for every file the watcher is trying to watch. To prevent a spam of messages and
-            // Multiple watcher being started `startedNewWatcher` is set to prevent this.
-            startedNewWatcher = true;
-            watcher.close();
-            console.error(
-              `\nCould not start watcher for ${watchPath}:`,
-              'ENOSPC: System limit for number of file watchers reached!',
-              'Trying again with polling, this will be slower!\n',
-              'Update your system config to allow more concurrently watched files with:',
-              '"echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p"'
-            );
-            this.addWatcher(win, watchPath, collectionUid, brunoConfig, true, useWorkerThread, options);
-          } else {
-            console.error(`An error occurred in the watcher for: ${watchPath}`, error);
-          }
-        });
+    this.watchers[watchPath] = watcher;
 
-      this.watchers[watchPath] = watcher;
-
-      dotEnvWatcher.addCollectionWatcher(win, watchPath, collectionUid);
-    }, 100);
+    dotEnvWatcher.addCollectionWatcher(win, watchPath, collectionUid);
   }
 
   hasWatcher(watchPath) {
@@ -910,10 +909,11 @@ class CollectionWatcher {
   }
 
   removeWatcher(watchPath, win, collectionUid) {
-    if (this.watchers[watchPath]) {
-      this.watchers[watchPath].close();
-      this.watchers[watchPath] = null;
+    const existingWatcher = this.watchers[watchPath];
+    if (existingWatcher) {
+      existingWatcher.close();
     }
+    this.watchers[watchPath] = null;
 
     fileIndexByCollection.delete(watchPath);
 

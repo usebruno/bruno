@@ -58,7 +58,25 @@ export default defineConfig({
         // Format: 'module-name': 'commonjs module-name'
         'worker_threads': 'commonjs worker_threads',
         // 'path': 'commonjs path'
+      },
+      optimization: {
+        splitChunks: {
+          cacheGroups: {
+            // CodeMirror's modes/addons/themes + codemirror-graphql are all
+            // required upfront (pages/Bruno/index.js) but rarely change —
+            // pulling them into their own initial chunk lets the browser
+            // fetch it in parallel with the main bundle instead of inflating
+            // one monolithic file.
+            codemirror: {
+              test: /[\\/]node_modules[\\/]codemirror(-.*)?[\\/]/,
+              name: 'lib-codemirror',
+              chunks: 'all',
+              priority: 10
+            }
+          }
+        }
       }
     },
   }
 });
+``
