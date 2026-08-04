@@ -73,18 +73,13 @@ const checkConnection = (host, port) =>
  * @returns {axios.AxiosInstance}
  */
 
+/** Headers actually sent, transport defaults first. Reads `_header`, since Connection
+ *  and Content-Length bypass setHeader and so are missing from kOutHeaders. */
 const getSortedOutgoingHeaders = (request) => {
-  // No Node request object (e.g. a stubbed adapter, or an adapter/error path that doesn't attach
-  // one) — there are no sent headers to read, so bail before touching Object.getOwnPropertySymbols
-  // (which throws on undefined/null).
   if (!request || typeof request !== 'object') return [];
-  // 1. Locate Symbol(kOutHeaders) on the Node.js request object
-  const kOutHeadersSymbol = Object.getOwnPropertySymbols(request)
-    .find((s) => s.toString() === 'Symbol(kOutHeaders)');
+  const headerBlock = typeof request._header === 'string' ? request._header : '';
 
-  const rawHeaders = request[kOutHeadersSymbol] || {};
-
-  // 2. Exact priority order specified — lowercase, to match the lowerKey compared against it
+  /** Lowercase, to match the lowerKey compared against it below. */
   const topDefaults = [
     'accept',
     'user-agent',
@@ -94,25 +89,22 @@ const getSortedOutgoingHeaders = (request) => {
     'connection'
   ];
 
-  // 3. Extract key, original display name, and header value
-  const parsedHeaders = Object.entries(rawHeaders).map(([key, entry]) => {
-    let rawName = key;
-    let value = entry;
+  const parsedHeaders = headerBlock
+    .split('\r\n')
+    .slice(1) // drop the request line
+    .reduce((headers, line) => {
+      const separatorIdx = line.indexOf(':');
+      if (separatorIdx > 0) {
+        const displayKey = line.slice(0, separatorIdx).trim();
+        headers.push({
+          lowerKey: displayKey.toLowerCase(),
+          displayKey,
+          value: line.slice(separatorIdx + 1).trim()
+        });
+      }
+      return headers;
+    }, []);
 
-    // Node's kOutHeaders stores tuples: [rawHeaderName, headerValue]
-    if (Array.isArray(entry)) {
-      rawName = entry[0] || key;
-      value = entry[1];
-    }
-
-    return {
-      lowerKey: key.toLowerCase(),
-      displayKey: rawName,
-      value: Array.isArray(value) ? value.join(', ') : value
-    };
-  });
-
-  // 4. Sort according to specified topDefaults first, then alphabetical for the rest
   parsedHeaders.sort((a, b) => {
     const indexA = topDefaults.indexOf(a.lowerKey);
     const indexB = topDefaults.indexOf(b.lowerKey);
@@ -289,13 +281,9 @@ function makeAxiosInstance({
       const config = response.config;
       timeline = config?.metadata?.timeline || [];
       let sortedHeaders = getSortedOutgoingHeaders(response.request);
-      // 1. Get headers as a raw object (do NOT stringify)
-      // const requestHeaders = response.request.getHeaders();
       const duration = end - config?.metadata.startTime;
 
-      // Insert the sent headers right after the request line/body (before the proxy & connection
-      // info setupProxyAgents pushed), not at the tail — they're built here at response time, so a
-      // plain push would land the whole block one section too low.
+      /** Built at response time, so insert after the request line rather than pushing to the tail. */
       const sentHeaderEntries = sortedHeaders.map(({ displayKey, value }) => ({
         timestamp: new Date(),
         type: 'requestHeader',

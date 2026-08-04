@@ -121,6 +121,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
   const request = item.draft ? item.draft.request : item.request;
   const collectionRoot = collection?.draft?.root ? get(collection, 'draft.root', {}) : get(collection, 'root', {});
   const headers = {};
+  let mergedHeaders = [];
   const url = request.url;
   const { promptVariables = {} } = collection;
 
@@ -128,7 +129,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
     mergeAuth(collection, request, requestTreePath);
-    mergeHeaders({ collection, request, requestTreePath, options: {} });
+    mergedHeaders = mergeHeaders({ collection, request, requestTreePath, options: {} });
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
@@ -142,6 +143,16 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     }
   });
 
+  const finalHeaders = {
+    ...mergedHeaders.reduce((acc, curr) => {
+      if (curr.enabled) {
+        acc[curr.name] = curr.value;
+      }
+      return acc;
+    }, {}),
+    ...headers
+  };
+
   const processEnvVars = getProcessEnvVars(collection.uid);
   const envVars = getEnvVars(environment);
 
@@ -151,7 +162,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     method: request.method,
     methodType: request.methodType,
     url,
-    headers,
+    headers: finalHeaders,
     processEnvVars,
     envVars,
     runtimeVariables,

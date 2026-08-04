@@ -1,7 +1,4 @@
-// The headers actually sent on the wire — including the transport ones (Host, Connection,
-// Accept-Encoding, ...) that the Node adapter appends after the request object is handed to the
-// renderer. They reach the app only as `requestHeader` timeline entries ("name: value"),
-// already ordered by the network layer.
+/** Headers actually sent, from the timeline's `requestHeader` entries. */
 export const sentHeadersFromTimeline = (timeline) => {
   if (!Array.isArray(timeline)) return [];
   return timeline.reduce((headers, entry) => {

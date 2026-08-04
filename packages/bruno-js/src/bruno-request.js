@@ -139,7 +139,7 @@ class BrunoRequest {
 
   /**
    * Replaces the whole header set, dropping headers set at collection/folder level.
-   * TODO: make this upsert instead — setHeaders is the bulk form of setHeader.
+   * TODO: make this upsert instead, since setHeaders is the bulk form of setHeader.
    */
   setHeaders(headers) {
     this.req.headers = headers;
