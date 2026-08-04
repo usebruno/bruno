@@ -233,7 +233,10 @@ export const buildCommonLocators = (page: Page) => ({
     container: () => page.getByTestId('timeline-container'),
     entries: () => page.getByTestId('timeline-container').getByTestId('timeline-entry'),
     networkButton: (item: Locator) => item.getByRole('button', { name: 'Network' }),
-    networkLogs: (item: Locator) => item.locator('.network-logs-container')
+    networkLogs: (item: Locator) => item.locator('.network-logs-container'),
+    headerRow: (item: Locator, name: string) => buildTimelineHeaderRow(page, item, name),
+    headerValue: (item: Locator, name: string) =>
+      buildTimelineHeaderRow(page, item, name).getByTestId('tl-header-value')
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
@@ -325,6 +328,11 @@ export const buildCommonLocators = (page: Page) => ({
     };
   }
 });
+
+const buildTimelineHeaderRow = (page: Page, item: Locator, name: string) =>
+  item.getByTestId('tl-header-row').filter({
+    has: page.getByTestId('tl-header-name').and(page.getByText(name, { exact: true }))
+  });
 
 export const getTableCell = (row: any, index: number) => row.locator('td').nth(index + 1);
 

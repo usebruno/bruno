@@ -9,9 +9,10 @@ jest.mock('../../src/ipc/network/prepare-request');
 
 const prepareGrpcRequest = require('../../src/ipc/network/prepare-grpc-request');
 const interpolateVars = require('../../src/ipc/network/interpolate-vars');
-const { getEnvVars, getTreePathFromCollectionToItem } = require('../../src/utils/collection');
+const { getEnvVars, getTreePathFromCollectionToItem, buildFinalHeaders } = require('../../src/utils/collection');
 const { getProcessEnvVars } = require('../../src/store/process-env');
 const { setAuthHeaders } = require('../../src/ipc/network/prepare-request');
+const { buildFinalHeaders: actualBuildFinalHeaders } = jest.requireActual('../../src/utils/collection');
 
 describe('prepare-grpc-request: prepareGrpcRequest', () => {
   let mockItem;
@@ -24,6 +25,7 @@ describe('prepare-grpc-request: prepareGrpcRequest', () => {
 
     getEnvVars.mockReturnValue({});
     getTreePathFromCollectionToItem.mockReturnValue([]);
+    buildFinalHeaders.mockImplementation(actualBuildFinalHeaders);
     getProcessEnvVars.mockReturnValue({});
     setAuthHeaders.mockImplementation((request) => request);
     interpolateVars.mockImplementation((request) => request);
