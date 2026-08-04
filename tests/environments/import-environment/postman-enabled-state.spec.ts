@@ -26,7 +26,7 @@ test.describe('Postman env import preserves enabled/disabled state', () => {
       await importEnvironment(page, envFile, scope);
 
       await test.step('Imported env appears in the settings sidebar', async () => {
-        await expect(locators.environment.settingsListItem(scope, 'Mixed Enabled Env')).toBeVisible();
+        await expect(locators.environment.sidebarListItem(scope, 'Mixed Enabled Env')).toBeVisible();
       });
 
       await test.step('Enabled and default-enabled rows are checked; disabled row is unchecked', async () => {

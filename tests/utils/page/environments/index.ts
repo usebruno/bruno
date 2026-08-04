@@ -89,23 +89,15 @@ export const buildEnvironmentLocators = (page: Page) => ({
     cancel: () => page.getByTestId('env-unsaved-cancel'),
     saveAndClose: () => page.getByTestId('env-unsaved-save-and-close')
   },
-  // The empty-state Import button in the environments dropdown — same button
-  // for collection and global scopes; which import modal it opens is decided
-  // by the active tab.
   importEmptyStateButton: () => page.getByTestId('empty-state-import-env-btn'),
   importModal: (scope: 'collection' | 'global') =>
     page.getByTestId(scope === 'global' ? 'import-global-environment-modal' : 'import-environment-modal'),
   importFileTrigger: (scope: 'collection' | 'global') =>
     page.getByTestId(scope === 'global' ? 'import-global-environment' : 'import-environment'),
-  // Row in the settings-modal sidebar listing existing envs — distinct from
-  // `listItem`, which targets the dropdown selector. Backed by two components
-  // ('collection' → EnvironmentSettings/EnvironmentList, 'global' →
-  // WorkspaceHome/WorkspaceEnvironments/EnvironmentList), so the testid differs.
-  settingsListItem: (scope: 'collection' | 'global', name: string) =>
+  sidebarListItem: (scope: 'collection' | 'global', name: string) =>
     page
-      .getByTestId(scope === 'global' ? 'workspace-env-list-item' : 'env-settings-list-item')
+      .getByTestId(scope === 'global' ? 'workspace-env-list-item' : 'collection-env-list-item')
       .filter({ hasText: name }),
-  // Per-row enabled toggle in the environment variables editor.
   varRowEnabledCheckbox: (name: string) =>
     page.getByTestId(`env-var-row-${name}`).getByTestId('env-var-enabled-checkbox')
 });

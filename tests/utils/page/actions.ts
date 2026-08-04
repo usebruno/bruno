@@ -718,13 +718,10 @@ const openEnvironmentConfigTab = async (page: Page, type: EnvironmentType = 'col
 };
 
 /**
- * Import an environment (collection or global scope) from a Postman-format JSON file.
- * Opens the env selector on the requested scope, triggers the empty-state Import
- * button, sets the file via the OS file chooser, and waits for the resulting
- * environment settings tab to open.
+ * Import a Postman-format environment file into the given scope.
  * @param page - The page object
- * @param filePath - Absolute path to the .postman_environment.json file
- * @param type - The scope to import into ('collection' | 'global')
+ * @param filePath - Path to the .postman_environment.json file
+ * @param type - Target scope ('collection' | 'global')
  */
 const importEnvironment = async (
   page: Page,
