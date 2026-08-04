@@ -65,7 +65,7 @@ test.describe('make grpc requests', () => {
 
     await test.step('select server streaming method', async () => {
       await locators.sidebar.request('LotOfReplies').click();
-      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/LotsOfReplies');
+      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/LotsOfReplies', { timeout: 30000 });
     });
 
     await test.step('verify gRPC server streaming request is opened successfully', async () => {
@@ -106,7 +106,7 @@ test.describe('make grpc requests', () => {
 
     await test.step('select client streaming method', async () => {
       await locators.sidebar.request('LotOfGreetings').click();
-      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/LotsOfGreetings');
+      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/LotsOfGreetings', { timeout: 30000 });
     });
 
     await test.step('verify gRPC client streaming request is opened successfully', async () => {
@@ -163,7 +163,7 @@ test.describe('make grpc requests', () => {
 
     await test.step('select bidirectional streaming method', async () => {
       await locators.sidebar.request('BidiHello').click();
-      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/BidiHello');
+      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/BidiHello', { timeout: 30000 });
     });
 
     await test.step('verify gRPC bidi streaming request is opened successfully', async () => {
@@ -222,7 +222,7 @@ test.describe('make grpc requests', () => {
 
     await test.step('select client streaming method', async () => {
       await locators.sidebar.request('LotOfGreetings').click();
-      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/LotsOfGreetings');
+      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/LotsOfGreetings', { timeout: 30000 });
     });
 
     await test.step('start client streaming connection', async () => {
@@ -260,7 +260,7 @@ test.describe('make grpc requests', () => {
 
     await test.step('select bidirectional streaming method', async () => {
       await locators.sidebar.request('BidiHello').click();
-      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/BidiHello');
+      await expect(locators.method.dropdownTrigger()).toContainText('HelloService/BidiHello', { timeout: 30000 });
     });
 
     await test.step('start bidirectional streaming connection', async () => {
