@@ -718,6 +718,39 @@ const openEnvironmentConfigTab = async (page: Page, type: EnvironmentType = 'col
 };
 
 /**
+ * Import an environment (collection or global scope) from a Postman-format JSON file.
+ * Opens the env selector on the requested scope, triggers the empty-state Import
+ * button, sets the file via the OS file chooser, and waits for the resulting
+ * environment settings tab to open.
+ * @param page - The page object
+ * @param filePath - Absolute path to the .postman_environment.json file
+ * @param type - The scope to import into ('collection' | 'global')
+ */
+const importEnvironment = async (
+  page: Page,
+  filePath: string,
+  type: EnvironmentType = 'collection'
+) => {
+  await test.step(`Import ${type} environment from "${filePath}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    await openEnvironmentSelector(page, type);
+    await locators.environment.importEmptyStateButton().click();
+    await expect(locators.environment.importModal(type)).toBeVisible();
+
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await locators.environment.importFileTrigger(type).click();
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles(filePath);
+
+    const settingsTab = type === 'global'
+      ? locators.environment.globalEnvTab()
+      : locators.environment.collectionEnvTab();
+    await expect(settingsTab).toBeVisible();
+  });
+};
+
+/**
  * Create a new environment
  * @param page - The page object
  * @param environmentName - The name of the environment
@@ -2622,6 +2655,7 @@ export {
   createFolder,
   openEnvironmentSelector,
   openEnvironmentConfigTab,
+  importEnvironment,
   createEnvironment,
   addEnvironmentVariable,
   addEnvironmentVariables,
