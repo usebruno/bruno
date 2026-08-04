@@ -12,18 +12,18 @@ const sizeStyles = {
   `,
   md: css`
     --checkbox-box-size: 14px;
-    --checkbox-border-radius: 4px;
-    --checkbox-border-width: 2px;
+    --checkbox-border-radius: 2px;
+    --checkbox-border-width: 1px;
   `,
   lg: css`
     --checkbox-box-size: 16px;
     --checkbox-border-radius: 4px;
-    --checkbox-border-width: 2px;
+    --checkbox-border-width: 1px;
   `,
   xl: css`
     --checkbox-box-size: 18px;
     --checkbox-border-radius: 4px;
-    --checkbox-border-width: 2px;
+    --checkbox-border-width: 1px;
   `
 };
 
