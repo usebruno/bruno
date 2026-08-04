@@ -117,7 +117,7 @@ const Checkbox = forwardRef(
       value,
       className = '',
       inputClassName = '',
-      'data-testid': dataTestId = 'checkbox',
+      'data-testid': dataTestId,
       ...rest
     },
     forwardedRef
