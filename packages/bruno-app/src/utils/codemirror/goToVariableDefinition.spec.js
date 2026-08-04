@@ -7,7 +7,8 @@ import { goToVariableDefinition } from './goToVariableDefinition';
 jest.mock('providers/ReduxStore', () => ({
   __esModule: true,
   default: {
-    dispatch: jest.fn()
+    dispatch: jest.fn(),
+    getState: jest.fn(() => ({ globalEnvironments: { activeGlobalEnvironmentUid: undefined } }))
   }
 }));
 
@@ -68,13 +69,16 @@ describe('goToVariableDefinition', () => {
     expect(openCollectionSettings).toHaveBeenCalledWith('col-1', 'vars');
   });
 
-  it('does not dispatch updateTabState for a plain (non-secret) environment variable', () => {
+  it('selects the Variables sub-tab for a plain (non-secret) environment variable', () => {
     const scopeInfo = { type: 'environment', data: { variable: { name: 'apiKey', secret: false } } };
 
     goToVariableDefinition(scopeInfo, collection, null, 'apiKey');
 
     expect(addTab).toHaveBeenCalledWith(expect.objectContaining({ uid: 'col-1-environment-settings', type: 'environment-settings' }));
-    expect(updateTabState).not.toHaveBeenCalled();
+    expect(updateTabState).toHaveBeenCalledWith({
+      uid: 'col-1-environment-settings',
+      tabState: { environment: { tab: 'variables' } }
+    });
   });
 
   it('selects the Secrets sub-tab for a secret environment variable', () => {
@@ -86,6 +90,27 @@ describe('goToVariableDefinition', () => {
       uid: 'col-1-environment-settings',
       tabState: { environment: { tab: 'secrets' } }
     });
+  });
+
+  it('pins the tab to the environment the variable actually lives in, overriding any stale selection', () => {
+    const environment = { uid: 'env-prod', name: 'Prod' };
+    const scopeInfo = { type: 'environment', data: { environment, variable: { name: 'apiKey', secret: true } } };
+
+    goToVariableDefinition(scopeInfo, collection, null, 'apiKey');
+
+    expect(updateTabState).toHaveBeenCalledWith({
+      uid: 'col-1-environment-settings',
+      tabState: { envUid: 'env-prod', environment: { tab: 'secrets' } }
+    });
+  });
+
+  it('does not set envUid when scopeInfo has no environment data', () => {
+    const scopeInfo = { type: 'environment', data: { variable: { name: 'apiKey', secret: true } } };
+
+    goToVariableDefinition(scopeInfo, collection, null, 'apiKey');
+
+    const [{ tabState }] = updateTabState.mock.calls[0];
+    expect(tabState).not.toHaveProperty('envUid');
   });
 
   it('dispatches updateTabState after addTab so the tab already exists when it runs', () => {
@@ -110,6 +135,18 @@ describe('goToVariableDefinition', () => {
     expect(updateTabState).toHaveBeenCalledWith({
       uid: 'col-1-global-environment-settings',
       tabState: { environment: { tab: 'secrets' } }
+    });
+  });
+
+  it('pins the tab to the active global environment, overriding any stale selection', () => {
+    store.getState.mockReturnValueOnce({ globalEnvironments: { activeGlobalEnvironmentUid: 'genv-1' } });
+    const scopeInfo = { type: 'global', data: { variable: { name: 'apiToken', secret: false } } };
+
+    goToVariableDefinition(scopeInfo, collection, null, 'apiToken');
+
+    expect(updateTabState).toHaveBeenCalledWith({
+      uid: 'col-1-global-environment-settings',
+      tabState: { envUid: 'genv-1', environment: { tab: 'variables' } }
     });
   });
 });

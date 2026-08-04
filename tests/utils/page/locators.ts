@@ -136,7 +136,24 @@ export const buildCommonLocators = (page: Page) => ({
     warningNote: (popup: Locator) => popup.getByTestId('var-info-warning-note'),
     // The editor container itself (hidden until the value display is clicked).
     editorContainer: (popup: Locator) => popup.getByTestId('var-info-value-editor'),
-    editor: (popup: Locator) => popup.getByTestId('var-info-value-editor').locator('.CodeMirror')
+    editor: (popup: Locator) => popup.getByTestId('var-info-value-editor').locator('.CodeMirror'),
+    // The "Add to" switcher, shown in place of an editable value for undefined variables.
+    addToSwitcher: (popup: Locator) => popup.getByTestId('var-info-add-to'),
+    addToToggle: (popup: Locator) => popup.getByTestId('var-info-add-to-toggle'),
+    addToOption: (popup: Locator, scopeType: string) => popup.getByTestId(`var-info-add-to-option-${scopeType}`),
+    // The currently-active scope row (guessed default, or whichever was last picked).
+    addToActiveOption: (popup: Locator) => popup.locator('.var-add-to-option-active'),
+    addToSecretCheckbox: (popup: Locator) => popup.getByTestId('var-info-add-to-secret-checkbox'),
+    addToNoEnvNote: (popup: Locator, scopeType: 'environment' | 'global') =>
+      popup.getByTestId('var-info-add-to-no-env-note')
+        .filter({ hasText: scopeType === 'global' ? 'Global Environment' : 'Collection Environment' }),
+    addToCreateEnvButton: (popup: Locator, scopeType: 'environment' | 'global') =>
+      popup.getByTestId('var-info-add-to-no-env-note')
+        .filter({ hasText: scopeType === 'global' ? 'Global Environment' : 'Collection Environment' })
+        .getByTestId('var-info-add-to-create-env-button'),
+    addToCreateEnvNameInput: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-name-input'),
+    addToCreateEnvSubmit: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-submit'),
+    addToError: (popup: Locator) => popup.getByTestId('var-info-add-to-error')
   },
   auth: {
     apiKey: {

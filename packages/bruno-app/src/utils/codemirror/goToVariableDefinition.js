@@ -107,29 +107,33 @@ export const goToVariableDefinition = (scopeInfo, collection, item, variableName
 
     case 'environment': {
       const environmentTabUid = `${collection.uid}-environment-settings`;
+      const environmentUid = scopeInfo.data?.environment?.uid;
       dispatch(addTab({ uid: environmentTabUid, collectionUid: collection.uid, type: 'environment-settings' }));
 
-      // If the variable is a secret, switch to the 'secrets' tab in the environment settings.
-      if (scopeInfo.data?.variable?.secret) {
-        dispatch(updateTabState({
-          uid: environmentTabUid,
-          tabState: { environment: { tab: 'secrets' } }
-        }));
-      }
+      // pin the environment and the sub-tab(variables or secrets) to tab state.
+      dispatch(updateTabState({
+        uid: environmentTabUid,
+        tabState: {
+          ...(environmentUid ? { envUid: environmentUid } : {}),
+          environment: { tab: scopeInfo.data?.variable?.secret ? 'secrets' : 'variables' }
+        }
+      }));
       break;
     }
 
     case 'global': {
       const globalEnvironmentTabUid = `${collection.uid}-global-environment-settings`;
+      const environmentUid = store.getState().globalEnvironments?.activeGlobalEnvironmentUid;
       dispatch(addTab({ uid: globalEnvironmentTabUid, collectionUid: collection.uid, type: 'global-environment-settings' }));
 
-      // If the variable is a secret, switch to the 'secrets' tab in the environment settings.
-      if (scopeInfo.data?.variable?.secret) {
-        dispatch(updateTabState({
-          uid: globalEnvironmentTabUid,
-          tabState: { environment: { tab: 'secrets' } }
-        }));
-      }
+      // pin the environment and the sub-tab(variables or secrets) to tab state.
+      dispatch(updateTabState({
+        uid: globalEnvironmentTabUid,
+        tabState: {
+          ...(environmentUid ? { envUid: environmentUid } : {}),
+          environment: { tab: scopeInfo.data?.variable?.secret ? 'secrets' : 'variables' }
+        }
+      }));
       break;
     }
 
