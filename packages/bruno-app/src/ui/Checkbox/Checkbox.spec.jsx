@@ -115,6 +115,59 @@ describe('Checkbox', () => {
     expect(checkbox).toHaveAttribute('name', 'terms');
   });
 
+  describe('indeterminate', () => {
+    it('sets the DOM indeterminate property when the prop is true', () => {
+      renderCheckbox({ indeterminate: true });
+      expect(screen.getByRole('checkbox').indeterminate).toBe(true);
+    });
+
+    it('does not set the DOM indeterminate property by default', () => {
+      renderCheckbox();
+      expect(screen.getByRole('checkbox').indeterminate).toBe(false);
+    });
+
+    it('clears the DOM indeterminate property when the prop turns false', () => {
+      const { rerender } = renderCheckbox({ indeterminate: true });
+      expect(screen.getByRole('checkbox').indeterminate).toBe(true);
+
+      rerender(
+        <ThemeProvider theme={theme}>
+          <Checkbox onChange={() => {}} ariaLabel="Checkbox" indeterminate={false} />
+        </ThemeProvider>
+      );
+
+      expect(screen.getByRole('checkbox').indeterminate).toBe(false);
+    });
+
+    it('re-applies the DOM property on re-render even though the browser clears it on click', async () => {
+      const onChange = jest.fn();
+      const { rerender } = renderCheckbox({ indeterminate: true, onChange });
+
+      const checkbox = screen.getByRole('checkbox');
+      await user.click(checkbox);
+      // Clicking a native checkbox always resets `indeterminate` to false in the browser,
+      // regardless of what the app does with the click. this is the behavior our effect
+      // (re-applied on every render, no dependency array) must correct for.
+      checkbox.indeterminate = false;
+
+      rerender(
+        <ThemeProvider theme={theme}>
+          <Checkbox onChange={onChange} ariaLabel="Checkbox" indeterminate={true} />
+        </ThemeProvider>
+      );
+
+      expect(checkbox.indeterminate).toBe(true);
+    });
+
+    it('still forwards the ref to the input element when indeterminate', () => {
+      const ref = createRef();
+      renderCheckbox({ indeterminate: true, ref });
+
+      expect(ref.current).toBe(screen.getByRole('checkbox'));
+      expect(ref.current.indeterminate).toBe(true);
+    });
+  });
+
   describe('accessible name', () => {
     it('is derived from ariaLabel when there is no visible label', () => {
       renderCheckbox({ ariaLabel: 'Select all' });

@@ -73,7 +73,8 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .checkbox-input:checked + .checkbox-box {
+  .checkbox-input:checked + .checkbox-box,
+  .checkbox-input:indeterminate + .checkbox-box {
     background-color: ${(props) => props.theme.primary.solid};
     border-color: ${(props) => props.theme.primary.solid};
 
@@ -86,7 +87,8 @@ const StyledWrapper = styled.div`
     border-color: ${(props) => hoverAdjust(props.theme.border.border3, props)};
   }
 
-  .checkbox-input:checked:not(:disabled):hover + .checkbox-box {
+  .checkbox-input:checked:not(:disabled):hover + .checkbox-box,
+  .checkbox-input:indeterminate:not(:disabled):hover + .checkbox-box {
     background-color: ${(props) => hoverAdjust(props.theme.primary.solid, props)};
     border-color: ${(props) => hoverAdjust(props.theme.primary.solid, props)};
   }
