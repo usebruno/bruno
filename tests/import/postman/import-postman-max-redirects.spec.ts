@@ -8,6 +8,7 @@ import {
   selectRequestPaneTab
 } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
+import { DEFAULT_MAX_REDIRECTS } from '@usebruno/common/utils';
 import { captureClipboardWrites } from '../../utils/clipboard';
 
 const COLLECTION_NAME = 'Max Redirects Collection';
@@ -58,8 +59,8 @@ test.describe('Import Postman Collection with maxRedirects', () => {
       await expectMaxRedirects(page, 'No Redirects', '0');
     });
 
-    await test.step('a request with no protocolProfileBehavior shows the default of 5', async () => {
-      await expectMaxRedirects(page, 'Unset Limit', '5');
+    await test.step('a request with no protocolProfileBehavior shows the default', async () => {
+      await expectMaxRedirects(page, 'Unset Limit', String(DEFAULT_MAX_REDIRECTS));
     });
 
     await test.step('a nested request keeps its own limit', async () => {
@@ -119,8 +120,8 @@ test.describe('Import Postman Collection with maxRedirects', () => {
     });
 
     for (const requestName of OFFENDERS) {
-      await test.step(`${requestName} falls back to the default of 5`, async () => {
-        await expectMaxRedirects(page, requestName, '5');
+      await test.step(`${requestName} falls back to the default`, async () => {
+        await expectMaxRedirects(page, requestName, String(DEFAULT_MAX_REDIRECTS));
       });
     }
   });

@@ -1,4 +1,5 @@
 import { parseRequest, stringifyRequest } from './index';
+import { DEFAULT_MAX_REDIRECTS } from '@usebruno/common/utils';
 import type { CollectionFormat } from './types';
 
 const FORMATS: CollectionFormat[] = ['bru', 'yml'];
@@ -28,13 +29,13 @@ const requestWithMaxRedirects = (maxRedirects: number) => ({
 // write (.inf, blank, quoted). Assert on `stored` when a value must survive verbatim, since bru
 // omits a setting it will not honour and `effective` would hide that behind the runtime's `?? 5`.
 const roundTripRequest = (maxRedirects: number | string, format: CollectionFormat) => {
-  const seed = typeof maxRedirects === 'number' ? maxRedirects : 5;
+  const seed = typeof maxRedirects === 'number' ? maxRedirects : DEFAULT_MAX_REDIRECTS;
   let text = stringifyRequest(requestWithMaxRedirects(seed) as any, { format });
   if (typeof maxRedirects === 'string') {
     text = text.replace(`maxRedirects: ${seed}`, `maxRedirects: ${maxRedirects}`);
   }
   const stored = parseRequest(text, { format }).settings.maxRedirects;
-  return { stored, effective: stored ?? 5 };
+  return { stored, effective: stored ?? DEFAULT_MAX_REDIRECTS };
 };
 
 describe('maxRedirects on-disk round trip', () => {
@@ -57,7 +58,7 @@ describe('maxRedirects on-disk round trip', () => {
     it.each(['1e309', '-1e309', '1' + '0'.repeat(400)])(
       'falls back to the default for an on-disk %s that overflows to a non-finite number',
       (rawValue) => {
-        expect(roundTripRequest(rawValue, format).effective).toBe(5);
+        expect(roundTripRequest(rawValue, format).effective).toBe(DEFAULT_MAX_REDIRECTS);
       }
     );
 
@@ -66,11 +67,11 @@ describe('maxRedirects on-disk round trip', () => {
     });
 
     it.each(['', ' ', '   '])('leaves the default in place for a blank on-disk value %p', (rawValue) => {
-      expect(roundTripRequest(rawValue, format).effective).toBe(5);
+      expect(roundTripRequest(rawValue, format).effective).toBe(DEFAULT_MAX_REDIRECTS);
     });
 
     it.each(['-1', '-3', '-0.5'])('ignores a negative on-disk value of %s', (rawValue) => {
-      expect(roundTripRequest(rawValue, format).effective).toBe(5);
+      expect(roundTripRequest(rawValue, format).effective).toBe(DEFAULT_MAX_REDIRECTS);
     });
   });
 
@@ -79,7 +80,7 @@ describe('maxRedirects on-disk round trip', () => {
   // into a yml one adds a maxRedirects the author never set.
   it('stores an unusable value differently per format, while enforcing the same ceiling', () => {
     expect(roundTripRequest('abc', 'bru').stored).toBeUndefined();
-    expect(roundTripRequest('abc', 'yml').stored).toBe(5);
+    expect(roundTripRequest('abc', 'yml').stored).toBe(DEFAULT_MAX_REDIRECTS);
     expect(roundTripRequest('abc', 'bru').effective).toBe(roundTripRequest('abc', 'yml').effective);
   });
 
@@ -93,15 +94,15 @@ describe('maxRedirects on-disk round trip', () => {
   });
 
   it.each(['Infinity', '-Infinity', 'NaN'])('ignores a hand-edited bru maxRedirects of %s', (rawValue) => {
-    expect(roundTripRequest(rawValue, 'bru').effective).toBe(5);
+    expect(roundTripRequest(rawValue, 'bru').effective).toBe(DEFAULT_MAX_REDIRECTS);
   });
 
   it.each(['.inf', '-.inf', '.nan'])('ignores a hand-edited yml maxRedirects of %s', (rawValue) => {
-    expect(roundTripRequest(rawValue, 'yml').effective).toBe(5);
+    expect(roundTripRequest(rawValue, 'yml').effective).toBe(DEFAULT_MAX_REDIRECTS);
   });
 
   it('does not honour a quoted yml count, but reads a plain count in both formats', () => {
-    expect(roundTripRequest('"10"', 'yml').effective).toBe(5);
+    expect(roundTripRequest('"10"', 'yml').effective).toBe(DEFAULT_MAX_REDIRECTS);
     expect(roundTripRequest('10', 'yml').effective).toBe(10);
     expect(roundTripRequest('10', 'bru').effective).toBe(10);
   });
