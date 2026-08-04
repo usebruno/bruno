@@ -29,6 +29,9 @@ test.describe('Send Request — every fixture, ON and OFF', () => {
     'path-issues-fragment',
     'path-spa-route',
     'oauth-callback-fragment',
+    // scheme normalization
+    'schemeless-hostport',
+    'scheme-hostport',
     // params:path
     'params-path-odata',
     'params-path-space',
@@ -179,5 +182,45 @@ test.describe('Send Request — # encoding scenarios (local echo)', () => {
     // OAuth implicit-flow security property.
     await expectEchoReceived(page, 'http://localhost:8081/api/echo/anything/callback');
     await expectEchoDidNotReceive(page, 'access_token');
+  });
+});
+
+test.describe('Send Request — schemeless host:port normalization', () => {
+  // Regression: with encoding ON, a schemeless `host:port` must keep its port
+  // colon. The scheme is prepended before encodeUrl runs, so `localhost:8081`
+  // stays a valid authority instead of becoming a bogus `localhost%3A8081`
+  // host. This is the common local-dev shape that worked in v3.5.3.
+  test('schemeless — ON keeps the port colon, echo receives http://localhost:8081/...', async ({ pageWithUserData: page }) => {
+    await openCollection(page, COLLECTION);
+    await openRequestInFolder(page, FOLDER, 'schemeless-hostport');
+    await setUrlEncoding(page, true);
+    await sendRequest(page, 200);
+    await expectEchoReceived(page, 'http://localhost:8081/api/echo/anything/hostport');
+    await expectEchoDidNotReceive(page, 'localhost%3A8081');
+  });
+
+  test('explicit http:// scheme — unchanged with encoding ON', async ({ pageWithUserData: page }) => {
+    await openCollection(page, COLLECTION);
+    await openRequestInFolder(page, FOLDER, 'scheme-hostport');
+    await setUrlEncoding(page, true);
+    await sendRequest(page, 200);
+    await expectEchoReceived(page, 'http://localhost:8081/api/echo/anything/hostport');
+  });
+
+  test('schemeless — OFF keeps the port colon, echo receives http://localhost:8081/...', async ({ pageWithUserData: page }) => {
+    await openCollection(page, COLLECTION);
+    await openRequestInFolder(page, FOLDER, 'schemeless-hostport');
+    await setUrlEncoding(page, false);
+    await sendRequest(page, 200);
+    await expectEchoReceived(page, 'http://localhost:8081/api/echo/anything/hostport');
+    await expectEchoDidNotReceive(page, 'localhost%3A8081');
+  });
+
+  test('explicit http:// scheme — unchanged with encoding OFF', async ({ pageWithUserData: page }) => {
+    await openCollection(page, COLLECTION);
+    await openRequestInFolder(page, FOLDER, 'scheme-hostport');
+    await setUrlEncoding(page, false);
+    await sendRequest(page, 200);
+    await expectEchoReceived(page, 'http://localhost:8081/api/echo/anything/hostport');
   });
 });

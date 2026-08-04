@@ -54,8 +54,8 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getEnvVar', getEnvVar);
   getEnvVar.dispose();
 
-  let setEnvVar = vm.newFunction('setEnvVar', function (key, value, options = {}) {
-    bru.setEnvVar(vm.dump(key), vm.dump(value), vm.dump(options));
+  let setEnvVar = vm.newFunction('setEnvVar', function (key, value) {
+    bru.setEnvVar(vm.dump(key), vm.dump(value));
   });
   vm.setProp(bruObject, 'setEnvVar', setEnvVar);
   setEnvVar.dispose();
@@ -102,13 +102,11 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'setGlobalEnvVar', setGlobalEnvVar);
   setGlobalEnvVar.dispose();
 
-  // TODO: deleteGlobalEnvVar works in the request lifecycle but does not update the UI.
-  // Re-enable once the UI sync issue is resolved.
-  // let deleteGlobalEnvVar = vm.newFunction('deleteGlobalEnvVar', function (key) {
-  //   bru.deleteGlobalEnvVar(vm.dump(key));
-  // });
-  // vm.setProp(bruObject, 'deleteGlobalEnvVar', deleteGlobalEnvVar);
-  // deleteGlobalEnvVar.dispose();
+  let deleteGlobalEnvVar = vm.newFunction('deleteGlobalEnvVar', function (key) {
+    bru.deleteGlobalEnvVar(vm.dump(key));
+  });
+  vm.setProp(bruObject, 'deleteGlobalEnvVar', deleteGlobalEnvVar);
+  deleteGlobalEnvVar.dispose();
 
   let getAllGlobalEnvVars = vm.newFunction('getAllGlobalEnvVars', function () {
     return marshallToVm(bru.getAllGlobalEnvVars(), vm);
@@ -122,13 +120,11 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'hasGlobalEnvVar', hasGlobalEnvVar);
   hasGlobalEnvVar.dispose();
 
-  // TODO: deleteAllGlobalEnvVars works in the request lifecycle but does not update the UI.
-  // Re-enable once the UI sync issue is resolved.
-  // let deleteAllGlobalEnvVars = vm.newFunction('deleteAllGlobalEnvVars', function () {
-  //   bru.deleteAllGlobalEnvVars();
-  // });
-  // vm.setProp(bruObject, 'deleteAllGlobalEnvVars', deleteAllGlobalEnvVars);
-  // deleteAllGlobalEnvVars.dispose();
+  let deleteAllGlobalEnvVars = vm.newFunction('deleteAllGlobalEnvVars', function () {
+    bru.deleteAllGlobalEnvVars();
+  });
+  vm.setProp(bruObject, 'deleteAllGlobalEnvVars', deleteAllGlobalEnvVars);
+  deleteAllGlobalEnvVars.dispose();
 
   let hasVar = vm.newFunction('hasVar', function (key) {
     return marshallToVm(bru.hasVar(vm.dump(key)), vm);
@@ -220,13 +216,11 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getCollectionVar', getCollectionVar);
   getCollectionVar.dispose();
 
-  // TODO: setCollectionVar works in the request lifecycle but does not update the UI.
-  // Re-enable once the UI sync issue is resolved.
-  // let setCollectionVar = vm.newFunction('setCollectionVar', function (key, value) {
-  //   bru.setCollectionVar(vm.dump(key), vm.dump(value));
-  // });
-  // vm.setProp(bruObject, 'setCollectionVar', setCollectionVar);
-  // setCollectionVar.dispose();
+  let setCollectionVar = vm.newFunction('setCollectionVar', function (key, value) {
+    bru.setCollectionVar(vm.dump(key), vm.dump(value));
+  });
+  vm.setProp(bruObject, 'setCollectionVar', setCollectionVar);
+  setCollectionVar.dispose();
 
   let hasCollectionVar = vm.newFunction('hasCollectionVar', function (key) {
     return marshallToVm(bru.hasCollectionVar(vm.dump(key)), vm);
@@ -234,29 +228,23 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'hasCollectionVar', hasCollectionVar);
   hasCollectionVar.dispose();
 
-  // TODO: deleteCollectionVar works in the request lifecycle but does not update the UI.
-  // Re-enable once the UI sync issue is resolved.
-  // let deleteCollectionVar = vm.newFunction('deleteCollectionVar', function (key) {
-  //   bru.deleteCollectionVar(vm.dump(key));
-  // });
-  // vm.setProp(bruObject, 'deleteCollectionVar', deleteCollectionVar);
-  // deleteCollectionVar.dispose();
+  let deleteCollectionVar = vm.newFunction('deleteCollectionVar', function (key) {
+    bru.deleteCollectionVar(vm.dump(key));
+  });
+  vm.setProp(bruObject, 'deleteCollectionVar', deleteCollectionVar);
+  deleteCollectionVar.dispose();
 
-  // TODO: deleteAllCollectionVars works in the request lifecycle but does not update the UI.
-  // Re-enable once the UI sync issue is resolved.
-  // let deleteAllCollectionVars = vm.newFunction('deleteAllCollectionVars', function () {
-  //   bru.deleteAllCollectionVars();
-  // });
-  // vm.setProp(bruObject, 'deleteAllCollectionVars', deleteAllCollectionVars);
-  // deleteAllCollectionVars.dispose();
+  let deleteAllCollectionVars = vm.newFunction('deleteAllCollectionVars', function () {
+    bru.deleteAllCollectionVars();
+  });
+  vm.setProp(bruObject, 'deleteAllCollectionVars', deleteAllCollectionVars);
+  deleteAllCollectionVars.dispose();
 
-  // TODO: getAllCollectionVars works in the request lifecycle but does not update the UI.
-  // Re-enable once the UI sync issue is resolved.
-  // let getAllCollectionVars = vm.newFunction('getAllCollectionVars', function () {
-  //   return marshallToVm(bru.getAllCollectionVars(), vm);
-  // });
-  // vm.setProp(bruObject, 'getAllCollectionVars', getAllCollectionVars);
-  // getAllCollectionVars.dispose();
+  let getAllCollectionVars = vm.newFunction('getAllCollectionVars', function () {
+    return marshallToVm(bru.getAllCollectionVars(), vm);
+  });
+  vm.setProp(bruObject, 'getAllCollectionVars', getAllCollectionVars);
+  getAllCollectionVars.dispose();
 
   let getTestResults = vm.newFunction('getTestResults', () => {
     const promise = vm.newPromise();

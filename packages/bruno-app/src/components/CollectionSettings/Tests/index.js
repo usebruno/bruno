@@ -2,7 +2,6 @@ import React, { useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
-import AIAssist from 'components/AIAssist';
 import { updateCollectionTests } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
@@ -56,7 +55,6 @@ const Tests = ({ collection }) => {
           initialScroll={testsScroll}
           onScroll={setTestsScroll}
         />
-        <AIAssist scriptType="tests" currentScript={tests || ''} onApply={onEdit} />
       </div>
 
       <div className="mt-6">

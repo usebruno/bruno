@@ -15,7 +15,8 @@ class Pool {
     const workers = Math.max(1, size ?? os.availableParallelism());
     this.#pool = workerpool.pool(WORKER_FILE, {
       maxWorkers: workers,
-      workerType: 'thread'
+      workerType: 'thread',
+      workerThreadOpts: { resourceLimits: { maxOldGenerationSizeMb: 512 } }
     });
   }
 

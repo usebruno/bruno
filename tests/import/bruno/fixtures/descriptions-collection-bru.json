@@ -1,0 +1,312 @@
+{
+  "name": "descriptions-imported-bru",
+  "version": "1",
+  "items": [
+    {
+      "type": "folder",
+      "name": "folder",
+      "seq": 1,
+      "root": {
+        "meta": {
+          "name": "folder"
+        },
+        "request": {
+          "headers": [
+            {
+              "name": "X-Folder-Version",
+              "value": "1.0",
+              "enabled": true,
+              "description": "Single-line folder header desc"
+            },
+            {
+              "name": "X-Folder-Multi",
+              "value": "value",
+              "enabled": true,
+              "description": "Folder header line one\nFolder header line two"
+            },
+            {
+              "name": "X-Folder-Plain",
+              "value": "plain",
+              "enabled": true
+            }
+          ],
+          "vars": {
+            "req": [
+              {
+                "name": "folderBaseUrl",
+                "value": "https://folder.example.com",
+                "enabled": true,
+                "description": "Single-line folder var desc"
+              },
+              {
+                "name": "folderApiKey",
+                "value": "folder-key",
+                "enabled": true,
+                "description": "Folder var line one\nFolder var line two"
+              },
+              {
+                "name": "folderPlain",
+                "value": "no-desc",
+                "enabled": true
+              }
+            ],
+            "res": []
+          },
+          "script": {},
+          "tests": null
+        }
+      },
+      "items": [
+        {
+          "type": "http",
+          "name": "request",
+          "seq": 1,
+          "request": {
+            "url": "https://example.com/api",
+            "method": "POST",
+            "headers": [
+              {
+                "name": "X-Version",
+                "value": "2.0",
+                "enabled": true,
+                "description": "Single-line header desc"
+              },
+              {
+                "name": "X-Multi",
+                "value": "value",
+                "enabled": true,
+                "description": "Header line one\nHeader line two"
+              },
+              {
+                "name": "X-Plain",
+                "value": "plain-value",
+                "enabled": true
+              }
+            ],
+            "params": [
+              {
+                "name": "q",
+                "value": "search",
+                "type": "query",
+                "enabled": true,
+                "description": "Single-line query desc"
+              },
+              {
+                "name": "page",
+                "value": "1",
+                "type": "query",
+                "enabled": true,
+                "description": "Multi-line query desc line one\nMulti-line query desc line two"
+              },
+              {
+                "name": "plain-query",
+                "value": "value",
+                "type": "query",
+                "enabled": true
+              }
+            ],
+            "body": {
+              "mode": "multipartForm",
+              "formUrlEncoded": [
+                {
+                  "name": "username",
+                  "value": "alice",
+                  "enabled": true,
+                  "description": "Single-line form desc"
+                },
+                {
+                  "name": "email",
+                  "value": "alice@example.com",
+                  "enabled": true,
+                  "description": "Multi-line form desc line one\nMulti-line form desc line two"
+                },
+                {
+                  "name": "plain-form",
+                  "value": "value",
+                  "enabled": true
+                }
+              ],
+              "multipartForm": [
+                {
+                  "type": "text",
+                  "name": "username",
+                  "value": "alice",
+                  "enabled": true,
+                  "description": "Single-line field desc"
+                },
+                {
+                  "type": "text",
+                  "name": "email",
+                  "value": "alice@example.com",
+                  "enabled": true,
+                  "description": "Multi-line field desc line one\nMulti-line field desc line two"
+                },
+                {
+                  "type": "text",
+                  "name": "plain-field",
+                  "value": "value",
+                  "enabled": true
+                }
+              ],
+              "file": []
+            },
+            "script": {},
+            "vars": {
+              "req": [
+                {
+                  "name": "reqBaseUrl",
+                  "value": "https://example.com",
+                  "enabled": true,
+                  "description": "Single-line req var desc"
+                },
+                {
+                  "name": "reqApiKey",
+                  "value": "req-key",
+                  "enabled": true,
+                  "description": "Req var line one\nReq var line two"
+                },
+                {
+                  "name": "reqPlain",
+                  "value": "no-desc",
+                  "enabled": true
+                }
+              ],
+              "res": []
+            },
+            "assertions": [],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        },
+        {
+          "type": "http",
+          "name": "form-request",
+          "seq": 2,
+          "request": {
+            "url": "https://example.com/form",
+            "method": "POST",
+            "headers": [],
+            "params": [],
+            "body": {
+              "mode": "formUrlEncoded",
+              "formUrlEncoded": [
+                {
+                  "name": "username",
+                  "value": "alice",
+                  "enabled": true,
+                  "description": "Single-line form desc"
+                },
+                {
+                  "name": "email",
+                  "value": "alice@example.com",
+                  "enabled": true,
+                  "description": "Multi-line form desc line one\nMulti-line form desc line two"
+                },
+                {
+                  "name": "plain-form",
+                  "value": "value",
+                  "enabled": true
+                }
+              ],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": {},
+            "assertions": [],
+            "tests": "",
+            "docs": "",
+            "auth": {
+              "mode": "none"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "environments": [
+    {
+      "name": "test_env",
+      "variables": [
+        {
+          "name": "envHost",
+          "value": "http://localhost:3000",
+          "type": "text",
+          "enabled": true,
+          "secret": false,
+          "description": "Single-line env desc"
+        },
+        {
+          "name": "envToken",
+          "value": "abc123",
+          "type": "text",
+          "enabled": true,
+          "secret": false,
+          "description": "Env line one\nEnv line two"
+        },
+        {
+          "name": "envPlain",
+          "value": "no-desc",
+          "type": "text",
+          "enabled": true,
+          "secret": false
+        }
+      ]
+    }
+  ],
+  "root": {
+    "request": {
+      "headers": [
+        {
+          "name": "X-Collection-Version",
+          "value": "2.0",
+          "enabled": true,
+          "description": "Single-line collection header desc"
+        },
+        {
+          "name": "X-Collection-Multi",
+          "value": "value",
+          "enabled": true,
+          "description": "Collection header line one\nCollection header line two"
+        },
+        {
+          "name": "X-Collection-Plain",
+          "value": "plain-value",
+          "enabled": true
+        }
+      ],
+      "vars": {
+        "req": [
+          {
+            "name": "baseUrl",
+            "value": "https://example.com",
+            "enabled": true,
+            "description": "Single-line collection var desc"
+          },
+          {
+            "name": "apiKey",
+            "value": "abc123",
+            "enabled": true,
+            "description": "Collection var line one\nCollection var line two"
+          },
+          {
+            "name": "plain",
+            "value": "no-desc",
+            "enabled": true
+          }
+        ],
+        "res": []
+      },
+      "script": {},
+      "tests": null
+    }
+  },
+  "brunoConfig": {
+    "version": "1",
+    "name": "descriptions-imported-bru",
+    "type": "collection"
+  }
+}

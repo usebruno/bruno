@@ -61,7 +61,7 @@ const expectTypeLabel = async (page: Page, name: string, label: string) => {
   const locators = buildCommonLocators(page);
   const row = locators.environment.varRow(name);
   await scrollVirtuosoRowIntoView(page, row);
-  await expect(locators.dataTypeSelector.typeLabel(row)).toHaveText(label, { timeout: SLOW_RENDER_TIMEOUT_MS });
+  await expect(locators.dataTypeSelector.typeLabel(row)).toHaveAttribute('data-selected-type', label, { timeout: SLOW_RENDER_TIMEOUT_MS });
 };
 
 const expectMismatchVisible = async (page: Page, name: string) => {
@@ -204,13 +204,29 @@ for (const { format, collectionName } of FORMATS) {
         await fileChooser.setFiles(exportedFile);
       });
 
+      await test.step(`Select the imported "${IMPORTED_ENV_NAME}" in the env editor sidebar`, async () => {
+        // After import, the editor stays on whichever env was previously selected.
+        // Explicitly switch to the imported env so the assertions exercise its rendering.
+        const importedItem = page
+          .locator('.environments-list .environment-item')
+          .filter({ hasText: IMPORTED_ENV_NAME });
+        await expect(importedItem).toBeVisible();
+        await importedItem.click();
+        await expect(importedItem).toHaveClass(/\bactive\b/);
+      });
+
       await test.step('Verify the imported env editor shows datatypes correctly', async () => {
         await expect(locators.tabs.activeRequestTab()).toContainText('Environments');
 
-        for (const [name, label] of [...TYPED_LABEL_ROWS, ...MISMATCHED_LABEL_ROWS]) {
+        // Secrets live on their own tab, so assert per-tab. The fixture names every
+        // secret var `env_secret_*`, so its name is a reliable tab discriminator.
+        const isSecret = (name: string) => name.includes('secret');
+
+        // Variables tab (default): the non-secret typed, mismatched, and string rows.
+        for (const [name, label] of [...TYPED_LABEL_ROWS, ...MISMATCHED_LABEL_ROWS].filter(([n]) => !isSecret(n))) {
           await expectTypeLabel(page, name, label);
         }
-        for (const name of STRING_LABEL_ROWS) {
+        for (const name of STRING_LABEL_ROWS.filter((n) => !isSecret(n))) {
           await expectTypeLabel(page, name, 'string');
         }
 
@@ -220,6 +236,16 @@ for (const { format, collectionName } of FORMATS) {
         }
         await expectNoMismatch(page, 'env_num');
         await expectNoMismatch(page, 'env_untyped_obj');
+
+        // Secrets tab: the secret typed rows keep their dataType label; the bare-string
+        // secrets fall back to 'string'.
+        await locators.environment.secretsTab().click();
+        for (const [name, label] of TYPED_LABEL_ROWS.filter(([n]) => isSecret(n))) {
+          await expectTypeLabel(page, name, label);
+        }
+        for (const name of STRING_LABEL_ROWS.filter((n) => isSecret(n))) {
+          await expectTypeLabel(page, name, 'string');
+        }
 
         await closeEnvEditor(page);
       });

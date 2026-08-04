@@ -171,10 +171,13 @@ export type {
 export interface BrunoPresets {
   requestType?: string;
   requestUrl?: string;
+  defaultEnvironment?: string;
 }
 
 export interface BrunoConfig {
   version?: string;
+  // present only for OpenCollection (yml) collections; its presence marks the format.
+  opencollection?: string;
   name?: string;
   type?: string;
   ignore?: string[];
@@ -206,10 +209,12 @@ export interface BrunoConfig {
       keyFilePath?: string;
       pfxFilePath?: string;
       passphrase?: string;
+      disabled?: boolean;
     }>;
   };
   scripts?: {
     additionalContextRoots?: string[];
+    flow?: 'sandwich' | 'sequential';
   };
   openapi?: Array<{
     sourceUrl: string;

@@ -1,112 +1,220 @@
 const Bru = require('../src/bru');
-const { valueToString } = require('@usebruno/common/utils');
 
-describe('Bru.setEnvVar', () => {
-  const makeBru = () =>
-    new Bru({
+const makeBru = () =>
+  new Bru({
+    runtime: 'quickjs',
+    envVariables: {},
+    runtimeVariables: {},
+    processEnvVars: {},
+    collectionPath: '/',
+    collectionName: 'Test'
+  });
+
+describe('bru.setEnvVar', () => {
+  test('sets envVariables[key] to value', () => {
+    const bru = makeBru();
+    bru.setEnvVar('token', 'abc123');
+    expect(bru.envVariables.token).toBe('abc123');
+  });
+
+  test('allows non-string values', () => {
+    const bru = makeBru();
+    bru.setEnvVar('count', 42);
+    expect(bru.envVariables.count).toBe(42);
+
+    bru.setEnvVar('active', true);
+    expect(bru.envVariables.active).toBe(true);
+
+    bru.setEnvVar('config', { port: 3000 });
+    expect(bru.envVariables.config).toEqual({ port: 3000 });
+  });
+
+  test('overwrites existing value', () => {
+    const bru = makeBru();
+    bru.setEnvVar('key', 'old');
+    bru.setEnvVar('key', 'new');
+    expect(bru.envVariables.key).toBe('new');
+  });
+
+  test('throws when key is empty', () => {
+    const bru = makeBru();
+    expect(() => bru.setEnvVar('', 'v')).toThrow(/without specifying a name/);
+  });
+
+  test('rejects key with invalid characters', () => {
+    const bru = makeBru();
+    expect(() => bru.setEnvVar('invalid key', 'v')).toThrow(/contains invalid characters/);
+  });
+});
+
+describe('bru.setEnvVar — dirty flag for typed values', () => {
+  test('setting a number trips the env dirty flag', () => {
+    const bru = makeBru();
+    expect(bru._envDirty).toBe(false);
+    bru.setEnvVar('count', 42);
+    expect(bru._envDirty).toBe(true);
+  });
+
+  test('setting a boolean trips the env dirty flag', () => {
+    const bru = makeBru();
+    bru.setEnvVar('active', true);
+    expect(bru._envDirty).toBe(true);
+  });
+
+  test('setting an object trips the env dirty flag', () => {
+    const bru = makeBru();
+    bru.setEnvVar('config', { port: 3000 });
+    expect(bru._envDirty).toBe(true);
+  });
+});
+
+describe('bru.deleteEnvVar', () => {
+  test('removes an existing variable', () => {
+    const bru = makeBru();
+    bru.setEnvVar('token', 'abc');
+    bru.deleteEnvVar('token');
+    expect(bru.envVariables.token).toBeUndefined();
+  });
+
+  test('deleting a non-existent key is a silent no-op', () => {
+    const bru = makeBru();
+    expect(() => bru.deleteEnvVar('missing')).not.toThrow();
+  });
+
+  test('does not delete the internal __name__ marker', () => {
+    const bru = new Bru({
       runtime: 'quickjs',
-      envVariables: {},
+      envVariables: { __name__: 'dev', token: 'abc' },
       runtimeVariables: {},
       processEnvVars: {},
       collectionPath: '/',
       collectionName: 'Test'
     });
-
-  test('updates envVariables and does not mark persistent when persist=false', () => {
-    const bru = makeBru();
-    bru.setEnvVar('non_persist', 'value', { persist: false });
-    expect(bru.envVariables.non_persist).toBe('value');
-    expect(bru.persistentEnvVariables.non_persist).toBeUndefined();
+    bru.deleteEnvVar('__name__');
+    expect(bru.envVariables.__name__).toBe('dev');
+    expect(bru._envDirty).toBe(false);
   });
+});
 
-  test('updates envVariables and tracks persistent when persist=true (string only)', () => {
-    const bru = makeBru();
-    bru.setEnvVar('persist_me', 'value', { persist: true });
-    expect(bru.envVariables.persist_me).toBe('value');
-    expect(bru.persistentEnvVariables.persist_me).toBe('value');
-  });
-
-  test('updates envVariables when options are omitted (defaults to non-persistent)', () => {
-    const bru = makeBru();
-    bru.setEnvVar('no_options', 'value');
-    expect(bru.envVariables.no_options).toBe('value');
-    expect(bru.persistentEnvVariables.no_options).toBeUndefined();
-  });
-
-  describe('persist=true with non-string values', () => {
-    test('stores numbers as-is without throwing', () => {
-      const bru = makeBru();
-      expect(() => bru.setEnvVar('n', 123, { persist: true })).not.toThrow();
-      expect(bru.envVariables.n).toBe(123);
-      expect(bru.persistentEnvVariables.n).toBe(123);
+describe('bru.setEnvVar — dirty flag for reference-mutation idiom', () => {
+  test('the getEnvVar → mutate → setEnvVar idiom trips the dirty flag', () => {
+    const bru = new Bru({
+      runtime: 'quickjs',
+      envVariables: { config: { port: 3000 } },
+      runtimeVariables: {},
+      processEnvVars: {},
+      collectionPath: '/',
+      collectionName: 'Test'
     });
-
-    test('stores booleans as-is without throwing', () => {
-      const bru = makeBru();
-      expect(() => bru.setEnvVar('b', true, { persist: true })).not.toThrow();
-      expect(bru.persistentEnvVariables.b).toBe(true);
-    });
-
-    test('stores plain objects and arrays by reference without throwing', () => {
-      const bru = makeBru();
-      const obj = { a: 1 };
-      const arr = [1, 2, 3];
-      bru.setEnvVar('o', obj, { persist: true });
-      bru.setEnvVar('a', arr, { persist: true });
-      expect(bru.persistentEnvVariables.o).toBe(obj);
-      expect(bru.persistentEnvVariables.a).toBe(arr);
-    });
-
-    test('stores functions and symbols without throwing — but they round-trip to "" via valueToString', () => {
-      const bru = makeBru();
-      const fn = () => 42;
-      const sym = Symbol('s');
-      bru.setEnvVar('fn', fn, { persist: true });
-      bru.setEnvVar('sym', sym, { persist: true });
-
-      // Raw values land in persistentEnvVariables...
-      expect(bru.persistentEnvVariables.fn).toBe(fn);
-      expect(bru.persistentEnvVariables.sym).toBe(sym);
-      // ...but the serializer used by mergeAndPersistEnvironment produces ''
-      // for both, so the value is silently lost on the next save round-trip.
-      expect(valueToString(fn)).toBe('');
-      expect(valueToString(sym)).toBe('');
-    });
-
-    test('stores circular objects without throwing — but they round-trip to "" via valueToString', () => {
-      const bru = makeBru();
-      const circular = { a: 1 };
-      circular.self = circular;
-      bru.setEnvVar('c', circular, { persist: true });
-
-      expect(bru.persistentEnvVariables.c).toBe(circular);
-      // JSON.stringify throws on circulars; valueToString swallows that and returns ''.
-      expect(valueToString(circular)).toBe('');
-    });
+    expect(bru._envDirty).toBe(false);
+    // Real-script idiom: `const c = bru.getEnvVar('config'); c.port = 4000; bru.setEnvVar('config', c);`
+    // `getEnvVar` deep-copies through interpolate's JSON roundtrip, so mutating the result
+    // leaves envVariables.config untouched; the deep-equal guard then sees a real change.
+    // Pre-fix the strict-`!==` guard missed cases where the script structurally rebuilt the value.
+    const config = bru.getEnvVar('config');
+    config.port = 4000;
+    bru.setEnvVar('config', config);
+    expect(bru._envDirty).toBe(true);
+    expect(bru.envVariables.config).toEqual({ port: 4000 });
   });
 
-  test('changing existing key to non-persistent removes prior persisted entry', () => {
-    const bru = makeBru();
-    bru.setEnvVar('same_key', 'old', { persist: true });
-    expect(bru.persistentEnvVariables.same_key).toBe('old');
-
-    bru.setEnvVar('same_key', 'new');
-    expect(bru.envVariables.same_key).toBe('new');
-    expect(bru.persistentEnvVariables.same_key).toBeUndefined();
+  test('re-setting a structurally-equal object value does NOT trip the dirty flag', () => {
+    const bru = new Bru({
+      runtime: 'quickjs',
+      envVariables: { config: { port: 3000 } },
+      runtimeVariables: {},
+      processEnvVars: {},
+      collectionPath: '/',
+      collectionName: 'Test'
+    });
+    bru.setEnvVar('config', { port: 3000 });
+    expect(bru._envDirty).toBe(false);
   });
 
-  test('changing existing key to persistent updates persisted value', () => {
-    const bru = makeBru();
-    bru.setEnvVar('same_key', 'old');
-    expect(bru.persistentEnvVariables.same_key).toBeUndefined();
+  test('re-setting a structurally-equal primitive value does NOT trip the dirty flag', () => {
+    const bru = new Bru({
+      runtime: 'quickjs',
+      envVariables: { token: 'abc' },
+      runtimeVariables: {},
+      processEnvVars: {},
+      collectionPath: '/',
+      collectionName: 'Test'
+    });
+    bru.setEnvVar('token', 'abc');
+    expect(bru._envDirty).toBe(false);
+  });
+});
 
-    bru.setEnvVar('same_key', 'new', { persist: true });
-    expect(bru.envVariables.same_key).toBe('new');
-    expect(bru.persistentEnvVariables.same_key).toBe('new');
+describe('bru.deleteEnvVar — dirty flag contract', () => {
+  test('deleting an existing key trips the env dirty flag', () => {
+    const bru = makeBru();
+    bru.setEnvVar('token', 'abc');
+    bru._envDirty = false; // reset post-set
+    bru.deleteEnvVar('token');
+    expect(bru._envDirty).toBe(true);
   });
 
-  test('validates key name - invalid characters are rejected', () => {
+  test('deleting a non-existent key leaves the dirty flag clean', () => {
     const bru = makeBru();
-    expect(() => bru.setEnvVar('invalid key', 'v')).toThrow(/contains invalid characters/);
+    bru.deleteEnvVar('missing');
+    expect(bru._envDirty).toBe(false);
+  });
+});
+
+describe('bru.deleteAllEnvVars — dirty flag contract', () => {
+  test('deleting populated env trips the dirty flag', () => {
+    const bru = new Bru({
+      runtime: 'quickjs',
+      envVariables: { a: '1', b: '2' },
+      runtimeVariables: {},
+      processEnvVars: {},
+      collectionPath: '/',
+      collectionName: 'Test'
+    });
+    bru.deleteAllEnvVars();
+    expect(bru._envDirty).toBe(true);
+  });
+
+  test('calling on empty env leaves the dirty flag clean', () => {
+    const bru = makeBru();
+    bru.deleteAllEnvVars();
+    expect(bru._envDirty).toBe(false);
+  });
+});
+
+describe('bru.deleteAll* methods — resilient to user-shadowed Object.prototype methods', () => {
+  // Use Object.hasOwn (not the property accessor) to check deletion, since after
+  // delete the prototype's hasOwnProperty becomes visible again on a plain object.
+  test('deleteAllEnvVars works when a var named "hasOwnProperty" was set', () => {
+    const bru = makeBru();
+    bru.setEnvVar('hasOwnProperty', 'shadow');
+    bru.setEnvVar('other', 'value');
+    expect(() => bru.deleteAllEnvVars()).not.toThrow();
+    expect(Object.hasOwn(bru.envVariables, 'hasOwnProperty')).toBe(false);
+    expect(Object.hasOwn(bru.envVariables, 'other')).toBe(false);
+  });
+
+  test('deleteAllGlobalEnvVars works when a var named "hasOwnProperty" was set', () => {
+    const bru = makeBru();
+    bru.setGlobalEnvVar('hasOwnProperty', 'shadow');
+    bru.setGlobalEnvVar('other', 'value');
+    expect(() => bru.deleteAllGlobalEnvVars()).not.toThrow();
+    expect(Object.hasOwn(bru.globalEnvironmentVariables, 'hasOwnProperty')).toBe(false);
+  });
+
+  test('deleteAllCollectionVars works when a var named "hasOwnProperty" was set', () => {
+    const bru = makeBru();
+    bru.setCollectionVar('hasOwnProperty', 'shadow');
+    bru.setCollectionVar('other', 'value');
+    expect(() => bru.deleteAllCollectionVars()).not.toThrow();
+    expect(Object.hasOwn(bru.collectionVariables, 'hasOwnProperty')).toBe(false);
+  });
+
+  test('deleteAllVars works when a runtime var named "hasOwnProperty" was set', () => {
+    const bru = makeBru();
+    bru.setVar('hasOwnProperty', 'shadow');
+    bru.setVar('other', 'value');
+    expect(() => bru.deleteAllVars()).not.toThrow();
+    expect(Object.hasOwn(bru.runtimeVariables, 'hasOwnProperty')).toBe(false);
   });
 });

@@ -303,7 +303,8 @@ describe('postman-collection', () => {
           protocolProfileBehavior: {
             maxRedirects: 10,
             followRedirects: false,
-            disableUrlEncoding: true
+            disableUrlEncoding: true,
+            followAuthorizationHeader: true
           },
           request: {
             method: 'GET',
@@ -355,20 +356,23 @@ describe('postman-collection', () => {
     expect(requestWithAllSettings.settings).toEqual({
       encodeUrl: false,
       followRedirects: false,
-      maxRedirects: 10
+      maxRedirects: 10,
+      forwardAuthorizationHeader: true
     });
 
     // Test request with partial settings
     const requestWithPartialSettings = brunoCollection.items[1];
     expect(requestWithPartialSettings.settings).toEqual({
       encodeUrl: true,
-      followRedirects: true
+      followRedirects: true,
+      forwardAuthorizationHeader: false
     });
 
     // Test request without settings
     const requestWithoutSettings = brunoCollection.items[2];
     expect(requestWithoutSettings.settings).toEqual({
-      encodeUrl: true
+      encodeUrl: true,
+      forwardAuthorizationHeader: false
     });
   });
 
@@ -413,7 +417,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
 
     // Request should inherit auth mode
@@ -425,7 +430,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -470,7 +476,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -516,7 +523,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
 
     // Request should inherit auth mode
@@ -528,7 +536,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -573,7 +582,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
 
     // Request auth should default to 'none'
@@ -585,7 +595,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -635,7 +646,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
 
     // Request should inherit auth mode
@@ -647,7 +659,8 @@ describe('postman-collection', () => {
       apikey: null,
       oauth1: null,
       oauth2: null,
-      digest: null
+      digest: null,
+      ntlm: null
     });
   });
 
@@ -1425,6 +1438,221 @@ describe('postman-collection formdata import', () => {
   });
 });
 
+describe('postman-collection binary body import', () => {
+  it('should import a request with mode: file and preserve the file path', async () => {
+    const collectionWithBinaryBody = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with binary body',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'binary upload',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'file',
+              file: { src: './binary-payload.bin' }
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithBinaryBody);
+    const body = brunoCollection.items[0].request.body;
+
+    expect(body.mode).toBe('file');
+    expect(body.file).toHaveLength(1);
+    expect(body.file[0]).toMatchObject({
+      selected: true,
+      filePath: './binary-payload.bin',
+      contentType: 'application/octet-stream'
+    });
+  });
+
+  it('should import a Postman example with mode: file in originalRequest', async () => {
+    const collectionWithBinaryExample = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with binary example',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'binary upload',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'file',
+              file: { src: './binary-payload.bin' }
+            }
+          },
+          response: [
+            {
+              name: 'Binary upload example',
+              originalRequest: {
+                method: 'POST',
+                header: [],
+                url: { raw: 'https://example.com/upload' },
+                body: {
+                  mode: 'file',
+                  file: { src: './example-payload.bin' }
+                }
+              },
+              status: 'Created',
+              code: 201,
+              header: [],
+              body: ''
+            }
+          ]
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithBinaryExample);
+    const examples = brunoCollection.items[0].examples;
+
+    expect(examples).toHaveLength(1);
+    const exampleBody = examples[0].request.body;
+    expect(exampleBody.mode).toBe('file');
+    expect(exampleBody.file).toHaveLength(1);
+    expect(exampleBody.file[0]).toMatchObject({
+      selected: true,
+      filePath: './example-payload.bin',
+      contentType: 'application/octet-stream'
+    });
+  });
+
+  it('should infer contentType from the file extension of src', async () => {
+    const collectionWithKnownExtension = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with known extension',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'json upload',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'file',
+              file: { src: './payload.json' }
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithKnownExtension);
+    const body = brunoCollection.items[0].request.body;
+
+    expect(body.file[0].contentType).toBe('application/json');
+  });
+
+  it('should infer image/png for a .png file', async () => {
+    const collectionWithPngUpload = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with png upload',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'png upload',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'file',
+              file: { src: './avatar.png' }
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithPngUpload);
+    const body = brunoCollection.items[0].request.body;
+
+    expect(body.file[0].filePath).toBe('./avatar.png');
+    expect(body.file[0].contentType).toBe('image/png');
+  });
+
+  it('should resolve application/octet-stream for a .bin file', async () => {
+    const collectionWithBinUpload = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with bin upload',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'bin upload',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'file',
+              file: { src: './binary-payload.bin' }
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithBinUpload);
+    const body = brunoCollection.items[0].request.body;
+
+    expect(body.file[0].filePath).toBe('./binary-payload.bin');
+    expect(body.file[0].contentType).toBe('application/octet-stream');
+  });
+
+  it('should not throw when mode: file has no src', async () => {
+    const collectionWithMissingSrc = {
+      info: {
+        _postman_id: 'test-id',
+        name: 'collection with missing src',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'binary upload without file',
+          request: {
+            method: 'POST',
+            header: [],
+            url: { raw: 'https://example.com/upload' },
+            body: {
+              mode: 'file'
+            }
+          }
+        }
+      ]
+    };
+
+    const { collection: brunoCollection } = await postmanToBruno(collectionWithMissingSrc);
+    const body = brunoCollection.items[0].request.body;
+
+    expect(body.mode).toBe('file');
+    expect(body.file).toHaveLength(1);
+    expect(body.file[0]).toMatchObject({
+      selected: true,
+      filePath: '',
+      contentType: 'application/octet-stream'
+    });
+  });
+});
+
 const expectedOutput = {
   name: 'simple collection',
   uid: 'mockeduuidvalue123456',
@@ -1452,7 +1680,8 @@ const expectedOutput = {
               apikey: null,
               oauth1: null,
               oauth2: null,
-              digest: null
+              digest: null,
+              ntlm: null
             },
             headers: [],
             params: [],
@@ -1482,7 +1711,8 @@ const expectedOutput = {
             apikey: null,
             oauth1: null,
             oauth2: null,
-            digest: null
+            digest: null,
+            ntlm: null
           },
           headers: [],
           script: {},
@@ -1507,7 +1737,8 @@ const expectedOutput = {
           apikey: null,
           oauth1: null,
           oauth2: null,
-          digest: null
+          digest: null,
+          ntlm: null
         },
         headers: [],
         params: [],
@@ -1538,7 +1769,8 @@ const expectedOutput = {
         apikey: null,
         oauth1: null,
         oauth2: null,
-        digest: null
+        digest: null,
+        ntlm: null
       },
       headers: [],
       script: {},

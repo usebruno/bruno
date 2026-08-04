@@ -42,10 +42,12 @@ const EnvironmentList = ({
   setShowExportModal
 }) => {
   const dispatch = useDispatch();
-  const envSearchQuery = useSelector((state) => state.app.envVarSearch?.collection?.query ?? '');
-  const isEnvSearchExpanded = useSelector((state) => state.app.envVarSearch?.collection?.expanded ?? false);
-  const setEnvSearchQuery = (q) => dispatch(setEnvVarSearchQuery({ context: 'collection', query: q }));
-  const setIsEnvSearchExpanded = (v) => dispatch(setEnvVarSearchExpanded({ context: 'collection', expanded: v }));
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const activeEnvTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.environment?.tab) || 'variables';
+  const envSearchQuery = useSelector((state) => state.app.envVarSearch?.collection?.[activeEnvTab]?.query ?? '');
+  const isEnvSearchExpanded = useSelector((state) => state.app.envVarSearch?.collection?.[activeEnvTab]?.expanded ?? false);
+  const setEnvSearchQuery = (q) => dispatch(setEnvVarSearchQuery({ context: 'collection', tab: activeEnvTab, query: q }));
+  const setIsEnvSearchExpanded = (v) => dispatch(setEnvVarSearchExpanded({ context: 'collection', tab: activeEnvTab, expanded: v }));
 
   const [openImportModal, setOpenImportModal] = useState(false);
   const [searchText, setSearchText] = useState('');

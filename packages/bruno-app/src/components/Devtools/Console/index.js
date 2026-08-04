@@ -1,16 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { usePersistedState } from 'hooks/usePersistedState';
 import { useSelector, useDispatch } from 'react-redux';
 import ReactJson from 'react-json-view';
 import { useTheme } from 'providers/Theme';
 import {
   IconX,
   IconTrash,
-  IconFilter,
-  IconAlertTriangle,
-  IconAlertCircle,
   IconBug,
-  IconCode,
-  IconChevronDown,
   IconTerminal2,
   IconNetwork,
   IconDashboard
@@ -23,10 +19,11 @@ import {
   setActiveTab,
   clearDebugErrors,
   updateNetworkFilter,
-  toggleAllNetworkFilters,
-  updateRequestDetailsPanelWidth
+  toggleAllNetworkFilters
 } from 'providers/ReduxStore/slices/logs';
 
+import { DevToolsFilterDropdown } from './FilterDropdown';
+import LogIcon from './LogIcon';
 import NetworkTab from './NetworkTab';
 import TerminalTab from './TerminalTab';
 import RequestDetailsPanel from './RequestDetailsPanel';
@@ -37,24 +34,7 @@ import StyledWrapper from './StyledWrapper';
 import { useResizablePanel } from 'hooks/useResizablePanel';
 
 const MIN_DETAILS_PANEL_WIDTH = 280;
-const MAX_DETAILS_PANEL_WIDTH = 800;
-
-const LogIcon = ({ type }) => {
-  const iconProps = { size: 16, strokeWidth: 1.5 };
-
-  switch (type) {
-    case 'error':
-      return <IconAlertCircle className="log-icon error" {...iconProps} />;
-    case 'warn':
-      return <IconAlertTriangle className="log-icon warn" {...iconProps} />;
-    case 'info':
-      return <IconAlertTriangle className="log-icon info" {...iconProps} />;
-    // case 'debug':
-    //   return <IconBug className="log-icon debug" {...iconProps} />;
-    default:
-      return <IconCode className="log-icon log" {...iconProps} />;
-  }
-};
+const DETAILS_PANEL_MAX_RATIO = 0.7;
 
 const LogTimestamp = ({ timestamp }) => {
   const date = new Date(timestamp);
@@ -209,137 +189,6 @@ const LogMessage = ({ message, args }) => {
   );
 };
 
-const FilterDropdown = ({ filters, logCounts, onFilterToggle, onToggleAll }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  const allFiltersEnabled = Object.values(filters).every((f) => f);
-  const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  return (
-    <div className="filter-dropdown" ref={dropdownRef}>
-      <button
-        className="filter-dropdown-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        title="Filter logs by type"
-      >
-        <IconFilter size={16} strokeWidth={1.5} />
-        <span className="filter-summary">
-          {activeFilters.length === Object.keys(filters).length ? 'All' : `${activeFilters.length}/${Object.keys(filters).length}`}
-        </span>
-        <IconChevronDown size={14} strokeWidth={1.5} />
-      </button>
-
-      {isOpen && (
-        <div className="filter-dropdown-menu right">
-          <div className="filter-dropdown-header">
-            <span>Filter by Type</span>
-            <button
-              className="filter-toggle-all"
-              onClick={() => onToggleAll(!allFiltersEnabled)}
-            >
-              {allFiltersEnabled ? 'Hide All' : 'Show All'}
-            </button>
-          </div>
-
-          <div className="filter-dropdown-options">
-            {Object.entries(filters).map(([filterType, enabled]) => (
-              <label key={filterType} className="filter-option">
-                <input
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={(e) => onFilterToggle(filterType, e.target.checked)}
-                />
-                <div className="filter-option-content">
-                  <LogIcon type={filterType} />
-                  <span className="filter-option-label">{filterType}</span>
-                  <span className="filter-option-count">({logCounts[filterType] || 0})</span>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const NetworkFilterDropdown = ({ filters, requestCounts, onFilterToggle, onToggleAll }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  const allFiltersEnabled = Object.values(filters).every((f) => f);
-  const activeFilters = Object.entries(filters).filter(([_, enabled]) => enabled);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  return (
-    <div className="filter-dropdown" ref={dropdownRef}>
-      <button
-        className="filter-dropdown-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        title="Filter requests by method"
-      >
-        <IconFilter size={16} strokeWidth={1.5} />
-        <span className="filter-summary">
-          {activeFilters.length === Object.keys(filters).length ? 'All' : `${activeFilters.length}/${Object.keys(filters).length}`}
-        </span>
-        <IconChevronDown size={14} strokeWidth={1.5} />
-      </button>
-
-      {isOpen && (
-        <div className="filter-dropdown-menu right">
-          <div className="filter-dropdown-header">
-            <span>Filter by Method</span>
-            <button
-              className="filter-toggle-all"
-              onClick={() => onToggleAll(!allFiltersEnabled)}
-            >
-              {allFiltersEnabled ? 'Hide All' : 'Show All'}
-            </button>
-          </div>
-
-          <div className="filter-dropdown-options">
-            {Object.entries(filters).map(([method, enabled]) => (
-              <label key={method} className="filter-option">
-                <input
-                  type="checkbox"
-                  checked={enabled}
-                  onChange={(e) => onFilterToggle(method, e.target.checked)}
-                />
-                <div className="filter-option-content">
-                  <span className="filter-option-label">{method}</span>
-                  <span className="filter-option-count">({requestCounts[method] || 0})</span>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
 const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onClearLogs }) => {
   const logsEndRef = useRef(null);
   const prevLogsCountRef = useRef(0);
@@ -386,15 +235,33 @@ const Console = () => {
   const dispatch = useDispatch();
   const { logs, filters, activeTab, selectedRequest, selectedError, networkFilters, debugErrors } = useSelector((state) => state.logs);
   const collections = useSelector((state) => state.collections.collections);
-  const savedDetailsPanelWidth = useSelector((state) => state.logs.requestDetailsPanelWidth);
+  const [savedDetailsPanelWidth, setSavedDetailsPanelWidth] = usePersistedState({ key: 'devtools-details-panel-width', default: 400 });
   const consoleRef = useRef(null);
+  const [consoleWidth, setConsoleWidth] = useState(0);
+
+  useEffect(() => {
+    const node = consoleRef.current;
+    if (!node || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) setConsoleWidth(entry.contentRect.width);
+    });
+    observer.observe(node);
+
+    return () => observer.disconnect();
+  }, []);
+
+  const detailsPanelMaxWidth = consoleWidth
+    ? Math.max(MIN_DETAILS_PANEL_WIDTH, consoleWidth * DETAILS_PANEL_MAX_RATIO)
+    : Number.POSITIVE_INFINITY;
 
   const { width: detailsPanelWidth, handleDragStart: handleDetailsPanelDragStart } = useResizablePanel({
     initialWidth: savedDetailsPanelWidth,
     minWidth: MIN_DETAILS_PANEL_WIDTH,
-    maxWidth: MAX_DETAILS_PANEL_WIDTH,
+    maxWidth: detailsPanelMaxWidth,
     direction: 'right',
-    onResizeEnd: (newWidth) => dispatch(updateRequestDetailsPanelWidth({ requestDetailsPanelWidth: newWidth }))
+    onResizeEnd: (newWidth) => setSavedDetailsPanelWidth(newWidth)
   });
 
   const logCounts = logs.reduce((counts, log) => {
@@ -507,11 +374,14 @@ const Console = () => {
         return (
           <div className="tab-controls">
             <div className="filter-controls">
-              <FilterDropdown
+              <DevToolsFilterDropdown
                 filters={filters}
-                logCounts={logCounts}
+                counts={logCounts}
                 onFilterToggle={handleFilterToggle}
                 onToggleAll={handleToggleAllFilters}
+                headerLabel="Filter by Type"
+                title="Filter logs by type"
+                renderIcon={(type) => <LogIcon type={type} />}
               />
             </div>
             <div className="action-controls">
@@ -529,11 +399,13 @@ const Console = () => {
         return (
           <div className="tab-controls">
             <div className="filter-controls">
-              <NetworkFilterDropdown
+              <DevToolsFilterDropdown
                 filters={networkFilters}
-                requestCounts={requestCounts}
+                counts={requestCounts}
                 onFilterToggle={handleNetworkFilterToggle}
                 onToggleAll={handleToggleAllNetworkFilters}
+                headerLabel="Filter by Method"
+                title="Filter requests by method"
               />
             </div>
           </div>

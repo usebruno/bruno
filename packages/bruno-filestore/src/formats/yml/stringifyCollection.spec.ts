@@ -47,3 +47,177 @@ describe('stringifyCollection — typed request.variables', () => {
     expect(reqVars[4].dataType).toBeUndefined();
   });
 });
+
+describe('stringifyCollection — script execution flow', () => {
+  const baseRoot = {
+    meta: null,
+    request: { headers: [], auth: { mode: 'none' }, script: { req: null, res: null }, tests: null, vars: { req: [], res: [] } },
+    docs: null
+  } as any;
+
+  it('round-trips flow: sequential through the bruno extension', () => {
+    const yml = stringifyCollection(baseRoot, { name: 'c', scripts: { flow: 'sequential' } });
+    expect(yml).toMatch(/flow:\s*sequential/);
+    expect(parseCollection(yml).brunoConfig.scripts?.flow).toBe('sequential');
+  });
+
+  it('round-trips flow: sandwich through the bruno extension', () => {
+    const yml = stringifyCollection(baseRoot, { name: 'c', scripts: { flow: 'sandwich' } });
+    expect(parseCollection(yml).brunoConfig.scripts?.flow).toBe('sandwich');
+  });
+
+  it('writes no flow when the collection has none', () => {
+    const yml = stringifyCollection(baseRoot, { name: 'c' });
+    expect(yml).not.toMatch(/flow:/);
+    expect(parseCollection(yml).brunoConfig.scripts?.flow).toBeUndefined();
+  });
+
+  it('drops an unrecognized flow value on write', () => {
+    const yml = stringifyCollection(baseRoot, { name: 'c', scripts: { flow: 'parallel' } });
+    expect(yml).not.toMatch(/flow:/);
+  });
+
+  it('preserves additionalContextRoots alongside a written flow value', () => {
+    const yml = stringifyCollection(baseRoot, {
+      name: 'c',
+      scripts: { flow: 'sequential', additionalContextRoots: ['../libs'] }
+    });
+    const { brunoConfig } = parseCollection(yml);
+    expect(brunoConfig.scripts?.flow).toBe('sequential');
+    expect(brunoConfig.scripts?.additionalContextRoots).toEqual(['../libs']);
+  });
+});
+
+describe('stringifyCollection — client certificates', () => {
+  const baseRoot = {
+    meta: null,
+    request: { headers: [], auth: { mode: 'none' }, script: { req: null, res: null }, tests: null, vars: { req: [], res: [] } },
+    docs: null
+  } as any;
+
+  it('round-trips cert/pfx certificates', () => {
+    const brunoConfig = {
+      name: 'c',
+      clientCertificates: {
+        certs: [
+          {
+            domain: 'localhost',
+            type: 'cert',
+            certFilePath: './certs/client-cert.pem',
+            keyFilePath: './certs/client-key.pem',
+            passphrase: 'secret'
+          },
+          {
+            domain: 'example.com',
+            type: 'pfx',
+            pfxFilePath: './certs/client.pfx',
+            passphrase: ''
+          }
+        ]
+      }
+    };
+
+    const yml = stringifyCollection(baseRoot, brunoConfig);
+    const { brunoConfig: reparsed } = parseCollection(yml);
+
+    expect(reparsed.clientCertificates.certs).toEqual([
+      {
+        domain: 'localhost',
+        type: 'cert',
+        certFilePath: './certs/client-cert.pem',
+        keyFilePath: './certs/client-key.pem',
+        passphrase: 'secret'
+      },
+      {
+        domain: 'example.com',
+        type: 'pfx',
+        pfxFilePath: './certs/client.pfx',
+        passphrase: ''
+      }
+    ]);
+  });
+
+  it('writes disabled: true for disabled certs and round-trips it', () => {
+    const brunoConfig = {
+      name: 'c',
+      clientCertificates: {
+        certs: [
+          {
+            domain: 'localhost',
+            type: 'cert',
+            certFilePath: './certs/client-cert.pem',
+            keyFilePath: './certs/client-key.pem',
+            passphrase: 'secret',
+            disabled: true
+          },
+          {
+            domain: 'example.com',
+            type: 'pfx',
+            pfxFilePath: './certs/client.pfx',
+            passphrase: '',
+            disabled: true
+          }
+        ]
+      }
+    };
+
+    const yml = stringifyCollection(baseRoot, brunoConfig);
+
+    expect(yml).toMatch(/disabled:\s*true/);
+
+    const { brunoConfig: reparsed } = parseCollection(yml);
+    expect(reparsed.clientCertificates.certs[0].disabled).toBe(true);
+    expect(reparsed.clientCertificates.certs[1].disabled).toBe(true);
+  });
+
+  it('does not write disabled for enabled certs', () => {
+    const brunoConfig = {
+      name: 'c',
+      clientCertificates: {
+        certs: [
+          {
+            domain: 'example.com',
+            type: 'pfx',
+            pfxFilePath: './certs/client.pfx',
+            passphrase: ''
+          }
+        ]
+      }
+    };
+
+    const yml = stringifyCollection(baseRoot, brunoConfig);
+
+    expect(yml).not.toMatch(/disabled:/);
+
+    const { brunoConfig: reparsed } = parseCollection(yml);
+    expect(reparsed.clientCertificates.certs[0]).not.toHaveProperty('disabled');
+  });
+});
+
+describe('stringifyCollection — writing the collection version', () => {
+  const baseRoot = {
+    meta: null,
+    request: { headers: [], auth: { mode: 'none' }, script: { req: null, res: null }, tests: null, vars: { req: [], res: [] } },
+    docs: null
+  } as any;
+
+  it('writes the version as-is and reads back the same value', () => {
+    const yml = stringifyCollection(baseRoot, { name: 'c', version: '2' });
+    expect(yml).toMatch(/version:\s*['"]?2['"]?/);
+    expect(parseCollection(yml).brunoConfig.version).toBe('2');
+  });
+
+  it('writes no version when the collection has none', () => {
+    const yml = stringifyCollection(baseRoot, { name: 'c' });
+    expect(parseCollection(yml).brunoConfig.version).toBeUndefined();
+  });
+
+  it('accepts any version text — there is no check on the format', () => {
+    // The version is free-form: users can set whatever they like. Each of these should be
+    // saved and read back exactly the same, without changing the format or rejecting it.
+    ['v1.0.0', '2', '1.2.3-beta', '2024.01.15', 'release-2024-Q3', 'anything-goes'].forEach((version) => {
+      const yml = stringifyCollection(baseRoot, { name: 'c', version });
+      expect(parseCollection(yml).brunoConfig.version).toBe(version);
+    });
+  });
+});

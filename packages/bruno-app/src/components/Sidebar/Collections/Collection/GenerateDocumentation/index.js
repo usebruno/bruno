@@ -13,12 +13,12 @@ import StyledWrapper from './StyledWrapper';
 import CollectionVersionInfo from './CollectionVersionInfo';
 import EnvironmentSelectionList from './EnvironmentSelectionList';
 import { useApp } from 'providers/App';
-import { transformCollectionToSaveToExportAsFile, findCollectionByUid, areItemsLoading, sortItemsBySidebarOrder, getCollectionItemCounts } from 'utils/collections/index';
+import { transformCollectionToSaveToExportAsFile, findCollectionByUid, areItemsLoading, sortItemsBySidebarOrder, getCollectionItemCounts, getCollectionVersion } from 'utils/collections/index';
 import { brunoToOpenCollection } from '@usebruno/converters';
 import { sanitizeName } from 'utils/common/regex';
 import { escapeHtml } from 'utils/response';
 
-const CDN_BASE_URL = 'https://cdn.opencollection.com';
+const CDN_BASE_URL = 'https://cdn.usebruno.com';
 
 const FEATURES = [
   'Standalone HTML file - no server required',
@@ -36,8 +36,8 @@ const buildHtmlDocument = (collectionName, escapedYamlContent) => `<!DOCTYPE htm
         body { margin: 0; padding: 0; }
         #opencollection-container { width: 100vw; height: 100vh; }
     </style>
-    <link rel="stylesheet" href="${CDN_BASE_URL}/docs.css">
-    <script src="${CDN_BASE_URL}/docs.js"></script>
+    <link rel="stylesheet" href="${CDN_BASE_URL}/api-docs/api-docs.css">
+    <script src="${CDN_BASE_URL}/api-docs/api-docs.js"></script>
 </head>
 <body>
     <div id="opencollection-container"></div>
@@ -76,8 +76,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
     [collection]
   );
 
-  // The collection's current version (read-only here); formatted for display below.
-  const currentVersion = collection?.version;
+  const currentVersion = getCollectionVersion(collection);
 
   // Folder + request counts, computed from the collection tree (recursively).
   const { folderCount, requestCount } = useMemo(
@@ -87,16 +86,15 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
 
   const environments = useMemo(() => collection?.environments || [], [collection?.environments]);
 
-  // Track *deselected* environments so all environments — including any that load
-  // after mount — stay selected by default, matching the design.
-  const [deselectedEnvUids, setDeselectedEnvUids] = useState(() => new Set());
+  // Track *selected* environments, starting empty, so nothing is included by default.
+  const [selectedEnvUidsSet, setSelectedEnvUidsSet] = useState(() => new Set());
   const selectedEnvUids = useMemo(
-    () => environments.filter((env) => !deselectedEnvUids.has(env.uid)).map((env) => env.uid),
-    [environments, deselectedEnvUids]
+    () => environments.filter((env) => selectedEnvUidsSet.has(env.uid)).map((env) => env.uid),
+    [environments, selectedEnvUidsSet]
   );
 
   const toggleEnv = useCallback((uid) => {
-    setDeselectedEnvUids((prev) => {
+    setSelectedEnvUidsSet((prev) => {
       const next = new Set(prev);
       if (next.has(uid)) {
         next.delete(uid);
@@ -107,9 +105,9 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
     });
   }, []);
 
-  // Select all -> nothing deselected; deselect all -> every environment deselected.
+  // Select all -> every environment selected; deselect all -> nothing selected.
   const toggleAllEnvs = useCallback(
-    (selectAll) => setDeselectedEnvUids(selectAll ? new Set() : new Set(environments.map((env) => env.uid))),
+    (selectAll) => setSelectedEnvUidsSet(selectAll ? new Set(environments.map((env) => env.uid)) : new Set()),
     [environments]
   );
 
@@ -121,7 +119,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
       // ) at every depth, so the generated docs match the collection shown in the sidebar.
       collectionCopy.items = sortItemsBySidebarOrder(collectionCopy.items);
 
-      // Only include the environments the user kept selected in the generated docs.
+      // Only include the environments the user explicitly selected in the generated docs.
       const selectedSet = new Set(selectedEnvUids);
       collectionCopy.environments = (collectionCopy.environments || []).filter((env) => selectedSet.has(env.uid));
 
@@ -189,7 +187,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
         handleCancel={onClose}
         confirmDisabled={isLoading}
       >
-        <StyledWrapper className="w-[500px]">
+        <StyledWrapper>
           {isLoading ? (
             <div className="flex items-center justify-center gap-3 py-8">
               <IconLoader2 size={20} className="animate-spin" />
@@ -215,7 +213,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
               </ul>
 
               <div className="config-card mb-4">
-                <CollectionVersionInfo version={currentVersion} folderCount={folderCount} requestCount={requestCount} />
+                <CollectionVersionInfo name={collection.name} version={currentVersion} folderCount={folderCount} requestCount={requestCount} environmentCount={environments.length} />
                 {environments.length > 0 && (
                   <Fragment>
                     <div className="card-divider" />
@@ -233,7 +231,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
               </div>
 
               <p className="note m-0">
-                The generated file loads OpenCollection's JavaScript and CSS files from a CDN, which requires an internet connection.
+                The generated file loads Bruno's JavaScript and CSS files from a CDN, which requires an internet connection.
               </p>
             </div>
           )}

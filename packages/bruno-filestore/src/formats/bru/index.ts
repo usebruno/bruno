@@ -13,6 +13,20 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
   try {
     const json = parsed ? data : bruToJsonV2(data);
 
+    if (_.get(json, 'meta.type') === 'app') {
+      const seq = _.get(json, 'meta.seq');
+      const tags = _.get(json, 'meta.tags', []);
+      return {
+        type: 'app',
+        name: _.get(json, 'meta.name'),
+        seq: !_.isNaN(seq) ? Number(seq) : 1,
+        tags: Array.isArray(tags) ? tags : [],
+        settings: _.get(json, 'settings', {}),
+        app: { code: _.get(json, 'app.code', null) },
+        request: null
+      };
+    }
+
     let requestType = _.get(json, 'meta.type');
     switch (requestType) {
       case 'http':
@@ -40,7 +54,9 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
     };
 
     const appData = _.get(json, 'app');
-    const app = appData ? { code: _.get(appData, 'code', null) } : null;
+    const app = appData
+      ? { code: _.get(appData, 'code', null), enabled: _.get(appData, 'enabled', false) === true }
+      : null;
 
     const transformedJson = {
       type: requestType,
@@ -122,6 +138,22 @@ export const parseBruRequest = (data: string | any, parsed: boolean = false): an
 
 export const stringifyBruRequest = (json: any): string => {
   try {
+    // Standalone app item — emit only meta + the app code block.
+    if (_.get(json, 'type') === 'app') {
+      const seq = _.get(json, 'seq');
+      const bruJson: any = {
+        meta: {
+          name: _.get(json, 'name'),
+          type: 'app',
+          seq: !_.isNaN(seq) ? Number(seq) : 1,
+          tags: _.get(json, 'tags', [])
+        },
+        settings: _.get(json, 'settings', {}),
+        app: { code: _.get(json, 'app.code', '') }
+      };
+      return jsonToBruV2(bruJson);
+    }
+
     let type = _.get(json, 'type');
     switch (type) {
       case 'http-request':
@@ -227,8 +259,8 @@ export const stringifyBruRequest = (json: any): string => {
     bruJson.examples = _.get(json, 'examples', []).map((e: any) => jsonExampleToBru(e));
 
     const app = _.get(json, 'app');
-    if (app && app.code && app.code.length) {
-      bruJson.app = { code: app.code };
+    if (app && (app.enabled === true || (app.code && app.code.length))) {
+      bruJson.app = { code: app.code || null, enabled: app.enabled === true };
     }
 
     const bru = jsonToBruV2(bruJson);

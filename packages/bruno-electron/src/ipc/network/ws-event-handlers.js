@@ -435,9 +435,9 @@ const registerWsEventHandlers = (window) => {
   });
 
   // Close a WebSocket connection
-  ipcMain.handle('renderer:ws:close-connection', (event, requestId, code, reason) => {
+  ipcMain.handle('renderer:ws:close-connection', async (event, requestId, code, reason) => {
     try {
-      wsClient.close(requestId, code, reason);
+      await wsClient.close(requestId, code, reason);
       return { success: true };
     } catch (error) {
       console.error('Error closing WebSocket connection:', error);
