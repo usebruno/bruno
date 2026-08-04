@@ -9,7 +9,7 @@ import { buildPreferencesLocators, openSystemProxyPanel } from '../utils/page';
 // year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })` with the day
 // period uppercased, e.g.
 //   "15 Jul 2026, 04:30 PM"
-const TIMESTAMP_REGEX = /^Last refreshed: \d{2} [A-Z][a-z]{2,3} \d{4},\s+\d{2}:\d{2}\s?(am|pm)$/i;
+const TIMESTAMP_REGEX = /^Last refreshed: \d{2} [A-Z][a-z]{2,3} \d{4},\s+\d{2}:\d{2}\s?(AM|PM)$/;
 
 test.describe('System Proxy - last refreshed timestamp', () => {
   test('does not show a timestamp before the user forces a refresh', async ({ page }) => {
