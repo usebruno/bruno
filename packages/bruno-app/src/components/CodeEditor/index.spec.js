@@ -8,6 +8,15 @@ jest.mock('codemirror', () => {
   return codemirror;
 });
 
+jest.mock('providers/ReduxStore', () => ({
+  __esModule: true,
+  default: {
+    dispatch: jest.fn(),
+    getState: jest.fn(() => ({})),
+    subscribe: jest.fn()
+  }
+}));
+
 const MOCK_THEME = {
   codemirror: {
     bg: '#1e1e1e',
