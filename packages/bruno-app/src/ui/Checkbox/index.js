@@ -98,10 +98,6 @@ function mergeRefs(...refs) {
   };
 }
 
-function useMergedRef(...refs) {
-  return useMemo(() => mergeRefs(...refs), refs);
-}
-
 /**
  * Controlled checkbox. Always pass `checked` + `onChange`.
  */
@@ -127,9 +123,16 @@ const Checkbox = forwardRef(
     forwardedRef
   ) => {
     const inputRef = useRef(null);
-    const mergedRef = useMergedRef(inputRef, forwardedRef);
+    const mergedRef = useMemo(() => mergeRefs(inputRef, forwardedRef), [inputRef, forwardedRef]);
 
     useIndeterminate(inputRef, indeterminate);
+
+    const handleChange = (event) => {
+      onChange?.(event);
+      // attach indeterminate to a change event
+      // so that inputRef.current is guaranteed to already be attached to it.
+      inputRef.current.indeterminate = indeterminate;
+    };
 
     return (
       <StyledWrapper
@@ -147,7 +150,7 @@ const Checkbox = forwardRef(
               value={value}
               checked={checked}
               disabled={disabled}
-              onChange={onChange}
+              onChange={handleChange}
               className={`checkbox-input ${inputClassName}`.trim()}
               data-testid={dataTestId}
               aria-label={ariaLabel}

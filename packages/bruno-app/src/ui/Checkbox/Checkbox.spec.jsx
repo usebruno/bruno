@@ -146,7 +146,7 @@ describe('Checkbox', () => {
       const checkbox = screen.getByRole('checkbox');
       await user.click(checkbox);
       // Clicking a native checkbox always resets `indeterminate` to false in the browser,
-      // regardless of what the app does with the click. this is the behavior our effect
+      // regardless of what the app does with the click. This is the behavior our effect
       // (re-applied on every render, no dependency array) must correct for.
       checkbox.indeterminate = false;
 
@@ -156,6 +156,20 @@ describe('Checkbox', () => {
         </ThemeProvider>
       );
 
+      expect(checkbox.indeterminate).toBe(true);
+    });
+
+    it('re-asserts the DOM property from the change handler even when the click causes no rerender', async () => {
+      const onChange = jest.fn();
+      renderCheckbox({ indeterminate: true, onChange });
+
+      const checkbox = screen.getByRole('checkbox');
+      expect(checkbox.indeterminate).toBe(true);
+
+      checkbox.indeterminate = false;
+      await user.click(checkbox);
+
+      expect(onChange).toHaveBeenCalledTimes(1);
       expect(checkbox.indeterminate).toBe(true);
     });
 
