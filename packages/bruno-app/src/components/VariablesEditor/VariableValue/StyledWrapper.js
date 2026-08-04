@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+const MONO = `ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace`;
+
 const StyledWrapper = styled.div`
   display: flex;
   align-items: center;
@@ -7,6 +9,10 @@ const StyledWrapper = styled.div`
   width: 100%;
   height: 100%;
   min-width: 0;
+
+  &.is-object {
+    align-items: flex-start;
+  }
 
   .value-content {
     flex: 1 1 0;
@@ -17,6 +23,11 @@ const StyledWrapper = styled.div`
     height: 100%;
   }
 
+  &.is-object .value-content {
+    align-items: flex-start;
+    height: auto;
+  }
+
   .value-text {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -24,6 +35,8 @@ const StyledWrapper = styled.div`
     width: 100%;
     text-align: left;
     line-height: 33px;
+    font-family: ${MONO};
+    font-size: 12px;
   }
 
   .var-ref {
@@ -42,31 +55,33 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.codemirror.variable.prompt};
   }
 
-  .object-preview {
-    display: block;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    border: none;
-    background: transparent;
-    font: inherit;
+  .v-str {
+    color: ${(props) => props.theme.codemirror.tokens.string};
+
+    &.is-var-ref {
+      color: ${(props) => props.theme.codemirror.variable.valid};
+    }
+  }
+  .v-num {
+    color: ${(props) => props.theme.codemirror.tokens.number};
+  }
+  .v-bool {
+    color: ${(props) => props.theme.codemirror.tokens.atom};
+  }
+  .v-null,
+  .empty-value {
     color: ${(props) => props.theme.colors.text.muted};
-    cursor: pointer;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    text-align: left;
-    line-height: 33px;
+    font-style: italic;
+  }
 
-    &:hover {
-      color: ${(props) => props.theme.colors?.text?.link || props.theme.primary?.strong || '#546de5'};
-      text-decoration: underline;
-    }
-
-    &.is-selected {
-      color: ${(props) => props.theme.colors?.text?.link || props.theme.primary?.strong || '#546de5'};
-      font-weight: 500;
-    }
+  .object-value,
+  .value-tree-scroll {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 168px;
+    overflow: auto;
+    scrollbar-width: thin;
   }
 
   .row-actions {
@@ -74,6 +89,8 @@ const StyledWrapper = styled.div`
     align-items: center;
     flex-shrink: 0;
     gap: 2px;
+    /* Match single-line value cell so icons sit with scalar-row actions. */
+    height: 33px;
   }
 
   .row-action-btn {
@@ -104,6 +121,10 @@ const StyledWrapper = styled.div`
 
     &.copied {
       color: #22c55e;
+    }
+
+    &.is-selected {
+      color: ${(props) => props.theme.colors?.text?.link || props.theme.primary?.strong || '#546de5'};
     }
   }
 `;

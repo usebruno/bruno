@@ -23,6 +23,8 @@ const SCROLL_RESTORE_GUARD_MS = 400;
 
 const isObjectOrArray = (value) => value !== null && typeof value === 'object';
 
+const secretRevealKey = (section, name) => `${section}:${name}`;
+
 const getScrollEl = (wrapper) => wrapper?.querySelector?.('.flex-boundary') || null;
 
 /** Drop Variables persistence that is tied to a specific environment's values. */
@@ -53,6 +55,8 @@ const VariablesEditor = ({ collection }) => {
   const scrollTopZeroTimeoutRef = useRef(null);
   const prevEnvironmentUidRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  // Lifted so masking a secret can close the object drawer.
+  const [revealedSecrets, setRevealedSecrets] = useState(() => new Set());
 
   const [scroll, setScroll] = usePersistedState({ key: 'variables-scroll', default: 0 });
 
@@ -80,6 +84,7 @@ const VariablesEditor = ({ collection }) => {
     scrollPosRef.current = 0;
     setScroll(0);
     setDrawerSelection(null);
+    setRevealedSecrets(new Set());
     const el = getScrollEl(wrapperRef.current);
     if (el) el.scrollTop = 0;
 
@@ -215,18 +220,38 @@ const VariablesEditor = ({ collection }) => {
     onResizeEnd: (newWidth) => setSavedDrawerWidth(newWidth)
   });
 
-  const selectedValue = useMemo(() => {
+  const selectedRow = useMemo(() => {
     if (!drawerSelection?.name || !drawerSelection?.section) return undefined;
     const rows = drawerSelection.section === 'runtime' ? runtimeRows : envRows;
-    return rows.find((row) => row.name === drawerSelection.name)?.value;
+    return rows.find((row) => row.name === drawerSelection.name);
   }, [drawerSelection, runtimeRows, envRows]);
+
+  const selectedValue = selectedRow?.value;
+
+  const toggleSecretReveal = useCallback((section, name) => {
+    setRevealedSecrets((prev) => {
+      const key = secretRevealKey(section, name);
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (!drawerSelection) return;
-    if (selectedValue === undefined || !isObjectOrArray(selectedValue)) {
+    if (!selectedRow || !isObjectOrArray(selectedRow.value)) {
+      setDrawerSelection(null);
+      return;
+    }
+    // Secret objects must stay masked when the eye is off close the drawer.
+    if (
+      selectedRow.secret
+      && !revealedSecrets.has(secretRevealKey(drawerSelection.section, drawerSelection.name))
+    ) {
       setDrawerSelection(null);
     }
-  }, [drawerSelection, selectedValue, setDrawerSelection]);
+  }, [drawerSelection, selectedRow, revealedSecrets, setDrawerSelection]);
 
   const isDrawerOpen = !!drawerSelection && isObjectOrArray(selectedValue);
 
@@ -266,7 +291,7 @@ const VariablesEditor = ({ collection }) => {
   return (
     <StyledWrapper ref={wrapperRef} data-testid="variables-editor">
       <div className="variables-main">
-        <div className="flex-boundary px-4 py-4">
+        <div className="flex-boundary px-4 py-4" data-testid="variables-scroll-container">
           <h1 className="section-title mb-2">Runtime Variables</h1>
           {runtimeRows.length > 0 ? (
             <VariablesTable
@@ -274,9 +299,12 @@ const VariablesEditor = ({ collection }) => {
               collection={collection}
               section="runtime"
               selectedName={drawerSelection?.section === 'runtime' ? drawerSelection.name : null}
+              revealedSecrets={revealedSecrets}
+              onToggleSecretReveal={toggleSecretReveal}
               onOpenObject={handleOpenObject}
               columnWidths={runtimeWidths}
               onColumnWidthsChange={(widths) => handleColumnWidthsChange('variables-runtime', widths)}
+              objectExpandedStorageKey="variables-object-expanded-runtime"
               testId="variables-runtime-table"
             />
           ) : (
@@ -299,9 +327,12 @@ const VariablesEditor = ({ collection }) => {
               collection={collection}
               section="environment"
               selectedName={drawerSelection?.section === 'environment' ? drawerSelection.name : null}
+              revealedSecrets={revealedSecrets}
+              onToggleSecretReveal={toggleSecretReveal}
               onOpenObject={handleOpenObject}
               columnWidths={envWidths}
               onColumnWidthsChange={(widths) => handleColumnWidthsChange('variables-env', widths)}
+              objectExpandedStorageKey={`variables-object-expanded-environment:${activeEnvironmentUid || 'none'}`}
               testId="variables-env-table"
             />
           ) : (

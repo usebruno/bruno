@@ -1,7 +1,7 @@
 import React from 'react';
 import get from 'lodash/get';
 import { useSelector } from 'react-redux';
-import { IconBraces, IconX } from '@tabler/icons';
+import { IconX } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import CodeEditor from 'components/CodeEditor';
 import { toDisplayString } from '@usebruno/common/utils';
@@ -31,7 +31,6 @@ const VariableDetailsDrawer = ({
     <StyledWrapper data-testid="variable-details-drawer">
       <div className="panel-header">
         <div className="panel-title">
-          <IconBraces size={16} strokeWidth={1.5} />
           <span className="var-name" title={name}>{name}</span>
           {section && (
             <span className="section-badge">({SECTION_LABELS[section] || section})</span>

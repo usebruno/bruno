@@ -17,6 +17,21 @@ const StyledWrapper = styled.div`
     opacity: 1;
     pointer-events: auto;
   }
+
+  .table-container tbody td:has(.object-value) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    text-overflow: clip !important;
+    vertical-align: top;
+
+    > div:not(.drag-handle) {
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+  }
 `;
 
 export default StyledWrapper;
