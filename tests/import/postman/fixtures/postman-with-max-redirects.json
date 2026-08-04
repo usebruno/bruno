@@ -147,6 +147,22 @@
       }
     },
     {
+      "name": "Boolean Limit",
+      "protocolProfileBehavior": {
+        "maxRedirects": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.acme.test/boolean",
+          "protocol": "https",
+          "host": ["api", "acme", "test"],
+          "path": ["boolean"]
+        }
+      }
+    },
+    {
       "name": "Reporting",
       "item": [
         {

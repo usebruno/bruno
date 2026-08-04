@@ -14,7 +14,7 @@ import { captureClipboardWrites } from '../../utils/clipboard';
 const COLLECTION_NAME = 'Max Redirects Collection';
 
 // Requests whose maxRedirects cannot be honoured: each produces one warning and falls back to 5.
-const OFFENDERS = ['Null Limit', 'Negative Limit', 'Quoted Limit', 'Fractional Limit'];
+const OFFENDERS = ['Null Limit', 'Negative Limit', 'Quoted Limit', 'Fractional Limit', 'Boolean Limit'];
 
 const importFixture = async (page: Page, tmpDir: string) => {
   const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-with-max-redirects.json');
@@ -86,7 +86,8 @@ test.describe('Import Postman Collection with maxRedirects', () => {
         'Null Limit',
         'Negative Limit',
         'Quoted Limit',
-        'Fractional Limit'
+        'Fractional Limit',
+        'Boolean Limit'
       ]) {
         await expect(locators.sidebar.request(name)).toBeVisible();
       }
