@@ -64,7 +64,7 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
 
   return (
     <StyledWrapper>
-      <div className="xml-container">
+      <div className="xml-container" data-testid="xml-tree">
         <XmlNode
           node={rootNode}
           nodeName={rootNodeName}
