@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useRef } from 'react';
+import React, { forwardRef, useEffect, useMemo, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
 
 const ICON_CONFIG = {
@@ -98,6 +98,10 @@ function mergeRefs(...refs) {
   };
 }
 
+function useMergedRef(...refs) {
+  return useMemo(() => mergeRefs(...refs), refs);
+}
+
 /**
  * Controlled checkbox. Always pass `checked` + `onChange`.
  */
@@ -123,6 +127,7 @@ const Checkbox = forwardRef(
     forwardedRef
   ) => {
     const inputRef = useRef(null);
+    const mergedRef = useMergedRef(inputRef, forwardedRef);
 
     useIndeterminate(inputRef, indeterminate);
 
@@ -135,7 +140,7 @@ const Checkbox = forwardRef(
         <label className="checkbox-root flex items-center gap-2">
           <span className="checkbox-box-wrapper inline-flex items-center justify-center">
             <input
-              ref={mergeRefs(inputRef, forwardedRef)}
+              ref={mergedRef}
               type="checkbox"
               id={id}
               name={name}
