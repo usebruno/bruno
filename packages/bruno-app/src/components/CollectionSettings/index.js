@@ -161,7 +161,7 @@ const CollectionSettings = ({ collection }) => {
           </div>
         )}
       </div>
-      <section className="collection-settings-content mt-4 h-full overflow-auto">{getTabPanel(tab)}</section>
+      <section className="collection-settings-content mt-4 flex-1 min-h-0 overflow-auto">{getTabPanel(tab)}</section>
     </StyledWrapper>
   );
 };
