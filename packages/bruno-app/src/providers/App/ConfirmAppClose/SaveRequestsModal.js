@@ -174,11 +174,9 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
       if (transientRequestDrafts.length > 0) {
         await Promise.all(
           transientRequestDrafts.map((draft) =>
-            dispatch(saveRequest(draft.uid, draft.collectionUid, true)).catch(() => null)
+            dispatch(saveRequest(draft.uid, draft.collectionUid, true))
           )
         );
-        onClose();
-        return;
       }
 
       // Save environment drafts, skipping any with invalid variable names

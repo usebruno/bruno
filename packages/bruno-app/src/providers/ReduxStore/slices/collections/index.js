@@ -875,6 +875,9 @@ export const collectionsSlice = createSlice({
           if (item.draft.app) {
             item.app = item.draft.app;
           }
+          if (typeof item.draft.raw === 'string') {
+            item.raw = item.draft.raw;
+          }
           item.draft = null;
         }
       }

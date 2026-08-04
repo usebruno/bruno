@@ -98,9 +98,8 @@ const sanitizeSnapshotTabs = (tabsSnapshot) => {
   };
 };
 
-export const shouldExcludeTab = (tab, transientDirectory) => {
-  return IGNORED_TAB_TYPES.has(tab?.type)
-    || (transientDirectory && tab.pathname?.startsWith(transientDirectory));
+export const shouldExcludeTab = (tab) => {
+  return IGNORED_TAB_TYPES.has(tab?.type);
 };
 
 const normalizeSnapshotPathRef = (value) => {

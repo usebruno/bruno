@@ -231,26 +231,23 @@ const determineSaveHandler = (actionType, payload, dispatch, getState) => {
 
   // Handle request actions
   if (itemUid) {
-    // Check if this is a transient request and skip auto-save
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
-    if (collection) {
-      const item = findItemInCollection(collection, itemUid);
-      if (item && isItemTransientRequest(item)) {
-        return null; // Skip auto-save for transient requests
-      }
-    }
+    const item = collection ? findItemInCollection(collection, itemUid) : null;
+    const persistAlways = Boolean(item && isItemTransientRequest(item));
 
     if (actionType === 'collections/updateFileContent') {
       return {
         key: `file-${itemUid}`,
-        save: () => dispatch(saveFile(payload.content, itemUid, collectionUid, true))
+        save: () => dispatch(saveFile(payload.content, itemUid, collectionUid, true)),
+        persistAlways
       };
     }
 
     return {
       key: `request-${itemUid}`,
-      save: () => dispatch(saveRequest(itemUid, collectionUid, true))
+      save: () => dispatch(saveRequest(itemUid, collectionUid, true)),
+      persistAlways
     };
   }
 
@@ -269,9 +266,7 @@ export const autosaveMiddleware = ({ dispatch, getState }) => (next) => (action)
   // Let the action update the state first
   const result = next(action);
 
-  // Check if autosave is enabled
   const { autoSave } = getState().app.preferences;
-  if (!autoSave?.enabled) return result;
 
   // When autosave is enabled (or settings change), save any existing drafts
   if (action.type === 'app/updatePreferences' && action.payload?.autoSave?.enabled) {
@@ -291,6 +286,13 @@ export const autosaveMiddleware = ({ dispatch, getState }) => (next) => (action)
   if (!actionsToIntercept.includes(action.type)) return result;
 
   const handler = determineSaveHandler(action.type, action.payload, dispatch, getState);
+  if (handler?.persistAlways) {
+    scheduleAutoSave(handler.key, handler.save, autoSave?.interval || 1000);
+    return result;
+  }
+
+  if (!autoSave?.enabled) return result;
+
   if (handler) {
     scheduleAutoSave(handler.key, handler.save, autoSave.interval);
   }
