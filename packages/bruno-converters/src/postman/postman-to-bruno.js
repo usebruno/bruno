@@ -591,9 +591,17 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
           settings.followRedirects = i.protocolProfileBehavior.followRedirects;
         }
 
-        // Handle maxRedirects setting
-        if (i.protocolProfileBehavior?.maxRedirects !== undefined) {
-          settings.maxRedirects = i.protocolProfileBehavior.maxRedirects;
+        // Postman's schema types maxRedirects as a number but its exports are not guaranteed to
+        // honour that, and an unusable value must not cost us the request.
+        const maxRedirects = i.protocolProfileBehavior?.maxRedirects;
+        if (Number.isInteger(maxRedirects) && maxRedirects >= 0) {
+          settings.maxRedirects = maxRedirects;
+        } else if (maxRedirects !== undefined) {
+          issues.push({
+            path: itemPath,
+            severity: 'warning',
+            message: 'Invalid maxRedirects, ignored (must be a whole number of 0 or more)'
+          });
         }
 
         brunoRequestItem.settings = settings;
