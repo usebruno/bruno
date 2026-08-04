@@ -1200,6 +1200,16 @@ const openCollectionSettings = async (page: Page, collectionName: string, { pers
   });
 };
 
+const openVariablesTab = async (page: Page) => {
+  await test.step('Open the Variables tab', async () => {
+    await page.getByTestId('more-actions').click();
+    await page.getByTestId('more-actions-variables').click();
+    await expect(
+      page.locator('.request-tab').filter({ has: page.getByText('Variables', { exact: true }) })
+    ).toBeVisible();
+  });
+};
+
 /**
  * Select a tab in the collection settings pane
  * @param page - The page object
@@ -2756,6 +2766,7 @@ export {
   selectfolderPaneTab,
   selectFolderScriptPaneTab,
   openCollectionSettings,
+  openVariablesTab,
   selectCollectionPaneTab,
   selectCollectionScriptPaneTab,
   focusFolderSettingsTab,
