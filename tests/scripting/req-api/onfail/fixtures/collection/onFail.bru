@@ -1,0 +1,27 @@
+meta {
+  name: onFail
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:9999/nope
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setVar("var", "main");
+  bru.setEnvVar("envVar", "main");
+  bru.setGlobalEnvVar("globalEnvVar", "main");
+
+  if (bru.getVar("var") !== "main") throw new Error("var was not seeded");
+  if (bru.getEnvVar("envVar") !== "main") throw new Error("envVar was not seeded");
+  if (bru.getGlobalEnvVar("globalEnvVar") !== "main") throw new Error("globalEnvVar was not seeded");
+
+  req.onFail(() => {
+    bru.setVar("var", "updated");
+    bru.setEnvVar("envVar", "updated");
+    bru.setGlobalEnvVar("globalEnvVar", "updated");
+  });
+}

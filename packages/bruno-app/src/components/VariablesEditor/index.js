@@ -7,18 +7,18 @@ import { findEnvironmentInCollection, maskInputValue } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
-const KeyValueExplorer = ({ data = [], theme }) => {
+const KeyValueExplorer = ({ data = [], theme, testId }) => {
   const [showSecret, setShowSecret] = useState(false);
 
   return (
-    <div>
+    <div data-testid={testId}>
       <SecretToggle showSecret={showSecret} onClick={() => setShowSecret(!showSecret)} />
       <table className="border-collapse">
         <tbody>
           {data.toSorted((a, b) => a.name.localeCompare(b.name)).map((envVar) => (
-            <tr key={envVar.name}>
+            <tr key={envVar.name} data-testid={`variable-row-${envVar.name}`}>
               <td className="px-2 py-1">{envVar.name}</td>
-              <td className="px-2 py-1">
+              <td className="px-2 py-1" data-testid="variable-value">
                 <Inspector
                   data={!showSecret && envVar.secret ? maskInputValue(envVar.value) : envVar.value}
                   theme={theme}
@@ -54,7 +54,7 @@ const EnvVariables = ({ collection, theme }) => {
         <span className="muted ml-2">({environment.name})</span>
       </div>
       {enabledEnvVars.length > 0 ? (
-        <KeyValueExplorer data={enabledEnvVars} theme={theme} />
+        <KeyValueExplorer data={enabledEnvVars} theme={theme} testId="environment-variables" />
       ) : (
         <div className="muted text-xs">No environment variables found</div>
       )}
@@ -75,7 +75,7 @@ const RuntimeVariables = ({ collection, theme }) => {
     <>
       <h1 className="font-medium mb-2">Runtime Variables</h1>
       {runtimeVariablesFound ? (
-        <KeyValueExplorer data={runtimeVariableArray} theme={theme} />
+        <KeyValueExplorer data={runtimeVariableArray} theme={theme} testId="runtime-variables" />
       ) : (
         <div className="muted text-xs">No runtime variables found</div>
       )}
