@@ -19,13 +19,10 @@ import {
   getAvailableAddToScopes
 } from 'utils/collections';
 import {
-  openCollectionSettings,
   updateVariableInScope,
   addEnvironment,
   selectEnvironment
 } from 'providers/ReduxStore/slices/collections/actions';
-import { updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
-import { addTab, focusTab, updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import store from 'providers/ReduxStore';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
@@ -34,6 +31,7 @@ import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { variableNameRegex } from 'utils/common/regex';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
+import { goToVariableDefinition } from 'utils/codemirror/goToVariableDefinition';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -134,100 +132,6 @@ const waitForEnvironmentByName = (
   });
 };
 
-const scrollDefinitionIntoView = (scopeType, variableName) => {
-  const selectorByScope = {
-    request: `[data-testid="request-vars-req"] [data-row-name="${variableName}"]`,
-    folder: `[data-testid="folder-vars-req"] [data-row-name="${variableName}"]`,
-    collection: `[data-testid="collection-vars-req"] [data-row-name="${variableName}"]`,
-    environment: `[data-testid="env-var-row-${variableName}"]`,
-    global: `[data-testid="env-var-row-${variableName}"]`
-  };
-
-  const selector = selectorByScope[scopeType];
-  if (!selector || typeof document === 'undefined') {
-    return;
-  }
-
-  let attempts = 0;
-  const maxAttempts = 12;
-
-  const tryScroll = () => {
-    const definitionRow = document.querySelector(selector);
-    if (definitionRow) {
-      definitionRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      definitionRow.classList.add('bruno-var-definition-target');
-      window.setTimeout(() => definitionRow.classList.remove('bruno-var-definition-target'), 1500);
-      return;
-    }
-
-    attempts += 1;
-    if (attempts < maxAttempts) {
-      window.setTimeout(tryScroll, 100);
-    }
-  };
-
-  window.setTimeout(tryScroll, 50);
-};
-
-const goToVariableDefinition = (scopeInfo, collection, item, variableName) => {
-  if (!scopeInfo || !collection || !variableName) {
-    return;
-  }
-
-  const dispatch = store.dispatch;
-
-  switch (scopeInfo.type) {
-    case 'request': {
-      const targetItem = scopeInfo.data?.item || item;
-      if (!targetItem?.uid) {
-        return;
-      }
-
-      dispatch(addTab({
-        uid: targetItem.uid,
-        collectionUid: collection.uid,
-        type: targetItem.type,
-        pathname: targetItem.pathname,
-        requestPaneTab: 'vars'
-      }));
-      dispatch(updateRequestPaneTab({ uid: targetItem.uid, requestPaneTab: 'vars' }));
-      dispatch(focusTab({ uid: targetItem.uid }));
-      break;
-    }
-
-    case 'folder': {
-      const folder = scopeInfo.data?.folder;
-      if (!folder?.uid) {
-        return;
-      }
-
-      dispatch(updatedFolderSettingsSelectedTab({ collectionUid: collection.uid, folderUid: folder.uid, tab: 'vars' }));
-      dispatch(addTab({ uid: folder.uid, collectionUid: collection.uid, type: 'folder-settings', pathname: folder.pathname }));
-      break;
-    }
-
-    case 'collection': {
-      dispatch(openCollectionSettings(collection.uid, 'vars'));
-      break;
-    }
-
-    case 'environment': {
-      dispatch(addTab({ uid: `${collection.uid}-environment-settings`, collectionUid: collection.uid, type: 'environment-settings' }));
-      break;
-    }
-
-    case 'global': {
-      dispatch(addTab({ uid: `${collection.uid}-global-environment-settings`, collectionUid: collection.uid, type: 'global-environment-settings' }));
-      break;
-    }
-
-    default:
-      return;
-  }
-
-  scrollDefinitionIntoView(scopeInfo.type, variableName);
-};
-
 // Get the masked display text based on the value length
 const getMaskedDisplay = (value) => {
   const contentLength = (value === undefined || value === null ? '' : String(value)).length;
@@ -288,6 +192,11 @@ const getCopyButton = (getVariableValue, onCopyCallback) => {
   copyButton.type = 'button';
 
   let isCopied = false;
+
+  copyButton.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
 
   copyButton.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -639,6 +548,11 @@ export const renderVarInfo = (token, options) => {
       toggleButton.innerHTML = EYE_ICON_SVG;
       toggleButton.type = 'button';
       toggleButton.style.display = (shouldMaskValue || isMasked) ? '' : 'none';
+
+      toggleButton.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
 
       toggleButton.addEventListener('click', (e) => {
         e.stopPropagation();

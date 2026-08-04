@@ -720,10 +720,10 @@ const GlobalStyle = createGlobalStyle`
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 1.125rem;
-    height: 1.125rem;
+    width: 0.875rem;
+    height: 0.875rem;
     border-radius: ${(props) => props.theme.border.radius.sm || props.theme.border.radius.base};
-    font-size: 0.625rem;
+    font-size: 0.5rem;
     font-weight: 600;
     line-height: 1;
   }
