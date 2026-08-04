@@ -1199,5 +1199,36 @@ docs {
         docs: 'second docs'
       });
     });
+
+    it('falls back to a full parse and stays correct when a hoisted opener is nested inside an example block', () => {
+      // An `example` block's content is opaque to the grammar (re-parsed by the
+      // dedicated example parser), so a text-block opener at column 0 inside it
+      // gets hoisted by the pre-pass but its sentinel lands buried in the example
+      // content string rather than as a standalone AST value. The count of
+      // replaced sentinels then falls short of the number hoisted, so the parser
+      // discards the fast path and falls back to a full parse — yielding exactly
+      // the stock result. (The example parser itself rejects a column-0 opener as
+      // invalid example syntax, which is why the client surfaces an error here
+      // rather than a parsed example; the optimization must not change that.)
+      const input = `get {
+  url: https://example.com
+}
+
+example {
+docs {
+inner documentation
+}
+`;
+
+      const output = parser(input);
+
+      expect(output).toEqual({
+        http: {
+          method: 'get',
+          url: 'https://example.com'
+        },
+        examples: [{ error: expect.any(String) }]
+      });
+    });
   });
 });
