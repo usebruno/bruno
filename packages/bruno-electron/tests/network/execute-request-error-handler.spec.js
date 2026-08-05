@@ -37,7 +37,7 @@ describe('executeRequestOnFailHandler', () => {
     expect(consoleSpy).not.toHaveBeenCalled();
   });
 
-  it('should return the result from onFailHandler', async () => {
+  it('should invoke onFailHandler with the error and pass its result to onResult and the caller', async () => {
     const handlerResult = {
       envVariables: {
         environmentToken: 'updated'
