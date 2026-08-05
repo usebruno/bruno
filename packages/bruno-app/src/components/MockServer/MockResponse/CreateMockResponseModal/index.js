@@ -27,6 +27,7 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
   const [exampleError, setExampleError] = useState('');
   const [useExample, setUseExample] = useState(false);
   const [selectedExampleKey, setSelectedExampleKey] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const examples = useMemo(() => (
     collection ? collectCollectionExamples(collection) : []
@@ -52,7 +53,7 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
     }
   }, []);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!nameValue.trim()) {
       setNameError('Mock response name is required');
       return;
@@ -63,14 +64,19 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
       return;
     }
 
-    onCreate({
-      name: nameValue.trim(),
-      description: description.trim(),
-      statusCode: Number(statusValue),
-      bodyType: bodyTypeValue,
-      exampleSelection: linkedExample
-    });
-    onClose();
+    setIsSaving(true);
+    try {
+      await onCreate({
+        name: nameValue.trim(),
+        description: description.trim(),
+        statusCode: Number(statusValue),
+        bodyType: bodyTypeValue,
+        exampleSelection: linkedExample
+      });
+      onClose();
+    } catch {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -78,9 +84,14 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
       <Modal
         size="md"
         title="Create Mock Response"
-        confirmText="Create"
+        confirmText={isSaving ? 'Creating...' : 'Create'}
+        confirmDisabled={isSaving}
         handleConfirm={handleConfirm}
-        handleCancel={onClose}
+        handleCancel={() => {
+          if (!isSaving) {
+            onClose();
+          }
+        }}
         dataTestId="create-mock-response-modal"
       >
         <form className="bruno-form" onSubmit={(event) => event.preventDefault()}>

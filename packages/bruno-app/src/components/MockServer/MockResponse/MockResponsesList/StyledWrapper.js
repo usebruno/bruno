@@ -25,12 +25,25 @@ const StyledWrapper = styled.div`
     margin-left: auto;
   }
 
-  .response-item {
-    cursor: pointer;
-  }
-
   .response-item-icon {
     color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .response-item-open {
+    display: block;
+    width: 100%;
+    padding: 0;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid ${(props) => props.theme.input.focusBorder};
+      outline-offset: -2px;
+      border-radius: ${(props) => props.theme.border.radius.sm};
+    }
   }
 
   .response-item-name {

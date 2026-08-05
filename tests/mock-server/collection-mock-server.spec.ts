@@ -66,6 +66,7 @@ test.describe.serial('Mock Server', () => {
     await test.step('Count survives a trip to the Request Log tab', async () => {
       await ms.tabLog().click();
       await expect(ms.logEmptyState()).toBeVisible();
+      await expect(ms.tabRoutesCount()).toBeVisible();
       await expect(ms.tabRoutesCount()).toHaveText('3');
     });
   });

@@ -111,6 +111,8 @@ const MockResponsesList = ({ instance, collection }) => {
       openResponseTab(result.response);
     } catch (err) {
       toast.error(err.message || 'Failed to create mock response');
+      // rethrow so CreateMockResponseModal keeps itself open with the entered values
+      throw err;
     }
   };
 
@@ -251,9 +253,7 @@ const MockResponsesList = ({ instance, collection }) => {
     }
   };
 
-  const handleCopyUrl = async (event, response) => {
-    event.stopPropagation();
-
+  const handleCopyUrl = async (response) => {
     try {
       const url = buildMockServerTryUrl({
         port: mockServerPort,
@@ -433,31 +433,19 @@ const MockResponsesList = ({ instance, collection }) => {
         }}
         renderItem={(response) => (
           <ListGroup.Item
-            role="button"
-            tabIndex={0}
-            onClick={() => openResponseTab(response)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                openResponseTab(response);
-              }
-            }}
             leading={<IconServer2 size={14} stroke={1.5} className="response-item-icon" aria-hidden="true" />}
             actions={(
               <>
                 <ActionIcon
                   label="Copy mock URL"
-                  onClick={(event) => handleCopyUrl(event, response)}
+                  onClick={() => handleCopyUrl(response)}
                   data-testid={`mock-response-copy-${response.uid}`}
                 >
                   <IconCopy size={15} stroke={1.5} aria-hidden="true" />
                 </ActionIcon>
                 <ActionIcon
                   label="Delete mock response"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setDeletingResponse(response);
-                  }}
+                  onClick={() => setDeletingResponse(response)}
                   data-testid={`mock-response-delete-${response.uid}`}
                 >
                   <IconTrash size={15} stroke={1.5} aria-hidden="true" />
@@ -466,15 +454,22 @@ const MockResponsesList = ({ instance, collection }) => {
             )}
             className="response-item"
           >
-            <div className="response-item-name">{response.name}</div>
-            <div className="response-item-endpoint">
-              {(response.request?.method || 'GET').toUpperCase()} {response.request?.url}
-            </div>
-            <div className="response-item-rules">
-              {response.rules?.conditions?.length
-                ? `${response.rules.conditions.length} rule(s), ${response.rules.operator || 'AND'}`
-                : 'No rules (default match)'}
-            </div>
+            <button
+              type="button"
+              className="response-item-open"
+              onClick={() => openResponseTab(response)}
+              data-testid={`mock-response-open-${response.uid}`}
+            >
+              <div className="response-item-name">{response.name}</div>
+              <div className="response-item-endpoint">
+                {(response.request?.method || 'GET').toUpperCase()} {response.request?.url}
+              </div>
+              <div className="response-item-rules">
+                {response.rules?.conditions?.length
+                  ? `${response.rules.conditions.length} rule(s), ${response.rules.operator || 'AND'}`
+                  : 'No rules (default match)'}
+              </div>
+            </button>
           </ListGroup.Item>
         )}
       />
