@@ -25,7 +25,6 @@ export const HotkeysProvider = (props) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const collections = useSelector((state) => state.collections.collections);
-  const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const userKeyBindings = useSelector((state) => state.app.preferences?.keyBindings);
   const keybindingsEnabled = useSelector((state) => state.app.preferences?.keybindingsEnabled !== false);
@@ -51,8 +50,7 @@ export const HotkeysProvider = (props) => {
   const getCollectionTabs = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
     if (!activeTab) return [];
-    const scratchCollectionUids = new Set(workspaces.map((w) => w.scratchCollectionUid).filter(Boolean));
-    return getVisibleTabs({ tabs, tabsAcrossCollections, activeTabCollectionUid: activeTab.collectionUid, scratchCollectionUids });
+    return getVisibleTabs({ tabs, tabsAcrossCollections, activeTab });
   };
 
   // Helper: get Mousetrap combos for an action, merged with user overrides
@@ -125,7 +123,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('switchToPreviousTab');
     };
-  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections, workspaces]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
 
   // Switch to the next tab (active-collection-tabs-only)
   useEffect(() => {
@@ -141,7 +139,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('switchToNextTab');
     };
-  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections, workspaces]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
 
   // Switch to tab at position (Cmd+1 through Cmd+8) and last tab (Cmd+9) — collection-scoped
   useEffect(() => {
@@ -171,7 +169,7 @@ export const HotkeysProvider = (props) => {
       }
       unbindAction('switchToLastTab');
     };
-  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections, workspaces]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
 
   // Close all tabs
   useEffect(() => {
@@ -188,7 +186,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('closeAllTabs');
     };
-  }, [activeTabUid, tabs, collections, userKeyBindings, keybindingsEnabled, tabsAcrossCollections, workspaces]);
+  }, [activeTabUid, tabs, collections, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
 
   // Reopen last closed tab (active-collection-tabs-only)
   useEffect(() => {
@@ -344,7 +342,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('moveTabLeft');
     };
-  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections, workspaces]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
 
   // Move tab right (active-collection-tabs-only)
   useEffect(() => {
@@ -359,7 +357,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('moveTabRight');
     };
-  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections, workspaces]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
 
   // Open preferences
   useEffect(() => {

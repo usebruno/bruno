@@ -61,15 +61,33 @@ const tabSchema = yup.object({
   }).optional()
 });
 
+const ACTIVE_TAB_ACCESSORS = [
+  'pathname',
+  'pathname::exampleName',
+  'pathname::exampleIndex',
+  'type',
+  'type::mockServerUid',
+  'type::mockResponseUid'
+];
+
 const activeTabSchema = yup.object({
-  accessor: yup.string().oneOf([
-    'pathname',
-    'pathname::exampleName',
-    'pathname::exampleIndex',
-    'type',
-    'type::mockServerUid',
-    'type::mockResponseUid'
-  ]).required(),
+  accessor: yup.string().oneOf(ACTIVE_TAB_ACCESSORS).required(),
+  value: yup.string().required()
+});
+
+// Workspace-level unified tab order: an ordered list of tab identities across every collection in
+// the active workspace, so tabs-across-collections restores as one list instead of grouped by
+// collection in mount order. Each entry keys a tab by its collection pathname + the same
+// accessor/value identity used for the active tab.
+const tabOrderEntrySchema = yup.object({
+  collection: yup.string().required(),
+  accessor: yup.string().oneOf(ACTIVE_TAB_ACCESSORS).required(),
+  value: yup.string().required()
+});
+
+const globalActiveTabSchema = yup.object({
+  collection: yup.string().required(),
+  accessor: yup.string().oneOf(ACTIVE_TAB_ACCESSORS).required(),
   value: yup.string().required()
 });
 
@@ -121,7 +139,9 @@ const snapshotSchema = yup.object({
     sidebar: sidebarSchema.optional()
   }).required(),
   workspaces: yup.array().of(workspaceSchema).required(),
-  collections: yup.array().of(collectionSchema).required()
+  collections: yup.array().of(collectionSchema).required(),
+  tabOrder: yup.array().of(tabOrderEntrySchema).optional(),
+  activeTab: globalActiveTabSchema.nullable().optional()
 });
 
 const emptySnapshot = {
@@ -133,7 +153,9 @@ const emptySnapshot = {
     }
   },
   workspaces: [],
-  collections: []
+  collections: [],
+  tabOrder: [],
+  activeTab: null
 };
 
 class SnapshotManager {
@@ -224,6 +246,8 @@ class SnapshotManager {
 
   resetSnapshot() {
     this.store.delete('activeWorkspacePath');
+    this.store.set('tabOrder', []);
+    this.store.set('activeTab', null);
     this.store.set('workspaces', (this.store.store?.workspaces ?? []).map((d) => {
       d.lastActiveCollectionPathname = undefined;
       d.activeWorkspaceTabType = undefined;
@@ -435,8 +459,41 @@ class SnapshotManager {
       activeWorkspacePath: typeof snapshot.activeWorkspacePath === 'string' ? snapshot.activeWorkspacePath : null,
       extras,
       workspaces: this._normalizeWorkspaceList(snapshot.workspaces),
-      collections: this._normalizeCollectionList(snapshot.collections, snapshot.tabs)
+      collections: this._normalizeCollectionList(snapshot.collections, snapshot.tabs),
+      tabOrder: this._normalizeTabOrder(snapshot.tabOrder),
+      activeTab: this._normalizeGlobalActiveTab(snapshot.activeTab)
     };
+  }
+
+  _normalizeTabOrder(tabOrder) {
+    if (!Array.isArray(tabOrder)) {
+      return [];
+    }
+
+    return tabOrder.reduce((entries, entry) => {
+      if (
+        isObject(entry)
+        && typeof entry.collection === 'string' && entry.collection
+        && ACTIVE_TAB_ACCESSORS.includes(entry.accessor)
+        && typeof entry.value === 'string' && entry.value
+      ) {
+        entries.push({ collection: entry.collection, accessor: entry.accessor, value: entry.value });
+      }
+      return entries;
+    }, []);
+  }
+
+  _normalizeGlobalActiveTab(activeTab) {
+    if (
+      !isObject(activeTab)
+      || typeof activeTab.collection !== 'string' || !activeTab.collection
+      || !ACTIVE_TAB_ACCESSORS.includes(activeTab.accessor)
+      || typeof activeTab.value !== 'string' || !activeTab.value
+    ) {
+      return null;
+    }
+
+    return { collection: activeTab.collection, accessor: activeTab.accessor, value: activeTab.value };
   }
 
   _normalizeSidebar(sidebar) {

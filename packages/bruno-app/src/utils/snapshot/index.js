@@ -565,6 +565,45 @@ export const serializeActiveTab = (tab, collection) => {
   return { accessor: 'type', value: tab.type };
 };
 
+// Resolve a persisted workspace tab order (pathname-keyed identities) against the live tabs, mapping
+// each entry to the current tab uid. Tabs not present yet (collection not mounted) are simply
+// skipped, so calling this incrementally as collections hydrate converges on the saved order.
+export const resolveTabOrder = ({ tabOrder, activeTab } = {}, tabs = [], collections = []) => {
+  const collectionByNormalizedPath = new Map();
+  (collections || []).forEach((collection) => {
+    if (collection?.pathname) {
+      collectionByNormalizedPath.set(normalizePath(collection.pathname), collection);
+    }
+  });
+
+  const findTabForEntry = (entry) => {
+    if (!entry || typeof entry.collection !== 'string') {
+      return null;
+    }
+    const collection = collectionByNormalizedPath.get(normalizePath(entry.collection));
+    if (!collection) {
+      return null;
+    }
+    return (tabs || []).find(
+      (tab) => tab.collectionUid === collection.uid && isActiveTab(tab, { accessor: entry.accessor, value: entry.value }, collection)
+    ) || null;
+  };
+
+  const orderedUids = [];
+  const seen = new Set();
+  (tabOrder || []).forEach((entry) => {
+    const tab = findTabForEntry(entry);
+    if (tab && !seen.has(tab.uid)) {
+      seen.add(tab.uid);
+      orderedUids.push(tab.uid);
+    }
+  });
+
+  const activeUid = activeTab ? (findTabForEntry(activeTab)?.uid || null) : null;
+
+  return { orderedUids, activeUid };
+};
+
 export const isActiveTab = (tab, activeTab, collection) => {
   if (!activeTab) return false;
 

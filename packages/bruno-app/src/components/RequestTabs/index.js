@@ -49,14 +49,9 @@ const RequestTabs = () => {
   const activeTab = find(tabs, (t) => t.uid === activeTabUid);
   const activeCollection = find(collections, (c) => c?.uid === activeTab?.collectionUid);
 
-  const scratchCollectionUids = useMemo(
-    () => new Set(workspaces.map((w) => w.scratchCollectionUid).filter(Boolean)),
-    [workspaces]
-  );
-
   const displayedTabs = useMemo(
-    () => getVisibleTabs({ tabs, tabsAcrossCollections, activeTabCollectionUid: activeTab?.collectionUid, scratchCollectionUids }),
-    [tabs, tabsAcrossCollections, activeTab?.collectionUid, scratchCollectionUids]
+    () => getVisibleTabs({ tabs, tabsAcrossCollections, activeTab }),
+    [tabs, tabsAcrossCollections, activeTab]
   );
 
   // With tabs across collections, "the active collection" is ambiguous, so the new-request (+)

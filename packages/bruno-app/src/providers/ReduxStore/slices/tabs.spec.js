@@ -1,4 +1,4 @@
-import reducer, { addTab, restoreTabs } from 'providers/ReduxStore/slices/tabs';
+import reducer, { addTab, restoreTabs, applyTabOrder } from 'providers/ReduxStore/slices/tabs';
 
 const COLLECTION_UID = 'col-1';
 const MOCK_SERVER_UID = 'mock-server-1';
@@ -81,6 +81,36 @@ describe('tabs mock-server dedup', () => {
     expect(state.tabs).toHaveLength(1);
     expect(state.tabs[0].type).toBe('mock-server');
     expect(state.activeTabUid).toBe(MOCK_SERVER_UID);
+  });
+
+  it('applyTabOrder reorders tabs to the given uid order and focuses the active uid', () => {
+    const baseState = {
+      tabs: [
+        { uid: 'a', collectionUid: COLLECTION_UID },
+        { uid: 'b', collectionUid: COLLECTION_UID },
+        { uid: 'c', collectionUid: COLLECTION_UID }
+      ],
+      activeTabUid: 'a',
+      recentlyClosedTabs: []
+    };
+
+    const state = reducer(baseState, applyTabOrder({ orderedUids: ['c', 'a'], activeUid: 'b' }));
+
+    // c and a move to the front in that order; b (unordered) keeps its position at the end.
+    expect(state.tabs.map((t) => t.uid)).toEqual(['c', 'a', 'b']);
+    expect(state.activeTabUid).toBe('b');
+  });
+
+  it('applyTabOrder ignores an active uid that is not present', () => {
+    const baseState = {
+      tabs: [{ uid: 'a', collectionUid: COLLECTION_UID }],
+      activeTabUid: 'a',
+      recentlyClosedTabs: []
+    };
+
+    const state = reducer(baseState, applyTabOrder({ orderedUids: [], activeUid: 'missing' }));
+
+    expect(state.activeTabUid).toBe('a');
   });
 
   it('restoreTabs skips duplicate mock-server snapshots for the same mockServerUid', () => {

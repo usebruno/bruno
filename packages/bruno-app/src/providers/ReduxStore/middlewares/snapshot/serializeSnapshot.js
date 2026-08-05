@@ -282,6 +282,44 @@ export const serializeSnapshot = async (state, options = {}) => {
     });
   });
 
+  // Workspace-level unified tab order + global active tab: capture the flat order of the active
+  // workspace's real collection tabs so tabs-across-collections restores as one ordered list
+  // (scratch/transient tabs are excluded, matching the per-collection tab persistence above).
+  const collectionByUid = new Map((collections.collections || []).map((c) => [c.uid, c]));
+  const tabOrder = [];
+  let globalActiveTab = null;
+
+  (tabs.tabs || []).forEach((tab) => {
+    const collection = collectionByUid.get(tab.collectionUid);
+    if (!collection?.pathname || scratchCollectionUids.has(collection.uid)) {
+      return;
+    }
+
+    const normalizedCollectionPath = normalizePath(collection.pathname);
+    if (activeWorkspace && !activeWorkspaceCollectionPaths.has(normalizedCollectionPath)) {
+      return;
+    }
+
+    const transientDirectory = collections.tempDirectories?.[collection.uid];
+    if (shouldExcludeTab(tab, transientDirectory)) {
+      return;
+    }
+
+    const identity = serializeActiveTab(tab, collection);
+    if (!identity) {
+      return;
+    }
+
+    const entry = { collection: normalizedCollectionPath, accessor: identity.accessor, value: identity.value };
+    tabOrder.push(entry);
+    if (tab.uid === tabs.activeTabUid) {
+      globalActiveTab = { ...entry };
+    }
+  });
+
+  snapshot.tabOrder = tabOrder;
+  snapshot.activeTab = globalActiveTab;
+
   return snapshot;
 };
 
