@@ -64,6 +64,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
   const previousDeboundedInterpolatedURL = useRef(debouncedInterpolatedURL);
 
   const handleConnect = async () => {
+    setConnectionStatus(CONNECTION_STATUS.CONNECTING);
     dispatch(wsConnectOnly(item, collection.uid));
     previousDeboundedInterpolatedURL.current = debouncedInterpolatedURL;
   };
@@ -86,8 +87,9 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
-  const handleRunClick = async (e) => {
-    e.stopPropagation();
+  const handleWsRun = (e) => {
+    e?.stopPropagation();
+    if (UNINTERACTIVE_STATES.includes(connectionStatus)) return;
     if (!url) {
       toast.error('Please enter a valid WebSocket URL');
       return;
@@ -114,6 +116,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
     if (connectionStatus !== CONNECTION_STATUS.CONNECTED) return;
     if (previousDeboundedInterpolatedURL.current === debouncedInterpolatedURL) return;
     if (debouncedInterpolatedURL === '') return;
+    setConnectionStatus(CONNECTION_STATUS.DISCONNECTING);
     closeWsConnection(item.uid).then(() => {}).catch(() => {});
   }, [debouncedInterpolatedURL, connectionStatus, item]);
 
@@ -131,7 +134,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             placeholder="ws://localhost:8080 or wss://example.com"
             className="w-full"
             theme={displayedTheme}
-            onRun={handleRun}
+            onRun={handleWsRun}
             collection={collection}
             item={item}
           />
@@ -193,7 +196,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
           {connectionStatus === CONNECTION_STATUS.DISCONNECTING && <div className="connection-status-strip disconnecting" data-testid="ws-disconnecting-strip"></div>}
         </div>
         <SendButton
-          onSend={handleRunClick}
+          onSend={handleWsRun}
           disabled={UNINTERACTIVE_STATES.includes(connectionStatus)}
           testId="run-button"
         />
