@@ -565,5 +565,6 @@ export const formatProxyTimestamp = (timestamp) => {
       minute: '2-digit',
       hour12: true
     })
+    .replace(/[\u00A0\u202F]/g, ' ')
     .replace(/\b(a|p)m\b/gi, (match) => match.toUpperCase());
 };
