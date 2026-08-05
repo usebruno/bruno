@@ -114,7 +114,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
     if (connectionStatus !== CONNECTION_STATUS.CONNECTED) return;
     if (previousDeboundedInterpolatedURL.current === debouncedInterpolatedURL) return;
     if (debouncedInterpolatedURL === '') return;
-    closeWsConnection(item.uid).then(() => { }).catch(() => { });
+    closeWsConnection(item.uid).then(() => {}).catch(() => {});
   }, [debouncedInterpolatedURL, connectionStatus, item]);
 
   return (
