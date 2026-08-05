@@ -1741,6 +1741,19 @@ export const getInitialExampleName = (item) => {
   }
 };
 
+/**
+ * A name can exist as both a plain variable and a secret. The secret takes
+ * precedence (matching interpolation), so the resolved value and the secret
+ * flag stay in sync instead of coming from different entries.
+ * @param {Array} variables - `environment.variables`
+ * @param {string} variableName - Name of the variable to resolve
+ * @returns {Object|undefined} The matching variable, preferring a secret entry over a plain one
+ */
+export const resolveEnabledVariable = (variables, variableName) => {
+  const matches = (variables || []).filter((v) => v.name === variableName && v.enabled);
+  return matches.find((v) => v.secret) || matches[0];
+};
+
 // Get the scope and raw value of a variable by checking all scopes in priority order
 export const getVariableScope = (variableName, collection, item) => {
   if (!variableName || !collection) {
@@ -1787,11 +1800,7 @@ export const getVariableScope = (variableName, collection, item) => {
   if (collection.activeEnvironmentUid) {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment && environment.variables) {
-      // A name can exist as both a plain variable and a secret. The secret takes
-      // precedence (matching interpolation), so the resolved value and the secret
-      // flag stay in sync instead of coming from different entries.
-      const envVars = environment.variables.filter((v) => v.name === variableName && v.enabled);
-      const envVar = envVars.find((v) => v.secret) || envVars[0];
+      const envVar = resolveEnabledVariable(environment.variables, variableName);
       if (envVar) {
         return {
           type: 'environment',

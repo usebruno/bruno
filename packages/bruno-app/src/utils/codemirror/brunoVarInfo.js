@@ -661,7 +661,8 @@ export const renderVarInfo = (token, options) => {
       const interpolatedValue = interpolate(newValue, allVariables);
       currentInterpolatedValue = interpolatedValue ?? '';
       const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
-      currentShouldMaskValue = isSecret || newHasSecretRefs;
+
+      currentShouldMaskValue = currentShouldMaskValue || newHasSecretRefs;
       updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
 
       // new variables are saved via the Add-to switcher, not on blur. so don't dispatch an update action here.
@@ -813,7 +814,8 @@ export const renderVarInfo = (token, options) => {
             const interpolatedValue = interpolate(value, allVariables);
             currentInterpolatedValue = interpolatedValue ?? '';
             const newHasSecretRefs = containsSecretVariableReferences(value, collection, item);
-            currentShouldMaskValue = isSecret || newHasSecretRefs;
+            // Use the secret flag actually being persisted (from the Secret checkbox).
+            currentShouldMaskValue = secret || newHasSecretRefs;
             updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
 
             removeAddToSwitcher();
@@ -832,7 +834,12 @@ export const renderVarInfo = (token, options) => {
         // If immediate is true, persist the new variable immediately after switching scope.
         // for inline create environment flow, the new variable is persisted immediately after the environment is created and selected.
         if (immediate) {
-          persistNewVariable(false).catch((err) => {
+          // Read the user's pending Secret checkbox state.
+          const pendingSecret = valueContainer._addToSwitcher && typeof valueContainer._addToSwitcher._getPendingSecret === 'function'
+            ? valueContainer._addToSwitcher._getPendingSecret()
+            : false;
+
+          persistNewVariable(pendingSecret).catch((err) => {
             toast.error(err?.message || 'Failed to save variable');
           });
         }

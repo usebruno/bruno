@@ -53,6 +53,7 @@ jest.mock('utils/collections', () => ({
   getTreePathFromCollectionToItem: jest.fn(),
   findCollectionByUid: jest.fn(),
   findItemInCollectionByItemUid: jest.fn(),
+  findParentItemInCollection: jest.fn(),
   getAvailableAddToScopes: jest.fn(() => []),
   isItemARequest: jest.fn((item) => !!item && item.type !== 'folder')
 }));
@@ -680,6 +681,65 @@ describe('renderVarInfo', () => {
       expect(updateVariableInScope).toHaveBeenCalled();
     });
 
+    it('adds variable as a secret if secret is selected when creating the environment, instead of always saving as a plain variable', async () => {
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'collection', label: 'Collection Variables', enabled: true, supportsSecret: false },
+        { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
+      ]);
+
+      const collectionAfterCreate = {
+        uid: 'col-1',
+        activeEnvironmentUid: 'env-new',
+        environments: [{ uid: 'env-new', name: 'Dev', variables: [] }]
+      };
+
+      store.getState.mockReturnValue({
+        globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
+        collections: { collections: [collectionAfterCreate] }
+      });
+      findCollectionByUid.mockReturnValue(collectionAfterCreate);
+      addEnvironment.mockReturnValue(() => Promise.resolve());
+      selectEnvironment.mockReturnValue(() => Promise.resolve());
+      getVariableScope.mockReturnValue(null);
+      store.dispatch.mockImplementation(() => Promise.resolve());
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: null
+        }
+      );
+
+      const switcher = result.querySelector('.var-add-to-switcher');
+      switcher.querySelector('.var-add-to-toggle').click();
+
+      const createLink = switcher.querySelector('[data-testid="var-info-add-to-create-env-button"]');
+      createLink.click();
+
+      // Tick Secret before creating the environment.
+      const secretCheckbox = switcher.querySelector('[data-testid="var-info-add-to-secret-checkbox"]');
+      secretCheckbox.checked = true;
+      secretCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+
+      const nameInput = switcher.querySelector('[data-testid="var-info-add-to-create-env-name-input"]');
+      nameInput.value = 'Dev';
+      switcher.querySelector('[data-testid="var-info-add-to-create-env-submit"]').click();
+
+      await jest.runAllTimersAsync();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(updateVariableInScope).toHaveBeenCalledWith(
+        'missingVar',
+        expect.any(String),
+        expect.objectContaining({ data: expect.objectContaining({ secret: true }) }),
+        'col-1'
+      );
+    });
+
     it('does not save on blur for a brand new variable, even if the value changed', () => {
       getVariableScope.mockReturnValue(null);
       getAvailableAddToScopes.mockReturnValue([
@@ -729,6 +789,10 @@ describe('renderVarInfo', () => {
 
       const valueContainer = result.querySelector('.var-value-container');
       expect(typeof valueContainer._persistNewVariable).toBe('function');
+
+      // _persistNewVariable is a no-op unless the value actually changed from what the
+      // editor was initialized with (see brunoVarInfo.js), so simulate an edit first.
+      valueContainer._cmEditor.getValue = () => 'a-new-value';
 
       await valueContainer._persistNewVariable();
 
