@@ -14,8 +14,15 @@ export default function XmlPreview({ data, defaultExpanded = true }) {
 
     const parsed = parseXMLString(data);
 
+    if (parsed === null) {
+      return {
+        error: 'Failed to parse XML string. Invalid XML format.',
+        data: null
+      };
+    }
+
     return {
-      error: parsed ? null : 'Failed to parse XML string. Invalid XML format.',
+      error: null,
       data: parsed
     };
   }, [data]);
