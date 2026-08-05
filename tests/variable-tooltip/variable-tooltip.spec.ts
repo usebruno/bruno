@@ -14,6 +14,7 @@ import {
   deleteAllGlobalEnvironments,
   setRequestUrlAndSave,
   openUrlVarTooltip,
+  openEnvValueVarTooltip,
   openCollectionSettings,
   selectCollectionPaneTab,
   openEnvironmentConfigTab
@@ -1278,6 +1279,48 @@ test.describe('Variable Tooltip - Global Secret Variables', () => {
       await expect(varInfoPopup.all()).toHaveCount(0);
 
       await expect(page.locator('.request-tab').filter({ hasText: 'Global Environments' })).toBeVisible();
+      await expect(environment.secretsTab()).toHaveClass(/active/);
+      await expect(environment.varRow('goToGlobalSecretVar')).toBeVisible();
+    });
+  });
+
+  test('should go to definition on a global secret referenced from inside the Global Environment table itself, without closing other tabs', async ({ page, createTmpDir }) => {
+    const collectionName = 'go-to-definition-global-secret-self-test';
+    const envName = 'GoToDef Global Self Env';
+    const { sidebar, varInfoPopup, environment } = buildCommonLocators(page);
+
+    await test.step('Create a global env with a secret variable, and a plain variable referencing it', async () => {
+      await createCollection(page, collectionName, await createTmpDir('go-to-definition-global-secret-self-collection'));
+
+      await createEnvironment(page, envName, 'global');
+      await addEnvironmentVariable(page, { name: 'goToGlobalSecretVar', value: 'global-secret-value', isSecret: true });
+      // Added last so the Variables tab (where this row lives) ends up active.
+      await addEnvironmentVariable(page, { name: 'goToGlobalRefVar', value: '{{goToGlobalSecretVar}}' });
+      await environment.saveAll().click();
+    });
+
+    await test.step('Open an unrelated request tab, then switch back to the Global Environment table', async () => {
+      await createRequest(page, 'GoToDef Self Persist Request', collectionName);
+      await sidebar.request('GoToDef Self Persist Request').click();
+
+      await environment.globalEnvTab().click();
+      await expect(environment.varRow('goToGlobalRefVar')).toBeVisible();
+    });
+
+    await test.step('Go to definition on the reference, from inside the table it targets', async () => {
+      const tooltip = await openEnvValueVarTooltip(page, 'goToGlobalRefVar', 'goToGlobalSecretVar', 'valid');
+      await expect(varInfoPopup.scopeBadge(tooltip)).toContainText('Global');
+
+      await varInfoPopup.name(tooltip).click();
+
+      // The tooltip closes immediately once navigation happens.
+      await expect(varInfoPopup.all()).toHaveCount(0);
+    });
+
+    await test.step('The same Global Environments tab is reused, no other tab was closed, and it lands on Secrets', async () => {
+      await expect(page.locator('.request-tab').filter({ hasText: 'Global Environments' })).toHaveCount(1);
+      await expect(page.locator('.request-tab').filter({ hasText: 'GoToDef Self Persist Request' })).toHaveCount(1);
+
       await expect(environment.secretsTab()).toHaveClass(/active/);
       await expect(environment.varRow('goToGlobalSecretVar')).toBeVisible();
     });

@@ -18,7 +18,7 @@ import { BRUNO_VARIABLE_DATATYPES, valueToString } from '@usebruno/common/utils'
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
-import { getGlobalEnvironmentVariables } from 'utils/collections';
+import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections';
 import {
   stripEnvVarUid,
   getDuplicateSecretNames,
@@ -31,7 +31,7 @@ import { useSortCycle } from 'hooks/useSortCycle';
 import { sortRowsByName, reorderWithinSubset } from 'utils/sortableRows';
 import { useMouseRowDrag, DRAG_ROW_KEY_ATTR } from 'hooks/useMouseRowDrag';
 import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
-import { reconcileSavedChange } from './reconcile';
+import { reconcileSavedChange, findExternallyAddedVariables } from './reconcile';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
@@ -301,6 +301,7 @@ const EnvironmentVariablesTable = ({
   const pendingDraftRestoreRef = useRef(false);
 
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+  const globalEnvSecrets = getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid });
   const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
   // `_collection` flows into every row's MultiLineEditor as the variable-resolution
   // context. Without memoization, `cloneDeep(collection)` runs on every render —
@@ -310,12 +311,13 @@ const EnvironmentVariablesTable = ({
   const _collection = useMemo(() => {
     const c = collection ? cloneDeep(collection) : {};
     c.globalEnvironmentVariables = globalEnvironmentVariables;
+    c.globalEnvSecrets = globalEnvSecrets;
     c.activeEnvironmentUid = environment.uid;
     if (!collection && workspaceProcessEnvVariables) {
       c.workspaceProcessEnvVariables = workspaceProcessEnvVariables;
     }
     return c;
-  }, [collection, globalEnvironmentVariables, workspaceProcessEnvVariables, environment.uid]);
+  }, [collection, globalEnvironmentVariables, globalEnvSecrets, workspaceProcessEnvVariables, environment.uid]);
 
   // Reuse the previous initialValues when only uids changed but the content is
   // identical.
@@ -481,15 +483,42 @@ const EnvironmentVariablesTable = ({
   // If the user is typing ahead, keep their edits — the draft/autosave cycle
   // persists them — so nothing typed during an async save is lost.
   const prevSavedValuesJsonRef = useRef(savedValuesJson);
+  const prevRawSavedRef = useRef(environment.variables);
   useEffect(() => {
     const prevSaved = prevSavedValuesJsonRef.current;
+    const prevRawSaved = prevRawSavedRef.current;
     prevSavedValuesJsonRef.current = savedValuesJson;
+    prevRawSavedRef.current = environment.variables;
 
     const currentNamed = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
     const currentJson = JSON.stringify(currentNamed.map(stripEnvVarUid));
 
-    if (reconcileSavedChange({ prevSaved, nextSaved: savedValuesJson, current: currentJson }) === 'adopt') {
+    const outcome = reconcileSavedChange({ prevSaved, nextSaved: savedValuesJson, current: currentJson });
+
+    if (outcome === 'adopt') {
       formik.resetForm({ values: initialValues });
+      return;
+    }
+
+    if (outcome === 'skip') {
+      // find the subset of `environment.variables` that were added elsewhere(undefined variable tooltip's "Add to" switcher)
+      // while the form was dirty, and merge them back in.
+      const added = findExternallyAddedVariables({
+        prevRawSaved,
+        nextRawSaved: environment.variables,
+        currentValues: formik.values
+      });
+
+      if (added.length > 0) {
+        const values = formik.values;
+        const trailingRow = values[values.length - 1];
+        const restRows = values.slice(0, -1);
+        formik.setValues([
+          ...restRows,
+          ...added.map((v) => ({ ...v, description: v.description ?? '' })),
+          trailingRow
+        ]);
+      }
     }
   }, [savedValuesJson]);
 

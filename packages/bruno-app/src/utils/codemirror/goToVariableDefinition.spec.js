@@ -149,4 +149,52 @@ describe('goToVariableDefinition', () => {
       tabState: { envUid: 'genv-1', environment: { tab: 'variables' } }
     });
   });
+
+  it('reuses the already-active Global Environment Settings tab instead of minting a new one from a collection-less context', () => {
+    // Simulates clicking go-to-definition from inside the Global Environment table itself,
+    // where `collection` is a synthetic `{}` with no uid.
+    const syntheticCollection = {};
+    store.getState.mockReturnValueOnce({
+      globalEnvironments: { activeGlobalEnvironmentUid: undefined },
+      tabs: {
+        activeTabUid: 'col-1-global-environment-settings',
+        tabs: [
+          { uid: 'col-1-global-environment-settings', collectionUid: 'col-1', type: 'global-environment-settings' }
+        ]
+      }
+    });
+    const scopeInfo = { type: 'global', data: { variable: { name: 'apiToken', secret: true } } };
+
+    goToVariableDefinition(scopeInfo, syntheticCollection, null, 'apiToken');
+
+    // Reuses the, already-open global tab uid
+    expect(addTab).toHaveBeenCalledWith(expect.objectContaining({
+      uid: 'col-1-global-environment-settings',
+      collectionUid: 'col-1',
+      type: 'global-environment-settings'
+    }));
+    expect(updateTabState).toHaveBeenCalledWith({
+      uid: 'col-1-global-environment-settings',
+      tabState: { environment: { tab: 'secrets' } }
+    });
+  });
+
+  it('finds an already-open Global tab even when it is not the currently active tab', () => {
+    const syntheticCollection = {};
+    store.getState.mockReturnValueOnce({
+      globalEnvironments: { activeGlobalEnvironmentUid: undefined },
+      tabs: {
+        activeTabUid: 'req-current',
+        tabs: [
+          { uid: 'req-current', collectionUid: 'col-1', type: 'http-request' },
+          { uid: 'col-1-global-environment-settings', collectionUid: 'col-1', type: 'global-environment-settings' }
+        ]
+      }
+    });
+    const scopeInfo = { type: 'global', data: { variable: { name: 'apiToken', secret: false } } };
+
+    goToVariableDefinition(scopeInfo, syntheticCollection, null, 'apiToken');
+
+    expect(addTab).toHaveBeenCalledWith(expect.objectContaining({ uid: 'col-1-global-environment-settings' }));
+  });
 });

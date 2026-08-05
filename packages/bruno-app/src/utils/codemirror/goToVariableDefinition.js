@@ -122,9 +122,24 @@ export const goToVariableDefinition = (scopeInfo, collection, item, variableName
     }
 
     case 'global': {
-      const globalEnvironmentTabUid = `${collection.uid}-global-environment-settings`;
-      const environmentUid = store.getState().globalEnvironments?.activeGlobalEnvironmentUid;
-      dispatch(addTab({ uid: globalEnvironmentTabUid, collectionUid: collection.uid, type: 'global-environment-settings' }));
+      const state = store.getState();
+      const tabsState = state.tabs || {};
+      const activeTab = (tabsState.tabs || []).find((t) => t.uid === tabsState.activeTabUid);
+
+      // instead of creating a new global environment tab, check if one already exists and reuse it.
+      const existingGlobalTab = activeTab?.type === 'global-environment-settings'
+        ? activeTab
+        : (tabsState.tabs || []).find((t) => t.type === 'global-environment-settings');
+
+      const fallbackCollectionUid = collection?.uid || activeTab?.collectionUid;
+      const globalEnvironmentTabUid = existingGlobalTab?.uid || `${fallbackCollectionUid}-global-environment-settings`;
+      const environmentUid = state.globalEnvironments?.activeGlobalEnvironmentUid;
+
+      dispatch(addTab({
+        uid: globalEnvironmentTabUid,
+        collectionUid: existingGlobalTab?.collectionUid || fallbackCollectionUid,
+        type: 'global-environment-settings'
+      }));
 
       // pin the environment and the sub-tab(variables or secrets) to tab state.
       dispatch(updateTabState({
