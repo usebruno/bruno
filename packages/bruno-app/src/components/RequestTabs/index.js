@@ -29,6 +29,7 @@ const RequestTabs = () => {
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
   const screenWidth = useSelector((state) => state.app.screenWidth);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const tabsAcrossCollections = useBetaFeature(BETA_FEATURES.TABS_ACROSS_COLLECTIONS);
 
   const createSetHasOverflow = useCallback((tabUid) => {
@@ -57,6 +58,15 @@ const RequestTabs = () => {
     () => getVisibleTabs({ tabs, tabsAcrossCollections, activeTabCollectionUid: activeTab?.collectionUid, scratchCollectionUids }),
     [tabs, tabsAcrossCollections, activeTab?.collectionUid, scratchCollectionUids]
   );
+
+  // With tabs across collections, "the active collection" is ambiguous, so the new-request (+)
+  // button creates an unsaved request in the workspace scratch collection and defers the
+  // collection choice to save time (same flow as Workspace Home). Otherwise it targets the
+  // active collection.
+  const activeWorkspace = find(workspaces, (w) => w.uid === activeWorkspaceUid);
+  const newRequestCollectionUid = tabsAcrossCollections
+    ? activeWorkspace?.scratchCollectionUid
+    : activeCollection?.uid;
 
   const isScratchCollection = useMemo(() => {
     return activeCollection ? workspaces.some((w) => w.scratchCollectionUid === activeCollection.uid) : false;
@@ -182,8 +192,8 @@ const RequestTabs = () => {
               </ul>
             </div>
 
-            {activeCollection && (
-              <CreateTransientRequest collectionUid={activeCollection.uid} />
+            {newRequestCollectionUid && (
+              <CreateTransientRequest collectionUid={newRequestCollectionUid} />
             )}
 
             <div className={classnames('scroll-chevrons', { hidden: !showChevrons })}>
