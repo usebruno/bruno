@@ -99,36 +99,41 @@ const getScopeLabel = (scopeType) => {
   return labels[scopeType] || scopeType;
 };
 
-const NEW_ENVIRONMENT_POLL_INTERVAL_MS = 50;
-const NEW_ENVIRONMENT_POLL_TIMEOUT_MS = 3000;
+const NEW_ENVIRONMENT_WAIT_TIMEOUT_MS = 3000;
 
-// `addEnvironment` only writes the file through IPC. The store is updated later, after the filesystem watcher picks up the change.
-// So, poll for the environment here instead of assuming it’s available immediately.
+// `addEnvironment` only writes the file through IPC. The store is updated later, once the
+// filesystem watcher picks up the new file and dispatches it in.
+//  subscribe to the store and resolve on the exact dispatch that adds it
 const waitForEnvironmentByName = (
   collectionUid,
   name,
-  { intervalMs = NEW_ENVIRONMENT_POLL_INTERVAL_MS, timeoutMs = NEW_ENVIRONMENT_POLL_TIMEOUT_MS } = {}
+  { timeoutMs = NEW_ENVIRONMENT_WAIT_TIMEOUT_MS } = {}
 ) => {
-  const deadline = Date.now() + timeoutMs;
+  const findEnvironment = () => {
+    const freshCollection = findCollectionByUid(store.getState().collections.collections, collectionUid);
+    return (freshCollection?.environments || []).find((env) => env.name === name);
+  };
 
   return new Promise((resolve, reject) => {
-    const check = () => {
-      const state = store.getState();
-      const freshCollection = findCollectionByUid(state.collections.collections, collectionUid);
-      const found = (freshCollection?.environments || []).find((env) => env.name === name);
+  // check if the environment already exists in the store (in case it was created before this function was called)
+    const existing = findEnvironment();
+    if (existing) {
+      return resolve(existing);
+    }
 
+    const timeoutId = setTimeout(() => {
+      unsubscribe();
+      reject(new Error(`Failed to create environment "${name}"`));
+    }, timeoutMs);
+
+    const unsubscribe = store.subscribe(() => {
+      const found = findEnvironment();
       if (found) {
-        return resolve(found);
+        clearTimeout(timeoutId);
+        unsubscribe();
+        resolve(found);
       }
-
-      if (Date.now() >= deadline) {
-        return reject(new Error(`Timed out waiting for environment "${name}" to be created`));
-      }
-
-      setTimeout(check, intervalMs);
-    };
-
-    check();
+    });
   });
 };
 
