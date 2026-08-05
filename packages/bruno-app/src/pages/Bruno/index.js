@@ -7,6 +7,7 @@ import AppPreviewKeepAlive from 'components/AppPreviewKeepAlive';
 import AiChatSidebar from 'components/AiChatSidebar';
 import AiChatPopout from 'components/AiChatSidebar/Popout';
 import Sidebar from 'components/Sidebar';
+import OpenCollection from 'components/Sidebar/OpenCollection';
 import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
 import ApiSpecPanel from 'components/ApiSpecPanel';
@@ -15,9 +16,6 @@ import TabPanelErrorBoundary from 'components/RequestTabPanel/TabPanelErrorBound
 import { useSelector } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
-import 'codemirror/theme/material.css';
-import 'codemirror/theme/monokai.css';
-import 'codemirror/addon/scroll/simplescrollbars.css';
 import 'swagger-ui-react/swagger-ui.css';
 import Devtools from 'components/Devtools';
 import useGrpcEventListeners from 'utils/network/grpc-event-listeners';
@@ -25,41 +23,6 @@ import useWsEventListeners from 'utils/network/ws-event-listeners';
 import Portal from 'components/Portal';
 import SaveTransientRequestContainer from 'components/SaveTransientRequest/Container';
 import SaveTransientRequest from 'components/SaveTransientRequest';
-
-require('codemirror/mode/javascript/javascript');
-require('codemirror/mode/xml/xml');
-// css + htmlmixed power the app code editors (apps are HTML/CSS/JS documents)
-require('codemirror/mode/css/css');
-require('codemirror/mode/htmlmixed/htmlmixed');
-require('codemirror/mode/sparql/sparql');
-require('codemirror/addon/comment/comment');
-require('codemirror/addon/dialog/dialog');
-require('codemirror/addon/edit/closebrackets');
-require('codemirror/addon/edit/matchbrackets');
-require('codemirror/addon/fold/brace-fold');
-require('codemirror/addon/fold/foldgutter');
-require('codemirror/addon/fold/xml-fold');
-require('codemirror/addon/hint/javascript-hint');
-require('codemirror/addon/hint/show-hint');
-require('codemirror/addon/lint/lint');
-require('codemirror/addon/lint/json-lint');
-require('codemirror/addon/mode/overlay');
-require('codemirror/addon/scroll/simplescrollbars');
-require('codemirror/addon/search/jump-to-line');
-require('codemirror/addon/search/search');
-require('codemirror/addon/search/searchcursor');
-require('codemirror/addon/display/placeholder');
-require('codemirror/keymap/sublime');
-
-require('codemirror-graphql/hint');
-require('codemirror-graphql/info');
-require('codemirror-graphql/jump');
-require('codemirror-graphql/lint');
-require('codemirror-graphql/mode');
-
-require('utils/codemirror/brunoVarInfo');
-require('utils/codemirror/javascript-lint');
-require('utils/codemirror/autocomplete');
 
 const TransientRequestModalsRenderer = ({ modals }) => {
   if (modals.length === 0) {
@@ -72,6 +35,7 @@ const TransientRequestModalsRenderer = ({ modals }) => {
         item={modals[0].item}
         collection={modals[0].collection}
         isOpen={true}
+        closeAfterSave={modals[0].closeAfterSave}
       />
     );
   }
@@ -187,6 +151,7 @@ export default function Main() {
       <Devtools mainSectionRef={mainSectionRef} />
       <StatusBar />
       <TransientRequestModalsRenderer modals={saveTransientRequestModals} />
+      <OpenCollection />
     </div>
     // </ErrorCapture>
   );
