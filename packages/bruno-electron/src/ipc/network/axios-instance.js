@@ -40,6 +40,28 @@ const getTld = (hostname) => {
   return hostname.substring(hostname.lastIndexOf('.') + 1);
 };
 
+/** The serialized block is the request verbatim: getHeaders() lowercases every name, and
+ *  Connection is missing from it since _storeHeader writes that one straight to the wire. */
+const getSentHeaders = (clientRequest) => {
+  const headerBlock = clientRequest?._header;
+  if (typeof headerBlock !== 'string' || !headerBlock) return {};
+
+  const lines = headerBlock.split(/\r?\n/);
+  const sentHeaders = {};
+
+  // Start at i = 1 to skip the request line ("GET /path HTTP/1.1")
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    const colonIdx = line.indexOf(':');
+
+    if (colonIdx > 0) {
+      sentHeaders[line.slice(0, colonIdx).trim()] = line.slice(colonIdx + 1).trim();
+    }
+  }
+
+  return sentHeaders;
+};
+
 const checkConnection = (host, port) =>
   new Promise((resolve) => {
     const key = `${host}:${port}`;
@@ -236,9 +258,7 @@ function makeAxiosInstance({
       timeline = config?.metadata?.timeline || [];
       const duration = end - config?.metadata.startTime;
 
-      let sentHeaders = { ...response.request?.getHeaders() };
-      // Node writes Connection straight into the serialized block, so getHeaders() never has it.
-      sentHeaders.connection = response.request?._header?.match(/\r\nconnection: *(.*?)\r\n/i)?.[1];
+      const sentHeaders = getSentHeaders(response.request);
 
       /** Post-response vars and scripts read request.headers, which never held the transport set. */
       response.sentHeaders = sentHeaders;
@@ -287,10 +307,7 @@ function makeAxiosInstance({
 
       // A failed request carries the ClientRequest on the error itself when no response came back.
       const errorRequest = error.response?.request || error.request;
-      let errorHeaders = { ...errorRequest?.getHeaders() };
-
-      // Node writes Connection straight into the serialized block, so getHeaders() never has it.
-      errorHeaders.connection = errorRequest?._header?.match(/\r\nconnection: *(.*?)\r\n/i)?.[1];
+      const errorHeaders = getSentHeaders(errorRequest);
 
       /** A non-2xx still runs post-response scripts, and they read request.headers. */
       if (error.response) error.response.sentHeaders = errorHeaders;
