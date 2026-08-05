@@ -37,11 +37,19 @@ const QueryResultPreview = ({
   const previewContainerRef = useRef(null);
 
   const handlePreviewKeyDown = useCallback((e) => {
-    const isCtrlOrCmd = e.ctrlKey || e.metaKey;
-    if (isCtrlOrCmd && e.key === 'f') {
-      e.preventDefault();
-      e.stopPropagation();
-      toast('Search is not available in Preview mode. Switch to Editor mode to search.', { icon: '🔍' });
+    // Ignore held-down key repeats
+    if (e.repeat || e.isAutoRepeat) return;
+
+    const isCtrlOrCmd = e.ctrlKey || e.metaKey || e.control || e.meta;
+    const isFind = (e.key && e.key.toLowerCase() === 'f') || e.code === 'KeyF';
+
+    if (isCtrlOrCmd && isFind) {
+      if (e.preventDefault) e.preventDefault();
+      if (e.stopPropagation) e.stopPropagation();
+      toast('Search is not available in Preview mode. Switch to Editor mode to search.', {
+        icon: '🔍',
+        id: 'response-preview-search-disabled'
+      });
     }
   }, []);
 
@@ -49,12 +57,28 @@ const QueryResultPreview = ({
     if (selectedTab !== 'preview') return;
     const container = previewContainerRef.current;
     if (!container) return;
-    container.addEventListener('keydown', handlePreviewKeyDown, true);
-    return () => container.removeEventListener('keydown', handlePreviewKeyDown, true);
+
+    // Attach to window in capture phase to intercept shortcuts globally while Preview is active
+    window.addEventListener('keydown', handlePreviewKeyDown, true);
+
+    // Electron <webview> isolates keyboard inputs. Catch Ctrl+F from inside the HTML preview webview.
+    const webviews = container.querySelectorAll('webview');
+    const handleWebviewInput = (e) => {
+      if (e.type === 'keyDown') {
+        handlePreviewKeyDown(e);
+      }
+    };
+
+    webviews.forEach((wv) => wv.addEventListener('before-input-event', handleWebviewInput));
+
+    return () => {
+      window.removeEventListener('keydown', handlePreviewKeyDown, true);
+      webviews.forEach((wv) => wv.removeEventListener('before-input-event', handleWebviewInput));
+    };
   }, [selectedTab, handlePreviewKeyDown]);
 
   const wrapPreview = useCallback((content) => (
-    // tabIndex makes the div focusable so keydown events are captured
+    // tabIndex makes the div focusable
     <div ref={previewContainerRef} tabIndex={-1} style={{ outline: 'none', height: '100%' }}>
       {content}
     </div>
