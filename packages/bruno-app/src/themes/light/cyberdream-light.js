@@ -7,7 +7,7 @@ const BG = '#ffffff';
 const BG_ALT = '#eaeaea';
 const BG_HIGHLIGHT = '#acacac';
 const FG = '#16181a';
-const GREY = '#7b8496';
+const GREY = '#5f6878';
 
 const colors = {
   BG,
