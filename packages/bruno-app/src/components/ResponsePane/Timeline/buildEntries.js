@@ -1,7 +1,6 @@
 /** Headers actually sent, from the timeline's `requestHeader` entries. A followed redirect logs one
  *  block per hop into the same timeline, so only the last block reached the server that responded. */
 export const sentHeadersFromTimeline = (timeline) => {
-  console.log('Timeline Header from timline : ', timeline);
   if (!Array.isArray(timeline)) return [];
 
   const headers = [];
@@ -19,7 +18,6 @@ export const sentHeadersFromTimeline = (timeline) => {
     foundBlock = true;
 
     if (typeof item.message === 'string') {
-      console.log('item.message : ', item.message);
       const separatorIdx = item.message.indexOf(':');
       if (separatorIdx !== -1) {
         headers.unshift({

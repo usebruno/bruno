@@ -161,7 +161,6 @@ test.describe('Timeline - response headers by source', () => {
         await expect(timeline.items()).toHaveCount(1);
         await timeline.itemHeader(timeline.items().first()).click();
         await expect(timelineHeaders.table()).toBeVisible();
-
         tableLines = await assertHeaderTable(timelineHeaders, 'timeline Request tab');
       });
 

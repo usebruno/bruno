@@ -82,7 +82,7 @@ const applySentHeadersToRequest = (request, response) => {
   if (!request?.headers || !response?.sentHeaders) return;
   const existing = new Set(Object.keys(request.headers).map((name) => name.toLowerCase()));
   const sentHeaders = {};
-  response.sentHeaders.forEach(({ key, value }) => {
+  Object.entries(response.sentHeaders).forEach(([key, value]) => {
     if (!existing.has(key.toLowerCase())) sentHeaders[key] = value;
   });
   request.headers = { ...sentHeaders, ...request.headers };

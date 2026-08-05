@@ -451,6 +451,7 @@ const Console = () => {
 
           <button
             className={`console-tab ${activeTab === 'network' ? 'active' : ''}`}
+            data-testid="network-tab"
             onClick={() => handleTabChange('network')}
           >
             <IconNetwork size={16} strokeWidth={1.5} />

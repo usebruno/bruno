@@ -73,54 +73,6 @@ const checkConnection = (host, port) =>
  * @returns {axios.AxiosInstance}
  */
 
-/** Headers actually sent, transport defaults first. Reads `_header`, since Connection
- *  and Content-Length bypass setHeader and so are missing from kOutHeaders. */
-const getSortedOutgoingHeaders = (request) => {
-  const headerBlock = request?._header;
-  if (typeof headerBlock !== 'string' || !headerBlock) return [];
-
-  const lines = headerBlock.split(/\r?\n/);
-  const parsedHeaders = [];
-
-  // Skip index 0 - `request line: "GET / HTTP/1.1"`
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    const colonIdx = line.indexOf(':');
-
-    // Rejects empty lines and lines without a key before the colon
-    if (colonIdx > 0) {
-      parsedHeaders.push({
-        key: line.slice(0, colonIdx).trim(),
-        value: line.slice(colonIdx + 1).trim()
-      });
-    }
-  }
-
-  return parsedHeaders;
-};
-
-/** Sent headers are only knowable at response time, so log them into this hop's header slot rather
- *  than the tail, and keep them on the response for post-response vars and scripts. */
-const recordSentHeaders = (timeline, response) => {
-  const sentHeaders = getSortedOutgoingHeaders(response?.request);
-  if (!Array.isArray(timeline) || !sentHeaders.length) return;
-  response.sentHeaders = sentHeaders;
-
-  let insertAt = timeline.length;
-  for (let i = timeline.length - 1; i >= 0; i--) {
-    const entryType = timeline[i]?.type;
-    if (entryType === 'requestData' || entryType === 'request') {
-      insertAt = i + 1;
-      break;
-    }
-  }
-  timeline.splice(insertAt, 0, ...sentHeaders.map(({ key, value }) => ({
-    timestamp: new Date(),
-    type: 'requestHeader',
-    message: `${key}: ${value}`
-  })));
-};
-
 function makeAxiosInstance({
   proxyMode = 'off',
   proxyModeReason = '',
@@ -284,7 +236,20 @@ function makeAxiosInstance({
       timeline = config?.metadata?.timeline || [];
       const duration = end - config?.metadata.startTime;
 
-      recordSentHeaders(timeline, response);
+      let sentHeaders = { ...response.request?.getHeaders() };
+      // Node writes Connection straight into the serialized block, so getHeaders() never has it.
+      sentHeaders.connection = response.request?._header?.match(/\r\nconnection: *(.*?)\r\n/i)?.[1];
+
+      /** Post-response vars and scripts read request.headers, which never held the transport set. */
+      response.sentHeaders = sentHeaders;
+
+      Object.entries(sentHeaders).forEach(([key, value]) => {
+        timeline.push({
+          timestamp: new Date(),
+          type: 'requestHeader',
+          message: `${key}: ${value}`
+        });
+      });
 
       const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
       if (httpVersion?.startsWith('2')) {
@@ -319,7 +284,25 @@ function makeAxiosInstance({
     async (error) => {
       const config = error.config;
       const timeline = config?.metadata?.timeline || [];
-      recordSentHeaders(timeline, error.response ?? error);
+
+      // A failed request carries the ClientRequest on the error itself when no response came back.
+      const errorRequest = error.response?.request || error.request;
+      let errorHeaders = { ...errorRequest?.getHeaders() };
+
+      // Node writes Connection straight into the serialized block, so getHeaders() never has it.
+      errorHeaders.connection = errorRequest?._header?.match(/\r\nconnection: *(.*?)\r\n/i)?.[1];
+
+      /** A non-2xx still runs post-response scripts, and they read request.headers. */
+      if (error.response) error.response.sentHeaders = errorHeaders;
+
+      Object.entries(errorHeaders).forEach(([key, value]) => {
+        timeline.push({
+          timestamp: new Date(),
+          type: 'requestHeader',
+          message: `${key}: ${value}`
+        });
+      });
+
       timeline?.push({
         timestamp: new Date(),
         type: 'error',
@@ -572,7 +555,5 @@ function makeAxiosInstance({
 }
 
 module.exports = {
-  makeAxiosInstance,
-  getSortedOutgoingHeaders,
-  recordSentHeaders
+  makeAxiosInstance
 };
