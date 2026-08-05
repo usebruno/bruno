@@ -1,17 +1,33 @@
-/** Headers actually sent, from the timeline's `requestHeader` entries. */
+/** Headers actually sent, from the timeline's `requestHeader` entries. A followed redirect logs one
+ *  block per hop into the same timeline, so only the last block reached the server that responded. */
 export const sentHeadersFromTimeline = (timeline) => {
+  // console.log("Timeline Header from timline : ", timeline)
   if (!Array.isArray(timeline)) return [];
-  return timeline.reduce((headers, entry) => {
-    if (entry?.type !== 'requestHeader' || typeof entry.message !== 'string') return headers;
-    const separatorIdx = entry.message.indexOf(':');
-    if (separatorIdx !== -1) {
-      headers.push({
-        name: entry.message.slice(0, separatorIdx).trim(),
-        value: entry.message.slice(separatorIdx + 1).trim()
-      });
+
+  const headers = [];
+  let foundBlock = false;
+
+  for (let i = timeline.length - 1; i >= 0; i--) {
+    const item = timeline[i];
+    const isHeader = item?.type === 'requestHeader';
+
+    if (foundBlock && !isHeader) break;
+    if (!isHeader) continue;
+
+    foundBlock = true;
+
+    if (typeof item.message === 'string') {
+      console.log('item.message : ', item.message);
+      const separatorIdx = item.message.indexOf(':');
+      if (separatorIdx !== -1) {
+        headers.unshift({
+          name: item.message.slice(0, separatorIdx).trim(),
+          value: item.message.slice(separatorIdx + 1).trim()
+        });
+      }
     }
-    return headers;
-  }, []);
+  }
+  return headers;
 };
 
 export const getEntryKind = (entry) => {

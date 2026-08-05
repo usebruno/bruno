@@ -381,7 +381,6 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   const collectionRoot = collection?.draft?.root ? get(collection, 'draft.root', {}) : get(collection, 'root', {});
   const collectionPath = collection?.pathname;
   const headers = {};
-  let mergedHeaders = [];
   let contentTypeDefined = false;
   let url = request.url;
 
@@ -405,7 +404,6 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   }
 
   const disabledHeaders = [];
-  // Request Script Headers ---
   each(get(request, 'headers', []), (h) => {
     if (h.enabled && h.name?.length > 0) {
       headers[h.name] = h.value;

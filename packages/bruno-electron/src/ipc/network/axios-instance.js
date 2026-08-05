@@ -76,55 +76,35 @@ const checkConnection = (host, port) =>
 /** Headers actually sent, transport defaults first. Reads `_header`, since Connection
  *  and Content-Length bypass setHeader and so are missing from kOutHeaders. */
 const getSortedOutgoingHeaders = (request) => {
-  if (!request || typeof request !== 'object') return [];
-  const headerBlock = typeof request._header === 'string' ? request._header : '';
+  const headerBlock = request?._header;
+  if (typeof headerBlock !== 'string' || !headerBlock) return [];
 
-  /** Lowercase, to match the lowerKey compared against it below. */
-  const topDefaults = [
-    'accept',
-    'user-agent',
-    'request-start-time',
-    'accept-encoding',
-    'host',
-    'connection'
-  ];
+  const lines = headerBlock.split(/\r?\n/);
+  const parsedHeaders = [];
 
-  const parsedHeaders = headerBlock
-    .split('\r\n')
-    .slice(1) // drop the request line
-    .reduce((headers, line) => {
-      const separatorIdx = line.indexOf(':');
-      if (separatorIdx > 0) {
-        const displayKey = line.slice(0, separatorIdx).trim();
-        headers.push({
-          lowerKey: displayKey.toLowerCase(),
-          displayKey,
-          value: line.slice(separatorIdx + 1).trim()
-        });
-      }
-      return headers;
-    }, []);
+  // Skip index 0 - `request line: "GET / HTTP/1.1"`
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    const colonIdx = line.indexOf(':');
 
-  parsedHeaders.sort((a, b) => {
-    const indexA = topDefaults.indexOf(a.lowerKey);
-    const indexB = topDefaults.indexOf(b.lowerKey);
-
-    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-    if (indexA !== -1) return -1;
-    if (indexB !== -1) return 1;
-
-    return a.displayKey.localeCompare(b.displayKey);
-  });
+    // Rejects empty lines and lines without a key before the colon
+    if (colonIdx > 0) {
+      parsedHeaders.push({
+        key: line.slice(0, colonIdx).trim(),
+        value: line.slice(colonIdx + 1).trim()
+      });
+    }
+  }
 
   return parsedHeaders;
 };
 
 /** Sent headers are only knowable at response time, so log them into this hop's header slot rather
  *  than the tail, and keep them on the response for post-response vars and scripts. */
-const recordSentHeaders = (timeline, clientRequest, response) => {
-  const sentHeaders = getSortedOutgoingHeaders(clientRequest);
+const recordSentHeaders = (timeline, response) => {
+  const sentHeaders = getSortedOutgoingHeaders(response?.request);
   if (!Array.isArray(timeline) || !sentHeaders.length) return;
-  if (response) response.sentHeaders = sentHeaders;
+  response.sentHeaders = sentHeaders;
 
   let insertAt = timeline.length;
   for (let i = timeline.length - 1; i >= 0; i--) {
@@ -134,10 +114,10 @@ const recordSentHeaders = (timeline, clientRequest, response) => {
       break;
     }
   }
-  timeline.splice(insertAt, 0, ...sentHeaders.map(({ displayKey, value }) => ({
+  timeline.splice(insertAt, 0, ...sentHeaders.map(({ key, value }) => ({
     timestamp: new Date(),
     type: 'requestHeader',
-    message: `${displayKey}: ${value}`
+    message: `${key}: ${value}`
   })));
 };
 
@@ -304,7 +284,7 @@ function makeAxiosInstance({
       timeline = config?.metadata?.timeline || [];
       const duration = end - config?.metadata.startTime;
 
-      recordSentHeaders(timeline, response.request, response);
+      recordSentHeaders(timeline, response);
 
       const httpVersion = response?.request?.res?.httpVersion || response?.httpVersion;
       if (httpVersion?.startsWith('2')) {
@@ -339,7 +319,7 @@ function makeAxiosInstance({
     async (error) => {
       const config = error.config;
       const timeline = config?.metadata?.timeline || [];
-      recordSentHeaders(timeline, error.response?.request || error.request, error.response);
+      recordSentHeaders(timeline, error.response ?? error);
       timeline?.push({
         timestamp: new Date(),
         type: 'error',
@@ -592,5 +572,7 @@ function makeAxiosInstance({
 }
 
 module.exports = {
-  makeAxiosInstance
+  makeAxiosInstance,
+  getSortedOutgoingHeaders,
+  recordSentHeaders
 };

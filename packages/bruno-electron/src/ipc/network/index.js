@@ -82,8 +82,8 @@ const applySentHeadersToRequest = (request, response) => {
   if (!request?.headers || !response?.sentHeaders) return;
   const existing = new Set(Object.keys(request.headers).map((name) => name.toLowerCase()));
   const sentHeaders = {};
-  response.sentHeaders.forEach(({ lowerKey, displayKey, value }) => {
-    if (!existing.has(lowerKey)) sentHeaders[displayKey] = value;
+  response.sentHeaders.forEach(({ key, value }) => {
+    if (!existing.has(key.toLowerCase())) sentHeaders[key] = value;
   });
   request.headers = { ...sentHeaders, ...request.headers };
 };
@@ -759,7 +759,6 @@ const registerNetworkIpc = (mainWindow) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
-    let allMergedHeaders;
     // Nested bru.runRequest() invocations have no item.requestUid; inherit the parent's
     // so script-driven variable updates aren't dropped by the renderer's requestUid gate.
     const requestUid = item.requestUid || parentRequestUid || uuid();
@@ -890,7 +889,6 @@ const registerNetworkIpc = (mainWindow) => {
 
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
-    allMergedHeaders = request.headers;
     // Every good boy deserves a response.
     if (request.method && request.method.toUpperCase() === 'WOOF') {
       return easterEggResponse(request);
@@ -990,7 +988,7 @@ const registerNetworkIpc = (mainWindow) => {
       const { data: requestData, dataBuffer: requestDataBuffer } = parseDataFromRequest(request);
 
       // Remove false Content-Type header (used to stop axios from auto-setting it); no Content-Type was actually set or sent.
-      const headersSent = { ...allMergedHeaders, ...request.headers };
+      const headersSent = { ...request.headers };
       Object.keys(headersSent).forEach((key) => {
         if (key.toLowerCase() === 'content-type' && headersSent[key] === false) {
           delete headersSent[key];

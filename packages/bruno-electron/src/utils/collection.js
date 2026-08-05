@@ -83,15 +83,24 @@ const mergeHeaders = (data) => {
 };
 
 /** Enabled headers off the merged table, overlaid with the ones resolved later (scripts, auth). */
-const buildFinalHeaders = (mergedHeaders, headers) => ({
-  ...(mergedHeaders || []).reduce((acc, curr) => {
-    if (curr.enabled) {
-      acc[curr.name] = curr.value;
+const buildFinalHeaders = (mergedHeaders, headers) => {
+  const finalHeaders = {};
+
+  if (Array.isArray(mergedHeaders)) {
+    for (let i = 0; i < mergedHeaders.length; i++) {
+      const header = mergedHeaders[i];
+      if (header?.enabled && header.name?.length > 0) {
+        finalHeaders[header.name] = header.value;
+      }
     }
-    return acc;
-  }, {}),
-  ...headers
-});
+  }
+
+  if (headers && typeof headers === 'object') {
+    Object.assign(finalHeaders, headers);
+  }
+
+  return finalHeaders;
+};
 
 const mergeVars = (collection, request, requestTreePath = []) => {
   let reqVars = new Map();

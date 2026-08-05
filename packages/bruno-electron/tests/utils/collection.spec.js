@@ -1,5 +1,5 @@
 const path = require('path');
-const { parseBruFileMeta, wrapAndJoinScripts, mergeScripts } = require('../../src/utils/collection');
+const { parseBruFileMeta, wrapAndJoinScripts, mergeScripts, buildFinalHeaders } = require('../../src/utils/collection');
 
 describe('parseBruFileMeta', () => {
   test('parses valid meta block correctly', () => {
@@ -542,5 +542,56 @@ describe('mergeScripts metadata', () => {
     mergeScripts(collection, request, [request], 'non-sequential');
 
     expect(request.script.resMetadata.requestScriptContent).toBe('let req = 2;');
+  });
+});
+
+describe('buildFinalHeaders', () => {
+  const merged = [
+    { name: 'col-header', value: 'col-value', enabled: true },
+    { name: 'req-header', value: 'req-value', enabled: true }
+  ];
+
+  test('turns the enabled merged headers into a name-to-value object', () => {
+    expect(buildFinalHeaders(merged, {})).toEqual({
+      'col-header': 'col-value',
+      'req-header': 'req-value'
+    });
+  });
+
+  test('skips disabled headers', () => {
+    const withDisabled = [...merged, { name: 'x-off', value: 'hidden', enabled: false }];
+    expect(buildFinalHeaders(withDisabled, {})).not.toHaveProperty('x-off');
+  });
+
+  test('skips headers with an empty name', () => {
+    const withBlank = [...merged, { name: '', value: 'orphan', enabled: true }];
+    expect(Object.keys(buildFinalHeaders(withBlank, {}))).toEqual(['col-header', 'req-header']);
+  });
+
+  // Headers resolved after the merge (scripts, auth) overlay the table.
+  test('lets later-resolved headers win over the merged table', () => {
+    expect(buildFinalHeaders(merged, { 'req-header': 'from-script' })).toEqual({
+      'col-header': 'col-value',
+      'req-header': 'from-script'
+    });
+  });
+
+  test('adds later-resolved headers that are not in the table', () => {
+    expect(buildFinalHeaders(merged, { Authorization: 'Bearer token' }).Authorization).toBe('Bearer token');
+  });
+
+  // `false` tells axios not to auto-set Content-Type; it must survive the overlay.
+  test('preserves the content-type sentinel', () => {
+    expect(buildFinalHeaders(merged, { 'content-type': false })['content-type']).toBe(false);
+  });
+
+  test('falls back to the later-resolved headers when the table is missing', () => {
+    expect(buildFinalHeaders(undefined, { 'x-a': '1' })).toEqual({ 'x-a': '1' });
+    expect(buildFinalHeaders(null, { 'x-a': '1' })).toEqual({ 'x-a': '1' });
+  });
+
+  test('returns an empty object when both inputs are missing', () => {
+    expect(buildFinalHeaders(undefined, undefined)).toEqual({});
+    expect(buildFinalHeaders([], {})).toEqual({});
   });
 });
