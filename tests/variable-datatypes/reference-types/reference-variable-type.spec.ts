@@ -3,9 +3,10 @@ import { openEnvironmentConfigTab, scrollVirtuosoRowIntoView, selectEnvironment 
 import { buildCommonLocators } from '../../utils/page/locators';
 
 const mismatchIcon = async (page: Page, name: string) => {
-  const row = buildCommonLocators(page).environment.varRow(name);
+  const locators = buildCommonLocators(page);
+  const row = locators.environment.varRow(name);
   await scrollVirtuosoRowIntoView(page, row);
-  return buildCommonLocators(page).dataTypeSelector.mismatchIcon(row);
+  return locators.dataTypeSelector.mismatchIcon(row);
 };
 
 const expectFlagged = async (page: Page, name: string) => {
@@ -19,7 +20,8 @@ const expectNotFlagged = async (page: Page, name: string) => {
 test.describe('DataType selector — referenced variable type', () => {
   test('validates a {{reference}} against the referenced variable type', async ({ pageWithUserData: page }) => {
     await test.step('Open the global environment', async () => {
-      await buildCommonLocators(page).sidebar.collection('reference-types').click();
+      const locators = buildCommonLocators(page);
+      await locators.sidebar.collection('reference-types').click();
       await selectEnvironment(page, 'global-environment', 'global');
       await openEnvironmentConfigTab(page, 'global');
     });
