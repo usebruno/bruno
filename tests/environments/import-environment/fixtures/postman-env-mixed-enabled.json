@@ -18,6 +18,12 @@
       "key": "defaultEnabledVar",
       "value": "value3",
       "type": "text"
+    },
+    {
+      "key": "nullEnabledVar",
+      "value": "value4",
+      "enabled": null,
+      "type": "text"
     }
   ],
   "_postman_variable_scope": "environment",

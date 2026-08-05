@@ -29,9 +29,10 @@ test.describe('Postman env import preserves enabled/disabled state', () => {
         await expect(locators.environment.sidebarListItem(scope, 'Mixed Enabled Env')).toBeVisible();
       });
 
-      await test.step('Enabled and default-enabled rows are checked; disabled row is unchecked', async () => {
+      await test.step('Enabled, default-enabled, and null-enabled rows are checked; disabled row is unchecked', async () => {
         await expect(locators.environment.varRowEnabledCheckbox('enabledVar')).toBeChecked();
         await expect(locators.environment.varRowEnabledCheckbox('defaultEnabledVar')).toBeChecked();
+        await expect(locators.environment.varRowEnabledCheckbox('nullEnabledVar')).toBeChecked();
         await expect(locators.environment.varRowEnabledCheckbox('disabledVar')).not.toBeChecked();
       });
     });
