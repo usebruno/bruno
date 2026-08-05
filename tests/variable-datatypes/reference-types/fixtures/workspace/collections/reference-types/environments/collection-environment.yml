@@ -1,0 +1,50 @@
+name: collection-environment
+
+variables:
+  - name: matchingGlobalStringReference
+    value: "{{globalEnvString}}"
+  - name: matchingGlobalNumberReference
+    value:
+      type: number
+      data: "{{globalEnvNumber}}"
+  - name: matchingGlobalBooleanReference
+    value:
+      type: boolean
+      data: "{{globalEnvBoolean}}"
+  - name: matchingGlobalObjectReference
+    value:
+      type: object
+      data: "{{globalEnvObject}}"
+  - name: matchingGlobalNestedStringReference
+    value: "{{globalEnvNestedObject.inner.stringField}}"
+  - name: matchingGlobalNestedNumberReference
+    value:
+      type: number
+      data: "{{globalEnvNestedObject.inner.numberField}}"
+  - name: matchingGlobalNestedBooleanReference
+    value:
+      type: boolean
+      data: "{{globalEnvNestedObject.inner.booleanField}}"
+
+  - name: mismatchedGlobalStringReference
+    value: "{{globalEnvNumber}}"
+  - name: mismatchedGlobalNumberReference
+    value:
+      type: number
+      data: "{{globalEnvString}}"
+  - name: mismatchedGlobalBooleanReference
+    value:
+      type: boolean
+      data: "{{globalEnvObject}}"
+  - name: mismatchedGlobalObjectReference
+    value:
+      type: object
+      data: "{{globalEnvBoolean}}"
+  - name: mismatchedGlobalNestedNumberReference
+    value:
+      type: number
+      data: "{{globalEnvNestedObject.inner.stringField}}"
+  - name: mismatchedGlobalNestedBooleanReference
+    value:
+      type: boolean
+      data: "{{globalEnvNestedObject.inner.numberField}}"

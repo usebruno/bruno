@@ -1,0 +1,69 @@
+name: global-environment
+
+variables:
+  - name: globalEnvString
+    value: hello
+  - name: globalEnvNumber
+    value:
+      type: number
+      data: "300"
+  - name: globalEnvBoolean
+    value:
+      type: boolean
+      data: "true"
+  - name: globalEnvObject
+    value:
+      type: object
+      data: '{"host":"localhost","port":8080}'
+  - name: globalEnvNestedObject
+    value:
+      type: object
+      data: '{"inner":{"stringField":"hello","numberField":300,"booleanField":true}}'
+
+  - name: matchingStringReference
+    value: "{{globalEnvString}}"
+  - name: matchingNumberReference
+    value:
+      type: number
+      data: "{{globalEnvNumber}}"
+  - name: matchingBooleanReference
+    value:
+      type: boolean
+      data: "{{globalEnvBoolean}}"
+  - name: matchingObjectReference
+    value:
+      type: object
+      data: "{{globalEnvObject}}"
+  - name: matchingNestedStringReference
+    value: "{{globalEnvNestedObject.inner.stringField}}"
+  - name: matchingNestedNumberReference
+    value:
+      type: number
+      data: "{{globalEnvNestedObject.inner.numberField}}"
+  - name: matchingNestedBooleanReference
+    value:
+      type: boolean
+      data: "{{globalEnvNestedObject.inner.booleanField}}"
+
+  - name: mismatchedStringReference
+    value: "{{globalEnvNumber}}"
+  - name: mismatchedNumberReference
+    value:
+      type: number
+      data: "{{globalEnvString}}"
+  - name: mismatchedBooleanReference
+    value:
+      type: boolean
+      data: "{{globalEnvObject}}"
+  - name: mismatchedObjectReference
+    value:
+      type: object
+      data: "{{globalEnvBoolean}}"
+  - name: mismatchedNestedNumberReference
+    value:
+      type: number
+      data: "{{globalEnvNestedObject.inner.stringField}}"
+  - name: mismatchedNestedBooleanReference
+    value:
+      type: boolean
+      data: "{{globalEnvNestedObject.inner.numberField}}"
