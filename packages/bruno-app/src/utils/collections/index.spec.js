@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-import { getCollectionItemCounts, mergeHeaders, transformRequestToSaveToFilesystem } from './index';
+import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts } from './index';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
