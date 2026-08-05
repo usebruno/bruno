@@ -4,8 +4,8 @@ import {
   closeAllCollections,
   dismissImportIssuesToasts,
   expandFolder,
-  importCollection,
-  selectRequestPaneTab
+  expectRequestMaxRedirects,
+  importCollection
 } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { DEFAULT_MAX_REDIRECTS } from '@usebruno/common/utils';
@@ -23,13 +23,6 @@ const importFixture = async (page: Page, tmpDir: string) => {
   });
 };
 
-const expectMaxRedirects = async (page: Page, requestName: string, expected: string) => {
-  const locators = buildCommonLocators(page);
-  await locators.sidebar.request(requestName).click();
-  await selectRequestPaneTab(page, 'Settings');
-  await expect(locators.requestSettings.maxRedirectsInput()).toHaveValue(expected);
-};
-
 test.describe('Import Postman Collection with maxRedirects', () => {
   test.afterEach(async ({ page }) => {
     await dismissImportIssuesToasts(page);
@@ -43,36 +36,36 @@ test.describe('Import Postman Collection with maxRedirects', () => {
     await importFixture(page, await createTmpDir('postman-max-redirects-happy'));
 
     await test.step('a limit of 1000 survives the import', async () => {
-      await expectMaxRedirects(page, 'Large Limit', '1000');
+      await expectRequestMaxRedirects(page, 'Large Limit', '1000');
     });
 
     await test.step('an exponent-magnitude limit survives the write to disk and the read back', async () => {
-      await expectMaxRedirects(page, 'Exponent Limit', '1e+31');
+      await expectRequestMaxRedirects(page, 'Exponent Limit', '1e+31');
     });
 
     await test.step('an ordinary limit is untouched', async () => {
-      await expectMaxRedirects(page, 'Ordinary Limit', '7');
+      await expectRequestMaxRedirects(page, 'Ordinary Limit', '7');
     });
 
     await test.step('a limit of 50 is preserved', async () => {
-      await expectMaxRedirects(page, 'Fifty Limit', '50');
+      await expectRequestMaxRedirects(page, 'Fifty Limit', '50');
     });
 
     await test.step('zero is preserved rather than treated as absent', async () => {
-      await expectMaxRedirects(page, 'No Redirects', '0');
+      await expectRequestMaxRedirects(page, 'No Redirects', '0');
     });
 
     await test.step('a request with no protocolProfileBehavior shows the default', async () => {
-      await expectMaxRedirects(page, 'Unset Limit', String(DEFAULT_MAX_REDIRECTS));
+      await expectRequestMaxRedirects(page, 'Unset Limit', String(DEFAULT_MAX_REDIRECTS));
     });
 
     await test.step('a fractional limit is truncated to a whole number', async () => {
-      await expectMaxRedirects(page, 'Fractional Limit', '3');
+      await expectRequestMaxRedirects(page, 'Fractional Limit', '3');
     });
 
     await test.step('a nested request keeps its own limit', async () => {
       await expandFolder(page, 'Reporting');
-      await expectMaxRedirects(page, 'Nested Large Limit', '75');
+      await expectRequestMaxRedirects(page, 'Nested Large Limit', '75');
     });
   });
 
@@ -114,7 +107,7 @@ test.describe('Import Postman Collection with maxRedirects', () => {
     await test.step('every offending request gets its own maxRedirects warning', async () => {
       const clipboard = await installFakeClipboard(page);
       await locators.import.issuesToastCopyBtn().click();
-      await expect(page.getByText('Copied to clipboard')).toBeVisible({ timeout: 3000 });
+      await expect(locators.toast.byMessage('Copied to clipboard')).toBeVisible({ timeout: 3000 });
 
       const issuesSummary = await clipboard.copiedText();
       for (const requestName of OFFENDERS) {
@@ -127,7 +120,7 @@ test.describe('Import Postman Collection with maxRedirects', () => {
 
     for (const requestName of OFFENDERS) {
       await test.step(`${requestName} falls back to the default`, async () => {
-        await expectMaxRedirects(page, requestName, String(DEFAULT_MAX_REDIRECTS));
+        await expectRequestMaxRedirects(page, requestName, String(DEFAULT_MAX_REDIRECTS));
       });
     }
   });

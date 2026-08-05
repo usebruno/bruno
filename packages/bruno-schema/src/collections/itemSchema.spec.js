@@ -117,6 +117,11 @@ describe('Item Schema Validation', () => {
       expect(validated.settings.maxRedirects).toBeNull();
     });
 
+    it('item schema must accept an undefined maxRedirects', async () => {
+      const validated = await itemSchema.validate(itemWithMaxRedirects(undefined));
+      expect(validated.settings.maxRedirects).toBeUndefined();
+    });
+
     it('item schema must throw an error if maxRedirects is negative', async () => {
       await expect(itemSchema.validate(itemWithMaxRedirects(-1))).rejects.toMatchObject({
         path: 'settings.maxRedirects',
