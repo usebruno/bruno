@@ -13,8 +13,8 @@ import { captureClipboardWrites } from '../../utils/clipboard';
 
 const COLLECTION_NAME = 'Max Redirects Collection';
 
-// Requests whose maxRedirects cannot be honoured: each produces one warning and falls back to 5.
-const OFFENDERS = ['Null Limit', 'Negative Limit', 'Quoted Limit', 'Fractional Limit', 'Boolean Limit'];
+// Requests whose maxRedirects cannot be honoured: each produces one warning and falls back to the default.
+const OFFENDERS = ['Null Limit', 'Negative Limit', 'Quoted Limit', 'Boolean Limit'];
 
 const importFixture = async (page: Page, tmpDir: string) => {
   const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-with-max-redirects.json');
@@ -47,6 +47,10 @@ test.describe('Import Postman Collection with maxRedirects', () => {
       await expectMaxRedirects(page, 'Large Limit', '1000');
     });
 
+    await test.step('an exponent-magnitude limit survives the write to disk and the read back', async () => {
+      await expectMaxRedirects(page, 'Exponent Limit', '1e+31');
+    });
+
     await test.step('an ordinary limit is untouched', async () => {
       await expectMaxRedirects(page, 'Ordinary Limit', '7');
     });
@@ -61,6 +65,10 @@ test.describe('Import Postman Collection with maxRedirects', () => {
 
     await test.step('a request with no protocolProfileBehavior shows the default', async () => {
       await expectMaxRedirects(page, 'Unset Limit', String(DEFAULT_MAX_REDIRECTS));
+    });
+
+    await test.step('a fractional limit is truncated to a whole number', async () => {
+      await expectMaxRedirects(page, 'Fractional Limit', '3');
     });
 
     await test.step('a nested request keeps its own limit', async () => {
@@ -80,6 +88,7 @@ test.describe('Import Postman Collection with maxRedirects', () => {
       for (const name of [
         'Ordinary Limit',
         'Large Limit',
+        'Exponent Limit',
         'Fifty Limit',
         'No Redirects',
         'Unset Limit',
@@ -111,13 +120,9 @@ test.describe('Import Postman Collection with maxRedirects', () => {
       for (const requestName of OFFENDERS) {
         expect(issuesSummary).toContain(`[WARNING] ${requestName}`);
       }
-      expect(issuesSummary.match(/Invalid maxRedirects, ignored \(must be a whole number of 0 or more\)/g)).toHaveLength(
+      expect(issuesSummary.match(/Invalid maxRedirects, ignored \(must be a number of 0 or more\)/g)).toHaveLength(
         OFFENDERS.length
       );
-    });
-
-    await test.step('warnings carry no request data, so no include-items checkbox appears', async () => {
-      await expect(locators.import.issuesToastIncludeItemsCheckbox()).toBeHidden();
     });
 
     for (const requestName of OFFENDERS) {

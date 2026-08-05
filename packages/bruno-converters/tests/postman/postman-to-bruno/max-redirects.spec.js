@@ -32,7 +32,17 @@ describe('postman maxRedirects import', () => {
     }
   );
 
-  it.each([-1, 3.5, '100', 'abc', '', true, [], NaN, Infinity, null])(
+  it.each([
+    [3.5, 3],
+    [0.9, 0]
+  ])('should truncate a fractional maxRedirects of %p to %p', async (maxRedirects, truncated) => {
+    const { settings, issues } = await importPostmanRequestWithMaxRedirects(maxRedirects);
+
+    expect(settings.maxRedirects).toBe(truncated);
+    expect(issues).toHaveLength(0);
+  });
+
+  it.each([-1, '100', 'abc', '', true, [], NaN, Infinity, null])(
     'should drop a maxRedirects of %p and warn instead of failing the import',
     async (maxRedirects) => {
       const { settings, issues } = await importPostmanRequestWithMaxRedirects(maxRedirects);
@@ -42,18 +52,37 @@ describe('postman maxRedirects import', () => {
       expect(issues[0]).toMatchObject({
         path: 'Req',
         severity: 'warning',
-        message: 'Invalid maxRedirects, ignored (must be a whole number of 0 or more)'
+        message: 'Invalid maxRedirects, ignored (must be a number of 0 or more)'
       });
+      expect(issues[0]).not.toHaveProperty('sourceItem');
     }
   );
+
+  // An overflowing numeric literal cannot be expressed as a JS number (1e309 is already Infinity),
+  // so the exported document is stated as text and read the way a real export file would be.
+  const postmanJsonWithMaxRedirectsLiteral = (literal) => `{
+    "info": {
+      "_postman_id": "test-id",
+      "name": "Test Collection",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+      {
+        "name": "Req",
+        "protocolProfileBehavior": { "maxRedirects": ${literal} },
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": { "raw": "https://example.com", "protocol": "https", "host": ["example", "com"] }
+        }
+      }
+    ]
+  }`;
 
   it.each(['1e309', '-1e309', `1${'0'.repeat(400)}`])(
     'should warn for a maxRedirects literal of %s that overflows to a non-finite number',
     async (literal) => {
-      const postmanJson = JSON.stringify(makeCollection([makeRequest('Req', { protocolProfileBehavior: {} })]));
-      const withOverflow = postmanJson.replace('"protocolProfileBehavior":{}', `"protocolProfileBehavior":{"maxRedirects":${literal}}`);
-
-      const { collection, issues } = await postmanToBruno(JSON.parse(withOverflow));
+      const { collection, issues } = await postmanToBruno(JSON.parse(postmanJsonWithMaxRedirectsLiteral(literal)));
 
       expect(collection.items[0].settings).not.toHaveProperty('maxRedirects');
       expect(issues).toHaveLength(1);

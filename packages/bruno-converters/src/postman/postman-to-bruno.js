@@ -1,5 +1,5 @@
 import mime from 'mime-types';
-import { transformExampleStatusInCollection } from '@usebruno/common';
+import { transformExampleStatusInCollection, utils } from '@usebruno/common';
 import each from 'lodash/each';
 import get from 'lodash/get';
 import { hydrateSeqInCollection, transformItemsInCollection, uuid, validateSchema } from '../common';
@@ -10,6 +10,8 @@ import {
   TRANSLATOR_INJECTED_GLOBALS
 } from './postman-package-detector';
 import postmanTranslation from './postman-translations';
+
+const { parseMaxRedirects } = utils;
 
 const AUTH_TYPES = Object.freeze({
   BASIC: 'basic',
@@ -593,14 +595,14 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
 
         // Postman's schema types maxRedirects as a number but its exports are not guaranteed to
         // honour that, and an unusable value must not cost us the request.
-        const maxRedirects = i.protocolProfileBehavior?.maxRedirects;
-        if (Number.isInteger(maxRedirects) && maxRedirects >= 0) {
+        const maxRedirects = parseMaxRedirects(i.protocolProfileBehavior?.maxRedirects);
+        if (maxRedirects !== undefined) {
           settings.maxRedirects = maxRedirects;
-        } else if (maxRedirects !== undefined) {
+        } else if (i.protocolProfileBehavior?.maxRedirects !== undefined) {
           issues.push({
             path: itemPath,
             severity: 'warning',
-            message: 'Invalid maxRedirects, ignored (must be a whole number of 0 or more)'
+            message: 'Invalid maxRedirects, ignored (must be a number of 0 or more)'
           });
         }
 

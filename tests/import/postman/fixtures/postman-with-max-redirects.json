@@ -38,6 +38,22 @@
       }
     },
     {
+      "name": "Exponent Limit",
+      "protocolProfileBehavior": {
+        "maxRedirects": 1e+31
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.acme.test/redirect-chain",
+          "protocol": "https",
+          "host": ["api", "acme", "test"],
+          "path": ["redirect-chain"]
+        }
+      }
+    },
+    {
       "name": "Fifty Limit",
       "protocolProfileBehavior": {
         "maxRedirects": 50
