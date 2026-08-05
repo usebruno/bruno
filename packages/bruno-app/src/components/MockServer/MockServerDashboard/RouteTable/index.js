@@ -4,6 +4,7 @@ import { IconCopy, IconCheck } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import EditableTable from 'components/EditableTable';
 import FilterDropdown from 'components/FilterDropdown';
+import MockSearchInput from 'components/MockServer/MockSearchInput';
 import MethodBadge from 'ui/MethodBadge';
 import { buildMockRouteTable, countMatchedRouteHits } from 'utils/mock-server/mock-responses';
 import StyledWrapper from './StyledWrapper';
@@ -64,7 +65,7 @@ const RouteTable = ({ mockServerUid }) => {
       name: 'Method',
       width: '80px',
       render: ({ value }) => (
-        <MethodBadge method={value} size="sm" className="method-badge" />
+        <MethodBadge method={value} className="method-badge" />
       )
     },
     {
@@ -131,12 +132,11 @@ const RouteTable = ({ mockServerUid }) => {
   return (
     <StyledWrapper className="h-full w-full">
       <div className="flex items-center gap-2 mb-4">
-        <input
-          type="text"
-          className="search-input"
-          placeholder="Search routes..."
+        <MockSearchInput
+          className="flex-1"
+          placeholder="Search routes"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={setSearchQuery}
           data-testid="mock-server-route-search"
         />
         <FilterDropdown
