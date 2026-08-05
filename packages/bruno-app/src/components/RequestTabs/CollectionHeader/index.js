@@ -42,6 +42,7 @@ import ToolHint from 'components/ToolHint';
 import JsSandboxMode from 'components/SecuritySettings/JsSandboxMode';
 import ActionIcon from 'ui/ActionIcon';
 import { getRevealInFolderLabel } from 'utils/common/platform';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import { normalizePath } from 'utils/common/path';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
@@ -70,6 +71,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const isAiEnabled = get(preferences, 'ai.enabled', false);
   const isAiSidebarOpen = useSelector((state) => state.chat.isOpen);
+  const tabsAcrossCollections = useBetaFeature(BETA_FEATURES.TABS_ACROSS_COLLECTIONS);
 
   // Get the current active workspace
   const currentWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
@@ -295,15 +297,21 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     );
   };
 
-  // Build overflow menu items for the "..." dropdown
+  // Build overflow menu items for the "..." dropdown. With tabs across collections, this is the
+  // single home for every collection-scoped action, so the top bar stops reading as a global
+  // toolbar that mutates as you switch tabs — Runner and File Mode live here rather than as
+  // standalone controls (and File Mode can no longer appear to flip as the active tab changes).
   const overflowMenuItems = [
+    ...(tabsAcrossCollections
+      ? [{ id: 'runner', label: 'Runner', leftSection: IconRun, onClick: handleRun }]
+      : []),
     { id: 'variables', label: 'Variables', leftSection: IconEye, onClick: viewVariables },
     // File mode is exposed via the Request/App/File view-mode toggle when the active
     // request has apps enabled; keep it in the overflow as a fallback everywhere else.
-    ...(!appAvailable
+    ...(tabsAcrossCollections || !appAvailable
       ? [{ id: 'file-mode', label: collection.fileMode ? 'Switch to Code Mode' : 'Switch to File Mode', leftSection: collection.fileMode ? IconFileOff : IconFileCode, onClick: handleFileModeClick }]
       : []),
-    ...(!hasOpenApiSyncConfigured
+    ...(tabsAcrossCollections || !hasOpenApiSyncConfigured
       ? [{ id: 'openapi-sync', label: 'OpenAPI', leftSection: OpenAPISyncIcon, onClick: viewOpenApiSync }]
       : []),
     { id: 'collection-settings', label: 'Collection Settings', leftSection: IconSettings, onClick: viewCollectionSettings }
@@ -655,7 +663,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
         <div className="header-actions flex gap-1.5 items-center">
           {!isScratchCollection && (
             <>
-              {appAvailable && (
+              {appAvailable && !tabsAcrossCollections && (
                 <div className="mode-toggle" data-testid="view-mode-toggle">
                   <ToolHint text="Request" toolhintId="ViewModeRequestToolhintId" place="bottom">
                     <button
@@ -740,7 +748,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                 </div>
               )} */}
               {/* OpenAPI Sync - standalone only when configured and beta enabled */}
-              {hasOpenApiSyncConfigured && (
+              {hasOpenApiSyncConfigured && !tabsAcrossCollections && (
                 <ToolHint
                   text={hasOpenApiError ? 'OpenAPI Error' : hasOpenApiUpdates ? 'OpenAPI Updates Available' : 'OpenAPI'}
                   toolhintId="OpenApiSyncToolhintId"
@@ -754,12 +762,14 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   </ActionIcon>
                 </ToolHint>
               )}
-              {/* Runner - always visible */}
-              <ToolHint text="Runner" toolhintId="RunnerToolhintId" place="bottom">
-                <ActionIcon onClick={handleRun} aria-label="Runner" size="sm" data-testid="runner">
-                  <IconRun size={16} strokeWidth={1.5} />
-                </ActionIcon>
-              </ToolHint>
+              {/* Runner - standalone unless tabs-across-collections folds it into the actions menu */}
+              {!tabsAcrossCollections && (
+                <ToolHint text="Runner" toolhintId="RunnerToolhintId" place="bottom">
+                  <ActionIcon onClick={handleRun} aria-label="Runner" size="sm" data-testid="runner">
+                    <IconRun size={16} strokeWidth={1.5} />
+                  </ActionIcon>
+                </ToolHint>
+              )}
               {/* JS Sandbox Mode - always visible */}
               <JsSandboxMode collection={collection} />
               {/* Overflow menu */}
