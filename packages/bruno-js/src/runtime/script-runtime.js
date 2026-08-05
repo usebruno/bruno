@@ -101,7 +101,7 @@ class ScriptRuntime {
       scriptedRequestEntries: cleanJson(bru.scriptedRequestEntries || [])
     });
 
-    const wrapRequestOnFailHandler = () => {
+    const attachScriptResultToOnFailHandler = () => {
       if (typeof request.onFailHandler !== 'function') {
         return;
       }
@@ -138,7 +138,7 @@ class ScriptRuntime {
         throw scriptError;
       }
 
-      wrapRequestOnFailHandler();
+      attachScriptResultToOnFailHandler();
       return buildRequestScriptResult();
     }
 
@@ -159,7 +159,7 @@ class ScriptRuntime {
       throw scriptError;
     }
 
-    wrapRequestOnFailHandler();
+    attachScriptResultToOnFailHandler();
     return buildRequestScriptResult();
   }
 
