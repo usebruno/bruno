@@ -10,6 +10,7 @@ import {
   saveMultipleCollections,
   saveMultipleFolders
 } from 'providers/ReduxStore/slices/collections/actions';
+import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import {
   findCollectionByUid,
   flattenItems,
@@ -116,6 +117,7 @@ const RemoveCollectionsModal = ({ collectionUids, onClose }) => {
     Promise.all(removalPromises)
       .then(() => {
         toast.success('Closed all collections');
+        dispatch(clearSidebarSelection());
       })
       .catch((error) => {
         console.error('Error closing collections:', error);

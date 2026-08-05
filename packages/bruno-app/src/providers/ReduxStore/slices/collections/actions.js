@@ -23,7 +23,9 @@ import {
   getAllVariables,
   transformRequestToSaveToFilesystem,
   transformCollectionRootToSave,
-  flattenItems
+  flattenItems,
+  buildSidebarEntries,
+  getVisibleSidebarUidsInOrder
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
@@ -67,7 +69,8 @@ import {
   addTransientDirectory,
   addSaveTransientRequestModal,
   updatePathParam,
-  migrateCollectionToYmlInPlace
+  migrateCollectionToYmlInPlace,
+  setSidebarSelection
 } from './index';
 
 import { each } from 'lodash';
@@ -2555,6 +2558,24 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
     dispatch(_selectEnvironment({ environmentUid, collectionUid }));
     resolve();
   });
+};
+
+export const selectSidebarRange = ({ uid, searchText }) => (dispatch, getState) => {
+  const state = getState();
+  const { collections, collectionSortOrder, lastClickedSidebarUid } = state.collections;
+  const { workspaces, activeWorkspaceUid } = state.workspaces;
+  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
+
+  const sidebarEntries = buildSidebarEntries({ collections, workspaces, activeWorkspace, collectionSortOrder });
+  const visibleUids = getVisibleSidebarUidsInOrder({ sidebarEntries, searchText });
+
+  const clickedIndex = visibleUids.indexOf(uid);
+  if (clickedIndex === -1) return;
+
+  const anchorIndex = Math.max(visibleUids.indexOf(lastClickedSidebarUid), 0);
+  const start = Math.min(anchorIndex, clickedIndex);
+  const end = Math.max(anchorIndex, clickedIndex);
+  dispatch(setSidebarSelection(visibleUids.slice(start, end + 1)));
 };
 
 export const removeCollection = (collectionUid) => (dispatch, getState) => {

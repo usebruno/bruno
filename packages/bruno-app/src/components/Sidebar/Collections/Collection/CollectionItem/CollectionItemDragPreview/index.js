@@ -33,6 +33,8 @@ export const CollectionItemDragPreview = () => {
   if (!item.type) return null;
   const { x, y } = clientOffset || {};
   const shouldShowFolderIcon = item.type === 'folder';
+  const multiCount = item.multiSelectedItems?.length;
+  const label = multiCount > 1 ? `${multiCount} items` : item.name;
   return (
     <StyledWrapper>
       <div style={getItemStyles({ x, y })} className="p-2">
@@ -42,7 +44,7 @@ export const CollectionItemDragPreview = () => {
           ) : (
             <IconFile size={16} />
           )}
-          {item.name}
+          {label}
         </div>
       </div>
     </StyledWrapper>

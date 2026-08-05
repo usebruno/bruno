@@ -4,7 +4,13 @@ const {
   setRequestVars,
   setFolderVars,
   setCollectionVars,
-  updateFile
+  updateFile,
+  toggleSidebarSelection,
+  setSidebarSelection,
+  clearSidebarSelection,
+  setLastClickedSidebarUid,
+  collapseFullItem,
+  expandFullItem
 } = collectionsSlice.actions;
 const reducer = collectionsSlice.reducer;
 
@@ -124,5 +130,92 @@ describe('updateFile — does not steal selection on non-selection edits', () =>
     expect(f1.selected).toBe(true);
     expect(f2.selected).toBe(false);
     expect(f2.description).toBe('a plain file');
+  });
+});
+
+describe('sidebar selection reducers', () => {
+  const baseState = { selectedSidebarUids: [], lastClickedSidebarUid: null };
+
+  it('toggleSidebarSelection adds then removes a uid', () => {
+    let state = reducer(baseState, toggleSidebarSelection('a'));
+    expect(state.selectedSidebarUids).toEqual(['a']);
+
+    state = reducer(state, toggleSidebarSelection('a'));
+    expect(state.selectedSidebarUids).toEqual([]);
+  });
+
+  it('setSidebarSelection replaces the selection wholesale', () => {
+    const state = reducer(baseState, setSidebarSelection(['a', 'b', 'c']));
+    expect(state.selectedSidebarUids).toEqual(['a', 'b', 'c']);
+  });
+
+  it('clearSidebarSelection empties the selection and the shift-click anchor', () => {
+    const state = reducer(
+      { selectedSidebarUids: ['a', 'b'], lastClickedSidebarUid: 'a' },
+      clearSidebarSelection()
+    );
+    expect(state.selectedSidebarUids).toEqual([]);
+    expect(state.lastClickedSidebarUid).toBeNull();
+  });
+
+  it('setLastClickedSidebarUid sets the shift-click anchor', () => {
+    const state = reducer(baseState, setLastClickedSidebarUid('b'));
+    expect(state.lastClickedSidebarUid).toBe('b');
+  });
+});
+
+describe('collapseFullItem', () => {
+  it('recursively collapses a folder and everything nested under it', () => {
+    const folder = {
+      uid: 'folder1',
+      type: 'folder',
+      collapsed: false,
+      items: [
+        {
+          uid: 'nested1',
+          type: 'folder',
+          collapsed: false,
+          items: [{ uid: 'req1', type: 'http-request', request: {}, collapsed: false }]
+        }
+      ]
+    };
+
+    const next = reducer(
+      makeStateWith(folder),
+      collapseFullItem({ collectionUid: 'col1', itemUid: 'folder1' })
+    );
+
+    const [collapsedFolder] = next.collections[0].items;
+    expect(collapsedFolder.collapsed).toBe(true);
+    expect(collapsedFolder.items[0].collapsed).toBe(true);
+    expect(collapsedFolder.items[0].items[0].collapsed).toBe(true);
+  });
+});
+
+describe('expandFullItem', () => {
+  it('recursively expands a folder and everything nested under it', () => {
+    const folder = {
+      uid: 'folder1',
+      type: 'folder',
+      collapsed: true,
+      items: [
+        {
+          uid: 'nested1',
+          type: 'folder',
+          collapsed: true,
+          items: [{ uid: 'req1', type: 'http-request', request: {}, collapsed: true }]
+        }
+      ]
+    };
+
+    const next = reducer(
+      makeStateWith(folder),
+      expandFullItem({ collectionUid: 'col1', itemUid: 'folder1' })
+    );
+
+    const [expandedFolder] = next.collections[0].items;
+    expect(expandedFolder.collapsed).toBe(false);
+    expect(expandedFolder.items[0].collapsed).toBe(false);
+    expect(expandedFolder.items[0].items[0].collapsed).toBe(false);
   });
 });

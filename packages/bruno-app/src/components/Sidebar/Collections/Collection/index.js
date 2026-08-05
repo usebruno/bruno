@@ -24,9 +24,8 @@ import {
   IconFileArrowRight,
   IconAppWindow
 } from '@tabler/icons';
-import Dropdown from 'components/Dropdown';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
-import { toggleCollection, collapseFullCollection, setSelectedCollections, toggleCollectionSelection, clearCollectionSelection, setLastClickedCollectionIndex } from 'providers/ReduxStore/slices/collections';
+import { toggleCollection, collapseFullCollection, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -53,19 +52,20 @@ import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPr
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
-import BulkActionsDropdown from './BulkActions';
-import RemoveCollectionsModal from '../RemoveCollectionsModal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
 import useKeybinding from 'hooks/useKeybinding';
+import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
+import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
+import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
 // Delay before showing empty collection state (ms)
 // This prevents flicker from race condition between loading state and item batch updates
 const EMPTY_STATE_DELAY_MS = 300;
 
-const Collection = ({ collection, searchText, collectionIndex, allCollections }) => {
+const Collection = ({ collection, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
@@ -78,9 +78,6 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
   const [showMoveToWorkspaceModal, setShowMoveToWorkspaceModal] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
-  const [showBulkActionsDropdown, setShowBulkActionsDropdown] = useState(false);
-  const [bulkActionsPosition, setBulkActionsPosition] = useState({ x: 0, y: 0 });
-  const [collectionsToRemove, setCollectionsToRemove] = useState([]);
   const [showEmptyState, setShowEmptyState] = useState(false);
   const dispatch = useDispatch();
   const isLoading = collection.isLoading;
@@ -91,19 +88,11 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
 
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
-  const selectedCollections = useSelector((state) => state.collections.selectedCollections);
-  const lastClickedIndex = useSelector((state) => state.collections.lastClickedCollectionIndex);
-  const isSelected = selectedCollections.includes(collection.uid);
+  const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
+  const isSelected = selectedSidebarUids.includes(collection.uid);
+  const handleSelectionClick = useSidebarSelectionClick({ uid: collection.uid, searchText });
+  const { openBulkMenu, menuProps } = useBulkActionsMenu();
   const menuDropdownRef = useRef(null);
-  const onMenuDropdownCreate = (ref) => (menuDropdownRef.current = ref);
-  const MenuIcon = forwardRef((_props, ref) => {
-    return (
-      <div ref={ref} className="pr-2">
-        <IconDots size={22} />
-      </div>
-    );
-  };
-
 
   // 'Move into Workspace' is available for collections opened from outside the current workspace.
   const activeWorkspace = useSelector((state) =>
@@ -157,35 +146,7 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
 
-    const isMac = navigator.userAgent?.includes('Mac');
-    const isModifierPressed = isMac ? event.metaKey : event.ctrlKey;
-    const isShiftPressed = event.shiftKey;
-
-    if (isModifierPressed && collectionIndex !== undefined) {
-      event.preventDefault();
-      event.stopPropagation();
-      dispatch(toggleCollectionSelection({ collectionUid: collection.uid }));
-      dispatch(setLastClickedCollectionIndex(collectionIndex));
-      return;
-    } else if (isShiftPressed && allCollections && collectionIndex !== undefined) {
-      event.preventDefault();
-      event.stopPropagation();
-
-      const startIndex = lastClickedIndex !== null ? lastClickedIndex : 0;
-      const start = Math.min(startIndex, collectionIndex);
-      const end = Math.max(startIndex, collectionIndex);
-      const rangeCollections = allCollections.slice(start, end + 1).map((c) => c.uid);
-
-      dispatch(setSelectedCollections(rangeCollections));
-      return;
-    } else {
-      if (selectedCollections.length > 0) {
-        dispatch(clearCollectionSelection());
-      }
-      if (collectionIndex !== undefined) {
-        dispatch(setLastClickedCollectionIndex(collectionIndex));
-      }
-    }
+    if (handleSelectionClick(event)) return;
 
     setTimeout(scrollToTheActiveTab, 50);
 
@@ -230,22 +191,18 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
   };
 
   const handleRightClick = (event) => {
-    if (selectedCollections.length > 0 && isSelected) {
-      event.preventDefault();
-      event.stopPropagation();
-      setBulkActionsPosition({ x: event.clientX, y: event.clientY });
-      setShowBulkActionsDropdown(true);
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (selectedSidebarUids.length > 0 && isSelected) {
+      openBulkMenu(event);
       return;
     }
 
     // Otherwise, show the regular menu dropdown
     const _menuDropdown = menuDropdownRef.current;
     if (_menuDropdown) {
-      let menuDropdownBehavior = 'show';
-      if (_menuDropdown.state.isShown) {
-        menuDropdownBehavior = 'hide';
-      }
-      _menuDropdown[menuDropdownBehavior]();
+      _menuDropdown.toggle();
     }
   };
 
@@ -342,6 +299,15 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
         dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }));
+
+        // Dragging a multi-selected row carries the rest of the effective selection along.
+        const otherSelectedItems = (draggedItem.multiSelectedItems || []).filter((i) => i.uid !== draggedItem.uid);
+        otherSelectedItems.forEach((otherItem) => {
+          dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem: otherItem, dropType: 'inside', collectionUid: collection.uid }));
+        });
+        if (otherSelectedItems.length > 0) {
+          dispatch(clearSidebarSelection());
+        }
       } else {
         dispatch(moveCollectionAndPersist({ draggedItem, targetItem: collection }));
       }
@@ -575,17 +541,7 @@ const Collection = ({ collection, searchText, collectionIndex, allCollections })
       {showCloneCollectionModalOpen && (
         <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
-      {showBulkActionsDropdown && (
-        <BulkActionsDropdown
-          visible={showBulkActionsDropdown}
-          onClose={() => setShowBulkActionsDropdown(false)}
-          position={bulkActionsPosition}
-          closeCollections={setCollectionsToRemove}
-        />
-      )}
-      {collectionsToRemove.length > 0 && (
-        <RemoveCollectionsModal collectionUids={collectionsToRemove} onClose={() => setCollectionsToRemove([])} />
-      )}
+      <BulkActionsMenu menuProps={menuProps} />
       <CollectionItemDragPreview />
       <div
         className={collectionRowClassName}

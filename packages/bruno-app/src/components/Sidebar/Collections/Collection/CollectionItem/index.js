@@ -24,7 +24,7 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
+import { toggleCollectionItem, addResponseExample, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
 import { copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
@@ -54,7 +54,7 @@ import {
 } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
-import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection } from 'utils/collections/index';
+import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection, getSelectionInfo } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
@@ -63,6 +63,9 @@ import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import useKeybinding from 'hooks/useKeybinding';
+import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
+import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
+import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
@@ -82,9 +85,23 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const tabUidForItem = useSelector(_tabUidForItemSelector, isEqual);
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
-  const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
+  const allCollections = useSelector((state) => state.collections.collections);
+  const collection = allCollections?.find((c) => c.uid === collectionUid);
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
+  const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
+  const isSelected = selectedSidebarUids.includes(item.uid);
+  const handleSelectionClick = useSidebarSelectionClick({ uid: item.uid, searchText });
+  const { openBulkMenu, menuProps } = useBulkActionsMenu();
   const dispatch = useDispatch();
+
+  // When dragging a multi-selected row, carry all effectively-selected folders/requests
+  // (excluding collections) so dropping one moves the entire selection together.
+  const multiDragItems = (() => {
+    if (!isSelected || selectedSidebarUids.length < 2) return null;
+    const { effectiveSelection, hasCollection } = getSelectionInfo({ collections: allCollections, selectedUids: selectedSidebarUids });
+    if (hasCollection || effectiveSelection.length < 2) return null;
+    return effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
+  })();
 
   // We use a single ref for drag and drop.
   const ref = useRef(null);
@@ -140,7 +157,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
     type: 'collection-item',
-    item: { ...item, sourceCollectionUid: collectionUid },
+    item: {
+      ...item,
+      sourceCollectionUid: collectionUid,
+      ...(multiDragItems ? { multiSelectedItems: multiDragItems } : {})
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     }),
@@ -240,6 +261,19 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       if (!canItemBeDropped({ draggedItem, targetItem: item, dropType })) return;
 
       await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem, dropType, collectionUid }));
+
+      // Dragging a multi-selected row carries the rest of the effective selection along —
+      // move each of them too, skipping any that individually can't land on this target.
+      const otherSelectedItems = (draggedItem.multiSelectedItems || []).filter((i) => i.uid !== draggedItemUid);
+      for (const otherItem of otherSelectedItems) {
+        if (otherItem.uid === targetItemUid) continue;
+        if (!canItemBeDropped({ draggedItem: otherItem, targetItem: item, dropType })) continue;
+        await dispatch(handleCollectionItemDrop({ targetItem: item, draggedItem: otherItem, dropType, collectionUid }));
+      }
+      if (otherSelectedItems.length > 0) {
+        dispatch(clearSidebarSelection());
+      }
+
       setDropType(null);
     },
     canDrop: (draggedItem) => draggedItem.uid !== item.uid,
@@ -261,7 +295,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     'item-hovered': isOver && canDrop,
     'drop-target': isOver && dropType === 'inside',
     'drop-target-above': isOver && dropType === 'adjacent',
-    'item-keyboard-focused': isKeyboardFocused
+    'item-keyboard-focused': isKeyboardFocused,
+    'item-selected': isSelected
   });
 
   const handleRun = async () => {
@@ -274,6 +309,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const handleClick = (event) => {
     if (event && event.detail != 1) return;
+    if (handleSelectionClick(event)) return;
     // scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);
@@ -349,6 +385,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const handleContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (selectedSidebarUids.length > 0 && isSelected) {
+      openBulkMenu(e);
+      return;
+    }
+
     menuDropdownRef.current?.show();
   };
 
@@ -672,6 +714,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       {itemInfoModalOpen && (
         <CollectionItemInfo item={item} onClose={() => setItemInfoModalOpen(false)} />
       )}
+      <BulkActionsMenu menuProps={menuProps} />
       <CreateExampleModal
         isOpen={createExampleModalOpen}
         onClose={() => setCreateExampleModalOpen(false)}
