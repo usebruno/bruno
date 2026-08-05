@@ -10,6 +10,7 @@ const VariablesTable = ({
   collection,
   selectedName,
   section,
+  environmentUid,
   revealedSecrets,
   onToggleSecretReveal,
   onOpenObject,
@@ -36,6 +37,8 @@ const VariablesTable = ({
           value={row.value}
           secret={row.secret}
           collection={collection}
+          section={section}
+          environmentUid={environmentUid}
           isSelected={selectedName === row.name && !!selectedName}
           revealed={!!revealedSecrets?.has(secretRevealKey(section, row.name))}
           onToggleReveal={() => onToggleSecretReveal?.(section, row.name)}
@@ -47,6 +50,7 @@ const VariablesTable = ({
     collection,
     selectedName,
     section,
+    environmentUid,
     revealedSecrets,
     onToggleSecretReveal,
     onOpenObject

@@ -1,7 +1,8 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { IconArrowsMaximize, IconCheck, IconCopy, IconEye, IconEyeOff } from '@tabler/icons';
 import { toDisplayString } from '@usebruno/common/utils';
 import { useTheme } from 'providers/Theme';
+import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import SingleLineEditor from 'components/SingleLineEditor';
 import MultiLineEditor from 'components/MultiLineEditor';
 import StyledWrapper from './StyledWrapper';
@@ -34,18 +35,31 @@ const VariableValue = ({
   secret,
   name,
   collection,
+  section,
+  environmentUid,
   isSelected,
   revealed = false,
   onToggleReveal,
   onOpenObject
 }) => {
   const { displayedTheme } = useTheme();
+  const persistenceScope = usePersistenceScope();
   const copyResetTimeoutRef = useRef(null);
   const [copied, setCopied] = useState(false);
 
   const isMasked = !!secret && !revealed;
-  const isMultiline = isObjectOrArray(value);
+  const isObjectValue = isObjectOrArray(value);
+  // Masked secrets stay single-line so line numbers / fold gutters don't show.
+  const isMultiline = isObjectValue && !isMasked;
   const editorValue = isMasked ? '********' : valueToEditorText(value);
+
+  const cellDocKey = useMemo(() => {
+    if (!isMultiline || !name || !section) return undefined;
+    if (section === 'environment') {
+      return `variables-cell:environment:${environmentUid || 'none'}:${name}`;
+    }
+    return `variables-cell:${section}:${name}`;
+  }, [isMultiline, name, section, environmentUid]);
 
   const handleCopy = useCallback(async (e) => {
     e.stopPropagation();
@@ -86,7 +100,16 @@ const VariableValue = ({
       onClick={(e) => e.stopPropagation()}
     >
       {isMultiline ? (
-        <MultiLineEditor {...editorProps} hideSecretEye />
+        <MultiLineEditor
+          {...editorProps}
+          hideSecretEye
+          enableFolding
+          autoHeight
+          maxHeight="120px"
+          containOverscroll
+          docKey={cellDocKey}
+          persistenceScope={persistenceScope}
+        />
       ) : (
         <SingleLineEditor {...editorProps} />
       )}
@@ -97,7 +120,7 @@ const VariableValue = ({
     <StyledWrapper className={isMultiline ? 'is-object' : undefined}>
       <div className="value-content">{valueContent}</div>
       <div className="row-actions">
-        {isMultiline && !isMasked && (
+        {isObjectValue && !isMasked && (
           <button
             type="button"
             className={`row-action-btn ${isSelected ? 'is-pinned is-selected' : ''}`}

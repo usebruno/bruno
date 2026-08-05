@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 
 const MONO = `ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace`;
+const OBJECT_MAX_HEIGHT = '120px';
 
 const StyledWrapper = styled.div`
   display: flex;
@@ -12,6 +13,7 @@ const StyledWrapper = styled.div`
 
   &.is-object {
     align-items: flex-start;
+    height: auto;
   }
 
   .value-content {
@@ -24,18 +26,13 @@ const StyledWrapper = styled.div`
   }
 
   &.is-object .value-content {
-    align-items: flex-start;
+    align-items: stretch;
     height: auto;
   }
 
   .value-editor {
     width: 100%;
     min-width: 0;
-
-    .multi-line-editor,
-    .single-line-editor {
-      max-height: 168px;
-    }
 
     .CodeMirror {
       font-family: ${MONO} !important;
@@ -46,13 +43,23 @@ const StyledWrapper = styled.div`
     .CodeMirror pre {
       font-family: ${MONO} !important;
     }
+
+    &.is-multiline {
+      max-height: ${OBJECT_MAX_HEIGHT};
+
+      > div {
+        max-height: ${OBJECT_MAX_HEIGHT};
+        min-height: 0;
+      }
+    }
   }
 
   .row-actions {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     flex-shrink: 0;
     gap: 2px;
+    padding-top: 8px;
     height: 33px;
   }
 

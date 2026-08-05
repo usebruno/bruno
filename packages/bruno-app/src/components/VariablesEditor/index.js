@@ -33,9 +33,12 @@ const clearEnvironmentBoundPersistence = (scope) => {
 
   localStorage.removeItem(`${STORAGE_PREFIX}${scope}::variables-sort-environment`);
 
-  const editorPrefix = `${STORAGE_PREFIX}${scope}::${STORAGE_SEGMENT}::variables-drawer:environment:`;
+  const prefixes = [
+    `${STORAGE_PREFIX}${scope}::${STORAGE_SEGMENT}::variables-drawer:environment:`,
+    `${STORAGE_PREFIX}${scope}::${STORAGE_SEGMENT}::variables-cell:environment:`
+  ];
   Object.keys(localStorage)
-    .filter((key) => key.startsWith(editorPrefix))
+    .filter((key) => prefixes.some((prefix) => key.startsWith(prefix)))
     .forEach((key) => localStorage.removeItem(key));
 };
 
@@ -55,8 +58,15 @@ const VariablesEditor = ({ collection }) => {
   const scrollTopZeroTimeoutRef = useRef(null);
   const prevEnvironmentUidRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  // Lifted so masking a secret can close the object drawer.
-  const [revealedSecrets, setRevealedSecrets] = useState(() => new Set());
+  // Persisted as an array Set does not JSON round-trip.
+  const [revealedSecretsList, setRevealedSecretsList] = usePersistedState({
+    key: 'variables-revealed-secrets',
+    default: []
+  });
+  const revealedSecrets = useMemo(
+    () => new Set(Array.isArray(revealedSecretsList) ? revealedSecretsList : []),
+    [revealedSecretsList]
+  );
 
   const [scroll, setScroll] = usePersistedState({ key: 'variables-scroll', default: 0 });
 
@@ -84,7 +94,9 @@ const VariablesEditor = ({ collection }) => {
     scrollPosRef.current = 0;
     setScroll(0);
     setDrawerSelection(null);
-    setRevealedSecrets(new Set());
+    setRevealedSecretsList((prev) =>
+      (Array.isArray(prev) ? prev : []).filter((key) => !String(key).startsWith('environment:'))
+    );
     const el = getScrollEl(wrapperRef.current);
     if (el) el.scrollTop = 0;
 
@@ -229,14 +241,12 @@ const VariablesEditor = ({ collection }) => {
   const selectedValue = selectedRow?.value;
 
   const toggleSecretReveal = useCallback((section, name) => {
-    setRevealedSecrets((prev) => {
-      const key = secretRevealKey(section, name);
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
+    const key = secretRevealKey(section, name);
+    setRevealedSecretsList((prev) => {
+      const list = Array.isArray(prev) ? prev : [];
+      return list.includes(key) ? list.filter((k) => k !== key) : [...list, key];
     });
-  }, []);
+  }, [setRevealedSecretsList]);
 
   useEffect(() => {
     if (!drawerSelection) return;
@@ -325,6 +335,7 @@ const VariablesEditor = ({ collection }) => {
               rows={envRows}
               collection={collection}
               section="environment"
+              environmentUid={activeEnvironmentUid}
               selectedName={drawerSelection?.section === 'environment' ? drawerSelection.name : null}
               revealedSecrets={revealedSecrets}
               onToggleSecretReveal={toggleSecretReveal}
