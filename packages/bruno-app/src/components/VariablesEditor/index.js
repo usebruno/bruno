@@ -7,7 +7,7 @@ import { findEnvironmentInCollection, maskInputValue } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
-const KeyValueExplorer = ({ data = [], theme, testId }) => {
+const KeyValueExplorer = ({ data = [], theme, testId = 'key-value-explorer' }) => {
   const [showSecret, setShowSecret] = useState(false);
 
   return (

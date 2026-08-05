@@ -1,0 +1,19 @@
+{
+  "environments": [
+    {
+      "uid": "onFailGlobalEnvUid001",
+      "name": "OnFailGlobal",
+      "variables": [
+        {
+          "uid": "onFailGlobalVarUid001",
+          "name": "globalEnvVar",
+          "value": "seed",
+          "type": "text",
+          "secret": false,
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "activeGlobalEnvironmentUid": "onFailGlobalEnvUid001"
+}
