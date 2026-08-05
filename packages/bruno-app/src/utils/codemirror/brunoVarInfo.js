@@ -94,6 +94,7 @@ const getScopeLabel = (scopeType) => {
     'dynamic': 'Dynamic',
     'oauth2': 'OAuth2',
     'undefined': 'Undefined',
+    'unresolved': 'New',
     'pathParam': 'Path Param'
   };
   return labels[scopeType] || scopeType;
@@ -319,15 +320,23 @@ export const renderVarInfo = (token, options) => {
             data: { item, variable: null } // variable is null since it doesn't exist yet
           };
         }
-      } else if (collection) {
-        // No item context but we have collection - create as collection variable
+      } else if (collection?.uid) {
         scopeInfo = {
           type: 'collection',
           value: '',
           data: { collection, variable: null }
         };
+      } else if (collection) {
+        // We're in the Global Environment table (no collection context).
+        // for global env colelction is {} without uid.
+        // Pass as "unresolved" so that the Add-to switcher can resolve to the first available scope.
+        scopeInfo = {
+          type: 'unresolved',
+          value: '',
+          data: { variable: null }
+        };
       } else {
-        // No context at all, show as undefined
+        // No context at all (no collection, no item) - nothing to add to, show as undefined.
         scopeInfo = {
           type: 'undefined',
           value: '',
@@ -753,15 +762,24 @@ export const renderVarInfo = (token, options) => {
 
       const addToScopesState = store.getState();
       const globalEnvironmentsState = (addToScopesState && addToScopesState.globalEnvironments) || {};
-      const addToScopes = getAvailableAddToScopes(
-        collection?.activeEnvironmentUid,
-        globalEnvironmentsState.activeGlobalEnvironmentUid,
+      const addToScopes = getAvailableAddToScopes({
+        activeEnvironmentUid: collection?.activeEnvironmentUid,
+        activeGlobalEnvironmentUid: globalEnvironmentsState.activeGlobalEnvironmentUid,
         item,
-        parentFolder
-      );
+        parentFolder,
+        hasCollection: !!collection?.uid
+      });
 
-      // The guessed scope is selected by default (if it's in the addToScopes list).
-      const initialScope = addToScopes.find((s) => s.type === scopeInfo.type) || null;
+      // If there's only one available scope, select it by default. Otherwise, use the detected scope if it's available.
+      const initialScope = addToScopes.find((s) => s.type === scopeInfo.type)
+        || (addToScopes.length === 1 ? addToScopes[0] : null);
+
+      // If the initial scope is different from the detected scope, rebuild the scopeInfo for the initial scope and update the badge.
+      // This can happen if adding variable in Global Table where collection is not available.
+      if (initialScope && initialScope.type !== scopeInfo.type) {
+        scopeInfo = buildScopeInfoForSwitch(initialScope);
+        scopeBadge.textContent = getScopeLabel(initialScope.type);
+      }
 
       const removeAddToSwitcher = () => {
         if (valueContainer._addToSwitcher) {

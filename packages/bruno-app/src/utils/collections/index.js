@@ -1959,19 +1959,21 @@ const SCOPE_CONFIG = [
     type: VARIABLE_ADD_SCOPES.ENVIRONMENT,
     label: 'Collection Environment',
     supportsSecret: true,
+    isAvailable: ({ hasCollection }) => hasCollection,
     enabled: ({ activeEnvironmentUid }) => !!activeEnvironmentUid
   },
   {
     type: VARIABLE_ADD_SCOPES.COLLECTION,
     label: 'Collection Variables',
     supportsSecret: false,
+    isAvailable: ({ hasCollection }) => hasCollection,
     enabled: () => true
   },
   {
     type: VARIABLE_ADD_SCOPES.REQUEST,
     label: 'Request Variable',
     supportsSecret: false,
-    include: ({ item }) => item && isItemARequest(item),
+    isAvailable: ({ item }) => item && isItemARequest(item),
     enabled: () => true
   },
   {
@@ -1979,38 +1981,43 @@ const SCOPE_CONFIG = [
     label: ({ parentFolder }) => `Parent Folder(${parentFolder?.name || ''})`,
     supportsSecret: false,
     // Only the request/folder's direct containing folder is added.
-    include: ({ parentFolder }) => !!parentFolder,
+    isAvailable: ({ parentFolder }) => !!parentFolder,
     enabled: () => true
   }
 ];
 
 /**
  * Resolves which scopes an undefined `{{variable}}` can be added to.
- * @param {string} [activeEnvironmentUid] - The collection's active environment uid, if any.
- * @param {string} [activeGlobalEnvironmentUid] - The active global environment uid, if any.
- * @param {Object} [item] - The request/folder item the tooltip was opened from, if any. Request
- *   Variable is only included when this is a request (see isItemARequest).
- * @param {Object} [parentFolder] - The immediate containing folder of `item`, if any. Folder
- *   Variable is only included when this is present.
+ * @param {Object} options
+ * @param {string} [options.activeEnvironmentUid] - The collection's active environment uid, if any.
+ * @param {string} [options.activeGlobalEnvironmentUid] - The active global environment uid, if any.
+ * @param {Object} [options.item] - The request/folder item the tooltip was opened from, if any.
+ *   Request Variable is only added when this is a request (see isItemARequest).
+ * @param {Object} [options.parentFolder] - The immediate containing folder of `item`, if any.
+ *   Folder Variable is only added when this is present.
+ * @param {boolean} [options.hasCollection] - when we are in Global Environment table, there is no collection context,
+ * so we don't show collection/environment scopes
  * @returns {Array<{type: string, label: string, enabled: boolean, disabledReason?: string, supportsSecret: boolean}>}
  */
-export const getAvailableAddToScopes = (
+export const getAvailableAddToScopes = ({
   activeEnvironmentUid,
   activeGlobalEnvironmentUid,
   item,
-  parentFolder
-) => {
+  parentFolder,
+  hasCollection = true
+} = {}) => {
   const context = {
     activeEnvironmentUid,
     activeGlobalEnvironmentUid,
     item,
-    parentFolder
+    parentFolder,
+    hasCollection
   };
 
-  const filteredScopes = SCOPE_CONFIG.filter((scope) => !scope.include || scope.include(context));
+  const filteredScopes = SCOPE_CONFIG.filter((scope) => !scope.isAvailable || scope.isAvailable(context));
 
   return filteredScopes
-    .map(({ enabled, include, label, ...scope }) => ({
+    .map(({ enabled, isAvailable, label, ...scope }) => ({
       ...scope,
       label: typeof label === 'function' ? label(context) : label,
       enabled: enabled(context)
