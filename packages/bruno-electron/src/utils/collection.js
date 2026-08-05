@@ -22,11 +22,6 @@ const FORMAT_CONFIG = {
   bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
 };
 
-/**
- * This function only and only merges all the headers present in headers table in the hierarchy from
- * collection -> folder -> request
- * no other headers are added from scripts
- */
 const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
   const { includeDisabledHeaders = false } = options;
   let headers = new Map();

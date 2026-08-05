@@ -14,7 +14,6 @@ export const buildDevToolsLocators = (page: Page) => {
   const reqHeaderValues = () =>
     page.getByTestId('request-details-request-headers').getByTestId('request-details-header-value');
 
-  /** Every row as a "name: value" line in render order, matching how the network log prints them. */
   const reqHeaderLines = async () => {
     const [names, values] = await Promise.all([reqHeaderNames().allTextContents(), reqHeaderValues().allTextContents()]);
     return names.map((name, i) => `${name.trim()}: ${(values[i] ?? '').trim()}`);
@@ -23,7 +22,6 @@ export const buildDevToolsLocators = (page: Page) => {
   return {
     trigger: () => page.locator('button[data-trigger="dev-tools"]'),
     header: () => page.getByTestId('console-header'),
-    // Per-tab test ids: console tabs are `<id>-tab`, details-panel sub-tabs are `<id>-details-panel`.
     tab: (id: string) => page.getByTestId(`${id}-tab`),
     networkRows: () => page.getByTestId('network-request-row'),
     closeButton: () => page.getByTitle('Close console'),
@@ -36,15 +34,10 @@ export const buildDevToolsLocators = (page: Page) => {
       headerLines: reqHeaderLines,
       value: (name: string) => reqHeaderRow(name).getByTestId('request-details-header-value')
     },
-    // The details panel's Network sub-tab: the same wire trace the response-pane Timeline shows.
     lastHopRequestHeaderLines: () => readLastHopRequestHeaderLines(page.getByTestId('details-panel'))
   };
 };
 
-/**
- * Open the DevTools Network tab, select the most-recent request, and land on the details
- * panel's Request tab (its Request Headers table ready to assert).
- */
 export const openNetworkRequestDetails = async (page: Page) => {
   await test.step('Open DevTools → Network and open the request details', async () => {
     const devtools = buildDevToolsLocators(page);
@@ -57,20 +50,17 @@ export const openNetworkRequestDetails = async (page: Page) => {
     await row.click();
 
     await devtools.detailsPanel().waitFor({ state: 'visible' });
-    // Request is the default sub-tab, but click it so the Request Headers table is guaranteed active.
+    /** Already the default sub-tab, clicked so the Request Headers table is guaranteed active. */
     await devtools.detailsSubTab('request').click();
-    // The console occupies the lower half of the app and the details panel scrolls independently, so
-    // the Request Headers table can start below the fold — scroll it into view before asserting.
+
+    /** The details panel scrolls on its own, so the table can start below the fold. */
     const table = devtools.requestHeadersTable();
     await table.waitFor({ state: 'attached' });
     await table.scrollIntoViewIfNeeded();
   });
 };
 
-/**
- * Close the DevTools console if it's open (best-effort). Left-open console panels stream/re-render
- * network logs, which can race collection-dropdown interactions during teardown — close it first.
- */
+/** Left open, the streaming network log races collection-dropdown clicks during teardown. */
 export const closeDevToolsConsole = async (page: Page) => {
   const closeButton = buildDevToolsLocators(page).closeButton();
   if (await closeButton.isVisible().catch(() => false)) {
