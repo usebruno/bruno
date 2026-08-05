@@ -28,60 +28,24 @@ const StyledWrapper = styled.div`
     height: auto;
   }
 
-  .value-text {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .value-editor {
     width: 100%;
-    text-align: left;
-    line-height: 33px;
-    font-family: ${MONO};
-    font-size: 12px;
-  }
-
-  .var-ref {
-    cursor: default;
-  }
-
-  .var-ref-valid {
-    color: ${(props) => props.theme.codemirror.variable.valid};
-  }
-
-  .var-ref-invalid {
-    color: ${(props) => props.theme.codemirror.variable.invalid};
-  }
-
-  .var-ref-prompt {
-    color: ${(props) => props.theme.codemirror.variable.prompt};
-  }
-
-  .v-str {
-    color: ${(props) => props.theme.codemirror.tokens.string};
-
-    &.is-var-ref {
-      color: ${(props) => props.theme.codemirror.variable.valid};
-    }
-  }
-  .v-num {
-    color: ${(props) => props.theme.codemirror.tokens.number};
-  }
-  .v-bool {
-    color: ${(props) => props.theme.codemirror.tokens.atom};
-  }
-  .v-null,
-  .empty-value {
-    color: ${(props) => props.theme.colors.text.muted};
-    font-style: italic;
-  }
-
-  .object-value,
-  .value-tree-scroll {
     min-width: 0;
-    width: 100%;
-    max-width: 100%;
-    max-height: 168px;
-    overflow: auto;
-    scrollbar-width: thin;
+
+    .multi-line-editor,
+    .single-line-editor {
+      max-height: 168px;
+    }
+
+    .CodeMirror {
+      font-family: ${MONO} !important;
+      font-size: 12px;
+      background: transparent;
+    }
+
+    .CodeMirror pre {
+      font-family: ${MONO} !important;
+    }
   }
 
   .row-actions {
@@ -89,7 +53,6 @@ const StyledWrapper = styled.div`
     align-items: center;
     flex-shrink: 0;
     gap: 2px;
-    /* Match single-line value cell so icons sit with scalar-row actions. */
     height: 33px;
   }
 

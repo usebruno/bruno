@@ -304,7 +304,6 @@ const VariablesEditor = ({ collection }) => {
               onOpenObject={handleOpenObject}
               columnWidths={runtimeWidths}
               onColumnWidthsChange={(widths) => handleColumnWidthsChange('variables-runtime', widths)}
-              objectExpandedStorageKey="variables-object-expanded-runtime"
               testId="variables-runtime-table"
             />
           ) : (
@@ -332,7 +331,6 @@ const VariablesEditor = ({ collection }) => {
               onOpenObject={handleOpenObject}
               columnWidths={envWidths}
               onColumnWidthsChange={(widths) => handleColumnWidthsChange('variables-env', widths)}
-              objectExpandedStorageKey={`variables-object-expanded-environment:${activeEnvironmentUid || 'none'}`}
               testId="variables-env-table"
             />
           ) : (

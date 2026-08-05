@@ -1,15 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { IconArrowsMaximize, IconCheck, IconCopy, IconEye, IconEyeOff } from '@tabler/icons';
 import { toDisplayString } from '@usebruno/common/utils';
-import { getAllVariables } from 'utils/collections';
-import JsonTreeValue from './JsonTreeValue';
-import { ScalarValue, VarRefText } from './PrimitiveValue';
-import { hideActivePopup, showVarInfoPopup } from './varInfoPopup';
+import { useTheme } from 'providers/Theme';
+import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import StyledWrapper from './StyledWrapper';
 
-const HOVER_DELAY_MS = 50;
-const HIDE_DELAY_MS = 500;
 const COPY_FEEDBACK_MS = 1200;
+const JSON_MODE = 'application/ld+json';
 
 const isObjectOrArray = (value) => value !== null && typeof value === 'object';
 
@@ -19,62 +17,35 @@ const getCopyText = (value) => {
   return toDisplayString(value, '');
 };
 
+/** Serialize for the value editor JSON so CodeMirror can color tokens. */
+const valueToEditorText = (value) => {
+  if (value === undefined) return '';
+  try {
+    return isObjectOrArray(value)
+      ? JSON.stringify(value, null, 2)
+      : JSON.stringify(value);
+  } catch {
+    return '';
+  }
+};
+
 const VariableValue = ({
   value,
   secret,
+  name,
   collection,
   isSelected,
   revealed = false,
   onToggleReveal,
-  onOpenObject,
-  expandedPaths,
-  onToggleExpanded
+  onOpenObject
 }) => {
-  const popupRef = useRef(null);
-  const hoverTimeoutRef = useRef(null);
-  const leaveTimeoutRef = useRef(null);
+  const { displayedTheme } = useTheme();
   const copyResetTimeoutRef = useRef(null);
   const [copied, setCopied] = useState(false);
 
-  const variables = useMemo(() => getAllVariables(collection), [collection]);
   const isMasked = !!secret && !revealed;
-  const isObjectValue = isObjectOrArray(value) && !isMasked;
-
-  const clearHoverTimers = useCallback(() => {
-    clearTimeout(hoverTimeoutRef.current);
-    clearTimeout(leaveTimeoutRef.current);
-    hoverTimeoutRef.current = null;
-    leaveTimeoutRef.current = null;
-  }, []);
-
-  useEffect(() => () => {
-    clearHoverTimers();
-    clearTimeout(copyResetTimeoutRef.current);
-    hideActivePopup(popupRef);
-  }, [clearHoverTimers]);
-
-  const handleVarHover = useCallback((e, tokenString) => {
-    clearHoverTimers();
-    const target = e.currentTarget;
-    hoverTimeoutRef.current = setTimeout(() => {
-      showVarInfoPopup({
-        box: target.getBoundingClientRect(),
-        tokenString,
-        options: { variables, collection },
-        popupRef,
-        clearHoverTimers
-      });
-    }, HOVER_DELAY_MS);
-  }, [collection, variables, clearHoverTimers]);
-
-  const handleVarLeave = useCallback(() => {
-    clearHoverTimers();
-    leaveTimeoutRef.current = setTimeout(() => {
-      const popup = popupRef.current;
-      if (!popup || popup.contains(document.activeElement)) return;
-      hideActivePopup(popupRef);
-    }, HIDE_DELAY_MS);
-  }, [clearHoverTimers]);
+  const isMultiline = isObjectOrArray(value);
+  const editorValue = isMasked ? '********' : valueToEditorText(value);
 
   const handleCopy = useCallback(async (e) => {
     e.stopPropagation();
@@ -89,61 +60,48 @@ const VariableValue = ({
     }
   }, [value]);
 
-  const stopAnd = useCallback((handler) => (e) => {
+  const preventRowClick = useCallback((handler) => (e) => {
     e.stopPropagation();
     e.preventDefault();
     handler?.();
   }, []);
 
-  let valueContent;
-  if (isObjectValue) {
-    valueContent = (
-      <div
-        className="object-value value-tree-scroll"
-        data-testid="variable-object-json"
-      >
-        <JsonTreeValue
-          value={value}
-          expandedPaths={expandedPaths}
-          onToggle={onToggleExpanded}
-          variables={variables}
-          onVarHover={handleVarHover}
-          onVarLeave={handleVarLeave}
-        />
-      </div>
-    );
-  } else if (!isMasked && typeof value === 'string' && value.includes('{{')) {
-    valueContent = (
-      <div className="value-text" title={value} data-testid="variable-value-text" data-masked="false">
-        <VarRefText
-          text={value}
-          variables={variables}
-          onVarHover={handleVarHover}
-          onVarLeave={handleVarLeave}
-        />
-      </div>
-    );
-  } else {
-    valueContent = (
-      <ScalarValue
-        value={value}
-        masked={isMasked}
-        variables={variables}
-        onVarHover={handleVarHover}
-        onVarLeave={handleVarLeave}
-      />
-    );
-  }
+  const editorProps = {
+    theme: displayedTheme,
+    collection,
+    name: name ? `var.${name}` : 'var.value',
+    value: editorValue,
+    readOnly: true,
+    enableBrunoVarInfo: !isMasked,
+    isSecret: false,
+    // Masked placeholder is plain text; real values use JSON for token colors.
+    mode: isMasked ? 'text/plain' : JSON_MODE
+  };
+
+  const valueContent = (
+    <div
+      className={`value-editor${isMultiline ? ' is-multiline' : ''}`}
+      data-testid={isMultiline ? 'variable-multiline-editor' : 'variable-singleline-editor'}
+      data-readonly="true"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {isMultiline ? (
+        <MultiLineEditor {...editorProps} hideSecretEye />
+      ) : (
+        <SingleLineEditor {...editorProps} />
+      )}
+    </div>
+  );
 
   return (
-    <StyledWrapper className={isObjectValue ? 'is-object' : undefined}>
+    <StyledWrapper className={isMultiline ? 'is-object' : undefined}>
       <div className="value-content">{valueContent}</div>
       <div className="row-actions">
-        {isObjectValue && (
+        {isMultiline && !isMasked && (
           <button
             type="button"
             className={`row-action-btn ${isSelected ? 'is-pinned is-selected' : ''}`}
-            onClick={stopAnd(onOpenObject)}
+            onClick={preventRowClick(onOpenObject)}
             title="Open in drawer"
             aria-label="Open object in drawer"
             data-testid="variable-object-preview"
@@ -155,7 +113,7 @@ const VariableValue = ({
           <button
             type="button"
             className={`row-action-btn ${revealed ? 'is-pinned' : ''}`}
-            onClick={stopAnd(onToggleReveal)}
+            onClick={preventRowClick(onToggleReveal)}
             title={revealed ? 'Hide value' : 'Show value'}
             data-testid="variable-row-secret-toggle"
           >

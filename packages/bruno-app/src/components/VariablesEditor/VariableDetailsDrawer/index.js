@@ -53,10 +53,10 @@ const VariableDetailsDrawer = ({
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
-          mode="application/json"
+          mode="application/ld+json"
           readOnly
-          enableBrunoVarInfo={false}
-          enableVariableHighlighting={false}
+          enableBrunoVarInfo
+          enableVariableHighlighting
           docKey={docKey}
         />
       </div>

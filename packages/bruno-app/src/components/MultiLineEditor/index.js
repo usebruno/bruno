@@ -183,6 +183,9 @@ class MultiLineEditor extends Component {
     if (this.props.readOnly !== prevProps.readOnly && this.editor) {
       this.editor.setOption('readOnly', this.props.readOnly || false);
     }
+    if (this.props.mode !== prevProps.mode && this.editor) {
+      this.addOverlay(variables);
+    }
     if (this.props.placeholder !== prevProps.placeholder && this.editor) {
       this.editor.setOption('placeholder', this.props.placeholder);
     }
@@ -209,7 +212,8 @@ class MultiLineEditor extends Component {
 
   addOverlay = (variables) => {
     this.variables = variables;
-    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain', false, true);
+    const mode = this.props.mode || 'text/plain';
+    defineCodeMirrorBrunoVariablesMode(variables, mode, false, true);
     this.editor.setOption('mode', 'brunovariables');
   };
 

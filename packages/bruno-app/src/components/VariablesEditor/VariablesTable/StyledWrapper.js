@@ -18,7 +18,7 @@ const StyledWrapper = styled.div`
     pointer-events: auto;
   }
 
-  .table-container tbody td:has(.object-value) {
+  .table-container tbody td:has(.value-editor.is-multiline) {
     height: auto !important;
     max-height: none !important;
     overflow: visible !important;
