@@ -9,19 +9,18 @@ import {
 } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
 import { BRUNO_VARIABLE_DATATYPES, parseValueByDataType, validateDataTypeValue, getDataTypeFromValue } from '@usebruno/common/utils';
-import MenuDropdown from 'ui/MenuDropdown';
-import StyledWrapper from './StyledWrapper';
 import get from 'lodash/get';
+import MenuDropdown from 'ui/MenuDropdown';
 import { getAllVariables } from 'utils/collections';
+import StyledWrapper from './StyledWrapper';
 
 const getReferencedVariableType = (value, resolvableVariables = {}) => {
   if (typeof value !== 'string') return null;
 
-  const match = value.match(/\{\{([^}]+)\}\}/);
+  const match = value.trim().match(/^\{\{([^}]+)\}\}$/);
   if (!match) return null;
-
-  const name = match[1].trim();
-  const resolved = name in resolvableVariables ? resolvableVariables[name] : get(resolvableVariables, name);
+  const variableName = match[1].trim();
+  const resolved = get(resolvableVariables, variableName);
 
   return resolved === undefined ? null : getDataTypeFromValue(resolved);
 };
