@@ -1,12 +1,14 @@
 /** Headers actually sent, from the timeline's `requestHeader` entries. A followed redirect logs one
  *  block per hop into the same timeline, so only the last block reached the server that responded. */
 export const sentHeadersFromTimeline = (timeline) => {
-  // console.log("Timeline Header from timline : ", timeline)
+  console.log('Timeline Header from timline : ', timeline);
   if (!Array.isArray(timeline)) return [];
 
   const headers = [];
   let foundBlock = false;
 
+  /** Run the loop in backward to get latest `requestHeader` run: on a redirect each hop logs its own run, and the
+   *  last one is the request that returned this response. `reverse` restores wire order */
   for (let i = timeline.length - 1; i >= 0; i--) {
     const item = timeline[i];
     const isHeader = item?.type === 'requestHeader';
