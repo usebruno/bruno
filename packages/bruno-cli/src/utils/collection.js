@@ -94,8 +94,7 @@ const createCollectionJsonFromPathname = (collectionPath) => {
   };
 };
 
-const mergeHeaders = (data) => {
-  const { collection, request, requestTreePath, options = {} } = data;
+const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
   const { includeDisabledHeaders = false } = options;
   let headers = new Map();
   let disabledHeaders = new Map();

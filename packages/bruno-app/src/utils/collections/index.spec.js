@@ -30,7 +30,7 @@ describe('mergeHeaders', () => {
       ]
     };
 
-    const headers = mergeHeaders({ collection, request, requestTreePath: [folder], options: {} });
+    const headers = mergeHeaders(collection, request, [folder]);
     const names = headers.map((h) => h.name);
     expect(names).toEqual(expect.arrayContaining(['X-Collection', 'X-Folder', 'X-Request']));
   });

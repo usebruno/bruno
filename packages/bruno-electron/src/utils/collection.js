@@ -27,11 +27,11 @@ const FORMAT_CONFIG = {
  * collection -> folder -> request
  * no other headers are added from scripts
  */
-const mergeHeaders = (data) => {
-  const { collection, request, requestTreePath, options = {} } = data;
+const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
   const { includeDisabledHeaders = false } = options;
   let headers = new Map();
   let disabledHeaders = new Map();
+
   let collectionHeaders = collection?.draft?.root ? get(collection, 'draft.root.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
