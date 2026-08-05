@@ -23,7 +23,7 @@ const Request = ({ collection, request, item, response }) => {
 
   return (
     <>
-      <Headers headers={displayedHeaders} />
+      <Headers headers={displayedHeaders} variant="request" />
       <BodyBlock
         collection={collection}
         data={data}

@@ -48,7 +48,7 @@ const RequestTab = ({ request, response }) => {
       <div className="section">
         <h4>Request Headers</h4>
         {headers.length > 0 ? (
-          <div className="headers-table">
+          <div className="headers-table" data-testid="request-details-request-headers">
             <table>
               <thead>
                 <tr>
@@ -58,9 +58,9 @@ const RequestTab = ({ request, response }) => {
               </thead>
               <tbody>
                 {headers.map((header, index) => (
-                  <tr key={index}>
-                    <td className="header-name">{header.name}</td>
-                    <td className="header-value">{header.value}</td>
+                  <tr key={index} data-testid="request-details-header-row">
+                    <td className="header-name" data-testid="request-details-header-name">{header.name}</td>
+                    <td className="header-value" data-testid="request-details-header-value">{header.value}</td>
                   </tr>
                 ))}
               </tbody>
@@ -207,6 +207,7 @@ const RequestDetailsPanel = () => {
       <div className="panel-tabs">
         <button
           className={`tab-button ${activeTab === 'request' ? 'active' : ''}`}
+          data-testid="request-details-panel"
           onClick={() => setActiveTab('request')}
         >
           <IconArrowRight size={14} strokeWidth={1.5} />
@@ -223,6 +224,7 @@ const RequestDetailsPanel = () => {
 
         <button
           className={`tab-button ${activeTab === 'network' ? 'active' : ''}`}
+          data-testid="network-details-panel"
           onClick={() => setActiveTab('network')}
         >
           <IconNetwork size={14} strokeWidth={1.5} />

@@ -439,7 +439,7 @@ const Console = () => {
         className="console-resize-handle"
       />
 
-      <div className="console-header">
+      <div className="console-header" data-testid="console-header">
         <div className="console-tabs">
           <button
             className={`console-tab ${activeTab === 'console' ? 'active' : ''}`}
@@ -500,7 +500,7 @@ const Console = () => {
             <div className="network-main">
               {renderTabContent()}
             </div>
-            <div className="details-panel-wrapper" style={{ width: detailsPanelWidth }}>
+            <div className="details-panel-wrapper" data-testid="details-panel" style={{ width: detailsPanelWidth }}>
               <div
                 className="details-drag-handle"
                 onMouseDown={handleDetailsPanelDragStart}

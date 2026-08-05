@@ -15,11 +15,15 @@ import { buildToastLocators } from './toast';
 import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildEnvironmentLocators } from './environments';
+import { buildTimelineHeaderLocators } from './timeline-headers';
+import { buildDevToolsLocators } from './devtools-console';
 
 export const buildCommonLocators = (page: Page) => ({
   collectionHeader: buildCollectionHeaderLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
+  timelineHeaders: buildTimelineHeaderLocators(page),
+  devtools: buildDevToolsLocators(page),
   codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
   openApi: {
     render: buildApiSpecPanelLocators(page)
@@ -236,7 +240,7 @@ export const buildCommonLocators = (page: Page) => ({
     networkLogs: (item: Locator) => item.locator('.network-logs-container'),
     headerRow: (item: Locator, name: string) => buildTimelineHeaderRow(page, item, name),
     headerValue: (item: Locator, name: string) =>
-      buildTimelineHeaderRow(page, item, name).getByTestId('tl-header-value')
+      buildTimelineHeaderRow(page, item, name).getByTestId('tl-header-value-request')
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
@@ -330,8 +334,8 @@ export const buildCommonLocators = (page: Page) => ({
 });
 
 const buildTimelineHeaderRow = (page: Page, item: Locator, name: string) =>
-  item.getByTestId('tl-header-row').filter({
-    has: page.getByTestId('tl-header-name').and(page.getByText(name, { exact: true }))
+  item.getByTestId('tl-header-row-request').filter({
+    has: page.getByTestId('tl-header-name-request').and(page.getByText(name, { exact: true }))
   });
 
 export const getTableCell = (row: any, index: number) => row.locator('td').nth(index + 1);

@@ -53,7 +53,7 @@ const NetworkLogsEntry = ({ entry }) => {
   }
 
   return (
-    <div className={className}>
+    <div className={className} data-testid="network-log-entry" data-log-type={type}>
       <div>{message}</div>
     </div>
   );
