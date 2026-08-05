@@ -27,6 +27,7 @@ import GradientCloseButton from './GradientCloseButton';
 import { closeWsConnection } from 'utils/network/index';
 import { getInvalidVariableNames } from 'utils/common/variables';
 import ExampleTab from '../ExampleTab';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import toast from 'react-hot-toast';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow, dropdownContainerRef }) => {
@@ -43,6 +44,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const [newRequestTarget, setNewRequestTarget] = useState(null);
 
   const menuDropdownRef = useRef();
+
+  const tabsAcrossCollections = useBetaFeature(BETA_FEATURES.TABS_ACROSS_COLLECTIONS);
+  // Only worth showing when tabs from multiple collections can appear together, and never for
+  // app-level tabs (preferences) which don't belong to a collection.
+  const collectionName = tabsAcrossCollections && tab.type !== 'preferences' ? collection?.name : null;
 
   let item = findItemInCollection(collection, tab.uid);
   if (!item && tab.pathname) {
@@ -501,11 +507,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             ? <RequestTabLoading handleCloseClick={handleCloseClick} name={tab.name} />
             : <RequestTabNotFound handleCloseClick={handleCloseClick} />
         ) : tab.type === 'folder-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseFolderSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} hasDraft={hasFolderDraft} />
+          <SpecialTab handleCloseClick={handleCloseFolderSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={folder?.name} hasDraft={hasFolderDraft} collectionName={collectionName} />
         ) : tab.type === 'collection-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseCollectionSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={collection?.name} hasDraft={hasDraft} />
+          <SpecialTab handleCloseClick={handleCloseCollectionSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={collection?.name} hasDraft={hasDraft} collectionName={collectionName} />
         ) : tab.type === 'environment-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseEnvironmentSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} hasDraft={hasEnvironmentDraft} />
+          <SpecialTab handleCloseClick={handleCloseEnvironmentSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} hasDraft={hasEnvironmentDraft} collectionName={collectionName} />
         ) : tab.type === 'global-environment-settings' ? (
           <SpecialTab handleCloseClick={handleCloseGlobalEnvironmentSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} hasDraft={hasGlobalEnvironmentDraft} />
         ) : tab.type === 'workspaceOverview' ? (
@@ -513,7 +519,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         ) : tab.type === 'workspaceEnvironments' ? (
           <SpecialTab handleCloseClick={null} type={tab.type} hasDraft={hasGlobalEnvironmentDraft} />
         ) : (
-          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
+          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} collectionName={collectionName} />
         )}
       </StyledWrapper>
     );
@@ -626,6 +632,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         <span ref={tabNameRef} className="ml-1 tab-name" title={item.name}>
           {item.name}
         </span>
+        {collectionName ? <span className="tab-collection-name">{collectionName}</span> : null}
         <RequestTabMenu
           menuDropdownRef={menuDropdownRef}
           tabLabelRef={tabLabelRef}

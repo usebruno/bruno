@@ -359,10 +359,11 @@ export const HotkeysProvider = (props) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
       const collectionUid = activeTab?.collectionUid || activeWorkspace?.scratchCollectionUid;
 
+      // Preferences is app-level — a single, stably-keyed tab shared across collections.
       dispatch(
         addTab({
           type: 'preferences',
-          uid: collectionUid ? `${collectionUid}-preferences` : 'preferences',
+          uid: 'preferences',
           collectionUid
         })
       );
