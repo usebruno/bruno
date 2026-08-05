@@ -103,7 +103,7 @@ const QueryResultPreview = ({
       return wrapPreview(<HtmlPreview data={data} baseUrl={baseUrl} />);
     }
     case 'preview-image': {
-      return wrapPreview(<img src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} />);
+      return wrapPreview(<img alt="Response preview image" src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} />);
     }
     case 'preview-pdf': {
       return wrapPreview(
