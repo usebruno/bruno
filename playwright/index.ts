@@ -165,6 +165,10 @@ export async function closeElectronApp(app: ElectronApplication) {
   }
 }
 
+export type FakeClipboard = {
+  copiedText: () => Promise<string | null>;
+};
+
 export const test = baseTest.extend<
   {
     context: BrowserContext;
@@ -173,6 +177,7 @@ export const test = baseTest.extend<
     pageWithUserData: Page;
     collectionFixturePath: string | null;
     workspaceFixturePath: string | null;
+    installFakeClipboard: (page: Page) => Promise<FakeClipboard>;
     restartApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>;
   },
   {
@@ -323,6 +328,44 @@ export const test = baseTest.extend<
     },
     { scope: 'worker' }
   ],
+
+  // Stands in for navigator.clipboard on the given page, so a spec can assert what was copied
+  // without touching the real OS clipboard, which every parallel worker shares. Takes the page
+  // rather than depending on one, so it works with `page`, `pageWithUserData` and `newPage` alike.
+  // The window is worker scoped and outlives the test, so the real clipboard is put back at teardown.
+  installFakeClipboard: async ({ }, use) => {
+    const patchedPages: Page[] = [];
+
+    await use(async (page: Page) => {
+      await page.evaluate(() => {
+        const fake = {
+          copied: null,
+          writeText(text) {
+            fake.copied = text;
+            return Promise.resolve();
+          },
+          readText() {
+            return Promise.resolve(fake.copied ?? '');
+          }
+        };
+        window.__fakeClipboard = fake;
+        Object.defineProperty(navigator, 'clipboard', { value: fake, configurable: true });
+      });
+      patchedPages.push(page);
+
+      return {
+        copiedText: () => page.evaluate(() => window.__fakeClipboard.copied ?? null)
+      };
+    });
+
+    for (const page of patchedPages) {
+      if (page.isClosed()) continue;
+      await page.evaluate(() => {
+        delete navigator.clipboard;
+        delete window.__fakeClipboard;
+      });
+    }
+  },
 
   context: async ({ electronApp }, use, testInfo) => {
     const context = await electronApp.context();

@@ -9,7 +9,6 @@ import {
 } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { DEFAULT_MAX_REDIRECTS } from '@usebruno/common/utils';
-import { captureClipboardWrites } from '../../utils/clipboard';
 
 const COLLECTION_NAME = 'Max Redirects Collection';
 
@@ -79,7 +78,8 @@ test.describe('Import Postman Collection with maxRedirects', () => {
 
   test('should import the whole collection and warn when a maxRedirects cannot be honoured', async ({
     page,
-    createTmpDir
+    createTmpDir,
+    installFakeClipboard
   }) => {
     const locators = buildCommonLocators(page);
     await importFixture(page, await createTmpDir('postman-max-redirects-sad'));
@@ -112,11 +112,11 @@ test.describe('Import Postman Collection with maxRedirects', () => {
     });
 
     await test.step('every offending request gets its own maxRedirects warning', async () => {
-      const readCopiedText = await captureClipboardWrites(page);
+      const clipboard = await installFakeClipboard(page);
       await locators.import.issuesToastCopyBtn().click();
       await expect(page.getByText('Copied to clipboard')).toBeVisible({ timeout: 3000 });
 
-      const issuesSummary = (await readCopiedText()) ?? '';
+      const issuesSummary = await clipboard.copiedText();
       for (const requestName of OFFENDERS) {
         expect(issuesSummary).toContain(`[WARNING] ${requestName}`);
       }
