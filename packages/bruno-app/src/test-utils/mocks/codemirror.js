@@ -25,6 +25,8 @@ const CodeMirror = jest.fn((node, options) => {
   return editor;
 });
 
+Object.assign(CodeMirror, jest.requireActual('codemirror'));
+
 CodeMirror.commands = {
   autocomplete: jest.fn()
 };

@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { IconPlus, IconFolder, IconDownload } from '@tabler/icons';
 import { importCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import { setIsCreatingCollection, setIsOpeningCollection, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { setLocalStorageValue, SIDEBAR_COLLAPSED_KEY } from 'utils/common/localStorage';
 import toast from 'react-hot-toast';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
@@ -46,6 +47,7 @@ const WorkspaceOverview = ({ workspace }) => {
       await ipcRenderer.invoke('renderer:ensure-collections-folder', workspace.pathname);
       if (sidebarCollapsed) {
         dispatch(toggleSidebarCollapse());
+        setLocalStorageValue(SIDEBAR_COLLAPSED_KEY, false);
       }
       dispatch(setIsCreatingCollection(true));
     } catch (error) {
@@ -187,7 +189,7 @@ const WorkspaceOverview = ({ workspace }) => {
         </div>
 
         <div className="overview-docs">
-          <WorkspaceDocs workspace={workspace} />
+          <WorkspaceDocs key={workspace?.uid} workspace={workspace} />
         </div>
       </div>
     </StyledWrapper>
