@@ -416,6 +416,8 @@ describe('axios-instance: cross-origin redirects authorization stripping', () =>
   });
 });
 
+const http = require('http');
+
 // A Node ClientRequest stub: `_header` is the serialized block Node writes to the socket.
 const clientRequest = (headerBlock) => ({ _header: headerBlock });
 
@@ -476,6 +478,31 @@ describe('axios-instance: getSortedOutgoingHeaders', () => {
   test('skips lines with no colon', () => {
     const block = 'GET /x HTTP/1.1\r\ngarbage\r\nHost: x\r\n\r\n';
     expect(getSortedOutgoingHeaders(clientRequest(block))).toEqual([{ key: 'Host', value: 'x' }]);
+  });
+
+  // Node refuses to serialize a CRLF inside a header name or value
+  test('a CRLF inside a value ends the value and drops the tail', () => {
+    const block = 'GET /x HTTP/1.1\r\nspecial-1: special-1-value-\r\n-3doue\r\nHost: x\r\n\r\n';
+    expect(getSortedOutgoingHeaders(clientRequest(block))).toEqual([
+      { key: 'special-1', value: 'special-1-value-' },
+      { key: 'Host', value: 'x' }
+    ]);
+  });
+
+  test('a CRLF-smuggled line carrying its own colon becomes a separate header', () => {
+    const block = 'GET /x HTTP/1.1\r\nspecial-1: v\r\nInjected: yes\r\nHost: x\r\n\r\n';
+    expect(getSortedOutgoingHeaders(clientRequest(block))).toEqual([
+      { key: 'special-1', value: 'v' },
+      { key: 'Injected', value: 'yes' },
+      { key: 'Host', value: 'x' }
+    ]);
+  });
+
+  test('node blocks CRLF in outgoing headers, which is what keeps the above unreachable', () => {
+    expect(() => http.request({ host: '127.0.0.1', port: 1, headers: { 'x-a': 'v\r\nInjected: yes' } }))
+      .toThrow(/Invalid character in header content/);
+    expect(() => http.request({ host: '127.0.0.1', port: 1, headers: { 'x-a\r\nb': 'v' } }))
+      .toThrow(/Header name must be a valid HTTP token/);
   });
 
   test('returns an empty list when there is nothing to parse', () => {
