@@ -798,6 +798,7 @@ export const renderVarInfo = (token, options) => {
       };
 
       const onSwitchScope = (scope, { immediate = false } = {}) => {
+        // on scope switch, rebuild the scopeInfo based on the new scope and update the scope badge.
         const newScopeInfo = buildScopeInfoForSwitch(scope);
         if (!newScopeInfo) {
           return;
@@ -806,7 +807,7 @@ export const renderVarInfo = (token, options) => {
         scopeBadge.textContent = getScopeLabel(newScopeInfo.type);
 
         // If immediate is true, persist the new variable immediately after switching scope.
-        // for create environment flow, the new variable is persisted immediately after the environment is created and selected.
+        // for inline create environment flow, the new variable is persisted immediately after the environment is created and selected.
         if (immediate) {
           persistNewVariable(false).catch((err) => {
             toast.error(err?.message || 'Failed to save variable');

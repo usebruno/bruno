@@ -6,10 +6,6 @@ const CHEVRON_ICON_SVG_TEXT = `
 </svg>
 `;
 
-const isEnvironmentScope = (scope) =>
-  scope.type === VARIABLE_ADD_SCOPES.GLOBAL
-  || scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT;
-
 const SCOPE_ICON_LETTER = {
   [VARIABLE_ADD_SCOPES.REQUEST]: 'R',
   [VARIABLE_ADD_SCOPES.FOLDER]: 'F',
@@ -193,6 +189,10 @@ const renderNoEnvironmentInline = (row, scope, actions) => {
 const buildScopeRow = (scope, actions) => {
   const row = document.createElement('div');
   row.className = 'var-add-to-option';
+
+  const isEnvironmentScope = (scope) =>
+    scope.type === VARIABLE_ADD_SCOPES.GLOBAL
+    || scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT;
 
   // If the scope is an environment and it's not enabled,
   // show the "No Environment" message with a "Create One" link.
@@ -443,7 +443,7 @@ function createSecretController({ secretLabel, secretCheckbox, onSecretChange })
  *
  * @param {Array<{type: string, label: string, enabled: boolean, supportsSecret: boolean}>} scopes
  * @param {{type: string, label: string, enabled: boolean, supportsSecret: boolean}} initialScope -
- *   The scope currently active before any switch (the guessed scope) — used to set the secret
+ *   The scope currently active before any switch (the guessed scope). used to set the secret
  *   checkbox's initial visibility.
  * @param {(scope: Object, options?: {immediate?: boolean}) => void} onSwitchScope - Repoints the
  *   pending target scope. When `immediate` is true (after creating a brand new environment),
