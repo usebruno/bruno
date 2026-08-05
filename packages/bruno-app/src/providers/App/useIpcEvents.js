@@ -307,10 +307,11 @@ const useIpcEvents = () => {
       const activeWorkspace = workspaces?.find((w) => w.uid === activeWorkspaceUid);
       const collectionUid = activeTab?.collectionUid || activeWorkspace?.scratchCollectionUid;
 
+      // Preferences is app-level — a single, stably-keyed tab shared across collections.
       dispatch(
         addTab({
           type: 'preferences',
-          uid: collectionUid ? `${collectionUid}-preferences` : 'preferences',
+          uid: 'preferences',
           collectionUid
         })
       );

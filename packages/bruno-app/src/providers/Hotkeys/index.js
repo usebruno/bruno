@@ -121,7 +121,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('switchToPreviousTab');
     };
-  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections, workspaces]);
 
   // Switch to the next tab (active-collection-tabs-only)
   useEffect(() => {
@@ -137,7 +137,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('switchToNextTab');
     };
-  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections, workspaces]);
 
   // Switch to tab at position (Cmd+1 through Cmd+8) and last tab (Cmd+9) — collection-scoped
   useEffect(() => {
@@ -167,7 +167,7 @@ export const HotkeysProvider = (props) => {
       }
       unbindAction('switchToLastTab');
     };
-  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections, workspaces]);
 
   // Close all tabs
   useEffect(() => {
@@ -184,7 +184,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('closeAllTabs');
     };
-  }, [activeTabUid, tabs, collections, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
+  }, [activeTabUid, tabs, collections, userKeyBindings, keybindingsEnabled, tabsAcrossCollections, workspaces]);
 
   // Reopen last closed tab (active-collection-tabs-only)
   useEffect(() => {
@@ -336,7 +336,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('moveTabLeft');
     };
-  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections, workspaces]);
 
   // Move tab right (active-collection-tabs-only)
   useEffect(() => {
@@ -351,7 +351,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('moveTabRight');
     };
-  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections, workspaces]);
 
   // Open preferences
   useEffect(() => {

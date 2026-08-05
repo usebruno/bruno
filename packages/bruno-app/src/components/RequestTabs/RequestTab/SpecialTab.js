@@ -120,7 +120,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         onDoubleClick={handleDoubleClick}
       >
         {getTabInfo(type, tabName)}
-        {collectionName ? <span className="tab-collection-name">{collectionName}</span> : null}
+        {collectionName ? <span className="tab-collection-name" title={collectionName}>{collectionName}</span> : null}
       </div>
 
       <GradientCloseButton hasChanges={hasDraft} onClick={handleCloseClick} />

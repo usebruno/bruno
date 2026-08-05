@@ -632,7 +632,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         <span ref={tabNameRef} className="ml-1 tab-name" title={item.name}>
           {item.name}
         </span>
-        {collectionName ? <span className="tab-collection-name">{collectionName}</span> : null}
+        {collectionName ? <span className="tab-collection-name" title={collectionName}>{collectionName}</span> : null}
         <RequestTabMenu
           menuDropdownRef={menuDropdownRef}
           tabLabelRef={tabLabelRef}
