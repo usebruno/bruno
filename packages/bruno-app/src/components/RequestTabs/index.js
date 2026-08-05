@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import find from 'lodash/find';
-import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
@@ -13,6 +12,7 @@ import DraggableTab from './DraggableTab';
 import CreateTransientRequest from 'components/CreateTransientRequest';
 import ActionIcon from 'ui/ActionIcon/index';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
+import { getVisibleTabs } from 'utils/tabs';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
@@ -47,20 +47,16 @@ const RequestTabs = () => {
 
   const activeTab = find(tabs, (t) => t.uid === activeTabUid);
   const activeCollection = find(collections, (c) => c?.uid === activeTab?.collectionUid);
-  const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab?.collectionUid);
 
   const scratchCollectionUids = useMemo(
     () => new Set(workspaces.map((w) => w.scratchCollectionUid).filter(Boolean)),
     [workspaces]
   );
 
-  // In "tabs across collections" mode, show every collection's tabs together. Workspace-level
-  // scratch tabs (overview, environments, scratch requests) stay out unless their workspace is
-  // the active context — they belong to the workspace, not to a collection shown in the sidebar.
-  const displayedTabs = useMemo(() => {
-    if (!tabsAcrossCollections) return collectionRequestTabs;
-    return tabs.filter((t) => !scratchCollectionUids.has(t.collectionUid) || t.collectionUid === activeTab?.collectionUid);
-  }, [tabsAcrossCollections, tabs, collectionRequestTabs, scratchCollectionUids, activeTab?.collectionUid]);
+  const displayedTabs = useMemo(
+    () => getVisibleTabs({ tabs, tabsAcrossCollections, activeTabCollectionUid: activeTab?.collectionUid, scratchCollectionUids }),
+    [tabs, tabsAcrossCollections, activeTab?.collectionUid, scratchCollectionUids]
+  );
 
   const isScratchCollection = useMemo(() => {
     return activeCollection ? workspaces.some((w) => w.scratchCollectionUid === activeCollection.uid) : false;

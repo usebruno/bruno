@@ -13,6 +13,7 @@ import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, sav
 import { toggleSidebarCollapse, savePreferences } from 'providers/ReduxStore/slices/app';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
+import { getVisibleTabs } from 'utils/tabs';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
 export const HotkeysContext = React.createContext();
@@ -21,6 +22,7 @@ export const HotkeysProvider = (props) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const collections = useSelector((state) => state.collections.collections);
+  const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const userKeyBindings = useSelector((state) => state.app.preferences?.keyBindings);
   const keybindingsEnabled = useSelector((state) => state.app.preferences?.keybindingsEnabled !== false);
@@ -40,13 +42,13 @@ export const HotkeysProvider = (props) => {
     }
   };
 
-  // Get the tabs the tab strip currently shows: every open tab when the
-  // tabs-across-collections beta feature is on, otherwise just the active tab's collection.
+  // The tabs the tab strip currently shows — tab navigation and close-all must stay in lockstep
+  // with what's visible, or shortcuts land on tabs hidden by the tabs-across-collections filter.
   const getCollectionTabs = () => {
-    if (tabsAcrossCollections) return tabs;
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
     if (!activeTab) return [];
-    return tabs.filter((t) => t.collectionUid === activeTab.collectionUid);
+    const scratchCollectionUids = new Set(workspaces.map((w) => w.scratchCollectionUid).filter(Boolean));
+    return getVisibleTabs({ tabs, tabsAcrossCollections, activeTabCollectionUid: activeTab.collectionUid, scratchCollectionUids });
   };
 
   // Helper: get Mousetrap combos for an action, merged with user overrides
