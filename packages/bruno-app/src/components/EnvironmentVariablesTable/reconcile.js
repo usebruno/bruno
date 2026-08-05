@@ -16,3 +16,18 @@ export const reconcileSavedChange = ({ prevSaved, nextSaved, current }) => {
   // the save. Keep their edits and let the draft/autosave cycle catch up.
   return 'skip';
 };
+
+/*
+  when reconcileSavedChange returns 'skip', find the subset of `nextRawSaved` that were
+  added elsewhere (e.g. via the undefined-variable tooltip's "Add to" switcher) while the form was dirty,
+  and merge them back in.
+ */
+export const findExternallyAddedVariables = ({ prevRawSaved, nextRawSaved, currentValues }) => {
+  const prevNames = new Set((prevRawSaved || []).map((v) => v.name));
+  const currentNames = new Set((currentValues || []).map((v) => v.name).filter(Boolean));
+  const currentUids = new Set((currentValues || []).map((v) => v.uid).filter(Boolean));
+
+  return (nextRawSaved || []).filter(
+    (v) => v.name && !prevNames.has(v.name) && !currentNames.has(v.name) && !currentUids.has(v.uid)
+  );
+};

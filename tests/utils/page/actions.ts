@@ -2569,6 +2569,34 @@ const openUrlVarTooltip = async (
 };
 
 /**
+ * Hover a `{{var}}` token inside another row's Value cell in the (collection or global)
+ * environment table itself, and return its (visible) info tooltip. Use this for the
+ * "go to definition from inside the environment table it would target" scenario, as opposed
+ * to `openUrlVarTooltip` which hovers a token in a request's URL bar.
+ * @param page - The page object
+ * @param rowName - The name of the environment row whose Value cell contains the token
+ * @param tokenName - The variable name inside the braces to hover
+ * @param state - Highlight class to match: 'valid' (known) or 'invalid' (unknown); omit to match either
+ * @returns The tooltip popup locator
+ */
+const openEnvValueVarTooltip = async (
+  page: Page,
+  rowName: string,
+  tokenName: string,
+  state?: 'valid' | 'invalid'
+): Promise<Locator> => {
+  const { environment, varInfoPopup } = buildCommonLocators(page);
+  const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
+  // Dismiss any previously-open tooltip first.
+  await page.mouse.move(0, 0);
+  await environment.varRowValueEditor(rowName).locator(selector).filter({ hasText: tokenName }).first().hover();
+
+  const tooltip = varInfoPopup.all().first();
+  await expect(tooltip).toBeVisible();
+  return tooltip;
+};
+
+/**
  * Returns true if the element is on top at its centre (not hidden behind a header),
  * i.e. the topmost element at its centre is inside a dropdown/tippy container.
  * @param locator - The dropdown item locator
@@ -2603,6 +2631,7 @@ export {
   waitForReadyPage,
   setRequestUrlAndSave,
   openUrlVarTooltip,
+  openEnvValueVarTooltip,
   scrollVirtuosoRowIntoView,
   dismissImportIssuesToasts,
   closeAllCollections,

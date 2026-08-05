@@ -24,7 +24,8 @@ import {
   getAllVariables,
   transformRequestToSaveToFilesystem,
   transformCollectionRootToSave,
-  flattenItems
+  flattenItems,
+  resolveEnabledVariable
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
@@ -2299,7 +2300,8 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Environment not found'));
           }
 
-          const variable = environment.variables.find((v) => v.name === variableName && v.enabled);
+          const variable = resolveEnabledVariable(environment.variables, variableName);
+          const newVariable = { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!data.secret };
 
           // Match script variable behavior: preserve disabled entries and create a separate enabled slot.
           const updatedVariables = variable
@@ -2309,12 +2311,9 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
                 }
                 return v;
               })
-            : [
-                ...(environment.variables || []),
-                { uid: uuid(), name: variableName, value: newValue, enabled: true, secret: false }
-              ];
+            : [...(environment.variables || []), newVariable];
 
-          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
+          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable || newVariable);
 
           return dispatch(saveEnvironment(resolvedVariables, environment.uid, collectionUid))
             .then(() => {
@@ -2418,7 +2417,8 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
           }
 
           // Match script variable behavior: preserve disabled entries and create a separate enabled slot.
-          const variable = environment.variables.find((v) => v.name === variableName && v.enabled);
+          const variable = resolveEnabledVariable(environment.variables, variableName);
+          const newVariable = { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!data.secret };
 
           const updatedVariables = variable
             ? environment.variables.map((v) => {
@@ -2427,12 +2427,9 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
                 }
                 return v;
               })
-            : [
-                ...(environment.variables || []),
-                { uid: uuid(), name: variableName, value: newValue, enabled: true, secret: false }
-              ];
+            : [...(environment.variables || []), newVariable];
 
-          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
+          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable || newVariable);
 
           return dispatch(saveGlobalEnvironment({
             variables: resolvedVariables,
