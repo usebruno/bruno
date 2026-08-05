@@ -91,6 +91,7 @@ const MockResponseTopBar = ({
             <div className="flex items-center gap-3 flex-shrink-0 md:w-auto w-full md:justify-end">
               <Button
                 color="secondary"
+                size="sm"
                 onClick={onCancel}
                 data-testid="mock-response-cancel-btn"
               >
@@ -98,7 +99,7 @@ const MockResponseTopBar = ({
               </Button>
               <Button
                 color="primary"
-                style={{ padding: '6px 12px' }}
+                size="sm"
                 icon={<IconDeviceFloppy size={16} />}
                 onClick={onSave}
                 data-testid="mock-response-save-btn"
@@ -150,6 +151,7 @@ const MockResponseTopBar = ({
               Edit
             </Button>
             <Button
+              variant="outline"
               color="danger"
               size="sm"
               onClick={onDelete}

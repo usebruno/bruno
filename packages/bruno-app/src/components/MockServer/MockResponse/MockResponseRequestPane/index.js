@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { IconPlayerPlay } from '@tabler/icons';
 import Tab from 'components/Tab';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import Button from 'ui/Button';
@@ -20,7 +21,9 @@ const MockResponseRequestPane = ({
   onRulesChange,
   onTry,
   isTrying,
-  isServerRunning
+  isServerRunning,
+  onStartServer,
+  isStartingServer
 }) => {
   const [activeTab, setActiveTab] = useState('request');
   const ruleCount = rules?.conditions?.length || 0;
@@ -61,7 +64,6 @@ const MockResponseRequestPane = ({
           <MockResponseRules
             rules={rules}
             editMode={editMode}
-            embedded
             onChange={onRulesChange}
           />
         );
@@ -82,19 +84,29 @@ const MockResponseRequestPane = ({
             onSave={onSave}
           />
         </div>
-        <span
-          title={!isServerRunning && !isTrying ? 'Start the mock server before trying this response' : undefined}
-        >
-          <Button
-            color="secondary"
-            size="sm"
-            onClick={onTry}
-            disabled={isTrying || !isServerRunning}
-            data-testid="mock-response-try-btn"
-          >
-            {isTrying ? 'Trying...' : 'Try'}
-          </Button>
-        </span>
+        <div className="try-action">
+          {isServerRunning ? (
+            <Button
+              color="secondary"
+              onClick={onTry}
+              disabled={isTrying}
+              data-testid="mock-response-try-btn"
+            >
+              {isTrying ? 'Trying...' : 'Try'}
+            </Button>
+          ) : (
+            <Button
+              color="secondary"
+              icon={<IconPlayerPlay size={14} stroke={1.5} />}
+              onClick={onStartServer}
+              disabled={isStartingServer}
+              title="Start the mock server to try this response"
+              data-testid="mock-response-start-server-btn"
+            >
+              {isStartingServer ? 'Starting...' : 'Start Server'}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center tabs mb-4 px-4" role="tablist">

@@ -62,6 +62,16 @@ export const buildMockResponseEditorItem = (mockResponse) => {
   };
 };
 
+const stripConditionUids = (rules) => {
+  const cloned = cloneDeep(rules || { operator: 'AND', conditions: [] });
+
+  if (Array.isArray(cloned.conditions)) {
+    cloned.conditions = cloned.conditions.map(({ uid, ...condition }) => condition);
+  }
+
+  return cloned;
+};
+
 export const mockResponseFromEditorItem = (item, responseUid, rules, savedMockResponse = {}) => {
   const examples = item.draft?.examples || item.examples || [];
   const example = examples.find((entry) => entry.uid === responseUid);
@@ -79,7 +89,7 @@ export const mockResponseFromEditorItem = (item, responseUid, rules, savedMockRe
       url: extractMockResponseRoutePath(example.request?.url)
     },
     response: cloneDeep(example.response),
-    rules: cloneDeep(rules || { operator: 'AND', conditions: [] }),
+    rules: stripConditionUids(rules),
     ...(savedMockResponse.copiedFrom ? { copiedFrom: cloneDeep(savedMockResponse.copiedFrom) } : {})
   };
 };

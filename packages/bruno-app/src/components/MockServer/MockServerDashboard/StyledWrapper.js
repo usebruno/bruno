@@ -3,14 +3,20 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   /* Server control bar */
   .server-bar {
-    padding: 12px 0;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 0;
     flex-shrink: 0;
     border-bottom: 1px solid ${(props) => props.theme.table.border};
     margin-bottom: 4px;
+
+    .server-bar-main {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
 
     .status-indicator {
       display: flex;
@@ -44,7 +50,7 @@ const StyledWrapper = styled.div`
       }
 
       .status-text {
-        font-size: 13px;
+        font-size: ${(props) => props.theme.font.size.base};
         font-weight: 500;
       }
     }
@@ -53,10 +59,10 @@ const StyledWrapper = styled.div`
       display: flex;
       align-items: center;
       gap: 5px;
-      padding: 3px 10px;
-      font-size: 12px;
+      padding: 4px 10px;
+      font-size: ${(props) => props.theme.font.size.sm};
       font-family: monospace;
-      border: 1px solid ${(props) => props.theme.table.border};
+      border: 1px solid ${(props) => props.theme.input.border};
       border-radius: ${(props) => props.theme.border.radius.sm};
       background: transparent;
       color: inherit;
@@ -64,7 +70,7 @@ const StyledWrapper = styled.div`
       transition: border-color 0.15s;
 
       &:hover {
-        border-color: var(--color-tab-active-border);
+        border-color: ${(props) => props.theme.input.focusBorder};
       }
 
       .url-text {
@@ -76,104 +82,37 @@ const StyledWrapper = styled.div`
       display: flex;
       align-items: center;
       gap: 10px;
+      margin-left: auto;
 
       .control-group {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
 
         label {
-          font-size: 12px;
-          opacity: 0.6;
+          font-size: ${(props) => props.theme.font.size.sm};
+          color: ${(props) => props.theme.colors.text.muted};
         }
 
         input {
           width: 70px;
-          padding: 3px 6px;
-          font-size: 12px;
-          border: 1px solid ${(props) => props.theme.table.border};
+          padding: 6px 8px;
+          font-size: ${(props) => props.theme.font.size.sm};
+          line-height: 1.2;
+          border: 1px solid ${(props) => props.theme.input.border};
           border-radius: ${(props) => props.theme.border.radius.sm};
-          background: transparent;
+          background: ${(props) => props.theme.input.bg};
           color: inherit;
 
           &:focus {
             outline: none;
-            border-color: var(--color-tab-active-border);
+            border-color: ${(props) => props.theme.input.focusBorder};
           }
 
           &:disabled {
             opacity: 0.5;
           }
         }
-
-        &.control-group-advanced {
-          flex-direction: column;
-          align-items: flex-start;
-        }
-
-        .advanced-toggle {
-          padding: 0;
-          border: none;
-          background: transparent;
-          color: ${(props) => props.theme.colors?.text?.link || props.theme.text};
-          font-size: 12px;
-          cursor: pointer;
-          opacity: 0.85;
-
-          &:hover {
-            opacity: 1;
-            text-decoration: underline;
-          }
-        }
-
-        .advanced-port-field {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          margin-top: 4px;
-        }
-
-        .field-error {
-          font-size: 11px;
-          color: ${(props) => props.theme.colors.text.danger};
-          max-width: 180px;
-        }
-      }
-    }
-
-    .action-btn {
-      padding: 4px 12px;
-      font-size: 12px;
-      border-radius: ${(props) => props.theme.border.radius.sm};
-      cursor: pointer;
-      border: 1px solid transparent;
-      transition: all 0.15s;
-
-      &.start-btn {
-        background: ${(props) => props.theme.button2.color.success.bg};
-        color: ${(props) => props.theme.button2.color.success.text};
-        &:hover { filter: brightness(1.1); }
-      }
-
-      &.stop-btn {
-        background: ${(props) => props.theme.button2.color.danger.bg};
-        color: ${(props) => props.theme.button2.color.danger.text};
-        &:hover { filter: brightness(1.1); }
-      }
-
-      &.refresh-btn {
-        background: transparent;
-        border-color: ${(props) => props.theme.table.border};
-        color: inherit;
-        display: flex;
-        align-items: center;
-        padding: 4px 8px;
-        &:hover { border-color: var(--color-tab-active-border); }
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
       }
     }
 
@@ -181,16 +120,18 @@ const StyledWrapper = styled.div`
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-left: auto;
-      font-size: 12px;
+      font-size: ${(props) => props.theme.font.size.sm};
       color: ${(props) => props.theme.colors.text.muted};
     }
 
-    .error-message {
-      width: 100%;
-      font-size: 12px;
+    .server-notice {
+      font-size: ${(props) => props.theme.font.size.sm};
+      color: ${(props) => props.theme.status.warning.text};
+    }
+
+    .server-error {
+      font-size: ${(props) => props.theme.font.size.sm};
       color: ${(props) => props.theme.colors.text.danger};
-      padding: 4px 0;
     }
   }
 
@@ -234,20 +175,30 @@ const StyledWrapper = styled.div`
     display: block;
     width: 100%;
     max-width: 420px;
-    padding: 0;
-    font-size: 16px;
-    font-weight: 600;
+    margin-left: -7px;
+    padding: 2px 6px;
+    font-size: ${(props) => props.theme.font.size.lg};
+    font-weight: 500;
     line-height: 1.4;
-    border: none;
-    border-bottom: 1px solid transparent;
+    border: 1px solid transparent;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     background: transparent;
     color: inherit;
 
-    &:hover,
+    &:hover {
+      border-color: ${(props) => props.theme.input.border};
+    }
+
     &:focus {
       outline: none;
-      border-bottom-color: ${(props) => props.theme.table.border};
+      border-color: ${(props) => props.theme.input.focusBorder};
     }
+  }
+
+  .source-label {
+    margin-top: 2px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.muted};
   }
 `;
 
