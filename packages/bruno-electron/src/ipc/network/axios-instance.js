@@ -375,10 +375,15 @@ function makeAxiosInstance({
             if (!isSameOrigin(error.config.url, redirectUrl)) {
               Object.keys(requestConfig.headers).forEach((key) => {
                 const lowerKey = key.toLowerCase();
-                if (lowerKey === 'authorization' || lowerKey === 'proxy-authorization') {
+                if (
+                  lowerKey === 'authorization'
+                  || lowerKey === 'proxy-authorization'
+                  || lowerKey.startsWith('x-amz-')
+                ) {
                   delete requestConfig.headers[key];
                 }
               });
+              requestConfig.__skipAwsV4Sign = true;
 
               timeline.push({
                 timestamp: new Date(),
