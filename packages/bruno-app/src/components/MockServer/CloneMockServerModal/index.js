@@ -29,8 +29,6 @@ const CloneMockServerModal = ({
   const dispatch = useDispatch();
   const inputRef = useRef();
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
-  // getMockServerInstances rebuilds a new array wrapper each call; shallowEqual keeps the
-  // reference stable so the suggest-port effect does not wipe in-progress edits.
   const configuredInstances = useSelector((state) => getMockServerInstances(state), shallowEqual);
   const existingInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
 
