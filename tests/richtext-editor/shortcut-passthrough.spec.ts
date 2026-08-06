@@ -72,7 +72,11 @@ test.describe('Rich Text Editor - Keyboard Shortcut Interop with Global Hotkeys'
       await expect(prosemirror.locator('p')).toContainText('Line oneLine two');
     });
 
-    await test.step('The global Send Request shortcut did not fire', async () => {
+    await test.step('The global Send Request shortcut did not also fire', async () => {
+      await expect(page.getByTestId('send-arrow-icon')).toHaveAttribute('data-action', 'send');
+
+      await expect(page.getByTestId('response-status-code')).toHaveCount(0);
+      await page.waitForTimeout(3000);
       await expect(page.getByTestId('response-status-code')).toHaveCount(0);
     });
   });
