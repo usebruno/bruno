@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
+import { captureFileSaverDownload } from './file-saver';
 
 type SandboxMode = 'safe' | 'developer';
 
@@ -2114,14 +2115,7 @@ const openWorkspaceFromDialog = async (app: any, page: any, targetPath: string) 
 
 /**
  * Trigger "Generate Docs" from a collection's sidebar context menu and capture
- * the generated HTML documentation.
- *
- * The GenerateDocumentation modal hands the file to `FileSaver.saveAs`, which
- * builds an in-memory Blob and saves it via an `<a download>` click rather than
- * an Electron IPC write. Electron doesn't surface that as a Playwright
- * `download` event, so instead we intercept it in the renderer: `URL.createObjectURL`
- * gives us the Blob's content, and overriding the anchor click captures the
- * suggested file name while suppressing the real save (no file leaks to disk).
+ * the generated HTML documentation via FileSaver interception.
  *
  * @param page - The page object
  * @param collectionName - The name of the collection to generate docs for
@@ -2161,41 +2155,9 @@ const generateCollectionDocs = async (
       await beforeGenerate();
     }
 
-    // Arm the renderer-side interception before the save fires. `file-saver`
-    // (v2) reads the Blob through `URL.createObjectURL` and then triggers the
-    // save by dispatching a synthetic click on a detached `<a download>` (via
-    // `setTimeout(…, 0)`), so both points are intercepted. Each is exposed as a
-    // promise to absorb that deferred dispatch without a race.
-    await page.evaluate(() => {
-      const w = window as any;
-      const originalCreate = URL.createObjectURL.bind(URL);
-      const originalDispatch = HTMLAnchorElement.prototype.dispatchEvent;
-
-      w.__docsContent = new Promise<string>((resolve) => {
-        URL.createObjectURL = function (obj: Blob | MediaSource) {
-          if (obj instanceof Blob) {
-            obj.text().then(resolve);
-          }
-          return originalCreate(obj as Blob);
-        };
-      });
-
-      w.__docsFileName = new Promise<string>((resolve) => {
-        HTMLAnchorElement.prototype.dispatchEvent = function (this: HTMLAnchorElement, event: Event) {
-          if (this.download && event && event.type === 'click') {
-            resolve(this.download);
-            // Suppress the actual save — the Blob content is already captured.
-            return true;
-          }
-          return originalDispatch.call(this, event);
-        };
-      });
+    const { content, fileName } = await captureFileSaverDownload(page, async () => {
+      await generateButton.click();
     });
-
-    await generateButton.click();
-
-    const content = await page.evaluate(() => (window as any).__docsContent as Promise<string>);
-    const fileName = await page.evaluate(() => (window as any).__docsFileName as Promise<string>);
 
     // The modal closes itself on the success path.
     await expect(modal).toBeHidden({ timeout: 5000 });
@@ -2204,22 +2166,49 @@ const generateCollectionDocs = async (
   });
 };
 
+const openShareCollectionModal = async (page: Page, collectionName: string) => {
+  const locators = buildCommonLocators(page);
+
+  await waitForCollectionMount(page, collectionName);
+  await openCollection(page, collectionName);
+
+  await locators.sidebar.collection(collectionName).hover();
+  const collectionAction = locators.actions.collectionActions(collectionName);
+  await expect(collectionAction).toBeVisible({ timeout: 2000 });
+  await collectionAction.click();
+  await locators.dropdown.item('Share').click();
+  await expect(locators.modal.title('Share Collection')).toBeVisible();
+};
+
 const openExportToPostmanModal = async (page: Page, collectionName: string) => {
   await test.step(`Open Export to Postman for "${collectionName}"`, async () => {
     const locators = buildCommonLocators(page);
 
-    await openCollection(page, collectionName);
-
-    const collectionAction = locators.actions.collectionActions(collectionName);
-    await locators.sidebar.collection(collectionName).hover();
-    await expect(collectionAction).toBeVisible({ timeout: 2000 });
-    await collectionAction.click();
-    await locators.dropdown.item('Share').click();
-    await expect(locators.modal.title('Share Collection')).toBeVisible();
+    await openShareCollectionModal(page, collectionName);
 
     await locators.export.postmanFormatCard().click();
     await locators.modal.button('Proceed').click();
     await expect(locators.modal.title('Export to Postman')).toBeVisible();
+  });
+};
+
+const exportOpenCollectionYaml = async (
+  page: Page,
+  collectionName: string
+): Promise<{ content: string; fileName: string }> => {
+  return await test.step(`Export OpenCollection YAML for "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    await openShareCollectionModal(page, collectionName);
+    await locators.export.yamlFormatCard().click();
+
+    const { content, fileName } = await captureFileSaverDownload(page, async () => {
+      await locators.modal.button('Proceed').click();
+    });
+
+    await expect(locators.modal.title('Share Collection')).toBeHidden({ timeout: 5000 });
+
+    return { content, fileName };
   });
 };
 
@@ -2691,6 +2680,7 @@ export {
   closeExportToPostmanModal,
   dismissModalIfOpen,
   exportCollectionToPostman,
+  exportOpenCollectionYaml,
   openFolderSettings,
   setTableRowDescriptionValue,
   setAppCode,

@@ -271,6 +271,7 @@ export const buildCommonLocators = (page: Page) => ({
   export: {
     postmanModal: () => page.getByTestId('export-to-postman-modal'),
     postmanFormatCard: () => page.getByTestId('export-format-postman'),
+    yamlFormatCard: () => page.getByTestId('export-format-yaml'),
     nameInput: () => page.getByLabel('Name', { exact: true }),
     locationInput: () => page.getByLabel('Location', { exact: true }),
     optionsButton: () => page.getByRole('button', { name: 'Options' }),

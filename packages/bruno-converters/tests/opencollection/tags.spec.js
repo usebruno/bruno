@@ -43,6 +43,25 @@ describe('openCollectionToBruno: numeric tags', () => {
     expect(bruno.items[0].tags).toEqual(['close-code', '1000']);
   });
 
+  test('coerces graphql item tags to strings', () => {
+    const bruno = openCollectionToBruno(
+      collectionWithNumericTags('graphql', {
+        http: { method: 'POST', url: 'http://localhost/graphql' },
+        graphql: { query: '{ __typename }' }
+      })
+    );
+    expect(bruno.items[0].tags).toEqual(['close-code', '1000']);
+  });
+
+  test('coerces grpc item tags to strings', () => {
+    const bruno = openCollectionToBruno(
+      collectionWithNumericTags('grpc', {
+        grpc: { url: 'localhost:50051', method: '/pkg.Service/Method' }
+      })
+    );
+    expect(bruno.items[0].tags).toEqual(['close-code', '1000']);
+  });
+
   test('coerces folder tags and nested item tags to strings', () => {
     const bruno = openCollectionToBruno({
       opencollection: '1.0.0',
