@@ -15,7 +15,7 @@ const REQUEST_TYPE = {
   HTTP: 'http',
   GRAPHQL: 'graphql',
   GRPC: 'grpc',
-  WEBSOCKET: 'websocket'
+  WEBSOCKET: 'ws'
 };
 
 /**
@@ -76,15 +76,6 @@ const CreateTransientRequest = ({ collectionUid }) => {
         }
       });
     }
-  };
-
-  const handleLeftClick = () => {
-    handleItemClick(collectionPresets.requestType);
-  };
-
-  const handleRightClick = (e) => {
-    e.preventDefault();
-    setDropdownVisible(true);
   };
 
   const handleCreateHttpRequest = useCallback(() => {
@@ -189,6 +180,15 @@ const CreateTransientRequest = ({ collectionUid }) => {
         handleCreateWebSocketRequest();
         break;
     }
+  };
+
+  const handleLeftClick = () => {
+    handleItemClick(collectionPresets.requestType);
+  };
+
+  const handleRightClick = (e) => {
+    e.preventDefault();
+    setDropdownVisible(true);
   };
 
   if (!collection) {
