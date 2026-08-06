@@ -80,6 +80,13 @@ const DocsEditor = ({
           }
           return false;
         }
+      },
+      onCreate: ({ editor: createdEditor }) => {
+        createdEditor.view.dom.addEventListener('keydown', (event) => {
+          if (event.defaultPrevented) {
+            event.stopPropagation();
+          }
+        });
       }
     },
     [collectionPath]
