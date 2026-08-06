@@ -1,0 +1,132 @@
+import { test, expect } from '../../playwright';
+import { closeAllCollections, setRequestUrlAndSave } from '../utils/page/actions';
+import { setupRequestDocs } from './actions';
+import { modifier, pressShortcut, remapKeybinding, resetKeybindings } from '../shortcuts/helpers';
+
+// keybinding which is bound in Tiptap and also has a global handler (Cmd/Ctrl+B) should not trigger the global handler when docs is focused.
+// keybinding which is not bound in Tiptap (Cmd/Ctrl+,) should still trigger the global handler when docs is focused.
+test.describe('Rich Text Editor - Keyboard Shortcut Interop with Global Hotkeys', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+  });
+
+  test.afterEach(async ({ page }) => {
+    await closeAllCollections(page);
+  });
+
+  test('a shortcut Tiptap does not bind still reaches the global handler while docs is focused', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-docs-shortcut-passthrough');
+    const prosemirror = locators.docs.proseMirror();
+
+    await test.step('Type into docs', async () => {
+      await expect(prosemirror).toBeVisible();
+      await prosemirror.click();
+      await page.keyboard.type('Some docs content');
+    });
+
+    await test.step('Open Preferences (Cmd/Ctrl+,) still fires — no Tiptap binding for it', async () => {
+      await pressShortcut(page, modifier, 'Comma');
+      await expect(page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) })).toBeVisible();
+    });
+  });
+
+  test('Cmd/Ctrl+N (no Tiptap binding) opens the New Request modal while docs is focused', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-docs-shortcut-new-request');
+    const prosemirror = locators.docs.proseMirror();
+
+    await test.step('Type into docs', async () => {
+      await expect(prosemirror).toBeVisible();
+      await prosemirror.click();
+      await page.keyboard.type('Some docs content');
+    });
+
+    await test.step('Cmd/Ctrl+N still opens the New Request modal', async () => {
+      await pressShortcut(page, modifier, 'KeyN');
+      const newRequestModal = page.locator('.bruno-modal').filter({ has: page.getByText('New Request', { exact: true }) });
+      await expect(newRequestModal).toBeVisible();
+      await page.getByTestId('modal-close-button').click();
+    });
+  });
+
+  test('Cmd/Ctrl+Enter inside docs inserts a hard break, not the global Send Request shortcut', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-docs-shortcut-send-request');
+    const prosemirror = locators.docs.proseMirror();
+
+    await test.step('Give the request a real URL, so a regression (Send Request also firing) would be unambiguous', async () => {
+      await setRequestUrlAndSave(page, 'https://echo.usebruno.com');
+      await expect(prosemirror).toBeVisible();
+    });
+
+    await test.step('Cmd/Ctrl+Enter inserts a hard break (Tiptap\'s HardBreak binding)', async () => {
+      await prosemirror.click();
+      await page.keyboard.type('Line one');
+      // Mod-Enter is Tiptap's HardBreak binding and Bruno's global "Send
+      // Request" shortcut.
+      await pressShortcut(page, modifier, 'Enter');
+      await page.keyboard.type('Line two');
+
+      // A hard break keeps both lines in the same paragraph and a real Enter
+      // (new paragraph) would split them into two separate <p> elements.
+      await expect(prosemirror.locator('p')).toHaveCount(1);
+      await expect(prosemirror.locator('p br')).toHaveCount(1);
+      await expect(prosemirror.locator('p')).toContainText('Line oneLine two');
+    });
+
+    await test.step('The global Send Request shortcut did not fire', async () => {
+      await expect(page.getByTestId('response-status-code')).toHaveCount(0);
+    });
+  });
+
+  test('typing the bare "b" key (no modifier) just inserts text', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-docs-shortcut-bare-key');
+    const prosemirror = locators.docs.proseMirror();
+
+    await test.step('Type a bare "b"', async () => {
+      await expect(prosemirror).toBeVisible();
+      await prosemirror.click();
+      await page.keyboard.type('b');
+    });
+
+    await test.step('It is inserted as plain text, not bolded', async () => {
+      await expect(prosemirror).toContainText('b');
+      await expect(prosemirror.locator('strong')).toHaveCount(0);
+    });
+  });
+});
+
+test.describe('Rich Text Editor - Keyboard Shortcut with Global Hotkeys (remapped)', () => {
+  test.beforeEach(async ({ pageWithUserData: page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+  });
+
+  test.afterEach(async ({ pageWithUserData: page }) => {
+    await resetKeybindings(page);
+    await closeAllCollections(page);
+  });
+
+  test('a shortcut Tiptap DOES bind only runs the editor action, not a colliding global shortcut', async ({ pageWithUserData: page, createTmpDir }) => {
+    await test.step('Remap Open Preferences shortcut to Cmd/Ctrl+B which is same combo Tiptap Bold binds', async () => {
+      await remapKeybinding(page, 'openPreferences', modifier, 'KeyB');
+    });
+
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-docs-shortcut-collision');
+    const prosemirror = locators.docs.proseMirror();
+
+    await test.step('Select text in docs', async () => {
+      await expect(prosemirror).toBeVisible();
+      await prosemirror.click();
+      await page.keyboard.type('Hello World');
+      await page.keyboard.down('Shift');
+      for (let i = 0; i < 5; i++) {
+        await page.keyboard.press('ArrowLeft');
+      }
+      await page.keyboard.up('Shift');
+    });
+
+    await test.step('Cmd/Ctrl+B only bolds the selection. it does not open Preferences', async () => {
+      await pressShortcut(page, modifier, 'KeyB');
+      await expect(prosemirror.locator('strong')).toHaveText('World');
+      await expect(page.locator('.request-tab').filter({ has: page.getByText('Preferences', { exact: true }) })).not.toBeVisible();
+    });
+  });
+});
