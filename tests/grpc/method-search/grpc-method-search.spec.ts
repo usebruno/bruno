@@ -33,15 +33,15 @@ test.describe('Grpc Collection - Method Search Functionality', () => {
       await grpcMethodsDropdown.click();
     });
 
-    await test.step('Search the term "Loojup" and verify the "Lookup" grpc method is visible and select it', async () => {
-      await page.getByTestId('grpc-methods-search-input').fill('loojup');
-      const method = page.getByTestId('grpc-method-item').filter({ hasText: 'Lookup' });
+    await test.step('Search the term "bdiHelo" and verify the "BidiHello" grpc method is visible and select it', async () => {
+      await page.getByTestId('grpc-methods-search-input').fill('bdiHelo');
+      const method = page.getByTestId('grpc-method-item').filter({ hasText: 'BidiHello' });
       await expect(method).toBeVisible();
       await method.click();
     });
 
-    await test.step('Verify the "Lookup" grpc method is selected', async () => {
-      const method = page.getByTestId('selected-grpc-method-name').filter({ hasText: 'Lookup' });
+    await test.step('Verify the "BidiHello" grpc method is selected', async () => {
+      const method = page.getByTestId('selected-grpc-method-name').filter({ hasText: 'BidiHello' });
       await expect(method).toBeVisible();
     });
   });
@@ -62,13 +62,14 @@ test.describe('Grpc Collection - Method Search Functionality', () => {
       await grpcMethodsDropdown.click();
     });
 
-    await test.step('Use keyboard to navigate to "Sum" method and select it', async () => {
+    await test.step('Use keyboard to navigate to "LotsOfReplies" method and select it', async () => {
+      await page.keyboard.press('ArrowDown');
       await page.keyboard.press('ArrowDown');
       await page.keyboard.press('Enter');
     });
 
-    await test.step('Verify the "Sum" grpc method is selected', async () => {
-      const method = page.getByTestId('selected-grpc-method-name').filter({ hasText: 'Add/Sum' });
+    await test.step('Verify the "LotsOfReplies" grpc method is selected', async () => {
+      const method = page.getByTestId('selected-grpc-method-name').filter({ hasText: 'HelloService/LotsOfReplies' });
       await expect(method).toBeVisible();
     });
   });
