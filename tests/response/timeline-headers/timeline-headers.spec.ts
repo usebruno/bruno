@@ -297,7 +297,6 @@ test.describe('Timeline - response headers by source', () => {
         assertEveryHop(hops, 'redirect timeline Network tab');
         expect(hops[hops.length - 1].headerLines, 'Request tab matches the final hop').toEqual(tableLines);
       });
-      await page.pause();
     });
   };
 
