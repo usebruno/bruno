@@ -16,6 +16,7 @@ import {
   toOpenCollectionActions,
   fromOpenCollectionAssertions,
   toOpenCollectionAssertions,
+  fromOpenCollectionTags,
   resolveTimeoutSetting
 } from '../common';
 import { utils } from '@usebruno/common';
@@ -90,8 +91,9 @@ export const fromOpenCollectionGraphqlItem = (item: GraphQLRequest): BrunoItem =
     };
   }
 
-  if (info.tags?.length) {
-    brunoItem.tags = info.tags;
+  const tags = fromOpenCollectionTags(info.tags);
+  if (tags.length) {
+    brunoItem.tags = tags;
   }
 
   return brunoItem;

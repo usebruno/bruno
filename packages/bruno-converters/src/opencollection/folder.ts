@@ -9,7 +9,8 @@ import {
   fromOpenCollectionVariables,
   fromOpenCollectionActions,
   toOpenCollectionVariables,
-  toOpenCollectionActions
+  toOpenCollectionActions,
+  fromOpenCollectionTags
 } from './common';
 import { fromOpenCollectionItems, toOpenCollectionItems } from './items';
 import type {
@@ -65,8 +66,9 @@ export const fromOpenCollectionFolder = (folder: Folder): BrunoItem => {
     brunoFolder.root = root;
   }
 
-  if (info.tags?.length) {
-    brunoFolder.tags = info.tags;
+  const tags = fromOpenCollectionTags(info.tags);
+  if (tags.length) {
+    brunoFolder.tags = tags;
   }
 
   if (folder.items?.length) {
