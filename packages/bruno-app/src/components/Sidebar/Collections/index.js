@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import Collection from './Collection';
-import GitRemoteCollectionRow from './GitRemoteCollectionRow';
+import { Virtuoso } from 'react-virtuoso';
 import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
+import SidebarRow from './SidebarRow';
+import { flattenSidebarTree } from 'utils/collections/flattenSidebarTree';
 import path, { normalizePath } from 'utils/common/path';
 import { isScratchCollection } from 'utils/collections';
 
@@ -61,6 +62,20 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     return entries;
   }, [activeWorkspace, collections, workspaces, isDefaultWorkspace, collectionSortOrder]);
 
+  const { rows, itemsByUid, collectionsByUid } = useMemo(
+    () => flattenSidebarTree(sidebarEntries, { searchText }),
+    [sidebarEntries, searchText]
+  );
+
+  // Ghost rows carry only path/name; GitRemoteCollectionRow needs the full entry (for `remote`).
+  const ghostsByPath = useMemo(() => {
+    const map = new Map();
+    for (const entry of sidebarEntries) {
+      if (entry.kind === 'ghost' && entry.entry?.path) map.set(entry.entry.path, entry.entry);
+    }
+    return map;
+  }, [sidebarEntries]);
+
   if (!sidebarEntries.length) {
     return (
       <StyledWrapper>
@@ -82,20 +97,31 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
       )}
 
+      {isCreatingCollection && (
+        <InlineCollectionCreator
+          onComplete={onDismissCreate}
+          onCancel={onDismissCreate}
+          onOpenAdvanced={onOpenAdvancedCreate}
+        />
+      )}
+
       <div className="collections-list">
-        {isCreatingCollection && (
-          <InlineCollectionCreator
-            onComplete={onDismissCreate}
-            onCancel={onDismissCreate}
-            onOpenAdvanced={onOpenAdvancedCreate}
-          />
-        )}
-        {sidebarEntries.map((entry) => {
-          if (entry.kind === 'loaded') {
-            return <Collection searchText={searchText} collection={entry.collection} key={entry.key} />;
-          }
-          return <GitRemoteCollectionRow entry={entry.entry} key={entry.key} />;
-        })}
+        <Virtuoso
+          style={{ height: '100%' }}
+          data={rows}
+          computeItemKey={(index, row) => row.id}
+          defaultItemHeight={26}
+          increaseViewportBy={200}
+          itemContent={(index, row) => (
+            <SidebarRow
+              row={row}
+              searchText={searchText}
+              itemsByUid={itemsByUid}
+              collectionsByUid={collectionsByUid}
+              ghostsByPath={ghostsByPath}
+            />
+          )}
+        />
       </div>
     </StyledWrapper>
   );
