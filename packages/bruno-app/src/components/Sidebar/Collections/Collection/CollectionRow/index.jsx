@@ -300,16 +300,6 @@ const CollectionRow = ({ collection, searchText, children }) => {
     dragPreview(getEmptyImage(), { captureDraggingState: true });
   }, []);
 
-  useEffect(() => {
-    if (isCollectionFocused && collectionRef.current) {
-      try {
-        collectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } catch (err) {
-        // ignore scroll errors
-      }
-    }
-  }, [isCollectionFocused]);
-
   const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
     'item-hovered': isOver && dropType === 'above', // For collection-to-collection moves (show line)
     'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)

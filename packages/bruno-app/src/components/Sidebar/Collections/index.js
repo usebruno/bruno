@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
 import StyledWrapper from './StyledWrapper';
@@ -6,7 +6,7 @@ import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
 import SidebarRow from './SidebarRow';
-import { flattenSidebarTree } from 'utils/collections/flattenSidebarTree';
+import { flattenSidebarTree, buildIndexes } from 'utils/collections/flattenSidebarTree';
 import path, { normalizePath } from 'utils/common/path';
 import { isScratchCollection } from 'utils/collections';
 
@@ -24,6 +24,8 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const [searchText, setSearchText] = useState('');
   const { collections, collectionSortOrder } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const virtuosoRef = useRef(null);
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
   const isDefaultWorkspace = activeWorkspace?.type === 'default';
@@ -76,6 +78,20 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     return map;
   }, [sidebarEntries]);
 
+  const { rowIndexByItemUid, rowIndexByCollectionUid } = useMemo(() => buildIndexes(rows), [rows]);
+
+  // get the active item(request/folder/collection tab) index and scroll that into view.
+  const rowIndex = rowIndexByItemUid.get(activeTabUid);
+  const activeRowIndex = activeTabUid !== null
+    ? (rowIndex ?? rowIndexByCollectionUid.get(activeTabUid) ?? null)
+    : null;
+
+  useEffect(() => {
+    if (activeRowIndex === null) return;
+
+    virtuosoRef.current?.scrollIntoView({ index: activeRowIndex, behavior: 'smooth' });
+  }, [activeTabUid, activeRowIndex]);
+
   if (!sidebarEntries.length) {
     return (
       <StyledWrapper>
@@ -107,6 +123,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
 
       <div className="collections-list">
         <Virtuoso
+          ref={virtuosoRef}
           style={{ height: '100%' }}
           data={rows}
           computeItemKey={(index, row) => row.id}

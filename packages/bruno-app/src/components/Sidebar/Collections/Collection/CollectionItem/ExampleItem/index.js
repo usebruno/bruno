@@ -64,16 +64,6 @@ const ExampleItem = ({ example, item, collection }) => {
     setEditName(example.name);
   }, [example.name]);
 
-  useEffect(() => {
-    if (isExampleActive && exampleRef.current) {
-      try {
-        exampleRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } catch (err) {
-        // ignore scroll errors
-      }
-    }
-  }, [isExampleActive]);
-
   const handleClone = async () => {
     // Calculate the index where the cloned example will be saved
     // It will be at the end of the examples array

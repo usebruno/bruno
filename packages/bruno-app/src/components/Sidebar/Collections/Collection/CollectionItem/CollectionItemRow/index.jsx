@@ -171,17 +171,6 @@ const CollectionItemRow = ({ item, collectionUid, collectionPathname, searchText
     dragPreview(getEmptyImage(), { captureDraggingState: true });
   }, []);
 
-  // Auto-scroll to show this item when its tab becomes active
-  useEffect(() => {
-    if (isTabForItemActive && ref.current) {
-      try {
-        ref.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } catch (err) {
-        // ignore scroll errors (some environments may not support smooth scrolling)
-      }
-    }
-  }, [isTabForItemActive]);
-
   const resolveDropFromMonitor = (monitor) => {
     return determineCollectionItemDrop({
       item,
