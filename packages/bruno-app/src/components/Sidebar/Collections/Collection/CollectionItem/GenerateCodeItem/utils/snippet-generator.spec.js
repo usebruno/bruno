@@ -135,7 +135,7 @@ describe('Snippet Generator - Simple Tests', () => {
   "message": "Hello World",
   "count": 42
 }`;
-    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
+    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
   it('should handle GET requests', async () => {
@@ -192,7 +192,7 @@ describe('Snippet Generator - Simple Tests', () => {
   "message": "Hello World",
   "count": 42
 }`;
-    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedBody}'`);
+    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedBody}'`);
   });
 
   it('should handle complex nested JSON body', async () => {
@@ -254,7 +254,7 @@ describe('Snippet Generator - Simple Tests', () => {
       }
     }, null, 2);
 
-    expect(result).toBe(`curl -X POST https://api.example.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedComplexBody}'`);
+    expect(result).toBe(`curl -X POST https://api.example.com/data -H "Content-Type: application/json" -d '${expectedComplexBody}'`);
   });
 
   it('should handle errors gracefully', async () => {
@@ -283,15 +283,17 @@ describe('Snippet Generator - Simple Tests', () => {
   it('should work with JavaScript language', async () => {
     const javascriptLanguage = { target: 'javascript', client: 'fetch' };
 
-    const expectedJavaScriptCode = `fetch("https://api.example.com/data", {
+    // Echo the HAR's URL rather than a fixed string: with the toggle off that URL carries
+    // buildHar's placeholder tokens, and restoring them is exactly what's under test.
+    const mockSnippetOutput = (harRequest) => `fetch("${harRequest.url}", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ "message": "Hello World", "count": 42 })
 })`;
 
     const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
-    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation(() => ({
-      convert: jest.fn(() => expectedJavaScriptCode)
+    require('httpsnippet').HTTPSnippet = jest.fn().mockImplementation((harRequest) => ({
+      convert: jest.fn(() => mockSnippetOutput(harRequest))
     }));
 
     const result = await generateSnippet({
@@ -301,6 +303,12 @@ describe('Snippet Generator - Simple Tests', () => {
       shouldInterpolate: false
     });
 
+    // URL should be replaced back to raw (un-interpolated) form
+    const expectedJavaScriptCode = `fetch("https://api.example.com/{{endpoint}}", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ "message": "Hello World", "count": 42 })
+})`;
     expect(result).toBe(expectedJavaScriptCode);
 
     // Restore the original mock
@@ -360,7 +368,7 @@ describe('Snippet Generator - Simple Tests', () => {
   "age": 30
 }`;
 
-    expect(result).toBe(`curl -X POST https://api.test.com/{{endpoint}} -H "Content-Type: application/json" -d '${expectedInterpolatedBody}'`);
+    expect(result).toBe(`curl -X POST https://api.test.com/users -H "Content-Type: application/json" -d '${expectedInterpolatedBody}'`);
   });
 
   it('should NOT interpolate when shouldInterpolate is false', async () => {
@@ -1133,15 +1141,11 @@ describe('generateSnippet – encodeUrl setting', () => {
     expect(result).toContain('%3D%3D');
   });
 
-  it('should single-encode spaces and special chars when encodeUrl is true and rawUrl is provided', async () => {
-    // The raw URL (before new URL() encoding) contains literal spaces and @.
-    // encodeUrl() should encode them once: space → %20, @ → %40.
-    // Previously this double-encoded because request.url was already encoded by new URL().
-    const encodedUrl = 'https://example.com/api?name=abc%20os&email=user%40test.com';
-    const item = {
-      ...makeItem(encodedUrl, { encodeUrl: true }),
-      rawUrl: 'https://example.com/api?name=abc os&email=user@test.com'
-    };
+  it('should single-encode spaces and special chars when encodeUrl is true', async () => {
+    // `request.url` carries the user's literal bytes — spaces and `@` here — so encodeUrl()
+    // encodes them exactly once: space → %20, @ → %40. The double-encoding this guards
+    // against came from the URL reaching buildHar already run through new URL().
+    const item = makeItem('https://example.com/api?name=abc os&email=user@test.com', { encodeUrl: true });
 
     const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
     // space → %20 (single encoding, not %2520)
@@ -1205,6 +1209,67 @@ describe('generateSnippet – encodeUrl setting', () => {
     const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
     expect(result).toBe(`curl -X GET '${rawUrl}'`);
   });
+
+  it('should preserve the host:port colon (not %3A) when encodeUrl is true', async () => {
+    // Local-dev `host:port` authority. The port colon must survive un-encoded:
+    // encodeUrl leaves the authority alone because the scheme is present (the
+    // codegen path prepends http:// upstream), so a bogus `localhost%3A6000`
+    // host can never reach the snippet.
+    const rawUrl = 'http://localhost:6000/echo-request';
+    const item = makeItem(rawUrl, { encodeUrl: true });
+
+    const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('http://localhost:6000/echo-request');
+    expect(result).not.toContain('localhost%3A6000');
+  });
+
+  it('should preserve the host:port colon when encodeUrl is false', async () => {
+    const rawUrl = 'http://localhost:6000/echo-request';
+    const item = makeItem(rawUrl, { encodeUrl: false });
+
+    const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('http://localhost:6000/echo-request');
+    expect(result).not.toContain('localhost%3A6000');
+  });
+
+  it('normalizes a bare host:port to an http:// URL', async () => {
+    const item = makeItem('localhost:6000/echo-request', { encodeUrl: true });
+    const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toBe(`curl -X GET 'http://localhost:6000/echo-request'`);
+    expect(result).not.toContain('localhost%3A6000');
+  });
+
+  it('preserves a colon inside a path segment when encodeUrl is false', async () => {
+    const item = makeItem('http://localhost:6000/values:colon', { encodeUrl: false });
+
+    const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('http://localhost:6000/values:colon');
+    expect(result).not.toContain('%3A');
+  });
+
+  it('encodes a colon inside a path segment when encodeUrl is true', async () => {
+    const item = makeItem('http://localhost:6000/values:colon', { encodeUrl: true });
+
+    const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
+    expect(result).toContain('http://localhost:6000/values%3Acolon');
+  });
+
+  it('encodes a colon path segment while substituting a declared path param', async () => {
+    const item = {
+      ...makeItem('http://localhost:6000/users/:userId/values:colon', { encodeUrl: true }),
+      request: {
+        method: 'GET',
+        url: 'http://localhost:6000/users/:userId/values:colon',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: [{ name: 'userId', value: '123', type: 'path', enabled: true }]
+      }
+    };
+
+    const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: true });
+    expect(result).toContain('/users/123/values%3Acolon');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1256,5 +1321,402 @@ describe('generateSnippet – pre-encode URL before HAR (HTTPSnippet validator r
     const item = makeItem('https://example.com/users/José', { encodeUrl: false });
     const result = await generateSnippet({ language, item, collection: baseCollection, shouldInterpolate: false });
     expect(result).not.toBe('Error generating code snippet');
+  });
+});
+
+describe('generateSnippet – URL interpolation behavior', () => {
+  const language = { target: 'shell', client: 'curl' };
+  const baseCollection = {
+    root: { request: { auth: { mode: 'none' }, headers: [] } },
+    globalEnvironmentVariables: {
+      host: 'https://api.example.com'
+    },
+    runtimeVariables: {},
+    processEnvVariables: {}
+  };
+
+  it('should NOT interpolate URL variables when shouldInterpolate is false', async () => {
+    const item = {
+      uid: 'url-test-1',
+      request: {
+        method: 'GET',
+        url: '{{host}}/ping',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: []
+      }
+    };
+
+    const result = await generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('{{host}}/ping');
+    expect(result).not.toContain('https://api.example.com/ping');
+  });
+
+  it('should interpolate URL variables when shouldInterpolate is true', async () => {
+    const item = {
+      uid: 'url-test-2',
+      request: {
+        method: 'GET',
+        url: '{{host}}/ping',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: []
+      }
+    };
+
+    const result = await generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: true
+    });
+
+    expect(result).toContain('https://api.example.com/ping');
+    expect(result).not.toContain('{{host}}');
+  });
+
+  it('should NOT interpolate URL path params when shouldInterpolate is false', async () => {
+    const item = {
+      uid: 'url-test-3',
+      request: {
+        method: 'GET',
+        url: 'https://api.example.com/users/:userId',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: [
+          { name: 'userId', value: '123', type: 'path', enabled: true }
+        ]
+      }
+    };
+
+    const result = await generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('/users/:userId');
+    expect(result).not.toContain('/users/123');
+  });
+
+  it('should interpolate both URL variables and path params when shouldInterpolate is true', async () => {
+    const item = {
+      uid: 'url-test-4',
+      request: {
+        method: 'GET',
+        url: '{{host}}/users/:userId',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: [
+          { name: 'userId', value: '123', type: 'path', enabled: true }
+        ]
+      }
+    };
+
+    const result = await generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: true
+    });
+
+    expect(result).toContain('https://api.example.com/users/123');
+    expect(result).not.toContain('{{host}}');
+    expect(result).not.toContain(':userId');
+  });
+
+  // A variable with no value behind it must not be treated differently from one that
+  // resolves: interpolation off renders the URL as typed either way.
+  it('should render an unresolved {{var}} when shouldInterpolate is false', async () => {
+    const item = {
+      uid: 'url-test-unresolved-host',
+      request: {
+        method: 'GET',
+        url: '{{missingHost}}/ping',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: []
+      }
+    };
+
+    const result = await generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).not.toBe('Error generating code snippet');
+    expect(result).toContain('{{missingHost}}/ping');
+  });
+
+  it('should render a mix of resolvable and unresolved variables when shouldInterpolate is false', async () => {
+    const item = {
+      uid: 'url-test-unresolved-segment',
+      request: {
+        method: 'GET',
+        url: '{{host}}/users/{{missingId}}',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: []
+      }
+    };
+
+    const result = await generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('{{host}}/users/{{missingId}}');
+    expect(result).not.toContain('%7B%7B');
+  });
+
+  it('should preserve template URL when rawUrl is set and shouldInterpolate is false', async () => {
+    const item = {
+      uid: 'url-test-rawurl',
+      request: {
+        method: 'GET',
+        url: '{{host}}/ping',
+        headers: [],
+        body: { mode: 'none' },
+        auth: { mode: 'none' },
+        params: []
+      },
+      rawUrl: 'https://api.example.com/ping'
+    };
+
+    const result = await generateSnippet({
+      language,
+      item,
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('{{host}}/ping');
+    expect(result).not.toContain('https://api.example.com/ping');
+  });
+});
+
+describe('generateSnippet – URL templates survive real httpsnippet targets', () => {
+  const baseCollection = {
+    root: { request: { auth: { mode: 'none' }, headers: [] } },
+    globalEnvironmentVariables: {
+      host: 'https://api.example.com',
+      webhookUrl: 'https://hooks.example.com/services/T00/B00/SECRET',
+      signingKey: 'sk-live+AbC123',
+      proto: 'https'
+    },
+    runtimeVariables: {},
+    processEnvVariables: {}
+  };
+
+  const makeItem = (url, params = []) => ({
+    uid: 'real-snippet',
+    request: { method: 'GET', url, headers: [], body: { mode: 'none' }, auth: { mode: 'none' }, params }
+  });
+
+  let mockedHTTPSnippet;
+
+  beforeAll(() => {
+    mockedHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+  });
+
+  afterAll(() => {
+    require('httpsnippet').HTTPSnippet = mockedHTTPSnippet;
+  });
+
+  it.each([
+    ['python', 'requests'],
+    ['javascript', 'axios'],
+    ['node', 'axios']
+  ])('%s/%s renders the query separately and still keeps the template', async (target, client) => {
+    const result = await generateSnippet({
+      language: { target, client },
+      item: makeItem('{{webhookUrl}}/data?page=1'),
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('{{webhookUrl}}');
+    expect(result).not.toContain('SECRET');
+  });
+
+  it('keeps the template when the resolved value holds a character encodeUrl would rewrite', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem('{{host}}/v1/{{signingKey}}/data'),
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('{{signingKey}}');
+    expect(result).not.toContain('sk-live+AbC123');
+  });
+
+  it('leaves a path param literal rather than percent-encoding it', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem('{{host}}/users/:userId', [{ name: 'userId', value: '123', type: 'path', enabled: true }]),
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('/users/:userId');
+    expect(result).not.toContain('%3AuserId');
+    expect(result).not.toContain('/users/123');
+  });
+
+  it('keeps a literal colon in a path segment (issue #8771)', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem('http://localhost:6000/values:colon'),
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('http://localhost:6000/values:colon');
+    expect(result).not.toContain('%3A');
+  });
+
+  // The URL gate only inspects the URL, so interpolation ON with an unresolved *header*
+  // variable does reach the generator — it has to render the `{{var}}` rather than throw.
+  it('renders an unresolved header {{var}} when interpolation is on', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: {
+        uid: 'real-snippet-unresolved-header',
+        request: {
+          method: 'GET',
+          url: '{{host}}/ping',
+          headers: [{ name: 'x-api-key', value: '{{missingKey}}', enabled: true }],
+          body: { mode: 'none' },
+          auth: { mode: 'none' },
+          params: []
+        }
+      },
+      collection: baseCollection,
+      shouldInterpolate: true
+    });
+
+    expect(result).not.toBe('Error generating code snippet');
+    expect(result).toContain('{{missingKey}}');
+    expect(result).toContain('https://api.example.com/ping');
+  });
+
+  it('renders an unresolved {{var}} rather than erroring when interpolation is off', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem('{{missingHost}}/ping'),
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).not.toBe('Error generating code snippet');
+    expect(result).toContain('{{missingHost}}/ping');
+  });
+
+  it('resolves variables and path params when shouldInterpolate is true', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem('{{host}}/users/:userId', [{ name: 'userId', value: '123', type: 'path', enabled: true }]),
+      collection: baseCollection,
+      shouldInterpolate: true
+    });
+
+    expect(result).toContain('https://api.example.com/users/123');
+    expect(result).not.toContain('{{host}}');
+    expect(result).not.toContain(':userId');
+  });
+
+  // The URL bar syncs query params into request.params, so that array — not the URL
+  // string — is what reaches har.queryString. HTTPSnippet percent-encodes those values.
+  it('keeps {{var}} in a query value, matching how the URL and headers behave', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem('{{host}}/get?token={{signingKey}}', [
+        { name: 'token', value: '{{signingKey}}', type: 'query', enabled: true }
+      ]),
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    expect(result).toContain('{{host}}/get?token={{signingKey}}');
+    expect(result).not.toContain('%7B%7B');
+    expect(result).not.toContain('sk-live+AbC123');
+  });
+
+  it('resolves a query value when shouldInterpolate is true', async () => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem('{{host}}/get?token={{signingKey}}', [
+        { name: 'token', value: '{{signingKey}}', type: 'query', enabled: true }
+      ]),
+      collection: baseCollection,
+      shouldInterpolate: true
+    });
+
+    // The `+` stays literal: encodeUrl is off, and OFF is byte-for-byte by contract.
+    expect(result).toContain('token=sk-live+AbC123');
+    expect(result).not.toContain('{{signingKey}}');
+  });
+
+  it.each([
+    ['scheme from a variable', '{{proto}}://api.example.com/ping'],
+    ['scheme and host from variables', '{{proto}}://{{host}}/ping'],
+    ['user-typed non-http scheme', 'ftp://files.example.com/pub']
+  ])('emits the origin exactly once — %s', async (_label, url) => {
+    const result = await generateSnippet({
+      language: { target: 'shell', client: 'curl' },
+      item: makeItem(url),
+      collection: baseCollection,
+      shouldInterpolate: false
+    });
+
+    const [, origin, path] = url.match(/^(.*:\/\/[^/?#]*)(.*)$/);
+    expect(result).toContain(url);
+    expect(result).not.toContain(`${origin}${origin}`);
+    expect(result).not.toContain(`${origin}${path}${path}`);
+  });
+
+  describe('clients that split host from path', () => {
+    // python3 emits `http.client.HTTPConnection(host)` plus a separate request path.
+    const language = { target: 'python', client: 'python3' };
+    const item = () => makeItem('{{webhookUrl}}/data?page=1');
+
+    it('preserves the template and leaks nothing when interpolation is off', async () => {
+      const result = await generateSnippet({
+        language, item: item(), collection: baseCollection, shouldInterpolate: false
+      });
+
+      expect(result).toContain('{{webhookUrl}}');
+      expect(result).not.toContain('SECRET');
+      expect(result).not.toContain('hooks.example.com');
+    });
+
+    it('splits host and path correctly when interpolation is on', async () => {
+      const result = await generateSnippet({
+        language, item: item(), collection: baseCollection, shouldInterpolate: true
+      });
+
+      expect(result).toContain('hooks.example.com');
+      expect(result).toContain('/services/T00/B00/SECRET/data');
+      expect(result).not.toContain('{{webhookUrl}}');
+    });
   });
 });
