@@ -461,7 +461,7 @@ describe('axios-instance: sent headers', () => {
     }).catch((err) => err);
 
     const masked = error.response.sentHeaders['Proxy-Authorization'];
-    expect(masked).toBe('x'.repeat(credential.length));
+    expect(masked).toBe('*'.repeat(credential.length));
     expect(masked).not.toContain('dXNlcj');
   });
 });
