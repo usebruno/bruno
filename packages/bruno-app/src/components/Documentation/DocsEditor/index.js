@@ -71,6 +71,16 @@ const DocsEditor = ({
         lastEmittedDocsRef.current = markdown;
         onEdit(markdown);
       },
+      editorProps: {
+        handleKeyDown: (_view, event) => {
+          if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            onSave();
+            return true;
+          }
+          return false;
+        }
+      },
       onCreate: ({ editor: createdEditor }) => {
         // `HACK`: `mousetrap` bypasses Mousetrap's default "ignore all contentEditable"
         // rule, so shortcuts Tiptap doesn't bind still reach
