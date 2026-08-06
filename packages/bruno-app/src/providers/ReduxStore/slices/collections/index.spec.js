@@ -5,6 +5,7 @@ const {
   setFolderVars,
   setCollectionVars,
   updateFile,
+  wsResponseReceived,
   toggleSidebarSelection,
   setSidebarSelection,
   clearSidebarSelection,
@@ -130,6 +131,37 @@ describe('updateFile — does not steal selection on non-selection edits', () =>
     expect(f1.selected).toBe(true);
     expect(f2.selected).toBe(false);
     expect(f2.description).toBe('a plain file');
+  });
+});
+
+describe('wsResponseReceived — disconnecting', () => {
+  it('sets response status to DISCONNECTING', () => {
+    const item = {
+      uid: 'item1',
+      type: 'ws-request',
+      request: { url: 'ws://localhost:9', body: { ws: [] } },
+      response: {
+        status: 'CONNECTED',
+        statusText: 'CONNECTED',
+        responses: []
+      },
+      requestSent: { timestamp: Date.now() }
+    };
+
+    const next = reducer(
+      makeStateWith(item),
+      wsResponseReceived({
+        itemUid: 'item1',
+        collectionUid: 'col1',
+        eventType: 'disconnecting',
+        eventData: {}
+      })
+    );
+
+    expect(next.collections[0].items[0].response).toMatchObject({
+      status: 'DISCONNECTING',
+      statusText: 'DISCONNECTING'
+    });
   });
 });
 

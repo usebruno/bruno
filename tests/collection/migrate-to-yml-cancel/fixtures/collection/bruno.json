@@ -1,0 +1,10 @@
+{
+  "version": "1",
+  "name": "migration-test",
+  "type": "collection",
+  "collectionVersion": "v9.9.9",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

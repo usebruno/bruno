@@ -461,9 +461,14 @@ const registerGrpcEventHandlers = (window) => {
         caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
       }
 
-      const clientCertConfig = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.clientCertificates.certs', []) : get(collection, 'brunoConfig.clientCertificates.certs', []);
+      const collectionCerts = collection.draft?.brunoConfig ? get(collection, 'draft.brunoConfig.clientCertificates.certs', []) : get(collection, 'brunoConfig.clientCertificates.certs', []);
+      const globalCerts = preferencesUtil.getGlobalClientCertificates();
+      const clientCertConfig = [...collectionCerts, ...globalCerts];
 
-      for (let clientCert of clientCertConfig) {
+      for (const clientCert of clientCertConfig) {
+        if (clientCert?.disabled) {
+          continue;
+        }
         const domain = interpolateString(clientCert?.domain, interpolationOptions);
         const type = clientCert?.type || 'cert';
         if (domain) {
@@ -476,6 +481,8 @@ const registerGrpcEventHandlers = (window) => {
               keyFilePath = interpolateString(clientCert?.keyFilePath, interpolationOptions);
               keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collection.pathname, keyFilePath);
             }
+            // collection certs precede global ones, so the first match wins
+            break;
           }
         }
       }

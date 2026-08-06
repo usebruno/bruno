@@ -19,7 +19,8 @@ import {
   IconSettings,
   IconInfoCircle,
   IconTerminal2,
-  IconAppWindow
+  IconAppWindow,
+  IconEyeOff
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -34,6 +35,7 @@ import NewApp from 'components/Sidebar/NewApp';
 import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
+import IgnoreCollectionItem from './IgnoreCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
 import { isItemARequest, isItemAFolder } from 'utils/tabs';
@@ -47,6 +49,7 @@ import CollectionItemIcon from './CollectionItemIcon';
 import ExampleItem from './ExampleItem';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import {
   getTabUidForItem as getTabUidForItemSelector,
   isTabForItemActive as isTabForItemActiveSelector,
@@ -54,7 +57,12 @@ import {
 } from 'src/selectors/tab';
 import { isEqual } from 'lodash';
 import { createEmptyStateMenuItems } from 'utils/collections/emptyStateRequest';
-import { calculateDraggedItemNewPathname, getInitialExampleName, findParentItemInCollection, getSelectionInfo, buildSidebarEntries, getVisibleSidebarUidsInOrder } from 'utils/collections/index';
+import {
+  canCollectionItemBeDropped,
+  determineCollectionItemDrop,
+  getInitialExampleName,
+  findParentItemInCollection, getSelectionInfo, buildSidebarEntries, getVisibleSidebarUidsInOrder
+} from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
@@ -68,6 +76,7 @@ import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
+  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const selectorInput = {
     itemUid: item.uid,
@@ -114,6 +123,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
   const [deleteItemModalOpen, setDeleteItemModalOpen] = useState(false);
+  const [ignoreItemModalOpen, setIgnoreItemModalOpen] = useState(false);
   const [createExampleModalOpen, setCreateExampleModalOpen] = useState(false);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
@@ -157,7 +167,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     return false;
   }, { enabled: isKeyboardFocused && isFolder, deps: [isKeyboardFocused, isFolder] });
 
-  const [dropType, setDropType] = useState(null); // 'adjacent' or 'inside'
+  const [dropType, setDropType] = useState(null); // 'above', 'inside' or 'below'
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
     type: 'collection-item',
@@ -189,55 +199,22 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   }, [isTabForItemActive]);
 
-  const determineDropType = (monitor) => {
-    const hoverBoundingRect = ref.current?.getBoundingClientRect();
-    const clientOffset = monitor.getClientOffset();
-    if (!hoverBoundingRect || !clientOffset) return null;
-
-    const clientY = clientOffset.y - hoverBoundingRect.top;
-    const folderUpperThreshold = hoverBoundingRect.height * 0.35;
-    const fileUpperThreshold = hoverBoundingRect.height * 0.5;
-
-    if (isItemAFolder(item)) {
-      return clientY < folderUpperThreshold ? 'adjacent' : 'inside';
-    } else {
-      return clientY < fileUpperThreshold ? 'adjacent' : null;
-    }
-  };
-
-  // Which sidebar section an item belongs to. The sidebar renders these three
-  // sections in order (folders → apps → requests), each sorted by seq independently.
-  const getSidebarSection = (i) => {
-    if (isItemAFolder(i)) return 'folder';
-    if (i?.type === 'app') return 'app';
-    return 'request';
+  const resolveDropFromMonitor = (monitor) => {
+    return determineCollectionItemDrop({
+      item,
+      hoverBoundingRect: ref.current?.getBoundingClientRect(),
+      clientOffset: monitor.getClientOffset()
+    });
   };
 
   const canItemBeDropped = ({ draggedItem, targetItem, dropType }) => {
-    const { uid: targetItemUid, pathname: targetItemPathname } = targetItem;
-    const { uid: draggedItemUid, pathname: draggedItemPathname, sourceCollectionUid } = draggedItem;
-
-    if (draggedItemUid === targetItemUid) return false;
-
-    // The sidebar renders items grouped by section (folders → apps → requests) and
-    // sorts each section by seq independently. An 'adjacent' drop between two different
-    // sections could never move the item across sections visually, so reject it.
-    // 'inside' drops on a folder are unaffected (that's a directory move, not a reorder).
-    if (dropType === 'adjacent' && getSidebarSection(draggedItem) !== getSidebarSection(targetItem)) {
-      return false;
-    }
-
-    // For cross-collection moves, we allow the drop
-    if (sourceCollectionUid !== collectionUid) {
-      return true;
-    }
-
-    const newPathname = calculateDraggedItemNewPathname({ draggedItem, targetItem, dropType, collectionPathname });
-    if (!newPathname) return false;
-
-    if (targetItemPathname?.startsWith(draggedItemPathname)) return false;
-
-    return true;
+    return canCollectionItemBeDropped({
+      draggedItem,
+      targetItem,
+      dropType,
+      collectionUid,
+      collectionPathname
+    });
   };
 
   const [{ isOver, canDrop }, drop] = useDrop({
@@ -248,7 +225,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
       if (draggedItemUid === targetItemUid) return;
 
-      const dropType = determineDropType(monitor);
+      const dropType = resolveDropFromMonitor(monitor);
+      if (!dropType) {
+        setDropType(null);
+        return;
+      }
 
       const _canItemBeDropped = canItemBeDropped({ draggedItem, targetItem: item, dropType });
 
@@ -260,8 +241,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
       if (draggedItemUid === targetItemUid) return;
 
-      const dropType = determineDropType(monitor);
+      const dropType = resolveDropFromMonitor(monitor);
       if (!dropType) return;
+
       if (!canItemBeDropped({ draggedItem, targetItem: item, dropType })) return;
 
       // Gather all dragged items
@@ -300,7 +282,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       });
 
       if (validDraggedItems.length > 0) {
-        await dispatch(handleMultipleCollectionItemsDrop({ targetItem: item, draggedItems: validDraggedItems, dropType, collectionUid }));
+        await dispatch(handleMultipleCollectionItemsDrop({
+          targetItem: item,
+          draggedItems: validDraggedItems,
+          dropType,
+          collectionUid
+        }));
       }
 
       if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
@@ -309,11 +296,25 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
       setDropType(null);
     },
-    canDrop: (draggedItem) => draggedItem.uid !== item.uid,
+    canDrop: (draggedItem, monitor) => {
+      if (draggedItem.uid === item.uid) return false;
+
+      const dropType = resolveDropFromMonitor(monitor);
+      if (!dropType) return false;
+
+      return canItemBeDropped({ draggedItem, targetItem: item, dropType });
+    },
     collect: (monitor) => ({
-      isOver: monitor.isOver()
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop()
     })
   });
+
+  useEffect(() => {
+    if (!isOver) {
+      setDropType(null);
+    }
+  }, [isOver]);
 
   const iconClassName = classnames({
     'rotate-90': !itemIsCollapsed
@@ -326,8 +327,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const itemRowClassName = classnames('flex collection-item-name relative items-center', {
     'item-focused-in-tab': isTabForItemActive,
     'item-hovered': isOver && canDrop,
-    'drop-target': isOver && dropType === 'inside',
-    'drop-target-above': isOver && dropType === 'adjacent',
+    'drop-target': isOver && canDrop && dropType === 'inside',
+    'drop-target-above': isOver && canDrop && dropType === 'above',
+    'drop-target-below': isOver && canDrop && dropType === 'below',
     'item-keyboard-focused': isKeyboardFocused,
     'item-selected': isSelected
   });
@@ -427,7 +429,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     menuDropdownRef.current?.show();
   };
 
-  let indents = range(item.depth);
+  const indents = range(item.depth);
 
   // Build menu items for MenuDropdown
   const buildMenuItems = () => {
@@ -532,6 +534,15 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       }
     );
 
+    if (isFolder) {
+      items.push({
+        id: 'ignore',
+        leftSection: IconEyeOff,
+        label: 'Ignore',
+        onClick: () => setIgnoreItemModalOpen(true)
+      });
+    }
+
     items.push({ id: 'separator-1', type: 'divider' });
 
     items.push({
@@ -604,17 +615,20 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     });
   };
 
-  const handleCreateExample = async (name, description = '') => {
-    // Create example with default values
+  const handleCreateExample = async (name, description = '', mockFields) => {
+    const statusCode = mockFields?.statusCode || 200;
+    const bodyType = mockFields?.bodyType || 'text';
+    const defaultContent = bodyType === 'json' ? '{}' : '';
+
     const exampleData = {
       name: name,
       description: description,
-      status: 200,
+      status: statusCode,
       statusText: 'OK',
       headers: [],
       body: {
-        type: 'text',
-        content: ''
+        type: bodyType,
+        content: defaultContent
       }
     };
 
@@ -641,7 +655,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       type: 'OPEN_EXAMPLE',
       collectionUid: collectionUid,
       itemUid: item.uid,
-      exampleIndex: exampleIndex
+      exampleIndex: exampleIndex,
+      // Freshly created examples start blank, so open the tab in edit mode.
+      openInEditMode: true
     }));
 
     toast.success(`Example "${name}" created successfully`);
@@ -729,6 +745,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       {deleteItemModalOpen && (
         <DeleteCollectionItem item={item} collectionUid={collectionUid} onClose={() => setDeleteItemModalOpen(false)} />
       )}
+      {ignoreItemModalOpen && (
+        <IgnoreCollectionItem item={item} collectionUid={collectionUid} onClose={() => setIgnoreItemModalOpen(false)} />
+      )}
       {newRequestModalOpen && (
         <NewRequest item={item} collectionUid={collectionUid} onClose={() => setNewRequestModalOpen(false)} />
       )}
@@ -754,6 +773,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onSave={handleCreateExample}
         title="Create Response Example"
         initialName={getInitialExampleName(item)}
+        showMockFields={isMockServerEnabled}
       />
       <div
         className={itemRowClassName}
@@ -819,6 +839,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               <span className="item-name" title={item.name}>
                 {item.name}
               </span>
+              {hasExamples && (
+                <sup className="ml-1 example-count-badge" title={`${item.examples.length} example${item.examples.length > 1 ? 's' : ''}`} data-testid="example-count-badge">
+                  {item.examples.length}
+                </sup>
+              )}
             </div>
           </div>
           <div className="pr-2">

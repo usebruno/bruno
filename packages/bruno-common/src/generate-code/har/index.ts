@@ -29,7 +29,7 @@
 
 import { cloneDeep, find, get } from 'lodash';
 import interpolate, { interpolateObject } from '../../interpolate';
-import { encodeUrl, parseQueryParams, patternHasher } from '../../utils';
+import { DEFAULT_SCHEME, encodeUrl, getExplicitScheme, hasExplicitScheme, parseQueryParams, patternHasher } from '../../utils';
 import { signEdgeGridRequest } from './edgegrid';
 
 // ---------------------------------------------------------------------------
@@ -601,6 +601,28 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   // usage, `shouldInterpolate=false` means "preserve URL-bar templates".
   const { hashed: hashedUrl, restore: restoreUrlVars } = patternHasher(working.url || '');
 
+  // A URL whose scheme comes from a variable (`{{host}}/ping`) has no literal
+  // `scheme://` left once the variable is hashed, so authority parsing and the
+  // `looksLikeUrl` gate below would both reject it. Prepend a stand-in scheme for the
+  // pipeline, then strip it in `unhash` — but only when the variable really does supply
+  // one, so a genuinely schemeless `localhost:6000/x` still renders the `http://` the
+  // client will use. Gating on a *leading* placeholder keeps the gate strict for
+  // everything else: `not a url` must stay rejected, not become `http://not a url`.
+  const needsSyntheticScheme = (working.url || '').startsWith('{{') && !hasExplicitScheme(hashedUrl);
+  // Mirror the scheme the variable resolves to rather than always standing in `http://`:
+  // targets that pick a client per scheme read it off the HAR URL (python3 emits
+  // `HTTPSConnection` vs `HTTPConnection`), and stripping the prefix afterwards
+  // can't walk that choice back.
+  const resolvedScheme = needsSyntheticScheme
+    ? getExplicitScheme(interpolate(working.url || '', variables) || '')
+    : null;
+  const syntheticScheme = resolvedScheme ? `${resolvedScheme}://` : DEFAULT_SCHEME;
+  const syntheticSchemeIsRedundant = resolvedScheme !== null;
+  // The token the synthetic scheme was prepended to, so the strip below can target
+  // that one position instead of every `http://` in the snippet.
+  const leadingToken = needsSyntheticScheme ? hashedUrl.match(/^[A-Za-z0-9._-]+/)?.[0] ?? '' : '';
+  const urlForPipeline = needsSyntheticScheme ? syntheticScheme + hashedUrl : hashedUrl;
+
   // Step 3 — Hash path-param positions via `patternHasher`. The URL now
   // contains opaque `bruno-var-hash-XXX` tokens instead of `:id`, so the
   // next `encodeUrl()` pass can encode non-path-param chars in the path
@@ -608,7 +630,7 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   // here) unhashes those tokens back to `:id` literals and then substitutes
   // each one for the path-param value (raw or encoded per the flag).
   const encodeFlag = working.settings?.encodeUrl === true;
-  const { url: urlWithPlaceholders, restore: restorePathParams } = hashPathParamPositions(hashedUrl, working.pathParams);
+  const { url: urlWithPlaceholders, restore: restorePathParams } = hashPathParamPositions(urlForPipeline, working.pathParams);
 
   // Step 4 — Apply `encodeUrl()` to the URL with placeholders. Placeholders
   // are alphanumeric+dash, so `encodeURIComponent` (used per path segment
@@ -643,12 +665,26 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
   // Step 7 — Query string array. HAR's queryString is the single source of
   // truth for what HTTPSnippet renders into the URL slot. The URL itself
   // (next step) has its query stripped to avoid the legacy-polyfill merge bug.
-  // Pass the RAW URL (pre-encodeUrl) as the fallback source: HTTPSnippet
-  // re-encodes each queryString value via encodeURIComponent when rendering,
-  // so the entries here must carry user-typed bytes. Feeding the encoded URL
-  // here would cause double-encoding (`:` → `%3A` from encodeUrl, then
-  // `%3A` → `%253A` from HTTPSnippet's encodeURIComponent pass).
-  const harQueryString = buildQueryString(working, working.url);
+  // The fallback source is the *hashed* URL rather than the encoded one, so that
+  // when it is used its values carry user-typed bytes: feeding the encoded URL
+  // here would double-encode (`:` → `%3A` from encodeUrl, then `%3A` → `%253A`
+  // from HTTPSnippet's encodeURIComponent pass).
+  //
+  // Hashing the assembled values is what keeps `{{var}}` alive in a query when the
+  // caller wants templates preserved. HTTPSnippet runs encodeURIComponent over every
+  // queryString value, which would render `{{apiKey}}` as `%7B%7BapiKey%7D%7D` with
+  // nothing left for `unhash` to map back. Hash tokens are alphanumeric+dash, so they
+  // survive that pass untouched. Hashing here rather than in `working.params` also
+  // covers the auth-driven params `buildQueryString` appends (apikey in queryparams).
+  const queryValueRestorers: ((input: string) => string)[] = [];
+  const harQueryString = buildQueryString(working, hashedUrl).map((param) => {
+    if (shouldInterpolate || typeof param.value !== 'string') {
+      return param;
+    }
+    const { hashed, restore } = patternHasher(param.value);
+    queryValueRestorers.push(restore);
+    return { ...param, value: hashed };
+  });
 
   // Step 8 — Strip the URL's query before storing in HAR (the bracket-key fix).
   const harUrl = stripQueryStringFromUrl(encodedUrl);
@@ -667,7 +703,16 @@ export async function buildHar(input: BuildHarInput): Promise<BuildHarOutput> {
     binary: true
   };
 
-  const unhash = (s: string): string => (typeof s === 'string' ? restoreUrlVars(s) : s);
+  const unhash = (s: string): string => {
+    if (typeof s !== 'string') return s;
+    const withoutSyntheticScheme = syntheticSchemeIsRedundant
+      ? s.replaceAll(syntheticScheme + leadingToken, leadingToken)
+      : s;
+    return queryValueRestorers.reduce(
+      (restored, restore) => restore(restored),
+      restoreUrlVars(withoutSyntheticScheme)
+    );
+  };
 
   return {
     har,
