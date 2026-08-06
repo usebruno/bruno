@@ -1,6 +1,6 @@
 import { Page, test } from '../../../playwright';
 import { escapeRegExp } from '../helpers';
-import { readLastHopRequestHeaderLines } from './network-log';
+import { readLastHopRequestHeaderLines, readRequestHops } from './network-log';
 
 export const buildDevToolsLocators = (page: Page) => {
   const reqHeaderRows = () =>
@@ -34,7 +34,8 @@ export const buildDevToolsLocators = (page: Page) => {
       headerLines: reqHeaderLines,
       value: (name: string) => reqHeaderRow(name).getByTestId('request-details-header-value')
     },
-    lastHopRequestHeaderLines: () => readLastHopRequestHeaderLines(page.getByTestId('details-panel'))
+    lastHopRequestHeaderLines: () => readLastHopRequestHeaderLines(page.getByTestId('details-panel')),
+    requestHops: () => readRequestHops(page.getByTestId('details-panel'))
   };
 };
 

@@ -55,7 +55,12 @@ const getSentHeaders = (clientRequest) => {
     const colonIdx = line.indexOf(':');
 
     if (colonIdx > 0) {
-      sentHeaders[line.slice(0, colonIdx).trim()] = line.slice(colonIdx + 1).trim();
+      const name = line.slice(0, colonIdx).trim();
+      const value = line.slice(colonIdx + 1).trim();
+
+      /** The proxy agent injects this credential and the user never authored it, so the header
+       *  stays visible but its value never is, in the timeline or in `request.headers`. */
+      sentHeaders[name] = name.toLowerCase() === 'proxy-authorization' ? '*'.repeat(value.length) : value;
     }
   }
 

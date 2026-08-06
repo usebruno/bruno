@@ -1,6 +1,6 @@
 import { Page } from '../../../playwright';
 import { escapeRegExp } from '../helpers';
-import { readLastHopRequestHeaderLines } from './network-log';
+import { readLastHopRequestHeaderLines, readRequestHops } from './network-log';
 
 export const buildTimelineHeaderLocators = (page: Page) => {
   // The request and response tabs of a timeline entry both render the shared Headers table and stay
@@ -24,6 +24,7 @@ export const buildTimelineHeaderLocators = (page: Page) => {
   // The expanded entry's Network tab: the raw wire trace.
   const networkTab = () => page.getByTestId('timeline-detail').getByTestId('tl-tab-network');
   const lastHopRequestHeaderLines = () => readLastHopRequestHeaderLines(page.getByTestId('timeline-detail'));
+  const requestHops = () => readRequestHops(page.getByTestId('timeline-detail'));
 
-  return { table, rows, headerLines, row, value, networkTab, lastHopRequestHeaderLines };
+  return { table, rows, headerLines, row, value, networkTab, lastHopRequestHeaderLines, requestHops };
 };
