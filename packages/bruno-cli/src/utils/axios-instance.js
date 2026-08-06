@@ -181,18 +181,25 @@ function makeAxiosInstance({
 
           const requestConfig = createRedirectConfig(error, redirectUrl);
 
-          if (!forwardAuthorizationHeader && !isSameOrigin(error.config.url, redirectUrl)) {
+          if (!isSameOrigin(error.config.url, redirectUrl)) {
+            // AWS SigV4 signs a request for a specific host; re-signing after a cross-origin
+            // redirect would send a freshly valid signature to an unrelated host, regardless of
+            // the forwardAuthorizationHeader setting below.
+            requestConfig.__skipAwsV4Sign = true;
             Object.keys(requestConfig.headers).forEach((key) => {
-              const lowerKey = key.toLowerCase();
-              if (
-                lowerKey === 'authorization'
-                || lowerKey === 'proxy-authorization'
-                || lowerKey.startsWith('x-amz-')
-              ) {
+              if (key.toLowerCase().startsWith('x-amz-')) {
                 delete requestConfig.headers[key];
               }
             });
-            requestConfig.__skipAwsV4Sign = true;
+
+            if (!forwardAuthorizationHeader) {
+              Object.keys(requestConfig.headers).forEach((key) => {
+                const lowerKey = key.toLowerCase();
+                if (lowerKey === 'authorization' || lowerKey === 'proxy-authorization') {
+                  delete requestConfig.headers[key];
+                }
+              });
+            }
           }
 
           await setupProxyAgents({
