@@ -1,4 +1,7 @@
 import styled, { css } from 'styled-components';
+import codemirrorTokenStyles from 'components/CodeEditor/tokenStyles';
+
+const maxHeight = (props) => props.$maxHeight || '200px';
 
 const foldEditorStyles = css`
   line-height: 1.5;
@@ -52,33 +55,29 @@ const foldEditorStyles = css`
   }
 `;
 
+/* Grows with its content up to $maxHeight, then CodeMirror owns the scroll. */
 const autoHeightStyles = css`
   height: auto !important;
-  max-height: ${(props) => props.$maxHeight || '200px'} !important;
+  max-height: ${maxHeight} !important;
   overflow: hidden !important;
 
   .CodeMirror {
     height: auto !important;
-    max-height: ${(props) => props.$maxHeight || '200px'} !important;
+    max-height: ${maxHeight} !important;
   }
 
   .CodeMirror-scroll {
     height: auto !important;
-    max-height: ${(props) => props.$maxHeight || '200px'} !important;
+    max-height: ${maxHeight} !important;
     overflow: auto !important;
     ${(props) => (props.$containOverscroll ? 'overscroll-behavior: contain;' : '')}
-  }
-
-  .CodeMirror-vscrollbar,
-  .CodeMirror-hscrollbar {
-    display: block !important;
   }
 `;
 
 const StyledWrapper = styled.div`
   width: 100%;
   height: fit-content;
-  max-height: ${(props) => props.$maxHeight || '200px'};
+  max-height: ${maxHeight};
   overflow: auto;
 
   &.read-only {
@@ -98,7 +97,7 @@ const StyledWrapper = styled.div`
     line-height: ${(props) => (props.$enableFolding ? '1.5' : '30px')};
     display: flex;
     flex-direction: column;
-    max-height: ${(props) => props.$maxHeight || '200px'};
+    max-height: ${maxHeight};
 
     pre.CodeMirror-placeholder {
       color: ${(props) => props.theme.codemirror.placeholder.color} !important;
@@ -106,11 +105,14 @@ const StyledWrapper = styled.div`
       padding-left: 0;
     }
 
-    .CodeMirror-vscrollbar,
-    .CodeMirror-hscrollbar,
-    .CodeMirror-scrollbar-filler {
-      display: none !important;
-    }
+    /* An $autoHeight editor scrolls internally, so it keeps its scrollbars. */
+    ${(props) => !props.$autoHeight && css`
+      .CodeMirror-vscrollbar,
+      .CodeMirror-hscrollbar,
+      .CodeMirror-scrollbar-filler {
+        display: none !important;
+      }
+    `}
 
     .CodeMirror-lines {
       padding: 0;
@@ -140,53 +142,7 @@ const StyledWrapper = styled.div`
   ${(props) => props.$enableFolding && foldEditorStyles}
   ${(props) => props.$autoHeight && autoHeightStyles}
 
-  .cm-s-default,
-  .cm-s-monokai {
-    span.cm-def {
-      color: ${(props) => props.theme.codemirror.tokens.definition} !important;
-    }
-    span.cm-property {
-      color: ${(props) => props.theme.codemirror.tokens.property} !important;
-    }
-    span.cm-string {
-      color: ${(props) => props.theme.codemirror.tokens.string} !important;
-    }
-    span.cm-number {
-      color: ${(props) => props.theme.codemirror.tokens.number} !important;
-    }
-    span.cm-atom {
-      color: ${(props) => props.theme.codemirror.tokens.atom} !important;
-    }
-    span.cm-variable,
-    span.cm-variable-2 {
-      color: ${(props) => props.theme.codemirror.tokens.variable} !important;
-    }
-    span.cm-keyword {
-      color: ${(props) => props.theme.codemirror.tokens.keyword} !important;
-    }
-    span.cm-comment {
-      color: ${(props) => props.theme.codemirror.tokens.comment} !important;
-    }
-    span.cm-operator {
-      color: ${(props) => props.theme.codemirror.tokens.operator} !important;
-    }
-    span.cm-tag {
-      color: ${(props) => props.theme.codemirror.tokens.tag} !important;
-    }
-    span.cm-tag.cm-bracket {
-      color: ${(props) => props.theme.codemirror.tokens.tagBracket} !important;
-    }
-  }
-
-  .cm-variable-valid {
-    color: ${(props) => props.theme.codemirror.variable.valid} !important;
-  }
-  .cm-variable-invalid {
-    color: ${(props) => props.theme.codemirror.variable.invalid} !important;
-  }
-  .cm-variable-prompt {
-    color: ${(props) => props.theme.codemirror.variable.prompt} !important;
-  }
+  ${codemirrorTokenStyles}
 `;
 
 export default StyledWrapper;

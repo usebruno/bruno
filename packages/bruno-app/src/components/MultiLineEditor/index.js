@@ -89,8 +89,8 @@ class MultiLineEditor extends Component {
     this.editor.on('scroll', this._persistViewStateDebounced);
   };
 
-  _teardownViewPersistence = ({ persist = true } = {}) => {
-    if (persist && this.editor && this._currentDocKey) {
+  _teardownViewPersistence = () => {
+    if (this.editor && this._currentDocKey) {
       writePersistedEditorState({
         scope: this.props.persistenceScope,
         key: this._currentDocKey,
@@ -121,11 +121,10 @@ class MultiLineEditor extends Component {
      */
     const runShortcut = () => {};
     const enableFolding = !!this.props.enableFolding;
-    const lineNumbers = this.props.lineNumbers ?? enableFolding;
 
     this.editor = CodeMirror(this.editorRef.current, {
       lineWrapping: false,
-      lineNumbers,
+      lineNumbers: enableFolding,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       placeholder: this.props.placeholder,
       mode: 'brunovariables',
@@ -275,7 +274,7 @@ class MultiLineEditor extends Component {
       this.editor.setOption('readOnly', this.props.readOnly);
     }
     if (this.props.docKey !== prevProps.docKey && this.editor) {
-      this._teardownViewPersistence({ persist: true });
+      this._teardownViewPersistence();
       this._setupViewPersistence();
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
@@ -325,7 +324,7 @@ class MultiLineEditor extends Component {
       this.maskedEditor = null;
     }
     if (this.editor) {
-      this._teardownViewPersistence({ persist: true });
+      this._teardownViewPersistence();
       this.editor.off('change', this._onEdit);
       this.editor.off('blur', this._onBlur);
       this.editor.getWrapperElement().remove();

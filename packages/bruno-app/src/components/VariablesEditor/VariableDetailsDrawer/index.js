@@ -32,9 +32,7 @@ const VariableDetailsDrawer = ({
       <div className="panel-header">
         <div className="panel-title">
           <span className="var-name" title={name}>{name}</span>
-          {section && (
-            <span className="section-badge">({SECTION_LABELS[section] || section})</span>
-          )}
+          <span className="section-badge">({SECTION_LABELS[section]})</span>
         </div>
         <button
           type="button"

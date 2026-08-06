@@ -2,12 +2,13 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import get from 'lodash/get';
 import filter from 'lodash/filter';
 import { useDispatch, useSelector } from 'react-redux';
+import { getDataTypeFromValue } from '@usebruno/common/utils';
 import { findEnvironmentInCollection } from 'utils/collections';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import { useResizablePanel } from 'hooks/useResizablePanel';
-import { STORAGE_PREFIX, STORAGE_SEGMENT } from 'components/CodeEditor/state-persistence';
+import { STORAGE_PREFIX, getScopedStorageKey } from 'components/CodeEditor/state-persistence';
 import VariablesTable from './VariablesTable';
 import VariableDetailsDrawer from './VariableDetailsDrawer';
 import StyledWrapper from './StyledWrapper';
@@ -21,11 +22,12 @@ const SCROLL_SAVE_DEBOUNCE_MS = 200;
 // short window so that reset does not stick.
 const SCROLL_RESTORE_GUARD_MS = 400;
 
-const isObjectOrArray = (value) => value !== null && typeof value === 'object';
+const isObjectOrArray = (value) => getDataTypeFromValue(value) === 'object';
 
+/** Persisted-reveal key. Owned here — VariablesTable asks via isSecretRevealed. */
 const secretRevealKey = (section, name) => `${section}:${name}`;
 
-const getScrollEl = (wrapper) => wrapper?.querySelector?.('.flex-boundary') || null;
+const getScrollEl = (wrapper) => wrapper?.querySelector?.('.variables-scroll') || null;
 
 /** Drop Variables persistence that is tied to a specific environment's values. */
 const clearEnvironmentBoundPersistence = (scope) => {
@@ -34,8 +36,8 @@ const clearEnvironmentBoundPersistence = (scope) => {
   localStorage.removeItem(`${STORAGE_PREFIX}${scope}::variables-sort-environment`);
 
   const prefixes = [
-    `${STORAGE_PREFIX}${scope}::${STORAGE_SEGMENT}::variables-drawer:environment:`,
-    `${STORAGE_PREFIX}${scope}::${STORAGE_SEGMENT}::variables-cell:environment:`
+    getScopedStorageKey(scope, 'variables-drawer:environment:'),
+    getScopedStorageKey(scope, 'variables-cell:environment:')
   ];
   Object.keys(localStorage)
     .filter((key) => prefixes.some((prefix) => key.startsWith(prefix)))
@@ -50,10 +52,6 @@ const VariablesEditor = ({ collection }) => {
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
 
   const wrapperRef = useRef(null);
-  // Live scroll position. Updated by the scroll listener / explicit captures.
-  // Initialized once from persisted state — never overwritten from React state
-  // on every render (that wiped values before debounce flushed).
-  const scrollPosRef = useRef(null);
   const scrollSaveTimeoutRef = useRef(null);
   const scrollTopZeroTimeoutRef = useRef(null);
   const prevEnvironmentUidRef = useRef(null);
@@ -70,9 +68,9 @@ const VariablesEditor = ({ collection }) => {
 
   const [scroll, setScroll] = usePersistedState({ key: 'variables-scroll', default: 0 });
 
-  if (scrollPosRef.current === null) {
-    scrollPosRef.current = scroll;
-  }
+  // Live scroll position, seeded once from persistence. Kept in a ref so a
+  // debounced save can't be clobbered by a re-render.
+  const scrollPosRef = useRef(scroll);
 
   const [drawerSelection, setDrawerSelection] = usePersistedState({
     key: 'variables-drawer-selection',
@@ -121,7 +119,7 @@ const VariablesEditor = ({ collection }) => {
     const envVars = get(environment, 'variables', []);
     return filter(envVars, (variable) => variable.enabled)
       .map((variable) => ({
-        uid: `environment::${variable.name}`,
+        uid: variable.uid,
         name: variable.name,
         value: variable.value,
         secret: !!variable.secret
@@ -265,19 +263,20 @@ const VariablesEditor = ({ collection }) => {
 
   const isDrawerOpen = !!drawerSelection && isObjectOrArray(selectedValue);
 
+  // Opening/closing the drawer reflows both tables; re-assert the position.
+  // Deliberately not keyed on drawerWidth — that changes on every drag frame.
   useLayoutEffect(() => {
     const el = getScrollEl(wrapperRef.current);
     if (!el) return;
     el.scrollTop = scrollPosRef.current || 0;
-  }, [isDrawerOpen, drawerWidth]);
+  }, [isDrawerOpen]);
 
   const captureScroll = useCallback(() => {
     const el = getScrollEl(wrapperRef.current);
     if (!el) return;
     // Prefer ref (stable across Virtuoso resets) but refresh from DOM if the
     // guard window has passed and the element still has a real offset.
-    const value = el.scrollTop > 0 ? el.scrollTop : (scrollPosRef.current || 0);
-    persistScroll(value);
+    persistScroll(el.scrollTop > 0 ? el.scrollTop : (scrollPosRef.current || 0));
   }, [persistScroll]);
 
   const handleOpenObject = useCallback((selection) => {
@@ -295,13 +294,27 @@ const VariablesEditor = ({ collection }) => {
     dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
   }, [dispatch, activeTabUid]);
 
+  const handleRuntimeWidthsChange = useCallback(
+    (widths) => handleColumnWidthsChange('variables-runtime', widths),
+    [handleColumnWidthsChange]
+  );
+  const handleEnvWidthsChange = useCallback(
+    (widths) => handleColumnWidthsChange('variables-env', widths),
+    [handleColumnWidthsChange]
+  );
+
+  const isSecretRevealed = useCallback(
+    (section, name) => revealedSecrets.has(secretRevealKey(section, name)),
+    [revealedSecrets]
+  );
+
   const runtimeWidths = focusedTab?.tableColumnWidths?.['variables-runtime'] || {};
   const envWidths = focusedTab?.tableColumnWidths?.['variables-env'] || {};
 
   return (
     <StyledWrapper ref={wrapperRef} data-testid="variables-editor">
       <div className="variables-main">
-        <div className="flex-boundary px-4 py-4" data-testid="variables-scroll-container">
+        <div className="variables-scroll px-4 py-4" data-testid="variables-scroll-container">
           <h1 className="section-title mb-2">Runtime Variables</h1>
           {runtimeRows.length > 0 ? (
             <VariablesTable
@@ -309,11 +322,11 @@ const VariablesEditor = ({ collection }) => {
               collection={collection}
               section="runtime"
               selectedName={drawerSelection?.section === 'runtime' ? drawerSelection.name : null}
-              revealedSecrets={revealedSecrets}
+              isSecretRevealed={isSecretRevealed}
               onToggleSecretReveal={toggleSecretReveal}
               onOpenObject={handleOpenObject}
               columnWidths={runtimeWidths}
-              onColumnWidthsChange={(widths) => handleColumnWidthsChange('variables-runtime', widths)}
+              onColumnWidthsChange={handleRuntimeWidthsChange}
               testId="variables-runtime-table"
             />
           ) : (
@@ -337,11 +350,11 @@ const VariablesEditor = ({ collection }) => {
               section="environment"
               environmentUid={activeEnvironmentUid}
               selectedName={drawerSelection?.section === 'environment' ? drawerSelection.name : null}
-              revealedSecrets={revealedSecrets}
+              isSecretRevealed={isSecretRevealed}
               onToggleSecretReveal={toggleSecretReveal}
               onOpenObject={handleOpenObject}
               columnWidths={envWidths}
-              onColumnWidthsChange={(widths) => handleColumnWidthsChange('variables-env', widths)}
+              onColumnWidthsChange={handleEnvWidthsChange}
               testId="variables-env-table"
             />
           ) : (

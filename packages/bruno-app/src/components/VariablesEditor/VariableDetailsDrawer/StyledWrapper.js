@@ -6,7 +6,7 @@ const StyledWrapper = styled.div`
   height: 100%;
   width: 100%;
   background: ${(props) => props.theme.bg};
-  border-left: 1px solid ${(props) => props.theme.border?.border0 || props.theme.table?.border};
+  border-left: 1px solid ${(props) => props.theme.border.border0};
 
   .panel-header {
     display: flex;
@@ -14,7 +14,7 @@ const StyledWrapper = styled.div`
     justify-content: space-between;
     gap: 8px;
     padding: 8px 12px;
-    border-bottom: 1px solid ${(props) => props.theme.border?.border0 || props.theme.table?.border};
+    border-bottom: 1px solid ${(props) => props.theme.border.border0};
     flex-shrink: 0;
     min-height: 40px;
   }
@@ -25,7 +25,7 @@ const StyledWrapper = styled.div`
     gap: 8px;
     min-width: 0;
     font-weight: 500;
-    font-size: ${(props) => props.theme.font?.size?.base || '13px'};
+    font-size: ${(props) => props.theme.font.size.base};
 
     .var-name {
       overflow: hidden;
@@ -35,7 +35,7 @@ const StyledWrapper = styled.div`
 
     .section-badge {
       flex-shrink: 0;
-      font-size: ${(props) => props.theme.font?.size?.xs || '11px'};
+      font-size: ${(props) => props.theme.font.size.xs};
       color: ${(props) => props.theme.colors.text.muted};
       font-weight: 400;
     }
@@ -55,7 +55,7 @@ const StyledWrapper = styled.div`
 
     &:hover {
       color: ${(props) => props.theme.text};
-      background: ${(props) => props.theme.sidebar?.bg || 'transparent'};
+      background: ${(props) => props.theme.sidebar.bg};
     }
   }
 

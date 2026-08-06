@@ -3,15 +3,13 @@ import EditableTable from 'components/EditableTable';
 import VariableValue from '../VariableValue';
 import StyledWrapper from './StyledWrapper';
 
-const secretRevealKey = (section, name) => `${section}:${name}`;
-
 const VariablesTable = ({
   rows,
   collection,
   selectedName,
   section,
   environmentUid,
-  revealedSecrets,
+  isSecretRevealed,
   onToggleSecretReveal,
   onOpenObject,
   columnWidths,
@@ -40,9 +38,9 @@ const VariablesTable = ({
           section={section}
           environmentUid={environmentUid}
           isSelected={selectedName === row.name && !!selectedName}
-          revealed={!!revealedSecrets?.has(secretRevealKey(section, row.name))}
-          onToggleReveal={() => onToggleSecretReveal?.(section, row.name)}
-          onOpenObject={() => onOpenObject?.({ section, name: row.name })}
+          revealed={isSecretRevealed(section, row.name)}
+          onToggleReveal={() => onToggleSecretReveal(section, row.name)}
+          onOpenObject={() => onOpenObject({ section, name: row.name })}
         />
       )
     }
@@ -51,7 +49,7 @@ const VariablesTable = ({
     selectedName,
     section,
     environmentUid,
-    revealedSecrets,
+    isSecretRevealed,
     onToggleSecretReveal,
     onOpenObject
   ]);
@@ -60,10 +58,9 @@ const VariablesTable = ({
     <StyledWrapper>
       <EditableTable
         tableId={`variables-${section}`}
-        testId={testId || `variables-${section}-table`}
+        testId={testId}
         columns={columns}
         rows={rows}
-        onChange={() => {}}
         showCheckbox={false}
         showDelete={false}
         showAddRow={false}

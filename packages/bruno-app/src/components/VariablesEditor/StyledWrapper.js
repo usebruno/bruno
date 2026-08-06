@@ -14,7 +14,13 @@ const StyledWrapper = styled.div`
     overflow: hidden;
   }
 
-  .flex-boundary {
+  /*
+   * Deliberately not .flex-boundary — that class name belongs to the
+   * ui/HeightBoundContainer primitive, and useTrackScroll resolves it as the
+   * scroll container. This pane stacks two tables rather than one filling
+   * child, so it owns its own scroller under its own name.
+   */
+  .variables-scroll {
     flex: 1;
     min-height: 0;
     overflow: auto;
@@ -53,11 +59,11 @@ const StyledWrapper = styled.div`
     .drag-border {
       width: 1px;
       height: 100%;
-      border-left: solid 1px ${(props) => props.theme.sidebar?.dragbar?.border || props.theme.border?.border0};
+      border-left: solid 1px ${(props) => props.theme.sidebar.dragbar.border};
     }
 
     &:hover .drag-border {
-      border-left-color: ${(props) => props.theme.sidebar?.dragbar?.activeBorder || props.theme.colors?.text?.link || '#546de5'};
+      border-left-color: ${(props) => props.theme.sidebar.dragbar.activeBorder};
     }
   }
 `;

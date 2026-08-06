@@ -1,33 +1,24 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { IconArrowsMaximize, IconCheck, IconCopy, IconEye, IconEyeOff } from '@tabler/icons';
-import { toDisplayString } from '@usebruno/common/utils';
+import { getDataTypeFromValue, toDisplayString } from '@usebruno/common/utils';
 import { useTheme } from 'providers/Theme';
+import useCopyToClipboard from 'hooks/useCopyToClipboard';
 import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import SingleLineEditor from 'components/SingleLineEditor';
 import MultiLineEditor from 'components/MultiLineEditor';
+import { OBJECT_CELL_MAX_HEIGHT } from '../constants';
 import StyledWrapper from './StyledWrapper';
 
 const COPY_FEEDBACK_MS = 1200;
 const JSON_MODE = 'application/ld+json';
 
-const isObjectOrArray = (value) => value !== null && typeof value === 'object';
-
-const getCopyText = (value) => {
-  if (value == null) return '';
-  if (typeof value === 'string') return value;
-  return toDisplayString(value, '');
-};
+const isObjectOrArray = (value) => getDataTypeFromValue(value) === 'object';
 
 /** Serialize for the value editor JSON so CodeMirror can color tokens. */
 const valueToEditorText = (value) => {
   if (value === undefined) return '';
-  try {
-    return isObjectOrArray(value)
-      ? JSON.stringify(value, null, 2)
-      : JSON.stringify(value);
-  } catch {
-    return '';
-  }
+  if (isObjectOrArray(value)) return toDisplayString(value, '');
+  return JSON.stringify(value) ?? '';
 };
 
 const VariableValue = ({
@@ -44,41 +35,28 @@ const VariableValue = ({
 }) => {
   const { displayedTheme } = useTheme();
   const persistenceScope = usePersistenceScope();
-  const copyResetTimeoutRef = useRef(null);
-  const [copied, setCopied] = useState(false);
+  const { copied, copyToClipboard } = useCopyToClipboard(COPY_FEEDBACK_MS);
 
   const isMasked = !!secret && !revealed;
   const isObjectValue = isObjectOrArray(value);
   // Masked secrets stay single-line so line numbers / fold gutters don't show.
   const isMultiline = isObjectValue && !isMasked;
-  const editorValue = isMasked ? '********' : valueToEditorText(value);
+  // Serializing a large object is not free, and rows re-render on scroll.
+  const editorValue = useMemo(
+    () => (isMasked ? '********' : valueToEditorText(value)),
+    [isMasked, value]
+  );
 
-  const cellDocKey = useMemo(() => {
-    if (!isMultiline || !name || !section) return undefined;
-    if (section === 'environment') {
-      return `variables-cell:environment:${environmentUid || 'none'}:${name}`;
-    }
-    return `variables-cell:${section}:${name}`;
-  }, [isMultiline, name, section, environmentUid]);
+  const cellDocKey = !isMultiline
+    ? undefined
+    : section === 'environment'
+      ? `variables-cell:environment:${environmentUid || 'none'}:${name}`
+      : `variables-cell:${section}:${name}`;
 
-  const handleCopy = useCallback(async (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    try {
-      await navigator.clipboard.writeText(getCopyText(value));
-      setCopied(true);
-      clearTimeout(copyResetTimeoutRef.current);
-      copyResetTimeoutRef.current = setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
-    } catch {
-      // Clipboard can fail in insecure contexts.
-    }
-  }, [value]);
-
-  const preventRowClick = useCallback((handler) => (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    handler?.();
-  }, []);
+  const handleCopy = useCallback(() => {
+    // Clipboard can fail in insecure contexts.
+    copyToClipboard(toDisplayString(value, '')).catch(() => {});
+  }, [copyToClipboard, value]);
 
   const editorProps = {
     theme: displayedTheme,
@@ -97,7 +75,6 @@ const VariableValue = ({
       className={`value-editor${isMultiline ? ' is-multiline' : ''}`}
       data-testid={isMultiline ? 'variable-multiline-editor' : 'variable-singleline-editor'}
       data-readonly="true"
-      onClick={(e) => e.stopPropagation()}
     >
       {isMultiline ? (
         <MultiLineEditor
@@ -105,7 +82,7 @@ const VariableValue = ({
           hideSecretEye
           enableFolding
           autoHeight
-          maxHeight="120px"
+          maxHeight={OBJECT_CELL_MAX_HEIGHT}
           containOverscroll
           docKey={cellDocKey}
           persistenceScope={persistenceScope}
@@ -124,7 +101,7 @@ const VariableValue = ({
           <button
             type="button"
             className={`row-action-btn ${isSelected ? 'is-pinned is-selected' : ''}`}
-            onClick={preventRowClick(onOpenObject)}
+            onClick={onOpenObject}
             title="Open in drawer"
             aria-label="Open object in drawer"
             data-testid="variable-object-preview"
@@ -136,7 +113,7 @@ const VariableValue = ({
           <button
             type="button"
             className={`row-action-btn ${revealed ? 'is-pinned' : ''}`}
-            onClick={preventRowClick(onToggleReveal)}
+            onClick={onToggleReveal}
             title={revealed ? 'Hide value' : 'Show value'}
             data-testid="variable-row-secret-toggle"
           >

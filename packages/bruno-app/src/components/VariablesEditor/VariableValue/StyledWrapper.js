@@ -1,7 +1,7 @@
 import styled from 'styled-components';
+import { OBJECT_CELL_MAX_HEIGHT } from '../constants';
 
 const MONO = `ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace`;
-const OBJECT_MAX_HEIGHT = '120px';
 
 const StyledWrapper = styled.div`
   display: flex;
@@ -45,10 +45,10 @@ const StyledWrapper = styled.div`
     }
 
     &.is-multiline {
-      max-height: ${OBJECT_MAX_HEIGHT};
+      max-height: ${OBJECT_CELL_MAX_HEIGHT};
 
       > div {
-        max-height: ${OBJECT_MAX_HEIGHT};
+        max-height: ${OBJECT_CELL_MAX_HEIGHT};
         min-height: 0;
       }
     }
@@ -86,15 +86,15 @@ const StyledWrapper = styled.div`
 
     &:hover {
       color: ${(props) => props.theme.text};
-      background: ${(props) => props.theme.sidebar?.bg || 'transparent'};
+      background: ${(props) => props.theme.sidebar.bg};
     }
 
     &.copied {
-      color: #22c55e;
+      color: ${(props) => props.theme.colors.text.green};
     }
 
     &.is-selected {
-      color: ${(props) => props.theme.colors?.text?.link || props.theme.primary?.strong || '#546de5'};
+      color: ${(props) => props.theme.textLink};
     }
   }
 `;

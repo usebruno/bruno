@@ -1,6 +1,5 @@
 import styled from 'styled-components';
-
-const OBJECT_MAX_HEIGHT = '120px';
+import { OBJECT_CELL_MAX_HEIGHT } from '../constants';
 
 const StyledWrapper = styled.div`
   width: 100%;
@@ -20,9 +19,15 @@ const StyledWrapper = styled.div`
     pointer-events: auto;
   }
 
+  /*
+   * EditableTable pins rows to a fixed 35px and caps any row holding a
+   * MultiLineEditor at 3 rows (105px). Object values here are budgeted
+   * OBJECT_CELL_MAX_HEIGHT instead, so these override that cap — hence
+   * !important against the parent component's own :has() rules.
+   */
   .table-container tbody td:has(.value-editor.is-multiline) {
     height: auto !important;
-    max-height: ${OBJECT_MAX_HEIGHT} !important;
+    max-height: ${OBJECT_CELL_MAX_HEIGHT} !important;
     overflow: hidden !important;
     white-space: normal !important;
     text-overflow: clip !important;
@@ -30,7 +35,7 @@ const StyledWrapper = styled.div`
 
     > div:not(.drag-handle) {
       height: auto !important;
-      max-height: ${OBJECT_MAX_HEIGHT} !important;
+      max-height: ${OBJECT_CELL_MAX_HEIGHT} !important;
       overflow: hidden !important;
     }
   }
