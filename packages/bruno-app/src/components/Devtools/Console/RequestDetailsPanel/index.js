@@ -9,7 +9,7 @@ import {
 import { clearSelectedRequest } from 'providers/ReduxStore/slices/logs';
 import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 import Network from 'components/ResponsePane/Timeline/TimelineItem/Network';
-import { sentHeadersFromTimeline } from 'components/ResponsePane/Timeline/buildEntries';
+import { sentHeadersFromTimeline } from 'utils/timeline';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common/index';
 

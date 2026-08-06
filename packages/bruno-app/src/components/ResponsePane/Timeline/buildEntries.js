@@ -1,35 +1,3 @@
-/** Headers actually sent, from the timeline's `requestHeader` entries. A followed redirect logs one
- *  block per hop into the same timeline, so only the last block reached the server that responded. */
-export const sentHeadersFromTimeline = (timeline) => {
-  if (!Array.isArray(timeline)) return [];
-
-  const headers = [];
-  let foundBlock = false;
-
-  /** Run the loop in backward to get latest `requestHeader` run: on a redirect each hop logs its own run, and the
-   *  last one is the request that returned this response. `reverse` restores wire order */
-  for (let i = timeline.length - 1; i >= 0; i--) {
-    const item = timeline[i];
-    const isHeader = item?.type === 'requestHeader';
-
-    if (foundBlock && !isHeader) break;
-    if (!isHeader) continue;
-
-    foundBlock = true;
-
-    if (typeof item.message === 'string') {
-      const separatorIdx = item.message.indexOf(':');
-      if (separatorIdx !== -1) {
-        headers.unshift({
-          name: item.message.slice(0, separatorIdx).trim(),
-          value: item.message.slice(separatorIdx + 1).trim()
-        });
-      }
-    }
-  }
-  return headers;
-};
-
 export const getEntryKind = (entry) => {
   if (entry.type === 'request') return 'main';
   if (entry.type === 'oauth2') return 'oauth';

@@ -1,4 +1,4 @@
-import { sentHeadersFromTimeline } from './buildEntries';
+import { sentHeadersFromTimeline } from './index';
 
 const header = (message) => ({ type: 'requestHeader', message });
 const info = (message) => ({ type: 'info', message });
