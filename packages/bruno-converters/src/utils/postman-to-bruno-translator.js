@@ -1,4 +1,4 @@
-import sendRequestTransformer from './send-request-transformer';
+import sendRequestTransformer, { getChainedPromiseMemberPath } from './send-request-transformer';
 import { getMemberExpressionString } from './ast-utils';
 const j = require('jscodeshift');
 const cloneDeep = require('lodash/cloneDeep');
@@ -652,6 +652,47 @@ function processTransformations(ast, transformedNodes) {
   });
 }
 
+/**
+ * Await promise chains hanging off bru.sendRequest, e.g.
+ * `bru.sendRequest(cfg).then(...).catch(...)`. sendRequestTransformer cannot do
+ * this itself — processTransformations only lets it replace the inner
+ * CallExpression, and mutating an ancestor mid-traversal would leave its path
+ * stale — so the outermost link of the chain is wrapped here instead.
+ *
+ * @param {Object} ast - jscodeshift AST
+ */
+function awaitSendRequestChains(ast) {
+  ast.find(j.CallExpression).forEach((callPath) => {
+    // sendRequestTransformer emits the callee as a single dotted identifier
+    const callee = callPath.value.callee;
+    if (callee.type !== 'Identifier' || callee.name !== 'bru.sendRequest') return;
+
+    // walk to the outermost call of the .then/.catch/.finally chain
+    let outermostCallPath = callPath;
+    for (;;) {
+      const memberPath = getChainedPromiseMemberPath(outermostCallPath);
+      if (!memberPath) break;
+
+      const chainedCallPath = memberPath.parent;
+      if (!chainedCallPath || chainedCallPath.value.type !== 'CallExpression') break;
+
+      outermostCallPath = chainedCallPath;
+    }
+
+    // an unchained call was already awaited by the transformer
+    if (outermostCallPath === callPath) return;
+
+    if (outermostCallPath.parent && outermostCallPath.parent.value.type === 'AwaitExpression') return;
+
+    // await outside an async function is a syntax error; Bruno evaluates
+    // scripts in an async context, so top level is fine
+    const enclosingFunction = j(outermostCallPath).closest(j.Function);
+    if (enclosingFunction.size() && !enclosingFunction.get().value.async) return;
+
+    j(outermostCallPath).replaceWith(j.awaitExpression(outermostCallPath.value));
+  });
+}
+
 // Postman provides these as sandbox globals. Bruno requires explicit require()
 const POSTMAN_LIBRARY_GLOBALS = {
   CryptoJS: 'crypto-js',
@@ -740,6 +781,9 @@ function translateCode(code) {
 
   // Process all transformations in a single pass
   processTransformations(ast, transformedNodes);
+
+  // Await bru.sendRequest promise chains left unawaited by the transformation above
+  awaitSendRequestChains(ast);
 
   // Handle legacy Postman global APIs
   handleLegacyGlobalAPIs(ast, transformedNodes, code);
