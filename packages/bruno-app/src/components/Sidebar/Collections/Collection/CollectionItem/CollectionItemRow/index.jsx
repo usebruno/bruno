@@ -68,16 +68,8 @@ import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext'
 import useKeybinding from 'hooks/useKeybinding';
 
 /**
- * CollectionItemRow — the presentation + interaction for a SINGLE sidebar item row
- * (folder / app / request), plus its response-example rows.
- *
- * It is intentionally NON-recursive: it never renders its own folder children. The recursive
- * `CollectionItem` wrapper renders this row and then its descendants; the virtualized sidebar
- * (Phase 2) renders each row independently from the flattened list.
- *
- * Item-driven: callers pass the concrete `item` (the recursive wrapper passes the tree node;
- * the flat SidebarRow will read it from Redux and pass it here). `depth` controls indentation
- * and defaults to `item.depth` so the recursive path is unchanged.
+ * CollectionItemRow — the presentation + interaction for a single sidebar item row
+ * (folder / app / request), and its response-example rows.
  */
 const CollectionItemRow = ({ item, collectionUid, collectionPathname, searchText, depth, children }) => {
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
