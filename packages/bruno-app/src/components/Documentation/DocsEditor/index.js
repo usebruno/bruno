@@ -72,7 +72,7 @@ const DocsEditor = ({
         onEdit(markdown);
       },
       onCreate: ({ editor: createdEditor }) => {
-        // `mousetrap` bypasses Mousetrap's default "ignore all contentEditable"
+        // `HACK`: `mousetrap` bypasses Mousetrap's default "ignore all contentEditable"
         // rule, so shortcuts Tiptap doesn't bind still reach
         // the global handlers instead of being silently swallowed.
         createdEditor.view.dom.classList.add('mousetrap');
