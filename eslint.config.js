@@ -195,7 +195,7 @@ module.exports = runESMImports().then(() => defineConfig([
   },
   {
     files: ['packages/bruno-converters/**/*.{js,ts}'],
-    ignores: ['**/*.config.js', '**/dist/**/*'],
+    ignores: ['**/*.config.js', '**/dist/**/*', '**/tests/**/*'],
     languageOptions: {
       globals: {
         ...globals.node,

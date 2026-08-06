@@ -1,9 +1,10 @@
+import { describe, test, expect } from '@jest/globals';
 import { fromOpenCollectionTags } from '../../src/opencollection/common/tags';
 import { openCollectionToBruno } from '../../src/opencollection/opencollection-to-bruno';
 
 describe('fromOpenCollectionTags', () => {
   test('coerces numeric YAML tags to strings', () => {
-    expect(fromOpenCollectionTags(['close-code', 1000, 1008])).toEqual(['close-code', '1000', '1008']);
+    expect(fromOpenCollectionTags(['close-code', 1000, 1008, 0])).toEqual(['close-code', '1000', '1008', '0']);
   });
 
   test('returns empty array for missing tags', () => {
@@ -14,6 +15,20 @@ describe('fromOpenCollectionTags', () => {
 
   test('drops null and empty-string tags', () => {
     expect(fromOpenCollectionTags(['ok', null, '', undefined, 42])).toEqual(['ok', '42']);
+  });
+
+  test('trims whitespace and drops whitespace-only tags', () => {
+    expect(fromOpenCollectionTags(['  close-code  ', '   ', '\t', 'ok'])).toEqual(['close-code', 'ok']);
+  });
+
+  test('drops object and array entries, coerces booleans', () => {
+    expect(fromOpenCollectionTags([true, false, {}, [], 'keep'])).toEqual(['true', 'false', 'keep']);
+  });
+
+  test('returns empty array for non-array tags', () => {
+    expect(fromOpenCollectionTags('close-code')).toEqual([]);
+    expect(fromOpenCollectionTags(1000)).toEqual([]);
+    expect(fromOpenCollectionTags({ tag: 'x' })).toEqual([]);
   });
 });
 
