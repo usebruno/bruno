@@ -87,7 +87,7 @@ const RemoveCollection = ({ onClose, collectionUid, collectionUids }) => {
       <Modal
         size="sm"
         title={`Remove ${pluralizeWord('Collection', collections.length)}`}
-        confirmText="Remove"
+        confirmText={isMultiple ? 'Remove All' : 'Remove'}
         confirmButtonColor="danger"
         handleConfirm={onConfirm}
         handleCancel={onClose}

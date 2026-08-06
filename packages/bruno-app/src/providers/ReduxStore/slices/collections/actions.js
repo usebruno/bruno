@@ -1235,6 +1235,8 @@ export const handleMultipleCollectionItemsDrop
       const targetDir = findParentItemInCollection(collection, targetItemUid) || collection;
       getDirectoryItems(collection, targetItemUid);
 
+      let currentTargetItemUid = targetItemUid;
+
       const itemsToResequenceMap = new Map();
       const trackResequence = (collUid, changedItems) => {
         if (!itemsToResequenceMap.has(collUid)) {
@@ -1302,21 +1304,24 @@ export const handleMultipleCollectionItemsDrop
               }
 
               // Update sequences in the source directory
-              if (draggedItemDirectoryItems?.length) {
+              if (currentSourceItems?.length) {
                 // reorder items in the source directory
-                const draggedItemDirectoryItemsWithoutDraggedItem = draggedItemDirectoryItems.filter((i) => i.uid !== draggedItemUid);
+                const currentSourceItemsWithoutDraggedItem = currentSourceItems.filter((i) => i.uid !== draggedItemUid);
                 const reorderedSourceItems = getReorderedItemsInSourceDirectory({
-                  items: draggedItemDirectoryItemsWithoutDraggedItem
+                  items: currentSourceItemsWithoutDraggedItem
                 });
+
+                directoryCache.set(draggedItemDirectory.uid, currentSourceItemsWithoutDraggedItem);
+
                 if (reorderedSourceItems?.length) {
-                  await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems, collectionUid: sourceCollectionUid || collectionUid }));
+                  trackResequence(sourceCollectionUid || collectionUid, reorderedSourceItems);
                 }
               }
 
               // Update sequences in the target directory (if dropping above/below)
               if (dropType === 'above' || dropType === 'below') {
-                currentTargetItems = getDirectoryItems(collection, targetItemUid);
-                const targetItemSequence = currentTargetItems.find((i) => i.uid === targetItemUid)?.seq;
+                currentTargetItems = getDirectoryItems(collection, currentTargetItemUid);
+                const targetItemSequence = currentTargetItems.find((i) => i.uid === currentTargetItemUid)?.seq;
                 const draggedItemWithNewPathAndSequence = {
                   ...draggedItem,
                   pathname: finalNewPathname,
@@ -1325,7 +1330,7 @@ export const handleMultipleCollectionItemsDrop
                 const newTargetItems = [...currentTargetItems, draggedItemWithNewPathAndSequence];
                 const reorderedTargetItems = getReorderedItemsInTargetDirectory({
                   items: newTargetItems,
-                  targetItemUid,
+                  targetItemUid: currentTargetItemUid,
                   draggedItemUid,
                   dropType
                 });
@@ -1339,8 +1344,14 @@ export const handleMultipleCollectionItemsDrop
                 if (reorderedTargetItems?.length) {
                   trackResequence(collectionUid, reorderedTargetItems);
                 }
+
+                if (dropType === 'below') {
+                  currentTargetItemUid = draggedItemUid;
+                }
               }
             } else {
+              currentTargetItems = getDirectoryItems(collection, targetItemUid);
+
               const reorderedItems = getReorderedItemsInTargetDirectory({
                 items: currentTargetItems,
                 targetItemUid,
@@ -1352,6 +1363,8 @@ export const handleMultipleCollectionItemsDrop
                 const item = currentTargetItems.find((i) => i.uid === reordered.uid);
                 if (item) item.seq = reordered.seq;
               });
+
+              directoryCache.set(targetDir.uid, currentTargetItems);
 
               if (reorderedItems?.length) {
                 trackResequence(collectionUid, reorderedItems);
