@@ -128,7 +128,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
           data={rows}
           computeItemKey={(index, row) => row.id}
           defaultItemHeight={26}
-          increaseViewportBy={200}
+          increaseViewportBy={{ top: 400, bottom: 600 }}
           itemContent={(index, row) => (
             <SidebarRow
               row={row}
