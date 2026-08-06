@@ -194,16 +194,18 @@ module.exports = runESMImports().then(() => defineConfig([
     }
   },
   {
-    files: ['packages/bruno-converters/**/*.js'],
+    files: ['packages/bruno-converters/**/*.{js,ts}'],
     ignores: ['**/*.config.js', '**/dist/**/*'],
     languageOptions: {
       globals: {
         ...globals.node,
         ...globals.jest
       },
+      parser: require('@typescript-eslint/parser'),
       parserOptions: {
         ecmaVersion: 'latest',
-        sourceType: 'module'
+        sourceType: 'module',
+        project: './packages/bruno-converters/tsconfig.json'
       }
     },
     rules: {

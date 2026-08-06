@@ -3,8 +3,9 @@ export const fromOpenCollectionTags = (tags?: unknown[] | null): string[] => {
     return [];
   }
 
-  return tags
-    .filter((t) => t != null && t !== '')
-    .map((t) => String(t))
-    .filter((t) => t.length > 0);
+  return tags.map((t) => {
+    if(t === null || t=== undefined) return null
+    if(typeof t === "object") return ''
+    return String(t).trim()
+  }).filter(Boolean)
 };
