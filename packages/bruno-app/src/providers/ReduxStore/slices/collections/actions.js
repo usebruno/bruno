@@ -1301,17 +1301,17 @@ export const handleMultipleCollectionItemsDrop
                 }));
               }
 
-        // Update sequences in the source directory
-        if (draggedItemDirectoryItems?.length) {
-          // reorder items in the source directory
-          const draggedItemDirectoryItemsWithoutDraggedItem = draggedItemDirectoryItems.filter((i) => i.uid !== draggedItemUid);
-          const reorderedSourceItems = getReorderedItemsInSourceDirectory({
-            items: draggedItemDirectoryItemsWithoutDraggedItem
-          });
-          if (reorderedSourceItems?.length) {
-            await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems, collectionUid: sourceCollectionUid || collectionUid }));
-          }
-        }
+              // Update sequences in the source directory
+              if (draggedItemDirectoryItems?.length) {
+                // reorder items in the source directory
+                const draggedItemDirectoryItemsWithoutDraggedItem = draggedItemDirectoryItems.filter((i) => i.uid !== draggedItemUid);
+                const reorderedSourceItems = getReorderedItemsInSourceDirectory({
+                  items: draggedItemDirectoryItemsWithoutDraggedItem
+                });
+                if (reorderedSourceItems?.length) {
+                  await dispatch(updateItemsSequences({ itemsToResequence: reorderedSourceItems, collectionUid: sourceCollectionUid || collectionUid }));
+                }
+              }
 
               // Update sequences in the target directory (if dropping above/below)
               if (dropType === 'above' || dropType === 'below') {

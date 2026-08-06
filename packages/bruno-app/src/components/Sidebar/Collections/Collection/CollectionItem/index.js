@@ -61,7 +61,10 @@ import {
   canCollectionItemBeDropped,
   determineCollectionItemDrop,
   getInitialExampleName,
-  findParentItemInCollection, getSelectionInfo, buildSidebarEntries, getVisibleSidebarUidsInOrder
+  findParentItemInCollection,
+  getSelectionInfo,
+  buildSidebarEntries,
+  getVisibleSidebarUidsInOrder
 } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
