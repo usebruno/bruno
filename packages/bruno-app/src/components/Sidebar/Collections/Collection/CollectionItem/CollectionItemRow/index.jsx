@@ -24,7 +24,7 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
+import { toggleCollectionItem, toggleRequestExamples, addResponseExample } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
 import { copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
@@ -44,7 +44,6 @@ import StyledWrapper from '../StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from '../CollectionItemInfo/index';
 import CollectionItemIcon from '../CollectionItemIcon';
-import ExampleItem from '../ExampleItem';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
@@ -118,8 +117,9 @@ const CollectionItemRow = ({ item, collectionUid, collectionPathname, searchText
   const [newAppModalOpen, setNewAppModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
-  const [examplesExpanded, setExamplesExpanded] = useState(false);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
+
+  const examplesExpanded = !!item.examplesExpanded;
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : item.collapsed;
   const isFolder = isItemAFolder(item);
@@ -335,7 +335,7 @@ const CollectionItemRow = ({ item, collectionUid, collectionPathname, searchText
   const handleExamplesCollapse = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    setExamplesExpanded(!examplesExpanded);
+    dispatch(toggleRequestExamples({ collectionUid, itemUid: item.uid }));
   };
 
   // prevent the parent's double-click handler from firing
@@ -761,23 +761,6 @@ const CollectionItemRow = ({ item, collectionUid, collectionPathname, searchText
       </div>
 
       {children}
-
-      {/* Show examples when expanded (only for HTTP requests) */}
-      {isItemARequest(item) && item.type === 'http-request' && examplesExpanded && hasExamples && (
-        <div>
-          {(item.examples || []).map((example, index) => {
-            return (
-              <ExampleItem
-                key={example.uid || index}
-                example={example}
-                item={item}
-                index={index}
-                collection={collection}
-              />
-            );
-          })}
-        </div>
-      )}
     </StyledWrapper>
   );
 };

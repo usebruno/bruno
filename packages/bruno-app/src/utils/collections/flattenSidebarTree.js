@@ -129,6 +129,8 @@ const walkChildren = ({ collectionItems = [], depth, collectionUid, collectionPa
           depth: depth + 1,
           collectionUid,
           collectionPathname,
+          collectionId,
+          parentName: request.name || null,
           itemUid: request.uid,
           sortName: example.name || null,
           exampleIndex: index,

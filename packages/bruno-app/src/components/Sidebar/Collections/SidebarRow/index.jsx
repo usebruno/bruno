@@ -2,6 +2,7 @@ import React from 'react';
 import CollectionRow from '../Collection/CollectionRow';
 import CollectionItemRow from '../Collection/CollectionItem/CollectionItemRow';
 import GitRemoteCollectionRow from '../GitRemoteCollectionRow';
+import ExampleItem from '../Collection/CollectionItem/ExampleItem';
 import EmptyCtaRow from './EmptyCtaRow';
 
 // Resolve, in O(1), the live object a row points at - from the maps the flattener produced.
@@ -15,6 +16,8 @@ const resolveRowObject = ({ row, itemsByUid, collectionsByUid, ghostsByPath }) =
     case 'folder':
     case 'app':
     case 'request':
+    case 'example':
+      // example rows resolve to their parent request. its examples array carries the content
       return itemsByUid.get(row.itemUid);
     case 'ghost':
       return ghostsByPath.get(row.collectionPathname);
@@ -54,7 +57,13 @@ const renderRow = ({ row, searchText, itemsByUid, collectionsByUid, ghostsByPath
       if (!entry) return null;
       return <GitRemoteCollectionRow entry={entry} />;
     }
-    // 'example' rows arrive in Phase 3 (examples currently render in-row); ignore for now.
+    case 'example': {
+      const item = itemsByUid.get(row.itemUid);
+      const collection = collectionsByUid.get(row.collectionUid);
+      const example = item?.examples?.[row.exampleIndex];
+      if (!item || !collection || !example) return null;
+      return <ExampleItem example={example} item={item} collection={collection} depth={row.depth} />;
+    }
     default:
       return null;
   }

@@ -21,7 +21,7 @@ import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 
-const ExampleItem = ({ example, item, collection }) => {
+const ExampleItem = ({ example, item, collection, depth }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
   const dispatch = useDispatch();
   const activeTabUid = useSelector((state) => state.tabs?.activeTabUid);
@@ -33,8 +33,7 @@ const ExampleItem = ({ example, item, collection }) => {
   const exampleRef = useRef(null);
   const menuDropdownRef = useRef(null);
 
-  // Calculate indentation: item depth + 1 for examples
-  const indents = range((item.depth || 0) + 1);
+  const indents = range(depth);
 
   const handleExampleClick = () => {
     const exampleIndex = item?.examples?.findIndex((ex) => ex.uid === example.uid);

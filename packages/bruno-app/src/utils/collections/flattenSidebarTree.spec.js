@@ -1,6 +1,6 @@
 import { flattenSidebarTree, buildIndexes } from './flattenSidebarTree';
 
-// fixtures — request: has `request` prop + http/graphql/grpc/ws type + NO items;
+// request: has `request` prop + http/graphql/grpc/ws type + No items;
 // folder: no `request` prop + type 'folder'; app: type 'app'
 let uid = 0;
 const nextUid = (p) => `${p}-${++uid}`;
@@ -9,7 +9,6 @@ const folder = (name, items = [], props = {}) => ({ uid: props.uid || nextUid('f
 const app = (name, props = {}) => ({ uid: props.uid || nextUid('app'), name, type: 'app', seq: props.seq, ...props });
 const collection = (name, items = [], props = {}) => ({ uid: props.uid || nextUid('col'), name, pathname: `/c/${name}`, mountStatus: 'mounted', isLoading: false, collapsed: false, items, ...props });
 const loaded = (c) => ({ kind: 'loaded', collection: c });
-// flattenSidebarTree returns { rows, itemsByUid, collectionsByUid }; most assertions only need rows.
 const flatten = (entries, options) => flattenSidebarTree(entries, options).rows;
 const kinds = (rows) => rows.map((r) => r.kind);
 const names = (rows) => rows.map((r) => r.sortName);
@@ -122,6 +121,12 @@ describe('ancestry attributes', () => {
     expect(rows.find((r) => r.sortName === 'top').parentName).toBeNull();
     expect(rows.find((r) => r.sortName === 'f1').parentName).toBeNull();
     expect(rows.find((r) => r.sortName === 'nested').parentName).toBe('f1');
+  });
+  it('stamps collectionId + parentName (request name) on example rows', () => {
+    const c = collection('My Coll', [request('r1', { examplesExpanded: true, examples: [{ uid: 'ex1', name: 'ok' }] })]);
+    const ex = flatten([loaded(c)]).find((r) => r.kind === 'example');
+    expect(ex.collectionId).toBe('my-coll');
+    expect(ex.parentName).toBe('r1');
   });
   it('stamps collectionId + parentName on empty-cta rows', () => {
     const rootCta = flatten([loaded(collection('Empty', []))]).find((r) => r.kind === 'empty-cta');
