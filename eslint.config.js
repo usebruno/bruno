@@ -21,7 +21,7 @@ const mainLintFiles = [
   'packages/bruno-app/src/test-utils/mocks/codemirror.js',
   'packages/bruno-cli/**/*.js',
   'packages/bruno-common/**/*.ts',
-  'packages/bruno-converters/**/*.js',
+  'packages/bruno-converters/**/*.{js,ts}',
   'packages/bruno-electron/**/*.js',
   'packages/bruno-filestore/**/*.ts',
   'packages/bruno-schema-types/**/*.ts',
