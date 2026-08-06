@@ -183,7 +183,7 @@ describe('getVisibleSidebarUidsInOrder', () => {
       .toEqual(['colA', 'folderA', 'reqA1', 'reqRoot', 'colB']);
   });
 
-  it('hides a collapsed folder`s children even though the collection itself is expanded', () => {
+  it('hides a collapsed folder\'s children even though the collection itself is expanded', () => {
     const sidebarEntries = [
       { kind: 'loaded', collection: buildCollectionA({ folderA: { collapsed: true } }) }
     ];

@@ -39,7 +39,7 @@ export const CollectionItemDragPreview = () => {
     <StyledWrapper>
       <div style={getItemStyles({ x, y })} className="p-2">
         <div className="flex items-center gap-2 border border-gray-500/10 rounded-md px-2 py-1 drag-preview">
-          {shouldShowFolderIcon ? (
+          {multiCount > 1 ? null : shouldShowFolderIcon ? (
             <IconFolder size={16} />
           ) : (
             <IconFile size={16} />

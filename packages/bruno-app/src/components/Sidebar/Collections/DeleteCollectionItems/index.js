@@ -40,12 +40,12 @@ const DeleteCollectionItems = ({ entries, onClose }) => {
     );
 
     Promise.all(deletions)
-      .then(() => {
-        dispatch(clearSidebarSelection());
-      })
       .catch((error) => {
         console.error('Error deleting items', error);
         toast.error(error?.message || 'Error deleting items');
+      })
+      .finally(() => {
+        dispatch(clearSidebarSelection());
       });
 
     onClose();

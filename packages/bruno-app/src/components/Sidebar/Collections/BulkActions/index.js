@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Dropdown from 'components/Dropdown';
 import { IconX, IconFoldDown, IconFoldUp, IconTrash } from '@tabler/icons';
@@ -8,7 +8,6 @@ import { getOtherCollections, getSelectionInfo } from 'utils/collections/index';
 const isEntryCollapsed = (entry) => (entry.type === 'collection' ? entry.collection.collapsed : entry.item.collapsed);
 
 const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollections, onRequestDeleteItems }) => {
-  const dropdownRef = useRef();
   const dispatch = useDispatch();
 
   const collections = useSelector((state) => state.collections.collections);
@@ -77,21 +76,6 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
     onClose();
   };
 
-  useEffect(() => {
-    if (!visible) return;
-
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !event.target.closest('.dropdown')) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [visible, onClose]);
-
   const CollapseIcon = allCollapsed ? IconFoldUp : IconFoldDown;
   const collapseLabel = allCollapsed ? 'Expand' : 'Collapse';
   const CollapseOthersIcon = allOthersCollapsed ? IconFoldUp : IconFoldDown;
@@ -112,21 +96,21 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
       placement="right-start"
       visible={visible}
       appendTo={document.body}
-      onCreate={(ref) => (dropdownRef.current = ref)}
+      onClickOutside={onClose}
     >
       {isPureCollectionSelection ? (
         <>
-          <div className="dropdown-item" onClick={handleCloseCollections}>
+          <div className="dropdown-item delete-collection" onClick={handleCloseCollections}>
             <IconX size={16} strokeWidth={2} className="dropdown-icon" />
-            Close
+            Remove
           </div>
           <div className="dropdown-item" onClick={handleToggleCollapse}>
             <CollapseIcon size={16} strokeWidth={2} className="dropdown-icon" />
             {collapseLabel}
           </div>
-          <div className="dropdown-item" onClick={handleCloseOthers}>
+          <div className="dropdown-item delete-collection" onClick={handleCloseOthers}>
             <IconX size={16} strokeWidth={2} className="dropdown-icon" />
-            Close Others
+            Remove Others
           </div>
           {canCollapseOthers ? (
             <div className="dropdown-item" onClick={handleToggleCollapseOthers}>
@@ -144,7 +128,7 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
             </div>
           ) : null}
           {canDelete ? (
-            <div className="dropdown-item delete-collection" onClick={handleDelete}>
+            <div className="dropdown-item delete-item" onClick={handleDelete}>
               <IconTrash size={16} strokeWidth={2} className="dropdown-icon" />
               Delete
             </div>

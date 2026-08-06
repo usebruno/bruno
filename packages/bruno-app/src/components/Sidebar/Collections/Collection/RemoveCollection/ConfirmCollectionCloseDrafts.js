@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
 import filter from 'lodash/filter';
 import { useDispatch, useSelector } from 'react-redux';
-import { flattenItems, isItemARequest, hasRequestChanges, findCollectionByUid } from 'utils/collections';
+import { flattenItems, isItemARequest, isItemAFolder, hasRequestChanges, findCollectionByUid } from 'utils/collections';
 import { pluralizeWord } from 'utils/common';
-import { saveRequest, saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, saveMultipleRequests, saveMultipleCollections, saveMultipleFolders } from 'providers/ReduxStore/slices/collections/actions';
 import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { removeCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import { IconAlertTriangle, IconDeviceFloppy } from '@tabler/icons';
 import Modal from 'components/Modal';
 import toast from 'react-hot-toast';
@@ -14,105 +15,129 @@ import StyledWrapper from './StyledWrapper';
 
 const MAX_UNSAVED_REQUESTS_TO_SHOW = 5;
 
-const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) => {
+const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUids }) => {
   const dispatch = useDispatch();
+  const allCollections = useSelector((state) => state.collections.collections || []);
 
-  const latestCollection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
+  const targetUids = useMemo(() => {
+    return collectionUids || [];
+  }, [collectionUids]);
 
-  const activeCollection = latestCollection || collection;
+  const activeCollections = useMemo(() => {
+    const fromState = targetUids.map((uid) => findCollectionByUid(allCollections, uid)).filter(Boolean);
+    if (fromState.length > 0) return fromState;
+    if (collection) return [collection];
+    return [];
+  }, [allCollections, targetUids, collection]);
 
-  const currentDrafts = useMemo(() => {
-    if (!activeCollection) return [];
-    const items = flattenItems(activeCollection.items);
-    return items
-      ?.filter((item) => isItemARequest(item) && hasRequestChanges(item) && !item.isTransient)
-      .map((item) => {
-        return {
-          ...item,
-          collectionUid: collectionUid
-        };
+  const { currentRequestDrafts, currentTransientDrafts, currentFolderDrafts, currentCollectionDrafts } = useMemo(() => {
+    const requestDrafts = [];
+    const transientDrafts = [];
+    const folderDrafts = [];
+    const collectionDrafts = [];
+
+    activeCollections.forEach((c) => {
+      if (c.draft) {
+        collectionDrafts.push(c);
+      }
+
+      const items = flattenItems(c.items);
+
+      const requests = items?.filter((item) => isItemARequest(item) && hasRequestChanges(item)) || [];
+      requests.forEach((req) => {
+        const enhancedReq = { ...req, collectionUid: c.uid };
+        if (req.isTransient) {
+          transientDrafts.push(enhancedReq);
+        } else {
+          requestDrafts.push(enhancedReq);
+        }
       });
-  }, [activeCollection, collectionUid]);
 
-  const currentTransientDrafts = useMemo(() => {
-    if (!activeCollection) return [];
-    const items = flattenItems(activeCollection.items);
-    return items
-      ?.filter((item) => isItemARequest(item) && hasRequestChanges(item) && item.isTransient)
-      .map((item) => {
-        return {
-          ...item,
-          collectionUid: collectionUid
-        };
+      const folders = items?.filter((item) => isItemAFolder(item) && item.draft) || [];
+      folders.forEach((folder) => {
+        folderDrafts.push({ name: folder.name, folderUid: folder.uid, collectionUid: c.uid });
       });
-  }, [activeCollection, collectionUid]);
+    });
 
-  const allDrafts = useMemo(() => {
-    return [...currentDrafts, ...currentTransientDrafts];
-  }, [currentDrafts, currentTransientDrafts]);
+    return {
+      currentRequestDrafts: requestDrafts,
+      currentTransientDrafts: transientDrafts,
+      currentFolderDrafts: folderDrafts,
+      currentCollectionDrafts: collectionDrafts
+    };
+  }, [activeCollections]);
 
-  const handleSaveAll = () => {
-    // If there are transient drafts, we can't proceed with batch save
+  const allDraftsCount = currentRequestDrafts.length + currentTransientDrafts.length + currentFolderDrafts.length + currentCollectionDrafts.length;
+  const isMultipleCollections = activeCollections.length > 1;
+
+  const handleRemoveCollections = () => {
+    const removalPromises = activeCollections.map((c) => dispatch(removeCollection(c.uid)));
+    return Promise.all(removalPromises)
+      .then(() => {
+        toast.success(`${pluralizeWord('Collection', activeCollections.length)} removed from workspace`);
+      })
+      .catch((error) => {
+        console.error('Error closing collections:', error);
+        toast.error('An error occurred while removing the collection(s)');
+      })
+      .finally(() => {
+        if (isMultipleCollections) {
+          dispatch(clearSidebarSelection());
+        }
+        onClose();
+      });
+  };
+
+  const handleSaveAll = async () => {
     if (currentTransientDrafts.length > 0) {
       toast.error('Please save or discard transient requests first');
       return;
     }
-    // Save only non-transient drafts
-    if (currentDrafts.length > 0) {
-      dispatch(saveMultipleRequests(currentDrafts))
-        .then(() => {
-          dispatch(removeCollection(collectionUid))
-            .then(() => {
-              toast.success('Collection removed from workspace');
-              onClose();
-            })
-            .catch(() => toast.error('An error occurred while removing the collection'));
-        })
-        .catch(() => {
-          toast.error('Failed to save requests!');
-        });
-    } else {
-      // No non-transient drafts, just remove the collection
-      dispatch(removeCollection(collectionUid))
-        .then(() => {
-          toast.success('Collection removed from workspace');
-          onClose();
-        })
-        .catch(() => toast.error('An error occurred while removing the collection'));
+
+    try {
+      const savePromises = [];
+      if (currentCollectionDrafts.length > 0) savePromises.push(dispatch(saveMultipleCollections(currentCollectionDrafts)));
+      if (currentFolderDrafts.length > 0) savePromises.push(dispatch(saveMultipleFolders(currentFolderDrafts)));
+      if (currentRequestDrafts.length > 0) savePromises.push(dispatch(saveMultipleRequests(currentRequestDrafts)));
+
+      if (savePromises.length > 0) {
+        await Promise.all(savePromises);
+      }
+
+      await handleRemoveCollections();
+    } catch (err) {
+      toast.error('Failed to save drafts!');
     }
   };
 
   const handleDiscardAll = () => {
-    // Discard all drafts (both regular and transient)
-    allDrafts.forEach((draft) => {
+    const allRequestDrafts = [...currentRequestDrafts, ...currentTransientDrafts];
+    allRequestDrafts.forEach((draft) => {
       dispatch(deleteRequestDraft({
-        collectionUid: collectionUid,
+        collectionUid: draft.collectionUid,
         itemUid: draft.uid
       }));
     });
 
-    // Then remove the collection
-    dispatch(removeCollection(collectionUid))
-      .then(() => {
-        toast.success('Collection removed from workspace');
-        onClose();
-      })
-      .catch(() => toast.error('An error occurred while removing the collection'));
+    // Folder and collection drafts are simply discarded by removing the collection
+    handleRemoveCollections();
   };
 
   const handleSaveTransient = (draft) => {
-    dispatch(saveRequest(draft.uid, collectionUid));
+    dispatch(saveRequest(draft.uid, draft.collectionUid));
   };
 
-  if (!currentDrafts.length && !currentTransientDrafts.length) {
+  if (allDraftsCount === 0) {
     return null;
   }
+
+  const otherDraftsCount = currentFolderDrafts.length + currentCollectionDrafts.length;
 
   return (
     <StyledWrapper>
       <Modal
         size="md"
-        title="Remove Collection"
+        title={`Remove ${pluralizeWord('Collection', activeCollections.length)}`}
         confirmText="Save and Remove"
         cancelText="Remove without saving"
         handleCancel={onClose}
@@ -126,18 +151,18 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
           <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
         </div>
         <p className="mt-4">
-          You have unsaved changes in <span className="font-medium">{allDrafts.length}</span>{' '}
-          {pluralizeWord('request', allDrafts.length)}.
+          You have unsaved changes in <span className="font-medium">{allDraftsCount}</span>{' '}
+          {pluralizeWord('item', allDraftsCount)}.
         </p>
 
         {/* Regular (saved) requests with changes */}
-        {currentDrafts.length > 0 && (
+        {currentRequestDrafts.length > 0 && (
           <div className="mt-4">
             <p className="text-sm font-medium mb-2">
-              Saved {pluralizeWord('Request', currentDrafts.length)} ({currentDrafts.length})
+              Saved {pluralizeWord('Request', currentRequestDrafts.length)} ({currentRequestDrafts.length})
             </p>
             <ul className="ml-2">
-              {currentDrafts.slice(0, MAX_UNSAVED_REQUESTS_TO_SHOW).map((item) => {
+              {currentRequestDrafts.slice(0, MAX_UNSAVED_REQUESTS_TO_SHOW).map((item) => {
                 return (
                   <li key={item.uid} className="mt-1 text-xs draft-list-item">
                     • {item.filename || item.name}
@@ -145,12 +170,27 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
                 );
               })}
             </ul>
-            {currentDrafts.length > MAX_UNSAVED_REQUESTS_TO_SHOW && (
+            {currentRequestDrafts.length > MAX_UNSAVED_REQUESTS_TO_SHOW && (
               <p className="ml-2 mt-1 text-xs draft-list-item">
-                ...{currentDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW} additional{' '}
-                {pluralizeWord('request', currentDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW)} not shown
+                ...{currentRequestDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW} additional{' '}
+                {pluralizeWord('request', currentRequestDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW)} not shown
               </p>
             )}
+          </div>
+        )}
+
+        {/* Other Drafts (Folders / Collections) */}
+        {otherDraftsCount > 0 && (
+          <div className="mt-4">
+            <p className="text-sm font-medium mb-2">
+              Other Changes ({otherDraftsCount})
+            </p>
+            <p className="ml-2 text-xs text-muted">
+              {currentFolderDrafts.length > 0 && `${currentFolderDrafts.length} ${pluralizeWord('folder', currentFolderDrafts.length)}`}
+              {currentFolderDrafts.length > 0 && currentCollectionDrafts.length > 0 && ' and '}
+              {currentCollectionDrafts.length > 0 && `${currentCollectionDrafts.length} ${pluralizeWord('collection', currentCollectionDrafts.length)}`}
+              {' '}with unsaved changes will also be saved.
+            </p>
           </div>
         )}
 
@@ -202,7 +242,7 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
               disabled={currentTransientDrafts.length > 0}
               title={currentTransientDrafts.length > 0 ? 'Please save or discard transient requests first' : ''}
             >
-              {currentDrafts.length > 1 ? 'Save All and Remove' : 'Save and Remove'}
+              {allDraftsCount > 1 ? 'Save All and Remove' : 'Save and Remove'}
             </Button>
           </div>
         </div>

@@ -31,6 +31,8 @@ const setupFixture = async (page, createTmpDir, tag) => {
 
 test.describe('Sidebar multi-select and bulk actions', () => {
   test.afterEach(async ({ page }) => {
+    // Clear selection so that closeAllCollections can use the standard collection menu
+    await clickEmptySidebarSpace(page);
     await closeAllCollections(page);
   });
 
@@ -45,12 +47,22 @@ test.describe('Sidebar multi-select and bulk actions', () => {
       await expect(locators.sidebar.itemRow('Req Root')).toHaveClass(/item-selected/);
     });
 
-    await test.step('Right-clicking a selected row opens the adaptive bulk menu (Collapse + Delete, no Close)', async () => {
+    await test.step('Ctrl/Cmd-click on an already-selected row toggles it back out of the selection', async () => {
+      await locators.sidebar.request('Req Root').click({ modifiers: [SELECT_MODIFIER] });
+      await expect(locators.sidebar.itemRow('Req Root')).not.toHaveClass(/item-selected/);
+      await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/item-selected/);
+
+      // Re-select it so the remaining steps see a folder + request selection again.
+      await locators.sidebar.request('Req Root').click({ modifiers: [SELECT_MODIFIER] });
+      await expect(locators.sidebar.itemRow('Req Root')).toHaveClass(/item-selected/);
+    });
+
+    await test.step('Right-clicking a selected row opens the adaptive bulk menu (Collapse + Delete, no Remove)', async () => {
       await locators.sidebar.itemRow('Req Root').click({ button: 'right' });
 
       await expect(locators.dropdown.item('Collapse')).toBeVisible();
       await expect(locators.dropdown.item('Delete')).toBeVisible();
-      await expect(locators.dropdown.item('Close')).not.toBeVisible();
+      await expect(locators.dropdown.item('Remove')).not.toBeVisible();
     });
 
     await test.step('Clicking empty sidebar space clears the selection', async () => {
@@ -78,6 +90,16 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/item-selected/);
     await expect(locators.sidebar.itemRow('Req A1')).toHaveClass(/item-selected/);
     await expect(locators.sidebar.itemRow('Req Root')).toHaveClass(/item-selected/);
+  });
+
+  test('Shift-click with no prior click anchor selects only the clicked row, not everything above it', async ({ page, createTmpDir }) => {
+    const { locators, collectionAName } = await setupFixture(page, createTmpDir, 'shiftnoanchor');
+
+    await locators.sidebar.folder('Folder A').click({ modifiers: ['Shift'] });
+
+    await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/item-selected/);
+    await expect(locators.sidebar.collectionRow(collectionAName)).not.toHaveClass(/collection-selected/);
+    await expect(locators.sidebar.request('Req Root')).not.toHaveClass(/item-selected/);
   });
 
   test('A normally-clicked row is carried into the selection on the next Ctrl/Cmd-click', async ({ page, createTmpDir }) => {
@@ -162,7 +184,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await expect(locators.sidebar.itemRow('Req A1')).not.toHaveClass(/item-selected/);
   });
 
-  test('Bulk menu for a pure collection selection offers Close, Collapse, Close Others and Collapse Others together', async ({ page, createTmpDir }) => {
+  test('Bulk menu for a pure collection selection offers Remove, Collapse, Remove Others and Collapse Others together', async ({ page, createTmpDir }) => {
     const { locators, collectionAName, collectionBName } = await setupFixture(page, createTmpDir, 'collectionmenu');
     // A third, unselected collection is needed for "Others" actions to be available.
     const collectionCDir = await createTmpDir('collectionmenu-c');
@@ -175,13 +197,13 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
     await locators.sidebar.collectionRow(collectionAName).click({ button: 'right' });
 
-    // Exclude "Others" items to prevent ambiguous lookups for "Close" and "Collapse".
-    const closeItem = page.locator('.dropdown-item').filter({ hasText: 'Close' }).filter({ hasNotText: 'Others' });
+    // Exclude "Others" items to prevent ambiguous lookups for "Remove" and "Collapse".
+    const removeItem = page.locator('.dropdown-item').filter({ hasText: 'Remove' }).filter({ hasNotText: 'Others' });
     const collapseItem = page.locator('.dropdown-item').filter({ hasText: 'Collapse' }).filter({ hasNotText: 'Others' });
 
-    await expect(closeItem).toBeVisible();
+    await expect(removeItem).toBeVisible();
     await expect(collapseItem).toBeVisible();
-    await expect(locators.dropdown.item('Close Others')).toBeVisible();
+    await expect(locators.dropdown.item('Remove Others')).toBeVisible();
     await expect(locators.dropdown.item('Collapse Others')).toBeVisible();
     await expect(locators.dropdown.item('Delete')).not.toBeVisible();
 
@@ -210,7 +232,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     });
   });
 
-  test('A collection + request mixed selection only offers Collapse (no Close/Delete)', async ({ page, createTmpDir }) => {
+  test('A collection + request mixed selection only offers Collapse (no Remove/Delete)', async ({ page, createTmpDir }) => {
     const { locators, collectionBName } = await setupFixture(page, createTmpDir, 'mixedcollreq');
 
     // Selecting Collection B with Req Root (in Collection A) prevents parent-wins logic.
@@ -219,11 +241,11 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
     await locators.sidebar.itemRow('Req Root').click({ button: 'right' });
 
-    // Excludes "Collapse Others"/"Close Others" so the lookup isn't ambiguous with those labels.
+    // Excludes "Collapse Others"/"Remove Others" so the lookup isn't ambiguous with those labels.
     const collapseItem = page.locator('.dropdown-item').filter({ hasText: 'Collapse' }).filter({ hasNotText: 'Others' });
-    const closeItem = page.locator('.dropdown-item').filter({ hasText: 'Close' }).filter({ hasNotText: 'Others' });
+    const removeItem = page.locator('.dropdown-item').filter({ hasText: 'Remove' }).filter({ hasNotText: 'Others' });
     await expect(collapseItem).toBeVisible();
-    await expect(closeItem).not.toBeVisible();
+    await expect(removeItem).not.toBeVisible();
     await expect(locators.dropdown.item('Delete')).not.toBeVisible();
 
     await clickEmptySidebarSpace(page);
@@ -287,22 +309,22 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     });
   });
 
-  test('Cancelling the bulk close confirmation keeps the collection selection intact; confirming clears it', async ({ page, createTmpDir }) => {
+  test('Cancelling the bulk remove confirmation keeps the collection selection intact; confirming clears it', async ({ page, createTmpDir }) => {
     const { locators, collectionAName, collectionBName } = await setupFixture(page, createTmpDir, 'cancelclose');
 
     await locators.sidebar.collection(collectionAName).click({ modifiers: [SELECT_MODIFIER] });
     await locators.sidebar.collection(collectionBName).click({ modifiers: [SELECT_MODIFIER] });
 
-    const closeItem = page.locator('.dropdown-item').filter({ hasText: 'Close' }).filter({ hasNotText: 'Others' });
+    const removeItem = page.locator('.dropdown-item').filter({ hasText: 'Remove' }).filter({ hasNotText: 'Others' });
 
     await test.step('Cancelling leaves both collections selected and open', async () => {
       await locators.sidebar.collectionRow(collectionAName).click({ button: 'right' });
-      await closeItem.click();
+      await removeItem.click();
 
-      const closeModal = locators.modal.byTitle('Close all collections');
-      await expect(closeModal).toBeVisible();
+      const removeModal = locators.modal.byTitle('Remove Collections');
+      await expect(removeModal).toBeVisible();
       await locators.modal.button('Cancel').click();
-      await expect(closeModal).not.toBeVisible();
+      await expect(removeModal).not.toBeVisible();
 
       await expect(locators.sidebar.collectionRow(collectionAName)).toHaveClass(/collection-selected/);
       await expect(locators.sidebar.collectionRow(collectionBName)).toHaveClass(/collection-selected/);
@@ -312,15 +334,15 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
     await test.step('Re-opening and confirming closes both collections', async () => {
       await locators.sidebar.collectionRow(collectionAName).click({ button: 'right' });
-      await closeItem.click();
-      await locators.modal.button('Close All').click();
+      await removeItem.click();
+      await locators.modal.button('Remove All').click();
 
       await expect(locators.sidebar.collection(collectionAName)).not.toBeVisible();
       await expect(locators.sidebar.collection(collectionBName)).not.toBeVisible();
     });
   });
 
-  test('Bulk Close on a multi-collection selection removes all selected collections', async ({ page, createTmpDir }) => {
+  test('Bulk Remove on a multi-collection selection removes all selected collections', async ({ page, createTmpDir }) => {
     const { locators, collectionAName, collectionBName } = await setupFixture(page, createTmpDir, 'bulkclose');
 
     await locators.sidebar.collection(collectionAName).click({ modifiers: [SELECT_MODIFIER] });
@@ -328,15 +350,14 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
     await locators.sidebar.collectionRow(collectionAName).click({ button: 'right' });
 
-    // Exclude "Others" items to prevent ambiguous lookups for "Close".
-    const closeItem = page.locator('.dropdown-item').filter({ hasText: 'Close' }).filter({ hasNotText: 'Others' });
-    await expect(closeItem).toBeVisible();
-    await expect(locators.dropdown.item('Collapse Others')).toBeVisible();
-    await closeItem.click();
+    // Exclude "Others" items to prevent ambiguous lookups for "Remove".
+    const removeItem = page.locator('.dropdown-item').filter({ hasText: 'Remove' }).filter({ hasNotText: 'Others' });
+    await expect(removeItem).toBeVisible();
+    await removeItem.click();
 
-    const closeModal = locators.modal.byTitle('Close all collections');
-    await expect(closeModal).toBeVisible();
-    await locators.modal.button('Close All').click();
+    const removeModal = locators.modal.byTitle('Remove Collections');
+    await expect(removeModal).toBeVisible();
+    await locators.modal.button('Remove All').click();
 
     await expect(locators.sidebar.collection(collectionAName)).not.toBeVisible();
     await expect(locators.sidebar.collection(collectionBName)).not.toBeVisible();

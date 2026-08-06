@@ -26,7 +26,7 @@ import {
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, moveCollectionAndPersist, handleMultipleCollectionItemsDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
@@ -39,7 +39,7 @@ import RemoveCollection from './RemoveCollection';
 import MoveToWorkspace from './MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, areItemsLoading } from 'utils/collections';
+import { isItemAFolder, isItemARequest, buildSidebarEntries, getVisibleSidebarUidsInOrder } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from './RenameCollection';
@@ -98,6 +98,9 @@ const Collection = ({ collection, searchText }) => {
   const activeWorkspace = useSelector((state) =>
     state.workspaces.workspaces.find((w) => w.uid === state.workspaces.activeWorkspaceUid)
   );
+  const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const collectionSortOrder = useSelector((state) => state.collections.collectionSortOrder);
+  const allCollections = useSelector((state) => state.collections.collections);
   const isMoveToWorkspaceVisible = isPathExternalToBasePath(activeWorkspace?.pathname, collection.pathname);
 
   // Open the OpenAPI Sync tab
@@ -194,7 +197,7 @@ const Collection = ({ collection, searchText }) => {
     event.preventDefault();
     event.stopPropagation();
 
-    if (selectedSidebarUids.length > 0 && isSelected) {
+    if (isSelected) {
       openBulkMenu(event);
       return;
     }
@@ -298,14 +301,42 @@ const Collection = ({ collection, searchText }) => {
     drop: (draggedItem, monitor) => {
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
-        dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem, dropType: 'inside', collectionUid: collection.uid }));
+        // Gather all dragged items
+        let draggedItems = [];
+        if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
+          draggedItems = [...draggedItem.multiSelectedItems];
+          // Ensure the explicitly dragged item is included (it should be, but just in case)
+          if (!draggedItems.find((i) => i.uid === draggedItem.uid)) {
+            draggedItems.push({ ...draggedItem, sourceCollectionUid: draggedItem.sourceCollectionUid });
+          }
+        } else {
+          draggedItems = [{ ...draggedItem, sourceCollectionUid: draggedItem.sourceCollectionUid }];
+        }
 
-        // Dragging a multi-selected row carries the rest of the effective selection along.
-        const otherSelectedItems = (draggedItem.multiSelectedItems || []).filter((i) => i.uid !== draggedItem.uid);
-        otherSelectedItems.forEach((otherItem) => {
-          dispatch(handleCollectionItemDrop({ targetItem: collection, draggedItem: otherItem, dropType: 'inside', collectionUid: collection.uid }));
+        // We need to sort draggedItems based on the visual order
+        const sidebarEntries = buildSidebarEntries({
+          collections: allCollections,
+          workspaces,
+          activeWorkspace,
+          collectionSortOrder
         });
-        if (otherSelectedItems.length > 0) {
+
+        const visibleUids = getVisibleSidebarUidsInOrder({ sidebarEntries, searchText });
+        const visibleUidsIndex = new Map(visibleUids.map((uid, idx) => [uid, idx]));
+
+        draggedItems.sort((a, b) => {
+          const idxA = visibleUidsIndex.has(a.uid) ? visibleUidsIndex.get(a.uid) : 999999;
+          const idxB = visibleUidsIndex.has(b.uid) ? visibleUidsIndex.get(b.uid) : 999999;
+          return idxA - idxB;
+        });
+
+        const validDraggedItems = draggedItems.filter((dragged) => dragged.uid !== collection.uid);
+
+        if (validDraggedItems.length > 0) {
+          dispatch(handleMultipleCollectionItemsDrop({ targetItem: collection, draggedItems: validDraggedItems, dropType: 'inside', collectionUid: collection.uid }));
+        }
+
+        if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
           dispatch(clearSidebarSelection());
         }
       } else {

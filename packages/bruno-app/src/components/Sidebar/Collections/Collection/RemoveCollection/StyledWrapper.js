@@ -45,6 +45,12 @@ const StyledWrapper = styled.div`
   .transient-item-name {
     color: ${(props) => props.theme.text};
   }
+
+  .collections-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
 `;
 
 export default StyledWrapper;

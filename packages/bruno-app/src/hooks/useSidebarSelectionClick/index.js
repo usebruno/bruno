@@ -1,11 +1,9 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleSidebarSelection, setSidebarSelection, setLastClickedSidebarUid, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import { selectSidebarRange } from 'providers/ReduxStore/slices/collections/actions';
+import { isMacOS } from 'utils/common/platform';
 
-const isSelectionModifierPressed = (event) => {
-  const isMac = navigator.userAgent?.includes('Mac');
-  return isMac ? event.metaKey : event.ctrlKey;
-};
+const isSelectionModifierPressed = (event) => (isMacOS() ? event.metaKey : event.ctrlKey);
 
 const useSidebarSelectionClick = ({ uid, searchText }) => {
   const dispatch = useDispatch();
