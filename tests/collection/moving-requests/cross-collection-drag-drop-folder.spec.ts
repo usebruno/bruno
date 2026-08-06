@@ -34,25 +34,20 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await sourceFolder.dragTo(targetCollection);
 
     // Verify the folder has been moved to the target collection
-    const targetCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'target-collection' })
-      .locator('..');
+    const targetCollectionContainer = page.locator('[data-collection-id="target-collection"]');
     await expect(
       targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-folder' })
     ).toBeVisible();
 
-    // Expand the moved folder to verify the request inside is also moved
-    await expandFolder(page, 'test-folder');
+    // Expand the moved folder to verify the request inside is also moved.
+    // Scope to target-collection: during the move both collections can briefly show the folder.
+    await expandFolder(page, 'test-folder', 'target-collection');
     await expect(
       targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })
     ).toBeVisible();
 
     // Verify the folder is no longer in the source collection
-    const sourceCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'source-collection' })
-      .locator('..');
+    const sourceCollectionContainer = page.locator('[data-collection-id="source-collection"]');
     await expect(
       sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-folder' })
     ).not.toBeVisible();
@@ -93,10 +88,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await expect(page.getByText(/Error: Cannot copy.*already exists/i)).toBeVisible();
 
     // source and target collection request should remain unchanged
-    const sourceCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'source-collection' })
-      .locator('..');
+    const sourceCollectionContainer = page.locator('[data-collection-id="source-collection"]');
     await expect(
       sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'folder-1' })
     ).toBeVisible();
@@ -104,10 +96,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
       sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'http-request' })
     ).toBeVisible();
 
-    const targetCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'target-collection' })
-      .locator('..');
+    const targetCollectionContainer = page.locator('[data-collection-id="target-collection"]');
     await expect(
       targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'folder-1' })
     ).toBeVisible();

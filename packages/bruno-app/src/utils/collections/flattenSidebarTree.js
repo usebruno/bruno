@@ -8,6 +8,10 @@ import {
 
 const sortBySeq = (items) => [...items].sort((a, b) => a.seq - b.seq);
 
+// Stable, name-derived id for a collection. Matches the `#collection-<slug>` id CollectionRow
+// renders, and lets tests scope rows to a collection without relying on DOM nesting.
+const slugifyCollectionName = (name) => (name || '').replace(/\s+/g, '-').toLowerCase();
+
 const groupCollectionItems = (collectionItems) => {
   const folders = [], apps = [], requests = [];
 
@@ -37,7 +41,7 @@ const groupCollectionItems = (collectionItems) => {
  * Returns the number of visible persisted children, used to determine whether
  * an empty-state CTA should be shown.
  */
-const walkChildren = ({ collectionItems = [], depth, collectionUid, collectionPathname, hasSearch, searchText, emitRow }) => {
+const walkChildren = ({ collectionItems = [], depth, collectionUid, collectionPathname, collectionId, parentName, hasSearch, searchText, appendRow, addItemToIndex }) => {
   let visibleChildCount = 0;
 
   const { folders, apps, requests } = groupCollectionItems(collectionItems);
@@ -46,28 +50,33 @@ const walkChildren = ({ collectionItems = [], depth, collectionUid, collectionPa
     if (hasSearch && !doesFolderHaveItemsMatchSearchText(folder, searchText)) continue;
     visibleChildCount++;
 
-    emitRow({
+    appendRow({
       id: `${collectionUid}:${folder.uid}`,
       kind: 'folder',
       depth,
       collectionUid,
       collectionPathname,
+      collectionId,
+      parentName,
       itemUid: folder.uid,
       sortName: folder.name || null
     });
+    addItemToIndex(folder.uid, folder);
 
     const isExpanded = hasSearch || !folder.collapsed;
     if (!isExpanded) continue;
 
-    const childCount = walkChildren({ collectionItems: folder.items, depth: depth + 1, collectionUid, collectionPathname, hasSearch, searchText, emitRow });
+    const childCount = walkChildren({ collectionItems: folder.items, depth: depth + 1, collectionUid, collectionPathname, collectionId, parentName: folder.name || null, hasSearch, searchText, appendRow, addItemToIndex });
 
     if (!hasSearch && childCount === 0) {
-      emitRow({
+      appendRow({
         id: `${collectionUid}:${folder.uid}:cta`,
         kind: 'empty-cta',
         depth: depth + 1,
         collectionUid,
         collectionPathname,
+        collectionId,
+        parentName: folder.name || null,
         itemUid: folder.uid,
         sortName: null
       });
@@ -78,15 +87,18 @@ const walkChildren = ({ collectionItems = [], depth, collectionUid, collectionPa
   if (!hasSearch) {
     for (const app of apps) {
       visibleChildCount++;
-      emitRow({
+      appendRow({
         id: `${collectionUid}:${app.uid}`,
         kind: 'app',
         depth,
         collectionUid,
         collectionPathname,
+        collectionId,
+        parentName,
         itemUid: app.uid,
         sortName: app.name || null
       });
+      addItemToIndex(app.uid, app);
     }
   }
 
@@ -95,20 +107,23 @@ const walkChildren = ({ collectionItems = [], depth, collectionUid, collectionPa
     if (hasSearch && !doesRequestMatchSearchText(request, searchText)) continue;
     visibleChildCount++;
 
-    emitRow({
+    appendRow({
       id: `${collectionUid}:${request.uid}`,
       kind: 'request',
       depth,
       collectionUid,
       collectionPathname,
+      collectionId,
+      parentName,
       itemUid: request.uid,
       sortName: request.name || null
     });
+    addItemToIndex(request.uid, request);
 
     const isHttpRequestWithExamples = request.type === 'http-request' && Array.isArray(request.examples);
     if (!hasSearch && isHttpRequestWithExamples && request.examplesExpanded) {
       request.examples.forEach((example, index) => {
-        emitRow({
+        appendRow({
           id: `${collectionUid}:${request.uid}:ex:${example.uid || index}`,
           kind: 'example',
           depth: depth + 1,
@@ -130,21 +145,26 @@ const walkChildren = ({ collectionItems = [], depth, collectionUid, collectionPa
   * Emit a collection row and flatten its visible children into sidebar rows.
   * Recursively walks the collection tree when expanded and adds an empty-state CTA when needed.
   */
-const flattenCollection = ({ collection, hasSearch, searchText, emitRow }) => {
+const flattenCollection = ({ collection, hasSearch, searchText, appendRow, addItemToIndex, addCollectionToIndex }) => {
   // if searching, skip collections that don't have any matching items
   if (hasSearch && !doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
     return;
   }
 
-  emitRow({
+  const collectionId = slugifyCollectionName(collection.name);
+
+  appendRow({
     id: `col:${collection.uid}`,
     kind: 'collection',
     depth: 0,
     collectionUid: collection.uid,
     collectionPathname: collection.pathname || null,
+    collectionId,
+    parentName: null,
     itemUid: null,
     sortName: collection.name || null
   });
+  addCollectionToIndex(collection.uid, collection);
 
   const isExpanded = hasSearch || !collection.collapsed;
 
@@ -154,19 +174,24 @@ const flattenCollection = ({ collection, hasSearch, searchText, emitRow }) => {
     depth: 1,
     collectionUid: collection.uid,
     collectionPathname: collection.pathname || null,
+    collectionId,
+    parentName: null,
     hasSearch,
     searchText,
-    emitRow
+    appendRow,
+    addItemToIndex
   });
 
   // empty-state CTA.
   if (!hasSearch && visibleChildCount === 0 && collection.mountStatus === 'mounted' && !collection.isLoading) {
-    emitRow({
+    appendRow({
       id: `${collection.uid}:root:cta`,
       kind: 'empty-cta',
       depth: 1,
       collectionUid: collection.uid,
       collectionPathname: collection.pathname || null,
+      collectionId,
+      parentName: null,
       itemUid: null,
       sortName: null
     });
@@ -179,14 +204,24 @@ const flattenCollection = ({ collection, hasSearch, searchText, emitRow }) => {
  *
  * @param {Array} sidebarEntries  { kind:'loaded', collection } | { kind:'ghost', entry }
  * @param {{ searchText?: string }} [options]
- * @returns {Array<Object>} rows
+ * @returns {{ rows: Array<Object>, itemsByUid: Map, collectionsByUid: Map }}
+ *   rows             — the flat, ordered layout rows (structural data only)
+ *   itemsByUid       — uid -> reference to the live folder/app/request object in the Redux store.
+ *   collectionsByUid — uid -> reference to the live collection object in the Redux store.
+ *
+ * itemsByUid / collectionsByUid hold references (not copies) into the Redux tree and are
+ * rebuilt on every call, so they never drift from the source of truth.
  */
 export const flattenSidebarTree = (sidebarEntries = [], options = {}) => {
   const { searchText = '' } = options;
   const hasSearch = !!(searchText && searchText.trim().length);
 
   const rows = [];
-  const emitRow = (row) => rows.push(row);
+  const itemsByUid = new Map();
+  const collectionsByUid = new Map();
+  const appendRow = (row) => rows.push(row);
+  const addItemToIndex = (uid, item) => itemsByUid.set(uid, item);
+  const addCollectionToIndex = (uid, collection) => collectionsByUid.set(uid, collection);
 
   for (const entry of sidebarEntries) {
     if (!entry) continue;
@@ -194,7 +229,7 @@ export const flattenSidebarTree = (sidebarEntries = [], options = {}) => {
     // Git-backed collection whose local folder is missing — a single, non-recursive row.
     if (entry.kind === 'ghost') {
       const g = entry.entry || {};
-      emitRow({
+      appendRow({
         id: `ghost:${g.path}`,
         kind: 'ghost',
         depth: 0,
@@ -207,10 +242,10 @@ export const flattenSidebarTree = (sidebarEntries = [], options = {}) => {
     }
 
     if (!entry.collection) continue;
-    flattenCollection({ collection: entry.collection, hasSearch, searchText, emitRow });
+    flattenCollection({ collection: entry.collection, hasSearch, searchText, appendRow, addItemToIndex, addCollectionToIndex });
   }
 
-  return rows;
+  return { rows, itemsByUid, collectionsByUid };
 };
 
 /**

@@ -15,7 +15,9 @@ test.describe.serial('Sidebar empty-state "+ Add request" CTA', () => {
   // Scope an assertion to a single collection — pageWithUserData reuses one app
   // across the describe block, and multiple expanded collections would otherwise
   // make `getByTestId('add-request-cta')` match more than one element.
-  const collectionScope = (page: Page, name: string) => page.locator(`#collection-${name}`);
+  // Flat, virtualized sidebar: every row of a collection carries `data-collection-id="<slug>"`.
+  // (The old `#collection-<slug>` wrapper now holds only the collection header.)
+  const collectionScope = (page: Page, name: string) => page.locator(`[data-collection-id="${name}"]`);
 
   const expandCollection = async (name: string) => {
     const collection = locators.sidebar.collection(name);

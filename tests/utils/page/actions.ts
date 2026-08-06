@@ -650,7 +650,7 @@ const createFolder = async (
     // Scope to the parent so same-named folders in other collections don't trip strict mode.
     const parentScope = isCollection
       ? locators.sidebar.collectionScope(parentName)
-      : locators.sidebar.folder(parentName).locator('..');
+      : locators.sidebar.folderScope(parentName);
     await expect(parentScope.locator('.collection-item-name').filter({ hasText: folderName })).toBeVisible();
   });
 };
@@ -659,10 +659,10 @@ const createFolder = async (
  * Expand a folder in the sidebar so its child requests/subfolders become visible.
  * No-op if the folder is already expanded.
  */
-const expandFolder = async (page: Page, folderName: string) => {
+const expandFolder = async (page: Page, folderName: string, collectionName?: string) => {
   await test.step(`Expand folder "${folderName}"`, async () => {
     const locators = buildCommonLocators(page);
-    const chevron = locators.folder.chevron(folderName);
+    const chevron = locators.folder.chevron(folderName, collectionName);
     await chevron.waitFor({ state: 'visible', timeout: 5000 });
     const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
     if (!isExpanded) await chevron.click();
@@ -2086,7 +2086,9 @@ const openRequestInFolder = async (page: Page, folderName: string, requestName: 
     const { sidebar } = buildCommonLocators(page);
     await sidebar.folder(folderName).click();
 
-    const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
+    // Flat, virtualized sidebar: scope to the folder's direct children via `data-parent-name`
+    // rather than DOM nesting.
+    const folderWrapper = page.locator(`[data-parent-name="${folderName}"]`);
     const escapedName = requestName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const requestRow = folderWrapper.locator('.collection-item-name').filter({
       has: page.locator('.item-name').filter({ hasText: new RegExp(`^${escapedName}$`) })
