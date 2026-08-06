@@ -3,6 +3,7 @@ import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
+import { IconCaretDown, IconTrash } from '@tabler/icons';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
@@ -342,7 +343,14 @@ const CreateMockServerModal = ({
         handleConfirm={handleConfirm}
         handleCancel={onClose}
         footerLeft={isEditing && onDelete ? (
-          <Button type="button" color="danger" variant="ghost" onClick={handleDelete} data-testid="mock-server-delete-btn">
+          <Button
+            type="button"
+            color="danger"
+            variant="outline"
+            icon={<IconTrash size={15} stroke={1.5} />}
+            onClick={handleDelete}
+            data-testid="mock-server-delete-btn"
+          >
             Delete
           </Button>
         ) : null}
@@ -396,35 +404,37 @@ const CreateMockServerModal = ({
             <>
               <div className="mt-4">
                 <label className="block font-medium mb-2">Source</label>
-                <div className="flex items-center">
-                  <input
-                    id="mock-server-source-collection"
-                    className="cursor-pointer"
-                    type="radio"
-                    name="sourceType"
-                    value="collection"
-                    checked={formik.values.sourceType === 'collection'}
-                    onChange={formik.handleChange}
-                    disabled={!hasCollectionOptions}
-                    data-testid="mock-server-source-collection"
-                  />
-                  <label htmlFor="mock-server-source-collection" className="ml-1 cursor-pointer select-none">
-                    Collection
-                  </label>
-                  <input
-                    id="mock-server-source-spec"
-                    className="ml-4 cursor-pointer"
-                    type="radio"
-                    name="sourceType"
-                    value="spec"
-                    checked={formik.values.sourceType === 'spec'}
-                    onChange={formik.handleChange}
-                    disabled={!hasSpecOptions}
-                    data-testid="mock-server-source-spec"
-                  />
-                  <label htmlFor="mock-server-source-spec" className="ml-1 cursor-pointer select-none">
-                    API Spec
-                  </label>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="mock-server-source-collection"
+                      type="radio"
+                      name="sourceType"
+                      value="collection"
+                      checked={formik.values.sourceType === 'collection'}
+                      onChange={formik.handleChange}
+                      disabled={!hasCollectionOptions}
+                      data-testid="mock-server-source-collection"
+                    />
+                    <label htmlFor="mock-server-source-collection" className="cursor-pointer select-none">
+                      Collection
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="mock-server-source-spec"
+                      type="radio"
+                      name="sourceType"
+                      value="spec"
+                      checked={formik.values.sourceType === 'spec'}
+                      onChange={formik.handleChange}
+                      disabled={!hasSpecOptions}
+                      data-testid="mock-server-source-spec"
+                    />
+                    <label htmlFor="mock-server-source-spec" className="cursor-pointer select-none">
+                      API Spec
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -489,16 +499,17 @@ const CreateMockServerModal = ({
           <div className="mt-4">
             <button
               type="button"
-              className="text-sm opacity-80 hover:opacity-100"
+              className="flex items-center text-link"
               onClick={() => setShowAdvancedPort((value) => !value)}
               data-testid="mock-server-advanced-settings-toggle"
             >
-              {showAdvancedPort ? 'Hide advanced settings' : 'Advanced settings'}
+              Advanced settings
+              <IconCaretDown className={`ml-1 ${showAdvancedPort ? 'rotate-180' : ''}`} size={14} strokeWidth={2} />
             </button>
             {showAdvancedPort ? (
               <>
-                <>
-                  <label htmlFor="mock-server-port" className="block font-medium mt-2">
+                <div className="mt-4">
+                  <label htmlFor="mock-server-port" className="block font-medium">
                     Port
                   </label>
                   <input
@@ -534,25 +545,28 @@ const CreateMockServerModal = ({
                   {formik.touched.port && formik.errors.port ? (
                     <div className="text-red-500 mt-1">{formik.errors.port}</div>
                   ) : null}
-                </>
-                <label htmlFor="mock-server-delay" className="block font-medium mt-4">
-                  Response delay (ms)
-                </label>
-                <input
-                  id="mock-server-delay"
-                  type="number"
-                  name="globalDelay"
-                  className="block textbox w-full mt-2"
-                  min={0}
-                  step={100}
-                  value={formik.values.globalDelay}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  data-testid="mock-server-delay-input"
-                />
-                {formik.touched.globalDelay && formik.errors.globalDelay ? (
-                  <div className="text-red-500 mt-1">{formik.errors.globalDelay}</div>
-                ) : null}
+                </div>
+
+                <div className="mt-4">
+                  <label htmlFor="mock-server-delay" className="block font-medium">
+                    Response delay (ms)
+                  </label>
+                  <input
+                    id="mock-server-delay"
+                    type="number"
+                    name="globalDelay"
+                    className="block textbox w-full mt-2"
+                    min={0}
+                    step={100}
+                    value={formik.values.globalDelay}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    data-testid="mock-server-settings-delay-input"
+                  />
+                  {formik.touched.globalDelay && formik.errors.globalDelay ? (
+                    <div className="text-red-500 mt-1">{formik.errors.globalDelay}</div>
+                  ) : null}
+                </div>
               </>
             ) : (
               <div className="text-xs mt-2 opacity-70">

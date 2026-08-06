@@ -23,6 +23,7 @@ export const buildMockServerLocators = (page: Page) => ({
 
   tabResponses: () => page.getByTestId('mock-server-tab-responses'),
   tabRoutes: () => page.getByTestId('mock-server-tab-routes'),
+  tabRoutesCount: () => page.getByTestId('tab-routes-count'),
   tabLog: () => page.getByTestId('mock-server-tab-log'),
 
   syncExamplesBtn: () => page.getByTestId('mock-response-sync-examples-btn'),
