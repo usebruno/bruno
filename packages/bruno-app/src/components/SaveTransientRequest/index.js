@@ -232,9 +232,8 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       const targetFormat = targetCollection.format || DEFAULT_COLLECTION_FORMAT;
       const sourceFormat = collection.format || DEFAULT_COLLECTION_FORMAT;
       const targetFilename = resolveRequestFilename(sanitizedFilename, targetFormat);
-      const targetPathname = path.join(targetDirname, targetFilename);
 
-      await ipcRenderer.invoke('renderer:save-transient-request', {
+      const { newPathname } = await ipcRenderer.invoke('renderer:save-transient-request', {
         sourcePathname: item.pathname,
         targetDirname,
         targetFilename,
@@ -249,7 +248,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
             uid: uuid(),
             type: 'OPEN_REQUEST',
             collectionUid: targetCollection.uid,
-            itemPathname: targetPathname,
+            itemPathname: newPathname,
             preview: false
           })
         );

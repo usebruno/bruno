@@ -24,7 +24,8 @@ import {
   getAllVariables,
   transformRequestToSaveToFilesystem,
   transformCollectionRootToSave,
-  flattenItems
+  flattenItems,
+  isItemTransientRequest
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
@@ -177,7 +178,7 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
     }
 
     const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
-    if (isTransient) {
+    if (isTransient && !silent) {
       dispatch(addSaveTransientRequestModal({ item, collection }));
       return reject();
     }
@@ -226,10 +227,8 @@ export const saveFile = (content, itemUid, collectionUid, silent = false) => asy
   }
 
   const isTransient = tempDirectory && item.pathname.startsWith(tempDirectory);
-  if (isTransient) {
-    if (!silent) {
-      dispatch(addSaveTransientRequestModal({ item, collection }));
-    }
+  if (isTransient && !silent) {
+    dispatch(addSaveTransientRequestModal({ item, collection }));
     throw new Error('Cannot save transient request');
   }
 
@@ -249,6 +248,14 @@ export const saveFile = (content, itemUid, collectionUid, silent = false) => asy
 
   try {
     await ipcRenderer.invoke('renderer:save-file', item.pathname, content);
+    if (isTransient && silent) {
+      dispatch(
+        _saveRequest({
+          itemUid,
+          collectionUid
+        })
+      );
+    }
     if (!silent) {
       toast.success('File saved successfully!');
     }
@@ -257,6 +264,38 @@ export const saveFile = (content, itemUid, collectionUid, silent = false) => asy
       toast.error('Failed to save file!');
     }
     throw err;
+  }
+};
+
+export const persistTransientDraftsBeforeQuit = () => async (dispatch, getState) => {
+  const state = getState();
+  const saveOperations = [];
+
+  state.collections.collections.forEach((collection) => {
+    flattenItems(collection.items || []).forEach((item) => {
+      if (!item.draft || !isItemTransientRequest(item)) {
+        return;
+      }
+
+      if (collection.fileMode && typeof item.draft.raw === 'string') {
+        saveOperations.push(dispatch(saveFile(item.draft.raw, item.uid, collection.uid, true)));
+        return;
+      }
+
+      if (isItemARequest(item)) {
+        saveOperations.push(dispatch(saveRequest(item.uid, collection.uid, true)));
+      }
+    });
+  });
+
+  try {
+    const results = await Promise.allSettled(saveOperations);
+    const rejected = results.find((result) => result.status === 'rejected');
+    if (rejected) {
+      throw rejected.reason;
+    }
+  } finally {
+    await flushSnapshotNow(getState);
   }
 };
 
