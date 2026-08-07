@@ -1106,12 +1106,12 @@ const openCollectionSettings = async (page: Page, collectionName: string, { pers
 };
 
 const openVariablesTab = async (page: Page) => {
-  await test.step('Open the Variables tab', async () => {
-    await page.getByTestId('more-actions').click();
-    await page.getByTestId('more-actions-variables').click();
-    await expect(
-      page.locator('.request-tab').filter({ has: page.getByText('Variables', { exact: true }) })
-    ).toBeVisible();
+  await test.step('Open the Variables tab from the collection overflow menu', async () => {
+    const locators = buildCommonLocators(page);
+
+    await locators.collectionHeader.overflowMenu().click();
+    await locators.collectionHeader.overflowMenuItem('variables').click();
+    await expect(locators.tabs.requestTab('Variables')).toBeVisible();
   });
 };
 

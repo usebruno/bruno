@@ -40,7 +40,7 @@ const executeRequestOnFailHandler = async (request, error) => {
   try {
     return await request.onFailHandler(error);
   } catch (handlerError) {
-    console.error(chalk.red('Error executing onFail handler:') + ` ${handlerError?.message || handlerError}`);
+    console.error(chalk.red(`Error executing onFail handler: ${handlerError?.message || 'Unknown error'}`));
     return null;
   }
 };
