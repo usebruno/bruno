@@ -7,7 +7,8 @@ const SELECT_MODIFIER: 'Meta' | 'Control' = process.platform === 'darwin' ? 'Met
 
 // Clears selection and anchor to prevent setup state from bleeding into tests.
 const clickEmptySidebarSpace = async (page) => {
-  const listBox = await page.locator('.collections-list').boundingBox();
+  const locators = buildCommonLocators(page);
+  const listBox = await locators.sidebar.collectionsContainer().boundingBox();
   await page.mouse.click(listBox.x + 10, listBox.y + listBox.height - 10);
 };
 
@@ -160,13 +161,11 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
     await locators.sidebar.itemRow('Folder A').dragTo(locators.sidebar.collection(collectionBName));
 
-    const targetScope = locators.sidebar.collectionScope(collectionBName);
-    await expect(targetScope.locator('.collection-item-name').filter({ hasText: 'Folder A' })).toBeVisible();
-    await expect(targetScope.locator('.collection-item-name').filter({ hasText: 'Req Root' })).toBeVisible();
+    await expect(locators.sidebar.scopedFolder(collectionBName, 'Folder A')).toBeVisible();
+    await expect(locators.sidebar.scopedRequest(collectionBName, 'Req Root')).toBeVisible();
 
-    const sourceScope = locators.sidebar.collectionScope(collectionAName);
-    await expect(sourceScope.locator('.collection-item-name').filter({ hasText: 'Folder A' })).toHaveCount(0);
-    await expect(sourceScope.locator('.collection-item-name').filter({ hasText: 'Req Root' })).toHaveCount(0);
+    await expect(locators.sidebar.scopedFolder(collectionAName, 'Folder A')).toHaveCount(0);
+    await expect(locators.sidebar.scopedRequest(collectionAName, 'Req Root')).toHaveCount(0);
   });
 
   test('Plain click on a new row clears an existing multi-selection', async ({ page, createTmpDir }) => {
@@ -198,8 +197,8 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await locators.sidebar.collectionRow(collectionAName).click({ button: 'right' });
 
     // Exclude "Others" items to prevent ambiguous lookups for "Remove" and "Collapse".
-    const removeItem = page.locator('.dropdown-item').filter({ hasText: 'Remove' }).filter({ hasNotText: 'Others' });
-    const collapseItem = page.locator('.dropdown-item').filter({ hasText: 'Collapse' }).filter({ hasNotText: 'Others' });
+    const removeItem = locators.dropdown.item('Remove', true);
+    const collapseItem = locators.dropdown.item('Collapse', true);
 
     await expect(removeItem).toBeVisible();
     await expect(collapseItem).toBeVisible();
@@ -215,8 +214,8 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
     await locators.sidebar.collection(collectionAName).click({ modifiers: [SELECT_MODIFIER] });
 
-    const collapseOthersItem = page.locator('.dropdown-item').filter({ hasText: 'Collapse Others' });
-    const expandOthersItem = page.locator('.dropdown-item').filter({ hasText: 'Expand Others' });
+    const collapseOthersItem = locators.dropdown.item('Collapse Others');
+    const expandOthersItem = locators.dropdown.item('Expand Others');
 
     await test.step('Collection B starts expanded, so the item reads "Collapse Others"', async () => {
       await locators.sidebar.collectionRow(collectionAName).click({ button: 'right' });
@@ -242,8 +241,8 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await locators.sidebar.itemRow('Req Root').click({ button: 'right' });
 
     // Excludes "Collapse Others"/"Remove Others" so the lookup isn't ambiguous with those labels.
-    const collapseItem = page.locator('.dropdown-item').filter({ hasText: 'Collapse' }).filter({ hasNotText: 'Others' });
-    const removeItem = page.locator('.dropdown-item').filter({ hasText: 'Remove' }).filter({ hasNotText: 'Others' });
+    const collapseItem = locators.dropdown.item('Collapse', true);
+    const removeItem = locators.dropdown.item('Remove', true);
     await expect(collapseItem).toBeVisible();
     await expect(removeItem).not.toBeVisible();
     await expect(locators.dropdown.item('Delete')).not.toBeVisible();
@@ -315,7 +314,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await locators.sidebar.collection(collectionAName).click({ modifiers: [SELECT_MODIFIER] });
     await locators.sidebar.collection(collectionBName).click({ modifiers: [SELECT_MODIFIER] });
 
-    const removeItem = page.locator('.dropdown-item').filter({ hasText: 'Remove' }).filter({ hasNotText: 'Others' });
+    const removeItem = locators.dropdown.item('Remove', true);
 
     await test.step('Cancelling leaves both collections selected and open', async () => {
       await locators.sidebar.collectionRow(collectionAName).click({ button: 'right' });
@@ -351,7 +350,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await locators.sidebar.collectionRow(collectionAName).click({ button: 'right' });
 
     // Exclude "Others" items to prevent ambiguous lookups for "Remove".
-    const removeItem = page.locator('.dropdown-item').filter({ hasText: 'Remove' }).filter({ hasNotText: 'Others' });
+    const removeItem = locators.dropdown.item('Remove', true);
     await expect(removeItem).toBeVisible();
     await removeItem.click();
 

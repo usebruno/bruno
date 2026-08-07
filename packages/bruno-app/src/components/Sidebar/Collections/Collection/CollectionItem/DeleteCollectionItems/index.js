@@ -4,9 +4,8 @@ import { useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
 import { deleteItem, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { recursivelyGetAllItemUids } from 'utils/collections/index';
-
-const pluralize = (count, noun) => `${count} ${noun}${count === 1 ? '' : 's'}`;
+import { recursivelyGetAllItemUids, isItemAFolder, isItemARequest } from 'utils/collections/index';
+import { pluralizeWord } from 'utils/common';
 
 const DeleteCollectionItems = ({ entries, onClose }) => {
   const dispatch = useDispatch();
@@ -15,32 +14,30 @@ const DeleteCollectionItems = ({ entries, onClose }) => {
     return null;
   }
 
-  const folderCount = entries.filter((entry) => entry.type === 'folder').length;
-  const requestCount = entries.filter((entry) => entry.type === 'request').length;
+  const folderCount = entries.filter((entry) => isItemAFolder(entry.item)).length;
+  const requestCount = entries.filter((entry) => isItemARequest(entry.item)).length;
 
   const description = entries.length === 1 ? (
     <span className="font-medium">{entries[0].item.name}</span>
   ) : (
     [
-      folderCount > 0 ? pluralize(folderCount, 'folder') : null,
-      requestCount > 0 ? pluralize(requestCount, 'request') : null
+      folderCount > 0 ? `${folderCount} ${pluralizeWord('folder', folderCount)}` : null,
+      requestCount > 0 ? `${requestCount} ${pluralizeWord('request', requestCount)}` : null
     ]
       .filter(Boolean)
       .join(' and ')
   );
 
-  const title = entries.length === 1
-    ? `Delete ${entries[0].type === 'folder' ? 'Folder' : 'Request'}`
-    : folderCount > 0 && requestCount > 0
-      ? 'Delete Items'
-      : folderCount > 0
-        ? 'Delete Folders'
-        : 'Delete Requests';
+  const title = folderCount > 0 && requestCount > 0
+    ? 'Delete Items'
+    : folderCount > 0
+      ? `Delete ${pluralizeWord('Folder', folderCount)}`
+      : `Delete ${pluralizeWord('Request', requestCount)}`;
 
   const onConfirm = () => {
     const deletions = entries.map((entry) =>
       dispatch(deleteItem(entry.uid, entry.collectionUid)).then(() => {
-        const tabUids = entry.type === 'folder'
+        const tabUids = isItemAFolder(entry.item)
           ? [...recursivelyGetAllItemUids(entry.item.items), entry.uid]
           : [entry.uid];
         dispatch(closeTabs({ tabUids }));

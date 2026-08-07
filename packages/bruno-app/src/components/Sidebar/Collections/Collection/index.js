@@ -36,7 +36,7 @@ import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import NewApp from 'components/Sidebar/NewApp';
 import CollectionItem from './CollectionItem';
-import RemoveCollection from './RemoveCollection';
+import RemoveCollections from './RemoveCollections';
 import MoveToWorkspace from './MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
@@ -584,7 +584,7 @@ const Collection = ({ collection, searchText }) => {
         <RenameCollection collectionUid={collection.uid} onClose={() => setShowRenameCollectionModal(false)} />
       )}
       {showRemoveCollectionModal && (
-        <RemoveCollection collectionUid={collection.uid} onClose={() => setShowRemoveCollectionModal(false)} />
+        <RemoveCollections collectionUid={collection.uid} onClose={() => setShowRemoveCollectionModal(false)} />
       )}
       {showMoveToWorkspaceModal && (
         <MoveToWorkspace collectionUid={collection.uid} onClose={() => setShowMoveToWorkspaceModal(false)} />

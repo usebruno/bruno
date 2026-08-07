@@ -40,6 +40,10 @@ export const buildSidebarLocators = (page: Page) => {
     // The sidebar tree wraps each collection in `#collection-<slug>`; scope queries
     // to it to disambiguate items that share names across collections.
     collectionScope: (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`),
+    scopedFolder: (collectionName: string, folderName: string) =>
+      page.locator(`#collection-${collectionName.replace(/\s+/g, '-').toLowerCase()}`).locator('.collection-item-name').filter({ hasText: folderName }),
+    scopedRequest: (collectionName: string, requestName: string) =>
+      page.locator(`#collection-${collectionName.replace(/\s+/g, '-').toLowerCase()}`).locator('.collection-item-name').filter({ hasText: requestName }),
     dragHandle: () => page.getByTestId('sidebar-drag-handle'),
     toggleSidebarButton: () => page.getByTestId('toggle-sidebar-button'),
     sidebarContainer: () => page.getByTestId('sidebar')

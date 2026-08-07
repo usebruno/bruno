@@ -10,7 +10,7 @@ import ConfirmCollectionCloseDrafts from './ConfirmCollectionCloseDrafts';
 import StyledWrapper from './StyledWrapper';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 
-const RemoveCollection = ({ onClose, collectionUid, collectionUids }) => {
+const RemoveCollections = ({ onClose, collectionUid, collectionUids }) => {
   const dispatch = useDispatch();
   const allCollections = useSelector((state) => state.collections.collections || []);
 
@@ -114,4 +114,4 @@ const RemoveCollection = ({ onClose, collectionUid, collectionUids }) => {
   );
 };
 
-export default RemoveCollection;
+export default RemoveCollections;
