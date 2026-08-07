@@ -177,15 +177,17 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
         handleSearchBarClose();
-      } else if (e.code === 'KeyF' && (e.metaKey || e.ctrlKey) && !e.altKey) {
+      } else if (e.key.toLowerCase() === 'f' && (e.metaKey || e.ctrlKey) && !e.altKey) {
         // Cmd/Ctrl+F while focus is inside the bar. select search input
         e.preventDefault();
         e.stopPropagation();
         inputRef.current?.focus();
         inputRef.current?.select();
       } else if (
-        (e.code === 'KeyF' && (e.metaKey || e.ctrlKey) && e.altKey)
-        || (e.code === 'KeyH' && e.ctrlKey && !e.metaKey && !e.altKey)
+        // Cmd+Option+F (Mac): Option remaps 'f' → 'ƒ' (florin) on QWERTY.
+        // accept plain 'f' for non-Mac layouts where Alt doesn't remap characters.
+        ((e.key.toLowerCase() === 'f' || e.key === 'ƒ') && (e.metaKey || e.ctrlKey) && e.altKey)
+        || (e.key.toLowerCase() === 'h' && e.ctrlKey && !e.metaKey && !e.altKey)
       ) {
         // Cmd+Option+F (Mac) or Ctrl+H (Win/Linux). open replace and focus it
         e.preventDefault();
