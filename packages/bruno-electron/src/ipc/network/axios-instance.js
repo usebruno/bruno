@@ -9,6 +9,7 @@ const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
 const { isSameOrigin } = require('@usebruno/common').utils;
+const { getSentHeaders } = require('@usebruno/requests');
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -38,33 +39,6 @@ const getTld = (hostname) => {
   }
 
   return hostname.substring(hostname.lastIndexOf('.') + 1);
-};
-
-/** The serialized block is the request verbatim: getHeaders() lowercases every name, and
- *  Connection is missing from it since _storeHeader writes that one straight to the wire. */
-const getSentHeaders = (clientRequest) => {
-  const headerBlock = clientRequest?._header;
-  if (typeof headerBlock !== 'string' || !headerBlock) return {};
-
-  const lines = headerBlock.split(/\r?\n/);
-  const sentHeaders = {};
-
-  // Start at i = 1 to skip the request line ("GET /path HTTP/1.1")
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    const colonIdx = line.indexOf(':');
-
-    if (colonIdx > 0) {
-      const name = line.slice(0, colonIdx).trim();
-      const value = line.slice(colonIdx + 1).trim();
-
-      /** The proxy agent injects this credential and the user never authored it, so the header
-       *  stays visible but its value never is, in the timeline or in `request.headers`. */
-      sentHeaders[name] = name.toLowerCase() === 'proxy-authorization' ? '*'.repeat(value.length) : value;
-    }
-  }
-
-  return sentHeaders;
 };
 
 const checkConnection = (host, port) =>

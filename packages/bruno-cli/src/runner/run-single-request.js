@@ -19,7 +19,7 @@ const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig, applySentHeadersToRequest } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme } = require('@usebruno/common').utils;
@@ -773,6 +773,7 @@ const runSingleRequest = async function (
     }
 
     response.responseTime = responseTime;
+    applySentHeadersToRequest(request, response);
 
     console.log(
       chalk.green(stripExtension(relativeItemPathname))

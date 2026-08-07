@@ -15,7 +15,7 @@ const { encodeUrl, hasExplicitScheme } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
-const { addDigestInterceptor, addEdgeGridInterceptor } = require('@usebruno/requests');
+const { addDigestInterceptor, addEdgeGridInterceptor, applySentHeadersToRequest } = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
@@ -73,19 +73,6 @@ const getJsSandboxRuntime = (collection) => {
 const hasStreamHeaders = (headers) => {
   const headerSplit = (headers.get('content-type') ?? '').split(';').map((d) => d.trim());
   return headerSplit.indexOf('text/event-stream') > -1;
-};
-
-/** Transport headers (Host, Connection, ...) exist only once the request is on the wire, so fold
- *  them in for post-response vars and scripts. Never overwrites, so the content-type sentinel
- *  survives, and they lead the object the way they lead the timeline. */
-const applySentHeadersToRequest = (request, response) => {
-  if (!request?.headers || !response?.sentHeaders) return;
-  const existing = new Set(Object.keys(request.headers).map((name) => name.toLowerCase()));
-  const sentHeaders = {};
-  Object.entries(response.sentHeaders).forEach(([key, value]) => {
-    if (!existing.has(key.toLowerCase())) sentHeaders[key] = value;
-  });
-  request.headers = { ...sentHeaders, ...request.headers };
 };
 
 const buildResponseBodyFromStreamChunks = (sseChunks, headers, disableParsingResponseJson) => {

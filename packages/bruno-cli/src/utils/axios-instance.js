@@ -4,6 +4,7 @@ const { addCookieToJar, getCookieStringForUrl } = require('./cookies');
 const { createFormData } = require('./form-data');
 const { setupProxyAgents } = require('./proxy-util');
 const { isSameOrigin } = require('@usebruno/common').utils;
+const { getSentHeaders } = require('@usebruno/requests');
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
@@ -138,6 +139,7 @@ function makeAxiosInstance({
       const start = response.config.headers['request-start-time'];
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
+      response.sentHeaders = getSentHeaders(response.request);
 
       return response;
     },
@@ -146,6 +148,7 @@ function makeAxiosInstance({
         const end = Date.now();
         const start = error.config.headers['request-start-time'];
         error.response.headers['request-duration'] = end - start;
+        error.response.sentHeaders = getSentHeaders(error.response.request || error.request);
 
         if (redirectResponseCodes.includes(error.response.status)) {
           if (!followRedirects) {
