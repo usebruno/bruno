@@ -2,7 +2,7 @@ const { get, each, filter, find } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
-const { getTreePathFromCollectionToItem, mergeHeaders, buildFinalHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
+const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials, mergeAuth } = require('../../utils/collection');
 const path = require('node:path');
 const { isLargeFile } = require('../../utils/filesystem');
 
@@ -415,13 +415,11 @@ const prepareRequest = async (item, collection = {}, abortController) => {
     }
   });
 
-  const finalHeaders = buildFinalHeaders(request.headers, headers);
-
   let axiosRequest = {
     mode: request.body.mode,
     method: request.method,
     url,
-    headers: finalHeaders,
+    headers,
     disabledHeaders,
     name: item.name,
     pathname: item.pathname,

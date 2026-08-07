@@ -45,7 +45,7 @@ const NetworkLogsEntry = ({ entry }) => {
       className = 'network-logs-entry network-logs-entry--info';
       break;
     case 'requestHeader':
-      className = 'network-logs-entry network-logs-entry--header';
+      className = 'network-logs-entry';
       break;
     default:
       className = 'network-logs-entry';

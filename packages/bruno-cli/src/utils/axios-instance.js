@@ -144,11 +144,12 @@ function makeAxiosInstance({
       return response;
     },
     async (error) => {
+      error.sentHeaders = getSentHeaders(error.response?.request || error.request);
       if (error.response) {
         const end = Date.now();
         const start = error.config.headers['request-start-time'];
         error.response.headers['request-duration'] = end - start;
-        error.response.sentHeaders = getSentHeaders(error.response.request || error.request);
+        error.response.sentHeaders = error.sentHeaders;
 
         if (redirectResponseCodes.includes(error.response.status)) {
           if (!followRedirects) {

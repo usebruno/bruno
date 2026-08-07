@@ -1,6 +1,6 @@
 const { cloneDeep, each, get } = require('lodash');
 const interpolateVars = require('./interpolate-vars');
-const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, buildFinalHeaders, mergeScripts, mergeVars, mergeAuth, getFormattedCollectionOauth2Credentials } = require('../../utils/collection');
+const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, mergeAuth, getFormattedCollectionOauth2Credentials } = require('../../utils/collection');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingAuthorizationCode } = require('../../utils/oauth2');
 const { setAuthHeaders } = require('./prepare-request');
@@ -121,7 +121,6 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
   const request = item.draft ? item.draft.request : item.request;
   const collectionRoot = collection?.draft?.root ? get(collection, 'draft.root', {}) : get(collection, 'root', {});
   const headers = {};
-  let mergedHeaders = [];
   const url = request.url;
   const { promptVariables = {} } = collection;
 
@@ -143,8 +142,6 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     }
   });
 
-  const finalHeaders = buildFinalHeaders(request.headers, headers);
-
   const processEnvVars = getProcessEnvVars(collection.uid);
   const envVars = getEnvVars(environment);
 
@@ -154,7 +151,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     method: request.method,
     methodType: request.methodType,
     url,
-    headers: finalHeaders,
+    headers,
     processEnvVars,
     envVars,
     runtimeVariables,

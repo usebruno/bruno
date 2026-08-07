@@ -16,6 +16,8 @@ const Request = ({ collection, request, item, response }) => {
   let { headers, data, dataBuffer, error } = request || {};
 
   const sentHeaders = sentHeadersFromTimeline(response?.timeline);
+  /** In case of `bru.sendRequest` it builds its own entry in timeline,
+   * so to show the headers sent in new request we need headers not sentHeaders */
   const displayedHeaders = sentHeaders.length ? sentHeaders : headers;
   if (!dataBuffer) {
     dataBuffer = Buffer.from(safeStringifyJSONIfNotString(data))?.toString('base64');

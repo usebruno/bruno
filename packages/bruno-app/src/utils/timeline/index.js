@@ -12,6 +12,8 @@ export const sentHeadersFromTimeline = (timeline) => {
     const item = timeline[i];
     const isHeader = item?.type === 'requestHeader';
 
+    /** we go in backward as the first header found opens the last hop's run and the next non-header
+     *  closes it, so the earlier hops above it are left alone. */
     if (foundBlock && !isHeader) break;
     if (!isHeader) continue;
 

@@ -740,6 +740,7 @@ const runSingleRequest = async function (
         }
       } else {
         console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
+        applySentHeadersToRequest(request, err);
         return {
           test: {
             filename: relativeItemPathname

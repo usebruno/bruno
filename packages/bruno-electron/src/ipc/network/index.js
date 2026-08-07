@@ -1935,8 +1935,7 @@ const registerNetworkIpc = (mainWindow) => {
                   size: Buffer.byteLength(dataBuffer),
                   data: error.response.data,
                   responseTime: error.response.responseTime,
-                  timeline: error.response.timeline,
-                  sentHeaders: error.response.sentHeaders
+                  timeline: error.response.timeline
                 };
 
                 // if we get a response from the server, we consider it as a success

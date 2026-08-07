@@ -1,5 +1,5 @@
 import { Page, expect, test } from '../../../playwright';
-import { buildSandboxLocators } from './locators';
+import { buildCommonLocators, buildSandboxLocators } from './locators';
 
 /**
  * Builds locators for the runner results view
@@ -137,9 +137,10 @@ export const openRunnerResultTimeline = async (page: Page, requestName: string) 
     const timelineTab = page.locator('[role="tab"]').filter({ hasText: 'Timeline' }).last();
     await timelineTab.click();
 
+    const { timeline } = buildCommonLocators(page);
     const entry = locators.resultTimelineEntries().first();
     await entry.waitFor({ state: 'visible', timeout: 10000 });
-    await entry.getByTestId('timeline-item-header').click();
+    await timeline.itemHeader(entry).click();
   });
 };
 
