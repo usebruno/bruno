@@ -263,7 +263,11 @@ const ProxySettings = ({ close }) => {
                     name="config.protocol"
                     value="socks4"
                     checked={formik.values.config.protocol === 'socks4'}
-                    onChange={formik.handleChange}
+                    onChange={(e) => {
+                      formik.handleChange(e);
+                      // Kerberos applies to HTTP proxies only
+                      formik.setFieldValue('config.auth.mode', 'basic');
+                    }}
                     className="mr-1"
                   />
                   SOCKS4
@@ -274,7 +278,11 @@ const ProxySettings = ({ close }) => {
                     name="config.protocol"
                     value="socks5"
                     checked={formik.values.config.protocol === 'socks5'}
-                    onChange={formik.handleChange}
+                    onChange={(e) => {
+                      formik.handleChange(e);
+                      // Kerberos applies to HTTP proxies only
+                      formik.setFieldValue('config.auth.mode', 'basic');
+                    }}
                     className="mr-1"
                   />
                   SOCKS5
@@ -336,35 +344,37 @@ const ProxySettings = ({ close }) => {
                 className="mousetrap mr-0"
               />
             </div>
-            <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="config.auth.mode">
-                Auth Type
-              </label>
-              <div className="flex items-center">
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    name="config.auth.mode"
-                    value="basic"
-                    checked={(formik.values.config.auth.mode || 'basic') === 'basic'}
-                    onChange={formik.handleChange}
-                    className="mr-1 cursor-pointer"
-                  />
-                  Basic
+            {!formik.values.config.protocol.includes('socks') ? (
+              <div className="mb-3 flex items-center">
+                <label className="settings-label" htmlFor="config.auth.mode">
+                  Auth Type
                 </label>
-                <label className="flex items-center ml-4 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="config.auth.mode"
-                    value="kerberos"
-                    checked={formik.values.config.auth.mode === 'kerberos'}
-                    onChange={formik.handleChange}
-                    className="mr-1 cursor-pointer"
-                  />
-                  Kerberos (SPNEGO)
-                </label>
+                <div className="flex items-center">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="config.auth.mode"
+                      value="basic"
+                      checked={(formik.values.config.auth.mode || 'basic') === 'basic'}
+                      onChange={formik.handleChange}
+                      className="mr-1 cursor-pointer"
+                    />
+                    Basic
+                  </label>
+                  <label className="flex items-center ml-4 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="config.auth.mode"
+                      value="kerberos"
+                      checked={formik.values.config.auth.mode === 'kerberos'}
+                      onChange={formik.handleChange}
+                      className="mr-1 cursor-pointer"
+                    />
+                    Kerberos (SPNEGO)
+                  </label>
+                </div>
               </div>
-            </div>
+            ) : null}
             {formik.values.config.auth.mode === 'kerberos' ? (
               <div className="mb-3 flex items-center">
                 <label className="settings-label"></label>

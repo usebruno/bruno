@@ -4,12 +4,12 @@ const jestClearModules = () => {
 };
 
 /** Mock every external dependency that proxy-util pulls in so tests are isolated. */
-const setupMocks = ({ pacDirectives = ['PROXY p.example:8080'] } = {}) => {
+const setupMocks = ({ pacDirectives = ['PROXY p.example:8080'], kerberosProxyAuth = false } = {}) => {
   // Preferences — controls SSL session cache flag
   jest.doMock('../src/store/preferences', () => ({
     preferencesUtil: {
       isSslSessionCachingEnabled: () => false,
-      shouldUseKerberosProxyAuth: () => false
+      shouldUseKerberosProxyAuth: () => kerberosProxyAuth
     }
   }));
 
@@ -182,5 +182,46 @@ describe('proxy-util', () => {
     // Fallback direct agent should be set for the http request
     expect(requestConfig.httpAgent).toBeDefined();
     expect(getOrCreateHttpAgent).toHaveBeenCalledWith(expect.objectContaining({ proxyUri: null }));
+  });
+
+  test('setupProxyAgents: PAC with Kerberos preference passes kerberosProxyAuth to resolveAgentsFromPac', async () => {
+    setupMocks({ kerberosProxyAuth: true });
+    const { setupProxyAgents } = require('../src/utils/proxy-util');
+    const { resolveAgentsFromPac } = require('@usebruno/requests');
+
+    const requestConfig = { url: 'https://example.com/resource' };
+    await setupProxyAgents({
+      requestConfig,
+      proxyMode: 'pac',
+      proxyConfig: { pac: { source: 'http://pac-server/proxy.pac' } },
+      httpsAgentRequestFields: {},
+      interpolationOptions: {},
+      timeline: []
+    });
+
+    expect(resolveAgentsFromPac).toHaveBeenCalledWith(expect.objectContaining({ kerberosProxyAuth: true }));
+  });
+
+  test('setupProxyAgents: system proxy with Kerberos preference passes kerberosProxyAuth to the https agent', async () => {
+    setupMocks({ kerberosProxyAuth: true });
+    const { setupProxyAgents } = require('../src/utils/proxy-util');
+    const { getOrCreateHttpsAgent } = require('@usebruno/requests');
+
+    const requestConfig = { url: 'https://example.com/resource' };
+    await setupProxyAgents({
+      requestConfig,
+      proxyMode: 'system',
+      proxyConfig: { https_proxy: 'http://sysproxy.example:8080' },
+      httpsAgentRequestFields: {},
+      interpolationOptions: {},
+      timeline: []
+    });
+
+    expect(getOrCreateHttpsAgent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        proxyUri: 'http://sysproxy.example:8080',
+        options: expect.objectContaining({ kerberosProxyAuth: true })
+      })
+    );
   });
 });

@@ -222,10 +222,24 @@ const TARGET_TLS_OPTIONS = ['cert', 'key', 'pfx', 'passphrase', 'rejectUnauthori
  */
 export class PatchedHttpsProxyAgent extends HttpsProxyAgent<any> {
   private constructorOpts: any;
+  private kerberosTokenQueue: string[] = [];
 
   constructor(proxy: string, opts: any) {
     super(proxy, opts);
     this.constructorOpts = opts;
+    if (opts?.kerberosProxyAuth) {
+      // Cached agents are shared, so concurrent connect() calls must not
+      // clobber shared header state: each connect() enqueues one single-use
+      // token, and this function (invoked by the upstream agent once per
+      // CONNECT) dequeues exactly one. Tokens for the same user and proxy
+      // are interchangeable, so consumption order does not matter.
+      const baseHeaders = (this as any).proxyHeaders;
+      (this as any).proxyHeaders = () => {
+        const existing = typeof baseHeaders === 'function' ? baseHeaders() : { ...(baseHeaders || {}) };
+        const token = this.kerberosTokenQueue.shift();
+        return token ? { ...existing, 'Proxy-Authorization': token } : existing;
+      };
+    }
   }
 
   /** Establishes the CONNECT tunnel, forwarding TLS options and, when enabled, Kerberos proxy auth. */
@@ -241,13 +255,8 @@ export class PatchedHttpsProxyAgent extends HttpsProxyAgent<any> {
       }
     }
 
-    // Kerberos proxy auth: `proxyHeaders` is read synchronously at the start
-    // of super.connect(), so setting it just before the call is safe.
     if (this.constructorOpts?.kerberosProxyAuth) {
-      const authHeader = await getKerberosProxyAuthHeader(this.proxy.hostname);
-      const currentHeaders = (this as any).proxyHeaders;
-      const existingHeaders = typeof currentHeaders === 'function' ? currentHeaders() : currentHeaders;
-      (this as any).proxyHeaders = { ...existingHeaders, 'Proxy-Authorization': authHeader };
+      this.kerberosTokenQueue.push(await getKerberosProxyAuthHeader(this.proxy.hostname));
     }
 
     return super.connect(req, targetOpts);

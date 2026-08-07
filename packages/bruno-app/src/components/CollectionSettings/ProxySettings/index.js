@@ -105,10 +105,15 @@ const ProxySettings = ({ collection }) => {
   };
 
   const handleProtocolChange = (e) => {
+    const protocol = e.target.value;
     updateProxy({
       config: {
         ...currentProxyConfig.config,
-        protocol: e.target.value
+        protocol,
+        // Kerberos applies to HTTP proxies only
+        ...(protocol.includes('socks') && currentProxyConfig.config?.auth?.mode === 'kerberos'
+          ? { auth: { ...currentProxyConfig.config.auth, mode: 'basic' } }
+          : {})
       }
     });
   };
@@ -359,35 +364,37 @@ const ProxySettings = ({ collection }) => {
                 onChange={handleAuthEnabledChange}
               />
             </div>
-            <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="auth.mode">
-                Auth Type
-              </label>
-              <div className="flex items-center">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="auth.mode"
-                    value="basic"
-                    checked={(currentProxyConfig.config?.auth?.mode || 'basic') === 'basic'}
-                    onChange={handleAuthModeChange}
-                    className="mr-1"
-                  />
-                  Basic
+            {!(currentProxyConfig.config?.protocol || 'http').includes('socks') ? (
+              <div className="mb-3 flex items-center">
+                <label className="settings-label" htmlFor="auth.mode">
+                  Auth Type
                 </label>
-                <label className="flex items-center ml-4">
-                  <input
-                    type="radio"
-                    name="auth.mode"
-                    value="kerberos"
-                    checked={currentProxyConfig.config?.auth?.mode === 'kerberos'}
-                    onChange={handleAuthModeChange}
-                    className="mr-1"
-                  />
-                  Kerberos (SPNEGO)
-                </label>
+                <div className="flex items-center">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="auth.mode"
+                      value="basic"
+                      checked={(currentProxyConfig.config?.auth?.mode || 'basic') === 'basic'}
+                      onChange={handleAuthModeChange}
+                      className="mr-1"
+                    />
+                    Basic
+                  </label>
+                  <label className="flex items-center ml-4">
+                    <input
+                      type="radio"
+                      name="auth.mode"
+                      value="kerberos"
+                      checked={currentProxyConfig.config?.auth?.mode === 'kerberos'}
+                      onChange={handleAuthModeChange}
+                      className="mr-1"
+                    />
+                    Kerberos (SPNEGO)
+                  </label>
+                </div>
               </div>
-            </div>
+            ) : null}
             {currentProxyConfig.config?.auth?.mode === 'kerberos' ? (
               <div className="mb-3 flex items-center">
                 <label className="settings-label"></label>

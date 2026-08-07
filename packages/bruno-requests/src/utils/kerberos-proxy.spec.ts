@@ -274,6 +274,48 @@ describe('kerberos proxy auth', () => {
       }
     });
 
+    it('serves each concurrent CONNECT its own single-use token', async () => {
+      let mint = 0;
+      __setKerberosLoaderForTests(async () => ({
+        initializeClient: async () => ({ step: async () => `TOKEN-${++mint}` })
+      }));
+
+      const seenTokens: string[] = [];
+      const proxyServer = net.createServer((socket) => {
+        let payload = '';
+        socket.on('data', (chunk) => {
+          payload += chunk.toString('utf8');
+          if (payload.includes('\r\n\r\n')) {
+            const match = payload.match(/Proxy-Authorization: (.*)\r\n/);
+            seenTokens.push(match ? match[1] : '(none)');
+            socket.end('HTTP/1.1 407 Proxy Authentication Required\r\n\r\n');
+          }
+        });
+      });
+      await new Promise<void>((resolve) => proxyServer.listen(0, '127.0.0.1', resolve));
+      const { port } = proxyServer.address() as net.AddressInfo;
+
+      try {
+        const agent = new PatchedHttpsProxyAgent(`http://127.0.0.1:${port}`, { kerberosProxyAuth: true });
+        await Promise.all(
+          [1, 2, 3].map(
+            (i) =>
+              new Promise<void>((resolve) => {
+                const req = https.get(`https://target${i}.invalid/`, { agent }, (res) => {
+                  res.resume();
+                  resolve();
+                });
+                req.on('error', () => resolve());
+              })
+          )
+        );
+
+        expect(seenTokens.sort()).toEqual(['Negotiate TOKEN-1', 'Negotiate TOKEN-2', 'Negotiate TOKEN-3']);
+      } finally {
+        proxyServer.close();
+      }
+    });
+
     it('does not add Proxy-Authorization to the CONNECT request when the option is not set', async () => {
       let connectPayload = '';
       const proxyServer = net.createServer((socket) => {
