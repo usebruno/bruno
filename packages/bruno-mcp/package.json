@@ -1,0 +1,56 @@
+{
+  "name": "@usebruno/mcp",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Model Context Protocol server for Bruno collections — lets AI clients discover and execute Bruno requests reusing Bruno's runtime, auth, and environments.",
+  "type": "module",
+  "bin": {
+    "bruno-mcp": "./dist/index.js"
+  },
+  "bugs": {
+    "url": "https://github.com/usebruno/bruno/issues"  
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usebruno/bruno.git"
+  },
+  "keywords": [
+    "bruno",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "api-testing",
+    "claude",
+    "cursor"
+  ],
+  "files": [
+    "dist",
+    "readme.md",
+    "package.json"
+  ],
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "prebuild": "npm run clean",
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "test": "echo \"no tests yet — add jest + ts-jest and a jest.config.js when writing the first spec\" && exit 0",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@usebruno/cli": "1.16.0",
+    "js-yaml": "^4.1.0",
+    "yargs": "^17.6.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.14.1",
+    "@types/yargs": "^17.0.33",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.9.3"
+  }
+}

@@ -17,7 +17,8 @@
     "packages/bruno-graphql-docs",
     "packages/bruno-requests",
     "packages/bruno-filestore",
-    "packages/bruno-sqlite"
+    "packages/bruno-sqlite",
+    "packages/bruno-mcp"
   ],
   "homepage": "https://usebruno.com",
   "devDependencies": {
