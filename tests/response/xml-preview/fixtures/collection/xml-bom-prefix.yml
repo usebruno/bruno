@@ -1,0 +1,17 @@
+info:
+  name: xml-bom-prefix
+  type: http
+  seq: 17
+
+http:
+  method: POST
+  url: http://localhost:8081/api/echo/custom
+  body:
+    type: json
+    data: |-
+      {
+        "headers": {
+          "content-type": "application/xml"
+        },
+        "contentBase64": "77u/PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48Y2F0YWxvZz48Ym9vaz5CcnVubzwvYm9vaz48L2NhdGFsb2c+"
+      }
