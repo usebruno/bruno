@@ -1975,9 +1975,7 @@ export const collectionsSlice = createSlice({
     updateGrpcScript: (state, action) => {
       const { collectionUid, itemUid, hook, script } = action.payload;
 
-      // `hook` lands as a key on `request.script`, and grpcRequestSchema is noUnknown+strict —
-      // an unrecognised name (or an HTTP `req`/`res`) would write a field the schema rejects,
-      // making every later save of that request throw.
+      // Only allow GRPC lifecycle hooks.
       if (!GRPC_SCRIPT_KEYS.includes(hook)) {
         return;
       }

@@ -20,6 +20,8 @@ const BLOCK_TAGS = [
   'body:sparql',
   'script:pre-request',
   'script:post-response',
+  'script:grpc:before-call-start',
+  'script:grpc:after-call-end',
   'tests',
   'docs',
   'body'

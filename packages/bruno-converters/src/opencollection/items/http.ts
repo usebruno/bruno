@@ -201,7 +201,7 @@ export const toOpenCollectionHttpItem = (item: BrunoItem): HttpRequest => {
     hasRuntime = true;
   }
 
-  const scripts = toOpenCollectionScripts(brunoRequest);
+  const scripts = toOpenCollectionScripts(brunoRequest, HTTP_SCRIPT_KEYS);
   if (scripts) {
     runtime.scripts = scripts;
     hasRuntime = true;

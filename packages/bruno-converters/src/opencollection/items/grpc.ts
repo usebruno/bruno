@@ -178,7 +178,7 @@ export const toOpenCollectionGrpcItem = (item: BrunoItem): GrpcRequest => {
     grpc
   };
 
-  const scripts = toOpenCollectionScripts(request as Parameters<typeof toOpenCollectionScripts>[0]);
+  const scripts = toOpenCollectionScripts(request as Parameters<typeof toOpenCollectionScripts>[0], GRPC_SCRIPT_KEYS);
   const variables = toOpenCollectionVariables(request.vars as Parameters<typeof toOpenCollectionVariables>[0]);
   const assertions = toOpenCollectionAssertions(request.assertions as BrunoKeyValue[]);
 
