@@ -82,9 +82,8 @@ const DocsEditor = ({
         }
       },
       onCreate: ({ editor: createdEditor }) => {
-        // `HACK`: `mousetrap` bypasses Mousetrap's default "ignore all contentEditable"
-        // rule, so shortcuts Tiptap doesn't bind still reach
-        // the global handlers instead of being silently swallowed.
+        // by default Mousetrap ignores key events that originates from contenteditable elements (like TipTap's editor),
+        // adding mousetrap class to the editor's dom element will make Mousetrap listen to key events from TipTap's editor
         createdEditor.view.dom.classList.add('mousetrap');
 
         // Prevent keydown events which are bind to TipTap from bubbling up to the global Mousetrap handlers
