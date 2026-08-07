@@ -1,3 +1,7 @@
 {
-  "lastOpenedCollections": ["{{collectionPath}}"]
+  "preferences": {
+    "general": {
+      "defaultWorkspacePath": "{{workspacePath}}"
+    }
+  }
 }
