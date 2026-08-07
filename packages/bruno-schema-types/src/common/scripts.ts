@@ -3,9 +3,9 @@ export interface HTTPScripts {
   res?: string | null;
 }
 
-export interface GrpcScript {
+export interface GrpcScripts {
   beforeCallStart?: string | null;
   afterCallEnd?: string | null;
 }
 
-export interface Script extends HTTPScripts, GrpcScript {}
+export interface Script extends HTTPScripts, GrpcScripts {}
