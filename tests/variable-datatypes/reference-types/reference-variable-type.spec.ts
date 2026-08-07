@@ -32,25 +32,27 @@ test.describe('DataType selector — referenced variable type', () => {
       await expectNotFlagged(page, 'globalEnvBoolean');
       await expectNotFlagged(page, 'globalEnvObject');
       await expectNotFlagged(page, 'globalEnvNestedObject');
+      await expectNotFlagged(page, 'globalEnvObject.port');
     });
 
     await test.step('Same-type references are not flagged', async () => {
-      await expectNotFlagged(page, 'matchingStringReference');
-      await expectNotFlagged(page, 'matchingNumberReference');
-      await expectNotFlagged(page, 'matchingBooleanReference');
-      await expectNotFlagged(page, 'matchingObjectReference');
-      await expectNotFlagged(page, 'matchingNestedStringReference');
-      await expectNotFlagged(page, 'matchingNestedNumberReference');
-      await expectNotFlagged(page, 'matchingNestedBooleanReference');
+      await expectNotFlagged(page, 'stringTypeRefersToString');
+      await expectNotFlagged(page, 'numberTypeRefersToNumber');
+      await expectNotFlagged(page, 'booleanTypeRefersToBoolean');
+      await expectNotFlagged(page, 'objectTypeRefersToObject');
+      await expectNotFlagged(page, 'stringTypeRefersToNestedString');
+      await expectNotFlagged(page, 'numberTypeRefersToNestedNumber');
+      await expectNotFlagged(page, 'booleanTypeRefersToNestedBoolean');
+      await expectNotFlagged(page, 'booleanTypeRefersToDottedKey');
     });
 
     await test.step('Different-type references are flagged', async () => {
-      await expectFlagged(page, 'mismatchedStringReference');
-      await expectFlagged(page, 'mismatchedNumberReference');
-      await expectFlagged(page, 'mismatchedBooleanReference');
-      await expectFlagged(page, 'mismatchedObjectReference');
-      await expectFlagged(page, 'mismatchedNestedNumberReference');
-      await expectFlagged(page, 'mismatchedNestedBooleanReference');
+      await expectFlagged(page, 'stringTypeRefersToNumber');
+      await expectFlagged(page, 'numberTypeRefersToString');
+      await expectFlagged(page, 'booleanTypeRefersToObject');
+      await expectFlagged(page, 'objectTypeRefersToBoolean');
+      await expectFlagged(page, 'numberTypeRefersToNestedString');
+      await expectFlagged(page, 'booleanTypeRefersToNestedNumber');
     });
 
     await test.step('Open the collection environment', async () => {
@@ -59,22 +61,22 @@ test.describe('DataType selector — referenced variable type', () => {
     });
 
     await test.step('Same-type references from a collection environment are not flagged', async () => {
-      await expectNotFlagged(page, 'matchingGlobalStringReference');
-      await expectNotFlagged(page, 'matchingGlobalNumberReference');
-      await expectNotFlagged(page, 'matchingGlobalBooleanReference');
-      await expectNotFlagged(page, 'matchingGlobalObjectReference');
-      await expectNotFlagged(page, 'matchingGlobalNestedStringReference');
-      await expectNotFlagged(page, 'matchingGlobalNestedNumberReference');
-      await expectNotFlagged(page, 'matchingGlobalNestedBooleanReference');
+      await expectNotFlagged(page, 'stringTypeRefersToGlobalString');
+      await expectNotFlagged(page, 'numberTypeRefersToGlobalNumber');
+      await expectNotFlagged(page, 'booleanTypeRefersToGlobalBoolean');
+      await expectNotFlagged(page, 'objectTypeRefersToGlobalObject');
+      await expectNotFlagged(page, 'stringTypeRefersToGlobalNestedString');
+      await expectNotFlagged(page, 'numberTypeRefersToGlobalNestedNumber');
+      await expectNotFlagged(page, 'booleanTypeRefersToGlobalNestedBoolean');
     });
 
     await test.step('Different-type references from a collection environment are flagged', async () => {
-      await expectFlagged(page, 'mismatchedGlobalStringReference');
-      await expectFlagged(page, 'mismatchedGlobalNumberReference');
-      await expectFlagged(page, 'mismatchedGlobalBooleanReference');
-      await expectFlagged(page, 'mismatchedGlobalObjectReference');
-      await expectFlagged(page, 'mismatchedGlobalNestedNumberReference');
-      await expectFlagged(page, 'mismatchedGlobalNestedBooleanReference');
+      await expectFlagged(page, 'stringTypeRefersToGlobalNumber');
+      await expectFlagged(page, 'numberTypeRefersToGlobalString');
+      await expectFlagged(page, 'booleanTypeRefersToGlobalObject');
+      await expectFlagged(page, 'objectTypeRefersToGlobalBoolean');
+      await expectFlagged(page, 'numberTypeRefersToGlobalNestedString');
+      await expectFlagged(page, 'booleanTypeRefersToGlobalNestedNumber');
     });
   });
 });
