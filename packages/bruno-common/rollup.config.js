@@ -4,7 +4,7 @@ const typescript = require('@rollup/plugin-typescript');
 const dts = require('rollup-plugin-dts');
 const terser = require('@rollup/plugin-terser').default;
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
-
+const os = require('os');
 const packageJson = require('./package.json');
 
 function createBuildConfig({ inputDir, input, cjsOutput, esmOutput, dtsOutput, external = [] }) {
@@ -32,7 +32,9 @@ function createBuildConfig({ inputDir, input, cjsOutput, esmOutput, dtsOutput, e
           tsconfig: './tsconfig.json',
           include: [inputDir]
         }),
-        terser()
+        terser({
+          maxWorkers: Math.max(1, os.cpus().length || os.availableParallelism())
+        })
       ],
       treeshake: {
         moduleSideEffects: false

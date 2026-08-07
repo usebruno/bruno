@@ -4,6 +4,7 @@ const typescript = require('@rollup/plugin-typescript');
 const json = require('@rollup/plugin-json');
 const terser = require('@rollup/plugin-terser').default;
 const dts = require('rollup-plugin-dts').default;
+const os = require('os');
 
 const nodeExternal = ['node:sqlite', 'node:crypto', 'crypto', 'fs', 'path'];
 const webExternal = ['react', 'react-dom', 'react/jsx-runtime', '@tanstack/react-query'];
@@ -17,7 +18,9 @@ const jsPlugins = [
     declaration: false,
     declarationMap: false
   }),
-  terser()
+  terser({
+    maxWorkers: Math.max(1, os.cpus().length || os.availableParallelism())
+  })
 ];
 
 const jsOutputs = (target) => [
