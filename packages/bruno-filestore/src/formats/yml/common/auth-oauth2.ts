@@ -64,12 +64,31 @@ const mapAdditionalParameters = (params?: BrunoOAuthAdditionalParameter[] | null
   return mapped.length > 0 ? mapped : undefined;
 };
 
+// Map Bruno's tokenEndpointAuthMethod (RFC 7591 §2 / OIDC Core §9) to OpenCollection's placement.
+// OpenCollection only models client_secret_basic / client_secret_post; the JWT-bearer (and mTLS,
+// and `none`) methods have no OpenCollection equivalent and are carried in the x-bruno-oauth2
+// extension instead. Returning undefined here leaves `credentials.placement` unset rather than
+// writing a misleading "body" value that an external OpenCollection reader would interpret as
+// client_secret_post.
+const placementForMethod = (method?: string | null): 'basic_auth_header' | 'body' | undefined => {
+  if (method === 'client_secret_basic') return 'basic_auth_header';
+  if (method === 'client_secret_post') return 'body';
+  return undefined;
+};
+
+const methodForPlacement = (placement?: string | null): 'client_secret_basic' | 'client_secret_post' | undefined => {
+  if (placement === 'basic_auth_header') return 'client_secret_basic';
+  if (placement === 'body') return 'client_secret_post';
+  return undefined;
+};
+
 const buildClientCredentials = (oauth: BrunoOAuth2): OAuth2ClientCredentials | undefined => {
   const credentials: OAuth2ClientCredentials = {};
 
   isNonEmptyString(oauth.clientId) && (credentials.clientId = oauth.clientId);
   isNonEmptyString(oauth.clientSecret) && (credentials.clientSecret = oauth.clientSecret);
-  isNonEmptyString(oauth.credentialsPlacement) && (credentials.placement = oauth.credentialsPlacement);
+  const placement = placementForMethod(oauth.tokenEndpointAuthMethod) ?? oauth.credentialsPlacement;
+  isNonEmptyString(placement) && (credentials.placement = placement);
 
   return Object.keys(credentials).length > 0 ? credentials : undefined;
 };
@@ -277,24 +296,90 @@ const buildImplicitFlow = (oauth: BrunoOAuth2): OAuth2ImplicitFlow => {
   return flow;
 };
 
+// Bruno-namespaced extension carried inside the OpenCollection auth block so OAuth2 client-auth
+// fields that OpenCollection doesn't model natively (RFC 7591 / OIDC §9 methods beyond basic /
+// post, JWT-bearer assertion config, mTLS) round-trip through yml collections. Older Bruno builds
+// without these features just see the OpenCollection-modeled subset and ignore the extension.
+const BRUNO_OAUTH2_EXTENSION_KEY = 'x-bruno-oauth2';
+
+const OAUTH2_EXTENSION_FIELDS: (keyof BrunoOAuth2)[] = [
+  'tokenEndpointAuthMethod', 'tokenEndpointAuthSigningAlg',
+  'privateKey', 'privateKeyType', 'privateKeyFormat', 'keyId',
+  'audience', 'assertionLifetime', 'additionalClaims'
+];
+
+// `client_secret_basic` and `client_secret_post` are losslessly representable via OpenCollection's
+// existing `credentials.placement` field — we don't need to carry those in the extension.
+const isPlacementRepresentable = (method?: string | null): boolean =>
+  method === 'client_secret_basic' || method === 'client_secret_post';
+
+// Fields that only make sense when the active method signs a JWT (client_secret_jwt /
+// private_key_jwt). Skipped on serialization when the active method is something else, so a
+// previously-configured JWT method's material doesn't linger in yml after the user switches away.
+const JWT_ONLY_EXTENSION_FIELDS: Set<keyof BrunoOAuth2> = new Set([
+  'tokenEndpointAuthSigningAlg',
+  'keyId',
+  'audience', 'assertionLifetime', 'additionalClaims'
+]);
+
+// Private-key material is meaningful only for private_key_jwt; client_secret_jwt signs with the
+// client secret. Separated so a private_key_jwt → client_secret_jwt switch doesn't leave the
+// PEM/JWK lying around in yml.
+const PRIVATE_KEY_JWT_ONLY_EXTENSION_FIELDS: Set<keyof BrunoOAuth2> = new Set([
+  'privateKey', 'privateKeyType', 'privateKeyFormat'
+]);
+
+const isJwtMethod = (method?: string | null): boolean =>
+  method === 'client_secret_jwt' || method === 'private_key_jwt';
+
+const oauth2ExtensionFromBruno = (oauth: BrunoOAuth2): Record<string, unknown> | undefined => {
+  const ext: Record<string, unknown> = {};
+  const jwtActive = isJwtMethod(oauth.tokenEndpointAuthMethod);
+  const privateKeyJwtActive = oauth.tokenEndpointAuthMethod === 'private_key_jwt';
+  for (const k of OAUTH2_EXTENSION_FIELDS) {
+    if (k === 'tokenEndpointAuthMethod' && isPlacementRepresentable(oauth.tokenEndpointAuthMethod)) {
+      continue;
+    }
+    if (JWT_ONLY_EXTENSION_FIELDS.has(k) && !jwtActive) {
+      continue;
+    }
+    if (PRIVATE_KEY_JWT_ONLY_EXTENSION_FIELDS.has(k) && !privateKeyJwtActive) {
+      continue;
+    }
+    const v = (oauth as any)[k];
+    if (v !== undefined && v !== null && v !== '') {
+      ext[k] = v;
+    }
+  }
+  return Object.keys(ext).length > 0 ? ext : undefined;
+};
+
 export const toOpenCollectionOAuth2 = (oauth?: BrunoOAuth2 | null): AuthOAuth2 | undefined => {
   if (!oauth) {
     return undefined;
   }
 
+  let flow: AuthOAuth2 | undefined;
   switch (oauth.grantType) {
     case 'client_credentials':
-      return buildClientCredentialsFlow(oauth);
+      flow = buildClientCredentialsFlow(oauth); break;
     case 'password':
-      return buildResourceOwnerPasswordFlow(oauth);
+      flow = buildResourceOwnerPasswordFlow(oauth); break;
     case 'authorization_code':
-      return buildAuthorizationCodeFlow(oauth);
+      flow = buildAuthorizationCodeFlow(oauth); break;
     case 'implicit':
-      return buildImplicitFlow(oauth);
+      flow = buildImplicitFlow(oauth); break;
     default:
       console.warn(`toOpenCollectionOAuth2: Unsupported OAuth2 grant type "${oauth.grantType}".`);
       return undefined;
   }
+  if (!flow) return undefined;
+
+  const ext = oauth2ExtensionFromBruno(oauth);
+  if (ext) {
+    (flow as unknown as Record<string, unknown>)[BRUNO_OAUTH2_EXTENSION_KEY] = ext;
+  }
+  return flow;
 };
 
 const reversePlacementMapping = (placement?: OAuth2AdditionalParameter['placement']): 'headers' | 'queryparams' | 'body' | null => {
@@ -351,6 +436,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
     state: null,
     pkce: false, // Default to false for all grant types
     credentialsPlacement: null,
+    tokenEndpointAuthMethod: null,
     credentialsId: null,
     tokenPlacement: null,
     tokenHeaderPrefix: null,
@@ -369,7 +455,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
       if (oauth.refreshTokenUrl) brunoOAuth.refreshTokenUrl = oauth.refreshTokenUrl;
       if (oauth.credentials?.clientId) brunoOAuth.clientId = oauth.credentials.clientId;
       if (oauth.credentials?.clientSecret) brunoOAuth.clientSecret = oauth.credentials.clientSecret;
-      if (oauth.credentials?.placement) brunoOAuth.credentialsPlacement = oauth.credentials.placement;
+      if (oauth.credentials?.placement) brunoOAuth.tokenEndpointAuthMethod = methodForPlacement(oauth.credentials.placement);
       if (oauth.scope) brunoOAuth.scope = oauth.scope;
 
       // token config
@@ -413,7 +499,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
       if (oauth.refreshTokenUrl) brunoOAuth.refreshTokenUrl = oauth.refreshTokenUrl;
       if (oauth.credentials?.clientId) brunoOAuth.clientId = oauth.credentials.clientId;
       if (oauth.credentials?.clientSecret) brunoOAuth.clientSecret = oauth.credentials.clientSecret;
-      if (oauth.credentials?.placement) brunoOAuth.credentialsPlacement = oauth.credentials.placement;
+      if (oauth.credentials?.placement) brunoOAuth.tokenEndpointAuthMethod = methodForPlacement(oauth.credentials.placement);
       if (oauth.resourceOwner?.username) brunoOAuth.username = oauth.resourceOwner.username;
       if (oauth.resourceOwner?.password) brunoOAuth.password = oauth.resourceOwner.password;
       if (oauth.scope) brunoOAuth.scope = oauth.scope;
@@ -461,7 +547,7 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
       if (oauth.callbackUrl) brunoOAuth.callbackUrl = oauth.callbackUrl;
       if (oauth.credentials?.clientId) brunoOAuth.clientId = oauth.credentials.clientId;
       if (oauth.credentials?.clientSecret) brunoOAuth.clientSecret = oauth.credentials.clientSecret;
-      if (oauth.credentials?.placement) brunoOAuth.credentialsPlacement = oauth.credentials.placement;
+      if (oauth.credentials?.placement) brunoOAuth.tokenEndpointAuthMethod = methodForPlacement(oauth.credentials.placement);
       if (oauth.scope) brunoOAuth.scope = oauth.scope;
       if (oauth.state) brunoOAuth.state = oauth.state;
 
@@ -559,6 +645,19 @@ export const toBrunoOAuth2 = (oauth: AuthOAuth2 | null | undefined): BrunoOAuth2
     if (authCodeFlow.pkce !== undefined) {
       // If pkce.disabled is true, set pkce to false; otherwise set to true
       brunoOAuth.pkce = !authCodeFlow.pkce.disabled;
+    }
+  }
+
+  // Restore any Bruno-extended OAuth2 client-auth state from the namespaced extension. Carries
+  // anything OpenCollection doesn't model natively (advanced client-auth methods, JWT-bearer
+  // assertion config, mTLS). Whitelisted to OAUTH2_EXTENSION_FIELDS so a hand-edited extension
+  // can't override canonical flow fields like grantType or the endpoint URLs.
+  const ext = (oauth as any)[BRUNO_OAUTH2_EXTENSION_KEY] as Record<string, unknown> | undefined;
+  if (ext) {
+    for (const k of OAUTH2_EXTENSION_FIELDS) {
+      if (k in ext) {
+        (brunoOAuth as any)[k] = ext[k];
+      }
     }
   }
 
