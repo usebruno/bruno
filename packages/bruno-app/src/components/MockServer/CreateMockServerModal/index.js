@@ -7,7 +7,6 @@ import { IconCaretDown, IconTrash } from '@tabler/icons';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
-import { validateName, validateNameError } from 'utils/common/regex';
 import { normalizePath } from 'utils/common/path';
 import { isScratchCollection } from 'utils/collections';
 import { matchLoadedApiSpecs } from 'components/Sidebar/ApiSpecs/matchLoadedApiSpecs';
@@ -17,6 +16,7 @@ import {
   getMockServerInstances,
   checkMockServerPortAvailable,
   getMockServerPortError,
+  getMockServerNameError,
   openMockServerDashboard,
   resolveTabCollectionUid,
   saveMockServerInstance,
@@ -183,11 +183,12 @@ const CreateMockServerModal = ({
     },
     validationSchema: Yup.object({
       name: Yup.string()
+        .trim()
         .min(1, 'Must be at least 1 character')
         .max(255, 'Must be 255 characters or less')
         .test('is-valid-name', function (value) {
-          const isValid = validateName(value);
-          return isValid ? true : this.createError({ message: validateNameError(value) });
+          const error = getMockServerNameError(value);
+          return error ? this.createError({ message: error }) : true;
         })
         .required('Name is required')
         .test('duplicate-name', 'A mock server with this name already exists', (value) => {
@@ -519,9 +520,9 @@ const CreateMockServerModal = ({
                     className="block textbox w-full mt-2"
                     min={1}
                     max={65535}
-                    value={formik.values.port}
+                    value={formik.values.port || ''}
                     onChange={(event) => {
-                      formik.handleChange(event);
+                      formik.setFieldValue('port', event.target.value ? Number(event.target.value) : '');
                       if (portError) {
                         setPortError(null);
                       }

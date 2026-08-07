@@ -9,7 +9,8 @@ export const buildMockServerLocators = (page: Page) => ({
   collectionActionsIcon: (name: string) =>
     page.getByTestId('sidebar-collection-row').filter({ hasText: new RegExp(`^${name}$`) }).locator('.collection-actions .icon'),
   createMockServerMenuItem: () => page.getByTestId('collection-actions-create-mock-server'),
-  collectionHeaderMockServer: () => page.getByTestId('mock-server'),
+  collectionHeaderMoreActions: () => page.getByTestId('more-actions'),
+  collectionHeaderMockServer: () => page.getByTestId('more-actions-mock-server'),
 
   dashboard: () => page.getByTestId('mock-server-dashboard'),
   statusText: () => page.getByTestId('mock-server-status-text'),
@@ -53,11 +54,12 @@ export const buildMockServerLocators = (page: Page) => ({
   refreshToast: () => page.getByText(/Routes refreshed.*routes/).first()
 });
 
-// Open the mock server dashboard for a collection via the collection header tab.
+// Open the mock server dashboard for a collection via the collection header overflow menu.
 export const openMockServerTab = async (page: Page, collectionName: string) => {
   await test.step(`Open mock server tab for "${collectionName}"`, async () => {
     const ms = buildMockServerLocators(page);
     await ms.collectionName(collectionName).click();
+    await ms.collectionHeaderMoreActions().click();
     await ms.collectionHeaderMockServer().click();
     await ms.dashboard().waitFor({ state: 'visible' });
   });
