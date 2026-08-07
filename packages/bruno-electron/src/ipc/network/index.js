@@ -15,7 +15,7 @@ const { encodeUrl, hasExplicitScheme } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
-const { addDigestInterceptor, addEdgeGridInterceptor } = require('@usebruno/requests');
+const { addDigestInterceptor, addEdgeGridInterceptor, applySentHeadersToRequest } = require('@usebruno/requests');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
@@ -673,7 +673,6 @@ const registerNetworkIpc = (mainWindow) => {
         extend(request.headers, form.getHeaders());
       }
     }
-
     return scriptResult;
   };
 
@@ -690,6 +689,7 @@ const registerNetworkIpc = (mainWindow) => {
     scriptingConfig,
     runRequestByItemPathname
   ) => {
+    applySentHeadersToRequest(request, response);
     // run post-response vars
     const postResponseVars = get(request, 'vars.res', []);
     if (postResponseVars?.length) {
@@ -876,7 +876,6 @@ const registerNetworkIpc = (mainWindow) => {
 
     const abortController = new AbortController();
     const request = await prepareRequest(item, collection, abortController);
-
     // Every good boy deserves a response.
     if (request.method && request.method.toUpperCase() === 'WOOF') {
       return easterEggResponse(request);
@@ -909,7 +908,6 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Add certsAndProxyConfig to request object for bru.sendRequest
       request.certsAndProxyConfig = certsAndProxyConfig;
-
       let preRequestScriptResult = null;
       let preRequestError = null;
       try {
@@ -962,6 +960,7 @@ const registerNetworkIpc = (mainWindow) => {
       if (preRequestError) {
         return Promise.reject(preRequestError);
       }
+
       const axiosInstance = await configureRequest(
         collectionUid,
         collection,
