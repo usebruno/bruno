@@ -27,6 +27,8 @@ const formatBody = (body) => {
 
 const RequestTab = ({ request, response }) => {
   const sentHeaders = sentHeadersFromTimeline(response?.timeline);
+  /** In case of `bru.sendRequest` it builds its own entry in timeline,
+   * so to show the headers sent in new request we need headers not sentHeaders */
   const headers = sentHeaders.length ? sentHeaders : formatHeaders(request?.headers);
 
   return (
