@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { formatSize } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
 
@@ -9,17 +9,14 @@ const MODE_LABEL_OVERRIDES = {
   'application/x-www-form-urlencoded': 'form'
 };
 
-export const getModeLabel = (mode) => {
+const getModeLabel = (mode) => {
   if (!mode) return 'plain text';
   if (MODE_LABEL_OVERRIDES[mode]) return MODE_LABEL_OVERRIDES[mode];
   return mode.split('/').pop().split('+').pop();
 };
 
 const StatusBar = ({ value, mode, longLineDetected, longLineMode, onToggle }) => {
-  const sizeText = useMemo(
-    () => formatSize(new TextEncoder().encode(value ?? '').length),
-    [value]
-  );
+  const sizeText = formatSize(new TextEncoder().encode(value ?? '').length);
   const modeLabel = longLineMode ? 'plain text' : getModeLabel(mode);
 
   return (

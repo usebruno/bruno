@@ -17,6 +17,15 @@ jest.mock('react-redux', () => ({
   useSelector: jest.fn((selector) => selector({ app: { preferences: {} } }))
 }));
 
+jest.mock('providers/ReduxStore', () => ({
+  __esModule: true,
+  default: {
+    dispatch: jest.fn(),
+    getState: jest.fn(() => ({})),
+    subscribe: jest.fn()
+  }
+}));
+
 const setupEditorWithRef = (props = {}) => {
   const ref = React.createRef();
   const view = render(

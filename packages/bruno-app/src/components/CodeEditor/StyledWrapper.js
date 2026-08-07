@@ -33,7 +33,7 @@ const StyledWrapper = styled.div`
 
   div.CodeMirror {
     background: ${(props) => props.theme.codemirror.bg};
-    border: 1px solid ${(props) => props.theme.codemirror.border};
+    border: none;
     font-family: ${(props) => (props.font ? props.font : 'default')};
     font-size: ${(props) => (props.fontSize ? `${props.fontSize}px` : 'inherit')};
     line-break: anywhere;

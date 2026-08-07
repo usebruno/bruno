@@ -1,9 +1,5 @@
 export const LONG_LINE_LIMIT = 20000;
 
-/**
- * @description true when any logical line exceeds the limit (UTF-16 code units,
- * matching CodeMirror column counting). Handles \n, \r\n, and legacy \r.
- */
 export const hasLongLine = (value, limit = LONG_LINE_LIMIT) => {
   const text = String(value ?? '');
   let lineStart = 0;
@@ -19,10 +15,6 @@ export const hasLongLine = (value, limit = LONG_LINE_LIMIT) => {
   return false;
 };
 
-/**
- * @description true when a CodeMirror change would create a line over the limit.
- * Returns false for edits inside a line that is already over the limit.
- */
 export const changeIntroducesLongLine = (change, getLine, limit = LONG_LINE_LIMIT) => {
   const insertedLines = change?.text || [''];
   const firstLine = getLine(change.from.line) || '';

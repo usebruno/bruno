@@ -606,7 +606,7 @@ class CodeEditor extends React.Component {
     }
     return (
       <StyledWrapper
-        className={`code-editor-root h-full w-full flex flex-col ${this.props.readOnly ? 'read-only' : ''} ${this.state.searchBarVisible ? 'search-bar-visible' : ''}`}
+        className={`h-full w-full flex flex-col ${this.props.readOnly ? 'read-only' : ''} ${this.state.searchBarVisible ? 'search-bar-visible' : ''}`}
         aria-label="Code Editor"
         data-testid={this.props.testId}
         font={this.props.font}
