@@ -299,6 +299,8 @@ export const buildCommonLocators = (page: Page) => ({
         return row.getByTestId(`column-${columnKey}`);
       },
       rowCheckbox: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-checkbox'),
+      rowCheckboxByName: (name: string) =>
+        container().locator(`tbody tr[data-row-name="${name}"]`).getByTestId('column-checkbox'),
       rowDeleteButton: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-delete'),
       allRows: () => container().locator('tbody tr')
     };

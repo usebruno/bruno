@@ -238,7 +238,7 @@ const importCollectionLevelVariables = (variables, requestObject) => {
     uid: uuid(),
     name: (v.key ?? '').replace(invalidVariableCharacterRegex, '_'),
     value: v.value == null ? '' : typeof v.value === 'string' ? v.value : JSON.stringify(v.value),
-    enabled: true
+    enabled: !v.disabled
   }));
 
   requestObject.vars.req = vars;
