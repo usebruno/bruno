@@ -13,7 +13,7 @@ import { removeCollection, addTransientDirectory, updateCollectionMountStatus, e
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
-import { addTab, restoreTabs } from '../tabs';
+import { addTab, restoreTabs, applyTabOrder } from '../tabs';
 import {
   setSnapshotReady,
   startSnapshotHydrationSession,
@@ -23,7 +23,8 @@ import {
 import { openConsole, closeConsole, setActiveTab as setActiveDevToolsTab, TAB_IDENFIERS as DEVTOOL_TABS } from '../logs';
 import { normalizePath } from 'utils/common/path';
 import { hydrateMockServerInstances } from 'utils/mock-server/mock-server-instances';
-import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups, getCollectionSnapshotFromLookups, WORKSPACE_TAB_UID_SUFFIX_BY_TYPE } from 'utils/snapshot';
+import { hydrateTabs, getActiveTabFromSnapshot, hydrateSnapshotLookups, getCollectionSnapshotFromLookups, resolveTabOrder, isRequestTab, WORKSPACE_TAB_UID_SUFFIX_BY_TYPE } from 'utils/snapshot';
+import { BETA_FEATURES } from 'utils/beta-features';
 import toast from 'react-hot-toast';
 import { closeAiSidebar } from '../chat';
 
@@ -477,6 +478,66 @@ const scheduleSnapshotHydrationTimeout = (dispatch, getState, workspaceUid) => {
   }, SNAPSHOT_HYDRATION_LONG_STOP_GUARD_MS);
 };
 
+// Restore the workspace-level unified tab order (tabs-across-collections) after per-collection tabs
+// hydrate. Resolving against the current tabs and re-applying as each collection mounts converges
+// on the saved order regardless of mount timing.
+export const applyWorkspaceTabOrderFromSnapshot = () => async (dispatch, getState) => {
+  try {
+    const snapshot = await ipcRenderer.invoke('renderer:snapshot:get');
+    const tabOrder = Array.isArray(snapshot?.tabOrder) ? snapshot.tabOrder : [];
+    const activeTab = snapshot?.activeTab || null;
+    if (!tabOrder.length && !activeTab) {
+      return;
+    }
+
+    const state = getState();
+    const { orderedUids, activeUid } = resolveTabOrder(
+      { tabOrder, activeTab },
+      state.tabs.tabs,
+      state.collections.collections
+    );
+
+    if (orderedUids.length || activeUid) {
+      dispatch(applyTabOrder({ orderedUids, activeUid }));
+    }
+  } catch (err) {
+    // Ignore — falls back to the per-collection tab order
+  }
+};
+
+// With tabs across collections, tabs from non-active collections are shown together, so every
+// collection that has restored request tabs must be mounted — otherwise those tabs can't resolve
+// their items and render as "not found" after reopening the app.
+export const mountCollectionsWithRestoredTabs = (candidateCollections, workspacePathname) => async (dispatch, getState) => {
+  const tabsAcrossCollections = getState().app.preferences?.beta?.[BETA_FEATURES.TABS_ACROSS_COLLECTIONS];
+  if (!tabsAcrossCollections) {
+    return;
+  }
+
+  await Promise.all((candidateCollections || []).map((candidate) => {
+    const collection = getState().collections.collections.find((c) => c.uid === candidate.uid);
+    if (!collection) {
+      return Promise.resolve();
+    }
+
+    const hasRequestTabs = getState().tabs.tabs.some(
+      (t) => t.collectionUid === collection.uid && isRequestTab(t.type)
+    );
+    const needsMount = collection.mountStatus !== 'mounted' && collection.mountStatus !== 'mounting';
+    if (!hasRequestTabs || !needsMount) {
+      return Promise.resolve();
+    }
+
+    return dispatch(mountCollection({
+      collectionUid: collection.uid,
+      collectionPathname: collection.pathname,
+      brunoConfig: collection.brunoConfig,
+      skipTabRestore: true,
+      workspacePathname: workspacePathname || null
+    })).catch((err) => console.error('Failed to mount collection with restored tabs:', err));
+  }));
+};
+
 export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
   return async (dispatch, getState) => {
     if (!collectionPathname) {
@@ -517,6 +578,8 @@ export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
     const activeWorkspacePathname = activeWorkspace?.pathname || null;
 
     await hydrateTabs([collection], dispatch, restoreTabs, null, activeWorkspacePathname);
+    await dispatch(applyWorkspaceTabOrderFromSnapshot());
+    await dispatch(mountCollectionsWithRestoredTabs([collection], activeWorkspacePathname));
 
     if (
       snapshotHydration.activeCollectionPathname
@@ -645,6 +708,8 @@ export const switchWorkspace = (workspaceUid) => {
           && workspaceCollectionPathSet.has(normalizePath(c.pathname))
       );
       await hydrateTabs(collections, dispatch, restoreTabs, snapshotLookups, workspace.pathname || null);
+      await dispatch(applyWorkspaceTabOrderFromSnapshot());
+      await dispatch(mountCollectionsWithRestoredTabs(collections, workspace.pathname || null));
 
       // Restore each collection's workspace-scoped selected environment, so the same
       // collection open under two workspaces restores its own environment per workspace.

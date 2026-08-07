@@ -159,6 +159,44 @@ describe('serializeSnapshot workspace tab restoration', () => {
   });
 });
 
+describe('serializeSnapshot workspace tab order', () => {
+  it('records the unified tab order and global active tab for active-workspace collection tabs', async () => {
+    const state = makeState();
+    state.tabs.tabs = [
+      { uid: 't1', collectionUid: 'col-1', type: 'http-request', pathname: `${COLLECTION_PATH}/a.yml`, preview: false },
+      { uid: 't2', collectionUid: 'col-1', type: 'collection-settings', pathname: null, preview: false }
+    ];
+    state.tabs.activeTabUid = 't2';
+
+    const snapshot = await serializeSnapshot(state, { getExistingSnapshot: async () => null });
+
+    expect(snapshot.tabOrder).toEqual([
+      { collection: COLLECTION_PATH, accessor: 'pathname', value: `${COLLECTION_PATH}/a.yml` },
+      { collection: COLLECTION_PATH, accessor: 'type', value: 'collection-settings' }
+    ]);
+    expect(snapshot.activeTab).toEqual({ collection: COLLECTION_PATH, accessor: 'type', value: 'collection-settings' });
+  });
+
+  it('excludes scratch-collection tabs from the unified order', async () => {
+    const scratchCollectionUid = 'scratch-1';
+    const scratchPath = `${WORKSPACE_PATH}/scratch`;
+    const state = makeState();
+    state.workspaces.workspaces[0].scratchCollectionUid = scratchCollectionUid;
+    state.workspaces.workspaces[0].collections = [{ path: COLLECTION_PATH }, { path: scratchPath }];
+    state.collections.collections.push({
+      uid: scratchCollectionUid, pathname: scratchPath, mountStatus: 'unmounted', environments: [], collapsed: true
+    });
+    state.tabs.tabs = [
+      { uid: 's1', collectionUid: scratchCollectionUid, type: 'http-request', pathname: `${scratchPath}/Untitled 1.yml`, preview: false }
+    ];
+
+    const snapshot = await serializeSnapshot(state, { getExistingSnapshot: async () => null });
+
+    expect(snapshot.tabOrder).toEqual([]);
+    expect(snapshot.activeTab).toBeNull();
+  });
+});
+
 describe('serializeSnapshot collection environment preservation', () => {
   it('creates a safe first-run snapshot when no existing snapshot is available', async () => {
     const snapshot = await serializeSnapshot(makeState(), {

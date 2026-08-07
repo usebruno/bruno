@@ -4,7 +4,7 @@ import StatusBadge from 'ui/StatusBadge';
 import { IconVariable, IconSettings, IconRun, IconFolder, IconDatabase, IconWorld, IconHome, IconFileCode, IconConfetti, IconServer2 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 
-const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft }) => {
+const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft, collectionName }) => {
   const getTabInfo = (type, tabName) => {
     switch (type) {
       case 'collection-settings': {
@@ -130,6 +130,7 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
         onDoubleClick={handleDoubleClick}
       >
         {getTabInfo(type, tabName)}
+        {collectionName ? <span className="tab-collection-name" title={collectionName}>{collectionName}</span> : null}
       </div>
 
       <GradientCloseButton hasChanges={hasDraft} onClick={handleCloseClick} />

@@ -455,3 +455,45 @@ describe('SnapshotManager shared collection lookups', () => {
     });
   });
 });
+
+describe('SnapshotManager workspace tab order', () => {
+  it('round-trips a valid tabOrder and global active tab, dropping malformed entries', () => {
+    snapshotManager.saveSnapshot({
+      version: '0.0.1',
+      activeWorkspacePath: null,
+      extras: { devTools: { open: false, activeTab: '', tabs: {} } },
+      workspaces: [],
+      collections: [],
+      tabOrder: [
+        { collection: '/w/a', accessor: 'pathname', value: '/w/a/x.yml' },
+        { collection: '/w/b', accessor: 'type', value: 'collection-settings' },
+        { collection: '/w/c', accessor: 'not-a-real-accessor', value: 'x' },
+        { collection: '/w/d', accessor: 'pathname' }
+      ],
+      activeTab: { collection: '/w/a', accessor: 'pathname', value: '/w/a/x.yml' }
+    });
+
+    const snapshot = snapshotManager.getSnapshot();
+
+    expect(snapshot.tabOrder).toEqual([
+      { collection: '/w/a', accessor: 'pathname', value: '/w/a/x.yml' },
+      { collection: '/w/b', accessor: 'type', value: 'collection-settings' }
+    ]);
+    expect(snapshot.activeTab).toEqual({ collection: '/w/a', accessor: 'pathname', value: '/w/a/x.yml' });
+  });
+
+  it('defaults tabOrder to empty and activeTab to null when absent', () => {
+    snapshotManager.saveSnapshot({
+      version: '0.0.1',
+      activeWorkspacePath: null,
+      extras: { devTools: { open: false, activeTab: '', tabs: {} } },
+      workspaces: [],
+      collections: []
+    });
+
+    const snapshot = snapshotManager.getSnapshot();
+
+    expect(snapshot.tabOrder).toEqual([]);
+    expect(snapshot.activeTab).toBeNull();
+  });
+});

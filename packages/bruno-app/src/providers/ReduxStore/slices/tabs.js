@@ -419,16 +419,20 @@ export const tabsSlice = createSlice({
         const { collectionUid } = activeTab;
         const activeTabStillExists = find(state.tabs, (t) => t.uid === state.activeTabUid);
 
-        // if the active tab no longer exists, set the active tab to the last tab in the list
-        // this implies that the active tab was closed
+        // if the active tab no longer exists, the active tab was closed — pick the next one.
+        // Prefer a real content tab (same collection first, then any) over the workspace home
+        // tabs (overview/environments): landing on those after closing a request — e.g. a scratch
+        // request whose only same-collection siblings are the workspace tabs — feels like being
+        // kicked back to the home screen.
         if (!activeTabStillExists) {
-          // load sibling tabs of the current collection
-          const siblingTabs = filter(state.tabs, (t) => t.collectionUid === collectionUid);
+          const isContentTab = (t) => !NON_CLOSABLE_TAB_TYPES.includes(t.type);
+          const collectionContentTabs = filter(state.tabs, (t) => t.collectionUid === collectionUid && isContentTab(t));
+          const anyContentTabs = filter(state.tabs, isContentTab);
 
-          // if there are sibling tabs, set the active tab to the last sibling tab
-          // otherwise, set the active tab to the last tab in the list
-          if (siblingTabs && siblingTabs.length) {
-            state.activeTabUid = last(siblingTabs).uid;
+          if (collectionContentTabs.length) {
+            state.activeTabUid = last(collectionContentTabs).uid;
+          } else if (anyContentTabs.length) {
+            state.activeTabUid = last(anyContentTabs).uid;
           } else {
             const overviewTab = find(state.tabs, (t) => t.type === 'workspaceOverview');
             state.activeTabUid = overviewTab ? overviewTab.uid : last(state.tabs).uid;
@@ -594,6 +598,28 @@ export const tabsSlice = createSlice({
         state.activeTabUid = state.tabs.find((t) => t.collectionUid === collectionUid)?.uid || null;
       }
     },
+    // Reorder the flat tab list to a persisted workspace order (uids), keeping any tab not in that
+    // list in its current relative position at the end. Optionally focus a persisted active tab.
+    applyTabOrder: (state, action) => {
+      const { orderedUids, activeUid } = action.payload || {};
+
+      if (Array.isArray(orderedUids) && orderedUids.length) {
+        const orderIndex = new Map(orderedUids.map((uid, index) => [uid, index]));
+        const unorderedRank = orderedUids.length;
+        state.tabs = state.tabs
+          .map((tab, index) => ({ tab, index }))
+          .sort((a, b) => {
+            const rankA = orderIndex.has(a.tab.uid) ? orderIndex.get(a.tab.uid) : unorderedRank;
+            const rankB = orderIndex.has(b.tab.uid) ? orderIndex.get(b.tab.uid) : unorderedRank;
+            return rankA !== rankB ? rankA - rankB : a.index - b.index;
+          })
+          .map((entry) => entry.tab);
+      }
+
+      if (activeUid && state.tabs.some((t) => t.uid === activeUid)) {
+        state.activeTabUid = activeUid;
+      }
+    },
     updateTabState: (state, action) => {
       const { uid, tabState } = action.payload;
       const tab = find(state.tabs, (t) => t.uid === uid);
@@ -660,6 +686,7 @@ export const {
   reorderTabs,
   syncTabUid,
   restoreTabs,
+  applyTabOrder,
   updateTabState,
   setTabAppPreview,
   reopenLastClosedTab,

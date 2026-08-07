@@ -13,6 +13,8 @@ import { saveMultipleRequests, saveMultipleCollections, saveMultipleFolders, sav
 import { toggleSidebarCollapse, savePreferences } from 'providers/ReduxStore/slices/app';
 import { setLocalStorageValue, SIDEBAR_COLLAPSED_KEY } from 'utils/common/localStorage';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
+import { getVisibleTabs } from 'utils/tabs';
 import { isEnvironmentValidationError } from 'utils/environments';
 import toast from 'react-hot-toast';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
@@ -31,6 +33,7 @@ export const HotkeysProvider = (props) => {
   const [showSaveRequestsModal, setShowSaveRequestsModal] = useState(false);
   const [tabUidsToClose, setTabUidsToClose] = useState([]);
   const preferences = useSelector((state) => state.app.preferences);
+  const tabsAcrossCollections = useBetaFeature(BETA_FEATURES.TABS_ACROSS_COLLECTIONS);
   const sidebarCollapsed = useSelector((state) => state.app.sidebarCollapsed);
 
   const getCurrentCollection = () => {
@@ -42,11 +45,12 @@ export const HotkeysProvider = (props) => {
     }
   };
 
-  // Get tabs scoped to the active tab's collection
+  // The tabs the tab strip currently shows — tab navigation and close-all must stay in lockstep
+  // with what's visible, or shortcuts land on tabs hidden by the tabs-across-collections filter.
   const getCollectionTabs = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
     if (!activeTab) return [];
-    return tabs.filter((t) => t.collectionUid === activeTab.collectionUid);
+    return getVisibleTabs({ tabs, tabsAcrossCollections, activeTab });
   };
 
   // Helper: get Mousetrap combos for an action, merged with user overrides
@@ -119,7 +123,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('switchToPreviousTab');
     };
-  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
 
   // Switch to the next tab (active-collection-tabs-only)
   useEffect(() => {
@@ -135,7 +139,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('switchToNextTab');
     };
-  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
 
   // Switch to tab at position (Cmd+1 through Cmd+8) and last tab (Cmd+9) — collection-scoped
   useEffect(() => {
@@ -165,20 +169,15 @@ export const HotkeysProvider = (props) => {
       }
       unbindAction('switchToLastTab');
     };
-  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
 
   // Close all tabs
   useEffect(() => {
     bindAction('closeAllTabs', (e) => {
-      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      if (activeTab) {
-        const collection = findCollectionByUid(collections, activeTab.collectionUid);
-
-        if (collection) {
-          const tabUids = tabs.filter((tab) => tab.collectionUid === collection.uid).map((tab) => tab.uid);
-          setTabUidsToClose(tabUids);
-          setShowSaveRequestsModal(true);
-        }
+      const tabUids = getCollectionTabs().map((tab) => tab.uid);
+      if (tabUids.length) {
+        setTabUidsToClose(tabUids);
+        setShowSaveRequestsModal(true);
       }
 
       return false; // this stops the event bubbling
@@ -187,7 +186,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('closeAllTabs');
     };
-  }, [activeTabUid, tabs, collections, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, collections, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
 
   // Reopen last closed tab (active-collection-tabs-only)
   useEffect(() => {
@@ -343,7 +342,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('moveTabLeft');
     };
-  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
 
   // Move tab right (active-collection-tabs-only)
   useEffect(() => {
@@ -358,7 +357,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       unbindAction('moveTabRight');
     };
-  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled]);
+  }, [activeTabUid, tabs, dispatch, userKeyBindings, keybindingsEnabled, tabsAcrossCollections]);
 
   // Open preferences
   useEffect(() => {
@@ -366,10 +365,11 @@ export const HotkeysProvider = (props) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
       const collectionUid = activeTab?.collectionUid || activeWorkspace?.scratchCollectionUid;
 
+      // Preferences is app-level — a single, stably-keyed tab shared across collections.
       dispatch(
         addTab({
           type: 'preferences',
-          uid: collectionUid ? `${collectionUid}-preferences` : 'preferences',
+          uid: 'preferences',
           collectionUid
         })
       );

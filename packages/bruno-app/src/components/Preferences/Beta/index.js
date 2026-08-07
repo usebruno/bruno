@@ -66,6 +66,13 @@ const BETA_FEATURES = [
     label: 'Mock Server',
     description: 'Run a local mock server using response examples defined in your collection. Serve mock API responses for frontend development without a real backend.',
     toggle: true
+  },
+  {
+    id: BETA_FEATURE_IDS.TABS_ACROSS_COLLECTIONS,
+    label: 'Tabs across collections',
+    description:
+      'Keep tabs from every open collection visible in the tab bar together, instead of hiding them when you switch to a different collection.',
+    action: { label: 'Go to Display settings', tab: 'display' }
   }
 ];
 
