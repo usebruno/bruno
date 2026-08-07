@@ -150,6 +150,11 @@ const Wrapper = styled.div`
       outline: none;
     }
 
+    &.item-selected {
+      background: ${(props) => props.theme.sidebar.collection.item.bg};
+      border-left: 3px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
+    }
+
     div.tippy-box {
       position: relative;
       top: -0.625rem;

@@ -7,6 +7,9 @@ import {
   addDepth,
   areItemsTheSameExceptSeqUpdate,
   collapseAllItemsInCollection,
+  collapseAllItemsInFolder,
+  expandAllItemsInCollection,
+  expandAllItemsInFolder,
   deleteItemInCollection,
   deleteItemInCollectionByPathname,
   findCollectionByPathname,
@@ -199,8 +202,8 @@ const initialState = {
   collections: [],
   collectionSortOrder: 'default',
   activeConnections: [],
-  selectedCollections: [], // Array of selected collection UIDs for multi-selection
-  lastClickedCollectionIndex: null, // Index of last clicked collection for shift-select
+  selectedSidebarUids: [],
+  lastClickedSidebarUid: null,
   tempDirectories: {},
   saveTransientRequestModals: [],
   mockResponseEditors: {}
@@ -280,6 +283,29 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
       if (collection) {
         collapseAllItemsInCollection(collection);
+      }
+    },
+    collapseFullItem: (state, action) => {
+      const { collectionUid, itemUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      const item = collection && findItemInCollection(collection, itemUid);
+      if (item) {
+        collapseAllItemsInFolder(item);
+      }
+    },
+    expandFullCollection: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        expandAllItemsInCollection(collection);
+      }
+    },
+    expandFullItem: (state, action) => {
+      const { collectionUid, itemUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      const item = collection && findItemInCollection(collection, itemUid);
+      if (item) {
+        expandAllItemsInFolder(item);
       }
     },
     updateCollectionMountStatus: (state, action) => {
@@ -3947,24 +3973,24 @@ export const collectionsSlice = createSlice({
       }
     },
 
-    setSelectedCollections: (state, action) => {
-      state.selectedCollections = action.payload;
+    setSidebarSelection: (state, action) => {
+      state.selectedSidebarUids = action.payload;
     },
-    toggleCollectionSelection: (state, action) => {
-      const { collectionUid } = action.payload;
-      const index = state.selectedCollections.indexOf(collectionUid);
+    toggleSidebarSelection: (state, action) => {
+      const uid = action.payload;
+      const index = state.selectedSidebarUids.indexOf(uid);
       if (index > -1) {
-        state.selectedCollections.splice(index, 1);
+        state.selectedSidebarUids.splice(index, 1);
       } else {
-        state.selectedCollections.push(collectionUid);
+        state.selectedSidebarUids.push(uid);
       }
     },
-    clearCollectionSelection: (state) => {
-      state.selectedCollections = [];
-      state.lastClickedCollectionIndex = null;
+    clearSidebarSelection: (state) => {
+      state.selectedSidebarUids = [];
+      state.lastClickedSidebarUid = null;
     },
-    setLastClickedCollectionIndex: (state, action) => {
-      state.lastClickedCollectionIndex = action.payload;
+    setLastClickedSidebarUid: (state, action) => {
+      state.lastClickedSidebarUid = action.payload;
     },
 
     addTransientDirectory: (state, action) => {
@@ -4083,6 +4109,9 @@ export const {
   clearEnvironmentsDraft,
   newEphemeralHttpRequest,
   collapseFullCollection,
+  collapseFullItem,
+  expandFullCollection,
+  expandFullItem,
   toggleCollection,
   expandCollection,
   toggleCollectionItem,
@@ -4202,10 +4231,10 @@ export const {
   runWsRequestEvent,
   wsResponseReceived,
   wsUpdateResponseSortOrder,
-  setSelectedCollections,
-  toggleCollectionSelection,
-  clearCollectionSelection,
-  setLastClickedCollectionIndex,
+  setSidebarSelection,
+  toggleSidebarSelection,
+  clearSidebarSelection,
+  setLastClickedSidebarUid,
 
   /* Response Example Actions - Start */
   addResponseExample,

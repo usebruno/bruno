@@ -91,7 +91,7 @@ const Wrapper = styled.div`
 
     &.collection-selected {
       background: ${(props) => props.theme.sidebar.collection.item.bg};
-      border-left: 3px solid ${(props) => props.theme.sidebar.collection.item.selectedBorder};
+      border-left: 3px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
       padding-left: 2px;
     }
   }

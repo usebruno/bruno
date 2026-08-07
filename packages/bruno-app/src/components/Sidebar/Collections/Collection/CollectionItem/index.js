@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
@@ -24,8 +24,8 @@ import {
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
-import { handleCollectionItemDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { toggleCollectionItem, addResponseExample } from 'providers/ReduxStore/slices/collections';
+import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { toggleCollectionItem, addResponseExample, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
 import { copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
@@ -34,7 +34,7 @@ import NewFolder from 'components/Sidebar/NewFolder';
 import NewApp from 'components/Sidebar/NewApp';
 import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
-import DeleteCollectionItem from './DeleteCollectionItem';
+import DeleteCollectionItems from './DeleteCollectionItems';
 import IgnoreCollectionItem from './IgnoreCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
@@ -61,7 +61,11 @@ import {
   canCollectionItemBeDropped,
   determineCollectionItemDrop,
   getInitialExampleName,
-  findParentItemInCollection
+  findParentItemInCollection,
+  getSelectionInfo,
+  buildSidebarEntries,
+  getVisibleSidebarUidsInOrder,
+  getSortedDraggedItems
 } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
@@ -71,6 +75,9 @@ import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import useKeybinding from 'hooks/useKeybinding';
+import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
+import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
+import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
 const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
@@ -91,9 +98,27 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const tabUidForItem = useSelector(_tabUidForItemSelector, isEqual);
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
-  const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
+  const allCollections = useSelector((state) => state.collections.collections);
+  const collection = allCollections?.find((c) => c.uid === collectionUid);
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
+  const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
+  const isSelected = selectedSidebarUids.includes(item.uid);
+  const handleSelectionClick = useSidebarSelectionClick({ uid: item.uid, searchText });
+  const { openBulkMenu, menuProps } = useBulkActionsMenu();
+  const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
+  const activeWorkspace = workspaces?.find((w) => w.uid === activeWorkspaceUid);
+  const collectionSortOrder = useSelector((state) => state.collections.collectionSortOrder);
   const dispatch = useDispatch();
+
+  // When dragging a multi-selected row, carry all effectively-selected folders/requests
+  // (excluding collections) so dropping one moves the entire selection together.
+  const multiDragItems = useMemo(() => {
+    if (!isSelected || selectedSidebarUids.length < 2) return null;
+    const { effectiveSelection, hasCollection } = getSelectionInfo({ collections: allCollections, selectedUids: selectedSidebarUids });
+    if (hasCollection || effectiveSelection.length < 2) return null;
+    return effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
+  }, [isSelected, selectedSidebarUids, allCollections]);
 
   // We use a single ref for drag and drop.
   const ref = useRef(null);
@@ -150,7 +175,11 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
     type: 'collection-item',
-    item: { ...item, sourceCollectionUid: collectionUid },
+    item: {
+      ...item,
+      sourceCollectionUid: collectionUid,
+      ...(multiDragItems ? { multiSelectedItems: multiDragItems } : {})
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     }),
@@ -192,6 +221,19 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     });
   };
 
+  const canAnyItemBeDropped = ({ draggedItem, targetItem, dropType }) => {
+    let items = [];
+    if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
+      items = [...draggedItem.multiSelectedItems];
+      if (!items.find((i) => i.uid === draggedItem.uid)) {
+        items.push(draggedItem);
+      }
+    } else {
+      items = [draggedItem];
+    }
+    return items.some((i) => canItemBeDropped({ draggedItem: i, targetItem, dropType }));
+  };
+
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: 'collection-item',
     hover: (draggedItem, monitor) => {
@@ -206,7 +248,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         return;
       }
 
-      const _canItemBeDropped = canItemBeDropped({ draggedItem, targetItem: item, dropType });
+      const _canItemBeDropped = canAnyItemBeDropped({ draggedItem, targetItem: item, dropType });
 
       setDropType(_canItemBeDropped ? dropType : null);
     },
@@ -219,14 +261,36 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       const dropType = resolveDropFromMonitor(monitor);
       if (!dropType) return;
 
-      if (!canItemBeDropped({ draggedItem, targetItem: item, dropType })) return;
+      if (!canAnyItemBeDropped({ draggedItem, targetItem: item, dropType })) return;
 
-      await dispatch(handleCollectionItemDrop({
-        targetItem: item,
+      const draggedItems = getSortedDraggedItems({
         draggedItem,
-        dropType,
-        collectionUid
-      }));
+        allCollections,
+        workspaces,
+        activeWorkspace,
+        collectionSortOrder,
+        searchText
+      });
+
+      // Filter out items that can't be dropped on this target
+      const validDraggedItems = draggedItems.filter((dragged) => {
+        if (dragged.uid === targetItemUid) return false;
+        return canItemBeDropped({ draggedItem: dragged, targetItem: item, dropType });
+      });
+
+      if (validDraggedItems.length > 0) {
+        await dispatch(handleMultipleCollectionItemsDrop({
+          targetItem: item,
+          draggedItems: validDraggedItems,
+          dropType,
+          collectionUid
+        }));
+      }
+
+      if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
+        dispatch(clearSidebarSelection());
+      }
+
       setDropType(null);
     },
     canDrop: (draggedItem, monitor) => {
@@ -263,7 +327,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     'drop-target': isOver && canDrop && dropType === 'inside',
     'drop-target-above': isOver && canDrop && dropType === 'above',
     'drop-target-below': isOver && canDrop && dropType === 'below',
-    'item-keyboard-focused': isKeyboardFocused
+    'item-keyboard-focused': isKeyboardFocused,
+    'item-selected': isSelected
   });
 
   const handleRun = async () => {
@@ -276,6 +341,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   const handleClick = (event) => {
     if (event && event.detail != 1) return;
+    if (handleSelectionClick(event)) return;
     // scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);
@@ -351,6 +417,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const handleContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (isSelected) {
+      openBulkMenu(e);
+      return;
+    }
+
     menuDropdownRef.current?.show();
   };
 
@@ -668,7 +740,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         <CloneCollectionItem item={item} collectionUid={collectionUid} onClose={() => setCloneItemModalOpen(false)} />
       )}
       {deleteItemModalOpen && (
-        <DeleteCollectionItem item={item} collectionUid={collectionUid} onClose={() => setDeleteItemModalOpen(false)} />
+        <DeleteCollectionItems
+          entries={[{ type: isItemAFolder(item) ? 'folder' : 'request', item, uid: item.uid, collectionUid }]}
+          onClose={() => setDeleteItemModalOpen(false)}
+        />
       )}
       {ignoreItemModalOpen && (
         <IgnoreCollectionItem item={item} collectionUid={collectionUid} onClose={() => setIgnoreItemModalOpen(false)} />
@@ -691,6 +766,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       {itemInfoModalOpen && (
         <CollectionItemInfo item={item} onClose={() => setItemInfoModalOpen(false)} />
       )}
+      <BulkActionsMenu menuProps={menuProps} />
       <CreateExampleModal
         isOpen={createExampleModalOpen}
         onClose={() => setCreateExampleModalOpen(false)}
