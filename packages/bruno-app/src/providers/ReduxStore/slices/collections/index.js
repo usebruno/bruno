@@ -24,7 +24,7 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
-import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
+import { DEFAULT_HTTP_ITEM_SETTINGS, GRPC_SCRIPT_KEYS } from '@usebruno/common';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
 import * as mockResponseEditorReducers from './mockResponseEditorReducers';
@@ -825,6 +825,24 @@ export const collectionsSlice = createSlice({
           timestamp: Date.now()
         }
       });
+    },
+    grpcScriptError: (state, action) => {
+      const { itemUid, collectionUid, scriptType, errorMessage, errorContext } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      if (scriptType === 'before-call-start') {
+        item.beforeCallStartScriptErrorMessage = errorMessage;
+        item.beforeCallStartScriptErrorContext = errorContext || null;
+      }
+
+      if (scriptType === 'after-call-end') {
+        item.afterCallEndScriptErrorMessage = errorMessage;
+        item.afterCallEndScriptErrorContext = errorContext || null;
+      }
     },
     responseCleared: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -1951,6 +1969,30 @@ export const collectionsSlice = createSlice({
           }
           item.draft.request.script = item.draft.request.script || {};
           item.draft.request.script.res = action.payload.script;
+        }
+      }
+    },
+    updateGrpcScript: (state, action) => {
+      const { collectionUid, itemUid, hook, script } = action.payload;
+
+      // `hook` lands as a key on `request.script`, and grpcRequestSchema is noUnknown+strict —
+      // an unrecognised name (or an HTTP `req`/`res`) would write a field the schema rejects,
+      // making every later save of that request throw.
+      if (!GRPC_SCRIPT_KEYS.includes(hook)) {
+        return;
+      }
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.script = item.draft.request.script || {};
+          item.draft.request.script[hook] = script;
         }
       }
     },
@@ -3236,6 +3278,10 @@ export const collectionsSlice = createSlice({
       item.preRequestScriptErrorContext = null;
       item.postResponseScriptErrorContext = null;
       item.testScriptErrorContext = null;
+      item.beforeCallStartScriptErrorMessage = null;
+      item.afterCallEndScriptErrorMessage = null;
+      item.beforeCallStartScriptErrorContext = null;
+      item.afterCallEndScriptErrorContext = null;
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -4055,6 +4101,7 @@ export const {
   responseReceived,
   runGrpcRequestEvent,
   grpcResponseReceived,
+  grpcScriptError,
   responseCleared,
   clearTimeline,
   clearRequestTimeline,
@@ -4107,6 +4154,7 @@ export const {
   updateRequestGraphqlVariables,
   updateRequestScript,
   updateResponseScript,
+  updateGrpcScript,
   updateRequestTests,
   updateRequestMethod,
   updateRequestProtoPath,

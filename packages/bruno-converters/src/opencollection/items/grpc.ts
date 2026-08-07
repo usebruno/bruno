@@ -11,6 +11,7 @@ import {
   fromOpenCollectionAssertions,
   toOpenCollectionAssertions
 } from '../common';
+import { GRPC_SCRIPT_KEYS } from '@usebruno/common';
 import type {
   GrpcRequest,
   GrpcRequestInfo,
@@ -59,7 +60,7 @@ export const fromOpenCollectionGrpcItem = (item: GrpcRequest): BrunoItem => {
     }
   }
 
-  const scripts = fromOpenCollectionScripts(runtime.scripts);
+  const scripts = fromOpenCollectionScripts(runtime.scripts, GRPC_SCRIPT_KEYS);
 
   // variables (pre-request from variables, post-response from actions)
   const variables = fromOpenCollectionVariables(runtime.variables);

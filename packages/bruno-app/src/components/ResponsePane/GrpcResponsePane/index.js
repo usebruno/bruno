@@ -1,9 +1,11 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import Overlay from '../Overlay';
 import Placeholder from '../Placeholder';
+import ScriptError, { hasScriptError } from '../ScriptError';
+import ScriptErrorIcon from '../ScriptErrorIcon';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import GrpcResponseHeaders from './GrpcResponseHeaders';
 import GrpcStatusCode from './GrpcStatusCode';
@@ -23,6 +25,14 @@ const GrpcResponsePane = ({ item, collection }) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isLoading = ['queued', 'sending'].includes(item.requestState);
   const rightContentRef = useRef(null);
+  const [showScriptErrorCard, setShowScriptErrorCard] = useState(false);
+  const itemHasScriptError = hasScriptError(item);
+
+  useEffect(() => {
+    if (itemHasScriptError) {
+      setShowScriptErrorCard(true);
+    }
+  }, [itemHasScriptError]);
 
   const requestTimeline = [...(collection?.timeline || [])].filter((obj) => {
     if (obj.itemUid === item.uid) return true;
@@ -91,9 +101,25 @@ const GrpcResponsePane = ({ item, collection }) => {
     }
   };
 
+  const scriptErrorCard = itemHasScriptError && showScriptErrorCard ? (
+    <ScriptError item={item} collection={collection} onClose={() => setShowScriptErrorCard(false)} />
+  ) : null;
+
+  const scriptErrorIcon = itemHasScriptError && !showScriptErrorCard ? (
+    <ScriptErrorIcon itemUid={item.uid} onClick={() => setShowScriptErrorCard(true)} />
+  ) : null;
+
+  const standaloneScriptError = itemHasScriptError ? (
+    <div className="px-4 pt-2">
+      {scriptErrorCard}
+      {scriptErrorIcon ? <div className="flex justify-end">{scriptErrorIcon}</div> : null}
+    </div>
+  ) : null;
+
   if (isLoading && !item.response) {
     return (
       <StyledWrapper className="flex flex-col h-full relative">
+        {standaloneScriptError}
         <Overlay item={item} collection={collection} />
       </StyledWrapper>
     );
@@ -102,6 +128,7 @@ const GrpcResponsePane = ({ item, collection }) => {
   if (!item.response && !requestTimeline?.length) {
     return (
       <HeightBoundContainer>
+        {standaloneScriptError}
         <Placeholder />
       </HeightBoundContainer>
     );
@@ -118,6 +145,7 @@ const GrpcResponsePane = ({ item, collection }) => {
 
   const rightContent = !isLoading ? (
     <div ref={rightContentRef} className="flex items-center">
+      {scriptErrorIcon}
       {focusedTab?.responsePaneTab === 'timeline' ? (
         <>
           <ResponseLayoutToggle />
@@ -149,8 +177,9 @@ const GrpcResponsePane = ({ item, collection }) => {
           rightContentRef={rightContentRef}
         />
       </div>
-      <section className="response-pane-content">
+      <section className={`response-pane-content ${scriptErrorCard ? 'has-script-error' : ''}`}>
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
+        {scriptErrorCard}
         <div className="response-tab-content">
           {!item?.response ? (
             focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
