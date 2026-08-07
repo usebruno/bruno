@@ -1,6 +1,7 @@
 import get from 'lodash/get';
 import { uuid } from 'utils/common';
 import { normalizePath } from 'utils/common/path';
+import { validateName, validateNameError } from 'utils/common/regex';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { addTab, closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
 import {
@@ -383,6 +384,26 @@ export const isMockServerNameTaken = (instances, name, excludeUid = null) => {
   return instances.some((instance) => (
     instance.uid !== excludeUid && instance.name.trim().toLowerCase() === normalized
   ));
+};
+
+const MOCK_SERVER_NAME_CHARS = /^[\p{L}\p{N} _.-]+$/u;
+
+export const getMockServerNameError = (name) => {
+  const value = name == null ? '' : String(name).trim();
+
+  if (!validateName(value)) {
+    return validateNameError(value);
+  }
+
+  if (!MOCK_SERVER_NAME_CHARS.test(value)) {
+    return 'Special characters aren\'t allowed in the name.';
+  }
+
+  if (!/\p{L}/u.test(value)) {
+    return 'Name must contain at least one letter.';
+  }
+
+  return '';
 };
 
 export const isMockServerPortTaken = (instances, port, excludeUid = null) => {

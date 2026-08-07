@@ -1,5 +1,6 @@
 import {
   DEFAULT_MOCK_SERVER_PORT,
+  getMockServerNameError,
   isMockServerRelatedTab,
   isMockServerNameTaken,
   isMockServerPortTaken,
@@ -65,5 +66,18 @@ describe('mock server instance validation helpers', () => {
     expect(isMockServerPortTaken(instances, 4000)).toBe(true);
     expect(isMockServerPortTaken(instances, 4000, 'a')).toBe(false);
     expect(isMockServerPortTaken(instances, 4010)).toBe(false);
+  });
+});
+
+describe('mock server name validation', () => {
+  it('rejects digit-only and symbol-only names', () => {
+    expect(getMockServerNameError('12345')).toBe('Name must contain at least one letter.');
+    expect(getMockServerNameError('!@££@!£@!')).toBe('Special characters aren\'t allowed in the name.');
+  });
+
+  it('allows normal names with letters', () => {
+    expect(getMockServerNameError('Shop Mock')).toBe('');
+    expect(getMockServerNameError('mock-1')).toBe('');
+    expect(getMockServerNameError('Auth Server')).toBe('');
   });
 });
