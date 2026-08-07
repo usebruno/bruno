@@ -1,7 +1,7 @@
 import React from 'react';
-import BulkActionsDropdown from 'components/Sidebar/Collections/BulkActions';
+import BulkActionsDropdown from 'components/Sidebar/Collections/BulkActionsDropdown';
 import RemoveCollections from 'components/Sidebar/Collections/Collection/RemoveCollections';
-import DeleteCollectionItems from 'components/Sidebar/Collections/DeleteCollectionItems';
+import DeleteCollectionItems from 'components/Sidebar/Collections/Collection/CollectionItem/DeleteCollectionItems';
 
 const BulkActionsMenu = ({ menuProps }) => {
   if (!menuProps) return null;

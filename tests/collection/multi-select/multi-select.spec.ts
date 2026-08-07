@@ -8,6 +8,7 @@ const SELECT_MODIFIER: 'Meta' | 'Control' = process.platform === 'darwin' ? 'Met
 // Clears selection and anchor to prevent setup state from bleeding into tests.
 const clickEmptySidebarSpace = async (page) => {
   const locators = buildCommonLocators(page);
+  if (!(await locators.sidebar.collectionsContainer().isVisible())) return;
   const listBox = await locators.sidebar.collectionsContainer().boundingBox();
   await page.mouse.click(listBox.x + 10, listBox.y + listBox.height - 10);
 };
@@ -40,26 +41,31 @@ test.describe('Sidebar multi-select and bulk actions', () => {
   test('Ctrl/Cmd-click toggles rows, adaptive right-click menu matches the selection, and clicking empty space clears it', async ({ page, createTmpDir }) => {
     const { locators } = await setupFixture(page, createTmpDir, 'toggle');
 
-    await test.step('Ctrl/Cmd-click selects a folder and a request without clearing each other', async () => {
-      await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
-      await locators.sidebar.request('Req Root').click({ modifiers: [SELECT_MODIFIER] });
+    const folderA = locators.sidebar.folder('Folder A');
+    const folderARow = locators.sidebar.itemRow('Folder A');
+    const reqRoot = locators.sidebar.request('Req Root');
+    const reqRootRow = locators.sidebar.itemRow('Req Root');
 
-      await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/item-selected/);
-      await expect(locators.sidebar.itemRow('Req Root')).toHaveClass(/item-selected/);
+    await test.step('Ctrl/Cmd-click selects a folder and a request without clearing each other', async () => {
+      await folderA.click({ modifiers: [SELECT_MODIFIER] });
+      await reqRoot.click({ modifiers: [SELECT_MODIFIER] });
+
+      await expect(folderARow).toHaveClass(/item-selected/);
+      await expect(reqRootRow).toHaveClass(/item-selected/);
     });
 
     await test.step('Ctrl/Cmd-click on an already-selected row toggles it back out of the selection', async () => {
-      await locators.sidebar.request('Req Root').click({ modifiers: [SELECT_MODIFIER] });
-      await expect(locators.sidebar.itemRow('Req Root')).not.toHaveClass(/item-selected/);
-      await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/item-selected/);
+      await reqRoot.click({ modifiers: [SELECT_MODIFIER] });
+      await expect(reqRootRow).not.toHaveClass(/item-selected/);
+      await expect(folderARow).toHaveClass(/item-selected/);
 
       // Re-select it so the remaining steps see a folder + request selection again.
-      await locators.sidebar.request('Req Root').click({ modifiers: [SELECT_MODIFIER] });
-      await expect(locators.sidebar.itemRow('Req Root')).toHaveClass(/item-selected/);
+      await reqRoot.click({ modifiers: [SELECT_MODIFIER] });
+      await expect(reqRootRow).toHaveClass(/item-selected/);
     });
 
     await test.step('Right-clicking a selected row opens the adaptive bulk menu (Collapse + Delete, no Remove)', async () => {
-      await locators.sidebar.itemRow('Req Root').click({ button: 'right' });
+      await reqRootRow.click({ button: 'right' });
 
       await expect(locators.dropdown.item('Collapse')).toBeVisible();
       await expect(locators.dropdown.item('Delete')).toBeVisible();
@@ -69,12 +75,12 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await test.step('Clicking empty sidebar space clears the selection', async () => {
       await clickEmptySidebarSpace(page);
 
-      await expect(locators.sidebar.itemRow('Folder A')).not.toHaveClass(/item-selected/);
-      await expect(locators.sidebar.itemRow('Req Root')).not.toHaveClass(/item-selected/);
+      await expect(folderARow).not.toHaveClass(/item-selected/);
+      await expect(reqRootRow).not.toHaveClass(/item-selected/);
     });
 
     await test.step('With nothing selected, right-clicking a row shows the normal per-item menu instead', async () => {
-      await locators.sidebar.itemRow('Req Root').click({ button: 'right' });
+      await reqRootRow.click({ button: 'right' });
       await expect(locators.dropdown.item('Rename')).toBeVisible();
       await expect(locators.dropdown.item('Collapse')).not.toBeVisible();
       await page.keyboard.press('Escape');
@@ -128,7 +134,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     // "parent-wins" means only the folder is in the effective selection (shows "Delete Folder").
     const deleteModal = locators.modal.byTitle('Delete Folder');
     await expect(deleteModal).toBeVisible();
-    await expect(deleteModal.getByText('1 folder')).toBeVisible();
+    await expect(deleteModal.getByText('Folder A')).toBeVisible();
 
     await locators.modal.closeButton().click();
     await expect(locators.sidebar.folder('Folder A')).toBeVisible();
@@ -138,34 +144,42 @@ test.describe('Sidebar multi-select and bulk actions', () => {
   test('Bulk Delete on a folder + request selection removes both', async ({ page, createTmpDir }) => {
     const { locators } = await setupFixture(page, createTmpDir, 'bulkdelete');
 
-    await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
-    await locators.sidebar.request('Req Root').click({ modifiers: [SELECT_MODIFIER] });
+    await test.step('Select a folder and a request', async () => {
+      await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
+      await locators.sidebar.request('Req Root').click({ modifiers: [SELECT_MODIFIER] });
+    });
 
-    await locators.sidebar.itemRow('Req Root').click({ button: 'right' });
-    await locators.dropdown.item('Delete').click();
+    await test.step('Delete them via bulk context menu', async () => {
+      await locators.sidebar.itemRow('Req Root').click({ button: 'right' });
+      await locators.dropdown.item('Delete').click();
 
-    const deleteModal = locators.modal.byTitle('Delete Items');
-    await expect(deleteModal).toBeVisible();
-    await expect(deleteModal.getByText('1 folder and 1 request')).toBeVisible();
-    await locators.modal.button('Delete').click();
+      const deleteModal = locators.modal.byTitle('Delete Items');
+      await expect(deleteModal).toBeVisible();
+      await expect(deleteModal.getByText('1 folder and 1 request')).toBeVisible();
+      await locators.modal.button('Delete').click();
 
-    await expect(locators.sidebar.folder('Folder A')).not.toBeVisible();
-    await expect(locators.sidebar.request('Req Root')).not.toBeVisible();
+      await expect(locators.sidebar.folder('Folder A')).not.toBeVisible();
+      await expect(locators.sidebar.request('Req Root')).not.toBeVisible();
+    });
   });
 
   test('Dragging a multi-selected folder + request moves both together', async ({ page, createTmpDir }) => {
     const { locators, collectionAName, collectionBName } = await setupFixture(page, createTmpDir, 'dragdrop');
 
-    await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
-    await locators.sidebar.request('Req Root').click({ modifiers: [SELECT_MODIFIER] });
+    await test.step('Select a folder and a request and drag them to another collection', async () => {
+      await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
+      await locators.sidebar.request('Req Root').click({ modifiers: [SELECT_MODIFIER] });
 
-    await locators.sidebar.itemRow('Folder A').dragTo(locators.sidebar.collection(collectionBName));
+      await locators.sidebar.itemRow('Folder A').dragTo(locators.sidebar.collection(collectionBName));
+    });
 
-    await expect(locators.sidebar.scopedFolder(collectionBName, 'Folder A')).toBeVisible();
-    await expect(locators.sidebar.scopedRequest(collectionBName, 'Req Root')).toBeVisible();
+    await test.step('Verify items moved successfully', async () => {
+      await expect(locators.sidebar.scopedItem(collectionBName, 'Folder A')).toBeVisible();
+      await expect(locators.sidebar.scopedItem(collectionBName, 'Req Root')).toBeVisible();
 
-    await expect(locators.sidebar.scopedFolder(collectionAName, 'Folder A')).toHaveCount(0);
-    await expect(locators.sidebar.scopedRequest(collectionAName, 'Req Root')).toHaveCount(0);
+      await expect(locators.sidebar.scopedItem(collectionAName, 'Folder A')).toHaveCount(0);
+      await expect(locators.sidebar.scopedItem(collectionAName, 'Req Root')).toHaveCount(0);
+    });
   });
 
   test('Plain click on a new row clears an existing multi-selection', async ({ page, createTmpDir }) => {
@@ -255,25 +269,34 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     const collectionDir = await createTmpDir('bulkcollapse');
     const collectionName = 'bulkcollapse Collection';
 
-    await createCollection(page, collectionName, collectionDir);
-    await createFolder(page, 'Folder One', collectionName);
-    await createFolder(page, 'Folder Two', collectionName);
-    await expandFolder(page, 'Folder One');
-    await expandFolder(page, 'Folder Two');
-    await createRequest(page, 'Req One', 'Folder One', { inFolder: true });
-    await createRequest(page, 'Req Two', 'Folder Two', { inFolder: true });
-    await clickEmptySidebarSpace(page);
+    await test.step('Setup collection and folders', async () => {
+      await createCollection(page, collectionName, collectionDir);
+      await createFolder(page, 'Folder One', collectionName);
+      await createFolder(page, 'Folder Two', collectionName);
+      await expandFolder(page, 'Folder One');
+      await expandFolder(page, 'Folder Two');
+      await createRequest(page, 'Req One', 'Folder One', { inFolder: true });
+      await createRequest(page, 'Req Two', 'Folder Two', { inFolder: true });
+      await clickEmptySidebarSpace(page);
+    });
 
-    await locators.sidebar.folder('Folder One').click({ modifiers: [SELECT_MODIFIER] });
-    await locators.sidebar.folder('Folder Two').click({ modifiers: [SELECT_MODIFIER] });
+    await test.step('Select multiple folders', async () => {
+      await locators.sidebar.folder('Folder One').click({ modifiers: [SELECT_MODIFIER] });
+      await locators.sidebar.folder('Folder Two').click({ modifiers: [SELECT_MODIFIER] });
+    });
 
-    await locators.sidebar.itemRow('Folder One').click({ button: 'right' });
-    await locators.dropdown.item('Collapse').click();
+    await test.step('Collapse them via bulk menu', async () => {
+      await locators.sidebar.itemRow('Folder One').click({ button: 'right' });
+      await locators.dropdown.item('Collapse').click();
 
-    await expect(locators.sidebar.request('Req One')).not.toBeVisible();
-    await expect(locators.sidebar.request('Req Two')).not.toBeVisible();
-    await expect(locators.sidebar.folder('Folder One')).not.toHaveClass(/item-selected/);
-    await expect(locators.sidebar.folder('Folder Two')).not.toHaveClass(/item-selected/);
+      await expect(locators.sidebar.request('Req One')).not.toBeVisible();
+      await expect(locators.sidebar.request('Req Two')).not.toBeVisible();
+    });
+
+    await test.step('Verify selection is cleared', async () => {
+      await expect(locators.sidebar.itemRow('Folder One')).not.toHaveClass(/item-selected/);
+      await expect(locators.sidebar.itemRow('Folder Two')).not.toHaveClass(/item-selected/);
+    });
   });
 
   test('Cancelling the bulk delete confirmation keeps the selection intact; confirming clears it', async ({ page, createTmpDir }) => {
@@ -344,21 +367,25 @@ test.describe('Sidebar multi-select and bulk actions', () => {
   test('Bulk Remove on a multi-collection selection removes all selected collections', async ({ page, createTmpDir }) => {
     const { locators, collectionAName, collectionBName } = await setupFixture(page, createTmpDir, 'bulkclose');
 
-    await locators.sidebar.collection(collectionAName).click({ modifiers: [SELECT_MODIFIER] });
-    await locators.sidebar.collection(collectionBName).click({ modifiers: [SELECT_MODIFIER] });
+    await test.step('Select multiple collections', async () => {
+      await locators.sidebar.collection(collectionAName).click({ modifiers: [SELECT_MODIFIER] });
+      await locators.sidebar.collection(collectionBName).click({ modifiers: [SELECT_MODIFIER] });
+    });
 
-    await locators.sidebar.collectionRow(collectionAName).click({ button: 'right' });
+    await test.step('Remove them via bulk context menu', async () => {
+      await locators.sidebar.collectionRow(collectionAName).click({ button: 'right' });
 
-    // Exclude "Others" items to prevent ambiguous lookups for "Remove".
-    const removeItem = locators.dropdown.item('Remove', true);
-    await expect(removeItem).toBeVisible();
-    await removeItem.click();
+      // Exclude "Others" items to prevent ambiguous lookups for "Remove".
+      const removeItem = locators.dropdown.item('Remove', true);
+      await expect(removeItem).toBeVisible();
+      await removeItem.click();
 
-    const removeModal = locators.modal.byTitle('Remove Collections');
-    await expect(removeModal).toBeVisible();
-    await locators.modal.button('Remove All').click();
+      const removeModal = locators.modal.byTitle('Remove Collections');
+      await expect(removeModal).toBeVisible();
+      await locators.modal.button('Remove All').click();
 
-    await expect(locators.sidebar.collection(collectionAName)).not.toBeVisible();
-    await expect(locators.sidebar.collection(collectionBName)).not.toBeVisible();
+      await expect(locators.sidebar.collection(collectionAName)).not.toBeVisible();
+      await expect(locators.sidebar.collection(collectionBName)).not.toBeVisible();
+    });
   });
 });

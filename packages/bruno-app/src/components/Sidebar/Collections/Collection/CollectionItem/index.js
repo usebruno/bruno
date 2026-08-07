@@ -64,7 +64,8 @@ import {
   findParentItemInCollection,
   getSelectionInfo,
   buildSidebarEntries,
-  getVisibleSidebarUidsInOrder
+  getVisibleSidebarUidsInOrder,
+  getSortedDraggedItems
 } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
@@ -220,6 +221,19 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     });
   };
 
+  const canAnyItemBeDropped = ({ draggedItem, targetItem, dropType }) => {
+    let items = [];
+    if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
+      items = [...draggedItem.multiSelectedItems];
+      if (!items.find((i) => i.uid === draggedItem.uid)) {
+        items.push(draggedItem);
+      }
+    } else {
+      items = [draggedItem];
+    }
+    return items.some((i) => canItemBeDropped({ draggedItem: i, targetItem, dropType }));
+  };
+
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: 'collection-item',
     hover: (draggedItem, monitor) => {
@@ -234,7 +248,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         return;
       }
 
-      const _canItemBeDropped = canItemBeDropped({ draggedItem, targetItem: item, dropType });
+      const _canItemBeDropped = canAnyItemBeDropped({ draggedItem, targetItem: item, dropType });
 
       setDropType(_canItemBeDropped ? dropType : null);
     },
@@ -247,35 +261,15 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       const dropType = resolveDropFromMonitor(monitor);
       if (!dropType) return;
 
-      if (!canItemBeDropped({ draggedItem, targetItem: item, dropType })) return;
+      if (!canAnyItemBeDropped({ draggedItem, targetItem: item, dropType })) return;
 
-      // Gather all dragged items
-      let draggedItems = [];
-      if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
-        draggedItems = [...draggedItem.multiSelectedItems];
-        // Ensure the explicitly dragged item is included (it should be, but just in case)
-        if (!draggedItems.find((i) => i.uid === draggedItemUid)) {
-          draggedItems.push({ ...draggedItem, sourceCollectionUid: draggedItem.sourceCollectionUid });
-        }
-      } else {
-        draggedItems = [{ ...draggedItem, sourceCollectionUid: draggedItem.sourceCollectionUid }];
-      }
-
-      // We need to sort draggedItems based on the visual order
-      const sidebarEntries = buildSidebarEntries({
-        collections: allCollections,
+      const draggedItems = getSortedDraggedItems({
+        draggedItem,
+        allCollections,
         workspaces,
         activeWorkspace,
-        collectionSortOrder
-      });
-
-      const visibleUids = getVisibleSidebarUidsInOrder({ sidebarEntries, searchText });
-      const visibleUidsIndex = new Map(visibleUids.map((uid, idx) => [uid, idx]));
-
-      draggedItems.sort((a, b) => {
-        const idxA = visibleUidsIndex.has(a.uid) ? visibleUidsIndex.get(a.uid) : 999999;
-        const idxB = visibleUidsIndex.has(b.uid) ? visibleUidsIndex.get(b.uid) : 999999;
-        return idxA - idxB;
+        collectionSortOrder,
+        searchText
       });
 
       // Filter out items that can't be dropped on this target

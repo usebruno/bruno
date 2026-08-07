@@ -2,6 +2,7 @@ import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, eac
 import { uuid } from 'utils/common';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path, { normalizePath } from 'utils/common/path';
+import { isWindowsOS } from 'utils/common/platform';
 import { isRequestTagsIncluded } from '@usebruno/common';
 import {
   doesRequestMatchSearchText,
@@ -1877,10 +1878,6 @@ export const isVariableSecret = (scopeInfo) => {
   return false;
 };
 
-export const getOtherCollections = (collections, selectedCollections) => {
-  return collections.filter((c) => !selectedCollections.includes(c.uid));
-};
-
 const sidebarEntryCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
 const getSidebarEntryName = (entry) => {
@@ -1980,7 +1977,17 @@ export const getVisibleSidebarUidsInOrder = ({ sidebarEntries = [], searchText =
 
 const isPathnameDescendantOf = (pathname, ancestorPathname) => {
   if (!pathname || !ancestorPathname || pathname === ancestorPathname) return false;
-  return pathname.startsWith(`${ancestorPathname}${path.sep}`);
+
+  let normalizedPathname = normalizePath(pathname);
+  let normalizedAncestor = normalizePath(ancestorPathname);
+
+  if (isWindowsOS()) {
+    normalizedPathname = normalizedPathname.toLowerCase();
+    normalizedAncestor = normalizedAncestor.toLowerCase();
+  }
+
+  if (normalizedPathname === normalizedAncestor) return false;
+  return normalizedPathname.startsWith(`${normalizedAncestor}${path.sep}`);
 };
 
 /**
@@ -2119,4 +2126,62 @@ export const filterTransientItems = (items) => {
 export const isScratchCollection = (collection, workspaces) => {
   if (!collection || !workspaces) return false;
   return workspaces.some((w) => w.scratchCollectionUid === collection.uid);
+};
+
+/**
+ * Gets the other collections (excluding the provided uids)
+ * @param {Array} allCollections - Array of all collections
+ * @param {Array} uids - Array of uids to exclude
+ * @returns {Array} Array of other collections
+ */
+export const getOtherCollections = (allCollections, uids) => {
+  const uidsSet = new Set(uids);
+  return allCollections.filter((collection) => !uidsSet.has(collection.uid));
+};
+
+/**
+ * Gets the sorted dragged items based on the visual order
+ * @param {Object} draggedItem - The dragged item
+ * @param {Array} allCollections - Array of all collections
+ * @param {Array} workspaces - Array of workspaces
+ * @param {Object} activeWorkspace - The active workspace
+ * @param {string} collectionSortOrder - The collection sort order
+ * @param {string} searchText - The search text
+ * @returns {Array} Array of sorted dragged items
+ */
+export const getSortedDraggedItems = ({
+  draggedItem,
+  allCollections,
+  workspaces,
+  activeWorkspace,
+  collectionSortOrder,
+  searchText
+}) => {
+  let draggedItems = [];
+  if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
+    draggedItems = [...draggedItem.multiSelectedItems];
+    if (!draggedItems.find((i) => i.uid === draggedItem.uid)) {
+      draggedItems.push({ ...draggedItem, sourceCollectionUid: draggedItem.sourceCollectionUid });
+    }
+  } else {
+    draggedItems = [{ ...draggedItem, sourceCollectionUid: draggedItem.sourceCollectionUid }];
+  }
+
+  const sidebarEntries = buildSidebarEntries({
+    collections: allCollections,
+    workspaces,
+    activeWorkspace,
+    collectionSortOrder
+  });
+
+  const visibleUids = getVisibleSidebarUidsInOrder({ sidebarEntries, searchText });
+  const visibleUidsIndex = new Map(visibleUids.map((uid, idx) => [uid, idx]));
+
+  draggedItems.sort((a, b) => {
+    const idxA = visibleUidsIndex.has(a.uid) ? visibleUidsIndex.get(a.uid) : 999999;
+    const idxB = visibleUidsIndex.has(b.uid) ? visibleUidsIndex.get(b.uid) : 999999;
+    return idxA - idxB;
+  });
+
+  return draggedItems;
 };

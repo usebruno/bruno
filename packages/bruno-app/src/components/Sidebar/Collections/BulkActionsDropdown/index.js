@@ -39,8 +39,7 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
   };
 
   const handleCloseOthers = () => {
-    const otherUids = getOtherCollections(collections, effectiveSelection.map((entry) => entry.uid)).map((c) => c.uid);
-    onRequestRemoveCollections(otherUids);
+    onRequestRemoveCollections(otherCollections.map((c) => c.uid));
     onClose();
   };
 

@@ -38,7 +38,7 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUids }) =
 
     activeCollections.forEach((c) => {
       if (c.draft) {
-        collectionDrafts.push(c);
+        collectionDrafts.push({ name: c.name, collectionUid: c.uid });
       }
 
       const items = flattenItems(c.items);

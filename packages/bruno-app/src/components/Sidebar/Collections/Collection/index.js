@@ -40,7 +40,7 @@ import RemoveCollections from './RemoveCollections';
 import MoveToWorkspace from './MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, buildSidebarEntries, getVisibleSidebarUidsInOrder } from 'utils/collections';
+import { isItemAFolder, isItemARequest, buildSidebarEntries, getVisibleSidebarUidsInOrder, getSortedDraggedItems } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from './RenameCollection';
@@ -320,33 +320,14 @@ const Collection = ({ collection, searchText }) => {
             brunoConfig: collection.brunoConfig
           }));
         }
-        // Gather all dragged items
-        let draggedItems = [];
-        if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
-          draggedItems = [...draggedItem.multiSelectedItems];
-          // Ensure the explicitly dragged item is included (it should be, but just in case)
-          if (!draggedItems.find((i) => i.uid === draggedItem.uid)) {
-            draggedItems.push({ ...draggedItem, sourceCollectionUid: draggedItem.sourceCollectionUid });
-          }
-        } else {
-          draggedItems = [{ ...draggedItem, sourceCollectionUid: draggedItem.sourceCollectionUid }];
-        }
 
-        // We need to sort draggedItems based on the visual order
-        const sidebarEntries = buildSidebarEntries({
-          collections: allCollections,
+        const draggedItems = getSortedDraggedItems({
+          draggedItem,
+          allCollections,
           workspaces,
           activeWorkspace,
-          collectionSortOrder
-        });
-
-        const visibleUids = getVisibleSidebarUidsInOrder({ sidebarEntries, searchText });
-        const visibleUidsIndex = new Map(visibleUids.map((uid, idx) => [uid, idx]));
-
-        draggedItems.sort((a, b) => {
-          const idxA = visibleUidsIndex.has(a.uid) ? visibleUidsIndex.get(a.uid) : 999999;
-          const idxB = visibleUidsIndex.has(b.uid) ? visibleUidsIndex.get(b.uid) : 999999;
-          return idxA - idxB;
+          collectionSortOrder,
+          searchText
         });
 
         const validDraggedItems = draggedItems.filter((dragged) => dragged.uid !== collection.uid);
