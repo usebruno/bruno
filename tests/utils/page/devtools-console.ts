@@ -22,11 +22,12 @@ export const buildDevToolsLocators = (page: Page) => {
   return {
     trigger: () => page.locator('button[data-trigger="dev-tools"]'),
     header: () => page.getByTestId('console-header'),
-    tab: (id: string) => page.getByTestId(`${id}-tab`),
+    networkTab: () => page.getByTestId('network-tab'),
     networkRows: () => page.getByTestId('network-request-row'),
     closeButton: () => page.getByTitle('Close console'),
     detailsPanel: () => page.getByTestId('details-panel'),
-    detailsSubTab: (id: string) => page.getByTestId(`${id}-details-panel`),
+    requestDetailsTab: () => page.getByTestId('request-details-tab'),
+    networkDetailsTab: () => page.getByTestId('network-details-tab'),
     requestHeadersTable: () => page.getByTestId('request-details-request-headers'),
     requestHeaders: {
       rows: reqHeaderRows,
@@ -45,14 +46,14 @@ export const openNetworkRequestDetails = async (page: Page) => {
     await devtools.trigger().click();
     await devtools.header().waitFor({ state: 'visible' });
 
-    await devtools.tab('network').click();
+    await devtools.networkTab().click();
     const row = devtools.networkRows().last();
     await row.waitFor({ state: 'visible' });
     await row.click();
 
     await devtools.detailsPanel().waitFor({ state: 'visible' });
     /** Already the default sub-tab, clicked so the Request Headers table is guaranteed active. */
-    await devtools.detailsSubTab('request').click();
+    await devtools.requestDetailsTab().click();
 
     /** The details panel scrolls on its own, so the table can start below the fold. */
     const table = devtools.requestHeadersTable();

@@ -234,7 +234,7 @@ test.describe('Timeline - response headers by source', () => {
       });
 
       await test.step('DevTools -> Network -> request details -> Network prints the same lines', async () => {
-        await devtools.detailsSubTab('network').click();
+        await devtools.networkDetailsTab().click();
         expect(await devtools.lastHopRequestHeaderLines(), 'devtools Network tab').toEqual(tableLines);
       });
     });
@@ -319,7 +319,7 @@ test.describe('Timeline - response headers by source', () => {
       });
 
       await test.step('DevTools -> Network sub-tab keeps all three hops', async () => {
-        await devtools.detailsSubTab('network').click();
+        await devtools.networkDetailsTab().click();
         const hops = await devtools.requestHops();
 
         assertEveryHop(hops, 'redirect devtools Network tab');
