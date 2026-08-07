@@ -1,38 +1,29 @@
-import type { Scripts } from '@opencollection/types/common/scripts';
+import type { Script as OpenCollectionScript, Scripts } from '@opencollection/types/common/scripts';
 import type { FolderRequest as BrunoFolderRequest } from '@usebruno/schema-types/collection/folder';
 import type { HttpRequest as BrunoHttpRequest } from '@usebruno/schema-types/requests/http';
 import type { WebSocketRequest as BrunoWebSocketRequest } from '@usebruno/schema-types/requests/websocket';
 import type { GrpcRequest as BrunoGrpcRequest } from '@usebruno/schema-types/requests/grpc';
 import type { BrunoScript } from '../types';
 
-export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpRequest | BrunoWebSocketRequest | BrunoGrpcRequest | null | undefined): Scripts | undefined => {
+export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpRequest | BrunoWebSocketRequest | BrunoGrpcRequest | null | undefined, allowedKeys: string[]): Scripts | undefined => {
   const ocScripts: Scripts = [];
   const script = request?.script as BrunoScript | null | undefined;
 
-  if (script?.req?.trim().length) {
-    ocScripts.push({
-      type: 'before-request',
-      code: script.req.trim()
-    });
-  }
-  if (script?.res?.trim().length) {
-    ocScripts.push({
-      type: 'after-response',
-      code: script.res.trim()
-    });
-  }
-  if (script?.beforeCallStart?.trim().length) {
-    ocScripts.push({
-      type: 'grpc:before-call-start',
-      code: script.beforeCallStart.trim()
-    });
-  }
-  if (script?.afterCallEnd?.trim().length) {
-    ocScripts.push({
-      type: 'grpc:after-call-end',
-      code: script.afterCallEnd.trim()
-    });
-  }
+  const pushScript = (key: keyof BrunoScript, type: OpenCollectionScript['type'], code: string | null | undefined) => {
+    if (allowedKeys && !allowedKeys.includes(key)) {
+      return;
+    }
+    if (!code?.trim().length) {
+      return;
+    }
+    ocScripts.push({ type, code: code.trim() });
+  };
+
+  pushScript('req', 'before-request', script?.req);
+  pushScript('res', 'after-response', script?.res);
+  pushScript('beforeCallStart', 'grpc:before-call-start', script?.beforeCallStart);
+  pushScript('afterCallEnd', 'grpc:after-call-end', script?.afterCallEnd);
+
   if (request?.tests?.trim().length) {
     ocScripts.push({
       type: 'tests',
@@ -43,7 +34,7 @@ export const toOpenCollectionScripts = (request: BrunoFolderRequest | BrunoHttpR
   return ocScripts.length > 0 ? ocScripts : undefined;
 };
 
-export const fromOpenCollectionScripts = (scripts: Scripts | null | undefined, allowedKeys?: string[]): {
+export const fromOpenCollectionScripts = (scripts: Scripts | null | undefined, allowedKeys: string[]): {
   script?: BrunoScript;
   tests?: string | null;
 } | undefined => {
