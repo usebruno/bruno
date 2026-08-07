@@ -4,7 +4,6 @@ import Modal from 'components/Modal';
 import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
 import { collectCollectionExamples } from 'utils/mock-server/mock-responses';
 
-const STATUS_CODES = [200, 201, 204, 400, 401, 403, 404, 500, 502, 503];
 const BODY_TYPES = [
   { value: 'json', label: 'JSON' },
   { value: 'text', label: 'Text' },
@@ -12,10 +11,7 @@ const BODY_TYPES = [
   { value: 'html', label: 'HTML' }
 ];
 
-const formatStatusOption = (code) => {
-  const phrase = statusCodePhraseMap[code];
-  return phrase ? `${code} ${phrase}` : String(code);
-};
+const DESCRIPTION_MAX_LENGTH = 1000;
 
 const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
   const nameInputRef = useRef();
@@ -69,7 +65,7 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
       await onCreate({
         name: nameValue.trim(),
         description: description.trim(),
-        statusCode: Number(statusValue),
+        statusCode: Number(statusValue) || 200,
         bodyType: bodyTypeValue,
         exampleSelection: linkedExample
       });
@@ -131,7 +127,8 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
               className="block textbox w-full mt-2"
               rows={2}
               value={description}
-              onChange={(event) => setDescription(event.target.value)}
+              maxLength={DESCRIPTION_MAX_LENGTH}
+              onChange={(event) => setDescription(event.target.value.slice(0, DESCRIPTION_MAX_LENGTH))}
               data-testid="mock-response-create-description-input"
             />
           </div>
@@ -145,11 +142,12 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
                 id="mock-response-create-status"
                 className="textbox w-full mt-2"
                 value={statusValue}
-                onChange={(event) => setStatusCode(event.target.value)}
+                onChange={(event) => setStatusCode(Number(event.target.value))}
                 disabled={Boolean(linkedExample)}
+                data-testid="mock-response-create-status-input"
               >
-                {STATUS_CODES.map((code) => (
-                  <option key={code} value={code}>{formatStatusOption(code)}</option>
+                {Object.entries(statusCodePhraseMap).map(([code, phrase]) => (
+                  <option key={code} value={code}>{code} {phrase}</option>
                 ))}
               </select>
             </div>
