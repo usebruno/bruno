@@ -34,7 +34,7 @@ import NewFolder from 'components/Sidebar/NewFolder';
 import NewApp from 'components/Sidebar/NewApp';
 import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
-import DeleteCollectionItem from './DeleteCollectionItem';
+import DeleteCollectionItems from './DeleteCollectionItems';
 import IgnoreCollectionItem from './IgnoreCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
@@ -746,7 +746,10 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         <CloneCollectionItem item={item} collectionUid={collectionUid} onClose={() => setCloneItemModalOpen(false)} />
       )}
       {deleteItemModalOpen && (
-        <DeleteCollectionItem item={item} collectionUid={collectionUid} onClose={() => setDeleteItemModalOpen(false)} />
+        <DeleteCollectionItems
+          entries={[{ type: isItemAFolder(item) ? 'folder' : 'request', item, uid: item.uid, collectionUid }]}
+          onClose={() => setDeleteItemModalOpen(false)}
+        />
       )}
       {ignoreItemModalOpen && (
         <IgnoreCollectionItem item={item} collectionUid={collectionUid} onClose={() => setIgnoreItemModalOpen(false)} />

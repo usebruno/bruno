@@ -18,16 +18,24 @@ const DeleteCollectionItems = ({ entries, onClose }) => {
   const folderCount = entries.filter((entry) => entry.type === 'folder').length;
   const requestCount = entries.filter((entry) => entry.type === 'request').length;
 
-  const description = [
-    folderCount > 0 ? pluralize(folderCount, 'folder') : null,
-    requestCount > 0 ? pluralize(requestCount, 'request') : null
-  ].filter(Boolean).join(' and ');
+  const description = entries.length === 1 ? (
+    <span className="font-medium">{entries[0].item.name}</span>
+  ) : (
+    [
+      folderCount > 0 ? pluralize(folderCount, 'folder') : null,
+      requestCount > 0 ? pluralize(requestCount, 'request') : null
+    ]
+      .filter(Boolean)
+      .join(' and ')
+  );
 
-  const title = folderCount > 0 && requestCount > 0
-    ? 'Delete Items'
-    : folderCount > 0
-      ? `Delete Folder${folderCount === 1 ? '' : 's'}`
-      : `Delete Request${requestCount === 1 ? '' : 's'}`;
+  const title = entries.length === 1
+    ? `Delete ${entries[0].type === 'folder' ? 'Folder' : 'Request'}`
+    : folderCount > 0 && requestCount > 0
+      ? 'Delete Items'
+      : folderCount > 0
+        ? 'Delete Folders'
+        : 'Delete Requests';
 
   const onConfirm = () => {
     const deletions = entries.map((entry) =>
