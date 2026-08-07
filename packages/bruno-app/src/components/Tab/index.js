@@ -6,11 +6,22 @@ const Tab = ({ name, label, isActive, onClick, count = 0, className = '', ...pro
     active: isActive
   }, className);
 
+  const handleActivate = () => onClick(name);
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleActivate();
+    }
+  };
+
   return (
     <div
       className={tabClassName}
       role="tab"
-      onClick={() => onClick(name)}
+      tabIndex={0}
+      aria-selected={isActive}
+      onClick={handleActivate}
+      onKeyDown={handleKeyDown}
       data-testid={`tab-${name}`}
       {...props}
     >

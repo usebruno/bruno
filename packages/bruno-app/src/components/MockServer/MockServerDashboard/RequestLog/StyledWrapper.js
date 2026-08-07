@@ -1,58 +1,54 @@
 import styled from 'styled-components';
 
+/* Table chrome mirrors components/EditableTable so both dashboard tabs read as one surface. */
 const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
 
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-weight: 500;
-    table-layout: fixed;
-
-    thead,
-    td {
-      border: 1px solid ${(props) => props.theme.table.border};
-    }
-
-    thead {
-      color: ${(props) => props.theme.table.thead.color};
-      font-size: ${(props) => props.theme.font.size.base};
-      user-select: none;
-    }
-
-    td {
-      padding: 6px 10px;
-    }
-
-    th {
-      padding: 6px 10px;
-      text-align: left;
-      font-weight: 600;
-      border: 1px solid ${(props) => props.theme.table.border};
-    }
-  }
-
-  input[type='text'] {
-    width: 100%;
-    border: solid 1px transparent;
-    outline: none !important;
-    background-color: inherit;
-
-    &:focus {
-      outline: none !important;
-      border: solid 1px transparent;
-    }
-  }
-
   .log-table-container {
     flex: 1;
     overflow: auto;
+    border: 1px solid ${(props) => props.theme.border.border0};
+    border-radius: ${(props) => props.theme.border.radius.base};
   }
 
-  .method-badge {
-    font-size: 11px;
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+    font-size: ${(props) => props.theme.font.size.base};
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 5px 10px;
+      text-align: left;
+      font-weight: 400;
+      color: ${(props) => props.theme.table.thead.color};
+      background: ${(props) => props.theme.sidebar.bg};
+      user-select: none;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid ${(props) => props.theme.border.border0};
+      border-right: 1px solid ${(props) => props.theme.border.border0};
+
+      &:last-child {
+        border-right: none;
+      }
+    }
+
+    td {
+      padding: 6px 10px;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
   }
 
   .status-code {
@@ -68,32 +64,18 @@ const Wrapper = styled.div`
 
   .log-path {
     font-family: monospace;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
   }
 
   .log-timestamp {
     color: ${(props) => props.theme.colors.text.muted};
     font-family: monospace;
-    font-size: 11px;
+    font-size: ${(props) => props.theme.font.size.xs};
   }
 
   .no-match-label {
     color: ${(props) => props.theme.colors.text.danger};
     font-style: italic;
-  }
-
-  .text-muted {
-    color: ${(props) => props.theme.colors.text.muted};
-  }
-
-  .text-link {
-    font-size: ${(props) => props.theme.font.size.sm};
-    color: ${(props) => props.theme.textLink};
-    cursor: pointer;
-
-    &:hover {
-      text-decoration: underline;
-    }
   }
 
   .empty-state {
@@ -119,22 +101,16 @@ const Wrapper = styled.div`
   }
 
   .log-row-expanded td {
-    background: ${(props) => props.theme.table.row?.selected || 'rgba(127, 127, 127, 0.08)'};
+    background: ${(props) => props.theme.dropdown.hoverBg};
   }
 
   .log-trace-row td {
     padding: 0;
-    border-top: none;
-    background: ${(props) => props.theme.table.row?.selected || 'rgba(127, 127, 127, 0.08)'};
+    background: ${(props) => props.theme.dropdown.hoverBg};
   }
 
   .match-trace-panel {
-    margin: 0;
     padding: 10px 12px 12px;
-    border: none;
-    border-top: 1px solid ${(props) => props.theme.table.border};
-    border-radius: 0;
-    background: transparent;
     max-height: 240px;
     overflow: auto;
   }
@@ -144,7 +120,7 @@ const Wrapper = styled.div`
     flex-wrap: wrap;
     gap: 8px 16px;
     margin-bottom: 10px;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
   }
 
   .match-trace-route {
@@ -165,7 +141,7 @@ const Wrapper = styled.div`
   }
 
   .match-trace-section-title {
-    font-size: 11px;
+    font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -177,12 +153,12 @@ const Wrapper = styled.div`
     margin: 0;
     padding-left: 18px;
     font-family: monospace;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
   }
 
   .match-trace-candidate {
-    border: 1px solid ${(props) => props.theme.table.border};
-    border-radius: 4px;
+    border: 1px solid ${(props) => props.theme.border.border0};
+    border-radius: ${(props) => props.theme.border.radius.sm};
     padding: 8px;
     margin-bottom: 8px;
 
@@ -195,7 +171,7 @@ const Wrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 600;
     margin-bottom: 6px;
   }
@@ -206,7 +182,7 @@ const Wrapper = styled.div`
     text-transform: uppercase;
     padding: 1px 6px;
     border-radius: 999px;
-    background: ${(props) => props.theme.table.border};
+    background: ${(props) => props.theme.border.border0};
     color: ${(props) => props.theme.colors.text.muted};
 
     &.selected {
@@ -224,7 +200,7 @@ const Wrapper = styled.div`
     margin: 0;
     padding-left: 0;
     list-style: none;
-    font-size: 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
 
     li {
       display: flex;
@@ -254,7 +230,7 @@ const Wrapper = styled.div`
   .match-trace-fallback-note,
   .match-trace-operator,
   .match-trace-empty {
-    font-size: 11px;
+    font-size: ${(props) => props.theme.font.size.xs};
     color: ${(props) => props.theme.colors.text.muted};
   }
 `;

@@ -54,6 +54,23 @@ test.describe.serial('Mock Server', () => {
     await expect(ms.tabLog()).toBeVisible();
   });
 
+  test('should keep the Routes tab count after visiting Request Log while stopped', async ({ pageWithUserData: page }) => {
+    const ms = buildMockServerLocators(page);
+    await openMockServerTab(page, COLLECTION_NAME);
+
+    await test.step('Routes tab shows the synced route count while stopped', async () => {
+      await expect(ms.statusText()).toHaveText('Stopped');
+      await expect(ms.tabRoutesCount()).toHaveText('3');
+    });
+
+    await test.step('Count survives a trip to the Request Log tab', async () => {
+      await ms.tabLog().click();
+      await expect(ms.logEmptyState()).toBeVisible();
+      await expect(ms.tabRoutesCount()).toBeVisible();
+      await expect(ms.tabRoutesCount()).toHaveText('3');
+    });
+  });
+
   test('should start mock server and show running status', async ({ pageWithUserData: page }) => {
     const ms = buildMockServerLocators(page);
     await openMockServerTab(page, COLLECTION_NAME);
