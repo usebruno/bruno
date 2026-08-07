@@ -27,7 +27,7 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeAuth, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials, clearOauth2CredentialsByCredentialsId } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -382,6 +382,14 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const resolvedRequest = cloneDeep(_request);
     // mergeVars modifies the request in place, but we'll assign it to ensure consistency
     mergeVars(collection, resolvedRequest, requestTreePath);
+    // Resolve `inherit` auth against the folder tree, the same way prepare-request
+    // and prepare-grpc-request do. Without this the request keeps `mode: 'inherit'`
+    // and setAuthHeaders can only fall back to collection auth, so folder-level auth
+    // is skipped and introspection goes out unauthenticated.
+    // `auth` is optional on a request, and mergeAuth reads `auth.mode` directly.
+    if (resolvedRequest.auth) {
+      mergeAuth(collection, resolvedRequest, requestTreePath);
+    }
     const envVars = getEnvVars(environment);
 
     const globalEnvironmentVars = collection.globalEnvironmentVariables;
@@ -410,7 +418,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     );
 
     const collectionRoot = collection?.draft?.root || collection?.root || {};
-    const request = prepareGqlIntrospectionRequest(endpoint, resolvedVars, _request, collectionRoot);
+    const request = prepareGqlIntrospectionRequest(endpoint, resolvedVars, resolvedRequest, collectionRoot);
 
     // Get timeout from request settings, resolve inheritance if needed
     const resolvedSettings = resolveInheritedSettings(request.settings || {});
