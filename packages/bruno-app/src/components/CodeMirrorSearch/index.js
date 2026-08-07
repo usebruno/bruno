@@ -189,7 +189,6 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
         ((e.key.toLowerCase() === 'f' || e.key === 'ƒ') && (e.metaKey || e.ctrlKey) && e.altKey)
         || (e.key.toLowerCase() === 'h' && e.ctrlKey && !e.metaKey && !e.altKey)
       ) {
-        // Cmd+Option+F (Mac) or Ctrl+H (Win/Linux). open replace and focus it
         e.preventDefault();
         e.stopPropagation();
         setReplaceVisible(true);
