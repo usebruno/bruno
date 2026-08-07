@@ -12,20 +12,6 @@ function isBuiltinModule(moduleName) {
 }
 
 /**
- * Validate that a path is within allowed context roots
- * @param {string} normalizedPath - Normalized file path
- * @param {Array<string>} additionalContextRootsAbsolute - Allowed roots
- * @returns {boolean} True if path is within allowed roots
- */
-function isPathWithinAllowedRoots(normalizedPath, additionalContextRootsAbsolute) {
-  return additionalContextRootsAbsolute.some((allowedRoot) => {
-    const normalizedAllowedRoot = path.normalize(allowedRoot);
-    const relativePath = path.relative(normalizedAllowedRoot, normalizedPath);
-    return !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
-  });
-}
-
-/**
  * Resolve the VM filename for the script
  * @param {string|null} scriptPath - Path to the source file
  * @param {string} collectionPath - Path to the collection directory
@@ -51,7 +37,6 @@ class ScriptError extends Error {
 
 module.exports = {
   isBuiltinModule,
-  isPathWithinAllowedRoots,
   resolveVmFilename,
   ScriptError
 };

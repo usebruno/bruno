@@ -3,60 +3,65 @@ const fs = require('node:fs');
 const path = require('node:path');
 const nodeModule = require('node:module');
 
-const { isBuiltinModule, isPathWithinAllowedRoots } = require('./utils');
+const { isBuiltinModule } = require('./utils');
+const { isPathWithinAllowedRoots, isPathWithinRoot } = require('../../utils/path-security');
+const { isTypeScriptFile, transpileTypeScript } = require('../../utils/typescript');
+const { isFile, resolveModuleFile, resolveDirectoryIndex } = require('../../utils/module-resolution');
 
 /**
- * Resolve a local module path, handling files and directories
- * Follows Node.js resolution algorithm:
- * 1. Exact path (with extension)
- * 2. Path + .js extension
- * 3. Directory with package.json (main field)
- * 4. Directory with index.js
- * @param {string} fromDir - Directory to resolve from
- * @param {string} moduleName - Module name/path
- * @returns {string} Resolved absolute path
+ * Resolve a directory module through its package.json main field.
+ * Only a main that stays inside the package directory is honored: this runs
+ * on sandboxed collection content, and probing an escaping main would leak
+ * file existence outside the allowed roots.
+ * @param {string} dirPath - Absolute path of the directory
+ * @returns {string|null} Path of the main file, or null
  */
-function resolveLocalModulePath(fromDir, moduleName) {
-  const basePath = path.resolve(fromDir, moduleName);
-
-  // 1. If has extension, use as-is
-  if (path.extname(moduleName)) {
-    return path.normalize(basePath);
+function resolvePackageJsonMain(dirPath) {
+  const pkgPath = path.join(dirPath, 'package.json');
+  if (!fs.existsSync(pkgPath)) {
+    return null;
   }
 
-  // 2. Try with .js extension
-  const withJs = basePath + '.js';
-  if (fs.existsSync(withJs)) {
-    return path.normalize(withJs);
-  }
-
-  // 3. Check if it's a directory
-  if (fs.existsSync(basePath) && fs.statSync(basePath).isDirectory()) {
-    // 3a. Check for package.json with main field
-    const pkgPath = path.join(basePath, 'package.json');
-    if (fs.existsSync(pkgPath)) {
-      try {
-        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-        if (pkg.main) {
-          const mainPath = path.resolve(basePath, pkg.main);
-          if (fs.existsSync(mainPath)) {
-            return path.normalize(mainPath);
-          }
-        }
-      } catch {
-        // Ignore JSON parse errors, fall through to index.js
-      }
+  try {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    if (!pkg.main) {
+      return null;
     }
 
-    // 3b. Check for index.js
-    const indexPath = path.join(basePath, 'index.js');
-    if (fs.existsSync(indexPath)) {
-      return path.normalize(indexPath);
+    const mainPath = path.resolve(dirPath, pkg.main);
+    if (isPathWithinRoot(dirPath, mainPath) && isFile(mainPath)) {
+      return mainPath;
     }
+  } catch {
+    // Ignore JSON parse errors, the caller falls through to index files
   }
 
-  // 4. Fall back to original path (will likely fail with file not found)
-  return path.normalize(basePath);
+  return null;
+}
+
+/**
+ * Read a module's source, transpiling TypeScript to JavaScript
+ * @param {string} filePath - Absolute path of the module file
+ * @returns {string} JavaScript source ready for compilation
+ */
+function readModuleSource(filePath) {
+  const source = fs.readFileSync(filePath, 'utf8');
+  return isTypeScriptFile(filePath) ? transpileTypeScript(source, filePath) : source;
+}
+
+/**
+ * Compile a module's code in the VM context and run it against moduleObj,
+ * wrapping it in a function that receives the CJS parameters
+ * @param {Object} options - Configuration options
+ */
+function runModuleInContext({ moduleCode, filePath, isolatedContext, moduleObj, moduleRequire }) {
+  const moduleDir = path.dirname(filePath);
+  const wrappedCode = `(function(module, exports, require, __filename, __dirname) {\n${moduleCode}\n})`;
+  // lineOffset compensates for the wrapper's leading line so stack traces
+  // report the module's real line numbers
+  const compiledScript = new vm.Script(wrappedCode, { filename: filePath, lineOffset: -1 });
+  const moduleFunction = compiledScript.runInContext(isolatedContext);
+  moduleFunction(moduleObj, moduleObj.exports, moduleRequire, filePath, moduleDir);
 }
 
 /**
@@ -137,8 +142,8 @@ function loadLocalModule({
   additionalContextRootsAbsolute = []
 }) {
   // Validate the raw module name doesn't try to escape allowed roots
-  const preliminaryPath = path.resolve(currentModuleDir, moduleName);
-  if (!isPathWithinAllowedRoots(path.normalize(preliminaryPath), additionalContextRootsAbsolute)) {
+  const preliminaryPath = path.normalize(path.resolve(currentModuleDir, moduleName));
+  if (!isPathWithinAllowedRoots(preliminaryPath, additionalContextRootsAbsolute)) {
     const allowedRootsDisplay = additionalContextRootsAbsolute.map((root) => `  - ${root}`).join('\n');
     throw new Error(
       `Access to files outside of the allowed context roots is not allowed: ${moduleName}\n\n`
@@ -146,8 +151,13 @@ function loadLocalModule({
     );
   }
 
-  // Resolve the module path, handling files and directories
-  const normalizedFilePath = resolveLocalModulePath(currentModuleDir, moduleName);
+  // Resolve to a file (extension candidates, then directory via package.json
+  // main and index files), falling back to the raw path so the not-found
+  // error below names it
+  const normalizedFilePath = resolveModuleFile(preliminaryPath)
+    || resolvePackageJsonMain(preliminaryPath)
+    || resolveDirectoryIndex(preliminaryPath)
+    || preliminaryPath;
 
   // Final security check after resolution
   if (!isPathWithinAllowedRoots(normalizedFilePath, additionalContextRootsAbsolute)) {
@@ -163,13 +173,12 @@ function loadLocalModule({
     return localModuleCache.get(normalizedFilePath).exports;
   }
 
-  if (!fs.existsSync(normalizedFilePath)) {
+  if (!fs.existsSync(normalizedFilePath) || !fs.statSync(normalizedFilePath).isFile()) {
     throw new Error(`Cannot find module ${moduleName}`);
   }
 
-  const moduleCode = fs.readFileSync(normalizedFilePath, 'utf8');
+  const moduleCode = readModuleSource(normalizedFilePath);
   const moduleObj = { exports: {} };
-  const moduleDir = path.dirname(normalizedFilePath);
 
   // Pre-populate cache with moduleObj BEFORE execution to handle circular dependencies
   // This allows re-entrant requires to get partial exports (Node.js behavior)
@@ -180,17 +189,19 @@ function loadLocalModule({
   const moduleRequire = createCustomRequire({
     collectionPath,
     isolatedContext,
-    currentModuleDir: moduleDir,
+    currentModuleDir: path.dirname(normalizedFilePath),
     localModuleCache,
     additionalContextRootsAbsolute
   });
 
   try {
-    // Wrap module code in a function that receives CJS parameters
-    const wrappedCode = `(function(module, exports, require, __filename, __dirname) {\n${moduleCode}\n})`;
-    const compiledScript = new vm.Script(wrappedCode, { filename: normalizedFilePath });
-    const moduleFunction = compiledScript.runInContext(isolatedContext);
-    moduleFunction(moduleObj, moduleObj.exports, moduleRequire, normalizedFilePath, moduleDir);
+    runModuleInContext({
+      moduleCode,
+      filePath: normalizedFilePath,
+      isolatedContext,
+      moduleObj,
+      moduleRequire
+    });
     return moduleObj.exports;
   } catch (error) {
     // Remove failed module from cache to allow retry
@@ -236,9 +247,8 @@ function executeModuleInVmContext({
     return result;
   }
 
-  // JavaScript files
-  const moduleSource = fs.readFileSync(resolvedPath, 'utf8');
-  const moduleDir = path.dirname(resolvedPath);
+  // JavaScript / TypeScript files
+  const moduleSource = readModuleSource(resolvedPath);
   const moduleObj = { exports: {} };
 
   // Pre-populate cache with moduleObj BEFORE execution to handle circular dependencies
@@ -249,16 +259,18 @@ function executeModuleInVmContext({
   const moduleRequire = createNpmModuleRequire({
     collectionPath,
     isolatedContext,
-    currentModuleDir: moduleDir,
+    currentModuleDir: path.dirname(resolvedPath),
     localModuleCache
   });
 
   try {
-    // Wrap module code in a function that receives CJS parameters
-    const wrappedCode = `(function(module, exports, require, __filename, __dirname) {\n${moduleSource}\n})`;
-    const compiledScript = new vm.Script(wrappedCode, { filename: resolvedPath });
-    const moduleFunction = compiledScript.runInContext(isolatedContext);
-    moduleFunction(moduleObj, moduleObj.exports, moduleRequire, resolvedPath, moduleDir);
+    runModuleInContext({
+      moduleCode: moduleSource,
+      filePath: resolvedPath,
+      isolatedContext,
+      moduleObj,
+      moduleRequire
+    });
   } catch (error) {
     // Remove failed module from cache to allow retry
     localModuleCache.delete(resolvedPath);

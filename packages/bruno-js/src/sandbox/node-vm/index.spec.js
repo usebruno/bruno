@@ -175,6 +175,262 @@ describe('node-vm sandbox', () => {
     });
   });
 
+  describe('createCustomRequire - TypeScript modules', () => {
+    const makeContext = () => ({
+      bru: { setVar: jest.fn() },
+      console: console
+    });
+
+    it('should load a TypeScript module with explicit .ts extension', async () => {
+      fs.writeFileSync(
+        path.join(collectionPath, 'helper.ts'),
+        `
+          interface Payload {
+            value: number;
+          }
+          const payload: Payload = { value: 42 };
+          module.exports = { getValue: (): number => payload.value };
+        `
+      );
+
+      const script = `
+        const helper = require('./helper.ts');
+        bru.setVar('result', helper.getValue());
+      `;
+      const context = makeContext();
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 42);
+    });
+
+    it('should resolve extensionless require to a .ts file', async () => {
+      fs.writeFileSync(
+        path.join(collectionPath, 'helper.ts'),
+        'export const value: number = 7;'
+      );
+
+      const script = `
+        const helper = require('./helper');
+        bru.setVar('result', helper.value);
+      `;
+      const context = makeContext();
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 7);
+    });
+
+    it('should prefer .js over .ts when both exist', async () => {
+      fs.writeFileSync(path.join(collectionPath, 'dual.js'), 'module.exports = { source: "js" };');
+      fs.writeFileSync(path.join(collectionPath, 'dual.ts'), 'export const source: string = "ts";');
+
+      const script = `
+        const dual = require('./dual');
+        bru.setVar('result', dual.source);
+      `;
+      const context = makeContext();
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'js');
+    });
+
+    it('should map a .js require onto the TypeScript source when no .js file exists', async () => {
+      fs.writeFileSync(
+        path.join(collectionPath, 'esm-style.ts'),
+        'export const loaded: boolean = true;'
+      );
+
+      const script = `
+        const mod = require('./esm-style.js');
+        bru.setVar('result', mod.loaded);
+      `;
+      const context = makeContext();
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', true);
+    });
+
+    it('should append extensions to a request whose basename contains a dot', async () => {
+      fs.writeFileSync(
+        path.join(collectionPath, 'config.helper.ts'),
+        'export const value: string = "dotted";'
+      );
+
+      const script = `
+        const helper = require('./config.helper');
+        bru.setVar('result', helper.value);
+      `;
+      const context = makeContext();
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'dotted');
+    });
+
+    it('should resolve a directory with index.ts', async () => {
+      const libDir = path.join(collectionPath, 'lib');
+      fs.mkdirSync(libDir);
+      fs.writeFileSync(path.join(libDir, 'index.ts'), 'export const name: string = "lib-index";');
+
+      const script = `
+        const lib = require('./lib');
+        bru.setVar('result', lib.name);
+      `;
+      const context = makeContext();
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'lib-index');
+    });
+
+    it('should handle ESM import/export between TypeScript modules', async () => {
+      fs.writeFileSync(
+        path.join(collectionPath, 'math.ts'),
+        'export const double = (n: number): number => n * 2;'
+      );
+      fs.writeFileSync(
+        path.join(collectionPath, 'consumer.ts'),
+        `
+          import { double } from './math';
+          export const result: number = double(21);
+        `
+      );
+
+      const script = `
+        const consumer = require('./consumer.ts');
+        bru.setVar('result', consumer.result);
+      `;
+      const context = makeContext();
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 42);
+    });
+
+    it('should expose export default via .default', async () => {
+      fs.writeFileSync(
+        path.join(collectionPath, 'default-export.ts'),
+        'export default { kind: "default" };'
+      );
+
+      const script = `
+        const mod = require('./default-export.ts');
+        bru.setVar('result', mod.default.kind);
+      `;
+      const context = makeContext();
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'default');
+    });
+
+    it('should strip TypeScript-only syntax (enums, generics, type assertions)', async () => {
+      fs.writeFileSync(
+        path.join(collectionPath, 'typed.ts'),
+        `
+          enum Status {
+            Active = 'active',
+            Inactive = 'inactive'
+          }
+          const pick = <T>(items: T[]): T => items[0];
+          export const status = Status.Active;
+          export const first = pick<string>(['a', 'b']) as string;
+        `
+      );
+
+      const script = `
+        const typed = require('./typed.ts');
+        bru.setVar('status', typed.status);
+        bru.setVar('first', typed.first);
+      `;
+      const context = makeContext();
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('status', 'active');
+      expect(context.bru.setVar).toHaveBeenCalledWith('first', 'a');
+    });
+
+    it('should resolve a local directory through its package.json main field', async () => {
+      const pkgDir = path.join(collectionPath, 'pkg');
+      fs.mkdirSync(pkgDir);
+      fs.writeFileSync(path.join(pkgDir, 'package.json'), JSON.stringify({ main: './entry.js' }));
+      fs.writeFileSync(path.join(pkgDir, 'entry.js'), 'module.exports = { from: "main" };');
+
+      const script = `
+        const pkg = require('./pkg');
+        bru.setVar('result', pkg.from);
+      `;
+      const context = makeContext();
+
+      await runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} });
+
+      expect(context.bru.setVar).toHaveBeenCalledWith('result', 'main');
+    });
+
+    it('should ignore a package.json main that escapes the package directory', async () => {
+      const pkgDir = path.join(collectionPath, 'probe');
+      fs.mkdirSync(pkgDir);
+      fs.writeFileSync(path.join(collectionPath, 'target.js'), 'module.exports = { reached: true };');
+      fs.writeFileSync(path.join(pkgDir, 'package.json'), JSON.stringify({ main: '../target.js' }));
+
+      const script = `
+        require('./probe');
+      `;
+      const context = makeContext();
+
+      await expect(
+        runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} })
+      ).rejects.toThrow(/Cannot find module/);
+    });
+
+    it('should report Cannot find module for a directory without an index file', async () => {
+      fs.mkdirSync(path.join(collectionPath, 'no-index'));
+      fs.writeFileSync(path.join(collectionPath, 'no-index', 'other.txt'), 'not a module');
+
+      const script = `
+        require('./no-index');
+      `;
+      const context = makeContext();
+
+      await expect(
+        runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} })
+      ).rejects.toThrow(/Cannot find module/);
+    });
+
+    it('should report a clear error for invalid TypeScript syntax', async () => {
+      fs.writeFileSync(
+        path.join(collectionPath, 'broken.ts'),
+        'const x: = 5;'
+      );
+
+      const script = `
+        require('./broken.ts');
+      `;
+      const context = makeContext();
+
+      await expect(
+        runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} })
+      ).rejects.toThrow(/Failed to transpile TypeScript file/);
+    });
+
+    it('should enforce allowed context roots for TypeScript modules', async () => {
+      fs.writeFileSync(path.join(testDir, 'outside.ts'), 'export const secret: string = "nope";');
+
+      const script = `
+        require('../outside.ts');
+      `;
+      const context = makeContext();
+
+      await expect(
+        runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} })
+      ).rejects.toThrow('Access to files outside of the allowed context roots is not allowed');
+    });
+  });
+
   describe('createCustomRequire - additionalContextRoots', () => {
     it('should allow module access from additionalContextRoots', async () => {
       // Create an additional context root at same level as collection
@@ -1356,6 +1612,25 @@ describe('node-vm sandbox', () => {
         await expect(
           runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} })
         ).rejects.toThrow('Module initialization failed');
+      });
+
+      it('should report the module source line in stack traces (wrapper line offset)', async () => {
+        const nodeModulesDir = path.join(collectionPath, 'node_modules', 'line-offset-module');
+        fs.mkdirSync(nodeModulesDir, { recursive: true });
+        fs.writeFileSync(
+          path.join(nodeModulesDir, 'index.js'),
+          'const noop = 1;\nthrow new Error("boom at line two");'
+        );
+
+        const script = `
+          require('line-offset-module');
+        `;
+
+        const context = { console: console };
+
+        await expect(
+          runScriptInNodeVm({ script, context, collectionPath, scriptingConfig: {} })
+        ).rejects.toThrow(/index\.js:2/);
       });
     });
   });
