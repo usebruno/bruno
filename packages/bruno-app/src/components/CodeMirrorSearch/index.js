@@ -292,7 +292,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     const resolvedNextIdx = nextIdx >= 0 ? nextIdx : 0;
     pendingSearchIndexRef.current = resolvedNextIdx;
     doSearch(debouncedSearchText, resolvedNextIdx, null, true);
-  }, [editor, matchIndex, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
+  }, [isReplaceDisabled, editor, matchIndex, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
 
   const handleReplaceAll = useCallback(() => {
     if (isReplaceDisabled || !editor) return;
@@ -303,7 +303,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
 
     searchCacheKey.current = '';
     doSearch(debouncedSearchText, 0);
-  }, [editor, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
+  }, [isReplaceDisabled, editor, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
 
   if (!visible) return null;
 
@@ -387,10 +387,10 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
                 }}
               />
               <ToolHint text="Replace" toolhintId="searchbar-replace-toolhint" place="top">
-                <button type="button" aria-label="Replace" className="searchbar-icon-btn searchbar-replace-btn" onClick={handleReplace} data-testid="codemirror-search-replace-btn"><IconReplace size={15} /></button>
+                <button type="button" aria-label="Replace" aria-disabled={isReplaceDisabled} className="searchbar-icon-btn searchbar-replace-btn" onClick={handleReplace} data-testid="codemirror-search-replace-btn"><IconReplace size={15} /></button>
               </ToolHint>
               <ToolHint text="Replace all" toolhintId="searchbar-replaceall-toolhint" place="top">
-                <button type="button" aria-label="Replace all" className="searchbar-icon-btn searchbar-replace-btn" onClick={handleReplaceAll} data-testid="codemirror-search-replaceall-btn"><IconArrowsExchange2 size={15} /></button>
+                <button type="button" aria-label="Replace all" aria-disabled={isReplaceDisabled} className="searchbar-icon-btn searchbar-replace-btn" onClick={handleReplaceAll} data-testid="codemirror-search-replaceall-btn"><IconArrowsExchange2 size={15} /></button>
               </ToolHint>
             </div>
           )}
