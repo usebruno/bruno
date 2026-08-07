@@ -1,0 +1,17 @@
+info:
+  name: xml-doctype-dtd
+  type: http
+  seq: 13
+
+http:
+  method: POST
+  url: http://localhost:8081/api/echo/custom
+  body:
+    type: json
+    data: |-
+      {
+        "headers": {
+          "content-type": "application/xml"
+        },
+        "content": "<!DOCTYPE catalog [<!ELEMENT catalog (book)><!ELEMENT book (#PCDATA)>]><catalog><book>Bruno</book></catalog>"
+      }
