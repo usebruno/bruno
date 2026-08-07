@@ -261,6 +261,9 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     setMatchIndex(0);
   };
 
+  const isDebouncing = searchText !== debouncedSearchText;
+  const isReplaceDisabled = isDebouncing || !searchText.trim() || matchCount === 0;
+
   const handleNext = () => {
     if (isDebouncing || !searchMatches.current || !searchMatches.current.length) return;
     const next = (matchIndex + 1) % searchMatches.current.length;
@@ -274,8 +277,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
   };
 
   const handleReplace = useCallback(() => {
-    if (!editor || !searchMatches.current.length) return;
-    if (!searchMatches.current[matchIndex]) return;
+    if (isReplaceDisabled || !editor || !searchMatches.current[matchIndex]) return;
 
     const { endLine, endCh } = replaceSingle(editor, searchMatches.current, matchIndex, replaceText);
 
@@ -293,7 +295,7 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
   }, [editor, matchIndex, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
 
   const handleReplaceAll = useCallback(() => {
-    if (!editor || !searchMatches.current.length) return;
+    if (isReplaceDisabled || !editor) return;
 
     // Use an uncapped scan so all matches are replaced, not just the first MAX_MATCHES.
     const allMatches = findSearchMatches(editor, debouncedSearchText, regex, caseSensitive, wholeWord, Infinity);
@@ -302,9 +304,6 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     searchCacheKey.current = '';
     doSearch(debouncedSearchText, 0);
   }, [editor, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
-
-  const isDebouncing = searchText !== debouncedSearchText;
-  const isReplaceDisabled = isDebouncing || !searchText.trim() || matchCount === 0;
 
   if (!visible) return null;
 
@@ -388,10 +387,10 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
                 }}
               />
               <ToolHint text="Replace" toolhintId="searchbar-replace-toolhint" place="top">
-                <button type="button" aria-label="Replace" className="searchbar-icon-btn" disabled={isReplaceDisabled} onClick={handleReplace} data-testid="codemirror-search-replace-btn"><IconReplace size={15} /></button>
+                <button type="button" aria-label="Replace" className="searchbar-icon-btn searchbar-replace-btn" onClick={handleReplace} data-testid="codemirror-search-replace-btn"><IconReplace size={15} /></button>
               </ToolHint>
               <ToolHint text="Replace all" toolhintId="searchbar-replaceall-toolhint" place="top">
-                <button type="button" aria-label="Replace all" className="searchbar-icon-btn" disabled={isReplaceDisabled} onClick={handleReplaceAll} data-testid="codemirror-search-replaceall-btn"><IconArrowsExchange2 size={15} /></button>
+                <button type="button" aria-label="Replace all" className="searchbar-icon-btn searchbar-replace-btn" onClick={handleReplaceAll} data-testid="codemirror-search-replaceall-btn"><IconArrowsExchange2 size={15} /></button>
               </ToolHint>
             </div>
           )}
