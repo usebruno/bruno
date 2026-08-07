@@ -12,6 +12,10 @@ const StyledWrapper = styled.div`
     min-height: 0;
     padding: 0 1rem;
     margin-top: 1rem;
+
+    &.has-script-error {
+      height: auto;
+    }
   }
 
   .response-tab-content {

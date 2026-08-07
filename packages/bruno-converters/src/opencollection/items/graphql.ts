@@ -18,7 +18,7 @@ import {
   toOpenCollectionAssertions,
   resolveTimeoutSetting
 } from '../common';
-import { utils } from '@usebruno/common';
+import { utils, HTTP_SCRIPT_KEYS } from '@usebruno/common';
 import type {
   GraphQLRequest,
   GraphQLRequestInfo,
@@ -49,7 +49,7 @@ export const fromOpenCollectionGraphqlItem = (item: GraphQLRequest): BrunoItem =
   const graphql = item.graphql || {};
   const runtime = item.runtime || {};
 
-  const scripts = fromOpenCollectionScripts(runtime.scripts);
+  const scripts = fromOpenCollectionScripts(runtime.scripts, HTTP_SCRIPT_KEYS);
   const graphqlBody = getGraphqlBody(graphql.body);
 
   // variables (pre-request from variables, post-response from actions)

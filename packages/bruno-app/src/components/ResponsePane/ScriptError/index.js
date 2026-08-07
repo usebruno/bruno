@@ -209,63 +209,43 @@ const ScriptErrorCard = ({ title, message, errorContext, item, collection, scrip
   );
 };
 
+// phase key matches with the CodeEditor scriptType so the error stack navigates back to the right editor.
+const SCRIPT_PHASES = [
+  { phase: 'pre-request', title: 'Pre-Request Script Error', messageKey: 'preRequestScriptErrorMessage', contextKey: 'preRequestScriptErrorContext' },
+  { phase: 'post-response', title: 'Post-Response Script Error', messageKey: 'postResponseScriptErrorMessage', contextKey: 'postResponseScriptErrorContext' },
+  { phase: 'test', title: 'Test Script Error', messageKey: 'testScriptErrorMessage', contextKey: 'testScriptErrorContext' },
+  { phase: 'before-call-start', title: 'Before Call Start Script Error', messageKey: 'beforeCallStartScriptErrorMessage', contextKey: 'beforeCallStartScriptErrorContext' },
+  { phase: 'after-call-end', title: 'After Call End Script Error', messageKey: 'afterCallEndScriptErrorMessage', contextKey: 'afterCallEndScriptErrorContext' }
+];
+
+export const hasScriptError = (item) => SCRIPT_PHASES.some(({ messageKey }) => Boolean(item?.[messageKey]));
+
 const ScriptError = ({ item, collection, onClose }) => {
-  const preRequestError = item?.preRequestScriptErrorMessage;
-  const postResponseError = item?.postResponseScriptErrorMessage;
-  const testScriptError = item?.testScriptErrorMessage;
+  const errors = SCRIPT_PHASES
+    .map((phase) => ({ ...phase, message: item?.[phase.messageKey], errorContext: item?.[phase.contextKey] }))
+    .filter(({ message }) => Boolean(message));
 
-  if (!preRequestError && !postResponseError && !testScriptError) return null;
+  if (!errors.length) return null;
 
-  const preRequestContext = item?.preRequestScriptErrorContext;
-  const postResponseContext = item?.postResponseScriptErrorContext;
-  const testContext = item?.testScriptErrorContext;
-
-  const hasAnyContext = preRequestContext || postResponseContext || testContext;
-
-  // If no error context available for any error, fall back to ErrorBanner
-  if (!hasAnyContext) {
-    const errors = [];
-    if (preRequestError) errors.push({ title: 'Pre-Request Script Error', message: preRequestError });
-    if (postResponseError) errors.push({ title: 'Post-Response Script Error', message: postResponseError });
-    if (testScriptError) errors.push({ title: 'Test Script Error', message: testScriptError });
-    return <ErrorBanner errors={errors} onClose={onClose} className="mb-2" />;
+  // If no error context is available for any error, fall back to ErrorBanner
+  if (!errors.some(({ errorContext }) => Boolean(errorContext))) {
+    return <ErrorBanner errors={errors.map(({ title, message }) => ({ title, message }))} onClose={onClose} className="mb-2" />;
   }
 
   return (
     <div className="mb-2 flex flex-col gap-2">
-      {preRequestError && (
+      {errors.map(({ phase, title, message, errorContext }) => (
         <ScriptErrorCard
-          title="Pre-Request Script Error"
-          message={preRequestError}
-          errorContext={preRequestContext}
+          key={phase}
+          title={title}
+          message={message}
+          errorContext={errorContext}
           item={item}
           collection={collection}
-          scriptPhase="pre-request"
+          scriptPhase={phase}
           onClose={onClose}
         />
-      )}
-      {postResponseError && (
-        <ScriptErrorCard
-          title="Post-Response Script Error"
-          message={postResponseError}
-          errorContext={postResponseContext}
-          item={item}
-          collection={collection}
-          scriptPhase="post-response"
-          onClose={onClose}
-        />
-      )}
-      {testScriptError && (
-        <ScriptErrorCard
-          title="Test Script Error"
-          message={testScriptError}
-          errorContext={testContext}
-          item={item}
-          collection={collection}
-          scriptPhase="test"
-          onClose={onClose}
-        />
-      )}
+      ))}
     </div>
   );
 };
