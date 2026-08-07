@@ -1,10 +1,10 @@
 const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { runCli } = require('./helpers/run-cli');
+const { copyFixtureToTmpDir, removeTmpDir } = require('./helpers/tmp-dir');
 
-const FIXTURE_DIR = path.join(__dirname, '../../../bruno-tests/workspaces/onfail');
+const fixtureDir = path.join(__dirname, '../../../bruno-tests/workspaces/onfail');
 
 describe('CLI run — req.onFail handler writes reach the environment files', () => {
   let tmpDir;
@@ -13,33 +13,39 @@ describe('CLI run — req.onFail handler writes reach the environment files', ()
   let globalEnvFile;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-cli-onfail-'));
-    fs.cpSync(FIXTURE_DIR, tmpDir, { recursive: true });
+    tmpDir = copyFixtureToTmpDir(fixtureDir, 'onfail');
     collectionDir = path.join(tmpDir, 'onfail-collection');
     envFile = path.join(collectionDir, 'environments', 'Test.yml');
     globalEnvFile = path.join(tmpDir, 'environments', 'Global.yml');
   });
 
   afterEach(() => {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    removeTmpDir(tmpDir);
   });
 
   it('overwrites the original env and global env values with the ones the handler sets', async () => {
-    expect(fs.readFileSync(envFile, 'utf8')).toContain('value: original');
-    expect(fs.readFileSync(globalEnvFile, 'utf8')).toContain('value: original');
+    // Verify both environments start at their original values
+    const envBefore = fs.readFileSync(envFile, 'utf8');
+    const globalEnvBefore = fs.readFileSync(globalEnvFile, 'utf8');
 
+    expect(envBefore).toContain('value: original');
+    expect(globalEnvBefore).toContain('value: original');
+    expect(envBefore).not.toContain('value: updated');
+    expect(globalEnvBefore).not.toContain('value: updated');
+
+    // Run the request — the URL is unreachable, so the onFail handler runs
     await runCli(
       ['run', 'onFail.yml', '--env', 'Test', '--global-env', 'Global', '--noproxy', '--sandbox', 'developer'],
       collectionDir
     );
 
-    const env = fs.readFileSync(envFile, 'utf8');
-    const globalEnv = fs.readFileSync(globalEnvFile, 'utf8');
+    // Verify the handler's writes reached both environment files, replacing the original values
+    const envAfter = fs.readFileSync(envFile, 'utf8');
+    const globalEnvAfter = fs.readFileSync(globalEnvFile, 'utf8');
 
-    expect(env).toContain('value: updated');
-    expect(globalEnv).toContain('value: updated');
-
-    expect(env).not.toContain('value: original');
-    expect(globalEnv).not.toContain('value: original');
+    expect(envAfter).toContain('value: updated');
+    expect(globalEnvAfter).toContain('value: updated');
+    expect(envAfter).not.toContain('value: original');
+    expect(globalEnvAfter).not.toContain('value: original');
   }, 60_000);
 });
