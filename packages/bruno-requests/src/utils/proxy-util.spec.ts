@@ -35,6 +35,26 @@ describe('transformProxyConfig', () => {
         expect((result as any).disabled).toBeUndefined(); // disabled: false is omitted
       });
 
+      test('should pass through auth.mode when migrating old format', () => {
+        const oldConfig = {
+          enabled: true,
+          protocol: 'http',
+          hostname: 'proxy.example.com',
+          port: 8080,
+          auth: {
+            enabled: true,
+            mode: 'kerberos' as const,
+            username: '',
+            password: ''
+          },
+          bypassProxy: ''
+        };
+
+        const result = transformProxyConfig(oldConfig);
+
+        expect((result as any).config.auth.mode).toBe('kerberos');
+      });
+
       test('should migrate enabled: false to disabled: true, inherit: false', () => {
         const oldConfig = {
           enabled: false,

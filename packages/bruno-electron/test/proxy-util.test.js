@@ -8,7 +8,8 @@ const setupMocks = ({ pacDirectives = ['PROXY p.example:8080'] } = {}) => {
   // Preferences — controls SSL session cache flag
   jest.doMock('../src/store/preferences', () => ({
     preferencesUtil: {
-      isSslSessionCachingEnabled: () => false
+      isSslSessionCachingEnabled: () => false,
+      shouldUseKerberosProxyAuth: () => false
     }
   }));
 
@@ -149,7 +150,7 @@ describe('proxy-util', () => {
 
   test('setupProxyAgents: PAC resolution error logs to timeline and falls back to direct agent', async () => {
     jest.doMock('../src/store/preferences', () => ({
-      preferencesUtil: { isSslSessionCachingEnabled: () => false }
+      preferencesUtil: { isSslSessionCachingEnabled: () => false, shouldUseKerberosProxyAuth: () => false }
     }));
     jest.doMock('@usebruno/requests', () => ({
       getOrCreateHttpsAgent: jest.fn(() => ({ type: 'https-agent' })),
