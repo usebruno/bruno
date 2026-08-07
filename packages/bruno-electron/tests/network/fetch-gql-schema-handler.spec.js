@@ -71,7 +71,7 @@ describe('fetchGqlSchemaHandler - variable precedence', () => {
       expect.objectContaining({
         SHARED_VAR: 'env-value'
       }),
-      request,
+      expect.objectContaining({ uid: request.uid }),
       collection.root
     );
   });
@@ -136,7 +136,7 @@ describe('fetchGqlSchemaHandler - variable precedence', () => {
       expect.objectContaining({
         SHARED_VAR: 'folder-value'
       }),
-      request,
+      expect.objectContaining({ uid: request.uid }),
       collection.root
     );
   });
@@ -203,7 +203,7 @@ describe('fetchGqlSchemaHandler - variable precedence', () => {
       expect.objectContaining({
         SHARED_VAR: 'request-value'
       }),
-      request,
+      expect.objectContaining({ uid: request.uid }),
       collection.root
     );
   });
@@ -255,7 +255,7 @@ describe('fetchGqlSchemaHandler - variable precedence', () => {
       expect.objectContaining({
         SHARED_VAR: 'collection-value'
       }),
-      request,
+      expect.objectContaining({ uid: request.uid }),
       collection.root
     );
   });
@@ -307,7 +307,7 @@ describe('fetchGqlSchemaHandler - variable precedence', () => {
       expect.objectContaining({
         SHARED_VAR: 'env-value'
       }),
-      request,
+      expect.objectContaining({ uid: request.uid }),
       collection.root
     );
   });
@@ -362,8 +362,125 @@ describe('fetchGqlSchemaHandler - variable precedence', () => {
       expect.objectContaining({
         SHARED_VAR: 'runtime-value'
       }),
-      request,
+      expect.objectContaining({ uid: request.uid }),
       collection.root
     );
+  });
+});
+
+// https://github.com/usebruno/bruno/issues/8813
+describe('fetchGqlSchemaHandler - auth inheritance', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const buildCollection = (folderAuth, collectionAuth) => ({
+    uid: 'test-collection',
+    pathname: '/test',
+    runtimeVariables: {},
+    globalEnvironmentVariables: {},
+    items: [
+      {
+        uid: 'test-folder',
+        type: 'folder',
+        root: {
+          request: {
+            auth: folderAuth
+          }
+        },
+        items: [
+          {
+            uid: 'test-request',
+            request: {
+              vars: { req: [] }
+            }
+          }
+        ]
+      }
+    ],
+    root: {
+      request: {
+        headers: [],
+        auth: collectionAuth,
+        vars: { req: [] }
+      }
+    }
+  });
+
+  it('should resolve inherited auth from the closest folder', async () => {
+    const request = {
+      uid: 'test-request',
+      auth: { mode: 'inherit' },
+      vars: { req: [] }
+    };
+    const folderAuth = {
+      mode: 'bearer',
+      bearer: { token: 'folder-token' }
+    };
+
+    await fetchGqlSchemaHandler(null, 'https://example.com/', { variables: [] }, request, buildCollection(folderAuth));
+
+    const resolved = prepareGqlIntrospectionRequest.mock.calls[0][2];
+    expect(resolved.auth).toEqual(folderAuth);
+  });
+
+  it('should prefer folder auth over collection auth', async () => {
+    const request = {
+      uid: 'test-request',
+      auth: { mode: 'inherit' },
+      vars: { req: [] }
+    };
+    const folderAuth = {
+      mode: 'bearer',
+      bearer: { token: 'folder-token' }
+    };
+    const collectionAuth = {
+      mode: 'bearer',
+      bearer: { token: 'collection-token' }
+    };
+
+    await fetchGqlSchemaHandler(
+      null,
+      'https://example.com/',
+      { variables: [] },
+      request,
+      buildCollection(folderAuth, collectionAuth)
+    );
+
+    const resolved = prepareGqlIntrospectionRequest.mock.calls[0][2];
+    expect(resolved.auth).toEqual(folderAuth);
+  });
+
+  it('should not mutate the request passed in by the caller', async () => {
+    const request = {
+      uid: 'test-request',
+      auth: { mode: 'inherit' },
+      vars: { req: [] }
+    };
+    const folderAuth = {
+      mode: 'bearer',
+      bearer: { token: 'folder-token' }
+    };
+
+    await fetchGqlSchemaHandler(null, 'https://example.com/', { variables: [] }, request, buildCollection(folderAuth));
+
+    expect(request.auth).toEqual({ mode: 'inherit' });
+  });
+
+  it('should leave an explicit request auth untouched', async () => {
+    const request = {
+      uid: 'test-request',
+      auth: { mode: 'bearer', bearer: { token: 'request-token' } },
+      vars: { req: [] }
+    };
+    const folderAuth = {
+      mode: 'bearer',
+      bearer: { token: 'folder-token' }
+    };
+
+    await fetchGqlSchemaHandler(null, 'https://example.com/', { variables: [] }, request, buildCollection(folderAuth));
+
+    const resolved = prepareGqlIntrospectionRequest.mock.calls[0][2];
+    expect(resolved.auth).toEqual({ mode: 'bearer', bearer: { token: 'request-token' } });
   });
 });
