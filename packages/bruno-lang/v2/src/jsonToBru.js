@@ -762,6 +762,22 @@ ${indentString(script.res)}
 `;
   }
 
+  if (script && script.beforeCallStart && script.beforeCallStart.length) {
+    bru += `script:grpc:before-call-start {
+${indentString(script.beforeCallStart)}
+}
+
+`;
+  }
+
+  if (script && script.afterCallEnd && script.afterCallEnd.length) {
+    bru += `script:grpc:after-call-end {
+${indentString(script.afterCallEnd)}
+}
+
+`;
+  }
+
   if (tests && tests.length) {
     bru += `tests {
 ${indentString(tests)}
