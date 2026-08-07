@@ -1,0 +1,78 @@
+name: global-environment
+
+variables:
+  - name: globalEnvString
+    value: hello
+  - name: globalEnvNumber
+    value:
+      type: number
+      data: "300"
+  - name: globalEnvBoolean
+    value:
+      type: boolean
+      data: "true"
+  - name: globalEnvObject
+    value:
+      type: object
+      data: '{"host":"localhost","port":8080}'
+  - name: globalEnvNestedObject
+    value:
+      type: object
+      data: '{"inner":{"stringField":"hello","numberField":300,"booleanField":true}}'
+  - name: globalEnvObject.port
+    value:
+      type: boolean
+      data: "true"
+
+  - name: stringTypeRefersToString
+    value: "{{globalEnvString}}"
+  - name: numberTypeRefersToNumber
+    value:
+      type: number
+      data: "{{globalEnvNumber}}"
+  - name: booleanTypeRefersToBoolean
+    value:
+      type: boolean
+      data: "{{globalEnvBoolean}}"
+  - name: objectTypeRefersToObject
+    value:
+      type: object
+      data: "{{globalEnvObject}}"
+  - name: stringTypeRefersToNestedString
+    value: "{{globalEnvNestedObject.inner.stringField}}"
+  - name: numberTypeRefersToNestedNumber
+    value:
+      type: number
+      data: "{{globalEnvNestedObject.inner.numberField}}"
+  - name: booleanTypeRefersToNestedBoolean
+    value:
+      type: boolean
+      data: "{{globalEnvNestedObject.inner.booleanField}}"
+
+  - name: booleanTypeRefersToDottedKey
+    value: 
+      type: boolean
+      data: "{{globalEnvObject.port}}"
+
+  - name: stringTypeRefersToNumber
+    value: "{{globalEnvNumber}}"
+  - name: numberTypeRefersToString
+    value:
+      type: number
+      data: "{{globalEnvString}}"
+  - name: booleanTypeRefersToObject
+    value:
+      type: boolean
+      data: "{{globalEnvObject}}"
+  - name: objectTypeRefersToBoolean
+    value:
+      type: object
+      data: "{{globalEnvBoolean}}"
+  - name: numberTypeRefersToNestedString
+    value:
+      type: number
+      data: "{{globalEnvNestedObject.inner.stringField}}"
+  - name: booleanTypeRefersToNestedNumber
+    value:
+      type: boolean
+      data: "{{globalEnvNestedObject.inner.numberField}}"
