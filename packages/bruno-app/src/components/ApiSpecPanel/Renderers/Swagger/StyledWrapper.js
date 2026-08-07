@@ -660,6 +660,17 @@ const StyledWrapper = styled.div`
         border: 1px solid ${(props) => props.theme.status.danger.border};
         border-radius: 4px;
         background: ${(props) => props.theme.status.danger.background};
+        overflow-wrap: anywhere;
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+
+        .errors,
+        .error-wrapper,
+        .error-wrapper > div {
+          min-width: 0;
+          max-width: 100%;
+        }
 
         .errors__title {
           color: ${(props) => props.theme.status.danger.text};
@@ -671,12 +682,10 @@ const StyledWrapper = styled.div`
 
         .errors small {
           color: ${(props) => props.theme.colors.text.muted};
-          overflow-wrap: anywhere;
         }
 
         .errors .message {
           color: ${(props) => props.theme.text};
-          overflow-wrap: anywhere;
         }
       }
 
