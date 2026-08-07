@@ -28,12 +28,6 @@ const TOKEN_CLASS: Record<ValueTokenType, string> = {
 
 const ANY_TOKEN_SELECTOR = Object.values(TOKEN_CLASS).map((cls) => `.${cls}`).join(', ');
 
-/**
- * Locators for the read-only Variables tab (collection header, "...", Variables).
- * Rows live in an `EditableTable`, so they are addressed by the `data-row-name`
- * the table derives from its key column. CodeMirror's own classes are the only
- * selectors here that aren't testids, since the editor exposes nothing else.
- */
 export const buildVariablesTabLocators = (page: Page) => {
   const sectionHeader = (section: VariablesSection) =>
     page.getByTestId(`variables-${TESTID_SEGMENT[section]}-section`);
