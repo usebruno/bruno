@@ -19,51 +19,60 @@ variables:
     value:
       type: object
       data: '{"inner":{"stringField":"hello","numberField":300,"booleanField":true}}'
+  - name: globalEnvObject.port
+    value:
+      type: boolean
+      data: "true"
 
-  - name: matchingStringReference
+  - name: stringTypeRefersToString
     value: "{{globalEnvString}}"
-  - name: matchingNumberReference
+  - name: numberTypeRefersToNumber
     value:
       type: number
       data: "{{globalEnvNumber}}"
-  - name: matchingBooleanReference
+  - name: booleanTypeRefersToBoolean
     value:
       type: boolean
       data: "{{globalEnvBoolean}}"
-  - name: matchingObjectReference
+  - name: objectTypeRefersToObject
     value:
       type: object
       data: "{{globalEnvObject}}"
-  - name: matchingNestedStringReference
+  - name: stringTypeRefersToNestedString
     value: "{{globalEnvNestedObject.inner.stringField}}"
-  - name: matchingNestedNumberReference
+  - name: numberTypeRefersToNestedNumber
     value:
       type: number
       data: "{{globalEnvNestedObject.inner.numberField}}"
-  - name: matchingNestedBooleanReference
+  - name: booleanTypeRefersToNestedBoolean
     value:
       type: boolean
       data: "{{globalEnvNestedObject.inner.booleanField}}"
 
-  - name: mismatchedStringReference
+  - name: booleanTypeRefersToDottedKey
+    value: 
+      type: boolean
+      data: "{{globalEnvObject.port}}"
+
+  - name: stringTypeRefersToNumber
     value: "{{globalEnvNumber}}"
-  - name: mismatchedNumberReference
+  - name: numberTypeRefersToString
     value:
       type: number
       data: "{{globalEnvString}}"
-  - name: mismatchedBooleanReference
+  - name: booleanTypeRefersToObject
     value:
       type: boolean
       data: "{{globalEnvObject}}"
-  - name: mismatchedObjectReference
+  - name: objectTypeRefersToBoolean
     value:
       type: object
       data: "{{globalEnvBoolean}}"
-  - name: mismatchedNestedNumberReference
+  - name: numberTypeRefersToNestedString
     value:
       type: number
       data: "{{globalEnvNestedObject.inner.stringField}}"
-  - name: mismatchedNestedBooleanReference
+  - name: booleanTypeRefersToNestedNumber
     value:
       type: boolean
       data: "{{globalEnvNestedObject.inner.numberField}}"
