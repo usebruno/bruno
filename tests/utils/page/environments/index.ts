@@ -1,11 +1,14 @@
-import { Page, test } from '../../../../playwright';
+import { expect, Page, test } from '../../../../playwright';
 import { buildCollectionHeaderLocators } from '../collection/collection-header';
 
 export const buildEnvironmentLocators = (page: Page) => ({
   selector: () => page.getByTestId('environment-selector-trigger'),
   collectionTab: () => page.getByTestId('env-tab-collection'),
   globalTab: () => page.getByTestId('env-tab-global'),
-  envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
+  // The row carries the select handler; the label span inside it does not, so match
+  // on the span's text but return the row.
+  envOption: (name: string) =>
+    page.getByTestId('env-list-item').filter({ has: page.getByText(name, { exact: true }) }),
   listOption: (name: string) => page.locator('.environment-list .dropdown-item', { hasText: name }),
   currentEnvironment: () => page.locator('.current-environment'),
   configureButton: () => page.locator('#configure-env'),
@@ -115,4 +118,20 @@ export const openEnvironmentSelector = async (page: Page) => {
 export const closeEnvironmentSelector = async (page: Page) => {
   const trigger = buildCollectionHeaderLocators(page).envSelectorTrigger();
   await trigger.click();
+};
+
+/**
+ * Deactivates the focused collection's environment via the dropdown's
+ * "No Environment" entry.
+ * @param page - The page object
+ * @returns void
+ */
+export const selectNoEnvironment = async (page: Page) => {
+  const environment = buildEnvironmentLocators(page);
+
+  await test.step('Select "No Environment"', async () => {
+    await environment.selector().click();
+    await environment.noEnvironmentItem().click();
+    await expect(environment.selector()).toContainText('No Environment');
+  });
 };

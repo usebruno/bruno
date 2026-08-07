@@ -31,8 +31,8 @@ const VariableDetailsDrawer = ({
     <StyledWrapper data-testid="variable-details-drawer">
       <div className="panel-header">
         <div className="panel-title">
-          <span className="var-name" title={name}>{name}</span>
-          <span className="section-badge">({SECTION_LABELS[section]})</span>
+          <span className="var-name" title={name} data-testid="variable-details-name">{name}</span>
+          <span className="section-badge" data-testid="variable-details-section">({SECTION_LABELS[section]})</span>
         </div>
         <button
           type="button"
