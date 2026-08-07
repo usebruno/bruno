@@ -3,13 +3,13 @@ const https = require('node:https');
 const http = require('node:http');
 const { interpolateString } = require('../ipc/network/interpolate-string');
 const { SocksProxyAgent } = require('socks-proxy-agent');
-const { HttpProxyAgent } = require('http-proxy-agent');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
 const {
   getOrCreateHttpsAgent,
   getOrCreateHttpAgent,
   resolveAgentsFromPac,
-  PatchedHttpsProxyAgent
+  PatchedHttpsProxyAgent,
+  PatchedHttpProxyAgent
 } = require('@usebruno/requests');
 const { preferencesUtil } = require('../store/preferences');
 
@@ -96,6 +96,8 @@ async function setupProxyAgents({
   delete requestConfig.httpsAgent;
 
   const disableCache = !preferencesUtil.isSslSessionCachingEnabled();
+  // Kerberos for system-proxy/PAC modes; manual mode uses proxyConfig.auth.mode
+  const kerberosProxyAuth = preferencesUtil.shouldUseKerberosProxyAuth();
 
   // Ensure TLS options are properly set
   const tlsOptions = {
@@ -121,21 +123,28 @@ async function setupProxyAgents({
       const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
       const proxyAuthEnabled = !get(proxyConfig, 'auth.disabled', false);
       const socksEnabled = proxyProtocol.includes('socks');
+      const kerberosProxyAuth = proxyAuthEnabled && get(proxyConfig, 'auth.mode', 'basic') === 'kerberos' && !socksEnabled;
 
       let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
       let proxyUri;
-      if (proxyAuthEnabled) {
+      if (proxyAuthEnabled && !kerberosProxyAuth) {
         const proxyAuthUsername = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions));
         const proxyAuthPassword = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions));
         proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
       } else {
+        // Kerberos mode: no credentials in the proxy URI, so the agents'
+        // Basic auth logic cannot clobber the Negotiate header.
         proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
       }
 
       // When the proxy itself uses HTTPS, the agent connecting to it needs TLS options
       // (e.g., ca certs) even for plain HTTP requests
       const isHttpsProxy = proxyProtocol === 'https';
-      const httpProxyAgentOptions = isHttpsProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
+      const httpProxyAgentOptions = {
+        ...(isHttpsProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true }),
+        ...(kerberosProxyAuth ? { kerberosProxyAuth: true } : {})
+      };
+      const httpsProxyAgentOptions = kerberosProxyAuth ? { ...tlsOptions, kerberosProxyAuth: true } : tlsOptions;
 
       // Only set the agent needed for the request protocol
       if (socksEnabled) {
@@ -146,9 +155,9 @@ async function setupProxyAgents({
         }
       } else {
         if (isHttpsRequest) {
-          requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, timeline, disableCache, hostname });
+          requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: httpsProxyAgentOptions, proxyUri, timeline, disableCache, hostname });
         } else {
-          requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpProxyAgentOptions, proxyUri, timeline, disableCache, hostname });
+          requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: PatchedHttpProxyAgent, options: httpProxyAgentOptions, proxyUri, timeline, disableCache, hostname });
         }
       }
     }
@@ -159,7 +168,7 @@ async function setupProxyAgents({
     if (pac_url) {
       if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `Resolving system PAC: ${pac_url}` });
       try {
-        const { directives, httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname });
+        const { directives, httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource: pac_url, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname, kerberosProxyAuth });
         if (httpAgent) requestConfig.httpAgent = httpAgent;
         if (httpsAgent) requestConfig.httpsAgent = httpsAgent;
         if (directives) {
@@ -177,7 +186,10 @@ async function setupProxyAgents({
           if (http_proxy?.length && !isHttpsRequest) {
             const parsedHttpProxy = new URL(http_proxy);
             const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
-            const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true };
+            const systemHttpProxyAgentOptions = {
+              ...(isHttpsSystemProxy ? { keepAlive: true, ...tlsOptions } : { keepAlive: true }),
+              ...(kerberosProxyAuth ? { kerberosProxyAuth: true } : {})
+            };
             if (timeline) {
               timeline.push({
                 timestamp: new Date(),
@@ -185,7 +197,7 @@ async function setupProxyAgents({
                 message: `Using system proxy: ${http_proxy}`
               });
             }
-            requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, timeline, disableCache, hostname });
+            requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: PatchedHttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, timeline, disableCache, hostname });
           }
         } catch (error) {
           throw new Error(`Invalid system http_proxy "${http_proxy}": ${error.message}`);
@@ -200,7 +212,8 @@ async function setupProxyAgents({
                 message: `Using system proxy: ${https_proxy}`
               });
             }
-            requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri: https_proxy, timeline, disableCache, hostname });
+            const systemHttpsProxyAgentOptions = kerberosProxyAuth ? { ...tlsOptions, kerberosProxyAuth: true } : tlsOptions;
+            requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: systemHttpsProxyAgentOptions, proxyUri: https_proxy, timeline, disableCache, hostname });
           }
         } catch (error) {
           throw new Error(`Invalid system https_proxy "${https_proxy}": ${error.message}`);
@@ -212,7 +225,7 @@ async function setupProxyAgents({
     if (pacSource) {
       if (timeline) timeline.push({ timestamp: new Date(), type: 'info', message: `Resolving PAC: ${pacSource}` });
       try {
-        const { directives, httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname });
+        const { directives, httpAgent, httpsAgent } = await resolveAgentsFromPac({ pacSource, requestUrl: requestConfig.url, requestProtocol: isHttpsRequest ? 'https' : 'http', tlsOptions, httpsAgentRequestFields, timeline, disableCache, hostname, kerberosProxyAuth });
         if (httpAgent) requestConfig.httpAgent = httpAgent;
         if (httpsAgent) requestConfig.httpsAgent = httpsAgent;
         if (directives) {

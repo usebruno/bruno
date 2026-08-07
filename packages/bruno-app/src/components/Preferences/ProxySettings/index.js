@@ -17,6 +17,7 @@ const ProxySettings = ({ close }) => {
 
   const proxySchema = Yup.object({
     disabled: Yup.boolean().optional(),
+    kerberosAuth: Yup.boolean().optional(),
     source: Yup.string().oneOf(['manual', 'pac', 'inherit']).required(),
     pac: Yup.object({
       source: Yup.string()
@@ -44,6 +45,7 @@ const ProxySettings = ({ close }) => {
         .transform((_, val) => (val ? Number(val) : null)),
       auth: Yup.object({
         disabled: Yup.boolean().optional(),
+        mode: Yup.string().oneOf(['basic', 'kerberos']).optional(),
         username: Yup.string().max(1024),
         password: Yup.string().max(1024)
       }).optional(),
@@ -54,6 +56,7 @@ const ProxySettings = ({ close }) => {
   const formik = useFormik({
     initialValues: {
       disabled: preferences.proxy.disabled || false,
+      kerberosAuth: preferences.proxy.kerberosAuth || false,
       source: preferences.proxy.source || 'manual',
       pac: {
         source: preferences.proxy.pac?.source || ''
@@ -64,6 +67,7 @@ const ProxySettings = ({ close }) => {
         port: preferences.proxy.config?.port || 0,
         auth: {
           disabled: preferences.proxy.config?.auth?.disabled || false,
+          mode: preferences.proxy.config?.auth?.mode || 'basic',
           username: preferences.proxy.config?.auth?.username || '',
           password: preferences.proxy.config?.auth?.password || ''
         },
@@ -201,6 +205,24 @@ const ProxySettings = ({ close }) => {
             </label>
           </div>
         </div>
+        {proxyMode === 'inherit' || proxyMode === 'pac' ? (
+          <div className="mb-3 flex items-center">
+            <label className="settings-label" htmlFor="kerberosAuth">
+              Kerberos Auth
+            </label>
+            <input
+              id="kerberosAuth"
+              type="checkbox"
+              name="kerberosAuth"
+              checked={formik.values.kerberosAuth}
+              onChange={formik.handleChange}
+              className="mousetrap mr-2"
+            />
+            <span className="text-muted text-xs">
+              Authenticate to proxies with Kerberos (SPNEGO), using your system credentials.
+            </span>
+          </div>
+        ) : null}
         {proxyMode === 'inherit' ? (
           <div className="mb-3 pt-1 text-muted system-proxy-settings">
             <SystemProxy />
@@ -241,7 +263,11 @@ const ProxySettings = ({ close }) => {
                     name="config.protocol"
                     value="socks4"
                     checked={formik.values.config.protocol === 'socks4'}
-                    onChange={formik.handleChange}
+                    onChange={(e) => {
+                      formik.handleChange(e);
+                      // Kerberos applies to HTTP proxies only
+                      formik.setFieldValue('config.auth.mode', 'basic');
+                    }}
                     className="mr-1"
                   />
                   SOCKS4
@@ -252,7 +278,11 @@ const ProxySettings = ({ close }) => {
                     name="config.protocol"
                     value="socks5"
                     checked={formik.values.config.protocol === 'socks5'}
-                    onChange={formik.handleChange}
+                    onChange={(e) => {
+                      formik.handleChange(e);
+                      // Kerberos applies to HTTP proxies only
+                      formik.setFieldValue('config.auth.mode', 'basic');
+                    }}
                     className="mr-1"
                   />
                   SOCKS5
@@ -314,57 +344,97 @@ const ProxySettings = ({ close }) => {
                 className="mousetrap mr-0"
               />
             </div>
-            <div>
+            {!formik.values.config.protocol.includes('socks') ? (
               <div className="mb-3 flex items-center">
-                <label className="settings-label" htmlFor="config.auth.username">
-                  Username
+                <label className="settings-label" htmlFor="config.auth.mode">
+                  Auth Type
                 </label>
-                <input
-                  id="config.auth.username"
-                  type="text"
-                  name="config.auth.username"
-                  className="block textbox"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                  value={formik.values.config.auth.username}
-                  onChange={formik.handleChange}
-                />
-                {formik.touched.config?.auth?.username && formik.errors.config?.auth?.username ? (
-                  <div className="ml-3 text-red-500">{formik.errors.config.auth.username}</div>
-                ) : null}
+                <div className="flex items-center">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="config.auth.mode"
+                      value="basic"
+                      checked={(formik.values.config.auth.mode || 'basic') === 'basic'}
+                      onChange={formik.handleChange}
+                      className="mr-1 cursor-pointer"
+                    />
+                    Basic
+                  </label>
+                  <label className="flex items-center ml-4 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="config.auth.mode"
+                      value="kerberos"
+                      checked={formik.values.config.auth.mode === 'kerberos'}
+                      onChange={formik.handleChange}
+                      className="mr-1 cursor-pointer"
+                    />
+                    Kerberos (SPNEGO)
+                  </label>
+                </div>
               </div>
+            ) : null}
+            {formik.values.config.auth.mode === 'kerberos' ? (
               <div className="mb-3 flex items-center">
-                <label className="settings-label" htmlFor="config.auth.password">
-                  Password
-                </label>
-                <div className="textbox flex flex-row items-center w-[13.2rem] h-[2.25rem] relative">
+                <label className="settings-label"></label>
+                <div className="text-muted text-xs">
+                  Uses your system Kerberos credentials (kinit ticket cache on Linux/macOS, logged-on user on Windows).
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="mb-3 flex items-center">
+                  <label className="settings-label" htmlFor="config.auth.username">
+                    Username
+                  </label>
                   <input
-                    id="config.auth.password"
-                    type={passwordVisible ? `text` : 'password'}
-                    name="config.auth.password"
-                    className="outline-none w-[10.5rem] bg-transparent"
+                    id="config.auth.username"
+                    type="text"
+                    name="config.auth.username"
+                    className="block textbox"
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck="false"
-                    value={formik.values.config.auth.password}
+                    value={formik.values.config.auth.username}
                     onChange={formik.handleChange}
                   />
-                  <button
-                    type="button"
-                    className="btn btn-sm absolute right-0"
-                    onClick={() => setPasswordVisible(!passwordVisible)}
-                  >
-                    {passwordVisible ? <IconEyeOff size={18} strokeWidth={2} /> : <IconEye size={18} strokeWidth={2} />}
-                  </button>
+                  {formik.touched.config?.auth?.username && formik.errors.config?.auth?.username ? (
+                    <div className="ml-3 text-red-500">{formik.errors.config.auth.username}</div>
+                  ) : null}
                 </div>
-                {formik.touched.config?.auth?.password && formik.errors.config?.auth?.password ? (
-                  <div className="ml-3 text-red-500">{formik.errors.config.auth.password}</div>
-                ) : null}
+                <div className="mb-3 flex items-center">
+                  <label className="settings-label" htmlFor="config.auth.password">
+                    Password
+                  </label>
+                  <div className="textbox flex flex-row items-center w-[13.2rem] h-[2.25rem] relative">
+                    <input
+                      id="config.auth.password"
+                      type={passwordVisible ? `text` : 'password'}
+                      name="config.auth.password"
+                      className="outline-none w-[10.5rem] bg-transparent"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      value={formik.values.config.auth.password}
+                      onChange={formik.handleChange}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-sm absolute right-0"
+                      onClick={() => setPasswordVisible(!passwordVisible)}
+                    >
+                      {passwordVisible ? <IconEyeOff size={18} strokeWidth={2} /> : <IconEye size={18} strokeWidth={2} />}
+                    </button>
+                  </div>
+                  {formik.touched.config?.auth?.password && formik.errors.config?.auth?.password ? (
+                    <div className="ml-3 text-red-500">{formik.errors.config.auth.password}</div>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            )}
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="config.bypassProxy">
                 Proxy Bypass
