@@ -23,8 +23,7 @@ test.describe('Redirect Authorization Stripping E2E Tests', () => {
 
     await test.step('Assert - Verify headers are stripped', async () => {
       await expect(locators.response.statusCode()).toContainText('200', { timeout: 15000 });
-      const responseTexts = await locators.response.previewContainer().locator('.CodeMirror-scroll').allInnerTexts();
-      const fullText = responseTexts.join('\n');
+      const fullText = await locators.response.previewContainer().innerText();
       expect(fullText).not.toContain('"authorization":');
       expect(fullText).not.toContain('"proxy-authorization":');
     });
@@ -49,8 +48,7 @@ test.describe('Redirect Authorization Stripping E2E Tests', () => {
 
     await test.step('Assert - Verify headers are preserved', async () => {
       await expect(locators.response.statusCode()).toContainText('200', { timeout: 15000 });
-      const responseTexts = await locators.response.previewContainer().locator('.CodeMirror-scroll').allInnerTexts();
-      const fullText = responseTexts.join('\n');
+      const fullText = await locators.response.previewContainer().innerText();
       expect(fullText).toContain('"authorization": "Bearer token-test"');
       expect(fullText).toContain('"proxy-authorization": "Bearer proxy-test"');
     });
@@ -74,8 +72,7 @@ test.describe('Redirect Authorization Stripping E2E Tests', () => {
 
     await test.step('Assert - Verify AWS headers are stripped', async () => {
       await expect(locators.response.statusCode()).toContainText('200', { timeout: 15000 });
-      const responseTexts = await locators.response.previewContainer().locator('.CodeMirror-scroll').allInnerTexts();
-      const fullText = responseTexts.join('\n');
+      const fullText = await locators.response.previewContainer().innerText();
       expect(fullText).not.toContain('"authorization":');
       expect(fullText).not.toContain('"x-amz-date":');
       expect(fullText).not.toContain('"x-amz-security-token":');
