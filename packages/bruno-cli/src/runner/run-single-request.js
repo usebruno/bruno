@@ -32,6 +32,19 @@ const getCACertHostRegex = (domain) => {
   return '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
 };
 
+const executeRequestOnFailHandler = async (request, error) => {
+  if (typeof request?.onFailHandler !== 'function') {
+    return null;
+  }
+
+  try {
+    return await request.onFailHandler(error);
+  } catch (handlerError) {
+    console.error(chalk.red(`Error executing onFail handler: ${handlerError?.message || 'Unknown error'}`));
+    return null;
+  }
+};
+
 /**
  * Extract prompt variables from a request
  * Tries to respect the hierarchy of the variables and avoid unnecessary prompts as much as possible
@@ -739,6 +752,11 @@ const runSingleRequest = async function (
           saveCookies(request.url, response.headers);
         }
       } else {
+        // Only network-level failures (no response received) reach the onFail handler, matching
+        // the desktop app. Variables the handler wrote are synced like any other script write.
+        const onFailResult = await executeRequestOnFailHandler(request, err);
+        syncVariableUpdates(onFailResult, request);
+
         console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
         return {
           test: {

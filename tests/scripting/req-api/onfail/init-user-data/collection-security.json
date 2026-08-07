@@ -1,0 +1,10 @@
+{
+  "collections": [
+    {
+      "path": "{{workspacePath}}/onfail-collection",
+      "securityConfig": {
+        "jsSandboxMode": "developer"
+      }
+    }
+  ]
+}

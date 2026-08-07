@@ -1145,6 +1145,16 @@ const openCollectionSettings = async (page: Page, collectionName: string, { pers
   });
 };
 
+const openVariablesTab = async (page: Page) => {
+  await test.step('Open the Variables tab from the collection overflow menu', async () => {
+    const locators = buildCommonLocators(page);
+
+    await locators.collectionHeader.overflowMenu().click();
+    await locators.collectionHeader.overflowMenuItem('variables').click();
+    await expect(locators.tabs.requestTab('Variables')).toBeVisible();
+  });
+};
+
 /**
  * Select a tab in the collection settings pane
  * @param page - The page object
@@ -2682,6 +2692,7 @@ export {
   selectfolderPaneTab,
   selectFolderScriptPaneTab,
   openCollectionSettings,
+  openVariablesTab,
   selectCollectionPaneTab,
   selectCollectionScriptPaneTab,
   focusFolderSettingsTab,
