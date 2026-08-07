@@ -35,9 +35,16 @@ export const getSentHeaders = (clientRequest?: ClientRequest | null): Record<str
   return sentHeaders;
 };
 
-/** Adds the headers Node sent to the ones the request already had, so post-response vars and
- *  scripts read the same list the server saw. Whatever the user set wins, and the sent ones
- *  come first, the order the timeline shows them in
+/** `request.headers` only holds what we put together, the headers table plus anything a
+ *  pre-request script set.
+ *
+ *  But more headers actually go out. axios adds Accept and Accept-Encoding, Bruno adds User-Agent
+ *  and request-start-time, Node adds Host and Connection. None of them exist until Node writes the
+ *  request to the socket, long after we finished preparing it.
+ *
+ *  So after the send the two lists disagree, and this copies the missing ones in. It never replaces
+ *  a header the user set, ignoring casing, so a declared `user-agent` and a sent `User-Agent` stay
+ *  one entry instead of two
  * */
 export const applySentHeadersToRequest = (
   request?: { headers?: Record<string, unknown> } | null,
