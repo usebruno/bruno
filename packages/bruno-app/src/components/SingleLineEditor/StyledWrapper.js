@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import codemirrorTokenStyles from 'components/CodeEditor/tokenStyles';
 
 const StyledWrapper = styled.div`
   width: 100%;
@@ -59,6 +60,8 @@ const StyledWrapper = styled.div`
       background-color: rgba(212, 125, 59, 0.3);
     }
   }
+
+  ${codemirrorTokenStyles}
 `;
 
 export default StyledWrapper;

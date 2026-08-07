@@ -945,6 +945,16 @@ if (!SERVER_RENDERED) {
       }
     };
 
+    // Dismiss when the page/editor scrolls (popup is position:fixed and would
+    // otherwise float over unrelated content). Ignore scrolls inside the popup.
+    const onScroll = function (e) {
+      if (popup.contains(e.target)) {
+        return;
+      }
+      isPinned = false;
+      hidePopup({ immediate: true });
+    };
+
     const hidePopup = function (options = {}) {
       if (isHidden) {
         return;
@@ -959,6 +969,7 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       CodeMirror.off(document, 'click', onDocumentClick);
       CodeMirror.off(cm, 'change', onEditorChange);
+      document.removeEventListener('scroll', onScroll, true);
 
       // Cleanup CodeMirror and MaskedEditor instances
       const valueContainer = popup.querySelector('.var-value-container');
@@ -1022,6 +1033,7 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
     CodeMirror.on(document, 'click', onDocumentClick);
     CodeMirror.on(cm, 'change', onEditorChange);
+    document.addEventListener('scroll', onScroll, true);
   }
 }
 
