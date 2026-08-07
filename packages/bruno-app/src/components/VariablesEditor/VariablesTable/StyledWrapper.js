@@ -8,23 +8,11 @@ const StyledWrapper = styled.div`
     min-height: 0;
   }
 
-  .table-container thead,
-  .table-container thead tr {
-    position: static !important;
-    top: auto !important;
-  }
-
   .table-container tbody tr:hover .row-action-btn {
     opacity: 1;
     pointer-events: auto;
   }
 
-  /*
-   * EditableTable pins rows to a fixed 35px and caps any row holding a
-   * MultiLineEditor at 3 rows (105px). Object values here are budgeted
-   * OBJECT_CELL_MAX_HEIGHT instead, so these override that cap — hence
-   * !important against the parent component's own :has() rules.
-   */
   .table-container tbody td:has(.value-editor.is-multiline) {
     height: auto !important;
     max-height: ${OBJECT_CELL_MAX_HEIGHT} !important;

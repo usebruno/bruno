@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { IconArrowsMaximize, IconCheck, IconCopy, IconEye, IconEyeOff } from '@tabler/icons';
+import { IconArrowsDiagonal, IconCheck, IconCopy, IconEye, IconEyeOff } from '@tabler/icons';
 import { getDataTypeFromValue, toDisplayString } from '@usebruno/common/utils';
 import { useTheme } from 'providers/Theme';
 import useCopyToClipboard from 'hooks/useCopyToClipboard';
@@ -12,12 +12,18 @@ import StyledWrapper from './StyledWrapper';
 const COPY_FEEDBACK_MS = 1200;
 const JSON_MODE = 'application/ld+json';
 
+const VARIABLE_REFERENCE_PATTERN = /\{\{([^}]+)\}\}/;
+
 const isObjectOrArray = (value) => getDataTypeFromValue(value) === 'object';
+
+/** JSON quotes around a `{{var}}` reference read as part of the template. */
+const holdsVariableReference = (value) => typeof value === 'string' && VARIABLE_REFERENCE_PATTERN.test(value);
 
 /** Serialize for the value editor JSON so CodeMirror can color tokens. */
 const valueToEditorText = (value) => {
   if (value === undefined) return '';
   if (isObjectOrArray(value)) return toDisplayString(value, '');
+  if (holdsVariableReference(value)) return value;
   return JSON.stringify(value) ?? '';
 };
 
@@ -39,6 +45,8 @@ const VariableValue = ({
 
   const isMasked = !!secret && !revealed;
   const isObjectValue = isObjectOrArray(value);
+  // Text that is not JSON would be tokenized as a JSON error and painted red.
+  const isPlainText = isMasked || holdsVariableReference(value);
   // Masked secrets stay single-line so line numbers / fold gutters don't show.
   const isMultiline = isObjectValue && !isMasked;
   // Serializing a large object is not free, and rows re-render on scroll.
@@ -66,8 +74,7 @@ const VariableValue = ({
     readOnly: true,
     enableBrunoVarInfo: !isMasked,
     isSecret: false,
-    // Masked placeholder is plain text; real values use JSON for token colors.
-    mode: isMasked ? 'text/plain' : JSON_MODE
+    mode: isPlainText ? 'text/plain' : JSON_MODE
   };
 
   const valueContent = (
@@ -106,7 +113,7 @@ const VariableValue = ({
             aria-label="Open object in drawer"
             data-testid="variable-object-preview"
           >
-            <IconArrowsMaximize size={15} strokeWidth={1.5} />
+            <IconArrowsDiagonal size={15} strokeWidth={1.5} />
           </button>
         )}
         {secret && (

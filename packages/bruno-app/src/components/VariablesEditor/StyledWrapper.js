@@ -13,23 +13,13 @@ const StyledWrapper = styled.div`
     flex-direction: column;
     overflow: hidden;
   }
-
-  /*
-   * Deliberately not .flex-boundary — that class name belongs to the
-   * ui/HeightBoundContainer primitive, and useTrackScroll resolves it as the
-   * scroll container. This pane stacks two tables rather than one filling
-   * child, so it owns its own scroller under its own name.
-   */
+ 
   .variables-scroll {
     flex: 1;
     min-height: 0;
     overflow: auto;
-    /* Prevent browser scroll anchoring from fighting our restored scrollTop */
     overflow-anchor: none;
-  }
-
-  .section-title {
-    font-weight: 500;
+    padding: 0 1rem 1rem;
   }
 
   .muted {

@@ -92,10 +92,6 @@ const StyledWrapper = styled.div`
     &.copied {
       color: ${(props) => props.theme.colors.text.green};
     }
-
-    &.is-selected {
-      color: ${(props) => props.theme.textLink};
-    }
   }
 `;
 

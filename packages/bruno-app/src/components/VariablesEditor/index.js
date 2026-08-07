@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import get from 'lodash/get';
 import filter from 'lodash/filter';
+import { IconBolt, IconDatabase } from '@tabler/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import { findEnvironmentInCollection } from 'utils/collections';
@@ -10,6 +11,7 @@ import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvi
 import { useResizablePanel } from 'hooks/useResizablePanel';
 import { STORAGE_PREFIX, getScopedStorageKey } from 'components/CodeEditor/state-persistence';
 import VariablesTable from './VariablesTable';
+import VariablesSection from './VariablesSection';
 import VariableDetailsDrawer from './VariableDetailsDrawer';
 import StyledWrapper from './StyledWrapper';
 
@@ -67,6 +69,12 @@ const VariablesEditor = ({ collection }) => {
   );
 
   const [scroll, setScroll] = usePersistedState({ key: 'variables-scroll', default: 0 });
+
+  // Persisted as an array of the collapsed sections.
+  const [collapsedSections, setCollapsedSections] = usePersistedState({
+    key: 'variables-collapsed-sections',
+    default: []
+  });
 
   // Live scroll position, seeded once from persistence. Kept in a ref so a
   // debounced save can't be clobbered by a re-render.
@@ -238,6 +246,18 @@ const VariablesEditor = ({ collection }) => {
 
   const selectedValue = selectedRow?.value;
 
+  const toggleSection = useCallback((section) => {
+    setCollapsedSections((prev) => {
+      const list = Array.isArray(prev) ? prev : [];
+      return list.includes(section) ? list.filter((s) => s !== section) : [...list, section];
+    });
+  }, [setCollapsedSections]);
+
+  const isSectionExpanded = useCallback(
+    (section) => !(Array.isArray(collapsedSections) ? collapsedSections : []).includes(section),
+    [collapsedSections]
+  );
+
   const toggleSecretReveal = useCallback((section, name) => {
     const key = secretRevealKey(section, name);
     setRevealedSecretsList((prev) => {
@@ -314,52 +334,63 @@ const VariablesEditor = ({ collection }) => {
   return (
     <StyledWrapper ref={wrapperRef} data-testid="variables-editor">
       <div className="variables-main">
-        <div className="variables-scroll px-4 py-4" data-testid="variables-scroll-container">
-          <h1 className="section-title mb-2">Runtime Variables</h1>
-          {runtimeRows.length > 0 ? (
-            <VariablesTable
-              rows={runtimeRows}
-              collection={collection}
-              section="runtime"
-              selectedName={drawerSelection?.section === 'runtime' ? drawerSelection.name : null}
-              isSecretRevealed={isSecretRevealed}
-              onToggleSecretReveal={toggleSecretReveal}
-              onOpenObject={handleOpenObject}
-              columnWidths={runtimeWidths}
-              onColumnWidthsChange={handleRuntimeWidthsChange}
-              testId="variables-runtime-table"
-            />
-          ) : (
-            <div className="muted text-xs mb-4">No runtime variables found</div>
-          )}
-
-          <div className="flex items-center mt-6 mb-2">
-            <h1 className="section-title">Environment Variables</h1>
-            {environment && (
-              <span className="muted ml-2 text-xs">({environment.name})</span>
+        <div className="variables-scroll" data-testid="variables-scroll-container">
+          <VariablesSection
+            icon={IconBolt}
+            title="Runtime Variables"
+            count={runtimeRows.length}
+            expanded={isSectionExpanded('runtime')}
+            onToggle={() => toggleSection('runtime')}
+            testId="variables-runtime-section"
+          >
+            {runtimeRows.length > 0 ? (
+              <VariablesTable
+                rows={runtimeRows}
+                collection={collection}
+                section="runtime"
+                selectedName={drawerSelection?.section === 'runtime' ? drawerSelection.name : null}
+                isSecretRevealed={isSecretRevealed}
+                onToggleSecretReveal={toggleSecretReveal}
+                onOpenObject={handleOpenObject}
+                columnWidths={runtimeWidths}
+                onColumnWidthsChange={handleRuntimeWidthsChange}
+                testId="variables-runtime-table"
+              />
+            ) : (
+              <div className="muted text-xs px-2 py-1">No runtime variables found</div>
             )}
-          </div>
+          </VariablesSection>
 
-          {!environment ? (
-            <div className="muted text-xs">No environment selected</div>
-          ) : envRows.length > 0 ? (
-            <VariablesTable
-              key={activeEnvironmentUid || 'no-env'}
-              rows={envRows}
-              collection={collection}
-              section="environment"
-              environmentUid={activeEnvironmentUid}
-              selectedName={drawerSelection?.section === 'environment' ? drawerSelection.name : null}
-              isSecretRevealed={isSecretRevealed}
-              onToggleSecretReveal={toggleSecretReveal}
-              onOpenObject={handleOpenObject}
-              columnWidths={envWidths}
-              onColumnWidthsChange={handleEnvWidthsChange}
-              testId="variables-env-table"
-            />
-          ) : (
-            <div className="muted text-xs">No environment variables found</div>
-          )}
+          <VariablesSection
+            icon={IconDatabase}
+            title="Environment Variables"
+            count={envRows.length}
+            subtitle={environment?.name}
+            expanded={isSectionExpanded('environment')}
+            onToggle={() => toggleSection('environment')}
+            testId="variables-env-section"
+          >
+            {!environment ? (
+              <div className="muted text-xs px-2 py-1">No environment selected</div>
+            ) : envRows.length > 0 ? (
+              <VariablesTable
+                key={activeEnvironmentUid || 'no-env'}
+                rows={envRows}
+                collection={collection}
+                section="environment"
+                environmentUid={activeEnvironmentUid}
+                selectedName={drawerSelection?.section === 'environment' ? drawerSelection.name : null}
+                isSecretRevealed={isSecretRevealed}
+                onToggleSecretReveal={toggleSecretReveal}
+                onOpenObject={handleOpenObject}
+                columnWidths={envWidths}
+                onColumnWidthsChange={handleEnvWidthsChange}
+                testId="variables-env-table"
+              />
+            ) : (
+              <div className="muted text-xs px-2 py-1">No environment variables found</div>
+            )}
+          </VariablesSection>
         </div>
       </div>
 
