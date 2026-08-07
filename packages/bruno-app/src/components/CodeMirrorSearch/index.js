@@ -177,12 +177,30 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
         handleSearchBarClose();
+      } else if (e.code === 'KeyF' && (e.metaKey || e.ctrlKey) && !e.altKey) {
+        // Cmd/Ctrl+F while focus is inside the bar. select search input
+        e.preventDefault();
+        e.stopPropagation();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      } else if (
+        (e.code === 'KeyF' && (e.metaKey || e.ctrlKey) && e.altKey)
+        || (e.code === 'KeyH' && e.ctrlKey && !e.metaKey && !e.altKey)
+      ) {
+        // Cmd+Option+F (Mac) or Ctrl+H (Win/Linux). open replace and focus it
+        e.preventDefault();
+        e.stopPropagation();
+        setReplaceVisible(true);
+        setTimeout(() => {
+          replaceInputRef.current?.focus();
+          replaceInputRef.current?.select();
+        }, 0);
       }
     };
 
     container.addEventListener('keydown', onKeyDown, true);
     return () => container.removeEventListener('keydown', onKeyDown, true);
-  }, [visible, handleSearchBarClose]);
+  }, [visible, handleSearchBarClose, setReplaceVisible]);
 
   useEffect(() => {
     if (!editor || !visible) return;
@@ -271,7 +289,6 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
     const resolvedNextIdx = nextIdx >= 0 ? nextIdx : 0;
     pendingSearchIndexRef.current = resolvedNextIdx;
     doSearch(debouncedSearchText, resolvedNextIdx, null, true);
-    setTimeout(() => inputRef.current?.focus(), 0);
   }, [editor, matchIndex, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
 
   const handleReplaceAll = useCallback(() => {
@@ -283,7 +300,6 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
 
     searchCacheKey.current = '';
     doSearch(debouncedSearchText, 0);
-    setTimeout(() => inputRef.current?.focus(), 0);
   }, [editor, replaceText, debouncedSearchText, regex, caseSensitive, wholeWord, doSearch]);
 
   const isDebouncing = searchText !== debouncedSearchText;
@@ -313,19 +329,23 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
               ref={inputRef}
               autoFocus
               type="text"
+              className="mousetrap"
               value={searchText}
               onChange={(e) => handleSearchTextChange(e.target.value)}
               placeholder="Search..."
               spellCheck={false}
               data-testid="codemirror-search-input"
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && replaceVisible && !isReplaceDisabled) {
-                  e.preventDefault();
-                  handleReplaceAll();
-                } else if (e.key === 'Enter' && !e.shiftKey) {
-                  handleNext();
-                } else if (e.key === 'Enter' && e.shiftKey) {
-                  handlePrev();
+                if (e.key === 'Enter') {
+                  e.stopPropagation();
+                  if ((e.metaKey || e.ctrlKey) && replaceVisible && !isReplaceDisabled) {
+                    e.preventDefault();
+                    handleReplaceAll();
+                  } else if (!e.shiftKey) {
+                    handleNext();
+                  } else {
+                    handlePrev();
+                  }
                 }
               }}
             />
@@ -348,17 +368,21 @@ const CodeMirrorSearch = forwardRef(({ visible, editor, readOnly, onClose }, ref
               <input
                 ref={replaceInputRef}
                 type="text"
+                className="mousetrap"
                 value={replaceText}
                 onChange={(e) => setReplaceText(e.target.value)}
                 placeholder="Replace..."
                 spellCheck={false}
                 data-testid="codemirror-search-replace-input"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !isReplaceDisabled) {
-                    e.preventDefault();
-                    handleReplaceAll();
-                  } else if (e.key === 'Enter' && !isReplaceDisabled) {
-                    handleReplace();
+                  if (e.key === 'Enter') {
+                    e.stopPropagation();
+                    if ((e.metaKey || e.ctrlKey) && !isReplaceDisabled) {
+                      e.preventDefault();
+                      handleReplaceAll();
+                    } else if (!isReplaceDisabled) {
+                      handleReplace();
+                    }
                   }
                 }}
               />
