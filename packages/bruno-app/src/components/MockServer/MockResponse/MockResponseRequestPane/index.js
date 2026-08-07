@@ -82,6 +82,7 @@ const MockResponseRequestPane = ({
             exampleUid={exampleUid}
             editMode={editMode}
             onSave={onSave}
+            allowMethodSelect
           />
         </div>
         <div className="try-action">
