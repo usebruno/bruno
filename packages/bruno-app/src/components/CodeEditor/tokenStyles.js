@@ -1,11 +1,5 @@
 import { css } from 'styled-components';
 
-/**
- * Bruno's token colours for CodeMirror, overriding whichever vendor theme
- * (`cm-s-default` / `cm-s-monokai`) is active. Shared by every editor wrapper so
- * a new token colour is added in one place — the vendor themes win on
- * specificity, hence `!important` throughout.
- */
 const codemirrorTokenStyles = css`
   .cm-s-default,
   .cm-s-monokai {

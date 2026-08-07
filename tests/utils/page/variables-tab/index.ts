@@ -211,18 +211,14 @@ export const scrollValueEditorTo = async (cmEditor: Locator, top: number) => {
   });
 };
 
-/**
- * Collapse the object opening on `line` (0-indexed) through CodeMirror's own API,
- * so the test doesn't hang on fold-gutter pixel positions. `foldCode` scans backward
- * from the cursor for the `{` or `[`, hence the end-of-line position.
- */
+// fold object line
 export const foldObjectLine = async (cmEditor: Locator, line: number) => {
   await cmEditor.evaluate((el, l) => {
     const cm = (el as any).CodeMirror;
     cm.foldCode({ line: l, ch: (cm.getLine(l) ?? '').length }, null, 'fold');
   }, line);
 };
-
+// unfold object line
 export const unfoldObjectLine = async (cmEditor: Locator, line: number) => {
   await cmEditor.evaluate((el, l) => {
     const cm = (el as any).CodeMirror;

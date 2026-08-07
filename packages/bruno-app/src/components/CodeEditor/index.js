@@ -230,7 +230,7 @@ class CodeEditor extends React.Component {
       editor.on('unfold', this._persistViewStateDebounced);
 
       // Only override scroll when the caller passes initialScroll. Otherwise
-      // keep whatever applyEditorState restored (scrollY from persistence) —
+      // keep whatever applyEditorState restored (scrollY from persistence)
       // scrolling to undefined/0 here was wiping that restore and causing a jump.
       if (this.props.initialScroll != null) {
         editor.scrollTo(null, this.props.initialScroll);

@@ -5,8 +5,6 @@ export const buildEnvironmentLocators = (page: Page) => ({
   selector: () => page.getByTestId('environment-selector-trigger'),
   collectionTab: () => page.getByTestId('env-tab-collection'),
   globalTab: () => page.getByTestId('env-tab-global'),
-  // The row carries the select handler; the label span inside it does not, so match
-  // on the span's text but return the row.
   envOption: (name: string) =>
     page.getByTestId('env-list-item').filter({ has: page.getByText(name, { exact: true }) }),
   listOption: (name: string) => page.locator('.environment-list .dropdown-item', { hasText: name }),
