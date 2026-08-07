@@ -372,9 +372,10 @@ function makeAxiosInstance({
           };
 
           if (!isSameOrigin(error.config.url, redirectUrl)) {
-            // AWS SigV4 signs a request for a specific host; re-signing after a cross-origin
-            // redirect would send a freshly valid signature to an unrelated host, regardless of
-            // the forwardAuthorizationHeader setting below.
+            /* AWS SigV4 signs a request for a specific host; re-signing after a cross-origin
+            * redirect would send a freshly valid signature to an unrelated host, regardless of
+            * the forwardAuthorizationHeader setting below.
+            */
             requestConfig.__skipAwsV4Sign = true;
             Object.keys(requestConfig.headers).forEach((key) => {
               if (key.toLowerCase().startsWith('x-amz-')) {
