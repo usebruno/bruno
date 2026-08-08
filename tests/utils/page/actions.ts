@@ -1718,7 +1718,10 @@ const saveRequest = async (page: Page) => {
 const addGrpcMessage = async (page: Page) => {
   await test.step('Add gRPC message', async () => {
     const locators = buildGrpcCommonLocators(page);
+    const messages = locators.request.messages();
+    const before = await messages.count();
     await locators.request.addMessageButton().click();
+    await expect(messages).toHaveCount(before + 1);
   });
 };
 

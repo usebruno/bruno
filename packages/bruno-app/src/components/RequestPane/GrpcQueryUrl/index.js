@@ -56,9 +56,11 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const methodDropdownRef = useRef(null);
   const protoDropdownRef = useRef(null);
   const haveFetchedMethodsRef = useRef(false);
+  const latestReflectionRequestIdRef = useRef(0);
+  const lastReflectionKeyRef = useRef(null);
 
   const protoFileManagement = useProtoFileManagement(collection, protoFilePath);
-  const reflectionManagement = useReflectionManagement(item, collection.uid);
+  const reflectionManagement = useReflectionManagement(item, collection);
 
   const onMethodSelect = ({ path, type }) => {
     if (isConnectionActive) {
@@ -89,6 +91,12 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
+  const handleReflectionRef = useRef(null);
+  const [debouncedReflection] = useState(() =>
+    debounce((value) => handleReflectionRef.current?.(value), 3000)
+  );
+  useEffect(() => () => debouncedReflection.cancel(), [debouncedReflection]);
+
   const onUrlChange = (value) => {
     if (!editorRef.current?.editor) return;
     const editor = editorRef.current.editor;
@@ -114,12 +122,14 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
     if (!protoFilePath && value) {
       setIsReflectionMode(true);
-      handleReflection(finalUrl);
+      debouncedReflection(finalUrl);
     }
   };
 
   const handleReflection = async (url, isManualRefresh = false) => {
+    const requestId = ++latestReflectionRequestIdRef.current;
     const { methods, error, fromCache } = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
+    if (requestId !== latestReflectionRequestIdRef.current) return;
 
     if (error) {
       toast.error(`Failed to load gRPC methods: ${error.message || 'Unknown error'}`);
@@ -160,6 +170,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       }
     }
   };
+  handleReflectionRef.current = handleReflection;
 
   const handleProtoFileLoad = async (filePath, isManualRefresh = false) => {
     const { methods, error, fromCache } = await protoFileManagement.loadMethodsFromProtoFile(filePath, isManualRefresh);
@@ -278,23 +289,23 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     }
   };
 
-  const debouncedOnUrlChange = debounce(onUrlChange, 1000);
-
   useEffect(() => {
-    if (haveFetchedMethodsRef.current) {
-      return;
-    }
-    haveFetchedMethodsRef.current = true;
-
     if (protoFilePath) {
+      if (haveFetchedMethodsRef.current) return;
+      haveFetchedMethodsRef.current = true;
       setIsReflectionMode(false);
       handleProtoFileLoad(protoFilePath);
       return;
     }
     if (!url) return;
+    const envUid = collection.activeEnvironmentUid ?? null;
+    const last = lastReflectionKeyRef.current;
+    if (last && last.url === url && last.envUid === envUid) return;
+    lastReflectionKeyRef.current = { url, envUid };
+    haveFetchedMethodsRef.current = true;
     setIsReflectionMode(true);
     handleReflection(url);
-  }, []);
+  }, [collection.activeEnvironmentUid]);
 
   return (
     <StyledWrapper className="flex items-center relative" data-testid="grpc-query-url-container">
@@ -309,7 +320,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           value={url}
           onSave={(finalValue) => onSave(finalValue)}
           theme={storedTheme}
-          onChange={(newValue) => debouncedOnUrlChange(newValue)}
+          onChange={onUrlChange}
           onRun={handleRun}
           collection={collection}
           highlightPathParams={true}

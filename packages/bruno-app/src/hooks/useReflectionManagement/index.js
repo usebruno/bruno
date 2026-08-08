@@ -1,18 +1,26 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { interpolate } from '@usebruno/common';
 import { loadGrpcMethodsFromReflection } from 'providers/ReduxStore/slices/collections/actions';
 import useLocalStorage from 'hooks/useLocalStorage/index';
+import { getAllVariables } from 'utils/collections';
 
 /**
  * Custom hook for managing reflection data and server discovery
  * @param {Object} item - The request item
- * @param {string} collectionUid - Collection UID
+ * @param {Object} collection - The collection the item belongs to
  */
-export default function useReflectionManagement(item, collectionUid) {
+export default function useReflectionManagement(item, collection) {
   const dispatch = useDispatch();
 
   const [reflectionCache, setReflectionCache] = useLocalStorage('bruno.grpc.reflectionCache', {});
   const [isLoadingMethods, setIsLoadingMethods] = useState(false);
+
+  const resolveUrl = (url) => {
+    if (!url) return null;
+    const vars = getAllVariables(collection, item);
+    return interpolate(url, vars) || url;
+  };
 
   /**
    * Load gRPC methods from server reflection
@@ -25,24 +33,27 @@ export default function useReflectionManagement(item, collectionUid) {
       return { methods: [], error: new Error('No URL provided') };
     }
 
-    const cachedMethods = reflectionCache[url];
+    const resolvedUrl = resolveUrl(url);
+    const cachedMethods = resolvedUrl ? reflectionCache[resolvedUrl] : null;
     if (!isManualRefresh && cachedMethods && !isLoadingMethods) {
       return { methods: cachedMethods, error: null, fromCache: true };
     }
 
     setIsLoadingMethods(true);
     try {
-      const { methods, error } = await dispatch(loadGrpcMethodsFromReflection(item, collectionUid, url));
+      const { methods, error } = await dispatch(loadGrpcMethodsFromReflection(item, collection.uid, resolvedUrl));
 
       if (error) {
         console.error('Error loading gRPC methods:', error);
         return { methods: [], error };
       }
 
-      setReflectionCache((prevCache) => ({
-        ...prevCache,
-        [url]: methods
-      }));
+      if (resolvedUrl) {
+        setReflectionCache((prevCache) => ({
+          ...prevCache,
+          [resolvedUrl]: methods
+        }));
+      }
 
       return { methods, error: null, fromCache: false };
     } catch (error) {
@@ -59,7 +70,8 @@ export default function useReflectionManagement(item, collectionUid) {
    * @returns {boolean}
    */
   const hasCachedMethods = (url) => {
-    return !!(reflectionCache[url] && reflectionCache[url].length > 0);
+    const resolvedUrl = resolveUrl(url);
+    return !!(resolvedUrl && reflectionCache[resolvedUrl] && reflectionCache[resolvedUrl].length > 0);
   };
 
   /**
@@ -68,7 +80,8 @@ export default function useReflectionManagement(item, collectionUid) {
    * @returns {Array}
    */
   const getCachedMethods = (url) => {
-    return reflectionCache[url] || [];
+    const resolvedUrl = resolveUrl(url);
+    return (resolvedUrl && reflectionCache[resolvedUrl]) || [];
   };
 
   /**
@@ -76,9 +89,11 @@ export default function useReflectionManagement(item, collectionUid) {
    * @param {string} url - The gRPC server URL
    */
   const clearCacheForUrl = (url) => {
+    const resolvedUrl = resolveUrl(url);
+    if (!resolvedUrl) return;
     setReflectionCache((prevCache) => {
       const newCache = { ...prevCache };
-      delete newCache[url];
+      delete newCache[resolvedUrl];
       return newCache;
     });
   };
