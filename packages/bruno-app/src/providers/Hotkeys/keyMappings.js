@@ -106,6 +106,7 @@ export const formatSingleKeyForDisplay = (key, os) => {
     enter: os === 'mac' ? '↩' : 'Enter',
     backspace: os === 'mac' ? '⌫' : 'Backspace',
     tab: os === 'mac' ? '⇥' : 'Tab',
+    del: os === 'mac' ? '⌦' : 'Delete',
     delete: os === 'mac' ? '⌦' : 'Delete',
     esc: os === 'mac' ? '⎋' : 'Esc',
     space: os === 'mac' ? '␣' : 'Space',
