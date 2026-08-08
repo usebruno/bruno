@@ -2224,9 +2224,14 @@ const registerNetworkIpc = (mainWindow) => {
 
       if (quickSave) {
         const responsesDir = path.join(dirPath, 'responses');
-        fs.mkdirSync(responsesDir, { recursive: true });
-        const timestampedFileName = `${Date.now()}_${fileName}`;
-        const filePath = path.join(responsesDir, timestampedFileName);
+        await fs.promises.mkdir(responsesDir, { recursive: true });
+        const safeFileName = path.basename(fileName.replace(/\\/g, '/')) || 'response.txt';
+        const timestampedFileName = `${Date.now()}_${safeFileName}`;
+        const responsesRoot = path.resolve(responsesDir);
+        const filePath = path.resolve(responsesRoot, timestampedFileName);
+        if (!filePath.startsWith(responsesRoot)) {
+          throw new Error('Invalid response filename');
+        }
         const encoding = getEncodingFormat();
         const data = Buffer.from(response.dataBuffer, 'base64');
         if (encoding === 'utf-8') {
