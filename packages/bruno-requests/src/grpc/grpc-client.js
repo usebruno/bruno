@@ -1,4 +1,4 @@
-import { makeGenericClientConstructor, ChannelCredentials, Metadata, status, credentials, CallCredentials } from '@grpc/grpc-js';
+import { makeGenericClientConstructor, ChannelCredentials, Metadata, status as grpcStatusCodeNames, credentials, CallCredentials } from '@grpc/grpc-js';
 import { GrpcReflection } from 'grpc-js-reflection-client';
 import * as protoLoader from '@grpc/proto-loader';
 import { generateGrpcSampleMessage } from './grpcMessageGenerator';
@@ -150,49 +150,62 @@ const getParsedGrpcUrlObject = (url) => {
  * @param {string} collectionUid - The collection UID
  * @param {Object} rpc - The gRPC object
  */
-const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc, onComplete) => {
+const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc, onComplete, startedAt) => {
   let completed = false;
+  const callStartedAt = startedAt ?? Date.now();
+  const elapsed = () => Date.now() - callStartedAt;
+  let finalResponse = { statusCode: null, statusText: null, trailers: {} };
+  const normalizeMetadata = (metadata) => (metadata?.getMap ? metadata.getMap() : metadata) || {};
+  const captureFinalResponse = (source) => {
+    finalResponse = {
+      statusCode: source.code,
+      statusText: grpcStatusCodeNames[source.code] || 'UNKNOWN',
+      trailers: normalizeMetadata(source.metadata)
+    };
+  };
   const complete = () => {
     if (completed) return;
     completed = true;
-    if (typeof onComplete === 'function') onComplete();
+    if (typeof onComplete === 'function') onComplete({ ...finalResponse, duration: elapsed() });
   };
 
   rpc.on('status', (status, res) => {
+    captureFinalResponse(status);
     const statusWithMetadata = {
       ...status,
-      metadata: processGrpcMetadata(status.metadata.getMap ? status.metadata.getMap() : status.metadata)
+      metadata: processGrpcMetadata(normalizeMetadata(status.metadata))
     };
-    callback('grpc:status', requestId, collectionUid, { status: statusWithMetadata, res });
+    callback('grpc:status', requestId, collectionUid, { status: statusWithMetadata, res, duration: elapsed() });
     complete();
   });
 
   rpc.on('error', (error) => {
+    captureFinalResponse(error);
     const errorWithMetadata = {
       ...error,
-      metadata: processGrpcMetadata(error.metadata.getMap ? error.metadata.getMap() : error.metadata)
+      metadata: processGrpcMetadata(normalizeMetadata(error.metadata))
     };
-    callback('grpc:error', requestId, collectionUid, { error: errorWithMetadata });
+    callback('grpc:error', requestId, collectionUid, { error: errorWithMetadata, duration: elapsed() });
     complete();
   });
 
   rpc.on('end', (res) => {
-    callback('grpc:server-end-stream', requestId, collectionUid, { res });
+    callback('grpc:server-end-stream', requestId, collectionUid, { res, duration: elapsed() });
     complete();
   });
 
   rpc.on('data', (res) => {
-    callback('grpc:response', requestId, collectionUid, { error: null, res });
+    callback('grpc:response', requestId, collectionUid, { error: null, res, duration: elapsed() });
   });
 
   rpc.on('cancel', (res) => {
-    callback('grpc:server-cancel-stream', requestId, collectionUid, { res });
+    callback('grpc:server-cancel-stream', requestId, collectionUid, { res, duration: elapsed() });
     complete();
   });
 
   rpc.on('metadata', (metadata) => {
-    const metadataWithProcessed = processGrpcMetadata(metadata.getMap ? metadata.getMap() : metadata);
-    callback('grpc:metadata', requestId, collectionUid, { metadata: metadataWithProcessed });
+    const metadataWithProcessed = processGrpcMetadata(normalizeMetadata(metadata));
+    callback('grpc:metadata', requestId, collectionUid, { metadata: metadataWithProcessed, duration: elapsed() });
   });
 };
 
@@ -498,7 +511,28 @@ class GrpcClient {
   /**
    * Handle unary responses
    */
-  #handleUnaryResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid }) {
+  #fireOnAfterMessageReceive(callback, res) {
+    if (typeof callback !== 'function') return;
+    try {
+      callback(res);
+    } catch (err) {
+      console.error('gRPC onAfterMessageReceive callback threw:', err);
+    }
+  }
+
+  #buildOnComplete(requestId, callback) {
+    return (completion) => {
+      this.#removeConnection(requestId);
+      if (typeof callback !== 'function') return;
+      try {
+        callback(completion);
+      } catch (err) {
+        console.error('gRPC onAfterCallEnd callback threw:', err);
+      }
+    };
+  }
+
+  #handleUnaryResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, onAfterMessageReceive, onAfterCallEnd, startedAt }) {
     const rpc = client.makeUnaryRequest(
       requestPath,
       method.requestSerialize,
@@ -506,30 +540,32 @@ class GrpcClient {
       messages[0],
       metadata,
       (error, res) => {
+        if (!error) this.#fireOnAfterMessageReceive(onAfterMessageReceive, res);
         this.eventCallback('grpc:response', requestId, collectionUid, { error, res });
       }
     );
     this.#addConnection(requestId, { rpc, client });
 
-    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, () => this.#removeConnection(requestId));
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, this.#buildOnComplete(requestId, onAfterCallEnd), startedAt);
   }
 
-  #handleClientStreamingResponse({ client, requestId, requestPath, method, metadata, collectionUid }) {
+  #handleClientStreamingResponse({ client, requestId, requestPath, method, metadata, collectionUid, onAfterMessageReceive, onAfterCallEnd, startedAt }) {
     const rpc = client.makeClientStreamRequest(
       requestPath,
       method.requestSerialize,
       method.responseDeserialize,
       metadata,
       (error, res) => {
+        if (!error) this.#fireOnAfterMessageReceive(onAfterMessageReceive, res);
         this.eventCallback('grpc:response', requestId, collectionUid, { error, res });
       }
     );
     this.#addConnection(requestId, { rpc, client });
 
-    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, () => this.#removeConnection(requestId));
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, this.#buildOnComplete(requestId, onAfterCallEnd), startedAt);
   }
 
-  #handleServerStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid }) {
+  #handleServerStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, onAfterMessageReceive, onAfterCallEnd, startedAt }) {
     const message = messages[0];
     const rpc = client.makeServerStreamRequest(
       requestPath,
@@ -543,10 +579,13 @@ class GrpcClient {
     );
     this.#addConnection(requestId, { rpc, client });
 
-    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, () => this.#removeConnection(requestId));
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, this.#buildOnComplete(requestId, onAfterCallEnd), startedAt);
+    if (typeof onAfterMessageReceive === 'function') {
+      rpc.on('data', (res) => this.#fireOnAfterMessageReceive(onAfterMessageReceive, res));
+    }
   }
 
-  #handleBidiStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid }) {
+  #handleBidiStreamingResponse({ client, requestId, requestPath, method, messages, metadata, collectionUid, onAfterMessageReceive, onAfterCallEnd, startedAt }) {
     const rpc = client.makeBidiStreamRequest(
       requestPath,
       method.requestSerialize,
@@ -555,7 +594,10 @@ class GrpcClient {
     );
     this.#addConnection(requestId, { rpc, client });
 
-    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, () => this.#removeConnection(requestId));
+    setupGrpcEventHandlers(this.eventCallback, requestId, collectionUid, rpc, this.#buildOnComplete(requestId, onAfterCallEnd), startedAt);
+    if (typeof onAfterMessageReceive === 'function') {
+      rpc.on('data', (res) => this.#fireOnAfterMessageReceive(onAfterMessageReceive, res));
+    }
   }
 
   /**
@@ -592,7 +634,10 @@ class GrpcClient {
     verifyOptions,
     channelOptions = {},
     includeDirs = [],
-    proxyConfig
+    proxyConfig,
+    onAfterMessageReceive,
+    onAfterCallEnd,
+    startedAt
   }) {
     const credentials = this.#getChannelCredentials({
       url: request.url,
@@ -686,6 +731,27 @@ class GrpcClient {
       metadata.add(name, value);
     });
 
+    const accumulateResponses = typeof onAfterCallEnd === 'function';
+    const accumulatedResponses = [];
+    const wrappedOnAfterMessageReceive
+      = accumulateResponses || typeof onAfterMessageReceive === 'function'
+        ? (res) => {
+            const timestamp = new Date().toISOString();
+            if (accumulateResponses) {
+              accumulatedResponses.push({ data: res, timestamp });
+            }
+            if (typeof onAfterMessageReceive === 'function') {
+              onAfterMessageReceive(res, timestamp);
+            }
+          }
+        : undefined;
+    const wrappedOnAfterCallEnd = accumulateResponses
+      ? (completion) => {
+          const response = { responses: accumulatedResponses, ...(completion || {}) };
+          onAfterCallEnd(response);
+        }
+      : undefined;
+
     this.#handleConnection({
       client,
       requestId,
@@ -693,7 +759,10 @@ class GrpcClient {
       requestPath,
       method,
       messages,
-      metadata
+      metadata,
+      onAfterMessageReceive: wrappedOnAfterMessageReceive,
+      onAfterCallEnd: wrappedOnAfterCallEnd,
+      startedAt
     });
   }
 

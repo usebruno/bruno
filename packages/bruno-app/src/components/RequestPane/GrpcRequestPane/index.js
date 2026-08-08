@@ -6,6 +6,7 @@ import GrpcBody from 'components/RequestPane/GrpcBody';
 import GrpcAuth from './GrpcAuth/index';
 import GrpcAuthMode from './GrpcAuth/GrpcAuthMode/index';
 import StatusDot from 'components/StatusDot/index';
+import StatusBadge from 'ui/StatusBadge/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import find from 'lodash/find';
 import Documentation from 'components/Documentation/index';
@@ -16,6 +17,7 @@ import StyledWrapper from './StyledWrapper';
 import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
 import { AUTH_MODES_GRPC } from 'utils/common/constants';
+import GrpcScript from 'components/RequestPane/Script/grpcIndex';
 
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -48,6 +50,9 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       case 'docs': {
         return <Documentation item={item} collection={collection} />;
       }
+      case 'script': {
+        return <GrpcScript item={item} collection={collection} />;
+      }
       default: {
         return <div className="mt-4">404 | Not found</div>;
       }
@@ -57,6 +62,8 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const body = getPropertyFromDraftOrRequest(item, 'request.body');
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
+  const script = getPropertyFromDraftOrRequest(item, 'request.script');
+
   const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
   const hasAuth = useMemo(
     () => hasEffectiveAuth(collection, item, AUTH_MODES_GRPC),
@@ -68,6 +75,9 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
   // Determine if this is a client streaming request
   const request = item.draft ? item.draft.request : item.request;
   const isClientStreaming = request.methodType === 'client-streaming' || request.methodType === 'bidi-streaming';
+
+  const hasScriptError = item.beforeCallStartScriptErrorMessage || item.beforeMessageSendScriptErrorMessage || item.afterMessageReceiveScriptErrorMessage || item.afterCallEndScriptErrorMessage;
+  const hasAnyScript = script?.beforeCallStart || script?.beforeMessageSend || script?.afterMessageReceive || script?.afterCallEnd;
 
   const allTabs = useMemo(() => {
     const getMessageIndicator = () => {
@@ -101,9 +111,19 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
         key: 'docs',
         label: 'Docs',
         indicator: docs && docs.length > 0 ? <StatusDot type="default" /> : null
+      },
+      {
+        key: 'script',
+        label: (
+          <span className="flex items-center gap-2">
+            Script
+            <StatusBadge status="info" size="xs">Beta</StatusBadge>
+          </span>
+        ),
+        indicator: hasAnyScript ? (hasScriptError ? <StatusDot type="error" /> : <StatusDot />) : null
       }
     ];
-  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, hasAuth, docs]);
+  }, [grpcMessagesCount, isClientStreaming, activeHeadersLength, hasAuth, hasAnyScript, docs, hasScriptError]);
 
   // Initialize tab to 'body' if no tab is currently set
   useEffect(() => {

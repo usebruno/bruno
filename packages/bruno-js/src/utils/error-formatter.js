@@ -14,13 +14,21 @@ const isAllowedSourceFile = (filePath) =>
 const SCRIPT_TYPES = Object.freeze({
   PRE_REQUEST: 'pre-request',
   POST_RESPONSE: 'post-response',
-  TEST: 'test'
+  TEST: 'test',
+  GRPC_BEFORE_CALL_START: 'grpc:before-call-start',
+  GRPC_BEFORE_MESSAGE_SEND: 'grpc:before-message-send',
+  GRPC_AFTER_MESSAGE_RECEIVE: 'grpc:after-message-receive',
+  GRPC_AFTER_CALL_END: 'grpc:after-call-end'
 });
 
-// Bruno script types → OpenCollection YAML script types
+// Bruno script types → OpenCollection YAML script types (a gRPC phase is named the same in both)
 const SCRIPT_TYPE_TO_YML = {
   [SCRIPT_TYPES.PRE_REQUEST]: 'before-request',
   [SCRIPT_TYPES.POST_RESPONSE]: 'after-response',
+  [SCRIPT_TYPES.GRPC_BEFORE_CALL_START]: 'grpc:before-call-start',
+  [SCRIPT_TYPES.GRPC_BEFORE_MESSAGE_SEND]: 'grpc:before-message-send',
+  [SCRIPT_TYPES.GRPC_AFTER_MESSAGE_RECEIVE]: 'grpc:after-message-receive',
+  [SCRIPT_TYPES.GRPC_AFTER_CALL_END]: 'grpc:after-call-end',
   [SCRIPT_TYPES.TEST]: 'tests'
 };
 
@@ -38,6 +46,10 @@ const readFile = (filePath, cache = null) => {
 const BLOCK_PATTERNS = {
   [SCRIPT_TYPES.PRE_REQUEST]: /^script:pre-request\s*\{/,
   [SCRIPT_TYPES.POST_RESPONSE]: /^script:post-response\s*\{/,
+  [SCRIPT_TYPES.GRPC_BEFORE_CALL_START]: /^script:grpc:before-call-start\s*\{/,
+  [SCRIPT_TYPES.GRPC_BEFORE_MESSAGE_SEND]: /^script:grpc:before-message-send\s*\{/,
+  [SCRIPT_TYPES.GRPC_AFTER_MESSAGE_RECEIVE]: /^script:grpc:after-message-receive\s*\{/,
+  [SCRIPT_TYPES.GRPC_AFTER_CALL_END]: /^script:grpc:after-call-end\s*\{/,
   [SCRIPT_TYPES.TEST]: /^tests\s*\{/
 };
 

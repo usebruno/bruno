@@ -103,7 +103,7 @@ const stringifyGrpcRequest = (item: BrunoItem): string => {
     }
 
     // scripts
-    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest);
+    const scripts: Scripts | undefined = toOpenCollectionScripts(brunoRequest, 'grpc-request');
     if (scripts) {
       runtime.scripts = scripts;
       hasRuntime = true;
