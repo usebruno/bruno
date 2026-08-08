@@ -14,6 +14,7 @@ import { setupAutoComplete, showRootHints } from 'utils/codemirror/autocomplete'
 import { setupAiAutocomplete } from 'utils/codemirror/aiGhostText';
 import { buildAutocompleteContext } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
+import { maskJsonTemplateVariables } from './mask-json-variables';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
@@ -179,7 +180,7 @@ class CodeEditor extends React.Component {
       }
       const jsonlint = window.jsonlint.parser || window.jsonlint;
       try {
-        jsonlint.parse(stripJsonComments(text.replace(/(?<!"[^":{]*){{[^}]*}}(?![^"},]*")/g, '1')));
+        jsonlint.parse(stripJsonComments(maskJsonTemplateVariables(text)));
       } catch (error) {
         const { message, location } = error;
         const line = location?.start?.line;
