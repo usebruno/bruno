@@ -85,6 +85,41 @@ describe('mock-response-store', () => {
     expect(store.mockServers['mock-2'].responses).toHaveLength(1);
   });
 
+  it('rejects a duplicate mock response name on the same server (case- and whitespace-insensitive)', () => {
+    const location = {
+      mockServerUid: 'mock-1',
+      sourceType: 'spec',
+      workspacePath
+    };
+
+    saveMockResponse(location, {
+      uid: 'response-1',
+      name: 'Users',
+      request: { url: '/users', method: 'GET' },
+      response: { status: 200, body: { type: 'json', content: '{}' } },
+      rules: { operator: 'AND', conditions: [] }
+    });
+
+    expect(() => saveMockResponse(location, {
+      uid: 'response-2',
+      name: '  users  ',
+      request: { url: '/users', method: 'GET' },
+      response: { status: 200, body: { type: 'json', content: '{}' } },
+      rules: { operator: 'AND', conditions: [] }
+    })).toThrow('A mock response with this name already exists');
+
+    // Same uid, same name is a legitimate update — must not throw
+    expect(() => saveMockResponse(location, {
+      uid: 'response-1',
+      name: 'Users',
+      request: { url: '/users', method: 'POST' },
+      response: { status: 201, body: { type: 'json', content: '{}' } },
+      rules: { operator: 'AND', conditions: [] }
+    })).not.toThrow();
+
+    expect(listMockResponses(location)).toHaveLength(1);
+  });
+
   it('removes a mock server block from workspace mockserver.yml on delete', () => {
     const location = {
       mockServerUid: 'mock-1',
