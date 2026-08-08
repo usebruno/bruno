@@ -25,8 +25,9 @@ import {
   IconFileArrowRight,
   IconAppWindow
 } from '@tabler/icons';
+import Dropdown from 'components/Dropdown';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
-import { toggleCollection, collapseFullCollection } from 'providers/ReduxStore/slices/collections';
+import { toggleCollection, collapseFullCollection, setSelectedCollections, toggleCollectionSelection, clearCollectionSelection, setLastClickedCollectionIndex } from 'providers/ReduxStore/slices/collections';
 import { mountCollection, moveCollectionAndPersist, handleCollectionItemDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
@@ -53,6 +54,8 @@ import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPr
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
+import BulkActionsDropdown from './BulkActions';
+import RemoveCollectionsModal from '../RemoveCollectionsModal';
 import ActionIcon from 'ui/ActionIcon';
 import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
@@ -67,7 +70,7 @@ import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 // This prevents flicker from race condition between loading state and item batch updates
 const EMPTY_STATE_DELAY_MS = 300;
 
-const Collection = ({ collection, searchText }) => {
+const Collection = ({ collection, searchText, collectionIndex, allCollections }) => {
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -82,6 +85,9 @@ const Collection = ({ collection, searchText }) => {
   const [showCreateMockServerModal, setShowCreateMockServerModal] = useState(false);
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
+  const [showBulkActionsDropdown, setShowBulkActionsDropdown] = useState(false);
+  const [bulkActionsPosition, setBulkActionsPosition] = useState({ x: 0, y: 0 });
+  const [collectionsToRemove, setCollectionsToRemove] = useState([]);
   const [showEmptyState, setShowEmptyState] = useState(false);
   const dispatch = useDispatch();
   const isLoading = collection.isLoading;
@@ -92,7 +98,19 @@ const Collection = ({ collection, searchText }) => {
 
   const isCollectionFocused = useSelector(isTabForItemActive({ itemUid: collection.uid }));
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
+  const selectedCollections = useSelector((state) => state.collections.selectedCollections);
+  const lastClickedIndex = useSelector((state) => state.collections.lastClickedCollectionIndex);
+  const isSelected = selectedCollections.includes(collection.uid);
   const menuDropdownRef = useRef(null);
+  const onMenuDropdownCreate = (ref) => (menuDropdownRef.current = ref);
+  const MenuIcon = forwardRef((_props, ref) => {
+    return (
+      <div ref={ref} className="pr-2">
+        <IconDots size={22} />
+      </div>
+    );
+  };
+
 
   // 'Move into Workspace' is available for collections opened from outside the current workspace.
   const activeWorkspace = useSelector((state) =>
@@ -146,8 +164,40 @@ const Collection = ({ collection, searchText }) => {
 
   const handleClick = (event) => {
     if (event.detail != 1) return;
+
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
+
+    const isMac = navigator.userAgent?.includes('Mac');
+    const isModifierPressed = isMac ? event.metaKey : event.ctrlKey;
+    const isShiftPressed = event.shiftKey;
+
+    if (isModifierPressed && collectionIndex !== undefined) {
+      event.preventDefault();
+      event.stopPropagation();
+      dispatch(toggleCollectionSelection({ collectionUid: collection.uid }));
+      dispatch(setLastClickedCollectionIndex(collectionIndex));
+      return;
+    } else if (isShiftPressed && allCollections && collectionIndex !== undefined) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const startIndex = lastClickedIndex !== null ? lastClickedIndex : 0;
+      const start = Math.min(startIndex, collectionIndex);
+      const end = Math.max(startIndex, collectionIndex);
+      const rangeCollections = allCollections.slice(start, end + 1).map((c) => c.uid);
+
+      dispatch(setSelectedCollections(rangeCollections));
+      return;
+    } else {
+      if (selectedCollections.length > 0) {
+        dispatch(clearCollectionSelection());
+      }
+      if (collectionIndex !== undefined) {
+        dispatch(setLastClickedCollectionIndex(collectionIndex));
+      }
+    }
+
     setTimeout(scrollToTheActiveTab, 50);
 
     ensureCollectionIsMounted();
@@ -191,8 +241,23 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const handleRightClick = (event) => {
-    event.preventDefault();
-    menuDropdownRef.current?.show();
+    if (selectedCollections.length > 0 && isSelected) {
+      event.preventDefault();
+      event.stopPropagation();
+      setBulkActionsPosition({ x: event.clientX, y: event.clientY });
+      setShowBulkActionsDropdown(true);
+      return;
+    }
+
+    // Otherwise, show the regular menu dropdown
+    const _menuDropdown = menuDropdownRef.current;
+    if (_menuDropdown) {
+      let menuDropdownBehavior = 'show';
+      if (_menuDropdown.state.isShown) {
+        menuDropdownBehavior = 'hide';
+      }
+      _menuDropdown[menuDropdownBehavior]();
+    }
   };
 
   const handleCollapseFullCollection = () => {
@@ -349,7 +414,8 @@ const Collection = ({ collection, searchText }) => {
     'item-hovered': isOver && dropType === 'above', // For collection-to-collection moves (show line)
     'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)
     'collection-focused-in-tab': isCollectionFocused && !isKeyboardFocused,
-    'collection-keyboard-focused': isKeyboardFocused
+    'collection-keyboard-focused': isKeyboardFocused,
+    'collection-selected': isSelected
   });
 
   // we need to sort request items by seq property
@@ -535,6 +601,17 @@ const Collection = ({ collection, searchText }) => {
       )}
       {showCloneCollectionModalOpen && (
         <CloneCollection collectionUid={collection.uid} onClose={() => setShowCloneCollectionModalOpen(false)} />
+      )}
+      {showBulkActionsDropdown && (
+        <BulkActionsDropdown
+          visible={showBulkActionsDropdown}
+          onClose={() => setShowBulkActionsDropdown(false)}
+          position={bulkActionsPosition}
+          closeCollections={setCollectionsToRemove}
+        />
+      )}
+      {collectionsToRemove.length > 0 && (
+        <RemoveCollectionsModal collectionUids={collectionsToRemove} onClose={() => setCollectionsToRemove([])} />
       )}
       {showCreateMockServerModal && (
         <CreateMockServerModal

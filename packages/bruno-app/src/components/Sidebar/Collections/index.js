@@ -1,13 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import Collection from './Collection';
 import GitRemoteCollectionRow from './GitRemoteCollectionRow';
 import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
+import { useMemo } from 'react';
 import path, { normalizePath } from 'utils/common/path';
+import { clearCollectionSelection } from 'providers/ReduxStore/slices/collections';
 import { isScratchCollection } from 'utils/collections';
+import ApiSpecs from '../ApiSpecs/index';
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
@@ -23,6 +26,8 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const [searchText, setSearchText] = useState('');
   const { collections, collectionSortOrder } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
+  const dispatch = useDispatch();
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
   const isDefaultWorkspace = activeWorkspace?.type === 'default';
@@ -33,6 +38,12 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   // <GitRemoteCollectionRow /> so the user can click to clone it).
   const sidebarEntries = useMemo(() => {
     if (!activeWorkspace?.collections?.length) return [];
+
+  const handleContainerClick = (e) => {
+    if (e.currentTarget === e.target) {
+      dispatch(clearCollectionSelection());
+    }
+  };
 
     const loadedByPath = new Map();
     for (const c of collections) {
@@ -60,6 +71,21 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
 
     return entries;
   }, [activeWorkspace, collections, workspaces, isDefaultWorkspace, collectionSortOrder]);
+   
+  if (!workspaceCollections || !workspaceCollections.length) {
+     return (
+      <StyledWrapper>
+        {isCreatingCollection && (
+          <InlineCollectionCreator
+            onComplete={onDismissCreate}
+            onCancel={onDismissCreate}
+            onOpenAdvanced={onOpenAdvancedCreate}
+          />
+        )}
+        {!isCreatingCollection && <CreateOrOpenCollection onCreateClick={onCreateClick} />}
+      </StyledWrapper>
+    );
+  }
 
   if (!sidebarEntries.length) {
     return (
@@ -82,7 +108,23 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
       )}
 
-      <div className="collections-list">
+      <div
+        className="collections-list flex flex-col flex-1 overflow-hidden hover:overflow-y-auto"
+        onClick={handleContainerClick}
+      >
+        {workspaceCollections && workspaceCollections.length
+          ? workspaceCollections.map((c, index) => {
+              return (
+                <Collection
+                  searchText={searchText}
+                  collection={c}
+                  key={c.uid}
+                  collectionIndex={index}
+                  allCollections={workspaceCollections}
+                />
+              );
+            })
+          : null}
         {isCreatingCollection && (
           <InlineCollectionCreator
             onComplete={onDismissCreate}
