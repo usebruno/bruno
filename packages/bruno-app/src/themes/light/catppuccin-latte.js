@@ -148,6 +148,7 @@ const catppuccinLatteTheme = {
       lg: '10px',
       xl: '12px'
     },
+    border3: colors.OVERLAY0,
     border2: colors.SURFACE2,
     border1: colors.SURFACE1,
     border0: colors.SURFACE0

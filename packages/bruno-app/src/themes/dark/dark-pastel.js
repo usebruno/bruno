@@ -156,6 +156,7 @@ const darkPastelTheme = {
       lg: '10px',
       xl: '12px'
     },
+    border3: colors.GRAY_6,
     border2: colors.GRAY_5,
     border1: colors.GRAY_4,
     border0: colors.GRAY_3
