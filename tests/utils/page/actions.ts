@@ -1458,6 +1458,19 @@ const selectRequestPaneTab = async (page: Page, tabName: string) => {
   await selectPaneTab(page, '[data-testid="request-pane"] > .px-4', tabName);
 };
 
+/**
+ * Open a sidebar request's Settings tab and assert its Max Redirects value, as rendered.
+ * `expected` is the on-screen text, so a large ceiling is its serialized form (e.g. '1e+31').
+ */
+const expectRequestMaxRedirects = async (page: Page, requestName: string, expected: string) => {
+  await test.step(`Expect ${requestName} to show a max redirects of ${expected}`, async () => {
+    const locators = buildCommonLocators(page);
+    await locators.sidebar.request(requestName).click();
+    await selectRequestPaneTab(page, 'Settings');
+    await expect(locators.requestSettings.maxRedirectsInput()).toHaveValue(expected);
+  });
+};
+
 const selectRequestBodyMode = async (page: Page, mode: string) => {
   await test.step(`Select request body mode "${mode}"`, async () => {
     await selectRequestPaneTab(page, 'Body');
@@ -2689,6 +2702,7 @@ export {
   getResponseBody,
   expectResponseContains,
   selectRequestPaneTab,
+  expectRequestMaxRedirects,
   selectRequestBodyMode,
   selectResponsePaneTab,
   mockBrowseFiles,
