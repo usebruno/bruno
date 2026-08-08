@@ -278,7 +278,7 @@ const MigrateCollectionToYmlModal = () => {
   if (showDraftsStep && migration.status === 'confirming') {
     const totalDraftsCount = collectionDrafts.length;
     return (
-      <StyledWrapper>
+      <StyledWrapper data-testid="migration-drafts-step">
         <Modal
           size="md"
           title="Unsaved changes"
@@ -319,9 +319,15 @@ const MigrateCollectionToYmlModal = () => {
               </p>
               <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                 {transientRequestDrafts.map((item) => (
-                  <div key={item.uid} className="flex items-center justify-between py-2 px-3 transient-item">
+                  <div
+                    key={item.uid}
+                    className="flex items-center justify-between py-2 px-3 transient-item"
+                    data-testid="migration-drafts-transient-row"
+                    data-transient-name={item.name}
+                  >
                     <span className="text-sm truncate mr-3">{item.name}</span>
                     <Button
+                      data-testid="migration-drafts-transient-save"
                       color="primary"
                       variant="ghost"
                       size="sm"
@@ -338,15 +344,27 @@ const MigrateCollectionToYmlModal = () => {
 
           <div className="flex justify-between mt-6">
             <div>
-              <Button color="danger" onClick={handleDiscardAllDrafts} disabled={isResolvingDrafts}>
+              <Button
+                data-testid="migration-drafts-discard-all"
+                color="danger"
+                onClick={handleDiscardAllDrafts}
+                disabled={isResolvingDrafts}
+              >
                 Discard All
               </Button>
             </div>
             <div className="flex gap-2">
-              <Button color="secondary" variant="ghost" onClick={handleBackToConfirm} disabled={isResolvingDrafts}>
+              <Button
+                data-testid="migration-drafts-back"
+                color="secondary"
+                variant="ghost"
+                onClick={handleBackToConfirm}
+                disabled={isResolvingDrafts}
+              >
                 Back
               </Button>
               <Button
+                data-testid="migration-drafts-save-all"
                 onClick={handleSaveAllDrafts}
                 disabled={isResolvingDrafts || hasBlockingTransients}
                 title={hasBlockingTransients ? 'Save transient requests individually first' : ''}
