@@ -86,7 +86,8 @@ export const startGrpcRequest = async (item, collection, environment, runtimeVar
       request,
       collection,
       environment,
-      runtimeVariables
+      runtimeVariables,
+      requestUid: item.requestUid
     })
       .then(() => {
         resolve();
