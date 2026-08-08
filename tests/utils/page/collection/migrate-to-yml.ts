@@ -11,7 +11,7 @@ export const buildMigrateToYmlLocators = (page: Page) => {
   const modal = () => page.getByRole('dialog').filter({ hasText: 'Migrate to YML format' });
   const draftsStep = () => page.getByTestId('migration-drafts-step');
   const draftsTransientRow = (name: string) =>
-    page.getByTestId('migration-drafts-transient-row').filter({ has: page.locator(`[data-transient-name="${name}"]`) });
+    page.locator(`[data-testid="migration-drafts-transient-row"][data-transient-name=${JSON.stringify(name)}]`);
 
   return {
     modal,

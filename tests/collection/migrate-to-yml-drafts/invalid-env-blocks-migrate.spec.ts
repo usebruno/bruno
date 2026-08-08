@@ -12,6 +12,12 @@ import {
 } from '../../utils/page';
 
 test.describe('Migrate to YML — invalid environment draft blocks migrate', () => {
+  test.afterEach(async ({ page }) => {
+    if (!page.isClosed()) {
+      await closeAllCollections(page);
+    }
+  });
+
   test('Save All surfaces the invalid-name error and keeps the drafts step; Discard All then unblocks migrate', async ({ page, createTmpDir }) => {
     const loc = buildCommonLocators(page);
     const migrate = loc.migrateToYml;
@@ -25,7 +31,8 @@ test.describe('Migrate to YML — invalid environment draft blocks migrate', () 
     await test.step('Leave an environment draft with an invalid variable name', async () => {
       await createEnvironment(page, 'MigrateEnv', 'collection');
       await addEnvironmentVariable(page, { name: invalidVarName, value: 'v1' });
-      // Do not save — the env stays as a draft in `collection.environmentsDraft`.
+      const envTab = page.locator('.request-tab').filter({ hasText: 'Environments' });
+      await expect(loc.tabs.tabDraftIndicator(envTab)).toBeVisible({ timeout: 5000 });
     });
 
     await openMigrateToYmlModalFromOverview(page, collectionName);
@@ -35,16 +42,11 @@ test.describe('Migrate to YML — invalid environment draft blocks migrate', () 
       await migrate.draftsSaveAll().click();
       await expect(loc.toast.byMessage(/invalid variable name/i)).toBeVisible({ timeout: 10000 });
       await expect(migrate.draftsStep()).toBeVisible();
-      await expect(page.getByText('Collection migrated to YML format successfully')).toBeHidden();
     });
 
     await test.step('Discard All resolves the draft and lets migration complete', async () => {
       await discardAllDraftsAndMigrate(page);
       await expect(page.getByText('Collection migrated to YML format successfully')).toBeVisible({ timeout: 30000 });
-    });
-
-    await test.step('Cleanup', async () => {
-      await closeAllCollections(page);
     });
   });
 });

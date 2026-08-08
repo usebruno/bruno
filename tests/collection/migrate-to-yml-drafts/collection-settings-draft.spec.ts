@@ -18,6 +18,12 @@ const firstDirIn = (dir: string) =>
   path.join(dir, fs.readdirSync(dir).find((entry) => fs.statSync(path.join(dir, entry)).isDirectory())!);
 
 test.describe('Migrate to YML — collection-settings draft is persisted before migration', () => {
+  test.afterEach(async ({ page }) => {
+    if (!page.isClosed()) {
+      await closeAllCollections(page);
+    }
+  });
+
   test('saving a collection-settings draft in the drafts step preserves the change on disk after migration', async ({ page, createTmpDir }) => {
     const loc = buildCommonLocators(page);
     const parentDir = await createTmpDir('migrate-drafts-collection-settings');
@@ -52,10 +58,6 @@ test.describe('Migrate to YML — collection-settings draft is persisted before 
       const yml = fs.readFileSync(path.join(collectionDir, 'opencollection.yml'), 'utf8');
       expect(yml).toContain('collectionMigrationMarker');
       expect(yml).toContain('draft-survives-migrate');
-    });
-
-    await test.step('Cleanup', async () => {
-      await closeAllCollections(page);
     });
   });
 });

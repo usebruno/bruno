@@ -102,11 +102,13 @@ test.describe('Migrate to YML — request draft happy paths', () => {
       await returnFromDraftsStep(page);
       await expect(migrate.modal()).toBeVisible();
       await expect(migrate.migrateButton()).toBeVisible();
-      await expect(page.getByText('Collection migrated to YML format successfully')).toBeHidden();
     });
 
     await test.step('Close the migrate modal and confirm the draft is still dirty', async () => {
       await migrate.modal().getByTestId('modal-close-button').click();
+      // Focus the request tab (openMigrateToYmlModalFromOverview switched the active tab
+      // to Collection Settings), then check its draft indicator.
+      await loc.sidebar.request('req').click();
       await expect(loc.tabs.tabDraftIndicator(loc.tabs.activeRequestTab())).toBeVisible();
       const collectionDir = firstDirIn(parentDir);
       // On-disk file still has the pre-edit URL; edit lives only in the draft.

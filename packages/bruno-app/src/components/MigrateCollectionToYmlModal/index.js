@@ -256,7 +256,7 @@ const MigrateCollectionToYmlModal = () => {
   };
 
   const handleSaveTransient = (draft) => {
-    dispatch(saveRequest(draft.uid, draft.collectionUid));
+    dispatch(saveRequest(draft.uid, draft.collectionUid)).catch(() => {});
   };
 
   const transientRequestDrafts = collectionDrafts.filter((d) => isItemARequest(d) && d.isTransient);
@@ -278,10 +278,11 @@ const MigrateCollectionToYmlModal = () => {
   if (showDraftsStep && migration.status === 'confirming') {
     const totalDraftsCount = collectionDrafts.length;
     return (
-      <StyledWrapper data-testid="migration-drafts-step">
+      <StyledWrapper>
         <Modal
           size="md"
           title="Unsaved changes"
+          dataTestId="migration-drafts-step"
           handleCancel={handleBackToConfirm}
           disableEscapeKey={true}
           disableCloseOnOutsideClick={true}

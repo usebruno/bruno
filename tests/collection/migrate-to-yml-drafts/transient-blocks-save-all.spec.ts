@@ -16,6 +16,12 @@ const firstDirIn = (dir: string) =>
   path.join(dir, fs.readdirSync(dir).find((entry) => fs.statSync(path.join(dir, entry)).isDirectory())!);
 
 test.describe('Migrate to YML — a transient request blocks Save All until it is saved', () => {
+  test.afterEach(async ({ page }) => {
+    if (!page.isClosed()) {
+      await closeAllCollections(page);
+    }
+  });
+
   test('save the transient via its per-item Save button, then Save All completes migration', async ({ page, createTmpDir }) => {
     const loc = buildCommonLocators(page);
     const migrate = loc.migrateToYml;
@@ -25,15 +31,15 @@ test.describe('Migrate to YML — a transient request blocks Save All until it i
 
     await createCollection(page, collectionName, parentDir, 'bru');
 
+    let transientName = '';
     await test.step('Create a transient request with a URL so it counts as unsaved', async () => {
       await createTransientRequest(page, { requestType: 'HTTP' });
+      transientName = (await loc.tabs.activeRequestTab().locator('.tab-name').innerText()).trim();
       await fillRequestUrl(page, 'http://localhost:8081/transient-migrate');
     });
 
     await openMigrateToYmlModalFromOverview(page, collectionName);
     await openMigrateDraftsStep(page);
-
-    const transientName = await loc.tabs.activeRequestTab().locator('.tab-label').innerText();
 
     await test.step('Save All is disabled and the transient row is listed', async () => {
       await expect(migrate.draftsTransientRow(transientName)).toBeVisible();
@@ -68,10 +74,6 @@ test.describe('Migrate to YML — a transient request blocks Save All until it i
     await test.step('The saved request survives as a .yml on disk', async () => {
       const collectionDir = firstDirIn(parentDir);
       expect(fs.existsSync(path.join(collectionDir, `${savedName}.yml`))).toBe(true);
-    });
-
-    await test.step('Cleanup', async () => {
-      await closeAllCollections(page);
     });
   });
 });
