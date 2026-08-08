@@ -49,7 +49,7 @@ Bruno'yu Homebrew, Chocolatey, Scoop, Snap ve Apt gibi paket yöneticileri arac�
 
 ```sh
 # Homebrew aracılığıyla Mac'te
-brew install bruno
+brew install --cask bruno
 
 # Chocolatey aracılığıyla Windows'ta
 choco install bruno

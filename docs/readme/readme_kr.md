@@ -49,7 +49,7 @@ Homebrew, Chocolatey, Snap, Apt 같은 패키지 관리자를 통해서도 Bruno
 
 ```sh
 # On Mac via Homebrew
-brew install bruno
+brew install --cask bruno
 
 # On Windows via Chocolatey
 choco install bruno
