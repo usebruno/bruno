@@ -13,16 +13,16 @@ import { addLog } from 'providers/ReduxStore/slices/logs';
 import { uuid } from 'utils/common';
 import { useTheme } from 'providers/Theme';
 import Button from 'ui/Button';
+import AppWebviewPane from 'components/AppWebviewPane';
 import StyledWrapper from './StyledWrapper';
 import EmptyAppState from './EmptyAppState';
 import { buildVariables } from './buildVariables';
 import {
   SENTINEL,
-  wrapHtml,
-  toDataUrl,
   serializeTimeline,
   projectResponse,
-  useAppWebview
+  useAppWebview,
+  useAppDocumentUrl
 } from './webview-bridge';
 
 // Request-level ctx bootstrap. Injected into the guest so window.bru exists
@@ -148,7 +148,7 @@ const REQUEST_CTX_BOOTSTRAP = `<script>
 const AppView = ({ item, collection, code }) => {
   const dispatch = useDispatch();
   const { displayedTheme, theme, themeVariantLight, themeVariantDark } = useTheme();
-  const src = useMemo(() => toDataUrl(wrapHtml(REQUEST_CTX_BOOTSTRAP, code || '')), [code]);
+  const { url: src, error: appDocumentError } = useAppDocumentUrl(`request:${item.uid}`, REQUEST_CTX_BOOTSTRAP, code);
 
   const themePayload = useMemo(
     () => ({
@@ -309,13 +309,7 @@ const AppView = ({ item, collection, code }) => {
       </div>
       {code && code.trim().length ? (
         <div className="app-webview-container">
-          <webview
-            ref={webviewRef}
-            src={src}
-            partition="persist:bruno-app-view"
-            webpreferences="disableDialogs=true, javascript=yes"
-            className="app-webview"
-          />
+          <AppWebviewPane src={src} error={appDocumentError} webviewRef={webviewRef} />
         </div>
       ) : (
         <EmptyAppState
