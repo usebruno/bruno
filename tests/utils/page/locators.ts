@@ -239,6 +239,24 @@ export const buildCommonLocators = (page: Page) => ({
     networkButton: (item: Locator) => item.getByRole('button', { name: 'Network' }),
     networkLogs: (item: Locator) => item.locator('.network-logs-container')
   },
+  devTools: {
+    trigger: () => page.locator('button[data-trigger="dev-tools"]'),
+    header: () => page.locator('.console-header'),
+    tab: (name: string) =>
+      page.locator('.console-header .console-tab').filter({ hasText: name }),
+    networkRequestRows: () =>
+      page.locator('.console-content [data-testid="network-request-row"]'),
+    requestDetailsPanel: () => {
+      const panel = () => page.locator('.console-content .details-panel-wrapper');
+      return {
+        root: panel,
+        content: () => panel().locator('.panel-content'),
+        tab: (name: string) => panel().locator('.tab-button').filter({ hasText: name }),
+        networkLogsContainer: () => panel().locator('.network-logs-wrapper .network-logs-container'),
+        networkLogEntries: () => panel().locator('.network-logs-container .network-logs-entry')
+      };
+    }
+  },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
     createCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }),
