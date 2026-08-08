@@ -19,6 +19,7 @@ import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index
 import { toastError } from 'utils/common/error';
 import { prettifyJsonString } from 'utils/common/index';
 import xmlFormat from 'xml-formatter';
+import useKeybinding from 'hooks/useKeybinding';
 
 const DEFAULT_MODES = [
   {
@@ -90,6 +91,11 @@ const RequestBodyMode = ({ item, collection }) => {
       }
     }
   };
+
+  useKeybinding('prettify', () => {
+    onPrettify();
+    return false;
+  }, { deps: [body, bodyMode] });
 
   const menuItems = useMemo(() => {
     return DEFAULT_MODES.map((group) => ({
