@@ -1,0 +1,10 @@
+#!/bin/sh
+# chrome-sandbox needs setuid root or Electron's renderer sandbox crashes at launch.
+
+set -e
+
+if [ "$1" = "configure" ] && [ -e /usr/lib/bruno/chrome-sandbox ]; then
+  chmod 4755 /usr/lib/bruno/chrome-sandbox
+fi
+
+exit 0
