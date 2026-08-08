@@ -5,6 +5,8 @@ import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
+import { expandCollection, expandCollectionItem } from 'providers/ReduxStore/slices/collections';
+import { findItemInCollection, getTreePathFromCollectionToItem } from 'utils/collections';
 import NewRequest from 'components/Sidebar/NewRequest';
 import CollectionHeader from './CollectionHeader';
 import RequestTab from './RequestTab';
@@ -69,6 +71,23 @@ const RequestTabs = () => {
 
     return () => resizeObserver.disconnect();
   }, [activeTabUid, activeTab, collectionRequestTabs.length, screenWidth, leftSidebarWidth, sidebarCollapsed]);
+
+  useEffect(() => {
+    if (!activeTab || !activeTab.collectionUid) return;
+    const collection = find(collections, (c) => c?.uid === activeTab.collectionUid);
+    if (!collection) return;
+    const item = findItemInCollection(collection, activeTab.uid);
+    if (!item) return;
+    if (collection.collapsed) {
+      dispatch(expandCollection(collection.uid));
+    }
+    const treePath = getTreePathFromCollectionToItem(collection, item);
+    for (const ancestor of treePath) {
+      if (ancestor.type === 'folder' && ancestor.collapsed) {
+        dispatch(expandCollectionItem({ collectionUid: collection.uid, itemUid: ancestor.uid }));
+      }
+    }
+  }, [activeTabUid]);
 
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
