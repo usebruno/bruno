@@ -152,7 +152,7 @@ const registerGrpcEventHandlers = (window) => {
   });
 
   // Start a new gRPC connection
-  ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables }) => {
+  ipcMain.handle('grpc:start-connection', async (event, { request, collection, environment, runtimeVariables, settings }) => {
     try {
       const requestCopy = cloneDeep(request);
       const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables, {});
@@ -219,6 +219,33 @@ const registerGrpcEventHandlers = (window) => {
 
       const includeDirs = getProtobufIncludeDirs(collection);
 
+      // Build gRPC channel options from settings
+      const channelOptionsMap = {
+        maxReceiveMessageLength: 'grpc.max_receive_message_length',
+        maxSendMessageLength: 'grpc.max_send_message_length',
+        keepaliveTime: 'grpc.keepalive_time_ms',
+        keepaliveTimeout: 'grpc.keepalive_timeout_ms',
+        clientIdleTimeout: 'grpc.client_idle_timeout_ms',
+        maxReconnectBackoff: 'grpc.max_reconnect_backoff_ms'
+      };
+      const channelOptions = {};
+      if (settings) {
+        for (const [key, option] of Object.entries(channelOptionsMap)) {
+          if (settings[key] != null) {
+            channelOptions[option] = settings[key];
+          }
+        }
+      }
+
+      // Build proto-loader options from settings
+      const protoOptions = {};
+      if (settings?.includeDefaultValues != null) {
+        protoOptions.defaults = settings.includeDefaultValues;
+      }
+
+      // Extract deadline (per-RPC)
+      const deadline = settings?.deadline ?? null;
+
       // Start gRPC connection with the processed request, certificates, and proxy
       await grpcClient.startConnection({
         request: preparedRequest,
@@ -230,7 +257,10 @@ const registerGrpcEventHandlers = (window) => {
         pfx,
         verifyOptions,
         includeDirs,
-        proxyConfig: grpcProxyConfig
+        proxyConfig: grpcProxyConfig,
+        channelOptions,
+        protoOptions,
+        deadline
       });
 
       sendEvent('grpc:request', preparedRequest.uid, collection.uid, requestSent);
@@ -312,7 +342,7 @@ const registerGrpcEventHandlers = (window) => {
   });
 
   // Load methods from server reflection
-  ipcMain.handle('grpc:load-methods-reflection', async (event, { request, collection, environment, runtimeVariables }) => {
+  ipcMain.handle('grpc:load-methods-reflection', async (event, { request, collection, environment, runtimeVariables, settings }) => {
     try {
       const requestCopy = cloneDeep(request);
       const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables);
@@ -375,6 +405,12 @@ const registerGrpcEventHandlers = (window) => {
         });
       }
 
+      // Build proto-loader options from settings
+      const protoOptions = {};
+      if (settings?.includeDefaultValues != null) {
+        protoOptions.defaults = settings.includeDefaultValues;
+      }
+
       const methods = await grpcClient.loadMethodsFromReflection({
         request: preparedRequest,
         collectionUid: collection.uid,
@@ -385,7 +421,8 @@ const registerGrpcEventHandlers = (window) => {
         pfx,
         verifyOptions,
         sendEvent,
-        proxyConfig: grpcProxyConfig
+        proxyConfig: grpcProxyConfig,
+        protoOptions
       });
 
       return { success: true, methods: safeParseJSON(safeStringifyJSON(methods)) };

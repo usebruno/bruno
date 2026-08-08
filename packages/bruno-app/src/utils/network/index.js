@@ -81,12 +81,14 @@ export const startGrpcRequest = async (item, collection, environment, runtimeVar
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     const request = item.draft ? item.draft : item;
+    const settings = item.draft ? item.draft.settings : item.settings;
 
     ipcRenderer.invoke('grpc:start-connection', {
       request,
       collection,
       environment,
-      runtimeVariables
+      runtimeVariables,
+      settings
     })
       .then(() => {
         resolve();
