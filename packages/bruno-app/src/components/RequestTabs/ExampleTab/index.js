@@ -88,6 +88,20 @@ const ExampleTab = ({ tab, collection }) => {
     }
   };
 
+  const handleExampleTabMouseUp = (e) => {
+    if (e.button !== 1) {
+      return;
+    }
+
+    if (!hasChanges) {
+      return handleMouseUp(e);
+    }
+
+    e.stopPropagation();
+    e.preventDefault();
+    setShowConfirmClose(true);
+  };
+
   if (!item || !example) {
     const displayName = tab.exampleName || tab.name;
     const showLoading = displayName && isItemsLoading;
@@ -114,7 +128,11 @@ const ExampleTab = ({ tab, collection }) => {
   }
 
   return (
-    <StyledWrapper className="flex items-center justify-between tab-container px-2">
+    <StyledWrapper
+      className="flex items-center justify-between tab-container px-2"
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleExampleTabMouseUp}
+    >
       {showConfirmClose && (
         <ConfirmRequestClose
           item={item}
@@ -145,16 +163,6 @@ const ExampleTab = ({ tab, collection }) => {
         className={`flex items-center tab-label ${tab.preview ? 'italic' : ''}`}
         onContextMenu={handleRightClick}
         onDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))}
-        onMouseDown={handleMouseDown}
-        onMouseUp={(e) => {
-          if (!hasChanges) return handleMouseUp(e);
-
-          if (e.button === 1) {
-            e.stopPropagation();
-            e.preventDefault();
-            setShowConfirmClose(true);
-          }
-        }}
       >
         <ExampleIcon size={14} color="currentColor" className="example-icon flex-shrink-0" />
         <span className="tab-name ml-1" title={example.name}>
