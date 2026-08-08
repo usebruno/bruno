@@ -67,7 +67,9 @@ class BrunoRequest {
           .map((segment) => {
             if (segment.startsWith(':')) {
               const paramName = segment.slice(1);
-              const pathParam = this.req.pathParams.find((param) => param.name === paramName);
+              // A name can carry disabled alternate rows; matching on name alone
+              // would let a disabled row shadow the enabled sibling.
+              const pathParam = this.req.pathParams.find((param) => param.name === paramName && param.enabled !== false);
               if (
                 pathParam
                 && pathParam.enabled !== false

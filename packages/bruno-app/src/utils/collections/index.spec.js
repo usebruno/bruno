@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts } from './index';
+import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts, getAllVariables } from './index';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
@@ -130,5 +130,51 @@ describe('getCollectionItemCounts', () => {
   it('returns zero counts for empty or missing items', () => {
     expect(getCollectionItemCounts([])).toEqual({ folderCount: 0, requestCount: 0 });
     expect(getCollectionItemCounts(undefined)).toEqual({ folderCount: 0, requestCount: 0 });
+  });
+});
+
+describe('getAllVariables pathParams', () => {
+  const makeCollection = (item) => ({
+    uid: 'col-1',
+    pathname: '/coll',
+    items: [item],
+    environments: [],
+    root: {}
+  });
+
+  it('resolves the enabled row when a disabled row with the same name precedes it', () => {
+    const item = {
+      uid: 'item-1',
+      type: 'http-request',
+      request: {
+        url: '{{baseUrl}}/v1/images/:kind',
+        params: [
+          { uid: 'p1', name: 'kind', value: 'Logo', type: 'path', enabled: false },
+          { uid: 'p2', name: 'kind', value: 'Signature', type: 'path', enabled: true }
+        ]
+      }
+    };
+
+    const variables = getAllVariables(makeCollection(item), item);
+
+    expect(variables.pathParams).toEqual({ kind: 'Signature' });
+  });
+
+  it('returns no entry for a name whose rows are all disabled', () => {
+    const item = {
+      uid: 'item-1',
+      type: 'http-request',
+      request: {
+        url: '{{baseUrl}}/v1/images/:kind',
+        params: [
+          { uid: 'p1', name: 'kind', value: 'Logo', type: 'path', enabled: false },
+          { uid: 'p2', name: 'kind', value: 'Signature', type: 'path', enabled: false }
+        ]
+      }
+    };
+
+    const variables = getAllVariables(makeCollection(item), item);
+
+    expect(variables.pathParams).toEqual({});
   });
 });
