@@ -87,7 +87,7 @@ const RequestTabs = () => {
         dispatch(expandCollectionItem({ collectionUid: collection.uid, itemUid: ancestor.uid }));
       }
     }
-  }, [activeTabUid]);
+  }, [activeTabUid, collections]);
 
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
