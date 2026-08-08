@@ -46,8 +46,8 @@
     "react": "19.0.0"
   },
   "devDependencies": {
-    "@babel/preset-env": "7.26.0",
-    "@babel/preset-typescript": "7.28.5",
+    "@babel/preset-env": "8.0.2",
+    "@babel/preset-typescript": "8.0.1",
     "@rollup/plugin-commonjs": "23.0.7",
     "@rollup/plugin-json": "6.1.0",
     "@rollup/plugin-node-resolve": "15.3.1",
@@ -57,7 +57,7 @@
     "@types/jest": "29.5.14",
     "@types/node": "22.15.17",
     "@types/react": "18.3.18",
-    "babel-jest": "29.7.0",
+    "babel-jest": "30.4.1",
     "cross-env": "10.1.0",
     "jest": "29.7.0",
     "node-sql-parser": "5.4.0",
