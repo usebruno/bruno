@@ -901,20 +901,21 @@ class GrpcClient {
     try {
       let method;
 
-      // First, try to use the methodMetadata from options if provided
-      if (options.methodMetadata) {
+      // Prefer the caller-provided methodMetadata only when its descriptors
+      // survived serialization: metadata that crossed IPC / localStorage may
+      // carry "[Circular]" (getCircularReplacer flattens shared references)
+      // instead of the fileDescriptorProtos array. The in-process cache holds
+      // the pristine definitions, so fall back to it whenever possible.
+      const hasUsableDescriptors = (m) => Array.isArray(m?.requestType?.fileDescriptorProtos);
+      if (options.methodMetadata && (hasUsableDescriptors(options.methodMetadata) || !this.methods.has(methodPath))) {
         method = options.methodMetadata;
-      } else {
-        // Fall back to checking if the method exists in the cache
-        if (!this.methods.has(methodPath)) {
-          return {
-            success: false,
-            error: `Method ${methodPath} not found in cache, please refresh the methods`
-          };
-        }
-
-        // Get the method definition from cache
+      } else if (this.methods.has(methodPath)) {
         method = this.methods.get(methodPath);
+      } else {
+        return {
+          success: false,
+          error: `Method ${methodPath} not found in cache, please refresh the methods`
+        };
       }
 
       // Generate a sample message using our generator
