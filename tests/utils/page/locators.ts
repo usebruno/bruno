@@ -81,7 +81,14 @@ export const buildCommonLocators = (page: Page) => ({
       page.getByTestId('settings-tab-bar').getByTestId(`ai-assist-trigger-${scriptType}`)
   },
   folder: {
-    chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
+    // Optionally scope to a collection (`data-collection-id="<slug>"`) to disambiguate
+    // same-named folders across collections in the flat sidebar.
+    chevron: (folderName: string, collectionName?: string) => {
+      const scope = collectionName
+        ? page.locator(`[data-collection-id="${collectionName.replace(/\s+/g, '-').toLowerCase()}"]`)
+        : page;
+      return scope.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron');
+    }
   },
   modal: {
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),

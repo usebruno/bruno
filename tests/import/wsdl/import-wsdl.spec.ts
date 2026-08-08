@@ -49,20 +49,20 @@ test.describe('Import WSDL Collection', () => {
       await openCollection(page, 'TestWSDLServiceXML');
 
       // verify that all requests were imported correctly
-      await expect(page.locator('#collection-testwsdlservicexml .collection-item-name')).toHaveCount(1);
+      await expect(page.locator('[data-collection-id="testwsdlservicexml"] .collection-item-name')).toHaveCount(1);
     });
 
     await test.step('Verify that folders and requests were imported correctly', async () => {
-      await expect(page.locator('#collection-testwsdlservicexml .collection-item-name').getByText('UserService')).toBeVisible();
+      await expect(page.locator('[data-collection-id="testwsdlservicexml"] .collection-item-name').getByText('UserService')).toBeVisible();
       // open the user service folder
-      await page.locator('#collection-testwsdlservicexml .collection-item-name').getByText('UserService').click();
+      await page.locator('[data-collection-id="testwsdlservicexml"] .collection-item-name').getByText('UserService').click();
 
-      await expect(page.locator('#collection-testwsdlservicexml .collection-item-name').getByText('GetUser')).toBeVisible();
-      await expect(page.locator('#collection-testwsdlservicexml .collection-item-name').getByText('CreateUser')).toBeVisible();
+      await expect(page.locator('[data-collection-id="testwsdlservicexml"] .collection-item-name').getByText('GetUser')).toBeVisible();
+      await expect(page.locator('[data-collection-id="testwsdlservicexml"] .collection-item-name').getByText('CreateUser')).toBeVisible();
     });
 
     await test.step('Verify the GetUser request is imported correctly', async () => {
-      await page.locator('#collection-testwsdlservicexml .collection-item-name').getByText('GetUser').click();
+      await page.locator('[data-collection-id="testwsdlservicexml"] .collection-item-name').getByText('GetUser').click();
       await expect(page.locator('.request-tab.active').getByText('GetUser')).toBeVisible();
       await expect(page.locator('#request-url').getByText('http://example.com/soap/userservice')).toBeVisible();
     });
@@ -110,20 +110,20 @@ test.describe('Import WSDL Collection', () => {
       await openCollection(page, 'TestWSDLServiceJSON');
 
       // verify that all requests were imported correctly
-      await expect(page.locator('#collection-testwsdlservicejson .collection-item-name')).toHaveCount(1);
+      await expect(page.locator('[data-collection-id="testwsdlservicejson"] .collection-item-name')).toHaveCount(1);
     });
 
     await test.step('Verify that folders and requests were imported correctly', async () => {
-      await expect(page.locator('#collection-testwsdlservicejson .collection-item-name').getByText('UserService')).toBeVisible();
+      await expect(page.locator('[data-collection-id="testwsdlservicejson"] .collection-item-name').getByText('UserService')).toBeVisible();
       // open the user service folder
-      await page.locator('#collection-testwsdlservicejson .collection-item-name').getByText('UserService').click();
+      await page.locator('[data-collection-id="testwsdlservicejson"] .collection-item-name').getByText('UserService').click();
 
-      await expect(page.locator('#collection-testwsdlservicejson .collection-item-name').getByText('GetUser')).toBeVisible();
-      await expect(page.locator('#collection-testwsdlservicejson .collection-item-name').getByText('CreateUser')).toBeVisible();
+      await expect(page.locator('[data-collection-id="testwsdlservicejson"] .collection-item-name').getByText('GetUser')).toBeVisible();
+      await expect(page.locator('[data-collection-id="testwsdlservicejson"] .collection-item-name').getByText('CreateUser')).toBeVisible();
     });
 
     await test.step('Verify the CreateUser request is imported correctly', async () => {
-      await page.locator('#collection-testwsdlservicejson .collection-item-name').getByText('CreateUser').click();
+      await page.locator('[data-collection-id="testwsdlservicejson"] .collection-item-name').getByText('CreateUser').click();
       await expect(page.locator('.request-tab.active').getByText('CreateUser')).toBeVisible();
       await expect(page.locator('#request-url').getByText('http://example.com/soap/userservice')).toBeVisible();
     });

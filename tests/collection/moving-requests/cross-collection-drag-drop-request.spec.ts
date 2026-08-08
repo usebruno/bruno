@@ -23,10 +23,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
 
     // Locate the request in source collection
-    const sourceCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'source-collection' })
-      .locator('..');
+    const sourceCollectionContainer = page.locator('[data-collection-id="source-collection"]');
     const sourceRequest = sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first();
     await expect(sourceRequest).toBeVisible();
 
@@ -39,10 +36,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
 
     // Verify the request has been moved to the target collection
     // Check that the request now appears under target collection
-    const targetCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'target-collection' })
-      .locator('..');
+    const targetCollectionContainer = page.locator('[data-collection-id="target-collection"]');
     await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toBeVisible();
 
     // Verify the request is no longer in the source collection
@@ -71,14 +65,8 @@ test.describe('Cross-Collection Drag and Drop', () => {
     // Go back to source collection to drag the request
     await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
 
-    const sourceCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'source-collection' })
-      .locator('..');
-    const targetCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'target-collection' })
-      .locator('..');
+    const sourceCollectionContainer = page.locator('[data-collection-id="source-collection"]');
+    const targetCollectionContainer = page.locator('[data-collection-id="target-collection"]');
 
     const sourceRequest = sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first();
     await expect(sourceRequest).toBeVisible();
@@ -109,10 +97,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
     // Open the request to create a tab
-    const sourceCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'source-collection' })
-      .locator('..');
+    const sourceCollectionContainer = page.locator('[data-collection-id="source-collection"]');
     const sourceRequest = sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first();
     await sourceRequest.click();
 
@@ -128,10 +113,7 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await expect(requestTab).not.toBeVisible();
 
     // Verify the request appears in the target collection
-    const targetCollectionContainer = page
-      .locator('.collection-name')
-      .filter({ hasText: 'target-collection' })
-      .locator('..');
+    const targetCollectionContainer = page.locator('[data-collection-id="target-collection"]');
     await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toBeVisible();
   });
 });
