@@ -686,6 +686,100 @@ describe('Send Request Translation', () => {
     });
   });
 
+  describe('Promise-based (.then/.catch) chains', () => {
+    it('should translate a .then().catch().finally() chain', () => {
+      const code = `
+        pm.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'GET'
+        })
+        .then((response) => {
+            console.log(response.json());
+        })
+        .catch((error) => {
+            console.log(error);
+        })
+        .finally(() => {
+            console.log('done');
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'GET'
+        })
+        .then((response) => {
+            console.log(response.data);
+        })
+        .catch((error) => {
+            console.log(error);
+        })
+        .finally(() => {
+            console.log('done');
+        });
+      `);
+    });
+
+    it('should handle nested .then() chains', () => {
+      const code = `
+        pm.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'GET'
+        })
+        .then((response) => {
+            return response.json();
+        })
+        .then((data) => {
+            console.log(data);
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({
+            url: 'https://echo.usebruno.com',
+            method: 'GET'
+        })
+        .then((response) => {
+            return response.data;
+        })
+        .then((data) => {
+            console.log(data);
+        });
+      `);
+    });
+
+    it('should translate a sendRequest nested inside a .then and make that handler async', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com/users/1' })
+        .then((userRes) => {
+            const userId = userRes.json().id;
+            return pm.sendRequest({ url: 'https://echo.usebruno.com/posts' })
+                .then((postsRes) => {
+                    console.log(postsRes.json());
+                });
+        })
+        .catch((error) => {
+            console.log(error);
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com/users/1' })
+        .then(async userRes => {
+            const userId = userRes.data.id;
+            return await bru.sendRequest({ url: 'https://echo.usebruno.com/posts' })
+                .then((postsRes) => {
+                    console.log(postsRes.data);
+                });
+        })
+        .catch((error) => {
+            console.log(error);
+        });
+      `);
+    });
+  });
+
   describe('requestConfig variables', () => {
     it('requestConfig passed as a variable', () => {
       const code = `
