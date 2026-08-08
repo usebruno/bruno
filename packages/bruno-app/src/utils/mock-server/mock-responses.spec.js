@@ -136,6 +136,14 @@ describe('resolveMockResponseEditorCollection', () => {
       // trailing spaces are ignored — they get trimmed on save
       expect(getMockResponseNameError('Order 200   ')).toBeNull();
     });
+
+    it('measures the trimmed length, not the raw length', () => {
+      const paddedAtLimit = `   ${'a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH)}   `;
+      const paddedOverLimit = `   ${'a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH + 1)}   `;
+      expect(getMockResponseNameError(paddedAtLimit)).toBeNull();
+      expect(getMockResponseNameError(paddedOverLimit))
+        .toBe(`Name must be ${MOCK_RESPONSE_NAME_MAX_LENGTH} characters or less`);
+    });
   });
 
   describe('isMockResponseNameTaken', () => {
