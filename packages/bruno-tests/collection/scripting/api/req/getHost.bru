@@ -17,7 +17,9 @@ assert {
 
 tests {
   test("req.getHost()", function() {
+    const envHost = bru.getEnvVar("host");
+    const expectedHost = envHost.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     const host = req.getHost();
-    expect(host).to.equal("testbench-sanity.usebruno.com");
+    expect(host).to.equal(expectedHost);
   });
 }

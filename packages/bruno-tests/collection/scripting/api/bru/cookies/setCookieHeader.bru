@@ -12,9 +12,10 @@ post {
 
 script:pre-request {
   const jar = bru.cookies.jar();
-  
+  const echoHost = bru.getEnvVar('echo-host');
+
   // Set a cookie that should be sent with the upcoming request
-  await jar.setCookie('https://echo.usebruno.com', {
+  await jar.setCookie(echoHost, {
     key: 'auth',
     value: 'token123',
     path: '/',
