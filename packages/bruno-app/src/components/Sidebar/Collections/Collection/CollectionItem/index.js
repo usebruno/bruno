@@ -761,7 +761,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
             <div className="ml-1 flex w-full h-full items-center overflow-hidden">
               <CollectionItemIcon item={item} />
               <span className="item-name" title={item.name}>
-                {item.name}
+                <span className={isFolder ? 'hover:underline' : ''} onClick={isFolder ? handleFolderCollapse : undefined}>
+                  {item.name}
+                </span>
               </span>
               {hasExamples && (
                 <sup className="ml-1 example-count-badge" title={`${item.examples.length} example${item.examples.length > 1 ? 's' : ''}`} data-testid="example-count-badge">
