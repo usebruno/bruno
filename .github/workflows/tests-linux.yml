@@ -20,7 +20,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node Dependencies
         uses: ./.github/actions/common/setup-node-deps
@@ -38,7 +38,7 @@ jobs:
       pull-requests: write
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node Dependencies
         uses: ./.github/actions/common/setup-node-deps
@@ -67,7 +67,7 @@ jobs:
         shardTotal: [4]
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install System Dependencies (Ubuntu)
         run: |
@@ -145,7 +145,7 @@ jobs:
       pull-requests: write
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node Dependencies
         uses: ./.github/actions/common/setup-node-deps
@@ -182,7 +182,7 @@ jobs:
       pull-requests: write
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node Dependencies
         uses: ./.github/actions/common/setup-node-deps
