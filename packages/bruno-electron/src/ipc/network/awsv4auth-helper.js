@@ -48,7 +48,12 @@ function addAwsV4Interceptor(axiosInstance, request) {
     }
   });
 
-  axiosInstance.interceptors.request.use(interceptor);
+  axiosInstance.interceptors.request.use((config) => {
+    if (config.__skipAwsV4Sign) {
+      return config;
+    }
+    return interceptor(config);
+  });
 }
 
 module.exports = {
