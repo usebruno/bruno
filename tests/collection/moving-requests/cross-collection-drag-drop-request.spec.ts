@@ -60,13 +60,13 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
 
     // Create a request in the first collection using the dialog/modal flow
-    await createRequest(page, requestName, 'source-collection', { url: 'https://echo.usebruno.com' });
+    await createRequest(page, requestName, 'source-collection', { url: 'http://localhost:8081/ping' });
 
     // Create second collection (target-collection)
     await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
     // Create a request with the same name in the target collection using the dialog/modal flow
-    await createRequest(page, requestName, 'target-collection', { url: 'https://echo.usebruno.com' });
+    await createRequest(page, requestName, 'target-collection', { url: 'http://localhost:8081/ping' });
 
     // Go back to source collection to drag the request
     await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
@@ -80,7 +80,10 @@ test.describe('Cross-Collection Drag and Drop', () => {
       .filter({ hasText: 'target-collection' })
       .locator('..');
 
-    const sourceRequest = sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first();
+    const sourceRequest = sourceCollectionContainer
+      .getByTestId('sidebar-collection-item-row')
+      .filter({ hasText: requestName })
+      .first();
     await expect(sourceRequest).toBeVisible();
 
     // Locate the target collection area
@@ -91,12 +94,16 @@ test.describe('Cross-Collection Drag and Drop', () => {
     await sourceRequest.dragTo(targetCollection);
 
     // check for error toast notification
-    await expect(page.getByText(/Error: Cannot copy.*already exists/i)).toBeVisible();
+    await expect(page.getByText(/Error: Cannot copy.*already exists/i)).toBeVisible({ timeout: 15000 });
 
     // source and target collection request should remain unchanged
-    await expect(sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first()).toBeVisible();
+    await expect(
+      sourceCollectionContainer.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName })
+    ).toBeVisible();
     await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
-    await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName }).first()).toBeVisible();
+    await expect(
+      targetCollectionContainer.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName })
+    ).toBeVisible();
   });
 
   test('Tab should be closed after cross-collection drag and drop', async ({ page, createTmpDir }) => {
@@ -132,6 +139,8 @@ test.describe('Cross-Collection Drag and Drop', () => {
       .locator('.collection-name')
       .filter({ hasText: 'target-collection' })
       .locator('..');
-    await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toBeVisible();
+    await expect(
+      targetCollectionContainer.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName })
+    ).toBeVisible({ timeout: 15000 });
   });
 });

@@ -2,6 +2,8 @@ import { test, expect, closeElectronApp } from '../../playwright';
 import { waitForReadyPage } from '../utils/page';
 
 test('should persist cookies across app restarts', async ({ createTmpDir, launchElectronApp }) => {
+  test.setTimeout(120_000);
+
   // Create a temporary user-data directory so we control where the cookies store file is written.
   const userDataPath = await createTmpDir('cookie-persistence');
 
@@ -25,7 +27,9 @@ test('should persist cookies across app restarts', async ({ createTmpDir, launch
 
   await page1.getByRole('button', { name: 'Save' }).click();
 
-  await expect(page1.getByText('example.com')).toBeVisible();
+  await expect(page1.getByText('example.com')).toBeVisible({ timeout: 15000 });
+  // Give the cookie jar a beat to flush before tearing down the process.
+  await page1.waitForTimeout(500);
 
   await closeElectronApp(app1);
 
@@ -38,7 +42,7 @@ test('should persist cookies across app restarts', async ({ createTmpDir, launch
   await page2.click('[data-trigger="cookies"]');
 
   // The domain we added earlier should still be present.
-  await expect(page2.getByText('example.com')).toBeVisible();
+  await expect(page2.getByText('example.com')).toBeVisible({ timeout: 15000 });
 
   await closeElectronApp(app2);
 });

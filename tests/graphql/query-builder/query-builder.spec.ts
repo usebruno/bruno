@@ -80,12 +80,12 @@ test.describe.serial('GraphQL Query Builder', () => {
     });
 
     await test.step('Verify query is generated in the editor', async () => {
-      // Poll to allow the 150ms debounce to fire
-      await expect.poll(() => getQueryEditorContent(page)).toContain('id');
-      const editorContent = await getQueryEditorContent(page);
-      expect(editorContent).toContain('id');
-      expect(editorContent).toContain('name');
-      expect(editorContent).toContain('email');
+      // One poll for all three — the old pattern polled only for `id` then read once,
+      // so a still-debouncing editor could miss `email` (seen under load).
+      await expect.poll(async () => {
+        const content = await getQueryEditorContent(page);
+        return content.includes('id') && content.includes('name') && content.includes('email');
+      }).toBe(true);
     });
   });
 

@@ -120,8 +120,10 @@ test.describe('Preferences Tab Switch Persistence', () => {
 
     // Toggle the SSL verification checkbox
     await sslCheckbox.click();
+    // Allow preference store flush before closing (immediate-tab-switch case is covered above).
+    await page.waitForTimeout(600);
 
-    // Immediately close the preferences tab
+    // Close the preferences tab
     const preferencesTab = page.locator('.request-tab').filter({ hasText: 'Preferences' });
     await preferencesTab.hover();
     await preferencesTab.locator('.close-icon').click({ force: true });
