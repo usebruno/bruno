@@ -1,4 +1,5 @@
 import sendRequestTransformer from './send-request-transformer';
+import transformSendRequestChains from './send-request-chain-transformer';
 import { getMemberExpressionString } from './ast-utils';
 const j = require('jscodeshift');
 const cloneDeep = require('lodash/cloneDeep');
@@ -740,6 +741,9 @@ function translateCode(code) {
 
   // Process all transformations in a single pass
   processTransformations(ast, transformedNodes);
+
+  // Repair bru.sendRequest promise chains left mis-awaited by the pass above
+  transformSendRequestChains(j, ast);
 
   // Handle legacy Postman global APIs
   handleLegacyGlobalAPIs(ast, transformedNodes, code);
