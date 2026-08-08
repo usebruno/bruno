@@ -1342,6 +1342,36 @@ const switchToEditorTab = async (page: Page) => {
 };
 
 /**
+ * Expand every collapsed node in the XML preview tree.
+ *
+ * `XmlPreview` renders only the root expanded — each child is created with
+ * `defaultExpanded={false}`, and a collapsed node's children are absent from the
+ * DOM entirely, so nested values are unassertable until their ancestors are
+ * expanded. Expanding one level reveals the next level's (still collapsed)
+ * toggles, hence the loop: click the collapsed toggles, then re-query.
+ *
+ * @param page - The page object
+ */
+const expandAllXmlNodes = async (page: Page) => {
+  await test.step('Expand all XML preview nodes', async () => {
+    const collapsedToggles = buildCommonLocators(page).response.xmlCollapsedNodeToggles();
+    // One iteration per tree level; the bound guards against a node that fails to
+    // expand turning this into an infinite loop.
+    const maxDepth = 20;
+    for (let depth = 0; depth < maxDepth; depth++) {
+      const count = await collapsedToggles.count();
+      if (count === 0) return;
+      // Expanding a node re-renders its subtree, so walk backwards — clicking the
+      // last toggle first keeps the earlier ones' indices stable.
+      for (let i = count - 1; i >= 0; i--) {
+        await collapsedToggles.nth(i).click();
+      }
+    }
+    throw new Error(`XML tree still has collapsed nodes after ${maxDepth} expansion passes`);
+  });
+};
+
+/**
  * Get the response body text
  * @param page - The page object
  * @returns The response body text
@@ -2698,6 +2728,7 @@ export {
   switchResponseFormat,
   switchToPreviewTab,
   switchToEditorTab,
+  expandAllXmlNodes,
   clickResponseAction,
   addAssertion,
   editAssertion,

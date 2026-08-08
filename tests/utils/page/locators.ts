@@ -218,6 +218,11 @@ export const buildCommonLocators = (page: Page) => ({
     previewContainerCodeMirror: () => page.getByTestId('response-preview-container').locator('.CodeMirror').first(),
     codeLine: () => page.locator('.response-pane .editor-container .CodeMirror-line'),
     jsonTreeLine: () => page.locator('.response-pane .object-content'),
+    xmlTree: () => page.getByTestId('xml-tree'),
+    // Only the XML tree's expand/collapse buttons carry aria-expanded, so this matches
+    // every still-collapsed node regardless of depth.
+    xmlCollapsedNodeToggles: () => page.getByTestId('xml-tree').locator('button[aria-expanded="false"]'),
+    previewErrorBanner: () => page.getByTestId('response-preview-container').getByTestId('error-banner'),
     // Tests-tab summary line ("Tests (N), Passed: X, Failed: Y") and failure rows.
     testSummary: () => page.locator('.test-summary').filter({ hasText: 'Tests' }),
     // Match the fail icon (one per row) rather than a class shared by both the icon and
