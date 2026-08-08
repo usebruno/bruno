@@ -1,15 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
+import {
+  getMockResponseNameError,
+  isMockResponseNameTaken,
+  MOCK_RESPONSE_NAME_MAX_LENGTH
+} from 'utils/mock-server/mock-responses';
 
 const RenameMockResponseModal = ({
   response,
+  existingResponses = [],
   onClose,
   onConfirm,
   isSaving = false
 }) => {
   const inputRef = useRef();
   const [name, setName] = useState(response?.name || '');
+  const [nameError, setNameError] = useState('');
 
   useEffect(() => {
     if (inputRef.current) {
@@ -20,7 +27,15 @@ const RenameMockResponseModal = ({
 
   const handleConfirm = () => {
     const trimmedName = name.trim();
-    if (!trimmedName) {
+
+    const validationError = getMockResponseNameError(trimmedName);
+    if (validationError) {
+      setNameError(validationError);
+      return;
+    }
+
+    if (isMockResponseNameTaken(existingResponses, trimmedName, response?.uid)) {
+      setNameError('A mock response with this name already exists');
       return;
     }
 
@@ -48,10 +63,19 @@ const RenameMockResponseModal = ({
             ref={inputRef}
             type="text"
             className="textbox mt-2 w-full"
+            maxLength={MOCK_RESPONSE_NAME_MAX_LENGTH}
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onChange={(event) => {
+              setName(event.target.value);
+              if (nameError) {
+                setNameError('');
+              }
+            }}
             data-testid="mock-response-rename-name-input"
           />
+          {nameError ? (
+            <div className="text-red-500 mt-1">{nameError}</div>
+          ) : null}
         </div>
       </Modal>
     </Portal>
