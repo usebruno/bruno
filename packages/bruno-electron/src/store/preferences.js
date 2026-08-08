@@ -217,7 +217,8 @@ const preferencesSchema = Yup.object().shape({
           Yup.object({
             id: Yup.string().required(),
             label: Yup.string().max(120).nullable(),
-            modelId: Yup.string().max(200).nullable()
+            modelId: Yup.string().max(200).nullable(),
+            apiFormat: Yup.string().oneOf(['chat-completions', 'responses']).nullable()
           })
         )
       })
@@ -365,6 +366,23 @@ class PreferencesStore {
       preferences.general.defaultLocation = preferences.general.defaultCollectionLocation;
       delete preferences.general.defaultCollectionLocation;
       this.store.set('preferences', preferences);
+    }
+
+    const endpoints = get(preferences, 'ai.openaiCompatibleEndpoints');
+    if (Array.isArray(endpoints)) {
+      let mutated = false;
+      for (const endpoint of endpoints) {
+        if (!endpoint || !Array.isArray(endpoint.models)) continue;
+        for (const model of endpoint.models) {
+          if (model && !model.apiFormat) {
+            model.apiFormat = 'chat-completions';
+            mutated = true;
+          }
+        }
+      }
+      if (mutated) {
+        this.store.set('preferences', preferences);
+      }
     }
 
     return merge({}, defaultPreferences, preferences);
