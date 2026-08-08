@@ -3,61 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const nodeModule = require('node:module');
 
-const { isBuiltinModule, isPathWithinAllowedRoots } = require('./utils');
-
-/**
- * Resolve a local module path, handling files and directories
- * Follows Node.js resolution algorithm:
- * 1. Exact path (with extension)
- * 2. Path + .js extension
- * 3. Directory with package.json (main field)
- * 4. Directory with index.js
- * @param {string} fromDir - Directory to resolve from
- * @param {string} moduleName - Module name/path
- * @returns {string} Resolved absolute path
- */
-function resolveLocalModulePath(fromDir, moduleName) {
-  const basePath = path.resolve(fromDir, moduleName);
-
-  // 1. If has extension, use as-is
-  if (path.extname(moduleName)) {
-    return path.normalize(basePath);
-  }
-
-  // 2. Try with .js extension
-  const withJs = basePath + '.js';
-  if (fs.existsSync(withJs)) {
-    return path.normalize(withJs);
-  }
-
-  // 3. Check if it's a directory
-  if (fs.existsSync(basePath) && fs.statSync(basePath).isDirectory()) {
-    // 3a. Check for package.json with main field
-    const pkgPath = path.join(basePath, 'package.json');
-    if (fs.existsSync(pkgPath)) {
-      try {
-        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-        if (pkg.main) {
-          const mainPath = path.resolve(basePath, pkg.main);
-          if (fs.existsSync(mainPath)) {
-            return path.normalize(mainPath);
-          }
-        }
-      } catch {
-        // Ignore JSON parse errors, fall through to index.js
-      }
-    }
-
-    // 3b. Check for index.js
-    const indexPath = path.join(basePath, 'index.js');
-    if (fs.existsSync(indexPath)) {
-      return path.normalize(indexPath);
-    }
-  }
-
-  // 4. Fall back to original path (will likely fail with file not found)
-  return path.normalize(basePath);
-}
+const { isBuiltinModule, isPathWithinAllowedRoots, resolveLocalModulePath } = require('./utils');
 
 /**
  * Creates a custom require function with enhanced security and local module support
