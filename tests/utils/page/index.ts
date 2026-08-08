@@ -2,6 +2,7 @@ export * from './actions';
 export * from './request/generate-code';
 export * from './code-editor-search';
 export * from './file-mode';
+export * from './file-saver';
 export * from './runner';
 export * from './locators';
 export * from './websocket';

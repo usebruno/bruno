@@ -16,6 +16,7 @@ import {
   toOpenCollectionActions,
   fromOpenCollectionAssertions,
   toOpenCollectionAssertions,
+  fromOpenCollectionTags,
   resolveTimeoutSetting
 } from '../common';
 import { utils } from '@usebruno/common';
@@ -96,7 +97,7 @@ export const fromOpenCollectionHttpItem = (ocRequest: HttpRequest): BrunoItem =>
     type: 'http-request',
     seq: info?.seq || 1,
     name: info?.name || 'Untitled Request',
-    tags: info?.tags || [],
+    tags: fromOpenCollectionTags(info?.tags),
     request: brunoRequest,
     settings: null,
     fileContent: null,

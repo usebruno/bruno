@@ -9,7 +9,8 @@ import {
   fromOpenCollectionVariables,
   toOpenCollectionVariables,
   fromOpenCollectionActions,
-  toOpenCollectionActions
+  toOpenCollectionActions,
+  fromOpenCollectionTags
 } from '../common';
 import type {
   WebSocketRequest,
@@ -83,8 +84,9 @@ export const fromOpenCollectionWebsocketItem = (item: WebSocketRequest): BrunoIt
     }
   };
 
-  if (info.tags?.length) {
-    brunoItem.tags = info.tags;
+  const tags = fromOpenCollectionTags(info.tags);
+  if (tags.length) {
+    brunoItem.tags = tags;
   }
 
   return brunoItem;

@@ -21,7 +21,7 @@ const mainLintFiles = [
   'packages/bruno-app/src/test-utils/mocks/codemirror.js',
   'packages/bruno-cli/**/*.js',
   'packages/bruno-common/**/*.ts',
-  'packages/bruno-converters/**/*.js',
+  'packages/bruno-converters/**/*.{js,ts}',
   'packages/bruno-electron/**/*.js',
   'packages/bruno-filestore/**/*.ts',
   'packages/bruno-schema-types/**/*.ts',
@@ -194,16 +194,18 @@ module.exports = runESMImports().then(() => defineConfig([
     }
   },
   {
-    files: ['packages/bruno-converters/**/*.js'],
-    ignores: ['**/*.config.js', '**/dist/**/*'],
+    files: ['packages/bruno-converters/**/*.{js,ts}'],
+    ignores: ['**/*.config.js', '**/dist/**/*', '**/tests/**/*'],
     languageOptions: {
       globals: {
         ...globals.node,
         ...globals.jest
       },
+      parser: require('@typescript-eslint/parser'),
       parserOptions: {
         ecmaVersion: 'latest',
-        sourceType: 'module'
+        sourceType: 'module',
+        project: './packages/bruno-converters/tsconfig.json'
       }
     },
     rules: {

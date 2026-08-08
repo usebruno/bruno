@@ -6,4 +6,5 @@ export { fromOpenCollectionVariables, toOpenCollectionVariables } from './variab
 export { fromOpenCollectionActions, toOpenCollectionActions } from './actions';
 export { fromOpenCollectionScripts, toOpenCollectionScripts } from './scripts';
 export { fromOpenCollectionAssertions, toOpenCollectionAssertions } from './assertions';
+export { fromOpenCollectionTags } from './tags';
 export { resolveTimeoutSetting } from '@usebruno/common/utils';

@@ -9,7 +9,8 @@ import {
   fromOpenCollectionActions,
   toOpenCollectionActions,
   fromOpenCollectionAssertions,
-  toOpenCollectionAssertions
+  toOpenCollectionAssertions,
+  fromOpenCollectionTags
 } from '../common';
 import type {
   GrpcRequest,
@@ -98,8 +99,9 @@ export const fromOpenCollectionGrpcItem = (item: GrpcRequest): BrunoItem => {
     (brunoItem.request as unknown as Record<string, unknown>).protoPath = grpc.protoFilePath;
   }
 
-  if (info.tags?.length) {
-    brunoItem.tags = info.tags;
+  const tags = fromOpenCollectionTags(info.tags);
+  if (tags.length) {
+    brunoItem.tags = tags;
   }
 
   return brunoItem;
