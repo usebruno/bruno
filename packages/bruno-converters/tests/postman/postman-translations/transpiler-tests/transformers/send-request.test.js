@@ -1131,6 +1131,60 @@ await bru.sendRequest({
       `);
     });
 
+    it('should skip a pass-through then(null, onError) and rewrite the next handler', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then(null, (err) => console.error(err))
+          .then((res) => {
+              console.log(res.json());
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then(null, (err) => console.error(err))
+          .then((res) => {
+              console.log(res.data);
+          });
+      `);
+    });
+
+    it('should skip an empty then() and rewrite the next handler', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then()
+          .then((res) => {
+              console.log(res.json());
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then()
+          .then((res) => {
+              console.log(res.data);
+          });
+      `);
+    });
+
+    it('should treat a handler referenced by a variable as consuming the response', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then(maybeHandler)
+          .then((res) => {
+              console.log(res.json());
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then(maybeHandler)
+          .then((res) => {
+              console.log(res.json());
+          });
+      `);
+    });
+
     it('should treat a bracket-notation then as a chain', () => {
       const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' })['then']((res) => res.json());`;
       expect(translateCode(code)).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' })['then']((res) => res.data);`);
