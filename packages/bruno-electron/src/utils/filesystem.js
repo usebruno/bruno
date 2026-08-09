@@ -244,10 +244,13 @@ const sanitizeName = (name) => {
   name = name
     .replace(invalidCharacters, '-') // replace invalid characters with hyphens
     .replace(/^[\s\-]+/, ''); // remove leading spaces and hyphens
-  // Remove trailing dots/spaces unless the name is made entirely of dots
-  if (!/^\.+$/.test(name)) {
-    name = name.replace(/[.\s]+$/, '');
-  }
+  // Reject reserved path names '.' and '..'
+// Preserve other dot-only names like '...' (ellipsis)
+if (name === '.' || name === '..') {
+  name = '_';
+}else if (!/^\.+$/.test(name)) {
+  name = name.replace(/[.\s]+$/, '');
+}
   return name;
 };
 
