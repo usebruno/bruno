@@ -112,6 +112,65 @@ describe('SnapshotManager.remapCollectionTabPaths', () => {
     const { tabs } = snapshotManager.getTabs(collectionPath);
     expect(tabs.some((t) => t.pathname === `${collectionPath}/ping.bru`)).toBe(true);
   });
+
+  it('remaps .bru tabs across every workspace entry for a shared collection', () => {
+    const workspaceAPath = '/workspaces/a';
+    const workspaceBPath = '/workspaces/b';
+    const sharedCollectionPath = '/collections/shared';
+    const bruPath = `${sharedCollectionPath}/ReqA.bru`;
+    const ymlPath = `${sharedCollectionPath}/ReqA.yml`;
+
+    snapshotManager.saveSnapshot({
+      version: '0.0.1',
+      activeWorkspacePath: workspaceBPath,
+      extras: { devTools: { open: false, activeTab: '', tabs: {} } },
+      workspaces: [
+        {
+          pathname: workspaceAPath,
+          environment: '',
+          sorting: 'default',
+          collections: [sharedCollectionPath]
+        },
+        {
+          pathname: workspaceBPath,
+          environment: '',
+          sorting: 'default',
+          collections: [sharedCollectionPath]
+        }
+      ],
+      collections: [
+        {
+          pathname: sharedCollectionPath,
+          workspacePathname: workspaceAPath,
+          environment: { collection: '', global: '' },
+          isOpen: true,
+          isMounted: true,
+          activeTab: { accessor: 'pathname', value: bruPath },
+          tabs: [
+            { type: 'http-request', accessor: 'pathname', pathname: bruPath, permanent: true }
+          ]
+        },
+        {
+          pathname: sharedCollectionPath,
+          workspacePathname: workspaceBPath,
+          environment: { collection: '', global: '' },
+          isOpen: true,
+          isMounted: true,
+          activeTab: null,
+          tabs: []
+        }
+      ]
+    });
+
+    snapshotManager.remapCollectionTabPaths(sharedCollectionPath, { [bruPath]: ymlPath });
+
+    const tabsA = snapshotManager.getTabs(sharedCollectionPath, workspaceAPath);
+    expect(tabsA.activeTab).toEqual({ accessor: 'pathname', value: ymlPath });
+    expect(tabsA.tabs.map((t) => t.pathname)).toEqual([ymlPath]);
+
+    const tabsB = snapshotManager.getTabs(sharedCollectionPath, workspaceBPath);
+    expect(tabsB.tabs).toEqual([]);
+  });
 });
 
 describe('SnapshotManager shared collection lookups', () => {

@@ -6,6 +6,11 @@ const StyledWrapper = styled.div`
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
+
+  .modal-description {
+    color: ${(props) => props.theme.text};
+    margin-bottom: 12px;
+  }
 `;
 
 export default StyledWrapper;

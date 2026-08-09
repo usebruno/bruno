@@ -721,6 +721,115 @@ describe('buildHar — interpolation', () => {
   });
 });
 
+// A URL like `{{host}}/ping` has no literal scheme once the variable is hashed, so
+// buildHar prepends a stand-in one to keep the URL parseable. Which scheme it picks is
+// visible to snippet targets that choose a client per scheme (python3's
+// HTTPSConnection vs HTTPConnection), so it has to match what the variable resolves to.
+describe('buildHar — scheme supplied by a leading {{var}} (toggle OFF)', () => {
+  const buildTemplatedHost = (host: string) =>
+    buildHar({
+      request: baseRequest({ url: '{{host}}/ping' }),
+      variables: { host },
+      shouldInterpolate: false
+    });
+
+  it('uses https in the HAR url when the variable resolves to an https origin', async () => {
+    const { har, unhash } = await buildTemplatedHost('https://api.example.com');
+
+    expect(har.url.startsWith('https://')).toBe(true);
+    expect(unhash(har.url)).toBe('{{host}}/ping');
+  });
+
+  it('uses http in the HAR url when the variable resolves to an http origin', async () => {
+    const { har, unhash } = await buildTemplatedHost('http://localhost:8081');
+
+    expect(har.url.startsWith('http://')).toBe(true);
+    expect(unhash(har.url)).toBe('{{host}}/ping');
+  });
+
+  it('keeps the default scheme in the output when the variable carries none', async () => {
+    // `localhost:8081` is what the client would send over plain HTTP, so the
+    // stand-in scheme is real information here and stays in the snippet.
+    const { har, unhash } = await buildTemplatedHost('localhost:8081');
+
+    expect(har.url.startsWith('http://')).toBe(true);
+    expect(unhash(har.url)).toBe('http://{{host}}/ping');
+  });
+});
+
+// HTTPSnippet runs encodeURIComponent over every queryString value when it renders,
+// so a raw `{{var}}` there would reach the snippet as `%7B%7Bvar%7D%7D` with nothing
+// left to restore. These lock in that query values are hashed like the URL's are.
+describe('buildHar — {{var}} in query values (toggle OFF)', () => {
+  const queryParam = { name: 'token', value: '{{apiKey}}', type: 'query' as const, enabled: true };
+
+  it('hashes the value in har.queryString, and unhash restores it', async () => {
+    const { har, unhash } = await buildHar({
+      request: baseRequest({ url: 'https://api.example.com/get?token={{apiKey}}', params: [queryParam] }),
+      variables: { apiKey: 'secret-123' },
+      shouldInterpolate: false
+    });
+
+    const [entry] = har.queryString;
+    expect(entry.name).toBe('token');
+    expect(entry.value).not.toContain('{{');
+    expect(encodeURIComponent(entry.value)).toBe(entry.value);
+    expect(unhash(entry.value)).toBe('{{apiKey}}');
+    expect(unhash(entry.value)).not.toContain('secret-123');
+  });
+
+  it('restores every value when several query params carry templates', async () => {
+    const { har, unhash } = await buildHar({
+      request: baseRequest({
+        url: 'https://api.example.com/get?token={{apiKey}}&v={{ver}}',
+        params: [queryParam, { name: 'v', value: '{{ver}}', type: 'query', enabled: true }]
+      }),
+      variables: { apiKey: 'secret-123', ver: 'v2' },
+      shouldInterpolate: false
+    });
+
+    expect(har.queryString.map((p) => unhash(p.value))).toEqual(['{{apiKey}}', '{{ver}}']);
+  });
+
+  it('covers auth-driven query params (apikey with placement=queryparams)', async () => {
+    const { har, unhash } = await buildHar({
+      request: baseRequest({
+        url: 'https://api.example.com/get',
+        auth: { mode: 'apikey', apikey: { key: 'api_key', value: '{{apiKey}}', placement: 'queryparams' } }
+      }),
+      variables: { apiKey: 'secret-123' },
+      shouldInterpolate: false
+    });
+
+    const entry = har.queryString.find((p) => p.name === 'api_key');
+    expect(entry?.value).not.toContain('{{');
+    expect(unhash(entry?.value ?? '')).toBe('{{apiKey}}');
+  });
+
+  it('still substitutes query values when shouldInterpolate is true', async () => {
+    const { har } = await buildHar({
+      request: baseRequest({ url: 'https://api.example.com/get?token={{apiKey}}', params: [queryParam] }),
+      variables: { apiKey: 'secret-123' },
+      shouldInterpolate: true
+    });
+
+    expect(har.queryString).toContainEqual({ name: 'token', value: 'secret-123' });
+  });
+
+  it('leaves a query value with no template untouched', async () => {
+    const { har, unhash } = await buildHar({
+      request: baseRequest({
+        url: 'https://api.example.com/get?redirect=https://other.com/cb',
+        params: [{ name: 'redirect', value: 'https://other.com/cb', type: 'query', enabled: true }]
+      }),
+      shouldInterpolate: false
+    });
+
+    expect(har.queryString).toContainEqual({ name: 'redirect', value: 'https://other.com/cb' });
+    expect(unhash(har.queryString[0].value)).toBe('https://other.com/cb');
+  });
+});
+
 describe('buildHar — regression: known issues map to single fixes', () => {
   it('path with %20 (issue #6268) — no throw, URL passes the soft gate', async () => {
     await expect(buildHar({
@@ -793,6 +902,18 @@ describe('buildHar — regression: known issues map to single fixes', () => {
       shouldInterpolate: false
     });
     expect(rawUrl).toBe('https://example.com/odata/Products(ABC123)');
+  });
+
+  it('literal colon in a path segment is encoded when the toggle is ON and there are no path params', async () => {
+    const { rawUrl, encodedUrl } = await buildHar({
+      request: baseRequest({
+        url: 'https://example.com/values:colon',
+        settings: { encodeUrl: true }
+      }),
+      shouldInterpolate: false
+    });
+    expect(rawUrl).toBe('https://example.com/values:colon');
+    expect(encodedUrl).toBe('https://example.com/values%3Acolon');
   });
 });
 
