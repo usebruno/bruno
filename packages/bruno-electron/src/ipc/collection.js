@@ -277,24 +277,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(utils.validateNameError(collectionFolderName));
       }
 
-      // Resolve the target directory the same way as create-collection:
-      //   - existing empty dir  -> reuse it (an empty dir isn't a real collision);
-      //   - existing non-empty  -> silently suffix (<name>1);
-      //   - missing             -> create it.
-      const desiredPath = path.join(collectionLocation, collectionFolderName);
-      let dirPath;
-      if (fs.existsSync(desiredPath)) {
-        const isEmpty = fs.readdirSync(desiredPath).length === 0;
-        if (isEmpty) {
-          dirPath = desiredPath;
-        } else {
-          ({ pathname: dirPath } = await mkdirUnique(collectionLocation, collectionFolderName));
-        }
-      } else {
-        dirPath = desiredPath;
-        await createDirectory(dirPath);
-      }
-
+      // resolve name collisions silently with a numeric suffix.
+      const { pathname: dirPath } = await mkdirUnique(collectionLocation, collectionFolderName);
       const uid = generateUidBasedOnHash(dirPath);
       const format = getCollectionFormat(previousPath);
       let brunoConfig;
