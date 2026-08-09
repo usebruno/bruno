@@ -13,7 +13,7 @@ test.describe('Naming collisions - create collection', () => {
     const location = await createTmpDir('collection-create-dup');
 
     // Seed a directory that collides with the collection's folder name. It must
-    // NOT be reused — a new, suffixed directory should be created instead.
+    // not be reused. a new, suffixed directory should be created instead.
     fs.mkdirSync(path.join(location, 'MyColl'), { recursive: true });
     fs.writeFileSync(path.join(location, 'MyColl', 'marker.txt'), 'pre-existing');
 
@@ -46,6 +46,22 @@ test.describe('Naming collisions - create collection', () => {
       await expect
         .poll(() => fs.existsSync(path.join(location, 'MyColl1', 'opencollection.yml')), { timeout: 10000 })
         .toBe(true);
+    });
+  });
+
+  test('creating a collection in an existing empty directory reuses it instead of suffixing', async ({ page, createTmpDir }) => {
+    const location = await createTmpDir('collection-create-empty-reuse');
+
+    // an empty target directory already exists. It must be reused, not suffixed.
+    fs.mkdirSync(path.join(location, 'MyColl'), { recursive: true });
+
+    await createCollection(page, 'MyColl', location, 'bru');
+
+    await test.step('On disk: the empty dir is reused (bruno.json written into it); no "MyColl1" created', async () => {
+      await expect
+        .poll(() => fs.existsSync(path.join(location, 'MyColl', 'bruno.json')), { timeout: 10000 })
+        .toBe(true);
+      expect(fs.existsSync(path.join(location, 'MyColl1'))).toBe(false);
     });
   });
 });

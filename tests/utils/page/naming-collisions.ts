@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { test, Page, Locator } from '../../../playwright';
 import { buildCommonLocators } from './locators';
 
@@ -243,4 +244,21 @@ export const setTextBody = async (page: Page, value: string) => {
   await page.locator('.dropdown-item').filter({ hasText: 'Text' }).click();
   await locators.bodyEditor().click();
   await page.keyboard.type(value);
+};
+
+// Save the active transient (untitled) request via the Save modal, giving it a
+// display name. Waits for the modal to open and close; assertions stay in the spec.
+export const saveTransientRequestAs = async (page: Page, name: string) => {
+  await test.step(`Save transient request as "${name}"`, async () => {
+    const nc = buildNamingCollisionLocators(page);
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+    const modal = nc.saveRequestModal();
+
+    await page.keyboard.press(`${modifier}+s`);
+    await modal.waitFor({ state: 'visible' });
+    await nc.saveRequestNameInput().clear();
+    await nc.saveRequestNameInput().fill(name);
+    await modal.getByRole('button', { name: 'Save' }).click();
+    await modal.waitFor({ state: 'hidden' });
+  });
 };

@@ -1748,13 +1748,15 @@ export const newApp = (params) => (dispatch, getState) => {
 
     ipcRenderer
       .invoke('renderer:new-request', fullName, item)
-      .then(() => {
+      .then((result) => {
         dispatch(
           insertTaskIntoQueue({
             uid: uuid(),
             type: 'OPEN_REQUEST',
             collectionUid,
-            itemPathname: fullName
+            // Use the path the handler actually wrote (it silently suffixes on a
+            // filename collision), not the optimistic pre-suffix path.
+            itemPathname: result?.pathname || fullName
           })
         );
         resolve();

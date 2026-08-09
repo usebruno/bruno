@@ -206,9 +206,21 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           throw new Error(utils.validateNameError(collectionFolderName));
         }
 
-        // Resolve directory-name collisions silently with a numeric suffix
-        // instead of erroring or reusing an existing empty directory.
-        const { pathname: dirPath } = await mkdirUnique(collectionLocation, collectionFolderName);
+        // Reuse an existing empty directory; suffix the name if it's non-empty.
+        // Create it when the directory doesn't exist.
+        const desiredPath = path.join(collectionLocation, collectionFolderName);
+        let dirPath;
+        if (fs.existsSync(desiredPath)) {
+          const isEmpty = fs.readdirSync(desiredPath).length === 0;
+          if (isEmpty) {
+            dirPath = desiredPath;
+          } else {
+            ({ pathname: dirPath } = await mkdirUnique(collectionLocation, collectionFolderName));
+          }
+        } else {
+          dirPath = desiredPath;
+          await createDirectory(dirPath);
+        }
 
         const uid = generateUidBasedOnHash(dirPath);
         let brunoConfig = {
@@ -265,9 +277,24 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         throw new Error(utils.validateNameError(collectionFolderName));
       }
 
-      // create dir — resolve name collisions silently with a numeric suffix
-      // instead of erroring when the target already exists
-      const { pathname: dirPath } = await mkdirUnique(collectionLocation, collectionFolderName);
+      // Resolve the target directory the same way as create-collection:
+      //   - existing empty dir  -> reuse it (an empty dir isn't a real collision);
+      //   - existing non-empty  -> silently suffix (<name>1);
+      //   - missing             -> create it.
+      const desiredPath = path.join(collectionLocation, collectionFolderName);
+      let dirPath;
+      if (fs.existsSync(desiredPath)) {
+        const isEmpty = fs.readdirSync(desiredPath).length === 0;
+        if (isEmpty) {
+          dirPath = desiredPath;
+        } else {
+          ({ pathname: dirPath } = await mkdirUnique(collectionLocation, collectionFolderName));
+        }
+      } else {
+        dirPath = desiredPath;
+        await createDirectory(dirPath);
+      }
+
       const uid = generateUidBasedOnHash(dirPath);
       const format = getCollectionFormat(previousPath);
       let brunoConfig;

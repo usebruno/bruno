@@ -7,13 +7,13 @@ import {
   createRequest,
   createFolder,
   createTransientRequest,
+  saveTransientRequestAs,
   closeAllCollections,
   copyItem
 } from '../utils/page';
 import { listRequestFiles, findCollectionDir } from './utils';
 
 const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
-const saveShortcut = `${modifier}+s`;
 
 test.describe('Naming collisions - double-paste race', () => {
   test.afterEach(async ({ page }) => {
@@ -34,8 +34,7 @@ test.describe('Naming collisions - double-paste race', () => {
     await test.step('Focus the target folder and fire two pastes back-to-back', async () => {
       // Focusing the row enables the pasteItem keybinding for this item.
       await nc.itemRow('Target').focus();
-      // Two presses without awaiting the resulting async paste IPCs — they overlap,
-      // reproducing the original "path ... already exists" race condition.
+
       await page.keyboard.press(`${modifier}+v`);
       await page.keyboard.press(`${modifier}+v`);
     });
@@ -64,18 +63,33 @@ test.describe('Naming collisions - save transient request', () => {
     await createRequest(page, 'login', 'Transient Save'); // login.bru already exists
     await createTransientRequest(page); // Untitled draft
 
-    await test.step('Save the draft as the already-taken name "login"', async () => {
-      await page.keyboard.press(saveShortcut);
-      const saveModal = nc.saveRequestModal();
-      await saveModal.waitFor({ state: 'visible' });
-
-      await nc.saveRequestNameInput().clear();
-      await nc.saveRequestNameInput().fill('login');
-      await saveModal.getByRole('button', { name: 'Save' }).click();
-      await saveModal.waitFor({ state: 'hidden' });
-    });
+    await saveTransientRequestAs(page, 'login'); // save the draft as the already-taken name
 
     await test.step('Two "login" entries; filesystem name silently suffixed', async () => {
+      await expect(nc.itemByTitle('login')).toHaveCount(2);
+      const files = listRequestFiles(testDir);
+      expect(files).toContain('login.bru');
+      expect(files).toContain('login1.bru');
+    });
+  });
+
+  test('opens the newly-saved (suffixed) request, not the pre-existing one with the same name', async ({ page, createTmpDir }) => {
+    const { namingCollisions: nc, tabs } = buildCommonLocators(page);
+    const testDir = await createTmpDir('transient-save-open-correct');
+
+    await createCollection(page, 'Transient Open', testDir, 'bru');
+    await createRequest(page, 'login', 'Transient Open', { method: 'POST' });
+    await createTransientRequest(page); // Untitled draft (GET)
+
+    await saveTransientRequestAs(page, 'login'); // collides with login.bru -> writes login1.bru
+
+    await test.step('The opened tab is the freshly-saved request (GET), not the pre-existing "login" (POST)', async () => {
+      await expect(tabs.activeRequestTab()).toContainText('login');
+      // the opened request should be the saved Transient Request which is GET.
+      await expect(tabs.activeRequestTabMethod()).toContainText('GET');
+    });
+
+    await test.step('On disk: both files exist (display names collide, directory suffixed)', async () => {
       await expect(nc.itemByTitle('login')).toHaveCount(2);
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');

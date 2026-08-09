@@ -459,13 +459,20 @@ const copyPathTo = async (source, targetPath) => {
   }
 
   const copyTree = async (src, dest) => {
-    const stat = await fsPromises.lstat(src);
+    const lst = await fsPromises.lstat(src);
 
-    if (stat.isSymbolicLink()) {
-      // Copy the link itself instead of following it.
-      const linkTarget = await fsPromises.readlink(src);
-      await fsPromises.symlink(linkTarget, dest);
-    } else if (stat.isDirectory()) {
+    if (lst.isSymbolicLink()) {
+      // Dereference the link (copy what it points at) rather than recreating it.
+      const real = await fsPromises.stat(src).catch(() => null); // follows the link
+      if (!real) return; // dangling link → skip
+      if (real.isFile()) {
+        await fsPromises.copyFile(src, dest); // copyFile follows the link → real file
+      }
+
+      return;
+    }
+
+    if (lst.isDirectory()) {
       await fsPromises.mkdir(dest, { recursive: true });
 
       const entries = await fsPromises.readdir(src);
