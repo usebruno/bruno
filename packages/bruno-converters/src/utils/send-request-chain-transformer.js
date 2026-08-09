@@ -84,6 +84,27 @@ const isInAsyncContext = (j, path) => {
 };
 
 /**
+ * Collect the `.then`/`.catch`/`.finally` calls chained off the given call,
+ * innermost first.
+ * @param {Object} callPath - Path of the CallExpression the chain hangs off
+ * @returns {Array<{callPath: Object, methodName: string}>}
+ */
+const getPromiseChainLinks = (callPath) => {
+  const links = [];
+  let currentPath = callPath;
+
+  for (let memberPath = getChainedPromiseMemberPath(currentPath); memberPath; memberPath = getChainedPromiseMemberPath(currentPath)) {
+    const chainedCallPath = memberPath.parent;
+    if (!chainedCallPath || chainedCallPath.value.type !== 'CallExpression') break;
+
+    links.push({ callPath: chainedCallPath, methodName: getStaticPropertyName(memberPath.value) });
+    currentPath = chainedCallPath;
+  }
+
+  return links;
+};
+
+/**
  * Rewrite Postman response access inside the first `.then` fulfilled handler of
  * the chain. Only the first `.then` receives the response — later handlers
  * receive whatever their predecessor returned, and `.catch`/`.finally` handlers
@@ -92,22 +113,13 @@ const isInAsyncContext = (j, path) => {
  * @param {Object} callPath - Path of the CallExpression the chain hangs off
  */
 const rewriteFirstThenHandler = (j, callPath) => {
-  let currentPath = callPath;
-
-  for (let memberPath = getChainedPromiseMemberPath(currentPath); memberPath; memberPath = getChainedPromiseMemberPath(currentPath)) {
-    const chainedCallPath = memberPath.parent;
-    if (!chainedCallPath || chainedCallPath.value.type !== 'CallExpression') return;
-
-    if (getStaticPropertyName(memberPath.value) === 'then') {
-      // a non-callable onFulfilled forwards the response to the next link
-      if (!isPassThroughHandler(chainedCallPath.value.arguments[0])) {
-        // the response is consumed here, whether or not the handler is rewritable
-        rewriteResponsePropertyAccess(j, chainedCallPath.get('arguments', 0));
-        return;
-      }
+  for (const link of getPromiseChainLinks(callPath)) {
+    // a non-callable onFulfilled forwards the response to the next link
+    if (link.methodName === 'then' && !isPassThroughHandler(link.callPath.value.arguments[0])) {
+      // the response is consumed here, whether or not the handler is rewritable
+      rewriteResponsePropertyAccess(j, link.callPath.get('arguments', 0));
+      return;
     }
-
-    currentPath = chainedCallPath;
   }
 };
 
@@ -177,13 +189,9 @@ const transformSendRequestChains = (j, ast) => {
 
     rewriteFirstThenHandler(j, callPath);
 
-    // walk to the outermost call of the .then/.catch/.finally chain
-    let outermostPath = callPath;
-    for (let memberPath = getChainedPromiseMemberPath(outermostPath); memberPath; memberPath = getChainedPromiseMemberPath(outermostPath)) {
-      const chainedCallPath = memberPath.parent;
-      if (!chainedCallPath || chainedCallPath.value.type !== 'CallExpression') break;
-      outermostPath = chainedCallPath;
-    }
+    // the outermost call of the .then/.catch/.finally chain is the last link
+    const links = getPromiseChainLinks(callPath);
+    const outermostPath = links.length ? links[links.length - 1].callPath : callPath;
 
     if (outermostPath.parent.value.type === 'AwaitExpression') return;
     if (!isInAsyncContext(j, outermostPath)) return;
