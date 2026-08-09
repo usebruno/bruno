@@ -1,4 +1,6 @@
 const { describe, it, expect } = require('@jest/globals');
+const os = require('node:os');
+const path = require('node:path');
 const {
   serializeSnapshot,
   shouldPreserveCollectionEnvironmentInSnapshot
@@ -127,6 +129,9 @@ describe('shouldPreserveCollectionEnvironmentInSnapshot', () => {
 
 describe('serializeSnapshot workspace tab restoration', () => {
   it('serializes only the active workspace scratch collection', async () => {
+    const inactiveWorkspacePath = path.join(os.tmpdir(), 'workspace-2');
+    const activeScratchPath = path.join(os.tmpdir(), 'transient', 'scratch-1');
+    const inactiveScratchPath = path.join(os.tmpdir(), 'transient', 'scratch-2');
     const state = makeState();
     state.workspaces.workspaces = [
       {
@@ -135,7 +140,7 @@ describe('serializeSnapshot workspace tab restoration', () => {
       },
       {
         uid: 'ws-2',
-        pathname: '/tmp/workspace-2',
+        pathname: inactiveWorkspacePath,
         scratchCollectionUid: 'scratch-2',
         collections: []
       }
@@ -143,7 +148,7 @@ describe('serializeSnapshot workspace tab restoration', () => {
     state.collections.collections.push(
       {
         uid: 'scratch-1',
-        pathname: '/tmp/transient/scratch-1',
+        pathname: activeScratchPath,
         mountStatus: 'mounted',
         environments: [],
         activeEnvironmentUid: null,
@@ -151,7 +156,7 @@ describe('serializeSnapshot workspace tab restoration', () => {
       },
       {
         uid: 'scratch-2',
-        pathname: '/tmp/transient/scratch-2',
+        pathname: inactiveScratchPath,
         mountStatus: 'mounted',
         environments: [],
         activeEnvironmentUid: null,
@@ -164,8 +169,8 @@ describe('serializeSnapshot workspace tab restoration', () => {
     });
     const collectionPaths = snapshot.collections.map((collection) => collection.pathname);
 
-    expect(collectionPaths).toContain('/tmp/transient/scratch-1');
-    expect(collectionPaths).not.toContain('/tmp/transient/scratch-2');
+    expect(collectionPaths).toContain(activeScratchPath);
+    expect(collectionPaths).not.toContain(inactiveScratchPath);
   });
 
   it('records the active workspace tab type when the scratch collection tab is focused', async () => {

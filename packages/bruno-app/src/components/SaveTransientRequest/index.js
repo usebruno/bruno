@@ -201,15 +201,20 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
 
       const sanitizedFilename = sanitizeName(trimmedName);
 
-      const hasFileModeEdit = latestItem.draft?.raw != null && latestItem.draft.raw !== latestItem.raw;
+      let rawContent = null;
+      if (typeof latestItem.draft?.raw === 'string') {
+        rawContent = latestItem.draft.raw;
+      } else if (collection.fileMode && typeof latestItem.raw === 'string') {
+        rawContent = latestItem.raw;
+      }
       let baseItem;
-      if (hasFileModeEdit) {
+      if (rawContent !== null) {
         const rawSourceFormat = collection.format || DEFAULT_COLLECTION_FORMAT;
         try {
           const parsed = await ipcRenderer.invoke(
             'renderer:convert-to-json',
             latestItem,
-            latestItem.draft.raw,
+            rawContent,
             rawSourceFormat
           );
           baseItem = { ...latestItem, ...parsed, uid: latestItem.uid, pathname: latestItem.pathname };

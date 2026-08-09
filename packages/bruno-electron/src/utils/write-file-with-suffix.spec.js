@@ -29,4 +29,24 @@ describe('writeFileWithSuffix', () => {
     expect(filenames).toEqual(['Login (1).bru', 'Login.bru']);
     expect(contents.sort()).toEqual(['first', 'second']);
   });
+
+  it.each([
+    ['basename', '../Login', 'bru'],
+    ['basename', '..\\Login', 'bru'],
+    ['basename', '/tmp/Login', 'bru'],
+    ['extension', 'Login', '../bru'],
+    ['extension', 'Login', '..\\bru']
+  ])('rejects an unsafe %s before creating content', async (label, basename, extension) => {
+    const createContent = jest.fn(async () => {
+      throw new Error('createContent should not run');
+    });
+
+    await expect(writeFileWithSuffix({
+      dirname,
+      basename,
+      extension,
+      createContent
+    })).rejects.toThrow(`Invalid ${label}`);
+    expect(createContent).not.toHaveBeenCalled();
+  });
 });
