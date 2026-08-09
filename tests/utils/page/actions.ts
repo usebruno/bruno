@@ -2,7 +2,7 @@ import { test, expect, Page, Locator, ElectronApplication, waitForReadyPage as w
 import process from 'node:process';
 import * as path from 'path';
 import * as fs from 'fs';
-import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators } from './locators';
+import { buildCommonLocators, buildScriptErrorLocators, buildGrpcCommonLocators, PresetRequestType } from './locators';
 import { waitForCollectionMount } from './mounting';
 import { buildPreferencesLocators, openPreferences, selectPreferencesTab } from './preferences';
 
@@ -296,6 +296,46 @@ const createTransientRequest = async (
     await page.locator('.request-tab.active').waitFor({ state: 'visible' });
     await expect(page.locator('.request-tab.active')).toContainText('Untitled');
     await page.waitForTimeout(300);
+  });
+};
+
+/**
+ * Create a transient request by left-clicking the + icon, which uses the
+ * collection's default request type preset instead of the dropdown
+ * @param page - The page object
+ * @returns void
+ */
+const createTransientRequestFromPreset = async (page: Page) => {
+  await test.step('Create transient request from the collection preset', async () => {
+    const createButton = page.getByRole('button', { name: 'New Transient Request' });
+    await createButton.waitFor({ state: 'visible', timeout: 5000 });
+    await createButton.click();
+
+    const activeTab = buildCommonLocators(page).tabs.activeRequestTab();
+    await expect(activeTab).toContainText('Untitled');
+  });
+};
+
+/**
+ * Set the collection's default request type preset and save it
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param requestType - The preset request type to select
+ * @returns void
+ */
+const setRequestTypePreset = async (page: Page, collectionName: string, requestType: PresetRequestType) => {
+  await test.step(`Set the default request type preset to "${requestType}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    await openCollectionSettings(page, collectionName);
+    await selectCollectionPaneTab(page, 'presets');
+    await locators.presets.requestType(requestType).check();
+    await expect(locators.presets.requestType(requestType)).toBeChecked();
+
+    await locators.presets.saveBtn().click();
+
+    // the settings tab keeps a draft indicator until the presets are persisted
+    await expect(locators.tabs.tabDraftIndicator(locators.tabs.collectionSettingsTab())).toBeHidden();
   });
 };
 
@@ -2611,6 +2651,8 @@ export {
   createRequest,
   createUntitledRequest,
   createTransientRequest,
+  createTransientRequestFromPreset,
+  setRequestTypePreset,
   fillRequestUrl,
   deleteRequest,
   deleteCollectionFromOverview,

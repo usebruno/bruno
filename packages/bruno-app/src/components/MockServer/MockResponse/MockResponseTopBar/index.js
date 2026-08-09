@@ -11,6 +11,8 @@ import {
 import get from 'lodash/get';
 import Button from 'ui/Button';
 
+const DESCRIPTION_MAX_LENGTH = 1000;
+
 const MockResponseTopBar = ({
   item,
   collection,
@@ -44,7 +46,7 @@ const MockResponseTopBar = ({
       itemUid: item.uid,
       collectionUid: collection.uid,
       exampleUid,
-      description: event.target.value
+      description: event.target.value.slice(0, DESCRIPTION_MAX_LENGTH)
     }));
   };
 
@@ -77,6 +79,7 @@ const MockResponseTopBar = ({
                     className="example-input example-input-description"
                     placeholder="Description"
                     rows={3}
+                    maxLength={DESCRIPTION_MAX_LENGTH}
                     data-testid="mock-response-description-input"
                   />
                 </div>
@@ -91,6 +94,7 @@ const MockResponseTopBar = ({
             <div className="flex items-center gap-3 flex-shrink-0 md:w-auto w-full md:justify-end">
               <Button
                 color="secondary"
+                size="sm"
                 onClick={onCancel}
                 data-testid="mock-response-cancel-btn"
               >
@@ -98,7 +102,7 @@ const MockResponseTopBar = ({
               </Button>
               <Button
                 color="primary"
-                style={{ padding: '6px 12px' }}
+                size="sm"
                 icon={<IconDeviceFloppy size={16} />}
                 onClick={onSave}
                 data-testid="mock-response-save-btn"
@@ -115,8 +119,8 @@ const MockResponseTopBar = ({
   return (
     <StyledWrapper className="p-4">
       <div className="max-w-full">
-        <div className="flex items-center justify-between gap-6 md:flex-row flex-col">
-          <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-6 md:flex-row flex-col">
+          <div className="flex-1 min-w-0 overflow-hidden">
             <h2 className="response-example-title font-medium leading-tight" data-testid="mock-response-title">
               {example.name}
             </h2>
@@ -124,8 +128,8 @@ const MockResponseTopBar = ({
               <TruncatedText
                 text={example.description}
                 maxLines={2}
-                className="response-example-description-container"
-                textClassName="response-example-description leading-relaxed max-w-fit"
+                className="response-example-description-container max-w-full"
+                textClassName="response-example-description leading-relaxed max-w-full"
                 buttonClassName="text-blue-600 hover:text-blue-800 font-medium"
                 viewMoreText="View More"
                 viewLessText="View Less"
@@ -150,6 +154,7 @@ const MockResponseTopBar = ({
               Edit
             </Button>
             <Button
+              variant="outline"
               color="danger"
               size="sm"
               onClick={onDelete}
