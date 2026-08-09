@@ -29,6 +29,21 @@ const responsePropertyMap = {
 };
 
 /**
+ * Get the statically-known property name of a member expression. A computed
+ * access with a non-literal key (`p[someVar]`) has no static name — even an
+ * Identifier key named `then` is a variable there, not the method.
+ * @param {Object} memberExpr - MemberExpression node
+ * @returns {string|null}
+ */
+const getStaticPropertyName = (memberExpr) => {
+  const property = memberExpr.property;
+  if (memberExpr.computed) {
+    return property.type === 'Literal' && typeof property.value === 'string' ? property.value : null;
+  }
+  return property.type === 'Identifier' ? property.name : null;
+};
+
+/**
  * Get the `.then`/`.catch`/`.finally` member expression a node is chained into
  * @param {Object} path - Path of the node the chain would hang off
  * @returns {Object|null} - Path of the chaining MemberExpression, or null
@@ -38,9 +53,7 @@ const getChainedPromiseMemberPath = (path) => {
   if (!parent || parent.value.type !== 'MemberExpression') return null;
   if (parent.value.object !== path.value) return null;
 
-  const property = parent.value.property;
-  const name = property.type === 'Identifier' ? property.name : property.value;
-  return PROMISE_CHAIN_METHODS.has(name) ? parent : null;
+  return PROMISE_CHAIN_METHODS.has(getStaticPropertyName(parent.value)) ? parent : null;
 };
 
 /**
@@ -71,10 +84,7 @@ const rewriteFirstThenHandler = (j, callPath) => {
     const chainedCallPath = memberPath.parent;
     if (!chainedCallPath || chainedCallPath.value.type !== 'CallExpression') return;
 
-    const property = memberPath.value.property;
-    const methodName = property.type === 'Identifier' ? property.name : property.value;
-
-    if (methodName === 'then') {
+    if (getStaticPropertyName(memberPath.value) === 'then') {
       // the response is consumed here, whether or not the handler is rewritable
       const handlerPath = chainedCallPath.get('arguments', 0);
       rewriteResponsePropertyAccess(j, handlerPath);
