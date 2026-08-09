@@ -2,15 +2,13 @@
  * Post-pass for pm.sendRequest(...) promise chains.
  *
  * The generic sendRequestTransformer replaces only the inner pm.sendRequest
- * CallExpression and always awaits it, so a chained call comes out of the main
- * transformation pass as `(await bru.sendRequest(cfg)).then(...)` — the await
- * resolves the response and `.then` is called on a non-thenable. This pass runs
- * after processTransformations and repairs those chains on the settled AST:
+ * CallExpression and leaves a chained call unawaited (see
+ * getChainedPromiseMemberPath, which it shares). This pass runs after
+ * processTransformations and finishes those chains on the settled AST:
  *
- *   1. unwraps the misplaced inner await
- *   2. rewrites Postman response access in the first `.then` fulfilled handler
+ *   1. rewrites Postman response access in the first `.then` fulfilled handler
  *      (res.json() -> res.data, res.code -> res.status, ...)
- *   3. awaits the outermost chain link instead, when the position allows it
+ *   2. awaits the outermost chain link, when the position allows it
  *
  * The transformer emits its callee as a single dotted Identifier named
  * `bru.sendRequest` — a shape no parser produces from source — so matching on
@@ -62,7 +60,7 @@ const isPassThroughHandler = (arg) => {
  * @param {Object} path - Path of the node the chain would hang off
  * @returns {Object|null} - Path of the chaining MemberExpression, or null
  */
-const getChainedPromiseMemberPath = (path) => {
+export const getChainedPromiseMemberPath = (path) => {
   const parent = path.parent;
   if (!parent || parent.value.type !== 'MemberExpression') return null;
   if (parent.value.object !== path.value) return null;
@@ -110,10 +108,10 @@ const getPromiseChainLinks = (callPath) => {
  * receive whatever their predecessor returned, and `.catch`/`.finally` handlers
  * receive an error or nothing.
  * @param {Object} j - jscodeshift API
- * @param {Object} callPath - Path of the CallExpression the chain hangs off
+ * @param {Array<{callPath: Object, methodName: string}>} links - Chain links, innermost first
  */
-const rewriteFirstThenHandler = (j, callPath) => {
-  for (const link of getPromiseChainLinks(callPath)) {
+const rewriteResponseConsumingThenHandler = (j, links) => {
+  for (const link of links) {
     // a non-callable onFulfilled forwards the response to the next link
     if (link.methodName === 'then' && !isPassThroughHandler(link.callPath.value.arguments[0])) {
       // the response is consumed here, whether or not the handler is rewritable
@@ -169,29 +167,26 @@ const rewriteResponsePropertyAccess = (j, handlerPath) => {
 };
 
 /**
- * Repair bru.sendRequest promise chains left behind by the main transformation
- * pass: unwrap the misplaced inner await, rewrite the response access in the
- * first `.then` handler, and await the outermost chain link where valid.
+ * Finish bru.sendRequest promise chains the main transformation pass left
+ * unawaited: rewrite the response access in the first `.then` handler, and
+ * await the outermost chain link where valid.
  * @param {Object} j - jscodeshift API
  * @param {Object} ast - jscodeshift AST collection
  */
 const transformSendRequestChains = (j, ast) => {
-  ast.find(j.AwaitExpression).forEach((awaitPath) => {
-    const call = awaitPath.value.argument;
-    if (!call || call.type !== 'CallExpression') return;
-    if (call.callee.type !== 'Identifier' || call.callee.name !== 'bru.sendRequest') return;
+  ast.find(j.CallExpression, {
+    callee: {
+      type: 'Identifier',
+      name: 'bru.sendRequest'
+    }
+  }).forEach((callPath) => {
+    const links = getPromiseChainLinks(callPath);
+    if (!links.length) return;
 
-    // only awaits that sit inside a promise chain are misplaced
-    if (!getChainedPromiseMemberPath(awaitPath)) return;
-
-    // unwrap: (await bru.sendRequest(cfg)).then(...) -> bru.sendRequest(cfg).then(...)
-    const callPath = j(awaitPath).replaceWith(call).paths()[0];
-
-    rewriteFirstThenHandler(j, callPath);
+    rewriteResponseConsumingThenHandler(j, links);
 
     // the outermost call of the .then/.catch/.finally chain is the last link
-    const links = getPromiseChainLinks(callPath);
-    const outermostPath = links.length ? links[links.length - 1].callPath : callPath;
+    const outermostPath = links[links.length - 1].callPath;
 
     if (outermostPath.parent.value.type === 'AwaitExpression') return;
     if (!isInAsyncContext(j, outermostPath)) return;
