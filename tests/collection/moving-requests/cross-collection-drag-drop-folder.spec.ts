@@ -1,5 +1,12 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, createCollection, createFolder, createRequest, expandFolder } from '../../utils/page';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  createCollection,
+  createFolder,
+  createRequest,
+  expandFolder
+} from '../../utils/page';
 
 test.describe('Cross-Collection Drag and Drop for folder', () => {
   test.afterEach(async ({ page }) => {
@@ -8,6 +15,8 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
   });
 
   test('Verify cross-collection folder drag and drop', async ({ page, createTmpDir }) => {
+    const { sidebar } = buildCommonLocators(page);
+
     await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
     await createFolder(page, 'test-folder', 'source-collection');
     await expandFolder(page, 'test-folder');
@@ -19,8 +28,8 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await createCollection(page, 'target-collection', await createTmpDir('target-collection'));
 
     // Wait for both collections to be visible in sidebar
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' })).toBeVisible();
-    await expect(page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' })).toBeVisible();
+    await expect(sidebar.collection('source-collection')).toBeVisible();
+    await expect(sidebar.collection('target-collection')).toBeVisible();
 
     // Locate the folder in source collection
     const sourceFolder = page.locator('.collection-item-name').filter({ hasText: 'test-folder' });
@@ -67,6 +76,8 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     page,
     createTmpDir
   }) => {
+    const { sidebar } = buildCommonLocators(page);
+
     await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
     await createFolder(page, 'folder-1', 'source-collection');
     await expandFolder(page, 'folder-1');
@@ -98,7 +109,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
       .locator('.collection-name')
       .filter({ hasText: 'source-collection' })
       .locator('..');
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
+    await sidebar.collection('source-collection').click();
     await expect(
       sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'folder-1' })
     ).toHaveCount(0);
@@ -109,7 +120,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
       .locator('.collection-name')
       .filter({ hasText: 'target-collection' })
       .locator('..');
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
+    await sidebar.collection('target-collection').click();
     await expect(
       targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'folder-1' })
     ).toHaveCount(2);

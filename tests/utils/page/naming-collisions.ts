@@ -17,14 +17,10 @@ export const buildNamingCollisionLocators = (page: Page) => ({
       .locator('[data-testid="sidebar-collection-item-row"]')
       .filter({ has: page.locator('.item-name').and(page.getByTitle(title, { exact: true })) }),
 
-  itemInCollection: (collectionName: string, itemName: string): Locator =>
-    page
-      .locator('.collection-name')
-      .filter({ hasText: collectionName })
-      .locator('..')
-      .locator('.collection-item-name')
-      .filter({ hasText: itemName })
-      .first(),
+  itemInCollection: (collectionName: string, itemName: string): Locator => {
+    const { sidebar } = buildCommonLocators(page);
+    return sidebar.collectionScope(collectionName).locator('.collection-item-name').filter({ hasText: itemName }).first();
+  },
 
   collectionDropTarget: (collectionName: string): Locator =>
     page.locator('.collection-name').filter({ hasText: collectionName }),
@@ -42,10 +38,10 @@ export const buildNamingCollisionLocators = (page: Page) => ({
   toast: (text: string | RegExp): Locator => page.getByText(text),
 
   anyModal: (): Locator => page.locator('.bruno-modal'),
-  modalByTitle: (title: string): Locator => page.locator('.bruno-modal').filter({ hasText: title }),
-  modalCardByTitle: (title: string): Locator => page.locator('.bruno-modal-card').filter({ hasText: title }),
+  modalByTitle: (title: string): Locator => buildCommonLocators(page).modal.byTitle(title),
+  modalCardByTitle: (title: string): Locator => buildCommonLocators(page).modal.card().filter({ hasText: title }),
 
-  requestNameInput: (): Locator => page.getByPlaceholder('Request Name'),
+  requestNameInput: (): Locator => buildCommonLocators(page).request.requestNameInput(),
   createRequestButton: (): Locator => page.getByTestId('create-new-request-button'),
 
   renameNameInput: (): Locator => page.locator('#collection-item-name'),
@@ -69,22 +65,23 @@ export const buildNamingCollisionLocators = (page: Page) => ({
   saveRequestNameInput: (): Locator => page.locator('#request-name'),
 
   // Request body editor (used to set/inspect a request body)
-  bodyModeSelector: (): Locator => page.locator('.body-mode-selector'),
-  bodyEditor: (): Locator => page.locator('.request-pane .CodeMirror').first()
+  bodyModeSelector: (): Locator => buildCommonLocators(page).request.bodyModeSelector(),
+  bodyEditor: (): Locator => buildCommonLocators(page).request.bodyEditor().locator('.CodeMirror').first()
 });
 
 export const openItemActionsMenu = async (page: Page, name: string) => {
-  const { sidebar, actions } = buildCommonLocators(page);
-  await sidebar.request(name).first().hover();
-  await actions.collectionItemActions(name).first().click();
+  const { sidebar } = buildCommonLocators(page);
+  const menu = sidebar.rowMenu(name);
+  await sidebar.itemRow(name).first().hover();
+  await menu.trigger().first().click({ force: true });
 };
-
 const openCollectionActionsMenu = async (page: Page, collectionName: string) => {
-  const { sidebar, actions } = buildCommonLocators(page);
-  await sidebar.collection(collectionName).hover();
-  const action = actions.collectionActions(collectionName);
-  await action.waitFor({ state: 'visible' });
-  await action.click();
+  const { sidebar } = buildCommonLocators(page);
+  const menu = sidebar.rowMenu(collectionName, 'collection');
+  await sidebar.collectionRow(collectionName).hover();
+  const trigger = menu.trigger();
+  await trigger.waitFor({ state: 'visible' });
+  await trigger.click();
 };
 
 export const cloneItem = async (page: Page, name: string) => {

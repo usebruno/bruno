@@ -51,8 +51,7 @@ export {
 export {
   sanitizeName,
   validateName,
-  validateNameError,
-  nextSuffixedName
+  validateNameError
 } from './naming';
 
 export {

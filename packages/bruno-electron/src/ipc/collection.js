@@ -1677,6 +1677,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:move-item', async (event, { targetDirname, sourcePathname }) => {
     validatePathIsInsideCollection(sourcePathname);
     validatePathIsInsideCollection(targetDirname);
+
     // Serialize per destination dir: move is copy-then-delete (multi-step).
     return withDirLock(targetDirname, async () => {
       try {
@@ -1685,7 +1686,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
 
         // No-op if the item is already in the destination directory (e.g. a
-        // same-folder drop) — don't create a spurious suffixed copy.
+        // same-folder drop).
         if (path.dirname(sourcePathname) === targetDirname) {
           return { newPathname: sourcePathname };
         }
@@ -1716,6 +1717,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:move-item-cross-format', async (event, { targetDirname, sourcePathname, sourceFormat, targetFormat }) => {
     validatePathIsInsideCollection(sourcePathname);
     validatePathIsInsideCollection(targetDirname);
+
     // Serialize per destination dir: this is a write-then-delete (multi-step).
     return withDirLock(targetDirname, async () => {
       try {

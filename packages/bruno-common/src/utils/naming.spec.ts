@@ -2,8 +2,7 @@ import { describe, it, expect } from '@jest/globals';
 import {
   sanitizeName,
   validateName,
-  validateNameError,
-  nextSuffixedName
+  validateNameError
 } from './naming';
 
 describe('naming utils', () => {
@@ -65,21 +64,6 @@ describe('naming utils', () => {
 
     it('returns empty string for a valid name', () => {
       expect(validateNameError('login')).toBe('');
-    });
-  });
-
-  describe('nextSuffixedName', () => {
-    it('omits the suffix for n === 0', () => {
-      expect(nextSuffixedName('login', 'bru', 0)).toBe('login.bru');
-    });
-
-    it('appends the counter before the extension', () => {
-      expect(nextSuffixedName('login', 'bru', 2)).toBe('login2.bru');
-    });
-
-    it('handles folders (no extension)', () => {
-      expect(nextSuffixedName('My Folder', '', 0)).toBe('My Folder');
-      expect(nextSuffixedName('My Folder', '', 1)).toBe('My Folder1');
     });
   });
 });

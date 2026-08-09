@@ -113,7 +113,6 @@ import {
 
 // Display name for a cloned/pasted item: always "<source> copy" (semantic).
 // Filename uniqueness is resolved silently by the electron main process
-// (atomic wx-create + numeric suffix), so the renderer no longer guesses.
 const copyDisplayName = (originalName) => `${originalName} copy`;
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
@@ -204,7 +203,7 @@ export const saveFile = (content, itemUid, collectionUid, silent = false) => asy
   const { ipcRenderer } = window;
   try {
     if (['http-request', 'graphql-request'].includes(item?.type)) {
-      let json = await ipcRenderer.invoke('renderer:convert-to-json', item, content, collection.format);
+      const json = await ipcRenderer.invoke('renderer:convert-to-json', item, content, collection.format);
       delete json.isTransient;
       await itemSchema.validate(json);
     }
@@ -383,7 +382,7 @@ export const saveMultipleCollections = (collectionDrafts) => (dispatch, getState
         const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
         const { ipcRenderer } = window;
 
-        let savePromises = [];
+        const savePromises = [];
 
         savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig));
 
@@ -463,7 +462,7 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
       return reject(new Error('Collection not found'));
     }
 
-    let collectionCopy = cloneDeep(collection);
+    const collectionCopy = cloneDeep(collection);
 
     // add selected global env variables to the collection object
     const globalEnvironmentVariables = getGlobalEnvironmentVariables({
@@ -500,7 +499,7 @@ export const wsConnectOnly = (item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
-    let collectionCopy = cloneDeep(collection);
+    const collectionCopy = cloneDeep(collection);
 
     const itemCopy = cloneDeep(item);
 
@@ -552,7 +551,7 @@ const extractPromptVariablesForRequest = async (item, collection) => {
     // Get request auth or inherited auth
     const resolvedAuthRequest = resolveInheritedAuth(item, collection);
 
-    for (let clientCert of clientCertConfig) {
+    for (const clientCert of clientCertConfig) {
       const domain = interpolateUrl({ url: clientCert?.domain, variables: allVariables });
 
       if (domain) {
@@ -611,7 +610,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       await dispatch(cancelRequest(item.cancelTokenUid, item, collection));
     }
 
-    let collectionCopy = cloneDeep(collection);
+    const collectionCopy = cloneDeep(collection);
 
     const itemCopy = cloneDeep(item);
 
@@ -750,7 +749,7 @@ export const runCollectionFolder
         return reject(new Error('Collection not found'));
       }
 
-      let collectionCopy = cloneDeep(collection);
+      const collectionCopy = cloneDeep(collection);
 
       // add selected global env variables to the collection object
       const globalEnvironmentVariables = getGlobalEnvironmentVariables({

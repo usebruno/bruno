@@ -2,9 +2,11 @@
  * Shared name/filename utilities.
  *
  * Single source of truth for sanitizing display names into filesystem-safe
- * names, validating names, and resolving filename collisions. Consumed by the
- * Electron main process and the renderer (and re-exported from each package's
- * local helper so existing import paths keep working).
+ * names and validating names. Consumed by the Electron main process and the
+ * renderer (and re-exported from each package's local helper so existing import
+ * paths keep working). Collision-suffix resolution (`nextSuffixedName`) lives in
+ * the Electron filesystem utils, since that's the only place collisions are
+ * resolved against the real filesystem.
  */
 
 // Characters that are illegal in file/dir names across Windows/macOS/Linux.
@@ -71,21 +73,4 @@ export const validateNameError = (name: string): string => {
   }
 
   return '';
-};
-
-/**
- * Build the nth suffixed filename. n === 0 → no suffix.
- *
- *   nextSuffixedName('login', 'bru', 0) -> 'login.bru'
- *   nextSuffixedName('login', 'bru', 2) -> 'login2.bru'
- *   nextSuffixedName('My Folder', '', 1) -> 'My Folder1'
- *
- * This is the single definition of the collision suffix scheme. The Electron
- * `writeFileUnique` / `mkdirUnique` (filesystem authority) use it to generate
- * candidate names while resolving collisions atomically against the real
- * filesystem.
- */
-export const nextSuffixedName = (base: string, ext: string, n: number): string => {
-  const suffix = n === 0 ? '' : String(n);
-  return ext ? `${base}${suffix}.${ext}` : `${base}${suffix}`;
 };
