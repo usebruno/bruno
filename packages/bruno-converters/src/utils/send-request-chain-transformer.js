@@ -44,6 +44,20 @@ const getStaticPropertyName = (memberExpr) => {
 };
 
 /**
+ * Whether a `.then` first argument lets the response pass through untouched.
+ * Per the promise spec, a non-callable onFulfilled is replaced by the identity
+ * function — so no argument, `null`, or `undefined` hands the response to the
+ * next link in the chain.
+ * @param {Object|undefined} arg - The `.then` call's first argument node
+ * @returns {boolean}
+ */
+const isPassThroughHandler = (arg) => {
+  if (!arg) return true;
+  if (arg.type === 'Literal' && arg.value === null) return true;
+  return arg.type === 'Identifier' && arg.name === 'undefined';
+};
+
+/**
  * Get the `.then`/`.catch`/`.finally` member expression a node is chained into
  * @param {Object} path - Path of the node the chain would hang off
  * @returns {Object|null} - Path of the chaining MemberExpression, or null
@@ -85,10 +99,12 @@ const rewriteFirstThenHandler = (j, callPath) => {
     if (!chainedCallPath || chainedCallPath.value.type !== 'CallExpression') return;
 
     if (getStaticPropertyName(memberPath.value) === 'then') {
-      // the response is consumed here, whether or not the handler is rewritable
-      const handlerPath = chainedCallPath.get('arguments', 0);
-      rewriteResponsePropertyAccess(j, handlerPath);
-      return;
+      // a non-callable onFulfilled forwards the response to the next link
+      if (!isPassThroughHandler(chainedCallPath.value.arguments[0])) {
+        // the response is consumed here, whether or not the handler is rewritable
+        rewriteResponsePropertyAccess(j, chainedCallPath.get('arguments', 0));
+        return;
+      }
     }
 
     currentPath = chainedCallPath;
