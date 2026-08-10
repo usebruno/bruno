@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   IconAlertCircle,
   IconBraces,
@@ -8,22 +8,9 @@ import {
   IconToggleRight
 } from '@tabler/icons';
 import { Tooltip } from 'react-tooltip';
-import { BRUNO_VARIABLE_DATATYPES, parseValueByDataType, validateDataTypeValue, getDataTypeFromValue } from '@usebruno/common/utils';
-import get from 'lodash/get';
+import { BRUNO_VARIABLE_DATATYPES, parseValueByDataType, validateDataTypeValue } from '@usebruno/common/utils';
 import MenuDropdown from 'ui/MenuDropdown';
-import { getAllVariables } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
-
-const getReferencedVariableType = (value, resolvableVariables = {}) => {
-  if (typeof value !== 'string') return null;
-
-  const match = value.trim().match(/^\{\{([^}]+)\}\}$/);
-  if (!match) return null;
-  const variableName = match[1].trim();
-  const resolved = get(resolvableVariables, variableName);
-
-  return resolved === undefined ? null : getDataTypeFromValue(resolved);
-};
 
 const TYPE_ICONS = {
   string: IconLetterT,
@@ -39,14 +26,10 @@ const TYPE_ICONS_SIZES = {
   object: 18
 };
 
-const DataTypeSelector = ({ variable, collection, onChange, compact = false }) => {
-  const resolvableVariables = useMemo(() => getAllVariables(collection), [collection]);
-
-  const referencedType = getReferencedVariableType(variable.value, resolvableVariables);
+const DataTypeSelector = ({ variable, resolvableVariables, onChange, compact = false }) => {
   const selectedType = variable.dataType || 'string';
-  const referencedTypeError = referencedType === selectedType ? null : `Value is not a valid ${selectedType}`;
-  const coercedValue = parseValueByDataType(variable.value, selectedType);
-  const typeError = referencedType !== null ? referencedTypeError : validateDataTypeValue(coercedValue, selectedType);
+  const coercedValue = parseValueByDataType(variable.value, selectedType, resolvableVariables);
+  const typeError = validateDataTypeValue(coercedValue, selectedType);
 
   const handleTypeChange = (type) => {
     onChange({ dataType: type === 'string' ? undefined : type });

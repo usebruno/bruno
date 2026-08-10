@@ -168,9 +168,15 @@ describe('getDataTypeFromValue', () => {
 });
 
 describe('validateDataTypeValue', () => {
-  it('returns null when dataType is missing or "string"', () => {
+  it('returns null when dataType is missing', () => {
     expect(validateDataTypeValue('anything', undefined)).toBeNull();
+    expect(validateDataTypeValue(42, undefined)).toBeNull();
+  });
+
+  it('validates strings', () => {
     expect(validateDataTypeValue('anything', 'string')).toBeNull();
+    expect(validateDataTypeValue(42, 'string')).toBe('Value is not a valid string');
+    expect(validateDataTypeValue(true, 'string')).toBe('Value is not a valid string');
   });
 
   it('returns null for null/undefined values regardless of dataType', () => {
@@ -195,6 +201,47 @@ describe('validateDataTypeValue', () => {
     expect(validateDataTypeValue([1, 2], 'object')).toBeNull();
     expect(validateDataTypeValue('{"a":1}', 'object')).toBe('Value is not a valid object');
     expect(validateDataTypeValue('not json', 'object')).toBe('Value is not a valid object');
+  });
+});
+
+describe('parseValueByDataType — {{var}} references', () => {
+  const variables = { count: 7, flag: true, payload: { a: 1 }, label: 'hi', nested: { count: 3 } };
+
+  it('resolves a lone reference to the referenced variable value', () => {
+    expect(parseValueByDataType('{{count}}', 'number', variables)).toBe(7);
+    expect(parseValueByDataType('{{flag}}', 'boolean', variables)).toBe(true);
+    expect(parseValueByDataType('{{payload}}', 'object', variables)).toEqual({ a: 1 });
+  });
+
+  it('resolves dotted paths and tolerates surrounding whitespace', () => {
+    expect(parseValueByDataType('  {{ nested.count }}  ', 'number', variables)).toBe(3);
+  });
+
+  it('resolves regardless of whether the referenced type matches, so validation can flag it', () => {
+    expect(parseValueByDataType('{{label}}', 'number', variables)).toBe('hi');
+    expect(validateDataTypeValue(parseValueByDataType('{{label}}', 'number', variables), 'number')).toBe(
+      'Value is not a valid number'
+    );
+  });
+
+  it('leaves the raw string for unknown or partial references', () => {
+    expect(parseValueByDataType('{{missing}}', 'number', variables)).toBe('{{missing}}');
+    expect(parseValueByDataType('id-{{count}}', 'number', variables)).toBe('id-{{count}}');
+    // no variables supplied at all
+    expect(parseValueByDataType('{{count}}', 'number')).toBe('{{count}}');
+  });
+
+  it('prefers a literal dotted key over walking the dotted path', () => {
+    const flatKey = { 'nested.count': 99, 'nested': { count: 3 } };
+    expect(parseValueByDataType('{{nested.count}}', 'number', flatKey)).toBe(99);
+  });
+
+  it('resolves regardless of dataType — the referenced value keeps its own type', () => {
+    expect(parseValueByDataType('{{count}}', 'string', variables)).toBe(7);
+    expect(parseValueByDataType('{{count}}', undefined, variables)).toBe(7);
+    expect(validateDataTypeValue(parseValueByDataType('{{count}}', 'string', variables), 'string')).toBe(
+      'Value is not a valid string'
+    );
   });
 });
 
@@ -231,7 +278,7 @@ describe('valueToString — round-trip with parseValueByDataType', () => {
 
   it('returns empty string for functions and symbols', () => {
     expect(valueToString(() => 42)).toBe('');
-    expect(valueToString(function named() {})).toBe('');
+    expect(valueToString(function named() { })).toBe('');
     expect(valueToString(Symbol('s'))).toBe('');
   });
 
