@@ -6,7 +6,7 @@ const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
 const addLocalModuleLoaderShimToContext = require('./shims/local-module');
 const { getRequireCode } = require('./shims/require');
-const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscripten');
+const { newQuickJSWASMModule } = require('quickjs-emscripten');
 
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
 const getBundledCode = require('../bundle-browser-rollup');
@@ -16,8 +16,46 @@ const addCryptoUtilsShimToContext = require('./shims/lib/crypto-utils');
 const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
 
 let QuickJSModule;
-const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
-loader().then((mod) => (QuickJSModule = mod));
+let quickJSModulePromise;
+// Memoizes the WASM module, but stays resettable so a trap can retire the
+// instance (recycleQuickJSModuleOnAbort nulls the cache to force a fresh
+// build). QuickJSModule holds the resolved module as a plain value because
+// executeQuickJsVm is synchronous and cannot await the promise; it may be
+// null briefly at startup and after a recycle, until the load resolves.
+const loader = () => {
+  if (!quickJSModulePromise) {
+    quickJSModulePromise = newQuickJSWASMModule().then((mod) => {
+      QuickJSModule = mod;
+      return mod;
+    });
+  }
+  return quickJSModulePromise;
+};
+loader();
+
+/**
+ * A WASM trap inside JS_FreeRuntime (emscripten surfaces it as a thrown
+ * WebAssembly.RuntimeError, e.g. the gc_obj_list assertion abort when an
+ * uncatchable out-of-memory strands engine objects) leaves the instance's
+ * allocator state unreliable and the runtime's memory stranded for the life
+ * of the instance. Discard the module so the next run gets a fresh heap.
+ * A parked context can dispose (and trap) long after its module was already
+ * replaced, so only the module the failing context came from is discarded.
+ * Returns whether the error was such a trap.
+ */
+const recycleQuickJSModuleOnAbort = (teardownError, ownerModule) => {
+  if (!(teardownError instanceof WebAssembly.RuntimeError)) {
+    return false;
+  }
+  // Retire only the failing context's own generation; a stale owner was
+  // already replaced. An unknown owner fails safe toward recycling.
+  if (!ownerModule || ownerModule === QuickJSModule) {
+    QuickJSModule = null;
+    quickJSModulePromise = null;
+    loader();
+  }
+  return true;
+};
 
 const toNumber = (value) => {
   const num = Number(value);
@@ -57,8 +95,9 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
     externalScript = removeQuotes(externalScript);
   }
   let managedQuickJsContext;
+  const quickJsModule = QuickJSModule;
   try {
-    managedQuickJsContext = createManagedQuickJsContext(QuickJSModule);
+    managedQuickJsContext = createManagedQuickJsContext(quickJsModule);
     const vm = managedQuickJsContext.vm;
     const { bru, req, res, ...variables } = externalContext;
 
@@ -88,7 +127,12 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   } catch (error) {
     console.error('Error executing the script!', error);
   } finally {
-    managedQuickJsContext?.dispose();
+    try {
+      managedQuickJsContext?.dispose();
+    } catch (teardownError) {
+      recycleQuickJSModuleOnAbort(teardownError, quickJsModule);
+      console.error('Error disposing QuickJS context', teardownError);
+    }
   }
 };
 
@@ -99,9 +143,11 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
   externalScript = externalScript?.trim();
 
   let managedQuickJsContext;
+  let scriptError;
+  let quickJsModule;
   try {
-    const module = await loader();
-    managedQuickJsContext = createManagedQuickJsContext(module);
+    quickJsModule = await loader();
+    managedQuickJsContext = createManagedQuickJsContext(quickJsModule);
     const vm = managedQuickJsContext.vm;
 
     // add crypto utilities required by the crypto-js library in bundledCode
@@ -137,21 +183,39 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     promiseHandle.dispose();
     const resolvedHandle = vm.unwrapResult(resolvedResult);
     resolvedHandle.dispose();
-    return;
   } catch (error) {
     error.__isQuickJS = true;
-    throw error;
-  } finally {
-    // Wait for any in-flight async work (sendRequest, axios, cookie jar, timers,
-    // un-awaited promises) to settle before tearing down the VM. Disposing while
-    // a deferred is still pending lets its later host callback touch a freed
-    // context, throwing `QuickJSUseAfterFree`.
+    scriptError = error;
+  }
+
+  // Fire-and-forget work the script abandoned is neither awaited nor killed:
+  // the run returns now and the context stays parked until that work settles,
+  // then disposes. Disposing earlier would let a late host callback touch a
+  // freed context. A teardown throw must not replace the script's own error,
+  // and once the run has returned it can only be logged.
+  const disposeContext = (background) => {
     try {
-      await managedQuickJsContext?.waitForPendingDeferreds?.();
-      managedQuickJsContext?.dispose();
+      managedQuickJsContext.dispose();
     } catch (teardownError) {
-      throw teardownError;
+      const recycled = recycleQuickJSModuleOnAbort(teardownError, quickJsModule);
+      if (!background && !scriptError && !recycled) {
+        scriptError = teardownError;
+      } else {
+        console.error('Error disposing QuickJS context', teardownError);
+      }
     }
+  };
+
+  if (managedQuickJsContext) {
+    if (managedQuickJsContext.hasPendingDeferreds()) {
+      managedQuickJsContext.waitForPendingDeferreds().then(() => disposeContext(true));
+    } else {
+      disposeContext(false);
+    }
+  }
+
+  if (scriptError) {
+    throw scriptError;
   }
 };
 
