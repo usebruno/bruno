@@ -29,6 +29,7 @@ const EditorCodeBlockExtension = CodeBlockLowlight.extend({
   addNodeView() {
     return ReactNodeViewRenderer(EditorCodeBlock);
   },
+  // Tiptap doesn't support Tab in codeblock. added a literal tab.
   addKeyboardShortcuts() {
     return {
       Tab: () => {
