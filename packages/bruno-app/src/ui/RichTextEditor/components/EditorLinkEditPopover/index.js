@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 
@@ -8,10 +8,10 @@ const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, initialText, initial
   const popoverRef = useRef(null);
   const urlInputRef = useRef(null);
 
-  const setPopoverRefs = (node) => {
+  const setPopoverRefs = useCallback((node) => {
     popoverRef.current = node;
     if (wrapperRef) wrapperRef.current = node;
-  };
+  }, [wrapperRef]);
 
   // Parent provides fully-computed coords before opening — no state/effect needed.
   const coords = externalCoords || { top: 0, left: 0 };

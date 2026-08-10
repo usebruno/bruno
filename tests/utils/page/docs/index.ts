@@ -30,9 +30,9 @@ export const buildDocsLocators = (page: Page) => ({
   codeBlockSyntaxHighlight: (className: string) => page.locator(`[data-testid="code-block-pre"] code .${className}`),
   // Link popover locators
   linkEditPopover: () => page.getByTestId('editor-link-popover'),
-  linkEditUrlInput: () => page.locator('#linkUrl'),
-  linkEditInsertBtn: () => page.getByRole('button', { name: 'Insert' }),
-  linkEditSaveBtn: () => page.getByRole('button', { name: 'Save' }),
+  linkEditUrlInput: () => page.getByRole('textbox', { name: 'URL' }),
+  linkEditInsertBtn: () => page.locator('[data-editor-link-popover="true"]').getByRole('button', { name: 'Insert' }),
+  linkEditSaveBtn: () => page.locator('[data-editor-link-popover="true"]').getByRole('button', { name: 'Save' }),
   linkHoverPopover: () => page.locator('[data-hover-popover="true"]'),
   linkHoverUrlDisplay: () => page.locator('[data-hover-popover="true"] .link-url'),
   linkHoverEditBtn: () => page.getByTestId('link-hover-edit-btn'),

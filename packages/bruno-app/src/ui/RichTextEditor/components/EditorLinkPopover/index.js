@@ -55,13 +55,15 @@ function getPortalCoords(anchorRect, popoverHeight, containerRect) {
 
   // Try bottom first
   let top = anchorRect.bottom + 4;
+  let placement = 'bottom';
 
   // If it overflows the bottom of the viewport and there is space above, place it above
   if (top + popoverHeight > window.innerHeight && anchorRect.top - popoverHeight - 4 > 0) {
     top = anchorRect.top - popoverHeight - 4;
+    placement = 'top';
   }
 
-  return { top, left, visible: isVisible };
+  return { top, left, visible: isVisible, placement };
 }
 
 /**
@@ -101,15 +103,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
     return lastKnownRef.current;
   };
 
-  const [isEditable, setIsEditable] = useState(editor?.isEditable ?? false);
-
-  useEffect(() => {
-    if (!editor) return;
-    setIsEditable(editor.isEditable);
-    const handleTransaction = () => setIsEditable(editor.isEditable);
-    editor.on('transaction', handleTransaction);
-    return () => editor.off('transaction', handleTransaction);
-  }, [editor]);
+  const isEditable = editor?.isEditable ?? false;
 
   const getContainer = useCallback(() => {
     return containerEl || editor?.view?.dom?.closest('.rich-text-editor-content') || document.body;
@@ -190,7 +184,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
   }, [editor, getContainer]);
 
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || (!hoverOpen && !editOpen)) return;
     const container = getContainer();
 
     const reposition = () => {
@@ -293,6 +287,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
       {hoverOpen && (
         <StyledWrapper
           ref={hoverPopoverElRef}
+          $placement={hoverCoords.placement}
           data-hover-popover="true"
           style={{
             top: `${hoverCoords.top}px`,

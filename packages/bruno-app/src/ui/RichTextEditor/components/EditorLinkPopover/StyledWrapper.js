@@ -13,10 +13,10 @@ const StyledWrapper = styled.div`
   &::before {
     content: '';
     position: absolute;
-    top: -10px;
+    ${(props) => (props.$placement === 'top' ? 'bottom: -4px;' : 'top: -4px;')}
     left: 0;
     right: 0;
-    height: 10px;
+    height: 4px;
   }
 
   .hover-link-view {
