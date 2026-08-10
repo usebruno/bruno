@@ -406,7 +406,6 @@ export const getMockServerNameError = (name) => {
   return '';
 };
 
-// keeps the raw text so the field can be cleared while typing — callers coerce to a number on commit
 export const toMockServerDelayInputValue = (value) => String(value ?? '').replace(/\D/g, '');
 
 export const blockMockServerDelayKeys = (event) => {
