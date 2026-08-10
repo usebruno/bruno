@@ -412,6 +412,17 @@ const saveMockResponse = (location, response) => {
   };
 
   const responses = [...getMockServerResponses(location)];
+
+  const normalizedName = nextResponse.name?.trim().toLowerCase();
+  if (normalizedName) {
+    const isDuplicate = responses.some((item) => (
+      item.uid !== nextResponse.uid && item.name?.trim().toLowerCase() === normalizedName
+    ));
+    if (isDuplicate) {
+      throw new Error('A mock response with this name already exists');
+    }
+  }
+
   const index = responses.findIndex((item) => item.uid === nextResponse.uid);
 
   if (index >= 0) {

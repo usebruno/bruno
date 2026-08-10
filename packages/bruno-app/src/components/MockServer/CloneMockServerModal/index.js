@@ -54,7 +54,6 @@ const CloneMockServerModal = ({
       port: Yup.number()
         .min(1, 'Port must be at least 1')
         .max(65535, 'Port must be 65535 or less')
-        .required('Port is required')
         .test('duplicate-port', 'This port is already used by another mock server', (value) => (
           !isMockServerPortTaken(configuredInstances, value)
         ))

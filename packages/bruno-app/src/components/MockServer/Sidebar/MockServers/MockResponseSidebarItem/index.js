@@ -20,6 +20,7 @@ const MockResponseSidebarItem = ({
 }) => {
   const dispatch = useDispatch();
   const activeTabUid = useSelector((state) => state.tabs?.activeTabUid);
+  const existingResponses = useSelector((state) => state.mockServer.mockResponses[instance.uid] || []);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -142,6 +143,7 @@ const MockResponseSidebarItem = ({
       {showRenameModal ? (
         <RenameMockResponseModal
           response={response}
+          existingResponses={existingResponses}
           isSaving={isRenaming}
           onClose={() => {
             if (!isRenaming) {
