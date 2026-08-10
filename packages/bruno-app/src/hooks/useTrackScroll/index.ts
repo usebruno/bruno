@@ -1,5 +1,6 @@
 import type { RefObject } from 'react';
 import { useEffect, useRef } from 'react';
+import { useSettleScrollAfterMount } from 'hooks/useSettleScrollAfterMount';
 
 const SAVE_DEBOUNCE_MS = 200;
 
@@ -14,10 +15,7 @@ export type UseTrackScrollOptions = {
   selector?: string | null;
   /** Set false to pause tracking (e.g. edit mode in Docs where CodeEditor handles its own scroll). */
   enabled?: boolean;
-  /**
-   * Re-apply the restored scroll position while async content is still mounting.
-   * Enable only for containers whose content can change size after mount.
- */
+  /** Code blocks and tables mount after the initial render, Keep restoring until the layout settles. */
   settleAfterAsyncLayout?: boolean;
 };
 
@@ -32,10 +30,6 @@ export type UseTrackScrollOptions = {
  *   const [scroll, setScroll] = usePersistedState({ key: 'my-key', default: 0 });
  *   <CodeEditor initialScroll={scroll} onScroll={setScroll} />
  */
-
-// Time to keep restoring scroll position while async content is mounting.
-const LAYOUT_SETTLE_MS = 1000;
-
 export function useTrackScroll(options: UseTrackScrollOptions): void {
   const { onChange, initialValue, ref, selector, enabled = true, settleAfterAsyncLayout = false } = options;
 
@@ -43,6 +37,8 @@ export function useTrackScroll(options: UseTrackScrollOptions): void {
   const scrollPosRef = useRef<number>(initialValue ?? 0);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+
+  const settleController = useSettleScrollAfterMount();
 
   useEffect(() => {
     if (!enabled || !ref) return;
@@ -54,27 +50,23 @@ export function useTrackScroll(options: UseTrackScrollOptions): void {
       : ref.current;
     if (!el) return;
 
-    el.scrollTop = scrollPosRef.current;
+    // Captured once, before any clamping can happen, so the settle pass
+    // below always aims at what we actually meant to restore.
+    const targetScroll = scrollPosRef.current;
 
-    // Some content mounts asynchronously after the initial scroll restoration.
-    // Watch for DOM changes and re-apply the saved position while the layout settles.
-    // Only enable this for consumers that render async content.
-    let mutationObserver: MutationObserver | null = null;
-    let settleTimeout: ReturnType<typeof setTimeout> | null = null;
-    if (settleAfterAsyncLayout && scrollPosRef.current > 0 && typeof MutationObserver !== 'undefined') {
-      mutationObserver = new MutationObserver(() => {
-        if (Math.abs(el.scrollTop - scrollPosRef.current) > 1) {
-          el.scrollTop = scrollPosRef.current;
-        }
-      });
-      mutationObserver.observe(el, { childList: true, subtree: true, attributes: true, characterData: true });
-      settleTimeout = setTimeout(() => {
-        mutationObserver?.disconnect();
-        mutationObserver = null;
-      }, LAYOUT_SETTLE_MS);
+    if (settleAfterAsyncLayout) {
+      settleController.writeScrollTop(el, targetScroll);
+    } else {
+      el.scrollTop = targetScroll;
     }
 
+    const settleHandle = settleAfterAsyncLayout ? settleController.settle(el, targetScroll) : null;
+
     const handleScroll = () => {
+      // ignore this scroll event if it is caused programmatically.
+      if (settleAfterAsyncLayout && settleController.consumeSuppressedScroll()) return;
+      // on a user scroll stop the mutation observer
+      settleHandle?.stop();
       scrollPosRef.current = el.scrollTop;
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
       saveTimeout.current = setTimeout(() => onChangeRef.current(scrollPosRef.current), SAVE_DEBOUNCE_MS);
@@ -84,8 +76,7 @@ export function useTrackScroll(options: UseTrackScrollOptions): void {
     return () => {
       el.removeEventListener('scroll', handleScroll);
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
-      if (settleTimeout) clearTimeout(settleTimeout);
-      mutationObserver?.disconnect();
+      settleHandle?.stop();
       onChangeRef.current(scrollPosRef.current);
     };
   }, [ref, selector, enabled, settleAfterAsyncLayout]);
