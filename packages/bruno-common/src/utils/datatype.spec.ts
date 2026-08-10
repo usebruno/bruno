@@ -244,6 +244,24 @@ describe('parseValueByDataType — {{var}} references', () => {
     expect(validateDataTypeValue(parseValueByDataType('{{flag}}', 'object', variables), 'object')).toBe('Value is not a valid object');
     expect(parseValueByDataType('{{label}}', 'object', { label: '{"a":1}' })).toBe('{"a":1}');
   });
+
+  it('flags a nested boolean reference for every dataType except boolean and string', () => {
+    const variable = { user: { admin: true } };
+
+    expect(validateDataTypeValue(parseValueByDataType('{{user.admin}}', 'boolean', variable), 'boolean')).toBeNull();
+    expect(validateDataTypeValue(parseValueByDataType('{{user.admin}}', 'string', variable), 'string')).toBeNull();
+    expect(validateDataTypeValue(parseValueByDataType('{{user.admin}}', 'number', variable), 'number')).toBe('Value is not a valid number');
+    expect(validateDataTypeValue(parseValueByDataType('{{user.admin}}', 'object', variable), 'object')).toBe('Value is not a valid object');
+  });
+
+  it('flags a nested number reference for every dataType except number and string', () => {
+    const variable = { user: { age: 30 } };
+
+    expect(validateDataTypeValue(parseValueByDataType('{{user.age}}', 'number', variable), 'number')).toBeNull();
+    expect(validateDataTypeValue(parseValueByDataType('{{user.age}}', 'string', variable), 'string')).toBeNull();
+    expect(validateDataTypeValue(parseValueByDataType('{{user.age}}', 'boolean', variable), 'boolean')).toBe('Value is not a valid boolean');
+    expect(validateDataTypeValue(parseValueByDataType('{{user.age}}', 'object', variable), 'object')).toBe('Value is not a valid object');
+  });
 });
 
 describe('valueToString — round-trip with parseValueByDataType', () => {
