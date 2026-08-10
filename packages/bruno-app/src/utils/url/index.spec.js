@@ -471,6 +471,18 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
 
     expect(result).toEqual('https://example.com/foo/:literal');
   });
+
+  it('should not corrupt a path param value that looks like the internal escape placeholder', () => {
+    const url = 'https://example.com/:foo/:bar\\:publish';
+    const params = [
+      { name: 'foo', type: 'path', enabled: true, value: 'zzzBRUNOESCAPEDCOLONabc123zzz' },
+      { name: 'bar', type: 'path', enabled: true, value: 'b' }
+    ];
+
+    const result = interpolateUrlPathParams(url, params);
+
+    expect(result).toEqual('https://example.com/zzzBRUNOESCAPEDCOLONabc123zzz/b:publish');
+  });
 });
 
 describe('Url Utils - interpolateUrlPathParams with { raw: true }', () => {

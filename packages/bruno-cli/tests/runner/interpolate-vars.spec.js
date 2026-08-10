@@ -97,6 +97,20 @@ describe('interpolate-vars: path params', () => {
     const result = interpolateVars(request, {}, null, null);
     expect(result.url).toBe('https://example.com/foo/:literal');
   });
+
+  it('does not corrupt a path param value that looks like the internal escape placeholder', () => {
+    const request = {
+      method: 'GET',
+      url: 'https://example.com/:foo/:bar\\:publish',
+      pathParams: [
+        { type: 'path', name: 'foo', value: 'zzzBRUNOESCAPEDCOLONabc123zzz' },
+        { type: 'path', name: 'bar', value: 'b' }
+      ]
+    };
+
+    const result = interpolateVars(request, {}, null, null);
+    expect(result.url).toBe('https://example.com/zzzBRUNOESCAPEDCOLONabc123zzz/b:publish');
+  });
 });
 
 describe('interpolate-vars: api key header name sidecar', () => {

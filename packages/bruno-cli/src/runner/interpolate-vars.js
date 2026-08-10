@@ -37,14 +37,22 @@ const getContentType = (headers = {}) => {
 // A `\:` in the URL lets a user write a literal colon that shouldn't be parsed as a
 // path param (e.g. `:bar\:publish` -> param `bar` followed by literal `:publish`). The
 // WHATWG URL parser normalizes any *other* backslash into an extra `/` for special
-// schemes, so `\:` is swapped for this alphanumeric placeholder before the URL is
+// schemes, so `\:` is swapped for an alphanumeric placeholder token before the URL is
 // parsed, and swapped back to `:` in the final string once parsing/splitting is done.
-const ESCAPED_COLON_TOKEN = 'zzzBRUNOESCAPEDCOLONzzz';
-const protectEscapedColons = (str) => str.replace(/\\:/g, ESCAPED_COLON_TOKEN);
-const restoreEscapedColons = (str) => str.split(ESCAPED_COLON_TOKEN).join(':');
+// The token is generated per call and verified absent from the input, so it can never
+// collide with real content.
+const makeEscapedColonToken = (str) => {
+  let token;
+  do {
+    token = `zzzBRUNOESCAPEDCOLON${Math.random().toString(36).slice(2)}zzz`;
+  } while (str.includes(token));
+  return token;
+};
+const protectEscapedColons = (str, token) => str.replace(/\\:/g, token);
+const restoreEscapedColons = (str, token) => str.split(token).join(':');
 
-const splitEscapedParamName = (path) => {
-  const escapeIdx = path.indexOf(ESCAPED_COLON_TOKEN);
+const splitEscapedParamName = (path, token) => {
+  const escapeIdx = path.indexOf(token);
   return {
     name: escapeIdx === -1 ? path.slice(1) : path.slice(1, escapeIdx),
     suffix: escapeIdx === -1 ? '' : path.slice(escapeIdx)
@@ -166,7 +174,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `http://${url}`;
     }
-    url = protectEscapedColons(url);
+    const token = makeEscapedColonToken(url);
+    url = protectEscapedColons(url, token);
 
     try {
       url = new URL(url);
@@ -180,7 +189,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       .map((path) => {
         // traditional path parameters
         if (path.startsWith(':')) {
-          const { name: paramName, suffix } = splitEscapedParamName(path);
+          const { name: paramName, suffix } = splitEscapedParamName(path, token);
           const existingPathParam = pathParams.find((param) => param.name === paramName);
           if (!hasResolvablePathParamValue(existingPathParam)) {
             return '/' + path;
@@ -216,7 +225,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       .join('');
 
     const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
-    request.url = restoreEscapedColons(url.origin + interpolatedUrlPath + trailingSlash + url.search);
+    request.url = restoreEscapedColons(url.origin + interpolatedUrlPath + trailingSlash + url.search, token);
   }
 
   if (request.proxy) {

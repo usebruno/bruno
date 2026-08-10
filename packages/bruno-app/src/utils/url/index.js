@@ -25,15 +25,22 @@ const hasLength = (str) => {
 // A `\:` in the URL bar lets a user write a literal colon that shouldn't be
 // parsed as a path param (e.g. `:bar\:publish` -> param `bar` followed by
 // literal `:publish`). The WHATWG URL parser normalizes any *other* backslash
-// into an extra `/` for special schemes, so `\:` is swapped for this
-// alphanumeric placeholder before the URL is parsed, and swapped back to `:`
-// in the final string once parsing/splitting is done.
-const ESCAPED_COLON_TOKEN = 'zzzBRUNOESCAPEDCOLONzzz';
-const protectEscapedColons = (str) => str.replace(/\\:/g, ESCAPED_COLON_TOKEN);
-const restoreEscapedColons = (str) => str.split(ESCAPED_COLON_TOKEN).join(':');
+// into an extra `/` for special schemes, so `\:` is swapped for an alphanumeric
+// placeholder token before the URL is parsed, and swapped back to `:` in the
+// final string once parsing/splitting is done. The token is generated per call
+// and verified absent from the input, so it can never collide with real content.
+const makeEscapedColonToken = (str) => {
+  let token;
+  do {
+    token = `zzzBRUNOESCAPEDCOLON${Math.random().toString(36).slice(2)}zzz`;
+  } while (str.includes(token));
+  return token;
+};
+const protectEscapedColons = (str, token) => str.replace(/\\:/g, token);
+const restoreEscapedColons = (str, token) => str.split(token).join(':');
 
-const splitEscapedParamName = (segment) => {
-  const escapeIdx = segment.indexOf(ESCAPED_COLON_TOKEN);
+const splitEscapedParamName = (segment, token) => {
+  const escapeIdx = segment.indexOf(token);
   return {
     name: escapeIdx === -1 ? segment.slice(1) : segment.slice(1, escapeIdx),
     suffix: escapeIdx === -1 ? '' : segment.slice(escapeIdx)
@@ -65,7 +72,8 @@ export const parsePathParams = (url) => {
     return [];
   }
 
-  uri = protectEscapedColons(uri);
+  const token = makeEscapedColonToken(uri);
+  uri = protectEscapedColons(uri, token);
 
   if (!uri.startsWith('http://') && !uri.startsWith('https://')) {
     uri = `http://${uri}`;
@@ -85,7 +93,7 @@ export const parsePathParams = (url) => {
   paths.forEach((segment) => {
     // traditional path parameters
     if (segment.startsWith(':')) {
-      const { name } = splitEscapedParamName(segment);
+      const { name } = splitEscapedParamName(segment, token);
       if (name && !foundParams.has(name)) {
         foundParams.add(name);
       }
@@ -193,13 +201,13 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
     return options.encodeUrl ? encodeURIComponent(v) : v;
   };
 
-  const getInterpolatedBasePath = (pathname, params) => {
+  const getInterpolatedBasePath = (pathname, params, token) => {
     let replacedPathname = pathname
       .split('/')
       .map((segment) => {
         // traditional path parameters
         if (segment.startsWith(':')) {
-          const { name, suffix } = splitEscapedParamName(segment);
+          const { name, suffix } = splitEscapedParamName(segment, token);
           const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
           if (!hasResolvablePathParamValue(pathParam)) {
             return segment;
@@ -244,22 +252,23 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
 
   // Protect user-typed `\:` before any URL parsing/splitting below, then restore
   // it as a literal `:` on every return path.
-  url = protectEscapedColons(url);
+  const escapedColonToken = makeEscapedColonToken(url);
+  url = protectEscapedColons(url, escapedColonToken);
 
   // When raw is true, resolve :params via pure string manipulation without
   // passing through new URL(), which would percent-encode characters like spaces.
   // This preserves the user's original encoding choices for snippet generation.
   if (options.raw) {
     const enabledPathParams = (params || []).filter((p) => p.enabled !== false && p.type === 'path');
-    if (enabledPathParams.length === 0) return restoreEscapedColons(url);
+    if (enabledPathParams.length === 0) return restoreEscapedColons(url, escapedColonToken);
 
     const separatorIdx = url.search(/[?#]/);
     const pathPart = separatorIdx >= 0 ? url.substring(0, separatorIdx) : url;
     const rest = separatorIdx >= 0 ? url.substring(separatorIdx) : '';
 
     // resolvedPath includes the origin (scheme + host) since pathPart is the full URL before ?/#
-    const resolvedPath = getInterpolatedBasePath(pathPart, enabledPathParams);
-    return restoreEscapedColons(`${resolvedPath}${rest}`);
+    const resolvedPath = getInterpolatedBasePath(pathPart, enabledPathParams, escapedColonToken);
+    return restoreEscapedColons(`${resolvedPath}${rest}`, escapedColonToken);
   }
 
   let uri;
@@ -268,10 +277,10 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
     uri = new URL(url);
   } catch (error) {
     // if the URL is invalid, return the URL as is
-    return restoreEscapedColons(url);
+    return restoreEscapedColons(url, escapedColonToken);
   }
 
-  const basePath = getInterpolatedBasePath(uri.pathname, params);
+  const basePath = getInterpolatedBasePath(uri.pathname, params, escapedColonToken);
 
-  return restoreEscapedColons(`${uri.origin}${basePath}${uri?.search || ''}`);
+  return restoreEscapedColons(`${uri.origin}${basePath}${uri?.search || ''}`, escapedColonToken);
 };
