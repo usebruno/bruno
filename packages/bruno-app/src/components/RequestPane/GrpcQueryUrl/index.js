@@ -281,12 +281,11 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   useEffect(() => {
     if (protoFilePath) {
-      if (!protoFileManagement.claimProtoFileLoad(protoFilePath)) return;
       setIsReflectionMode(false);
       handleProtoFileLoad(protoFilePath);
       return;
     }
-    if (!reflectionManagement.claimReflection(url)) return;
+    if (!url) return;
     setIsReflectionMode(true);
     handleReflection(url);
   }, [collection.activeEnvironmentUid]);

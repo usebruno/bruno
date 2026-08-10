@@ -130,31 +130,11 @@ export default function useReflectionManagement(item, collection) {
     debouncedLoad(url, onDone);
   };
 
-  const lastReflectionKeyRef = useRef(null);
-
-  /**
-   * Marks (url, activeEnvironmentUid) as reflected and returns whether this
-   * key is new (i.e. the caller should run the reflection side-effect chain).
-   * Callers that want to skip re-running side effects for a URL they've already
-   * reflected in this env should gate on the return value.
-   * @param {string} url
-   * @returns {boolean} true if the key was new (and is now marked), false if already seen
-   */
-  const claimReflection = (url) => {
-    if (!url) return false;
-    const envUid = collection.activeEnvironmentUid ?? null;
-    const last = lastReflectionKeyRef.current;
-    if (last && last.url === url && last.envUid === envUid) return false;
-    lastReflectionKeyRef.current = { url, envUid };
-    return true;
-  };
-
   return {
     isLoadingMethods,
     reflectionCache,
     loadMethodsFromReflection,
     scheduleReflection,
-    claimReflection,
     hasCachedMethods,
     getCachedMethods,
     clearCacheForUrl,

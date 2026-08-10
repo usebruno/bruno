@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { browseFiles, updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { updateCollectionProtobuf } from 'providers/ReduxStore/slices/collections';
@@ -389,29 +389,11 @@ export default function useProtoFileManagement(collection) {
     }
   };
 
-  const claimedProtoFileRef = useRef(null);
-
-  /**
-   * Marks a filePath as loaded and returns whether this filePath is new (i.e.
-   * the caller should run the proto-file-load side-effect chain). Callers that
-   * want to skip re-running side effects for a filePath they've already handled
-   * should gate on the return value.
-   * @param {string} filePath
-   * @returns {boolean} true if the filePath was new (and is now marked), false if already seen
-   */
-  const claimProtoFileLoad = (filePath) => {
-    if (!filePath) return false;
-    if (claimedProtoFileRef.current === filePath) return false;
-    claimedProtoFileRef.current = filePath;
-    return true;
-  };
-
   return {
     protoFiles: protoFilesWithExistence,
     importPaths: importPathsWithExistence,
     isLoadingMethods,
     loadMethodsFromProtoFile,
-    claimProtoFileLoad,
     addProtoFileToCollection,
     addImportPathToCollection,
     addImportPathFromRequest,
