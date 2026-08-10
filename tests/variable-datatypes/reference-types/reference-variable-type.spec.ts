@@ -33,6 +33,7 @@ test.describe('DataType selector — referenced variable type', () => {
       await expectNotFlagged(page, 'globalEnvObject');
       await expectNotFlagged(page, 'globalEnvNestedObject');
       await expectNotFlagged(page, 'globalEnvObject.port');
+      await expectNotFlagged(page, 'globalEnvObjectWithArray');
     });
 
     await test.step('Same-type references are not flagged', async () => {
@@ -45,6 +46,15 @@ test.describe('DataType selector — referenced variable type', () => {
       await expectNotFlagged(page, 'booleanTypeRefersToNestedBoolean');
       await expectNotFlagged(page, 'booleanTypeRefersToDottedKey');
       await expectNotFlagged(page, 'stringTypeRefersToNumber');
+    });
+
+    await test.step('References that index into an array resolve to the element type', async () => {
+      await expectNotFlagged(page, 'booleanTypeRefersToArrayBoolean');
+      await expectNotFlagged(page, 'stringTypeRefersToArrayBoolean');
+      await expectNotFlagged(page, 'numberTypeRefersToArrayNumber');
+      await expectNotFlagged(page, 'objectTypeRefersToArray');
+      await expectFlagged(page, 'numberTypeRefersToArrayBoolean');
+      await expectFlagged(page, 'objectTypeRefersToArrayBoolean');
     });
 
     await test.step('Different-type references are flagged', async () => {
