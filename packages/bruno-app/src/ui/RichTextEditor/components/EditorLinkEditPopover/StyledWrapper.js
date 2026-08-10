@@ -13,7 +13,7 @@ const StyledWrapper = styled.div`
   &[data-popper-reference-hidden] {
     visibility: hidden;
     pointer-events: none;
-    
+
     &, * {
       visibility: hidden !important;
       transition: none !important;

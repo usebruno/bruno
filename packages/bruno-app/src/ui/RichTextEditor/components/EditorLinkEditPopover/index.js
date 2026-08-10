@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, forwardRef } from 'rea
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 
-const EditorLinkEditPopover = forwardRef(({ isOpen, onClose, onSubmit, initialText, initialUrl, externalCoords }, ref) => {
+const EditorLinkEditPopover = forwardRef(({ isOpen, onClose, onSubmit, initialText, initialUrl }, ref) => {
   const [text, setText] = useState(initialText || '');
   const [url, setUrl] = useState(initialUrl || '');
   const popoverRef = useRef(null);

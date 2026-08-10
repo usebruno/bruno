@@ -1,6 +1,6 @@
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import RichTextEditor from 'ui/RichTextEditor';
@@ -119,11 +119,11 @@ const DocsEditor = ({
     }
   }, [docs, editor, isMarkdownMode, isEditing, emptyPreviewContent]);
 
-  const handleDoubleClick = useCallback((e) => {
+  const handleDoubleClick = () => {
     if (!isEditing && onRequestEdit) {
       onRequestEdit();
     }
-  }, [isEditing, onRequestEdit]);
+  };
 
   // The rich-text view (preview AND WYSIWYG edit mode) stays mounted the
   // whole time — only markdown mode swaps it out for CodeEditor below. So

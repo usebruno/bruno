@@ -40,7 +40,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
 
   const hoverTimerRef = useRef(null);
   const isPointerOverHoverPopover = useRef(false);
-  const currentAnchorRef = useRef(null);
+  const [activeAnchor, setActiveAnchor] = useState(null);
 
   const hoverPopoverElRef = useRef(null);
   const editPopoverElRef = useRef(null);
@@ -53,6 +53,28 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
   const getContainer = useCallback(() => {
     return containerEl || editor?.view?.dom?.closest('.rich-text-editor-content') || document.body;
   }, [containerEl, editor]);
+
+  const getPopperModifiers = useCallback((container) => [
+    {
+      name: 'preventOverflow',
+      options: {
+        boundary: container,
+        padding: 8
+      }
+    },
+    {
+      name: 'flip',
+      options: {
+        fallbackPlacements: ['top', 'bottom']
+      }
+    },
+    {
+      name: 'offset',
+      options: {
+        offset: [0, 4]
+      }
+    }
+  ], []);
 
   const createVirtualElement = (coords) => ({
     getBoundingClientRect: () => ({
@@ -67,30 +89,10 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
 
   // --- Popper initialization for Hover Popover ---
   useEffect(() => {
-    if (hoverOpen && hoverPopoverElRef.current && currentAnchorRef.current) {
-      hoverPopperInstanceRef.current = createPopper(currentAnchorRef.current, hoverPopoverElRef.current, {
+    if (hoverOpen && hoverPopoverElRef.current && activeAnchor) {
+      hoverPopperInstanceRef.current = createPopper(activeAnchor, hoverPopoverElRef.current, {
         placement: 'bottom',
-        modifiers: [
-          {
-            name: 'preventOverflow',
-            options: {
-              boundary: getContainer(),
-              padding: 8
-            }
-          },
-          {
-            name: 'flip',
-            options: {
-              fallbackPlacements: ['top', 'bottom']
-            }
-          },
-          {
-            name: 'offset',
-            options: {
-              offset: [0, 4]
-            }
-          }
-        ]
+        modifiers: getPopperModifiers(getContainer())
       });
     }
 
@@ -100,34 +102,14 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
         hoverPopperInstanceRef.current = null;
       }
     };
-  }, [hoverOpen, getContainer]);
+  }, [hoverOpen, activeAnchor, getContainer, getPopperModifiers]);
 
   // --- Popper initialization for Edit Popover ---
   useEffect(() => {
-    if (editOpen && editPopoverElRef.current && currentAnchorRef.current) {
-      editPopperInstanceRef.current = createPopper(currentAnchorRef.current, editPopoverElRef.current, {
+    if (editOpen && editPopoverElRef.current && activeAnchor) {
+      editPopperInstanceRef.current = createPopper(activeAnchor, editPopoverElRef.current, {
         placement: 'bottom',
-        modifiers: [
-          {
-            name: 'preventOverflow',
-            options: {
-              boundary: getContainer(),
-              padding: 8
-            }
-          },
-          {
-            name: 'flip',
-            options: {
-              fallbackPlacements: ['top', 'bottom']
-            }
-          },
-          {
-            name: 'offset',
-            options: {
-              offset: [0, 4]
-            }
-          }
-        ]
+        modifiers: getPopperModifiers(getContainer())
       });
     }
 
@@ -137,7 +119,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
         editPopperInstanceRef.current = null;
       }
     };
-  }, [editOpen, getContainer]);
+  }, [editOpen, activeAnchor, getContainer, getPopperModifiers]);
 
   const openHoverForAnchor = useCallback((anchorEl) => {
     if (!editor || !anchorEl) return;
@@ -146,7 +128,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
 
     const { text } = resolveLinkText(editor, anchorEl);
 
-    currentAnchorRef.current = anchorEl;
+    setActiveAnchor(anchorEl);
     setHoverLink({ text, url: href });
     setHoverOpen(true);
   }, [editor]);
@@ -154,8 +136,8 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
   const closeHover = useCallback(() => {
     if (!isPointerOverHoverPopover.current) {
       setHoverOpen(false);
-      // We don't clear currentAnchorRef here if edit is open,
-      // because edit might still need it.
+      // activeAnchor is intentionally left set — openEditForAnchor reads the
+      // last-hovered anchor when the user clicks the popover's edit icon.
     }
   }, []);
 
@@ -169,7 +151,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
       editor.commands.setTextSelection(range);
     }
 
-    currentAnchorRef.current = anchorEl;
+    setActiveAnchor(anchorEl);
     setEditLink({ text, url: href });
     setEditOpen(true);
     setHoverOpen(false);
@@ -182,9 +164,9 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
       try {
         const { from } = editor.state.selection;
         const posCoords = editor.view.coordsAtPos(from);
-        currentAnchorRef.current = createVirtualElement(posCoords);
+        setActiveAnchor(createVirtualElement(posCoords));
       } catch (e) {
-        currentAnchorRef.current = createVirtualElement({ top: window.innerHeight / 2, left: window.innerWidth / 2 });
+        setActiveAnchor(createVirtualElement({ top: window.innerHeight / 2, left: window.innerWidth / 2 }));
       }
 
       setEditLink({ text: text || '', url: url || '' });
@@ -286,8 +268,8 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
                     data-testid="link-hover-edit-btn"
                     onClick={() => {
                       setHoverOpen(false);
-                      if (currentAnchorRef.current) {
-                        openEditForAnchor(currentAnchorRef.current);
+                      if (activeAnchor) {
+                        openEditForAnchor(activeAnchor);
                       }
                     }}
                   >
@@ -303,8 +285,8 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
                     data-testid="link-hover-unlink-btn"
                     onClick={() => {
                       setHoverOpen(false);
-                      if (currentAnchorRef.current && currentAnchorRef.current instanceof HTMLElement) {
-                        const { range } = resolveLinkText(editor, currentAnchorRef.current);
+                      if (activeAnchor && activeAnchor instanceof HTMLElement) {
+                        const { range } = resolveLinkText(editor, activeAnchor);
                         if (range) {
                           const previousSelection = editor.state.selection;
                           editor.commands.setTextSelection(range);

@@ -1,5 +1,6 @@
 import { test, expect, Locator } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
+import { modifier } from '../shortcuts/helpers';
 import { setupRequestDocs } from './actions';
 
 test.describe('Rich Text Editor Edge Cases - Links', () => {
@@ -160,6 +161,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
   test('Link popovers - scroll tracking, hiding, and flipping', async ({ page, createTmpDir }) => {
     const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-popper');
     const prosemirror = locators.docs.proseMirror();
+    const linkButton = locators.docs.toolbarBtn('Link');
     await expect(prosemirror).toBeVisible();
 
     await test.step('Setup a tall document and a link', async () => {
@@ -174,7 +176,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.up('Shift');
 
       // Create a link
-      await locators.docs.toolbarBtn('Link').click();
+      await linkButton.click();
       await locators.docs.linkEditUrlInput().fill('https://example.com');
       await locators.docs.linkEditInsertBtn().click();
 
@@ -189,8 +191,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
         await page.keyboard.type(`Line ${i}`);
       }
 
-      // Wait a moment for layout to settle
-      await page.waitForTimeout(100);
+      await expect(prosemirror).toContainText('Line 49');
     });
 
     const link = prosemirror.locator('a[href="https://example.com"]');
@@ -214,13 +215,9 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       // Scroll down natively
       await page.mouse.wheel(0, 100);
 
-      // Wait for Popper to update
-      await page.waitForTimeout(200);
-
-      // Verify the popover moved up by checking its new y position
-      const newBox = await editPopover.boundingBox();
-      expect(newBox).toBeTruthy();
-      expect(newBox!.y).toBeLessThan(initialBox!.y);
+      // Verify the popover moved up by checking its new y position, polling
+      // since Popper's reposition happens asynchronously after the scroll.
+      await expect.poll(async () => (await editPopover.boundingBox())?.y).toBeLessThan(initialBox!.y);
     });
 
     await test.step('Scroll hide', async () => {
@@ -250,9 +247,9 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await prosemirror.click();
 
       // Go to the end of the document
-      await page.keyboard.down('Meta');
+      await page.keyboard.down(modifier);
       await page.keyboard.press('ArrowDown');
-      await page.keyboard.up('Meta');
+      await page.keyboard.up(modifier);
 
       await page.keyboard.press('Enter');
       await page.keyboard.type('Bottom Link');
@@ -265,7 +262,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.up('Shift');
 
       // Create link
-      await locators.docs.toolbarBtn('Link').click();
+      await linkButton.click();
       const editPopover = locators.docs.linkEditPopover();
 
       await expect(editPopover).toBeVisible();
