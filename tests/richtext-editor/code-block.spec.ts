@@ -214,6 +214,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
 
     await test.step('The cursor exits into a paragraph after the code block, instead of adding blank lines inside it', async () => {
       await expect(prosemirror.locator('pre')).toHaveCount(1);
+      await expect(locators.docs.codeBlockContent()).toHaveText('const x = 1;');
       await page.keyboard.type('after code block');
       await expect(prosemirror.locator('p').last()).toContainText('after code block');
     });
