@@ -14,16 +14,12 @@ const COLLECTION_NAME = 'xml-preview';
  * Every request in the fixture collection posts its payload to the echo server under an
  * `application/xml` content type, so the response body is exactly the XML named by the request.
  */
-const openXmlResponseRequest = async (page: Page, name: string) => {
+const openRequestAndPreviewXMLResponse = async (page: Page, name: string) => {
   await openRequest(page, COLLECTION_NAME, name);
   await sendRequestAndWaitForResponse(page);
   await switchToPreviewTab(page);
 };
 
-/**
- * Every malformed-XML response must fail the same way: no tree at all, plus a banner saying
- * why. Asserting only the banner would still pass if a half-built tree rendered beside it.
- */
 const expectCannotPreviewAsXml = async (page: Page) => {
   const locators = buildCommonLocators(page);
 
@@ -36,7 +32,7 @@ test.describe('XML Preview - well-formed responses', () => {
   test('renders the XML tree for a response served as application/xml', async ({ pageWithUserData: page }) => {
     const locators = buildCommonLocators(page);
 
-    await openXmlResponseRequest(page, 'xml-response');
+    await openRequestAndPreviewXMLResponse(page, 'xml-response');
 
     await test.step('an application/xml response selects the XML format', async () => {
       await expect(locators.response.formatTab()).toHaveText('XML');
@@ -62,7 +58,7 @@ test.describe('XML Preview - well-formed responses', () => {
   }) => {
     const locators = buildCommonLocators(page);
 
-    await openXmlResponseRequest(page, 'xml-error-root');
+    await openRequestAndPreviewXMLResponse(page, 'xml-error-root');
 
     await test.step('an element named "error" is response data, not a parse failure', async () => {
       await expect(locators.response.previewErrorBanner()).toHaveCount(0);
@@ -79,7 +75,7 @@ test.describe('XML Preview - well-formed responses', () => {
   }) => {
     const locators = buildCommonLocators(page);
 
-    await openXmlResponseRequest(page, 'xml-nested-error');
+    await openRequestAndPreviewXMLResponse(page, 'xml-nested-error');
 
     await test.step('a nested "error" element is response data, not a parse failure', async () => {
       await expect(locators.response.previewErrorBanner()).toHaveCount(0);
@@ -99,7 +95,7 @@ test.describe('XML Preview - malformed responses', () => {
   test('shows the cannot-preview banner for XML whose root element is never closed', async ({
     pageWithUserData: page
   }) => {
-    await openXmlResponseRequest(page, 'xml-unclosed-root');
+    await openRequestAndPreviewXMLResponse(page, 'xml-unclosed-root');
 
     await expectCannotPreviewAsXml(page);
   });

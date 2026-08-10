@@ -1344,12 +1344,6 @@ const switchToEditorTab = async (page: Page) => {
 /**
  * Expand every collapsed node in the XML preview tree.
  *
- * `XmlPreview` renders only the root expanded — each child is created with
- * `defaultExpanded={false}`, and a collapsed node's children are absent from the
- * DOM entirely, so nested values are unassertable until their ancestors are
- * expanded. Expanding one level reveals the next level's (still collapsed)
- * toggles, hence the loop: click the collapsed toggles, then re-query.
- *
  * @param page - The page object
  */
 const expandAllXmlNodes = async (page: Page) => {
