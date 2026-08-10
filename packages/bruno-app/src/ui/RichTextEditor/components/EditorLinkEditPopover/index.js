@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, forwardRef } from 'react';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 
-const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, initialText, initialUrl, externalCoords, wrapperRef }) => {
+const EditorLinkEditPopover = forwardRef(({ isOpen, onClose, onSubmit, initialText, initialUrl, externalCoords }, ref) => {
   const [text, setText] = useState(initialText || '');
   const [url, setUrl] = useState(initialUrl || '');
   const popoverRef = useRef(null);
@@ -10,11 +10,12 @@ const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, initialText, initial
 
   const setPopoverRefs = useCallback((node) => {
     popoverRef.current = node;
-    if (wrapperRef) wrapperRef.current = node;
-  }, [wrapperRef]);
-
-  // Parent provides fully-computed coords before opening — no state/effect needed.
-  const coords = externalCoords || { top: 0, left: 0 };
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      ref.current = node;
+    }
+  }, [ref]);
 
   // Re-seed on every open transition, not just when the link identity changes —
   // otherwise reopening on the same link shows a previously abandoned draft edit.
@@ -80,11 +81,6 @@ const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, initialText, initial
     <StyledWrapper
       ref={setPopoverRefs}
       data-editor-link-popover="true"
-      style={{
-        top: `${coords.top}px`,
-        left: `${coords.left}px`,
-        display: coords.visible === false ? 'none' : undefined
-      }}
       onKeyDown={handleKeyDown}
     >
       <div data-testid="editor-link-popover" className="editor-link-popover-content">
@@ -138,6 +134,6 @@ const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, initialText, initial
       </div>
     </StyledWrapper>
   );
-};
+});
 
 export default EditorLinkEditPopover;

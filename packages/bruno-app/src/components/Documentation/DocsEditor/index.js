@@ -1,6 +1,6 @@
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import AIAssist from 'components/AIAssist';
@@ -123,6 +123,12 @@ const DocsEditor = ({
     }
   }, [docs, editor, isMarkdownMode, isEditing, emptyPreviewContent]);
 
+  const handleDoubleClick = useCallback((e) => {
+    if (!isEditing && onRequestEdit) {
+      onRequestEdit();
+    }
+  }, [isEditing, onRequestEdit]);
+
   // The rich-text view (preview AND WYSIWYG edit mode) stays mounted the
   // whole time — only markdown mode swaps it out for CodeEditor below. So
   // scroll tracking here should only pause when markdown mode's CodeEditor
@@ -138,7 +144,7 @@ const DocsEditor = ({
   });
 
   return (
-    <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative" data-testid={testId}>
+    <StyledWrapper className="flex flex-col gap-y-1 h-full w-full min-w-0 max-w-full relative" data-testid={testId}>
       {isEditing && (
         <div className="docs-tab-strip">
           {!isMarkdownMode && (
@@ -180,8 +186,8 @@ const DocsEditor = ({
       )}
       <section
         ref={richTextWrapperRef}
-        className={`flex flex-col flex-1 min-h-0 w-full ${isEditing && isMarkdownMode ? 'hidden' : ''}`}
-        onDoubleClick={() => !isEditing && onRequestEdit && onRequestEdit()}
+        className={`flex flex-col flex-1 min-h-0 min-w-0 max-w-full w-full ${isEditing && isMarkdownMode ? 'hidden' : ''}`}
+        onDoubleClick={handleDoubleClick}
       >
         <RichTextEditor editor={editor} />
       </section>

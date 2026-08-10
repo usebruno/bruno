@@ -13,10 +13,27 @@ const StyledWrapper = styled.div`
   &::before {
     content: '';
     position: absolute;
-    ${(props) => (props.$placement === 'top' ? 'bottom: -4px;' : 'top: -4px;')}
     left: 0;
     right: 0;
     height: 4px;
+  }
+
+  &[data-popper-placement^='top']::before {
+    bottom: -4px;
+  }
+
+  &[data-popper-placement^='bottom']::before {
+    top: -4px;
+  }
+
+  &[data-popper-reference-hidden] {
+    visibility: hidden;
+    pointer-events: none;
+
+    &, * {
+      visibility: hidden !important;
+      transition: none !important;
+    }
   }
 
   .hover-link-view {

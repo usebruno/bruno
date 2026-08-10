@@ -156,4 +156,124 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await expect(linkOne).toHaveCount(1);
     });
   });
+
+  test('Link popovers - scroll tracking, hiding, and flipping', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-popper');
+    const prosemirror = locators.docs.proseMirror();
+    await expect(prosemirror).toBeVisible();
+
+    await test.step('Setup a tall document and a link', async () => {
+      await prosemirror.click();
+
+      // Type "Top Link" and select it
+      await page.keyboard.type('Top Link');
+      await page.keyboard.down('Shift');
+      for (let i = 0; i < 8; i++) {
+        await page.keyboard.press('ArrowLeft');
+      }
+      await page.keyboard.up('Shift');
+
+      // Create a link
+      await locators.docs.toolbarBtn('Link').click();
+      await locators.docs.linkEditUrlInput().fill('https://example.com');
+      await locators.docs.linkEditInsertBtn().click();
+
+      // Move cursor right to exit the link
+      await page.keyboard.press('ArrowRight');
+
+      // Type a lot of lines to make the editor scrollable
+      for (let i = 0; i < 50; i++) {
+        await page.keyboard.press('Enter');
+        // Add a slight delay for enter to be processed as new paragraph in ProseMirror
+        await page.waitForTimeout(10);
+        await page.keyboard.type(`Line ${i}`);
+      }
+
+      // Wait a moment for layout to settle
+      await page.waitForTimeout(100);
+    });
+
+    const link = prosemirror.locator('a[href="https://example.com"]');
+    const hoverPopover = locators.docs.linkHoverPopover();
+
+    await test.step('Scroll tracking', async () => {
+      await link.hover();
+      await expect(hoverPopover).toBeVisible();
+
+      // Click edit so we have a stable popover that doesn't disappear on mouseout
+      await locators.docs.linkHoverEditBtn().click();
+      const editPopover = locators.docs.linkEditPopover();
+      await expect(editPopover).toBeVisible();
+
+      const initialBox = await editPopover.boundingBox();
+      expect(initialBox).toBeTruthy();
+
+      // Move mouse over the editor so the wheel event targets the scrollable container
+      await prosemirror.hover();
+
+      // Scroll down natively
+      await page.mouse.wheel(0, 100);
+
+      // Wait for Popper to update
+      await page.waitForTimeout(200);
+
+      // Verify the popover moved up by checking its new y position
+      const newBox = await editPopover.boundingBox();
+      expect(newBox).toBeTruthy();
+      expect(newBox!.y).toBeLessThan(initialBox!.y);
+    });
+
+    await test.step('Scroll hide', async () => {
+      // Ensure mouse is still over the editor
+      await prosemirror.hover();
+
+      // Scroll down drastically so the link leaves the viewport
+      await page.mouse.wheel(0, 1000);
+
+      // Wait for Popper to update
+      await page.waitForTimeout(200);
+
+      // Verify the popover is hidden (data-popper-reference-hidden applies visibility: hidden)
+      const editPopover = locators.docs.linkEditPopover();
+      await expect(editPopover).toBeHidden();
+
+      // Scroll back up
+      await page.mouse.wheel(0, -1100);
+      await page.waitForTimeout(200);
+
+      // Close the edit popover
+      await page.keyboard.press('Escape');
+    });
+
+    await test.step('Flipping (bottom of viewport)', async () => {
+      // Create a link at the very bottom
+      await prosemirror.click();
+
+      // Go to the end of the document
+      await page.keyboard.down('Meta');
+      await page.keyboard.press('ArrowDown');
+      await page.keyboard.up('Meta');
+
+      await page.keyboard.press('Enter');
+      await page.keyboard.type('Bottom Link');
+
+      // Select 'Bottom Link'
+      await page.keyboard.down('Shift');
+      for (let i = 0; i < 11; i++) {
+        await page.keyboard.press('ArrowLeft');
+      }
+      await page.keyboard.up('Shift');
+
+      // Create link
+      await locators.docs.toolbarBtn('Link').click();
+      const editPopover = locators.docs.linkEditPopover();
+
+      await expect(editPopover).toBeVisible();
+
+      // Since the link is at the absolute bottom of a long document,
+      // the popover should flip and appear ABOVE the link.
+      // Popper handles this automatically. We can verify if data-popper-placement starts with 'top'.
+      await expect(editPopover).toHaveAttribute('data-popper-placement', /^top/);
+    });
+  });
 });

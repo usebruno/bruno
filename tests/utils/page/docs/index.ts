@@ -29,7 +29,7 @@ export const buildDocsLocators = (page: Page) => ({
   codeBlockContent: () => page.locator('[data-testid="code-block-pre"] code'),
   codeBlockSyntaxHighlight: (className: string) => page.locator(`[data-testid="code-block-pre"] code .${className}`),
   // Link popover locators
-  linkEditPopover: () => page.getByTestId('editor-link-popover'),
+  linkEditPopover: () => page.locator('[data-editor-link-popover="true"]'),
   linkEditUrlInput: () => page.getByRole('textbox', { name: 'URL' }),
   linkEditInsertBtn: () => page.locator('[data-editor-link-popover="true"]').getByRole('button', { name: 'Insert' }),
   linkEditSaveBtn: () => page.locator('[data-editor-link-popover="true"]').getByRole('button', { name: 'Save' }),

@@ -10,6 +10,16 @@ const StyledWrapper = styled.div`
   z-index: 9999;
   position: fixed;
 
+  &[data-popper-reference-hidden] {
+    visibility: hidden;
+    pointer-events: none;
+    
+    &, * {
+      visibility: hidden !important;
+      transition: none !important;
+    }
+  }
+
   .editor-link-popover-content {
     display: flex;
     flex-direction: column;
