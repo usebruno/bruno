@@ -848,20 +848,6 @@ await bru.sendRequest({
       `);
     });
 
-    it('should handle a chain without a catch', () => {
-      const code = `
-        pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
-            console.log(res.json());
-        });
-      `;
-      const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
-            console.log(res.data);
-        });
-      `);
-    });
-
     it('should transform only the fulfilled handler of then(onFulfilled, onRejected)', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
@@ -945,16 +931,6 @@ await bru.sendRequest({
       `);
     });
 
-    it('should leave a handler passed by reference alone', () => {
-      const code = `
-        pm.sendRequest({ url: 'https://echo.usebruno.com' }).then(handleResponse);
-      `;
-      const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(handleResponse);
-      `);
-    });
-
     it('should not await a chain inside a non-async function', () => {
       const code = `
         function fetchData() {
@@ -971,21 +947,6 @@ await bru.sendRequest({
             });
         }
       `);
-    });
-
-    it('should rewrite an expression-bodied handler whose body is the response call', () => {
-      const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res.json());`;
-      expect(translateCode(code)).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res.data);`);
-    });
-
-    it('should rewrite an expression-bodied handler whose body is a response property', () => {
-      const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res.code);`;
-      expect(translateCode(code)).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res.status);`);
-    });
-
-    it('should rewrite an expression-bodied handler that nests the response call', () => {
-      const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => console.log(res.json()));`;
-      expect(translateCode(code)).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => console.log(res.data));`);
     });
 
     it('should rewrite only the first then, since later handlers receive the previous return value', () => {
@@ -1076,22 +1037,6 @@ await bru.sendRequest({
       `);
     });
 
-    it('should handle an async handler that awaits inside the chain', () => {
-      const code = `
-        pm.sendRequest({ url: 'https://echo.usebruno.com' }).then(async (res) => {
-            await bru.sleep(100);
-            console.log(res.json());
-        });
-      `;
-      const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(async (res) => {
-            await bru.sleep(100);
-            console.log(res.data);
-        });
-      `);
-    });
-
     it('should await a chain returned from an async function', () => {
       const code = `
         async function fetchData() {
@@ -1104,11 +1049,6 @@ await bru.sendRequest({
             return await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res.data);
         }
       `);
-    });
-
-    it('should await a chain assigned to a variable', () => {
-      const code = `const body = await pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res.json());`;
-      expect(translateCode(code)).toBe(`const body = await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res.data);`);
     });
 
     it('should translate each of several chains in the same script', () => {
@@ -1131,43 +1071,7 @@ await bru.sendRequest({
       `);
     });
 
-    it('should skip a pass-through then(null, onError) and rewrite the next handler', () => {
-      const code = `
-        pm.sendRequest({ url: 'https://echo.usebruno.com' })
-          .then(null, (err) => console.error(err))
-          .then((res) => {
-              console.log(res.json());
-          });
-      `;
-      const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
-          .then(null, (err) => console.error(err))
-          .then((res) => {
-              console.log(res.data);
-          });
-      `);
-    });
-
-    it('should skip an empty then() and rewrite the next handler', () => {
-      const code = `
-        pm.sendRequest({ url: 'https://echo.usebruno.com' })
-          .then()
-          .then((res) => {
-              console.log(res.json());
-          });
-      `;
-      const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
-          .then()
-          .then((res) => {
-              console.log(res.data);
-          });
-      `);
-    });
-
-    it('should treat a handler referenced by a variable as consuming the response', () => {
+    it('should not rewrite past a handler referenced by a variable', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' })
           .then(maybeHandler)

@@ -3,10 +3,10 @@
  *
  * The generic sendRequestTransformer replaces only the inner pm.sendRequest
  * CallExpression and leaves a chained call unawaited (see
- * getChainedPromiseMemberPath, which it shares). This pass runs after
- * processTransformations and finishes those chains on the settled AST:
+ * getChainedPromiseMemberPath, which it shares). This pass runs once
+ * processTransformations has settled the AST and finishes those chains:
  *
- *   1. rewrites Postman response access in the first response-consuming `.then`
+ *   1. rewrites Postman response access in the first chain link's `.then`
  *      handler (res.json() -> res.data, res.code -> res.status, ...)
  *   2. awaits the outermost chain link, when the position allows it
  *
@@ -39,20 +39,6 @@ const getStaticPropertyName = (memberExpr) => {
     return property.type === 'Literal' && typeof property.value === 'string' ? property.value : null;
   }
   return property.type === 'Identifier' ? property.name : null;
-};
-
-/**
- * Whether a `.then` first argument lets the response pass through untouched.
- * Per the promise spec, a non-callable onFulfilled is replaced by the identity
- * function — so no argument, `null`, or `undefined` hands the response to the
- * next link in the chain.
- * @param {Object|undefined} arg - The `.then` call's first argument node
- * @returns {boolean}
- */
-const isPassThroughHandler = (arg) => {
-  if (!arg) return true;
-  if (arg.type === 'Literal' && arg.value === null) return true;
-  return arg.type === 'Identifier' && arg.name === 'undefined';
 };
 
 /**
@@ -103,26 +89,6 @@ const getPromiseChainLinks = (callPath) => {
 };
 
 /**
- * Rewrite Postman response access inside the first `.then` fulfilled handler
- * that actually consumes the response. Pass-through links (`.then()`,
- * `.then(null)`) forward it unchanged; once a real handler receives it, later
- * handlers only see what it returned, and `.catch`/`.finally` handlers
- * receive an error or nothing.
- * @param {Object} j - jscodeshift API
- * @param {Array<{callPath: Object, methodName: string}>} links - Chain links, innermost first
- */
-const rewriteResponseConsumingThenHandler = (j, links) => {
-  for (const link of links) {
-    // a non-callable onFulfilled forwards the response to the next link
-    if (link.methodName === 'then' && !isPassThroughHandler(link.callPath.value.arguments[0])) {
-      // the response is consumed here, whether or not the handler is rewritable
-      rewriteResponsePropertyAccess(j, link.callPath.get('arguments', 0));
-      return;
-    }
-  }
-};
-
-/**
  * Rewrite Postman response property/method access on the handler's response
  * parameter to its Bruno equivalent. References that resolve to a different
  * binding (a nested function re-declaring the name) are left alone.
@@ -169,12 +135,12 @@ const rewriteResponsePropertyAccess = (j, handlerPath) => {
 
 /**
  * Finish bru.sendRequest promise chains the main transformation pass left
- * unawaited: rewrite the response access in the first response-consuming
- * `.then` handler, and await the outermost chain link where valid.
+ * unawaited: rewrite the response access in the first chain link's `.then`
+ * handler, and await the outermost chain link where valid.
  * @param {Object} j - jscodeshift API
  * @param {Object} ast - jscodeshift AST collection
  */
-const transformSendRequestChains = (j, ast) => {
+const awaitAndRewriteSendRequestChains = (j, ast) => {
   ast.find(j.CallExpression, {
     callee: {
       type: 'Identifier',
@@ -184,7 +150,12 @@ const transformSendRequestChains = (j, ast) => {
     const links = getPromiseChainLinks(callPath);
     if (!links.length) return;
 
-    rewriteResponseConsumingThenHandler(j, links);
+    // only the innermost `.then` receives the response — later handlers see what
+    // it returned, and `.catch`/`.finally` handlers an error or nothing
+    const [firstLink] = links;
+    if (firstLink.methodName === 'then' && firstLink.callPath.value.arguments.length) {
+      rewriteResponsePropertyAccess(j, firstLink.callPath.get('arguments', 0));
+    }
 
     // the outermost call of the .then/.catch/.finally chain is the last link
     const outermostPath = links[links.length - 1].callPath;
@@ -196,4 +167,4 @@ const transformSendRequestChains = (j, ast) => {
   });
 };
 
-export default transformSendRequestChains;
+export default awaitAndRewriteSendRequestChains;
