@@ -114,16 +114,13 @@ const Wrapper = styled.div`
     transition: opacity 0.2s ease;
 
     div.drag-request-border {
-      position: absolute;
-      top: 0;
-      left: 2px;
-      width: 1px;
+      width: 2px;
       height: 100%;
-      background-color: ${(props) => props.theme.sidebar.dragbar.border};
+      border-left: solid 1px ${(props) => props.theme.sidebar.dragbar.border};
     }
 
     &:hover div.drag-request-border {
-      background-color: ${(props) => props.theme.sidebar.dragbar.activeBorder};
+      border-left: solid 1px ${(props) => props.theme.sidebar.dragbar.activeBorder};
     }
   }
 `;
