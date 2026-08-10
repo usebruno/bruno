@@ -28,10 +28,28 @@ import { lowlight } from 'lowlight';
 const EditorCodeBlockExtension = CodeBlockLowlight.extend({
   addNodeView() {
     return ReactNodeViewRenderer(EditorCodeBlock);
+  },
+  addKeyboardShortcuts() {
+    return {
+      Tab: () => {
+        if (!this.editor.isActive('codeBlock')) {
+          return false;
+        }
+        const { state, view } = this.editor;
+        const { tr, selection } = state;
+        tr.insertText('\t', selection.from, selection.to);
+        view.dispatch(tr);
+        return true;
+      }
+    };
   }
-}).configure({ lowlight, enableTabIndentation: true, tabSize: 2 });
+}).configure({
+  lowlight,
+  enableTabIndentation: false // Off to keep internal tab logic out of the way
+});
 
 const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
+  EditorCodeBlockExtension,
   TextStyle.configure({ types: [EditorListItem.name] }),
   StarterKit.configure({
     bulletList: false,
@@ -55,7 +73,6 @@ const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
   }),
   EditorListItem,
   EditorGapCursor,
-  EditorCodeBlockExtension,
   EditorTaskList,
   EditorTaskItem.configure({
     nested: true,
