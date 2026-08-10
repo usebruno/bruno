@@ -61,10 +61,6 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
     dispatch(updateResponsePaneTab({ uid: item.uid, responsePaneTab: 'response' }));
   };
 
-  const clearOauth2Error = () => {
-    dispatch(responseCleared({ itemUid: item.uid, collectionUid }));
-  };
-
   const handleFetchOauth2Credentials = async () => {
     let requestCopy = cloneDeep(request);
     requestCopy.oauth2 = requestCopy?.auth.oauth2;
@@ -87,7 +83,6 @@ const Oauth2ActionButtons = ({ item, request, collection, url: accessTokenUrl, c
         return;
       }
 
-      clearOauth2Error();
       toast.success('Token fetched successfully!');
     } catch (error) {
       console.error('could not fetch the token!');
