@@ -44,8 +44,7 @@ const EditorCodeBlockExtension = CodeBlockLowlight.extend({
     };
   }
 }).configure({
-  lowlight,
-  enableTabIndentation: false // Off to keep internal tab logic out of the way
+  lowlight
 });
 
 const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
