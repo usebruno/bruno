@@ -6,8 +6,8 @@
  * getChainedPromiseMemberPath, which it shares). This pass runs after
  * processTransformations and finishes those chains on the settled AST:
  *
- *   1. rewrites Postman response access in the first `.then` fulfilled handler
- *      (res.json() -> res.data, res.code -> res.status, ...)
+ *   1. rewrites Postman response access in the first response-consuming `.then`
+ *      handler (res.json() -> res.data, res.code -> res.status, ...)
  *   2. awaits the outermost chain link, when the position allows it
  *
  * The transformer emits its callee as a single dotted Identifier named
@@ -103,9 +103,10 @@ const getPromiseChainLinks = (callPath) => {
 };
 
 /**
- * Rewrite Postman response access inside the first `.then` fulfilled handler of
- * the chain. Only the first `.then` receives the response — later handlers
- * receive whatever their predecessor returned, and `.catch`/`.finally` handlers
+ * Rewrite Postman response access inside the first `.then` fulfilled handler
+ * that actually consumes the response. Pass-through links (`.then()`,
+ * `.then(null)`) forward it unchanged; once a real handler receives it, later
+ * handlers only see what it returned, and `.catch`/`.finally` handlers
  * receive an error or nothing.
  * @param {Object} j - jscodeshift API
  * @param {Array<{callPath: Object, methodName: string}>} links - Chain links, innermost first
@@ -168,8 +169,8 @@ const rewriteResponsePropertyAccess = (j, handlerPath) => {
 
 /**
  * Finish bru.sendRequest promise chains the main transformation pass left
- * unawaited: rewrite the response access in the first `.then` handler, and
- * await the outermost chain link where valid.
+ * unawaited: rewrite the response access in the first response-consuming
+ * `.then` handler, and await the outermost chain link where valid.
  * @param {Object} j - jscodeshift API
  * @param {Object} ast - jscodeshift AST collection
  */
