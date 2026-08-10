@@ -6,7 +6,3 @@ info:
 collections:
   - name: "reference-types"
     path: "collections/reference-types"
-
-specs:
-
-docs: ''
