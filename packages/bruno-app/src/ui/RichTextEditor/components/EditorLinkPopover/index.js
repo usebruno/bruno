@@ -92,6 +92,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
     if (hoverOpen && hoverPopoverElRef.current && activeAnchor) {
       hoverPopperInstanceRef.current = createPopper(activeAnchor, hoverPopoverElRef.current, {
         placement: 'bottom',
+        strategy: 'fixed',
         modifiers: getPopperModifiers(getContainer())
       });
     }
@@ -109,6 +110,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
     if (editOpen && editPopoverElRef.current && activeAnchor) {
       editPopperInstanceRef.current = createPopper(activeAnchor, editPopoverElRef.current, {
         placement: 'bottom',
+        strategy: 'fixed',
         modifiers: getPopperModifiers(getContainer())
       });
     }
