@@ -34,10 +34,13 @@ describe('CLI run — req.onFail handler writes reach the environment files', ()
     expect(globalEnvBefore).not.toContain('value: updated');
 
     // Run the request — the URL is unreachable, so the onFail handler runs
-    await runCli(
+    const result = await runCli(
       ['run', 'onFail.yml', '--env', 'Test', '--global-env', 'Global', '--noproxy', '--sandbox', 'developer'],
       collectionDir
     );
+
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain('connect ECONNREFUSED');
 
     // Verify the handler's writes reached both environment files, replacing the original values
     const envAfter = fs.readFileSync(envFile, 'utf8');

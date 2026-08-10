@@ -17,16 +17,25 @@ const createTmpDir = (tag) => fs.mkdtempSync(path.join(os.tmpdir(), `bru-cli-${t
  */
 const copyFixtureToTmpDir = (fixtureDir, tag) => {
   const tmpDir = createTmpDir(tag);
-  fs.cpSync(fixtureDir, tmpDir, { recursive: true });
+
+  try {
+    fs.cpSync(fixtureDir, tmpDir, { recursive: true });
+  } catch (error) {
+    removeTmpDir(tmpDir);
+    throw error;
+  }
+
   return tmpDir;
 };
 
 /**
- * `force` only suppresses ENOENT; the retries cover Windows locking a file the run just wrote.
- *
- * @param {string} tmpDir - Directory to remove
+ * @param {string} [tmpDir] - Directory to remove
  */
 const removeTmpDir = (tmpDir) => {
+  if (!tmpDir) {
+    return;
+  }
+
   fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 };
 
