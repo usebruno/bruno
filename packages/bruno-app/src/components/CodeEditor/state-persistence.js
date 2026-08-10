@@ -12,8 +12,8 @@
  * Note: we deliberately do NOT persist the content itself — the canonical value
  * lives in Redux (props.value). We only persist the editor's "view" state on
  * top of that content. If content has drifted between save and restore, the
- * whole snapshot is dropped — folds and scroll offsets describe lines that no
- * longer hold the same content.
+ * whole snapshot is dropped, because folds and scroll offsets describe lines
+ * that no longer hold the same content.
  */
 
 export const STORAGE_PREFIX = 'persisted::';

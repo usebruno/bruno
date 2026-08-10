@@ -205,17 +205,15 @@ export const scrollValueEditorTo = async (cmEditor: Locator, top: number) => {
   });
 };
 
-// fold object line
-export const foldObjectLine = async (cmEditor: Locator, line: number) => {
-  await cmEditor.evaluate((el, l) => {
-    const cm = (el as any).CodeMirror;
-    cm.foldCode({ line: l, ch: (cm.getLine(l) ?? '').length }, null, 'fold');
-  }, line);
+/**
+ * Collapse the object by clicking the fold gutter's arrow, which is how a user
+ * folds it. The outermost object opens on the first line, so it owns the first
+ * marker CodeMirror renders.
+ */
+export const foldObjectLine = async (cmEditor: Locator) => {
+  await cmEditor.locator('.CodeMirror-foldgutter-open').first().click();
 };
-// unfold object line
-export const unfoldObjectLine = async (cmEditor: Locator, line: number) => {
-  await cmEditor.evaluate((el, l) => {
-    const cm = (el as any).CodeMirror;
-    cm.foldCode({ line: l, ch: (cm.getLine(l) ?? '').length }, null, 'unfold');
-  }, line);
+
+export const unfoldObjectLine = async (cmEditor: Locator) => {
+  await cmEditor.locator('.CodeMirror-foldgutter-folded').first().click();
 };

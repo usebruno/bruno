@@ -304,7 +304,7 @@ test.describe('Variables tab', () => {
 
     await test.step('Collapsing the object leaves a two-key fold marker', async () => {
       await expect(variablesTab.foldMarkers(cell())).toHaveCount(0);
-      await foldObjectLine(cell(), 0);
+      await foldObjectLine(cell());
       await expect(variablesTab.foldMarkers(cell())).toHaveText('↤2↦');
     });
 
@@ -314,7 +314,7 @@ test.describe('Variables tab', () => {
     });
 
     await test.step('Expanding again survives it too', async () => {
-      await unfoldObjectLine(cell(), 0);
+      await unfoldObjectLine(cell());
       await expect(variablesTab.foldMarkers(cell())).toHaveCount(0);
 
       await reopenVariablesTab(page, 'seed');
@@ -333,7 +333,7 @@ test.describe('Variables tab', () => {
     const cell = () => variablesTab.rowEditor('runtime', 'service_config');
 
     await test.step('Collapsing the object leaves a two-key fold marker', async () => {
-      await foldObjectLine(cell(), 0);
+      await foldObjectLine(cell());
       await expect(variablesTab.foldMarkers(cell())).toHaveText('↤2↦');
     });
 
@@ -359,7 +359,7 @@ test.describe('Variables tab', () => {
     await expect(variablesTab.drawerName()).toHaveText('service_config');
 
     await test.step('Collapsing the drawer object leaves a two-key fold marker', async () => {
-      await foldObjectLine(variablesTab.drawerEditor(), 0);
+      await foldObjectLine(variablesTab.drawerEditor());
       await expect(variablesTab.foldMarkers(variablesTab.drawerEditor())).toHaveText('↤2↦');
     });
 
@@ -370,7 +370,7 @@ test.describe('Variables tab', () => {
     });
 
     await test.step('Expanding again survives it too', async () => {
-      await unfoldObjectLine(variablesTab.drawerEditor(), 0);
+      await unfoldObjectLine(variablesTab.drawerEditor());
       await expect(variablesTab.foldMarkers(variablesTab.drawerEditor())).toHaveCount(0);
 
       await reopenVariablesTab(page, 'seed');
