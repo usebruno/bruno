@@ -3,7 +3,6 @@ import { useTheme } from 'providers/Theme';
 import { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
-import AIAssist from 'components/AIAssist';
 import RichTextEditor from 'ui/RichTextEditor';
 import ModeSwitch from 'components/ModeSwitch';
 import { useEditor } from '@tiptap/react';
@@ -22,9 +21,6 @@ const DocsEditor = ({
   isEditing,
   collection,
   collectionPath,
-  requestContext,
-  docsContext,
-  variables,
   emptyPreviewContent,
   onRequestEdit,
   initialRichTextScroll,
@@ -172,14 +168,6 @@ const DocsEditor = ({
             mode="gfm"
             initialScroll={initialMarkdownScroll}
             onScroll={onMarkdownScrollChange}
-          />
-          <AIAssist
-            scriptType="docs"
-            currentScript={docs || ''}
-            requestContext={requestContext}
-            docsContext={docsContext}
-            variables={variables}
-            onApply={onEdit}
           />
         </div>
       )}

@@ -1,10 +1,9 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
 import { updateRequestDocs } from 'providers/ReduxStore/slices/collections';
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { buildAiContextPayload } from 'utils/ai';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useDocsEditingState } from './useDocsEditingState';
@@ -39,11 +38,6 @@ const Documentation = ({ item, collection }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   }, [collection.uid, dispatch, item]);
 
-  const { requestContext, variables: aiVariables } = useMemo(
-    () => (item ? buildAiContextPayload(item, collection) : { requestContext: null, variables: [] }),
-    [item, collection]
-  );
-
   if (!item) {
     return null;
   }
@@ -57,8 +51,6 @@ const Documentation = ({ item, collection }) => {
         isEditing={isEditing}
         collection={collection}
         collectionPath={collection?.pathname}
-        requestContext={requestContext}
-        variables={aiVariables}
         onRequestEdit={() => setEditing(true)}
         initialRichTextScroll={richTextScroll}
         onRichTextScrollChange={setRichTextScroll}
