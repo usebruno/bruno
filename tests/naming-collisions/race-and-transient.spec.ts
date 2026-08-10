@@ -40,11 +40,11 @@ test.describe('Naming collisions - double-paste race', () => {
     });
 
     await test.step('No error toast; two distinct files created in the folder', async () => {
-      await expect(nc.toast(/already exists/i)).toHaveCount(0);
       const targetDir = path.join(findCollectionDir(testDir), 'Target');
       await expect
         .poll(() => listRequestFiles(targetDir).sort(), { timeout: 10000 })
         .toEqual(['login copy.bru', 'login copy1.bru']);
+      await expect(nc.toast(/already exists/i)).toHaveCount(0);
     });
   });
 });

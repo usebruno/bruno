@@ -51,13 +51,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
       targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-folder' })
     ).toBeVisible();
 
-    // Expand the moved folder to verify the request inside is also moved
-    await expandFolder(page, 'test-folder');
-    await expect(
-      targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })
-    ).toBeVisible();
-
-    // Verify the folder is no longer in the source collection
+    // Verify the folder (and its request) is no longer in the source collection.
     const sourceCollectionContainer = page
       .locator('.collection-name')
       .filter({ hasText: 'source-collection' })
@@ -65,19 +59,21 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await expect(
       sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-folder' })
     ).not.toBeVisible();
-
-    // Verify the request is also no longer in the source collection
     await expect(
       sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })
     ).not.toBeVisible();
+
+    // Now only the target copy remains.
+    await expandFolder(page, 'test-folder');
+    await expect(
+      targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'test-request-in-folder' })
+    ).toBeVisible();
   });
 
   test('Verify cross-collection folder drag and drop when a duplicate folder exists: silently suffixes the directory', async ({
     page,
     createTmpDir
   }) => {
-    const { sidebar } = buildCommonLocators(page);
-
     await createCollection(page, 'source-collection', await createTmpDir('source-collection'));
     await createFolder(page, 'folder-1', 'source-collection');
     await expandFolder(page, 'folder-1');
@@ -101,7 +97,6 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await sourceFolder.dragTo(targetCollection);
 
     // collision is resolved silently (folder directory suffixed on disk).
-    // No error toast is shown, and no flow fails just because a folder name already exists.
     await expect(page.getByText(/already exists/i)).toHaveCount(0);
 
     // The folder is moved out of the source collection.
@@ -109,7 +104,6 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
       .locator('.collection-name')
       .filter({ hasText: 'source-collection' })
       .locator('..');
-    await sidebar.collection('source-collection').click();
     await expect(
       sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: 'folder-1' })
     ).toHaveCount(0);
@@ -120,9 +114,10 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
       .locator('.collection-name')
       .filter({ hasText: 'target-collection' })
       .locator('..');
-    await sidebar.collection('target-collection').click();
     await expect(
       targetCollectionContainer.locator('.collection-item-name').filter({ hasText: 'folder-1' })
     ).toHaveCount(2);
+
+    await expect(page.getByText(/already exists/i)).toHaveCount(0);
   });
 });

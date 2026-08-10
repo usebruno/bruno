@@ -73,6 +73,33 @@ describe('File System Operations', () => {
       // silent numeric suffix instead of throwing
       expect(path.basename(targetPath)).toBe('dup1.bru');
     });
+
+    it('suffixes a dotted DIRECTORY name without splitting on the dot', async () => {
+      const srcDir = path.join(tempDir, 'dotdir_src');
+      const destDir = path.join(tempDir, 'dotdir_dest');
+      await fs.mkdir(path.join(srcDir, 'v1.2'), { recursive: true });
+      await fs.mkdir(path.join(destDir, 'v1.2'), { recursive: true }); // colliding folder
+
+      // Directories have no extension: "v1.2" must suffix to "v1.21", not "v11.2".
+      const targetPath = getUniqueTargetPath(path.join(srcDir, 'v1.2'), destDir);
+      expect(path.basename(targetPath)).toBe('v1.21');
+    });
+  });
+
+  describe('copyPathTo self-copy guard', () => {
+    const GUARD_ERR = /Cannot copy a path into itself/;
+
+    it('rejects copying a path into itself', async () => {
+      const dir = path.join(tempDir, 'guard_self');
+      await fs.mkdir(dir, { recursive: true });
+      await expect(copyPathTo(dir, dir)).rejects.toThrow(GUARD_ERR);
+    });
+
+    it('rejects copying a path into its own descendant', async () => {
+      const dir = path.join(tempDir, 'guard_desc');
+      await fs.mkdir(dir, { recursive: true });
+      await expect(copyPathTo(dir, path.join(dir, 'sub'))).rejects.toThrow(GUARD_ERR);
+    });
   });
 });
 

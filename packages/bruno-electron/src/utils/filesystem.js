@@ -411,7 +411,7 @@ const safeToRename = (oldPath, newPath) => {
 
 const getUniqueRenamePath = (oldPath, desiredNewPath) => {
   const dir = path.dirname(desiredNewPath);
-  const ext = path.extname(desiredNewPath); // '' for directories, '.bru' for files
+  const ext = isDirectory(oldPath) ? '' : path.extname(desiredNewPath);
   const rawBase = path.basename(desiredNewPath, ext);
   const extNoDot = ext.startsWith('.') ? ext.slice(1) : ext;
 
@@ -444,11 +444,23 @@ const getUniqueTargetPath = (sourcePathname, targetDirname) => {
 };
 
 /**
+ * Canonicalize a path to its real on-disk form (actual casing + symlinks
+ * resolved) so path comparisons are correct on case-insensitive volumes.
+ */
+const canonicalPath = (p) => {
+  try {
+    return fs.realpathSync(p);
+  } catch (_) {
+    return path.resolve(p);
+  }
+};
+
+/**
  * Recursively copies `source` to `targetPath`.
  */
 const copyPathTo = async (source, targetPath) => {
-  const resolvedSource = path.resolve(source);
-  const resolvedTarget = path.resolve(targetPath);
+  const resolvedSource = canonicalPath(source);
+  const resolvedTarget = path.join(canonicalPath(path.dirname(targetPath)), path.basename(targetPath));
 
   // Prevent copying a path into itself or one of its descendants.
   if (
@@ -494,18 +506,20 @@ const copyPathTo = async (source, targetPath) => {
 const dirLockChains = new Map();
 
 const withDirLock = async (dirname, fn) => {
-  const prev = dirLockChains.get(dirname) || Promise.resolve();
+  // Normalize the path so equivalent directory paths share the same lock.
+  const key = path.resolve(dirname);
+  const prev = dirLockChains.get(key) || Promise.resolve();
 
   // Wait for the previous operation, even if it failed.
   const next = prev.catch(() => {}).then(() => fn());
 
-  dirLockChains.set(dirname, next);
+  dirLockChains.set(key, next);
 
   try {
     return await next;
   } finally {
-    if (dirLockChains.get(dirname) === next) {
-      dirLockChains.delete(dirname);
+    if (dirLockChains.get(key) === next) {
+      dirLockChains.delete(key);
     }
   }
 };
@@ -749,6 +763,7 @@ module.exports = {
   getUniqueRenamePath,
   getUniqueTargetPath,
   copyPathTo,
+  canonicalPath,
   withDirLock,
   hasJsonExtension,
   hasBruExtension,

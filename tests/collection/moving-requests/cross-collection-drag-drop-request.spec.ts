@@ -90,18 +90,14 @@ test.describe('Cross-Collection Drag and Drop', () => {
     // Perform drag and drop operation to target-collection
     await sourceRequest.dragTo(targetCollection);
 
-    // New behavior: the collision is resolved silently (filename suffixed on disk).
-    // No error toast is shown, and no flow fails just because a name already exists.
-    await expect(page.getByText(/already exists/i)).toHaveCount(0);
-
-    // The request is moved out of the source collection.
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'source-collection' }).click();
     await expect(sourceCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toHaveCount(0);
 
     // The target collection now shows two entries with the same display name
     // (the original and the moved one; the filesystem name was silently suffixed).
     await page.locator('#sidebar-collection-name').filter({ hasText: 'target-collection' }).click();
     await expect(targetCollectionContainer.locator('.collection-item-name').filter({ hasText: requestName })).toHaveCount(2);
+
+    await expect(page.getByText(/already exists/i)).toHaveCount(0);
   });
 
   test('Tab should be closed after cross-collection drag and drop', async ({ page, createTmpDir }) => {

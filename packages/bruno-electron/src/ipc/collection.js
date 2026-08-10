@@ -38,6 +38,7 @@ const {
   getUniqueRenamePath,
   getUniqueTargetPath,
   copyPathTo,
+  canonicalPath,
   withDirLock,
   hasBruExtension,
   isDirectory,
@@ -1206,6 +1207,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     try {
       validatePathIsInsideCollection(pathname);
 
+      // Validate the IPC boundary too. an empty or reserved name must be rejected,
+      if (!validateName(resolvedFolderName)) {
+        throw new Error(utils.validateNameError(resolvedFolderName));
+      }
+
       const { pathname: createdPath } = await mkdirUnique(path.dirname(pathname), resolvedFolderName);
 
       const folderFilePath = path.join(createdPath, `folder.${format}`);
@@ -1698,7 +1704,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         // No-op if the item is already in the destination directory (e.g. a
         // same-folder drop).
-        if (path.dirname(sourcePathname) === targetDirname) {
+        if (canonicalPath(path.dirname(sourcePathname)) === canonicalPath(targetDirname)) {
           return { newPathname: sourcePathname };
         }
 

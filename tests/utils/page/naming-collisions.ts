@@ -232,10 +232,20 @@ export const openCloneCollectionModal = async (page: Page, collectionName: strin
 export const chooseCloneLocation = async (page: Page, electronApp: any, location: string) => {
   const locators = buildNamingCollisionLocators(page);
   await electronApp.evaluate(({ dialog }: any, dir: string) => {
+    (globalThis as any).__bruPrevShowOpenDialog = dialog.showOpenDialog;
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
   }, location);
-  await locators.browseButton().click();
-  await locators.collectionLocationInput().waitFor({ state: 'visible' });
+  try {
+    await locators.browseButton().click();
+    await locators.collectionLocationInput().waitFor({ state: 'visible' });
+  } finally {
+    await electronApp.evaluate(({ dialog }: any) => {
+      if ((globalThis as any).__bruPrevShowOpenDialog) {
+        dialog.showOpenDialog = (globalThis as any).__bruPrevShowOpenDialog;
+        delete (globalThis as any).__bruPrevShowOpenDialog;
+      }
+    });
+  }
 };
 
 export const setTextBody = async (page: Page, value: string) => {
