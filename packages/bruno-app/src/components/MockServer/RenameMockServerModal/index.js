@@ -66,6 +66,11 @@ const RenameMockServerModal = ({ instance, onClose }) => {
     }
   }, []);
 
+  const handleCancel = () => {
+    formik.resetForm({ values: formik.values });
+    onClose();
+  };
+
   return (
     <Portal>
       <Modal
@@ -73,7 +78,7 @@ const RenameMockServerModal = ({ instance, onClose }) => {
         title="Rename Mock Server"
         confirmText="Rename"
         handleConfirm={() => formik.handleSubmit()}
-        handleCancel={onClose}
+        handleCancel={handleCancel}
         dataTestId="mock-server-rename-modal"
       >
         <form className="bruno-form" onSubmit={(event) => event.preventDefault()}>
