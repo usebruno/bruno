@@ -32,6 +32,7 @@ const EditorCodeBlockExtension = CodeBlockLowlight.extend({
   // Tiptap doesn't support Tab in codeblock. added a literal tab.
   addKeyboardShortcuts() {
     return {
+      ...this.parent?.(),
       Tab: () => {
         if (!this.editor.isActive('codeBlock')) {
           return false;
