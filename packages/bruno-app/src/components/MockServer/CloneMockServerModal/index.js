@@ -1,16 +1,16 @@
 import React, { useEffect, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
-import { validateName, validateNameError } from 'utils/common/regex';
 import { loadMockResponses } from 'providers/ReduxStore/slices/mock-server/index';
 import {
   cloneMockServerInstancePayload,
   DEFAULT_MOCK_SERVER_PORT,
   getMockServerInstances,
+  getMockServerNameError,
   isMockServerNameTaken,
   isMockServerPortTaken,
   openMockServerDashboard,
@@ -29,7 +29,7 @@ const CloneMockServerModal = ({
   const dispatch = useDispatch();
   const inputRef = useRef();
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
-  const configuredInstances = useSelector((state) => getMockServerInstances(state));
+  const configuredInstances = useSelector((state) => getMockServerInstances(state), shallowEqual);
   const existingInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
 
   const formik = useFormik({
@@ -40,11 +40,12 @@ const CloneMockServerModal = ({
     },
     validationSchema: Yup.object({
       name: Yup.string()
+        .trim()
         .min(1, 'Must be at least 1 character')
         .max(255, 'Must be 255 characters or less')
         .test('is-valid-name', function (value) {
-          const isValid = validateName(value);
-          return isValid ? true : this.createError({ message: validateNameError(value) });
+          const error = getMockServerNameError(value);
+          return error ? this.createError({ message: error }) : true;
         })
         .required('Name is required')
         .test('duplicate-name', 'A mock server with this name already exists', (value) => (
@@ -53,7 +54,6 @@ const CloneMockServerModal = ({
       port: Yup.number()
         .min(1, 'Port must be at least 1')
         .max(65535, 'Port must be 65535 or less')
-        .required('Port is required')
         .test('duplicate-port', 'This port is already used by another mock server', (value) => (
           !isMockServerPortTaken(configuredInstances, value)
         ))
@@ -171,8 +171,10 @@ const CloneMockServerModal = ({
               className="block textbox w-full mt-2"
               min={1}
               max={65535}
-              value={formik.values.port}
-              onChange={formik.handleChange}
+              value={formik.values.port || ''}
+              onChange={(event) => {
+                formik.setFieldValue('port', event.target.value ? Number(event.target.value) : '');
+              }}
               onBlur={formik.handleBlur}
               data-testid="mock-server-clone-port-input"
             />

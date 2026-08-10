@@ -251,6 +251,8 @@ describe('axios-instance: cross-origin redirects authorization stripping', () =>
       headers: {
         'Authorization': 'Bearer my-token',
         'Proxy-Authorization': 'Bearer proxy-token',
+        'X-Amz-Date': '20230806T000000Z',
+        'X-Amz-Security-Token': 'some-token',
         'Custom-Header': 'keep-me'
       },
       adapter: stubAdapter
@@ -262,13 +264,18 @@ describe('axios-instance: cross-origin redirects authorization stripping', () =>
     // First call should have headers
     expect(calls[0].headers['Authorization']).toBe('Bearer my-token');
     expect(calls[0].headers['Proxy-Authorization']).toBe('Bearer proxy-token');
+    expect(calls[0].headers['X-Amz-Date']).toBe('20230806T000000Z');
+    expect(calls[0].headers['X-Amz-Security-Token']).toBe('some-token');
     expect(calls[0].headers['Custom-Header']).toBe('keep-me');
 
     // Redirected call should strip auth headers but keep custom headers
     expect(calls[1].url).toBe('https://other-domain.com/target');
     expect(calls[1].headers['Authorization']).toBeUndefined();
     expect(calls[1].headers['Proxy-Authorization']).toBeUndefined();
+    expect(calls[1].headers['X-Amz-Date']).toBeUndefined();
+    expect(calls[1].headers['X-Amz-Security-Token']).toBeUndefined();
     expect(calls[1].headers['Custom-Header']).toBe('keep-me');
+    expect(calls[1].__skipAwsV4Sign).toBe(true);
   });
 
   test('should preserve Authorization and Proxy-Authorization headers on cross-origin redirect when forwardAuthorizationHeader is true', async () => {

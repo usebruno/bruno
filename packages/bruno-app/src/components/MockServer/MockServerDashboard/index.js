@@ -3,7 +3,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import { startMockServer, stopMockServer, refreshMockRoutes, updateMockDelay, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
 import { IconRefresh, IconCopy, IconCheck, IconPlayerPlay, IconPlayerStop, IconSettings } from '@tabler/icons';
 import toast from 'react-hot-toast';
-import { validateName, validateNameError } from 'utils/common/regex';
 import RouteTable from './RouteTable';
 import RequestLog from './RequestLog';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
@@ -13,6 +12,7 @@ import {
   getMockServerInstances,
   checkMockServerPortAvailable,
   getMockServerPortError,
+  getMockServerNameError,
   isMockServerNameTaken,
   resolveInstanceSpec,
   saveMockServerInstance,
@@ -193,8 +193,9 @@ const MockServerDashboard = ({ instance, collection }) => {
       return;
     }
 
-    if (!validateName(trimmedName)) {
-      toast.error(validateNameError(trimmedName));
+    const nameError = getMockServerNameError(trimmedName);
+    if (nameError) {
+      toast.error(nameError);
       setNameDraft(null);
       return;
     }
