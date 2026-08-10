@@ -119,6 +119,11 @@ const StyledWrapper = styled.div`
     outline: 1px solid ${(props) => props.theme.codemirror.border};
   }
 
+  .searchbar-replace-btn:focus {
+    outline: 1px solid ${(props) => props.theme.brand};
+    outline-offset: 1px;
+  }
+
   .searchbar-icon-btn.active {
     color: ${(props) => props.theme.brand};
     background-color: ${(props) => rgba(props.theme.brand, 0.1)};
