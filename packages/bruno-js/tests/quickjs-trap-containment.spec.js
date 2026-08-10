@@ -1,0 +1,94 @@
+const { describe, it, expect, afterEach } = require('@jest/globals');
+const BrunoResponse = require('../src/bruno-response');
+const {
+  makeBru,
+  loadSandbox,
+  captureAllocations,
+  expectSettledWithoutAbort,
+  expectAllDead
+} = require('./quickjs-sandbox.helpers');
+
+const RUNTIME_MEMORY_LIMIT_BYTES = 64 * 1024 * 1024;
+
+const makeLargeResponse = () =>
+  new BrunoResponse({
+    status: 200,
+    statusText: 'OK',
+    headers: { 'content-type': 'text/plain' },
+    data: 'WAR AND PEACE '.repeat(Math.ceil((3 * 1024 * 1024) / 14)),
+    responseTime: 12
+  });
+
+// Reads a multi-MB body and grows it past the runtime memory limit, driving
+// the engine into the uncatchable out-of-memory that traps dispose.
+const OOM_SCRIPT = `
+  const body = res.getBody();
+  let blob = body;
+  for (let i = 0; i < 8; i++) {
+    blob = blob + blob;
+  }
+  bru.setVar('len', blob.length);
+`;
+
+// A WASM trap during dispose (JS_FreeRuntime aborting on engine-internal
+// leftovers) leaves that module instance's heap unreliable. The sandbox must
+// contain the trap and hand later runs a fresh module, and must never retire
+// a module for anything less than a real trap.
+describe('QuickJS engine trap containment', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  // The low memory limit stands in for the small initial WASM heap of a
+  // freshly started process, which is what makes first runs fail in the
+  // field. Both runs go through the sandbox's WASM module singleton, like
+  // consecutive requests in a running app.
+  it('contains an engine trap: the run reports its result, the module is replaced, the next run is healthy', async () => {
+    const captured = { handles: [], deferreds: [] };
+    const { sandbox, wasmModule } = await loadSandbox((vm) => {
+      captureAllocations(vm, captured);
+      vm.runtime.setMemoryLimit(RUNTIME_MEMORY_LIMIT_BYTES);
+    });
+
+    const error = await sandbox
+      .executeQuickJsVmAsync({
+        script: OOM_SCRIPT,
+        context: { bru: makeBru(), res: makeLargeResponse() },
+        collectionPath: '/tmp/collection'
+      })
+      .then(() => null, (thrown) => thrown);
+
+    expectSettledWithoutAbort({ status: 'settled', error });
+    expectAllDead(captured);
+    expect(await sandbox.loader()).not.toBe(wasmModule);
+
+    const bru = makeBru();
+    await sandbox.executeQuickJsVmAsync({
+      script: 'bru.setVar("recovered", true);',
+      context: { bru },
+      collectionPath: '/tmp/collection'
+    });
+    expect(bru.getVar('recovered')).toBe(true);
+  }, 20000);
+
+  // Only a WASM trap (a thrown WebAssembly.RuntimeError) may retire the
+  // engine module; an ordinary teardown failure surfaces as the run's error
+  // even when its message imitates one.
+  it('does not replace the engine module for a non-trap teardown failure', async () => {
+    const { sandbox, wasmModule } = await loadSandbox((vm) => {
+      vm.dispose = () => {
+        throw new Error('Aborted(imitation, not a WebAssembly.RuntimeError)');
+      };
+    });
+
+    await expect(
+      sandbox.executeQuickJsVmAsync({
+        script: 'bru.setVar("x", 1);',
+        context: { bru: makeBru() },
+        collectionPath: '/tmp/collection'
+      })
+    ).rejects.toThrow('Aborted(imitation, not a WebAssembly.RuntimeError)');
+
+    expect(await sandbox.loader()).toBe(wasmModule);
+  });
+});
