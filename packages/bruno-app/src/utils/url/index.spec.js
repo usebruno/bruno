@@ -180,6 +180,19 @@ describe('Url Utils - parsePathParams', () => {
     const params = parsePathParams('https://example.com/start/1:2:AHLS-HASD/form');
     expect(params).toEqual([]);
   });
+
+  it('should support escaping a colon that follows a path param in the same segment', () => {
+    const params = parsePathParams('https://example.com/:foo/:bar\\:publish');
+    expect(params).toEqual([
+      { name: 'foo', value: '' },
+      { name: 'bar', value: '' }
+    ]);
+  });
+
+  it('should NOT treat an escaped colon segment as a path param', () => {
+    const params = parsePathParams('https://example.com/foo/\\:literal');
+    expect(params).toEqual([]);
+  });
 });
 
 describe('Url Utils - URN parsing', () => {
@@ -428,6 +441,35 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
     const result = interpolateUrlPathParams(url, []);
 
     expect(result).toEqual('https://httpbin.org/anything/:analyze-text');
+  });
+
+  it('should support an escaped colon after a resolved path param', () => {
+    const url = 'https://example.com/:foo/:bar\\:publish';
+    const params = [
+      { name: 'foo', type: 'path', enabled: true, value: 'a' },
+      { name: 'bar', type: 'path', enabled: true, value: 'b' }
+    ];
+
+    const result = interpolateUrlPathParams(url, params);
+
+    expect(result).toEqual('https://example.com/a/b:publish');
+  });
+
+  it('should keep the escaped colon segment unchanged when the path param has no value', () => {
+    const url = 'https://example.com/:bar\\:publish';
+    const params = [{ name: 'bar', type: 'path', enabled: true, value: '' }];
+
+    const result = interpolateUrlPathParams(url, params);
+
+    expect(result).toEqual('https://example.com/:bar:publish');
+  });
+
+  it('should resolve a fully escaped literal segment to a plain colon', () => {
+    const url = 'https://example.com/foo/\\:literal';
+
+    const result = interpolateUrlPathParams(url, []);
+
+    expect(result).toEqual('https://example.com/foo/:literal');
   });
 });
 

@@ -34,6 +34,23 @@ const getContentType = (headers = {}) => {
   return typeof contentType === 'string' ? contentType : '';
 };
 
+// A `\:` in the URL lets a user write a literal colon that shouldn't be parsed as a
+// path param (e.g. `:bar\:publish` -> param `bar` followed by literal `:publish`). The
+// WHATWG URL parser normalizes any *other* backslash into an extra `/` for special
+// schemes, so `\:` is swapped for this alphanumeric placeholder before the URL is
+// parsed, and swapped back to `:` in the final string once parsing/splitting is done.
+const ESCAPED_COLON_TOKEN = 'zzzBRUNOESCAPEDCOLONzzz';
+const protectEscapedColons = (str) => str.replace(/\\:/g, ESCAPED_COLON_TOKEN);
+const restoreEscapedColons = (str) => str.split(ESCAPED_COLON_TOKEN).join(':');
+
+const splitEscapedParamName = (path) => {
+  const escapeIdx = path.indexOf(ESCAPED_COLON_TOKEN);
+  return {
+    name: escapeIdx === -1 ? path.slice(1) : path.slice(1, escapeIdx),
+    suffix: escapeIdx === -1 ? '' : path.slice(escapeIdx)
+  };
+};
+
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
   const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
   const collectionVariables = request?.collectionVariables || {};
@@ -139,12 +156,17 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     param.value = _interpolate(param.value);
   });
 
-  if (request?.pathParams?.length) {
+  // an escaped colon can appear even without any configured path params
+  const hasEscapedColon = typeof request.url === 'string' && request.url.includes('\\:');
+
+  if (request?.pathParams?.length || hasEscapedColon) {
+    const pathParams = request.pathParams || [];
     let url = request.url;
 
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `http://${url}`;
     }
+    url = protectEscapedColons(url);
 
     try {
       url = new URL(url);
@@ -158,12 +180,12 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       .map((path) => {
         // traditional path parameters
         if (path.startsWith(':')) {
-          const paramName = path.slice(1);
-          const existingPathParam = request.pathParams.find((param) => param.name === paramName);
+          const { name: paramName, suffix } = splitEscapedParamName(path);
+          const existingPathParam = pathParams.find((param) => param.name === paramName);
           if (!hasResolvablePathParamValue(existingPathParam)) {
             return '/' + path;
           }
-          return '/' + existingPathParam.value;
+          return '/' + existingPathParam.value + suffix;
         }
 
         // for OData-style parameters (parameters inside parentheses)
@@ -180,7 +202,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
               let name = match[1].replace(/[')"`]+$/, '');
               name = name.replace(/^[('"`]+/, '');
               if (name) {
-                const existingPathParam = request.pathParams.find((param) => param.name === name);
+                const existingPathParam = pathParams.find((param) => param.name === name);
                 if (hasResolvablePathParamValue(existingPathParam)) {
                   result = result.replace(':' + match[1], existingPathParam.value);
                 }
@@ -194,7 +216,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       .join('');
 
     const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
-    request.url = url.origin + interpolatedUrlPath + trailingSlash + url.search;
+    request.url = restoreEscapedColons(url.origin + interpolatedUrlPath + trailingSlash + url.search);
   }
 
   if (request.proxy) {

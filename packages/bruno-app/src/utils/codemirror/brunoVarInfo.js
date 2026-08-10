@@ -1044,7 +1044,11 @@ export const extractVariableInfo = (str, variables) => {
     }
     variableValue = interpolate(get(variables, variableName), variables);
   } else if (str.startsWith('/:')) {
-    variableName = str.replace('/:', '').trim();
+    const rawName = str.replace('/:', '').trim();
+    // A `\:` marks the end of the param name; anything after is a literal
+    // suffix, not part of the variable (see parsePathParams in utils/url).
+    const escapeIdx = rawName.indexOf('\\:');
+    variableName = escapeIdx === -1 ? rawName : rawName.slice(0, escapeIdx);
     // Don't return empty variable names
     if (!variableName) {
       return { variableName: undefined, variableValue: undefined };

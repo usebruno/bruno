@@ -216,6 +216,31 @@ describe('interpolate-vars: interpolateVars', () => {
         const result = interpolateVars(request, null, null, null);
         expect(result.url).toBe('https://httpbin.org/anything/:test-segment');
       });
+
+      it('supports an escaped colon after a resolved path param (issue #3810)', async () => {
+        const request = {
+          method: 'GET',
+          url: 'https://example.com/:foo/:bar\\:publish',
+          pathParams: [
+            { type: 'path', name: 'foo', value: 'a' },
+            { type: 'path', name: 'bar', value: 'b' }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('https://example.com/a/b:publish');
+      });
+
+      it('resolves an escaped colon literal even without any configured path params', async () => {
+        const request = {
+          method: 'GET',
+          url: 'https://example.com/foo/\\:literal',
+          pathParams: []
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('https://example.com/foo/:literal');
+      });
     });
 
     describe('With process environment variables', () => {
