@@ -88,7 +88,15 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
   const isPointerOverHoverPopover = useRef(false);
   const currentAnchorRef = useRef(null);
 
-  const isEditable = editor?.isEditable ?? false;
+  const [isEditable, setIsEditable] = useState(editor?.isEditable ?? false);
+
+  useEffect(() => {
+    if (!editor) return;
+    setIsEditable(editor.isEditable);
+    const handleTransaction = () => setIsEditable(editor.isEditable);
+    editor.on('transaction', handleTransaction);
+    return () => editor.off('transaction', handleTransaction);
+  }, [editor]);
 
   const getContainer = useCallback(() => {
     return containerEl || editor?.view?.dom?.closest('.rich-text-editor-content') || document.body;

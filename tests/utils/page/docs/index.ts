@@ -27,5 +27,14 @@ export const buildDocsLocators = (page: Page) => ({
   codeBlockLangOption: (language: string) => page.locator(`[role="menuitem"][data-item-id="${language}"]`),
   codeBlockCopyBtn: () => page.getByTestId('code-block-copy-btn'),
   codeBlockContent: () => page.locator('[data-testid="code-block-pre"] code'),
-  codeBlockSyntaxHighlight: (className: string) => page.locator(`[data-testid="code-block-pre"] code .${className}`)
+  codeBlockSyntaxHighlight: (className: string) => page.locator(`[data-testid="code-block-pre"] code .${className}`),
+  // Link popover locators
+  linkEditPopover: () => page.getByTestId('editor-link-popover'),
+  linkEditUrlInput: () => page.locator('#linkUrl'),
+  linkEditInsertBtn: () => page.getByRole('button', { name: 'Insert' }),
+  linkEditSaveBtn: () => page.getByRole('button', { name: 'Save' }),
+  linkHoverPopover: () => page.locator('[data-hover-popover="true"]'),
+  linkHoverUrlDisplay: () => page.locator('[data-hover-popover="true"] .link-url'),
+  linkHoverEditBtn: () => page.locator('[data-hover-popover="true"] .action-icon-btn').nth(0),
+  linkHoverUnlinkBtn: () => page.locator('[data-hover-popover="true"] .action-icon-btn').nth(1)
 });
