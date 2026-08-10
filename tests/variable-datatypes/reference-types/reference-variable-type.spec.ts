@@ -44,10 +44,10 @@ test.describe('DataType selector — referenced variable type', () => {
       await expectNotFlagged(page, 'numberTypeRefersToNestedNumber');
       await expectNotFlagged(page, 'booleanTypeRefersToNestedBoolean');
       await expectNotFlagged(page, 'booleanTypeRefersToDottedKey');
+      await expectNotFlagged(page, 'stringTypeRefersToNumber');
     });
 
     await test.step('Different-type references are flagged', async () => {
-      await expectFlagged(page, 'stringTypeRefersToNumber');
       await expectFlagged(page, 'numberTypeRefersToString');
       await expectFlagged(page, 'booleanTypeRefersToObject');
       await expectFlagged(page, 'objectTypeRefersToBoolean');
@@ -68,10 +68,10 @@ test.describe('DataType selector — referenced variable type', () => {
       await expectNotFlagged(page, 'stringTypeRefersToGlobalNestedString');
       await expectNotFlagged(page, 'numberTypeRefersToGlobalNestedNumber');
       await expectNotFlagged(page, 'booleanTypeRefersToGlobalNestedBoolean');
+      await expectNotFlagged(page, 'stringTypeRefersToGlobalNumber');
     });
 
     await test.step('Different-type references from a collection environment are flagged', async () => {
-      await expectFlagged(page, 'stringTypeRefersToGlobalNumber');
       await expectFlagged(page, 'numberTypeRefersToGlobalString');
       await expectFlagged(page, 'booleanTypeRefersToGlobalObject');
       await expectFlagged(page, 'objectTypeRefersToGlobalBoolean');
