@@ -15,9 +15,10 @@ const Documentation = ({ item, collection }) => {
   const { isEditing, setEditing } = useDocsEditingState();
   const docs = item?.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
 
-  // Scroll tracking (both the rich-text preview/edit view and markdown mode's
-  // CodeEditor) lives in DocsEditor itself; this just owns the persisted value.
-  const [scroll, setScroll] = usePersistedState({ key: `request-docs-scroll-${item?.uid}`, default: 0 });
+  // separate scroll positions for rich-text and markdown views since
+  // their layouts are independent.
+  const [richTextScroll, setRichTextScroll] = usePersistedState({ key: `request-docs-scroll-richtext-${item?.uid}`, default: 0 });
+  const [markdownScroll, setMarkdownScroll] = usePersistedState({ key: `request-docs-scroll-markdown-${item?.uid}`, default: 0 });
 
   const onEdit = useCallback(
     (value) => {
@@ -59,8 +60,10 @@ const Documentation = ({ item, collection }) => {
         requestContext={requestContext}
         variables={aiVariables}
         onRequestEdit={() => setEditing(true)}
-        initialScroll={scroll}
-        onScroll={setScroll}
+        initialRichTextScroll={richTextScroll}
+        onRichTextScrollChange={setRichTextScroll}
+        initialMarkdownScroll={markdownScroll}
+        onMarkdownScrollChange={setMarkdownScroll}
         testId="docs-editor"
       />
     </StyledWrapper>

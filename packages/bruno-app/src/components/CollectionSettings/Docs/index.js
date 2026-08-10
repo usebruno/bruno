@@ -21,9 +21,10 @@ const Docs = ({ collection }) => {
   const docsContext = useMemo(() => buildDocsContextFromCollection(collection), [collection]);
   const aiVariables = useMemo(() => buildAiVariablesPayload(collection, null), [collection]);
 
-  // Scroll tracking (both the rich-text preview/edit view and markdown mode's
-  // CodeEditor) lives in DocsEditor itself; this just owns the persisted value.
-  const [scroll, setScroll] = usePersistedState({ key: `collection-docs-scroll-${collection.uid}`, default: 0 });
+  // separate scroll positions for rich-text and markdown views since
+  // their layouts are independent.
+  const [richTextScroll, setRichTextScroll] = usePersistedState({ key: `collection-docs-scroll-richtext-${collection.uid}`, default: 0 });
+  const [markdownScroll, setMarkdownScroll] = usePersistedState({ key: `collection-docs-scroll-markdown-${collection.uid}`, default: 0 });
 
   const toggleViewMode = () => {
     setEditing(!isEditing);
@@ -85,8 +86,10 @@ const Docs = ({ collection }) => {
           variables={aiVariables}
           emptyPreviewContent={documentationPlaceholder}
           onRequestEdit={toggleViewMode}
-          initialScroll={scroll}
-          onScroll={setScroll}
+          initialRichTextScroll={richTextScroll}
+          onRichTextScrollChange={setRichTextScroll}
+          initialMarkdownScroll={markdownScroll}
+          onMarkdownScrollChange={setMarkdownScroll}
         />
       </div>
     </StyledWrapper>
