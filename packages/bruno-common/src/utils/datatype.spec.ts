@@ -168,15 +168,11 @@ describe('getDataTypeFromValue', () => {
 });
 
 describe('validateDataTypeValue', () => {
-  it('returns null when dataType is missing', () => {
+  it('returns null when dataType is missing or "string"', () => {
     expect(validateDataTypeValue('anything', undefined)).toBeNull();
-    expect(validateDataTypeValue(42, undefined)).toBeNull();
-  });
-
-  it('validates strings', () => {
     expect(validateDataTypeValue('anything', 'string')).toBeNull();
-    expect(validateDataTypeValue(42, 'string')).toBe('Value is not a valid string');
-    expect(validateDataTypeValue(true, 'string')).toBe('Value is not a valid string');
+    expect(validateDataTypeValue(42, 'string')).toBeNull();
+    expect(validateDataTypeValue(true, 'string')).toBeNull();
   });
 
   it('returns null for null/undefined values regardless of dataType', () => {
@@ -239,9 +235,14 @@ describe('parseValueByDataType — {{var}} references', () => {
   it('resolves regardless of dataType — the referenced value keeps its own type', () => {
     expect(parseValueByDataType('{{count}}', 'string', variables)).toBe(7);
     expect(parseValueByDataType('{{count}}', undefined, variables)).toBe(7);
-    expect(validateDataTypeValue(parseValueByDataType('{{count}}', 'string', variables), 'string')).toBe(
-      'Value is not a valid string'
-    );
+    expect(validateDataTypeValue(parseValueByDataType('{{count}}', 'string', variables), 'string')).toBeNull();
+  });
+
+  it('never re-coerces the resolved value', () => {
+    expect(parseValueByDataType('{{flag}}', 'number', variables)).toBe(true);
+    expect(validateDataTypeValue(parseValueByDataType('{{flag}}', 'number', variables), 'number')).toBe('Value is not a valid number');
+    expect(validateDataTypeValue(parseValueByDataType('{{flag}}', 'object', variables), 'object')).toBe('Value is not a valid object');
+    expect(parseValueByDataType('{{label}}', 'object', { label: '{"a":1}' })).toBe('{"a":1}');
   });
 });
 

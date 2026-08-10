@@ -84,10 +84,9 @@ export const valueToString = (value: unknown, indent?: number): string => {
 
 // Returns an error message when post-coerce value's JS type doesn't match dataType.
 export const validateDataTypeValue = (value: any, dataType?: BrunoVariableDataType): string | null => {
-  if (!dataType) return null;
+  if (!dataType || dataType === 'string') return null;
   if (value === undefined || value === null) return null;
 
-  if (dataType === 'string' && typeof value !== 'string') return `Value is not a valid ${dataType}`;
   if (dataType === 'number' && typeof value !== 'number') return `Value is not a valid ${dataType}`;
   if (dataType === 'boolean' && typeof value !== 'boolean') return `Value is not a valid ${dataType}`;
   if (dataType === 'object' && typeof value !== 'object') return `Value is not a valid ${dataType}`;
