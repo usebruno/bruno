@@ -75,7 +75,11 @@ const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, onUnlink, initialTex
     <StyledWrapper
       ref={popoverRef}
       data-editor-link-popover="true"
-      style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
+      style={{
+        top: `${coords.top}px`,
+        left: `${coords.left}px`,
+        display: coords.visible === false ? 'none' : undefined
+      }}
       onKeyDown={handleKeyDown}
     >
       <div data-testid="editor-link-popover" className="editor-link-popover-content">
@@ -107,17 +111,6 @@ const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, onUnlink, initialTex
           />
         </div>
         <div className="popover-actions">
-          {initialUrl && onUnlink && (
-            <Button
-              type="button"
-              color="secondary"
-              variant="ghost"
-              size="sm"
-              onClick={onUnlink}
-            >
-              Remove
-            </Button>
-          )}
           <Button
             type="button"
             color="secondary"

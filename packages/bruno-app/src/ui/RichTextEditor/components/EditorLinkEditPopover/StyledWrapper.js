@@ -8,7 +8,7 @@ const StyledWrapper = styled.div`
   border-radius: ${(props) => props.theme.border.radius.base};
   border: 1px solid ${(props) => props.theme.dropdown.border};
   z-index: 9999;
-  position: absolute;
+  position: fixed;
 
   .editor-link-popover-content {
     display: flex;
