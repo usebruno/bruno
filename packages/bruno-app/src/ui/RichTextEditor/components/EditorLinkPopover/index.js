@@ -6,11 +6,12 @@ import ToolHint from 'components/ToolHint';
 import { isSafeUrl } from 'utils/url/index';
 import EditorLinkEditPopover from '../EditorLinkEditPopover';
 import StyledWrapper from './StyledWrapper';
-import Portal from 'components/Portal/index';
+import Portal from 'ui/Portal';
 
 const POPOVER_WIDTH = 272; // matches the popover's `width: 17rem` in StyledWrapper.js
-const EDIT_POPOVER_HEIGHT = 180;
-const HOVER_POPOVER_HEIGHT = 45;
+// Only used before a popover has ever rendered and could be measured directly.
+const HOVER_POPOVER_HEIGHT_ESTIMATE = 45;
+const EDIT_POPOVER_HEIGHT_ESTIMATE = 180;
 
 /**
  * Resolves link text + doc range from the TipTap document for a given anchor element.
@@ -37,7 +38,7 @@ function resolveLinkText(editor, anchorEl) {
  * Flips the popover above the anchor if there is not enough space at the bottom.
  * Determines visibility based on whether the anchor is within the container bounds.
  */
-function getPortalCoords(anchorRect, isEdit, containerRect) {
+function getPortalCoords(anchorRect, popoverHeight, containerRect) {
   const isVisible = containerRect
     ? !(
         anchorRect.bottom < containerRect.top
@@ -51,8 +52,6 @@ function getPortalCoords(anchorRect, isEdit, containerRect) {
     Math.max(8, anchorRect.left), // 8px left padding
     window.innerWidth - POPOVER_WIDTH - 8 // 8px right padding
   );
-
-  const popoverHeight = isEdit ? EDIT_POPOVER_HEIGHT : HOVER_POPOVER_HEIGHT;
 
   // Try bottom first
   let top = anchorRect.bottom + 4;
@@ -70,8 +69,9 @@ function getPortalCoords(anchorRect, isEdit, containerRect) {
  * 1. A lightweight hover preview that appears in BOTH edit and preview modes.
  * 2. A full edit popover (edit-mode) triggered only in edit mode.
  *
- * Both are rendered INSIDE the editor's scrollable container (not a Portal),
- * so they naturally scroll with the content.
+ * Both are rendered via a Portal into document.body with `position: fixed`, so they
+ * aren't clipped by the editor's scrollable container; their coordinates are recomputed
+ * on scroll/resize to keep tracking the anchor.
  */
 const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
   // --- Hover View Popover ---
@@ -87,6 +87,19 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
   const hoverTimerRef = useRef(null);
   const isPointerOverHoverPopover = useRef(false);
   const currentAnchorRef = useRef(null);
+
+  // Actual rendered height of each popover, once it has mounted at least once,
+  // so positioning reflects real content rather than a fixed guess.
+  const hoverPopoverElRef = useRef(null);
+  const editPopoverElRef = useRef(null);
+  const hoverHeightRef = useRef(HOVER_POPOVER_HEIGHT_ESTIMATE);
+  const editHeightRef = useRef(EDIT_POPOVER_HEIGHT_ESTIMATE);
+
+  const measureHeight = (elRef, lastKnownRef) => {
+    const height = elRef.current?.getBoundingClientRect().height;
+    if (height) lastKnownRef.current = height;
+    return lastKnownRef.current;
+  };
 
   const [isEditable, setIsEditable] = useState(editor?.isEditable ?? false);
 
@@ -108,7 +121,11 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
     if (!href) return;
 
     const container = getContainer();
-    const coords = getPortalCoords(anchorEl.getBoundingClientRect(), false, container.getBoundingClientRect());
+    const coords = getPortalCoords(
+      anchorEl.getBoundingClientRect(),
+      measureHeight(hoverPopoverElRef, hoverHeightRef),
+      container.getBoundingClientRect()
+    );
     const { text } = resolveLinkText(editor, anchorEl);
 
     currentAnchorRef.current = anchorEl;
@@ -130,7 +147,11 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
     if (!href) return;
 
     const container = getContainer();
-    const coords = getPortalCoords(anchorEl.getBoundingClientRect(), true, container.getBoundingClientRect());
+    const coords = getPortalCoords(
+      anchorEl.getBoundingClientRect(),
+      measureHeight(editPopoverElRef, editHeightRef),
+      container.getBoundingClientRect()
+    );
     const { text, range } = resolveLinkText(editor, anchorEl);
     if (range) {
       editor.commands.setTextSelection(range);
@@ -153,7 +174,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
       try {
         const { from } = editor.state.selection;
         const posCoords = editor.view.coordsAtPos(from);
-        coords = getPortalCoords(posCoords, true, container.getBoundingClientRect());
+        coords = getPortalCoords(posCoords, measureHeight(editPopoverElRef, editHeightRef), container.getBoundingClientRect());
       } catch (e) { /* ignore */ }
 
       currentAnchorRef.current = null; // New link, no anchor element
@@ -172,30 +193,54 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
     if (!editor) return;
     const container = getContainer();
 
-    const handleScroll = () => {
+    const reposition = () => {
       const containerRect = container.getBoundingClientRect();
       if (hoverOpen && currentAnchorRef.current) {
-        setHoverCoords(getPortalCoords(currentAnchorRef.current.getBoundingClientRect(), false, containerRect));
+        setHoverCoords(
+          getPortalCoords(
+            currentAnchorRef.current.getBoundingClientRect(),
+            measureHeight(hoverPopoverElRef, hoverHeightRef),
+            containerRect
+          )
+        );
       }
       if (editOpen) {
         if (currentAnchorRef.current) {
-          setEditCoords(getPortalCoords(currentAnchorRef.current.getBoundingClientRect(), true, containerRect));
+          setEditCoords(
+            getPortalCoords(
+              currentAnchorRef.current.getBoundingClientRect(),
+              measureHeight(editPopoverElRef, editHeightRef),
+              containerRect
+            )
+          );
         } else {
           try {
             const { from } = editor.state.selection;
             const posCoords = editor.view.coordsAtPos(from);
-            setEditCoords(getPortalCoords(posCoords, true, containerRect));
+            setEditCoords(getPortalCoords(posCoords, measureHeight(editPopoverElRef, editHeightRef), containerRect));
           } catch (e) { /* ignore */ }
         }
       }
     };
 
-    container.addEventListener('scroll', handleScroll, { passive: true });
+    // Re-measure and correct immediately once a popover has actually mounted,
+    // since the coords computed when it opened used the estimated height.
+    reposition();
+
+    container.addEventListener('scroll', reposition, { passive: true });
     // Also bind to window scroll in case the whole page scrolls
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', reposition, { passive: true });
+    window.addEventListener('resize', reposition);
+    // Catches layout changes that move the anchor without a scroll/window-resize,
+    // e.g. dragging a splitter to resize the docs pane.
+    const resizeObserver = new ResizeObserver(reposition);
+    resizeObserver.observe(container);
+
     return () => {
-      container.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('scroll', handleScroll);
+      container.removeEventListener('scroll', reposition);
+      window.removeEventListener('scroll', reposition);
+      window.removeEventListener('resize', reposition);
+      resizeObserver.disconnect();
     };
   }, [editor, getContainer, hoverOpen, editOpen]);
 
@@ -247,6 +292,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
       {/* ── Hover view popover (both modes) ── */}
       {hoverOpen && (
         <StyledWrapper
+          ref={hoverPopoverElRef}
           data-hover-popover="true"
           style={{
             top: `${hoverCoords.top}px`,
@@ -289,6 +335,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
                   <button
                     type="button"
                     className="action-icon-btn"
+                    data-testid="link-hover-edit-btn"
                     onClick={() => {
                       setHoverOpen(false);
                       if (currentAnchorRef.current) {
@@ -305,6 +352,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
                   <button
                     type="button"
                     className="action-icon-btn"
+                    data-testid="link-hover-unlink-btn"
                     onClick={() => {
                       setHoverOpen(false);
                       if (currentAnchorRef.current) {
@@ -345,15 +393,12 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
 
       {/* ── Edit popover (edit mode only) ── */}
       <EditorLinkEditPopover
+        wrapperRef={editPopoverElRef}
         isOpen={editOpen}
         externalCoords={editCoords}
         onClose={() => setEditOpen(false)}
         onSubmit={(data) => {
           if (onSubmit) onSubmit(data);
-          setEditOpen(false);
-        }}
-        onUnlink={() => {
-          if (onUnlink) onUnlink();
           setEditOpen(false);
         }}
         initialText={editLink.text}

@@ -2,11 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 
-const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, onUnlink, initialText, initialUrl, externalCoords }) => {
+const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, initialText, initialUrl, externalCoords, wrapperRef }) => {
   const [text, setText] = useState(initialText || '');
   const [url, setUrl] = useState(initialUrl || '');
   const popoverRef = useRef(null);
   const urlInputRef = useRef(null);
+
+  const setPopoverRefs = (node) => {
+    popoverRef.current = node;
+    if (wrapperRef) wrapperRef.current = node;
+  };
 
   // Parent provides fully-computed coords before opening — no state/effect needed.
   const coords = externalCoords || { top: 0, left: 0 };
@@ -25,8 +30,8 @@ const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, onUnlink, initialTex
   }
 
   // Focus the URL input without scrolling the page.
-  // We can't use autoFocus because the popover is position:absolute inside a
-  // scrollable container — autoFocus triggers native scroll-into-view.
+  // We can't use autoFocus because the popover is rendered via a Portal with
+  // position:fixed — autoFocus triggers native scroll-into-view regardless.
   useEffect(() => {
     if (isOpen && urlInputRef.current) {
       const timer = setTimeout(() => {
@@ -73,7 +78,7 @@ const EditorLinkEditPopover = ({ isOpen, onClose, onSubmit, onUnlink, initialTex
 
   return (
     <StyledWrapper
-      ref={popoverRef}
+      ref={setPopoverRefs}
       data-editor-link-popover="true"
       style={{
         top: `${coords.top}px`,

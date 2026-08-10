@@ -35,6 +35,6 @@ export const buildDocsLocators = (page: Page) => ({
   linkEditSaveBtn: () => page.getByRole('button', { name: 'Save' }),
   linkHoverPopover: () => page.locator('[data-hover-popover="true"]'),
   linkHoverUrlDisplay: () => page.locator('[data-hover-popover="true"] .link-url'),
-  linkHoverEditBtn: () => page.locator('[data-hover-popover="true"] .action-icon-btn').nth(0),
-  linkHoverUnlinkBtn: () => page.locator('[data-hover-popover="true"] .action-icon-btn').nth(1)
+  linkHoverEditBtn: () => page.getByTestId('link-hover-edit-btn'),
+  linkHoverUnlinkBtn: () => page.getByTestId('link-hover-unlink-btn')
 });

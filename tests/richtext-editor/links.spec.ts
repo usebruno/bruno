@@ -56,7 +56,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
 
     // We can just click the edit button inside the hover popover.
     // The edit button has an IconEdit.
-    await locators.docs.linkHoverEditBtn().evaluate((node: HTMLElement) => node.click());
+    await locators.docs.linkHoverEditBtn().click();
 
     await expect(editPopover).toBeVisible();
     await locators.docs.linkEditUrlInput().fill('https://example.org');
@@ -69,7 +69,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
     // Remove the link
     await updatedLink.hover();
     await expect(hoverPopover).toBeVisible();
-    await locators.docs.linkHoverUnlinkBtn().evaluate((node: HTMLElement) => node.click()); // The unlink icon
+    await locators.docs.linkHoverUnlinkBtn().click(); // The unlink icon
 
     // Check if the link is removed
     await expect(prosemirror.locator('a')).toHaveCount(0);
@@ -135,7 +135,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
     await expect(locators.docs.linkHoverUrlDisplay()).toHaveText('https://two.com');
 
     // Click the unlink button on the hover popover (which should unlink LinkTwo)
-    await locators.docs.linkHoverUnlinkBtn().evaluate((node: HTMLElement) => node.click());
+    await locators.docs.linkHoverUnlinkBtn().click();
 
     // Verify LinkTwo is unlinked but text remains
     await expect(linkTwo).toHaveCount(0);
