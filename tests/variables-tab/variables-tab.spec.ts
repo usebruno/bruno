@@ -18,6 +18,7 @@ import {
   scrollVariablesTo,
   selectEnvironment,
   sendRequestAndWaitForResponse,
+  switchToOpenTab,
   toggleSecretReveal,
   unfoldObjectLine
 } from '../utils/page';
@@ -59,6 +60,14 @@ const LONG_ENV_VAR_COUNT = 40;
 
 const FEATURE_FLAGS_JSON = ['{', '  "beta": true,', '  "rollout": "partial"', '}'].join('\n');
 const SECRET_PROFILE_JSON = ['{', '  "role": "admin"', '}'].join('\n');
+// What the `rewrite-config` request writes over the `service_config` seeded by `seed`.
+const REWRITTEN_SERVICE_CONFIG_JSON = [
+  '{',
+  '  "region": "eu-west-1",',
+  '  "replicas": 5,',
+  '  "tier": "gold"',
+  '}'
+].join('\n');
 
 /**
  * Activate `Local` and run the `seed` request. Runtime variables and secret env
@@ -312,6 +321,31 @@ test.describe('Variables tab', () => {
 
       await expect(variablesTab.foldMarkers(cell())).toHaveCount(0);
       await expect.poll(() => readVariableValue(page, 'environment', 'feature_flags')).toBe(FEATURE_FLAGS_JSON);
+    });
+  });
+
+  test('drops a collapsed object cell once the value itself changes', async ({ pageWithUserData: page }) => {
+    const { variablesTab } = buildCommonLocators(page);
+
+    await seedVariables(page);
+    await openVariablesTab(page, COLLECTION);
+
+    const cell = () => variablesTab.rowEditor('runtime', 'service_config');
+
+    await test.step('Collapsing the object leaves a two-key fold marker', async () => {
+      await foldObjectLine(cell(), 0);
+      await expect(variablesTab.foldMarkers(cell())).toHaveText('↤2↦');
+    });
+
+    await test.step('Rewriting the variable leaves the new value expanded', async () => {
+      await openRequest(page, COLLECTION, 'rewrite-config', { persist: true });
+      await sendRequestAndWaitForResponse(page, 200);
+
+      await switchToOpenTab(page, 'Variables');
+
+      await expect.poll(() => readVariableValue(page, 'runtime', 'service_config'))
+        .toBe(REWRITTEN_SERVICE_CONFIG_JSON);
+      await expect(variablesTab.foldMarkers(cell())).toHaveCount(0);
     });
   });
 

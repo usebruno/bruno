@@ -54,6 +54,10 @@ const VariablesTable = ({
     onOpenObject
   ]);
 
+  const sortStorageKey = section === 'environment'
+    ? `variables-sort-environment::${environmentUid}`
+    : `variables-sort-${section}`;
+
   return (
     <StyledWrapper>
       <EditableTable
@@ -67,7 +71,7 @@ const VariablesTable = ({
         columnWidths={columnWidths}
         onColumnWidthsChange={onColumnWidthsChange}
         initialScroll={0}
-        sortStorageKey={`variables-sort-${section}`}
+        sortStorageKey={sortStorageKey}
       />
     </StyledWrapper>
   );

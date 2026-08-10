@@ -58,7 +58,7 @@ const VariableValue = ({
   const cellDocKey = !isMultiline
     ? undefined
     : section === 'environment'
-      ? `variables-cell:environment:${environmentUid || 'none'}:${name}`
+      ? `variables-cell:environment:${environmentUid}:${name}`
       : `variables-cell:${section}:${name}`;
 
   const handleCopy = useCallback(() => {

@@ -79,12 +79,14 @@ const StyledWrapper = styled.div`
     pointer-events: none;
     transition: opacity 0.12s ease;
 
-    &.is-pinned {
+    &.is-pinned,
+    &:focus-visible {
       opacity: 1;
       pointer-events: auto;
     }
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       color: ${(props) => props.theme.text};
       background: ${(props) => props.theme.sidebar.bg};
     }

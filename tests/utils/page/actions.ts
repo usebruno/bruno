@@ -25,12 +25,15 @@ const waitForReadyPage = (
 
 /**
  * Read the system clipboard through the renderer, which is where the app's copy
- * buttons write.
+ * buttons write. Windows hands multi-line text back as CRLF, so line endings are
+ * normalized and callers can compare against plain \n.
  * @param page - The page object
  * @returns The clipboard's text
  */
-const readClipboard = (page: Page): Promise<string> =>
-  page.evaluate(() => navigator.clipboard.readText());
+const readClipboard = async (page: Page): Promise<string> => {
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  return text.replace(/\r\n/g, '\n');
+};
 
 /**
  * Dismiss all import issues toasts (they use infinite duration and persist across tests).

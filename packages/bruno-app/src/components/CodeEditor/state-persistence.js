@@ -11,9 +11,9 @@
  *
  * Note: we deliberately do NOT persist the content itself — the canonical value
  * lives in Redux (props.value). We only persist the editor's "view" state on
- * top of that content. If content has drifted between save and restore, fold
- * positions are applied leniently (foldCode silently no-ops on invalid lines)
- * and history is skipped to avoid an inconsistent undo stack.
+ * top of that content. If content has drifted between save and restore, the
+ * whole snapshot is dropped — folds and scroll offsets describe lines that no
+ * longer hold the same content.
  */
 
 export const STORAGE_PREFIX = 'persisted::';
@@ -87,24 +87,21 @@ export const captureEditorState = (editor) => {
 
 export const applyEditorState = (editor, state, currentContent) => {
   if (!editor || !state) return;
-  const doc = editor.getDoc();
-  const contentMatches = state.contentLength === (currentContent || '').length;
+  // The snapshot describes content that is no longer in the editor: folds and
+  // the scroll offset would land on unrelated lines, and a stale undo stack
+  // would let Cmd-Z replay edits that no longer correspond to anything visible.
+  if (state.contentLength !== (currentContent || '').length) return;
 
-  // History/cursor/selection only make sense if content didn't drift — applying
-  // a stale undo stack to different content would let Cmd-Z replay edits that
-  // no longer correspond to anything visible.
-  if (contentMatches) {
-    if (state.history) {
-      try { doc.setHistory(state.history); } catch {}
-    }
-    if (state.cursor) {
-      try { doc.setCursor(state.cursor); } catch {}
-    }
-    if (state.selections && state.selections.length) {
-      try { doc.setSelections(state.selections); } catch {}
-    }
+  const doc = editor.getDoc();
+  if (state.history) {
+    try { doc.setHistory(state.history); } catch {}
   }
-  // Folds are cheap and lenient — try them either way.
+  if (state.cursor) {
+    try { doc.setCursor(state.cursor); } catch {}
+  }
+  if (state.selections && state.selections.length) {
+    try { doc.setSelections(state.selections); } catch {}
+  }
   // Sort innermost-first (line desc): when folds are nested, applying the
   // inner one before the outer one is safer because brace-fold's findRange
   // re-scans the line text. With outer-first, deeply nested arrays inside a

@@ -9,7 +9,7 @@ import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import { useResizablePanel } from 'hooks/useResizablePanel';
-import { STORAGE_PREFIX, getScopedStorageKey } from 'components/CodeEditor/state-persistence';
+import { getScopedStorageKey } from 'components/CodeEditor/state-persistence';
 import VariablesTable from './VariablesTable';
 import VariablesSection from './VariablesSection';
 import VariableDetailsDrawer from './VariableDetailsDrawer';
@@ -34,8 +34,6 @@ const getScrollEl = (wrapper) => wrapper?.querySelector?.('.variables-scroll') |
 /** Drop Variables persistence that is tied to a specific environment's values. */
 const clearEnvironmentBoundPersistence = (scope) => {
   if (!scope) return;
-
-  localStorage.removeItem(`${STORAGE_PREFIX}${scope}::variables-sort-environment`);
 
   const prefixes = [
     getScopedStorageKey(scope, 'variables-drawer:environment:'),
@@ -212,7 +210,7 @@ const VariablesEditor = ({ collection }) => {
       // Virtuoso may already have reset it to 0 during its own unmount.
       setScroll(scrollPosRef.current || 0);
     };
-  }, [setScroll, runtimeRows.length, envRows.length]);
+  }, [setScroll]);
 
   useEffect(() => {
     const node = wrapperRef.current;
