@@ -415,27 +415,24 @@ export const saveMultipleCollections = (collectionDrafts) => (dispatch, getState
         const collectionRootToSave = transformCollectionRootToSave(collectionCopy);
         const { ipcRenderer } = window;
 
-        let savePromises = [];
-
-        savePromises.push(ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig));
+        const collectionSavePromises = [
+          ipcRenderer.invoke('renderer:save-collection-root', collectionCopy.pathname, collectionRootToSave, collectionCopy.brunoConfig)
+        ];
 
         if (collectionCopy.draft?.brunoConfig) {
-          savePromises.push(ipcRenderer.invoke('renderer:update-bruno-config', collectionCopy.draft.brunoConfig, collectionCopy.pathname, collectionCopy.root));
+          collectionSavePromises.push(ipcRenderer.invoke('renderer:update-bruno-config', collectionCopy.draft.brunoConfig, collectionCopy.pathname, collectionCopy.root));
         }
 
-        Promise.all(savePromises)
-          .then(() => {
+        savePromises.push(
+          Promise.all(collectionSavePromises).then(() => {
             dispatch(saveCollectionDraft({ collectionUid: collectionDraft.collectionUid }));
           })
-          .catch((err) => {
-            toast.error('Failed to save collection settings!');
-            reject(err);
-          });
+        );
       }
     });
 
     Promise.all(savePromises)
-      .then(resolve)
+      .then(() => resolve())
       .catch((err) => {
         toast.error('Failed to save collection settings!');
         reject(err);
