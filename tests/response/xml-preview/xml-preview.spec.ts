@@ -73,6 +73,26 @@ test.describe('XML Preview - well-formed responses', () => {
       await expect(xmlTree).toContainText('The credentials provided are incorrect');
     });
   });
+
+  test('renders the tree for a response with an <error> element nested below the root', async ({
+    pageWithUserData: page
+  }) => {
+    const locators = buildCommonLocators(page);
+
+    await openXmlResponseRequest(page, 'xml-nested-error');
+
+    await test.step('a nested "error" element is response data, not a parse failure', async () => {
+      await expect(locators.response.previewErrorBanner()).toHaveCount(0);
+
+      await expandAllXmlNodes(page);
+      const xmlTree = locators.response.xmlTree();
+      await expect(xmlTree).toContainText('response');
+      await expect(xmlTree).toContainText('failed');
+      await expect(xmlTree).toContainText('errors');
+      await expect(xmlTree).toContainText('Unauthorized');
+      await expect(xmlTree).toContainText('The credentials provided are incorrect');
+    });
+  });
 });
 
 test.describe('XML Preview - malformed responses', () => {
