@@ -9,7 +9,14 @@ jest.mock('utils/common', () => {
   };
 });
 
-import { cloneMockResponseRecord, resolveMockResponseCollection, resolveMockResponseEditorCollection } from './mock-responses';
+import {
+  cloneMockResponseRecord,
+  getMockResponseNameError,
+  isMockResponseNameTaken,
+  MOCK_RESPONSE_NAME_MAX_LENGTH,
+  resolveMockResponseCollection,
+  resolveMockResponseEditorCollection
+} from './mock-responses';
 
 describe('mock-responses', () => {
   it('clones mock responses with new uids and a copy name', () => {
@@ -107,5 +114,64 @@ describe('resolveMockResponseEditorCollection', () => {
     expect(enriched.globalEnvironmentVariables).toEqual({ token: 'abc' });
     expect(enriched.workspaceProcessEnvVariables).toEqual({ NODE_ENV: 'test' });
     expect(enriched.environments[0].variables[0].value).toBe('https://api.example.com');
+  });
+
+  describe('getMockResponseNameError', () => {
+    it('flags empty and whitespace-only names', () => {
+      expect(getMockResponseNameError('')).toBe('Mock response name is required');
+      expect(getMockResponseNameError('   ')).toBe('Mock response name is required');
+      expect(getMockResponseNameError(null)).toBe('Mock response name is required');
+      expect(getMockResponseNameError(undefined)).toBe('Mock response name is required');
+    });
+
+    it('flags names longer than the max length after trimming', () => {
+      const overflow = 'a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH + 1);
+      expect(getMockResponseNameError(overflow))
+        .toBe(`Name must be ${MOCK_RESPONSE_NAME_MAX_LENGTH} characters or less`);
+    });
+
+    it('accepts names within bounds', () => {
+      expect(getMockResponseNameError('Order 200')).toBeNull();
+      expect(getMockResponseNameError('a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH))).toBeNull();
+      // trailing spaces are ignored — they get trimmed on save
+      expect(getMockResponseNameError('Order 200   ')).toBeNull();
+    });
+
+    it('measures the trimmed length, not the raw length', () => {
+      const paddedAtLimit = `   ${'a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH)}   `;
+      const paddedOverLimit = `   ${'a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH + 1)}   `;
+      expect(getMockResponseNameError(paddedAtLimit)).toBeNull();
+      expect(getMockResponseNameError(paddedOverLimit))
+        .toBe(`Name must be ${MOCK_RESPONSE_NAME_MAX_LENGTH} characters or less`);
+    });
+  });
+
+  describe('isMockResponseNameTaken', () => {
+    const responses = [
+      { uid: 'r-1', name: 'Success' },
+      { uid: 'r-2', name: '  Not Found  ' }
+    ];
+
+    it('detects duplicates case-insensitively and ignores surrounding whitespace', () => {
+      expect(isMockResponseNameTaken(responses, 'success')).toBe(true);
+      expect(isMockResponseNameTaken(responses, 'SUCCESS')).toBe(true);
+      expect(isMockResponseNameTaken(responses, '  Success  ')).toBe(true);
+      expect(isMockResponseNameTaken(responses, 'not found')).toBe(true);
+    });
+
+    it('excludes the record being renamed', () => {
+      expect(isMockResponseNameTaken(responses, 'success', 'r-1')).toBe(false);
+    });
+
+    it('returns false for empty or missing names', () => {
+      expect(isMockResponseNameTaken(responses, '')).toBe(false);
+      expect(isMockResponseNameTaken(responses, '   ')).toBe(false);
+      expect(isMockResponseNameTaken(responses, null)).toBe(false);
+    });
+
+    it('handles an empty response list', () => {
+      expect(isMockResponseNameTaken([], 'anything')).toBe(false);
+      expect(isMockResponseNameTaken(undefined, 'anything')).toBe(false);
+    });
   });
 });

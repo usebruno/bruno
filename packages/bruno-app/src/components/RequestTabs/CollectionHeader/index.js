@@ -332,6 +332,9 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     ...(!hasOpenApiSyncConfigured
       ? [{ id: 'openapi-sync', label: 'OpenAPI', leftSection: OpenAPISyncIcon, onClick: viewOpenApiSync }]
       : []),
+    ...(isMockServerEnabled
+      ? [{ id: 'mock-server', label: 'Mock Server', leftSection: IconServer2, onClick: viewMockServer }]
+      : []),
     { id: 'collection-settings', label: 'Collection Settings', leftSection: IconSettings, onClick: viewCollectionSettings }
   ];
 
@@ -793,13 +796,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   <IconRun size={16} strokeWidth={1.5} />
                 </ActionIcon>
               </ToolHint>
-              {isMockServerEnabled && (
-                <ToolHint text="Mock Server" toolhintId="MockServerToolhintId" place="bottom">
-                  <ActionIcon onClick={viewMockServer} aria-label="Mock Server" size="sm" data-testid="mock-server">
-                    <IconServer2 size={16} strokeWidth={1.5} />
-                  </ActionIcon>
-                </ToolHint>
-              )}
               {/* JS Sandbox Mode - always visible */}
               <JsSandboxMode collection={collection} />
               {/* Overflow menu */}

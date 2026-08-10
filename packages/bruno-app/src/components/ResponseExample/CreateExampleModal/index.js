@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import Modal from 'components/Modal';
 import Portal from 'components/Portal';
+import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
 
-const STATUS_CODES = [200, 201, 204, 400, 401, 403, 404, 500, 502, 503];
 const BODY_TYPES = [
   { value: 'json', label: 'JSON' },
   { value: 'text', label: 'Text' },
@@ -28,7 +28,7 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
   const handleConfirm = () => {
     if (name.trim()) {
       if (showMockFields) {
-        onSave(name.trim(), description.trim(), { statusCode: Number(statusCode), bodyType });
+        onSave(name.trim(), description.trim(), { statusCode: Number(statusCode) || 200, bodyType });
       } else {
         onSave(name.trim(), description.trim());
       }
@@ -124,11 +124,11 @@ const CreateExampleModal = ({ isOpen, onClose, onSave, title = 'Create Response 
                   id="statusCode"
                   className="textbox mt-2 w-full"
                   value={statusCode}
-                  onChange={(e) => setStatusCode(e.target.value)}
+                  onChange={(e) => setStatusCode(Number(e.target.value))}
                   data-testid="status-code-select"
                 >
-                  {STATUS_CODES.map((code) => (
-                    <option key={code} value={code}>{code}</option>
+                  {Object.entries(statusCodePhraseMap).map(([code, phrase]) => (
+                    <option key={code} value={code}>{code} {phrase}</option>
                   ))}
                 </select>
               </div>
