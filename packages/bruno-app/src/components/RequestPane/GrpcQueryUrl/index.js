@@ -20,7 +20,6 @@ import {
   endGrpcConnection
 } from 'utils/network/index';
 import GrpcurlModal from './GrpcurlModal';
-import { debounce } from 'lodash';
 import { getPropertyFromDraftOrRequest } from 'utils/collections';
 import useReflectionManagement from 'hooks/useReflectionManagement/index';
 import useProtoFileManagement from 'hooks/useProtoFileManagement/index';
@@ -55,9 +54,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   const methodDropdownRef = useRef(null);
   const protoDropdownRef = useRef(null);
-  const haveFetchedMethodsRef = useRef(false);
   const latestReflectionRequestIdRef = useRef(0);
-  const lastReflectionKeyRef = useRef(null);
 
   const protoFileManagement = useProtoFileManagement(collection, protoFilePath);
   const reflectionManagement = useReflectionManagement(item, collection);
@@ -89,41 +86,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   const onSave = () => {
     dispatch(saveRequest(item.uid, collection.uid));
-  };
-
-  const handleReflectionRef = useRef(null);
-  const [debouncedReflection] = useState(() =>
-    debounce((value) => handleReflectionRef.current?.(value), 3000)
-  );
-  useEffect(() => () => debouncedReflection.cancel(), [debouncedReflection]);
-
-  const onUrlChange = (value) => {
-    if (!editorRef.current?.editor) return;
-    const editor = editorRef.current.editor;
-    const cursor = editor.getCursor();
-
-    const finalUrl = value?.trim() || value;
-
-    dispatch(
-      requestUrlChanged({
-        itemUid: item.uid,
-        collectionUid: collection.uid,
-        url: finalUrl
-      })
-    );
-
-    if (finalUrl !== value) {
-      setTimeout(() => {
-        if (editor) {
-          editor.setCursor(cursor);
-        }
-      }, 0);
-    }
-
-    if (!protoFilePath && value) {
-      setIsReflectionMode(true);
-      debouncedReflection(finalUrl);
-    }
   };
 
   const handleReflection = async (url, isManualRefresh = false) => {
@@ -170,7 +132,35 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       }
     }
   };
-  handleReflectionRef.current = handleReflection;
+
+  const onUrlChange = (value) => {
+    if (!editorRef.current?.editor) return;
+    const editor = editorRef.current.editor;
+    const cursor = editor.getCursor();
+
+    const finalUrl = value?.trim() || value;
+
+    dispatch(
+      requestUrlChanged({
+        itemUid: item.uid,
+        collectionUid: collection.uid,
+        url: finalUrl
+      })
+    );
+
+    if (finalUrl !== value) {
+      setTimeout(() => {
+        if (editor) {
+          editor.setCursor(cursor);
+        }
+      }, 0);
+    }
+
+    if (!protoFilePath && value) {
+      setIsReflectionMode(true);
+      reflectionManagement.scheduleReflection(finalUrl, handleReflection);
+    }
+  };
 
   const handleProtoFileLoad = async (filePath, isManualRefresh = false) => {
     const { methods, error, fromCache } = await protoFileManagement.loadMethodsFromProtoFile(filePath, isManualRefresh);
@@ -291,18 +281,12 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   useEffect(() => {
     if (protoFilePath) {
-      if (haveFetchedMethodsRef.current) return;
-      haveFetchedMethodsRef.current = true;
+      if (!protoFileManagement.claimProtoFileLoad(protoFilePath)) return;
       setIsReflectionMode(false);
       handleProtoFileLoad(protoFilePath);
       return;
     }
-    if (!url) return;
-    const envUid = collection.activeEnvironmentUid ?? null;
-    const last = lastReflectionKeyRef.current;
-    if (last && last.url === url && last.envUid === envUid) return;
-    lastReflectionKeyRef.current = { url, envUid };
-    haveFetchedMethodsRef.current = true;
+    if (!reflectionManagement.claimReflection(url)) return;
     setIsReflectionMode(true);
     handleReflection(url);
   }, [collection.activeEnvironmentUid]);

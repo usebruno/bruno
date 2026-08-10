@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { debounce } from 'lodash';
 import { interpolate } from '@usebruno/common';
 import { loadGrpcMethodsFromReflection } from 'providers/ReduxStore/slices/collections/actions';
 import useLocalStorage from 'hooks/useLocalStorage/index';
 import { getAllVariables } from 'utils/collections';
+
+const REFLECTION_DEBOUNCE_MS = 3000;
 
 /**
  * Custom hook for managing reflection data and server discovery
@@ -105,10 +108,53 @@ export default function useReflectionManagement(item, collection) {
     setReflectionCache({});
   };
 
+  // Keep a ref to the latest loader so the debounced closure isn't stale after
+  // renders (item / collection changes). Same ref-to-latest pattern applies to
+  // the reflection key predicate below.
+  const loadRef = useRef(loadMethodsFromReflection);
+  loadRef.current = loadMethodsFromReflection;
+
+  const [debouncedLoad] = useState(() =>
+    debounce((url, onDone) => {
+      loadRef.current(url, false).then((result) => onDone?.(result));
+    }, REFLECTION_DEBOUNCE_MS)
+  );
+  useEffect(() => () => debouncedLoad.cancel(), [debouncedLoad]);
+
+  /**
+   * Debounced reflection call. Cancels on unmount.
+   * @param {string} url
+   * @param {(result: {methods, error, fromCache}) => void} onDone
+   */
+  const scheduleReflection = (url, onDone) => {
+    debouncedLoad(url, onDone);
+  };
+
+  const lastReflectionKeyRef = useRef(null);
+
+  /**
+   * Marks (url, activeEnvironmentUid) as reflected and returns whether this
+   * key is new (i.e. the caller should run the reflection side-effect chain).
+   * Callers that want to skip re-running side effects for a URL they've already
+   * reflected in this env should gate on the return value.
+   * @param {string} url
+   * @returns {boolean} true if the key was new (and is now marked), false if already seen
+   */
+  const claimReflection = (url) => {
+    if (!url) return false;
+    const envUid = collection.activeEnvironmentUid ?? null;
+    const last = lastReflectionKeyRef.current;
+    if (last && last.url === url && last.envUid === envUid) return false;
+    lastReflectionKeyRef.current = { url, envUid };
+    return true;
+  };
+
   return {
     isLoadingMethods,
     reflectionCache,
     loadMethodsFromReflection,
+    scheduleReflection,
+    claimReflection,
     hasCachedMethods,
     getCachedMethods,
     clearCacheForUrl,
