@@ -109,7 +109,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await expect(locators.sidebar.request('Req Root')).not.toHaveClass(/item-selected/);
   });
 
-  test('A normally-clicked row is carried into the selection on the next Ctrl/Cmd-click', async ({ page, createTmpDir }) => {
+  test('A normally-clicked row is NOT carried into the selection on the next Ctrl/Cmd-click', async ({ page, createTmpDir }) => {
     const { locators } = await setupFixture(page, createTmpDir, 'active');
 
     // Plain click: opens the request and becomes the anchor, but isn't itself "selected" yet.
@@ -118,7 +118,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
     await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
 
-    await expect(locators.sidebar.itemRow('Req Root')).toHaveClass(/item-selected/);
+    await expect(locators.sidebar.itemRow('Req Root')).not.toHaveClass(/item-selected/);
     await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/item-selected/);
   });
 
