@@ -20,6 +20,7 @@ const MockResponseSidebarItem = ({
 }) => {
   const dispatch = useDispatch();
   const activeTabUid = useSelector((state) => state.tabs?.activeTabUid);
+  const existingResponses = useSelector((state) => state.mockServer.mockResponses[instance.uid] || []);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -142,6 +143,7 @@ const MockResponseSidebarItem = ({
       {showRenameModal ? (
         <RenameMockResponseModal
           response={response}
+          existingResponses={existingResponses}
           isSaving={isRenaming}
           onClose={() => {
             if (!isRenaming) {
@@ -174,13 +176,13 @@ const MockResponseSidebarItem = ({
       ) : null}
 
       <div
-        className="flex items-center w-full pr-1"
+        className="flex items-center w-full pr-2"
         data-testid={`mock-response-sidebar-item-${response.uid}`}
       >
         <button
           type="button"
           className={classnames(
-            'flex-1 min-w-0 text-left py-1 pl-0 pr-1 text-xs hover:opacity-100 opacity-80 flex items-center gap-2',
+            'flex-1 min-w-0 text-left py-1 pl-2 pr-1 text-xs hover:opacity-100 opacity-80 flex items-center gap-2',
             { 'font-medium': activeTabUid === response.uid }
           )}
           onClick={() => openResponseTab(response)}

@@ -3,13 +3,23 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   .try-row {
     display: flex;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 10px;
   }
 
   .try-url-bar {
     flex: 1;
     min-width: 0;
+  }
+
+  .try-action {
+    display: flex;
+    align-items: stretch;
+    flex-shrink: 0;
+  }
+
+  .try-action button {
+    height: 100%;
   }
 
   div.tabs {

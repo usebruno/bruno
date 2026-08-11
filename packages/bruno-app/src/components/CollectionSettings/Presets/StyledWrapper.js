@@ -12,7 +12,7 @@ const StyledWrapper = styled.div`
 
     .preset-field-label {
       display: block;
-      font-weight: 600;
+      font-weight: 500;
       color: ${(props) => props.theme.text};
     }
 
@@ -41,6 +41,11 @@ const StyledWrapper = styled.div`
       width: 100%;
     }
 
+    [role='menu'] {
+      max-height: 16rem;
+      overflow-y: auto;
+    }
+
     .default-env-trigger {
       width: 100%;
       box-sizing: border-box;
@@ -51,8 +56,15 @@ const StyledWrapper = styled.div`
       border: 1px solid ${(props) => props.theme.input.border};
       color: ${(props) => props.theme.text};
       transition: border-color ease-in-out 0.1s;
+      font: inherit;
+      appearance: none;
 
       &:hover {
+        border-color: ${(props) => props.theme.input.focusBorder};
+      }
+
+      &:focus-visible {
+        outline: none;
         border-color: ${(props) => props.theme.input.focusBorder};
       }
 
