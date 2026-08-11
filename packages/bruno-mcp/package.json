@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@usebruno/cli": "1.16.0",
+    "@usebruno/cli": "4.0.0",
     "js-yaml": "^4.1.0",
     "yargs": "^17.6.2",
     "zod": "^4.4.3"

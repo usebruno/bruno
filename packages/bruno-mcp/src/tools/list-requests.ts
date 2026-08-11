@@ -10,7 +10,9 @@ export const registerListRequestsTool = (server: McpServer, { registry }: ToolCo
     {
       title: 'List requests in a Bruno collection',
       description:
-        'List every HTTP/GraphQL request in the given collection, flattened across folders. Returns the relative path used to invoke execute_request, plus method and URL when statically known. Optionally filter by a search term (matched against name, path, and URL) and/or HTTP method.',
+        'List every HTTP/GraphQL request in the given collection, flattened across folders. ' +
+        'Returns the relative path used to invoke execute_request, plus method and URL when statically known. ' +
+        'Optionally filter by a search term (matched against name, path, and URL) and/or HTTP method.',
       inputSchema: {
         collectionId: z.string().describe('Collection id returned by list_collections.'),
         search: z
@@ -32,12 +34,16 @@ export const registerListRequestsTool = (server: McpServer, { registry }: ToolCo
       }
       const all = registry.listRequests(collectionId) || [];
       const requests = filterRequests(all, { search, method });
+      const noMatch = (search || method) && requests.length === 0 && all.length > 0;
       return textResult({
         collectionId,
         collectionName: collection.name,
         total: all.length,
         count: requests.length,
         filter: { search: search || null, method: method || null },
+        ...(noMatch
+          ? { hint: `No requests matched the filter. Call list_requests without "search"/"method" to see all ${all.length}.` }
+          : {}),
         requests
       });
     }

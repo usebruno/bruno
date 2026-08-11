@@ -10,9 +10,9 @@ export const registerExecuteRequestTool = (server: McpServer, { registry, verbos
     {
       title: 'Execute a Bruno request',
       description:
-        "Execute a named request from a Bruno collection through Bruno's runtime (the same code path as the Bruno CLI), so environment variables, scripts, assertions, tests, and every auth method (Basic, Bearer, API key, OAuth2, AWS SigV4, NTLM, Digest, WSSE, ...) are applied automatically from the collection's own configuration. " +
-        'Credentials are resolved inside the runtime and never returned to you: request header values are withheld (only header names are reported) and response cookies are redacted. OAuth2 tokens are obtained fresh per run from the collection config (not read from the Bruno desktop app session). ' +
-        'Returns status, response headers, body, assertions, and test results. Large bodies are truncated inline and spilled to a temp file path.',
+        "Execute a named request from a Bruno collection through Bruno's runtime, applying the collection's environment variables, scripts, assertions, tests, and configured auth. " +
+        'Sensitive data is withheld: all request and response headers are omitted and URL query values are redacted. ' +
+        'Returns status, response body, and assertion/test results; large bodies are truncated.',
       inputSchema: {
         collectionId: z.string().describe('Collection id returned by list_collections.'),
         requestPath: z

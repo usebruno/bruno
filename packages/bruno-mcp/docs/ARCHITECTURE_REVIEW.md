@@ -37,8 +37,8 @@ TypeScript (ESM), compiled with a plain `tsc` to `dist/`, following the module l
 
 ## Security invariants
 
-- Request header values withheld (names only); request URL userinfo stripped and query-param values redacted; response `set-cookie` / `authorization` / `proxy-authorization` redacted. Child-process output and assertion/test detail withheld unless `--verbose`; status always returned. Each result's `redaction` field records what was withheld.
-- Reporter JSON (transiently holds resolved secrets) written to a private per-process temp dir (0700), unlinked immediately after read; spilled bodies written 0600, cleaned on exit + SIGINT/SIGTERM.
+- All request and response headers omitted at the source via `bru run --reporter-skip-all-headers`, so no header ever reaches the parsed report; request URL userinfo stripped and query-param values redacted. Assertion/test detail and child-process stdout/stderr are returned as-is, relying on the CLI masking secret-flagged variable values (`walkAndMask`) across both the report and its console output; status always returned. Each result's `redaction` field records what the MCP layer withheld (headers, URL secrets). Residual: hardcoded literals and values from non-`secret` variables are not masked, matching `bru run --reporter-json` output.
+- Reporter JSON (transiently holds resolved secrets) written to a private per-process temp dir (0700), unlinked immediately after read and the dir removed on process exit. Large response bodies are truncated inline (full byte length reported), never written to disk.
 - `bru run` spawned via `child_process.spawn` without a shell; `--env-var` names rejected if they contain `=`.
 - `execute_request` resolves the collection root from the registry by `collectionId` (never an agent-supplied path); `requestPath` must exactly match a `relativePath` enumerated by `list_requests` (allowlist membership, not just resolves-inside-root).
 

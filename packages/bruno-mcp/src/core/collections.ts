@@ -43,6 +43,17 @@ const listEnvironments = (collectionPath: string): string[] => {
     .map((f) => f.replace(/\.(bru|yml)$/, ''));
 };
 
+export const filterCollections = (
+  collections: CollectionListItem[],
+  { search }: { search?: string } = {}
+): CollectionListItem[] => {
+  if (!search) return collections;
+  const q = String(search).toLowerCase();
+  return collections.filter((c) =>
+    [c.name, c.path, c.workspaceName].some((f) => typeof f === 'string' && f.toLowerCase().includes(q))
+  );
+};
+
 export const filterRequests = (
   requests: RequestInfo[],
   { search, method }: { search?: string; method?: string } = {}

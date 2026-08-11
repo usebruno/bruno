@@ -2,9 +2,6 @@ import { z } from 'zod';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 import type { CollectionRegistry } from '../core/collections.js';
-
-// Everything a tool handler needs from the server: the collection registry and
-// the verbose flag. Passed to every register<Tool> function.
 export interface ToolContext {
   registry: CollectionRegistry;
   verbose: boolean;
