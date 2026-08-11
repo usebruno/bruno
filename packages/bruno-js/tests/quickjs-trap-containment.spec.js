@@ -130,6 +130,9 @@ describe('QuickJS engine trap containment', () => {
         })
         .catch(() => {});
 
+      // Guards against a vacuous pass: proves the trap really started the
+      // replacement build (the one mocked to reject).
+      expect(builds).toBe(2);
       expect(await sandbox.loader()).toBe(wasmModule);
       const bru = makeBru();
       await sandbox.executeQuickJsVmAsync({
@@ -138,6 +141,7 @@ describe('QuickJS engine trap containment', () => {
         collectionPath: TEST_COLLECTION_PATH
       });
       expect(bru.getVar('stillWorks')).toBe(true);
+      expect(builds).toBe(2);
       await new Promise((resolve) => setImmediate(resolve));
       expect(unhandledRejections).toEqual([]);
     } finally {
