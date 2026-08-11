@@ -16,6 +16,12 @@ const GHOST_COLL = 'Ghost Coll';
 const collectionCard = (page: Page, collectionName: string) =>
   page.locator('.collection-card').filter({ hasText: collectionName });
 
+const collectionCardMenu = (page: Page, collectionName: string) =>
+  collectionCard(page, collectionName).locator('.collection-menu');
+
+const collectionCardMenuItems = (page: Page, collectionName: string) =>
+  collectionCard(page, collectionName).locator('.dropdown-item');
+
 test.describe('Collections that cannot be opened', () => {
   test('switching into the workspace reports how many collections failed to open', async ({ launchElectronApp, createTmpDir }) => {
     const workspacePath = await createTmpDir('unopenable-coll-toast');
@@ -152,6 +158,39 @@ test.describe('Collections that cannot be opened', () => {
       expect(raw).toContain(HEALTHY_COLL);
       expect(raw).toContain(EMPTY_COLL);
       expect(raw).toContain(GHOST_COLL);
+    });
+
+    await closeElectronApp(app);
+  });
+
+  test('a failed collection card offers Remove and no other action', async ({ launchElectronApp, createTmpDir }) => {
+    const workspacePath = await createTmpDir('unopenable-coll-menu');
+    await fs.promises.cp(fixturePath, workspacePath, { recursive: true });
+
+    const app = await launchElectronApp({ initUserDataPath, templateVars: { workspacePath } });
+    const page = await waitForReadyPage(app);
+    const { sidebar } = buildCommonLocators(page);
+
+    await test.step('Switch into the workspace and let the healthy collection finish loading', async () => {
+      await switchWorkspace(page, WORKSPACE_NAME);
+      await expect(sidebar.collection(HEALTHY_COLL)).toBeVisible({ timeout: 10000 });
+    });
+
+    await test.step('The failed collection card menu holds Remove and nothing else', async () => {
+      await collectionCardMenu(page, MISSING_COLL).click();
+      await expect(collectionCardMenuItems(page, MISSING_COLL)).toHaveText(['Remove']);
+    });
+
+    await test.step('A collection that opened keeps its full menu in the same workspace', async () => {
+      await collectionCardMenu(page, HEALTHY_COLL).click();
+      await expect(collectionCardMenuItems(page, HEALTHY_COLL)).toHaveText([
+        'Rename',
+        'Share',
+        /^Reveal in /,
+        'Connect to Git',
+        'Remove',
+        'Delete'
+      ]);
     });
 
     await closeElectronApp(app);
