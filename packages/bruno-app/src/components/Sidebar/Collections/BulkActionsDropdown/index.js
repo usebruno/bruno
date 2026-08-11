@@ -2,8 +2,9 @@ import React, { useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Dropdown from 'components/Dropdown';
 import { IconX, IconFoldDown, IconFoldUp, IconTrash } from '@tabler/icons';
-import { collapseFullCollection, collapseFullItem, expandFullCollection, expandFullItem, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
+import { collapseCollection, collapseItem, expandCollection, expandItem, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import { getOtherCollections, getSelectionInfo } from 'utils/collections/index';
+import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 
 const isEntryCollapsed = (entry) => (entry.type === 'collection' ? entry.collection.collapsed : entry.item.collapsed);
 
@@ -25,8 +26,8 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
   const allCollapsed = canCollapse && collapsibleEntries.every(isEntryCollapsed);
 
   const otherCollections = getOtherCollections(collections, effectiveSelection.map((entry) => entry.uid));
-  const canCollapseOthers = otherCollections.length > 0;
-  const allOthersCollapsed = canCollapseOthers && otherCollections.every((c) => c.collapsed);
+  const hasOtherCollections = otherCollections.length > 0;
+  const allOthersCollapsed = hasOtherCollections && otherCollections.every((c) => c.collapsed);
 
   const clearAndClose = () => {
     dispatch(clearSidebarSelection());
@@ -43,29 +44,61 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
     onClose();
   };
 
-  const handleToggleCollapse = () => {
+  const handleToggleCollapse = async () => {
     const targetCollapsed = !allCollapsed;
+
+    // If we are expanding, ensure all selected collections are mounted first
+    if (!targetCollapsed) {
+      const collectionsToMount = collapsibleEntries.filter(
+        (entry) => entry.type === 'collection' && entry.collection.mountStatus !== 'mounted' && entry.collection.mountStatus !== 'mounting'
+      );
+
+      await Promise.all(collectionsToMount.map((entry) =>
+        dispatch(mountCollection({
+          collectionUid: entry.uid,
+          collectionPathname: entry.collection.pathname,
+          brunoConfig: entry.collection.brunoConfig
+        }))
+      ));
+    }
+
     collapsibleEntries.forEach((entry) => {
       if (isEntryCollapsed(entry) === targetCollapsed) return;
 
       if (entry.type === 'collection') {
-        dispatch(allCollapsed ? expandFullCollection({ collectionUid: entry.uid }) : collapseFullCollection({ collectionUid: entry.uid }));
+        dispatch(allCollapsed ? expandCollection(entry.uid) : collapseCollection(entry.uid));
       } else {
         dispatch(
           allCollapsed
-            ? expandFullItem({ collectionUid: entry.collectionUid, itemUid: entry.uid })
-            : collapseFullItem({ collectionUid: entry.collectionUid, itemUid: entry.uid })
+            ? expandItem({ collectionUid: entry.collectionUid, itemUid: entry.uid })
+            : collapseItem({ collectionUid: entry.collectionUid, itemUid: entry.uid })
         );
       }
     });
     clearAndClose();
   };
 
-  const handleToggleCollapseOthers = () => {
+  const handleToggleCollapseOthers = async () => {
     const targetCollapsed = !allOthersCollapsed;
+
+    // If we are expanding others, ensure all other collections are mounted first
+    if (!targetCollapsed) {
+      const collectionsToMount = otherCollections.filter(
+        (c) => c.mountStatus !== 'mounted' && c.mountStatus !== 'mounting'
+      );
+
+      await Promise.all(collectionsToMount.map((c) =>
+        dispatch(mountCollection({
+          collectionUid: c.uid,
+          collectionPathname: c.pathname,
+          brunoConfig: c.brunoConfig
+        }))
+      ));
+    }
+
     otherCollections.forEach((collection) => {
       if (collection.collapsed === targetCollapsed) return;
-      dispatch(targetCollapsed ? collapseFullCollection({ collectionUid: collection.uid }) : expandFullCollection({ collectionUid: collection.uid }));
+      dispatch(targetCollapsed ? collapseCollection(collection.uid) : expandCollection(collection.uid));
     });
     clearAndClose();
   };
@@ -107,15 +140,17 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
             <CollapseIcon size={16} strokeWidth={2} className="dropdown-icon" />
             {collapseLabel}
           </div>
-          <div className="dropdown-item delete-collection" onClick={handleCloseOthers}>
-            <IconX size={16} strokeWidth={2} className="dropdown-icon" />
-            Remove Others
-          </div>
-          {canCollapseOthers ? (
-            <div className="dropdown-item" onClick={handleToggleCollapseOthers}>
-              <CollapseOthersIcon size={16} strokeWidth={2} className="dropdown-icon" />
-              {collapseOthersLabel}
-            </div>
+          {hasOtherCollections ? (
+            <>
+              <div className="dropdown-item delete-collection" onClick={handleCloseOthers}>
+                <IconX size={16} strokeWidth={2} className="dropdown-icon" />
+                Remove Others
+              </div>
+              <div className="dropdown-item" onClick={handleToggleCollapseOthers}>
+                <CollapseOthersIcon size={16} strokeWidth={2} className="dropdown-icon" />
+                {collapseOthersLabel}
+              </div>
+            </>
           ) : null}
         </>
       ) : (

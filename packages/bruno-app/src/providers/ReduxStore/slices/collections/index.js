@@ -285,29 +285,6 @@ export const collectionsSlice = createSlice({
         collapseAllItemsInCollection(collection);
       }
     },
-    collapseFullItem: (state, action) => {
-      const { collectionUid, itemUid } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      const item = collection && findItemInCollection(collection, itemUid);
-      if (item) {
-        collapseAllItemsInFolder(item);
-      }
-    },
-    expandFullCollection: (state, action) => {
-      const { collectionUid } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      if (collection) {
-        expandAllItemsInCollection(collection);
-      }
-    },
-    expandFullItem: (state, action) => {
-      const { collectionUid, itemUid } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      const item = collection && findItemInCollection(collection, itemUid);
-      if (item) {
-        expandAllItemsInFolder(item);
-      }
-    },
     updateCollectionMountStatus: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
@@ -1042,6 +1019,35 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.collapsed = false;
+      }
+    },
+    collapseCollection: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload);
+
+      if (collection) {
+        collection.collapsed = true;
+      }
+    },
+    expandItem: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && item.type === 'folder') {
+          item.collapsed = false;
+        }
+      }
+    },
+    collapseItem: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && item.type === 'folder') {
+          item.collapsed = true;
+        }
       }
     },
     toggleCollectionItem: (state, action) => {
@@ -4109,11 +4115,11 @@ export const {
   clearEnvironmentsDraft,
   newEphemeralHttpRequest,
   collapseFullCollection,
-  collapseFullItem,
-  expandFullCollection,
-  expandFullItem,
   toggleCollection,
   expandCollection,
+  collapseCollection,
+  expandItem,
+  collapseItem,
   toggleCollectionItem,
   requestUrlChanged,
   updateItemSettings,

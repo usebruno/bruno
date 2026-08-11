@@ -10,8 +10,8 @@ const {
   setSidebarSelection,
   clearSidebarSelection,
   setLastClickedSidebarUid,
-  collapseFullItem,
-  expandFullItem
+  collapseItem,
+  expandItem
 } = collectionsSlice.actions;
 const reducer = collectionsSlice.reducer;
 
@@ -214,7 +214,7 @@ describe('collapseFullItem', () => {
 
     const next = reducer(
       makeStateWith(folder),
-      collapseFullItem({ collectionUid: 'col1', itemUid: 'folder1' })
+      collapseItem({ collectionUid: 'col1', itemUid: 'folder1' })
     );
 
     const [collapsedFolder] = next.collections[0].items;
@@ -242,7 +242,7 @@ describe('expandFullItem', () => {
 
     const next = reducer(
       makeStateWith(folder),
-      expandFullItem({ collectionUid: 'col1', itemUid: 'folder1' })
+      expandItem({ collectionUid: 'col1', itemUid: 'folder1' })
     );
 
     const [expandedFolder] = next.collections[0].items;

@@ -50,6 +50,9 @@ const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 8px;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 4px;
   }
 `;
 
