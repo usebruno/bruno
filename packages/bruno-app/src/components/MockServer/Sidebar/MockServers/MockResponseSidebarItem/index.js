@@ -182,7 +182,7 @@ const MockResponseSidebarItem = ({
         <button
           type="button"
           className={classnames(
-            'flex-1 min-w-0 text-left py-1 pl-2 pr-1 text-xs hover:opacity-100 opacity-80 flex items-center gap-2',
+            'flex-1 min-w-0 text-left py-1 pl-3 pr-1 text-xs hover:opacity-100 opacity-80 flex items-center gap-2',
             { 'font-medium': activeTabUid === response.uid }
           )}
           onClick={() => openResponseTab(response)}
