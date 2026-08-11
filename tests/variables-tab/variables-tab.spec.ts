@@ -324,7 +324,7 @@ test.describe('Variables tab', () => {
     });
   });
 
-  test.only('keeps a collapsed object cell folded when the value itself changes', async ({ pageWithUserData: page }) => {
+  test('keeps a collapsed object cell folded when the value itself changes', async ({ pageWithUserData: page }) => {
     const { variablesTab } = buildCommonLocators(page);
 
     await seedVariables(page);
