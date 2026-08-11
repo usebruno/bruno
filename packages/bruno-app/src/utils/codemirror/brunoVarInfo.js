@@ -733,12 +733,16 @@ export const renderVarInfo = (token, options) => {
       updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
     };
 
-    // Only the request/folder's direct containing folder is offered as a creatable scope — not
-    // any ancestor further up the tree. Doesn't apply when the tooltip itself was opened from
-    // folder settings (that folder is already the guessed default in that case).
-    const parentFolder = item && item.type !== 'folder' && collection
+    // Only the request/folder's direct containing folder is offered as a creatable scope. not
+    // any ancestor further up the tree.
+    const isInFolderSettings = !!(item && item.type === 'folder');
+    const parentFolder = item && !isInFolderSettings && collection
       ? findParentItemInCollection(collection, item.uid)
       : null;
+
+    // When the tooltip is opened from folder settings itself, the "Folder" scope should target
+    // that folder directly (labeled "Folder"), not an ancestor.
+    const folderScopeTarget = isInFolderSettings ? item : parentFolder;
 
     // for new variables, add a switcher to select the scope to add the variable to (collection, request, folder, environment, global)
     if (isNewVariable) {
@@ -749,7 +753,7 @@ export const renderVarInfo = (token, options) => {
           case VARIABLE_ADD_SCOPES.REQUEST:
             return { type: 'request', value: '', data: { item, variable: null } };
           case VARIABLE_ADD_SCOPES.FOLDER:
-            return { type: 'folder', value: '', data: { folder: parentFolder, variable: null } };
+            return { type: 'folder', value: '', data: { folder: folderScopeTarget, variable: null } };
           case VARIABLE_ADD_SCOPES.ENVIRONMENT: {
             const freshState = store.getState();
             const freshCollection = findCollectionByUid(freshState.collections.collections, collection.uid);
@@ -782,7 +786,8 @@ export const renderVarInfo = (token, options) => {
         activeEnvironmentUid: freshCollectionForScopes?.activeEnvironmentUid,
         activeGlobalEnvironmentUid: globalEnvironmentsState.activeGlobalEnvironmentUid,
         item,
-        parentFolder,
+        parentFolder: folderScopeTarget,
+        isSelfFolder: isInFolderSettings,
         hasCollection: !!collection?.uid
       });
 

@@ -628,6 +628,36 @@ describe('renderVarInfo', () => {
       );
     });
 
+    it('targets the folder itself (not its parent) when opened from that folder\'s own settings, and pre-selects it', () => {
+      getVariableScope.mockReturnValue(null);
+      const folderItem = { uid: 'folder-1', type: 'folder', name: 'Auth' };
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'collection', label: 'Collection Variables', enabled: true, supportsSecret: false },
+        { type: 'environment', label: 'Collection Environment', enabled: true, supportsSecret: true },
+        { type: 'folder', label: 'Folder', enabled: true, supportsSecret: false }
+      ]);
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1', activeEnvironmentUid: 'env-1' },
+          item: folderItem
+        }
+      );
+
+      // The folder scope targets the folder being edited itself (labeled "Folder"), not a parent.
+      expect(getAvailableAddToScopes).toHaveBeenCalledWith(
+        expect.objectContaining({ parentFolder: folderItem, isSelfFolder: true })
+      );
+
+      const switcher = result.querySelector('.var-add-to-switcher');
+      switcher.querySelector('.var-add-to-toggle').click();
+
+      const activeRow = switcher.querySelector('.var-add-to-option-active');
+      expect(activeRow.querySelector('[data-testid="var-info-add-to-option-folder"]')).not.toBeNull();
+    });
+
     it('repoints the scope badge when a different scope is picked, without saving immediately', () => {
       getVariableScope.mockReturnValue(null);
       getAvailableAddToScopes.mockReturnValue([

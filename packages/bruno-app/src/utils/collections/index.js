@@ -1987,9 +1987,10 @@ const SCOPE_CONFIG = [
   },
   {
     type: VARIABLE_ADD_SCOPES.FOLDER,
-    label: ({ parentFolder }) => `Parent Folder(${parentFolder?.name || ''})`,
+    label: ({ parentFolder, isSelfFolder }) => (isSelfFolder ? 'Folder' : `Parent Folder(${parentFolder?.name || ''})`),
     supportsSecret: false,
-    // Only the request/folder's direct containing folder is added.
+    // Only the request/folder's direct containing folder is added. unless we're already in
+    // that folder's own settings, in which case the folder itself is the target.
     isAvailable: ({ parentFolder }) => !!parentFolder,
     enabled: () => true
   }
@@ -2002,8 +2003,12 @@ const SCOPE_CONFIG = [
  * @param {string} [options.activeGlobalEnvironmentUid] - The active global environment uid, if any.
  * @param {Object} [options.item] - The request/folder item the tooltip was opened from, if any.
  *   Request Variable is only added when this is a request (see isItemARequest).
- * @param {Object} [options.parentFolder] - The immediate containing folder of `item`, if any.
+ * @param {Object} [options.parentFolder] - The folder variables should be added to, if any: either
+ *   the immediate containing folder of `item`, or `item` itself when already in folder settings.
  *   Folder Variable is only added when this is present.
+ * @param {boolean} [options.isSelfFolder] - True when `parentFolder` is the folder currently being
+ *   edited (tooltip opened from within that folder's own settings), rather than an actual parent.
+ *   Only affects the Folder scope's label ("Folder" vs "Parent Folder(...)").
  * @param {boolean} [options.hasCollection] - when we are in Global Environment table, there is no collection context,
  * so we don't show collection/environment scopes
  * @returns {Array<{type: string, label: string, enabled: boolean, disabledReason?: string, supportsSecret: boolean}>}
@@ -2013,6 +2018,7 @@ export const getAvailableAddToScopes = ({
   activeGlobalEnvironmentUid,
   item,
   parentFolder,
+  isSelfFolder = false,
   hasCollection = true
 } = {}) => {
   const context = {
@@ -2020,6 +2026,7 @@ export const getAvailableAddToScopes = ({
     activeGlobalEnvironmentUid,
     item,
     parentFolder,
+    isSelfFolder,
     hasCollection
   };
 

@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts, getVariableScope, isVariableSecret } from './index';
+import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts, getVariableScope, isVariableSecret, getAvailableAddToScopes } from './index';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
@@ -160,5 +160,30 @@ describe('getVariableScope — global environment secrets', () => {
 
     expect(scopeInfo.data.variable).toEqual({ name: 'baseUrl', secret: false });
     expect(isVariableSecret(scopeInfo)).toBe(false);
+  });
+});
+
+describe('getAvailableAddToScopes — Folder scope label', () => {
+  it('labels the Folder scope "Parent Folder(name)" for a normal ancestor folder', () => {
+    const scopes = getAvailableAddToScopes({
+      item: { uid: 'req-1', type: 'http-request' },
+      parentFolder: { uid: 'folder-1', name: 'Auth' },
+      hasCollection: true
+    });
+
+    const folderScope = scopes.find((s) => s.type === 'folder');
+    expect(folderScope.label).toBe('Parent Folder(Auth)');
+  });
+
+  it('labels the Folder scope plainly "Folder" when it is the folder currently being edited', () => {
+    const scopes = getAvailableAddToScopes({
+      item: { uid: 'folder-1', type: 'folder', name: 'Auth' },
+      parentFolder: { uid: 'folder-1', type: 'folder', name: 'Auth' },
+      isSelfFolder: true,
+      hasCollection: true
+    });
+
+    const folderScope = scopes.find((s) => s.type === 'folder');
+    expect(folderScope.label).toBe('Folder');
   });
 });
