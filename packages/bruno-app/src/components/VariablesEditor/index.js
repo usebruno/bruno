@@ -3,13 +3,11 @@ import get from 'lodash/get';
 import filter from 'lodash/filter';
 import { IconBolt, IconDatabase } from '@tabler/icons';
 import { useDispatch, useSelector } from 'react-redux';
-import { getDataTypeFromValue } from '@usebruno/common/utils';
 import { findEnvironmentInCollection } from 'utils/collections';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import { useResizablePanel } from 'hooks/useResizablePanel';
-import { getScopedStorageKey } from 'components/CodeEditor/state-persistence';
 import VariablesTable from './VariablesTable';
 import VariablesSection from './VariablesSection';
 import VariableDetailsDrawer from './VariableDetailsDrawer';
@@ -20,27 +18,10 @@ import {
   SCROLL_RESTORE_GUARD_MS,
   SCROLL_SAVE_DEBOUNCE_MS
 } from './constants';
+import { clearEnvironmentBoundPersistence, isObjectOrArray, secretRevealKey } from './utils';
 import StyledWrapper from './StyledWrapper';
 
-const isObjectOrArray = (value) => getDataTypeFromValue(value) === 'object';
-
-/** Persisted-reveal key. Owned here — VariablesTable asks via isSecretRevealed. */
-const secretRevealKey = (section, name) => `${section}:${name}`;
-
 const getScrollEl = (wrapper) => wrapper?.querySelector?.('.variables-scroll') || null;
-
-/** Drop Variables persistence that is tied to a specific environment's values. */
-const clearEnvironmentBoundPersistence = (scope) => {
-  if (!scope) return;
-
-  const prefixes = [
-    getScopedStorageKey(scope, 'variables-drawer:environment:'),
-    getScopedStorageKey(scope, 'variables-cell:environment:')
-  ];
-  Object.keys(localStorage)
-    .filter((key) => prefixes.some((prefix) => key.startsWith(prefix)))
-    .forEach((key) => localStorage.removeItem(key));
-};
 
 const VariablesEditor = ({ collection }) => {
   const dispatch = useDispatch();

@@ -1,26 +1,14 @@
 import React, { useCallback, useMemo } from 'react';
 import { IconArrowsDiagonal, IconCheck, IconCopy, IconEye, IconEyeOff } from '@tabler/icons';
-import { getDataTypeFromValue, toDisplayString } from '@usebruno/common/utils';
+import { toDisplayString } from '@usebruno/common/utils';
 import { useTheme } from 'providers/Theme';
 import useCopyToClipboard from 'hooks/useCopyToClipboard';
 import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import SingleLineEditor from 'components/SingleLineEditor';
 import MultiLineEditor from 'components/MultiLineEditor';
-import { COPY_FEEDBACK_MS, JSON_MODE, OBJECT_CELL_MAX_HEIGHT, VARIABLE_REFERENCE_PATTERN } from '../constants';
+import { COPY_FEEDBACK_MS, JSON_MODE, OBJECT_CELL_MAX_HEIGHT } from '../constants';
+import { holdsVariableReference, isObjectOrArray, valueToEditorText } from '../utils';
 import StyledWrapper from './StyledWrapper';
-
-const isObjectOrArray = (value) => getDataTypeFromValue(value) === 'object';
-
-/** JSON quotes around a `{{var}}` reference read as part of the template. */
-const holdsVariableReference = (value) => typeof value === 'string' && VARIABLE_REFERENCE_PATTERN.test(value);
-
-/** Serialize for the value editor JSON so CodeMirror can color tokens. */
-const valueToEditorText = (value) => {
-  if (value === undefined) return '';
-  if (isObjectOrArray(value)) return toDisplayString(value, '');
-  if (holdsVariableReference(value)) return value;
-  return JSON.stringify(value) ?? '';
-};
 
 const VariableValue = ({
   value,
