@@ -131,7 +131,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       // Move the cursor into LinkOne without clicking (clicking opens the edit popover)
       // We are currently at the end of "LinkTwo": overshoot past the start of the
       // document, then step back onto it, since there's no direct "n characters back".
-      await prosemirror.click(); // Ensure editor has focus, this clicks in the middle or end
+      await prosemirror.focus(); // Ensure editor has focus without clicking
       for (let i = 0; i < 30; i++) {
         await page.keyboard.press('ArrowLeft');
       }
@@ -184,12 +184,8 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.press('ArrowRight');
 
       // Type a lot of lines to make the editor scrollable
-      for (let i = 0; i < 50; i++) {
-        await page.keyboard.press('Enter');
-        // Add a slight delay for enter to be processed as new paragraph in ProseMirror
-        await page.waitForTimeout(10);
-        await page.keyboard.type(`Line ${i}`);
-      }
+      const lines = Array.from({ length: 50 }, (_, i) => `Line ${i}`).join('\n');
+      await page.keyboard.insertText('\n' + lines);
 
       await expect(prosemirror).toContainText('Line 49');
     });
@@ -227,16 +223,15 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       // Scroll down drastically so the link leaves the viewport
       await page.mouse.wheel(0, 1000);
 
-      // Wait for Popper to update
-      await page.waitForTimeout(200);
-
       // Verify the popover is hidden (data-popper-reference-hidden applies visibility: hidden)
       const editPopover = locators.docs.linkEditPopover();
       await expect(editPopover).toBeHidden();
 
       // Scroll back up
       await page.mouse.wheel(0, -1100);
-      await page.waitForTimeout(200);
+
+      // Wait for it to be visible again before pressing Escape
+      await expect(editPopover).toBeVisible();
 
       // Close the edit popover
       await page.keyboard.press('Escape');
