@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { test, expect, closeElectronApp, Page } from '../../../playwright';
+import { test, expect, closeElectronApp } from '../../../playwright';
 import { switchWorkspace, waitForReadyPage, buildCommonLocators } from '../../utils/page';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
@@ -13,15 +13,6 @@ const MISSING_COLL = 'Missing Coll';
 const EMPTY_COLL = 'Empty Coll';
 const GHOST_COLL = 'Ghost Coll';
 
-const collectionCard = (page: Page, collectionName: string) =>
-  page.locator('.collection-card').filter({ hasText: collectionName });
-
-const collectionCardMenu = (page: Page, collectionName: string) =>
-  collectionCard(page, collectionName).locator('.collection-menu');
-
-const collectionCardMenuItems = (page: Page, collectionName: string) =>
-  collectionCard(page, collectionName).locator('.dropdown-item');
-
 test.describe('Collections that cannot be opened', () => {
   test('switching into the workspace reports how many collections failed to open', async ({ launchElectronApp, createTmpDir }) => {
     const workspacePath = await createTmpDir('unopenable-coll-toast');
@@ -29,7 +20,7 @@ test.describe('Collections that cannot be opened', () => {
 
     const app = await launchElectronApp({ initUserDataPath, templateVars: { workspacePath } });
     const page = await waitForReadyPage(app);
-    const { toast, sidebar } = buildCommonLocators(page);
+    const { toast, sidebar, workspaceOverview } = buildCommonLocators(page);
 
     await test.step('The missing folder and the folder without a collection config are both counted', async () => {
       await switchWorkspace(page, WORKSPACE_NAME);
@@ -46,14 +37,14 @@ test.describe('Collections that cannot be opened', () => {
 
     await test.step('Both failed collections stay listed on the overview, badged as failed', async () => {
       for (const name of [MISSING_COLL, EMPTY_COLL]) {
-        await expect(collectionCard(page, name)).toBeVisible();
-        await expect(collectionCard(page, name).getByText('Failed to open')).toBeVisible();
+        await expect(workspaceOverview.collectionCard(name)).toBeVisible();
+        await expect(workspaceOverview.collectionCard(name).getByText('Failed to open')).toBeVisible();
       }
     });
 
     await test.step('The healthy and git-backed cards carry no failure badge', async () => {
-      await expect(collectionCard(page, HEALTHY_COLL).getByText('Failed to open')).toHaveCount(0);
-      await expect(collectionCard(page, GHOST_COLL).getByText('Failed to open')).toHaveCount(0);
+      await expect(workspaceOverview.collectionCard(HEALTHY_COLL).getByText('Failed to open')).toHaveCount(0);
+      await expect(workspaceOverview.collectionCard(GHOST_COLL).getByText('Failed to open')).toHaveCount(0);
     });
 
     await test.step('The collections count excludes the failed collections', async () => {
@@ -62,7 +53,7 @@ test.describe('Collections that cannot be opened', () => {
     });
 
     await test.step('Clicking a failed collection reports the failure and opens no tab', async () => {
-      await collectionCard(page, MISSING_COLL).click();
+      await workspaceOverview.collectionCard(MISSING_COLL).click();
       await expect(toast.byMessage(`Collection "${MISSING_COLL}" could not be opened`)).toBeVisible();
     });
 
@@ -75,7 +66,7 @@ test.describe('Collections that cannot be opened', () => {
 
     const app = await launchElectronApp({ initUserDataPath, templateVars: { workspacePath } });
     const page = await waitForReadyPage(app);
-    const { toast, sidebar } = buildCommonLocators(page);
+    const { toast, sidebar, workspaceOverview } = buildCommonLocators(page);
 
     await test.step('The broken collection is reported on switch', async () => {
       await switchWorkspace(page, 'Local Only WS');
@@ -83,8 +74,8 @@ test.describe('Collections that cannot be opened', () => {
     });
 
     await test.step('It is listed on the overview with a failure badge', async () => {
-      await expect(collectionCard(page, MISSING_COLL)).toBeVisible();
-      await expect(collectionCard(page, MISSING_COLL).getByText('Failed to open')).toBeVisible();
+      await expect(workspaceOverview.collectionCard(MISSING_COLL)).toBeVisible();
+      await expect(workspaceOverview.collectionCard(MISSING_COLL).getByText('Failed to open')).toBeVisible();
     });
 
     await test.step('The count reflects only the collection that opened', async () => {
@@ -138,18 +129,18 @@ test.describe('Collections that cannot be opened', () => {
 
     const app = await launchElectronApp({ initUserDataPath, templateVars: { workspacePath } });
     const page = await waitForReadyPage(app);
-    const { toast } = buildCommonLocators(page);
+    const { toast, workspaceOverview } = buildCommonLocators(page);
 
     await test.step('Choose Remove from the failed collection card menu', async () => {
       await switchWorkspace(page, WORKSPACE_NAME);
-      await expect(collectionCard(page, MISSING_COLL)).toBeVisible({ timeout: 10000 });
-      await collectionCard(page, MISSING_COLL).locator('.collection-menu').click();
-      await page.locator('.dropdown-item').getByText('Remove', { exact: true }).click();
+      await expect(workspaceOverview.collectionCard(MISSING_COLL)).toBeVisible({ timeout: 10000 });
+      await workspaceOverview.collectionCardMenu(MISSING_COLL).click();
+      await workspaceOverview.collectionCardMenuItems(MISSING_COLL).getByText('Remove', { exact: true }).click();
     });
 
     await test.step('The card disappears without a confirmation modal', async () => {
       await expect(toast.byMessage('Collection removed from workspace')).toBeVisible();
-      await expect(collectionCard(page, MISSING_COLL)).toHaveCount(0, { timeout: 5000 });
+      await expect(workspaceOverview.collectionCard(MISSING_COLL)).toHaveCount(0, { timeout: 5000 });
     });
 
     await test.step('workspace.yml no longer lists the entry, and the others survive', async () => {
@@ -169,7 +160,7 @@ test.describe('Collections that cannot be opened', () => {
 
     const app = await launchElectronApp({ initUserDataPath, templateVars: { workspacePath } });
     const page = await waitForReadyPage(app);
-    const { sidebar } = buildCommonLocators(page);
+    const { sidebar, workspaceOverview } = buildCommonLocators(page);
 
     await test.step('Switch into the workspace and let the healthy collection finish loading', async () => {
       await switchWorkspace(page, WORKSPACE_NAME);
@@ -177,13 +168,13 @@ test.describe('Collections that cannot be opened', () => {
     });
 
     await test.step('The failed collection card menu holds Remove and nothing else', async () => {
-      await collectionCardMenu(page, MISSING_COLL).click();
-      await expect(collectionCardMenuItems(page, MISSING_COLL)).toHaveText(['Remove']);
+      await workspaceOverview.collectionCardMenu(MISSING_COLL).click();
+      await expect(workspaceOverview.collectionCardMenuItems(MISSING_COLL)).toHaveText(['Remove']);
     });
 
     await test.step('A collection that opened keeps its full menu in the same workspace', async () => {
-      await collectionCardMenu(page, HEALTHY_COLL).click();
-      await expect(collectionCardMenuItems(page, HEALTHY_COLL)).toHaveText([
+      await workspaceOverview.collectionCardMenu(HEALTHY_COLL).click();
+      await expect(workspaceOverview.collectionCardMenuItems(HEALTHY_COLL)).toHaveText([
         'Rename',
         'Share',
         /^Reveal in /,
