@@ -34,26 +34,22 @@ const DeleteCollectionItems = ({ entries, onClose }) => {
       ? `Delete ${pluralizeWord('Folder', folderCount)}`
       : `Delete ${pluralizeWord('Request', requestCount)}`;
 
-  const onConfirm = () => {
-    const deletions = entries.map((entry) =>
-      dispatch(deleteItem(entry.uid, entry.collectionUid)).then(() => {
+  const onConfirm = async () => {
+    try {
+      for (const entry of entries) {
+        await dispatch(deleteItem(entry.uid, entry.collectionUid));
         const tabUids = isItemAFolder(entry.item)
           ? [...recursivelyGetAllItemUids(entry.item.items), entry.uid]
           : [entry.uid];
         dispatch(closeTabs({ tabUids }));
-      })
-    );
-
-    Promise.all(deletions)
-      .catch((error) => {
-        console.error('Error deleting items', error);
-        toast.error(error?.message || 'Error deleting items');
-      })
-      .finally(() => {
-        dispatch(clearSidebarSelection());
-      });
-
-    onClose();
+      }
+    } catch (error) {
+      console.error('Error deleting items', error);
+      toast.error(error?.message || 'Error deleting items');
+    } finally {
+      dispatch(clearSidebarSelection());
+      onClose();
+    }
   };
 
   return (

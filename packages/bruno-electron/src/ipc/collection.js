@@ -1611,6 +1611,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         validatePathIsInsideCollection(item.pathname);
 
         if (item?.type === 'folder') {
+          if (!fs.existsSync(item.pathname)) {
+            continue;
+          }
           const folderRootPath = path.join(item.pathname, `folder.${format}`);
           let folderJsonData = {
             meta: {

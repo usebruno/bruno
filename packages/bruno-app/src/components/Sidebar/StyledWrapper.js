@@ -5,7 +5,8 @@ const Wrapper = styled.div`
   color: ${(props) => props.theme.sidebar.color};
   max-height: 100%;
 
-  .collection-selected {
+  .collection-name.collection-selected,
+  .collection-item-name.collection-selected {
     background: ${(props) => rgba(props.theme.primary.text, 0.1)};
     border-left: 4px solid ${(props) => props.theme.primary.solid};
   }
