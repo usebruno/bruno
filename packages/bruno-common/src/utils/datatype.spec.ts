@@ -262,6 +262,18 @@ describe('parseValueByDataType — {{var}} references', () => {
     expect(validateDataTypeValue(parseValueByDataType('{{user.age}}', 'boolean', variable), 'boolean')).toBe('Value is not a valid boolean');
     expect(validateDataTypeValue(parseValueByDataType('{{user.age}}', 'object', variable), 'object')).toBe('Value is not a valid object');
   });
+
+  it('resolves numeric array indices to the element type', () => {
+    const variable = { data: { abc: [2, true] } };
+
+    expect(parseValueByDataType('{{data.abc.0}}', 'number', variable)).toBe(2);
+    expect(parseValueByDataType('{{data.abc.1}}', 'boolean', variable)).toBe(true);
+    expect(parseValueByDataType('{{data.abc}}', 'object', variable)).toEqual([2, true]);
+    expect(parseValueByDataType('{{data.abc.2}}', 'number', variable)).toBe('{{data.abc.2}}');
+
+    expect(validateDataTypeValue(parseValueByDataType('{{data.abc.1}}', 'boolean', variable), 'boolean')).toBeNull();
+    expect(validateDataTypeValue(parseValueByDataType('{{data.abc.1}}', 'number', variable), 'number')).toBe('Value is not a valid number');
+  });
 });
 
 describe('valueToString — round-trip with parseValueByDataType', () => {
@@ -297,7 +309,7 @@ describe('valueToString — round-trip with parseValueByDataType', () => {
 
   it('returns empty string for functions and symbols', () => {
     expect(valueToString(() => 42)).toBe('');
-    expect(valueToString(function named() { })).toBe('');
+    expect(valueToString(function named() {})).toBe('');
     expect(valueToString(Symbol('s'))).toBe('');
   });
 

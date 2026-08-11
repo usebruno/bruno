@@ -18,7 +18,9 @@ const resolveWholeReference = (value: any, resolvableVariables: Record<string, a
   return getByPath(resolvableVariables, match[1].trim());
 };
 
-// string-form → typed JS value, or raw on failure.
+// string-form → typed JS value, or raw on failure. When `resolvableVariables` is
+// given, a whole-string `{{reference}}` resolves to that variable's own value and
+// is returned uncoerced — the referenced variable's type is authoritative.
 export const parseValueByDataType = (
   value: any,
   dataType?: BrunoVariableDataType,
