@@ -5,6 +5,7 @@ import { IconX } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import CodeEditor from 'components/CodeEditor';
 import { toDisplayString } from '@usebruno/common/utils';
+import { JSON_MODE } from '../constants';
 import StyledWrapper from './StyledWrapper';
 
 const SECTION_LABELS = {
@@ -51,7 +52,7 @@ const VariableDetailsDrawer = ({
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
-          mode="application/ld+json"
+          mode={JSON_MODE}
           readOnly
           enableBrunoVarInfo
           enableVariableHighlighting

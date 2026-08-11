@@ -13,16 +13,14 @@ import { getScopedStorageKey } from 'components/CodeEditor/state-persistence';
 import VariablesTable from './VariablesTable';
 import VariablesSection from './VariablesSection';
 import VariableDetailsDrawer from './VariableDetailsDrawer';
+import {
+  DEFAULT_DRAWER_WIDTH,
+  DRAWER_MAX_RATIO,
+  MIN_DRAWER_WIDTH,
+  SCROLL_RESTORE_GUARD_MS,
+  SCROLL_SAVE_DEBOUNCE_MS
+} from './constants';
 import StyledWrapper from './StyledWrapper';
-
-const MIN_DRAWER_WIDTH = 280;
-const DEFAULT_DRAWER_WIDTH = 400;
-const DRAWER_MAX_RATIO = 0.6;
-const SCROLL_SAVE_DEBOUNCE_MS = 200;
-// TableVirtuoso mounts into the shared scroll parent and briefly forces scroll
-// to the top (initialTopMostItemIndex=0). Hold the restored position for a
-// short window so that reset does not stick.
-const SCROLL_RESTORE_GUARD_MS = 400;
 
 const isObjectOrArray = (value) => getDataTypeFromValue(value) === 'object';
 

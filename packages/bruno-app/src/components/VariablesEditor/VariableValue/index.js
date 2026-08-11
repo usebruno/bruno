@@ -6,13 +6,8 @@ import useCopyToClipboard from 'hooks/useCopyToClipboard';
 import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import SingleLineEditor from 'components/SingleLineEditor';
 import MultiLineEditor from 'components/MultiLineEditor';
-import { OBJECT_CELL_MAX_HEIGHT } from '../constants';
+import { COPY_FEEDBACK_MS, JSON_MODE, OBJECT_CELL_MAX_HEIGHT, VARIABLE_REFERENCE_PATTERN } from '../constants';
 import StyledWrapper from './StyledWrapper';
-
-const COPY_FEEDBACK_MS = 1200;
-const JSON_MODE = 'application/ld+json';
-
-const VARIABLE_REFERENCE_PATTERN = /\{\{([^}]+)\}\}/;
 
 const isObjectOrArray = (value) => getDataTypeFromValue(value) === 'object';
 
