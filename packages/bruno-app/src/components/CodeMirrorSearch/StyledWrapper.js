@@ -66,9 +66,9 @@ const StyledWrapper = styled.div`
     flex: 0 0 180px;
     background: transparent;
     color: ${(props) => props.theme.colors.text.subtext2};
-    border: 1px solid ${(props) => props.theme.border.border2};
+    border: 1px solid ${(props) => props.theme.border.border2} !important;
     border-radius: ${(props) => props.theme.border.radius.sm};
-    outline: none;
+    outline: none !important;
     padding: 2px 6px;
     font-size: ${(props) => props.theme.font.size.base};
     height: 26px;
@@ -76,7 +76,7 @@ const StyledWrapper = styled.div`
   }
 
   .bruno-search-bar input:focus {
-    border-color: ${(props) => props.theme.brand};
+    border-color: ${(props) => props.theme.brand} !important;
   }
 
   .searchbar-icon-btn {
