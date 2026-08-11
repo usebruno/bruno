@@ -104,12 +104,8 @@ const NEW_ENVIRONMENT_WAIT_TIMEOUT_MS = 3000;
 
 // `addEnvironment` only writes the file through IPC. The store is updated later, once the
 // filesystem watcher picks up the new file and dispatches it in.
-//  subscribe to the store and resolve on the exact dispatch that adds it
-const waitForEnvironmentByName = (
-  collectionUid,
-  name,
-  { timeoutMs = NEW_ENVIRONMENT_WAIT_TIMEOUT_MS } = {}
-) => {
+// subscribe to the store and resolve on the exact dispatch that adds it
+const waitForEnvironmentByName = (collectionUid, name) => {
   const findEnvironment = () => {
     const freshCollection = findCollectionByUid(store.getState().collections.collections, collectionUid);
     return (freshCollection?.environments || []).find((env) => env.name === name);
@@ -125,7 +121,7 @@ const waitForEnvironmentByName = (
     const timeoutId = setTimeout(() => {
       unsubscribe();
       reject(new Error(`Failed to create environment "${name}"`));
-    }, timeoutMs);
+    }, NEW_ENVIRONMENT_WAIT_TIMEOUT_MS);
 
     const unsubscribe = store.subscribe(() => {
       const found = findEnvironment();

@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react'
 import { TableVirtuoso } from 'react-virtuoso';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
-import { IconTrash, IconAlertCircle, IconInfoCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
+import { IconTrash, IconAlertCircle, IconGripVertical, IconMinusVertical } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
@@ -31,7 +31,7 @@ import { useSortCycle } from 'hooks/useSortCycle';
 import { sortRowsByName, reorderWithinSubset } from 'utils/sortableRows';
 import { useMouseRowDrag, DRAG_ROW_KEY_ATTR } from 'hooks/useMouseRowDrag';
 import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
-import { reconcileSavedChange, findExternallyAddedVariables } from './reconcile';
+import { useReconcileSavedEnvironment } from './useReconcileSavedEnvironment';
 
 const MIN_H = 35 * 2;
 const MIN_COLUMN_WIDTH = 80;
@@ -477,50 +477,13 @@ const EnvironmentVariablesTable = ({
     return JSON.stringify((environment.variables || []).map(stripEnvVarUid));
   }, [environment.variables]);
 
-  // Controlled replacement for enableReinitialize. When the persisted snapshot
-  // changes (autosave echo, script env update, external file reload, or an edit
-  // made outside the table) adopt it ONLY if the form has no unsaved edits.
-  // If the user is typing ahead, keep their edits — the draft/autosave cycle
-  // persists them — so nothing typed during an async save is lost.
-  const prevSavedValuesJsonRef = useRef(savedValuesJson);
-  const prevRawSavedRef = useRef(environment.variables);
-  useEffect(() => {
-    const prevSaved = prevSavedValuesJsonRef.current;
-    const prevRawSaved = prevRawSavedRef.current;
-    prevSavedValuesJsonRef.current = savedValuesJson;
-    prevRawSavedRef.current = environment.variables;
-
-    const currentNamed = formik.values.filter((variable) => variable.name && variable.name.trim() !== '');
-    const currentJson = JSON.stringify(currentNamed.map(stripEnvVarUid));
-
-    const outcome = reconcileSavedChange({ prevSaved, nextSaved: savedValuesJson, current: currentJson });
-
-    if (outcome === 'adopt') {
-      formik.resetForm({ values: initialValues });
-      return;
-    }
-
-    if (outcome === 'skip') {
-      // find the subset of `environment.variables` that were added elsewhere(undefined variable tooltip's "Add to" switcher)
-      // while the form was dirty, and merge them back in.
-      const added = findExternallyAddedVariables({
-        prevRawSaved,
-        nextRawSaved: environment.variables,
-        currentValues: formik.values
-      });
-
-      if (added.length > 0) {
-        const values = formik.values;
-        const trailingRow = values[values.length - 1];
-        const restRows = values.slice(0, -1);
-        formik.setValues([
-          ...restRows,
-          ...added.map((v) => ({ ...v, description: v.description ?? '' })),
-          trailingRow
-        ]);
-      }
-    }
-  }, [savedValuesJson]);
+  // Controlled replacement for Formik's `enableReinitialize`.
+  useReconcileSavedEnvironment({
+    formik,
+    savedValuesJson,
+    savedVariables: environment.variables,
+    initialValues
+  });
 
   useEffect(() => {
     setPinnedData({ query: '', uids: new Set() });

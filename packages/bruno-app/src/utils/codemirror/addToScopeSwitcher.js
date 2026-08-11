@@ -260,7 +260,6 @@ function createAddToScopeSwitcherDOM() {
 
   return {
     container,
-    controlsRow,
     toggle,
     toggleChevron,
     secretLabel,
