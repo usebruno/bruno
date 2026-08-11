@@ -1,21 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback, forwardRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef } from 'react';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 
 const EditorLinkEditPopover = forwardRef(({ isOpen, onClose, onSubmit, initialText, initialUrl }, ref) => {
   const [text, setText] = useState(initialText || '');
   const [url, setUrl] = useState(initialUrl || '');
-  const popoverRef = useRef(null);
   const urlInputRef = useRef(null);
-
-  const setPopoverRefs = useCallback((node) => {
-    popoverRef.current = node;
-    if (typeof ref === 'function') {
-      ref(node);
-    } else if (ref) {
-      ref.current = node;
-    }
-  }, [ref]);
 
   // Re-seed on every open transition, not just when the link identity changes —
   // otherwise reopening on the same link shows a previously abandoned draft edit.
@@ -45,7 +35,7 @@ const EditorLinkEditPopover = forwardRef(({ isOpen, onClose, onSubmit, initialTe
   useEffect(() => {
     let timerId;
     const handleClickOutside = (e) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
+      if (ref?.current && !ref.current.contains(e.target)) {
         onClose();
       }
     };
@@ -79,7 +69,7 @@ const EditorLinkEditPopover = forwardRef(({ isOpen, onClose, onSubmit, initialTe
 
   return (
     <StyledWrapper
-      ref={setPopoverRefs}
+      ref={ref}
       data-editor-link-popover="true"
       onKeyDown={handleKeyDown}
     >

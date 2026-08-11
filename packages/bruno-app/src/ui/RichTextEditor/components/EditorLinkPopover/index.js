@@ -65,6 +65,7 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
     {
       name: 'flip',
       options: {
+        boundary: container,
         fallbackPlacements: ['top', 'bottom']
       }
     },
