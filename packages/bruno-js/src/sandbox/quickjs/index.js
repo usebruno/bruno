@@ -18,18 +18,36 @@ const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
 let QuickJSModule;
 let quickJSModulePromise;
 let quickJSModuleLoading = false;
+let quickJSModuleRecycleCount = 0;
 
 // Memoized WASM module. QuickJSModule mirrors the resolved value for the
-// synchronous executor, which cannot await; it is null only until the initial
+// synchronous executor, which cannot await; it stays unset until the initial
 // load resolves. reload swaps in a fresh instance with no gap: the old one
-// keeps serving until the replacement is ready.
+// keeps serving until the replacement is ready. A failed reload restores the
+// old module's promise, and a failed initial load clears the memo, so one
+// bad build never poisons every later run.
+// Intended callers: the executors, the sandbox specs, and runner readiness
+// awaits. reload is recycle-internal; use recycleQuickJSModuleOnAbort, which
+// gates it on module ownership, rather than passing it directly.
 const loader = ({ reload = false } = {}) => {
   if (!quickJSModulePromise || (reload && !quickJSModuleLoading)) {
+    const previousPromise = quickJSModulePromise;
     quickJSModuleLoading = true;
     quickJSModulePromise = newQuickJSWASMModule()
       .then((mod) => {
         QuickJSModule = mod;
         return mod;
+      })
+      .catch((loadError) => {
+        console.error(reload ? 'QuickJS module reload failed' : 'QuickJS module load failed', loadError);
+        // A failed reload falls back to the old, still-functional module for
+        // callers already awaiting; a failed initial load has no fallback, so
+        // clear the memo for retry and surface the failure.
+        quickJSModulePromise = reload ? previousPromise : null;
+        if (reload && previousPromise) {
+          return previousPromise;
+        }
+        throw loadError;
       })
       .finally(() => {
         quickJSModuleLoading = false;
@@ -37,7 +55,9 @@ const loader = ({ reload = false } = {}) => {
   }
   return quickJSModulePromise;
 };
-loader();
+// Failures are logged in loader; the catch only keeps the rejection from
+// escaping this fire-and-forget call.
+loader().catch(() => {});
 
 /**
  * A WASM trap during dispose (JS_FreeRuntime aborting on engine-internal
@@ -53,7 +73,9 @@ const recycleQuickJSModuleOnAbort = (teardownError, ownerModule) => {
   // Retire only the failing context's own generation; a stale owner was
   // already replaced. An unknown owner fails safe toward recycling.
   if (!ownerModule || ownerModule === QuickJSModule) {
-    loader({ reload: true });
+    quickJSModuleRecycleCount += 1;
+    console.warn(`QuickJS module recycled, ${quickJSModuleRecycleCount} this session`);
+    loader({ reload: true }).catch(() => {});
   }
   return true;
 };
@@ -194,7 +216,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
   // then disposes. Disposing earlier would let a late host callback touch a
   // freed context. A teardown throw must not replace the script's own error,
   // and once the run has returned it can only be logged.
-  const disposeContext = (background) => {
+  const disposeContext = ({ background }) => {
     try {
       managedQuickJsContext.dispose();
     } catch (teardownError) {
@@ -209,9 +231,9 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
   if (managedQuickJsContext) {
     if (managedQuickJsContext.hasPendingDeferreds()) {
-      managedQuickJsContext.waitForPendingDeferreds().then(() => disposeContext(true));
+      managedQuickJsContext.waitForPendingDeferreds().then(() => disposeContext({ background: true }));
     } else {
-      disposeContext(false);
+      disposeContext({ background: false });
     }
   }
 
