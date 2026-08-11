@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const Wrapper = styled.div`
   .collection-name {
@@ -7,6 +8,7 @@ const Wrapper = styled.div`
     user-select: none;
     padding-left: 4px;
     border: ${(props) => props.theme.dragAndDrop.borderStyle} transparent;
+    border-left: 4px solid transparent;
 
     .rotate-90 {
       transform: rotateZ(90deg);
@@ -90,9 +92,8 @@ const Wrapper = styled.div`
     }
 
     &.collection-selected {
-      background: ${(props) => props.theme.sidebar.collection.item.bg};
-      border-left: 3px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
-      padding-left: 2px;
+      background: ${(props) => rgba(props.theme.primary.text, 0.1)};
+      border-left: 4px solid ${(props) => props.theme.primary.solid};
     }
   }
 

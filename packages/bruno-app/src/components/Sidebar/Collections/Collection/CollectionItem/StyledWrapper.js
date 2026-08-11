@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const Wrapper = styled.div`
   position: relative;
@@ -25,6 +26,7 @@ const Wrapper = styled.div`
     cursor: pointer;
     user-select: none;
     position: relative;
+    border-left: 4px solid transparent;
 
     /* Default: menu icon hidden, shown on hover/focus states (see consolidated rule below) */
     .collection-item-menu-icon {
@@ -151,8 +153,8 @@ const Wrapper = styled.div`
     }
 
     &.item-selected {
-      background: ${(props) => props.theme.sidebar.collection.item.bg};
-      border-left: 3px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
+      background: ${(props) => rgba(props.theme.primary.text, 0.1)};
+      border-left: 4px solid ${(props) => props.theme.primary.solid};
     }
 
     div.tippy-box {
