@@ -3,7 +3,7 @@ import { getMarkRange } from '@tiptap/core';
 import { IconEdit, IconUnlink, IconCopy } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import ToolHint from 'components/ToolHint';
-import { isSafeUrl } from 'utils/url/index';
+import { isInternalLink, isSafeUrl } from 'utils/url/index';
 import EditorLinkEditPopover from '../EditorLinkEditPopover';
 import StyledWrapper from './StyledWrapper';
 import Portal from 'ui/Portal';
@@ -204,11 +204,21 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
     };
 
     const handleClick = (e) => {
-      if (!isEditable) return;
       const anchor = e.target.closest('a[href]');
       if (!anchor) return;
+
+      if (isEditable) {
+        e.preventDefault();
+        openEditForAnchor(anchor);
+        return;
+      }
+
+      // Always block the anchor's native navigation
+      const href = anchor.getAttribute('href');
       e.preventDefault();
-      openEditForAnchor(anchor);
+      if (href && !isInternalLink(href) && isSafeUrl(href)) {
+        window.open(href, '_blank', 'noopener,noreferrer');
+      }
     };
 
     dom.addEventListener('mouseover', handleMouseOver);
@@ -254,6 +264,10 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
                 // through our own submit-time validation, so it must go
                 // through the same isSafeUrl check as everything else.
                 e.preventDefault();
+
+                if (isInternalLink(hoverLink.url)) {
+                  return;
+                }
                 if (isSafeUrl(hoverLink.url)) {
                   window.open(hoverLink.url, '_blank', 'noopener,noreferrer');
                 }
