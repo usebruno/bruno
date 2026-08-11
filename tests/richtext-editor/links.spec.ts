@@ -1,13 +1,9 @@
 import { test, expect, Locator } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
 import { modifier } from '../shortcuts/helpers';
-import { setupRequestDocs } from './actions';
+import { setupRequestDocs, clickDocsToolbarBtn } from './actions';
 
 test.describe('Rich Text Editor Edge Cases - Links', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-  });
-
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
@@ -33,10 +29,8 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       }
       await page.keyboard.up('Shift');
 
-      // Click the Link button in the toolbar
-      const linkButton = locators.docs.toolbarBtn('Link');
-      await expect(linkButton).toBeVisible();
-      await linkButton.click();
+      // Click the Link button
+      await clickDocsToolbarBtn(locators, 'Link');
 
       // The edit popover should appear
       await expect(editPopover).toBeVisible();
@@ -89,7 +83,6 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
     const prosemirror = locators.docs.proseMirror();
     await expect(prosemirror).toBeVisible();
 
-    const linkButton = locators.docs.toolbarBtn('Link');
     const linkOne = prosemirror.locator('a[href="https://one.com"]');
     const linkTwo = prosemirror.locator('a[href="https://two.com"]');
 
@@ -103,7 +96,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.up('Shift');
 
       // Create LinkOne
-      await linkButton.click();
+      await clickDocsToolbarBtn(locators, 'Link');
       await locators.docs.linkEditUrlInput().fill('https://one.com');
       await locators.docs.linkEditInsertBtn().click();
 
@@ -118,7 +111,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.up('Shift');
 
       // Create LinkTwo
-      await linkButton.click();
+      await clickDocsToolbarBtn(locators, 'Link');
       await locators.docs.linkEditUrlInput().fill('https://two.com');
       await locators.docs.linkEditInsertBtn().click();
 
@@ -161,7 +154,6 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
   test('Link popovers - scroll tracking, hiding, and flipping', async ({ page, createTmpDir }) => {
     const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-popper');
     const prosemirror = locators.docs.proseMirror();
-    const linkButton = locators.docs.toolbarBtn('Link');
     await expect(prosemirror).toBeVisible();
 
     await test.step('Setup a tall document and a link', async () => {
@@ -176,7 +168,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.up('Shift');
 
       // Create a link
-      await linkButton.click();
+      await clickDocsToolbarBtn(locators, 'Link');
       await locators.docs.linkEditUrlInput().fill('https://example.com');
       await locators.docs.linkEditInsertBtn().click();
 
@@ -257,7 +249,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.up('Shift');
 
       // Create link
-      await linkButton.click();
+      await clickDocsToolbarBtn(locators, 'Link');
       const editPopover = locators.docs.linkEditPopover();
 
       await expect(editPopover).toBeVisible();
@@ -272,7 +264,6 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
   test('Internal vs external links in hover popover', async ({ page, createTmpDir }) => {
     const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-link-redirection');
     const prosemirror = locators.docs.proseMirror();
-    const linkButton = locators.docs.toolbarBtn('Link');
     const hoverPopover = locators.docs.linkHoverPopover();
 
     await expect(prosemirror).toBeVisible();
@@ -285,7 +276,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowLeft');
       await page.keyboard.up('Shift');
 
-      await linkButton.click();
+      await clickDocsToolbarBtn(locators, 'Link');
       await locators.docs.linkEditUrlInput().fill('#preferences/ai');
       await locators.docs.linkEditInsertBtn().click();
 
@@ -315,7 +306,7 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowLeft');
       await page.keyboard.up('Shift');
 
-      await linkButton.click();
+      await clickDocsToolbarBtn(locators, 'Link');
       await locators.docs.linkEditUrlInput().fill('https://example.org');
       await locators.docs.linkEditInsertBtn().click();
 

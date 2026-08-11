@@ -1,12 +1,8 @@
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
-import { setupRequestDocs } from './actions';
+import { setupRequestDocs, clickDocsToolbarBtn } from './actions';
 
 test.describe('Rich Text Editor Edge Cases - Table Menu', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-  });
-
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
@@ -17,7 +13,7 @@ test.describe('Rich Text Editor Edge Cases - Table Menu', () => {
     await expect(prosemirror).toBeVisible();
 
     await prosemirror.click();
-    await locators.docs.toolbarBtn('Table').click();
+    await clickDocsToolbarBtn(locators, 'Table');
     await expect(prosemirror.locator('table')).toBeVisible();
     await expect(prosemirror.locator('tr')).toHaveCount(3);
     await expect(prosemirror.locator('tr').first().locator('th, td')).toHaveCount(3);
