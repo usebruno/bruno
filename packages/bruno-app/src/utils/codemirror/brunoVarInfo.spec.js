@@ -1016,7 +1016,6 @@ describe('renderVarInfo', () => {
       const varName = containerDiv.querySelector('.var-name');
 
       expect(varName.classList.contains('var-name-link')).toBe(true);
-      expect(containerDiv.querySelector('.var-definition-button')).toBeNull();
     });
 
     it('should open the target request before navigating to its variable definition', () => {

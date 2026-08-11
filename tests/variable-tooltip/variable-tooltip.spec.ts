@@ -330,7 +330,7 @@ test.describe('Variable Tooltip', () => {
 
   test('should repoint the scope badge on switch without saving, then save into the newly picked scope', async ({ page, createTmpDir }) => {
     const collectionName = 'add-to-switch-scope-test';
-    const { sidebar, request, varInfoPopup } = buildCommonLocators(page);
+    const { sidebar, request, varInfoPopup, table } = buildCommonLocators(page);
 
     await test.step('Setup collection and request', async () => {
       await createCollection(page, collectionName, await createTmpDir('add-to-switch-scope-collection'));
@@ -389,18 +389,18 @@ test.describe('Variable Tooltip', () => {
 
     await test.step('Confirm it lives in Collection Variables, not Request Variables', async () => {
       await selectRequestPaneTab(page, 'Vars');
-      await expect(page.getByTestId('request-vars-req').locator('tbody tr[data-row-name="scopeSwitchVar"]')).toHaveCount(0);
+      await expect(table('request-vars-req').rowByName('scopeSwitchVar')).toHaveCount(0);
 
       await openCollectionSettings(page, collectionName);
       await selectCollectionPaneTab(page, 'vars');
-      await expect(page.getByTestId('collection-vars-req').locator('tbody tr[data-row-name="scopeSwitchVar"]')).toBeVisible();
+      await expect(table('collection-vars-req').rowByName('scopeSwitchVar')).toBeVisible();
     });
   });
 
   test('should offer Folder scope only when there is an immediate parent folder, and save into it', async ({ page, createTmpDir }) => {
     const collectionName = 'add-to-folder-scope-test';
     const folderName = 'parentFolder';
-    const { sidebar, request, paneTabs, varInfoPopup } = buildCommonLocators(page);
+    const { sidebar, request, paneTabs, varInfoPopup, table } = buildCommonLocators(page);
 
     await test.step('Setup collection with a root-level request and a folder request', async () => {
       await createCollection(page, collectionName, await createTmpDir('add-to-folder-scope-collection'));
@@ -461,11 +461,11 @@ test.describe('Variable Tooltip', () => {
 
     await test.step('Confirm it lives in the folder\'s Variables, not the request\'s', async () => {
       await selectRequestPaneTab(page, 'Vars');
-      await expect(page.getByTestId('request-vars-req').locator('tbody tr[data-row-name="folderVar"]')).toHaveCount(0);
+      await expect(table('request-vars-req').rowByName('folderVar')).toHaveCount(0);
 
       await sidebar.folder(folderName).dblclick();
       await paneTabs.folderSettingsTab('vars').click();
-      await expect(page.getByTestId('folder-vars-req').locator('tbody tr[data-row-name="folderVar"]')).toBeVisible();
+      await expect(table('folder-vars-req').rowByName('folderVar')).toBeVisible();
     });
   });
 
@@ -597,10 +597,67 @@ test.describe('Variable Tooltip', () => {
       await page.mouse.move(0, 0);
 
       await openEnvironmentConfigTab(page, 'collection');
-      await expect(page.locator('.current-environment')).toContainText(envName);
+      await expect(environment.currentEnvironment()).toContainText(envName);
 
       await environment.variablesTab().click();
       await expect(environment.varRow('freshEnvVar')).toBeVisible();
+    });
+  });
+
+  test('should show an inline error when creating an environment inline fails, and allow retrying', async ({ page, createTmpDir }) => {
+    const collectionName = 'add-to-create-env-error-test';
+    const { sidebar, request, varInfoPopup } = buildCommonLocators(page);
+
+    await test.step('Setup collection and request (no environment exists yet)', async () => {
+      await createCollection(page, collectionName, await createTmpDir('add-to-create-env-error-collection'));
+
+      await createRequest(page, 'Create Env Error Request', collectionName);
+      await sidebar.request('Create Env Error Request').click();
+      await setRequestUrlAndSave(page, 'https://api.example.com');
+    });
+
+    await test.step('Type an undefined variable and enter its value', async () => {
+      await request.urlInput().click();
+      await page.keyboard.press('End');
+      await page.keyboard.type('?key={{errEnvVar}}');
+
+      const tooltip = await openUrlVarTooltip(page, 'errEnvVar', 'invalid');
+      await varInfoPopup.editableValue(tooltip).click();
+      await expect(varInfoPopup.editor(tooltip)).toBeVisible();
+      await page.keyboard.type('err-value');
+    });
+
+    await test.step('Submitting with an empty name shows an inline error and keeps the create form open', async () => {
+      const tooltip = varInfoPopup.all().first();
+
+      await varInfoPopup.addToToggle(tooltip).click();
+      await varInfoPopup.addToCreateEnvButton(tooltip, 'environment').click();
+      await varInfoPopup.addToCreateEnvSubmit(tooltip).click();
+
+      await expect(varInfoPopup.addToError(tooltip)).toContainText('Environment name is required');
+      // Nothing was dispatched and the form is still open, ready to retry.
+      await expect(varInfoPopup.addToCreateEnvNameInput(tooltip)).toBeVisible();
+    });
+
+    await test.step('Submitting a name with characters the main process would rewrite shows the failure and keeps the form open', async () => {
+      const tooltip = varInfoPopup.all().first();
+
+      await varInfoPopup.addToCreateEnvNameInput(tooltip).fill('Bad:Name');
+      await varInfoPopup.addToCreateEnvSubmit(tooltip).click();
+
+      await expect(varInfoPopup.addToError(tooltip)).toContainText('Special characters aren\'t allowed');
+      await expect(varInfoPopup.addToCreateEnvNameInput(tooltip)).toBeVisible();
+    });
+
+    await test.step('Fixing the name and resubmitting succeeds, saving the pending value', async () => {
+      const tooltip = varInfoPopup.all().first();
+
+      await varInfoPopup.addToCreateEnvNameInput(tooltip).fill('Recovered Env');
+      await varInfoPopup.addToCreateEnvSubmit(tooltip).click();
+
+      await expect(varInfoPopup.scopeBadge(tooltip)).toContainText('Environment');
+      await expect(varInfoPopup.editableValue(tooltip)).toContainText('err-value');
+      await expect(varInfoPopup.addToSwitcher(tooltip)).toHaveCount(0);
     });
   });
 
@@ -633,7 +690,7 @@ test.describe('Variable Tooltip', () => {
       // The tooltip closes immediately once navigation happens.
       await expect(varInfoPopup.all()).toHaveCount(0);
 
-      await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible();
+      await expect(environment.collectionEnvTab()).toBeVisible();
       await expect(environment.variablesTab()).toHaveClass(/active/);
       await expect(environment.varRow('goToPlainVar')).toBeVisible();
     });
@@ -646,7 +703,7 @@ test.describe('Variable Tooltip', () => {
 
       await expect(varInfoPopup.all()).toHaveCount(0);
 
-      await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible();
+      await expect(environment.collectionEnvTab()).toBeVisible();
       await expect(environment.secretsTab()).toHaveClass(/active/);
       await expect(environment.varRow('goToSecretVar')).toBeVisible();
     });
@@ -864,7 +921,7 @@ test.describe('Variable Tooltip', () => {
         await environment.createEnvButton().click();
         await environment.envNameInput().fill(envName);
         await page.getByRole('button', { name: 'Create', exact: true }).click();
-        await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible();
+        await expect(environment.collectionEnvTab()).toBeVisible();
 
         // `isSecret` routes the row to the Secrets tab; `dataType` sets its type.
         await addEnvironmentVariable(page, {
@@ -977,7 +1034,7 @@ test.describe('Variable Tooltip', () => {
   test('should go to definition into Folder Settings for a folder variable, and Collection Settings for a collection variable', async ({ page, createTmpDir }) => {
     const collectionName = 'go-to-definition-folder-collection-test';
     const folderName = 'goToDefFolder';
-    const { sidebar, request, paneTabs, varInfoPopup } = buildCommonLocators(page);
+    const { sidebar, request, paneTabs, varInfoPopup, table } = buildCommonLocators(page);
 
     await test.step('Add a folder variable', async () => {
       await createCollection(page, collectionName, await createTmpDir('go-to-definition-folder-collection'));
@@ -1033,7 +1090,7 @@ test.describe('Variable Tooltip', () => {
 
       await expect(varInfoPopup.all()).toHaveCount(0);
       await expect(paneTabs.folderSettingsTab('vars')).toHaveClass(/active/);
-      await expect(page.getByTestId('folder-vars-req').locator('tbody tr[data-row-name="goToFolderVar"]')).toBeVisible();
+      await expect(table('folder-vars-req').rowByName('goToFolderVar')).toBeVisible();
     });
 
     await test.step('Go to definition on the collection variable opens Collection Settings > Vars', async () => {
@@ -1046,7 +1103,7 @@ test.describe('Variable Tooltip', () => {
 
       await expect(varInfoPopup.all()).toHaveCount(0);
       await expect(paneTabs.collectionSettingsTab('vars')).toHaveClass(/active/);
-      await expect(page.getByTestId('collection-vars-req').locator('tbody tr[data-row-name="goToCollectionVar"]')).toBeVisible();
+      await expect(table('collection-vars-req').rowByName('goToCollectionVar')).toBeVisible();
     });
   });
 
@@ -1073,6 +1130,8 @@ test.describe('Variable Tooltip', () => {
 
     await test.step('Manually browse to Stage in the settings sidebar (view only — does not activate it), then leave', async () => {
       await environment.settingsListItem('EnvStage').click();
+
+      await environment.variablesTab().click();
       await expect(environment.varRow('stageOnlyVar')).toBeVisible();
       // Prod is still the active environment. Stage was only selected for viewing.
       await expect(environment.settingsListItem('EnvProd').locator('.activated-checkmark')).toBeVisible();
@@ -1093,7 +1152,7 @@ test.describe('Variable Tooltip', () => {
       await varInfoPopup.name(tooltip).click();
       await expect(varInfoPopup.all()).toHaveCount(0);
 
-      await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible();
+      await expect(environment.collectionEnvTab()).toBeVisible();
       await expect(environment.secretsTab()).toHaveClass(/active/);
       // Only visible if Prod (not the stale, previously-viewed Stage) is the environment on screen.
       await expect(environment.varRow('prodSecretVar')).toBeVisible();
@@ -1101,6 +1160,8 @@ test.describe('Variable Tooltip', () => {
 
     await test.step('Browse back to Stage again, then go to definition on the plain variable still lands on Prod and resets to the Variables sub-tab', async () => {
       await environment.settingsListItem('EnvStage').click();
+
+      await environment.variablesTab().click();
       await expect(environment.varRow('stageOnlyVar')).toBeVisible();
 
       await closeEnvironmentPanel(page);
@@ -1110,7 +1171,7 @@ test.describe('Variable Tooltip', () => {
       await varInfoPopup.name(tooltip).click();
       await expect(varInfoPopup.all()).toHaveCount(0);
 
-      await expect(page.locator('.request-tab').filter({ hasText: 'Environments' })).toBeVisible();
+      await expect(environment.collectionEnvTab()).toBeVisible();
       await expect(environment.variablesTab()).toHaveClass(/active/);
       await expect(environment.varRow('prodPlainVar')).toBeVisible();
     });
@@ -1278,7 +1339,7 @@ test.describe('Variable Tooltip - Global Secret Variables', () => {
       // The tooltip closes immediately once navigation happens.
       await expect(varInfoPopup.all()).toHaveCount(0);
 
-      await expect(page.locator('.request-tab').filter({ hasText: 'Global Environments' })).toBeVisible();
+      await expect(environment.globalEnvTab()).toBeVisible();
       await expect(environment.secretsTab()).toHaveClass(/active/);
       await expect(environment.varRow('goToGlobalSecretVar')).toBeVisible();
     });
@@ -1287,7 +1348,7 @@ test.describe('Variable Tooltip - Global Secret Variables', () => {
   test('should go to definition on a global secret referenced from inside the Global Environment table itself, without closing other tabs', async ({ page, createTmpDir }) => {
     const collectionName = 'go-to-definition-global-secret-self-test';
     const envName = 'GoToDef Global Self Env';
-    const { sidebar, varInfoPopup, environment } = buildCommonLocators(page);
+    const { sidebar, varInfoPopup, environment, tabs } = buildCommonLocators(page);
 
     await test.step('Create a global env with a secret variable, and a plain variable referencing it', async () => {
       await createCollection(page, collectionName, await createTmpDir('go-to-definition-global-secret-self-collection'));
@@ -1318,8 +1379,8 @@ test.describe('Variable Tooltip - Global Secret Variables', () => {
     });
 
     await test.step('The same Global Environments tab is reused, no other tab was closed, and it lands on Secrets', async () => {
-      await expect(page.locator('.request-tab').filter({ hasText: 'Global Environments' })).toHaveCount(1);
-      await expect(page.locator('.request-tab').filter({ hasText: 'GoToDef Self Persist Request' })).toHaveCount(1);
+      await expect(environment.globalEnvTab()).toHaveCount(1);
+      await expect(tabs.requestTab('GoToDef Self Persist Request')).toHaveCount(1);
 
       await expect(environment.secretsTab()).toHaveClass(/active/);
       await expect(environment.varRow('goToGlobalSecretVar')).toBeVisible();

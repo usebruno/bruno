@@ -40,8 +40,6 @@ export const useReconcileSavedEnvironment = ({ formik, savedValuesJson, savedVar
     }
 
     if (outcome === 'skip') {
-      // find the subset of `savedVariables` that were added elsewhere (undefined variable tooltip's "Add to" switcher)
-      // while the form was dirty, and merge them back in.
       const added = findExternallyAddedVariables({
         prevRawSaved,
         nextRawSaved: savedVariables,

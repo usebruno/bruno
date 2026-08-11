@@ -59,8 +59,6 @@ export const buildEnvironmentLocators = (page: Page) => ({
   variableValue: (name: string) =>
     page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first(),
   settingsListItem: (name: string) => page.locator('.environment-item').filter({ hasText: name }),
-  activateButton: (name: string) =>
-    page.locator('.environment-item').filter({ hasText: name }).locator('button.activate-btn'),
   createEnvButton: () => page.locator('button[id="create-env"]'),
   settingsCreateButton: () =>
     page.locator('.environments-container .sidebar button[title="Create environment"]'),

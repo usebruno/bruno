@@ -2011,7 +2011,7 @@ const SCOPE_CONFIG = [
  *   Only affects the Folder scope's label ("Folder" vs "Parent Folder(...)").
  * @param {boolean} [options.hasCollection] - when we are in Global Environment table, there is no collection context,
  * so we don't show collection/environment scopes
- * @returns {Array<{type: string, label: string, enabled: boolean, disabledReason?: string, supportsSecret: boolean}>}
+ * @returns {Array<{type: string, label: string, enabled: boolean, supportsSecret: boolean}>}
  */
 export const getAvailableAddToScopes = ({
   activeEnvironmentUid,
