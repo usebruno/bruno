@@ -838,9 +838,11 @@ await bru.sendRequest({
   data: JSON.stringify({
     title: 'Bruno'
   })
-})
+}).then(
+  (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+)
   .then((res) => {
-    console.log(res.data);
+    console.log(res.json());
   })
   .catch((err) => {
     console.error(err);
@@ -848,7 +850,7 @@ await bru.sendRequest({
       `);
     });
 
-    it('should transform only the fulfilled handler of then(onFulfilled, onRejected)', () => {
+    it('should shim the response so both handlers of then(onFulfilled, onRejected) see Postman-shape methods', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
             console.log(res.json());
@@ -858,8 +860,10 @@ await bru.sendRequest({
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
-            console.log(res.data);
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then((res) => {
+            console.log(res.json());
         }, (res) => {
             console.log(res.json());
         });
@@ -874,8 +878,10 @@ await bru.sendRequest({
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
-            console.log(res.data);
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then((res) => {
+            console.log(res.json());
         });
       `);
     });
@@ -890,9 +896,11 @@ await bru.sendRequest({
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then((res) => {
+            console.log(res.code);
             console.log(res.status);
-            console.log(res.statusText);
             console.log(res.headers);
         });
       `);
@@ -925,8 +933,10 @@ await bru.sendRequest({
             },
             data: '{}'
         };
-        await bru.sendRequest(requestConfig).then((res) => {
-            console.log(res.data);
+        await bru.sendRequest(requestConfig).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then((res) => {
+            console.log(res.json());
         });
       `);
     });
@@ -942,14 +952,16 @@ await bru.sendRequest({
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
         function fetchData() {
-            bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
-                console.log(res.data);
+            bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+                (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+            ).then((res) => {
+                console.log(res.json());
             });
         }
       `);
     });
 
-    it('should rewrite only the first then, since later handlers receive the previous return value', () => {
+    it('should shim the response so later handlers can still call Postman methods through their param', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' })
           .then((res) => res.json())
@@ -960,8 +972,10 @@ await bru.sendRequest({
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
-          .then((res) => res.data)
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        )
+          .then((res) => res.json())
           .then((data) => {
               console.log(data.text);
               console.log(data.status);
@@ -969,7 +983,7 @@ await bru.sendRequest({
       `);
     });
 
-    it('should not treat a then after a catch as a second response handler', () => {
+    it('should shim the response before a then that follows a catch', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' })
           .then((res) => res.json())
@@ -980,8 +994,10 @@ await bru.sendRequest({
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
-          .then((res) => res.data)
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        )
+          .then((res) => res.json())
           .catch(() => null)
           .then((data) => {
               console.log(data.status);
@@ -989,7 +1005,7 @@ await bru.sendRequest({
       `);
     });
 
-    it('should not rewrite references shadowed by a nested function re-declaring the name', () => {
+    it('should not touch nested functions that re-declare the response name', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
             console.log(res.json());
@@ -1000,8 +1016,10 @@ await bru.sendRequest({
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
-            console.log(res.data);
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then((res) => {
+            console.log(res.json());
             items.forEach((res) => {
                 console.log(res.json());
             });
@@ -1024,9 +1042,11 @@ await bru.sendRequest({
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        )
           .then((res) => {
-              console.log(res.data);
+              console.log(res.json());
           })
           .catch((err) => {
               console.error(err);
@@ -1046,7 +1066,9 @@ await bru.sendRequest({
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
         async function fetchData() {
-            return await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res.data);
+            return await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+                (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+            ).then((res) => res.json());
         }
       `);
     });
@@ -1062,16 +1084,20 @@ await bru.sendRequest({
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com/one' }).then((res) => {
-            console.log(res.data);
+        await bru.sendRequest({ url: 'https://echo.usebruno.com/one' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then((res) => {
+            console.log(res.json());
         });
-        await bru.sendRequest({ url: 'https://echo.usebruno.com/two' }).then((res) => {
-            console.log(res.status);
+        await bru.sendRequest({ url: 'https://echo.usebruno.com/two' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then((res) => {
+            console.log(res.code);
         });
       `);
     });
 
-    it('should not rewrite past a handler referenced by a variable', () => {
+    it('should shim through a variable-referenced handler so downstream handlers keep Postman-shape access', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' })
           .then(maybeHandler)
@@ -1081,7 +1107,9 @@ await bru.sendRequest({
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        )
           .then(maybeHandler)
           .then((res) => {
               console.log(res.json());
@@ -1091,7 +1119,9 @@ await bru.sendRequest({
 
     it('should treat a bracket-notation then as a chain', () => {
       const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' })['then']((res) => res.json());`;
-      expect(translateCode(code)).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' })['then']((res) => res.data);`);
+      expect(translateCode(code)).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+  (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+)['then']((res) => res.json());`);
     });
 
     it('should not treat a computed variable key as a promise method', () => {
@@ -1108,9 +1138,11 @@ await bru.sendRequest({
       `);
     });
 
-    it('should leave a destructured handler param alone', () => {
+    it('should shim so a destructured handler param sees Postman-shape properties', () => {
       const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' }).then(({ code }) => console.log(code));`;
-      expect(translateCode(code)).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(({ code }) => console.log(code));`);
+      expect(translateCode(code)).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+  (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+).then(({ code }) => console.log(code));`);
     });
 
     it('should translate a nested sendRequest chain inside an async then handler', () => {
@@ -1124,10 +1156,14 @@ await bru.sendRequest({
       `;
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com/users/1' }).then(async (userRes) => {
-            const userId = userRes.data.id;
-            return await bru.sendRequest({ url: 'https://echo.usebruno.com/posts' }).then((postsRes) => {
-                console.log(postsRes.data);
+        await bru.sendRequest({ url: 'https://echo.usebruno.com/users/1' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then(async (userRes) => {
+            const userId = userRes.json().id;
+            return await bru.sendRequest({ url: 'https://echo.usebruno.com/posts' }).then(
+                (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+            ).then((postsRes) => {
+                console.log(postsRes.json());
             });
         });
       `);

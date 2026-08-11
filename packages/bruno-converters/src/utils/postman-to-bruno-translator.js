@@ -1,5 +1,5 @@
 import sendRequestTransformer from './send-request-transformer';
-import awaitAndRewriteSendRequestChains from './send-request-chain-transformer';
+import wrapAndAwaitSendRequestChains from './send-request-chain-transformer';
 import { getMemberExpressionString } from './ast-utils';
 const j = require('jscodeshift');
 const cloneDeep = require('lodash/cloneDeep');
@@ -654,7 +654,7 @@ function processTransformations(ast, transformedNodes) {
   });
 
   // the chain shape is only final once the pass above has settled, so this runs after it
-  awaitAndRewriteSendRequestChains(j, ast);
+  wrapAndAwaitSendRequestChains(j, ast);
 }
 
 // Postman provides these as sandbox globals. Bruno requires explicit require()

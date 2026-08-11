@@ -6,9 +6,11 @@
  * getChainedPromiseMemberPath, which it shares). This pass runs once
  * processTransformations has settled the AST and finishes those chains:
  *
- *   1. rewrites Postman response access in the first chain link's `.then`
- *      handler (res.json() -> res.data, res.code -> res.status, ...)
- *   2. awaits the outermost chain link, when the position allows it
+ *   1. injects a response shim as the first `.then` link so downstream
+ *      handlers see a Postman-shaped response (`.json()`, `.code`, `.status`,
+ *      `.text()`) even though Bruno resolves an axios-shaped one. User code in
+ *      later handlers is left untouched — no rewriting, no scope analysis.
+ *   2. awaits the outermost chain link, when the position allows it.
  *
  * The transformer emits its callee as a single dotted Identifier named
  * `bru.sendRequest` — a shape no parser produces from source — so matching on
@@ -17,14 +19,12 @@
 
 const PROMISE_CHAIN_METHODS = new Set(['then', 'catch', 'finally']);
 
-// Postman's response API vs Bruno's axios-shaped response. json()/text() are
-// methods on the Postman response but already-parsed properties on Bruno's.
-const responsePropertyMap = {
-  json: 'data',
-  text: 'data',
-  code: 'status',
-  status: 'statusText'
-};
+// Postman-shape response shim: spreads Bruno's axios-shaped response and adds
+// the Postman method/property aliases on top. Property order matters — the
+// aliases are declared after the spread so they override same-named fields
+// (e.g. `status` on the wrapped object becomes Postman's status *text*, while
+// the underlying `res.status` remains the numeric HTTP code exposed as `code`).
+const RESPONSE_SHIM_SRC = '(res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })';
 
 /**
  * Get the statically-known property name of a member expression. A computed
@@ -89,58 +89,37 @@ const getPromiseChainLinks = (callPath) => {
 };
 
 /**
- * Rewrite Postman response property/method access on the handler's response
- * parameter to its Bruno equivalent. References that resolve to a different
- * binding (a nested function re-declaring the name) are left alone.
+ * Build a fresh AST node for the Postman-shape response shim arrow function.
+ * Parsed from source on each call so the returned node has no shared identity
+ * with any other point in the AST.
  * @param {Object} j - jscodeshift API
- * @param {Object} handlerPath - Path of the `.then` fulfilled handler argument
+ * @returns {Object} - ArrowFunctionExpression node
  */
-const rewriteResponsePropertyAccess = (j, handlerPath) => {
-  const handler = handlerPath.value;
-  if (!handler) return;
-  if (handler.type !== 'FunctionExpression' && handler.type !== 'ArrowFunctionExpression') return;
-  if (handler.params[0]?.type !== 'Identifier') return;
+const buildResponseShim = (j) => j(RESPONSE_SHIM_SRC).find(j.ArrowFunctionExpression).nodes()[0];
 
-  const responseVarName = handler.params[0].name;
-
-  j(handlerPath).find(j.MemberExpression, {
-    object: {
-      type: 'Identifier',
-      name: responseVarName
-    }
-  }).forEach((memberPath) => {
-    const property = memberPath.value.property;
-    if (property.type !== 'Identifier') return;
-
-    const bruProperty = responsePropertyMap[property.name];
-    if (!bruProperty) return;
-
-    // skip references shadowed by a nested re-declaration of the name
-    const declaringScope = memberPath.scope.lookup(responseVarName);
-    if (!declaringScope || declaringScope.node !== handler) return;
-
-    const replacement = j.memberExpression(j.identifier(responseVarName), j.identifier(bruProperty));
-
-    // response.json() collapses to response.data — the call goes away with it.
-    // Only when the member is the callee: in console.log(response.code) the
-    // parent is also a CallExpression, and replacing it would eat the log.
-    const parentPath = memberPath.parent;
-    if (parentPath.value.type === 'CallExpression' && parentPath.value.callee === memberPath.value) {
-      j(parentPath).replaceWith(replacement);
-    } else {
-      j(memberPath).replaceWith(replacement);
-    }
-  });
+/**
+ * Insert `.then(responseShim)` immediately after `bru.sendRequest(...)`, before
+ * any user-authored chain link. Downstream `.then` handlers now receive a
+ * Postman-shaped response and `res.json()`/`res.code`/etc. work unchanged.
+ * @param {Object} j - jscodeshift API
+ * @param {Object} sendRequestCallPath - Path of the bru.sendRequest(...) CallExpression
+ */
+const injectResponseShim = (j, sendRequestCallPath) => {
+  const shimCall = j.callExpression(
+    j.memberExpression(sendRequestCallPath.value, j.identifier('then')),
+    [buildResponseShim(j)]
+  );
+  j(sendRequestCallPath).replaceWith(shimCall);
 };
 
 /**
  * Finish bru.sendRequest promise chains the main transformation pass left
- * unawaited: rewrite the response access in the first chain link's `.then`
- * handler, and await the outermost chain link where valid.
+ * unawaited: shim the response into Postman shape, and await the outermost
+ * chain link where valid.
  * @param {Object} j - jscodeshift API
  * @param {Object} ast - jscodeshift AST collection
  */
-const awaitAndRewriteSendRequestChains = (j, ast) => {
+const wrapAndAwaitSendRequestChains = (j, ast) => {
   ast.find(j.CallExpression, {
     callee: {
       type: 'Identifier',
@@ -150,14 +129,14 @@ const awaitAndRewriteSendRequestChains = (j, ast) => {
     const links = getPromiseChainLinks(callPath);
     if (!links.length) return;
 
-    // only the innermost `.then` receives the response — later handlers see what
-    // it returned, and `.catch`/`.finally` handlers an error or nothing
-    const [firstLink] = links;
-    if (firstLink.methodName === 'then' && firstLink.callPath.value.arguments.length) {
-      rewriteResponsePropertyAccess(j, firstLink.callPath.get('arguments', 0));
-    }
+    // Only .then handlers receive the response; .catch/.finally-only chains
+    // never call the response API and don't need the shim.
+    const hasThenLink = links.some((link) => link.methodName === 'then');
+    if (hasThenLink) injectResponseShim(j, callPath);
 
-    // the outermost call of the .then/.catch/.finally chain is the last link
+    // The outermost link paths were captured before the shim was inserted; the
+    // shim is inserted underneath them, so their positions in the AST are
+    // unchanged and outermostPath still identifies the tail of the chain.
     const outermostPath = links[links.length - 1].callPath;
 
     if (outermostPath.parent.value.type === 'AwaitExpression') return;
@@ -167,4 +146,4 @@ const awaitAndRewriteSendRequestChains = (j, ast) => {
   });
 };
 
-export default awaitAndRewriteSendRequestChains;
+export default wrapAndAwaitSendRequestChains;
