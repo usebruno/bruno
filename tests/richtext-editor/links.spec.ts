@@ -184,10 +184,10 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await page.keyboard.press('ArrowRight');
 
       // Type a lot of lines to make the editor scrollable
-      const lines = Array.from({ length: 50 }, (_, i) => `Line ${i}`).join('\n');
+      const lines = Array.from({ length: 150 }, (_, i) => `Line ${i}`).join('\n');
       await page.keyboard.insertText('\n' + lines);
 
-      await expect(prosemirror).toContainText('Line 49');
+      await expect(prosemirror).toContainText('Line 149');
     });
 
     const link = prosemirror.locator('a[href="https://example.com"]');
