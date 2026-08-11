@@ -28,7 +28,7 @@ import store from 'providers/ReduxStore';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
-import { variableNameRegex } from 'utils/common/regex';
+import { variableNameRegex, validateName, validateNameError } from 'utils/common/regex';
 import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
 import { goToVariableDefinition } from 'utils/codemirror/goToVariableDefinition';
@@ -457,6 +457,13 @@ export const renderVarInfo = (token, options) => {
   const valueContainer = document.createElement('div');
   valueContainer.className = 'var-value-container';
 
+  // Reads the Add-to switcher's pending Secret checkbox state, if a switcher is mounted.
+  const getPendingSecret = () => (
+    valueContainer._addToSwitcher && typeof valueContainer._addToSwitcher._getPendingSecret === 'function'
+      ? valueContainer._addToSwitcher._getPendingSecret()
+      : false
+  );
+
   // Create editable value display/editor (if editable)
   if (!isReadOnly && scopeInfo) {
     // Handle secret/masked variables state
@@ -662,7 +669,9 @@ export const renderVarInfo = (token, options) => {
       currentInterpolatedValue = interpolatedValue ?? '';
       const newHasSecretRefs = containsSecretVariableReferences(newValue, collection, item);
 
-      currentShouldMaskValue = currentShouldMaskValue || newHasSecretRefs;
+      // for new variable get the secret state from the switcher
+      const ownSecret = isNewVariable ? getPendingSecret() : isSecret;
+      currentShouldMaskValue = ownSecret || newHasSecretRefs;
       updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
 
       // new variables are saved via the Add-to switcher, not on blur. so don't dispatch an update action here.
@@ -763,8 +772,14 @@ export const renderVarInfo = (token, options) => {
 
       const addToScopesState = store.getState();
       const globalEnvironmentsState = (addToScopesState && addToScopesState.globalEnvironments) || {};
+
+      // Use the latest collection state so "Add to Environment" targets the real
+      // active environment, not the environment currently being viewed in environment settings.
+      const freshCollectionForScopes = collection?.uid
+        ? findCollectionByUid(addToScopesState?.collections?.collections, collection.uid)
+        : null;
       const addToScopes = getAvailableAddToScopes({
-        activeEnvironmentUid: collection?.activeEnvironmentUid,
+        activeEnvironmentUid: freshCollectionForScopes?.activeEnvironmentUid,
         activeGlobalEnvironmentUid: globalEnvironmentsState.activeGlobalEnvironmentUid,
         item,
         parentFolder,
@@ -834,12 +849,7 @@ export const renderVarInfo = (token, options) => {
         // If immediate is true, persist the new variable immediately after switching scope.
         // for inline create environment flow, the new variable is persisted immediately after the environment is created and selected.
         if (immediate) {
-          // Read the user's pending Secret checkbox state.
-          const pendingSecret = valueContainer._addToSwitcher && typeof valueContainer._addToSwitcher._getPendingSecret === 'function'
-            ? valueContainer._addToSwitcher._getPendingSecret()
-            : false;
-
-          persistNewVariable(pendingSecret).catch((err) => {
+          persistNewVariable(getPendingSecret()).catch((err) => {
             toast.error(err?.message || 'Failed to save variable');
           });
         }
@@ -847,14 +857,38 @@ export const renderVarInfo = (token, options) => {
 
       const onCreateEnvironment = (scope, name) => {
         const dispatch = store.dispatch;
+        const trimmedName = (name || '').trim();
+
+        if (!validateName(trimmedName)) {
+          return Promise.reject(new Error(validateNameError(trimmedName)));
+        }
+
+        const freshState = store.getState();
 
         if (scope.type === VARIABLE_ADD_SCOPES.GLOBAL) {
-          return dispatch(addGlobalEnvironment({ name, variables: [] }));
+          const globalEnvironments = freshState.globalEnvironments?.globalEnvironments || [];
+          const isDuplicate = globalEnvironments.some(
+            (env) => env?.name?.toLowerCase().trim() === trimmedName.toLowerCase()
+          );
+          if (isDuplicate) {
+            return Promise.reject(new Error('Environment already exists'));
+          }
+
+          return dispatch(addGlobalEnvironment({ name: trimmedName, variables: [] }));
         }
 
         if (scope.type === VARIABLE_ADD_SCOPES.ENVIRONMENT) {
-          return dispatch(addEnvironment(name, collection.uid))
-            .then(() => waitForEnvironmentByName(collection.uid, name))
+          const freshCollection = findCollectionByUid(freshState.collections.collections, collection.uid);
+
+          const isDuplicate = (freshCollection?.environments || []).some(
+            (env) => env?.name?.toLowerCase().trim() === trimmedName.toLowerCase()
+          );
+          if (isDuplicate) {
+            return Promise.reject(new Error('Environment already exists'));
+          }
+
+          return dispatch(addEnvironment(trimmedName, collection.uid))
+            .then(() => waitForEnvironmentByName(collection.uid, trimmedName))
             .then((newEnvironment) => dispatch(selectEnvironment(newEnvironment.uid, collection.uid)));
         }
 
@@ -877,11 +911,7 @@ export const renderVarInfo = (token, options) => {
           return Promise.resolve();
         }
 
-        const pendingSecret = valueContainer._addToSwitcher && typeof valueContainer._addToSwitcher._getPendingSecret === 'function'
-          ? valueContainer._addToSwitcher._getPendingSecret()
-          : false;
-
-        return persistNewVariable(pendingSecret);
+        return persistNewVariable(getPendingSecret());
       };
     }
   } else {

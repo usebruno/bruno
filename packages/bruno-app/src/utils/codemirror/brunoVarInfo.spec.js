@@ -3,6 +3,7 @@ import RealCodeMirror from 'codemirror';
 import store from 'providers/ReduxStore';
 import {
   getVariableScope,
+  isVariableSecret,
   findEnvironmentInCollection,
   getTreePathFromCollectionToItem,
   findCollectionByUid,
@@ -602,6 +603,31 @@ describe('renderVarInfo', () => {
       expect(activeRow.querySelector('[data-testid="var-info-add-to-option-request"]')).not.toBeNull();
     });
 
+    it('resolves the Environment scope against the real active environment, not whichever environment is merely being displayed', () => {
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([]);
+      store.getState.mockReturnValue({
+        globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
+        collections: {
+          collections: [{ uid: 'col-1', activeEnvironmentUid: 'env-prod' }]
+        }
+      });
+      findCollectionByUid.mockReturnValue({ uid: 'col-1', activeEnvironmentUid: 'env-prod' });
+
+      renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1', activeEnvironmentUid: 'env-stage' },
+          item: null
+        }
+      );
+
+      expect(getAvailableAddToScopes).toHaveBeenCalledWith(
+        expect.objectContaining({ activeEnvironmentUid: 'env-prod' })
+      );
+    });
+
     it('repoints the scope badge when a different scope is picked, without saving immediately', () => {
       getVariableScope.mockReturnValue(null);
       getAvailableAddToScopes.mockReturnValue([
@@ -637,6 +663,7 @@ describe('renderVarInfo', () => {
         { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
       ]);
 
+      const collectionBeforeCreate = { uid: 'col-1', activeEnvironmentUid: null, environments: [] };
       const collectionAfterCreate = {
         uid: 'col-1',
         activeEnvironmentUid: 'env-new',
@@ -647,7 +674,13 @@ describe('renderVarInfo', () => {
         globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
         collections: { collections: [collectionAfterCreate] }
       });
-      findCollectionByUid.mockReturnValue(collectionAfterCreate);
+      // No "Dev" exists yet for the initial render's lookup and the duplicate-name check inside
+      // onCreateEnvironment; once addEnvironment resolves, later lookups (waitForEnvironmentByName)
+      // see it created.
+      findCollectionByUid
+        .mockReturnValueOnce(collectionBeforeCreate)
+        .mockReturnValueOnce(collectionBeforeCreate)
+        .mockReturnValue(collectionAfterCreate);
       addEnvironment.mockReturnValue(() => Promise.resolve());
       selectEnvironment.mockReturnValue(() => Promise.resolve());
       getVariableScope.mockReturnValue(null);
@@ -688,6 +721,7 @@ describe('renderVarInfo', () => {
         { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
       ]);
 
+      const collectionBeforeCreate = { uid: 'col-1', activeEnvironmentUid: null, environments: [] };
       const collectionAfterCreate = {
         uid: 'col-1',
         activeEnvironmentUid: 'env-new',
@@ -698,7 +732,10 @@ describe('renderVarInfo', () => {
         globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
         collections: { collections: [collectionAfterCreate] }
       });
-      findCollectionByUid.mockReturnValue(collectionAfterCreate);
+      findCollectionByUid
+        .mockReturnValueOnce(collectionBeforeCreate)
+        .mockReturnValueOnce(collectionBeforeCreate)
+        .mockReturnValue(collectionAfterCreate);
       addEnvironment.mockReturnValue(() => Promise.resolve());
       selectEnvironment.mockReturnValue(() => Promise.resolve());
       getVariableScope.mockReturnValue(null);
@@ -740,6 +777,94 @@ describe('renderVarInfo', () => {
       );
     });
 
+    it('rejects an environment name that would be rewritten by the main process, instead of risking a false "failed to create" report', async () => {
+      // Regression: `sanitizeName` (main process) strips characters like ':' before writing the
+      // file. Without this check, the create would actually succeed under a different, sanitized
+      // name, but `waitForEnvironmentByName` (which polls by the originally-typed name) would
+      // never find a match and time out, falsely reporting a failure.
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'collection', label: 'Collection Variables', enabled: true, supportsSecret: false },
+        { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
+      ]);
+
+      findCollectionByUid.mockReturnValue({ uid: 'col-1', activeEnvironmentUid: null, environments: [] });
+      store.getState.mockReturnValue({
+        globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
+        collections: { collections: [{ uid: 'col-1', activeEnvironmentUid: null, environments: [] }] }
+      });
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: null
+        }
+      );
+
+      const switcher = result.querySelector('.var-add-to-switcher');
+      switcher.querySelector('.var-add-to-toggle').click();
+      switcher.querySelector('[data-testid="var-info-add-to-create-env-button"]').click();
+
+      const nameInput = switcher.querySelector('[data-testid="var-info-add-to-create-env-name-input"]');
+      nameInput.value = 'Prod:Env';
+      switcher.querySelector('[data-testid="var-info-add-to-create-env-submit"]').click();
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(addEnvironment).not.toHaveBeenCalled();
+      const errorNote = switcher.querySelector('[data-testid="var-info-add-to-error"]');
+      expect(errorNote.textContent).not.toBe('');
+    });
+
+    it('rejects a name that only differs in case from an existing environment, instead of risking a same-file overwrite', async () => {
+      // Regression: `generateUniqueName` (main process) compares names case-sensitively, so
+      // "Dev" would be considered unique even with "dev" already on disk. On a case-insensitive
+      // filesystem that write silently overwrites the existing "dev" environment's file.
+      getVariableScope.mockReturnValue(null);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'collection', label: 'Collection Variables', enabled: true, supportsSecret: false },
+        { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
+      ]);
+
+      const collectionWithDev = {
+        uid: 'col-1',
+        activeEnvironmentUid: 'env-existing',
+        environments: [{ uid: 'env-existing', name: 'dev', variables: [] }]
+      };
+      findCollectionByUid.mockReturnValue(collectionWithDev);
+      store.getState.mockReturnValue({
+        globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
+        collections: { collections: [collectionWithDev] }
+      });
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: null
+        }
+      );
+
+      const switcher = result.querySelector('.var-add-to-switcher');
+      switcher.querySelector('.var-add-to-toggle').click();
+      switcher.querySelector('[data-testid="var-info-add-to-create-env-button"]').click();
+
+      const nameInput = switcher.querySelector('[data-testid="var-info-add-to-create-env-name-input"]');
+      nameInput.value = 'Dev';
+      switcher.querySelector('[data-testid="var-info-add-to-create-env-submit"]').click();
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(addEnvironment).not.toHaveBeenCalled();
+      const errorNote = switcher.querySelector('[data-testid="var-info-add-to-error"]');
+      expect(errorNote.textContent).toBe('Environment already exists');
+    });
+
     it('does not save on blur for a brand new variable, even if the value changed', () => {
       getVariableScope.mockReturnValue(null);
       getAvailableAddToScopes.mockReturnValue([
@@ -764,6 +889,56 @@ describe('renderVarInfo', () => {
       RealCodeMirror.signal(cmEditor, 'blur');
 
       expect(updateVariableInScope).not.toHaveBeenCalled();
+    });
+
+    it('recomputes masking fresh on each blur, so removing a secret reference actually un-masks the value', () => {
+      // Regression: masking used to be computed as `currentShouldMaskValue || newHasSecretRefs`,
+      // which is sticky — once a value referenced a secret, masking could never turn back off
+      // within the same tooltip session, even after the reference was removed.
+      getVariableScope.mockImplementation((name) => {
+        if (name === 'secretVar') {
+          return { type: 'environment', data: { variable: { secret: true } } };
+        }
+        return null;
+      });
+      isVariableSecret.mockImplementation((scopeInfo) => !!scopeInfo?.data?.variable?.secret);
+      getAvailableAddToScopes.mockReturnValue([
+        { type: 'environment', label: 'Collection Environment', enabled: true, supportsSecret: true }
+      ]);
+      interpolate.mockImplementation((value) => value);
+
+      const activeCollection = {
+        uid: 'col-1',
+        activeEnvironmentUid: 'env-1',
+        environments: [{ uid: 'env-1', name: 'Dev', variables: [] }]
+      };
+      findCollectionByUid.mockReturnValue(activeCollection);
+      store.getState.mockReturnValue({
+        globalEnvironments: { globalEnvironments: [], activeGlobalEnvironmentUid: null },
+        collections: { collections: [activeCollection] }
+      });
+
+      const result = renderVarInfo(
+        { string: '{{missingVar}}' },
+        {
+          variables: {},
+          collection: { uid: 'col-1' },
+          item: null
+        }
+      );
+
+      const cmEditor = result.querySelector('.var-value-container')._cmEditor;
+      const valueDisplay = result.querySelector('[data-testid="var-info-value-editable"]');
+
+      // Reference a secret variable — masking should turn on.
+      cmEditor.getValue = () => '{{secretVar}}';
+      RealCodeMirror.signal(cmEditor, 'blur');
+      expect(valueDisplay.textContent).toBe('*'.repeat('{{secretVar}}'.length));
+
+      // Remove the secret reference — masking should turn back off, not stay stuck on.
+      cmEditor.getValue = () => 'plainvalue';
+      RealCodeMirror.signal(cmEditor, 'blur');
+      expect(valueDisplay.textContent).toBe('plainvalue');
     });
 
     it('saves the pending value via _persistNewVariable when the tooltip is dismissed with an outside click', async () => {
