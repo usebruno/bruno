@@ -414,7 +414,9 @@ const saveMockResponse = (location, response) => {
   const responses = [...getMockServerResponses(location)];
 
   const normalizedName = nextResponse.name?.trim().toLowerCase();
-  if (normalizedName) {
+  const currentName = responses.find((item) => item.uid === nextResponse.uid)?.name?.trim().toLowerCase();
+
+  if (normalizedName && normalizedName !== currentName) {
     const isDuplicate = responses.some((item) => (
       item.uid !== nextResponse.uid && item.name?.trim().toLowerCase() === normalizedName
     ));

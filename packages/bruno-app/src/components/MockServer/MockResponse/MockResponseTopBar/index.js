@@ -10,8 +10,7 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import get from 'lodash/get';
 import Button from 'ui/Button';
-
-const DESCRIPTION_MAX_LENGTH = 1000;
+import { getMockResponseDescriptionError, getMockResponseNameLengthError } from 'utils/mock-server/mock-responses';
 
 const MockResponseTopBar = ({
   item,
@@ -46,13 +45,16 @@ const MockResponseTopBar = ({
       itemUid: item.uid,
       collectionUid: collection.uid,
       exampleUid,
-      description: event.target.value.slice(0, DESCRIPTION_MAX_LENGTH)
+      description: event.target.value
     }));
   };
 
   if (!example || !exampleUid) {
     return null;
   }
+
+  const nameError = getMockResponseNameLengthError(example.name);
+  const descriptionError = getMockResponseDescriptionError(example.description);
 
   if (editMode) {
     return (
@@ -71,6 +73,9 @@ const MockResponseTopBar = ({
                     autoFocus
                     data-testid="mock-response-name-input"
                   />
+                  {nameError ? (
+                    <div className="text-red-500 text-xs mt-1">{nameError}</div>
+                  ) : null}
                 </div>
                 <div>
                   <textarea
@@ -79,9 +84,11 @@ const MockResponseTopBar = ({
                     className="example-input example-input-description"
                     placeholder="Description"
                     rows={3}
-                    maxLength={DESCRIPTION_MAX_LENGTH}
                     data-testid="mock-response-description-input"
                   />
+                  {descriptionError ? (
+                    <div className="text-red-500 text-xs mt-1">{descriptionError}</div>
+                  ) : null}
                 </div>
                 {copiedFrom?.exampleName ? (
                   <div className="text-xs opacity-60">
@@ -105,6 +112,7 @@ const MockResponseTopBar = ({
                 size="sm"
                 icon={<IconDeviceFloppy size={16} />}
                 onClick={onSave}
+                disabled={Boolean(nameError || descriptionError)}
                 data-testid="mock-response-save-btn"
               >
                 Save

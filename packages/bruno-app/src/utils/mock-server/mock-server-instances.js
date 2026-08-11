@@ -406,6 +406,14 @@ export const getMockServerNameError = (name) => {
   return '';
 };
 
+export const toMockServerDelayInputValue = (value) => String(value ?? '').replace(/\D/g, '');
+
+export const blockMockServerDelayKeys = (event) => {
+  if (['e', 'E', '+', '-', '.', ','].includes(event.key)) {
+    event.preventDefault();
+  }
+};
+
 export const isMockServerPortTaken = (instances, port, excludeUid = null) => {
   const normalizedPort = Number(port);
   if (!normalizedPort) {
