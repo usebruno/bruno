@@ -55,7 +55,7 @@ module.exports = [
         outDir: path.dirname(packageJson.main)
       }),
       terser({
-        maxWorkers: Math.max(1, os.cpus().length || os.availableParallelism())
+        maxWorkers: Math.max(1, os.availableParallelism())
       }),
       copy({
         patterns: 'src/workers/scripts/**/*',
@@ -85,7 +85,7 @@ module.exports = [
         outDir: path.dirname(packageJson.module)
       }),
       terser({
-        maxWorkers: Math.max(1, os.cpus().length || os.availableParallelism())
+        maxWorkers: Math.max(1, os.availableParallelism())
       }),
       copy({
         patterns: 'src/workers/scripts/**/*',

@@ -19,7 +19,7 @@ const jsPlugins = [
     declarationMap: false
   }),
   terser({
-    maxWorkers: Math.max(1, os.cpus().length || os.availableParallelism())
+    maxWorkers: Math.max(1, os.availableParallelism())
   })
 ];
 

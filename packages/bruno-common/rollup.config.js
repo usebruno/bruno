@@ -33,7 +33,7 @@ function createBuildConfig({ inputDir, input, cjsOutput, esmOutput, dtsOutput, e
           include: [inputDir]
         }),
         terser({
-          maxWorkers: Math.max(1, os.cpus().length || os.availableParallelism())
+          maxWorkers: Math.max(1, os.availableParallelism())
         })
       ],
       treeshake: {
