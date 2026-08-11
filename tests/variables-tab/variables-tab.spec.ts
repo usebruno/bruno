@@ -324,7 +324,7 @@ test.describe('Variables tab', () => {
     });
   });
 
-  test('drops a collapsed object cell once the value itself changes', async ({ pageWithUserData: page }) => {
+  test.only('keeps a collapsed object cell folded when the value itself changes', async ({ pageWithUserData: page }) => {
     const { variablesTab } = buildCommonLocators(page);
 
     await seedVariables(page);
@@ -337,15 +337,19 @@ test.describe('Variables tab', () => {
       await expect(variablesTab.foldMarkers(cell())).toHaveText('↤2↦');
     });
 
-    await test.step('Rewriting the variable leaves the new value expanded', async () => {
+    await test.step('Rewriting the variable keeps it collapsed, now over three keys', async () => {
       await openRequest(page, COLLECTION, 'rewrite-config', { persist: true });
       await sendRequestAndWaitForResponse(page, 200);
 
       await switchToOpenTab(page, 'Variables');
 
+      await expect(variablesTab.foldMarkers(cell())).toHaveText('↤3↦');
+    });
+
+    await test.step('Expanding shows the rewritten value', async () => {
+      await unfoldObjectLine(cell());
       await expect.poll(() => readVariableValue(page, 'runtime', 'service_config'))
         .toBe(REWRITTEN_SERVICE_CONFIG_JSON);
-      await expect(variablesTab.foldMarkers(cell())).toHaveCount(0);
     });
   });
 

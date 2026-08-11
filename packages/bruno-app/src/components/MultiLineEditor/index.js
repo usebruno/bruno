@@ -282,11 +282,9 @@ class MultiLineEditor extends Component {
       this.cachedValue = String(this.props.value);
       this.editor.setValue(String(this.props.value) || '');
       this.editor.setCursor(cursor);
-      // The value changed underneath the editor, so the persisted folds and
-      // scroll offset describe the previous content — drop them rather than
-      // restoring them onto lines that now hold something else.
+      // setValue clears folds — re-apply persisted view state when possible.
       if (this._currentDocKey) {
-        writePersistedEditorState({ scope: this.props.persistenceScope, key: this._currentDocKey, state: null });
+        this._applyPersistedViewState();
       }
       // Re-apply masking after setValue() since it destroys all CodeMirror marks
       if (this.maskedEditor && this.maskedEditor.isEnabled()) {
