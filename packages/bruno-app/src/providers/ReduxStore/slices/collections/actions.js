@@ -1263,6 +1263,13 @@ export const handleMultipleCollectionItemsDrop
             const isCrossFormatMove = isCrossCollectionMove && sourceFormat !== targetFormat;
 
             const { uid: draggedItemUid, pathname: draggedItemPathname } = draggedItem;
+
+            // Remove the dragged item from any pending resequences (from previous iterations)
+            // so we don't accidentally write to its old pathname and recreate it.
+            for (const collMap of itemsToResequenceMap.values()) {
+              collMap.delete(draggedItemUid);
+            }
+
             const newPathname = calculateDraggedItemNewPathname({
               draggedItem,
               targetItem,

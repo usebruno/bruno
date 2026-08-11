@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import Dropdown from 'components/Dropdown';
 import { IconX, IconFoldDown, IconFoldUp, IconTrash } from '@tabler/icons';
 import { collapseCollection, collapseItem, expandCollection, expandItem, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { getOtherCollections, getSelectionInfo } from 'utils/collections/index';
+import { getOtherCollections, getSelectionInfo, isScratchCollection } from 'utils/collections/index';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 
 const isEntryCollapsed = (entry) => (entry.type === 'collection' ? entry.collection.collapsed : entry.item.collapsed);
@@ -11,12 +11,14 @@ const isEntryCollapsed = (entry) => (entry.type === 'collection' ? entry.collect
 const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollections, onRequestDeleteItems }) => {
   const dispatch = useDispatch();
 
-  const collections = useSelector((state) => state.collections.collections);
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
+  const collections = useSelector((state) => state.collections.collections);
+  const workspaces = useSelector((state) => state.workspaces.workspaces);
+  const visibleCollections = collections.filter((c) => !isScratchCollection(c, workspaces));
 
   const { effectiveSelection, hasCollection, hasFolder, hasRequest } = useMemo(
-    () => getSelectionInfo({ collections, selectedUids: selectedSidebarUids }),
-    [collections, selectedSidebarUids]
+    () => getSelectionInfo({ collections: visibleCollections, selectedUids: selectedSidebarUids }),
+    [visibleCollections, selectedSidebarUids]
   );
 
   const isPureCollectionSelection = hasCollection && !hasFolder && !hasRequest;
@@ -25,7 +27,7 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
   const canCollapse = collapsibleEntries.length > 0;
   const allCollapsed = canCollapse && collapsibleEntries.every(isEntryCollapsed);
 
-  const otherCollections = getOtherCollections(collections, effectiveSelection.map((entry) => entry.uid));
+  const otherCollections = getOtherCollections(visibleCollections, effectiveSelection.map((entry) => entry.uid));
   const hasOtherCollections = otherCollections.length > 0;
   const allOthersCollapsed = hasOtherCollections && otherCollections.every((c) => c.collapsed);
 
