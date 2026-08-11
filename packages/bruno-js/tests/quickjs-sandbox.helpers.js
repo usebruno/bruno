@@ -2,7 +2,11 @@
 // sandbox per test, and the teardown assertions. The invariant these encode
 // is documented in the spec.
 const { expect } = require('@jest/globals');
+const os = require('os');
+const path = require('path');
 const Bru = require('../src/bru');
+
+const TEST_COLLECTION_PATH = path.join(os.tmpdir(), 'bruno-quickjs-tests');
 
 // The run must return without waiting on abandoned work, so this only guards
 // against a hang regression.
@@ -20,7 +24,7 @@ const makeBru = () =>
     envVariables: {},
     runtimeVariables: {},
     processEnvVars: {},
-    collectionPath: '/',
+    collectionPath: TEST_COLLECTION_PATH,
     collectionName: 'Test'
   });
 
@@ -80,7 +84,7 @@ const runInSandbox = async ({ script, scriptType, context }) => {
   }
 
   const settled = sandbox
-    .executeQuickJsVmAsync({ script, context, collectionPath: '/tmp/collection' })
+    .executeQuickJsVmAsync({ script, context, collectionPath: TEST_COLLECTION_PATH })
     .then(() => null, (error) => error)
     .then((error) => ({ status: 'settled', error }));
   let hangTimer;
@@ -124,6 +128,7 @@ const expectEventuallyClean = async ({ handles, deferreds }, timeoutMs = 5000) =
 };
 
 module.exports = {
+  TEST_COLLECTION_PATH,
   makeBru,
   loadSandbox,
   captureAllocations,

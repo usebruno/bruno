@@ -1,6 +1,7 @@
 const { describe, it, expect, afterEach } = require('@jest/globals');
 const BrunoResponse = require('../src/bruno-response');
 const {
+  TEST_COLLECTION_PATH,
   makeBru,
   loadSandbox,
   captureAllocations,
@@ -54,7 +55,7 @@ describe('QuickJS engine trap containment', () => {
       .executeQuickJsVmAsync({
         script: OOM_SCRIPT,
         context: { bru: makeBru(), res: makeLargeResponse() },
-        collectionPath: '/tmp/collection'
+        collectionPath: TEST_COLLECTION_PATH
       })
       .then(() => null, (thrown) => thrown);
 
@@ -66,9 +67,29 @@ describe('QuickJS engine trap containment', () => {
     await sandbox.executeQuickJsVmAsync({
       script: 'bru.setVar("recovered", true);',
       context: { bru },
-      collectionPath: '/tmp/collection'
+      collectionPath: TEST_COLLECTION_PATH
     });
     expect(bru.getVar('recovered')).toBe(true);
+  }, 20000);
+
+  // A recycle swaps the module without a gap: the trapped instance still
+  // evaluates correctly and keeps serving the synchronous executor (which
+  // cannot await the replacement) until the fresh module resolves.
+  it('keeps synchronous evaluation working while a trapped module is being replaced', async () => {
+    const { sandbox } = await loadSandbox((vm) => {
+      vm.runtime.setMemoryLimit(RUNTIME_MEMORY_LIMIT_BYTES);
+    });
+
+    await sandbox
+      .executeQuickJsVmAsync({
+        script: OOM_SCRIPT,
+        context: { bru: makeBru(), res: makeLargeResponse() },
+        collectionPath: TEST_COLLECTION_PATH
+      })
+      .catch(() => {});
+
+    const out = sandbox.executeQuickJsVm({ script: '6 * 7', context: {}, scriptType: 'expression' });
+    expect(out).toBe(42);
   }, 20000);
 
   // Only a WASM trap (a thrown WebAssembly.RuntimeError) may retire the
@@ -85,7 +106,7 @@ describe('QuickJS engine trap containment', () => {
       sandbox.executeQuickJsVmAsync({
         script: 'bru.setVar("x", 1);',
         context: { bru: makeBru() },
-        collectionPath: '/tmp/collection'
+        collectionPath: TEST_COLLECTION_PATH
       })
     ).rejects.toThrow('Aborted(imitation, not a WebAssembly.RuntimeError)');
 
