@@ -17,31 +17,34 @@ const { wrapScriptInClosure, SANDBOX } = require('../../utils/sandbox');
 
 let QuickJSModule;
 let quickJSModulePromise;
-// Memoizes the WASM module, but stays resettable so a trap can retire the
-// instance (recycleQuickJSModuleOnAbort nulls the cache to force a fresh
-// build). QuickJSModule holds the resolved module as a plain value because
-// executeQuickJsVm is synchronous and cannot await the promise; it may be
-// null briefly at startup and after a recycle, until the load resolves.
-const loader = () => {
-  if (!quickJSModulePromise) {
-    quickJSModulePromise = newQuickJSWASMModule().then((mod) => {
-      QuickJSModule = mod;
-      return mod;
-    });
+let quickJSModuleLoading = false;
+
+// Memoized WASM module. QuickJSModule mirrors the resolved value for the
+// synchronous executor, which cannot await; it is null only until the initial
+// load resolves. reload swaps in a fresh instance with no gap: the old one
+// keeps serving until the replacement is ready.
+const loader = ({ reload = false } = {}) => {
+  if (!quickJSModulePromise || (reload && !quickJSModuleLoading)) {
+    quickJSModuleLoading = true;
+    quickJSModulePromise = newQuickJSWASMModule()
+      .then((mod) => {
+        QuickJSModule = mod;
+        return mod;
+      })
+      .finally(() => {
+        quickJSModuleLoading = false;
+      });
   }
   return quickJSModulePromise;
 };
 loader();
 
 /**
- * A WASM trap inside JS_FreeRuntime (emscripten surfaces it as a thrown
- * WebAssembly.RuntimeError, e.g. the gc_obj_list assertion abort when an
- * uncatchable out-of-memory strands engine objects) leaves the instance's
- * allocator state unreliable and the runtime's memory stranded for the life
- * of the instance. Discard the module so the next run gets a fresh heap.
- * A parked context can dispose (and trap) long after its module was already
- * replaced, so only the module the failing context came from is discarded.
- * Returns whether the error was such a trap.
+ * A WASM trap during dispose (JS_FreeRuntime aborting on engine-internal
+ * leftovers) strands memory in the instance's heap for its lifetime, so the
+ * module is replaced. A trapped instance still evaluates correctly, so it
+ * keeps serving until the replacement resolves. Returns whether the error
+ * was such a trap.
  */
 const recycleQuickJSModuleOnAbort = (teardownError, ownerModule) => {
   if (!(teardownError instanceof WebAssembly.RuntimeError)) {
@@ -50,9 +53,7 @@ const recycleQuickJSModuleOnAbort = (teardownError, ownerModule) => {
   // Retire only the failing context's own generation; a stale owner was
   // already replaced. An unknown owner fails safe toward recycling.
   if (!ownerModule || ownerModule === QuickJSModule) {
-    QuickJSModule = null;
-    quickJSModulePromise = null;
-    loader();
+    loader({ reload: true });
   }
   return true;
 };
