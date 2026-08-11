@@ -3,8 +3,7 @@ import {
   parsePathParams,
   interpolateUrl,
   interpolateUrlPathParams,
-  prependDefaultScheme,
-  isInternalLink
+  prependDefaultScheme
 } from './index';
 
 describe('Url Utils - parsePathParams', () => {
@@ -693,25 +692,5 @@ describe('Url Utils - prependDefaultScheme', () => {
 
   it.each([[''], [undefined], [null]])('passes an empty url through untouched — %s', (url) => {
     expect(prependDefaultScheme(url)).toEqual(url);
-  });
-});
-
-describe('Url Utils - isInternalLink', () => {
-  it.each([['#preferences/ai'], ['#preferences/cache'], ['/'], ['/some/path']])(
-    'treats %s as internal',
-    (url) => {
-      expect(isInternalLink(url)).toBe(true);
-    }
-  );
-
-  it.each([
-    ['https://usebruno.com'],
-    ['http://localhost:3000'],
-    ['./assets/logo.png'],
-    [''],
-    [undefined],
-    [null]
-  ])('does not treat %s as internal', (url) => {
-    expect(isInternalLink(url)).toBe(false);
   });
 });

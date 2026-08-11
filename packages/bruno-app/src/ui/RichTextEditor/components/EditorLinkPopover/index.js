@@ -3,7 +3,7 @@ import { getMarkRange } from '@tiptap/core';
 import { IconEdit, IconUnlink, IconCopy } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import ToolHint from 'components/ToolHint';
-import { isInternalLink, isSafeUrl } from 'utils/url/index';
+import { isHttpUrl } from 'utils/url/index';
 import EditorLinkEditPopover from '../EditorLinkEditPopover';
 import StyledWrapper from './StyledWrapper';
 import Portal from 'ui/Portal';
@@ -213,10 +213,13 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
         return;
       }
 
-      // Always block the anchor's native navigation
+      // Always block the anchor's native navigation — anything short of a real
+      // http(s) URL (a hash route, a root-relative path, or a bare word like
+      // "abcd") resolves against the current document and would otherwise
+      // redirect the app itself instead of opening in the system browser.
       const href = anchor.getAttribute('href');
       e.preventDefault();
-      if (href && !isInternalLink(href) && isSafeUrl(href)) {
+      if (isHttpUrl(href)) {
         window.open(href, '_blank', 'noopener,noreferrer');
       }
     };
@@ -262,13 +265,10 @@ const EditorLinkPopover = ({ editor, onSubmit, onUnlink, containerEl }) => {
                 // Always block the native anchor navigation — a link already
                 // in the document (e.g. from a shared collection) hasn't been
                 // through our own submit-time validation, so it must go
-                // through the same isSafeUrl check as everything else.
+                // through the same isHttpUrl check as everything else.
                 e.preventDefault();
 
-                if (isInternalLink(hoverLink.url)) {
-                  return;
-                }
-                if (isSafeUrl(hoverLink.url)) {
+                if (isHttpUrl(hoverLink.url)) {
                   window.open(hoverLink.url, '_blank', 'noopener,noreferrer');
                 }
               }}

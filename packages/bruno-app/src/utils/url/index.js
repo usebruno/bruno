@@ -1,5 +1,3 @@
-import find from 'lodash/find';
-
 import { interpolate } from '@usebruno/common';
 import { DEFAULT_SCHEME, hasExplicitScheme } from '@usebruno/common/utils';
 import { version as appVersion } from '../../../package.json';
@@ -158,9 +156,6 @@ export const isSafeUrl = (url) => {
 
   return !/^[a-z][a-z0-9+.-]*:/i.test(url);
 };
-
-// Prevent internal links from being opened externally by Electron's window handler.
-export const isInternalLink = (url) => typeof url === 'string' && (url.startsWith('#') || url.startsWith('/'));
 
 export const interpolateUrl = ({ url, variables }) => {
   if (!url || !url.length || typeof url !== 'string') {

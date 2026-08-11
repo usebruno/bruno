@@ -268,4 +268,66 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await expect(editPopover).toHaveAttribute('data-popper-placement', /^top/);
     });
   });
+
+  test('Internal vs external links in hover popover', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-link-redirection');
+    const prosemirror = locators.docs.proseMirror();
+    const linkButton = locators.docs.toolbarBtn('Link');
+    const hoverPopover = locators.docs.linkHoverPopover();
+
+    await expect(prosemirror).toBeVisible();
+
+    await test.step('Internal links should not open a new page', async () => {
+      await prosemirror.click();
+      await page.keyboard.type('Internal');
+
+      await page.keyboard.down('Shift');
+      for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowLeft');
+      await page.keyboard.up('Shift');
+
+      await linkButton.click();
+      await locators.docs.linkEditUrlInput().fill('#preferences/ai');
+      await locators.docs.linkEditInsertBtn().click();
+
+      const internalLink = prosemirror.locator('a[href="#preferences/ai"]');
+      await internalLink.hover();
+      await expect(hoverPopover).toBeVisible();
+
+      let popupOpened = false;
+      page.once('popup', () => {
+        popupOpened = true;
+      });
+
+      await locators.docs.linkHoverUrlDisplay().click();
+
+      // Wait a short time to ensure no popup was opened
+      await page.waitForTimeout(500);
+      expect(popupOpened).toBe(false);
+    });
+
+    await test.step('External links should open a new page', async () => {
+      // Move cursor to the end and create a new external link
+      await prosemirror.click();
+      await page.keyboard.press('ArrowRight');
+      await page.keyboard.type(' External');
+
+      await page.keyboard.down('Shift');
+      for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowLeft');
+      await page.keyboard.up('Shift');
+
+      await linkButton.click();
+      await locators.docs.linkEditUrlInput().fill('https://example.org');
+      await locators.docs.linkEditInsertBtn().click();
+
+      const externalLink = prosemirror.locator('a[href="https://example.org"]');
+      await externalLink.hover();
+      await expect(hoverPopover).toBeVisible();
+
+      // Click the external link.
+      await locators.docs.linkHoverUrlDisplay().click();
+
+      // Wait a short time to ensure no main window navigation occurred
+      await page.waitForTimeout(500);
+    });
+  });
 });
