@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useEditor } from '@tiptap/react';
 import RichTextEditor from 'ui/RichTextEditor';
 
-const Markdown = ({ onDoubleClick, content, allowHtml = true, collectionPath = '' }) => {
+const Markdown = ({ onDoubleClick, content, allowHtml = true, collectionPath = '', hideLinkPopover = false }) => {
   const editor = useEditor(
     {
       extensions: RichTextEditor.extensions({ allowHtml, collectionPath }),
@@ -26,7 +26,7 @@ const Markdown = ({ onDoubleClick, content, allowHtml = true, collectionPath = '
 
   return (
     <div className="h-full w-full" onDoubleClick={handleOnDoubleClick}>
-      <RichTextEditor editor={editor} />
+      <RichTextEditor editor={editor} hideLinkPopover={hideLinkPopover} />
     </div>
   );
 };
