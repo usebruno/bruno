@@ -1,6 +1,6 @@
-// Harness for quickjs-teardown.spec.js: fixtures, a fresh instrumented
-// sandbox per test, and the teardown assertions. The invariant these encode
-// is documented in the spec.
+// Shared harness for the quickjs sandbox specs (teardown, trap containment):
+// fixtures, a fresh instrumented sandbox per test, and the teardown
+// assertions. The invariants these encode are documented in the specs.
 const { expect } = require('@jest/globals');
 const os = require('os');
 const path = require('path');

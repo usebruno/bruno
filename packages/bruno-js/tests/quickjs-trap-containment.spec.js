@@ -92,6 +92,60 @@ describe('QuickJS engine trap containment', () => {
     expect(out).toBe(42);
   }, 20000);
 
+  // A rejected replacement build must not poison the sandbox: the old,
+  // still-functional module keeps serving and no rejection escapes unhandled.
+  it('keeps the old module serving when the replacement build fails', async () => {
+    const unhandledRejections = [];
+    const onUnhandled = (error) => unhandledRejections.push(error);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      jest.resetModules();
+      const actual = jest.requireActual('quickjs-emscripten');
+      let builds = 0;
+      jest.doMock('quickjs-emscripten', () => ({
+        ...actual,
+        newQuickJSWASMModule: (...args) => {
+          builds += 1;
+          return builds === 2 ? Promise.reject(new Error('wasm build failed')) : actual.newQuickJSWASMModule(...args);
+        }
+      }));
+      const sandbox = require('../src/sandbox/quickjs');
+      const wasmModule = await sandbox.loader();
+      const originalNewContext = wasmModule.newContext.bind(wasmModule);
+      let limitNextContext = true;
+      jest.spyOn(wasmModule, 'newContext').mockImplementation((...args) => {
+        const vm = originalNewContext(...args);
+        if (limitNextContext) {
+          vm.runtime.setMemoryLimit(RUNTIME_MEMORY_LIMIT_BYTES);
+          limitNextContext = false;
+        }
+        return vm;
+      });
+
+      await sandbox
+        .executeQuickJsVmAsync({
+          script: OOM_SCRIPT,
+          context: { bru: makeBru(), res: makeLargeResponse() },
+          collectionPath: TEST_COLLECTION_PATH
+        })
+        .catch(() => {});
+
+      expect(await sandbox.loader()).toBe(wasmModule);
+      const bru = makeBru();
+      await sandbox.executeQuickJsVmAsync({
+        script: 'bru.setVar("stillWorks", true);',
+        context: { bru },
+        collectionPath: TEST_COLLECTION_PATH
+      });
+      expect(bru.getVar('stillWorks')).toBe(true);
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(unhandledRejections).toEqual([]);
+    } finally {
+      process.removeListener('unhandledRejection', onUnhandled);
+      jest.dontMock('quickjs-emscripten');
+    }
+  }, 20000);
+
   // Only a WASM trap (a thrown WebAssembly.RuntimeError) may retire the
   // engine module; an ordinary teardown failure surfaces as the run's error
   // even when its message imitates one.

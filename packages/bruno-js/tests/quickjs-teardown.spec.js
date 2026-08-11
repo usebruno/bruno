@@ -74,11 +74,8 @@ describe('QuickJS context teardown leaves no live handles or deferreds', () => {
 
       queueHostCallAsPendingJob(vm, makeHostFn(vm, captured));
 
-      const teardown = (async () => {
-        await managed.waitForPendingDeferreds();
-        await managed.dispose();
-      })();
-      await expect(teardown).resolves.toBeUndefined();
+      await managed.waitForPendingDeferreds();
+      expect(() => managed.dispose()).not.toThrow();
 
       expectAllDead(captured);
       expect(vm.alive).toBe(false);
