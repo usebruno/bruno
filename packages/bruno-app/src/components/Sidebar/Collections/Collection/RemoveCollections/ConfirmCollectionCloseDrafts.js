@@ -1,12 +1,15 @@
 import React, { useMemo } from 'react';
-import filter from 'lodash/filter';
 import { useDispatch, useSelector } from 'react-redux';
-import { flattenItems, isItemARequest, isItemAFolder, hasRequestChanges, findCollectionByUid } from 'utils/collections';
+import {
+  saveRequest,
+  saveMultipleRequests,
+  saveMultipleCollections,
+  saveMultipleFolders,
+  removeCollection
+} from 'providers/ReduxStore/slices/collections/actions';
+import { clearSidebarSelection, deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
+import { findCollectionByUid, getCollectionDrafts } from 'utils/collections/index';
 import { pluralizeWord } from 'utils/common';
-import { saveRequest, saveMultipleRequests, saveMultipleCollections, saveMultipleFolders } from 'providers/ReduxStore/slices/collections/actions';
-import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
-import { removeCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import { IconAlertTriangle, IconDeviceFloppy } from '@tabler/icons';
 import Modal from 'components/Modal';
 import toast from 'react-hot-toast';
@@ -15,7 +18,7 @@ import StyledWrapper from './StyledWrapper';
 
 const MAX_UNSAVED_REQUESTS_TO_SHOW = 5;
 
-const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUids }) => {
+const ConfirmCollectionCloseDrafts = ({ onClose, collectionUids }) => {
   const dispatch = useDispatch();
   const allCollections = useSelector((state) => state.collections.collections || []);
 
@@ -24,51 +27,17 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUids }) =
   }, [collectionUids]);
 
   const activeCollections = useMemo(() => {
-    const fromState = targetUids.map((uid) => findCollectionByUid(allCollections, uid)).filter(Boolean);
-    if (fromState.length > 0) return fromState;
-    if (collection) return [collection];
-    return [];
-  }, [allCollections, targetUids, collection]);
+    return targetUids.map((uid) => findCollectionByUid(allCollections, uid)).filter(Boolean);
+  }, [allCollections, targetUids]);
 
-  const { currentRequestDrafts, currentTransientDrafts, currentFolderDrafts, currentCollectionDrafts } = useMemo(() => {
-    const requestDrafts = [];
-    const transientDrafts = [];
-    const folderDrafts = [];
-    const collectionDrafts = [];
-
-    activeCollections.forEach((c) => {
-      if (c.draft) {
-        collectionDrafts.push({ name: c.name, collectionUid: c.uid });
-      }
-
-      const items = flattenItems(c.items);
-
-      const requests = items?.filter((item) => isItemARequest(item) && hasRequestChanges(item)) || [];
-      requests.forEach((req) => {
-        const enhancedReq = { ...req, collectionUid: c.uid };
-        if (req.isTransient) {
-          transientDrafts.push(enhancedReq);
-        } else {
-          requestDrafts.push(enhancedReq);
-        }
-      });
-
-      const folders = items?.filter((item) => isItemAFolder(item) && item.draft) || [];
-      folders.forEach((folder) => {
-        folderDrafts.push({ name: folder.name, folderUid: folder.uid, collectionUid: c.uid });
-      });
-    });
-
-    return {
-      currentRequestDrafts: requestDrafts,
-      currentTransientDrafts: transientDrafts,
-      currentFolderDrafts: folderDrafts,
-      currentCollectionDrafts: collectionDrafts
-    };
-  }, [activeCollections]);
+  const {
+    requestDrafts: currentRequestDrafts,
+    transientDrafts: currentTransientDrafts,
+    folderDrafts: currentFolderDrafts,
+    collectionDrafts: currentCollectionDrafts
+  } = useMemo(() => getCollectionDrafts(activeCollections), [activeCollections]);
 
   const allDraftsCount = currentRequestDrafts.length + currentTransientDrafts.length + currentFolderDrafts.length + currentCollectionDrafts.length;
-  const isMultipleCollections = activeCollections.length > 1;
 
   const handleRemoveCollections = () => {
     const removalPromises = activeCollections.map((c) => dispatch(removeCollection(c.uid)));
@@ -81,9 +50,7 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUids }) =
         toast.error('An error occurred while removing the collection(s)');
       })
       .finally(() => {
-        if (isMultipleCollections) {
-          dispatch(clearSidebarSelection());
-        }
+        dispatch(clearSidebarSelection());
         onClose();
       });
   };

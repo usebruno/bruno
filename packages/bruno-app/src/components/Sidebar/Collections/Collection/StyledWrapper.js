@@ -43,14 +43,6 @@ const Wrapper = styled.div`
       font-weight: 400;
     }
 
-    div.dropdown-item.delete-collection {
-      color: ${(props) => props.theme.colors.text.danger};
-      &:hover {
-        background-color: ${(props) => props.theme.colors.bg.danger};
-        color: white;
-      }
-    }
-
     &.drop-target {
       border: ${(props) => props.theme.dragAndDrop.borderStyle} ${(props) => props.theme.dragAndDrop.border};
       background-color: ${(props) => props.theme.dragAndDrop.hoverBg};
@@ -91,10 +83,6 @@ const Wrapper = styled.div`
       }
     }
 
-    &.collection-selected {
-      background: ${(props) => rgba(props.theme.primary.text, 0.1)};
-      border-left: 4px solid ${(props) => props.theme.primary.solid};
-    }
   }
 
   #sidebar-collection-name {

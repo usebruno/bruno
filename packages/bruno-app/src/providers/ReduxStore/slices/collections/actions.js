@@ -1291,8 +1291,8 @@ export const handleMultipleCollectionItemsDrop
               continue;
             }
 
-            let currentSourceItems = getDirectoryItems(sourceCollection, draggedItemUid);
-            let currentTargetItems = directoryCache.get(targetDir.uid);
+            const currentSourceItems = getDirectoryItems(sourceCollection, draggedItemUid);
+            const currentTargetItems = directoryCache.get(targetDir.uid);
 
             if (newPathname !== draggedItemPathname) {
               const newDirname = path.dirname(newPathname);

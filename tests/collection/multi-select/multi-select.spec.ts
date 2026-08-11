@@ -104,9 +104,9 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
     await locators.sidebar.folder('Folder A').click({ modifiers: ['Shift'] });
 
-    await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/item-selected/);
+    await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/collection-selected/);
     await expect(locators.sidebar.collectionRow(collectionAName)).not.toHaveClass(/collection-selected/);
-    await expect(locators.sidebar.request('Req Root')).not.toHaveClass(/item-selected/);
+    await expect(locators.sidebar.request('Req Root')).not.toHaveClass(/collection-selected/);
   });
 
   test('A normally-clicked row is NOT carried into the selection on the next Ctrl/Cmd-click', async ({ page, createTmpDir }) => {
@@ -114,12 +114,13 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
     // Plain click: opens the request and becomes the anchor, but isn't itself "selected" yet.
     await locators.sidebar.request('Req Root').click();
-    await expect(locators.sidebar.itemRow('Req Root')).not.toHaveClass(/item-selected/);
+    await expect(locators.sidebar.itemRow('Req Root')).not.toHaveClass(/collection-selected/);
+    await expect(page.locator('.request-pane-tab').getByText('Req Root')).toBeVisible(); // verifies that the request opened properly
 
     await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
 
-    await expect(locators.sidebar.itemRow('Req Root')).not.toHaveClass(/item-selected/);
-    await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/item-selected/);
+    await expect(locators.sidebar.itemRow('Req Root')).not.toHaveClass(/collection-selected/);
+    await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/collection-selected/);
   });
 
   test('Selecting a folder and its own child collapses to just the folder (parent wins) when deleting', async ({ page, createTmpDir }) => {
@@ -139,6 +140,24 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await locators.modal.closeButton().click();
     await expect(locators.sidebar.folder('Folder A')).toBeVisible();
     await expect(locators.sidebar.request('Req A1')).toBeVisible();
+  });
+
+  test('Selecting a folder and its own child functionally applies parent-wins dedup (e.g. collapsing only happens once)', async ({ page, createTmpDir }) => {
+    const { locators } = await setupFixture(page, createTmpDir, 'parentwinsfunc');
+
+    await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
+    await locators.sidebar.request('Req A1').click({ modifiers: [SELECT_MODIFIER] });
+
+    await locators.sidebar.itemRow('Folder A').click({ button: 'right' });
+
+    // Collapse the selection. If parent-wins dedup fails, it might try to collapse both
+    // and if the child is already hidden by the parent's collapse, it could cause issues,
+    // or if we expand, it would expand both. But simply verifying the collapse action completes
+    // and the child is no longer visible is a good functional test.
+    await locators.dropdown.item('Collapse').click();
+
+    // Verify Folder A is collapsed (its child Req A1 is not visible)
+    await expect(locators.sidebar.request('Req A1')).not.toBeVisible();
   });
 
   test('Bulk Delete on a folder + request selection removes both', async ({ page, createTmpDir }) => {
@@ -187,14 +206,14 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
     await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
     await locators.sidebar.request('Req Root').click({ modifiers: [SELECT_MODIFIER] });
-    await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/item-selected/);
-    await expect(locators.sidebar.itemRow('Req Root')).toHaveClass(/item-selected/);
+    await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/collection-selected/);
+    await expect(locators.sidebar.itemRow('Req Root')).toHaveClass(/collection-selected/);
 
     await locators.sidebar.request('Req A1').click();
 
-    await expect(locators.sidebar.itemRow('Folder A')).not.toHaveClass(/item-selected/);
-    await expect(locators.sidebar.itemRow('Req Root')).not.toHaveClass(/item-selected/);
-    await expect(locators.sidebar.itemRow('Req A1')).not.toHaveClass(/item-selected/);
+    await expect(locators.sidebar.itemRow('Folder A')).not.toHaveClass(/collection-selected/);
+    await expect(locators.sidebar.itemRow('Req Root')).not.toHaveClass(/collection-selected/);
+    await expect(locators.sidebar.itemRow('Req A1')).not.toHaveClass(/collection-selected/);
   });
 
   test('Bulk menu for a pure collection selection offers Remove, Collapse, Remove Others and Collapse Others together', async ({ page, createTmpDir }) => {

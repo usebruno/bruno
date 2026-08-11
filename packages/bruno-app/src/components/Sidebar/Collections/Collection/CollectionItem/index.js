@@ -26,9 +26,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { handleMultipleCollectionItemsDrop, sendRequest, showInFolder, pasteItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionItem, addResponseExample, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid } from 'utils/common';
-import { copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
+import { insertTaskIntoQueue, copyRequest, setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import NewApp from 'components/Sidebar/NewApp';
@@ -38,7 +37,7 @@ import DeleteCollectionItems from './DeleteCollectionItems';
 import IgnoreCollectionItem from './IgnoreCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
-import { isItemARequest, isItemAFolder } from 'utils/tabs';
+import { scrollToTheActiveTab, isItemARequest, isItemAFolder } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import toast from 'react-hot-toast';
@@ -48,7 +47,6 @@ import CollectionItemInfo from './CollectionItemInfo/index';
 import CollectionItemIcon from './CollectionItemIcon';
 import ExampleItem from './ExampleItem';
 import ExampleIcon from 'components/Icons/ExampleIcon';
-import { scrollToTheActiveTab } from 'utils/tabs';
 import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import {
   getTabUidForItem as getTabUidForItemSelector,
@@ -63,8 +61,6 @@ import {
   getInitialExampleName,
   findParentItemInCollection,
   getSelectionInfo,
-  buildSidebarEntries,
-  getVisibleSidebarUidsInOrder,
   getSortedDraggedItems
 } from 'utils/collections/index';
 import { sortByNameThenSequence } from 'utils/common/index';
@@ -222,15 +218,14 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   const canAnyItemBeDropped = ({ draggedItem, targetItem, dropType }) => {
-    let items = [];
-    if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
-      items = [...draggedItem.multiSelectedItems];
-      if (!items.find((i) => i.uid === draggedItem.uid)) {
-        items.push(draggedItem);
-      }
-    } else {
-      items = [draggedItem];
-    }
+    const items = getSortedDraggedItems({
+      draggedItem,
+      allCollections,
+      workspaces,
+      activeWorkspace,
+      collectionSortOrder,
+      searchText
+    });
     return items.some((i) => canItemBeDropped({ draggedItem: i, targetItem, dropType }));
   };
 
@@ -328,7 +323,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     'drop-target-above': isOver && canDrop && dropType === 'above',
     'drop-target-below': isOver && canDrop && dropType === 'below',
     'item-keyboard-focused': isKeyboardFocused,
-    'item-selected': isSelected
+    'collection-selected': isSelected
   });
 
   const handleRun = async () => {

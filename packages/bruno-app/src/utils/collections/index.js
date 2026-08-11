@@ -1987,7 +1987,7 @@ const isPathnameDescendantOf = (pathname, ancestorPathname) => {
   }
 
   if (normalizedPathname === normalizedAncestor) return false;
-  return normalizedPathname.startsWith(`${normalizedAncestor}${path.sep}`);
+  return normalizedPathname.startsWith(`${normalizedAncestor}/`);
 };
 
 /**
@@ -2012,7 +2012,7 @@ export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
 
       return {
         uid,
-        type: isItemAFolder(item) ? 'folder' : 'request',
+        type: isItemAFolder(item) ? 'folder' : isItemARequest(item) ? 'request' : 'file',
         collectionUid: owningCollection.uid,
         pathname: item.pathname,
         item
@@ -2037,6 +2037,44 @@ export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
     hasFolder: effectiveSelection.some((e) => e.type === 'folder'),
     hasRequest: effectiveSelection.some((e) => e.type === 'request')
   };
+};
+
+/**
+ * Extracts and categorizes all drafts (collections, folders, requests, transient) from a list of collections.
+ *
+ * @param {Array} collections - Array of collection objects to inspect
+ * @returns {{ requestDrafts: Array, transientDrafts: Array, folderDrafts: Array, collectionDrafts: Array }}
+ */
+export const getCollectionDrafts = (collections = []) => {
+  const requestDrafts = [];
+  const transientDrafts = [];
+  const folderDrafts = [];
+  const collectionDrafts = [];
+
+  collections.forEach((c) => {
+    if (c.draft) {
+      collectionDrafts.push({ ...c, name: c.name, collectionUid: c.uid });
+    }
+
+    const items = flattenItems(c.items);
+
+    const requests = items?.filter((item) => isItemARequest(item) && hasRequestChanges(item)) || [];
+    requests.forEach((req) => {
+      const enhancedReq = { ...req, collectionUid: c.uid };
+      if (req.isTransient) {
+        transientDrafts.push(enhancedReq);
+      } else {
+        requestDrafts.push(enhancedReq);
+      }
+    });
+
+    const folders = items?.filter((item) => isItemAFolder(item) && item.draft) || [];
+    folders.forEach((folder) => {
+      folderDrafts.push({ ...folder, name: folder.name, folderUid: folder.uid, collectionUid: c.uid });
+    });
+  });
+
+  return { requestDrafts, transientDrafts, folderDrafts, collectionDrafts };
 };
 
 /**

@@ -4,8 +4,6 @@ import RemoveCollections from 'components/Sidebar/Collections/Collection/RemoveC
 import DeleteCollectionItems from 'components/Sidebar/Collections/Collection/CollectionItem/DeleteCollectionItems';
 
 const BulkActionsMenu = ({ menuProps }) => {
-  if (!menuProps) return null;
-
   const {
     visible,
     setVisible,

@@ -3,9 +3,8 @@ import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { removeCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { findCollectionByUid, flattenItems, isItemARequest, isItemAFolder, hasRequestChanges } from 'utils/collections/index';
+import { findCollectionByUid, getCollectionDrafts } from 'utils/collections/index';
 import { pluralizeWord } from 'utils/common';
-import filter from 'lodash/filter';
 import ConfirmCollectionCloseDrafts from './ConfirmCollectionCloseDrafts';
 import StyledWrapper from './StyledWrapper';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
@@ -26,23 +25,8 @@ const RemoveCollections = ({ onClose, collectionUid, collectionUids }) => {
 
   // Detect drafts in the collections
   const drafts = useMemo(() => {
-    const requestDrafts = [];
-    const collectionDrafts = [];
-    const folderDrafts = [];
-
-    collections.forEach((collection) => {
-      if (collection.draft) {
-        collectionDrafts.push(collection);
-      }
-      const items = flattenItems(collection.items);
-      const unsavedRequests = filter(items, (item) => isItemARequest(item) && hasRequestChanges(item));
-      requestDrafts.push(...unsavedRequests);
-
-      const unsavedFolders = filter(items, (item) => isItemAFolder(item) && item.draft);
-      folderDrafts.push(...unsavedFolders);
-    });
-
-    return [...requestDrafts, ...collectionDrafts, ...folderDrafts];
+    const { requestDrafts, transientDrafts, folderDrafts, collectionDrafts } = getCollectionDrafts(collections);
+    return [...requestDrafts, ...transientDrafts, ...collectionDrafts, ...folderDrafts];
   }, [collections]);
 
   const onConfirm = () => {
@@ -63,9 +47,7 @@ const RemoveCollections = ({ onClose, collectionUid, collectionUids }) => {
         toast.error('An error occurred while removing the collection(s)');
       })
       .finally(() => {
-        if (collections.length > 1) {
-          dispatch(clearSidebarSelection());
-        }
+        dispatch(clearSidebarSelection());
         onClose();
       });
   };
@@ -100,7 +82,7 @@ const RemoveCollections = ({ onClose, collectionUid, collectionUids }) => {
 
         <div className="collections-list-container">
           {collections.map((c) => (
-            <div className="collection-info-card">
+            <div key={c.uid} className="collection-info-card">
               <div className="collection-name">{c.name}</div>
               <div className="collection-path">{c.pathname}</div>
             </div>

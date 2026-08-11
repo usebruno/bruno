@@ -58,8 +58,10 @@ const Sidebar = () => {
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
 
   useEffect(() => {
+    if (!selectedSidebarUids || selectedSidebarUids.length === 0) return;
+
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && !e.defaultPrevented && selectedSidebarUids && selectedSidebarUids.length > 0) {
+      if (e.key === 'Escape' && !e.defaultPrevented) {
         dispatch(clearSidebarSelection());
       }
     };

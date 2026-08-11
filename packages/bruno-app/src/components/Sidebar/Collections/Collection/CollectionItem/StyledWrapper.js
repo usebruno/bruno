@@ -152,11 +152,6 @@ const Wrapper = styled.div`
       outline: none;
     }
 
-    &.item-selected {
-      background: ${(props) => rgba(props.theme.primary.text, 0.1)};
-      border-left: 4px solid ${(props) => props.theme.primary.solid};
-    }
-
     div.tippy-box {
       position: relative;
       top: -0.625rem;
