@@ -192,11 +192,9 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     scriptError = error;
   }
 
-  // Fire-and-forget work the script abandoned is neither awaited nor killed:
-  // the run returns now and the context stays parked until that work settles,
-  // then disposes. Disposing earlier would let a late host callback touch a
-  // freed context. A teardown throw must not replace the script's own error,
-  // and once the run has returned it can only be logged.
+  // Don't block on abandoned fire-and-forget work — but dispose only after it
+  // settles (a late host callback would touch a freed context). If the script
+  // itself failed, that error wins — a teardown throw must not replace it.
   const disposeContext = ({ background }) => {
     try {
       managedQuickJsContext.dispose();

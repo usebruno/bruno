@@ -39,16 +39,9 @@ const createManagedQuickJsContext = (module) => {
  * `QuickJSUseAfterFree`. Each `.settled` resolves once the deferred is
  * resolved/rejected, so awaiting them keeps the context alive long enough.
  *
- * The hook is installed now (at context creation) so it captures promises as
- * the script runs. `waitForPendingDeferreds` drains the captured deferreds;
- * new deferreds can be created while we wait (a chained timer), so it drains
- * in place until none remain. The wait is unbounded: a parked context lives
- * exactly as long as the abandoned work the script chose to start.
- * `hasPendingDeferreds` reports whether any deferred is still unsettled, so
- * teardown can dispose immediately when nothing is in flight.
- * `disposePendingDeferreds` frees whatever is still unsettled at dispose
- * time: a deferred's resolve/reject function handles are GC objects, and
- * leaving them alive aborts JS_FreeRuntime.
+ * The hook installs at context creation. `waitForPendingDeferreds` drains in
+ * place (waiting can chain new deferreds) with no timeout; `disposePendingDeferreds`
+ * frees unsettled resolve/reject handles, which left alive abort JS_FreeRuntime.
  */
 const trackPendingDeferreds = (vm) => {
   const pendingSettles = [];
