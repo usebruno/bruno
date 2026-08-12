@@ -197,7 +197,7 @@ test.describe('Variables tab', () => {
     });
   });
 
-  test('keeps a revealed secret revealed after leaving and reopening the tab', async ({ pageWithUserData: page }) => {
+  test('masks a revealed secret again after leaving and reopening the tab', async ({ pageWithUserData: page }) => {
     await seedVariables(page);
     await openVariablesTab(page, COLLECTION);
 
@@ -206,7 +206,7 @@ test.describe('Variables tab', () => {
 
     await reopenVariablesTab(page, 'seed');
 
-    await expect.poll(() => readVariableValue(page, 'environment', 'api_token')).toBe('"sk-live-9f3a"');
+    await expect.poll(() => readVariableValue(page, 'environment', 'api_token')).toBe('********');
   });
 
   test('collapses a section and remembers it after leaving and reopening the tab', async ({ pageWithUserData: page }) => {

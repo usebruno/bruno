@@ -26,15 +26,7 @@ const VariablesEditor = ({ collection }) => {
   const wrapperRef = useRef(null);
   const prevEnvironmentUidRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  // Persisted as an array Set does not JSON round-trip.
-  const [revealedSecretsList, setRevealedSecretsList] = usePersistedState({
-    key: 'variables-revealed-secrets',
-    default: []
-  });
-  const revealedSecrets = useMemo(
-    () => new Set(Array.isArray(revealedSecretsList) ? revealedSecretsList : []),
-    [revealedSecretsList]
-  );
+  const [revealedSecrets, setRevealedSecrets] = useState(() => new Set());
 
   // Persisted as an array of the collapsed sections.
   const [collapsedSections, setCollapsedSections] = usePersistedState({
@@ -63,8 +55,8 @@ const VariablesEditor = ({ collection }) => {
 
     resetScroll();
     setDrawerSelection(null);
-    setRevealedSecretsList((prev) =>
-      (Array.isArray(prev) ? prev : []).filter((key) => !String(key).startsWith('environment:'))
+    setRevealedSecrets(
+      (prev) => new Set([...prev].filter((key) => !key.startsWith('environment:')))
     );
 
     clearEnvironmentBoundPersistence(persistenceScope);
@@ -142,11 +134,12 @@ const VariablesEditor = ({ collection }) => {
 
   const toggleSecretReveal = useCallback((section, name) => {
     const key = secretRevealKey(section, name);
-    setRevealedSecretsList((prev) => {
-      const list = Array.isArray(prev) ? prev : [];
-      return list.includes(key) ? list.filter((k) => k !== key) : [...list, key];
+    setRevealedSecrets((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(key)) next.add(key);
+      return next;
     });
-  }, [setRevealedSecretsList]);
+  }, []);
 
   useEffect(() => {
     if (!drawerSelection) return;
