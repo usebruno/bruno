@@ -171,6 +171,7 @@ export type {
 export interface BrunoPresets {
   requestType?: string;
   requestUrl?: string;
+  defaultEnvironment?: string;
 }
 
 export interface BrunoConfig {
@@ -208,6 +209,7 @@ export interface BrunoConfig {
       keyFilePath?: string;
       pfxFilePath?: string;
       passphrase?: string;
+      disabled?: boolean;
     }>;
   };
   scripts?: {

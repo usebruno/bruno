@@ -6,6 +6,13 @@ import {
   setIsOpeningCollection
 } from 'providers/ReduxStore/slices/app';
 import {
+  updateServerStatus,
+  addRequestLogEntries,
+  syncRunningMockServers
+} from 'providers/ReduxStore/slices/mock-server/index';
+import { isMockServerLogListening } from 'utils/mock-server/mock-server-log-subscription';
+import { syncMockServersFromWorkspaceStore } from 'utils/mock-server/mock-server-instances';
+import {
   addTab
 } from 'providers/ReduxStore/slices/tabs';
 import {
@@ -40,6 +47,7 @@ import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState, collectionLoadedFromTree } from 'providers/ReduxStore/slices/collections/index';
+import { migrationProgressEvent } from 'providers/ReduxStore/slices/collection-migration';
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import { loadNotifications } from 'providers/ReduxStore/slices/notifications';
 import { updateSystemResources } from 'providers/ReduxStore/slices/performance';
@@ -123,6 +131,13 @@ const useIpcEvents = () => {
     const removeCollectionTreeUpdateListener = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
 
     const removeApiSpecTreeUpdateListener = ipcRenderer.on('main:apispec-tree-updated', _apiSpecTreeUpdated);
+
+    const removeCollectionMigrationProgressListener = ipcRenderer.on(
+      'main:collection-migration-progress',
+      (progress) => {
+        dispatch(migrationProgressEvent(progress));
+      }
+    );
 
     const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', async (pathname, uid, brunoConfig, options) => {
       try {
@@ -367,9 +382,32 @@ const useIpcEvents = () => {
       dispatch(setGitVersion(val));
     });
 
+    // Mock server events
+    const removeMockServerStatusListener = ipcRenderer.on('main:mock-server-status-changed', (val) => {
+      dispatch(updateServerStatus(val));
+    });
+
+    const removeMockServerRequestLogListener = ipcRenderer.on('main:mock-server-request-log-batch', (val) => {
+      if (!isMockServerLogListening(val?.mockServerUid)) {
+        return;
+      }
+
+      dispatch(addRequestLogEntries(val));
+    });
+
+    const removeMockServerStoreUpdatedListener = ipcRenderer.on('main:mock-server-store-updated', (workspacePath, workspaceUid) => {
+      const state = store.getState();
+      if (state.workspaces.activeWorkspaceUid !== workspaceUid) {
+        return;
+      }
+
+      dispatch(syncMockServersFromWorkspaceStore(workspacePath, workspaceUid));
+    });
+
     const removeLoadNotificationsListener = ipcRenderer.on('main:load-notifications', (notifications) => {
       dispatch(loadNotifications(notifications));
     });
+    dispatch(syncRunningMockServers());
 
     const removeCollectionTreeLoadedListener = ipcRenderer.on('main:collection-tree-loaded', ({ collectionUid, tree }) => {
       dispatch(collectionLoadedFromTree({ collectionUid, tree }));
@@ -390,6 +428,7 @@ const useIpcEvents = () => {
       removeCollectionTreeUpdateListener();
       removeApiSpecTreeUpdateListener();
       removeOpenCollectionListener();
+      removeCollectionMigrationProgressListener();
       removeOpenWorkspaceListener();
       removeOpenCollectionModalListener();
       removeWorkspacesReadyListener();
@@ -422,6 +461,9 @@ const useIpcEvents = () => {
       removeRuntimeVariablesUpdateListener();
       removeSystemResourcesListener();
       gitVersionListener();
+      removeMockServerStatusListener();
+      removeMockServerRequestLogListener();
+      removeMockServerStoreUpdatedListener();
       removeLoadNotificationsListener();
     };
   }, [isElectron]);

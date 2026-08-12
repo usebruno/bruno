@@ -11,7 +11,7 @@ const StyledWrapper = styled.div`
     overflow-y: auto;
     padding: 4rem 1.5rem 3rem;
 
-    .markdown-body {
+    .tiptap {
       max-width: 46rem;
       margin: 0 auto;
       overflow: visible;
