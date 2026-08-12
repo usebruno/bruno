@@ -473,7 +473,7 @@ const registerNetworkIpc = (mainWindow) => {
   const runnerRow = ({ requestUid, eventData }) => ({
     request_uid: requestUid,
     collection_uid: eventData.collectionUid,
-    iteration_index: eventData.iterationIndex,
+    iteration_index: eventData.iterationIndex ?? 0,
     item_uid: eventData.itemUid
   });
 
