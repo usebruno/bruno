@@ -274,6 +274,21 @@ describe('parseValueByDataType — {{var}} references', () => {
     expect(validateDataTypeValue(parseValueByDataType('{{data.abc.1}}', 'boolean', variable), 'boolean')).toBeNull();
     expect(validateDataTypeValue(parseValueByDataType('{{data.abc.1}}', 'number', variable), 'number')).toBe('Value is not a valid number');
   });
+
+  it('treats a variable set to undefined as unresolved and falls through to coercion', () => {
+    // A declared-but-undefined entry must NOT short-circuit as a resolved reference.
+    // Otherwise `resolveWholeReference` would return `undefined`, hiding the raw
+    // `{{count}}` value from the caller and skipping normal coercion.
+    expect(parseValueByDataType('{{count}}', 'number', { count: undefined })).toBe('{{count}}');
+    expect(parseValueByDataType('{{count}}', 'string', { count: undefined })).toBe('{{count}}');
+  });
+
+  it('rejects references whose identifier contains whitespace', () => {
+    // Surrounding whitespace inside `{{}}` is fine; whitespace *inside* the
+    // identifier means the whole match falls through to raw handling.
+    expect(parseValueByDataType('{{ count }}', 'number', { count: 7 })).toBe(7);
+    expect(parseValueByDataType('{{a b c}}', 'string', { 'a b c': 'yep' })).toBe('{{a b c}}');
+  });
 });
 
 describe('valueToString — round-trip with parseValueByDataType', () => {

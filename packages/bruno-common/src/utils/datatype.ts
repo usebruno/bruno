@@ -7,15 +7,20 @@ export const isBrunoVariableDataType = (t: unknown): t is BrunoVariableDataType 
 
 const getByPath = (obj: Record<string, any>, path: string): any => {
   if (obj == null) return undefined;
+  // Prefer a literal dotted key over walking the path — a variable named
+  // `foo.bar` outranks `foo` → `bar` when both exist.
   if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path];
   return path.split('.').reduce<any>((acc, key) => (acc == null ? undefined : acc[key]), obj);
 };
 
 const resolveWholeReference = (value: any, resolvableVariables: Record<string, any>): any => {
   if (typeof value !== 'string') return undefined;
-  const match = value.trim().match(/^\{\{([^}]+)\}\}$/);
+  // Whole-string reference only — `{{a}}b` and partial refs fall through.
+  // Surrounding whitespace inside the braces is tolerated (`{{ foo.bar }}`),
+  // but a whitespace-containing identifier (`{{a b}}`) is not a valid name.
+  const match = value.trim().match(/^\{\{\s*([^}\s]+)\s*\}\}$/);
   if (!match) return undefined;
-  return getByPath(resolvableVariables, match[1].trim());
+  return getByPath(resolvableVariables, match[1]);
 };
 
 // string-form → typed JS value, or raw on failure. When `resolvableVariables` is

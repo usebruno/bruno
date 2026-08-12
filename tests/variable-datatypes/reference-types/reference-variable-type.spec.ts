@@ -1,92 +1,71 @@
 import { test, expect, Page } from '../../../playwright';
 import { openEnvironmentConfigTab, scrollVirtuosoRowIntoView, selectEnvironment } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
+import { CASES, DECLARED, INTENDED_MATRIX, LITERAL_ROWS, type Declared, type Scope } from './cases';
 
-const mismatchIcon = async (page: Page, name: string) => {
+const assertRow = async (page: Page, varName: string, expected: 'ok' | 'flagged') => {
   const locators = buildCommonLocators(page);
-  const row = locators.environment.varRow(name);
+  const row = locators.environment.varRow(varName);
   await scrollVirtuosoRowIntoView(page, row);
-  return locators.dataTypeSelector.mismatchIcon(row);
+  const icon = locators.dataTypeSelector.mismatchIcon(row);
+  if (expected === 'flagged') await expect(icon, `${varName} should be flagged`).toBeVisible();
+  else await expect(icon, `${varName} should not be flagged`).not.toBeVisible();
 };
 
-const expectFlagged = async (page: Page, name: string) => {
-  await expect(await mismatchIcon(page, name)).toBeVisible();
+const openScope = async (page: Page, scope: Scope) => {
+  if (scope === 'global') {
+    await selectEnvironment(page, 'global-environment', 'global');
+    await openEnvironmentConfigTab(page, 'global');
+  } else {
+    await selectEnvironment(page, 'collection-environment', 'collection');
+    await openEnvironmentConfigTab(page, 'collection');
+  }
 };
 
-const expectNotFlagged = async (page: Page, name: string) => {
-  await expect(await mismatchIcon(page, name)).not.toBeVisible();
-};
-
+// Data-driven — every assertion below is a row in cases.ts. To add coverage,
+// add a fixture entry and a CASES row; the matching describe block picks it up
+// automatically. To find gaps, read the INTENDED_MATRIX or run the coverage
+// test at the bottom.
 test.describe('DataType selector — referenced variable type', () => {
-  test('validates a {{reference}} against the referenced variable type', async ({ pageWithUserData: page }) => {
-    await test.step('Open the global environment', async () => {
-      const locators = buildCommonLocators(page);
-      await locators.sidebar.collection('reference-types').click();
-      await selectEnvironment(page, 'global-environment', 'global');
-      await openEnvironmentConfigTab(page, 'global');
-    });
+  for (const scope of ['global', 'collection'] as const) {
+    test.describe(`scope: ${scope}`, () => {
+      test(`literal rows and every declared type`, async ({ pageWithUserData: page }) => {
+        const locators = buildCommonLocators(page);
+        await locators.sidebar.collection('reference-types').click();
+        await openScope(page, scope);
 
-    await test.step('Valid literal values are not flagged', async () => {
-      await expectNotFlagged(page, 'globalEnvString');
-      await expectNotFlagged(page, 'globalEnvNumber');
-      await expectNotFlagged(page, 'globalEnvBoolean');
-      await expectNotFlagged(page, 'globalEnvObject');
-      await expectNotFlagged(page, 'globalEnvNestedObject');
-      await expectNotFlagged(page, 'globalEnvObject.port');
-      await expectNotFlagged(page, 'globalEnvObjectWithArray');
-    });
+        if (scope === 'global') {
+          await test.step('literal values are not flagged', async () => {
+            for (const name of LITERAL_ROWS) await assertRow(page, name, 'ok');
+          });
+        }
 
-    await test.step('Same-type references are not flagged', async () => {
-      await expectNotFlagged(page, 'stringTypeRefersToString');
-      await expectNotFlagged(page, 'numberTypeRefersToNumber');
-      await expectNotFlagged(page, 'booleanTypeRefersToBoolean');
-      await expectNotFlagged(page, 'objectTypeRefersToObject');
-      await expectNotFlagged(page, 'stringTypeRefersToNestedString');
-      await expectNotFlagged(page, 'numberTypeRefersToNestedNumber');
-      await expectNotFlagged(page, 'booleanTypeRefersToNestedBoolean');
-      await expectNotFlagged(page, 'booleanTypeRefersToDottedKey');
-      await expectNotFlagged(page, 'stringTypeRefersToNumber');
+        for (const declared of DECLARED) {
+          const cases = CASES.filter((c) => c.scope === scope && c.declared === declared);
+          if (cases.length === 0) continue;
+          await test.step(`declared: ${declared}`, async () => {
+            for (const c of cases) await assertRow(page, c.varName, c.expected);
+          });
+        }
+      });
     });
+  }
 
-    await test.step('References that index into an array resolve to the element type', async () => {
-      await expectNotFlagged(page, 'booleanTypeRefersToArrayBoolean');
-      await expectNotFlagged(page, 'stringTypeRefersToArrayBoolean');
-      await expectNotFlagged(page, 'numberTypeRefersToArrayNumber');
-      await expectNotFlagged(page, 'objectTypeRefersToArray');
-      await expectFlagged(page, 'numberTypeRefersToArrayBoolean');
-      await expectFlagged(page, 'objectTypeRefersToArrayBoolean');
-    });
-
-    await test.step('Different-type references are flagged', async () => {
-      await expectFlagged(page, 'numberTypeRefersToString');
-      await expectFlagged(page, 'booleanTypeRefersToObject');
-      await expectFlagged(page, 'objectTypeRefersToBoolean');
-      await expectFlagged(page, 'numberTypeRefersToNestedString');
-      await expectFlagged(page, 'booleanTypeRefersToNestedNumber');
-    });
-
-    await test.step('Open the collection environment', async () => {
-      await selectEnvironment(page, 'collection-environment', 'collection');
-      await openEnvironmentConfigTab(page, 'collection');
-    });
-
-    await test.step('Same-type references from a collection environment are not flagged', async () => {
-      await expectNotFlagged(page, 'stringTypeRefersToGlobalString');
-      await expectNotFlagged(page, 'numberTypeRefersToGlobalNumber');
-      await expectNotFlagged(page, 'booleanTypeRefersToGlobalBoolean');
-      await expectNotFlagged(page, 'objectTypeRefersToGlobalObject');
-      await expectNotFlagged(page, 'stringTypeRefersToGlobalNestedString');
-      await expectNotFlagged(page, 'numberTypeRefersToGlobalNestedNumber');
-      await expectNotFlagged(page, 'booleanTypeRefersToGlobalNestedBoolean');
-      await expectNotFlagged(page, 'stringTypeRefersToGlobalNumber');
-    });
-
-    await test.step('Different-type references from a collection environment are flagged', async () => {
-      await expectFlagged(page, 'numberTypeRefersToGlobalString');
-      await expectFlagged(page, 'booleanTypeRefersToGlobalObject');
-      await expectFlagged(page, 'objectTypeRefersToGlobalBoolean');
-      await expectFlagged(page, 'numberTypeRefersToGlobalNestedString');
-      await expectFlagged(page, 'booleanTypeRefersToGlobalNestedNumber');
-    });
+  // Coverage check — no Playwright surface needed; fails locally if the matrix
+  // has a hole. Prints the exact missing (declared × target) pair so the reader
+  // knows what to add.
+  test('every INTENDED_MATRIX cell has a case proving it', () => {
+    const missing: string[] = [];
+    for (const declared of Object.keys(INTENDED_MATRIX) as Declared[]) {
+      const row = INTENDED_MATRIX[declared];
+      for (const target of Object.keys(row) as (keyof typeof row)[]) {
+        const expected = row[target];
+        const proof = CASES.find(
+          (c) => c.declared === declared && c.target === target && c.expected === expected
+        );
+        if (!proof) missing.push(`${declared} → ${target} (${expected})`);
+      }
+    }
+    expect(missing, `add a CASE + fixture entry for: ${missing.join(', ')}`).toEqual([]);
   });
 });

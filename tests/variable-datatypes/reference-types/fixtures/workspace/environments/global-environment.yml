@@ -1,6 +1,13 @@
+# Global environment fixture for reference-variable-type.spec.ts.
+# Structure mirrors CASES in ../../../cases.ts — same section order, same
+# variable names. Add a case: append a row to CASES and a matching entry here.
+
 name: global-environment
 
 variables:
+  # ────────────────────────────────────────────────────────────────────────
+  # Target variables — literals the references below point at.
+  # ────────────────────────────────────────────────────────────────────────
   - name: globalEnvString
     value: hello
   - name: globalEnvNumber
@@ -19,6 +26,8 @@ variables:
     value:
       type: object
       data: '{"inner":{"stringField":"hello","numberField":300,"booleanField":true}}'
+  # Literal dotted-key — a variable *named* `globalEnvObject.port`. Proves the
+  # hasOwnProperty(flat-key) branch wins over walking `globalEnvObject`.`port`.
   - name: globalEnvObject.port
     value:
       type: boolean
@@ -28,6 +37,9 @@ variables:
       type: object
       data: '{"abc":[2,true]}'
 
+  # ────────────────────────────────────────────────────────────────────────
+  # Same-type references (no flag)
+  # ────────────────────────────────────────────────────────────────────────
   - name: stringTypeRefersToString
     value: "{{globalEnvString}}"
   - name: numberTypeRefersToNumber
@@ -42,6 +54,10 @@ variables:
     value:
       type: object
       data: "{{globalEnvObject}}"
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Nested-path references (dotted walk)
+  # ────────────────────────────────────────────────────────────────────────
   - name: stringTypeRefersToNestedString
     value: "{{globalEnvNestedObject.inner.stringField}}"
   - name: numberTypeRefersToNestedNumber
@@ -52,29 +68,50 @@ variables:
     value:
       type: boolean
       data: "{{globalEnvNestedObject.inner.booleanField}}"
+  - name: numberTypeRefersToNestedString
+    value:
+      type: number
+      data: "{{globalEnvNestedObject.inner.stringField}}"
+  - name: booleanTypeRefersToNestedNumber
+    value:
+      type: boolean
+      data: "{{globalEnvNestedObject.inner.numberField}}"
 
+  # ────────────────────────────────────────────────────────────────────────
+  # Literal dotted-key reference (hasOwnProperty branch)
+  # ────────────────────────────────────────────────────────────────────────
   - name: booleanTypeRefersToDottedKey
     value:
       type: boolean
       data: "{{globalEnvObject.port}}"
 
-  - name: stringTypeRefersToArrayBoolean
-    value: "{{globalEnvObjectWithArray.abc.1}}"
-  - name: booleanTypeRefersToArrayBoolean
-    value:
-      type: boolean
-      data: "{{globalEnvObjectWithArray.abc.1}}"
+  # ────────────────────────────────────────────────────────────────────────
+  # Array-index references (numeric path segment)
+  # ────────────────────────────────────────────────────────────────────────
   - name: numberTypeRefersToArrayNumber
     value:
       type: number
       data: "{{globalEnvObjectWithArray.abc.0}}"
+  - name: booleanTypeRefersToArrayBoolean
+    value:
+      type: boolean
+      data: "{{globalEnvObjectWithArray.abc.1}}"
   - name: objectTypeRefersToArray
     value:
       type: object
       data: "{{globalEnvObjectWithArray.abc}}"
+  - name: numberTypeRefersToArrayBoolean
+    value:
+      type: number
+      data: "{{globalEnvObjectWithArray.abc.1}}"
+  - name: objectTypeRefersToArrayBoolean
+    value:
+      type: object
+      data: "{{globalEnvObjectWithArray.abc.1}}"
 
-  - name: stringTypeRefersToNumber
-    value: "{{globalEnvNumber}}"
+  # ────────────────────────────────────────────────────────────────────────
+  # Cross-type references (flagged)
+  # ────────────────────────────────────────────────────────────────────────
   - name: numberTypeRefersToString
     value:
       type: number
@@ -87,19 +124,11 @@ variables:
     value:
       type: object
       data: "{{globalEnvBoolean}}"
-  - name: numberTypeRefersToNestedString
-    value:
-      type: number
-      data: "{{globalEnvNestedObject.inner.stringField}}"
-  - name: booleanTypeRefersToNestedNumber
-    value:
-      type: boolean
-      data: "{{globalEnvNestedObject.inner.numberField}}"
-  - name: numberTypeRefersToArrayBoolean
-    value:
-      type: number
-      data: "{{globalEnvObjectWithArray.abc.1}}"
-  - name: objectTypeRefersToArrayBoolean
-    value:
-      type: object
-      data: "{{globalEnvObjectWithArray.abc.1}}"
+
+  # ────────────────────────────────────────────────────────────────────────
+  # declared:string is permissive — accepts every target type
+  # ────────────────────────────────────────────────────────────────────────
+  - name: stringTypeRefersToNumber
+    value: "{{globalEnvNumber}}"
+  - name: stringTypeRefersToArrayBoolean
+    value: "{{globalEnvObjectWithArray.abc.1}}"

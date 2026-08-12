@@ -1,6 +1,14 @@
+# Collection environment fixture — mirrors the same declared × target grid as
+# the global env, but every reference points at a *global* target variable.
+# Proves the resolver reaches across scope boundaries.
+# Structure mirrors CASES in ../../../../../cases.ts.
+
 name: collection-environment
 
 variables:
+  # ────────────────────────────────────────────────────────────────────────
+  # Same-type references to a global target (no flag)
+  # ────────────────────────────────────────────────────────────────────────
   - name: stringTypeRefersToGlobalString
     value: "{{globalEnvString}}"
   - name: numberTypeRefersToGlobalNumber
@@ -26,8 +34,15 @@ variables:
       type: boolean
       data: "{{globalEnvNestedObject.inner.booleanField}}"
 
+  # ────────────────────────────────────────────────────────────────────────
+  # declared:string is permissive — accepts any global target
+  # ────────────────────────────────────────────────────────────────────────
   - name: stringTypeRefersToGlobalNumber
     value: "{{globalEnvNumber}}"
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Cross-type references to a global target (flagged)
+  # ────────────────────────────────────────────────────────────────────────
   - name: numberTypeRefersToGlobalString
     value:
       type: number
