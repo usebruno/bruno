@@ -179,14 +179,20 @@ export const serializeSnapshot = async (state, options = {}) => {
   });
 
   (collections.collections || []).forEach((collection) => {
-    if (!collection.pathname || scratchCollectionUids.has(collection.uid)) {
+    if (!collection.pathname) {
       return;
     }
 
+    const isScratchCollection = scratchCollectionUids.has(collection.uid);
     const normalizedPath = normalizePath(collection.pathname);
 
-    if (activeWorkspace && !activeWorkspaceCollectionPaths.has(normalizedPath)) {
-      return;
+    if (activeWorkspace) {
+      if (isScratchCollection && collection.uid !== activeWorkspace.scratchCollectionUid) {
+        return;
+      }
+      if (!isScratchCollection && !activeWorkspaceCollectionPaths.has(normalizedPath)) {
+        return;
+      }
     }
 
     const workspacePathname = activeWorkspace?.pathname || '';
@@ -198,14 +204,12 @@ export const serializeSnapshot = async (state, options = {}) => {
       serializedCollectionKeys.add(collectionSnapshotKey);
     }
 
-    const transientDirectory = collections.tempDirectories?.[collection.uid];
-
     const collectionTabs = (tabs.tabs || [])
-      .filter((t) => t.collectionUid === collection.uid && !shouldExcludeTab(t, transientDirectory))
+      .filter((t) => t.collectionUid === collection.uid && !shouldExcludeTab(t))
       .map((t) => serializeTab(t, collection));
 
     const activeTabInCollection = (tabs.tabs || []).find(
-      (t) => t.collectionUid === collection.uid && t.uid === tabs.activeTabUid && !shouldExcludeTab(t, transientDirectory)
+      (t) => t.collectionUid === collection.uid && t.uid === tabs.activeTabUid && !shouldExcludeTab(t)
     );
 
     const selectedEnvironment = (collection.environments || []).find((env) => env.uid === collection.activeEnvironmentUid);

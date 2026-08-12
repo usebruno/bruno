@@ -83,6 +83,11 @@ const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress
 const { findUniqueFolderName } = require('../utils/collection-import');
 const { saveSpecAndUpdateMetadata, cleanupSpecFilesForCollection } = require('./openapi-sync');
 const {
+  ensureCollectionTransientDirectory,
+  ensureScratchTransientDirectory
+} = require('../utils/transient-directory');
+const { writeFileWithSuffix } = require('../utils/write-file-with-suffix');
+const {
   validateWorkspacePath,
   normalizeCollectionEntry,
   addCollectionToWorkspace,
@@ -105,11 +110,6 @@ const getTransientDirectoryBase = () => {
 // Get the prefix used for transient collection directories
 const getTransientCollectionPrefix = () => {
   return path.join(getTransientDirectoryBase(), 'bruno-');
-};
-
-// Get the prefix used for scratch collection directories
-const getTransientScratchPrefix = () => {
-  return path.join(getTransientDirectoryBase(), 'bruno-scratch-');
 };
 
 // Check if a path is within the transient directory
@@ -601,31 +601,40 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const filename = targetFilename || path.basename(sourcePathname);
       const filenameWithoutExt = filename.replace(/\.(bru|yml)$/, '');
-      const finalFilename = `${filenameWithoutExt}.${targetFormat}`;
-      const targetPathname = path.join(targetDirname, finalFilename);
-
-      if (fs.existsSync(targetPathname)) {
-        throw new Error(`A file with the name "${finalFilename}" already exists in the target location`);
-      }
-
       const actualSourceFormat = sourceFormat || 'yml';
       const needsConversion = actualSourceFormat !== targetFormat;
+      let savedRequest;
 
-      let finalContent;
-      if (needsConversion) {
-        const { parseRequest, stringifyRequest } = require('@usebruno/filestore');
-        const sourceContent = await fs.promises.readFile(sourcePathname, 'utf8');
-        const parsedRequest = parseRequest(sourceContent, { format: actualSourceFormat });
-        const mergedRequest = { ...parsedRequest, ...request };
-        syncExampleUidsCache(sourcePathname, mergedRequest.examples);
-        finalContent = stringifyRequest(mergedRequest, { format: targetFormat });
-      } else {
-        syncExampleUidsCache(sourcePathname, request.examples);
-        finalContent = await stringifyRequestViaWorker(request, { format: targetFormat });
-      }
+      const result = await writeFileWithSuffix({
+        dirname: targetDirname,
+        basename: filenameWithoutExt,
+        extension: targetFormat,
+        createContent: async ({ name, filename }) => {
+          const requestToSave = {
+            ...request,
+            name,
+            filename
+          };
 
-      await writeFile(targetPathname, finalContent);
-      return { newPathname: targetPathname };
+          if (needsConversion) {
+            const { parseRequest, stringifyRequest } = require('@usebruno/filestore');
+            const sourceContent = await fs.promises.readFile(sourcePathname, 'utf8');
+            const parsedRequest = parseRequest(sourceContent, { format: actualSourceFormat });
+            savedRequest = { ...parsedRequest, ...requestToSave };
+            return stringifyRequest(savedRequest, { format: targetFormat });
+          }
+
+          savedRequest = requestToSave;
+          return stringifyRequestViaWorker(requestToSave, { format: targetFormat });
+        }
+      });
+
+      syncExampleUidsCache(result.pathname, savedRequest.examples);
+      return {
+        newPathname: result.pathname,
+        name: result.name,
+        filename: result.filename
+      };
     } catch (error) {
       return Promise.reject(error);
     }
@@ -2268,16 +2277,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   ipcMain.handle('renderer:mount-collection', async (event, { collectionUid, collectionPathname, brunoConfig, workspacePathname }) => {
     let tempDirectoryPath = null;
     try {
-      // Ensure the transient base directory exists
-      const transientBase = getTransientDirectoryBase();
-      if (!fs.existsSync(transientBase)) {
-        fs.mkdirSync(transientBase, { recursive: true });
-      }
-      tempDirectoryPath = fs.mkdtempSync(getTransientCollectionPrefix());
-      const metadata = {
-        collectionPath: collectionPathname
-      };
-      fs.writeFileSync(path.join(tempDirectoryPath, 'metadata.json'), JSON.stringify(metadata));
+      tempDirectoryPath = ensureCollectionTransientDirectory(collectionPathname);
     } catch (error) {
       throw error;
     }
@@ -2302,12 +2302,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:mount-workspace-scratch', async (event, { workspaceUid, workspacePath }) => {
     try {
-      // Ensure the transient base directory exists
-      const transientBase = getTransientDirectoryBase();
-      if (!fs.existsSync(transientBase)) {
-        fs.mkdirSync(transientBase, { recursive: true });
-      }
-      const tempDirectoryPath = fs.mkdtempSync(getTransientScratchPrefix());
+      const tempDirectoryPath = ensureScratchTransientDirectory({ workspaceUid, workspacePath });
       registerScratchCollectionPath(tempDirectoryPath);
 
       const collectionRoot = {
@@ -2325,13 +2320,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const content = stringifyCollection(collectionRoot, brunoConfig, { format: 'yml' });
       await writeFile(path.join(tempDirectoryPath, 'opencollection.yml'), content);
-
-      const metadata = {
-        workspaceUid,
-        workspacePath,
-        type: 'scratch'
-      };
-      fs.writeFileSync(path.join(tempDirectoryPath, 'metadata.json'), JSON.stringify(metadata));
 
       return tempDirectoryPath;
     } catch (error) {

@@ -4,6 +4,7 @@ const { JobType, getPool, destroyPool } = require('../pool');
 const { FileIndex } = require('./file-index');
 const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');
+const { ensureCollectionTransientDirectory } = require('../../utils/transient-directory');
 
 // cold start only — collection-watcher handles live changes and writes through to the cache
 
@@ -59,12 +60,6 @@ const sendTree = async (collectionUid, collectionPath, tree, emit) => {
   emit.tree(tree);
 };
 
-const ensureTransientDirectory = () => {
-  const base = path.join(require('electron').app.getPath('userData'), 'tmp', 'transient');
-  if (!fs.existsSync(base)) fs.mkdirSync(base, { recursive: true });
-  return fs.mkdtempSync(path.join(base, 'bruno-'));
-};
-
 class MountManager {
   #index = null;
   #mounts = new Map();
@@ -83,8 +78,7 @@ class MountManager {
       return existing.tempDirectoryPath;
     }
 
-    const tempDirectoryPath = ensureTransientDirectory();
-    fs.writeFileSync(path.join(tempDirectoryPath, 'metadata.json'), JSON.stringify({ collectionPath }));
+    const tempDirectoryPath = ensureCollectionTransientDirectory(collectionPath);
 
     const entry = {
       state: new Map(),

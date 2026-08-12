@@ -4,8 +4,11 @@ import { test, expect, closeElectronApp, type Page } from '../../playwright';
 import {
   createCollection,
   createRequest,
+  createTransientRequest,
+  fillRequestUrl,
   openRequest,
   openCollection,
+  saveTransientViaModal,
   switchWorkspace,
   selectRequestPaneTab,
   waitForReadyPage
@@ -61,6 +64,63 @@ const expectSnapshotWorkspaceSortings = async (userDataPath: string, expectedSor
 // ─── Tab Persistence ────────────────────────────────────────────────────────
 
 test.describe('Snapshot: Tab Persistence', () => {
+  test('untitled request drafts are restored after app restart', async ({ launchElectronApp, createTmpDir }) => {
+    const userDataPath = await createTmpDir('untitled-draft-persistence');
+    const colPath = await createTmpDir('untitled-draft-collection');
+    const requestUrl = 'https://example.com/draft';
+
+    const app = await launchElectronApp({ userDataPath });
+    const page = await waitForReadyPage(app);
+    const locators = buildCommonLocators(page);
+
+    await createCollection(page, 'DraftCollection', colPath);
+    await locators.sidebar.collection('DraftCollection').click();
+    await createTransientRequest(page, { requestType: 'HTTP' });
+    await fillRequestUrl(page, requestUrl);
+
+    await expect(locators.tabs.activeRequestTab()).toContainText('Untitled 1');
+    await expect(locators.tabs.draftIndicator()).not.toBeVisible({ timeout: 5000 });
+
+    await closeElectronApp(app);
+
+    const restartedApp = await launchElectronApp({ userDataPath });
+    const restartedPage = await waitForReadyPage(restartedApp);
+    const restartedLocators = buildCommonLocators(restartedPage);
+
+    await expect(restartedLocators.tabs.requestTab('Untitled 1')).toBeVisible({ timeout: 15000 });
+    await restartedLocators.tabs.requestTab('Untitled 1').click();
+    await expect(restartedLocators.request.urlLine()).toContainText(requestUrl);
+
+    await closeElectronApp(restartedApp);
+  });
+
+  test('saving an untitled draft adds a numeric suffix on name collision', async ({ launchElectronApp, createTmpDir }) => {
+    const userDataPath = await createTmpDir('untitled-draft-name-collision');
+    const colPath = await createTmpDir('untitled-draft-collision-collection');
+    const app = await launchElectronApp({ userDataPath });
+    const page = await waitForReadyPage(app);
+    const locators = buildCommonLocators(page);
+    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+
+    await createCollection(page, 'CollisionCollection', colPath);
+    await createRequest(page, 'Login', 'CollisionCollection', {
+      url: 'https://example.com/login',
+      method: 'GET'
+    });
+    await locators.sidebar.collection('CollisionCollection').click();
+    await createTransientRequest(page, { requestType: 'HTTP' });
+    await fillRequestUrl(page, 'https://example.com/draft-login');
+
+    await page.keyboard.press(saveShortcut);
+    await saveTransientViaModal(page, 'Login');
+
+    await expect(locators.sidebar.request('Login (1)')).toBeVisible({ timeout: 10000 });
+    await openRequest(page, 'CollisionCollection', 'Login (1)');
+    await expect(locators.request.urlLine()).toContainText('https://example.com/draft-login');
+
+    await closeElectronApp(app);
+  });
+
   test('open tabs are restored after app restart in the same order', async ({ launchElectronApp, createTmpDir }) => {
     const userDataPath = await createTmpDir('snap-tabs-order');
     const colPath = await createTmpDir('col');

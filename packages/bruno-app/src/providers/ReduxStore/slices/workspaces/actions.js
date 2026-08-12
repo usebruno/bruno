@@ -679,6 +679,15 @@ export const switchWorkspace = (workspaceUid) => {
         }
       }
 
+      const activeScratchTab = scratchCollection
+        ? await getActiveTabFromSnapshot(
+            scratchCollection.pathname,
+            scratchCollection,
+            snapshotLookups,
+            workspace.pathname || null
+          )
+        : null;
+
       // Restore active collection from snapshot using lastActiveCollectionPathname
       const lastActiveCollectionPathname = workspaceSnapshot?.lastActiveCollectionPathname || null;
       const activeCollection = lastActiveCollectionPathname
@@ -709,9 +718,13 @@ export const switchWorkspace = (workspaceUid) => {
 
         if (activeTab) {
           dispatch(addTab(activeTab));
+        } else if (activeScratchTab && !requestedWorkspaceTabType) {
+          dispatch(addTab(activeScratchTab));
         } else if (scratchCollection?.uid && !requestedWorkspaceTabType) {
           dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
         }
+      } else if (activeScratchTab && !requestedWorkspaceTabType) {
+        dispatch(addTab(activeScratchTab));
       } else if (scratchCollection?.uid && !requestedWorkspaceTabType) {
         // No active collection, focus the workspace overview tab
         dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
@@ -1471,6 +1484,19 @@ export const mountScratchCollection = (workspaceUid) => {
       }
 
       await dispatch(openScratchCollectionEvent(scratchCollectionUid, tempDirectoryPath, brunoConfig));
+
+      const scratchCollection = getState().collections.collections.find(
+        (collection) => collection.uid === scratchCollectionUid
+      );
+      if (scratchCollection) {
+        await hydrateTabs(
+          [scratchCollection],
+          dispatch,
+          restoreTabs,
+          null,
+          workspace.pathname || null
+        );
+      }
 
       dispatch(setWorkspaceScratchCollection({
         workspaceUid,
