@@ -24,7 +24,8 @@ import {
   getAllVariables,
   transformRequestToSaveToFilesystem,
   transformCollectionRootToSave,
-  flattenItems
+  flattenItems,
+  resolveEnabledVariable
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
 import { cancelNetworkRequest, connectWS, sendGrpcRequest, sendNetworkRequest, sendWsRequest } from 'utils/network/index';
@@ -94,7 +95,7 @@ import {
   isPathOrDescendant
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
-import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, resolveSecretNameCollision, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
 import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common/variables';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
@@ -2296,7 +2297,8 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Environment not found'));
           }
 
-          const variable = environment.variables.find((v) => v.name === variableName && v.enabled);
+          const variable = resolveEnabledVariable(environment.variables, variableName);
+          const newVariable = { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!data.secret };
 
           // Match script variable behavior: preserve disabled entries and create a separate enabled slot.
           const updatedVariables = variable
@@ -2306,14 +2308,9 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
                 }
                 return v;
               })
-            : [
-                ...(environment.variables || []),
-                { uid: uuid(), name: variableName, value: newValue, enabled: true, secret: false }
-              ];
+            : [...(environment.variables || []), newVariable];
 
-          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
-
-          return dispatch(saveEnvironment(resolvedVariables, environment.uid, collectionUid))
+          return dispatch(saveEnvironment(updatedVariables, environment.uid, collectionUid))
             .then(() => {
               toast.success(`Variable "${variableName}" ${variable ? 'updated' : 'created'}`);
             })
@@ -2415,7 +2412,8 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
           }
 
           // Match script variable behavior: preserve disabled entries and create a separate enabled slot.
-          const variable = environment.variables.find((v) => v.name === variableName && v.enabled);
+          const variable = resolveEnabledVariable(environment.variables, variableName);
+          const newVariable = { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!data.secret };
 
           const updatedVariables = variable
             ? environment.variables.map((v) => {
@@ -2424,15 +2422,10 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
                 }
                 return v;
               })
-            : [
-                ...(environment.variables || []),
-                { uid: uuid(), name: variableName, value: newValue, enabled: true, secret: false }
-              ];
-
-          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
+            : [...(environment.variables || []), newVariable];
 
           return dispatch(saveGlobalEnvironment({
-            variables: resolvedVariables,
+            variables: updatedVariables,
             environmentUid: activeGlobalEnvUid
           }))
             .then(() => {
