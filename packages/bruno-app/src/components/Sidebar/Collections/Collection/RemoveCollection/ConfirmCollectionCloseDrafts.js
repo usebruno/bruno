@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import filter from 'lodash/filter';
 import { useDispatch, useSelector } from 'react-redux';
 import { flattenItems, isItemARequest, hasRequestChanges, findCollectionByUid } from 'utils/collections';
@@ -16,6 +16,7 @@ const MAX_UNSAVED_REQUESTS_TO_SHOW = 5;
 
 const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) => {
   const dispatch = useDispatch();
+  const [deleteFolder, setDeleteFolder] = useState(false);
 
   const latestCollection = useSelector((state) => findCollectionByUid(state.collections.collections, collectionUid));
 
@@ -61,24 +62,30 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
     if (currentDrafts.length > 0) {
       dispatch(saveMultipleRequests(currentDrafts))
         .then(() => {
-          dispatch(removeCollection(collectionUid))
+          dispatch(removeCollection(collectionUid, { deleteFolder }))
             .then(() => {
-              toast.success('Collection removed from workspace');
+              toast.success(deleteFolder ? 'Collection removed and folder moved to trash' : 'Collection removed from workspace');
               onClose();
             })
-            .catch(() => toast.error('An error occurred while removing the collection'));
+            .catch((error) => {
+              console.error(error);
+              toast.error(error?.message || 'An error occurred while removing the collection');
+            });
         })
         .catch(() => {
           toast.error('Failed to save requests!');
         });
     } else {
       // No non-transient drafts, just remove the collection
-      dispatch(removeCollection(collectionUid))
+      dispatch(removeCollection(collectionUid, { deleteFolder }))
         .then(() => {
-          toast.success('Collection removed from workspace');
+          toast.success(deleteFolder ? 'Collection removed and folder moved to trash' : 'Collection removed from workspace');
           onClose();
         })
-        .catch(() => toast.error('An error occurred while removing the collection'));
+        .catch((error) => {
+          console.error(error);
+          toast.error(error?.message || 'An error occurred while removing the collection');
+        });
     }
   };
 
@@ -92,12 +99,15 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
     });
 
     // Then remove the collection
-    dispatch(removeCollection(collectionUid))
+    dispatch(removeCollection(collectionUid, { deleteFolder }))
       .then(() => {
-        toast.success('Collection removed from workspace');
+        toast.success(deleteFolder ? 'Collection removed and folder moved to trash' : 'Collection removed from workspace');
         onClose();
       })
-      .catch(() => toast.error('An error occurred while removing the collection'));
+      .catch((error) => {
+        console.error(error);
+        toast.error(error?.message || 'An error occurred while removing the collection');
+      });
   };
 
   const handleSaveTransient = (draft) => {
@@ -187,7 +197,23 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collection, collectionUid }) =>
           </div>
         )}
 
-        <div className="flex justify-between mt-6">
+        <label className="mt-6 flex items-start gap-2 cursor-pointer text-sm select-none">
+          <input
+            type="checkbox"
+            data-testid="confirm-close-drafts-delete-folder-checkbox"
+            checked={deleteFolder}
+            onChange={(e) => setDeleteFolder(e.target.checked)}
+            className="mt-1"
+          />
+          <span>
+            Also delete folder from disk
+            <span className="block text-muted text-xs mt-0.5">
+              The folder will be moved to your system trash.
+            </span>
+          </span>
+        </label>
+
+        <div className="flex justify-between mt-4">
           <div>
             <Button color="danger" onClick={handleDiscardAll}>
               Discard All and Remove
