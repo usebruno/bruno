@@ -947,8 +947,15 @@ if (!SERVER_RENDERED) {
 
     // Dismiss when the page/editor scrolls (popup is position:fixed and would
     // otherwise float over unrelated content). Ignore scrolls inside the popup.
+    // The listener is registered on document in the capture phase, so it also
+    // sees scrollers that never moved the trigger token only a scroller above
+    // or below the editor in the tree can strand the popup.
     const onScroll = function (e) {
       if (popup.contains(e.target)) {
+        return;
+      }
+      const wrapper = cm.getWrapperElement();
+      if (!e.target.contains(wrapper) && !wrapper.contains(e.target)) {
         return;
       }
       isPinned = false;

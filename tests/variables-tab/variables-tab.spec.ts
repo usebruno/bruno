@@ -26,19 +26,11 @@ import { selectNoEnvironment } from '../utils/page/environments';
 import { buildCommonLocators } from '../utils/page/locators';
 
 /**
- * The read-only Variables tab: collection header → "..." → Variables. It lists the
- * runtime variables and the active environment's variables in two accordion
- * sections, with per-row copy, secret reveal, and a details drawer for object
- * values. Everything the user toggles is persisted against the tab, and a tab left
- * open is reused rather than recreated — so every test opens its own Variables tab
- * and `afterEach` closes it.
+ * The read-only Variables tab: collection header → "..." → Variables.
  *
- * Two fixture collections, so the "nothing to show" states can't be polluted by a
- * sibling test:
- *   variables-tab — four environments plus a `seed` request whose script writes the
- *                   runtime variables and the secret environment values
- *   no-variables  — one environment with no variables, and a request that is never
- *                   sent so nothing ever lands in the runtime section
+ * An open tab is reused, so every test opens its own and `afterEach` closes it.
+ * `variables-tab` seeds its values from the `seed` request; `no-variables` stays
+ * empty for the "nothing to show" states.
  */
 
 const COLLECTION = 'variables-tab';
@@ -83,6 +75,8 @@ const seedVariables = async (page: Page) => {
   });
 };
 
+// `pageWithUserData` loads init-user-data: both collections open, and the JS
+// sandbox pre-approved so the `seed` script can run.
 test.describe('Variables tab', () => {
   test.afterEach(async ({ pageWithUserData: page }) => {
     await closeAllTabs(page);

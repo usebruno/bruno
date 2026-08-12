@@ -11,17 +11,10 @@ import { useResizablePanel } from 'hooks/useResizablePanel';
 import VariablesTable from './VariablesTable';
 import VariablesSection from './VariablesSection';
 import VariableDetailsDrawer from './VariableDetailsDrawer';
-import {
-  DEFAULT_DRAWER_WIDTH,
-  DRAWER_MAX_RATIO,
-  MIN_DRAWER_WIDTH,
-  SCROLL_RESTORE_GUARD_MS,
-  SCROLL_SAVE_DEBOUNCE_MS
-} from './constants';
+import { DEFAULT_DRAWER_WIDTH, DRAWER_MAX_RATIO, MIN_DRAWER_WIDTH } from './constants';
 import { clearEnvironmentBoundPersistence, isObjectOrArray, secretRevealKey } from './utils';
+import { useVariablesScroll } from './hooks/useVariablesScroll';
 import StyledWrapper from './StyledWrapper';
-
-const getScrollEl = (wrapper) => wrapper?.querySelector?.('.variables-scroll') || null;
 
 const VariablesEditor = ({ collection }) => {
   const dispatch = useDispatch();
@@ -31,8 +24,6 @@ const VariablesEditor = ({ collection }) => {
   const focusedTab = tabs?.find((t) => t.uid === activeTabUid);
 
   const wrapperRef = useRef(null);
-  const scrollSaveTimeoutRef = useRef(null);
-  const scrollTopZeroTimeoutRef = useRef(null);
   const prevEnvironmentUidRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
   // Persisted as an array Set does not JSON round-trip.
@@ -45,17 +36,13 @@ const VariablesEditor = ({ collection }) => {
     [revealedSecretsList]
   );
 
-  const [scroll, setScroll] = usePersistedState({ key: 'variables-scroll', default: 0 });
-
   // Persisted as an array of the collapsed sections.
   const [collapsedSections, setCollapsedSections] = usePersistedState({
     key: 'variables-collapsed-sections',
     default: []
   });
 
-  // Live scroll position, seeded once from persistence. Kept in a ref so a
-  // debounced save can't be clobbered by a re-render.
-  const scrollPosRef = useRef(scroll);
+  const { captureScroll, reassertScroll, resetScroll } = useVariablesScroll(wrapperRef);
 
   const [drawerSelection, setDrawerSelection] = usePersistedState({
     key: 'variables-drawer-selection',
@@ -74,14 +61,11 @@ const VariablesEditor = ({ collection }) => {
     prevEnvironmentUidRef.current = activeEnvironmentUid;
     if (prev === null || prev === activeEnvironmentUid) return;
 
-    scrollPosRef.current = 0;
-    setScroll(0);
+    resetScroll();
     setDrawerSelection(null);
     setRevealedSecretsList((prev) =>
       (Array.isArray(prev) ? prev : []).filter((key) => !String(key).startsWith('environment:'))
     );
-    const el = getScrollEl(wrapperRef.current);
-    if (el) el.scrollTop = 0;
 
     clearEnvironmentBoundPersistence(persistenceScope);
   }, [activeEnvironmentUid]);
@@ -112,85 +96,6 @@ const VariablesEditor = ({ collection }) => {
       .toSorted((a, b) => a.name.localeCompare(b.name));
   }, [environment]);
 
-  const persistScroll = useCallback((value) => {
-    scrollPosRef.current = value;
-    setScroll(value);
-  }, [setScroll]);
-
-  useLayoutEffect(() => {
-    const el = getScrollEl(wrapperRef.current);
-    if (!el) return;
-
-    const target = scrollPosRef.current || 0;
-    const mountedAt = performance.now();
-
-    const apply = () => {
-      el.scrollTop = scrollPosRef.current || 0;
-    };
-
-    apply();
-
-    const flushSave = (value) => {
-      if (scrollSaveTimeoutRef.current) clearTimeout(scrollSaveTimeoutRef.current);
-      scrollSaveTimeoutRef.current = setTimeout(() => {
-        setScroll(value);
-      }, SCROLL_SAVE_DEBOUNCE_MS);
-    };
-
-    const handleScroll = () => {
-      const elapsed = performance.now() - mountedAt;
-      // While Virtuoso is settling, ignore forced scroll-to-top.
-      if (elapsed < SCROLL_RESTORE_GUARD_MS && target > 0 && el.scrollTop < 5) {
-        el.scrollTop = target;
-        return;
-      }
-
-      const top = el.scrollTop;
-
-      // Virtuoso teardown (child layout cleanup runs before ours) often forces
-      // the shared parent to 0. If we accepted that immediately we'd persist
-      // top and the next visit would start at 0. Debounce accepting "top".
-      if (top < 5 && (scrollPosRef.current || 0) > 5) {
-        if (scrollTopZeroTimeoutRef.current) clearTimeout(scrollTopZeroTimeoutRef.current);
-        scrollTopZeroTimeoutRef.current = setTimeout(() => {
-          scrollPosRef.current = el.scrollTop;
-          flushSave(scrollPosRef.current);
-        }, 75);
-        return;
-      }
-
-      if (scrollTopZeroTimeoutRef.current) {
-        clearTimeout(scrollTopZeroTimeoutRef.current);
-        scrollTopZeroTimeoutRef.current = null;
-      }
-
-      scrollPosRef.current = top;
-      flushSave(top);
-    };
-
-    el.addEventListener('scroll', handleScroll);
-
-    let rafId = 0;
-    const guard = () => {
-      if (performance.now() - mountedAt >= SCROLL_RESTORE_GUARD_MS) return;
-      if (target > 0 && Math.abs(el.scrollTop - target) > 1) {
-        el.scrollTop = target;
-      }
-      rafId = requestAnimationFrame(guard);
-    };
-    rafId = requestAnimationFrame(guard);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      el.removeEventListener('scroll', handleScroll);
-      if (scrollSaveTimeoutRef.current) clearTimeout(scrollSaveTimeoutRef.current);
-      if (scrollTopZeroTimeoutRef.current) clearTimeout(scrollTopZeroTimeoutRef.current);
-      // Persist last known user position from the ref. Do not read el.scrollTop —
-      // Virtuoso may already have reset it to 0 during its own unmount.
-      setScroll(scrollPosRef.current || 0);
-    };
-  }, [setScroll]);
-
   useEffect(() => {
     const node = wrapperRef.current;
     if (!node || typeof ResizeObserver === 'undefined') return;
@@ -204,7 +109,7 @@ const VariablesEditor = ({ collection }) => {
   }, []);
 
   const drawerMaxWidth = containerWidth
-    ? Math.max(MIN_DRAWER_WIDTH, containerWidth * DRAWER_MAX_RATIO)
+    ? Math.min(containerWidth, Math.max(MIN_DRAWER_WIDTH, containerWidth * DRAWER_MAX_RATIO))
     : Number.POSITIVE_INFINITY;
 
   const { width: drawerWidth, handleDragStart } = useResizablePanel({
@@ -263,18 +168,8 @@ const VariablesEditor = ({ collection }) => {
   // Opening/closing the drawer reflows both tables; re-assert the position.
   // Deliberately not keyed on drawerWidth — that changes on every drag frame.
   useLayoutEffect(() => {
-    const el = getScrollEl(wrapperRef.current);
-    if (!el) return;
-    el.scrollTop = scrollPosRef.current || 0;
+    reassertScroll();
   }, [isDrawerOpen]);
-
-  const captureScroll = useCallback(() => {
-    const el = getScrollEl(wrapperRef.current);
-    if (!el) return;
-    // Prefer ref (stable across Virtuoso resets) but refresh from DOM if the
-    // guard window has passed and the element still has a real offset.
-    persistScroll(el.scrollTop > 0 ? el.scrollTop : (scrollPosRef.current || 0));
-  }, [persistScroll]);
 
   const handleOpenObject = useCallback((selection) => {
     captureScroll();

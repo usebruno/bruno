@@ -90,7 +90,7 @@ const VariableValue = ({
         {isObjectValue && !isMasked && (
           <button
             type="button"
-            className={`row-action-btn ${isSelected ? 'is-pinned is-selected' : ''}`}
+            className={`row-action-btn ${isSelected ? 'is-pinned' : ''}`}
             onClick={onOpenObject}
             title="Open in drawer"
             aria-label="Open object in drawer"
