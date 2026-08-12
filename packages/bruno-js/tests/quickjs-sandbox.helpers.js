@@ -87,6 +87,8 @@ const runInSandbox = async ({ script, scriptType, context }) => {
     .executeQuickJsVmAsync({ script, context, collectionPath: TEST_COLLECTION_PATH })
     .then(() => null, (error) => error)
     .then((error) => ({ status: 'settled', error }));
+  // Race the run against an alarm so a blocked run surfaces as a readable
+  // { status: 'hung' } assertion failure instead of a jest timeout.
   let hangTimer;
   const outcome = await Promise.race([
     settled,
