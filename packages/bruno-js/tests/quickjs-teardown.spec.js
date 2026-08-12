@@ -3,6 +3,9 @@ const { newQuickJSWASMModule } = require('quickjs-emscripten');
 const { createManagedQuickJsContext } = require('../src/sandbox/quickjs/utils');
 const {
   makeBru,
+  loadSandbox,
+  captureAllocations,
+  TEST_COLLECTION_PATH,
   runInSandbox,
   collectUnhandledRejections,
   expectSettledWithoutAbort,
@@ -161,5 +164,36 @@ describe('QuickJS context teardown leaves no live handles or deferreds', () => {
       await expectEventuallyClean(outcome);
       expect(bru.getVar('late')).toBe(largePayload());
     }, 10000);
+
+    it('does not surface a background dispose failure after the run has returned', async () => {
+      const bru = makeBru();
+      let settleLate;
+      bru.sendRequest = () => new Promise((resolve) => { settleLate = resolve; });
+
+      const unhandledRejections = await collectUnhandledRejections(async () => {
+        const captured = { handles: [], deferreds: [] };
+        const { sandbox } = await loadSandbox((vm) => {
+          captureAllocations(vm, captured);
+          const originalDispose = vm.dispose.bind(vm);
+          vm.dispose = () => {
+            originalDispose();
+            throw new Error('background dispose failed');
+          };
+        });
+
+        await sandbox.executeQuickJsVmAsync({
+          script: `
+            bru.sendRequest({ url: 'https://responds-after-run' }, async () => {});
+          `,
+          context: { bru },
+          collectionPath: TEST_COLLECTION_PATH
+        });
+
+        settleLate({ status: 200, data: 'ok' });
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        expect(captured.deferreds.every((d) => !d.alive)).toBe(true);
+      });
+      expect(unhandledRejections).toEqual([]);
+    });
   });
 });

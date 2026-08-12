@@ -104,4 +104,90 @@ describe('QuickJS engine trap containment', () => {
 
     expect(await sandbox.loader()).toBe(wasmModule);
   });
+
+  // Import-time loader() is fire-and-forget: a failed first build must clear the
+  // memo so a later await loader() retries instead of reusing a rejected promise.
+  it('clears the memo after a failed initial load so a later loader() can retry', async () => {
+    const actual = jest.requireActual('quickjs-emscripten');
+    let builds = 0;
+    jest.doMock('quickjs-emscripten', () => ({
+      ...actual,
+      newQuickJSWASMModule: (...args) => {
+        builds += 1;
+        return builds === 1
+          ? Promise.reject(new Error('wasm initial build failed'))
+          : actual.newQuickJSWASMModule(...args);
+      }
+    }));
+
+    const unhandledRejections = await collectUnhandledRejections(async () => {
+      jest.resetModules();
+      const sandbox = require('../src/sandbox/quickjs');
+      // Let the import-time loader settle and clear the memo.
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(builds).toBe(1);
+
+      const module = await sandbox.loader();
+      expect(module).toBeTruthy();
+      expect(builds).toBe(2);
+    });
+    expect(unhandledRejections).toEqual([]);
+  });
+
+  // Two traps while a replacement is still building must share that one build;
+  // quickJSModuleLoading exists so concurrent recycles do not stampede.
+  it('coalesces concurrent recycles into a single replacement build', async () => {
+    const actual = jest.requireActual('quickjs-emscripten');
+    let builds = 0;
+    let releaseReload;
+    const reloadGate = new Promise((resolve) => {
+      releaseReload = resolve;
+    });
+
+    jest.doMock('quickjs-emscripten', () => ({
+      ...actual,
+      newQuickJSWASMModule: (...args) => {
+        builds += 1;
+        if (builds === 1) {
+          return actual.newQuickJSWASMModule(...args);
+        }
+        return reloadGate.then(() => actual.newQuickJSWASMModule(...args));
+      }
+    }));
+
+    const { sandbox } = await loadSandbox((vm) => {
+      vm.runtime.setMemoryLimit(RUNTIME_MEMORY_LIMIT_BYTES);
+    });
+    expect(builds).toBe(1);
+
+    await runOomScript(sandbox);
+    expect(builds).toBe(2);
+
+    await runOomScript(sandbox);
+    expect(builds).toBe(2);
+
+    releaseReload();
+    await sandbox.loader();
+    expect(builds).toBe(2);
+  }, 30000);
+
+  // A script failure must win over a later non-trap dispose failure on the same
+  // foreground teardown path (disposeContext background:false).
+  it('preserves the script error when foreground dispose also fails', async () => {
+    const { sandbox, wasmModule } = await loadSandbox((vm) => {
+      vm.dispose = () => {
+        throw new Error('dispose failed');
+      };
+    });
+
+    await expect(
+      sandbox.executeQuickJsVmAsync({
+        script: 'throw new Error("boom");',
+        context: { bru: makeBru() },
+        collectionPath: TEST_COLLECTION_PATH
+      })
+    ).rejects.toThrow('boom');
+
+    expect(await sandbox.loader()).toBe(wasmModule);
+  });
 });
