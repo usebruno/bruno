@@ -2,7 +2,10 @@ const { describe, it, expect } = require('@jest/globals');
 import { getAllVariables, mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts } from './index';
 
 describe('getAllVariables', () => {
-  it('resolves collection variables without reading request items when no item is provided', () => {
+  it.each([
+    ['no item is provided', undefined],
+    ['the item has no uid', {}]
+  ])('resolves collection variables without reading request items when %s', (_, item) => {
     const collection = {
       root: {
         request: {
@@ -25,7 +28,7 @@ describe('getAllVariables', () => {
       }
     });
 
-    expect(getAllVariables(collection)).toMatchObject({
+    expect(getAllVariables(collection, item)).toMatchObject({
       baseUrl: 'https://example.com'
     });
   });

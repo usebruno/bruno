@@ -71,4 +71,42 @@ describe('MultiLineEditor', () => {
     expect(previous.getItems).not.toHaveBeenCalled();
     expect(current.getItems).not.toHaveBeenCalled();
   });
+
+  it('updates item variable info when the item reference changes', () => {
+    const previousItem = { uid: 'request-1' };
+    const currentItem = { uid: 'request-1' };
+    const collection = { uid: 'collection-1' };
+    const variables = { baseUrl: 'https://example.com' };
+    const previousProps = {
+      collection,
+      item: previousItem,
+      value: '',
+      theme: 'light',
+      isSecret: false,
+      readOnly: false,
+      placeholder: ''
+    };
+    const editor = new MultiLineEditor(previousProps);
+
+    editor.variables = variables;
+    editor.editor = {
+      options: {
+        brunoVarInfo: {
+          collection,
+          item: previousItem,
+          variables
+        }
+      },
+      setOption: jest.fn()
+    };
+    editor.props = {
+      ...previousProps,
+      item: currentItem
+    };
+    getAllVariables.mockReturnValue(variables);
+
+    editor.componentDidUpdate(previousProps);
+
+    expect(editor.editor.options.brunoVarInfo.item).toBe(currentItem);
+  });
 });
