@@ -35,6 +35,11 @@ describe('QuickJS context teardown leaves no live handles or deferreds', () => {
       expect(vm.runtime.hasPendingJob()).toBe(true);
     };
 
+    // One [label, hostFnFactory] row per kind of work a drained job can do;
+    // it.each registers a test per row, filling %s from the label and passing
+    // the row as the test's arguments. Each factory takes (vm, captured) and
+    // returns the actual host fn, because those two only exist once the test
+    // body creates its context.
     const lateWorkKinds = [
       [
         'allocates handles',
@@ -46,17 +51,10 @@ describe('QuickJS context teardown leaves no live handles or deferreds', () => {
       [
         'starts a host promise',
         (vm, captured) => () => {
+          // Never settled: the deferred is still alive at dispose, so only
+          // the flush can free it.
           const deferred = vm.newPromise();
           captured.deferreds.push(deferred);
-          // Settles after dispose has already destroyed the deferred.
-          setTimeout(() => {
-            try {
-              if (vm.alive && deferred.alive) {
-                deferred.resolve(vm.undefined);
-                vm.runtime.executePendingJobs();
-              }
-            } catch (ignored) {}
-          }, 20);
           return deferred.handle;
         }
       ]
