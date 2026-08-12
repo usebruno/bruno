@@ -4,18 +4,13 @@ const { createManagedQuickJsContext } = require('../src/sandbox/quickjs/utils');
 const {
   makeBru,
   runInSandbox,
+  collectUnhandledRejections,
   expectSettledWithoutAbort,
   expectAllDead,
   expectCleanTeardown,
   expectEventuallyClean
 } = require('./quickjs-sandbox.helpers');
 
-// How long after teardown a drain-window host promise tries to settle;
-// long enough that dispose has already destroyed its deferred.
-const LATE_SETTLE_MS = 20;
-// Stub response latency: enough event-loop turns to make awaits real,
-// small enough to keep the test fast.
-const RESPONSE_DELAY_MS = 30;
 const largePayload = () => 'x'.repeat(150 * 1024);
 
 // A context disposed while async work is still surfacing would leak GC
@@ -53,6 +48,7 @@ describe('QuickJS context teardown leaves no live handles or deferreds', () => {
         (vm, captured) => () => {
           const deferred = vm.newPromise();
           captured.deferreds.push(deferred);
+          // Settles after dispose has already destroyed the deferred.
           setTimeout(() => {
             try {
               if (vm.alive && deferred.alive) {
@@ -60,7 +56,7 @@ describe('QuickJS context teardown leaves no live handles or deferreds', () => {
                 vm.runtime.executePendingJobs();
               }
             } catch (ignored) {}
-          }, LATE_SETTLE_MS);
+          }, 20);
           return deferred.handle;
         }
       ]
@@ -131,14 +127,11 @@ describe('QuickJS context teardown leaves no live handles or deferreds', () => {
     });
 
     it('completes abandoned work in the background after the run returns, then disposes', async () => {
-      const unhandledRejections = [];
-      const onUnhandled = (error) => unhandledRejections.push(error);
-      process.on('unhandledRejection', onUnhandled);
-      try {
-        const bru = makeBru();
-        let settleLate;
-        bru.sendRequest = () => new Promise((resolve) => { settleLate = resolve; });
+      const bru = makeBru();
+      let settleLate;
+      bru.sendRequest = () => new Promise((resolve) => { settleLate = resolve; });
 
+      const unhandledRejections = await collectUnhandledRejections(async () => {
         const outcome = await runInSandbox({
           script: `
             bru.sendRequest({ url: 'https://responds-after-run' }, async (err, res) => {
@@ -153,16 +146,16 @@ describe('QuickJS context teardown leaves no live handles or deferreds', () => {
         settleLate({ status: 200, data: largePayload() });
         await expectEventuallyClean(outcome);
         expect(bru.getVar('lateResult')).toBe(largePayload());
-        expect(unhandledRejections).toEqual([]);
-      } finally {
-        process.removeListener('unhandledRejection', onUnhandled);
-      }
+      });
+      expect(unhandledRejections).toEqual([]);
     });
 
     it('stays clean after awaited sendRequest with an async callback chaining more requests', async () => {
       const bru = makeBru();
+      // The delay keeps the last fire-and-forget request in flight when the
+      // run returns, so the parked path is genuinely exercised.
       bru.sendRequest = () =>
-        new Promise((resolve) => setTimeout(() => resolve({ status: 200, data: largePayload() }), RESPONSE_DELAY_MS));
+        new Promise((resolve) => setTimeout(() => resolve({ status: 200, data: largePayload() }), 30));
 
       const outcome = await runInSandbox({
         script: `

@@ -5,6 +5,7 @@ const { expect } = require('@jest/globals');
 const os = require('os');
 const path = require('path');
 const Bru = require('../src/bru');
+const BrunoResponse = require('../src/bruno-response');
 
 const TEST_COLLECTION_PATH = path.join(os.tmpdir(), 'bruno-quickjs-tests');
 
@@ -17,6 +18,29 @@ const TEARDOWN_HANG_LIMIT_MS = 5000;
 const CAPTURED_ALLOCATORS = ['newObject', 'newArray', 'newFunction'];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// The OOM fixture trio: a runtime limit small enough to hit at test scale,
+// a multi-MB response, and a script that grows the body past the limit,
+// driving the engine into the uncatchable out-of-memory that traps dispose.
+const RUNTIME_MEMORY_LIMIT_BYTES = 64 * 1024 * 1024;
+
+const makeLargeResponse = () =>
+  new BrunoResponse({
+    status: 200,
+    statusText: 'OK',
+    headers: { 'content-type': 'text/plain' },
+    data: 'WAR AND PEACE '.repeat(Math.ceil((3 * 1024 * 1024) / 14)),
+    responseTime: 12
+  });
+
+const OOM_SCRIPT = `
+  const body = res.getBody();
+  let blob = body;
+  for (let i = 0; i < 8; i++) {
+    blob = blob + blob;
+  }
+  bru.setVar('len', blob.length);
+`;
 
 const makeBru = () =>
   new Bru({
@@ -100,6 +124,33 @@ const runInSandbox = async ({ script, scriptType, context }) => {
   return { ...outcome, ...captured };
 };
 
+// Runs the OOM script through a sandbox and returns how it settled (null or
+// the error); callers assert on the aftermath - recycle, module identity -
+// or on the returned error itself.
+const runOomScript = (sandbox) =>
+  sandbox
+    .executeQuickJsVmAsync({
+      script: OOM_SCRIPT,
+      context: { bru: makeBru(), res: makeLargeResponse() },
+      collectionPath: TEST_COLLECTION_PATH
+    })
+    .then(() => null, (error) => error);
+
+// Records every unhandledRejection dispatched while fn runs (plus one extra
+// tick, since the events arrive a tick late) and returns them.
+const collectUnhandledRejections = async (fn) => {
+  const rejections = [];
+  const onUnhandled = (error) => rejections.push(error);
+  process.on('unhandledRejection', onUnhandled);
+  try {
+    await fn();
+    await new Promise((resolve) => setImmediate(resolve));
+  } finally {
+    process.removeListener('unhandledRejection', onUnhandled);
+  }
+  return rejections;
+};
+
 // The type check catches a trap however its message reads; the message net
 // catches sandbox failures that surface wrapped or as other library errors.
 const expectSettledWithoutAbort = ({ status, error }) => {
@@ -131,10 +182,13 @@ const expectEventuallyClean = async ({ handles, deferreds }, timeoutMs = 5000) =
 
 module.exports = {
   TEST_COLLECTION_PATH,
+  RUNTIME_MEMORY_LIMIT_BYTES,
   makeBru,
   loadSandbox,
   captureAllocations,
   runInSandbox,
+  runOomScript,
+  collectUnhandledRejections,
   expectSettledWithoutAbort,
   expectAllDead,
   expectCleanTeardown,

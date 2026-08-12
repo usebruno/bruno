@@ -1,35 +1,15 @@
 const { describe, it, expect, afterEach } = require('@jest/globals');
-const BrunoResponse = require('../src/bruno-response');
 const {
   TEST_COLLECTION_PATH,
+  RUNTIME_MEMORY_LIMIT_BYTES,
   makeBru,
   loadSandbox,
   captureAllocations,
+  runOomScript,
+  collectUnhandledRejections,
   expectSettledWithoutAbort,
   expectAllDead
 } = require('./quickjs-sandbox.helpers');
-
-const RUNTIME_MEMORY_LIMIT_BYTES = 64 * 1024 * 1024;
-
-const makeLargeResponse = () =>
-  new BrunoResponse({
-    status: 200,
-    statusText: 'OK',
-    headers: { 'content-type': 'text/plain' },
-    data: 'WAR AND PEACE '.repeat(Math.ceil((3 * 1024 * 1024) / 14)),
-    responseTime: 12
-  });
-
-// Reads a multi-MB body and grows it past the runtime memory limit, driving
-// the engine into the uncatchable out-of-memory that traps dispose.
-const OOM_SCRIPT = `
-  const body = res.getBody();
-  let blob = body;
-  for (let i = 0; i < 8; i++) {
-    blob = blob + blob;
-  }
-  bru.setVar('len', blob.length);
-`;
 
 // A WASM trap during dispose (JS_FreeRuntime aborting on engine-internal
 // leftovers) leaves that module instance's heap unreliable. The sandbox must
@@ -38,6 +18,7 @@ const OOM_SCRIPT = `
 describe('QuickJS engine trap containment', () => {
   afterEach(() => {
     jest.restoreAllMocks();
+    jest.dontMock('quickjs-emscripten');
   });
 
   // The low memory limit stands in for the small initial WASM heap of a
@@ -51,13 +32,7 @@ describe('QuickJS engine trap containment', () => {
       vm.runtime.setMemoryLimit(RUNTIME_MEMORY_LIMIT_BYTES);
     });
 
-    const error = await sandbox
-      .executeQuickJsVmAsync({
-        script: OOM_SCRIPT,
-        context: { bru: makeBru(), res: makeLargeResponse() },
-        collectionPath: TEST_COLLECTION_PATH
-      })
-      .then(() => null, (thrown) => thrown);
+    const error = await runOomScript(sandbox);
 
     expectSettledWithoutAbort({ status: 'settled', error });
     expectAllDead(captured);
@@ -76,59 +51,40 @@ describe('QuickJS engine trap containment', () => {
   // evaluates correctly and keeps serving the synchronous executor (which
   // cannot await the replacement) until the fresh module resolves.
   it('keeps synchronous evaluation working while a trapped module is being replaced', async () => {
-    const { sandbox } = await loadSandbox((vm) => {
+    const { sandbox, wasmModule } = await loadSandbox((vm) => {
       vm.runtime.setMemoryLimit(RUNTIME_MEMORY_LIMIT_BYTES);
     });
 
-    await sandbox
-      .executeQuickJsVmAsync({
-        script: OOM_SCRIPT,
-        context: { bru: makeBru(), res: makeLargeResponse() },
-        collectionPath: TEST_COLLECTION_PATH
-      })
-      .catch(() => {});
+    await runOomScript(sandbox);
 
+    // The replacement build cannot resolve without a macrotask turn, so a
+    // synchronous call here must be served by the trapped module; the spy
+    // on its newContext proves that is where the evaluation ran.
+    const contextsOnTrappedModule = wasmModule.newContext.mock.calls.length;
     const out = sandbox.executeQuickJsVm({ script: '6 * 7', context: {}, scriptType: 'expression' });
     expect(out).toBe(42);
+    expect(wasmModule.newContext.mock.calls.length).toBe(contextsOnTrappedModule + 1);
   }, 20000);
 
   // A rejected replacement build must not poison the sandbox: the old,
   // still-functional module keeps serving and no rejection escapes unhandled.
   it('keeps the old module serving when the replacement build fails', async () => {
-    const unhandledRejections = [];
-    const onUnhandled = (error) => unhandledRejections.push(error);
-    process.on('unhandledRejection', onUnhandled);
-    try {
-      jest.resetModules();
-      const actual = jest.requireActual('quickjs-emscripten');
-      let builds = 0;
-      jest.doMock('quickjs-emscripten', () => ({
-        ...actual,
-        newQuickJSWASMModule: (...args) => {
-          builds += 1;
-          return builds === 2 ? Promise.reject(new Error('wasm build failed')) : actual.newQuickJSWASMModule(...args);
-        }
-      }));
-      const sandbox = require('../src/sandbox/quickjs');
-      const wasmModule = await sandbox.loader();
-      const originalNewContext = wasmModule.newContext.bind(wasmModule);
-      let limitNextContext = true;
-      jest.spyOn(wasmModule, 'newContext').mockImplementation((...args) => {
-        const vm = originalNewContext(...args);
-        if (limitNextContext) {
-          vm.runtime.setMemoryLimit(RUNTIME_MEMORY_LIMIT_BYTES);
-          limitNextContext = false;
-        }
-        return vm;
+    const actual = jest.requireActual('quickjs-emscripten');
+    let builds = 0;
+    jest.doMock('quickjs-emscripten', () => ({
+      ...actual,
+      newQuickJSWASMModule: (...args) => {
+        builds += 1;
+        return builds === 2 ? Promise.reject(new Error('wasm build failed')) : actual.newQuickJSWASMModule(...args);
+      }
+    }));
+
+    const unhandledRejections = await collectUnhandledRejections(async () => {
+      const { sandbox, wasmModule } = await loadSandbox((vm) => {
+        vm.runtime.setMemoryLimit(RUNTIME_MEMORY_LIMIT_BYTES);
       });
 
-      await sandbox
-        .executeQuickJsVmAsync({
-          script: OOM_SCRIPT,
-          context: { bru: makeBru(), res: makeLargeResponse() },
-          collectionPath: TEST_COLLECTION_PATH
-        })
-        .catch(() => {});
+      await runOomScript(sandbox);
 
       // Guards against a vacuous pass: proves the trap really started the
       // replacement build (the one mocked to reject).
@@ -142,12 +98,8 @@ describe('QuickJS engine trap containment', () => {
       });
       expect(bru.getVar('stillWorks')).toBe(true);
       expect(builds).toBe(2);
-      await new Promise((resolve) => setImmediate(resolve));
-      expect(unhandledRejections).toEqual([]);
-    } finally {
-      process.removeListener('unhandledRejection', onUnhandled);
-      jest.dontMock('quickjs-emscripten');
-    }
+    });
+    expect(unhandledRejections).toEqual([]);
   }, 20000);
 
   // Only a WASM trap (a thrown WebAssembly.RuntimeError) may retire the
