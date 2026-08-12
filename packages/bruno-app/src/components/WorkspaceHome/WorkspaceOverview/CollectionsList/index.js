@@ -118,7 +118,12 @@ const CollectionsList = ({ workspace }) => {
       };
     });
 
-    return [...resolvedCollections, ...unopenableCollections];
+    const unopenablePaths = new Set(unopenableCollections.map((c) => normalizePath(c.pathname)));
+
+    return [
+      ...resolvedCollections.filter((c) => !unopenablePaths.has(normalizePath(c.pathname))),
+      ...unopenableCollections
+    ];
   }, [workspace.collections, workspace.scratchTempDirectory, collections, unopenableCollections]);
 
   const handleOpenCollectionClick = (collection, event) => {
