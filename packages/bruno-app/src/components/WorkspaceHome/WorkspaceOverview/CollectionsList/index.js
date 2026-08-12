@@ -102,6 +102,7 @@ const CollectionsList = ({ workspace }) => {
         environments: [],
         isGitBacked: !!wc.remote,
         isLoaded: false,
+        notFoundLocally: !!wc.notFoundLocally,
         gitRemoteUrl: wc.remote,
         git: { gitRootPath: null },
         brunoConfig: {},
@@ -359,7 +360,7 @@ const CollectionsList = ({ workspace }) => {
                   {collection.failedToOpen && (
                     <StatusBadge status="danger" size="xs">Failed to open</StatusBadge>
                   )}
-                  {!isDefaultWorkspace && collection.isLoaded === false && !collection.failedToOpen && (
+                  {!isDefaultWorkspace && collection.notFoundLocally && (
                     <StatusBadge status="warning" size="xs">Not cloned</StatusBadge>
                   )}
                 </div>
