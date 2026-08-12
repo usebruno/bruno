@@ -155,15 +155,26 @@ describe('QuickJS engine trap containment', () => {
       }
     }));
 
+    let trapNextDispose = false;
     const { sandbox } = await loadSandbox((vm) => {
       vm.runtime.setMemoryLimit(RUNTIME_MEMORY_LIMIT_BYTES);
+      const originalDispose = vm.dispose.bind(vm);
+      vm.dispose = () => {
+        if (trapNextDispose) {
+          trapNextDispose = false;
+          throw new WebAssembly.RuntimeError('Aborted(manufactured trap)');
+        }
+        originalDispose();
+      };
     });
     expect(builds).toBe(1);
 
     await runOomScript(sandbox);
     expect(builds).toBe(2);
 
-    await runOomScript(sandbox);
+    trapNextDispose = true;
+    // The sync path reads the module directly; it cannot await the gated loader.
+    sandbox.executeQuickJsVm({ script: '1 + 1', context: {}, scriptType: 'expression' });
     expect(builds).toBe(2);
 
     releaseReload();

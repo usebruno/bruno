@@ -190,8 +190,7 @@ describe('QuickJS context teardown leaves no live handles or deferreds', () => {
         });
 
         settleLate({ status: 200, data: 'ok' });
-        await new Promise((resolve) => setTimeout(resolve, 50));
-        expect(captured.deferreds.every((d) => !d.alive)).toBe(true);
+        await expectEventuallyClean(captured);
       });
       expect(unhandledRejections).toEqual([]);
     });
