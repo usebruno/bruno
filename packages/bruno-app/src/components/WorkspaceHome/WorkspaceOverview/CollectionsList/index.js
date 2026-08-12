@@ -194,7 +194,7 @@ const CollectionsList = ({ workspace }) => {
 
   const handleRemoveCollection = (collection) => {
     dropdownRefs.current[collection.uid]?.hide();
-    if (collection.failedToOpen) {
+    if (collection.failedToOpen || collection.notFoundLocally) {
       dispatch(removeCollectionFromWorkspaceAction(workspace.uid, collection.pathname))
         .then(() => toast.success('Collection removed from workspace'))
         .catch(() => toast.error('An error occurred while removing the collection'));
@@ -380,7 +380,7 @@ const CollectionsList = ({ workspace }) => {
                   icon={<IconDots size={18} strokeWidth={1.5} />}
                 >
                   <div className="collection-dropdown">
-                    {!collection.failedToOpen && (
+                    {!collection.failedToOpen && !collection.notFoundLocally && (
                       <>
                         <div
                           className="dropdown-item"
@@ -412,6 +412,10 @@ const CollectionsList = ({ workspace }) => {
                           <IconFolder size={16} strokeWidth={1.5} />
                           <span>{getRevealInFolderLabel()}</span>
                         </div>
+                      </>
+                    )}
+                    {!collection.failedToOpen && (
+                      <>
                         {!isDefaultWorkspace && (
                           <>
                             {collection.isGitBacked && (
@@ -464,7 +468,7 @@ const CollectionsList = ({ workspace }) => {
                       <IconX size={16} strokeWidth={1.5} />
                       <span>Remove</span>
                     </div>
-                    {!collection.failedToOpen && (
+                    {!collection.failedToOpen && !collection.notFoundLocally && (
                       <div
                         className="dropdown-item delete-item"
                         onClick={(e) => {
