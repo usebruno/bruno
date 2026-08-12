@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { getEmptyImage } from 'react-dnd-html5-backend';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
+import { getEmptyImage } from 'react-dnd-html5-backend';
 import {
   IconChevronRight,
   IconDots,
@@ -116,6 +116,12 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     return effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
   }, [isSelected, selectedSidebarUids, allCollections]);
 
+  const isDragDisabled = useMemo(() => {
+    if (!isSelected || !selectedSidebarUids || selectedSidebarUids.length < 2) return false;
+    const { hasCollection, hasFolder, hasRequest } = getSelectionInfo({ collections: allCollections, selectedUids: selectedSidebarUids });
+    return hasCollection && (hasFolder || hasRequest);
+  }, [isSelected, selectedSidebarUids, allCollections]);
+
   // We use a single ref for drag and drop.
   const ref = useRef(null);
   const menuDropdownRef = useRef(null);
@@ -170,7 +176,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const [dropType, setDropType] = useState(null); // 'above', 'inside' or 'below'
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
-    type: 'collection-item',
+    type: isDragDisabled ? 'disabled-drag' : 'collection-item',
     item: {
       ...item,
       sourceCollectionUid: collectionUid,
@@ -186,7 +192,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
 
   useEffect(() => {
     dragPreview(getEmptyImage(), { captureDraggingState: true });
-  }, []);
+  }, [dragPreview]);
 
   // Auto-scroll to show this item when its tab becomes active
   useEffect(() => {
@@ -323,7 +329,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     'drop-target-above': isOver && canDrop && dropType === 'above',
     'drop-target-below': isOver && canDrop && dropType === 'below',
     'item-keyboard-focused': isKeyboardFocused,
-    'collection-selected': isSelected
+    'collection-selected': isSelected,
+    'drag-disabled': isDragDisabled
   });
 
   const handleRun = async () => {
@@ -841,20 +848,22 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               )}
             </div>
           </div>
-          <div className="pr-2">
-            <MenuDropdown
-              ref={menuDropdownRef}
-              items={buildMenuItems()}
-              placement="bottom-start"
-              data-testid="collection-item-menu"
-              popperOptions={{ strategy: 'fixed' }}
-              appendTo={dropdownContainerRef?.current || document.body}
-            >
-              <ActionIcon className="menu-icon">
-                <IconDots size={18} className="collection-item-menu-icon" />
-              </ActionIcon>
-            </MenuDropdown>
-          </div>
+          {!isDragging && (!isSelected || selectedSidebarUids?.length === 0) && (
+            <div className="pr-2 collection-actions">
+              <MenuDropdown
+                ref={menuDropdownRef}
+                items={buildMenuItems()}
+                placement="bottom-start"
+                data-testid="collection-item-menu"
+                popperOptions={{ strategy: 'fixed' }}
+                appendTo={dropdownContainerRef?.current || document.body}
+              >
+                <ActionIcon className="menu-icon">
+                  <IconDots size={18} className="collection-item-menu-icon" />
+                </ActionIcon>
+              </MenuDropdown>
+            </div>
+          )}
         </div>
       </div>
       {!itemIsCollapsed ? (

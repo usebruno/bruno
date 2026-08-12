@@ -8,7 +8,35 @@ const Wrapper = styled.div`
   .collection-name.collection-selected,
   .collection-item-name.collection-selected {
     background: ${(props) => rgba(props.theme.primary.text, 0.1)};
-    border-left: 4px solid ${(props) => props.theme.primary.solid};
+    
+    &:hover {
+      background: ${(props) => rgba(props.theme.primary.text, 0.16)} !important;
+    }
+  }
+
+  /* Highlight for selected collection items */
+  .collection-item-name.collection-selected {
+    border-left: 3px solid ${(props) => props.theme.primary.solid};
+  }
+
+  /* Highlight for selected collections */
+  /* We use box-shadow here to prevent visual breaks (mitered corners) with top/bottom drag borders */
+  .collection-name.collection-selected {
+    border-left-width: 0 !important;
+    padding-left: 8px !important;
+    box-shadow: inset 3px 0 0 0 ${(props) => props.theme.primary.solid};
+  }
+
+  /* Keyboard focus + Selected */
+  .collection-name.collection-selected.collection-keyboard-focused,
+  .collection-item-name.collection-selected.item-keyboard-focused {
+    background: ${(props) => rgba(props.theme.primary.text, 0.1)} !important;
+  }
+
+  /* Tab focus + Selected */
+  .collection-name.collection-selected.collection-focused-in-tab,
+  .collection-item-name.collection-selected.item-focused-in-tab {
+    background: ${(props) => rgba(props.theme.primary.text, 0.16)} !important;
   }
 
   aside {

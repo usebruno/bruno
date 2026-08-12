@@ -1,7 +1,8 @@
 import { useDragLayer } from 'react-dnd';
 import {
   IconFile,
-  IconFolder
+  IconFolder,
+  IconBook
 } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
@@ -22,28 +23,42 @@ function getItemStyles({ x, y }) {
 export const CollectionItemDragPreview = () => {
   const {
     item,
+    itemType,
     isDragging,
     clientOffset
   } = useDragLayer((monitor) => ({
     item: monitor.getItem(),
+    itemType: monitor.getItemType(),
     isDragging: monitor.isDragging(),
     clientOffset: monitor.getClientOffset()
   }));
+
   if (!isDragging) return null;
-  if (!item.type) return null;
+  if (!item) return null;
+
+  const validTypes = ['collection', 'collection-item', 'disabled-drag'];
+  if (!validTypes.includes(itemType)) return null;
+
   const { x, y } = clientOffset || {};
-  const shouldShowFolderIcon = item.type === 'folder';
   const multiCount = item.multiSelectedItems?.length;
-  const label = multiCount > 1 ? `${multiCount} items` : item.name;
+
+  let label = item.name;
+  let Icon = IconFile;
+
+  if (multiCount > 1) {
+    label = `${multiCount} items`;
+    Icon = null;
+  } else if (itemType === 'collection' || (!item.type && item.pathname)) {
+    Icon = IconBook;
+  } else if (item.type === 'folder') {
+    Icon = IconFolder;
+  }
+
   return (
     <StyledWrapper>
       <div style={getItemStyles({ x, y })} className="p-2">
         <div className="flex items-center gap-2 border border-gray-500/10 rounded-md px-2 py-1 drag-preview">
-          {multiCount > 1 ? null : shouldShowFolderIcon ? (
-            <IconFolder size={16} />
-          ) : (
-            <IconFile size={16} />
-          )}
+          {Icon && <Icon size={16} />}
           {label}
         </div>
       </div>

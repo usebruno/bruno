@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { getEmptyImage } from 'react-dnd-html5-backend';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
+import { getEmptyImage } from 'react-dnd-html5-backend';
 import {
   IconChevronRight,
   IconDots,
@@ -40,7 +40,7 @@ import RemoveCollections from './RemoveCollections';
 import MoveToWorkspace from './MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, buildSidebarEntries, getVisibleSidebarUidsInOrder, getSortedDraggedItems } from 'utils/collections';
+import { isItemAFolder, isItemARequest, buildSidebarEntries, getVisibleSidebarUidsInOrder, getSortedDraggedItems, getSelectionInfo } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from './RenameCollection';
@@ -49,7 +49,6 @@ import CloneCollection from './CloneCollection';
 import { scrollToTheActiveTab } from 'utils/tabs';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from './GenerateDocumentation';
-import { CollectionItemDragPreview } from './CollectionItem/CollectionItemDragPreview/index';
 import { sortByNameThenSequence } from 'utils/common/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
@@ -64,6 +63,7 @@ import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
+import { useMemo } from 'react';
 
 // Delay before showing empty collection state (ms)
 // This prevents flicker from race condition between loading state and item batch updates
@@ -108,6 +108,18 @@ const Collection = ({ collection, searchText }) => {
   const collectionSortOrder = useSelector((state) => state.collections.collectionSortOrder);
   const allCollections = useSelector((state) => state.collections.collections);
   const isMoveToWorkspaceVisible = isPathExternalToBasePath(activeWorkspace?.pathname, collection.pathname);
+
+  const isDragDisabled = useMemo(() => {
+    if (!isSelected || !selectedSidebarUids || selectedSidebarUids.length < 2) return false;
+    const { hasCollection, hasFolder, hasRequest } = getSelectionInfo({ collections: allCollections, selectedUids: selectedSidebarUids });
+    return hasCollection && (hasFolder || hasRequest);
+  }, [isSelected, selectedSidebarUids, allCollections]);
+
+  const multiDragItems = useMemo(() => {
+    if (!isSelected || !selectedSidebarUids || selectedSidebarUids.length < 2) return null;
+    const { effectiveSelection } = getSelectionInfo({ collections: allCollections, selectedUids: selectedSidebarUids });
+    return effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
+  }, [isSelected, selectedSidebarUids, allCollections]);
 
   // Open the OpenAPI Sync tab
   const openOpenAPISyncTab = () => {
@@ -286,8 +298,11 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
-    type: 'collection',
-    item: collection,
+    type: isDragDisabled ? 'disabled-drag' : 'collection',
+    item: {
+      ...collection,
+      ...(multiDragItems ? { multiSelectedItems: multiDragItems } : {})
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     }),
@@ -295,6 +310,10 @@ const Collection = ({ collection, searchText }) => {
       dropEffect: 'move'
     }
   });
+
+  useEffect(() => {
+    dragPreview(getEmptyImage(), { captureDraggingState: true });
+  }, [dragPreview]);
 
   const [{ isOver }, drop] = useDrop({
     accept: ['collection', 'collection-item'],
@@ -353,10 +372,6 @@ const Collection = ({ collection, searchText }) => {
   });
 
   useEffect(() => {
-    dragPreview(getEmptyImage(), { captureDraggingState: true });
-  }, []);
-
-  useEffect(() => {
     if (isCollectionFocused && collectionRef.current) {
       try {
         collectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -387,13 +402,17 @@ const Collection = ({ collection, searchText }) => {
     }
   }
 
-  const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
-    'item-hovered': isOver && dropType === 'above', // For collection-to-collection moves (show line)
-    'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)
-    'collection-focused-in-tab': isCollectionFocused && !isKeyboardFocused,
-    'collection-keyboard-focused': isKeyboardFocused,
-    'collection-selected': isSelected
-  });
+  const collectionRowClassName = classnames(
+    'flex py-1 collection-name items-center relative',
+    {
+      'item-hovered': isOver && dropType === 'above', // For collection-to-collection moves (show line)
+      'drop-target': isOver && dropType === 'inside', // For collection-item drops (highlight full area)
+      'collection-focused-in-tab': isCollectionFocused && !isKeyboardFocused,
+      'collection-keyboard-focused': isKeyboardFocused,
+      'collection-selected': isSelected,
+      'drag-disabled': isDragDisabled
+    }
+  );
 
   // we need to sort request items by seq property
   const sortItemsBySequence = (items = []) => {
@@ -586,7 +605,6 @@ const Collection = ({ collection, searchText }) => {
         />
       )}
       <BulkActionsMenu menuProps={menuProps} />
-      <CollectionItemDragPreview />
       <div
         className={collectionRowClassName}
         ref={(node) => {
@@ -619,22 +637,24 @@ const Collection = ({ collection, searchText }) => {
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
-        <div>
-          <div className="pr-2">
-            <MenuDropdown
-              ref={menuDropdownRef}
-              items={menuItems}
-              placement="bottom-start"
-              appendTo={dropdownContainerRef?.current || document.body}
-              popperOptions={{ strategy: 'fixed' }}
-              data-testid="collection-actions"
-            >
-              <ActionIcon className="collection-actions">
-                <IconDots size={18} />
-              </ActionIcon>
-            </MenuDropdown>
+        {!isDragging && (!isSelected || selectedSidebarUids?.length === 0) && (
+          <div>
+            <div className="pr-2">
+              <MenuDropdown
+                ref={menuDropdownRef}
+                items={menuItems}
+                placement="bottom-start"
+                appendTo={dropdownContainerRef?.current || document.body}
+                popperOptions={{ strategy: 'fixed' }}
+                data-testid="collection-actions"
+              >
+                <ActionIcon className="collection-actions">
+                  <IconDots size={18} />
+                </ActionIcon>
+              </MenuDropdown>
+            </div>
           </div>
-        </div>
+        )}
       </div>
       <div>
         {!collectionIsCollapsed ? (

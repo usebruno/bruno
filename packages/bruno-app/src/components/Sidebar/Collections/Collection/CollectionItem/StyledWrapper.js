@@ -26,11 +26,15 @@ const Wrapper = styled.div`
     cursor: pointer;
     user-select: none;
     position: relative;
-    border-left: 4px solid transparent;
+    border-left: 3px solid transparent;
 
     /* Default: menu icon hidden, shown on hover/focus states (see consolidated rule below) */
     .collection-item-menu-icon {
       visibility: hidden;
+    }
+
+    &.drag-disabled {
+      cursor: not-allowed !important;
     }
 
     /* Common styles for drop indicators */
