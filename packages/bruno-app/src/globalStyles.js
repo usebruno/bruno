@@ -409,12 +409,13 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo .var-name-link {
     cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 0.125rem;
+    color: ${(props) => props.theme.textLink};
+    text-decoration: none;
   }
 
   .CodeMirror-brunoVarInfo .var-name-link:hover {
-    color: ${(props) => props.theme.brand};
+    text-decoration: underline;
+    text-underline-offset: 0.125rem;
   }
 
   /* Scope Badge */
@@ -619,6 +620,7 @@ const GlobalStyle = createGlobalStyle`
   /* "Add to" scope switcher (shown below the value editor for brand new variables) */
   .CodeMirror-brunoVarInfo .var-add-to-switcher {
     margin-top: 0.5rem;
+    max-width: 18rem;
   }
 
   /* Toggle and Secret checkbox sit in one row. */
@@ -701,6 +703,7 @@ const GlobalStyle = createGlobalStyle`
     gap: 0.2rem;
     width: 100%;
     height: 1.5rem;
+    min-width: 0;
     box-sizing: border-box;
     background: transparent;
     border: none;
@@ -776,6 +779,10 @@ const GlobalStyle = createGlobalStyle`
 
   .CodeMirror-brunoVarInfo .var-add-to-option-label {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .CodeMirror-brunoVarInfo .var-add-to-option-note {

@@ -663,7 +663,7 @@ test.describe('Variable Tooltip', () => {
 
   test('should go to definition into Environment Settings, landing on Variables or Secrets depending on type(var or secret)', async ({ page, createTmpDir }) => {
     const collectionName = 'go-to-definition-env-test';
-    const { sidebar, request, varInfoPopup, environment } = buildCommonLocators(page);
+    const { sidebar, varInfoPopup, environment } = buildCommonLocators(page);
 
     await test.step('Setup collection, environment with a plain and a secret variable, and a request referencing both', async () => {
       await createCollection(page, collectionName, await createTmpDir('go-to-definition-env-collection'));
@@ -1034,7 +1034,7 @@ test.describe('Variable Tooltip', () => {
   test('should go to definition into Folder Settings for a folder variable, and Collection Settings for a collection variable', async ({ page, createTmpDir }) => {
     const collectionName = 'go-to-definition-folder-collection-test';
     const folderName = 'goToDefFolder';
-    const { sidebar, request, paneTabs, varInfoPopup, table } = buildCommonLocators(page);
+    const { sidebar, paneTabs, varInfoPopup, table } = buildCommonLocators(page);
 
     await test.step('Add a folder variable', async () => {
       await createCollection(page, collectionName, await createTmpDir('go-to-definition-folder-collection'));
@@ -1043,36 +1043,38 @@ test.describe('Variable Tooltip', () => {
       await sidebar.folder(folderName).dblclick();
       await paneTabs.folderSettingsTab('vars').click();
 
-      const tableContainer = page.getByTestId('folder-vars-req').first();
-      const lastRow = tableContainer.locator('tbody tr').last();
+      const folderVarsTable = table('folder-vars-req');
+      const lastRow = folderVarsTable.allRows().last();
       await lastRow.locator('input[type="text"]').first().click();
       await page.keyboard.type('goToFolderVar');
 
-      const namedRow = tableContainer.locator('tbody tr[data-row-name="goToFolderVar"]');
+      const namedRow = folderVarsTable.rowByName('goToFolderVar');
       await expect(namedRow).toBeVisible();
       const valueEditor = namedRow.locator('[data-testid="column-value"] .CodeMirror').first();
       await valueEditor.click({ force: true });
+      await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
       await page.keyboard.type('folder-def-value');
 
-      await page.getByRole('button', { name: 'Save', exact: true }).first().click();
+      await page.getByTestId('folder-vars-panel').getByRole('button', { name: 'Save', exact: true }).click();
     });
 
     await test.step('Add a collection variable', async () => {
       await openCollectionSettings(page, collectionName);
       await selectCollectionPaneTab(page, 'vars');
 
-      const tableContainer = page.getByTestId('collection-vars-req').first();
-      const lastRow = tableContainer.locator('tbody tr').last();
+      const collectionVarsTable = table('collection-vars-req');
+      const lastRow = collectionVarsTable.allRows().last();
       await lastRow.locator('input[type="text"]').first().click();
       await page.keyboard.type('goToCollectionVar');
 
-      const namedRow = tableContainer.locator('tbody tr[data-row-name="goToCollectionVar"]');
+      const namedRow = collectionVarsTable.rowByName('goToCollectionVar');
       await expect(namedRow).toBeVisible();
       const valueEditor = namedRow.locator('[data-testid="column-value"] .CodeMirror').first();
       await valueEditor.click({ force: true });
+      await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
       await page.keyboard.type('collection-def-value');
 
-      await page.getByRole('button', { name: 'Save', exact: true }).first().click();
+      await page.getByTestId('collection-vars-panel').getByRole('button', { name: 'Save', exact: true }).click();
     });
 
     await test.step('Create a request inside the folder referencing both variables', async () => {
@@ -1134,7 +1136,7 @@ test.describe('Variable Tooltip', () => {
       await environment.variablesTab().click();
       await expect(environment.varRow('stageOnlyVar')).toBeVisible();
       // Prod is still the active environment. Stage was only selected for viewing.
-      await expect(environment.settingsListItem('EnvProd').locator('.activated-checkmark')).toBeVisible();
+      await expect(environment.activatedCheckmark('EnvProd')).toBeVisible();
 
       await closeEnvironmentPanel(page);
     });

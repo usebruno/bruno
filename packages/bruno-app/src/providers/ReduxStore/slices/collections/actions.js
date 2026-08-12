@@ -95,7 +95,7 @@ import {
   isPathOrDescendant
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
-import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, resolveSecretNameCollision, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
 import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common/variables';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
@@ -2313,9 +2313,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               })
             : [...(environment.variables || []), newVariable];
 
-          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable || newVariable);
-
-          return dispatch(saveEnvironment(resolvedVariables, environment.uid, collectionUid))
+          return dispatch(saveEnvironment(updatedVariables, environment.uid, collectionUid))
             .then(() => {
               toast.success(`Variable "${variableName}" ${variable ? 'updated' : 'created'}`);
             })
@@ -2429,10 +2427,8 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               })
             : [...(environment.variables || []), newVariable];
 
-          const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable || newVariable);
-
           return dispatch(saveGlobalEnvironment({
-            variables: resolvedVariables,
+            variables: updatedVariables,
             environmentUid: activeGlobalEnvUid
           }))
             .then(() => {

@@ -41,6 +41,7 @@ const renderScopeOption = (row, scope, { handleScopeSwitch, clearError }) => {
   const label = document.createElement('span');
   label.className = 'var-add-to-option-label';
   label.textContent = scope.label;
+  label.title = scope.label;
   trigger.appendChild(label);
 
   trigger.addEventListener('click', () => {
