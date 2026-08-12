@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useMemo, useRef } from 'react';
+import React, { forwardRef, useLayoutEffect, useMemo, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
 
 const ICON_CONFIG = {
@@ -77,7 +77,7 @@ function IndeterminateIcon({ size }) {
 function useIndeterminate(ref, indeterminate) {
   // `indeterminate` is a DOM property, not an HTML attribute.
   // React doesn't manage it, and the browser clears it after interaction.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (ref.current) {
       ref.current.indeterminate = indeterminate;
     }
@@ -118,6 +118,7 @@ const Checkbox = forwardRef(
       className = '',
       inputClassName = '',
       'data-testid': dataTestId,
+      type: _type,
       ...rest
     },
     forwardedRef
@@ -126,13 +127,6 @@ const Checkbox = forwardRef(
     const mergedRef = useMemo(() => mergeRefs(inputRef, forwardedRef), [inputRef, forwardedRef]);
 
     useIndeterminate(inputRef, indeterminate);
-
-    const handleChange = (event) => {
-      onChange?.(event);
-      // attach indeterminate to a change event
-      // so that inputRef.current is guaranteed to already be attached to it.
-      inputRef.current.indeterminate = indeterminate;
-    };
 
     return (
       <StyledWrapper
@@ -150,7 +144,7 @@ const Checkbox = forwardRef(
               value={value}
               checked={checked}
               disabled={disabled}
-              onChange={handleChange}
+              onChange={onChange}
               className={`checkbox-input ${inputClassName}`.trim()}
               data-testid={dataTestId}
               aria-label={ariaLabel}
