@@ -13,21 +13,13 @@ const {
 
 const largePayload = () => 'x'.repeat(150 * 1024);
 
-// A context disposed while async work is still surfacing would leak GC
-// handles and abort JS_FreeRuntime with `list_empty(&rt->gc_obj_list)`.
-// Every scenario pins the same invariant: the run settles promptly,
-// abandoned fire-and-forget work completes in the background, and nothing
-// the context created stays alive afterwards.
 describe('QuickJS context teardown leaves no live handles or deferreds', () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
   describe('disposal mechanics: work created while dispose is running', () => {
-    // Queues a promise-reaction job that calls a host function. QuickJS only
-    // runs jobs when the host pumps executePendingJobs, so the job executes
-    // inside dispose's drain loop, like the tail of an async bru.sendRequest
-    // callback that is still queued at teardown.
+    // Run host work inside dispose's pending-job drain.
     const queueHostCallAsPendingJob = (vm, hostFn) => {
       const fnHandle = vm.newFunction('__lateWork', hostFn);
       fnHandle.consume((handle) => vm.setProp(vm.global, '__lateWork', handle));
@@ -35,11 +27,6 @@ describe('QuickJS context teardown leaves no live handles or deferreds', () => {
       expect(vm.runtime.hasPendingJob()).toBe(true);
     };
 
-    // One [label, hostFnFactory] row per kind of work a drained job can do;
-    // it.each registers a test per row, filling %s from the label and passing
-    // the row as the test's arguments. Each factory takes (vm, captured) and
-    // returns the actual host fn, because those two only exist once the test
-    // body creates its context.
     const lateWorkKinds = [
       [
         'allocates handles',

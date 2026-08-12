@@ -20,15 +20,8 @@ let quickJSModulePromise;
 let quickJSModuleLoading = false;
 let quickJSModuleRecycleCount = 0;
 
-// Memoized WASM module. QuickJSModule mirrors the resolved value for the
-// synchronous executor, which cannot await; it stays unset until the initial
-// load resolves. reload swaps in a fresh instance with no gap: the old one
-// keeps serving until the replacement is ready. A failed reload restores the
-// old module's promise, and a failed initial load clears the memo, so one
-// bad build never poisons every later run.
-// Intended callers: the executors, the sandbox specs, and runner readiness
-// awaits. reload is recycle-internal; use recycleQuickJSModuleOnAbort, which
-// gates it on module ownership, rather than passing it directly.
+// Memoized WASM module for sync + async. reload swaps with no gap; failed
+// reload restores the old memo, failed initial load clears it.
 const loader = ({ reload = false } = {}) => {
   if (!quickJSModulePromise || (reload && !quickJSModuleLoading)) {
     const previousPromise = quickJSModulePromise;
@@ -40,9 +33,6 @@ const loader = ({ reload = false } = {}) => {
       })
       .catch((loadError) => {
         console.error(reload ? 'QuickJS module reload failed' : 'QuickJS module load failed', loadError);
-        // A failed reload falls back to the old, still-functional module for
-        // callers already awaiting; a failed initial load has no fallback, so
-        // clear the memo for retry and surface the failure.
         quickJSModulePromise = reload ? previousPromise : null;
         if (quickJSModulePromise) {
           return quickJSModulePromise;
@@ -55,23 +45,14 @@ const loader = ({ reload = false } = {}) => {
   }
   return quickJSModulePromise;
 };
-// Failures are logged in loader; the catch only keeps the rejection from
-// escaping this fire-and-forget call.
 loader().catch(() => {});
 
-/**
- * A WASM trap during dispose (JS_FreeRuntime aborting on engine-internal
- * leftovers) strands memory in the instance's heap for its lifetime, so the
- * module is replaced. A trapped instance still evaluates correctly, so it
- * keeps serving until the replacement resolves. Returns whether the error
- * was such a trap.
- */
+// On dispose WASM trap, recycle the module (old one keeps serving until ready).
 const recycleQuickJSModuleOnAbort = (teardownError, ownerModule) => {
   if (!(teardownError instanceof WebAssembly.RuntimeError)) {
     return false;
   }
-  // Retire only the failing context's own generation; a stale owner was
-  // already replaced. An unknown owner fails safe toward recycling.
+  // Skip if this module was already replaced.
   if (!ownerModule || ownerModule === QuickJSModule) {
     quickJSModuleRecycleCount += 1;
     console.warn(`QuickJS module recycled, ${quickJSModuleRecycleCount} this session`);

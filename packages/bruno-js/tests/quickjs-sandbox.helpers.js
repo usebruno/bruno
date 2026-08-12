@@ -1,6 +1,3 @@
-// Shared harness for the quickjs sandbox specs (teardown, trap containment):
-// fixtures, a fresh instrumented sandbox per test, and the teardown
-// assertions. The invariants these encode are documented in the specs.
 const { expect } = require('@jest/globals');
 const os = require('os');
 const path = require('path');
@@ -19,9 +16,6 @@ const CAPTURED_ALLOCATORS = ['newObject', 'newArray', 'newFunction'];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// The OOM fixture trio: a runtime limit small enough to hit at test scale,
-// a multi-MB response, and a script that grows the body past the limit,
-// driving the engine into the uncatchable out-of-memory that traps dispose.
 const RUNTIME_MEMORY_LIMIT_BYTES = 64 * 1024 * 1024;
 
 const makeLargeResponse = () =>
@@ -52,10 +46,7 @@ const makeBru = () =>
     collectionName: 'Test'
   });
 
-// A fresh sandbox module per test: an aborted WASM module instance is unusable
-// afterwards and would cascade failures into unrelated tests. Returns the
-// module too, so trap tests can assert on its identity. onVm (if given) runs
-// against each context the sandbox creates, before use.
+// Fresh module per test so a trapped instance can't poison the next case.
 const loadSandbox = async (onVm) => {
   jest.resetModules();
   const sandbox = require('../src/sandbox/quickjs');
@@ -71,8 +62,6 @@ const loadSandbox = async (onVm) => {
   return { sandbox, wasmModule };
 };
 
-// Records every GC-class handle and deferred a context creates, so tests can
-// assert that none survive teardown.
 const captureAllocations = (vm, captured) => {
   CAPTURED_ALLOCATORS.forEach((method) => {
     const original = vm[method].bind(vm);
@@ -90,9 +79,6 @@ const captureAllocations = (vm, captured) => {
   };
 };
 
-// Runs one script through a fresh sandbox (async path by default, sync path
-// when scriptType is given) and reports how the run settled plus everything
-// the context allocated: { status, error, handles, deferreds }.
 const runInSandbox = async ({ script, scriptType, context }) => {
   const captured = { handles: [], deferreds: [] };
   const { sandbox } = await loadSandbox((vm) => captureAllocations(vm, captured));
@@ -124,9 +110,6 @@ const runInSandbox = async ({ script, scriptType, context }) => {
   return { ...outcome, ...captured };
 };
 
-// Runs the OOM script through a sandbox and returns how it settled (null or
-// the error); callers assert on the aftermath - recycle, module identity -
-// or on the returned error itself.
 const runOomScript = (sandbox) =>
   sandbox
     .executeQuickJsVmAsync({
@@ -151,8 +134,6 @@ const collectUnhandledRejections = async (fn) => {
   return rejections;
 };
 
-// The type check catches a trap however its message reads; the message net
-// catches sandbox failures that surface wrapped or as other library errors.
 const expectSettledWithoutAbort = ({ status, error }) => {
   expect(status).toBe('settled');
   expect(error instanceof WebAssembly.RuntimeError).toBe(false);

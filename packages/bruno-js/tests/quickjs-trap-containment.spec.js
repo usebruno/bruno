@@ -11,20 +11,12 @@ const {
   expectAllDead
 } = require('./quickjs-sandbox.helpers');
 
-// A WASM trap during dispose (JS_FreeRuntime aborting on engine-internal
-// leftovers) leaves that module instance's heap unreliable. The sandbox must
-// contain the trap and hand later runs a fresh module, and must never retire
-// a module for anything less than a real trap.
 describe('QuickJS engine trap containment', () => {
   afterEach(() => {
     jest.restoreAllMocks();
     jest.dontMock('quickjs-emscripten');
   });
 
-  // The low memory limit stands in for the small initial WASM heap of a
-  // freshly started process, which is what makes first runs fail in the
-  // field. Both runs go through the sandbox's WASM module singleton, like
-  // consecutive requests in a running app.
   it('contains an engine trap: the run reports its result, the module is replaced, the next run is healthy', async () => {
     const captured = { handles: [], deferreds: [] };
     const { sandbox, wasmModule } = await loadSandbox((vm) => {
@@ -47,9 +39,6 @@ describe('QuickJS engine trap containment', () => {
     expect(bru.getVar('recovered')).toBe(true);
   }, 20000);
 
-  // A recycle swaps the module without a gap: the trapped instance still
-  // evaluates correctly and keeps serving the synchronous executor (which
-  // cannot await the replacement) until the fresh module resolves.
   it('keeps synchronous evaluation working while a trapped module is being replaced', async () => {
     const { sandbox, wasmModule } = await loadSandbox((vm) => {
       vm.runtime.setMemoryLimit(RUNTIME_MEMORY_LIMIT_BYTES);
@@ -66,8 +55,6 @@ describe('QuickJS engine trap containment', () => {
     expect(wasmModule.newContext.mock.calls.length).toBe(contextsOnTrappedModule + 1);
   }, 20000);
 
-  // A rejected replacement build must not poison the sandbox: the old,
-  // still-functional module keeps serving and no rejection escapes unhandled.
   it('keeps the old module serving when the replacement build fails', async () => {
     const actual = jest.requireActual('quickjs-emscripten');
     let builds = 0;
@@ -86,8 +73,6 @@ describe('QuickJS engine trap containment', () => {
 
       await runOomScript(sandbox);
 
-      // Guards against a vacuous pass: proves the trap really started the
-      // replacement build (the one mocked to reject).
       expect(builds).toBe(2);
       expect(await sandbox.loader()).toBe(wasmModule);
       const bru = makeBru();
@@ -102,9 +87,6 @@ describe('QuickJS engine trap containment', () => {
     expect(unhandledRejections).toEqual([]);
   }, 20000);
 
-  // Only a WASM trap (a thrown WebAssembly.RuntimeError) may retire the
-  // engine module; an ordinary teardown failure surfaces as the run's error
-  // even when its message imitates one.
   it('does not replace the engine module for a non-trap teardown failure', async () => {
     const { sandbox, wasmModule } = await loadSandbox((vm) => {
       vm.dispose = () => {
