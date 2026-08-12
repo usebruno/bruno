@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "keep-open",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

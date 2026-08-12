@@ -52,6 +52,12 @@ const VarValueCell = ({ editor, renderTypeSelector, trailingContent, onCompactCh
         <>
           {typeSelectorOverlay}
           {!compact && renderTypeSelector && renderTypeSelector({ compact: false })}
+          {trailingContent && (
+            <div className="trailing-area">
+              {typeSelectorOverlay}
+              {trailingContent}
+            </div>
+          )}
         </>
       )}
     </StyledWrapper>

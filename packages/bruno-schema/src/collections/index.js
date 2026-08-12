@@ -183,6 +183,7 @@ const fileSchema = Yup.object({
 // Add annotations to file entries (when parsed from body:file blocks they can have @contentType only currently,
 // but adding annotations ensures roundtrip validation doesn't fail if annotations are present in future)
 const fileSchemaWithAnnotations = fileSchema.shape({
+  description: Yup.string().nullable(),
   annotations: Yup.array()
     .of(
       annotationSchema
@@ -677,7 +678,8 @@ const itemSchema = Yup.object({
         encodeUrl: Yup.boolean().nullable(),
         followRedirects: Yup.boolean().nullable(),
         maxRedirects: Yup.number().min(0).max(50).nullable(),
-        timeout: Yup.mixed().nullable()
+        timeout: Yup.mixed().nullable(),
+        forwardAuthorizationHeader: Yup.boolean().nullable()
       }).noUnknown(true)
     .strict()
     .nullable()

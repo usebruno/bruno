@@ -15,7 +15,7 @@ import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 
-const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
+const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, isDraft }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -73,6 +73,7 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
       key: 'name',
       name: 'Name',
       isKeyField: true,
+      sortable: true,
       placeholder: 'Name',
       width: '20%'
     },
@@ -137,8 +138,10 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0 }) => {
         onChange={handleVarsChange}
         defaultRow={defaultRow}
         getRowError={getRowError}
-        reorderable={true}
+        reorderable
         onReorder={handleVarDrag}
+        sortStorageKey={`request-vars-sort::${item.uid}::${varType}`}
+        isDraft={isDraft}
         columnWidths={varsWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('request-vars', widths)}
         initialScroll={initialScroll}

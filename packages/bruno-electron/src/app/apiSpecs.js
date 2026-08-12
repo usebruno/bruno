@@ -116,5 +116,6 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
 module.exports = {
   openApiSpec,
   openApiSpecDialog,
+  validateApiSpec,
   INVALID_EXTENSION_MESSAGE
 };

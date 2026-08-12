@@ -799,21 +799,18 @@ const StyledWrapper = styled.div`
       }
     }
 
-    .send-btn, .stop-btn {
+    .send-btn {
       display: flex;
       align-items: center;
       gap: 4px;
       padding: 4px 8px;
-      border: none;
+      border: 1px solid ${(props) => props.theme.button2.color.primary.border};
       border-radius: 4px;
       font-size: 11px;
-      font-weight: 500;
+      font-weight: 400;
       cursor: pointer;
-    }
-
-    .send-btn {
-      background: ${(props) => props.theme.brand};
-      color: ${(props) => (props.theme.mode === 'dark' ? '#000' : '#fff')};
+      background: ${(props) => props.theme.button2.color.primary.bg};
+      color: ${(props) => props.theme.button2.color.primary.text};
 
       &:hover {
         opacity: 0.9;
@@ -822,15 +819,6 @@ const StyledWrapper = styled.div`
       &:disabled {
         opacity: 0.4;
         cursor: not-allowed;
-      }
-    }
-
-    .stop-btn {
-      background: ${(props) => props.theme.colors.text.danger};
-      color: ${(props) => (props.theme.mode === 'dark' ? '#000' : '#fff')};
-
-      &:hover {
-        opacity: 0.9;
       }
     }
   }

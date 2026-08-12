@@ -65,12 +65,12 @@ test.describe('Create collection', () => {
     // Set the URL
     await page.locator('#request-url .CodeMirror').click();
     await page.locator('#request-url').locator('textarea').fill('http://localhost:8081');
-    await page.locator('#request-actions').getByTitle('Save Request').click();
+    await page.locator('#request-actions').getByTestId('save-request-button').click();
 
     // Send a request
     await page.locator('#request-url .CodeMirror').click();
     await page.locator('#request-url').locator('textarea').fill('/ping');
-    await page.locator('#request-actions').getByTitle('Save Request').click();
+    await page.locator('#request-actions').getByTestId('save-request-button').click();
     await page.getByTestId('send-arrow-icon').click();
 
     // Verify the response

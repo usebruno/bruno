@@ -11,12 +11,8 @@ import ColorPicker from 'components/ColorPicker';
 import ActionIcon from 'ui/ActionIcon';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import { updateTabState } from 'providers/ReduxStore/slices/tabs';
+import useEnvironmentTabs from 'hooks/useEnvironmentTabs';
 import StyledWrapper from './StyledWrapper';
-
-const TABS = [
-  { key: 'variables', label: 'Variables' },
-  { key: 'secrets', label: 'Secrets' }
-];
 
 const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuery, setSearchQuery, isSearchExpanded, setIsSearchExpanded, debouncedSearchQuery, searchInputRef }) => {
   const dispatch = useDispatch();
@@ -30,6 +26,8 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const activeTab = useSelector((state) => state.tabs.tabs.find((t) => t.uid === activeTabUid)?.tabState?.environment?.tab) || 'variables';
   const setActiveTab = (tab) => dispatch(updateTabState({ uid: activeTabUid, tabState: { environment: { tab } } }));
+
+  const tabs = useEnvironmentTabs({ environment, draft: collection?.environmentsDraft });
 
   // Use the immediate query on a tab switch (debounced value lags and briefly
   // flashes the unfiltered table).
@@ -230,7 +228,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
 
       <div className="tabs-container">
         <ResponsiveTabs
-          tabs={TABS}
+          tabs={tabs}
           activeTab={activeTab}
           onTabSelect={setActiveTab}
           rightContent={(

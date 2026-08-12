@@ -46,6 +46,10 @@ const StyledWrapper = styled.div`
         border-right: none;
       }
 
+      &.sortable-header {
+        cursor: pointer;
+      }
+
       .column-name {
         display: block;
         overflow: hidden;
@@ -191,6 +195,11 @@ const StyledWrapper = styled.div`
     &:focus {
       outline: none !important;
     }
+    
+    &::placeholder {
+      color: ${(props) => props.theme.codemirror.placeholder.color} !important;
+      opacity: ${(props) => props.theme.codemirror.placeholder.opacity} !important;
+    }
   }
 
   input[type='checkbox'] {
@@ -237,12 +246,18 @@ const StyledWrapper = styled.div`
     opacity: 1;
   }
 
+  tbody tr.dragging-source {
+    opacity: 0.4;
+  }
+
   select {
     background-color: transparent;
     color: ${(props) => props.theme.text};
     border: none;
     outline: none;
-    padding: 2px 8px;
+    padding: 2px 2px;
+    width: 100%;
+    box-sizing: border-box;
     font-size: 12px;
     cursor: pointer;
 

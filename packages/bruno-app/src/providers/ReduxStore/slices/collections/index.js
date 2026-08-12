@@ -24,8 +24,10 @@ import toast from 'react-hot-toast';
 import mime from 'mime-types';
 import path from 'utils/common/path';
 import { getUniqueTagsFromItems } from 'utils/collections/index';
+import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
 import { getDataTypeFromValue } from '@usebruno/common/utils';
 import * as exampleReducers from './exampleReducers';
+import * as mockResponseEditorReducers from './mockResponseEditorReducers';
 
 const FILE_DERIVED_REQUEST_FIELDS = [
   'name',
@@ -53,6 +55,13 @@ const FILE_DERIVED_FOLDER_FIELDS = [
   'type',
   'root'
 ];
+
+// Derive from the config on disk only — never keep a previous collection.format.
+// After a migrate-to-yml followed by a git revert to bru, a stale 'yml' would hide
+// the "Convert to YML" action forever.
+const deriveCollectionFormat = (brunoConfig) => {
+  return brunoConfig?.opencollection ? 'yml' : brunoConfig?.format || 'bru';
+};
 
 const mergeTreeItems = (existingItems, newItems) => {
   if (!Array.isArray(existingItems) || existingItems.length === 0) return newItems;
@@ -172,6 +181,14 @@ const REQUEST_UID_PATHS = [
 
 const ROOT_UID_PATHS = ['request.headers', 'request.vars.req', 'request.vars.res'];
 
+const applyReorder = (params, updateReorderedItem) => {
+  const byUid = new Map(params.map((param) => [param.uid, param]));
+  const reordered = updateReorderedItem.map((uid) => byUid.get(uid)).filter(Boolean);
+  const reorderedUids = new Set(updateReorderedItem);
+  const missing = params.filter((param) => !reorderedUids.has(param.uid));
+  return [...reordered, ...missing];
+};
+
 const mergeRequestWithPreservedUids = (existingRequest, newRequest) =>
   preserveUidsAtPaths(existingRequest, newRequest, REQUEST_UID_PATHS);
 
@@ -183,7 +200,8 @@ const initialState = {
   collectionSortOrder: 'default',
   activeConnections: [],
   tempDirectories: {},
-  saveTransientRequestModals: []
+  saveTransientRequestModals: [],
+  mockResponseEditors: {}
 };
 
 const initiatedGrpcResponse = {
@@ -237,13 +255,8 @@ export const collectionsSlice = createSlice({
       // values can be 'unmounted', 'mounting', 'mounted'
       collection.mountStatus = 'unmounted';
 
-      // Add format property from brunoConfig for easy access
-      // YAML collections have 'opencollection' field, BRU collections have 'version' field
-      if (collection.brunoConfig?.opencollection) {
-        collection.format = 'yml';
-      } else {
-        collection.format = collection.brunoConfig?.format || 'bru';
-      }
+      // YAML collections have an 'opencollection' field, BRU collections a 'version' field
+      collection.format = deriveCollectionFormat(collection.brunoConfig);
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
@@ -311,6 +324,7 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.brunoConfig = brunoConfig;
+        collection.format = deriveCollectionFormat(brunoConfig);
       }
     },
     renameCollection: (state, action) => {
@@ -380,6 +394,10 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.environments = filter(collection.environments, (e) => e.uid !== environment.uid);
+
+        if (collection.environmentsDraft?.environmentUid === environment.uid) {
+          collection.environmentsDraft = null;
+        }
       }
     },
     saveEnvironment: (state, action) => {
@@ -408,6 +426,27 @@ export const collectionsSlice = createSlice({
         } else {
           collection.activeEnvironmentUid = null;
         }
+        // Any explicit selection (including "No Environment") cancels a pending default
+        // so a late-loading environment file can't re-apply the default over this choice.
+        collection.pendingDefaultEnvironment = null;
+      }
+    },
+    applyDefaultEnvironment: (state, action) => {
+      const { collectionUid, defaultEnvironmentName } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      // Never override an existing selection.
+      if (collection.activeEnvironmentUid) return;
+
+      const environment = (collection.environments || []).find((env) => env?.name === defaultEnvironmentName);
+      if (environment) {
+        collection.activeEnvironmentUid = environment.uid;
+        collection.pendingDefaultEnvironment = null;
+      } else {
+        // Environment files aren't loaded yet - remember to apply the default once the
+        // matching environment file arrives (see collectionAddEnvFileEvent).
+        collection.pendingDefaultEnvironment = defaultEnvironmentName;
       }
     },
     updateEnvironmentColor: (state, action) => {
@@ -956,6 +995,7 @@ export const collectionsSlice = createSlice({
               content: null
             }
           },
+          settings: { ...DEFAULT_HTTP_ITEM_SETTINGS },
           draft: null
         };
         item.draft = cloneDeep(item);
@@ -1697,12 +1737,14 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           item.draft.request.body.file = item.draft.request.body.file || [];
+          const shouldSelectNewFile = !item.draft.request.body.file.some((p) => p.selected);
 
           item.draft.request.body.file.push({
             uid: uuid(),
             filePath: '',
             contentType: '',
-            selected: false
+            description: '',
+            selected: shouldSelectNewFile
           });
         }
       }
@@ -1724,12 +1766,18 @@ export const collectionsSlice = createSlice({
             const contentType = mime.contentType(path.extname(action.payload.param.filePath));
             param.filePath = action.payload.param.filePath;
             param.contentType = action.payload.param.contentType || contentType || '';
-            param.selected = action.payload.param.selected;
+            param.description = action.payload.param.description ?? param.description ?? '';
 
-            item.draft.request.body.file = item.draft.request.body.file.map((p) => {
-              p.selected = p.uid === param.uid;
-              return p;
-            });
+            if (typeof action.payload.param.selected === 'boolean') {
+              param.selected = action.payload.param.selected;
+
+              if (param.selected) {
+                item.draft.request.body.file = item.draft.request.body.file.map((p) => {
+                  p.selected = p.uid === param.uid;
+                  return p;
+                });
+              }
+            }
           }
         }
       }
@@ -2528,6 +2576,26 @@ export const collectionsSlice = createSlice({
         set(folder, 'draft.request.vars.res', mappedVars);
       }
     },
+    moveFolderVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      const type = action.payload.type;
+
+      if (folder) {
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+
+        const { updateReorderedItem } = action.payload;
+        if (type === 'request') {
+          const params = get(folder, 'draft.request.vars.req', []);
+          set(folder, 'draft.request.vars.req', applyReorder(params, updateReorderedItem));
+        } else if (type === 'response') {
+          const params = get(folder, 'draft.request.vars.res', []);
+          set(folder, 'draft.request.vars.res', applyReorder(params, updateReorderedItem));
+        }
+      }
+    },
     updateFolderRequestScript: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
@@ -2772,6 +2840,27 @@ export const collectionsSlice = createSlice({
         set(collection, 'draft.root.request.vars.res', mappedVars);
       }
     },
+    moveCollectionVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+
+      if (collection) {
+        if (!collection.draft) {
+          collection.draft = {
+            root: cloneDeep(collection.root)
+          };
+        }
+
+        const { updateReorderedItem } = action.payload;
+        if (type === 'request') {
+          const params = get(collection, 'draft.root.request.vars.req', []);
+          set(collection, 'draft.root.request.vars.req', applyReorder(params, updateReorderedItem));
+        } else if (type === 'response') {
+          const params = get(collection, 'draft.root.request.vars.res', []);
+          set(collection, 'draft.root.request.vars.res', applyReorder(params, updateReorderedItem));
+        }
+      }
+    },
     scriptUpdateCollectionVars: (state, action) => {
       const { collectionUid, vars } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -2978,17 +3067,43 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, file.data.uid);
 
         if (item) {
-          // whenever a user attempts to sort a req within the same folder
-          // the seq is updated, but everything else remains the same
-          // we don't want to lose the draft in this case
-          if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
-            item.seq = file.data.seq;
-            item.raw = file.data.raw;
-            if (item?.draft) {
-              item.draft.seq = file.data.seq;
-            }
-            if (item?.draft && areItemsTheSameExceptSeqUpdate(item?.draft, file.data)) {
-              item.draft = null;
+          item.partial = file.partial;
+          item.error = file.error;
+          item.loading = file.loading;
+          if (item.request) {
+            if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
+              // whenever a user attempts to sort a req within the same folder
+              // the seq is updated, but everything else remains the same
+              // we don't want to lose the draft in this case
+              item.seq = file.data.seq;
+              item.raw = file.data.raw;
+              if (item?.draft) {
+                item.draft.seq = file.data.seq;
+              }
+              if (item?.draft && areItemsTheSameExceptSeqUpdate(item?.draft, file.data)) {
+                item.draft = null;
+              }
+            } else {
+              item.name = file.data.name;
+              item.type = file.data.type;
+              item.seq = file.data.seq;
+              item.tags = file.data.tags;
+              item.request = mergeRequestWithPreservedUids(item.request, file.data.request);
+              item.settings = file.data.settings;
+              item.examples = file.data.examples;
+              item.app = file.data.app ? { ...file.data.app } : null;
+              item.filename = file.meta.name;
+              item.pathname = file.meta.pathname;
+              item.raw = file.data.raw;
+              item.size = file.size;
+              // Only clear draft if it matches the file content
+              // This preserves characters typed during autosave
+              // The raw comparison is guarded so an undefined === undefined match
+              // (when neither side has raw content) does not wipe a genuine draft
+              const draftRawMatchesFile = item.draft?.raw !== undefined && item.draft.raw === file.data.raw;
+              if (item.draft && (areItemsTheSameExceptSeqUpdate(item.draft, file.data) || draftRawMatchesFile)) {
+                item.draft = null;
+              }
             }
           } else {
             item.name = file.data.name;
@@ -3002,13 +3117,8 @@ export const collectionsSlice = createSlice({
             item.filename = file.meta.name;
             item.pathname = file.meta.pathname;
             item.raw = file.data.raw;
-
-            // Only clear draft if it matches the file content
-            // This preserves characters typed during autosave
-            // The raw comparison is guarded so an undefined === undefined match
-            // (when neither side has raw content) does not wipe a genuine draft
-            const draftRawMatchesFile = item.draft?.raw !== undefined && item.draft.raw === file.data.raw;
-            if (item.draft && (areItemsTheSameExceptSeqUpdate(item.draft, file.data) || draftRawMatchesFile)) {
+            item.size = file.size;
+            if (!item.draft || item.draft.raw === file.data.raw) {
               item.draft = null;
             }
           }
@@ -3065,6 +3175,17 @@ export const collectionsSlice = createSlice({
               collection.activeEnvironmentUid = environment.uid;
             }
           }
+        }
+
+        // Apply a pending default environment once its file has loaded (first open only,
+        // and only while nothing else has been selected).
+        if (
+          collection.pendingDefaultEnvironment
+          && !collection.activeEnvironmentUid
+          && environment.name === collection.pendingDefaultEnvironment
+        ) {
+          collection.activeEnvironmentUid = environment.uid;
+          collection.pendingDefaultEnvironment = null;
         }
       }
     },
@@ -3478,6 +3599,7 @@ export const collectionsSlice = createSlice({
       }
       if (tree?.brunoConfig) {
         collection.brunoConfig = tree.brunoConfig;
+        collection.format = deriveCollectionFormat(tree.brunoConfig);
       }
       const tempDirectory = state.tempDirectories?.[collectionUid];
       if (tempDirectory) {
@@ -3803,6 +3925,11 @@ export const collectionsSlice = createSlice({
           updatedResponse.status = 'CONNECTING';
           updatedResponse.statusText = 'CONNECTING';
           break;
+
+        case 'disconnecting':
+          updatedResponse.status = 'DISCONNECTING';
+          updatedResponse.statusText = 'DISCONNECTING';
+          break;
       }
 
       item.response = updatedResponse;
@@ -3822,11 +3949,11 @@ export const collectionsSlice = createSlice({
       state.tempDirectories[action.payload.collectionUid] = action.payload.pathname;
     },
     addSaveTransientRequestModal: (state, action) => {
-      const { item, collection } = action.payload;
+      const { item, collection, closeAfterSave = false } = action.payload;
       // Avoid duplicates - check if this item is already in the array
       const exists = state.saveTransientRequestModals.some((modal) => modal.item.uid === item.uid);
       if (!exists) {
-        state.saveTransientRequestModals.push({ item, collection });
+        state.saveTransientRequestModals.push({ item, collection, closeAfterSave });
       }
     },
     removeSaveTransientRequestModal: (state, action) => {
@@ -3879,7 +4006,12 @@ export const collectionsSlice = createSlice({
     deleteResponseExampleFormUrlEncodedParam: exampleReducers.deleteResponseExampleFormUrlEncodedParam,
     addResponseExampleMultipartFormParam: exampleReducers.addResponseExampleMultipartFormParam,
     updateResponseExampleMultipartFormParam: exampleReducers.updateResponseExampleMultipartFormParam,
-    deleteResponseExampleMultipartFormParam: exampleReducers.deleteResponseExampleMultipartFormParam
+    deleteResponseExampleMultipartFormParam: exampleReducers.deleteResponseExampleMultipartFormParam,
+    initMockResponseEditor: mockResponseEditorReducers.initMockResponseEditor,
+    syncMockResponseEditorSaved: mockResponseEditorReducers.syncMockResponseEditorSaved,
+    updateMockResponseRules: mockResponseEditorReducers.updateMockResponseRules,
+    cancelMockResponseEditorEdit: mockResponseEditorReducers.cancelMockResponseEditorEdit,
+    removeMockResponseEditor: mockResponseEditorReducers.removeMockResponseEditor
     /* End Response Example Actions */
   }
 });
@@ -3901,6 +4033,7 @@ export const {
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,
+  applyDefaultEnvironment,
   updateEnvironmentColor,
   newItem,
   deleteItem,
@@ -3987,6 +4120,7 @@ export const {
   updateFolderVar,
   deleteFolderVar,
   setFolderVars,
+  moveFolderVar,
   updateFolderRequestScript,
   updateFolderResponseScript,
   updateFolderTests,
@@ -3997,6 +4131,7 @@ export const {
   updateCollectionVar,
   deleteCollectionVar,
   setCollectionVars,
+  moveCollectionVar,
   scriptUpdateCollectionVars,
   setScriptCollVarBaseline,
   _clearScriptCollectionBaselines,
@@ -4078,7 +4213,21 @@ export const {
   moveResponseExampleRequestHeader,
   setResponseExampleRequestHeaders,
   setResponseExampleParams,
-  /* Response Example Actions - End */
+  updateResponseExampleBody,
+  addResponseExampleFileParam,
+  updateResponseExampleFileParam,
+  deleteResponseExampleFileParam,
+  addResponseExampleFormUrlEncodedParam,
+  updateResponseExampleFormUrlEncodedParam,
+  deleteResponseExampleFormUrlEncodedParam,
+  addResponseExampleMultipartFormParam,
+  updateResponseExampleMultipartFormParam,
+  deleteResponseExampleMultipartFormParam,
+  initMockResponseEditor,
+  syncMockResponseEditorSaved,
+  updateMockResponseRules,
+  cancelMockResponseEditorEdit,
+  removeMockResponseEditor,
   addTransientDirectory,
   addSaveTransientRequestModal,
   removeSaveTransientRequestModal,
