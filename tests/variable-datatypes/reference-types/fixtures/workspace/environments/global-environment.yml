@@ -1,6 +1,7 @@
 name: global-environment
 
 variables:
+  # Source variables
   - name: globalEnvString
     value: hello
   - name: globalEnvNumber
@@ -19,87 +20,108 @@ variables:
     value:
       type: object
       data: '{"inner":{"stringField":"hello","numberField":300,"booleanField":true}}'
-  - name: globalEnvObject.port
-    value:
-      type: boolean
-      data: "true"
   - name: globalEnvObjectWithArray
     value:
       type: object
       data: '{"abc":[2,true]}'
+  - name: globalEnvNull
+    value: "null"
+  # Dotted name — shadows the path into globalEnvObject
+  - name: globalEnvObject.port
+    value:
+      type: boolean
+      data: "true"
 
-  - name: stringTypeRefersToString
+  # Primitive references — ref<Selected>From<Referenced>
+  - name: refStringFromString
     value: "{{globalEnvString}}"
-  - name: numberTypeRefersToNumber
-    value:
-      type: number
-      data: "{{globalEnvNumber}}"
-  - name: booleanTypeRefersToBoolean
-    value:
-      type: boolean
-      data: "{{globalEnvBoolean}}"
-  - name: objectTypeRefersToObject
-    value:
-      type: object
-      data: "{{globalEnvObject}}"
-  - name: stringTypeRefersToNestedString
-    value: "{{globalEnvNestedObject.inner.stringField}}"
-  - name: numberTypeRefersToNestedNumber
-    value:
-      type: number
-      data: "{{globalEnvNestedObject.inner.numberField}}"
-  - name: booleanTypeRefersToNestedBoolean
-    value:
-      type: boolean
-      data: "{{globalEnvNestedObject.inner.booleanField}}"
-
-  - name: booleanTypeRefersToDottedKey
-    value:
-      type: boolean
-      data: "{{globalEnvObject.port}}"
-
-  - name: stringTypeRefersToArrayBoolean
-    value: "{{globalEnvObjectWithArray.abc.1}}"
-  - name: booleanTypeRefersToArrayBoolean
-    value:
-      type: boolean
-      data: "{{globalEnvObjectWithArray.abc.1}}"
-  - name: numberTypeRefersToArrayNumber
-    value:
-      type: number
-      data: "{{globalEnvObjectWithArray.abc.0}}"
-  - name: objectTypeRefersToArray
-    value:
-      type: object
-      data: "{{globalEnvObjectWithArray.abc}}"
-
-  - name: stringTypeRefersToNumber
-    value: "{{globalEnvNumber}}"
-  - name: numberTypeRefersToString
+  - name: refNumberFromString
     value:
       type: number
       data: "{{globalEnvString}}"
-  - name: booleanTypeRefersToObject
+
+  - name: refStringFromNumber
+    value: "{{globalEnvNumber}}"
+  - name: refNumberFromNumber
+    value:
+      type: number
+      data: "{{globalEnvNumber}}"
+  - name: refBooleanFromNumber
     value:
       type: boolean
-      data: "{{globalEnvObject}}"
-  - name: objectTypeRefersToBoolean
+      data: "{{globalEnvNumber}}"
+
+  - name: refBooleanFromBoolean
+    value:
+      type: boolean
+      data: "{{globalEnvBoolean}}"
+  - name: refObjectFromBoolean
     value:
       type: object
       data: "{{globalEnvBoolean}}"
-  - name: numberTypeRefersToNestedString
+
+  - name: refObjectFromObject
+    value:
+      type: object
+      data: "{{globalEnvObject}}"
+  - name: refBooleanFromObject
+    value:
+      type: boolean
+      data: "{{globalEnvObject}}"
+
+  - name: refStringFromNull
+    value: "{{globalEnvNull}}"
+  - name: refNumberFromNull
+    value:
+      type: number
+      data: "{{globalEnvNull}}"
+
+  # Nested object references
+  - name: refStringFromNestedString
+    value: "{{globalEnvNestedObject.inner.stringField}}"
+  - name: refNumberFromNestedNumber
+    value:
+      type: number
+      data: "{{globalEnvNestedObject.inner.numberField}}"
+  - name: refBooleanFromNestedBoolean
+    value:
+      type: boolean
+      data: "{{globalEnvNestedObject.inner.booleanField}}"
+  - name: refNumberFromNestedString
     value:
       type: number
       data: "{{globalEnvNestedObject.inner.stringField}}"
-  - name: booleanTypeRefersToNestedNumber
+  - name: refBooleanFromNestedNumber
     value:
       type: boolean
       data: "{{globalEnvNestedObject.inner.numberField}}"
-  - name: numberTypeRefersToArrayBoolean
+
+  # Array references
+  - name: refStringFromArrayBoolean
+    value: "{{globalEnvObjectWithArray.abc.1}}"
+  - name: refBooleanFromArrayBoolean
+    value:
+      type: boolean
+      data: "{{globalEnvObjectWithArray.abc.1}}"
+  - name: refNumberFromArrayNumber
+    value:
+      type: number
+      data: "{{globalEnvObjectWithArray.abc.0}}"
+  - name: refObjectFromArray
+    value:
+      type: object
+      data: "{{globalEnvObjectWithArray.abc}}"
+  - name: refNumberFromArrayBoolean
     value:
       type: number
       data: "{{globalEnvObjectWithArray.abc.1}}"
-  - name: objectTypeRefersToArrayBoolean
+  - name: refObjectFromArrayBoolean
     value:
       type: object
       data: "{{globalEnvObjectWithArray.abc.1}}"
+
+  # Dotted-key reference — resolves to the variable, not the path
+  - name: refBooleanFromDottedKey
+    value:
+      type: boolean
+      data: "{{globalEnvObject.port}}"
