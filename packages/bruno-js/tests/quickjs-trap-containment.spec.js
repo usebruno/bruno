@@ -134,8 +134,6 @@ describe('QuickJS engine trap containment', () => {
     expect(unhandledRejections).toEqual([]);
   });
 
-  // Two traps while a replacement is still building must share that one build;
-  // quickJSModuleLoading exists so concurrent recycles do not stampede.
   it('coalesces concurrent recycles into a single replacement build', async () => {
     const actual = jest.requireActual('quickjs-emscripten');
     let builds = 0;
@@ -182,8 +180,6 @@ describe('QuickJS engine trap containment', () => {
     expect(builds).toBe(2);
   }, 30000);
 
-  // A script failure must win over a later non-trap dispose failure on the same
-  // foreground teardown path (disposeContext background:false).
   it('preserves the script error when foreground dispose also fails', async () => {
     const { sandbox, wasmModule } = await loadSandbox((vm) => {
       vm.dispose = () => {
