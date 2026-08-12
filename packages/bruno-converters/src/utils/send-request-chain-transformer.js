@@ -149,7 +149,7 @@ const rewriteResponsePropertyAccess = (j, handlerPath) => {
  * @param {Object} j - jscodeshift API
  * @param {Object} ast - jscodeshift AST collection
  */
-const awaitAndRewriteSendRequestChains = (j, ast) => {
+const processSendRequestChains = (j, ast) => {
   ast.find(j.CallExpression, {
     callee: {
       type: 'Identifier',
@@ -176,4 +176,4 @@ const awaitAndRewriteSendRequestChains = (j, ast) => {
   });
 };
 
-export default awaitAndRewriteSendRequestChains;
+export default processSendRequestChains;
