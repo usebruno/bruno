@@ -44,6 +44,8 @@ const CollectionsList = ({ workspace }) => {
 
   const isDefaultWorkspace = workspace?.type === 'default';
 
+  const isNotCloned = (collection) => !isDefaultWorkspace && collection.notFoundLocally;
+
   const unopenableCollections = useMemo(() => {
     return (workspace.unopenableCollections || []).map((wc) => ({
       uid: `unopenable-${wc.path}`,
@@ -360,7 +362,7 @@ const CollectionsList = ({ workspace }) => {
                   {collection.failedToOpen && (
                     <StatusBadge status="danger" size="xs">Failed to open</StatusBadge>
                   )}
-                  {!isDefaultWorkspace && collection.notFoundLocally && (
+                  {isNotCloned(collection) && (
                     <StatusBadge status="warning" size="xs">Not cloned</StatusBadge>
                   )}
                 </div>
@@ -380,7 +382,7 @@ const CollectionsList = ({ workspace }) => {
                   icon={<IconDots size={18} strokeWidth={1.5} />}
                 >
                   <div className="collection-dropdown">
-                    {!collection.failedToOpen && !collection.notFoundLocally && (
+                    {!collection.failedToOpen && !isNotCloned(collection) && (
                       <>
                         <div
                           className="dropdown-item"
@@ -468,7 +470,7 @@ const CollectionsList = ({ workspace }) => {
                       <IconX size={16} strokeWidth={1.5} />
                       <span>Remove</span>
                     </div>
-                    {!collection.failedToOpen && !collection.notFoundLocally && (
+                    {!collection.failedToOpen && !isNotCloned(collection) && (
                       <div
                         className="dropdown-item delete-item"
                         onClick={(e) => {
