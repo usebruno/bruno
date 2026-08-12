@@ -469,14 +469,52 @@ const registerNetworkIpc = (mainWindow) => {
     });
   };
 
-  const sendRunnerResponseReceived = ({ requestUid, responseReceived, error, eventData }) => {
+  const runnerRow = ({ requestUid, eventData }) => ({
+    request_uid: requestUid,
+    collection_uid: eventData.collectionUid,
+    iteration_index: eventData.iterationIndex,
+    item_uid: eventData.itemUid
+  });
+
+  const sendRunnerRequestSent = ({ requestUid, requestSent, eventData }) => {
+    const request = safeStringifyJSON(requestSent);
+
     // TODO (chirag): DB storage comes here
-    console.log('[runner:response-received]', {
+    console.log('[runner:request -> db]', {
+      ...runnerRow({ requestUid, eventData }),
+      bytes: Buffer.byteLength(request || ''),
+      request
+    });
+
+    // TODO (chirag): once requests are read from the DB, this is all the renderer gets
+    console.log('[runner:request -> renderer]', {
+      ...eventData,
+      requestUid
+    });
+
+    mainWindow.webContents.send('main:run-folder-event', {
+      type: 'request-sent',
+      requestSent,
+      ...eventData
+    });
+  };
+
+  const sendRunnerResponseReceived = ({ requestUid, responseReceived, error, eventData }) => {
+    const response = safeStringifyJSON(responseReceived);
+
+    // TODO (chirag): DB storage comes here
+    console.log('[runner:response -> db]', {
+      ...runnerRow({ requestUid, eventData }),
+      bytes: Buffer.byteLength(response || ''),
+      response
+    });
+
+    // TODO (chirag): once responses are read from the DB, this is all the renderer gets
+    console.log('[runner:response -> renderer]', {
       ...eventData,
       requestUid,
       status: responseReceived?.status,
-      bodySize: responseReceived?.size,
-      payloadSize: Buffer.byteLength(safeStringifyJSON(responseReceived) || '')
+      statusText: responseReceived?.statusText
     });
 
     mainWindow.webContents.send('main:run-folder-event', {
@@ -1819,11 +1857,7 @@ const registerNetworkIpc = (mainWindow) => {
             // todo:
             // i have no clue why electron can't send the request object
             // without safeParseJSON(safeStringifyJSON(request.data))
-            mainWindow.webContents.send('main:run-folder-event', {
-              type: 'request-sent',
-              requestSent,
-              ...eventData
-            });
+            sendRunnerRequestSent({ requestUid, requestSent, eventData });
 
             currentAbortController = new AbortController();
             request.signal = currentAbortController.signal;
