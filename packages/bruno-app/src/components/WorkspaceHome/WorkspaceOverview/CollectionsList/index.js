@@ -44,6 +44,8 @@ const CollectionsList = ({ workspace }) => {
 
   const isDefaultWorkspace = workspace?.type === 'default';
 
+  const isNotCloned = (collection) => !isDefaultWorkspace && collection.notFoundLocally;
+
   const unopenableCollections = useMemo(() => {
     return (workspace.unopenableCollections || []).map((wc) => ({
       uid: `unopenable-${wc.path}`,
@@ -102,6 +104,7 @@ const CollectionsList = ({ workspace }) => {
         environments: [],
         isGitBacked: !!wc.remote,
         isLoaded: false,
+        notFoundLocally: !!wc.notFoundLocally,
         gitRemoteUrl: wc.remote,
         git: { gitRootPath: null },
         brunoConfig: {},
@@ -118,7 +121,12 @@ const CollectionsList = ({ workspace }) => {
       };
     });
 
-    return [...resolvedCollections, ...unopenableCollections];
+    const unopenablePaths = new Set(unopenableCollections.map((c) => normalizePath(c.pathname)));
+
+    return [
+      ...resolvedCollections.filter((c) => !unopenablePaths.has(normalizePath(c.pathname))),
+      ...unopenableCollections
+    ];
   }, [workspace.collections, workspace.scratchTempDirectory, collections, unopenableCollections]);
 
   const handleOpenCollectionClick = (collection, event) => {
@@ -188,7 +196,7 @@ const CollectionsList = ({ workspace }) => {
 
   const handleRemoveCollection = (collection) => {
     dropdownRefs.current[collection.uid]?.hide();
-    if (collection.failedToOpen) {
+    if (collection.failedToOpen || collection.notFoundLocally) {
       dispatch(removeCollectionFromWorkspaceAction(workspace.uid, collection.pathname))
         .then(() => toast.success('Collection removed from workspace'))
         .catch(() => toast.error('An error occurred while removing the collection'));
@@ -354,7 +362,7 @@ const CollectionsList = ({ workspace }) => {
                   {collection.failedToOpen && (
                     <StatusBadge status="danger" size="xs">Failed to open</StatusBadge>
                   )}
-                  {!isDefaultWorkspace && collection.isLoaded === false && !collection.failedToOpen && (
+                  {isNotCloned(collection) && (
                     <StatusBadge status="warning" size="xs">Not cloned</StatusBadge>
                   )}
                 </div>
@@ -374,7 +382,7 @@ const CollectionsList = ({ workspace }) => {
                   icon={<IconDots size={18} strokeWidth={1.5} />}
                 >
                   <div className="collection-dropdown">
-                    {!collection.failedToOpen && (
+                    {!collection.failedToOpen && !isNotCloned(collection) && (
                       <>
                         <div
                           className="dropdown-item"
@@ -406,6 +414,10 @@ const CollectionsList = ({ workspace }) => {
                           <IconFolder size={16} strokeWidth={1.5} />
                           <span>{getRevealInFolderLabel()}</span>
                         </div>
+                      </>
+                    )}
+                    {!collection.failedToOpen && (
+                      <>
                         {!isDefaultWorkspace && (
                           <>
                             {collection.isGitBacked && (
@@ -458,7 +470,7 @@ const CollectionsList = ({ workspace }) => {
                       <IconX size={16} strokeWidth={1.5} />
                       <span>Remove</span>
                     </div>
-                    {!collection.failedToOpen && (
+                    {!collection.failedToOpen && !isNotCloned(collection) && (
                       <div
                         className="dropdown-item delete-item"
                         onClick={(e) => {
