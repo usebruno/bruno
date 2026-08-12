@@ -40,7 +40,7 @@ const useChangelogOnUpdate = () => {
 
     const onboarding = preferences.onboarding || {};
     const { lastSeenVersion } = onboarding;
-    if (lastSeenVersion && semver.valid(lastSeenVersion) && semver.gte(lastSeenVersion, currentVersion)) return;
+    // if (lastSeenVersion && semver.valid(lastSeenVersion) && semver.gte(lastSeenVersion, currentVersion)) return;
 
     dispatch(addTab({
       type: 'changelog',
