@@ -11,8 +11,10 @@ jest.mock('utils/common', () => {
 
 import {
   cloneMockResponseRecord,
+  getMockResponseDescriptionError,
   getMockResponseNameError,
   isMockResponseNameTaken,
+  MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH,
   MOCK_RESPONSE_NAME_MAX_LENGTH,
   resolveMockResponseCollection,
   resolveMockResponseEditorCollection
@@ -143,6 +145,20 @@ describe('resolveMockResponseEditorCollection', () => {
       expect(getMockResponseNameError(paddedAtLimit)).toBeNull();
       expect(getMockResponseNameError(paddedOverLimit))
         .toBe(`Name must be ${MOCK_RESPONSE_NAME_MAX_LENGTH} characters or less`);
+    });
+  });
+
+  describe('getMockResponseDescriptionError', () => {
+    it('flags descriptions longer than the max length after trimming', () => {
+      const overflow = 'a'.repeat(MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH + 1);
+      expect(getMockResponseDescriptionError(overflow))
+        .toBe(`Description must be ${MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH} characters or less`);
+    });
+
+    it('accepts empty and in-bounds descriptions', () => {
+      expect(getMockResponseDescriptionError('')).toBeNull();
+      expect(getMockResponseDescriptionError(null)).toBeNull();
+      expect(getMockResponseDescriptionError('a'.repeat(MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH))).toBeNull();
     });
   });
 

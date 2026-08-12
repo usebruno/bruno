@@ -1,13 +1,9 @@
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
-import { setupRequestDocs } from './actions';
+import { setupRequestDocs, clickDocsToolbarBtn } from './actions';
 import { modifier, pressShortcut } from '../shortcuts/helpers';
 
 test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-  });
-
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
@@ -20,7 +16,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
       await expect(prosemirror).toBeVisible();
 
       await prosemirror.click();
-      await locators.docs.toolbarBtn('Code block').click();
+      await clickDocsToolbarBtn(locators, 'Code block');
     });
 
     await test.step('Type code content', async () => {
@@ -38,7 +34,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
       await expect(prosemirror).toBeVisible();
 
       await prosemirror.click();
-      await locators.docs.toolbarBtn('Code block').click();
+      await clickDocsToolbarBtn(locators, 'Code block');
       await page.keyboard.type('const x = 1;');
       await page.keyboard.press('Enter');
       await page.keyboard.type('const y = 2;');
@@ -76,7 +72,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
       await expect(prosemirror).toBeVisible();
 
       await prosemirror.click();
-      await locators.docs.toolbarBtn('Code block').click();
+      await clickDocsToolbarBtn(locators, 'Code block');
     });
 
     await test.step('Paste JavaScript code', async () => {
@@ -118,7 +114,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
       await expect(prosemirror).toBeVisible();
 
       await prosemirror.click();
-      await locators.docs.toolbarBtn('Code block').click();
+      await clickDocsToolbarBtn(locators, 'Code block');
       await page.keyboard.type('const x = 1;');
     });
 
@@ -158,7 +154,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
     await test.step('Create a code block and type before the tab', async () => {
       await expect(prosemirror).toBeVisible();
       await prosemirror.click();
-      await locators.docs.toolbarBtn('Code block').click();
+      await clickDocsToolbarBtn(locators, 'Code block');
       await page.keyboard.type('const x =');
     });
 
@@ -185,7 +181,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
     await test.step('Insert an empty code block', async () => {
       await expect(prosemirror).toBeVisible();
       await prosemirror.click();
-      await locators.docs.toolbarBtn('Code block').click();
+      await clickDocsToolbarBtn(locators, 'Code block');
       await expect(locators.docs.codeBlockPre()).toBeVisible();
     });
 
@@ -202,7 +198,7 @@ test.describe('Rich Text Docs Editor Edge Cases - Code Blocks', () => {
     await test.step('Create a code block with content', async () => {
       await expect(prosemirror).toBeVisible();
       await prosemirror.click();
-      await locators.docs.toolbarBtn('Code block').click();
+      await clickDocsToolbarBtn(locators, 'Code block');
       await page.keyboard.type('const x = 1;');
     });
 

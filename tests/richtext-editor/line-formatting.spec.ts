@@ -1,12 +1,8 @@
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
-import { setupRequestDocs } from './actions';
+import { setupRequestDocs, clickDocsToolbarBtn } from './actions';
 
 test.describe('Rich Text Editor Edge Cases - Line Formatting', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-  });
-
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
@@ -58,23 +54,23 @@ test.describe('Rich Text Editor Edge Cases - Line Formatting', () => {
     }
     await page.keyboard.up('Shift');
 
-    await locators.docs.toolbarBtn('Bold').click();
+    await clickDocsToolbarBtn(locators, 'Bold');
     await expect(prosemirror.locator('strong')).toHaveText('World');
 
-    await locators.docs.toolbarBtn('Italic').click();
+    await clickDocsToolbarBtn(locators, 'Italic');
     await expect(prosemirror.locator('strong em, em strong').first()).toHaveText('World');
 
-    await locators.docs.toolbarBtn('Undo').click();
+    await clickDocsToolbarBtn(locators, 'Undo');
     await expect(prosemirror.locator('em')).toHaveCount(0);
     await expect(prosemirror.locator('strong')).toHaveText('World');
 
-    await locators.docs.toolbarBtn('Redo').click();
+    await clickDocsToolbarBtn(locators, 'Redo');
     await expect(prosemirror.locator('strong em, em strong').first()).toHaveText('World');
 
-    await locators.docs.toolbarBtn('Strikethrough').click();
+    await clickDocsToolbarBtn(locators, 'Strikethrough');
     await expect(prosemirror.locator('s')).toHaveText('World');
 
-    await locators.docs.toolbarBtn('Inline code').click();
+    await clickDocsToolbarBtn(locators, 'Inline code');
     await expect(prosemirror.locator('code')).toHaveText('World');
   });
 });
