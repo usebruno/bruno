@@ -1,12 +1,8 @@
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
-import { setupRequestDocs } from './actions';
+import { setupRequestDocs, clickDocsToolbarBtn } from './actions';
 
 test.describe('Rich Text Editor Edge Cases - Toolbar Overflow', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-  });
-
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
@@ -22,7 +18,7 @@ test.describe('Rich Text Editor Edge Cases - Toolbar Overflow', () => {
     await page.keyboard.down('Shift');
     await page.keyboard.press('End');
     await page.keyboard.up('Shift');
-    await locators.docs.toolbarBtn('Bold').click();
+    await clickDocsToolbarBtn(locators, 'Bold');
     await expect(prosemirror.locator('strong')).toHaveText('Hello');
 
     // Shrink the window so the toolbar can no longer fit every action button.

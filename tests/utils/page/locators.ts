@@ -15,6 +15,9 @@ import { buildToastLocators } from './toast';
 import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildEnvironmentLocators } from './environments';
+import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
+
+export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
 export const buildCommonLocators = (page: Page) => ({
   collectionHeader: buildCollectionHeaderLocators(page),
@@ -34,6 +37,7 @@ export const buildCommonLocators = (page: Page) => ({
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
+  workspaceOverview: buildWorkspaceOverviewLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),
@@ -58,8 +62,10 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsTab: () =>
       page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
+    activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
     closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
-    draftIndicator: () => page.locator('.request-tab.active .has-changes-icon')
+    draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
+    tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon')
   },
   paneTabs: {
     responsiveTab: (key: string) => page.getByTestId(`responsive-tab-${key}`),
@@ -154,7 +160,7 @@ export const buildCommonLocators = (page: Page) => ({
     dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
   },
   presets: {
-    requestType: (type: 'http' | 'graphql' | 'grpc' | 'ws') =>
+    requestType: (type: PresetRequestType) =>
       page.getByTestId(`presets-request-type-${type}`),
     requestUrl: () => page.getByTestId('presets-request-url'),
     saveBtn: () => page.getByTestId('presets-save-btn'),

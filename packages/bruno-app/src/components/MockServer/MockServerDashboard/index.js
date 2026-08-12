@@ -1,10 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
 import { startMockServer, stopMockServer, refreshMockRoutes, updateMockDelay, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
-import { IconRefresh, IconCopy, IconCheck, IconSettings } from '@tabler/icons';
+import { IconRefresh, IconCopy, IconCheck, IconPlayerPlay, IconPlayerStop, IconSettings } from '@tabler/icons';
 import toast from 'react-hot-toast';
-import { validateName, validateNameError } from 'utils/common/regex';
 import RouteTable from './RouteTable';
 import RequestLog from './RequestLog';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
@@ -14,14 +12,20 @@ import {
   getMockServerInstances,
   checkMockServerPortAvailable,
   getMockServerPortError,
+  getMockServerNameError,
   isMockServerNameTaken,
   resolveInstanceSpec,
   saveMockServerInstance,
   resolveMockServerStartPayload,
   resolveMockServerWorkspacePath,
-  updateMockServerTabName
+  updateMockServerTabName,
+  toMockServerDelayInputValue,
+  blockMockServerDelayKeys
 } from 'utils/mock-server/mock-server-instances';
 import MockResponsesList from 'components/MockServer/MockResponse/MockResponsesList';
+import Tab from 'components/Tab';
+import ActionIcon from 'ui/ActionIcon';
+import Button from 'ui/Button';
 import { resolveMockResponseCollection, resolveMockResponseLocation } from 'utils/mock-server/mock-responses';
 import StyledWrapper from './StyledWrapper';
 
@@ -191,8 +195,9 @@ const MockServerDashboard = ({ instance, collection }) => {
       return;
     }
 
-    if (!validateName(trimmedName)) {
-      toast.error(validateNameError(trimmedName));
+    const nameError = getMockServerNameError(trimmedName);
+    if (nameError) {
+      toast.error(nameError);
       setNameDraft(null);
       return;
     }
@@ -213,7 +218,7 @@ const MockServerDashboard = ({ instance, collection }) => {
   };
 
   const handleDelayChange = (event) => {
-    setDelayDraft(Number(event.target.value) || 0);
+    setDelayDraft(toMockServerDelayInputValue(event.target.value));
   };
 
   const handleDelayBlur = async () => {
@@ -259,12 +264,6 @@ const MockServerDashboard = ({ instance, collection }) => {
           ? 'Error'
           : 'Stopped';
 
-  const getTabClassname = (tabName) => {
-    return classnames('tab select-none', {
-      active: tabName === activeTab
-    });
-  };
-
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'responses':
@@ -272,7 +271,7 @@ const MockServerDashboard = ({ instance, collection }) => {
       case 'routes':
         return <RouteTable mockServerUid={mockServerUid} />;
       case 'log':
-        return <RequestLog mockServerUid={mockServerUid} />;
+        return <RequestLog mockServerUid={mockServerUid} location={location} />;
       default:
         return null;
     }
@@ -313,11 +312,12 @@ const MockServerDashboard = ({ instance, collection }) => {
         />
       )}
 
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-start justify-between gap-2 mb-3">
         <div className="min-w-0 flex-1">
           <input
             type="text"
             className="mock-server-name-input"
+            aria-label="Mock server name"
             value={nameValue}
             onChange={(event) => setNameDraft(event.target.value)}
             onBlur={handleNameBlur}
@@ -328,102 +328,124 @@ const MockServerDashboard = ({ instance, collection }) => {
             }}
             data-testid="mock-server-title-input"
           />
-          <div className="text-xs opacity-70 mt-1" data-testid="mock-server-source-label">
+          <div className="source-label" data-testid="mock-server-source-label">
             Source: {sourceLabel}
           </div>
         </div>
-        <button
-          className="action-btn refresh-btn"
+        <ActionIcon
+          label="Mock server settings"
           onClick={() => setSettingsOpen(true)}
-          title="Mock server settings"
           data-testid="mock-server-settings-btn"
         >
-          <IconSettings size={14} strokeWidth={1.5} />
-        </button>
+          <IconSettings size={16} stroke={1.5} aria-hidden="true" />
+        </ActionIcon>
       </div>
 
       <div className="server-bar" data-testid="mock-server-controls">
-        <div className="status-indicator">
-          <div className={`status-dot ${statusDotClass}`} data-testid="mock-server-status-dot" />
-          <span className="status-text" data-testid="mock-server-status-text">{statusLabel}</span>
+        <div className="server-bar-main">
+          <div className="status-indicator">
+            <div className={`status-dot ${statusDotClass}`} data-testid="mock-server-status-dot" />
+            <span className="status-text" data-testid="mock-server-status-text">{statusLabel}</span>
+          </div>
+
+          {isRunning && baseUrl && (
+            <button className="copy-url-btn" onClick={handleCopyUrl} title="Copy mock server URL" data-testid="mock-server-copy-url">
+              {copied ? <IconCheck size={13} strokeWidth={2} /> : <IconCopy size={13} strokeWidth={1.5} />}
+              <span className="url-text">{baseUrl}</span>
+            </button>
+          )}
+
+          {isRunning && (
+            <div className="server-stats" data-testid="mock-server-stats">
+              <span>{serverState.routeCount} routes</span>
+              <span>{serverState.exampleCount} responses</span>
+            </div>
+          )}
+
+          <div className="server-controls">
+            <div className="control-group">
+              <label htmlFor="mock-server-delay-input">Delay (ms)</label>
+              <input
+                id="mock-server-delay-input"
+                type="number"
+                value={delayValue}
+                onChange={handleDelayChange}
+                onKeyDown={blockMockServerDelayKeys}
+                onBlur={handleDelayBlur}
+                disabled={isStarting}
+                min={0}
+                step={100}
+                data-testid="mock-server-delay-input"
+              />
+            </div>
+
+            {!isRunning && !isStopping ? (
+              <Button
+                size="sm"
+                icon={<IconPlayerPlay size={14} stroke={1.5} />}
+                onClick={handleStart}
+                disabled={isStarting || Boolean(portError)}
+                data-testid="mock-server-start-btn"
+              >
+                {isStarting ? 'Starting...' : 'Start Server'}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  color="danger"
+                  size="sm"
+                  icon={<IconPlayerStop size={14} stroke={1.5} />}
+                  onClick={handleStop}
+                  disabled={isStopping}
+                  data-testid="mock-server-stop-btn"
+                >
+                  {isStopping ? 'Stopping...' : 'Stop Server'}
+                </Button>
+                {!isStopping && (
+                  <ActionIcon label="Refresh routes" onClick={handleRefresh} data-testid="mock-server-refresh-btn">
+                    <IconRefresh size={16} stroke={1.5} aria-hidden="true" />
+                  </ActionIcon>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
-        {isRunning && baseUrl && (
-          <button className="copy-url-btn" onClick={handleCopyUrl} title="Copy mock server URL" data-testid="mock-server-copy-url">
-            {copied ? <IconCheck size={13} strokeWidth={2} /> : <IconCopy size={13} strokeWidth={1.5} />}
-            <span className="url-text">{baseUrl}</span>
-          </button>
-        )}
-
         {isRunning && storedInstance.port && serverState.port && Number(storedInstance.port) !== Number(serverState.port) && (
-          <div className="text-xs text-amber-600 mt-1" data-testid="mock-server-port-mismatch">
+          <div className="server-notice" data-testid="mock-server-port-mismatch">
             Configured port {storedInstance.port} differs from the running port {serverState.port}.
           </div>
         )}
 
-        <div className="server-controls">
-          <div className="control-group">
-            <label htmlFor="mock-server-delay-input">Delay (ms)</label>
-            <input
-              id="mock-server-delay-input"
-              type="number"
-              value={delayValue}
-              onChange={handleDelayChange}
-              onBlur={handleDelayBlur}
-              disabled={isStarting}
-              min={0}
-              step={100}
-              data-testid="mock-server-delay-input"
-            />
-          </div>
-
-          {!isRunning && !isStopping ? (
-            <button
-              className="action-btn start-btn"
-              onClick={handleStart}
-              disabled={isStarting || Boolean(portError)}
-              data-testid="mock-server-start-btn"
-            >
-              {isStarting ? 'Starting...' : 'Start Server'}
-            </button>
-          ) : (
-            <>
-              <button className="action-btn stop-btn" onClick={handleStop} disabled={isStopping} data-testid="mock-server-stop-btn">
-                {isStopping ? 'Stopping...' : 'Stop Server'}
-              </button>
-              {!isStopping && (
-                <button className="action-btn refresh-btn" onClick={handleRefresh} title="Refresh routes" data-testid="mock-server-refresh-btn">
-                  <IconRefresh size={14} strokeWidth={1.5} />
-                </button>
-              )}
-            </>
-          )}
-        </div>
-
-        {isRunning && (
-          <div className="server-stats" data-testid="mock-server-stats">
-            <span>{serverState.routeCount} routes</span>
-            <span>{serverState.exampleCount} responses</span>
-          </div>
-        )}
-
         {serverState.error && (
-          <div className="error-message" data-testid="mock-server-error">{serverState.error}</div>
+          <div className="server-error" data-testid="mock-server-error">{serverState.error}</div>
         )}
       </div>
 
       <div className="flex flex-wrap items-center tabs" role="tablist">
-        <div className={getTabClassname('responses')} role="tab" data-testid="mock-server-tab-responses" onClick={() => setActiveTab('responses')}>
-          Responses
-        </div>
-        <div className={getTabClassname('routes')} role="tab" data-testid="mock-server-tab-routes" onClick={() => setActiveTab('routes')}>
-          Routes
-          {serverState.routeCount > 0 && <sup className="ml-1 font-medium">{serverState.routeCount}</sup>}
-        </div>
-        <div className={getTabClassname('log')} role="tab" data-testid="mock-server-tab-log" onClick={() => setActiveTab('log')}>
-          Request Log
-          <MockServerLogCount mockServerUid={mockServerUid} />
-        </div>
+        <Tab
+          name="responses"
+          label="Responses"
+          isActive={activeTab === 'responses'}
+          onClick={setActiveTab}
+          data-testid="mock-server-tab-responses"
+        />
+        <Tab
+          name="routes"
+          label="Routes"
+          count={serverState.routeCount}
+          isActive={activeTab === 'routes'}
+          onClick={setActiveTab}
+          data-testid="mock-server-tab-routes"
+        />
+        <Tab
+          name="log"
+          label={<>Request Log<MockServerLogCount mockServerUid={mockServerUid} /></>}
+          isActive={activeTab === 'log'}
+          onClick={setActiveTab}
+          data-testid="mock-server-tab-log"
+        />
       </div>
 
       <section className="mt-4 h-full overflow-auto">
