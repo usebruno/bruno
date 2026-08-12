@@ -493,34 +493,24 @@ const registerNetworkIpc = (mainWindow) => {
   const sendRunnerRequestSent = ({ requestUid, requestSent, eventData }) => {
     storeRunnerExchange({ requestUid, eventData, request: safeStringifyJSON(requestSent) });
 
-    // TODO (chirag): once requests are read from the DB, this is all the renderer gets
-    console.log('[runner:request -> renderer]', {
-      ...eventData,
-      requestUid
-    });
-
     mainWindow.webContents.send('main:run-folder-event', {
       type: 'request-sent',
-      requestSent,
       ...eventData
     });
   };
 
+  // The renderer only needs what the runner list renders; it reads the payloads back out of sqlite
+  // by requestUid when a row is expanded.
   const sendRunnerResponseReceived = ({ requestUid, responseReceived, error, eventData }) => {
     storeRunnerExchange({ requestUid, eventData, response: safeStringifyJSON(responseReceived) });
-
-    // TODO (chirag): once responses are read from the DB, this is all the renderer gets
-    console.log('[runner:response -> renderer]', {
-      ...eventData,
-      requestUid,
-      status: responseReceived?.status,
-      statusText: responseReceived?.statusText
-    });
 
     mainWindow.webContents.send('main:run-folder-event', {
       type: 'response-received',
       ...(error ? { error } : {}),
-      responseReceived,
+      responseReceived: {
+        status: responseReceived?.status,
+        statusText: responseReceived?.statusText
+      },
       ...eventData
     });
   };
