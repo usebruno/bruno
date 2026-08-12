@@ -469,6 +469,24 @@ const registerNetworkIpc = (mainWindow) => {
     });
   };
 
+  const sendRunnerResponseReceived = ({ requestUid, responseReceived, error, eventData }) => {
+    // TODO (chirag): DB storage comes here
+    console.log('[runner:response-received]', {
+      ...eventData,
+      requestUid,
+      status: responseReceived?.status,
+      bodySize: responseReceived?.size,
+      payloadSize: Buffer.byteLength(safeStringifyJSON(responseReceived) || '')
+    });
+
+    mainWindow.webContents.send('main:run-folder-event', {
+      type: 'response-received',
+      ...(error ? { error } : {}),
+      responseReceived,
+      ...eventData
+    });
+  };
+
   const notifyScriptExecution = ({
     channel, // 'main:run-request-event' | 'main:run-folder-event'
     basePayload, // request-level or runner-level identifiers
@@ -1894,8 +1912,8 @@ const registerNetworkIpc = (mainWindow) => {
 
               mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-              mainWindow.webContents.send('main:run-folder-event', {
-                type: 'response-received',
+              sendRunnerResponseReceived({
+                requestUid,
                 responseReceived: {
                   status: response.status,
                   statusText: response.statusText,
@@ -1908,7 +1926,7 @@ const registerNetworkIpc = (mainWindow) => {
                   timeline: response.timeline,
                   url: response.request ? response.request.protocol + '//' + response.request.host + response.request.path : null
                 },
-                ...eventData
+                eventData
               });
             } catch (error) {
               // Skip further processing if request was cancelled
@@ -1943,11 +1961,11 @@ const registerNetworkIpc = (mainWindow) => {
                 };
 
                 // if we get a response from the server, we consider it as a success
-                mainWindow.webContents.send('main:run-folder-event', {
-                  type: 'response-received',
+                sendRunnerResponseReceived({
+                  requestUid,
                   error: error ? error.message : 'An error occurred while running the request',
                   responseReceived: response,
-                  ...eventData
+                  eventData
                 });
               } else {
                 await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
