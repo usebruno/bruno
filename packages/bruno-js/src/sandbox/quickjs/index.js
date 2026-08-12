@@ -44,8 +44,8 @@ const loader = ({ reload = false } = {}) => {
         // callers already awaiting; a failed initial load has no fallback, so
         // clear the memo for retry and surface the failure.
         quickJSModulePromise = reload ? previousPromise : null;
-        if (reload && previousPromise) {
-          return previousPromise;
+        if (quickJSModulePromise) {
+          return quickJSModulePromise;
         }
         throw loadError;
       })
