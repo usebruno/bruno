@@ -10,9 +10,5 @@ INSERT OR REPLACE INTO runner_responses (
 -- name: get_runner_response :one
 SELECT request, response FROM runner_responses WHERE request_uid = @request_uid;
 
--- name: list_runner_responses_for_iteration :many
-SELECT item_uid, request, response FROM runner_responses
-WHERE collection_uid = @collection_uid AND iteration_index = @iteration_index;
-
 -- name: delete_runner_responses_for_collection :exec
 DELETE FROM runner_responses WHERE collection_uid = @collection_uid;
