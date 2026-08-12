@@ -35,9 +35,12 @@ const responsePropertyMap = {
  */
 const getStaticPropertyName = (memberExpr) => {
   const property = memberExpr.property;
+
   if (memberExpr.computed) {
+  // .['then] => literal
     return property.type === 'Literal' && typeof property.value === 'string' ? property.value : null;
   }
+  // .then => identifier
   return property.type === 'Identifier' ? property.name : null;
 };
 
@@ -64,7 +67,12 @@ export const getChainedPromiseMemberPath = (path) => {
  */
 const isInAsyncContext = (j, path) => {
   const enclosingFunction = j(path).closest(j.Function);
-  return !enclosingFunction.size() || enclosingFunction.get().value.async === true;
+
+  const isTopLevel = enclosingFunction.size() === 0;
+  if (isTopLevel) return true;
+
+  const isAsyncFunction = enclosingFunction.get().value.async === true;
+  return isAsyncFunction;
 };
 
 /**
@@ -77,7 +85,8 @@ const getPromiseChainLinks = (callPath) => {
   const links = [];
   let currentPath = callPath;
 
-  for (let memberPath = getChainedPromiseMemberPath(currentPath); memberPath; memberPath = getChainedPromiseMemberPath(currentPath)) {
+  let memberPath;
+  while ((memberPath = getChainedPromiseMemberPath(currentPath))) {
     const chainedCallPath = memberPath.parent;
     if (!chainedCallPath || chainedCallPath.value.type !== 'CallExpression') break;
 
@@ -163,7 +172,7 @@ const awaitAndRewriteSendRequestChains = (j, ast) => {
     if (outermostPath.parent.value.type === 'AwaitExpression') return;
     if (!isInAsyncContext(j, outermostPath)) return;
 
-    j(outermostPath).replaceWith(j.awaitExpression(outermostPath.value));
+    outermostPath.parentPath.value[outermostPath.name] = j.awaitExpression(outermostPath.value);
   });
 };
 
