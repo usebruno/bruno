@@ -5,7 +5,9 @@ const {
   setFolderVars,
   setCollectionVars,
   selectEnvironment,
+  applyDefaultEnvironment,
   runtimeVariablesUpdateEvent,
+  collectionAddEnvFileEvent,
   updateFile,
   wsResponseReceived
 } = collectionsSlice.actions;
@@ -35,7 +37,7 @@ const assertGuardedVars = (vars) => {
   expect(vars[2].dataType).toBeUndefined();
 };
 
-describe('selectEnvironment — isolates runtime variables by environment', () => {
+describe('active environment changes — isolate runtime variables by environment', () => {
   const makeState = () => ({
     collections: [
       {
@@ -112,6 +114,52 @@ describe('selectEnvironment — isolates runtime variables by environment', () =
     );
 
     expect(next.collections[0].runtimeVariables).toEqual({ title: 'current-runtime-value' });
+  });
+
+  it('clears runtime variables when the default environment becomes active', () => {
+    const state = makeState();
+    state.collections[0].activeEnvironmentUid = null;
+
+    const next = reducer(
+      state,
+      applyDefaultEnvironment({ collectionUid: 'col1', defaultEnvironmentName: 'B' })
+    );
+
+    expect(next.collections[0].activeEnvironmentUid).toBe('env-b');
+    expect(next.collections[0].runtimeVariables).toEqual({});
+  });
+
+  it('clears runtime variables when a newly added environment becomes active', () => {
+    const state = makeState();
+    state.collections[0].lastAction = { type: 'ADD_ENVIRONMENT', payload: 'B' };
+
+    const next = reducer(
+      state,
+      collectionAddEnvFileEvent({
+        collectionUid: 'col1',
+        environment: { uid: 'env-c', name: 'B' }
+      })
+    );
+
+    expect(next.collections[0].activeEnvironmentUid).toBe('env-c');
+    expect(next.collections[0].runtimeVariables).toEqual({});
+  });
+
+  it('clears runtime variables when a pending default environment file loads', () => {
+    const state = makeState();
+    state.collections[0].activeEnvironmentUid = null;
+    state.collections[0].pendingDefaultEnvironment = 'C';
+
+    const next = reducer(
+      state,
+      collectionAddEnvFileEvent({
+        collectionUid: 'col1',
+        environment: { uid: 'env-c', name: 'C' }
+      })
+    );
+
+    expect(next.collections[0].activeEnvironmentUid).toBe('env-c');
+    expect(next.collections[0].runtimeVariables).toEqual({});
   });
 });
 
