@@ -39,6 +39,7 @@ const registerGrpcEventHandlers = require('./grpc-event-handlers');
 const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { easterEggResponse } = require('../../utils/woof');
+const { getStatements } = require('../sqlite');
 const { buildFormUrlEncodedPayload, isFormData, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
 const ERROR_OCCURRED_WHILE_EXECUTING_REQUEST = 'Error occurred while executing the request!';
@@ -474,15 +475,23 @@ const registerNetworkIpc = (mainWindow) => {
     item_uid: eventData.itemUid
   });
 
-  const sendRunnerRequestSent = ({ requestUid, requestSent, eventData }) => {
-    const request = safeStringifyJSON(requestSent);
+  const storeRunnerExchange = ({ requestUid, eventData, request = null, response = null }) => {
+    const statements = getStatements();
+    if (!statements) return;
 
-    // TODO (chirag): DB storage comes here
-    console.log('[runner:request -> db]', {
-      ...runnerRow({ requestUid, eventData }),
-      bytes: Buffer.byteLength(request || ''),
-      request
-    });
+    try {
+      statements.execute('upsert_runner_response', {
+        ...runnerRow({ requestUid, eventData }),
+        request,
+        response
+      });
+    } catch (error) {
+      console.error('[runner] failed to store exchange', requestUid, error);
+    }
+  };
+
+  const sendRunnerRequestSent = ({ requestUid, requestSent, eventData }) => {
+    storeRunnerExchange({ requestUid, eventData, request: safeStringifyJSON(requestSent) });
 
     // TODO (chirag): once requests are read from the DB, this is all the renderer gets
     console.log('[runner:request -> renderer]', {
@@ -498,14 +507,7 @@ const registerNetworkIpc = (mainWindow) => {
   };
 
   const sendRunnerResponseReceived = ({ requestUid, responseReceived, error, eventData }) => {
-    const response = safeStringifyJSON(responseReceived);
-
-    // TODO (chirag): DB storage comes here
-    console.log('[runner:response -> db]', {
-      ...runnerRow({ requestUid, eventData }),
-      bytes: Buffer.byteLength(response || ''),
-      response
-    });
+    storeRunnerExchange({ requestUid, eventData, response: safeStringifyJSON(responseReceived) });
 
     // TODO (chirag): once responses are read from the DB, this is all the renderer gets
     console.log('[runner:response -> renderer]', {
