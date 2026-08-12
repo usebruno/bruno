@@ -163,6 +163,43 @@ describe('getVariableScope — global environment secrets', () => {
   });
 });
 
+describe('getAvailableAddToScopes — Environment scope labels name the target environment', () => {
+  it('names the active environment in the Collection Environment label, so the user can see which file a new variable would land in', () => {
+    const scopes = getAvailableAddToScopes({
+      activeEnvironmentUid: 'env-1',
+      activeEnvironmentName: 'Staging',
+      hasCollection: true
+    });
+
+    const environmentScope = scopes.find((s) => s.type === 'environment');
+    expect(environmentScope.label).toBe('Collection Environment (Staging)');
+  });
+
+  it('falls back to the plain "Collection Environment" label when no active environment name is known', () => {
+    const scopes = getAvailableAddToScopes({ hasCollection: true });
+
+    const environmentScope = scopes.find((s) => s.type === 'environment');
+    expect(environmentScope.label).toBe('Collection Environment');
+  });
+
+  it('names the active global environment in the Global Environment label', () => {
+    const scopes = getAvailableAddToScopes({
+      activeGlobalEnvironmentUid: 'genv-1',
+      activeGlobalEnvironmentName: 'Personal'
+    });
+
+    const globalScope = scopes.find((s) => s.type === 'global');
+    expect(globalScope.label).toBe('Global Environment (Personal)');
+  });
+
+  it('falls back to the plain "Global Environment" label when no active global environment name is known', () => {
+    const scopes = getAvailableAddToScopes({});
+
+    const globalScope = scopes.find((s) => s.type === 'global');
+    expect(globalScope.label).toBe('Global Environment');
+  });
+});
+
 describe('getAvailableAddToScopes — Folder scope label', () => {
   it('labels the Folder scope "Parent Folder(name)" for a normal ancestor folder', () => {
     const scopes = getAvailableAddToScopes({

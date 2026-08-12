@@ -131,7 +131,7 @@ export const goToVariableDefinition = (scopeInfo, collection, item, variableName
         ? activeTab
         : (tabsState.tabs || []).find((t) => t.type === 'global-environment-settings');
 
-      const fallbackCollectionUid = collection?.uid || activeTab?.collectionUid;
+      const fallbackCollectionUid = collection.uid || activeTab?.collectionUid;
       const globalEnvironmentTabUid = existingGlobalTab?.uid || `${fallbackCollectionUid}-global-environment-settings`;
       const environmentUid = state.globalEnvironments?.activeGlobalEnvironmentUid;
 

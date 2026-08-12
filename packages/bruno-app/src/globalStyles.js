@@ -722,7 +722,7 @@ const GlobalStyle = createGlobalStyle`
     flex-shrink: 0;
     width: 0.875rem;
     height: 0.875rem;
-    border-radius: ${(props) => props.theme.border.radius.sm || props.theme.border.radius.base};
+    border-radius: ${(props) => props.theme.border.radius.sm};
     font-size: 0.5rem;
     font-weight: 600;
     line-height: 1;

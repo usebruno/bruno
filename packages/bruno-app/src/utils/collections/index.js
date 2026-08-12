@@ -1960,13 +1960,17 @@ export const isScratchCollection = (collection, workspaces) => {
 const SCOPE_CONFIG = [
   {
     type: VARIABLE_ADD_SCOPES.GLOBAL,
-    label: 'Global Environment',
+    label: ({ activeGlobalEnvironmentName }) => (
+      activeGlobalEnvironmentName ? `Global Environment (${activeGlobalEnvironmentName})` : 'Global Environment'
+    ),
     supportsSecret: true,
     enabled: ({ activeGlobalEnvironmentUid }) => !!activeGlobalEnvironmentUid
   },
   {
     type: VARIABLE_ADD_SCOPES.ENVIRONMENT,
-    label: 'Collection Environment',
+    label: ({ activeEnvironmentName }) => (
+      activeEnvironmentName ? `Collection Environment (${activeEnvironmentName})` : 'Collection Environment'
+    ),
     supportsSecret: true,
     isAvailable: ({ hasCollection }) => hasCollection,
     enabled: ({ activeEnvironmentUid }) => !!activeEnvironmentUid
@@ -2000,7 +2004,9 @@ const SCOPE_CONFIG = [
  * Resolves which scopes an undefined `{{variable}}` can be added to.
  * @param {Object} options
  * @param {string} [options.activeEnvironmentUid] - The collection's active environment uid, if any.
+ * @param {string} [options.activeEnvironmentName] - The collection's active environment name, if any.
  * @param {string} [options.activeGlobalEnvironmentUid] - The active global environment uid, if any.
+ * @param {string} [options.activeGlobalEnvironmentName] - The active global environment name, if any.
  * @param {Object} [options.item] - The request/folder item the tooltip was opened from, if any.
  *   Request Variable is only added when this is a request (see isItemARequest).
  * @param {Object} [options.parentFolder] - The folder variables should be added to, if any: either
@@ -2015,7 +2021,9 @@ const SCOPE_CONFIG = [
  */
 export const getAvailableAddToScopes = ({
   activeEnvironmentUid,
+  activeEnvironmentName,
   activeGlobalEnvironmentUid,
+  activeGlobalEnvironmentName,
   item,
   parentFolder,
   isSelfFolder = false,
@@ -2023,7 +2031,9 @@ export const getAvailableAddToScopes = ({
 } = {}) => {
   const context = {
     activeEnvironmentUid,
+    activeEnvironmentName,
     activeGlobalEnvironmentUid,
+    activeGlobalEnvironmentName,
     item,
     parentFolder,
     isSelfFolder,

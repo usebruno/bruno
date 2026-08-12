@@ -376,8 +376,8 @@ export const renderVarInfo = (token, options) => {
   // Check if a runtime variable exists - if so, show Runtime scope (even if detected as collection/folder/environment)
   const displayScopeType = hasRuntimeVariable ? 'runtime' : (scopeInfo ? scopeInfo.type : 'Unknown');
   const scopeLabel = getScopeLabel(displayScopeType);
-  const isNewVariable = scopeInfo && scopeInfo.data && scopeInfo.data.variable === null;
-  const canGoToDefinition = !!collection && !isNewVariable && !hasRuntimeVariable && ['request', 'folder', 'collection', 'environment', 'global'].includes(scopeInfo?.type);
+  const isNewVariable = scopeInfo.data && scopeInfo.data.variable === null;
+  const canGoToDefinition = !!collection && !isNewVariable && !hasRuntimeVariable && ['request', 'folder', 'collection', 'environment', 'global'].includes(scopeInfo.type);
 
   // If the variable is not new and has a valid scope, make the variable name clickable to go to its definition
   if (canGoToDefinition) {
@@ -461,7 +461,7 @@ export const renderVarInfo = (token, options) => {
   );
 
   // Create editable value display/editor (if editable)
-  if (!isReadOnly && scopeInfo) {
+  if (!isReadOnly) {
     // Handle secret/masked variables state
     let isRevealed = false;
 
@@ -693,6 +693,7 @@ export const renderVarInfo = (token, options) => {
         })
         .catch((err) => {
           console.error('Failed to update variable:', err);
+          toast.error(err?.message || 'Failed to update variable');
           cmEditor.setValue(originalValue);
           updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
         });
@@ -771,16 +772,24 @@ export const renderVarInfo = (token, options) => {
       };
 
       const addToScopesState = store.getState();
-      const globalEnvironmentsState = (addToScopesState && addToScopesState.globalEnvironments) || {};
+      const globalEnvironmentsState = addToScopesState.globalEnvironments || {};
 
       // Use the latest collection state so "Add to Environment" targets the real
       // active environment, not the environment currently being viewed in environment settings.
       const freshCollectionForScopes = collection?.uid
-        ? findCollectionByUid(addToScopesState?.collections?.collections, collection.uid)
+        ? findCollectionByUid(addToScopesState.collections?.collections, collection.uid)
         : null;
+      const activeEnvironmentName = (freshCollectionForScopes?.environments || []).find(
+        (env) => env.uid === freshCollectionForScopes?.activeEnvironmentUid
+      )?.name;
+      const activeGlobalEnvironmentName = (globalEnvironmentsState.globalEnvironments || []).find(
+        (env) => env.uid === globalEnvironmentsState.activeGlobalEnvironmentUid
+      )?.name;
       const addToScopes = getAvailableAddToScopes({
         activeEnvironmentUid: freshCollectionForScopes?.activeEnvironmentUid,
+        activeEnvironmentName,
         activeGlobalEnvironmentUid: globalEnvironmentsState.activeGlobalEnvironmentUid,
+        activeGlobalEnvironmentName,
         item,
         parentFolder: folderScopeTarget,
         isSelfFolder: isInFolderSettings,
@@ -839,7 +848,6 @@ export const renderVarInfo = (token, options) => {
       };
 
       const onSwitchScope = (scope, { immediate = false } = {}) => {
-        // on scope switch, rebuild the scopeInfo based on the new scope and update the scope badge.
         const newScopeInfo = buildScopeInfoForSwitch(scope);
         if (!newScopeInfo) {
           return;
@@ -847,7 +855,6 @@ export const renderVarInfo = (token, options) => {
         scopeInfo = newScopeInfo;
         scopeBadge.textContent = getScopeLabel(newScopeInfo.type);
 
-        // If immediate is true, persist the new variable immediately after switching scope.
         // for inline create environment flow, the new variable is persisted immediately after the environment is created and selected.
         if (immediate) {
           persistNewVariable(getPendingSecret()).catch((err) => {
