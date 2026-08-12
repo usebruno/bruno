@@ -21,9 +21,8 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
 
   const { testResults, assertionResults, preRequestTestResults, postResponseTestResults, error } = item;
 
-  const stored = useStoredRunnerExchange(item);
-  const requestSent = stored.requestSent ?? item.requestSent;
-  const responseReceived = stored.responseReceived ?? item.responseReceived ?? {};
+  const { requestSent, responseReceived: storedResponse } = useStoredRunnerExchange(item);
+  const responseReceived = storedResponse ?? item.responseReceived ?? {};
 
   useEffect(() => {
     if (item?.preRequestScriptErrorMessage || item?.postResponseScriptErrorMessage || item?.testScriptErrorMessage) {
