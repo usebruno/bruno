@@ -6,7 +6,7 @@ jest.mock('electron', () => ({
 
 jest.mock('../src/store/preferences', () => ({
   preferencesUtil: {
-    isBetaFeatureEnabled: () => true
+    isBetaFeatureEnabled: (featureName) => featureName === 'mock-server'
   }
 }));
 
