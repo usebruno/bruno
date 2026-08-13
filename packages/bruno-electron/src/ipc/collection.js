@@ -26,7 +26,7 @@ const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
-const { wsClient } = require('../ipc/network/ws-event-handlers');
+const wsEventHandlers = require('../ipc/network/ws-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
 const { transformProxyConfig } = require('@usebruno/requests');
 
@@ -362,8 +362,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       // tear down the old watcher before moving the collection directory
       if (watcher && mainWindow) {
         watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
-        if (wsClient) {
-          wsClient.closeForCollection(collectionUid);
+        if (wsEventHandlers.wsClient) {
+          wsEventHandlers.wsClient.closeForCollection(collectionUid);
         }
       }
 
@@ -1322,8 +1322,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     if (watcher && mainWindow) {
       watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
 
-      if (wsClient) {
-        wsClient.closeForCollection(collectionUid);
+      if (wsEventHandlers.wsClient) {
+        wsEventHandlers.wsClient.closeForCollection(collectionUid);
       }
     }
 
