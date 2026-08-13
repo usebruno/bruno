@@ -42,8 +42,8 @@ test.describe.serial('QuickJS safe mode teardown', () => {
       await setSandboxMode(page, 'quickjs-safe-mode', 'safe');
       await runCollection(page, 'quickjs-safe-mode');
       await validateRunnerResults(page, {
-        totalRequests: 6,
-        passed: 6,
+        totalRequests: 7,
+        passed: 7,
         failed: 0,
         skipped: 0
       });
@@ -57,8 +57,8 @@ test.describe.serial('QuickJS safe mode teardown', () => {
     await test.step('a second full run stays healthy after the trap', async () => {
       await runCollection(page, 'quickjs-safe-mode');
       await validateRunnerResults(page, {
-        totalRequests: 6,
-        passed: 6,
+        totalRequests: 7,
+        passed: 7,
         failed: 0,
         skipped: 0
       });

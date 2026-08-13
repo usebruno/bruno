@@ -68,9 +68,7 @@ describe('QuickJS engine trap containment', () => {
 
     const warns = warnSpy.mock.calls.map((args) => String(args[0]));
     expect(warns[0]).toBe('QuickJS engine crashed during cleanup and was replaced; the run was not affected');
-    expect(warns[1]).toBe(
-      'QuickJS engine crashed during cleanup and was replaced; the run was not affected (2 times this session)'
-    );
+    expect(warns[1]).toBe('QuickJS engine replaced again (2 this session)');
   }, 30000);
 
   it('swallows only the exact dispose abort line and forwards all other engine stderr', () => {

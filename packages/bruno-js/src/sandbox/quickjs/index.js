@@ -71,8 +71,11 @@ const recycleQuickJSModuleOnAbort = (teardownError, ownerModule) => {
   // Skip if this module was already replaced.
   if (!ownerModule || ownerModule === QuickJSModule) {
     quickJSModuleRecycleCount += 1;
-    const repeatNote = quickJSModuleRecycleCount > 1 ? ` (${quickJSModuleRecycleCount} times this session)` : '';
-    console.warn(`QuickJS engine crashed during cleanup and was replaced; the run was not affected${repeatNote}`);
+    console.warn(
+      quickJSModuleRecycleCount === 1
+        ? 'QuickJS engine crashed during cleanup and was replaced; the run was not affected'
+        : `QuickJS engine replaced again (${quickJSModuleRecycleCount} this session)`
+    );
     loader({ reload: true }).catch(() => {});
   }
   return true;
