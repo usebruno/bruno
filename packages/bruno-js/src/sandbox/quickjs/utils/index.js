@@ -8,7 +8,7 @@ const createManagedQuickJsContext = (module) => {
   const vm = module.newContext();
   const disposeTracked = trackQuickJsContext(vm);
   const evalCodeRetained = vm.evalCode.bind(vm);
-  const { waitForPendingDeferreds, disposePendingDeferreds, hasPendingDeferreds } = trackPendingDeferreds(vm);
+  const { waitForPendingDeferreds, disposePendingDeferreds } = trackPendingDeferreds(vm);
 
   vm.evalCode = (code, filename = 'eval.js') => {
     const result = evalCodeRetained(code, filename);
@@ -25,7 +25,6 @@ const createManagedQuickJsContext = (module) => {
   return {
     vm,
     waitForPendingDeferreds,
-    hasPendingDeferreds,
     dispose: () => disposeQuickJsContext(vm, disposeTracked, disposePendingDeferreds)
   };
 };
@@ -72,9 +71,7 @@ const trackPendingDeferreds = (vm) => {
 
   return {
     waitForPendingDeferreds,
-    disposePendingDeferreds,
-    // Settling disposes a deferred's handles, so alive means unsettled.
-    hasPendingDeferreds: () => deferreds.some((deferred) => deferred.alive)
+    disposePendingDeferreds
   };
 };
 

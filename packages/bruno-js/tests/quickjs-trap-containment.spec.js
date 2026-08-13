@@ -60,9 +60,11 @@ describe('QuickJS engine trap containment', () => {
     let builds = 0;
     jest.doMock('quickjs-emscripten', () => ({
       ...actual,
-      newQuickJSWASMModule: (...args) => {
+      newQuickJSWASMModuleFromVariant: (...args) => {
         builds += 1;
-        return builds === 2 ? Promise.reject(new Error('wasm build failed')) : actual.newQuickJSWASMModule(...args);
+        return builds === 2
+          ? Promise.reject(new Error('wasm build failed'))
+          : actual.newQuickJSWASMModuleFromVariant(...args);
       }
     }));
 
@@ -112,11 +114,11 @@ describe('QuickJS engine trap containment', () => {
     let builds = 0;
     jest.doMock('quickjs-emscripten', () => ({
       ...actual,
-      newQuickJSWASMModule: (...args) => {
+      newQuickJSWASMModuleFromVariant: (...args) => {
         builds += 1;
         return builds === 1
           ? Promise.reject(new Error('wasm initial build failed'))
-          : actual.newQuickJSWASMModule(...args);
+          : actual.newQuickJSWASMModuleFromVariant(...args);
       }
     }));
 
@@ -144,12 +146,12 @@ describe('QuickJS engine trap containment', () => {
 
     jest.doMock('quickjs-emscripten', () => ({
       ...actual,
-      newQuickJSWASMModule: (...args) => {
+      newQuickJSWASMModuleFromVariant: (...args) => {
         builds += 1;
         if (builds === 1) {
-          return actual.newQuickJSWASMModule(...args);
+          return actual.newQuickJSWASMModuleFromVariant(...args);
         }
-        return reloadGate.then(() => actual.newQuickJSWASMModule(...args));
+        return reloadGate.then(() => actual.newQuickJSWASMModuleFromVariant(...args));
       }
     }));
 

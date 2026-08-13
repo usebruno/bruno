@@ -6,7 +6,23 @@ const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
 const addLocalModuleLoaderShimToContext = require('./shims/local-module');
 const { getRequireCode } = require('./shims/require');
-const { newQuickJSWASMModule } = require('quickjs-emscripten');
+const { newQuickJSWASMModuleFromVariant, newVariant, RELEASE_SYNC } = require('quickjs-emscripten');
+
+// The engine prints its dispose-abort assertion to stderr on its own. Swallow
+// that line on the CLI, where stderr is the user's screen and a handled trap
+// would read as a crash; keep it in the app, whose console is not user facing.
+const isElectronHost = Boolean(process.versions.electron);
+const isContainedAbortLine = (line) =>
+  String(line).includes('list_empty(&rt->gc_obj_list)') && String(line).includes('JS_FreeRuntime');
+const quietEngineVariant = newVariant(RELEASE_SYNC, {
+  emscriptenModule: {
+    printErr: (line) => {
+      if (isElectronHost || !isContainedAbortLine(line)) {
+        console.error(line);
+      }
+    }
+  }
+});
 
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
 const getBundledCode = require('../bundle-browser-rollup');
@@ -26,7 +42,7 @@ const loader = ({ reload = false } = {}) => {
   if (!quickJSModulePromise || (reload && !quickJSModuleLoading)) {
     const previousPromise = quickJSModulePromise;
     quickJSModuleLoading = true;
-    quickJSModulePromise = newQuickJSWASMModule()
+    quickJSModulePromise = newQuickJSWASMModuleFromVariant(quietEngineVariant)
       .then((mod) => {
         QuickJSModule = mod;
         return mod;
@@ -55,7 +71,8 @@ const recycleQuickJSModuleOnAbort = (teardownError, ownerModule) => {
   // Skip if this module was already replaced.
   if (!ownerModule || ownerModule === QuickJSModule) {
     quickJSModuleRecycleCount += 1;
-    console.warn(`QuickJS module recycled, ${quickJSModuleRecycleCount} this session`);
+    const repeatNote = quickJSModuleRecycleCount > 1 ? ` (${quickJSModuleRecycleCount} times this session)` : '';
+    console.warn(`QuickJS engine crashed during cleanup and was replaced; the run was not affected${repeatNote}`);
     loader({ reload: true }).catch(() => {});
   }
   return true;
@@ -134,8 +151,9 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
     try {
       managedQuickJsContext?.dispose();
     } catch (teardownError) {
-      recycleQuickJSModuleOnAbort(teardownError, quickJsModule);
-      console.error('Error disposing QuickJS context', teardownError);
+      if (!recycleQuickJSModuleOnAbort(teardownError, quickJsModule)) {
+        console.error('Error disposing QuickJS context', teardownError);
+      }
     }
   }
 };
@@ -205,7 +223,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
       const recycled = recycleQuickJSModuleOnAbort(teardownError, quickJsModule);
       if (!scriptError && !recycled) {
         scriptError = teardownError;
-      } else {
+      } else if (!recycled) {
         console.error('Error disposing QuickJS context', teardownError);
       }
     }
