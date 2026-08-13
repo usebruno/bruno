@@ -195,6 +195,7 @@ const getPromiseChainLinks = (callPath) => {
 
     const chainedCallPath = memberPath.parent;
     if (!chainedCallPath || chainedCallPath.value.type !== 'CallExpression') break;
+    if (chainedCallPath.value.callee !== memberPath.value) break;
 
     links.push({ callPath: chainedCallPath, methodName });
     currentPath = chainedCallPath;

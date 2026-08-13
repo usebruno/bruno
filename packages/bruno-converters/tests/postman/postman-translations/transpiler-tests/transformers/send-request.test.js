@@ -1328,6 +1328,102 @@ await bru.sendRequest({
       `);
     });
 
+    it('should rewrite response access on both sides of a reassignment in the same handler', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              console.log(res.code);
+              res = 5;
+              console.log(res.code);
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              console.log(res.status);
+              res = 5;
+              console.log(res.status);
+          });
+      `);
+    });
+
+    it('should stop after a handler that reassigns its parameter conditionally', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              if (x) {
+                  res = res.json();
+              }
+              console.log(res.code);
+              return res;
+          })
+          .then((r) => {
+              console.log(r.code);
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              if (x) {
+                  res = res.data;
+              }
+              console.log(res.status);
+              return res;
+          })
+          .then((r) => {
+              console.log(r.code);
+          });
+      `);
+    });
+
+    it('should not rewrite past a handler that returns its parameter through an alias', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              const r = res;
+              return r;
+          })
+          .then((data) => {
+              console.log(data.code);
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              const r = res;
+              return r;
+          })
+          .then((data) => {
+              console.log(data.code);
+          });
+      `);
+    });
+
+    it('should rewrite past a function-expression pass-through handler', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then(function (res) {
+              return res;
+          })
+          .then(function (data) {
+              console.log(data.code);
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then(function (res) {
+              return res;
+          })
+          .then(function (data) {
+              console.log(data.status);
+          });
+      `);
+    });
+
     it('should not rewrite past a handler that returns nothing', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' })
