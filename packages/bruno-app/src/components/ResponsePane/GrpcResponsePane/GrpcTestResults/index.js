@@ -46,14 +46,14 @@ const ResultItem = ({ result }) => (
   </div>
 );
 
-const GrpcTestSection = ({ title, results, isExpanded, onToggle }) => {
+const GrpcTestSection = ({ sectionKey, title, results, isExpanded, onToggle }) => {
   if (results.length === 0) return null;
 
   const passedCount = results.filter((result) => result.status === 'pass').length;
   const failedCount = results.length - passedCount;
 
   return (
-    <div className="mb-4">
+    <div className="mb-4" data-testid={`grpc-test-section-${sectionKey}`}>
       <div
         className="font-medium test-summary flex items-center cursor-pointer hover:bg-opacity-10 hover:bg-gray-500 rounded py-2"
         onClick={onToggle}
@@ -114,6 +114,7 @@ const GrpcTestResults = ({ item, sections }) => {
       {sections.map((section) => (
         <GrpcTestSection
           key={section.key}
+          sectionKey={section.key}
           title={section.title}
           results={section.results}
           isExpanded={expandedSections[section.key]}
