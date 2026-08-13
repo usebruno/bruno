@@ -2003,12 +2003,15 @@ const switchWorkspace = async (page: Page, workspaceName: string) => {
   });
 };
 
+type GrpcScriptHook = 'before-call-start' | 'after-call-end';
+
 /**
- * Navigate to a Script sub-tab (pre-request / post-response)
+ * Navigate to a Script sub-tab (pre-request / post-response for http & graphql, the lifecycle
+ * hooks for gRPC)
  * @param page - The page object
  * @param subTab - The sub-tab to select
  */
-const selectScriptSubTab = async (page: Page, subTab: 'pre-request' | 'post-response') => {
+const selectScriptSubTab = async (page: Page, subTab: 'pre-request' | 'post-response' | GrpcScriptHook) => {
   await test.step(`Select Script sub-tab "${subTab}"`, async () => {
     await selectRequestPaneTab(page, 'Script');
     const trigger = buildCommonLocators(page).paneTabs.tabTrigger(subTab);
@@ -2058,6 +2061,51 @@ const addPostResponseScript = async (page: Page, content: string) => {
   await test.step('Add post-response script', async () => {
     await selectScriptSubTab(page, 'post-response');
     await editCodeMirrorEditor(page, 'post-response-script-editor', content);
+  });
+};
+
+/**
+ * Add a gRPC lifecycle hook script (navigates to Script > the hook's sub-tab and replaces editor
+ * content)
+ * @param page - The page object
+ * @param hook - The lifecycle hook to author
+ * @param content - The script content to add
+ */
+const addGrpcHookScript = async (page: Page, hook: GrpcScriptHook, content: string) => {
+  await test.step(`Add ${hook} script`, async () => {
+    await selectScriptSubTab(page, hook);
+    await editCodeMirrorEditor(page, `${hook}-script-editor`, content);
+  });
+};
+
+/**
+ * Read the content of a gRPC lifecycle hook editor
+ * @param page - The page object
+ * @param hook - The lifecycle hook to read
+ */
+const readGrpcHookScript = async (page: Page, hook: GrpcScriptHook): Promise<string | undefined> => {
+  await selectScriptSubTab(page, hook);
+  return buildCommonLocators(page)
+    .codeMirror.byTestId(`${hook}-script-editor`)
+    .evaluate((el) => (el as any).CodeMirror?.getValue());
+};
+
+const openGrpcTestsTab = async (page: Page) => {
+  await test.step('Open the gRPC Tests tab', async () => {
+    const { paneTabs, response } = buildCommonLocators(page);
+    const tab = paneTabs.responsiveTab('tests');
+    const overflowTrigger = paneTabs.overflowTrigger(response.pane());
+
+    await expect(tab.or(overflowTrigger)).toBeVisible();
+
+    if (await tab.isVisible()) {
+      await tab.click();
+
+      return;
+    }
+
+    await overflowTrigger.click();
+    await paneTabs.overflowItem('tests').click();
   });
 };
 
@@ -3266,6 +3314,9 @@ export {
   editCodeMirrorEditor,
   addPreRequestScript,
   addPostResponseScript,
+  addGrpcHookScript,
+  readGrpcHookScript,
+  openGrpcTestsTab,
   addTestScript,
   addFolderScript,
   addCollectionScript,
@@ -3338,4 +3389,4 @@ export {
   clickOutsideModal
 };
 
-export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, LinkAwareRequestType };
+export type { SandboxMode, EnvironmentType, EnvironmentVariable, ImportCollectionOptions, CreateRequestOptions, CreateUntitledRequestOptions, CreateTransientRequestOptions, AssertionInput, LinkAwareRequestType, GrpcScriptHook };

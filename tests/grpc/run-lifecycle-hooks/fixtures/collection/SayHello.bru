@@ -1,0 +1,30 @@
+meta {
+  name: SayHello
+  type: grpc
+  seq: 1
+}
+
+grpc {
+  url: {{host}}
+  method: /hello.HelloService/SayHello
+  body: grpc
+  auth: none
+  methodType: unary
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {
+      "greeting": "{{greeting}}"
+    }
+  '''
+}
+
+script:grpc:before-call-start {
+  bru.setVar('greeting', 'set-by-hook');
+}
+
+script:grpc:after-call-end {
+  bru.setVar('capturedReply', bru.grpc.res.messages.get(0).data.reply);
+}

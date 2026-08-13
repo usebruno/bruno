@@ -1,0 +1,26 @@
+meta {
+  name: LotsOfReplies
+  type: grpc
+  seq: 3
+}
+
+grpc {
+  url: {{host}}
+  method: /hello.HelloService/LotsOfReplies
+  body: grpc
+  auth: none
+  methodType: server-streaming
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {
+      "greeting": "stream"
+    }
+  '''
+}
+
+script:grpc:after-call-end {
+  bru.setVar('replyCount', String(bru.grpc.res.messages.count()));
+}
