@@ -17,39 +17,40 @@ const DeleteCollectionItems = ({ entries, onClose }) => {
   const folderCount = entries.filter((entry) => isItemAFolder(entry.item)).length;
   const requestCount = entries.filter((entry) => isItemARequest(entry.item)).length;
 
+  const folderDescription = folderCount > 0 ? `${folderCount} ${pluralizeWord('folder', folderCount)}` : null;
+  const requestDescription = requestCount > 0 ? `${requestCount} ${pluralizeWord('request', requestCount)}` : null;
+
   const description = entries.length === 1 ? (
     <span className="font-medium">{entries[0].item.name}</span>
   ) : (
-    [
-      folderCount > 0 ? `${folderCount} ${pluralizeWord('folder', folderCount)}` : null,
-      requestCount > 0 ? `${requestCount} ${pluralizeWord('request', requestCount)}` : null
-    ]
-      .filter(Boolean)
-      .join(' and ')
+    [folderDescription, requestDescription].filter(Boolean).join(' and ')
   );
 
-  const title = folderCount > 0 && requestCount > 0
-    ? 'Delete Items'
-    : folderCount > 0
-      ? `Delete ${pluralizeWord('Folder', folderCount)}`
-      : `Delete ${pluralizeWord('Request', requestCount)}`;
+  let title;
+  if (folderCount > 0 && requestCount > 0) {
+    title = 'Delete Items';
+  } else if (folderCount > 0) {
+    title = `Delete ${pluralizeWord('Folder', folderCount)}`;
+  } else {
+    title = `Delete ${pluralizeWord('Request', requestCount)}`;
+  }
 
   const onConfirm = async () => {
-    try {
-      for (const entry of entries) {
+    for (const entry of entries) {
+      try {
         await dispatch(deleteItem(entry.uid, entry.collectionUid));
         const tabUids = isItemAFolder(entry.item)
           ? [...recursivelyGetAllItemUids(entry.item.items), entry.uid]
           : [entry.uid];
         dispatch(closeTabs({ tabUids }));
+      } catch (error) {
+        console.error(`Error deleting item ${entry.uid}`, error);
+        toast.error(error?.message || `Error deleting ${entry.item?.name || 'item'}`);
       }
-    } catch (error) {
-      console.error('Error deleting items', error);
-      toast.error(error?.message || 'Error deleting items');
-    } finally {
-      dispatch(clearSidebarSelection());
-      onClose();
     }
+
+    dispatch(clearSidebarSelection());
+    onClose();
   };
 
   return (

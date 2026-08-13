@@ -16,15 +16,13 @@ const BulkActionsMenu = ({ menuProps }) => {
 
   return (
     <>
-      {visible && (
-        <BulkActionsDropdown
-          visible={visible}
-          onClose={() => setVisible(false)}
-          position={position}
-          onRequestRemoveCollections={setCollectionUidsToRemove}
-          onRequestDeleteItems={setItemsToDelete}
-        />
-      )}
+      <BulkActionsDropdown
+        visible={visible}
+        onClose={() => setVisible(false)}
+        position={position}
+        onRequestRemoveCollections={setCollectionUidsToRemove}
+        onRequestDeleteItems={setItemsToDelete}
+      />
       {collectionUidsToRemove.length > 0 && (
         <RemoveCollections collectionUids={collectionUidsToRemove} onClose={() => setCollectionUidsToRemove([])} />
       )}

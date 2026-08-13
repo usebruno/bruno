@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import Dropdown from 'components/Dropdown';
+import MenuDropdown from 'ui/MenuDropdown';
 import { IconX, IconFoldDown, IconFoldUp, IconTrash } from '@tabler/icons';
 import { collapseCollection, collapseItem, expandCollection, expandItem, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import toast from 'react-hot-toast';
@@ -16,7 +16,10 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
   const collections = useSelector((state) => state.collections.collections);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   // This will filter out the scratch collections from the list
-  const visibleCollections = collections.filter((c) => !isScratchCollection(c, workspaces));
+  const visibleCollections = useMemo(
+    () => collections.filter((c) => !isScratchCollection(c, workspaces)),
+    [collections, workspaces]
+  );
 
   const { effectiveSelection, hasCollection, hasFolder, hasRequest } = useMemo(
     () => getSelectionInfo({ collections: visibleCollections, selectedUids: selectedSidebarUids }),
@@ -29,54 +32,46 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
   const canCollapse = collapsibleEntries.length > 0;
   const allCollapsed = canCollapse && collapsibleEntries.every(isEntryCollapsed);
 
-  const otherCollections = getOtherCollections(visibleCollections, effectiveSelection.map((entry) => entry.uid));
-  const hasOtherCollections = otherCollections.length > 0;
-  const allOthersCollapsed = hasOtherCollections && otherCollections.every((c) => c.collapsed);
+  const unselectedCollections = getOtherCollections(visibleCollections, effectiveSelection.map((entry) => entry.uid));
+  const hasUnselectedCollections = unselectedCollections.length > 0;
+  const allUnselectedCollectionsCollapsed = hasUnselectedCollections && unselectedCollections.every((c) => c.collapsed);
 
   const clearAndClose = () => {
     dispatch(clearSidebarSelection());
     onClose();
   };
 
-  const handleCloseCollections = () => {
-    onRequestRemoveCollections(effectiveSelection.map((entry) => entry.uid));
+  const closeCollections = (list) => {
+    onRequestRemoveCollections(list.map((entry) => entry.uid));
     onClose();
   };
 
-  const handleCloseOthers = () => {
-    onRequestRemoveCollections(otherCollections.map((c) => c.uid));
-    onClose();
-  };
-
+  /**
+   * Toggles the collapse/expand state for a given list of entries (collections, folders, or requests).
+   * It ensures that any collections which are about to be expanded are first mounted in the Redux store.
+   *
+   * @param {Array} entries - The list of entries to toggle. Can be wrapper objects (for selected items) or raw collection objects (for unselected collections).
+   * @param {boolean} targetCollapsed - The target state: true to collapse, false to expand.
+   */
   const toggleCollections = async (entries, targetCollapsed) => {
     try {
       if (!targetCollapsed) {
         const collectionsToMount = entries.filter((entry) => {
-          const c = entry.type === 'collection' ? entry.collection : entry;
-          return c.type !== 'folder' && c.type !== 'request' && c.mountStatus !== 'mounted' && c.mountStatus !== 'mounting';
+          return entry.type === 'collection' && entry.collection.mountStatus !== 'mounted' && entry.collection.mountStatus !== 'mounting';
         });
 
         await Promise.all(
           collectionsToMount.map((entry) => {
-            const c = entry.type === 'collection' ? entry.collection : entry;
             return dispatch(mountCollection({
-              collectionUid: c.uid,
-              collectionPathname: c.pathname,
-              brunoConfig: c.brunoConfig
+              collectionUid: entry.collection.uid,
+              collectionPathname: entry.collection.pathname,
+              brunoConfig: entry.collection.brunoConfig
             }));
           })
         );
       }
 
       entries.forEach((entry) => {
-        // If entry is a raw collection (from otherCollections)
-        if (!entry.type) {
-          if (entry.collapsed === targetCollapsed) return;
-          dispatch(targetCollapsed ? collapseCollection(entry.uid) : expandCollection(entry.uid));
-          return;
-        }
-
-        // If entry is a selection entry (from effectiveSelection)
         if (isEntryCollapsed(entry) === targetCollapsed) return;
 
         if (entry.type === 'collection') {
@@ -95,18 +90,19 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
     }
   };
 
-  const handleToggleCollapse = () => toggleCollections(collapsibleEntries, !allCollapsed);
-  const handleToggleCollapseOthers = () => toggleCollections(otherCollections, !allOthersCollapsed);
-
-  const handleDelete = () => {
-    onRequestDeleteItems(effectiveSelection.filter((entry) => entry.type !== 'collection'));
-    onClose();
+  const getCollapseDisplay = (isCollapsed, suffix = '') => {
+    const action = isCollapsed ? 'Expand' : 'Collapse';
+    return {
+      Icon: isCollapsed ? IconFoldUp : IconFoldDown,
+      label: `${action}${suffix ? ` ${suffix}` : ''}`
+    };
   };
 
-  const CollapseIcon = allCollapsed ? IconFoldUp : IconFoldDown;
-  const collapseLabel = allCollapsed ? 'Expand' : 'Collapse';
-  const CollapseOthersIcon = allOthersCollapsed ? IconFoldUp : IconFoldDown;
-  const collapseOthersLabel = allOthersCollapsed ? 'Expand Others' : 'Collapse Others';
+  const { Icon: CollapseIcon, label: collapseLabel } = getCollapseDisplay(allCollapsed, 'Selected');
+  const { Icon: CollapseUnselectedIcon, label: collapseUnselectedLabel } = getCollapseDisplay(
+    allUnselectedCollectionsCollapsed,
+    'Unselected'
+  );
 
   const anchorStyle = {
     position: 'fixed',
@@ -117,54 +113,104 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
     pointerEvents: 'none'
   };
 
+  const menuItems = useMemo(() => {
+    if (isPureCollectionSelection) {
+      const items = [
+        {
+          id: 'remove',
+          label: 'Remove Selected',
+          leftSection: IconX,
+          onClick: () => closeCollections(effectiveSelection)
+        },
+        {
+          id: 'collapse',
+          label: collapseLabel,
+          leftSection: CollapseIcon,
+          onClick: () => toggleCollections(collapsibleEntries, !allCollapsed)
+        }
+      ];
+
+      if (hasUnselectedCollections) {
+        items.push(
+          {
+            id: 'remove-unselected',
+            label: 'Remove Unselected',
+            leftSection: IconX,
+            onClick: () => closeCollections(unselectedCollections)
+          },
+          {
+            id: 'collapse-unselected',
+            label: collapseUnselectedLabel,
+            leftSection: CollapseUnselectedIcon,
+            onClick: () => toggleCollections(
+              unselectedCollections.map((c) => ({
+                uid: c.uid,
+                type: 'collection',
+                collectionUid: c.uid,
+                pathname: c.pathname,
+                collection: c
+              })),
+              !allUnselectedCollectionsCollapsed
+            )
+          }
+        );
+      }
+      return items;
+    }
+
+    const items = [];
+    if (canCollapse) {
+      items.push({
+        id: 'collapse',
+        label: collapseLabel,
+        leftSection: CollapseIcon,
+        onClick: () => toggleCollections(collapsibleEntries, !allCollapsed)
+      });
+    }
+    if (canDelete) {
+      items.push({
+        id: 'delete',
+        label: 'Delete',
+        leftSection: IconTrash,
+        className: 'delete-item',
+        onClick: () => {
+          onRequestDeleteItems(effectiveSelection);
+          onClose();
+        }
+      });
+    }
+
+    return items;
+  }, [
+    isPureCollectionSelection,
+    hasUnselectedCollections,
+    canCollapse,
+    canDelete,
+    collapseLabel,
+    collapseUnselectedLabel,
+    CollapseIcon,
+    CollapseUnselectedIcon,
+    closeCollections,
+    effectiveSelection,
+    unselectedCollections,
+    toggleCollections,
+    collapsibleEntries,
+    allCollapsed,
+    allUnselectedCollectionsCollapsed,
+    onRequestDeleteItems,
+    onClose
+  ]);
+
   return (
-    <Dropdown
-      icon={<div style={anchorStyle} />}
+    <MenuDropdown
+      items={menuItems}
       placement="right-start"
-      visible={visible}
+      opened={visible}
+      onChange={(isOpen) => !isOpen && onClose()}
       appendTo={document.body}
-      onClickOutside={onClose}
     >
-      {isPureCollectionSelection ? (
-        <>
-          <div className="dropdown-item" onClick={handleCloseCollections}>
-            <IconX size={16} strokeWidth={2} className="dropdown-icon" />
-            Remove
-          </div>
-          <div className="dropdown-item" onClick={handleToggleCollapse}>
-            <CollapseIcon size={16} strokeWidth={2} className="dropdown-icon" />
-            {collapseLabel}
-          </div>
-          {hasOtherCollections ? (
-            <>
-              <div className="dropdown-item" onClick={handleCloseOthers}>
-                <IconX size={16} strokeWidth={2} className="dropdown-icon" />
-                Remove Others
-              </div>
-              <div className="dropdown-item" onClick={handleToggleCollapseOthers}>
-                <CollapseOthersIcon size={16} strokeWidth={2} className="dropdown-icon" />
-                {collapseOthersLabel}
-              </div>
-            </>
-          ) : null}
-        </>
-      ) : (
-        <>
-          {canCollapse ? (
-            <div className="dropdown-item" onClick={handleToggleCollapse}>
-              <CollapseIcon size={16} strokeWidth={2} className="dropdown-icon" />
-              {collapseLabel}
-            </div>
-          ) : null}
-          {canDelete ? (
-            <div className="dropdown-item delete-item" onClick={handleDelete}>
-              <IconTrash size={16} strokeWidth={2} className="dropdown-icon" />
-              Delete
-            </div>
-          ) : null}
-        </>
-      )}
-    </Dropdown>
+      <div style={anchorStyle} />
+    </MenuDropdown>
   );
 };
 
