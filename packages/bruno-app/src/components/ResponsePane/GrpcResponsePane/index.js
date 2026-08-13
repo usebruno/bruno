@@ -197,7 +197,7 @@ const GrpcResponsePane = ({ item, collection }) => {
           {!item?.response ? (
             focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
               <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />
-            ) : focusedTab?.responsePaneTab === 'tests' && hasTestResults ? (
+            ) : focusedTab?.responsePaneTab === 'tests' ? (
               <GrpcTestResults item={item} sections={testSections} />
             ) : null
           ) : (

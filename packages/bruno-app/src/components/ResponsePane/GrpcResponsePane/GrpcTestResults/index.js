@@ -93,8 +93,6 @@ const GrpcTestResults = ({ item, sections }) => {
 
   const [expandedSections, setExpandedSections] = useState(expandFilledSections);
 
-  // A re-run re-expands whatever it filled, so a hook that produced nothing last time doesn't
-  // hide its new results behind a collapsed header.
   const resultCounts = sections.map((section) => section.results.length).join(',');
   useEffect(() => {
     setExpandedSections(expandFilledSections());
