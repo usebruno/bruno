@@ -31,7 +31,7 @@ const ConfirmRequestClose = ({ item, example, onCancel, onCloseWithoutSave, onSa
           <h1 className="ml-2 text-lg font-medium">Hold on..</h1>
         </div>
         <div className="font-normal mt-4">
-          You have unsaved changes in hsh {itemType} <span className="font-medium">{itemName}</span>.
+          You have unsaved changes in {itemType} <span className="font-medium">{itemName}</span>.
         </div>
 
         <div className="flex justify-between mt-6">
