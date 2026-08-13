@@ -56,6 +56,26 @@ describe('toOpenCollectionVariables', () => {
 
     expect(out).toEqual([{ name: 'a', value: '1' }]);
   });
+
+  it('prefixes local variable names with @ so the local flag survives yml', () => {
+    const out = toOpenCollectionVariables([
+      { uid: 'u1', name: 'apiKey', value: 'abc', enabled: true, local: true } as any,
+      { uid: 'u2', name: 'plain', value: 'v', enabled: true, local: false } as any
+    ]);
+
+    expect(out).toEqual([
+      { name: '@apiKey', value: 'abc' },
+      { name: 'plain', value: 'v' }
+    ]);
+  });
+
+  it('does not double-prefix names that already start with @', () => {
+    const out = toOpenCollectionVariables([
+      { uid: 'u1', name: '@apiKey', value: 'abc', enabled: true, local: true } as any
+    ]);
+
+    expect(out).toEqual([{ name: '@apiKey', value: 'abc' }]);
+  });
 });
 
 describe('toBrunoVariables', () => {
@@ -123,5 +143,24 @@ describe('toBrunoVariables', () => {
     ]);
 
     expect(req![0].description).toBe('note');
+  });
+
+  it('decodes @-prefixed names as local variables', () => {
+    const { req } = toBrunoVariables([
+      { name: '@apiKey', value: 'abc' } as any,
+      { name: 'plain', value: 'v' } as any
+    ]);
+
+    expect(req![0]).toMatchObject({ name: 'apiKey', local: true });
+    expect(req![1]).toMatchObject({ name: 'plain', local: false });
+  });
+
+  it('round-trips the local flag through toOpenCollectionVariables → toBrunoVariables', () => {
+    const oc = toOpenCollectionVariables([
+      { uid: 'u1', name: 'apiKey', value: 'abc', enabled: true, local: true } as any
+    ]);
+    const { req } = toBrunoVariables(oc);
+
+    expect(req![0]).toMatchObject({ name: 'apiKey', value: 'abc', local: true });
   });
 });

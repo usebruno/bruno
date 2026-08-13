@@ -236,6 +236,81 @@ describe('migrateCollectionOnDisk', () => {
     expect(fs.readdirSync(backupRootDir)).toEqual([]);
   });
 
+  it('does not touch .bru files inside node_modules or .git', async () => {
+    fs.mkdirSync(filePath('node_modules'));
+    fs.writeFileSync(filePath('node_modules', 'stray.bru'), REQUEST_BRU);
+    fs.mkdirSync(filePath('.git'));
+    fs.writeFileSync(filePath('.git', 'inside-git.bru'), REQUEST_BRU);
+
+    await runMigration();
+
+    expect(fs.existsSync(filePath('node_modules', 'stray.bru'))).toBe(true);
+    expect(fs.existsSync(filePath('.git', 'inside-git.bru'))).toBe(true);
+    expect(fs.existsSync(filePath('node_modules', 'stray.yml'))).toBe(false);
+    expect(fs.existsSync(filePath('.git', 'inside-git.yml'))).toBe(false);
+  });
+
+  it('does not follow symlinks pointing outside the collection', async () => {
+    const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'yml-migration-outside-'));
+    const externalBru = path.join(outside, 'external.bru');
+    try {
+      fs.writeFileSync(externalBru, REQUEST_BRU);
+      try {
+        fs.symlinkSync(externalBru, filePath('linked.bru'));
+      } catch (err) {
+        // Skip on platforms/permissions where symlink creation fails (e.g. non-admin Windows).
+        return;
+      }
+
+      await runMigration();
+
+      expect(fs.existsSync(externalBru)).toBe(true);
+      expect(fs.readFileSync(externalBru, 'utf8')).toBe(REQUEST_BRU);
+      expect(fs.existsSync(filePath('linked.bru'))).toBe(true);
+      expect(fs.existsSync(filePath('linked.yml'))).toBe(false);
+    } finally {
+      fsExtra.removeSync(outside);
+    }
+  });
+
+  it('honors bruno.json `ignore` paths so vendored .bru files are not migrated', async () => {
+    fs.mkdirSync(filePath('vendor'));
+    fs.writeFileSync(filePath('vendor', 'lib.bru'), REQUEST_BRU);
+
+    await runMigration({ brunoConfig: { ...BRUNO_JSON, ignore: ['vendor'] } });
+
+    expect(fs.existsSync(filePath('vendor', 'lib.bru'))).toBe(true);
+    expect(fs.existsSync(filePath('vendor', 'lib.yml'))).toBe(false);
+  });
+
+  it('upgrades a legacy-shape proxy block so it survives the yml stringifier', async () => {
+    const legacyProxyConfig = {
+      ...BRUNO_JSON,
+      proxy: {
+        enabled: true,
+        protocol: 'http',
+        hostname: 'proxy.example.com',
+        port: '8080',
+        auth: { enabled: true, username: 'u', password: 'p' },
+        bypassProxy: 'localhost,127.0.0.1'
+      }
+    };
+
+    const { brunoConfig } = await runMigration({ brunoConfig: legacyProxyConfig });
+
+    expect(brunoConfig.proxy).toEqual(expect.objectContaining({
+      inherit: expect.any(Boolean),
+      config: expect.objectContaining({
+        protocol: 'http',
+        hostname: 'proxy.example.com',
+        port: '8080'
+      })
+    }));
+
+    const ocYml = fs.readFileSync(filePath('opencollection.yml'), 'utf8');
+    expect(ocYml).toContain('proxy.example.com');
+  });
+
   it('keeps the backup and reports when a source cannot be restored', async () => {
     const realUnlink = fs.promises.unlink.bind(fs.promises);
     let unlinkCalls = 0;
