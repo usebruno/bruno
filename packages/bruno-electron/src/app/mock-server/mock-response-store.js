@@ -156,7 +156,14 @@ const readWorkspaceStoreFromDisk = (workspacePath) => {
     const content = fs.readFileSync(filePath, 'utf8');
     const parsed = yaml.load(content);
 
-    if (!parsed || typeof parsed !== 'object' || typeof parsed.mockServers !== 'object') {
+    if (
+      !parsed
+      || typeof parsed !== 'object'
+      || Array.isArray(parsed)
+      || parsed.mockServers == null
+      || typeof parsed.mockServers !== 'object'
+      || Array.isArray(parsed.mockServers)
+    ) {
       throw new Error('invalid store format');
     }
 
