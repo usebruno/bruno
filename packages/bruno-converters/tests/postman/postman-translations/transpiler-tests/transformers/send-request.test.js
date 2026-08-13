@@ -1232,6 +1232,170 @@ await bru.sendRequest({
       `);
     });
 
+    it('should rewrite past a then that returns its response parameter unchanged', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => res)
+          .then((res) => res.json());
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => res)
+          .then((res) => res.data);
+      `);
+    });
+
+    it('should rewrite past a block-bodied then that returns its response parameter', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              console.log(res.code);
+              return res;
+          })
+          .then((r) => r.json());
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              console.log(res.status);
+              return res;
+          })
+          .then((r) => r.data);
+      `);
+    });
+
+    it('should rewrite across several consecutive pass-through handlers', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => res)
+          .then((res) => res)
+          .then((res) => {
+              console.log(res.json());
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => res)
+          .then((res) => res)
+          .then((res) => {
+              console.log(res.data);
+          });
+      `);
+    });
+
+    it('should rewrite past a pass-through handler whose successor renames the parameter', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => res)
+          .then((response) => {
+              console.log(response.status);
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => res)
+          .then((response) => {
+              console.log(response.statusText);
+          });
+      `);
+    });
+
+    it('should rewrite a handler that reassigns its parameter but stop after it', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              res = res.json();
+              return res;
+          })
+          .then((r) => {
+              console.log(r.code);
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              res = res.data;
+              return res;
+          })
+          .then((r) => {
+              console.log(r.code);
+          });
+      `);
+    });
+
+    it('should not rewrite past a handler that returns nothing', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              console.log(res.json());
+          })
+          .then((data) => {
+              console.log(data.code);
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              console.log(res.data);
+          })
+          .then((data) => {
+              console.log(data.code);
+          });
+      `);
+    });
+
+    it('should not rewrite past a handler that returns its parameter on only some paths', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              if (ok) {
+                  return res;
+              }
+          })
+          .then((data) => {
+              console.log(data.code);
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              if (ok) {
+                  return res;
+              }
+          })
+          .then((data) => {
+              console.log(data.code);
+          });
+      `);
+    });
+
+    it('should stop at a catch even when the preceding then is a pass-through', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => res)
+          .catch(() => null)
+          .then((data) => {
+              console.log(data.code);
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => res)
+          .catch(() => null)
+          .then((data) => {
+              console.log(data.code);
+          });
+      `);
+    });
+
     it('should stop at a zero-arity first handler rather than rewriting a later one', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' })

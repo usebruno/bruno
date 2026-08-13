@@ -291,6 +291,87 @@ const rewriteThenHandlerResponseAccess = (j, handlerPath) => {
 };
 
 /**
+ * Whether an identifier reference inside a handler resolves to the handler's own
+ * parameter rather than a nested re-declaration of the same name.
+ * @param {Object} path - Path of the reference
+ * @param {string} name - Parameter name
+ * @param {Object} handler - Handler function node owning the parameter
+ * @returns {boolean}
+ */
+const resolvesToHandlerParam = (path, name, handler) => {
+  const declaringScope = path.scope.lookup(name);
+  return Boolean(declaringScope) && declaringScope.node === handler;
+};
+
+/**
+ * Whether every value the handler can return is its own response parameter, so the
+ * next `.then` in the chain still receives the response. A path that falls through
+ * to an implicit undefined does not qualify.
+ * @param {Object} j - jscodeshift API
+ * @param {Object} handlerPath - Path of the `.then` fulfilled handler argument
+ * @returns {boolean}
+ */
+const returnsParamUnchanged = (j, handlerPath) => {
+  const handler = handlerPath.value;
+  const paramName = handler.params[0].name;
+  const body = handler.body;
+
+  // if the body is not a block statement then check if the body is an
+  // identifier and the name is the same as the parameter name
+  if (body.type !== 'BlockStatement') {
+    return body.type === 'Identifier' && body.name === paramName;
+  }
+
+  // if the body is a block statement then check if the last statement is
+  // a return statement and the argument is an identifier and the name is the same as the parameter name
+  const lastStatement = body.body[body.body.length - 1];
+  if (!lastStatement || lastStatement.type !== 'ReturnStatement') return false;
+
+  // check if the return statement is the own return statement of the handler
+  const ownReturns = j(handlerPath)
+    .find(j.ReturnStatement)
+    .paths()
+    .filter((returnPath) => j(returnPath).closest(j.Function).get().value === handler);
+
+  return ownReturns.every((returnPath) => {
+    const argument = returnPath.value.argument;
+    return argument
+      && argument.type === 'Identifier'
+      && argument.name === paramName
+      && resolvesToHandlerParam(returnPath, paramName, handler);
+  });
+};
+
+/**
+ * Whether the handler rebinds its response parameter, so what it forwards is no
+ * longer the response mapped for Bruno.
+ * @param {Object} j - jscodeshift API
+ * @param {Object} handlerPath - Path of the `.then` fulfilled handler argument
+ * @returns {boolean}
+ */
+const isResponseParamReassigned = (j, handlerPath) => {
+  const handler = handlerPath.value;
+  const paramName = handler.params[0].name;
+
+  const isRebind = (path, target) =>
+    target.type === 'Identifier'
+    && target.name === paramName
+    && resolvesToHandlerParam(path, paramName, handler);
+
+  const assigned = j(handlerPath)
+    .find(j.AssignmentExpression)
+    .paths()
+    .some((path) => isRebind(path, path.value.left));
+
+  if (assigned) return true;
+
+  return j(handlerPath)
+    .find(j.UpdateExpression)
+    .paths()
+    .some((path) => isRebind(path, path.value.argument));
+};
+
+/**
  * Transform callback function to Bruno format
  * @param {Object} j - jscodeshift API
  * @param {Object} callback - Callback function expression
@@ -454,11 +535,28 @@ const sendRequestTransformer = (path, j) => {
     return makeAwaitable(j, callPath) ? j.awaitExpression(sendRequestCall) : sendRequestCall;
   }
 
-  // only the innermost `.then` receives the response — later handlers see what
-  // it returned, and `.catch`/`.finally` handlers an error or nothing
-  const [firstLink] = chainLinks;
-  if (firstLink.methodName === 'then' && firstLink.callPath.value.arguments.length) {
-    rewriteThenHandlerResponseAccess(j, firstLink.callPath.get('arguments', 0));
+  // the innermost `.then` receives the response; each later handler does too only
+  // while the one before it forwards its response parameter unchanged. `.catch` and
+  // `.finally` handlers see an error or nothing, so the chain stops being traceable there.
+  for (const link of chainLinks) {
+    if (link.methodName !== 'then') break;
+
+    const [handler] = link.callPath.value.arguments;
+    if (!handler) break;
+    if (handler.type !== 'FunctionExpression' && handler.type !== 'ArrowFunctionExpression') break;
+    if (handler.params[0]?.type !== 'Identifier') break; // if the handler does not have a parameter then break
+
+    const handlerPath = link.callPath.get('arguments', 0);
+
+    // both read before the rewrite, which would collapse `return res.json()` into
+    // `return res.data` and hide that the handler never forwarded the response
+    const returnsResponse = returnsParamUnchanged(j, handlerPath);
+    const reassignsResponse = isResponseParamReassigned(j, handlerPath);
+
+    rewriteThenHandlerResponseAccess(j, handlerPath);
+
+    if (!returnsResponse) break;
+    if (reassignsResponse) break;
   }
 
   const outermostPath = chainLinks[chainLinks.length - 1].callPath;
