@@ -148,6 +148,148 @@ const transformBody = (j, requestOptions) => {
   });
 };
 
+// Postman's response API vs Bruno's axios-shaped response. json()/text() are
+// methods on the Postman response but already-parsed properties on Bruno's.
+const responsePropertyMap = {
+  json: 'data',
+  text: 'data',
+  code: 'status',
+  status: 'statusText'
+};
+
+const PROMISE_CHAIN_METHODS = new Set(['then', 'catch', 'finally']);
+
+/**
+ * Get the statically-known property name of a member expression. A computed
+ * access with a non-literal key (`p[someVar]`) has no static name — even an
+ * Identifier key named `then` is a variable there, not the method.
+ * @param {Object} memberExpr - MemberExpression node
+ * @returns {string|null}
+ */
+const getStaticPropertyName = (memberExpr) => {
+  const property = memberExpr.property;
+
+  if (memberExpr.computed) {
+    return property.type === 'Literal' && typeof property.value === 'string' ? property.value : null;
+  }
+  return property.type === 'Identifier' ? property.name : null;
+};
+
+/**
+ * Collect the `.then`/`.catch`/`.finally` calls chained off the given call,
+ * innermost first.
+ * @param {Object} callPath - Path of the CallExpression the chain hangs off
+ * @returns {Array<{callPath: Object, methodName: string}>}
+ */
+const getPromiseChainLinks = (callPath) => {
+  const links = [];
+  let currentPath = callPath;
+
+  while (true) {
+    const memberPath = currentPath.parent;
+    if (!memberPath || memberPath.value.type !== 'MemberExpression') break;
+    if (memberPath.value.object !== currentPath.value) break;
+
+    const methodName = getStaticPropertyName(memberPath.value);
+    if (!PROMISE_CHAIN_METHODS.has(methodName)) break;
+
+    const chainedCallPath = memberPath.parent;
+    if (!chainedCallPath || chainedCallPath.value.type !== 'CallExpression') break;
+
+    links.push({ callPath: chainedCallPath, methodName });
+    currentPath = chainedCallPath;
+  }
+
+  return links;
+};
+
+/**
+ * Whether a function is a `.then`/`.catch`/`.finally` handler argument. Such a
+ * handler's return value is already promise-wrapped by the chain, so turning it
+ * async is transparent to its caller — unlike an arbitrary callback, where the
+ * caller would start receiving a promise in place of the value it expects.
+ * @param {Object} functionPath - Path of the function to test
+ * @returns {boolean}
+ */
+const isPromiseChainHandler = (functionPath) => {
+  const parent = functionPath.parent;
+  if (!parent || parent.value.type !== 'CallExpression') return false;
+  if (!parent.value.arguments.includes(functionPath.value)) return false;
+
+  const callee = parent.value.callee;
+  return callee.type === 'MemberExpression' && PROMISE_CHAIN_METHODS.has(getStaticPropertyName(callee));
+};
+
+/**
+ * Whether `await` may be emitted at this position, turning the enclosing function
+ * async where that is safe. Bruno evaluates scripts inside an async closure, so
+ * top level is awaitable. Inside a non-async function `await` is a syntax error
+ * that breaks the entire script, so it is emitted there only once the function
+ * has been made async — which is only safe for a promise-chain handler.
+ * @param {Object} j - jscodeshift API
+ * @param {Object} path - Path the await would be emitted at
+ * @returns {boolean}
+ */
+const makeAwaitable = (j, path) => {
+  const enclosingFunction = j(path).closest(j.Function);
+
+  const isTopLevel = enclosingFunction.size() === 0;
+  if (isTopLevel) return true;
+
+  const functionPath = enclosingFunction.get();
+  if (functionPath.value.async === true) return true;
+  if (!isPromiseChainHandler(functionPath)) return false;
+
+  functionPath.value.async = true;
+  return true;
+};
+
+/**
+ * Rewrite Postman response access on a handler's response parameter to its Bruno
+ * equivalent (res.json() -> res.data, res.code -> res.status, ...). References
+ * that resolve to a different binding — a nested function re-declaring the name —
+ * are left alone.
+ * @param {Object} j - jscodeshift API
+ * @param {Object} handlerPath - Path of the `.then` fulfilled handler argument
+ */
+const rewriteThenHandlerResponseAccess = (j, handlerPath) => {
+  const handler = handlerPath.value;
+  if (!handler) return;
+  if (handler.type !== 'FunctionExpression' && handler.type !== 'ArrowFunctionExpression') return;
+  if (handler.params[0]?.type !== 'Identifier') return;
+
+  const responseVarName = handler.params[0].name;
+
+  j(handlerPath).find(j.MemberExpression, {
+    object: {
+      type: 'Identifier',
+      name: responseVarName
+    }
+  }).forEach((memberPath) => {
+    const property = memberPath.value.property;
+    if (property.type !== 'Identifier') return;
+
+    const bruProperty = responsePropertyMap[property.name];
+    if (!bruProperty) return;
+
+    // skip references shadowed by a nested re-declaration of the name
+    const declaringScope = memberPath.scope.lookup(responseVarName);
+    if (!declaringScope || declaringScope.node !== handler) return;
+
+    const replacement = j.memberExpression(j.identifier(responseVarName), j.identifier(bruProperty));
+
+    // response.json() collapses to response.data — the call goes away with it.
+    // Only when the member is the callee: in console.log(response.code) the
+    // parent is also a CallExpression, and replacing it would eat the log.
+    const parentPath = memberPath.parent;
+    if (parentPath.value.type === 'CallExpression' && parentPath.value.callee === memberPath.value) {
+      j(parentPath).replaceWith(replacement);
+    } else {
+      j(memberPath).replaceWith(replacement);
+    }
+  });
+};
+
 /**
  * Transform callback function to Bruno format
  * @param {Object} j - jscodeshift API
@@ -170,14 +312,6 @@ const transformCallback = (j, callback) => {
   if (params.length >= 1 && params[0].type === 'Identifier') {
     errorVarName = params[0].name;
   }
-
-  // Define translations for callback response properties
-  const responsePropertyMap = {
-    json: 'data',
-    text: 'data',
-    code: 'status',
-    status: 'statusText'
-  };
 
   // Process the callback body to transform response property references
   j(callbackBody).find(j.MemberExpression, {
@@ -266,7 +400,8 @@ const findAndTransformVariableDeclaration = (j, root, variableName, visited = ne
 };
 
 const sendRequestTransformer = (path, j) => {
-  const callExpr = path.parent.value;
+  const callPath = path.parent;
+  const callExpr = callPath.value;
   if (callExpr.type !== 'CallExpression') return;
 
   // Clone the argument object for modification
@@ -277,7 +412,7 @@ const sendRequestTransformer = (path, j) => {
   const callback = args[1];
 
   // Check if original call was awaited
-  const wasAwaited = path.parent.parent.value.type === 'AwaitExpression';
+  const wasAwaited = callPath.parent.value.type === 'AwaitExpression';
 
   // transform the request config options
   if (requestOptions.type === 'ObjectExpression') {
@@ -296,31 +431,42 @@ const sendRequestTransformer = (path, j) => {
     findAndTransformVariableDeclaration(j, root, variableName);
   }
 
-  // Create the callback block and promise chain if there's a callback
+  let transformedCallback = null;
   if (callback) {
-    const transformedCallback = transformCallback(j, callback);
+    transformedCallback = transformCallback(j, callback);
 
-    // Add async keyword to the callback function
-    if (transformedCallback && (transformedCallback.type === 'FunctionExpression' || transformedCallback.type === 'ArrowFunctionExpression')) {
+    // always async — the body may await a nested bru.sendRequest
+    if (transformedCallback) {
       transformedCallback.async = true;
     }
-
-    // Create expression: await bru.sendRequest(requestConfig, callback);
-    const sendRequestCall = j.callExpression(
-      j.identifier('bru.sendRequest'),
-      transformedCallback ? [requestOptions, transformedCallback] : [requestOptions]
-    );
-
-    return wasAwaited ? sendRequestCall : j.awaitExpression(sendRequestCall);
   }
 
-  // If there's no callback, just transform to await bru.sendRequest
   const sendRequestCall = j.callExpression(
     j.identifier('bru.sendRequest'),
-    [requestOptions]
+    transformedCallback ? [requestOptions, transformedCallback] : [requestOptions]
   );
 
-  return wasAwaited ? sendRequestCall : j.awaitExpression(sendRequestCall);
+  if (wasAwaited) return sendRequestCall;
+
+  const chainLinks = getPromiseChainLinks(callPath);
+
+  if (!chainLinks.length) {
+    return makeAwaitable(j, callPath) ? j.awaitExpression(sendRequestCall) : sendRequestCall;
+  }
+
+  // only the innermost `.then` receives the response — later handlers see what
+  // it returned, and `.catch`/`.finally` handlers an error or nothing
+  const [firstLink] = chainLinks;
+  if (firstLink.methodName === 'then' && firstLink.callPath.value.arguments.length) {
+    rewriteThenHandlerResponseAccess(j, firstLink.callPath.get('arguments', 0));
+  }
+
+  const outermostPath = chainLinks[chainLinks.length - 1].callPath;
+  if (outermostPath.parent.value.type !== 'AwaitExpression' && makeAwaitable(j, outermostPath)) {
+    outermostPath.parentPath.value[outermostPath.name] = j.awaitExpression(outermostPath.value);
+  }
+
+  return sendRequestCall;
 };
 
 export default sendRequestTransformer;
