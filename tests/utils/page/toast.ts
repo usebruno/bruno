@@ -5,5 +5,5 @@ import { Page } from '../../../playwright';
  */
 export const buildToastLocators = (page: Page) => ({
   byMessage: (message: string | RegExp) =>
-    page.locator('[data-testid="toast-container"]').getByText(message)
+    page.locator('.toast-container').getByText(message)
 });

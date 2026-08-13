@@ -37,10 +37,8 @@ export const buildNamingCollisionLocators = (page: Page) => ({
       .locator('.item-name')
       .and(page.getByTitle(title, { exact: true })),
 
-  // Scoped to the toast container — prevents matching unrelated page text and
-  // stale toasts from a prior action that haven't dismissed yet.
   toast: (text: string | RegExp): Locator =>
-    page.locator('[data-testid="toast-container"]').getByText(text),
+    page.locator('.toast-container').getByText(text),
 
   anyModal: (): Locator => page.locator('.bruno-modal'),
   modalByTitle: (title: string): Locator => buildCommonLocators(page).modal.byTitle(title),
