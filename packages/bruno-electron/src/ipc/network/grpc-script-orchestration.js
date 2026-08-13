@@ -150,13 +150,20 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
     });
   };
 
-  const applyScriptResult = ({ scriptResult, request, collection, collectionUid }) => {
+  const applyScriptResult = ({ scriptResult, request, collection, collectionUid, scriptType }) => {
     sendVariableUpdates(scriptResult, { collectionUid, requestUid: request.uid, collection });
     resetOauth2Credentials({
       oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset,
       request,
       collectionUid
     });
+
+    if (scriptResult.results) {
+      sendEvent('grpc:test-results', request.uid, collectionUid, {
+        scriptType,
+        results: scriptResult.results
+      });
+    }
   };
 
   const runBeforeCallStart = async ({ request, collection, envVars, runtimeVariables, processEnvVars, scriptingConfig }) => {
@@ -188,7 +195,13 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
     }
 
     if (scriptResult) {
-      applyScriptResult({ scriptResult, request, collection, collectionUid });
+      applyScriptResult({
+        scriptResult,
+        request,
+        collection,
+        collectionUid,
+        scriptType: SCRIPT_TYPES.BEFORE_CALL_START
+      });
     }
 
     if (scriptError) {
@@ -242,7 +255,13 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
     }
 
     if (scriptResult) {
-      applyScriptResult({ scriptResult, request, collection, collectionUid });
+      applyScriptResult({
+        scriptResult,
+        request,
+        collection,
+        collectionUid,
+        scriptType: SCRIPT_TYPES.AFTER_CALL_END
+      });
     }
 
     if (scriptError) {

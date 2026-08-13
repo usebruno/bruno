@@ -844,6 +844,22 @@ export const collectionsSlice = createSlice({
         item.afterCallEndScriptErrorContext = errorContext || null;
       }
     },
+    grpcTestResults: (state, action) => {
+      const { itemUid, collectionUid, scriptType, results } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+
+      const item = findItemInCollection(collection, itemUid);
+      if (!item) return;
+
+      if (scriptType === 'before-call-start') {
+        item.beforeCallStartTestResults = results;
+      }
+
+      if (scriptType === 'after-call-end') {
+        item.afterCallEndTestResults = results;
+      }
+    },
     responseCleared: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -860,6 +876,8 @@ export const collectionsSlice = createSlice({
           item.preRequestTestResults = [];
           item.postResponseTestResults = [];
           item.testResults = [];
+          item.beforeCallStartTestResults = [];
+          item.afterCallEndTestResults = [];
         }
       }
     },
@@ -3280,6 +3298,8 @@ export const collectionsSlice = createSlice({
       item.afterCallEndScriptErrorMessage = null;
       item.beforeCallStartScriptErrorContext = null;
       item.afterCallEndScriptErrorContext = null;
+      item.beforeCallStartTestResults = [];
+      item.afterCallEndTestResults = [];
     },
     runRequestEvent: (state, action) => {
       const { itemUid, collectionUid, type, requestUid } = action.payload;
@@ -4100,6 +4120,7 @@ export const {
   runGrpcRequestEvent,
   grpcResponseReceived,
   grpcScriptError,
+  grpcTestResults,
   responseCleared,
   clearTimeline,
   clearRequestTimeline,

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { grpcResponseReceived, grpcScriptError, runGrpcRequestEvent } from 'providers/ReduxStore/slices/collections/index';
+import { grpcResponseReceived, grpcScriptError, grpcTestResults, runGrpcRequestEvent } from 'providers/ReduxStore/slices/collections/index';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { updateActiveConnectionsInStore } from 'providers/ReduxStore/slices/collections/actions';
@@ -108,6 +108,14 @@ const useGrpcEventListeners = () => {
       }));
     });
 
+    const removeGrpcTestResultsListener = ipcRenderer.on(`grpc:test-results`, (requestId, collectionUid, data) => {
+      dispatch(grpcTestResults({
+        itemUid: requestId,
+        collectionUid: collectionUid,
+        ...data
+      }));
+    });
+
     return () => {
       removeGrpcRequestSentListener();
       removeGrpcMessageSentListener();
@@ -119,6 +127,7 @@ const useGrpcEventListeners = () => {
       removeGrpcCancelListener();
       removeGrpcConnectionsChangedListener();
       removeGrpcScriptErrorListener();
+      removeGrpcTestResultsListener();
     };
   }, [isElectron]);
 };
