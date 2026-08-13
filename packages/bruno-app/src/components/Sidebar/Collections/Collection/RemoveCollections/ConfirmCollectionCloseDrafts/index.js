@@ -14,7 +14,7 @@ import { IconAlertTriangle, IconDeviceFloppy } from '@tabler/icons';
 import Modal from 'components/Modal';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
-import StyledWrapper from './StyledWrapper';
+import StyledWrapper from '../StyledWrapper';
 
 const MAX_UNSAVED_REQUESTS_TO_SHOW = 5;
 
@@ -39,20 +39,24 @@ const ConfirmCollectionCloseDrafts = ({ onClose, collectionUids }) => {
 
   const allDraftsCount = currentRequestDrafts.length + currentTransientDrafts.length + currentFolderDrafts.length + currentCollectionDrafts.length;
 
-  const handleRemoveCollections = () => {
-    const removalPromises = activeCollections.map((c) => dispatch(removeCollection(c.uid)));
-    return Promise.all(removalPromises)
-      .then(() => {
-        toast.success(`${pluralizeWord('Collection', activeCollections.length)} removed from workspace`);
-      })
-      .catch((error) => {
-        console.error('Error closing collections:', error);
-        toast.error('An error occurred while removing the collection(s)');
-      })
-      .finally(() => {
-        dispatch(clearSidebarSelection());
-        onClose();
-      });
+  const handleRemoveCollections = async () => {
+    let removedCount = 0;
+    for (const c of activeCollections) {
+      try {
+        await dispatch(removeCollection(c.uid));
+        removedCount++;
+      } catch (error) {
+        console.error(`Error closing collection ${c.name}:`, error);
+        toast.error(error?.message || `Error removing collection ${c.name}`);
+      }
+    }
+
+    if (removedCount > 0) {
+      toast.success(`${removedCount} ${pluralizeWord('Collection', removedCount)} removed from workspace`);
+    }
+
+    dispatch(clearSidebarSelection());
+    onClose();
   };
 
   const handleSaveAll = async () => {

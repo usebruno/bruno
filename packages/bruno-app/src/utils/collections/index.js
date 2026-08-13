@@ -2216,8 +2216,8 @@ export const getSortedDraggedItems = ({
   const visibleUidsIndex = new Map(visibleUids.map((uid, idx) => [uid, idx]));
 
   draggedItems.sort((a, b) => {
-    const idxA = visibleUidsIndex.has(a.uid) ? visibleUidsIndex.get(a.uid) : 999999;
-    const idxB = visibleUidsIndex.has(b.uid) ? visibleUidsIndex.get(b.uid) : 999999;
+    const idxA = visibleUidsIndex.has(a.uid) ? visibleUidsIndex.get(a.uid) : Number.MAX_SAFE_INTEGER;
+    const idxB = visibleUidsIndex.has(b.uid) ? visibleUidsIndex.get(b.uid) : Number.MAX_SAFE_INTEGER;
     return idxA - idxB;
   });
 

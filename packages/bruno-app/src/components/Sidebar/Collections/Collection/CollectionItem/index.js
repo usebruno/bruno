@@ -220,14 +220,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   const canAnyItemBeDropped = ({ draggedItem, targetItem, dropType }) => {
-    const items = getSortedDraggedItems({
-      draggedItem,
-      allCollections,
-      workspaces,
-      activeWorkspace,
-      collectionSortOrder,
-      searchText
-    });
+    const items = draggedItem.multiSelectedItems?.length > 0 ? draggedItem.multiSelectedItems : [draggedItem];
     return items.some((i) => canItemBeDropped({ draggedItem: i, targetItem, dropType }));
   };
 
@@ -419,7 +412,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     e.preventDefault();
     e.stopPropagation();
 
-    if (isSelected) {
+    if (isSelected && selectedSidebarUids?.length > 1) {
       openBulkMenu(e);
       return;
     }
@@ -844,7 +837,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
               )}
             </div>
           </div>
-          {!isDragging && (!isSelected || selectedSidebarUids?.length === 0) && (
+          {!isDragging && (!isSelected || selectedSidebarUids?.length <= 1) && (
             <div className="pr-2 collection-actions">
               <MenuDropdown
                 ref={menuDropdownRef}

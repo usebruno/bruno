@@ -1292,7 +1292,17 @@ export const handleMultipleCollectionItemsDrop
             }
 
             const currentSourceItems = getDirectoryItems(sourceCollection, draggedItemUid);
-            const currentTargetItems = directoryCache.get(targetDir.uid);
+            const currentTargetItems = directoryCache.get(targetDir.uid) || [];
+
+            // Prevent collision: do not move if an item with the same name and type already exists in the target directory
+            const hasCollision = currentTargetItems.some(
+              (i) => i.uid !== draggedItemUid && i.name === draggedItem.name && isItemAFolder(i) === isItemAFolder(draggedItem)
+            );
+
+            if (hasCollision && newPathname !== draggedItemPathname) {
+              toast.error(`An item named '${draggedItem.name}' already exists in the target folder`);
+              continue;
+            }
 
             if (newPathname !== draggedItemPathname) {
               const newDirname = path.dirname(newPathname);

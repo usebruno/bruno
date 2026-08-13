@@ -28,7 +28,7 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
 
   const isPureCollectionSelection = hasCollection && !hasFolder && !hasRequest;
   const canDelete = !hasCollection && (hasFolder || hasRequest);
-  const collapsibleEntries = effectiveSelection.filter((entry) => entry.type !== 'request');
+  const collapsibleEntries = effectiveSelection.filter((entry) => entry.type === 'collection' || entry.type === 'folder');
   const canCollapse = collapsibleEntries.length > 0;
   const allCollapsed = canCollapse && collapsibleEntries.every(isEntryCollapsed);
 

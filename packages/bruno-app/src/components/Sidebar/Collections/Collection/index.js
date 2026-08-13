@@ -225,7 +225,7 @@ const Collection = ({ collection, searchText }) => {
     event.preventDefault();
     event.stopPropagation();
 
-    if (isSelected) {
+    if (isSelected && selectedSidebarUids?.length > 1) {
       openBulkMenu(event);
       return;
     }
@@ -657,7 +657,7 @@ const Collection = ({ collection, searchText }) => {
           </div>
           {isLoading ? <IconLoader2 className="animate-spin mx-1" size={18} strokeWidth={1.5} /> : null}
         </div>
-        {!isDragging && (!isSelected || selectedSidebarUids?.length === 0) && (
+        {!isDragging && (!isSelected || selectedSidebarUids?.length <= 1) && (
           <div>
             <div className="pr-2">
               <MenuDropdown
