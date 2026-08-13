@@ -238,10 +238,12 @@ const makeAwaitable = (j, path) => {
 
   const functionPath = enclosingFunction.get();
   if (functionPath.value.async === true) return true;
-  if (!isPromiseChainHandler(functionPath)) return false;
+  if (isPromiseChainHandler(functionPath)) {
+    functionPath.value.async = true;
+    return true;
+  }
 
-  functionPath.value.async = true;
-  return true;
+  return false;
 };
 
 /**
