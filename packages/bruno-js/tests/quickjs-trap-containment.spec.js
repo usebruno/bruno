@@ -55,6 +55,73 @@ describe('QuickJS engine trap containment', () => {
     expect(wasmModule.newContext.mock.calls.length).toBe(contextsOnTrappedModule + 1);
   }, 20000);
 
+  it('reports the recycle count only from the second trap onward', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { sandbox } = await loadSandbox((vm) => {
+      vm.runtime.setMemoryLimit(RUNTIME_MEMORY_LIMIT_BYTES);
+    });
+
+    await runOomScript(sandbox);
+    await sandbox.loader();
+    await runOomScript(sandbox);
+
+    const warns = warnSpy.mock.calls.map((args) => String(args[0]));
+    expect(warns[0]).toBe('QuickJS engine crashed during cleanup and was replaced; the run was not affected');
+    expect(warns[1]).toBe(
+      'QuickJS engine crashed during cleanup and was replaced; the run was not affected (2 times this session)'
+    );
+  }, 30000);
+
+  it('swallows only the exact dispose abort line and forwards all other engine stderr', () => {
+    jest.resetModules();
+    const actual = jest.requireActual('quickjs-emscripten');
+    let enginePrintErr;
+    jest.doMock('quickjs-emscripten', () => ({
+      ...actual,
+      newVariant: (base, options) => {
+        enginePrintErr = options.emscriptenModule.printErr;
+        return actual.newVariant(base, options);
+      }
+    }));
+    require('../src/sandbox/quickjs');
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    enginePrintErr('some other engine warning');
+    enginePrintErr('Aborted(Assertion failed: list_empty(&rt->gc_obj_list), at: ../../vendor/quickjs/quickjs.c,2036,JS_FreeRuntime)');
+    enginePrintErr('Aborted(Assertion failed: list_empty(&rt->gc_obj_list), at: somewhere else)');
+    enginePrintErr('Aborted(some future assertion in JS_FreeRuntime)');
+
+    expect(errorSpy.mock.calls.map((args) => args[0])).toEqual([
+      'some other engine warning',
+      'Aborted(Assertion failed: list_empty(&rt->gc_obj_list), at: somewhere else)',
+      'Aborted(some future assertion in JS_FreeRuntime)'
+    ]);
+  });
+
+  it('prints the contained abort in electron hosts and swallows it on the cli', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const abortLinesFromTrap = async () => {
+      const { sandbox } = await loadSandbox((vm) => {
+        vm.runtime.setMemoryLimit(RUNTIME_MEMORY_LIMIT_BYTES);
+      });
+      errorSpy.mockClear();
+      await runOomScript(sandbox);
+      return errorSpy.mock.calls.filter((args) => String(args[0]).includes('list_empty(&rt->gc_obj_list)'));
+    };
+
+    expect(await abortLinesFromTrap()).toEqual([]);
+
+    Object.defineProperty(process.versions, 'electron', { value: 'test', configurable: true });
+    try {
+      expect((await abortLinesFromTrap()).length).toBeGreaterThan(0);
+    } finally {
+      delete process.versions.electron;
+    }
+  }, 30000);
+
   it('keeps the old module serving when the replacement build fails', async () => {
     const actual = jest.requireActual('quickjs-emscripten');
     let builds = 0;

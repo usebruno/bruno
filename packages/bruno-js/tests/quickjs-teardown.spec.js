@@ -8,7 +8,6 @@ const {
   TEST_COLLECTION_PATH,
   runInSandbox,
   collectUnhandledRejections,
-  expectSettledWithoutAbort,
   expectAllDead,
   expectCleanTeardown,
   expectEventuallyClean
@@ -49,6 +48,36 @@ describe('QuickJS context teardown leaves no live handles or deferreds', () => {
         }
       ]
     ];
+
+    it('waitForPendingDeferreds resolves even when a settle promise rejects', async () => {
+      const wasmModule = await newQuickJSWASMModule();
+      const originalNewContext = wasmModule.newContext.bind(wasmModule);
+      wasmModule.newContext = (...args) => {
+        const vm = originalNewContext(...args);
+        const originalNewPromise = vm.newPromise.bind(vm);
+        vm.newPromise = (...promiseArgs) => {
+          const deferred = originalNewPromise(...promiseArgs);
+          Object.defineProperty(deferred, 'settled', {
+            value: Promise.reject(new Error('settle handling failed'))
+          });
+          return deferred;
+        };
+        return vm;
+      };
+      const managed = createManagedQuickJsContext(wasmModule);
+      const { vm } = managed;
+
+      const unhandledRejections = await collectUnhandledRejections(async () => {
+        const deferred = vm.newPromise();
+
+        await expect(managed.waitForPendingDeferreds()).resolves.toBeUndefined();
+        expect(deferred.alive).toBe(true);
+        expect(() => managed.dispose()).not.toThrow();
+        expect(deferred.alive).toBe(false);
+        expect(vm.alive).toBe(false);
+      });
+      expect(unhandledRejections).toEqual([]);
+    });
 
     it.each(lateWorkKinds)('stays clean when a job that %s runs during dispose', async (kind, makeHostFn) => {
       const wasmModule = await newQuickJSWASMModule();
@@ -172,8 +201,12 @@ describe('QuickJS context teardown leaves no live handles or deferreds', () => {
       const outcome = await runInSandbox({
         script: `
           test('async test with awaited host work', async () => {
-            await bru.sleep(30);
-            expect(1).to.equal(1);
+            const val = await new Promise((resolve) => {
+              setTimeout(() => {
+                resolve('expected');
+              }, 30);
+            });
+            expect(val).to.equal('expected');
           });
         `,
         context: {
