@@ -21,7 +21,10 @@ export default defineConfig({
   plugins: [
     pluginNodePolyfill(),
     pluginReact(),
-    pluginStyledComponents(),
+    // 1.1.0's SWC wasm plugin is not compatible with Rsbuild 1.7 / rspack 1.7.
+    // Storybook inherits this config, so skip it there; styled-components still
+    // works at runtime without the compile-time transform.
+    ...(process.env.STORYBOOK ? [] : [pluginStyledComponents()]),
     pluginSass(),
     pluginBabel({
       include: /\.(?:js|jsx|tsx)$/,
