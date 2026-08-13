@@ -11,7 +11,7 @@ const getByPath = (obj: Record<string, any>, path: string): any => {
   return path.split('.').reduce<any>((acc, key) => (acc == null ? undefined : acc[key]), obj);
 };
 
-const resolveWholeReference = (value: any, resolvableVariables: Record<string, any>): any => {
+export const resolveVariableReference = (value: any, resolvableVariables: Record<string, any>): any => {
   if (typeof value !== 'string') return undefined;
   const match = value.trim().match(/^\{\{([^}]+)\}\}$/);
   if (!match) return undefined;
@@ -27,7 +27,7 @@ export const parseValueByDataType = (
   resolvableVariables?: Record<string, any>
 ): any => {
   if (resolvableVariables) {
-    const resolved = resolveWholeReference(value, resolvableVariables);
+    const resolved = resolveVariableReference(value, resolvableVariables);
     if (resolved !== undefined) return resolved;
   }
   if (!dataType || dataType === 'string') return value;

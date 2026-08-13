@@ -1,4 +1,4 @@
-import { parseValueByDataType, validateDataTypeValue } from './datatype';
+import { parseValueByDataType, resolveVariableReference, validateDataTypeValue, type BrunoVariableDataType } from './datatype';
 
 const server = { server: { host: 'localhost', port: 8080, secure: true } };
 const ports = { ports: [8080, 9090] };
@@ -81,8 +81,11 @@ describe('parseValueByDataType — reference resolution', () => {
 });
 
 describe('parseValueByDataType + validateDataTypeValue — mismatch surfaces', () => {
-  const validateRef = (value: string, dataType: any, variables: Record<string, any>) =>
-    validateDataTypeValue(parseValueByDataType(value, dataType, variables), dataType);
+  const validateRef = (value: string, dataType: BrunoVariableDataType, variables: Record<string, any>) => {
+    const referenced = resolveVariableReference(value, variables);
+    const coerced = referenced !== undefined ? referenced : parseValueByDataType(value, dataType);
+    return validateDataTypeValue(coerced, dataType);
+  };
 
   it('flags a nested boolean reference for every dataType except boolean and string', () => {
     expect(validateRef('{{server.secure}}', 'boolean', server)).toBeNull();

@@ -36,6 +36,7 @@ export {
 
 export {
   parseValueByDataType,
+  resolveVariableReference,
   getDataTypeFromValue,
   validateDataTypeValue,
   valueToString,
