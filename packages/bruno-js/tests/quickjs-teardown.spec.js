@@ -101,38 +101,36 @@ describe('QuickJS context teardown leaves no live handles or deferreds', () => {
 
     // The context stays parked in the background waiting for the answer (its
     // deferred is deliberately still alive here); the run itself must not block.
-    it('returns immediately when a fire-and-forget host promise never settles', async () => {
+    it('keeps waiting while a fire-and-forget host promise never settles', async () => {
       const bru = makeBru();
       bru.sendRequest = () => new Promise(() => {});
 
       const outcome = await runInSandbox({
         script: 'bru.sendRequest({ url: "https://never-responds" }, async () => {});',
-        context: { bru }
+        context: { bru },
+        hangLimitMs: 300
       });
 
-      expectSettledWithoutAbort(outcome);
+      expect(outcome.status).toBe('hung');
       expect(outcome.deferreds.some((d) => d.alive)).toBe(true);
     });
 
-    it('completes abandoned work in the background after the run returns, then disposes', async () => {
+    it('completes un-awaited work before the run returns, then disposes', async () => {
       const bru = makeBru();
-      let settleLate;
-      bru.sendRequest = () => new Promise((resolve) => { settleLate = resolve; });
+      bru.sendRequest = () =>
+        new Promise((resolve) => setTimeout(() => resolve({ status: 200, data: largePayload() }), 50));
 
       const unhandledRejections = await collectUnhandledRejections(async () => {
         const outcome = await runInSandbox({
           script: `
-            bru.sendRequest({ url: 'https://responds-after-run' }, async (err, res) => {
+            bru.sendRequest({ url: 'https://responds-during-wait' }, async (err, res) => {
               bru.setVar('lateResult', res.data);
             });
           `,
           context: { bru }
         });
-        expectSettledWithoutAbort(outcome);
-        expect(bru.getVar('lateResult')).toBeUndefined();
 
-        settleLate({ status: 200, data: largePayload() });
-        await expectEventuallyClean(outcome);
+        expectCleanTeardown(outcome);
         expect(bru.getVar('lateResult')).toBe(largePayload());
       });
       expect(unhandledRejections).toEqual([]);
@@ -158,17 +156,42 @@ describe('QuickJS context teardown leaves no live handles or deferreds', () => {
         context: { bru }
       });
 
-      expectSettledWithoutAbort(outcome);
+      expectCleanTeardown(outcome);
       expect(outcome.error).toBeNull();
       expect(bru.getVar('payload')).toBe(largePayload());
-      await expectEventuallyClean(outcome);
       expect(bru.getVar('late')).toBe(largePayload());
     }, 10000);
 
-    it('does not surface a background dispose failure after the run has returned', async () => {
+    it('awaits async test callbacks before the run returns', async () => {
+      const results = [];
+      const __brunoTestResults = {
+        addResult: (result) => results.push(result),
+        getResults: () => results
+      };
+
+      const outcome = await runInSandbox({
+        script: `
+          test('async test with awaited host work', async () => {
+            await bru.sleep(30);
+            expect(1).to.equal(1);
+          });
+        `,
+        context: {
+          bru: makeBru(),
+          test: true,
+          __brunoTestResults,
+          console: { log: () => {}, info: () => {}, warn: () => {}, error: () => {}, debug: () => {} }
+        }
+      });
+
+      expectCleanTeardown(outcome);
+      expect(results).toEqual([{ description: 'async test with awaited host work', status: 'pass' }]);
+    });
+
+    it('surfaces a dispose failure after waited-for work as the run error', async () => {
       const bru = makeBru();
-      let settleLate;
-      bru.sendRequest = () => new Promise((resolve) => { settleLate = resolve; });
+      bru.sendRequest = () =>
+        new Promise((resolve) => setTimeout(() => resolve({ status: 200, data: 'ok' }), 50));
 
       const unhandledRejections = await collectUnhandledRejections(async () => {
         const captured = { handles: [], deferreds: [] };
@@ -177,19 +200,20 @@ describe('QuickJS context teardown leaves no live handles or deferreds', () => {
           const originalDispose = vm.dispose.bind(vm);
           vm.dispose = () => {
             originalDispose();
-            throw new Error('background dispose failed');
+            throw new Error('dispose failed after the wait');
           };
         });
 
-        await sandbox.executeQuickJsVmAsync({
-          script: `
-            bru.sendRequest({ url: 'https://responds-after-run' }, async () => {});
-          `,
-          context: { bru },
-          collectionPath: TEST_COLLECTION_PATH
-        });
+        await expect(
+          sandbox.executeQuickJsVmAsync({
+            script: `
+              bru.sendRequest({ url: 'https://responds-during-wait' }, async () => {});
+            `,
+            context: { bru },
+            collectionPath: TEST_COLLECTION_PATH
+          })
+        ).rejects.toThrow('dispose failed after the wait');
 
-        settleLate({ status: 200, data: 'ok' });
         await expectEventuallyClean(captured);
       });
       expect(unhandledRejections).toEqual([]);

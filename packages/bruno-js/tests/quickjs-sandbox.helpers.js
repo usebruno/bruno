@@ -6,10 +6,6 @@ const BrunoResponse = require('../src/bruno-response');
 
 const TEST_COLLECTION_PATH = path.join(os.tmpdir(), 'bruno-quickjs-tests');
 
-// The run must return without waiting on abandoned work, so this only guards
-// against a hang regression.
-const TEARDOWN_HANG_LIMIT_MS = 5000;
-
 // GC-class allocators only: these are the object types whose live handles
 // trip the gc_obj_list assert in JS_FreeRuntime.
 const CAPTURED_ALLOCATORS = ['newObject', 'newArray', 'newFunction'];
@@ -79,7 +75,7 @@ const captureAllocations = (vm, captured) => {
   };
 };
 
-const runInSandbox = async ({ script, scriptType, context }) => {
+const runInSandbox = async ({ script, scriptType, context, hangLimitMs = 5000 }) => {
   const captured = { handles: [], deferreds: [] };
   const { sandbox } = await loadSandbox((vm) => captureAllocations(vm, captured));
 
@@ -103,7 +99,7 @@ const runInSandbox = async ({ script, scriptType, context }) => {
   const outcome = await Promise.race([
     settled,
     new Promise((resolve) => {
-      hangTimer = setTimeout(() => resolve({ status: 'hung' }), TEARDOWN_HANG_LIMIT_MS);
+      hangTimer = setTimeout(() => resolve({ status: 'hung' }), hangLimitMs);
     })
   ]);
   clearTimeout(hangTimer);

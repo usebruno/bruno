@@ -192,27 +192,20 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     scriptError = error;
   }
 
-  // Don't block on abandoned fire-and-forget work — but dispose only after it
-  // settles (a late host callback would touch a freed context). If the script
-  // itself failed, that error wins — a teardown throw must not replace it.
-  const disposeContext = ({ background }) => {
+  // The run waits for every pending deferred before returning: un-awaited
+  // async work is the user's choice, and the run is not done until it is.
+  // The wait is unbounded by design; cancelling the request is the way out.
+  if (managedQuickJsContext) {
+    await managedQuickJsContext.waitForPendingDeferreds();
     try {
       managedQuickJsContext.dispose();
     } catch (teardownError) {
       const recycled = recycleQuickJSModuleOnAbort(teardownError, quickJsModule);
-      if (!background && !scriptError && !recycled) {
+      if (!scriptError && !recycled) {
         scriptError = teardownError;
       } else {
         console.error('Error disposing QuickJS context', teardownError);
       }
-    }
-  };
-
-  if (managedQuickJsContext) {
-    if (managedQuickJsContext.hasPendingDeferreds()) {
-      managedQuickJsContext.waitForPendingDeferreds().then(() => disposeContext({ background: true }));
-    } else {
-      disposeContext({ background: false });
     }
   }
 
