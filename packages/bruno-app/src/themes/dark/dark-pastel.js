@@ -59,6 +59,13 @@ const colors = {
   }
 };
 
+const border = {
+  BORDER3: '#7a7294',
+  BORDER2: '#5c5478',
+  BORDER1: '#453d5c',
+  BORDER0: '#352e4d'
+};
+
 export const palette = {};
 
 palette.intent = {
@@ -156,9 +163,10 @@ const darkPastelTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border2: colors.GRAY_5,
-    border1: colors.GRAY_4,
-    border0: colors.GRAY_3
+    border3: border.BORDER3,
+    border2: border.BORDER2,
+    border1: border.BORDER1,
+    border0: border.BORDER0
   },
 
   colors: {

@@ -39,6 +39,13 @@ const colors = {
   }
 };
 
+const border = {
+  BORDER3: '#b0b0b0',
+  BORDER2: '#cbcbcb',
+  BORDER1: '#e5e5e5',
+  BORDER0: '#eaeaea'
+};
+
 export const palette = {};
 
 palette.intent = {
@@ -130,9 +137,10 @@ const lightMonochromeTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border2: colors.GRAY_5,
-    border1: colors.GRAY_4,
-    border0: colors.GRAY_3
+    border3: border.BORDER3,
+    border2: border.BORDER2,
+    border1: border.BORDER1,
+    border0: border.BORDER0
   },
 
   colors: {

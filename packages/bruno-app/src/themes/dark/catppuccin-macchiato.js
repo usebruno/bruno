@@ -51,6 +51,13 @@ const colors = {
   }
 };
 
+const border = {
+  BORDER3: '#6e738d',
+  BORDER2: '#5b6078',
+  BORDER1: '#494d64',
+  BORDER0: '#363a4f'
+};
+
 export const palette = {};
 
 palette.intent = {
@@ -148,9 +155,10 @@ const catppuccinMacchiatoTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border2: colors.SURFACE2,
-    border1: colors.SURFACE1,
-    border0: colors.SURFACE0
+    border3: border.BORDER3,
+    border2: border.BORDER2,
+    border1: border.BORDER1,
+    border0: border.BORDER0
   },
 
   colors: {

@@ -51,6 +51,13 @@ const colors = {
   }
 };
 
+const border = {
+  BORDER3: '#9ca0b0',
+  BORDER2: '#acb0be',
+  BORDER1: '#bcc0cc',
+  BORDER0: '#ccd0da'
+};
+
 export const palette = {};
 
 palette.intent = {
@@ -148,9 +155,10 @@ const catppuccinLatteTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border2: colors.SURFACE2,
-    border1: colors.SURFACE1,
-    border0: colors.SURFACE0
+    border3: border.BORDER3,
+    border2: border.BORDER2,
+    border1: border.BORDER1,
+    border0: border.BORDER0
   },
 
   colors: {

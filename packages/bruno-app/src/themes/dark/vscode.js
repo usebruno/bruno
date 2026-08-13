@@ -61,6 +61,13 @@ const colors = {
   }
 };
 
+const border = {
+  BORDER3: '#6e6e6e',
+  BORDER2: '#5a5a5a',
+  BORDER1: '#454545',
+  BORDER0: '#3c3c3c'
+};
+
 export const palette = {};
 
 palette.intent = {
@@ -158,9 +165,10 @@ const vscodeDarkTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border2: colors.GRAY_5,
-    border1: colors.BORDER,
-    border0: colors.BORDER_LIGHT
+    border3: border.BORDER3,
+    border2: border.BORDER2,
+    border1: border.BORDER1,
+    border0: border.BORDER0
   },
 
   colors: {
