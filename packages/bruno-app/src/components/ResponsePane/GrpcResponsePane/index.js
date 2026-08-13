@@ -6,6 +6,8 @@ import Overlay from '../Overlay';
 import Placeholder from '../Placeholder';
 import ScriptError, { hasScriptError } from '../ScriptError';
 import ScriptErrorIcon from '../ScriptErrorIcon';
+import GrpcTestResults, { buildGrpcTestSections, countGrpcTestResults } from './GrpcTestResults';
+import GrpcTestResultsLabel from './GrpcTestResultsLabel';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import GrpcResponseHeaders from './GrpcResponseHeaders';
 import GrpcStatusCode from './GrpcStatusCode';
@@ -53,6 +55,9 @@ const GrpcResponsePane = ({ item, collection }) => {
   const trailersCount = Array.isArray(response.trailers) ? response.trailers.length : 0;
   const responsesCount = Array.isArray(response.responses) ? response.responses.length : 0;
 
+  const testSections = buildGrpcTestSections(item);
+  const hasTestResults = countGrpcTestResults(testSections) > 0;
+
   const allTabs = [
     {
       key: 'response',
@@ -78,6 +83,11 @@ const GrpcResponsePane = ({ item, collection }) => {
       key: 'timeline',
       label: 'Timeline',
       indicator: null
+    },
+    {
+      key: 'tests',
+      label: <GrpcTestResultsLabel sections={testSections} />,
+      indicator: null
     }
   ];
 
@@ -94,6 +104,9 @@ const GrpcResponsePane = ({ item, collection }) => {
       }
       case 'timeline': {
         return <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />;
+      }
+      case 'tests': {
+        return <GrpcTestResults item={item} sections={testSections} />;
       }
       default: {
         return <div>404 | Not found</div>;
@@ -125,7 +138,7 @@ const GrpcResponsePane = ({ item, collection }) => {
     );
   }
 
-  if (!item.response && !requestTimeline?.length) {
+  if (!item.response && !requestTimeline?.length && !hasTestResults) {
     return (
       <HeightBoundContainer>
         {standaloneScriptError}
@@ -184,6 +197,8 @@ const GrpcResponsePane = ({ item, collection }) => {
           {!item?.response ? (
             focusedTab?.responsePaneTab === 'timeline' && requestTimeline?.length ? (
               <Timeline collection={collection} item={item} activeTabUid={activeTabUid} />
+            ) : focusedTab?.responsePaneTab === 'tests' && hasTestResults ? (
+              <GrpcTestResults item={item} sections={testSections} />
             ) : null
           ) : (
             <>{getTabPanel(focusedTab.responsePaneTab)}</>
