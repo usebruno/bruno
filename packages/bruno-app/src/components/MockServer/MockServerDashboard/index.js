@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { startMockServer, stopMockServer, refreshMockRoutes, updateMockDelay, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
+import { startMockServer, stopMockServer, refreshMockRoutes, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
 import { IconRefresh, IconCopy, IconCheck, IconPlayerPlay, IconPlayerStop, IconSettings } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import RouteTable from './RouteTable';
@@ -18,7 +18,9 @@ import {
   saveMockServerInstance,
   resolveMockServerStartPayload,
   resolveMockServerWorkspacePath,
-  updateMockServerTabName
+  updateMockServerTabName,
+  toMockServerDelayInputValue,
+  blockMockServerDelayKeys
 } from 'utils/mock-server/mock-server-instances';
 import MockResponsesList from 'components/MockServer/MockResponse/MockResponsesList';
 import Tab from 'components/Tab';
@@ -216,7 +218,7 @@ const MockServerDashboard = ({ instance, collection }) => {
   };
 
   const handleDelayChange = (event) => {
-    setDelayDraft(Number(event.target.value) || 0);
+    setDelayDraft(toMockServerDelayInputValue(event.target.value));
   };
 
   const handleDelayBlur = async () => {
@@ -228,10 +230,6 @@ const MockServerDashboard = ({ instance, collection }) => {
     }
 
     try {
-      if (isRunning) {
-        await dispatch(updateMockDelay({ mockServerUid, delay: newDelay })).unwrap();
-      }
-
       await persistInstance({ globalDelay: newDelay });
     } catch (err) {
       toast.error(err.message || 'Failed to update delay');
@@ -368,8 +366,9 @@ const MockServerDashboard = ({ instance, collection }) => {
                 type="number"
                 value={delayValue}
                 onChange={handleDelayChange}
+                onKeyDown={blockMockServerDelayKeys}
                 onBlur={handleDelayBlur}
-                disabled={isStarting}
+                disabled={isRunning || isStarting || isStopping}
                 min={0}
                 step={100}
                 data-testid="mock-server-delay-input"

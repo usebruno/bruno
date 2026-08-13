@@ -16,6 +16,7 @@ import { buildToastLocators } from './toast';
 import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildEnvironmentLocators } from './environments';
+import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -38,6 +39,7 @@ export const buildCommonLocators = (page: Page) => ({
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
+  workspaceOverview: buildWorkspaceOverviewLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),

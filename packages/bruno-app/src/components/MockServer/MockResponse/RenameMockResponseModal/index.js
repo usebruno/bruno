@@ -3,8 +3,8 @@ import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import {
   getMockResponseNameError,
-  isMockResponseNameTaken,
-  MOCK_RESPONSE_NAME_MAX_LENGTH
+  getMockResponseNameLengthError,
+  isMockResponseNameTaken
 } from 'utils/mock-server/mock-responses';
 
 const RenameMockResponseModal = ({
@@ -63,13 +63,10 @@ const RenameMockResponseModal = ({
             ref={inputRef}
             type="text"
             className="textbox mt-2 w-full"
-            maxLength={MOCK_RESPONSE_NAME_MAX_LENGTH}
             value={name}
             onChange={(event) => {
               setName(event.target.value);
-              if (nameError) {
-                setNameError('');
-              }
+              setNameError(getMockResponseNameLengthError(event.target.value) || '');
             }}
             data-testid="mock-response-rename-name-input"
           />

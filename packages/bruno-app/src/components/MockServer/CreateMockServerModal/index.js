@@ -21,7 +21,9 @@ import {
   resolveTabCollectionUid,
   saveMockServerInstance,
   suggestAvailableMockServerPort,
-  updateMockServerTabName
+  updateMockServerTabName,
+  toMockServerDelayInputValue,
+  blockMockServerDelayKeys
 } from 'utils/mock-server/mock-server-instances';
 
 const resolveSelectedSpecUid = (editingInstance, apiSpecs) => {
@@ -565,7 +567,8 @@ const CreateMockServerModal = ({
                     min={0}
                     step={100}
                     value={formik.values.globalDelay}
-                    onChange={formik.handleChange}
+                    onChange={(event) => formik.setFieldValue('globalDelay', toMockServerDelayInputValue(event.target.value))}
+                    onKeyDown={blockMockServerDelayKeys}
                     onBlur={formik.handleBlur}
                     data-testid="mock-server-settings-delay-input"
                   />

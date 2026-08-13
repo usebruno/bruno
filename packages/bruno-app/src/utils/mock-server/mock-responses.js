@@ -228,6 +228,18 @@ export const resolveMockResponseEditorCollection = ({
 
 export const MOCK_RESPONSE_NAME_MAX_LENGTH = 255;
 
+export const MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH = 1000;
+
+export const getMockResponseNameLengthError = (name) => {
+  const value = name == null ? '' : String(name).trim();
+
+  if (value.length > MOCK_RESPONSE_NAME_MAX_LENGTH) {
+    return `Name must be ${MOCK_RESPONSE_NAME_MAX_LENGTH} characters or less`;
+  }
+
+  return null;
+};
+
 export const getMockResponseNameError = (name) => {
   const value = name == null ? '' : String(name).trim();
 
@@ -235,8 +247,14 @@ export const getMockResponseNameError = (name) => {
     return 'Mock response name is required';
   }
 
-  if (value.length > MOCK_RESPONSE_NAME_MAX_LENGTH) {
-    return `Name must be ${MOCK_RESPONSE_NAME_MAX_LENGTH} characters or less`;
+  return getMockResponseNameLengthError(value);
+};
+
+export const getMockResponseDescriptionError = (description) => {
+  const value = description == null ? '' : String(description).trim();
+
+  if (value.length > MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH) {
+    return `Description must be ${MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH} characters or less`;
   }
 
   return null;
