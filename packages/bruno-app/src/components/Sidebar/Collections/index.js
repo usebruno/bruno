@@ -8,6 +8,7 @@ import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import { buildSidebarEntries } from 'utils/collections/index';
+import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
@@ -71,6 +72,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
           return <GitRemoteCollectionRow entry={entry.entry} key={entry.key} />;
         })}
       </div>
+      <CollectionItemDragPreview />
     </StyledWrapper>
   );
 };

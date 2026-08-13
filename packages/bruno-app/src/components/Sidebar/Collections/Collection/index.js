@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
@@ -40,7 +40,7 @@ import RemoveCollections from './RemoveCollections';
 import MoveToWorkspace from './MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, buildSidebarEntries, getVisibleSidebarUidsInOrder, getSortedDraggedItems, getSelectionInfo } from 'utils/collections';
+import { isItemAFolder, isItemARequest, getSortedDraggedItems, getSelectionInfo } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 
 import RenameCollection from './RenameCollection';
@@ -63,7 +63,6 @@ import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
-import { useMemo } from 'react';
 
 // Delay before showing empty collection state (ms)
 // This prevents flicker from race condition between loading state and item batch updates
@@ -115,10 +114,17 @@ const Collection = ({ collection, searchText }) => {
     return hasCollection && (hasFolder || hasRequest);
   }, [isSelected, selectedSidebarUids, allCollections]);
 
+  // When dragging a multi-selected collection, carry all other selected collections along
+  // so dropping one reorders the entire selection together. Mixed selections (a collection
+  // alongside a folder/request) are drag-disabled entirely, so this only ever needs to
+  // handle collection-only selections.
   const multiDragItems = useMemo(() => {
     if (!isSelected || !selectedSidebarUids || selectedSidebarUids.length < 2) return null;
-    const { effectiveSelection } = getSelectionInfo({ collections: allCollections, selectedUids: selectedSidebarUids });
-    return effectiveSelection.map((entry) => ({ ...entry.item, sourceCollectionUid: entry.collectionUid }));
+    const { effectiveSelection, hasFolder, hasRequest } = getSelectionInfo({ collections: allCollections, selectedUids: selectedSidebarUids });
+    if (hasFolder || hasRequest) return null;
+    const collectionEntries = effectiveSelection.filter((entry) => entry.type === 'collection');
+    if (collectionEntries.length < 2) return null;
+    return collectionEntries.map((entry) => entry.collection);
   }, [isSelected, selectedSidebarUids, allCollections]);
 
   // Open the OpenAPI Sync tab
@@ -311,10 +317,6 @@ const Collection = ({ collection, searchText }) => {
     }
   });
 
-  useEffect(() => {
-    dragPreview(getEmptyImage(), { captureDraggingState: true });
-  }, [dragPreview]);
-
   const [{ isOver }, drop] = useDrop({
     accept: ['collection', 'collection-item'],
     hover: (_draggedItem, monitor) => {
@@ -359,17 +361,38 @@ const Collection = ({ collection, searchText }) => {
           dispatch(clearSidebarSelection());
         }
       } else {
-        dispatch(moveCollectionAndPersist({ draggedItem, targetItem: collection }));
+        const draggedItems = getSortedDraggedItems({
+          draggedItem,
+          allCollections,
+          workspaces,
+          activeWorkspace,
+          collectionSortOrder,
+          searchText
+        });
+
+        const validDraggedItems = draggedItems.filter((dragged) => dragged.uid !== collection.uid);
+
+        for (const dragged of validDraggedItems) {
+          await dispatch(moveCollectionAndPersist({ draggedItem: dragged, targetItem: collection }));
+        }
+
+        if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
+          dispatch(clearSidebarSelection());
+        }
       }
       setDropType(null);
     },
     canDrop: (draggedItem) => {
-      return draggedItem.uid !== collection.uid;
+      if (draggedItem.uid === collection.uid) return false;
+      return !draggedItem.multiSelectedItems?.some((i) => i.uid === collection.uid);
     },
     collect: (monitor) => ({
       isOver: monitor.isOver()
     })
   });
+
+  drag(drop(collectionRef));
+  dragPreview(getEmptyImage(), { captureDraggingState: true });
 
   useEffect(() => {
     if (isCollectionFocused && collectionRef.current) {
@@ -607,10 +630,7 @@ const Collection = ({ collection, searchText }) => {
       <BulkActionsMenu menuProps={menuProps} />
       <div
         className={collectionRowClassName}
-        ref={(node) => {
-          collectionRef.current = node;
-          drag(drop(node));
-        }}
+        ref={collectionRef}
         tabIndex={0}
         onFocus={handleFocus}
         onBlur={handleBlur}

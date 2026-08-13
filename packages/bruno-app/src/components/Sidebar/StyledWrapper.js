@@ -31,12 +31,20 @@ const Wrapper = styled.div`
   .collection-name.collection-selected.collection-keyboard-focused,
   .collection-item-name.collection-selected.item-keyboard-focused {
     background: ${(props) => rgba(props.theme.primary.text, 0.1)} !important;
+    &:hover {
+      background: ${(props) => rgba(props.theme.primary.text, 0.16)} !important;
+    }
+
   }
 
   /* Tab focus + Selected */
   .collection-name.collection-selected.collection-focused-in-tab,
   .collection-item-name.collection-selected.item-focused-in-tab {
     background: ${(props) => rgba(props.theme.primary.text, 0.16)} !important;
+    &:hover {
+      background: ${(props) => rgba(props.theme.primary.text, 0.16)} !important;
+    }
+
   }
 
   aside {

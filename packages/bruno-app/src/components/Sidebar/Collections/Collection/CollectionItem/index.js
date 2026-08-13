@@ -190,10 +190,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     }
   });
 
-  useEffect(() => {
-    dragPreview(getEmptyImage(), { captureDraggingState: true });
-  }, [dragPreview]);
-
   // Auto-scroll to show this item when its tab becomes active
   useEffect(() => {
     if (isTabForItemActive && ref.current) {
@@ -307,6 +303,9 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       canDrop: monitor.canDrop()
     })
   });
+
+  drag(drop(ref));
+  dragPreview(getEmptyImage(), { captureDraggingState: true });
 
   useEffect(() => {
     if (!isOver) {
@@ -779,10 +778,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       />
       <div
         className={itemRowClassName}
-        ref={(node) => {
-          ref.current = node;
-          drag(drop(node));
-        }}
+        ref={ref}
         tabIndex={0}
         onFocus={handleFocus}
         onBlur={handleBlur}

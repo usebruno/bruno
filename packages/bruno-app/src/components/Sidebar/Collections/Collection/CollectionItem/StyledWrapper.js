@@ -33,7 +33,7 @@ const Wrapper = styled.div`
       visibility: hidden;
     }
 
-    &.drag-disabled {
+    &.drag-disabled:active {
       cursor: not-allowed !important;
     }
 

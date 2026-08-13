@@ -32,6 +32,10 @@ const Wrapper = styled.div`
       border-bottom: 2px solid transparent;
     }
 
+    &.drag-disabled:active {
+      cursor: not-allowed !important;
+    }
+
     &:hover {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
     }

@@ -15,6 +15,7 @@ const BulkActionsDropdown = ({ visible, onClose, position, onRequestRemoveCollec
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
   const collections = useSelector((state) => state.collections.collections);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
+  // This will filter out the scratch collections from the list
   const visibleCollections = collections.filter((c) => !isScratchCollection(c, workspaces));
 
   const { effectiveSelection, hasCollection, hasFolder, hasRequest } = useMemo(
