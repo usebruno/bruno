@@ -657,12 +657,6 @@ const getLog = (mockServerUid) => {
   return collection ? collection.requestLog : [];
 };
 
-const setDelay = (mockServerUid, delay) => {
-  const collection = collections.get(mockServerUid);
-  if (!collection) throw new Error('Mock server is not running.');
-  collection.globalDelay = Math.max(0, Number(delay) || 0);
-};
-
 const clearLog = (mockServerUid) => {
   const collection = collections.get(mockServerUid);
   if (collection) collection.requestLog = [];
@@ -691,7 +685,6 @@ module.exports = {
   getStatus,
   refreshRoutes,
   getLog,
-  setDelay,
   clearLog,
   suggestPort,
   checkPortAvailable,

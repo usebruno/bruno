@@ -76,22 +76,6 @@ export const refreshMockRoutes = createAsyncThunk(
   }
 );
 
-export const updateMockDelay = createAsyncThunk(
-  'mockServer/updateDelay',
-  async (payload) => {
-    const mockServerUid = resolveMockServerUid(payload);
-    const { delay } = payload;
-    const result = await window.ipcRenderer.invoke('renderer:mock-server-set-delay', {
-      mockServerUid,
-      delay: Number(delay) || 0
-    });
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-    return { mockServerUid, delay: Number(delay) || 0 };
-  }
-);
-
 export const clearMockLog = createAsyncThunk(
   'mockServer/clearLog',
   async (payload) => {
@@ -370,12 +354,6 @@ export const mockServerSlice = createSlice({
           globalDelay: 0
         };
         state.requestLogs[mockServerUid] = [];
-      })
-      .addCase(updateMockDelay.fulfilled, (state, action) => {
-        const { mockServerUid, delay } = action.payload;
-        if (state.servers[mockServerUid]) {
-          state.servers[mockServerUid].globalDelay = delay;
-        }
       })
       .addCase(clearMockLog.fulfilled, (state, action) => {
         const { mockServerUid } = action.payload;
