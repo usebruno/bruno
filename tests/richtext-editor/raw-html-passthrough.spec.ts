@@ -57,4 +57,63 @@ test.describe('Rich Text Editor Edge Cases - Raw HTML Passthrough', () => {
       expect(roundTripped).toContain('Hidden details content');
     });
   });
+
+  const INLINE_MARKDOWN_SOURCE = [
+    'Some text with <mark>highlighted</mark> and <u>underlined</u> inline HTML.',
+    '',
+    'Keyboard shortcut <kbd>Ctrl</kbd>+<kbd>C</kbd> and water is H<sup>2</sup>O.',
+    '',
+    '- [ ] Task not done',
+    '- [x] Task done',
+    ''
+  ].join('\n');
+
+  test('Inline HTML with no dedicated mark is not dropped, and tags that do have one (kbd, sup, task checkboxes) keep working', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-inline-raw-html');
+
+    await setMarkdownSource(locators, INLINE_MARKDOWN_SOURCE);
+
+    await test.step('Rich Text keeps the unrecognized inline HTML\'s text instead of dropping it', async () => {
+      await locators.docs.modeSwitchDocs().click();
+      const prosemirror = locators.docs.proseMirror();
+      await expect(prosemirror).toBeVisible();
+
+      await expect(prosemirror).toContainText('highlighted');
+      await expect(prosemirror).toContainText('underlined');
+      // <mark>/</mark> and <u>/</u> each become their own opaque placeholder
+      // (no dedicated node maps to them), one per open and close tag.
+      await expect(prosemirror.locator('.editor-raw-html-inline')).toHaveCount(4);
+    });
+
+    await test.step('Recognized inline tags render as themselves, not as raw-HTML placeholders', async () => {
+      const prosemirror = locators.docs.proseMirror();
+
+      await expect(prosemirror.locator('kbd')).toHaveText(['Ctrl', 'C']);
+      await expect(prosemirror.locator('sup')).toHaveText('2');
+      await expect(prosemirror.locator('.editor-raw-html-inline kbd')).toHaveCount(0);
+      await expect(prosemirror.locator('.editor-raw-html-inline sup')).toHaveCount(0);
+    });
+
+    await test.step('The task list checkboxes still parse as real, checkable task items', async () => {
+      const prosemirror = locators.docs.proseMirror();
+      const taskItems = prosemirror.locator('ul[data-type="taskList"] > li');
+
+      await expect(taskItems).toHaveCount(2);
+      await expect(taskItems.nth(0).locator('input[type="checkbox"]')).not.toBeChecked();
+      await expect(taskItems.nth(1).locator('input[type="checkbox"]')).toBeChecked();
+      await expect(prosemirror.locator('.editor-raw-html-inline input')).toHaveCount(0);
+    });
+
+    await test.step('Switching back to Markdown round-trips every tag byte-for-byte', async () => {
+      const roundTripped = await getMarkdownSource(locators);
+
+      expect(roundTripped).toContain('<mark>highlighted</mark>');
+      expect(roundTripped).toContain('<u>underlined</u>');
+      expect(roundTripped).toContain('<kbd>Ctrl</kbd>');
+      expect(roundTripped).toContain('<kbd>C</kbd>');
+      expect(roundTripped).toContain('H<sup>2</sup>O');
+      expect(roundTripped).toContain('[ ] Task not done');
+      expect(roundTripped).toContain('[x] Task done');
+    });
+  });
 });

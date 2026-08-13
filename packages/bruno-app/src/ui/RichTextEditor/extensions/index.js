@@ -8,7 +8,7 @@ import { EditorKbd, EditorSuperscript } from './EditorInlineHtmlMarks';
 import EditorListKeyboard from './EditorListKeyboard';
 import EditorParagraph from './EditorParagraph';
 import { createEditorImage, createEditorLink } from './EditorRelativeAssets';
-import EditorRawHtmlBlock from './EditorRawHtmlBlock';
+import EditorRawHtmlBlock, { EditorRawHtmlInline } from './EditorRawHtmlBlock';
 import EditorTable from './EditorTable';
 import { EditorTableCell, EditorTableHeader } from './EditorTableAlignment';
 import EditorTableKeyboard from './EditorTableKeyboard';
@@ -103,7 +103,7 @@ const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
     }
   }),
   EditorTableKeyboard,
-  ...(allowHtml ? [EditorRawHtmlBlock] : []),
+  ...(allowHtml ? [EditorRawHtmlBlock, EditorRawHtmlInline] : []),
   EditorKbd,
   EditorSuperscript,
   createEditorLink(collectionPath).configure({
@@ -118,7 +118,15 @@ const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
   }),
   Markdown.configure({
     html: allowHtml,
-    breaks: true,
+    // A lone `\n` inside a paragraph is a CommonMark soft break (renders as a
+    // space), not a line break. With `breaks: true`, tiptap-markdown parses
+    // it as a hardBreak node instead, and EditorHardBreak's serializer then
+    // writes that back out as an explicit `\` line-continuation — so loading
+    // and re-saving any doc with hand-wrapped prose silently turned every
+    // wrapped line into a forced break. `breaks: false` keeps soft breaks as
+    // plain reflowable text, matching how any other CommonMark renderer
+    // (e.g. GitHub) would display the same file.
+    breaks: false,
     linkify: true,
     transformPastedText: true,
     transformCopiedText: true,
