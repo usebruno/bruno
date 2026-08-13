@@ -1,4 +1,5 @@
 import process from 'node:process';
+import { ElectronApplication } from '@playwright/test';
 import { test, Page, Locator } from '../../../playwright';
 import { buildCommonLocators } from './locators';
 
@@ -36,7 +37,10 @@ export const buildNamingCollisionLocators = (page: Page) => ({
       .locator('.item-name')
       .and(page.getByTitle(title, { exact: true })),
 
-  toast: (text: string | RegExp): Locator => page.getByText(text),
+  // Scoped to the toast container — prevents matching unrelated page text and
+  // stale toasts from a prior action that haven't dismissed yet.
+  toast: (text: string | RegExp): Locator =>
+    page.locator('[data-testid="toast-container"]').getByText(text),
 
   anyModal: (): Locator => page.locator('.bruno-modal'),
   modalByTitle: (title: string): Locator => buildCommonLocators(page).modal.byTitle(title),
@@ -48,6 +52,8 @@ export const buildNamingCollisionLocators = (page: Page) => ({
   renameNameInput: (): Locator => page.locator('#collection-item-name'),
   renameSubmit: (): Locator => page.getByTestId('rename-item-button'),
   renameEditIcon: (): Locator => page.getByTestId('rename-request-edit-icon'),
+  // Same control in the New Request modal (different component, separate testid).
+  filenameEditIcon: (): Locator => page.getByTestId('filename-edit-icon'),
 
   // Filesystem-name section (shared by New Request / Rename / New Folder)
   optionsButton: (): Locator => page.locator('.btn-advanced'),
@@ -88,37 +94,42 @@ const openCollectionActionsMenu = async (page: Page, collectionName: string) => 
 export const cloneItem = async (page: Page, name: string) => {
   await test.step(`Clone item "${name}"`, async () => {
     const { dropdown } = buildCommonLocators(page);
+    const { toast } = buildNamingCollisionLocators(page);
     await openItemActionsMenu(page, name);
     await dropdown.item('Clone').click();
-    // Synchronize on completion (a "… cloned!" toast).
-    await page.getByText(/cloned!/).first().waitFor({ state: 'visible' });
+    // Synchronize on completion (a "… cloned!" toast), scoped to the toast
+    // container so a still-visible toast from a prior clone is not matched.
+    await toast(/cloned!/).first().waitFor({ state: 'visible' });
   });
 };
 
 export const copyItem = async (page: Page, name: string) => {
   await test.step(`Copy item "${name}"`, async () => {
     const { dropdown } = buildCommonLocators(page);
+    const { toast } = buildNamingCollisionLocators(page);
     await openItemActionsMenu(page, name);
     await dropdown.item('Copy').click();
-    await page.getByText(/copied/).first().waitFor({ state: 'visible' });
+    await toast(/copied/).first().waitFor({ state: 'visible' });
   });
 };
 
 export const pasteIntoCollection = async (page: Page, collectionName: string) => {
   await test.step(`Paste into collection "${collectionName}"`, async () => {
     const { dropdown } = buildCommonLocators(page);
+    const { toast } = buildNamingCollisionLocators(page);
     await openCollectionActionsMenu(page, collectionName);
     await dropdown.item('Paste').click();
-    await page.getByText('Item pasted successfully').first().waitFor({ state: 'visible' });
+    await toast('Item pasted successfully').first().waitFor({ state: 'visible' });
   });
 };
 
 export const pasteIntoFolder = async (page: Page, folderName: string) => {
   await test.step(`Paste into folder "${folderName}"`, async () => {
     const { dropdown } = buildCommonLocators(page);
+    const { toast } = buildNamingCollisionLocators(page);
     await openItemActionsMenu(page, folderName);
     await dropdown.item('Paste').click();
-    await page.getByText('Item pasted successfully').first().waitFor({ state: 'visible' });
+    await toast('Item pasted successfully').first().waitFor({ state: 'visible' });
   });
 };
 
@@ -193,11 +204,7 @@ export const createRequestWithEditedFilename = async (
     await openNewRequestModal(page, collectionName);
     await locators.requestNameInput().fill(displayName);
     await revealFilesystemName(page);
-
-    const fileNameRow = page
-      .locator('.bruno-modal div.flex.items-center.justify-between')
-      .filter({ has: page.getByText('File Name') });
-    await fileNameRow.locator('> svg').click();
+    await locators.filenameEditIcon().click();
     await locators.fileNameInput().fill(filename);
     await locators.createRequestButton().click();
     await locators.anyModal().waitFor({ state: 'hidden' });
@@ -229,9 +236,9 @@ export const openCloneCollectionModal = async (page: Page, collectionName: strin
   await buildNamingCollisionLocators(page).modalByTitle('Clone Collection').waitFor({ state: 'visible' });
 };
 
-export const chooseCloneLocation = async (page: Page, electronApp: any, location: string) => {
+export const chooseCloneLocation = async (page: Page, electronApp: ElectronApplication, location: string) => {
   const locators = buildNamingCollisionLocators(page);
-  await electronApp.evaluate(({ dialog }: any, dir: string) => {
+  await electronApp.evaluate(({ dialog }: { dialog: Electron.Dialog }, dir: string) => {
     (globalThis as any).__bruPrevShowOpenDialog = dialog.showOpenDialog;
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
   }, location);
@@ -239,7 +246,7 @@ export const chooseCloneLocation = async (page: Page, electronApp: any, location
     await locators.browseButton().click();
     await locators.collectionLocationInput().waitFor({ state: 'visible' });
   } finally {
-    await electronApp.evaluate(({ dialog }: any) => {
+    await electronApp.evaluate(({ dialog }: { dialog: Electron.Dialog }) => {
       if ((globalThis as any).__bruPrevShowOpenDialog) {
         dialog.showOpenDialog = (globalThis as any).__bruPrevShowOpenDialog;
         delete (globalThis as any).__bruPrevShowOpenDialog;

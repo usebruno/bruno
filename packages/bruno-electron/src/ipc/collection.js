@@ -614,6 +614,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const filename = targetFilename || path.basename(sourcePathname);
       const filenameWithoutExt = filename.replace(/\.(bru|yml)$/, '');
 
+      if (!validateName(filenameWithoutExt)) {
+        throw new Error(`${filenameWithoutExt} is not a valid filename`);
+      }
+
       const actualSourceFormat = sourceFormat || 'yml';
       const needsConversion = actualSourceFormat !== targetFormat;
 
@@ -1569,13 +1573,26 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
             // Use the correct file extension based on target format
             const baseName = path.parse(item.filename).name;
+
+            if (!validateName(baseName)) {
+              throw new Error(`${baseName} is not a valid filename`);
+            }
+
             const newFilename = format === 'yml' ? `${baseName}.yml` : `${baseName}.bru`;
             const filePath = path.join(currentPath, newFilename);
 
+            validatePathIsInsideCollection(filePath);
             safeWriteFileSync(filePath, content);
           }
           if (item.type === 'folder') {
-            const folderPath = path.join(currentPath, item.filename);
+            const folderName = path.basename(item.filename);
+
+            if (!validateName(folderName)) {
+              throw new Error(`${folderName} is not a valid folder name`);
+            }
+
+            const folderPath = path.join(currentPath, folderName);
+            validatePathIsInsideCollection(folderPath);
             fs.mkdirSync(folderPath);
 
             // If folder has a root element, then I should write its folder file
@@ -2413,6 +2430,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const filename = targetFilename || path.basename(sourcePathname);
       const filenameWithoutExt = filename.replace(/\.(bru|yml)$/, '');
+
+      if (!validateName(filenameWithoutExt)) {
+        throw new Error(`${filenameWithoutExt} is not a valid filename`);
+      }
 
       const content = await stringifyRequestViaWorker(request, { format });
 

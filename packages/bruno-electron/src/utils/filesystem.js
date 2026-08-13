@@ -463,10 +463,9 @@ const copyPathTo = async (source, targetPath) => {
   const resolvedTarget = path.join(canonicalPath(path.dirname(targetPath)), path.basename(targetPath));
 
   // Prevent copying a path into itself or one of its descendants.
-  if (
-    resolvedTarget === resolvedSource
-    || resolvedTarget.startsWith(resolvedSource + path.sep)
-  ) {
+  const srcLower = resolvedSource.toLowerCase();
+  const tgtLower = resolvedTarget.toLowerCase();
+  if (tgtLower === srcLower || tgtLower.startsWith(srcLower + path.sep)) {
     throw new Error('Cannot copy a path into itself or a subdirectory of itself');
   }
 
@@ -506,8 +505,10 @@ const copyPathTo = async (source, targetPath) => {
 const dirLockChains = new Map();
 
 const withDirLock = async (dirname, fn) => {
-  // Normalize the path so equivalent directory paths share the same lock.
-  const key = path.resolve(dirname);
+  // canonicalPath resolves symlinks and real on-disk casing via realpathSync,
+  // so two differently-cased spellings of the same dir on a case-insensitive
+  // volume (macOS, Windows) share the same lock key.
+  const key = canonicalPath(dirname);
   const prev = dirLockChains.get(key) || Promise.resolve();
 
   // Wait for the previous operation, even if it failed.
@@ -569,7 +570,6 @@ const sizeInMB = (size) => {
 };
 
 const getSafePathToWrite = (filePath) => {
-  const MAX_FILENAME_LENGTH = 255; // Common limit on most filesystems
   const dir = path.dirname(filePath);
   const ext = path.extname(filePath);
   let base = path.basename(filePath, ext);

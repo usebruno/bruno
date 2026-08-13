@@ -456,6 +456,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       size={16}
                       strokeWidth={1.5}
                       onClick={() => toggleEditing(true)}
+                      data-testid="filename-edit-icon"
                     />
                   )}
                 </div>
