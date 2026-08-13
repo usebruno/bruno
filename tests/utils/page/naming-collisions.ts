@@ -40,6 +40,10 @@ export const buildNamingCollisionLocators = (page: Page) => ({
   toast: (text: string | RegExp): Locator =>
     page.locator('.toast-container').getByText(text),
 
+  // Inline Yup form-validation error rendered inside a modal.
+  formError: (text: string | RegExp): Locator =>
+    page.locator('.bruno-modal [data-testid="form-error"]').getByText(text),
+
   anyModal: (): Locator => page.locator('.bruno-modal'),
   modalByTitle: (title: string): Locator => buildCommonLocators(page).modal.byTitle(title),
   modalCardByTitle: (title: string): Locator => buildCommonLocators(page).modal.card().filter({ hasText: title }),

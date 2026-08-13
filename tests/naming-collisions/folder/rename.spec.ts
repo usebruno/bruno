@@ -149,7 +149,7 @@ test.describe('Naming collisions - rename folder', () => {
     });
 
     await test.step('Reserved-name error is shown and nothing is renamed', async () => {
-      await expect(nc.toast('Name cannot be a reserved device name.')).toBeVisible();
+      await expect(nc.formError('Name cannot be a reserved device name.')).toBeVisible();
       await expect(modal).toBeVisible();
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Auth'))).toBe(true);

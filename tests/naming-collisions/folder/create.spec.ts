@@ -51,7 +51,7 @@ test.describe('Naming collisions - create folder', () => {
     });
 
     await test.step('Reserved-name error is shown and nothing is created', async () => {
-      await expect(nc.toast('Name cannot be a reserved device name.')).toBeVisible();
+      await expect(nc.formError('Name cannot be a reserved device name.')).toBeVisible();
       await expect(nc.anyModal()).toBeVisible();
       await expect(nc.itemByTitle('CON')).toHaveCount(0);
       expect(fs.existsSync(path.join(findCollectionDir(testDir), 'CON'))).toBe(false);

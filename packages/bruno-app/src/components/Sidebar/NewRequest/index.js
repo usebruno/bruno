@@ -427,7 +427,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                 data-testid="request-name"
               />
               {formik.touched.requestName && formik.errors.requestName ? (
-                <div className="text-red-500">{formik.errors.requestName}</div>
+                <div className="text-red-500" data-testid="form-error">{formik.errors.requestName}</div>
               ) : null}
             </div>
             {showFilesystemName && (
@@ -486,7 +486,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                   </div>
                 )}
                 {formik.touched.filename && formik.errors.filename ? (
-                  <div className="text-red-500">{formik.errors.filename}</div>
+                  <div className="text-red-500" data-testid="form-error">{formik.errors.filename}</div>
                 ) : null}
               </div>
             )}

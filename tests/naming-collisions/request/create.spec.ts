@@ -113,7 +113,7 @@ test.describe('Naming collisions - create request', () => {
     });
 
     await test.step('Reserved-name error is shown and nothing is created', async () => {
-      await expect(nc.toast('Name cannot be a reserved device name.')).toBeVisible();
+      await expect(nc.formError('Name cannot be a reserved device name.')).toBeVisible();
       await expect(nc.anyModal()).toBeVisible();
       expect(listRequestFiles(testDir)).toHaveLength(0);
     });
