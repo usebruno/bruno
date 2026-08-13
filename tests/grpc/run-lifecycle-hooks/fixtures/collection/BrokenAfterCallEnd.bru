@@ -1,0 +1,26 @@
+meta {
+  name: BrokenAfterCallEnd
+  type: grpc
+  seq: 10
+}
+
+grpc {
+  url: {{host}}
+  method: /hello.HelloService/SayHello
+  body: grpc
+  auth: none
+  methodType: unary
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {
+      "greeting": "after-hook-throws"
+    }
+  '''
+}
+
+script:grpc:after-call-end {
+  throw new Error('afterCallEnd exploded');
+}
