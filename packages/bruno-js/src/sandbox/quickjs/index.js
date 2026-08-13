@@ -196,6 +196,8 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
   // async work is the user's choice, and the run is not done until it is.
   // The wait is unbounded by design; cancelling the request is the way out.
   if (managedQuickJsContext) {
+    // No try/catch: every awaited settle promise is pre-caught at creation
+    // (trackPendingDeferreds), so this await cannot reject and skip dispose.
     await managedQuickJsContext.waitForPendingDeferreds();
     try {
       managedQuickJsContext.dispose();
