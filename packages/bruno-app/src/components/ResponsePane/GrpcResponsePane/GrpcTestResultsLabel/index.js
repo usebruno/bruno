@@ -14,9 +14,9 @@ const GrpcTestResultsLabel = ({ sections }) => {
     <StyledWrapper className="flex items-center">
       <div>Tests</div>
       {failedCount ? (
-        <sup className="some-tests-failed ml-1 font-medium">{failedCount}</sup>
+        <sup className="some-tests-failed ml-1 font-medium" data-testid="grpc-tests-failed-count">{failedCount}</sup>
       ) : (
-        <sup className="all-tests-passed ml-1 font-medium">{results.length}</sup>
+        <sup className="all-tests-passed ml-1 font-medium" data-testid="grpc-tests-passed-count">{results.length}</sup>
       )}
     </StyledWrapper>
   );
