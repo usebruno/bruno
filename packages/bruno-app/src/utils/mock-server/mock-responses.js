@@ -367,6 +367,8 @@ export const buildMockRouteTable = (responses = []) => {
     ));
 };
 
+export const countMockRoutes = (responses = []) => buildMockRouteTable(responses).length;
+
 export const countMatchedRouteHits = (entries = []) => {
   const hitCounts = {};
 

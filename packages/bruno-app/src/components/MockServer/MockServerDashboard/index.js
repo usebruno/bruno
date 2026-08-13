@@ -26,7 +26,7 @@ import MockResponsesList from 'components/MockServer/MockResponse/MockResponsesL
 import Tab from 'components/Tab';
 import ActionIcon from 'ui/ActionIcon';
 import Button from 'ui/Button';
-import { resolveMockResponseCollection, resolveMockResponseLocation } from 'utils/mock-server/mock-responses';
+import { resolveMockResponseCollection, resolveMockResponseLocation, countMockRoutes } from 'utils/mock-server/mock-responses';
 import StyledWrapper from './StyledWrapper';
 
 const MockServerLogCount = ({ mockServerUid }) => {
@@ -57,6 +57,9 @@ const MockServerDashboard = ({ instance, collection }) => {
     findMockServerInstance(state, mockServerUid) || instance
   ));
   const workspaceInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
+  const mockResponses = useSelector((state) => state.mockServer.mockResponses[mockServerUid]) || [];
+  const routeCount = useMemo(() => countMockRoutes(mockResponses), [mockResponses]);
+  const exampleCount = mockResponses.length;
 
   const activeWorkspace = useMemo(() => (
     workspaces.find((workspace) => workspace.uid === activeWorkspaceUid) || null
@@ -79,8 +82,6 @@ const MockServerDashboard = ({ instance, collection }) => {
     status: 'stopped',
     port: null,
     baseUrl: null,
-    routeCount: 0,
-    exampleCount: 0,
     globalDelay: instance.globalDelay || 0
   };
 
@@ -167,8 +168,8 @@ const MockServerDashboard = ({ instance, collection }) => {
 
   const handleRefresh = async () => {
     try {
-      const result = await dispatch(refreshMockRoutes(location)).unwrap();
-      toast.success(`Routes refreshed: ${result.routeCount} routes, ${result.exampleCount} responses`);
+      await dispatch(refreshMockRoutes(location)).unwrap();
+      toast.success(`Routes refreshed: ${routeCount} routes, ${exampleCount} responses`);
     } catch (err) {
       toast.error(err.message || 'Failed to refresh routes');
     }
@@ -357,8 +358,8 @@ const MockServerDashboard = ({ instance, collection }) => {
 
           {isRunning && (
             <div className="server-stats" data-testid="mock-server-stats">
-              <span>{serverState.routeCount} routes</span>
-              <span>{serverState.exampleCount} responses</span>
+              <span>{routeCount} routes</span>
+              <span>{exampleCount} responses</span>
             </div>
           )}
 
@@ -434,7 +435,7 @@ const MockServerDashboard = ({ instance, collection }) => {
         <Tab
           name="routes"
           label="Routes"
-          count={serverState.routeCount}
+          count={routeCount}
           isActive={activeTab === 'routes'}
           onClick={setActiveTab}
           data-testid="mock-server-tab-routes"

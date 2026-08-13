@@ -398,8 +398,17 @@ const handleRequest = (mockServerUid, req, res) => {
     }
   };
 
+  // addign a try-catch block to handle any errors that may occur during the response
   if (delay > 0) {
-    setTimeout(sendResponse, delay);
+    setTimeout(() => {
+      try {
+        sendResponse();
+      } catch (err) {
+        if (!res.headersSent) {
+          res.status(500).json({ error: err.message || 'Mock response failed' });
+        }
+      }
+    }, delay);
   } else {
     sendResponse();
   }

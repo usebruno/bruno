@@ -154,19 +154,18 @@ const readWorkspaceStoreFromDisk = (workspacePath) => {
 
   try {
     const content = fs.readFileSync(filePath, 'utf8');
-    const parsed = parseStoreContent(content, filePath);
+    const parsed = yaml.load(content);
 
-    if (parsed.mockServers) {
-      return {
-        version: parsed.version || STORE_VERSION,
-        mockServers: parsed.mockServers
-      };
+    if (!parsed || typeof parsed !== 'object' || typeof parsed.mockServers !== 'object') {
+      throw new Error('invalid store format');
     }
 
-    return createEmptyStore();
+    return {
+      version: parsed.version || STORE_VERSION,
+      mockServers: parsed.mockServers
+    };
   } catch (err) {
-    console.warn(`[MockResponseStore] Failed to read ${filePath}: ${err.message}`);
-    return createEmptyStore();
+    throw new Error(`Failed to read mock server store (${filePath}): ${err.message}`);
   }
 };
 
@@ -187,6 +186,18 @@ const writeWorkspaceStoreToDisk = (workspacePath, store) => {
 };
 
 const getWorkspaceCacheKey = (workspacePath) => resolveWorkspacePath(workspacePath);
+
+const invalidateWorkspaceStoreCache = (workspacePath) => {
+  const cacheKey = getWorkspaceCacheKey(workspacePath);
+  const pendingTimer = workspaceWriteTimers.get(cacheKey);
+
+  if (pendingTimer) {
+    clearTimeout(pendingTimer);
+    workspaceWriteTimers.delete(cacheKey);
+  }
+
+  workspaceStoreCache.delete(cacheKey);
+};
 
 const readWorkspaceStore = (workspacePath) => {
   const cacheKey = getWorkspaceCacheKey(workspacePath);
@@ -535,6 +546,7 @@ module.exports = {
   flushWorkspaceStore,
   getStorePath: getWorkspaceStorePath,
   getWorkspaceStorePath,
+  invalidateWorkspaceStoreCache,
   listMockResponses,
   listMockServers,
   readWorkspaceStore,
