@@ -253,14 +253,11 @@ const makeAwaitable = (j, path) => {
  * that resolve to a different binding — a nested function re-declaring the name —
  * are left alone.
  * @param {Object} j - jscodeshift API
- * @param {Object} handlerPath - Path of the `.then` fulfilled handler argument
+ * @param {Object} handlerPath - Path of the `.then` fulfilled handler argument; the
+ *   caller guarantees it is a function expression with an Identifier first param.
  */
 const rewriteThenHandlerResponseAccess = (j, handlerPath) => {
   const handler = handlerPath.value;
-  if (!handler) return;
-  if (handler.type !== 'FunctionExpression' && handler.type !== 'ArrowFunctionExpression') return;
-  if (handler.params[0]?.type !== 'Identifier') return;
-
   const responseVarName = handler.params[0].name;
 
   j(handlerPath).find(j.MemberExpression, {
