@@ -46,13 +46,13 @@ const containsExternalFileRef = (node, specDir, visited = new Set()) => {
 };
 
 const resolveExternalApiSpecRefs = async (json, apiSpecPath) => {
-  if (!containsExternalFileRef(json, path.dirname(apiSpecPath))) return null;
-
-  const parser = new $RefParser();
+  let parser;
   try {
+    if (!containsExternalFileRef(json, path.dirname(apiSpecPath))) return null;
+    parser = new $RefParser();
     return await parser.bundle(apiSpecPath, structuredClone(json), REF_PARSER_OPTIONS);
   } catch {
-    return parser.schema ?? null;
+    return parser?.schema ?? null;
   }
 };
 
