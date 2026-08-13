@@ -16,6 +16,7 @@ import {
   getMockServerInstances,
   checkMockServerPortAvailable,
   getMockServerPortError,
+  getMockServerPortRangeError,
   getMockServerNameError,
   openMockServerDashboard,
   resolveTabCollectionUid,
@@ -108,7 +109,6 @@ const CreateMockServerModal = ({
   const dispatch = useDispatch();
   const inputRef = useRef();
   const [showAdvancedPort, setShowAdvancedPort] = useState(Boolean(editingInstance));
-  const [portError, setPortError] = useState(null);
   // Kept in state so enableReinitialize cannot wipe a suggested free port back to 4000
   // when collections/specs finish loading after the modal opens.
   const [suggestedPort, setSuggestedPort] = useState(editingInstance?.port || DEFAULT_MOCK_SERVER_PORT);
@@ -170,6 +170,47 @@ const CreateMockServerModal = ({
     ? resolveSelectedSpecUid(editingInstance, apiSpecs)
     : '';
 
+  const requiresPortField = showAdvancedPort || isEditing;
+
+  const validationSchema = useMemo(() => Yup.object({
+    name: Yup.string()
+      .trim()
+      .min(1, 'Must be at least 1 character')
+      .max(255, 'Must be 255 characters or less')
+      .test('is-valid-name', function (value) {
+        const error = getMockServerNameError(value);
+        return error ? this.createError({ message: error }) : true;
+      })
+      .required('Name is required')
+      .test('duplicate-name', 'A mock server with this name already exists', (value) => {
+        const normalized = value?.trim().toLowerCase();
+        return !existingInstances.some((instance) => (
+          instance.name.trim().toLowerCase() === normalized && instance.uid !== editingInstance?.uid
+        ));
+      }),
+    linkSource: Yup.boolean(),
+    sourceType: Yup.string().oneOf(['collection', 'spec']),
+    collectionUid: Yup.string().when(['linkSource', 'sourceType'], {
+      is: (linked, sourceType) => linked && sourceType === 'collection',
+      then: (schema) => schema.required('Collection is required'),
+      otherwise: (schema) => schema.notRequired()
+    }),
+    specUid: Yup.string().when(['linkSource', 'sourceType'], {
+      is: (linked, sourceType) => linked && sourceType === 'spec',
+      then: (schema) => schema.required('API spec is required'),
+      otherwise: (schema) => schema.notRequired()
+    }),
+    port: Yup.mixed().test('port-range', function (value) {
+      if (!requiresPortField) {
+        return true;
+      }
+
+      const error = getMockServerPortRangeError(value);
+      return error ? this.createError({ message: error }) : true;
+    }),
+    globalDelay: Yup.number().min(0, 'Delay cannot be negative')
+  }, [['sourceType', 'linkSource']]), [requiresPortField, existingInstances, editingInstance?.uid]);
+
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
@@ -181,40 +222,8 @@ const CreateMockServerModal = ({
       globalDelay: editingInstance?.globalDelay || 0,
       linkSource: editingInstance ? editingInstance.sourceType !== 'manual' : canLinkSource
     },
-    validationSchema: Yup.object({
-      name: Yup.string()
-        .trim()
-        .min(1, 'Must be at least 1 character')
-        .max(255, 'Must be 255 characters or less')
-        .test('is-valid-name', function (value) {
-          const error = getMockServerNameError(value);
-          return error ? this.createError({ message: error }) : true;
-        })
-        .required('Name is required')
-        .test('duplicate-name', 'A mock server with this name already exists', (value) => {
-          const normalized = value?.trim().toLowerCase();
-          return !existingInstances.some((instance) => (
-            instance.name.trim().toLowerCase() === normalized && instance.uid !== editingInstance?.uid
-          ));
-        }),
-      linkSource: Yup.boolean(),
-      sourceType: Yup.string().oneOf(['collection', 'spec']),
-      collectionUid: Yup.string().when(['linkSource', 'sourceType'], {
-        is: (linked, sourceType) => linked && sourceType === 'collection',
-        then: (schema) => schema.required('Collection is required'),
-        otherwise: (schema) => schema.notRequired()
-      }),
-      specUid: Yup.string().when(['linkSource', 'sourceType'], {
-        is: (linked, sourceType) => linked && sourceType === 'spec',
-        then: (schema) => schema.required('API spec is required'),
-        otherwise: (schema) => schema.notRequired()
-      }),
-      port: Yup.number()
-        .min(1, 'Port must be at least 1')
-        .max(65535, 'Port must be 65535 or less'),
-      globalDelay: Yup.number().min(0, 'Delay cannot be negative')
-    }, [['sourceType', 'linkSource']]),
-    onSubmit: async (values) => {
+    validationSchema,
+    onSubmit: async (values, { setFieldError }) => {
       if (!activeWorkspaceUid) {
         toast.error('No active workspace found');
         return;
@@ -234,10 +243,9 @@ const CreateMockServerModal = ({
         const portCheck = await checkMockServerPortAvailable(resolvedPort, configuredInstances, {
           excludeUid: editingInstance?.uid
         });
-        const error = getMockServerPortError(portCheck, resolvedPort);
-        if (error) {
-          setPortError(error);
-          toast.error(error);
+        const availabilityError = getMockServerPortError(portCheck, resolvedPort);
+        if (availabilityError) {
+          setFieldError('port', availabilityError);
           return;
         }
       }
@@ -320,8 +328,12 @@ const CreateMockServerModal = ({
   }, [isEditing, configuredInstances, editingInstance?.uid]);
 
   const handleConfirm = async () => {
-    if (portError) {
-      toast.error(portError);
+    const errors = await formik.validateForm();
+    if (Object.keys(errors).length > 0) {
+      formik.setTouched(Object.keys(errors).reduce((touched, key) => ({
+        ...touched,
+        [key]: true
+      }), formik.touched));
       return;
     }
 
@@ -330,7 +342,6 @@ const CreateMockServerModal = ({
 
   const handleCancel = () => {
     formik.resetForm({ values: formik.values });
-    setPortError(null);
     onClose();
   };
 
@@ -528,26 +539,34 @@ const CreateMockServerModal = ({
                     value={formik.values.port || ''}
                     onChange={(event) => {
                       formik.setFieldValue('port', event.target.value ? Number(event.target.value) : '');
-                      if (portError) {
-                        setPortError(null);
+                      if (formik.errors.port) {
+                        formik.setFieldError('port', undefined);
                       }
                     }}
                     onBlur={async (event) => {
                       formik.handleBlur(event);
-                      if (editingInstance && Number(editingInstance.port) === Number(event.target.value)) {
-                        setPortError(null);
+                      const rangeError = getMockServerPortRangeError(event.target.value);
+                      if (rangeError) {
+                        formik.setFieldError('port', rangeError);
                         return;
                       }
-                      const portCheck = await checkMockServerPortAvailable(event.target.value, configuredInstances, {
-                        excludeUid: editingInstance?.uid
-                      });
-                      setPortError(getMockServerPortError(portCheck, event.target.value));
+
+                      if (editingInstance && Number(editingInstance.port) === Number(event.target.value)) {
+                        formik.setFieldError('port', undefined);
+                        return;
+                      }
+
+                      try {
+                        const portCheck = await checkMockServerPortAvailable(event.target.value, configuredInstances, {
+                          excludeUid: editingInstance?.uid
+                        });
+                        formik.setFieldError('port', getMockServerPortError(portCheck, event.target.value) || undefined);
+                      } catch (err) {
+                        formik.setFieldError('port', err.message || 'Failed to validate port');
+                      }
                     }}
                     data-testid="mock-server-port-input"
                   />
-                  {portError ? (
-                    <div className="text-red-500 mt-1">{portError}</div>
-                  ) : null}
                   {formik.touched.port && formik.errors.port ? (
                     <div className="text-red-500 mt-1">{formik.errors.port}</div>
                   ) : null}

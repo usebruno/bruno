@@ -15,6 +15,30 @@ import {
 } from 'providers/ReduxStore/slices/mock-server/index';
 
 export const DEFAULT_MOCK_SERVER_PORT = 4000;
+export const MOCK_SERVER_PORT_MIN = 1;
+export const MOCK_SERVER_PORT_MAX = 65535;
+
+export const getMockServerPortRangeError = (port) => {
+  if (port === '' || port === null || port === undefined) {
+    return 'Port is required';
+  }
+
+  const normalizedPort = Number(port);
+
+  if (!Number.isInteger(normalizedPort)) {
+    return 'Port must be a whole number';
+  }
+
+  if (normalizedPort < MOCK_SERVER_PORT_MIN) {
+    return 'Port must be at least 1';
+  }
+
+  if (normalizedPort > MOCK_SERVER_PORT_MAX) {
+    return 'Port must be 65535 or less';
+  }
+
+  return null;
+};
 
 export const normalizeMockTabType = (type) => {
   if (type === 'mock-server-dashboard' || type === 'mocker') {

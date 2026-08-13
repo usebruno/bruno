@@ -12,6 +12,7 @@ import {
   getMockServerInstances,
   checkMockServerPortAvailable,
   getMockServerPortError,
+  getMockServerPortRangeError,
   getMockServerNameError,
   isMockServerNameTaken,
   resolveInstanceSpec,
@@ -94,31 +95,18 @@ const MockServerDashboard = ({ instance, collection }) => {
   const nameValue = nameDraft ?? storedInstance.name;
   const delayValue = delayDraft ?? activeDelay;
 
-  useEffect(() => {
-    validatePort(activePort);
-  }, [activePort]);
-
   const validatePort = async (value = activePort) => {
-    const trimmed = String(value).trim();
-
-    if (!trimmed) {
-      const error = 'Port is required';
-      setPortError(error);
-      return error;
-    }
-
-    const nextPort = Number(trimmed);
-    if (!Number.isInteger(nextPort) || nextPort < 1 || nextPort > 65535) {
-      const error = 'Port must be between 1 and 65535';
-      setPortError(error);
-      return error;
+    const rangeError = getMockServerPortRangeError(value);
+    if (rangeError) {
+      setPortError(rangeError);
+      return rangeError;
     }
 
     try {
-      const portCheck = await checkMockServerPortAvailable(nextPort, workspaceInstances, {
+      const portCheck = await checkMockServerPortAvailable(Number(value), workspaceInstances, {
         excludeUid: storedInstance.uid
       });
-      const error = getMockServerPortError(portCheck, nextPort);
+      const error = getMockServerPortError(portCheck, value);
       setPortError(error);
       return error;
     } catch (err) {
@@ -127,6 +115,10 @@ const MockServerDashboard = ({ instance, collection }) => {
       return error;
     }
   };
+
+  useEffect(() => {
+    validatePort(activePort);
+  }, [activePort]);
 
   useEffect(() => {
     dispatch(syncMockServerState(location));

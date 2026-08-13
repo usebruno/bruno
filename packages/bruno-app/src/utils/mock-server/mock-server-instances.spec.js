@@ -1,6 +1,7 @@
 import {
   DEFAULT_MOCK_SERVER_PORT,
   getMockServerNameError,
+  getMockServerPortRangeError,
   isMockServerRelatedTab,
   isMockServerNameTaken,
   isMockServerPortTaken,
@@ -66,6 +67,31 @@ describe('mock server instance validation helpers', () => {
     expect(isMockServerPortTaken(instances, 4000)).toBe(true);
     expect(isMockServerPortTaken(instances, 4000, 'a')).toBe(false);
     expect(isMockServerPortTaken(instances, 4010)).toBe(false);
+  });
+});
+
+describe('getMockServerPortRangeError', () => {
+  it('rejects empty port values', () => {
+    expect(getMockServerPortRangeError('')).toBe('Port is required');
+    expect(getMockServerPortRangeError(null)).toBe('Port is required');
+  });
+
+  it('rejects non-integer ports', () => {
+    expect(getMockServerPortRangeError(4000.5)).toBe('Port must be a whole number');
+  });
+
+  it('rejects ports below 1', () => {
+    expect(getMockServerPortRangeError(0)).toBe('Port must be at least 1');
+  });
+
+  it('rejects ports above 65535', () => {
+    expect(getMockServerPortRangeError(65536)).toBe('Port must be 65535 or less');
+  });
+
+  it('accepts ports in range', () => {
+    expect(getMockServerPortRangeError(1)).toBeNull();
+    expect(getMockServerPortRangeError(65535)).toBeNull();
+    expect(getMockServerPortRangeError(4000)).toBeNull();
   });
 });
 
