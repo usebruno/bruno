@@ -23,8 +23,14 @@ body:grpc {
 
 script:grpc:before-call-start {
   bru.setVar('greeting', 'set-by-hook');
+  bru.setVar('capturedReply', '');
 }
 
 script:grpc:after-call-end {
+  test('the hook sees the message the unary call sent', () => {
+    expect(bru.grpc.req.messages.count()).to.equal(1);
+    expect(bru.grpc.req.messages.get(0).data.greeting).to.equal('set-by-hook');
+  });
+
   bru.setVar('capturedReply', bru.grpc.res.messages.get(0).data.reply);
 }
