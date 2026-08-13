@@ -2,7 +2,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
-import { collectCollectionExamples } from 'utils/mock-server/mock-responses';
+import {
+  collectCollectionExamples,
+  getMockResponseNameError,
+  getMockResponseNameLengthError,
+  getMockResponseDescriptionError,
+  isMockResponseNameTaken
+} from 'utils/mock-server/mock-responses';
 
 const BODY_TYPES = [
   { value: 'json', label: 'JSON' },
@@ -11,9 +17,7 @@ const BODY_TYPES = [
   { value: 'html', label: 'HTML' }
 ];
 
-const DESCRIPTION_MAX_LENGTH = 1000;
-
-const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
+const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate, onClose }) => {
   const nameInputRef = useRef();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -42,6 +46,7 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
   const nameValue = name || linkedExample?.example?.name || '';
   const statusValue = Number(linkedExample?.example?.response?.status) || statusCode;
   const bodyTypeValue = linkedExample?.example?.response?.body?.type || bodyType;
+  const descriptionError = getMockResponseDescriptionError(description);
 
   useEffect(() => {
     if (nameInputRef.current) {
@@ -50,8 +55,20 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
   }, []);
 
   const handleConfirm = async () => {
-    if (!nameValue.trim()) {
-      setNameError('Mock response name is required');
+    const trimmedName = nameValue.trim();
+
+    const validationError = getMockResponseNameError(trimmedName);
+    if (validationError) {
+      setNameError(validationError);
+      return;
+    }
+
+    if (isMockResponseNameTaken(existingResponses, trimmedName)) {
+      setNameError('A mock response with this name already exists');
+      return;
+    }
+
+    if (descriptionError) {
       return;
     }
 
@@ -63,7 +80,7 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
     setIsSaving(true);
     try {
       await onCreate({
-        name: nameValue.trim(),
+        name: trimmedName,
         description: description.trim(),
         statusCode: Number(statusValue) || 200,
         bodyType: bodyTypeValue,
@@ -107,9 +124,7 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
               value={nameValue}
               onChange={(event) => {
                 setName(event.target.value);
-                if (nameError) {
-                  setNameError('');
-                }
+                setNameError(getMockResponseNameLengthError(event.target.value) || '');
               }}
               data-testid="mock-response-create-name-input"
             />
@@ -127,10 +142,12 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
               className="block textbox w-full mt-2"
               rows={2}
               value={description}
-              maxLength={DESCRIPTION_MAX_LENGTH}
-              onChange={(event) => setDescription(event.target.value.slice(0, DESCRIPTION_MAX_LENGTH))}
+              onChange={(event) => setDescription(event.target.value)}
               data-testid="mock-response-create-description-input"
             />
+            {descriptionError ? (
+              <div className="text-red-500 mt-1">{descriptionError}</div>
+            ) : null}
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-4">

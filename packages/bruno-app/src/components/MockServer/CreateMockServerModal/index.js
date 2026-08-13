@@ -21,7 +21,9 @@ import {
   resolveTabCollectionUid,
   saveMockServerInstance,
   suggestAvailableMockServerPort,
-  updateMockServerTabName
+  updateMockServerTabName,
+  toMockServerDelayInputValue,
+  blockMockServerDelayKeys
 } from 'utils/mock-server/mock-server-instances';
 
 const resolveSelectedSpecUid = (editingInstance, apiSpecs) => {
@@ -211,8 +213,7 @@ const CreateMockServerModal = ({
       }),
       port: Yup.number()
         .min(1, 'Port must be at least 1')
-        .max(65535, 'Port must be 65535 or less')
-        .required('Port is required'),
+        .max(65535, 'Port must be 65535 or less'),
       globalDelay: Yup.number().min(0, 'Delay cannot be negative')
     }, [['sourceType', 'linkSource']]),
     onSubmit: async (values) => {
@@ -329,6 +330,12 @@ const CreateMockServerModal = ({
     formik.handleSubmit();
   };
 
+  const handleCancel = () => {
+    formik.resetForm({ values: formik.values });
+    setPortError(null);
+    onClose();
+  };
+
   const handleDelete = () => {
     if (editingInstance && onDelete) {
       onDelete(editingInstance);
@@ -342,7 +349,7 @@ const CreateMockServerModal = ({
         title={isEditing ? 'Mock Server Settings' : 'Create Mock Server'}
         confirmText={isEditing ? 'Save' : 'Create'}
         handleConfirm={handleConfirm}
-        handleCancel={onClose}
+        handleCancel={handleCancel}
         footerLeft={isEditing && onDelete ? (
           <Button
             type="button"
@@ -560,7 +567,8 @@ const CreateMockServerModal = ({
                     min={0}
                     step={100}
                     value={formik.values.globalDelay}
-                    onChange={formik.handleChange}
+                    onChange={(event) => formik.setFieldValue('globalDelay', toMockServerDelayInputValue(event.target.value))}
+                    onKeyDown={blockMockServerDelayKeys}
                     onBlur={formik.handleBlur}
                     data-testid="mock-server-settings-delay-input"
                   />
