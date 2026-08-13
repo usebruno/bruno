@@ -49,6 +49,21 @@ test.describe('Naming collisions - create collection', () => {
     });
   });
 
+  test('creating a yml collection in an existing empty directory reuses it instead of suffixing', async ({ page, createTmpDir }) => {
+    const location = await createTmpDir('collection-create-empty-reuse-yml');
+
+    fs.mkdirSync(path.join(location, 'MyColl'), { recursive: true });
+
+    await createCollection(page, 'MyColl', location, 'yml');
+
+    await test.step('On disk: the empty dir is reused (opencollection.yml written into it); no "MyColl1" created', async () => {
+      await expect
+        .poll(() => fs.existsSync(path.join(location, 'MyColl', 'opencollection.yml')), { timeout: 10000 })
+        .toBe(true);
+      expect(fs.existsSync(path.join(location, 'MyColl1'))).toBe(false);
+    });
+  });
+
   test('creating a collection in an existing empty directory reuses it instead of suffixing', async ({ page, createTmpDir }) => {
     const location = await createTmpDir('collection-create-empty-reuse');
 
