@@ -5,6 +5,7 @@ import {
   getGlobalEnvironmentVariablesMasked
 } from 'utils/collections';
 import { resolveMockServerWorkspacePath } from 'utils/mock-server/mock-server-instances';
+import { validateName, validateNameError } from 'utils/common/regex';
 import { extractMockRoutePath, getMockResponseRouteKey } from '@usebruno/common/utils';
 
 export { extractMockRoutePath as extractMockResponseRoutePath, getMockResponseRouteKey };
@@ -230,24 +231,24 @@ export const MOCK_RESPONSE_NAME_MAX_LENGTH = 255;
 
 export const MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH = 1000;
 
-export const getMockResponseNameLengthError = (name) => {
+export const getMockResponseNameError = (name) => {
   const value = name == null ? '' : String(name).trim();
 
-  if (value.length > MOCK_RESPONSE_NAME_MAX_LENGTH) {
-    return `Name must be ${MOCK_RESPONSE_NAME_MAX_LENGTH} characters or less`;
+  if (!validateName(value)) {
+    return validateNameError(value);
   }
 
   return null;
 };
 
-export const getMockResponseNameError = (name) => {
+export const getMockResponseNameInputError = (name) => {
   const value = name == null ? '' : String(name).trim();
 
   if (!value) {
-    return 'Mock response name is required';
+    return null;
   }
 
-  return getMockResponseNameLengthError(value);
+  return getMockResponseNameError(value);
 };
 
 export const getMockResponseDescriptionError = (description) => {
