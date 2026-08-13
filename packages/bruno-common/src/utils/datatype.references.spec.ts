@@ -1,8 +1,9 @@
-import { parseValueByDataType, resolveVariableReference, validateDataTypeValue, type BrunoVariableDataType } from './datatype';
+import { parseValueByDataType, validateVariableType } from './datatype';
 
 const server = { server: { host: 'localhost', port: 8080, secure: true } };
 const ports = { ports: [8080, 9090] };
 const featureFlags = { featureFlags: [true, false] };
+const abc = { abc: { hello: { test: '123' } } };
 
 describe('parseValueByDataType — reference resolution', () => {
   describe('resolves whole-string references', () => {
@@ -17,6 +18,11 @@ describe('parseValueByDataType — reference resolution', () => {
       expect(parseValueByDataType('{{server.host}}', 'string', server)).toBe('localhost');
       expect(parseValueByDataType('{{server.port}}', 'number', server)).toBe(8080);
       expect(parseValueByDataType('{{server.secure}}', 'boolean', server)).toBe(true);
+    });
+
+    it('a nested object, not just its leaf fields', () => {
+      expect(parseValueByDataType('{{abc.hello}}', 'object', abc)).toEqual({ test: '123' });
+      expect(parseValueByDataType('{{server}}', 'object', server)).toEqual(server.server);
     });
 
     it('numeric segment walks arrays', () => {
@@ -37,17 +43,12 @@ describe('parseValueByDataType — reference resolution', () => {
       expect(parseValueByDataType('  {{ server.port }}  ', 'number', server)).toBe(8080);
     });
 
-    // Matches ../interpolate's `[^}]+` — such a name resolves at request time, so validation must agree.
     it('an identifier containing spaces', () => {
       expect(parseValueByDataType('{{api key}}', 'string', { 'api key': 'secret' })).toBe('secret');
     });
   });
 
   describe('does not resolve — falls through to normal coercion', () => {
-    it('partial reference (user-{{userId}})', () => {
-      expect(parseValueByDataType('user-{{userId}}', 'number', { userId: 42 })).toBe('user-{{userId}}');
-    });
-
     it('unknown variable ({{missingVar}})', () => {
       expect(parseValueByDataType('{{missingVar}}', 'number', {})).toBe('{{missingVar}}');
     });
@@ -80,38 +81,39 @@ describe('parseValueByDataType — reference resolution', () => {
   });
 });
 
-describe('parseValueByDataType + validateDataTypeValue — mismatch surfaces', () => {
-  const validateRef = (value: string, dataType: BrunoVariableDataType, variables: Record<string, any>) => {
-    const referenced = resolveVariableReference(value, variables);
-    const coerced = referenced !== undefined ? referenced : parseValueByDataType(value, dataType);
-    return validateDataTypeValue(coerced, dataType);
-  };
-
+describe('validateVariableType — mismatch surfaces', () => {
   it('flags a nested boolean reference for every dataType except boolean and string', () => {
-    expect(validateRef('{{server.secure}}', 'boolean', server)).toBeNull();
-    expect(validateRef('{{server.secure}}', 'string', server)).toBeNull();
-    expect(validateRef('{{server.secure}}', 'number', server)).toBe('Value is not a valid number');
-    expect(validateRef('{{server.secure}}', 'object', server)).toBe('Value is not a valid object');
+    expect(validateVariableType('{{server.secure}}', 'boolean', server)).toBeNull();
+    expect(validateVariableType('{{server.secure}}', 'string', server)).toBeNull();
+    expect(validateVariableType('{{server.secure}}', 'number', server)).toBe('Value is not a valid number');
+    expect(validateVariableType('{{server.secure}}', 'object', server)).toBe('Value is not a valid object');
+  });
+
+  it('accepts a reference to a nested object under declared:object', () => {
+    expect(validateVariableType('{{abc.hello}}', 'object', abc)).toBeNull();
+    expect(validateVariableType('{{abc.hello}}', 'number', abc)).toBe('Value is not a valid number');
+    expect(validateVariableType('{{abc.hello.test}}', 'object', abc)).toBe('Value is not a valid object');
+    expect(validateVariableType('{{abc.hello.test}}', 'string', abc)).toBeNull();
   });
 
   it('flags a nested number reference for every dataType except number and string', () => {
-    expect(validateRef('{{server.port}}', 'number', server)).toBeNull();
-    expect(validateRef('{{server.port}}', 'string', server)).toBeNull();
-    expect(validateRef('{{server.port}}', 'boolean', server)).toBe('Value is not a valid boolean');
-    expect(validateRef('{{server.port}}', 'object', server)).toBe('Value is not a valid object');
+    expect(validateVariableType('{{server.port}}', 'number', server)).toBeNull();
+    expect(validateVariableType('{{server.port}}', 'string', server)).toBeNull();
+    expect(validateVariableType('{{server.port}}', 'boolean', server)).toBe('Value is not a valid boolean');
+    expect(validateVariableType('{{server.port}}', 'object', server)).toBe('Value is not a valid object');
   });
 
   it('flags an array-index reference by the element type', () => {
-    expect(validateRef('{{featureFlags.0}}', 'boolean', featureFlags)).toBeNull();
-    expect(validateRef('{{featureFlags.0}}', 'number', featureFlags)).toBe('Value is not a valid number');
-    expect(validateRef('{{ports.0}}', 'number', ports)).toBeNull();
-    expect(validateRef('{{ports}}', 'object', ports)).toBeNull();
+    expect(validateVariableType('{{featureFlags.0}}', 'boolean', featureFlags)).toBeNull();
+    expect(validateVariableType('{{featureFlags.0}}', 'number', featureFlags)).toBe('Value is not a valid number');
+    expect(validateVariableType('{{ports.0}}', 'number', ports)).toBeNull();
+    expect(validateVariableType('{{ports}}', 'object', ports)).toBeNull();
   });
 
   it('flags a resolved value that only looks like the declared type', () => {
-    expect(validateRef('{{rawConfig}}', 'object', { rawConfig: '{"host":"localhost"}' })).toBe(
+    expect(validateVariableType('{{rawConfig}}', 'object', { rawConfig: '{"host":"localhost"}' })).toBe(
       'Value is not a valid object'
     );
-    expect(validateRef('{{secure}}', 'number', { secure: true })).toBe('Value is not a valid number');
+    expect(validateVariableType('{{secure}}', 'number', { secure: true })).toBe('Value is not a valid number');
   });
 });

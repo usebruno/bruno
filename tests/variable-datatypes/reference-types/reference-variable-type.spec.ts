@@ -11,6 +11,14 @@ import {
   type MatrixCase
 } from './cases';
 
+type EnvironmentScope = 'global' | 'collection';
+
+const openEnvironment = async (page: Page, scope: EnvironmentScope) => {
+  await buildCommonLocators(page).sidebar.collection('reference-types').click();
+  await selectEnvironment(page, `${scope}-environment`, scope);
+  await openEnvironmentConfigTab(page, scope);
+};
+
 const mismatchIcon = async (page: Page, name: string) => {
   const locators = buildCommonLocators(page);
   const row = locators.environment.varRow(name);
@@ -41,43 +49,35 @@ const runMatrix = async (page: Page, cases: MatrixCase[]) => {
 };
 
 test.describe('DataType selector — referenced variable type', () => {
-  test('validates a {{reference}} against the referenced variable type', async ({ pageWithUserData: page }) => {
-    await test.step('Open the global environment', async () => {
-      const locators = buildCommonLocators(page);
-      await locators.sidebar.collection('reference-types').click();
-      await selectEnvironment(page, 'global-environment', 'global');
-      await openEnvironmentConfigTab(page, 'global');
-    });
+  test('source variables with literal values', async ({ pageWithUserData: page }) => {
+    await openEnvironment(page, 'global');
+    for (const name of sourceVariables) {
+      await expectNotFlagged(page, name);
+    }
+  });
 
-    await test.step('Source variables with literal values', async () => {
-      for (const name of sourceVariables) {
-        await expectNotFlagged(page, name);
-      }
-    });
+  test('primitive datatype references', async ({ pageWithUserData: page }) => {
+    await openEnvironment(page, 'global');
+    await runMatrix(page, primitiveMatrix);
+  });
 
-    await test.step('Primitive datatype references', async () => {
-      await runMatrix(page, primitiveMatrix);
-    });
+  test('nested object references', async ({ pageWithUserData: page }) => {
+    await openEnvironment(page, 'global');
+    await runMatrix(page, nestedObjectMatrix);
+  });
 
-    await test.step('Nested object references', async () => {
-      await runMatrix(page, nestedObjectMatrix);
-    });
+  test('array element references', async ({ pageWithUserData: page }) => {
+    await openEnvironment(page, 'global');
+    await runMatrix(page, arrayMatrix);
+  });
 
-    await test.step('Array element references', async () => {
-      await runMatrix(page, arrayMatrix);
-    });
+  test('dotted-key references', async ({ pageWithUserData: page }) => {
+    await openEnvironment(page, 'global');
+    await runMatrix(page, dottedKeyMatrix);
+  });
 
-    await test.step('Dotted-key references', async () => {
-      await runMatrix(page, dottedKeyMatrix);
-    });
-
-    await test.step('Open the collection environment', async () => {
-      await selectEnvironment(page, 'collection-environment', 'collection');
-      await openEnvironmentConfigTab(page, 'collection');
-    });
-
-    await test.step('Collection environment → global references', async () => {
-      await runMatrix(page, collectionMatrix);
-    });
+  test('collection environment → global references', async ({ pageWithUserData: page }) => {
+    await openEnvironment(page, 'collection');
+    await runMatrix(page, collectionMatrix);
   });
 });

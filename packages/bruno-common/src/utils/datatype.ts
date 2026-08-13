@@ -95,3 +95,9 @@ export const validateDataTypeValue = (value: any, dataType?: BrunoVariableDataTy
 
   return null;
 };
+
+export const validateVariableType = (
+  value: any,
+  dataType?: BrunoVariableDataType,
+  resolvableVariables?: Record<string, any>
+): string | null => validateDataTypeValue(parseValueByDataType(value, dataType, resolvableVariables), dataType);

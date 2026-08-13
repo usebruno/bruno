@@ -25,10 +25,10 @@ variables:
     value:
       type: boolean
       data: "{{globalEnvObject}}"
-  - name: refNumberFromGlobalNull
+  - name: refNumberFromGlobalEmpty
     value:
       type: number
-      data: "{{globalEnvNull}}"
+      data: "{{globalEnvEmpty}}"
 
   # Nested object references into a global variable
   - name: refStringFromGlobalNestedString

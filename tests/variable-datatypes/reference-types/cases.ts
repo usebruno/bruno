@@ -15,11 +15,12 @@ export const primitiveMatrix: MatrixCase[] = [
   { referenced: 'boolean', selected: 'object', variable: 'refObjectFromBoolean', flagged: true },
   { referenced: 'object', selected: 'object', variable: 'refObjectFromObject', flagged: false },
   { referenced: 'object', selected: 'boolean', variable: 'refBooleanFromObject', flagged: true },
-  { referenced: 'null', selected: 'string', variable: 'refStringFromNull', flagged: false },
-  { referenced: 'null', selected: 'number', variable: 'refNumberFromNull', flagged: true }
+  { referenced: 'empty', selected: 'string', variable: 'refStringFromEmpty', flagged: false },
+  { referenced: 'empty', selected: 'number', variable: 'refNumberFromEmpty', flagged: true }
 ];
 
 export const nestedObjectMatrix: MatrixCase[] = [
+  { referenced: 'nested object', selected: 'object', variable: 'refObjectFromNestedObject', flagged: false },
   { referenced: 'nested string', selected: 'string', variable: 'refStringFromNestedString', flagged: false },
   { referenced: 'nested number', selected: 'number', variable: 'refNumberFromNestedNumber', flagged: false },
   { referenced: 'nested boolean', selected: 'boolean', variable: 'refBooleanFromNestedBoolean', flagged: false },
@@ -49,7 +50,7 @@ export const collectionMatrix: MatrixCase[] = [
 
   { referenced: 'string', selected: 'number', variable: 'refNumberFromGlobalString', flagged: true },
   { referenced: 'object', selected: 'boolean', variable: 'refBooleanFromGlobalObject', flagged: true },
-  { referenced: 'null', selected: 'number', variable: 'refNumberFromGlobalNull', flagged: true },
+  { referenced: 'empty', selected: 'number', variable: 'refNumberFromGlobalEmpty', flagged: true },
   { referenced: 'nested number', selected: 'boolean', variable: 'refBooleanFromGlobalNestedNumber', flagged: true }
 ];
 
@@ -60,6 +61,6 @@ export const sourceVariables = [
   'globalEnvObject',
   'globalEnvNestedObject',
   'globalEnvObjectWithArray',
-  'globalEnvNull',
+  'globalEnvEmpty',
   'globalEnvObject.port'
 ];
