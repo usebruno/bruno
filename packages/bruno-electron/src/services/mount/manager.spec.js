@@ -11,9 +11,7 @@ jest.mock('../pool', () => ({
 
 const mockCloseForCollection = jest.fn();
 jest.mock('../../ipc/network/ws-event-handlers', () => ({
-  get wsClient() {
-    return { closeForCollection: mockCloseForCollection };
-  }
+  getWsClient: () => ({ closeForCollection: mockCloseForCollection })
 }));
 
 jest.mock('../../app/collection-watcher', () => ({

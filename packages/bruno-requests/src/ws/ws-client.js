@@ -90,15 +90,7 @@ class WsClient {
       return existing;
     }
     if (existing) {
-      meta.connection = null;
-      try {
-        existing.terminate();
-      } catch (_) {
-      }
-      if (this.connectionKeepAlive.has(requestId)) {
-        clearInterval(this.connectionKeepAlive.get(requestId));
-        this.connectionKeepAlive.delete(requestId);
-      }
+      this.#detachSocket(requestId);
       this.activeConnections.delete(requestId);
     }
 
@@ -156,33 +148,23 @@ class WsClient {
     }
   }
 
-  #getMessageQueueId(requestId) {
-    return `${requestId}`;
-  }
-
   queueMessage(requestId, collectionUid, message, format = 'raw') {
     const connectionMeta = this.activeConnections.get(requestId);
 
-    const mqKey = this.#getMessageQueueId(requestId);
-    this.messageQueues[mqKey] ||= [];
-    this.messageQueues[mqKey].collectionUid = collectionUid;
-    this.messageQueues[mqKey].push({
-      message,
-      format,
-      collectionUid
-    });
+    const queue = (this.messageQueues[requestId] ||= { collectionUid, messages: [] });
+    queue.collectionUid = collectionUid;
+    queue.messages.push({ message, format });
 
     if (connectionMeta && connectionMeta.connection && connectionMeta.connection.readyState === WebSocket.OPEN) {
       this.#flushQueue(requestId, collectionUid);
-      return;
     }
   }
 
   #flushQueue(requestId, collectionUid) {
-    const mqKey = this.#getMessageQueueId(requestId);
-    if (!(mqKey in this.messageQueues)) return;
-    while (this.messageQueues[mqKey].length > 0) {
-      const { message, format } = this.messageQueues[mqKey].shift();
+    const queue = this.messageQueues[requestId];
+    if (!queue) return;
+    while (queue.messages.length > 0) {
+      const { message, format } = queue.messages.shift();
       this.sendMessage(requestId, collectionUid, message, format);
     }
   }
@@ -240,7 +222,7 @@ class WsClient {
     }
 
     if (!connectionMeta?.connection) {
-      this.#removeConnection(requestId);
+      this.#forgetRequest(requestId);
       return Promise.resolve();
     }
 
@@ -251,6 +233,7 @@ class WsClient {
 
     const collectionUid = connectionMeta.collectionUid;
 
+    // Drop the queue before the handshake so a late 'open' cannot flush it.
     this.#clearClientState(requestId);
 
     // Notify the UI that we're actively disconnecting so it can show a blink state
@@ -267,7 +250,7 @@ class WsClient {
       const resolver = this.closingResolvers.get(requestId);
       if (resolver) {
         this.closingResolvers.delete(requestId);
-        this.#removeConnection(requestId);
+        this.#forgetRequest(requestId);
         resolve();
       }
     }, 5000);
@@ -303,7 +286,7 @@ class WsClient {
     }
     for (const [requestId, queue] of Object.entries(this.messageQueues)) {
       if (queue.collectionUid === collectionUid) {
-        this.#removeConnection(requestId);
+        this.#forgetRequest(requestId);
       }
     }
   }
@@ -425,7 +408,7 @@ class WsClient {
         seq: seq.next(requestId, collectionUid),
         timestamp: Date.now()
       });
-      this.#removeConnection(requestId);
+      this.#forgetRequest(requestId);
     });
 
     ws.on('error', (error) => {
@@ -455,10 +438,10 @@ class WsClient {
     });
   }
 
-  #discard(requestId) {
+  #detachSocket(requestId) {
     const meta = this.activeConnections.get(requestId);
     const conn = meta?.connection;
-    // Detach before terminate so a sync close does not re-enter #removeConnection.
+    // Detach before terminate so a sync close does not re-enter #forgetRequest.
     if (meta) meta.connection = null;
     if (conn) {
       try {
@@ -466,7 +449,15 @@ class WsClient {
       } catch (_) {
       }
     }
-    this.#removeConnection(requestId);
+    if (this.connectionKeepAlive.has(requestId)) {
+      clearInterval(this.connectionKeepAlive.get(requestId));
+      this.connectionKeepAlive.delete(requestId);
+    }
+  }
+
+  #discard(requestId) {
+    this.#detachSocket(requestId);
+    this.#forgetRequest(requestId);
   }
 
   #clearClientState(requestId) {
@@ -474,22 +465,22 @@ class WsClient {
       clearInterval(this.connectionKeepAlive.get(requestId));
       this.connectionKeepAlive.delete(requestId);
     }
-    delete this.messageQueues[this.#getMessageQueueId(requestId)];
+    delete this.messageQueues[requestId];
   }
 
   /**
-   * Remove a connection from the active connections map and emit an event
-   * @param {string} requestId - The request ID
+   * Drop queue, keepalive, sequencer, and any map entry for this request.
+   * Safe to call when there is no live connection.
+   * @param {string} requestId
    * @private
    */
-  #removeConnection(requestId) {
+  #forgetRequest(requestId) {
     this.#clearClientState(requestId);
     seq.clean(requestId);
 
     if (this.activeConnections.has(requestId)) {
       this.activeConnections.delete(requestId);
 
-      // Emit an event with all active connection IDs
       this.eventCallback('main:ws:connections-changed', {
         type: 'removed',
         requestId,

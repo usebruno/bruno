@@ -481,10 +481,10 @@ const registerWsEventHandlers = (window) => {
   });
 };
 
+const getWsClient = () => wsClient;
+
 module.exports = {
   registerWsEventHandlers,
-  get wsClient() {
-    return wsClient;
-  },
+  getWsClient,
   prepareWsRequest
 };
