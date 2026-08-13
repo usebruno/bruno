@@ -96,7 +96,6 @@ export const useVariablesScroll = (wrapperRef) => {
     };
   }, [setScroll]);
 
-  /** Save where the user is right now, ahead of a re-layout we are about to cause. */
   const captureScroll = useCallback(() => {
     const el = getScrollEl(wrapperRef.current);
     if (!el) return;
@@ -107,7 +106,6 @@ export const useVariablesScroll = (wrapperRef) => {
     setScroll(next);
   }, [setScroll]);
 
-  /** Put the scroller back where it was after something reflowed the tables. */
   const reassertScroll = useCallback(() => {
     const el = getScrollEl(wrapperRef.current);
     if (!el) return;

@@ -1,5 +1,4 @@
 import styled, { css } from 'styled-components';
-import codemirrorTokenStyles from 'components/CodeEditor/tokenStyles';
 
 const maxHeight = (props) => props.$maxHeight || '200px';
 
@@ -141,8 +140,6 @@ const StyledWrapper = styled.div`
 
   ${(props) => props.$enableFolding && foldEditorStyles}
   ${(props) => props.$autoHeight && autoHeightStyles}
-
-  ${codemirrorTokenStyles}
 `;
 
 export default StyledWrapper;

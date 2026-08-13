@@ -45,7 +45,6 @@ const VariableValue = ({
       : `variables-cell:${section}:${name}`;
 
   const handleCopy = useCallback(() => {
-    // Clipboard can fail in insecure contexts.
     copyToClipboard(toDisplayString(value, '')).catch(() => {});
   }, [copyToClipboard, value]);
 
@@ -105,6 +104,7 @@ const VariableValue = ({
             className={`row-action-btn ${revealed ? 'is-pinned' : ''}`}
             onClick={onToggleReveal}
             title={revealed ? 'Hide value' : 'Show value'}
+            aria-label={revealed ? 'Hide value' : 'Show value'}
             data-testid="variable-row-secret-toggle"
           >
             {revealed

@@ -1,6 +1,3 @@
-/**
- * Height budget for an object value's cell editor.
- */
 export const OBJECT_CELL_MAX_HEIGHT = '120px';
 
 /**

@@ -45,9 +45,6 @@ const codemirrorTokenStyles = css`
   .cm-variable-invalid {
     color: ${(props) => props.theme.codemirror.variable.invalid} !important;
   }
-  .cm-variable-prompt {
-    color: ${(props) => props.theme.codemirror.variable.prompt} !important;
-  }
 `;
 
 export default codemirrorTokenStyles;

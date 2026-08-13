@@ -7,7 +7,7 @@ import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import {
   applyEditorState,
-  captureEditorState,
+  captureViewState,
   readPersistedEditorState,
   writePersistedEditorState
 } from 'components/CodeEditor/state-persistence';
@@ -66,7 +66,11 @@ class MultiLineEditor extends Component {
     );
     restoreAncestorScrolls(ancestorScrolls);
     // CodeMirror/browser may adjust ancestors on a later frame after scrollTo.
-    requestAnimationFrame(() => restoreAncestorScrolls(ancestorScrolls));
+    if (this._restoreAncestorRaf) cancelAnimationFrame(this._restoreAncestorRaf);
+    this._restoreAncestorRaf = requestAnimationFrame(() => {
+      this._restoreAncestorRaf = null;
+      restoreAncestorScrolls(ancestorScrolls);
+    });
   };
 
   _setupViewPersistence = () => {
@@ -80,7 +84,7 @@ class MultiLineEditor extends Component {
       writePersistedEditorState({
         scope: this.props.persistenceScope,
         key: this._currentDocKey,
-        state: captureEditorState(this.editor)
+        state: captureViewState(this.editor)
       });
     }, 250);
 
@@ -90,11 +94,15 @@ class MultiLineEditor extends Component {
   };
 
   _teardownViewPersistence = () => {
+    if (this._restoreAncestorRaf) {
+      cancelAnimationFrame(this._restoreAncestorRaf);
+      this._restoreAncestorRaf = null;
+    }
     if (this.editor && this._currentDocKey) {
       writePersistedEditorState({
         scope: this.props.persistenceScope,
         key: this._currentDocKey,
-        state: captureEditorState(this.editor)
+        state: captureViewState(this.editor)
       });
     }
     if (this.editor && this._persistViewStateDebounced) {

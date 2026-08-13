@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import codemirrorTokenStyles from 'components/CodeEditor/tokenStyles';
 import { OBJECT_CELL_MAX_HEIGHT } from '../constants';
 
 const MONO = `ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace`;
@@ -95,6 +96,8 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.colors.text.green};
     }
   }
+
+  ${codemirrorTokenStyles}
 `;
 
 export default StyledWrapper;

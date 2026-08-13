@@ -28,7 +28,6 @@ const VariablesEditor = ({ collection }) => {
   const [containerWidth, setContainerWidth] = useState(0);
   const [revealedSecrets, setRevealedSecrets] = useState(() => new Set());
 
-  // Persisted as an array of the collapsed sections.
   const [collapsedSections, setCollapsedSections] = usePersistedState({
     key: 'variables-collapsed-sections',
     default: []
@@ -60,7 +59,7 @@ const VariablesEditor = ({ collection }) => {
     );
 
     clearEnvironmentBoundPersistence(persistenceScope);
-  }, [activeEnvironmentUid]);
+  }, [activeEnvironmentUid, persistenceScope, resetScroll, setDrawerSelection]);
 
   const runtimeRows = useMemo(() => {
     const runtimeVariables = collection.runtimeVariables || {};
@@ -147,7 +146,7 @@ const VariablesEditor = ({ collection }) => {
       setDrawerSelection(null);
       return;
     }
-    // Secret objects must stay masked when the eye is off close the drawer.
+    // The drawer shows the value unmasked, so hiding a secret again must close it.
     if (
       selectedRow.secret
       && !revealedSecrets.has(secretRevealKey(drawerSelection.section, drawerSelection.name))
