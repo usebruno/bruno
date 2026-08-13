@@ -102,6 +102,10 @@
   },
   "overrides": {
     "axios": "1.16.0",
+    "tar": "7.5.22",
+    "app-builder-lib": {
+      "tar": "7.5.22"
+    },
     "brace-expansion@5": "5.0.9",
     "minimatch@10": {
       "brace-expansion": "5.0.9"
