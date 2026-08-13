@@ -225,6 +225,19 @@ describe('WsClient', () => {
 
       expect(mockSockets[0].sent).toEqual([]);
     });
+
+    it('does not flush a queued message if the socket opens after close is called', async () => {
+      await start();
+      client.queueMessage('req-1', 'col-1', 'hello', 'raw');
+
+      const closing = client.close('req-1');
+      mockSockets[0].open();
+
+      expect(mockSockets[0].sent).toEqual([]);
+
+      mockSockets[0].finishClose();
+      await closing;
+    });
   });
 
   describe('closeForCollection', () => {
@@ -422,6 +435,22 @@ describe('WsClient', () => {
       mockSockets[0].open();
       expect(mockSockets[0].sent).toEqual([]);
     });
+
+    it('emits connections-changed cleared when anything was tracked', async () => {
+      client.queueMessage('req-1', 'col-1', 'stale', 'raw');
+
+      client.clearAllConnections();
+
+      expect(
+        events.some((e) => e.eventName === 'main:ws:connections-changed' && e.args[0].type === 'cleared')
+      ).toBe(true);
+    });
+
+    it('does not emit cleared when there is nothing to clear', () => {
+      client.clearAllConnections();
+
+      expect(events).toEqual([]);
+    });
   });
 
   describe('stale socket replace', () => {
@@ -445,6 +474,29 @@ describe('WsClient', () => {
       expect(mockSockets[0].ping).not.toHaveBeenCalled();
       expect(client.activeConnections.get('req-1').connection).toBe(mockSockets[1]);
       jest.useRealTimers();
+    });
+
+    it('keeps messages queued before replacing a stale socket', async () => {
+      await start();
+      mockSockets[0].readyState = CLOSED;
+
+      client.queueMessage('req-1', 'col-1', 'hello', 'raw');
+      client.queueMessage('req-1', 'col-1', 'again', 'raw');
+
+      await start();
+      mockSockets[1].open();
+
+      expect(mockSockets[1].sent).toEqual(['hello', 'again']);
+    });
+
+    it('does not emit close for a discarded stale socket', async () => {
+      await start();
+      mockSockets[0].readyState = CLOSED;
+
+      await start();
+
+      expect(events.filter((e) => e.eventName === 'main:ws:close')).toHaveLength(0);
+      expect(client.connectionStatus('req-1')).toBe('connecting');
     });
   });
 });

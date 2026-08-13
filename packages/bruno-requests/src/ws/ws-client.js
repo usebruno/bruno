@@ -38,19 +38,7 @@ const createSequencer = () => {
     return ++seq[requestId][collectionId];
   };
 
-  /**
-   * @param {string} requestId
-   * @param {string} [collectionId]
-   */
-  const clean = (requestId, collectionId = undefined) => {
-    if (!seq[requestId]) return;
-    if (collectionId) {
-      delete seq[requestId][collectionId];
-      if (!Object.keys(seq[requestId]).length) {
-        delete seq[requestId];
-      }
-      return;
-    }
+  const clean = (requestId) => {
     delete seq[requestId];
   };
 
@@ -96,12 +84,22 @@ class WsClient {
     }
 
     // Reuse in-flight / open socket so ensure+connect races don't open a second connection.
-    const existing = this.activeConnections.get(requestId)?.connection;
+    const meta = this.activeConnections.get(requestId);
+    const existing = meta?.connection;
     if (existing && (existing.readyState === ws.WebSocket.CONNECTING || existing.readyState === ws.WebSocket.OPEN)) {
       return existing;
     }
     if (existing) {
-      this.#discard(requestId);
+      meta.connection = null;
+      try {
+        existing.terminate();
+      } catch (_) {
+      }
+      if (this.connectionKeepAlive.has(requestId)) {
+        clearInterval(this.connectionKeepAlive.get(requestId));
+        this.connectionKeepAlive.delete(requestId);
+      }
+      this.activeConnections.delete(requestId);
     }
 
     try {
@@ -458,7 +456,10 @@ class WsClient {
   }
 
   #discard(requestId) {
-    const conn = this.activeConnections.get(requestId)?.connection;
+    const meta = this.activeConnections.get(requestId);
+    const conn = meta?.connection;
+    // Detach before terminate so a sync close does not re-enter #removeConnection.
+    if (meta) meta.connection = null;
     if (conn) {
       try {
         conn.terminate();
