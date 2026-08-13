@@ -41,8 +41,8 @@ body:grpc {
 
 script:grpc:after-call-end {
   // A client stream sends nothing on connect, so `req.messages` holds what the user actually
-  // streamed — the second authored message is deliberately never sent.
-  test('the hook sees only the streamed message', () => {
+  // streamed — the third authored message is deliberately never sent.
+  test('the hook sees only the streamed messages', () => {
     expect(bru.grpc.req.messages.count()).to.equal(2);
     expect(bru.grpc.req.messages.get(0).data.greeting).to.equal('streamed-1');
     expect(bru.grpc.req.messages.get(1).data.greeting).to.equal('streamed-2');

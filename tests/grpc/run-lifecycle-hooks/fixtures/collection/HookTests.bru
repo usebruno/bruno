@@ -88,6 +88,7 @@ script:grpc:after-call-end {
 
   test('metadata is read-only once the call has been sent', () => {
     expect(() => bru.grpc.res.metadata.set('x-late', '1')).to.throw();
+    expect(() => bru.grpc.req.metadata.set('x-late', '1')).to.throw();
   });
 
   // Deliberately failing, so the failure count on the tab label and the failed row are covered.
