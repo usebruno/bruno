@@ -1143,12 +1143,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           const newRequestFilePath = requestFile.replace(oldPath, newPath);
           moveRequestUid(requestFile, newRequestFilePath);
         }
-
-        // Remap the folder's own uid so its identity survives the rename. Without
-        // this the watcher's addDir for the new path mints a fresh uid and the
-        // sidebar ends up with a duplicate folder node (notably on case-only
-        // renames on case-insensitive filesystems, where the directory is the
-        // same on disk but the path casing differs).
+        // Preserve the folder's uid across the rename. Otherwise, the watcher's
+        // addDir event creates a new uid for the renamed path, resulting in a
+        // duplicate folder in the sidebar. This is especially relevant for
+        // case-only renames on case-insensitive filesystems.
         moveRequestUid(oldPath, newPath);
 
         /**

@@ -463,9 +463,7 @@ const copyPathTo = async (source, targetPath) => {
   const resolvedTarget = path.join(canonicalPath(path.dirname(targetPath)), path.basename(targetPath));
 
   // Prevent copying a path into itself or one of its descendants.
-  const srcLower = resolvedSource.toLowerCase();
-  const tgtLower = resolvedTarget.toLowerCase();
-  if (tgtLower === srcLower || tgtLower.startsWith(srcLower + path.sep)) {
+  if (resolvedTarget === resolvedSource || resolvedTarget.startsWith(resolvedSource + path.sep)) {
     throw new Error('Cannot copy a path into itself or a subdirectory of itself');
   }
 
