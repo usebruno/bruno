@@ -60,7 +60,7 @@
     "graphql-request": "4.2.0",
     "hexy": "^0.3.5",
     "highlight.js": "~11.8.0",
-    "httpsnippet": "^3.0.9",
+    "httpsnippet": "3.0.10",
     "i18next": "24.1.2",
     "idb": "^7.0.0",
     "immer": "^9.0.15",
