@@ -4,6 +4,7 @@ const { JobType, getPool, destroyPool } = require('../pool');
 const { FileIndex } = require('./file-index');
 const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');
+const { wsClient } = require('../../ipc/network/ws-event-handlers');
 
 // cold start only — collection-watcher handles live changes and writes through to the cache
 
@@ -125,6 +126,9 @@ class MountManager {
     const collectionWatcher = require('../../app/collection-watcher');
     try {
       collectionWatcher.removeWatcher(entry.collectionPath, entry.win, collectionUid);
+    } catch (_) {}
+    try {
+      wsClient?.closeForCollection(collectionUid);
     } catch (_) {}
   }
 
