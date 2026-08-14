@@ -1,5 +1,5 @@
 import { parseYml } from './utils';
-import { ensureString } from '../../utils';
+import { ensureString, isNonEmptyString } from '../../utils';
 import { toBrunoHttpHeaders } from './common/headers';
 import { toBrunoParams } from './common/params';
 import { toBrunoBody } from './common/body';
@@ -62,10 +62,15 @@ const toBrunoMockRoute = (route: MockRouteEntry): BrunoMockRoute => {
     }
   };
 
-  if (route?.copiedFrom && (route.copiedFrom.example || route.copiedFrom.requestPath)) {
+  const rawExample = route?.copiedFrom?.example;
+  const rawRequestPath = route?.copiedFrom?.requestPath;
+  const copiedFromExample = isNonEmptyString(rawExample) ? rawExample : null;
+  const copiedFromRequestPath = isNonEmptyString(rawRequestPath) ? rawRequestPath : null;
+
+  if (copiedFromExample || copiedFromRequestPath) {
     brunoRoute.copiedFrom = {
-      exampleName: route.copiedFrom.example || null,
-      requestPathname: route.copiedFrom.requestPath || null
+      exampleName: copiedFromExample,
+      requestPathname: copiedFromRequestPath
     };
   }
 
@@ -91,10 +96,11 @@ const parseMockServer = (content: string): BrunoMockServer => {
   };
 
   const sourceType = mock.source?.type;
-  if ((sourceType === 'collection' || sourceType === 'spec') && mock.source?.path) {
+  const sourcePath = mock.source?.path;
+  if ((sourceType === 'collection' || sourceType === 'spec') && isNonEmptyString(sourcePath)) {
     brunoMockServer.source = {
       type: sourceType,
-      path: mock.source.path
+      path: sourcePath
     };
   }
 

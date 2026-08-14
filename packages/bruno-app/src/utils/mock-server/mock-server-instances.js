@@ -117,7 +117,18 @@ export const mockServerFileEvent = (workspaceUid, { instance, responses }) => as
   }
 };
 
-export const mockServerFileDeletedEvent = (workspaceUid, mockServerUid) => (dispatch, getState) => {
+export const mockServerFileDeletedEvent = (workspaceUid, mockServerUid) => async (dispatch, getState) => {
+  // The file can be deleted while the server is running (e.g. git checkout);
+  // stop it first so it doesn't keep serving deleted routes on a bound port.
+  const status = getState().mockServer?.servers?.[mockServerUid]?.status;
+  if (status === 'running' || status === 'starting') {
+    try {
+      await dispatch(stopMockServer({ mockServerUid })).unwrap();
+    } catch {
+      // Continue removing the stale file-backed configuration.
+    }
+  }
+
   const tabUids = (getState().tabs?.tabs || [])
     .filter((tab) => isMockServerRelatedTab(tab, mockServerUid))
     .map((tab) => tab.uid);

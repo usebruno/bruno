@@ -22,11 +22,17 @@ const buildRouteMapFromMockResponses = ({ mockServerUid, workspacePath }) => {
   const routeMap = new Map();
 
   // A missing mock server file (deleted or not yet created) yields no routes
-  // rather than failing status/refresh calls that race a deletion.
+  // rather than failing status/refresh calls that race a deletion. Any other
+  // failure (malformed yaml, unreadable file) propagates so a refresh never
+  // silently wipes a running server's routes.
   let responses = [];
   try {
     responses = listMockResponses({ mockServerUid, workspacePath });
   } catch (err) {
+    if (err.code !== 'MOCK_SERVER_NOT_FOUND') {
+      throw err;
+    }
+
     console.warn(`[MockServer] Could not load mock responses for ${mockServerUid}: ${err.message}`);
   }
 

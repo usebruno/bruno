@@ -117,6 +117,63 @@ mock:
     expect(mockServer.source).toBeNull();
   });
 
+  it('rejects non-string source paths', () => {
+    const numericPath = parseMockServer(`
+info:
+  name: Mock
+
+mock:
+  source:
+    type: collection
+    path: 12345
+`);
+    expect(numericPath.source).toBeNull();
+
+    const objectPath = parseMockServer(`
+info:
+  name: Mock
+
+mock:
+  source:
+    type: spec
+    path:
+      nested: value
+`);
+    expect(objectPath.source).toBeNull();
+  });
+
+  it('rejects non-string copiedFrom values', () => {
+    const mockServer = parseMockServer(`
+info:
+  name: Mock
+
+routes:
+  - name: Numeric example
+    copiedFrom:
+      example: 42
+      requestPath: /real/path.yml
+  - name: Object request path
+    copiedFrom:
+      example: Success
+      requestPath:
+        nested: value
+  - name: Fully malformed
+    copiedFrom:
+      example: 1
+      requestPath: 2
+`);
+
+    expect(mockServer.routes[0].copiedFrom).toEqual({
+      exampleName: null,
+      requestPathname: '/real/path.yml'
+    });
+    expect(mockServer.routes[1].copiedFrom).toEqual({
+      exampleName: 'Success',
+      requestPathname: null
+    });
+    expect(mockServer.routes[2].copiedFrom).toBeUndefined();
+  });
+
   it('throws on non-object content', () => {
     expect(() => parseMockServer('- a\n- b\n')).toThrow('Invalid mock server file');
   });

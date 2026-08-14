@@ -10,7 +10,6 @@ const {
   createEmptyMockResponse,
   deleteMockResponse,
   deleteMockServer,
-  flushAllMockServerFiles,
   listMockResponses,
   listMockServers,
   saveMockResponse,
@@ -322,7 +321,6 @@ const registerMockServerIpc = (mainWindow) => {
   });
 
   ipcMain.on('main:start-quit-flow', () => {
-    flushAllMockServerFiles();
     mockServer.stopAll().catch((err) => {
       console.error('[MockServer] Error stopping servers on quit:', err.message);
     });

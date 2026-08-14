@@ -7,10 +7,8 @@ const { sanitizeName, validateName } = require('../../utils/filesystem');
 
 const DEFAULT_MOCK_SERVER_PORT = 4000;
 const DEFAULT_MOCK_SERVER_NAME = 'Mock Server';
-const FILE_WRITE_DEBOUNCE_MS = 250;
 
 const fileCache = new Map();
-const fileWriteTimers = new Map();
 const routeUidsByFile = new Map();
 
 const ensureDir = (dirPath) => {
@@ -97,67 +95,22 @@ const readMockServerFile = (pathname) => {
   return entry;
 };
 
-const writeMockServerFileToDisk = (entry) => {
-  ensureDir(path.dirname(entry.pathname));
-  fs.writeFileSync(entry.pathname, stringifyMockServer(entry.data, { format: 'yml' }), 'utf8');
-  return entry.pathname;
-};
-
-const flushMockServerFile = (pathname) => {
-  const pendingTimer = fileWriteTimers.get(pathname);
-
-  if (!pendingTimer) {
-    return;
-  }
-
-  clearTimeout(pendingTimer);
-  fileWriteTimers.delete(pathname);
-
-  const entry = fileCache.get(pathname);
-  if (entry) {
-    writeMockServerFileToDisk(entry);
-  }
-};
-
-const flushAllMockServerFiles = () => {
-  for (const pathname of [...fileWriteTimers.keys()]) {
-    flushMockServerFile(pathname);
-  }
-};
-
 const invalidateMockServerFile = (pathname) => {
-  flushMockServerFile(pathname);
   fileCache.delete(pathname);
 };
 
 const removeMockServerFileFromCache = (pathname) => {
-  const pendingTimer = fileWriteTimers.get(pathname);
-  if (pendingTimer) {
-    clearTimeout(pendingTimer);
-    fileWriteTimers.delete(pathname);
-  }
-
   fileCache.delete(pathname);
   routeUidsByFile.delete(pathname);
 };
 
+// Writes are synchronous: mutations are user-action-scale and each file is
+// small, and a debounce would let a pending in-memory write race an external
+// edit (and leave created filenames unreserved on disk).
 const writeMockServerFile = (entry) => {
   fileCache.set(entry.pathname, entry);
-
-  if (process.env.JEST_WORKER_ID) {
-    return writeMockServerFileToDisk(entry);
-  }
-
-  const pendingTimer = fileWriteTimers.get(entry.pathname);
-  if (pendingTimer) {
-    clearTimeout(pendingTimer);
-  }
-
-  fileWriteTimers.set(entry.pathname, setTimeout(() => {
-    fileWriteTimers.delete(entry.pathname);
-    writeMockServerFileToDisk(entry);
-  }, FILE_WRITE_DEBOUNCE_MS));
-
+  ensureDir(path.dirname(entry.pathname));
+  fs.writeFileSync(entry.pathname, stringifyMockServer(entry.data, { format: 'yml' }), 'utf8');
   return entry.pathname;
 };
 
@@ -188,7 +141,11 @@ const resolveMockServerPathname = (workspacePath, mockServerUid) => {
     .find((filePath) => getMockServerUid(filePath) === mockServerUid);
 
   if (!pathname) {
-    throw new Error('Mock server not found.');
+    // Distinguishes a genuinely missing server from parse/read failures so
+    // callers don't treat a corrupt file as "server deleted" (and drop routes).
+    const error = new Error('Mock server not found.');
+    error.code = 'MOCK_SERVER_NOT_FOUND';
+    throw error;
   }
 
   return pathname;
@@ -461,8 +418,6 @@ module.exports = {
   createEmptyMockResponse,
   deleteMockResponse,
   deleteMockServer,
-  flushAllMockServerFiles,
-  flushMockServerFile,
   getMocksDirPath,
   getMockServerFromFile,
   getMockServerUid,

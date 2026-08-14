@@ -164,6 +164,18 @@ describe('mock-server-store', () => {
       expect(listMockServers(workspacePath, 'workspace-1')).toEqual([]);
     });
 
+    it('writes synchronously so an external edit after invalidation wins', () => {
+      const instance = createServer();
+
+      const externalContent = fs.readFileSync(instance.pathname, 'utf8').replace('Dog API Mock', 'Externally Renamed');
+      fs.writeFileSync(instance.pathname, externalContent, 'utf8');
+
+      invalidateMockServerFile(instance.pathname);
+      const listed = listMockServers(workspacePath, 'workspace-1');
+      expect(listed[0].name).toBe('Externally Renamed');
+      expect(fs.readFileSync(instance.pathname, 'utf8')).toContain('Externally Renamed');
+    });
+
     it('skips unreadable files but lists the rest', () => {
       const instance = createServer();
       fs.writeFileSync(path.join(workspacePath, 'mocks', 'broken.yml'), '- not\n- a mock server\n');

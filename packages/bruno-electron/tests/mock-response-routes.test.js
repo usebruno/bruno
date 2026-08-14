@@ -20,6 +20,29 @@ describe('mock-response-routes', () => {
     fs.rmSync(workspacePath, { recursive: true, force: true });
   });
 
+  it('returns an empty route map for a missing mock server', () => {
+    const routeMap = buildRouteMapFromMockResponses({
+      mockServerUid: 'missing-server-uid',
+      workspacePath
+    });
+
+    expect(routeMap.size).toBe(0);
+  });
+
+  it('propagates parse failures instead of treating them as an empty server', () => {
+    const mocksDir = path.join(workspacePath, 'mocks');
+    fs.mkdirSync(mocksDir, { recursive: true });
+    const pathname = path.join(mocksDir, 'broken.yml');
+    fs.writeFileSync(pathname, '- not\n- a mock server\n', 'utf8');
+
+    const { getMockServerUid } = require('../src/app/mock-server/mock-server-store');
+
+    expect(() => buildRouteMapFromMockResponses({
+      mockServerUid: getMockServerUid(pathname),
+      workspacePath
+    })).toThrow('Invalid mock server file');
+  });
+
   it('extracts route paths from mock response urls', () => {
     expect(extractRoutePath('{{baseUrl}}/products')).toBe('/products');
     expect(extractRoutePath('{{baseUrl}}/breeds')).toBe('/breeds');

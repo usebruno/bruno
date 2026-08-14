@@ -191,19 +191,26 @@ const MockServerItem = React.memo(({
           className="flex flex-grow items-center overflow-hidden"
           onClick={handleRowClick}
           onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) {
+              return;
+            }
+
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               handleRowClick();
             }
           }}
         >
-          <ActionIcon style={{ width: 16, minWidth: 16 }} label="Toggle mock responses">
+          <ActionIcon
+            style={{ width: 16, minWidth: 16 }}
+            label="Toggle mock responses"
+            onClick={handleChevronClick}
+          >
             <IconChevronRight
               size={16}
               strokeWidth={2}
               className={classnames('chevron-icon', { 'rotate-90': expanded })}
               style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
-              onClick={handleChevronClick}
             />
           </ActionIcon>
           <StatusDot className="ml-1" $running={isRunning} data-testid="mock-server-sidebar-status-dot" />

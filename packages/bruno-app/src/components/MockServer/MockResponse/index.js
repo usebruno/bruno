@@ -345,12 +345,12 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     const transientFilenames = new Set(
       flattenItems(targetCollection.items)
         .filter(isItemTransientRequest)
-        .map((request) => (request.filename || '').trim())
+        .map((request) => (request.filename || '').trim().toLowerCase())
     );
 
     let name = baseName;
     let counter = 1;
-    while (transientFilenames.has(`${sanitizeName(name)}.${targetCollection.format || 'bru'}`)) {
+    while (transientFilenames.has(`${sanitizeName(name)}.${targetCollection.format || 'bru'}`.toLowerCase())) {
       counter += 1;
       name = `${baseName} ${counter}`;
     }
