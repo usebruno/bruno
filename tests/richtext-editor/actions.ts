@@ -1,5 +1,5 @@
 import { expect, Page } from '../../playwright';
-import { createCollection, createFolder, openCollectionSettings, openFolderSettings, selectCollectionPaneTab, selectfolderPaneTab } from '../utils/page/actions';
+import { createCollection, createFolder, openCollectionSettings, openFolderSettings, selectCollectionPaneTab, selectfolderPaneTab, selectRequestPaneTab } from '../utils/page/actions';
 import { buildCommonLocators } from '../utils/page/locators';
 
 export const setupRequestDocs = async (page: Page, createTmpDir: (tag?: string) => Promise<string>, collectionName: string) => {
@@ -16,16 +16,7 @@ export const setupRequestDocs = async (page: Page, createTmpDir: (tag?: string) 
 
   await page.waitForSelector('.request-pane');
 
-  const docsTab = locators.docs.docsTab();
-  const moreTabs = locators.docs.moreTabs();
-  await expect(docsTab.or(moreTabs)).toBeVisible();
-
-  if (await docsTab.isVisible()) {
-    await docsTab.click();
-  } else {
-    await moreTabs.click();
-    await locators.dropdown.item('Docs').click();
-  }
+  await selectRequestPaneTab(page, 'Docs');
   const editBtn = locators.docs.editToggle();
   await editBtn.waitFor({ state: 'visible', timeout: 5000 });
   // The docs toolbar only renders while in edit mode, so its visibility is a
@@ -92,4 +83,50 @@ export const getMarkdownSource = async (locators: DocsLocators): Promise<string>
   const codeEditor = locators.docs.codeEditor();
   await expect(codeEditor).toBeVisible();
   return codeEditor.evaluate((el) => (el.closest('.CodeMirror') as any).CodeMirror.getValue());
+};
+
+export const clickDocsToolbarBtn = async (locators: DocsLocators, label: string) => {
+  const btn = locators.docs.toolbarBtn(label);
+  const overflowMenuTrigger = locators.docs.overflowMenuTrigger();
+  const dropdownItem = locators.dropdown.item(label);
+
+  await expect(async () => {
+    if (await btn.isVisible()) {
+      await btn.click({ timeout: 2000 });
+      return;
+    }
+
+    if (await overflowMenuTrigger.isVisible()) {
+      await overflowMenuTrigger.click({ timeout: 2000 });
+      await dropdownItem.waitFor({ state: 'visible', timeout: 2000 });
+      await dropdownItem.click({ force: true, timeout: 2000 });
+      return;
+    }
+
+    throw new Error(`Toolbar button "${label}" not found in visible toolbar or overflow dropdown`);
+  }).toPass({ timeout: 15000 });
+};
+
+export const expectDocsToolbarBtnDisabled = async (locators: DocsLocators, label: string) => {
+  const btn = locators.docs.toolbarBtn(label);
+  const overflowMenuTrigger = locators.docs.overflowMenuTrigger();
+  const dropdownItem = locators.dropdown.item(label);
+
+  await expect(async () => {
+    if (await btn.isVisible()) {
+      await expect(btn).toBeDisabled({ timeout: 2000 });
+      return;
+    }
+
+    if (await overflowMenuTrigger.isVisible()) {
+      await overflowMenuTrigger.click({ timeout: 2000 });
+      await dropdownItem.waitFor({ state: 'visible', timeout: 2000 });
+      await expect(dropdownItem).toBeDisabled({ timeout: 2000 });
+      // close the dropdown by clicking outside or escape so it doesn't affect subsequent tests
+      await locators.docs.proseMirror().click({ force: true });
+      return;
+    }
+
+    throw new Error(`Toolbar button "${label}" not found in visible toolbar or overflow dropdown`);
+  }).toPass({ timeout: 15000 });
 };

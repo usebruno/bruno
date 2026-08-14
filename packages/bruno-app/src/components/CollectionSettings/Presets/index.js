@@ -1,14 +1,13 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { updateCollectionPresets } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { get } from 'lodash';
 import Button from 'ui/Button';
-import Dropdown from 'components/Dropdown';
-import Help from 'components/Help';
+import MenuDropdown from 'ui/MenuDropdown';
 import SegmentedControl from 'ui/SegmentedControl';
-import { IconCaretDown, IconFilePlus, IconWorld } from '@tabler/icons';
+import { IconCaretDown } from '@tabler/icons';
 import { DEFAULT_PRESET_REQUEST_TYPE } from 'utils/common/constants';
 import { requestTypeItems } from './constants';
 
@@ -34,11 +33,8 @@ const PresetsSettings = ({ collection }) => {
   // it is written to the draft and persisted via the Save button (or autosave).
   const environments = collection?.environments || [];
   const defaultEnvironmentName = currentPresets.defaultEnvironment || '';
-  const defaultEnvDropdownRef = useRef(null);
-  const closeDefaultEnvDropdown = () => defaultEnvDropdownRef.current?.hide();
 
   const handleDefaultEnvironmentChange = (name) => {
-    closeDefaultEnvDropdown();
     if (name) {
       updatePresets({ defaultEnvironment: name });
     } else {
@@ -48,12 +44,14 @@ const PresetsSettings = ({ collection }) => {
     }
   };
 
-  const defaultEnvTrigger = (
-    <div className="default-env-trigger flex items-center justify-between cursor-pointer" data-testid="presets-default-environment">
-      <span className="truncate">{defaultEnvironmentName || 'None'}</span>
-      <IconCaretDown className="caret" size={14} strokeWidth={2} />
-    </div>
-  );
+  const defaultEnvironmentItems = [
+    { id: '', label: 'None', onClick: () => handleDefaultEnvironmentChange('') },
+    ...environments.map((env) => ({
+      id: env.name,
+      label: env.name,
+      onClick: () => handleDefaultEnvironmentChange(env.name)
+    }))
+  ];
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
@@ -70,93 +68,58 @@ const PresetsSettings = ({ collection }) => {
   return (
     <StyledWrapper className="h-full w-full">
       <div className="bruno-form">
-        {/* New Request Defaults */}
-        <div className="preset-section">
-          <div className="preset-section-icon requests">
-            <IconFilePlus size={20} strokeWidth={1.5} />
-          </div>
-          <div className="preset-section-body">
-            <h2 className="preset-section-title">New Request Defaults</h2>
-            <p className="preset-section-subtitle">Applied when a new request is created in this collection.</p>
-
-            <div className="preset-field">
-              <div className="preset-field-label-row">
-                <label className="preset-field-label">Request Type</label>
-                <Help icon="info" placement="right" width={280}>
-                  New requests start with this type selected.
-                </Help>
-              </div>
-              <SegmentedControl
-                ariaLabel="Request Type"
-                name="requestType"
-                value={requestType}
-                onChange={handleRequestTypeChange}
-                items={requestTypeItems}
-                size="sm"
-              />
-            </div>
-
-            <div className="preset-field">
-              <div className="preset-field-label-row">
-                <label className="preset-field-label" htmlFor="request-url">Base URL</label>
-                <Help icon="info" placement="right" width={280}>
-                  Pre-fills the URL field of new requests. It is not prepended to request URLs when sending.
-                </Help>
-              </div>
-              <input
-                id="request-url"
-                data-testid="presets-request-url"
-                type="text"
-                name="requestUrl"
-                placeholder="Request URL"
-                className="block textbox preset-input"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                onChange={handleRequestUrlChange}
-                value={currentPresets.requestUrl || ''}
-              />
-            </div>
-          </div>
+        <div className="preset-field">
+          <label className="preset-field-label">Default Request Type</label>
+          <p className="preset-field-subtitle">Selected by default for new requests.</p>
+          <SegmentedControl
+            ariaLabel="Default Request Type"
+            name="requestType"
+            value={requestType}
+            onChange={handleRequestTypeChange}
+            items={requestTypeItems}
+            size="sm"
+          />
         </div>
 
-        {/* Default Environment */}
-        <div className="preset-section">
-          <div className="preset-section-icon environment">
-            <IconWorld size={20} strokeWidth={1.5} />
-          </div>
-          <div className="preset-section-body">
-            <h2 className="preset-section-title">Default Environment</h2>
-            <p className="preset-section-subtitle">Applied when this collection is opened.</p>
+        <div className="preset-field">
+          <label className="preset-field-label" htmlFor="request-url">Default Base URL</label>
+          <p className="preset-field-subtitle">Pre-fills the URL field for new requests.</p>
+          <input
+            id="request-url"
+            data-testid="presets-request-url"
+            type="text"
+            name="requestUrl"
+            placeholder="Request URL"
+            className="block textbox preset-input"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            onChange={handleRequestUrlChange}
+            value={currentPresets.requestUrl || ''}
+          />
+        </div>
 
-            <div className="preset-field">
-              <div className="preset-field-label-row">
-                <label className="preset-field-label" htmlFor="default-environment">Environment</label>
-                <Help icon="info" placement="right" width={280}>
-                  Auto-selected the first time this collection is opened, when no environment has been chosen yet. It is not a fallback for requests sent without an environment.
-                </Help>
-              </div>
-              <div className="default-env-dropdown">
-                <Dropdown onCreate={(ref) => (defaultEnvDropdownRef.current = ref)} icon={defaultEnvTrigger} placement="bottom-start" sameWidth>
-                  <div
-                    className={`dropdown-item ${!defaultEnvironmentName ? 'dropdown-item-active' : ''}`}
-                    onClick={() => handleDefaultEnvironmentChange('')}
-                  >
-                    None
-                  </div>
-                  {environments.map((env) => (
-                    <div
-                      key={env.uid}
-                      className={`dropdown-item ${env.name === defaultEnvironmentName ? 'dropdown-item-active' : ''}`}
-                      onClick={() => handleDefaultEnvironmentChange(env.name)}
-                    >
-                      {env.name}
-                    </div>
-                  ))}
-                </Dropdown>
-              </div>
-            </div>
+        <div className="preset-field">
+          <label className="preset-field-label" htmlFor="default-environment">Default Environment</label>
+          <p className="preset-field-subtitle">Automatically selected in the Environment when the collection is exported and opened first.</p>
+          <div className="default-env-dropdown">
+            <MenuDropdown
+              items={defaultEnvironmentItems}
+              selectedItemId={defaultEnvironmentName}
+              data-testid="presets-default-environment"
+              placement="bottom-start"
+              sameWidth
+            >
+              <button
+                type="button"
+                id="default-environment"
+                className="default-env-trigger flex items-center justify-between cursor-pointer"
+              >
+                <span className="truncate">{defaultEnvironmentName || 'None'}</span>
+                <IconCaretDown className="caret" size={14} strokeWidth={2} />
+              </button>
+            </MenuDropdown>
           </div>
         </div>
 

@@ -226,6 +226,51 @@ export const resolveMockResponseEditorCollection = ({
   return enrichedCollection;
 };
 
+export const MOCK_RESPONSE_NAME_MAX_LENGTH = 255;
+
+export const MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH = 1000;
+
+export const getMockResponseNameLengthError = (name) => {
+  const value = name == null ? '' : String(name).trim();
+
+  if (value.length > MOCK_RESPONSE_NAME_MAX_LENGTH) {
+    return `Name must be ${MOCK_RESPONSE_NAME_MAX_LENGTH} characters or less`;
+  }
+
+  return null;
+};
+
+export const getMockResponseNameError = (name) => {
+  const value = name == null ? '' : String(name).trim();
+
+  if (!value) {
+    return 'Mock response name is required';
+  }
+
+  return getMockResponseNameLengthError(value);
+};
+
+export const getMockResponseDescriptionError = (description) => {
+  const value = description == null ? '' : String(description).trim();
+
+  if (value.length > MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH) {
+    return `Description must be ${MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH} characters or less`;
+  }
+
+  return null;
+};
+
+export const isMockResponseNameTaken = (responses = [], name, excludeUid = null) => {
+  const normalized = name?.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  return responses.some((response) => (
+    response.uid !== excludeUid && response.name?.trim().toLowerCase() === normalized
+  ));
+};
+
 export const cloneMockResponseRecord = (response, { name } = {}) => {
   const cloned = JSON.parse(JSON.stringify(response));
   cloned.uid = uuid();

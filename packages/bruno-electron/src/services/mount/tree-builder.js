@@ -21,7 +21,8 @@ const REQUEST_UID_PATHS = [
   ['request.assertions', 'assertions'],
   ['request.body.formUrlEncoded', 'body.formUrlEncoded'],
   ['request.body.multipartForm', 'body.multipartForm'],
-  ['request.body.file', 'body.file']
+  ['request.body.file', 'body.file'],
+  ['request.body.ws', 'body.ws']
 ];
 
 const EXAMPLE_UID_PATHS = [
@@ -241,4 +242,4 @@ const buildTree = (collectionPath, parserResults, options = {}) => {
   return tree;
 };
 
-module.exports = { buildTree };
+module.exports = { buildTree, REQUEST_UID_PATHS };

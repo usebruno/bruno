@@ -222,4 +222,113 @@ test.describe('Variable sort + drag-and-drop (Environment vars)', () => {
       expect(secretIndices).toEqual([...secretIndices].sort((a, b) => a - b));
     });
   });
+
+  test('secrets sort A-Z / Z-A without rewriting the file', async ({ page, createTmpDir }) => {
+    const tmpDir = await createTmpDir('sort-secrets-view-only');
+    await importCollection(page, collectionFile, tmpDir, { expectedCollectionName: COLLECTION_NAME });
+    await createEnvironment(page, 'SortSecretsEnv', 'collection');
+
+    await secretsTab(page).click();
+    await addRowToActiveTab(page, 'zulu', '1');
+    await addRowToActiveTab(page, 'alpha', '2');
+    await addRowToActiveTab(page, 'mike', '3');
+    await saveTab(page).click();
+    await expect(savedToast(page)).toBeVisible();
+
+    await test.step('A-Z then Z-A sort the secrets view', async () => {
+      await cycleVariableSort(page);
+      await expect.poll(() => getVisibleVariableNames(page)).toEqual(['alpha', 'mike', 'zulu']);
+      await cycleVariableSort(page);
+      await expect.poll(() => getVisibleVariableNames(page)).toEqual(['zulu', 'mike', 'alpha']);
+    });
+
+    await test.step('Cycling back to Manual reveals the untouched real order', async () => {
+      await cycleVariableSort(page);
+      await expect.poll(() => getVisibleVariableNames(page)).toEqual(['zulu', 'alpha', 'mike']);
+    });
+
+    await test.step('The on-disk file was never rewritten by viewing A-Z/Z-A', async () => {
+      const content = readEnvironmentFile(tmpDir, 'SortSecretsEnv');
+      const indices = ['zulu', 'alpha', 'mike'].map((name) => content.indexOf(name));
+      expect(indices.every((i) => i !== -1)).toBe(true);
+      expect(indices).toEqual([...indices].sort((a, b) => a - b));
+    });
+  });
+
+  test('dragging a secret never crosses into the variables group', async ({ page, createTmpDir }) => {
+    const tmpDir = await createTmpDir('sort-drag-variable-isolation');
+    await importCollection(page, collectionFile, tmpDir, { expectedCollectionName: COLLECTION_NAME });
+    await createEnvironment(page, 'DragVariableIsolationEnv', 'collection');
+
+    await test.step('Add two variables and two secrets, saving each tab independently', async () => {
+      await addRowToActiveTab(page, 'v1', 'one');
+      await addRowToActiveTab(page, 'v2', 'two');
+      await saveTab(page).click();
+      await expect(savedToast(page)).toBeVisible();
+
+      await secretsTab(page).click();
+      await addRowToActiveTab(page, 's1', 'secret-one');
+      await addRowToActiveTab(page, 's2', 'secret-two');
+      await saveTab(page).click();
+      await expect(savedToast(page)).toBeVisible();
+    });
+
+    await test.step('Drag s2 before s1, then save', async () => {
+      await expect(dragHandle(page, 's2')).toHaveCount(1);
+      await dragVariableRow(page, 's2', 's1');
+      await expect.poll(() => getVisibleVariableNames(page)).toEqual(['s2', 's1']);
+      await saveTab(page).click();
+      await expect(savedToast(page)).toBeVisible();
+    });
+
+    await test.step('On disk, secrets were reordered but variables kept their original order', async () => {
+      const content = readEnvironmentFile(tmpDir, 'DragVariableIsolationEnv');
+      const secretIndices = ['s2', 's1'].map((name) => content.indexOf(name));
+      expect(secretIndices.every((i) => i !== -1)).toBe(true);
+      expect(secretIndices).toEqual([...secretIndices].sort((a, b) => a - b));
+
+      const varIndices = ['v1', 'v2'].map((name) => content.indexOf(name));
+      expect(varIndices.every((i) => i !== -1)).toBe(true);
+      expect(varIndices).toEqual([...varIndices].sort((a, b) => a - b));
+    });
+  });
+
+  test('each tab remembers its own sort mode', async ({ page, createTmpDir }) => {
+    await importCollection(page, collectionFile, await createTmpDir('sort-per-tab-mode'), {
+      expectedCollectionName: COLLECTION_NAME
+    });
+    await createEnvironment(page, 'PerTabSortEnv', 'collection');
+
+    await test.step('Seed both tabs with deliberately unsorted rows', async () => {
+      await addRowToActiveTab(page, 'vzulu', '1');
+      await addRowToActiveTab(page, 'valpha', '2');
+      await saveTab(page).click();
+      await expect(savedToast(page)).toBeVisible();
+
+      await secretsTab(page).click();
+      await addRowToActiveTab(page, 'szulu', '1');
+      await addRowToActiveTab(page, 'salpha', '2');
+      await saveTab(page).click();
+      await expect(savedToast(page)).toBeVisible();
+
+      await variablesTab(page).click();
+    });
+
+    await test.step('Sorting variables A-Z leaves secrets in Manual order', async () => {
+      await cycleVariableSort(page);
+      await expect.poll(() => getVisibleVariableNames(page)).toEqual(['valpha', 'vzulu']);
+
+      await secretsTab(page).click();
+      await expect.poll(() => getVisibleVariableNames(page)).toEqual(['szulu', 'salpha']);
+      await expect(dragHandle(page, 'szulu')).toHaveCount(1);
+    });
+
+    await test.step('Sorting secrets A-Z does not disturb the variables tab', async () => {
+      await cycleVariableSort(page);
+      await expect.poll(() => getVisibleVariableNames(page)).toEqual(['salpha', 'szulu']);
+
+      await variablesTab(page).click();
+      await expect.poll(() => getVisibleVariableNames(page)).toEqual(['valpha', 'vzulu']);
+    });
+  });
 });

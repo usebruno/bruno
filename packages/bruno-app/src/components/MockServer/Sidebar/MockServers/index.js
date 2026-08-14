@@ -172,7 +172,7 @@ const MockServerItem = React.memo(({
   return (
     <>
       <div
-        className="api-spec-item flex flex-grow items-center overflow-hidden w-full justify-between cursor-pointer py-2 pl-4 h-8"
+        className="api-spec-item flex flex-grow items-center overflow-hidden w-full justify-between cursor-pointer py-1 pl-1 h-8"
         data-testid={`mock-server-sidebar-item-${instance.uid}`}
       >
         <span className="flex items-center flex-1 min-w-0">
@@ -218,7 +218,7 @@ const MockServerItem = React.memo(({
       </div>
 
       {expanded && responses.length > 0 ? (
-        <div className="pl-8">
+        <div className="pl-6">
           {responses.map((response) => (
             <MockResponseSidebarItem
               key={response.uid}

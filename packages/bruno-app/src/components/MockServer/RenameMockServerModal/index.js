@@ -5,10 +5,10 @@ import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
-import { validateName, validateNameError } from 'utils/common/regex';
 import {
   findMockServerInstance,
   getMockServerInstances,
+  getMockServerNameError,
   isMockServerNameTaken,
   saveMockServerInstance,
   updateMockServerTabName
@@ -17,7 +17,6 @@ import {
 const RenameMockServerModal = ({ instance, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
-  const preferences = useSelector((state) => state.app.preferences);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const storedInstance = useSelector((state) => (
     findMockServerInstance(state, instance.uid) || instance
@@ -31,11 +30,12 @@ const RenameMockServerModal = ({ instance, onClose }) => {
     },
     validationSchema: Yup.object({
       name: Yup.string()
+        .trim()
         .min(1, 'Must be at least 1 character')
         .max(255, 'Must be 255 characters or less')
         .test('is-valid-name', function (value) {
-          const isValid = validateName(value);
-          return isValid ? true : this.createError({ message: validateNameError(value) });
+          const error = getMockServerNameError(value);
+          return error ? this.createError({ message: error }) : true;
         })
         .required('Name is required')
         .test('duplicate-name', 'A mock server with this name already exists', (value) => (
@@ -66,6 +66,11 @@ const RenameMockServerModal = ({ instance, onClose }) => {
     }
   }, []);
 
+  const handleCancel = () => {
+    formik.resetForm({ values: formik.values });
+    onClose();
+  };
+
   return (
     <Portal>
       <Modal
@@ -73,7 +78,7 @@ const RenameMockServerModal = ({ instance, onClose }) => {
         title="Rename Mock Server"
         confirmText="Rename"
         handleConfirm={() => formik.handleSubmit()}
-        handleCancel={onClose}
+        handleCancel={handleCancel}
         dataTestId="mock-server-rename-modal"
       >
         <form className="bruno-form" onSubmit={(event) => event.preventDefault()}>
