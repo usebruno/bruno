@@ -2587,6 +2587,13 @@ const setRequestUrlAndSave = async (page: Page, url: string) => {
 };
 
 /**
+ * @param page - The page object
+ */
+const dismissVarTooltip = async (page: Page) => {
+  await page.locator('body').click();
+};
+
+/**
  * Hover a `{{var}}` token in the URL editor and return its (visible) info tooltip.
  * @param page - The page object
  * @param varName - The variable name inside the braces
@@ -2671,6 +2678,7 @@ export {
   waitForReadyPage,
   setRequestUrlAndSave,
   openUrlVarTooltip,
+  dismissVarTooltip,
   openEnvValueVarTooltip,
   scrollVirtuosoRowIntoView,
   dismissImportIssuesToasts,

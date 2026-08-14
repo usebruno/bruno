@@ -19,6 +19,10 @@ import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
+const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'global') =>
+  popup.getByTestId('var-info-add-to-no-env-note')
+    .filter({ hasText: scopeType === 'global' ? 'Global Environment' : 'Collection Environment' });
+
 export const buildCommonLocators = (page: Page) => ({
   collectionHeader: buildCollectionHeaderLocators(page),
   runner: () => page.getByTestId('run-button'),
@@ -147,16 +151,14 @@ export const buildCommonLocators = (page: Page) => ({
     addToSwitcher: (popup: Locator) => popup.getByTestId('var-info-add-to'),
     addToToggle: (popup: Locator) => popup.getByTestId('var-info-add-to-toggle'),
     addToOption: (popup: Locator, scopeType: string) => popup.getByTestId(`var-info-add-to-option-${scopeType}`),
-    // The currently-active scope row (guessed default, or whichever was last picked).
-    addToActiveOption: (popup: Locator) => popup.locator('.var-add-to-option-active'),
+    addToActiveOption: (popup: Locator, scopeType?: string) => {
+      const activeRow = popup.locator('.var-add-to-option-active');
+      return scopeType ? activeRow.getByTestId(`var-info-add-to-option-${scopeType}`) : activeRow;
+    },
     addToSecretCheckbox: (popup: Locator) => popup.getByTestId('var-info-add-to-secret-checkbox'),
-    addToNoEnvNote: (popup: Locator, scopeType: 'environment' | 'global') =>
-      popup.getByTestId('var-info-add-to-no-env-note')
-        .filter({ hasText: scopeType === 'global' ? 'Global Environment' : 'Collection Environment' }),
+    addToNoEnvNote: (popup: Locator, scopeType: 'environment' | 'global') => addToNoEnvNoteLocator(popup, scopeType),
     addToCreateEnvButton: (popup: Locator, scopeType: 'environment' | 'global') =>
-      popup.getByTestId('var-info-add-to-no-env-note')
-        .filter({ hasText: scopeType === 'global' ? 'Global Environment' : 'Collection Environment' })
-        .getByTestId('var-info-add-to-create-env-button'),
+      addToNoEnvNoteLocator(popup, scopeType).getByTestId('var-info-add-to-create-env-button'),
     addToCreateEnvNameInput: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-name-input'),
     addToCreateEnvSubmit: (popup: Locator) => popup.getByTestId('var-info-add-to-create-env-submit'),
     addToError: (popup: Locator) => popup.getByTestId('var-info-add-to-error')
@@ -323,13 +325,26 @@ export const buildCommonLocators = (page: Page) => ({
       },
       rowCheckbox: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-checkbox'),
       rowDeleteButton: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-delete'),
-      allRows: () => container().locator('tbody tr')
+      allRows: () => container().locator('tbody tr'),
+      rowNameInput: (row: Locator) => row.locator('input[type="text"]').first(),
+      rowValueEditor: (row: Locator) => row.getByTestId('column-value').locator('.CodeMirror').first()
     };
   },
   /**
    * Assertions table locators (extends generic table with assertion-specific helpers)
    * @returns Assertions table locators object
    */
+  /**
+   * @param scope - Which panel to target
+   * @returns Panel locators object
+   */
+  varsPanel: (scope: 'folder' | 'collection') => {
+    const container = () => page.getByTestId(`${scope}-vars-panel`);
+    return {
+      container,
+      saveButton: () => container().getByRole('button', { name: 'Save', exact: true })
+    };
+  },
   assertionsTable: () => {
     const baseTable = buildCommonLocators(page).table('assertions-table');
     return {

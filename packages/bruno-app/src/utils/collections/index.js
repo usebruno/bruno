@@ -1982,7 +1982,7 @@ const SCOPE_CONFIG = [
   },
   {
     type: VARIABLE_ADD_SCOPES.COLLECTION,
-    label: 'Collection Variables',
+    label: 'Collection Variable',
     supportsSecret: false,
     isAvailable: ({ hasCollection }) => hasCollection,
     enabled: () => true
@@ -1996,7 +1996,7 @@ const SCOPE_CONFIG = [
   },
   {
     type: VARIABLE_ADD_SCOPES.FOLDER,
-    label: ({ parentFolder, isSelfFolder }) => (isSelfFolder ? 'Folder' : `Parent Folder(${parentFolder?.name || ''})`),
+    label: ({ parentFolder, isSelfFolder }) => (isSelfFolder ? 'Folder' : `Parent Folder (${parentFolder?.name || ''})`),
     supportsSecret: false,
     // Only the request/folder's direct containing folder is added. unless we're already in
     // that folder's own settings, in which case the folder itself is the target.
@@ -2019,7 +2019,7 @@ const SCOPE_CONFIG = [
  *   Folder Variable is only added when this is present.
  * @param {boolean} [options.isSelfFolder] - True when `parentFolder` is the folder currently being
  *   edited (tooltip opened from within that folder's own settings), rather than an actual parent.
- *   Only affects the Folder scope's label ("Folder" vs "Parent Folder(...)").
+ *   Only affects the Folder scope's label ("Folder" vs "Parent Folder (...)").
  * @param {boolean} [options.hasCollection] - when we are in Global Environment table, there is no collection context,
  * so we don't show collection/environment scopes
  * @returns {Array<{type: string, label: string, enabled: boolean, supportsSecret: boolean}>}

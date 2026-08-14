@@ -118,4 +118,17 @@ describe('findExternallyAddedVariables', () => {
 
     expect(added).toEqual([{ uid: 'u2', name: 'token', enabled: true }]);
   });
+
+  it('detects a new enabled secret added externally even though an enabled plain variable of the same name already existed', () => {
+    const added = findExternallyAddedVariables({
+      prevRawSaved: [{ uid: 'u1', name: 'token', enabled: true, secret: false }],
+      nextRawSaved: [
+        { uid: 'u1', name: 'token', enabled: true, secret: false },
+        { uid: 'u2', name: 'token', enabled: true, secret: true }
+      ],
+      currentValues: [{ uid: 'u1', name: 'token', enabled: true, secret: false }, { uid: 'draft', name: '' }]
+    });
+
+    expect(added).toEqual([{ uid: 'u2', name: 'token', enabled: true, secret: true }]);
+  });
 });

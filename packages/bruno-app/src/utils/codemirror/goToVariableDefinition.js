@@ -2,22 +2,26 @@ import store from 'providers/ReduxStore';
 import { openCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { addTab, focusTab, updateRequestPaneTab, updateTabState } from 'providers/ReduxStore/slices/tabs';
+import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+
+const DEFINITION_SCROLL_POLL_TIMEOUT_MS = 1500;
+const DEFINITION_HIGHLIGHT_DURATION_MS = 1500;
+
+const envRowSelector = (variableName) => `[data-testid="env-var-row-${CSS.escape(variableName)}"]`;
 
 const SELECTOR_BY_SCOPE = {
-  request: (variableName) =>
+  [VARIABLE_ADD_SCOPES.REQUEST]: (variableName) =>
     `[data-testid="request-vars-req"] [data-row-name="${CSS.escape(variableName)}"]`,
 
-  folder: (variableName) =>
+  [VARIABLE_ADD_SCOPES.FOLDER]: (variableName) =>
     `[data-testid="folder-vars-req"] [data-row-name="${CSS.escape(variableName)}"]`,
 
-  collection: (variableName) =>
+  [VARIABLE_ADD_SCOPES.COLLECTION]: (variableName) =>
     `[data-testid="collection-vars-req"] [data-row-name="${CSS.escape(variableName)}"]`,
 
-  environment: (variableName) =>
-    `[data-testid="env-var-row-${CSS.escape(variableName)}"]`,
+  [VARIABLE_ADD_SCOPES.ENVIRONMENT]: envRowSelector,
 
-  global: (variableName) =>
-    `[data-testid="env-var-row-${CSS.escape(variableName)}"]`
+  [VARIABLE_ADD_SCOPES.GLOBAL]: envRowSelector
 };
 
 const scrollDefinitionIntoView = (scopeType, variableName) => {
@@ -32,7 +36,7 @@ const scrollDefinitionIntoView = (scopeType, variableName) => {
   }
 
   const selector = getSelector(variableName);
-  const deadline = performance.now() + 1500;
+  const deadline = performance.now() + DEFINITION_SCROLL_POLL_TIMEOUT_MS;
 
   // scroll the definition row into view, if it exists. If it doesn't exist yet, keep trying until the deadline is reached.
   const tryScroll = () => {
@@ -48,7 +52,7 @@ const scrollDefinitionIntoView = (scopeType, variableName) => {
 
       window.setTimeout(() => {
         definitionRow.classList.remove('bruno-var-definition-target');
-      }, 1500);
+      }, DEFINITION_HIGHLIGHT_DURATION_MS);
 
       return;
     }
@@ -61,6 +65,17 @@ const scrollDefinitionIntoView = (scopeType, variableName) => {
   window.requestAnimationFrame(tryScroll);
 };
 
+// pins the environment and the sub-tab (Variables or Secrets) to the given tab's state.
+const pinEnvironmentTabState = (dispatch, tabUid, environmentUid, scopeInfo) => {
+  dispatch(updateTabState({
+    uid: tabUid,
+    tabState: {
+      ...(environmentUid ? { envUid: environmentUid } : {}),
+      environment: { tab: scopeInfo.data?.variable?.secret ? 'secrets' : 'variables' }
+    }
+  }));
+};
+
 // Navigate to the definition of a variable based on its scope and name.
 // for Environment also send the tab state to select the right sub-tab (Variables or Secrets).
 export const goToVariableDefinition = (scopeInfo, collection, item, variableName) => {
@@ -71,7 +86,7 @@ export const goToVariableDefinition = (scopeInfo, collection, item, variableName
   const dispatch = store.dispatch;
 
   switch (scopeInfo.type) {
-    case 'request': {
+    case VARIABLE_ADD_SCOPES.REQUEST: {
       const targetItem = scopeInfo.data?.item || item;
       if (!targetItem?.uid) {
         return;
@@ -89,7 +104,7 @@ export const goToVariableDefinition = (scopeInfo, collection, item, variableName
       break;
     }
 
-    case 'folder': {
+    case VARIABLE_ADD_SCOPES.FOLDER: {
       const folder = scopeInfo.data?.folder;
       if (!folder?.uid) {
         return;
@@ -100,28 +115,21 @@ export const goToVariableDefinition = (scopeInfo, collection, item, variableName
       break;
     }
 
-    case 'collection': {
+    case VARIABLE_ADD_SCOPES.COLLECTION: {
       dispatch(openCollectionSettings(collection.uid, 'vars'));
       break;
     }
 
-    case 'environment': {
+    case VARIABLE_ADD_SCOPES.ENVIRONMENT: {
       const environmentTabUid = `${collection.uid}-environment-settings`;
       const environmentUid = scopeInfo.data?.environment?.uid;
       dispatch(addTab({ uid: environmentTabUid, collectionUid: collection.uid, type: 'environment-settings' }));
 
-      // pin the environment and the sub-tab(variables or secrets) to tab state.
-      dispatch(updateTabState({
-        uid: environmentTabUid,
-        tabState: {
-          ...(environmentUid ? { envUid: environmentUid } : {}),
-          environment: { tab: scopeInfo.data?.variable?.secret ? 'secrets' : 'variables' }
-        }
-      }));
+      pinEnvironmentTabState(dispatch, environmentTabUid, environmentUid, scopeInfo);
       break;
     }
 
-    case 'global': {
+    case VARIABLE_ADD_SCOPES.GLOBAL: {
       const state = store.getState();
       const tabsState = state.tabs || {};
       const activeTab = (tabsState.tabs || []).find((t) => t.uid === tabsState.activeTabUid);
@@ -141,14 +149,7 @@ export const goToVariableDefinition = (scopeInfo, collection, item, variableName
         type: 'global-environment-settings'
       }));
 
-      // pin the environment and the sub-tab(variables or secrets) to tab state.
-      dispatch(updateTabState({
-        uid: globalEnvironmentTabUid,
-        tabState: {
-          ...(environmentUid ? { envUid: environmentUid } : {}),
-          environment: { tab: scopeInfo.data?.variable?.secret ? 'secrets' : 'variables' }
-        }
-      }));
+      pinEnvironmentTabState(dispatch, globalEnvironmentTabUid, environmentUid, scopeInfo);
       break;
     }
 

@@ -17,7 +17,7 @@ export const reconcileSavedChange = ({ prevSaved, nextSaved, current }) => {
   return 'skip';
 };
 
-const isSameRow = (a, b) => a.name === b.name && !!a.enabled === !!b.enabled;
+const isSameRow = (a, b) => a.name === b.name && !!a.enabled === !!b.enabled && !!a.secret === !!b.secret;
 
 /*
   when reconcileSavedChange returns 'skip', there might be changes added externally via
