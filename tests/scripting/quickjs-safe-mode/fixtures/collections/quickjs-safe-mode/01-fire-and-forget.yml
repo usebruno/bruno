@@ -5,14 +5,14 @@ info:
 
 http:
   method: GET
-  url: http://localhost:18367/fast
+  url: http://localhost:8081/ping
 
 runtime:
   scripts:
     - type: after-response
       code: |-
         bru.setVar('lateResult', 'pending');
-        bru.sendRequest({ url: 'http://localhost:18367/slow2s', method: 'GET' }, async (err, res) => {
+        bru.sendRequest({ url: 'http://localhost:8081/api/wait-for?time=2000', method: 'GET' }, async (err, res) => {
           bru.setVar('lateResult', 'landed');
         });
     - type: tests

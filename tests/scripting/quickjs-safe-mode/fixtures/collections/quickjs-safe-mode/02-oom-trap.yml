@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://localhost:18367/huge
+  url: http://localhost:8081/api/large-payload?size=3145728
 
 runtime:
   scripts:

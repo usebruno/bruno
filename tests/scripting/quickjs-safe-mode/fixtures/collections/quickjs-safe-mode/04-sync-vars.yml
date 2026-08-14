@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://localhost:18367/fast
+  url: http://localhost:8081/ping
 
 runtime:
   scripts:

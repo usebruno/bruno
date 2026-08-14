@@ -5,13 +5,13 @@ info:
 
 http:
   method: GET
-  url: http://localhost:18367/huge
+  url: http://localhost:8081/api/large-payload?size=3145728
 
 runtime:
   scripts:
     - type: before-request
       code: |-
-        const r = await bru.sendRequest({ url: 'http://localhost:18367/huge', method: 'GET' });
+        const r = await bru.sendRequest({ url: 'http://localhost:8081/api/large-payload?size=3145728', method: 'GET' });
         let preBlob = r.data;
         for (let i = 0; i < 8; i++) {
           preBlob = preBlob + preBlob;
