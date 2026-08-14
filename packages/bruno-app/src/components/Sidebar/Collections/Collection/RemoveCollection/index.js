@@ -8,6 +8,7 @@ import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges } 
 import filter from 'lodash/filter';
 import ConfirmCollectionCloseDrafts from './ConfirmCollectionCloseDrafts';
 import StyledWrapper from './StyledWrapper';
+import Portal from 'ui/Portal';
 
 const RemoveCollection = ({ onClose, collectionUid }) => {
   const dispatch = useDispatch();
@@ -46,23 +47,25 @@ const RemoveCollection = ({ onClose, collectionUid }) => {
   // Otherwise, show the standard remove confirmation modal
   return (
     <StyledWrapper>
-      <Modal
-        size="sm"
-        title="Remove Collection"
-        confirmText="Remove"
-        confirmButtonColor="danger"
-        handleConfirm={onConfirm}
-        handleCancel={onClose}
-      >
-        <p className="mb-4">Are you sure you want to close following collection in Bruno?</p>
-        <div className="collection-info-card">
-          <div className="collection-name">{collection.name}</div>
-          <div className="collection-path">{collection.pathname}</div>
-        </div>
-        <p className="mt-4 text-muted text-sm">
-          It will still be available in the filesystem at the above location and can be re-opened later.
-        </p>
-      </Modal>
+      <Portal>
+        <Modal
+          size="sm"
+          title="Remove Collection"
+          confirmText="Remove"
+          confirmButtonColor="danger"
+          handleConfirm={onConfirm}
+          handleCancel={onClose}
+        >
+          <p className="mb-4">Are you sure you want to close following collection in Bruno?</p>
+          <div className="collection-info-card">
+            <div className="collection-name">{collection.name}</div>
+            <div className="collection-path">{collection.pathname}</div>
+          </div>
+          <p className="mt-4 text-muted text-sm">
+            It will still be available in the filesystem at the above location and can be re-opened later.
+          </p>
+        </Modal>
+      </Portal>
     </StyledWrapper>
   );
 };
