@@ -11,6 +11,7 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     ignore?: string[];
     presets?: BrunoPresets;
     scripts?: { flow?: unknown };
+    openapi?: BrunoConfig['openapi'];
   } | undefined;
 
   const ignoreList = brunoExtension && Array.isArray(brunoExtension.ignore)
@@ -44,7 +45,17 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   if (scriptFlow === 'sandwich' || scriptFlow === 'sequential') {
     brunoConfig.scripts = { flow: scriptFlow };
   }
-
+  const openApiExtensions = brunoExtension?.openapi;
+  if (Array.isArray(openApiExtensions) && openApiExtensions.length > 0) {
+    brunoConfig.openapi = openApiExtensions.map((entry: any) => ({
+      sourceUrl: entry.sourceUrl,
+      groupBy: entry.groupBy,
+      ...(entry.lastSyncDate && { lastSyncDate: entry.lastSyncDate }),
+      ...(entry.specHash && { specHash: entry.specHash }),
+      autoCheck: entry.autoCheck !== false,
+      autoCheckInterval: entry.autoCheckInterval || 5
+    }));
+  }
   const config = oc.config;
   if (!config) {
     return brunoConfig;
