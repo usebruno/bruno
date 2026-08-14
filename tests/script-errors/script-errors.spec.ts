@@ -426,12 +426,13 @@ for (const mode of ['safe', 'developer'] as const) {
 
         await expect(card).toBeVisible();
         await expect(scriptErrorLocators.message(card)).toContainText('END OF LONG SCRIPT ERROR');
+        await expect(scrollContainer).toBeVisible();
+
+        await expect
+          .poll(() => scrollContainer.evaluate((element) => element.scrollHeight > element.clientHeight))
+          .toBe(true);
 
         const scrollHeight = await scrollContainer.evaluate((element) => element.scrollHeight);
-        const clientHeight = await scrollContainer.evaluate((element) => element.clientHeight);
-
-        expect(scrollHeight).toBeGreaterThan(clientHeight);
-
         await scrollContainer.hover();
         await page.mouse.wheel(0, scrollHeight);
 
