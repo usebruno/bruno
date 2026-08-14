@@ -75,9 +75,16 @@ const CloneMockServerModal = ({
       }
 
       const resolvedPort = Number(values.port);
-      const portCheck = await checkMockServerPortAvailable(resolvedPort, configuredInstances);
-      const portError = getMockServerPortError(portCheck, resolvedPort);
-      if (portError) {
+      try {
+        const portCheck = await checkMockServerPortAvailable(resolvedPort, configuredInstances);
+        const portError = getMockServerPortError(portCheck, resolvedPort);
+        if (portError) {
+          setFieldError('port', portError);
+          toast.error(portError);
+          return;
+        }
+      } catch (err) {
+        const portError = err.message || 'Failed to validate port';
         setFieldError('port', portError);
         toast.error(portError);
         return;

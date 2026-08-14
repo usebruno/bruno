@@ -398,7 +398,6 @@ const handleRequest = (mockServerUid, req, res) => {
     }
   };
 
-  // adding a try-catch block to handle any errors that may occur during the response
   if (delay > 0) {
     setTimeout(() => {
       try {
@@ -406,6 +405,8 @@ const handleRequest = (mockServerUid, req, res) => {
       } catch (err) {
         if (!res.headersSent) {
           res.status(500).json({ error: err.message || 'Mock response failed' });
+        } else if (!res.writableEnded && !res.destroyed) {
+          res.destroy();
         }
       }
     }, delay);

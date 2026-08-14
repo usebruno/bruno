@@ -226,20 +226,27 @@ const CreateMockServerModal = ({
       // Advanced closed: pick a free port at create time (matches the helper copy).
       // Advanced open / edit: validate unless this mock is keeping its current port
       // (a running instance would otherwise look like a system conflict).
-      if (!isEditing && !showAdvancedPort) {
-        resolvedPort = await suggestAvailableMockServerPort(configuredInstances, {
-          excludeUid: editingInstance?.uid
-        });
-      } else if (!portUnchanged) {
-        const portCheck = await checkMockServerPortAvailable(resolvedPort, configuredInstances, {
-          excludeUid: editingInstance?.uid
-        });
-        const error = getMockServerPortError(portCheck, resolvedPort);
-        if (error) {
-          setPortError(error);
-          toast.error(error);
-          return;
+      try {
+        if (!isEditing && !showAdvancedPort) {
+          resolvedPort = await suggestAvailableMockServerPort(configuredInstances, {
+            excludeUid: editingInstance?.uid
+          });
+        } else if (!portUnchanged) {
+          const portCheck = await checkMockServerPortAvailable(resolvedPort, configuredInstances, {
+            excludeUid: editingInstance?.uid
+          });
+          const error = getMockServerPortError(portCheck, resolvedPort);
+          if (error) {
+            setPortError(error);
+            toast.error(error);
+            return;
+          }
         }
+      } catch (err) {
+        const error = err.message || 'Failed to validate port';
+        setPortError(error);
+        toast.error(error);
+        return;
       }
 
       const resolvedSourceType = values.linkSource ? values.sourceType : 'manual';
