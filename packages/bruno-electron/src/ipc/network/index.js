@@ -11,7 +11,7 @@ const { ipcMain } = require('electron');
 const { each, get, extend, cloneDeep, merge } = require('lodash');
 const { NtlmClient } = require('axios-ntlm');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
-const { encodeUrl, hasExplicitScheme } = require('@usebruno/common').utils;
+const { encodeUrl, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { extractPromptVariables } = require('@usebruno/common').utils;
 const { interpolateString } = require('./interpolate-string');
 const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-helper');
@@ -140,11 +140,11 @@ const configureRequest = async (
   const forwardAuthorizationHeader = request.settings?.forwardAuthorizationHeader ?? true;
 
   // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
-  let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
+  let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
 
   // Ensure it's a valid number
   if (typeof requestMaxRedirects !== 'number' || requestMaxRedirects < 0) {
-    requestMaxRedirects = 5; // Default to 5 redirects
+    requestMaxRedirects = DEFAULT_MAX_REDIRECTS;
   }
 
   // If followRedirects is disabled, set maxRedirects to 0 to disable all redirects

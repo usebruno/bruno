@@ -22,7 +22,7 @@ const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAx
 const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
-const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme } = require('@usebruno/common').utils;
+const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -553,11 +553,11 @@ const runSingleRequest = async function (
     const forwardAuthorizationHeader = request.settings?.forwardAuthorizationHeader ?? true;
 
     // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
-    let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
+    let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
 
     // Ensure it's a valid number
     if (typeof requestMaxRedirects !== 'number' || requestMaxRedirects < 0) {
-      requestMaxRedirects = 5; // Default to 5 redirects
+      requestMaxRedirects = DEFAULT_MAX_REDIRECTS;
     }
 
     // If followRedirects is disabled, set maxRedirects to 0 to disable all redirects
