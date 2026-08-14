@@ -167,7 +167,7 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
     ignore?: string[];
     presets?: BrunoPresets;
     scripts?: { flow?: 'sandwich' | 'sequential' };
-    openapi?:BrunoConfig['openapi'];
+    openapi?: BrunoConfig['openapi'];
   } = {};
 
   if (brunoConfig?.ignore?.length) {
