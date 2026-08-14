@@ -1414,7 +1414,7 @@ await bru.sendRequest({
       `);
     });
 
-    it('should continue past a catch, which forwards the response when no error occurred', () => {
+    it('should stop at a catch, whose handler can replace the response for the rest of the chain', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' })
           .then((res) => res)
@@ -1429,7 +1429,7 @@ await bru.sendRequest({
           .then((res) => res)
           .catch(() => null)
           .then((data) => {
-              console.log(data.status);
+              console.log(data.code);
           });
       `);
     });
@@ -1452,7 +1452,7 @@ await bru.sendRequest({
       `);
     });
 
-    it('should continue past a catch placed directly after the request', () => {
+    it('should stop at a catch placed directly after the request', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' }).catch((err) => {
             console.log(err);
@@ -1465,8 +1465,22 @@ await bru.sendRequest({
         await bru.sendRequest({ url: 'https://echo.usebruno.com' }).catch((err) => {
             console.log(err);
         }).then((res) => {
-            console.log(res.status);
+            console.log(res.code);
         });
+      `);
+    });
+
+    it('should stop at a catch that returns a substitute response', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .catch(() => ({ code: 599 }))
+          .then((res) => console.log(res.status));
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .catch(() => ({ code: 599 }))
+          .then((res) => console.log(res.status));
       `);
     });
 

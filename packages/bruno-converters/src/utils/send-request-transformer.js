@@ -547,6 +547,10 @@ const sendRequestTransformer = (path, j) => {
   for (const link of chainLinks) {
     const [handler] = link.callPath.value.arguments;
 
+    // a `.catch` handler substitutes its own return value for the rest of the chain, so links
+    // past it no longer receive the response we mapped.
+    if (link.methodName === 'catch') break;
+
     const hasFulfilledHandler = link.methodName === 'then' && Boolean(handler) && !isNullLiteral(handler);
 
     if (!hasFulfilledHandler) continue;
