@@ -10,7 +10,7 @@ const { parseValueByDataType } = require('@usebruno/common/utils');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const { decryptStringSafe } = require('../utils/encryption');
 const dotEnvWatcher = require('./dotenv-watcher');
-const { getWorkspaceStorePath } = require('./mock-server/mock-response-store');
+const { getWorkspaceStorePath, invalidateWorkspaceStoreCache } = require('./mock-server/mock-response-store');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -121,6 +121,7 @@ const handleMockServerStoreUpdated = (win, workspacePath, workspaceUid) => {
     return;
   }
 
+  invalidateWorkspaceStoreCache(workspacePath);
   win.webContents.send('main:mock-server-store-updated', workspacePath, workspaceUid);
 };
 
