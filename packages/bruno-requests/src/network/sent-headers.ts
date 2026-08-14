@@ -27,8 +27,7 @@ export const getSentHeaders = (clientRequest?: ClientRequest | null): Record<str
       /** The proxy agent injects this credential and the user never authored it, so the header
        *  stays visible but its value never is, in the timeline or in `request.headers`.
        * */
-      sentHeaders[name]
-        = name.toLowerCase() === 'proxy-authorization' ? MASK_CHAR.repeat(value.length) : value;
+      sentHeaders[name] = name.toLowerCase() === 'proxy-authorization' ? MASK_CHAR.repeat(value.length) : value;
     }
   }
 
