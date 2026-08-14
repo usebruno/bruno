@@ -41,6 +41,7 @@ export const dottedKeyMatrix: MatrixCase[] = [
   { referenced: 'dotted-key boolean', selected: 'boolean', variable: 'refBooleanFromDottedKey', flagged: false }
 ];
 
+// Proving a collection environment resolves against global variables.
 export const collectionMatrix: MatrixCase[] = [
   { referenced: 'string', selected: 'string', variable: 'refStringFromGlobalString', flagged: false },
   { referenced: 'number', selected: 'number', variable: 'refNumberFromGlobalNumber', flagged: false },
