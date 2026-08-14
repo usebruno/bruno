@@ -194,18 +194,6 @@ const writeWorkspaceStoreToDisk = (workspacePath, store) => {
 
 const getWorkspaceCacheKey = (workspacePath) => resolveWorkspacePath(workspacePath);
 
-const invalidateWorkspaceStoreCache = (workspacePath) => {
-  const cacheKey = getWorkspaceCacheKey(workspacePath);
-  const pendingTimer = workspaceWriteTimers.get(cacheKey);
-
-  if (pendingTimer) {
-    clearTimeout(pendingTimer);
-    workspaceWriteTimers.delete(cacheKey);
-  }
-
-  workspaceStoreCache.delete(cacheKey);
-};
-
 const readWorkspaceStore = (workspacePath) => {
   const cacheKey = getWorkspaceCacheKey(workspacePath);
 
@@ -222,15 +210,22 @@ const flushWorkspaceStore = (workspacePath) => {
   const cacheKey = getWorkspaceCacheKey(workspacePath);
   const pendingTimer = workspaceWriteTimers.get(cacheKey);
 
-  if (pendingTimer) {
-    clearTimeout(pendingTimer);
-    workspaceWriteTimers.delete(cacheKey);
+  if (!pendingTimer) {
+    return;
   }
+
+  clearTimeout(pendingTimer);
+  workspaceWriteTimers.delete(cacheKey);
 
   const store = workspaceStoreCache.get(cacheKey);
   if (store) {
     writeWorkspaceStoreToDisk(workspacePath, store);
   }
+};
+
+const invalidateWorkspaceStoreCache = (workspacePath) => {
+  flushWorkspaceStore(workspacePath);
+  workspaceStoreCache.delete(getWorkspaceCacheKey(workspacePath));
 };
 
 const flushAllWorkspaceStores = () => {
