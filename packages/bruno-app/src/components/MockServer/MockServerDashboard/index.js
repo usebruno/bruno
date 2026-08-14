@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { startMockServer, stopMockServer, refreshMockRoutes, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
+import { startMockServer, stopMockServer, refreshMockRoutes, loadMockResponses, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
 import { IconRefresh, IconCopy, IconCheck, IconPlayerPlay, IconPlayerStop, IconSettings } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import RouteTable from './RouteTable';
@@ -169,7 +169,8 @@ const MockServerDashboard = ({ instance, collection }) => {
   const handleRefresh = async () => {
     try {
       await dispatch(refreshMockRoutes(location)).unwrap();
-      toast.success(`Routes refreshed: ${routeCount} routes, ${exampleCount} responses`);
+      const { responses } = await dispatch(loadMockResponses(location)).unwrap();
+      toast.success(`Routes refreshed: ${countMockRoutes(responses)} routes, ${responses.length} responses`);
     } catch (err) {
       toast.error(err.message || 'Failed to refresh routes');
     }
