@@ -694,8 +694,6 @@ export const renderVarInfo = (token, options) => {
         .catch((err) => {
           console.error('Failed to update variable:', err);
           toast.error(err?.message || 'Failed to update variable');
-          cmEditor.setValue(originalValue);
-          updateValueDisplay(valueDisplay, currentInterpolatedValue, currentShouldMaskValue, isMasked, isRevealed);
         });
     });
 

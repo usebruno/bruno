@@ -107,6 +107,7 @@ const renderCreateEnvironment = (row, scope, actions) => {
   nameInput.type = 'text';
   nameInput.className = 'var-add-to-inline-env-name-input';
   nameInput.placeholder = 'Enter environment name';
+  nameInput.setAttribute('aria-label', `${scope.label} name`);
   nameInput.setAttribute(
     'data-testid',
     'var-info-add-to-create-env-name-input'
