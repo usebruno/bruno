@@ -2,7 +2,7 @@ const { cloneDeep, each, get } = require('lodash');
 const interpolateVars = require('./interpolate-vars');
 const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, mergeAuth, getFormattedCollectionOauth2Credentials } = require('../../utils/collection');
 const { getProcessEnvVars } = require('../../store/process-env');
-const { getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingAuthorizationCode } = require('../../utils/oauth2');
+const { getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingAuthorizationCode, applyOAuth2TokenToRequest } = require('../../utils/oauth2');
 const { setAuthHeaders } = require('./prepare-request');
 const { getCertsAndProxyConfig } = require('./cert-utils');
 const { interpolateString } = require('./interpolate-string');
@@ -15,25 +15,11 @@ const processHeaders = (headers) => {
   });
 };
 
-const placeOAuth2Token = (grpcRequest, credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey) => {
-  if (tokenPlacement === 'header') {
-    grpcRequest.headers['Authorization'] = `${tokenHeaderPrefix} ${credentials?.access_token}`;
-  } else {
-    try {
-      const url = new URL(grpcRequest.url);
-      url?.searchParams?.set(tokenQueryKey, credentials?.access_token);
-      grpcRequest.url = url?.toString();
-    } catch (error) {
-      console.error('Failed to parse URL for OAuth2 token placement:', error);
-    }
-  }
-};
-
 const configureRequest = async (grpcRequest, request, collection, envVars, runtimeVariables, processEnvVars, promptVariables, certsAndProxyConfig) => {
   if (grpcRequest.oauth2) {
     let requestCopy = cloneDeep(grpcRequest);
     const { uid: collectionUid, pathname: collectionPath, globalEnvironmentVariables } = collection;
-    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
+    const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
     let credentials, credentialsId, oauth2Url, debugInfo;
 
     // Get cert/proxy configs for token and refresh URLs
@@ -95,19 +81,19 @@ const configureRequest = async (grpcRequest, request, collection, envVars, runti
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
           ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid: collection.uid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
           grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-          placeOAuth2Token(grpcRequest, credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey);
+          applyOAuth2TokenToRequest(grpcRequest, { credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource });
           break;
         case 'client_credentials':
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
           ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid: collection.uid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
           grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-          placeOAuth2Token(grpcRequest, credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey);
+          applyOAuth2TokenToRequest(grpcRequest, { credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource });
           break;
         case 'password':
           interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
           ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid: collection.uid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
           grpcRequest.oauth2Credentials = { credentials, url: oauth2Url, collectionUid: collection.uid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-          placeOAuth2Token(grpcRequest, credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey);
+          applyOAuth2TokenToRequest(grpcRequest, { credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource });
           break;
       }
     } catch (error) {

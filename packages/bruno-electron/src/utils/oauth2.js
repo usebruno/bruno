@@ -49,6 +49,44 @@ const isTokenExpired = (credentials) => {
   return Date.now() > expiryTime;
 };
 
+const trimTokenValue = (value) => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmedValue = value.trim();
+  return trimmedValue || undefined;
+};
+
+/**
+ * The token endpoint response (and credentials cached from it) is external data:
+ * a non-conforming provider can return a nested shape (e.g. an object under
+ * access_token), and a corrupted cache entry can hold one. Resolve the token to
+ * a plain string so it never reaches the request stringified as "[object Object]".
+ */
+const resolveOAuth2TokenValue = (credentials, tokenSource) => {
+  const rawToken = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
+  if (typeof rawToken === 'string') {
+    return trimTokenValue(rawToken);
+  }
+  return trimTokenValue(rawToken?.token) ?? trimTokenValue(rawToken?.value);
+};
+
+const applyOAuth2TokenToRequest = (request, { credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource }) => {
+  const tokenValue = resolveOAuth2TokenValue(credentials, tokenSource);
+  if (!tokenValue) {
+    return;
+  }
+  if (tokenPlacement === 'header') {
+    request.headers['Authorization'] = `${tokenHeaderPrefix ?? ''} ${tokenValue}`.trim();
+  } else {
+    try {
+      const url = new URL(request.url);
+      url.searchParams.set(tokenQueryKey, tokenValue);
+      request.url = url.toString();
+    } catch (error) { }
+  }
+};
+
 const safeParseJSONBuffer = (data) => {
   return safeParseJSON(Buffer.isBuffer(data) ? data.toString() : data);
 };
@@ -967,6 +1005,8 @@ module.exports = {
   clearOauth2Credentials,
   clearOauth2CredentialsByCredentialsId,
   getStoredOauth2Credentials,
+  resolveOAuth2TokenValue,
+  applyOAuth2TokenToRequest,
   getOAuth2TokenUsingAuthorizationCode,
   getOAuth2TokenUsingClientCredentials,
   getOAuth2TokenUsingPasswordCredentials,
