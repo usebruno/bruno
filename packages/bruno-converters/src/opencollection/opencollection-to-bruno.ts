@@ -56,6 +56,7 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
       autoCheckInterval: entry.autoCheckInterval || 5
     }));
   }
+  
   const config = oc.config;
   if (!config) {
     return brunoConfig;
