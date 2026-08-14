@@ -105,4 +105,17 @@ describe('findExternallyAddedVariables', () => {
 
     expect(added).toEqual([]);
   });
+
+  it('detects a new enabled row added externally even though a disabled row of the same name already existed', () => {
+    const added = findExternallyAddedVariables({
+      prevRawSaved: [{ uid: 'u1', name: 'token', enabled: false }],
+      nextRawSaved: [
+        { uid: 'u1', name: 'token', enabled: false },
+        { uid: 'u2', name: 'token', enabled: true }
+      ],
+      currentValues: [{ uid: 'u1', name: 'token', enabled: false }, { uid: 'draft', name: '' }]
+    });
+
+    expect(added).toEqual([{ uid: 'u2', name: 'token', enabled: true }]);
+  });
 });
