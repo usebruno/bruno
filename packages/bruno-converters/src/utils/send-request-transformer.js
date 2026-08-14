@@ -550,8 +550,7 @@ const sendRequestTransformer = (path, j) => {
 
   const wasParentAwaited = callPath.parent.value.type === 'AwaitExpression';
 
-  // the only shape that does is `(await bru.sendRequest(req)).then(h)`, which calls `.then` on
-  // a plain response object and throws at runtime regardless of what we emit.
+  // Already inside an `await`, so no promise chain can legitimately follow: `(await bru.sendRequest(req)).then(h)`
   if (wasParentAwaited) return sendRequestCall;
 
   const chainLinks = getPromiseChainLinks(callPath);
