@@ -231,7 +231,9 @@ const CreateMockServerModal = ({
           resolvedPort = await suggestAvailableMockServerPort(configuredInstances, {
             excludeUid: editingInstance?.uid
           });
-        } else if (!portUnchanged) {
+        }
+
+        if (!portUnchanged) {
           const portCheck = await checkMockServerPortAvailable(resolvedPort, configuredInstances, {
             excludeUid: editingInstance?.uid
           });
