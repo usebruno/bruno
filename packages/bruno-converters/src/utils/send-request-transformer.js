@@ -176,6 +176,15 @@ const getStaticPropertyName = (memberExpr) => {
 };
 
 /**
+ * Whether an argument node is an explicit absent value, as in `.then(null, onError)`.
+ * @param {Object} node - Argument node
+ * @returns {boolean}
+ */
+const isNullLiteral = (node) =>
+  (node.type === 'Literal' && node.value === null)
+  || (node.type === 'Identifier' && node.name === 'undefined');
+
+/**
  * Collect the `.then`/`.catch`/`.finally` calls chained off the given call,
  * innermost first.
  * @param {Object} callPath - Path of the CallExpression the chain hangs off
@@ -536,13 +545,16 @@ const sendRequestTransformer = (path, j) => {
   }
 
   // the innermost `.then` receives the response; each later handler does too only
-  // while the one before it forwards its response parameter unchanged. `.catch` and
-  // `.finally` handlers see an error or nothing, so the chain stops being traceable there.
+  // while the one before it forwards its response parameter unchanged. A link with no
+  // fulfilled handler — `.catch`, `.finally`, `.then(null, fn)`, `.then()` — forwards the
+  // response untouched, so the walk continues past it. Its own handler is left alone: it
+  // sees an error or nothing, never the response.
   for (const link of chainLinks) {
-    if (link.methodName !== 'then') break;
-
     const [handler] = link.callPath.value.arguments;
-    if (!handler) break;
+    const hasFulfilledHandler = link.methodName === 'then' && Boolean(handler) && !isNullLiteral(handler);
+
+    if (!hasFulfilledHandler) continue;
+
     if (handler.type !== 'FunctionExpression' && handler.type !== 'ArrowFunctionExpression') break;
     if (handler.params[0]?.type !== 'Identifier') break; // if the handler does not have a parameter then break
 
