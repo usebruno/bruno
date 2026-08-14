@@ -188,6 +188,14 @@ if (useSingleInstance && !gotTheLock) {
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
+  if (isMac) {
+    app.configureWebAuthn({
+      touchID: {
+        keychainAccessGroup: 'W7LPPWA48L.com.usebruno.app.webauthn'
+      }
+    });
+  }
+
   initializeShellEnv();
 
   if (isDev) {
