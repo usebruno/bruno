@@ -1,5 +1,16 @@
 const { describe, it, expect } = require('@jest/globals');
-import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts, getVariableScope, isVariableSecret, getAvailableAddToScopes } from './index';
+import {
+  mergeHeaders,
+  transformRequestToSaveToFilesystem,
+  getCollectionItemCounts,
+  getVariableScope,
+  isVariableSecret,
+  getAvailableAddToScopes,
+  getGlobalEnvironmentVariablesMasked,
+  getEnvironmentVariablesMasked,
+  resolveEnabledVariable,
+  getEnvironmentVariables
+} from './index';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
@@ -222,5 +233,118 @@ describe('getAvailableAddToScopes — Folder scope label', () => {
 
     const folderScope = scopes.find((s) => s.type === 'folder');
     expect(folderScope.label).toBe('Folder');
+  });
+});
+
+describe('getGlobalEnvironmentVariablesMasked', () => {
+  const buildState = (variables) => ({
+    globalEnvironments: [{ uid: 'genv-1', variables }],
+    activeGlobalEnvironmentUid: 'genv-1'
+  });
+
+  it('includes a secret variable with a normal non-empty value', () => {
+    const names = getGlobalEnvironmentVariablesMasked(
+      buildState([{ name: 'apiKey', value: 'abc123', enabled: true, secret: true }])
+    );
+
+    expect(names).toEqual(['apiKey']);
+  });
+
+  it('still masks secret variables holding a falsy-but-real value (0, false, empty string)', () => {
+    const names = getGlobalEnvironmentVariablesMasked(
+      buildState([
+        { name: 'retryCount', value: 0, enabled: true, secret: true, dataType: 'number' },
+        { name: 'featureFlag', value: false, enabled: true, secret: true, dataType: 'boolean' },
+        { name: 'blankSecret', value: '', enabled: true, secret: true }
+      ])
+    );
+
+    expect(names.sort()).toEqual(['blankSecret', 'featureFlag', 'retryCount']);
+  });
+
+  it('still masks a secret variable that has no value at all yet', () => {
+    const names = getGlobalEnvironmentVariablesMasked(
+      buildState([{ name: 'pendingSecret', enabled: true, secret: true }])
+    );
+
+    expect(names).toEqual(['pendingSecret']);
+  });
+
+  it('excludes a disabled secret and a non-secret variable', () => {
+    const names = getGlobalEnvironmentVariablesMasked(
+      buildState([
+        { name: 'disabledSecret', value: 'x', enabled: false, secret: true },
+        { name: 'plainVar', value: 'x', enabled: true, secret: false }
+      ])
+    );
+
+    expect(names).toEqual([]);
+  });
+
+  it('returns an empty array when there is no active global environment', () => {
+    expect(getGlobalEnvironmentVariablesMasked({ globalEnvironments: [], activeGlobalEnvironmentUid: null })).toEqual([]);
+  });
+});
+
+describe('getEnvironmentVariablesMasked', () => {
+  const buildCollection = (variables) => ({
+    activeEnvironmentUid: 'env-1',
+    environments: [{ uid: 'env-1', variables }]
+  });
+
+  it('still masks secret variables holding a falsy-but-real value (0, false, empty string)', () => {
+    const names = getEnvironmentVariablesMasked(
+      buildCollection([
+        { name: 'retryCount', value: 0, enabled: true, secret: true, dataType: 'number' },
+        { name: 'featureFlag', value: false, enabled: true, secret: true, dataType: 'boolean' },
+        { name: 'blankSecret', value: '', enabled: true, secret: true }
+      ])
+    );
+
+    expect(names.sort()).toEqual(['blankSecret', 'featureFlag', 'retryCount']);
+  });
+
+  it('returns an empty array when there is no active environment', () => {
+    expect(getEnvironmentVariablesMasked({ activeEnvironmentUid: null, environments: [] })).toEqual([]);
+  });
+});
+
+describe('resolveEnabledVariable — precedence matches getEnvironmentVariables interpolation', () => {
+  it('resolves the last duplicate among enabled plain variables, matching interpolation', () => {
+    const variables = [
+      { uid: 'u1', name: 'host', value: 'first', enabled: true },
+      { uid: 'u2', name: 'host', value: 'second', enabled: true }
+    ];
+
+    expect(resolveEnabledVariable(variables, 'host')).toBe(variables[1]);
+    expect(getEnvironmentVariables({ activeEnvironmentUid: 'env-1', environments: [{ uid: 'env-1', variables }] })).toEqual({ host: 'second' });
+  });
+
+  it('resolves the last duplicate among enabled secrets, matching interpolation', () => {
+    const variables = [
+      { uid: 'u1', name: 'token', value: 'first-secret', enabled: true, secret: true },
+      { uid: 'u2', name: 'token', value: 'second-secret', enabled: true, secret: true }
+    ];
+
+    expect(resolveEnabledVariable(variables, 'token')).toBe(variables[1]);
+    expect(getEnvironmentVariables({ activeEnvironmentUid: 'env-1', environments: [{ uid: 'env-1', variables }] })).toEqual({ token: 'second-secret' });
+  });
+
+  it('prefers a secret over a plain variable regardless of array order, and still picks the last secret among duplicates', () => {
+    const variables = [
+      { uid: 'u1', name: 'x', value: 'plain-first', enabled: true },
+      { uid: 'u2', name: 'x', value: 'secret-first', enabled: true, secret: true },
+      { uid: 'u3', name: 'x', value: 'plain-second', enabled: true },
+      { uid: 'u4', name: 'x', value: 'secret-second', enabled: true, secret: true }
+    ];
+
+    expect(resolveEnabledVariable(variables, 'x')).toBe(variables[3]);
+    expect(getEnvironmentVariables({ activeEnvironmentUid: 'env-1', environments: [{ uid: 'env-1', variables }] })).toEqual({ x: 'secret-second' });
+  });
+
+  it('ignores disabled duplicates and falls back to undefined when nothing is enabled', () => {
+    const variables = [{ uid: 'u1', name: 'x', value: 'off', enabled: false }];
+
+    expect(resolveEnabledVariable(variables, 'x')).toBeUndefined();
   });
 });
