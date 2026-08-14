@@ -214,10 +214,7 @@ const getPromiseChainLinks = (callPath) => {
 };
 
 /**
- * Whether a function is a `.then`/`.catch`/`.finally` handler argument. Such a
- * handler's return value is already promise-wrapped by the chain, so turning it
- * async is transparent to its caller — unlike an arbitrary callback, where the
- * caller would start receiving a promise in place of the value it expects.
+ * Whether a function is a `.then`/`.catch`/`.finally` handler argument
  * @param {Object} functionPath - Path of the function to test
  * @returns {boolean}
  */
@@ -285,9 +282,6 @@ const rewriteThenHandlerResponseAccess = (j, handlerPath) => {
 
     const replacement = j.memberExpression(j.identifier(responseVarName), j.identifier(bruProperty));
 
-    // response.json() collapses to response.data — the call goes away with it.
-    // Only when the member is the callee: in console.log(response.code) the
-    // parent is also a CallExpression, and replacing it would eat the log.
     const parentPath = memberPath.parent;
     if (parentPath.value.type === 'CallExpression' && parentPath.value.callee === memberPath.value) {
       j(parentPath).replaceWith(replacement);
@@ -311,11 +305,8 @@ const resolvesToHandlerParam = (path, name, handler) => {
 };
 
 /**
- * The return statements belonging to the handler itself. `find` reaches into nested functions too,
- * so a `return res.data` inside a callback declared in the handler would be mistaken for the
- * handler's own return; keep only the returns whose nearest enclosing function is the handler.
- *
- * @example
+ * The return statements belonging to the handler itself.
+* @example
  * sendRequest(req).then((res) => {
  *   const extract = () => {
  *     return res.data;      // nested function's return — not the handler's
@@ -323,7 +314,6 @@ const resolvesToHandlerParam = (path, name, handler) => {
  *   console.log(extract());
  *   return res;             // the handler's actual return
  * });
- *
  * @param {Object} j - jscodeshift API
  * @param {Object} handlerPath - Path of the `.then` fulfilled handler argument
  * @returns {Object[]} Paths of the handler's own return statements
@@ -335,9 +325,7 @@ const findOwnReturns = (j, handlerPath) =>
     .filter((returnPath) => j(returnPath).closest(j.Function).get().value === handlerPath.value);
 
 /**
- * Whether every value the handler can return is its own response parameter, so the
- * next `.then` in the chain still receives the response. A path that falls through
- * to an implicit undefined does not qualify.
+ * Whether every value the handler can return is its own response parameter
  * @param {Object} j - jscodeshift API
  * @param {Object} handlerPath - Path of the `.then` fulfilled handler argument
  * @returns {boolean}
@@ -353,9 +341,8 @@ const returnsParamUnchanged = (j, handlerPath) => {
     return body.type === 'Identifier' && body.name === paramName;
   }
 
-  // a body that can complete without returning forwards an implicit undefined, so the last
-  // statement must be a return — this also rejects handlers with no return at all, which the
-  // `every` check below would treat as vacuously passing
+  // Every path must end in a return: a body that can fall through forwards an implicit undefined,
+  // and a handler with no returns at all would pass the `every` check below vacuously.
   const lastStatement = body.body[body.body.length - 1];
   if (!lastStatement || lastStatement.type !== 'ReturnStatement') return false;
 
