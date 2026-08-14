@@ -33,6 +33,30 @@ const requestWithEveryList = () => {
   return data;
 };
 
+describe('buildTree — app code', () => {
+  it('carries a request app block so the App view survives a cold mount', () => {
+    const app = { enabled: true, code: '<h1>hello</h1>' };
+    const node = buildSingleRequest('req.yml', { name: 'req', type: 'http-request', request: {}, app });
+
+    expect(node.app).toEqual(app);
+  });
+
+  it('carries the app code of a standalone app item', () => {
+    const node = buildSingleRequest('my-app.yml', {
+      name: 'my-app',
+      type: 'app',
+      request: null,
+      app: { code: '<h1>standalone</h1>' }
+    });
+
+    expect(node.app).toEqual({ code: '<h1>standalone</h1>' });
+  });
+
+  it('leaves app null for a request without one', () => {
+    expect(buildSingleRequest('req.yml', { name: 'req', type: 'http-request', request: {} }).app).toBeNull();
+  });
+});
+
 describe('buildTree — uid hydration', () => {
   it('hydrates exactly the request lists this spec covers', () => {
     expect(REQUEST_UID_PATHS.map(([dotPath]) => dotPath).sort()).toEqual(
