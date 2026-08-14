@@ -5,8 +5,6 @@ test.describe('Collection Settings Descriptions (YAML) - Read', () => {
   test('reads descriptions from headers and vars in a pre-existing opencollection.yml', async ({
     pageWithUserData: page
   }) => {
-    test.setTimeout(30_000);
-
     await openCollectionSettings(page, 'col-description-yml');
     await focusCollectionSettingsTab(page);
 

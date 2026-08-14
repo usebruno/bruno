@@ -74,13 +74,20 @@ test.describe('Import Insomnia v4 Collection - Environment Import', () => {
         .first()
         .click();
 
-      // Gate on the env-switch flatten pass having fully landed before
-      // per-row asserts. The flatten renders top-level keys first and the
-      // deepest nested keys (array-indexed `user.roles[*]`) last; on slow
-      // runners the trailing batch can take longer than the 5s default.
-      // Waiting on the deepest asserted key here guarantees every shallower
-      // input is also in DOM by the time the per-input asserts below run.
-      await page.locator('input[value="user.roles[1]"]').waitFor({ state: 'visible', timeout: 15000 });
+      // Secrets/Variables split + leftover search can hide nested keys.
+      const variablesTab = page.getByTestId('responsive-tab-variables');
+      if (await variablesTab.isVisible().catch(() => false)) {
+        await variablesTab.click();
+      }
+      const search = page.getByTestId('env-search-input');
+      if (await search.isVisible().catch(() => false)) {
+        await search.fill('');
+      }
+
+      // Gate on the deepest asserted key so shallower rows are in DOM too.
+      const deepestRow = page.getByTestId('env-var-row-user.roles[1]');
+      await expect(deepestRow).toBeVisible();
+      await deepestRow.locator('input').first().scrollIntoViewIfNeeded();
 
       // **Assertion 1: Basic Variables (Top-level keys)**
       // Verifies that simple key-value pairs from the base environment are imported correctly

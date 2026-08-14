@@ -5,8 +5,6 @@ test.describe('Collection Settings Descriptions - Read', () => {
   test('reads descriptions from headers and vars in a pre-existing collection.bru', async ({
     pageWithUserData: page
   }) => {
-    test.setTimeout(30_000);
-
     await openCollectionSettings(page, 'col-description');
     await focusCollectionSettingsTab(page);
 

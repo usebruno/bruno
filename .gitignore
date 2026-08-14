@@ -47,6 +47,7 @@ yarn-error.log*
 /test-results/
 /playwright-report/
 /playwright/.cache/
+/tests/.contaminator/
 
 #dev editor
 bruno.iml

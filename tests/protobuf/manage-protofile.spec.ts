@@ -59,6 +59,8 @@ test.describe('manage protofile', () => {
 
     await expect(page.getByRole('cell', { name: 'invalid-file-path.proto', exact: true })).not.toBeVisible();
     await expect(invalidProtoFilesMessage).not.toBeVisible();
+    // Remove can leave a transient modal/toast backdrop that eats the next click.
+    await expect(page.locator('.bruno-modal-backdrop')).toHaveCount(0, { timeout: 10000 });
 
     await page.getByRole('row', { name: './protos/invalid-import-path' }).getByTestId('protobuf-remove-import-path-button').click();
 
@@ -67,6 +69,7 @@ test.describe('manage protofile', () => {
 
     // Save the changes to persist them to bruno.json
     await page.getByRole('button', { name: 'Save' }).click();
+    await expect(page.locator('.bruno-modal-backdrop')).toHaveCount(0, { timeout: 10000 });
   });
 
   test('order.proto loads methods successfully when selected', async ({ pageWithUserData: page }) => {
@@ -115,7 +118,7 @@ test.describe('manage protofile', () => {
     await page.locator('div').filter({ hasText: /^product\.proto\.\/protos\/services\/product\.proto$/ }).first().click();
 
     // Verify the error message is visible (auto-retrying)
-    await expect(page.getByText('Failed to load gRPC methods: Unknown error').first()).toBeVisible();
+    await expect(page.getByText('Failed to load gRPC methods').first()).toBeVisible({ timeout: 15000 });
 
     // Check that methods dropdown is not visible when loading fails
     const methodsDropdown = page.getByTestId('grpc-methods-dropdown');

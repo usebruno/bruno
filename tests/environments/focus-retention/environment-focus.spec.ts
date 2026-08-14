@@ -1,5 +1,5 @@
 import { test, expect } from '../../../playwright';
-import { createCollection, createEnvironment, closeAllCollections } from '../../utils/page';
+import { createCollection, createEnvironment, closeAllCollections, pressSaveShortcut } from '../../utils/page';
 
 test.describe('Environment Variables Focus Retention', () => {
   test.afterEach(async ({ page }) => {
@@ -18,9 +18,11 @@ test.describe('Environment Variables Focus Retention', () => {
     await page.keyboard.type('apiKey');
     await expect(nameInput).toBeFocused();
 
-    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
-    await page.keyboard.press(saveShortcut);
-    await expect(page.getByText(/(^Environment changed to)/).last()).toBeVisible({ timeout: 5000 });
+    // Draft sync is debounced (~300ms); Cmd/Ctrl+S no-ops until the draft exists.
+    await expect(page.locator('.request-tab.active').getByTestId('tab-draft-icon')).toBeVisible({ timeout: 5000 });
+
+    await pressSaveShortcut(page);
+    await expect(page.getByText('Changes saved successfully').last()).toBeVisible({ timeout: 15000 });
 
     // intentionally wait a few seconds because the focus is lost after a while
     await page.waitForTimeout(1000);

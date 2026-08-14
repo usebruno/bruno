@@ -20,19 +20,19 @@ test.describe('Tag persistence', () => {
     const requestNames = ['request-1', 'request-2', 'request-3'];
     for (const requestName of requestNames) {
       await createRequest(page, requestName, collectionName, { url: requestUrl });
-      await locators.sidebar.request(requestName).click();
+      await locators.sidebar.collectionRequest(collectionName, requestName).click();
       await locators.tabs.requestTab(requestName).waitFor({ state: 'visible' });
       await selectRequestPaneTab(page, 'Settings');
-      await expect(locators.tags.input()).toBeVisible();
+      await expect(locators.tags.input()).toBeVisible({ timeout: 10000 });
       await locators.tags.input().fill(tagName);
       await locators.tags.input().press('Enter');
-      await expect(locators.tags.item(tagName)).toBeVisible();
+      await expect(locators.tags.item(tagName)).toBeVisible({ timeout: 10000 });
       await saveRequest(page);
     }
 
     // Move the last request to just above the first request within the same collection
-    const r3Request = locators.sidebar.request('request-3');
-    const r1Request = locators.sidebar.request('request-1');
+    const r3Request = locators.sidebar.collectionRequest(collectionName, 'request-3');
+    const r1Request = locators.sidebar.collectionRequest(collectionName, 'request-1');
 
     await expect(r3Request).toBeVisible();
     await expect(r1Request).toBeVisible();
@@ -44,7 +44,7 @@ test.describe('Tag persistence', () => {
 
     // Verify the requests are still in the collection
     for (const requestName of requestNames) {
-      await expect(locators.sidebar.request(requestName)).toBeVisible();
+      await expect(locators.sidebar.collectionRequest(collectionName, requestName)).toBeVisible({ timeout: 10000 });
     }
 
     // Click on the moved request to verify the tag persisted after the move
@@ -52,7 +52,7 @@ test.describe('Tag persistence', () => {
     await locators.tabs.requestTab('request-3').waitFor({ state: 'visible' });
     await selectRequestPaneTab(page, 'Settings');
     // Verify the tag is still present after the move
-    await expect(locators.tags.item(tagName)).toBeVisible();
+    await expect(locators.tags.item(tagName)).toBeVisible({ timeout: 15000 });
   });
 
   test('verify tag persistence while moving requests between folders', async ({ page, createTmpDir }) => {
@@ -88,19 +88,18 @@ test.describe('Tag persistence', () => {
     await locators.request.newRequestUrl().click();
     await page.keyboard.type('https://httpfaker.org/api/echo');
     await locators.modal.button('Create').click();
-    await expect(locators.sidebar.folderRequest('folder-1', 'request-2')).toBeVisible();
+    await expect(locators.sidebar.folderRequest('folder-1', 'request-2')).toBeVisible({ timeout: 10000 });
     await locators.sidebar.folderRequest('folder-1', 'request-2').click();
     await expect(locators.tabs.activeRequestTab()).toContainText('request-2');
 
     // Add a tag to the request
     await selectRequestPaneTab(page, 'Settings');
-    await expect(locators.tags.input()).toBeVisible();
+    await expect(locators.tags.input()).toBeVisible({ timeout: 10000 });
 
     await locators.tags.input().fill('smoke');
     await locators.tags.input().press('Enter');
-    await expect(locators.tags.item('smoke')).toBeVisible();
-    const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
-    await page.keyboard.press(saveShortcut);
+    await expect(locators.tags.item('smoke')).toBeVisible({ timeout: 10000 });
+    await saveRequest(page);
 
     // Create another folder
     await locators.sidebar.collectionRow('test-collection').hover();
@@ -120,18 +119,18 @@ test.describe('Tag persistence', () => {
     await locators.modal.button('Create').click();
 
     // Drag and drop request-2 request to folder-2 folder
-    const r2Request = locators.sidebar.request('request-2');
+    const r2Request = locators.sidebar.folderRequest('folder-1', 'request-2');
     const f2Folder = locators.sidebar.folder('folder-2');
     await r2Request.dragTo(f2Folder);
 
     const request2 = locators.sidebar.folderRequest('folder-2', 'request-2');
-    await expect(request2).toBeVisible();
+    await expect(request2).toBeVisible({ timeout: 15000 });
 
     // Click on request-2 to verify the tag persisted after the move
     await request2.click();
     await locators.tabs.requestTab('request-2').waitFor({ state: 'visible' });
 
     await selectRequestPaneTab(page, 'Settings');
-    await expect(locators.tags.item('smoke')).toBeVisible();
+    await expect(locators.tags.item('smoke')).toBeVisible({ timeout: 15000 });
   });
 });

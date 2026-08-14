@@ -14,6 +14,14 @@ router.all('/headers', (req, res) => {
   });
 });
 
+// Enough response headers for e2e scroll-persistence of the Headers pane.
+router.get('/many-headers', (req, res) => {
+  for (let i = 0; i < 80; i++) {
+    res.setHeader(`x-bruno-test-${i}`, `value-${i}`);
+  }
+  return res.json({ ok: true, count: 80 });
+});
+
 // httpbin.org/anything-style echo — returns the full request shape so e2e
 // tests can verify exactly what reached the server. Used by the # encoding
 // scenarios in tests/request/generate-code/send-vs-snippet.spec.ts so the

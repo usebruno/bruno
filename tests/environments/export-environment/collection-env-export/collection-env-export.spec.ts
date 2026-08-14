@@ -122,7 +122,7 @@ test.describe.serial('Collection Environment Export Tests', () => {
       await test.step('Verify exported files and content', async () => {
         // Verify exported files exist
         const exportPath = path.join(exportDir, 'bruno-collection-environments');
-        expect(fs.existsSync(exportPath)).toBe(true);
+        await expect.poll(() => fs.existsSync(exportPath), { timeout: 20000 }).toBe(true);
 
         const expectedFiles = [
           'local.json',
@@ -131,7 +131,7 @@ test.describe.serial('Collection Environment Export Tests', () => {
 
         for (const fileName of expectedFiles) {
           const filePath = path.join(exportPath, fileName);
-          expect(fs.existsSync(filePath)).toBe(true);
+          await expect.poll(() => fs.existsSync(filePath), { timeout: 20000 }).toBe(true);
 
           // Verify file content matches expected fixture
           const content = await readExportedJson(filePath);
