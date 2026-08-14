@@ -82,7 +82,6 @@ You can now store a default environment with a collection. Bruno selects it auto
 * **Search and Replace.** Bruno now has its own replace UI with Replace and Replace All. Use Cmd/Ctrl + F for search and Cmd + Option + F or Ctrl + H for replace.
 * **Sort and reorder variables.** Sort variables by name, drag & drop to reorder them.
 * **Search the environment selector.** Filter environments by name in the selector dropdown instead of scrolling a long list.
-* **Open multiple collections at once.** Opening a folder scans nested folders for Bruno collections, so monorepos can be imported in one step.
 * **Ignore a folder from the sidebar.** Right-click a folder and choose Ignore folder, with no config file editing required.
 * **Sidebar state persists** across restarts, including expand state and width.
 
@@ -121,8 +120,10 @@ You can now store a default environment with a collection. Bruno selects it auto
 ### Other Fixes
 
 * WebSocket duplicate connections when sending mid-reconnect, and message bodies not expanding with File Cache on
+* Transient requests failing to create when WebSocket is the request type in collection Presets
 * Runner cancellation and iteration stability, including folder runs with iterations, the loader continuing after cancel, Run Again for iterative runs, and the app refreshing on Enter in the iteration count field
 * Workspace Home now notifies you when a collection fails to open
+* Request timeout set to Inherit in Settings now saves as `inherit` for YAML requests instead of resetting to 0
 * Environment autosave, and duplicate names in collection secrets
 * OpenAPI Spec Viewer `$ref` resolver errors and the broken error state
 * Response Visualizer handles invalid data formats instead of crashing
