@@ -1,9 +1,7 @@
 import get from 'lodash/get';
 import { updateFolderDocs } from 'providers/ReduxStore/slices/collections';
-import { useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
-import { buildAiVariablesPayload, buildDocsContextFromFolder } from 'utils/ai';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
@@ -34,15 +32,13 @@ const Documentation = ({ collection, folder }) => {
   };
 
   const onSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
-  const docsContext = useMemo(() => buildDocsContextFromFolder(collection, folder), [collection, folder]);
-  const aiVariables = useMemo(() => buildAiVariablesPayload(collection, folder), [collection, folder]);
 
   if (!folder) {
     return null;
   }
 
   return (
-    <StyledWrapper className="w-full relative flex flex-col">
+    <StyledWrapper className="h-full w-full relative flex flex-col">
       <div className="flex-1 min-h-0 flex flex-col">
         <DocsEditor
           docs={docs}
@@ -51,8 +47,6 @@ const Documentation = ({ collection, folder }) => {
           isEditing={isEditing}
           collection={collection}
           collectionPath={collection.pathname}
-          docsContext={docsContext}
-          variables={aiVariables}
           onRequestEdit={toggleViewMode}
           initialScroll={scroll}
           onScroll={setScroll}

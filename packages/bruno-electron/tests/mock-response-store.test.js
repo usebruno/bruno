@@ -12,7 +12,8 @@ const {
   listMockServers,
   readWorkspaceStore,
   saveMockResponse,
-  saveMockServer
+  saveMockServer,
+  setMockServerResponses
 } = require('../src/app/mock-server/mock-response-store');
 
 describe('mock-response-store', () => {
@@ -83,6 +84,77 @@ describe('mock-response-store', () => {
     const store = readWorkspaceStore(workspacePath);
     expect(store.mockServers['mock-1'].responses).toHaveLength(1);
     expect(store.mockServers['mock-2'].responses).toHaveLength(1);
+  });
+
+  it('rejects a duplicate mock response name on the same server (case- and whitespace-insensitive)', () => {
+    const location = {
+      mockServerUid: 'mock-1',
+      sourceType: 'spec',
+      workspacePath
+    };
+
+    saveMockResponse(location, {
+      uid: 'response-1',
+      name: 'Users',
+      request: { url: '/users', method: 'GET' },
+      response: { status: 200, body: { type: 'json', content: '{}' } },
+      rules: { operator: 'AND', conditions: [] }
+    });
+
+    expect(() => saveMockResponse(location, {
+      uid: 'response-2',
+      name: '  users  ',
+      request: { url: '/users', method: 'GET' },
+      response: { status: 200, body: { type: 'json', content: '{}' } },
+      rules: { operator: 'AND', conditions: [] }
+    })).toThrow('A mock response with this name already exists');
+
+    // Same uid, same name is a legitimate update — must not throw
+    expect(() => saveMockResponse(location, {
+      uid: 'response-1',
+      name: 'Users',
+      request: { url: '/users', method: 'POST' },
+      response: { status: 201, body: { type: 'json', content: '{}' } },
+      rules: { operator: 'AND', conditions: [] }
+    })).not.toThrow();
+
+    expect(listMockResponses(location)).toHaveLength(1);
+  });
+
+  // append/generate can create sibling responses that already share a name
+  it('allows saving an existing response when a sibling already has the same name', () => {
+    const location = {
+      mockServerUid: 'mock-1',
+      sourceType: 'spec',
+      workspacePath
+    };
+
+    setMockServerResponses(location, [
+      {
+        uid: 'response-1',
+        name: 'Users',
+        request: { url: '/users', method: 'GET' },
+        response: { status: 200, body: { type: 'json', content: '{}' } },
+        rules: { operator: 'AND', conditions: [] }
+      },
+      {
+        uid: 'response-2',
+        name: 'Users',
+        request: { url: '/users/me', method: 'GET' },
+        response: { status: 200, body: { type: 'json', content: '{}' } },
+        rules: { operator: 'AND', conditions: [] }
+      }
+    ]);
+
+    expect(() => saveMockResponse(location, {
+      uid: 'response-1',
+      name: 'Users',
+      request: { url: '/users', method: 'POST' },
+      response: { status: 201, body: { type: 'json', content: '{}' } },
+      rules: { operator: 'AND', conditions: [] }
+    })).not.toThrow();
+
+    expect(listMockResponses(location).find((item) => item.uid === 'response-1').request.method).toBe('POST');
   });
 
   it('removes a mock server block from workspace mockserver.yml on delete', () => {

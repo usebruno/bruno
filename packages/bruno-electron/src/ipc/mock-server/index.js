@@ -115,15 +115,6 @@ const registerMockServerIpc = (mainWindow) => {
     }
   });
 
-  ipcMain.handle('renderer:mock-server-set-delay', async (_event, { mockServerUid, collectionUid, delay }) => {
-    try {
-      mockServer.setDelay(mockServerUid || collectionUid, delay);
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
-  });
-
   ipcMain.handle('renderer:mock-server-clear-log', async (_event, { mockServerUid, collectionUid }) => {
     mockServer.clearLog(mockServerUid || collectionUid);
     return { success: true };

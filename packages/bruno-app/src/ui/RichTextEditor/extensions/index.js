@@ -20,8 +20,37 @@ import {
   EditorTaskItem,
   EditorTaskList
 } from './EditorTaskList';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { ReactNodeViewRenderer } from '@tiptap/react';
+import EditorCodeBlock from './EditorCodeBlock';
+import { lowlight } from 'lowlight';
+
+const EditorCodeBlockExtension = CodeBlockLowlight.extend({
+  addNodeView() {
+    return ReactNodeViewRenderer(EditorCodeBlock);
+  },
+  // Tiptap doesn't support Tab in codeblock. added a literal tab.
+  addKeyboardShortcuts() {
+    return {
+      ...this.parent?.(),
+      Tab: () => {
+        if (!this.editor.isActive('codeBlock')) {
+          return false;
+        }
+        const { state, view } = this.editor;
+        const { tr, selection } = state;
+        tr.insertText('\t', selection.from, selection.to);
+        view.dispatch(tr);
+        return true;
+      }
+    };
+  }
+}).configure({
+  lowlight
+});
 
 const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
+  EditorCodeBlockExtension,
   TextStyle.configure({ types: [EditorListItem.name] }),
   StarterKit.configure({
     bulletList: false,
@@ -29,7 +58,8 @@ const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
     orderedList: false,
     hardBreak: false,
     gapcursor: false,
-    paragraph: false
+    paragraph: false,
+    codeBlock: false
   }),
   EditorParagraph,
   EditorHardBreak,
