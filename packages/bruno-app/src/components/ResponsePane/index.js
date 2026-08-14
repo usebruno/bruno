@@ -262,7 +262,12 @@ const ResponsePane = ({ item, collection }) => {
       <div className="flex items-center response-pane-status">
         <StatusCode status={response.status} isStreaming={item.response?.stream?.running} />
         {item.response?.stream?.running
-          ? <ResponseStopWatch startMillis={response.duration} />
+          ? (
+              <ResponseStopWatch
+                startTime={item.requestSent?.timestamp}
+                startMillis={response.duration}
+              />
+            )
           : <ResponseTime duration={response.duration} />}
         <ResponseSize size={responseSize} />
       </div>
