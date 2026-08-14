@@ -160,16 +160,16 @@ const registerMockServerIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:mock-server-create-response', async (_event, payload) => {
     try {
-      validateWorkspacePath(payload?.workspacePath);
+      validateWorkspacePath(payload.workspacePath);
 
-      const response = createEmptyMockResponse(payload?.name);
-      if (payload?.description) {
+      const response = createEmptyMockResponse(payload.name);
+      if (payload.description) {
         response.description = payload.description;
       }
-      if (payload?.statusCode) {
+      if (payload.statusCode) {
         response.response.status = Number(payload.statusCode) || 200;
       }
-      if (payload?.bodyType) {
+      if (payload.bodyType) {
         response.response.body.type = payload.bodyType;
       }
       const savedResponse = saveMockResponse(payload, response);
@@ -254,7 +254,7 @@ const registerMockServerIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:mock-server-delete', async (_event, payload) => {
     try {
-      validateWorkspacePath(payload?.workspacePath);
+      validateWorkspacePath(payload.workspacePath);
 
       deleteMockServer(payload);
       await mockServer.reloadRoutesFromStore(payload.mockServerUid, payload);
