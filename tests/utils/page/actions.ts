@@ -721,6 +721,16 @@ const expandFolder = async (page: Page, folderName: string) => {
   });
 };
 
+const expandCollection = async (page: Page, collectionName: string) => {
+  await test.step(`Expand collection "${collectionName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const chevron = locators.sidebar.collectionChevron(collectionName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (!isExpanded) await chevron.click();
+  });
+};
+
 type EnvironmentType = 'collection' | 'global';
 
 /**
@@ -766,6 +776,36 @@ const openEnvironmentConfigTab = async (page: Page, type: EnvironmentType = 'col
       ? locators.environment.globalEnvTab()
       : locators.environment.collectionEnvTab();
     await expect(envTab).toBeVisible();
+  });
+};
+
+/**
+ * Import a Postman-format environment file into the given scope.
+ * @param page - The page object
+ * @param filePath - Path to the .postman_environment.json file
+ * @param type - Target scope ('collection' | 'global')
+ */
+const importEnvironment = async (
+  page: Page,
+  filePath: string,
+  type: EnvironmentType = 'collection'
+) => {
+  await test.step(`Import ${type} environment from "${filePath}"`, async () => {
+    const locators = buildCommonLocators(page);
+
+    await openEnvironmentSelector(page, type);
+    await locators.environment.importEmptyStateButton().click();
+    await expect(locators.environment.importModal(type)).toBeVisible();
+
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await locators.environment.importFileTrigger(type).click();
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles(filePath);
+
+    const settingsTab = type === 'global'
+      ? locators.environment.globalEnvTab()
+      : locators.environment.collectionEnvTab();
+    await expect(settingsTab).toBeVisible();
   });
 };
 
@@ -2694,6 +2734,7 @@ export {
   createFolder,
   openEnvironmentSelector,
   openEnvironmentConfigTab,
+  importEnvironment,
   createEnvironment,
   addEnvironmentVariable,
   addEnvironmentVariables,
@@ -2749,6 +2790,7 @@ export {
   addFolderScript,
   addCollectionScript,
   expandFolder,
+  expandCollection,
   sendAndWaitForErrorCard,
   sendAndWaitForResponse,
   resetResponse,
