@@ -3,33 +3,21 @@ import StyledWrapper from './StyledWrapper';
 
 const TICK_INTERVAL = 100;
 
-const isValidStartTime = (startTime) => Number.isFinite(startTime);
-
-const getElapsedTime = (startTime, startMillis) => (
-  isValidStartTime(startTime)
-    ? Math.max(0, Date.now() - startTime)
-    : startMillis
-);
-
-const ResponseStopWatch = ({ startTime, startMillis = 0 }) => {
-  const [milliseconds, setMilliseconds] = useState(() => getElapsedTime(startTime, startMillis));
+const ResponseStopWatch = ({ startTimestamp }) => {
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    setMilliseconds(getElapsedTime(startTime, startMillis));
-
-    const timerId = setInterval(() => {
-      setMilliseconds((currentMilliseconds) => (
-        isValidStartTime(startTime)
-          ? Math.max(0, Date.now() - startTime)
-          : currentMilliseconds + TICK_INTERVAL
-      ));
+    const timerID = setInterval(() => {
+      setNow(Date.now());
     }, TICK_INTERVAL);
+    return () => {
+      clearInterval(timerID);
+    };
+  }, []);
 
-    return () => clearInterval(timerId);
-  }, [startTime, startMillis]);
-
-  const secondsFormatted = `${(milliseconds / 1000).toFixed(1)}s`;
-  const width = secondsFormatted.length * 0.4;
+  const elapsedMillis = startTimestamp ? Math.max(0, now - startTimestamp) : 0;
+  const secondsFormatted = `${(elapsedMillis / 1000).toFixed(1)}s`;
+  const width = secondsFormatted.length * 0.4; // Calculate width manually to stop parent layout from "flickering" by changing width too fast
 
   return (
     <StyledWrapper className="ml-2" style={{ width: `${width}rem` }}>
