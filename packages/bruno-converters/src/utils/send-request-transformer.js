@@ -313,6 +313,30 @@ const resolvesToHandlerParam = (path, name, handler) => {
 };
 
 /**
+ * The return statements belonging to the handler itself. `find` reaches into nested functions too,
+ * so a `return res.data` inside a callback declared in the handler would be mistaken for the
+ * handler's own return; keep only the returns whose nearest enclosing function is the handler.
+ *
+ * @example
+ * sendRequest(req).then((res) => {
+ *   const extract = () => {
+ *     return res.data;      // nested function's return — not the handler's
+ *   };
+ *   console.log(extract());
+ *   return res;             // the handler's actual return
+ * });
+ *
+ * @param {Object} j - jscodeshift API
+ * @param {Object} handlerPath - Path of the `.then` fulfilled handler argument
+ * @returns {Object[]} Paths of the handler's own return statements
+ */
+const findOwnReturns = (j, handlerPath) =>
+  j(handlerPath)
+    .find(j.ReturnStatement)
+    .paths()
+    .filter((returnPath) => j(returnPath).closest(j.Function).get().value === handlerPath.value);
+
+/**
  * Whether every value the handler can return is its own response parameter, so the
  * next `.then` in the chain still receives the response. A path that falls through
  * to an implicit undefined does not qualify.
@@ -331,24 +355,18 @@ const returnsParamUnchanged = (j, handlerPath) => {
     return body.type === 'Identifier' && body.name === paramName;
   }
 
-  // if the body is a block statement then check if the last statement isna return statement
-  // and the argument is an identifier and the name is the same as the parameter name
+  // a body that can complete without returning forwards an implicit undefined, so the last
+  // statement must be a return — this also rejects handlers with no return at all, which the
+  // `every` check below would treat as vacuously passing
   const lastStatement = body.body[body.body.length - 1];
   if (!lastStatement || lastStatement.type !== 'ReturnStatement') return false;
 
-  // check that decides whether a .then(handler) is a pass-through (every value it can return is the untouched response param),
-  // so the rewrite can keep flowing down the chain.
-  const ownReturns = j(handlerPath)
-    .find(j.ReturnStatement)
-    .paths()
-    .filter((returnPath) => j(returnPath).closest(j.Function).get().value === handler);
+  const ownReturns = findOwnReturns(j, handlerPath);
 
   return ownReturns.every((returnPath) => {
     const argument = returnPath.value.argument;
-    return argument
-      && argument.type === 'Identifier'
-      && argument.name === paramName
-      && resolvesToHandlerParam(returnPath, paramName, handler);
+    const returnsParamIdentifier = Boolean(argument) && argument.type === 'Identifier' && argument.name === paramName;
+    return returnsParamIdentifier && resolvesToHandlerParam(returnPath, paramName, handler);
   });
 };
 
@@ -363,27 +381,18 @@ const isResponseParamReassigned = (j, handlerPath) => {
   const handler = handlerPath.value;
   const paramName = handler.params[0].name;
 
-  // check if code overwriting the handler's response parameter itself
-  const isRebind = (path, target) =>
+  const isParamReassigned = (path, target) =>
     target.type === 'Identifier'
     && target.name === paramName
     && resolvesToHandlerParam(path, paramName, handler);
 
-  // `res = ...`, `res += ...`, `res ||= ...`
-  const assignedByAssignmentExpression = j(handlerPath)
+  // assignment expression example : `res = ...`, `res += ...`, `res ||= ...`
+  const isParamReassignedByAssignmentExpression = j(handlerPath)
     .find(j.AssignmentExpression)
     .paths()
-    .some((path) => isRebind(path, path.value.left));
+    .some((path) => isParamReassigned(path, path.value.left));
 
-  if (assignedByAssignmentExpression) return true;
-
-  // `res++` / `--res` — a separate node type, with its target under `argument`
-  const assignedByUpdateExpression = j(handlerPath)
-    .find(j.UpdateExpression)
-    .paths()
-    .some((path) => isRebind(path, path.value.argument));
-
-  return assignedByUpdateExpression;
+  return isParamReassignedByAssignmentExpression;
 };
 
 /**
@@ -508,7 +517,7 @@ const sendRequestTransformer = (path, j) => {
   const callback = args[1];
 
   // Check if original call was awaited
-  const wasAwaited = callPath.parent.value.type === 'AwaitExpression';
+  const wasParentAwaited = callPath.parent.value.type === 'AwaitExpression';
 
   // transform the request config options
   if (requestOptions.type === 'ObjectExpression') {
@@ -531,8 +540,8 @@ const sendRequestTransformer = (path, j) => {
   if (callback) {
     transformedCallback = transformCallback(j, callback);
 
-    // always async — the body may await a nested bru.sendRequest
-    if (transformedCallback) {
+    // Add async keyword to the callback function
+    if (transformedCallback && (transformedCallback.type === 'FunctionExpression' || transformedCallback.type === 'ArrowFunctionExpression')) {
       transformedCallback.async = true;
     }
   }
@@ -542,7 +551,9 @@ const sendRequestTransformer = (path, j) => {
     transformedCallback ? [requestOptions, transformedCallback] : [requestOptions]
   );
 
-  if (wasAwaited) return sendRequestCall;
+  // the only shape that does is `(await bru.sendRequest(req)).then(h)`, which calls `.then` on
+  // a plain response object and throws at runtime regardless of what we emit.
+  if (wasParentAwaited) return sendRequestCall;
 
   const chainLinks = getPromiseChainLinks(callPath);
 
@@ -550,13 +561,9 @@ const sendRequestTransformer = (path, j) => {
     return makeAwaitable(j, callPath) ? j.awaitExpression(sendRequestCall) : sendRequestCall;
   }
 
-  // the innermost `.then` receives the response; each later handler does too only
-  // while the one before it forwards its response parameter unchanged. A link with no
-  // fulfilled handler — `.catch`, `.finally`, `.then(null, fn)`, `.then()` — forwards the
-  // response untouched, so the walk continues past it. Its own handler is left alone: it
-  // sees an error or nothing, never the response.
   for (const link of chainLinks) {
     const [handler] = link.callPath.value.arguments;
+
     const hasFulfilledHandler = link.methodName === 'then' && Boolean(handler) && !isNullLiteral(handler);
 
     if (!hasFulfilledHandler) continue;
