@@ -302,8 +302,14 @@ const EnvironmentVariablesTable = ({
   const mountedRef = useRef(false);
   const pendingDraftRestoreRef = useRef(false);
 
-  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
-  const globalEnvSecrets = getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid });
+  const globalEnvironmentVariables = useMemo(
+    () => getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid }),
+    [globalEnvironments, activeGlobalEnvironmentUid]
+  );
+  const globalEnvSecrets = useMemo(
+    () => getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid }),
+    [globalEnvironments, activeGlobalEnvironmentUid]
+  );
   const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
   // `_collection` flows into every row's MultiLineEditor as the variable-resolution
   // context. Without memoization, `cloneDeep(collection)` runs on every render —

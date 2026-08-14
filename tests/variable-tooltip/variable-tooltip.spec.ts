@@ -14,6 +14,7 @@ import {
   deleteAllGlobalEnvironments,
   setRequestUrlAndSave,
   openUrlVarTooltip,
+  dismissVarTooltip,
   openEnvValueVarTooltip,
   openCollectionSettings,
   selectCollectionPaneTab,
@@ -155,7 +156,7 @@ test.describe('Variable Tooltip', () => {
       // Edit the value, click outside to save.
       await page.keyboard.press('End');
       await page.keyboard.type('/posts');
-      await page.locator('body').click();
+      await dismissVarTooltip(page);
 
       // Hover again to verify the change.
       const newTooltip = await openUrlVarTooltip(page, 'endpoint');
@@ -244,7 +245,7 @@ test.describe('Variable Tooltip', () => {
       await page.keyboard.type('secret-key-123');
 
       // Click outside to close editor - this auto-saves the entire request.
-      await page.locator('body').click();
+      await dismissVarTooltip(page);
     });
 
     await test.step('Verify request was auto-saved with URL changes and new variable', async () => {
@@ -320,9 +321,8 @@ test.describe('Variable Tooltip', () => {
       const tooltip = varInfoPopup.all().first();
 
       // Request is the guessed scope and is pre-selected in the Add-to switcher.
-      const activeOption = varInfoPopup.addToActiveOption(tooltip);
-      await expect(activeOption).toHaveCount(1);
-      await expect(activeOption.getByTestId('var-info-add-to-option-request')).toBeVisible();
+      await expect(varInfoPopup.addToActiveOption(tooltip)).toHaveCount(1);
+      await expect(varInfoPopup.addToActiveOption(tooltip, 'request')).toBeVisible();
 
       await expect(varInfoPopup.addToOption(tooltip, 'collection')).toBeVisible();
     });
@@ -356,7 +356,7 @@ test.describe('Variable Tooltip', () => {
       // The badge repoints immediately — this only decides where the next save writes to.
       await expect(varInfoPopup.scopeBadge(tooltip)).toContainText('Collection');
 
-      await page.locator('body').click();
+      await dismissVarTooltip(page);
     });
 
     await test.step('Re-hovering shows it is still undefined — the scope pick alone saved nothing', async () => {
@@ -376,7 +376,7 @@ test.describe('Variable Tooltip', () => {
       await varInfoPopup.editableValue(tooltip).click();
       await expect(varInfoPopup.editor(tooltip)).toBeVisible();
       await page.keyboard.type('collection-value');
-      await page.locator('body').click();
+      await dismissVarTooltip(page);
     });
 
     await test.step('Variable now resolves as a Collection variable', async () => {
@@ -389,6 +389,7 @@ test.describe('Variable Tooltip', () => {
 
     await test.step('Confirm it lives in Collection Variables, not Request Variables', async () => {
       await selectRequestPaneTab(page, 'Vars');
+      await expect(table('request-vars-req').container()).toBeVisible();
       await expect(table('request-vars-req').rowByName('scopeSwitchVar')).toHaveCount(0);
 
       await openCollectionSettings(page, collectionName);
@@ -424,6 +425,7 @@ test.describe('Variable Tooltip', () => {
 
       const tooltip = await openUrlVarTooltip(page, 'rootVar', 'invalid');
       await varInfoPopup.addToToggle(tooltip).click();
+      await expect(varInfoPopup.addToOption(tooltip, 'collection')).toBeVisible();
       await expect(varInfoPopup.addToOption(tooltip, 'folder')).toHaveCount(0);
 
       await page.mouse.move(0, 0);
@@ -448,7 +450,7 @@ test.describe('Variable Tooltip', () => {
       await varInfoPopup.editableValue(tooltip).click();
       await expect(varInfoPopup.editor(tooltip)).toBeVisible();
       await page.keyboard.type('folder-value');
-      await page.locator('body').click();
+      await dismissVarTooltip(page);
     });
 
     await test.step('Variable now resolves as a Folder variable', async () => {
@@ -461,6 +463,7 @@ test.describe('Variable Tooltip', () => {
 
     await test.step('Confirm it lives in the folder\'s Variables, not the request\'s', async () => {
       await selectRequestPaneTab(page, 'Vars');
+      await expect(table('request-vars-req').container()).toBeVisible();
       await expect(table('request-vars-req').rowByName('folderVar')).toHaveCount(0);
 
       await sidebar.folder(folderName).dblclick();
@@ -501,7 +504,7 @@ test.describe('Variable Tooltip', () => {
       await varInfoPopup.editableValue(tooltip).click();
       await expect(varInfoPopup.editor(tooltip)).toBeVisible();
       await page.keyboard.type('plain-value');
-      await page.locator('body').click();
+      await dismissVarTooltip(page);
     });
 
     await test.step('Confirm the plain variable finished saving before continuing', async () => {
@@ -528,7 +531,7 @@ test.describe('Variable Tooltip', () => {
       await varInfoPopup.editableValue(tooltip).click();
       await expect(varInfoPopup.editor(tooltip)).toBeVisible();
       await page.keyboard.type('secret-value');
-      await page.locator('body').click();
+      await dismissVarTooltip(page);
     });
 
     await test.step('Plain variable is under Variables; secret variable is under Secrets', async () => {
@@ -588,7 +591,7 @@ test.describe('Variable Tooltip', () => {
       await expect(varInfoPopup.editableValue(tooltip)).toContainText('fresh-value');
       await expect(varInfoPopup.addToSwitcher(tooltip)).toHaveCount(0);
 
-      await page.locator('body').click();
+      await dismissVarTooltip(page);
     });
 
     await test.step('Environment now exists with this variable under Variables', async () => {
@@ -639,7 +642,7 @@ test.describe('Variable Tooltip', () => {
       await expect(varInfoPopup.addToCreateEnvNameInput(tooltip)).toBeVisible();
     });
 
-    await test.step('Submitting a name with characters the main process would rewrite shows the failure and keeps the form open', async () => {
+    await test.step('Submitting a name with characters the renderer\'s name validation rejects shows the failure and keeps the form open', async () => {
       const tooltip = varInfoPopup.all().first();
 
       await varInfoPopup.addToCreateEnvNameInput(tooltip).fill('Bad:Name');
@@ -841,7 +844,7 @@ test.describe('Variable Tooltip', () => {
 
     await test.step('Reopen tooltip and verify the second edit persisted', async () => {
       // Close the existing tooltip with an outside click, then re-hover for a fresh one.
-      await page.locator('body').click();
+      await dismissVarTooltip(page);
       await expect(varInfoPopup.all().first()).not.toBeVisible();
 
       const tooltip = await openUrlVarTooltip(page, 'editVar');
@@ -1034,7 +1037,7 @@ test.describe('Variable Tooltip', () => {
   test('should go to definition into Folder Settings for a folder variable, and Collection Settings for a collection variable', async ({ page, createTmpDir }) => {
     const collectionName = 'go-to-definition-folder-collection-test';
     const folderName = 'goToDefFolder';
-    const { sidebar, paneTabs, varInfoPopup, table } = buildCommonLocators(page);
+    const { sidebar, paneTabs, varInfoPopup, table, varsPanel } = buildCommonLocators(page);
 
     await test.step('Add a folder variable', async () => {
       await createCollection(page, collectionName, await createTmpDir('go-to-definition-folder-collection'));
@@ -1045,17 +1048,17 @@ test.describe('Variable Tooltip', () => {
 
       const folderVarsTable = table('folder-vars-req');
       const lastRow = folderVarsTable.allRows().last();
-      await lastRow.locator('input[type="text"]').first().click();
+      await folderVarsTable.rowNameInput(lastRow).click();
       await page.keyboard.type('goToFolderVar');
 
       const namedRow = folderVarsTable.rowByName('goToFolderVar');
       await expect(namedRow).toBeVisible();
-      const valueEditor = namedRow.locator('[data-testid="column-value"] .CodeMirror').first();
+      const valueEditor = folderVarsTable.rowValueEditor(namedRow);
       await valueEditor.click({ force: true });
       await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
       await page.keyboard.type('folder-def-value');
 
-      await page.getByTestId('folder-vars-panel').getByRole('button', { name: 'Save', exact: true }).click();
+      await varsPanel('folder').saveButton().click();
     });
 
     await test.step('Add a collection variable', async () => {
@@ -1064,17 +1067,17 @@ test.describe('Variable Tooltip', () => {
 
       const collectionVarsTable = table('collection-vars-req');
       const lastRow = collectionVarsTable.allRows().last();
-      await lastRow.locator('input[type="text"]').first().click();
+      await collectionVarsTable.rowNameInput(lastRow).click();
       await page.keyboard.type('goToCollectionVar');
 
       const namedRow = collectionVarsTable.rowByName('goToCollectionVar');
       await expect(namedRow).toBeVisible();
-      const valueEditor = namedRow.locator('[data-testid="column-value"] .CodeMirror').first();
+      const valueEditor = collectionVarsTable.rowValueEditor(namedRow);
       await valueEditor.click({ force: true });
       await expect(valueEditor).toHaveClass(/CodeMirror-focused/);
       await page.keyboard.type('collection-def-value');
 
-      await page.getByTestId('collection-vars-panel').getByRole('button', { name: 'Save', exact: true }).click();
+      await varsPanel('collection').saveButton().click();
     });
 
     await test.step('Create a request inside the folder referencing both variables', async () => {
@@ -1214,7 +1217,7 @@ test.describe('Variable Tooltip', () => {
       // The click also revealed the real (unmasked) text
       await expect(editor.locator('.CodeMirror-line')).toContainText('original-secret-eye');
 
-      await page.locator('body').click();
+      await dismissVarTooltip(page);
     });
 
     await test.step('The eye-icon interaction did not lose or corrupt the edit', async () => {
@@ -1239,7 +1242,7 @@ test.describe('Variable Tooltip', () => {
       await expect(editor).toBeVisible();
       await expect(editor).toHaveClass(/CodeMirror-focused/);
 
-      await page.locator('body').click();
+      await dismissVarTooltip(page);
     });
 
     await test.step('The copy-icon interaction did not lose or corrupt the edit', async () => {

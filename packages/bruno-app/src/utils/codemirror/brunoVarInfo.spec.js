@@ -569,7 +569,7 @@ describe('renderVarInfo', () => {
       getVariableScope.mockReturnValue(null);
       getAvailableAddToScopes.mockReturnValue([
         { type: 'request', label: 'Request Variable', enabled: true, supportsSecret: false },
-        { type: 'collection', label: 'Collection Variables', enabled: true, supportsSecret: false },
+        { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
         { type: 'environment', label: 'Collection Environment', enabled: true, supportsSecret: true },
         { type: 'global', label: 'Global Environment', enabled: true, supportsSecret: true }
       ]);
@@ -632,7 +632,7 @@ describe('renderVarInfo', () => {
       getVariableScope.mockReturnValue(null);
       const folderItem = { uid: 'folder-1', type: 'folder', name: 'Auth' };
       getAvailableAddToScopes.mockReturnValue([
-        { type: 'collection', label: 'Collection Variables', enabled: true, supportsSecret: false },
+        { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
         { type: 'environment', label: 'Collection Environment', enabled: true, supportsSecret: true },
         { type: 'folder', label: 'Folder', enabled: true, supportsSecret: false }
       ]);
@@ -662,7 +662,7 @@ describe('renderVarInfo', () => {
       getVariableScope.mockReturnValue(null);
       getAvailableAddToScopes.mockReturnValue([
         { type: 'request', label: 'Request Variable', enabled: true, supportsSecret: false },
-        { type: 'collection', label: 'Collection Variables', enabled: true, supportsSecret: false }
+        { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false }
       ]);
 
       const result = renderVarInfo(
@@ -689,7 +689,7 @@ describe('renderVarInfo', () => {
     it('shows "Create One" when no environment exists, and saves the variable immediately once it is created', async () => {
       getVariableScope.mockReturnValue(null);
       getAvailableAddToScopes.mockReturnValue([
-        { type: 'collection', label: 'Collection Variables', enabled: true, supportsSecret: false },
+        { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
         { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
       ]);
 
@@ -747,7 +747,7 @@ describe('renderVarInfo', () => {
     it('adds variable as a secret if secret is selected when creating the environment, instead of always saving as a plain variable', async () => {
       getVariableScope.mockReturnValue(null);
       getAvailableAddToScopes.mockReturnValue([
-        { type: 'collection', label: 'Collection Variables', enabled: true, supportsSecret: false },
+        { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
         { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
       ]);
 
@@ -814,7 +814,7 @@ describe('renderVarInfo', () => {
       // never find a match and time out, falsely reporting a failure.
       getVariableScope.mockReturnValue(null);
       getAvailableAddToScopes.mockReturnValue([
-        { type: 'collection', label: 'Collection Variables', enabled: true, supportsSecret: false },
+        { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
         { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
       ]);
 
@@ -855,7 +855,7 @@ describe('renderVarInfo', () => {
       // filesystem that write silently overwrites the existing "dev" environment's file.
       getVariableScope.mockReturnValue(null);
       getAvailableAddToScopes.mockReturnValue([
-        { type: 'collection', label: 'Collection Variables', enabled: true, supportsSecret: false },
+        { type: 'collection', label: 'Collection Variable', enabled: true, supportsSecret: false },
         { type: 'environment', label: 'Collection Environment', enabled: false, supportsSecret: true }
       ]);
 

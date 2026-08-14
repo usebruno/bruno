@@ -1,6 +1,8 @@
 import { Page, test } from '../../../../playwright';
 import { buildCollectionHeaderLocators } from '../collection/collection-header';
 
+const environmentItemLocator = (page: Page, name: string) => page.locator('.environment-item').filter({ hasText: name });
+
 export const buildEnvironmentLocators = (page: Page) => ({
   selector: () => page.getByTestId('environment-selector-trigger'),
   collectionTab: () => page.getByTestId('env-tab-collection'),
@@ -58,8 +60,8 @@ export const buildEnvironmentLocators = (page: Page) => ({
   // matching on the wrapper is the only way to get the full concatenated text.
   variableValue: (name: string) =>
     page.locator('tbody tr').filter({ has: page.locator(`input[value="${name}"]`) }).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first(),
-  settingsListItem: (name: string) => page.locator('.environment-item').filter({ hasText: name }),
-  activatedCheckmark: (name: string) => page.locator('.environment-item').filter({ hasText: name }).locator('.activated-checkmark'),
+  settingsListItem: (name: string) => environmentItemLocator(page, name),
+  activatedCheckmark: (name: string) => environmentItemLocator(page, name).locator('.activated-checkmark'),
   createEnvButton: () => page.locator('button[id="create-env"]'),
   settingsCreateButton: () =>
     page.locator('.environments-container .sidebar button[title="Create environment"]'),

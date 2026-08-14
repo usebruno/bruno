@@ -2256,6 +2256,21 @@ const executeVariableUpdate = (dispatch, action, successMessage) => {
 };
 
 /**
+ * @returns {{ variable: Object|undefined, updatedVariables: Array }} `variable` is the pre-existing
+ *   entry that was updated, or undefined when a new one was appended instead.
+ */
+const resolveOrCreateEnabledVariable = (variables, variableName, newValue, secret) => {
+  const variable = resolveEnabledVariable(variables, variableName);
+  const newVariable = { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!secret };
+
+  const updatedVariables = variable
+    ? variables.map((v) => (v.uid === variable.uid ? { ...v, value: newValue } : v))
+    : [...(variables || []), newVariable];
+
+  return { variable, updatedVariables };
+};
+
+/**
  * Update a variable value in its detected scope (inline editing)
  * @param {string} variableName - Name of the variable to update
  * @param {string} newValue - New value for the variable
@@ -2297,19 +2312,10 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Environment not found'));
           }
 
-          const variable = resolveEnabledVariable(environment.variables, variableName);
-          const newVariable = { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!data.secret };
+          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret);
 
-          // Match script variable behavior: preserve disabled entries and create a separate enabled slot.
-          const updatedVariables = variable
-            ? environment.variables.map((v) => {
-                if (v.uid === variable.uid) {
-                  return { ...v, value: newValue };
-                }
-                return v;
-              })
-            : [...(environment.variables || []), newVariable];
-
+          // not pre-resolving a secret-name collision here
+          // saveEnvironment's writesCollidingSecrets guard rejects it instead.
           return dispatch(saveEnvironment(updatedVariables, environment.uid, collectionUid))
             .then(() => {
               toast.success(`Variable "${variableName}" ${variable ? 'updated' : 'created'}`);
@@ -2411,19 +2417,10 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Global environment not found'));
           }
 
-          // Match script variable behavior: preserve disabled entries and create a separate enabled slot.
-          const variable = resolveEnabledVariable(environment.variables, variableName);
-          const newVariable = { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!data.secret };
+          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret);
 
-          const updatedVariables = variable
-            ? environment.variables.map((v) => {
-                if (v.uid === variable.uid) {
-                  return { ...v, value: newValue };
-                }
-                return v;
-              })
-            : [...(environment.variables || []), newVariable];
-
+          // Deliberately not pre-resolving a secret-name collision here.
+          // saveEnvironment's writesCollidingSecrets guard rejects it instead
           return dispatch(saveGlobalEnvironment({
             variables: updatedVariables,
             environmentUid: activeGlobalEnvUid

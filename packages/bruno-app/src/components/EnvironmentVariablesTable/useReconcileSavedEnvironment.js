@@ -9,7 +9,7 @@ import { reconcileSavedChange, findExternallyAddedVariables } from './reconcile'
  * - If the form has no unsaved edits, replace its values with the persisted
  *   values.
  * - If the form has unsaved edits, keep the user's changes to prevent async
-     saves from overwriting text while the user is typing quickly.
+ *   saves from overwriting text while the user is typing quickly.
  * - Even when the form is dirty, merge variables that were added externally
  *   so those new variables are still shown in the form.
  * @param {Object} params

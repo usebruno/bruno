@@ -212,7 +212,7 @@ describe('getAvailableAddToScopes — Environment scope labels name the target e
 });
 
 describe('getAvailableAddToScopes — Folder scope label', () => {
-  it('labels the Folder scope "Parent Folder(name)" for a normal ancestor folder', () => {
+  it('labels the Folder scope "Parent Folder (name)" for a normal ancestor folder', () => {
     const scopes = getAvailableAddToScopes({
       item: { uid: 'req-1', type: 'http-request' },
       parentFolder: { uid: 'folder-1', name: 'Auth' },
@@ -220,7 +220,7 @@ describe('getAvailableAddToScopes — Folder scope label', () => {
     });
 
     const folderScope = scopes.find((s) => s.type === 'folder');
-    expect(folderScope.label).toBe('Parent Folder(Auth)');
+    expect(folderScope.label).toBe('Parent Folder (Auth)');
   });
 
   it('labels the Folder scope plainly "Folder" when it is the folder currently being edited', () => {

@@ -465,7 +465,7 @@ const GlobalStyle = createGlobalStyle`
     line-height: 1.25rem;
     color: ${(props) => props.theme.dropdown.color};
     min-height: 1.75rem;
-    max-width: 17.1875rem;
+    max-width: none;
   }
 
   /* Value Editor (CodeMirror) */
