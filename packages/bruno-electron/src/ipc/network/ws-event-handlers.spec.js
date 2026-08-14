@@ -7,36 +7,37 @@ jest.mock('electron', () => ({
   }
 }));
 
-const { app } = require('electron');
-const { getWsClient, registerWsEventHandlers } = require('./ws-event-handlers');
-
 const fakeWindow = {
   isDestroyed: () => false,
   webContents: { isDestroyed: () => false, send: jest.fn() }
 };
 
-const lastWindowAllClosedHandler = () => {
-  const calls = app.on.mock.calls.filter(([event]) => event === 'window-all-closed');
-  return calls.at(-1)?.[1];
-};
+describe('ws-event-handlers', () => {
+  let app;
+  let getWsClient;
+  let registerWsEventHandlers;
 
-describe('getWsClient', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    ({ app } = require('electron'));
+    app.on.mockClear();
+    ({ getWsClient, registerWsEventHandlers } = require('./ws-event-handlers'));
+  });
+
   it('returns the instance created at register time, not a require-time snapshot', () => {
-    expect(typeof getWsClient).toBe('function');
     expect(getWsClient()).toBeUndefined();
 
     registerWsEventHandlers(fakeWindow);
 
     expect(typeof getWsClient()?.closeForCollection).toBe('function');
   });
-});
 
-describe('window-all-closed', () => {
-  it('clears leftover websocket connections', () => {
+  it('clears leftover websocket connections on window-all-closed', () => {
     registerWsEventHandlers(fakeWindow);
     const clearAllConnections = jest.spyOn(getWsClient(), 'clearAllConnections');
+    const handler = app.on.mock.calls.find(([event]) => event === 'window-all-closed')?.[1];
 
-    lastWindowAllClosedHandler()();
+    handler();
 
     expect(clearAllConnections).toHaveBeenCalled();
   });

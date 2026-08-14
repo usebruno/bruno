@@ -250,6 +250,13 @@ class WsClient {
       const resolver = this.closingResolvers.get(requestId);
       if (resolver) {
         this.closingResolvers.delete(requestId);
+        // Emit before forget — a late 'close' from terminate will miss the map and skip emit.
+        this.eventCallback('main:ws:close', requestId, collectionUid, {
+          code: 1006,
+          reason: '',
+          seq: seq.next(requestId, collectionUid),
+          timestamp: Date.now()
+        });
         this.#forgetRequest(requestId);
         resolve();
       }

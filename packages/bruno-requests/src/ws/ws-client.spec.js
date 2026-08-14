@@ -41,10 +41,10 @@ jest.mock('ws', () => {
       this.emit('close', 1000, Buffer.from('closed'));
     }
 
-    // Match `ws`: terminate destroys immediately and emits close.
+    // Match `ws`: terminate destroys immediately; 'close' arrives a tick later.
     terminate() {
       this.readyState = CLOSED;
-      this.emit('close', 1006, Buffer.from(''));
+      process.nextTick(() => this.emit('close', 1006, Buffer.from('')));
     }
 
     ping() {}
@@ -75,6 +75,10 @@ describe('WsClient', () => {
     client = new WsClient((eventName, ...args) => {
       events.push({ eventName, args });
     });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   const start = (requestId = 'req-1') =>
@@ -160,9 +164,10 @@ describe('WsClient', () => {
 
       jest.advanceTimersByTime(5000);
       await closed;
+      await Promise.resolve();
 
       expect(client.connectionStatus('req-1')).toBe('disconnected');
-      jest.useRealTimers();
+      expect(events.some((e) => e.eventName === 'main:ws:close')).toBe(true);
     });
 
     it('does not let a timed-out socket close remove a replacement connection', async () => {
@@ -193,7 +198,6 @@ describe('WsClient', () => {
 
       expect(client.activeConnections.get('req-1').connection).toBe(replacement);
       expect(client.connectionStatus('req-1')).toBe('connected');
-      jest.useRealTimers();
     });
 
     it('waits for an in-flight close before opening a new socket', async () => {
@@ -263,7 +267,6 @@ describe('WsClient', () => {
 
       expect(mockSockets[0].ping).not.toHaveBeenCalled();
       expect(client.connectionKeepAlive.size).toBe(0);
-      jest.useRealTimers();
     });
 
     it('does not flush an orphaned queue after the collection is closed', async () => {
@@ -473,7 +476,6 @@ describe('WsClient', () => {
 
       expect(mockSockets[0].ping).not.toHaveBeenCalled();
       expect(client.activeConnections.get('req-1').connection).toBe(mockSockets[1]);
-      jest.useRealTimers();
     });
 
     it('keeps messages queued before replacing a stale socket', async () => {
