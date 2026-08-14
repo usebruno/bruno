@@ -298,12 +298,16 @@ describe('migrateCollectionOnDisk', () => {
 
     const { brunoConfig } = await runMigration({ brunoConfig: legacyProxyConfig });
 
+    // Legacy `enabled: true` must become `inherit: false` (an explicit collection-level
+    // proxy), not `inherit: true` (which would silently defer to the global proxy).
     expect(brunoConfig.proxy).toEqual(expect.objectContaining({
-      inherit: expect.any(Boolean),
+      inherit: false,
       config: expect.objectContaining({
         protocol: 'http',
         hostname: 'proxy.example.com',
-        port: '8080'
+        port: '8080',
+        auth: { username: 'u', password: 'p' },
+        bypassProxy: 'localhost,127.0.0.1'
       })
     }));
 

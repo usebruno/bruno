@@ -69,12 +69,14 @@ describe('toOpenCollectionVariables', () => {
     ]);
   });
 
-  it('does not double-prefix names that already start with @', () => {
+  it('always prepends the @ marker for local vars, matching the .bru grammar', () => {
+    // A local var whose bare name already starts with @ must serialize as @@name,
+    // so parsing (which strips a single @) reconstructs name='@name', local=true.
     const out = toOpenCollectionVariables([
       { uid: 'u1', name: '@apiKey', value: 'abc', enabled: true, local: true } as any
     ]);
 
-    expect(out).toEqual([{ name: '@apiKey', value: 'abc' }]);
+    expect(out).toEqual([{ name: '@@apiKey', value: 'abc' }]);
   });
 });
 
@@ -162,5 +164,14 @@ describe('toBrunoVariables', () => {
     const { req } = toBrunoVariables(oc);
 
     expect(req![0]).toMatchObject({ name: 'apiKey', value: 'abc', local: true });
+  });
+
+  it('round-trips a local variable whose bare name itself starts with @', () => {
+    const oc = toOpenCollectionVariables([
+      { uid: 'u1', name: '@apiKey', value: 'abc', enabled: true, local: true } as any
+    ]);
+    const { req } = toBrunoVariables(oc);
+
+    expect(req![0]).toMatchObject({ name: '@apiKey', value: 'abc', local: true });
   });
 });
