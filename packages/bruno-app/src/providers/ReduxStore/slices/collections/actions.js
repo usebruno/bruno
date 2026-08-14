@@ -2256,15 +2256,10 @@ const executeVariableUpdate = (dispatch, action, successMessage) => {
 };
 
 /**
- * Shared by the 'environment' and 'global' branches of updateVariableInScope below: resolves the
- * enabled variable that governs `variableName` (if any) and returns a variables array with its
- * value updated — or, if none is enabled, an array with a new one appended. Matches script
- * variable behavior: a disabled namesake is preserved, not overwritten, and gets its own enabled
- * slot instead.
  * @returns {{ variable: Object|undefined, updatedVariables: Array }} `variable` is the pre-existing
  *   entry that was updated, or undefined when a new one was appended instead.
  */
-const upsertEnabledVariable = (variables, variableName, newValue, secret) => {
+const resolveOrCreateEnabledVariable = (variables, variableName, newValue, secret) => {
   const variable = resolveEnabledVariable(variables, variableName);
   const newVariable = { uid: uuid(), name: variableName, value: newValue, type: 'text', enabled: true, secret: !!secret };
 
@@ -2317,7 +2312,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Environment not found'));
           }
 
-          const { variable, updatedVariables } = upsertEnabledVariable(environment.variables, variableName, newValue, data.secret);
+          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret);
 
           // not pre-resolving a secret-name collision here
           // saveEnvironment's writesCollidingSecrets guard rejects it instead.
@@ -2422,7 +2417,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             return reject(new Error('Global environment not found'));
           }
 
-          const { variable, updatedVariables } = upsertEnabledVariable(environment.variables, variableName, newValue, data.secret);
+          const { variable, updatedVariables } = resolveOrCreateEnabledVariable(environment.variables, variableName, newValue, data.secret);
 
           // Deliberately not pre-resolving a secret-name collision here.
           // saveEnvironment's writesCollidingSecrets guard rejects it instead
