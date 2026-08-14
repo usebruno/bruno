@@ -20,7 +20,7 @@ const ResponseStopWatch = ({ startTimestamp }) => {
   const width = secondsFormatted.length * 0.4; // Calculate width manually to stop parent layout from "flickering" by changing width too fast
 
   return (
-    <StyledWrapper className="ml-2" style={{ width: `${width}rem` }}>
+    <StyledWrapper className="ml-2" style={{ width: `${width}rem` }} data-testid="response-elapsed-time">
       {secondsFormatted}
     </StyledWrapper>
   );
