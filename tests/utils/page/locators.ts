@@ -17,6 +17,7 @@ import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildEnvironmentLocators } from './environments';
 import { buildTimelineHeaderLocators } from './timeline-headers';
 import { buildDevToolsLocators } from './devtools-console';
+import { buildVariablesTabLocators } from './variables-tab';
 import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
@@ -45,6 +46,7 @@ export const buildCommonLocators = (page: Page) => ({
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),
+  variablesTab: buildVariablesTabLocators(page),
   actions: {
     collectionActions: (collectionName: string) =>
       page.getByTestId('collections').locator('.collection-name')

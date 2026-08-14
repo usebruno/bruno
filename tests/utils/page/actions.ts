@@ -24,6 +24,18 @@ const waitForReadyPage = (
 ) => waitForReadyPageImpl(app, options);
 
 /**
+ * Read the system clipboard through the renderer, which is where the app's copy
+ * buttons write. Windows hands multi-line text back as CRLF, so line endings are
+ * normalized and callers can compare against plain \n.
+ * @param page - The page object
+ * @returns The clipboard's text
+ */
+const readClipboard = async (page: Page): Promise<string> => {
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  return text.replace(/\r\n/g, '\n');
+};
+
+/**
  * Dismiss all import issues toasts (they use infinite duration and persist across tests).
  * @param page - The page object
  * @returns void
@@ -1019,7 +1031,10 @@ const selectEnvironment = async (
       await locators.environment.globalTab().click();
     }
 
-    await locators.environment.envOption(environmentName).click();
+    const option = environmentName === 'No Environment'
+      ? locators.environment.noEnvironmentItem()
+      : locators.environment.envOption(environmentName);
+    await option.click();
 
     // Verify selection
     await expect(page.locator('.current-environment')).toContainText(environmentName);
@@ -1772,8 +1787,9 @@ const closeAllTabs = async (page: Page) => {
       return; // No request tabs to close
     }
 
-    // Right-click on the tab label to open context menu
-    await requestTabLabel.click({ button: 'right' });
+    // Right-click on the tab label to open context menu. Aim at its left edge
+    // on a short tab name the close-gradient overlay covers the label's centre.
+    await requestTabLabel.click({ button: 'right', position: { x: 5, y: 5 } });
 
     // Wait for the dropdown menu to appear
     const dropdown = page.locator('.tippy-box.dropdown');
@@ -2651,6 +2667,7 @@ const openSystemProxyPanel = async (page: Page) => {
 
 export {
   waitForReadyPage,
+  readClipboard,
   setRequestUrlAndSave,
   openUrlVarTooltip,
   scrollVirtuosoRowIntoView,
