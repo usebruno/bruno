@@ -231,11 +231,9 @@ const isPromiseChainHandler = (functionPath) => {
 };
 
 /**
- * Whether `await` may be emitted at this position, turning the enclosing function
- * async where that is safe. Bruno evaluates scripts inside an async closure, so
- * top level is awaitable. Inside a non-async function `await` is a syntax error
- * that breaks the entire script, so it is emitted there only once the function
- * has been made async — which is only safe for a promise-chain handler.
+ * Whether `await` may be emitted here. Bruno runs scripts in an async closure, so top level is
+ * always awaitable. Inside a non-async function `await` is a syntax error that breaks the whole
+ * script, so we emit it only after making that function async — safe only for promise-chain handlers.
  * @param {Object} j - jscodeshift API
  * @param {Object} path - Path the await would be emitted at
  * @returns {boolean}
@@ -571,8 +569,6 @@ const sendRequestTransformer = (path, j) => {
 
     const handlerPath = link.callPath.get('arguments', 0);
 
-    // both read before the rewrite, which would collapse `return res.json()` into
-    // `return res.data` and hide that the handler never forwarded the response
     const returnsResponse = returnsParamUnchanged(j, handlerPath);
     const reassignsResponse = isResponseParamReassigned(j, handlerPath);
 
