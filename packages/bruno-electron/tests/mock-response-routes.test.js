@@ -1,7 +1,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { saveMockResponse } = require('../src/app/mock-server/mock-response-store');
+const { saveMockResponse, saveMockServer } = require('../src/app/mock-server/mock-server-store');
 const {
   buildRouteMapFromMockResponses,
   countRouteResponses,
@@ -30,9 +30,14 @@ describe('mock-response-routes', () => {
   });
 
   it('builds route table rows from stored mock responses', () => {
+    const instance = saveMockServer(workspacePath, {
+      name: 'Route Table Mock',
+      port: 4001,
+      sourceType: 'manual',
+      globalDelay: 0
+    });
     const location = {
-      mockServerUid: 'mock-1',
-      sourceType: 'spec',
+      mockServerUid: instance.uid,
       workspacePath
     };
 

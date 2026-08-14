@@ -1,5 +1,5 @@
 const { extractMockRoutePath } = require('@usebruno/common').utils;
-const { listMockResponses } = require('./mock-response-store');
+const { listMockResponses } = require('./mock-server-store');
 
 const extractRoutePath = extractMockRoutePath;
 
@@ -18,9 +18,17 @@ const normalizeMockResponseEntry = (response) => ({
   }
 });
 
-const buildRouteMapFromMockResponses = ({ mockServerUid, collectionPath, sourceType, workspacePath }) => {
+const buildRouteMapFromMockResponses = ({ mockServerUid, workspacePath }) => {
   const routeMap = new Map();
-  const responses = listMockResponses({ mockServerUid, collectionPath, sourceType, workspacePath });
+
+  // A missing mock server file (deleted or not yet created) yields no routes
+  // rather than failing status/refresh calls that race a deletion.
+  let responses = [];
+  try {
+    responses = listMockResponses({ mockServerUid, workspacePath });
+  } catch (err) {
+    console.warn(`[MockServer] Could not load mock responses for ${mockServerUid}: ${err.message}`);
+  }
 
   for (const mockResponse of responses) {
     const method = (mockResponse.request?.method || 'GET').toUpperCase();

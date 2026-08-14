@@ -10,6 +10,7 @@ jest.mock('utils/common', () => {
 });
 
 import {
+  buildDemoRequestFromRules,
   cloneMockResponseRecord,
   getMockResponseDescriptionError,
   getMockResponseNameError,
@@ -188,6 +189,55 @@ describe('resolveMockResponseEditorCollection', () => {
     it('handles an empty response list', () => {
       expect(isMockResponseNameTaken([], 'anything')).toBe(false);
       expect(isMockResponseNameTaken(undefined, 'anything')).toBe(false);
+    });
+  });
+});
+
+describe('buildDemoRequestFromRules', () => {
+  const request = { url: '{{baseUrl}}/users/:id', method: 'get' };
+
+  it('derives headers, params and a json body from the rules', () => {
+    const demo = buildDemoRequestFromRules(request, {
+      operator: 'AND',
+      conditions: [
+        { target: 'header', key: 'Authorization', operator: 'equals', value: 'token' },
+        { target: 'query', key: 'page', operator: 'contains', value: '2' },
+        { target: 'body', key: '$.user.type', operator: 'equals', value: 'admin' },
+        { target: 'body', key: 'user.plan', operator: 'equals', value: 'pro' }
+      ]
+    });
+
+    expect(demo.url).toBe('/users/:id');
+    expect(demo.method).toBe('GET');
+    expect(demo.headers).toEqual([{ name: 'Authorization', value: 'token', enabled: true }]);
+    expect(demo.params).toEqual([{ name: 'page', value: '2', type: 'query', enabled: true }]);
+    expect(JSON.parse(demo.body.content)).toEqual({ user: { type: 'admin', plan: 'pro' } });
+    expect(demo.body.mode).toBe('json');
+  });
+
+  it('uses an empty sample for not_equals and skips keyless conditions', () => {
+    const demo = buildDemoRequestFromRules(request, {
+      operator: 'OR',
+      conditions: [
+        { target: 'header', key: 'X-Env', operator: 'not_equals', value: 'prod' },
+        { target: 'query', key: '', operator: 'equals', value: 'ignored' }
+      ]
+    });
+
+    expect(demo.headers).toEqual([{ name: 'X-Env', value: '', enabled: true }]);
+    expect(demo.params).toEqual([]);
+    expect(demo.body).toBeNull();
+  });
+
+  it('returns a bare request when there are no rules', () => {
+    const demo = buildDemoRequestFromRules(request, { operator: 'AND', conditions: [] });
+
+    expect(demo).toEqual({
+      url: '/users/:id',
+      method: 'GET',
+      headers: [],
+      params: [],
+      body: null
     });
   });
 });
