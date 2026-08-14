@@ -516,9 +516,6 @@ const sendRequestTransformer = (path, j) => {
   const requestOptions = args[0];
   const callback = args[1];
 
-  // Check if original call was awaited
-  const wasParentAwaited = callPath.parent.value.type === 'AwaitExpression';
-
   // transform the request config options
   if (requestOptions.type === 'ObjectExpression') {
     // Transform headers
@@ -550,6 +547,8 @@ const sendRequestTransformer = (path, j) => {
     j.identifier('bru.sendRequest'),
     transformedCallback ? [requestOptions, transformedCallback] : [requestOptions]
   );
+
+  const wasParentAwaited = callPath.parent.value.type === 'AwaitExpression';
 
   // the only shape that does is `(await bru.sendRequest(req)).then(h)`, which calls `.then` on
   // a plain response object and throws at runtime regardless of what we emit.
