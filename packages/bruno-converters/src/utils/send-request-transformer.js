@@ -223,8 +223,8 @@ const getPromiseChainLinks = (callPath) => {
  */
 const isPromiseChainHandler = (functionPath) => {
   const parent = functionPath.parent;
-  if (!parent || parent.value.type !== 'CallExpression') return false;
-  if (!parent.value.arguments.includes(functionPath.value)) return false;
+  if (!parent || parent.value.type !== 'CallExpression') return false; // means the function is not a handler
+  if (!parent.value.arguments.includes(functionPath.value)) return false; // means the function is not a handler
 
   const callee = parent.value.callee;
   return callee.type === 'MemberExpression' && PROMISE_CHAIN_METHODS.has(getStaticPropertyName(callee));
@@ -325,18 +325,19 @@ const returnsParamUnchanged = (j, handlerPath) => {
   const paramName = handler.params[0].name;
   const body = handler.body;
 
-  // if the body is not a block statement then check if the body is an
-  // identifier and the name is the same as the parameter name
+  // a concise arrow body is the returned expression itself, so it only forwards the
+  // response when that expression is the parameter — `res => res` yes, `res => res.data` no
   if (body.type !== 'BlockStatement') {
     return body.type === 'Identifier' && body.name === paramName;
   }
 
-  // if the body is a block statement then check if the last statement is
-  // a return statement and the argument is an identifier and the name is the same as the parameter name
+  // if the body is a block statement then check if the last statement isna return statement
+  // and the argument is an identifier and the name is the same as the parameter name
   const lastStatement = body.body[body.body.length - 1];
   if (!lastStatement || lastStatement.type !== 'ReturnStatement') return false;
 
-  // check if the return statement is the own return statement of the handler
+  // check that decides whether a .then(handler) is a pass-through (every value it can return is the untouched response param),
+  // so the rewrite can keep flowing down the chain.
   const ownReturns = j(handlerPath)
     .find(j.ReturnStatement)
     .paths()
@@ -362,22 +363,27 @@ const isResponseParamReassigned = (j, handlerPath) => {
   const handler = handlerPath.value;
   const paramName = handler.params[0].name;
 
+  // check if code overwriting the handler's response parameter itself
   const isRebind = (path, target) =>
     target.type === 'Identifier'
     && target.name === paramName
     && resolvesToHandlerParam(path, paramName, handler);
 
-  const assigned = j(handlerPath)
+  // `res = ...`, `res += ...`, `res ||= ...`
+  const assignedByAssignmentExpression = j(handlerPath)
     .find(j.AssignmentExpression)
     .paths()
     .some((path) => isRebind(path, path.value.left));
 
-  if (assigned) return true;
+  if (assignedByAssignmentExpression) return true;
 
-  return j(handlerPath)
+  // `res++` / `--res` — a separate node type, with its target under `argument`
+  const assignedByUpdateExpression = j(handlerPath)
     .find(j.UpdateExpression)
     .paths()
     .some((path) => isRebind(path, path.value.argument));
+
+  return assignedByUpdateExpression;
 };
 
 /**
