@@ -24,6 +24,18 @@ const waitForReadyPage = (
 ) => waitForReadyPageImpl(app, options);
 
 /**
+ * Read the system clipboard through the renderer, which is where the app's copy
+ * buttons write. Windows hands multi-line text back as CRLF, so line endings are
+ * normalized and callers can compare against plain \n.
+ * @param page - The page object
+ * @returns The clipboard's text
+ */
+const readClipboard = async (page: Page): Promise<string> => {
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  return text.replace(/\r\n/g, '\n');
+};
+
+/**
  * Dismiss all import issues toasts (they use infinite duration and persist across tests).
  * @param page - The page object
  * @returns void
@@ -1009,7 +1021,10 @@ const selectEnvironment = async (
       await locators.environment.globalTab().click();
     }
 
-    await locators.environment.envOption(environmentName).click();
+    const option = environmentName === 'No Environment'
+      ? locators.environment.noEnvironmentItem()
+      : locators.environment.envOption(environmentName);
+    await option.click();
 
     // Verify selection
     await expect(page.locator('.current-environment')).toContainText(environmentName);
@@ -1458,6 +1473,19 @@ const selectRequestPaneTab = async (page: Page, tabName: string) => {
   await selectPaneTab(page, '[data-testid="request-pane"] > .px-4', tabName);
 };
 
+/**
+ * Open a sidebar request's Settings tab and assert its Max Redirects value, as rendered.
+ * `expected` is the on-screen text, so a large ceiling is its serialized form (e.g. '1e+31').
+ */
+const expectRequestMaxRedirects = async (page: Page, requestName: string, expected: string) => {
+  await test.step(`Expect ${requestName} to show a max redirects of ${expected}`, async () => {
+    const locators = buildCommonLocators(page);
+    await locators.sidebar.request(requestName).click();
+    await selectRequestPaneTab(page, 'Settings');
+    await expect(locators.requestSettings.maxRedirectsInput()).toHaveValue(expected);
+  });
+};
+
 const selectRequestBodyMode = async (page: Page, mode: string) => {
   await test.step(`Select request body mode "${mode}"`, async () => {
     await selectRequestPaneTab(page, 'Body');
@@ -1762,8 +1790,9 @@ const closeAllTabs = async (page: Page) => {
       return; // No request tabs to close
     }
 
-    // Right-click on the tab label to open context menu
-    await requestTabLabel.click({ button: 'right' });
+    // Right-click on the tab label to open context menu. Aim at its left edge
+    // on a short tab name the close-gradient overlay covers the label's centre.
+    await requestTabLabel.click({ button: 'right', position: { x: 5, y: 5 } });
 
     // Wait for the dropdown menu to appear
     const dropdown = page.locator('.tippy-box.dropdown');
@@ -2641,6 +2670,7 @@ const openSystemProxyPanel = async (page: Page) => {
 
 export {
   waitForReadyPage,
+  readClipboard,
   setRequestUrlAndSave,
   openUrlVarTooltip,
   scrollVirtuosoRowIntoView,
@@ -2689,6 +2719,7 @@ export {
   getResponseBody,
   expectResponseContains,
   selectRequestPaneTab,
+  expectRequestMaxRedirects,
   selectRequestBodyMode,
   selectResponsePaneTab,
   mockBrowseFiles,
