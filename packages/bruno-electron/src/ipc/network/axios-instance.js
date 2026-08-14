@@ -8,7 +8,7 @@ const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies')
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
-const { isSameOrigin } = require('@usebruno/common').utils;
+const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -77,7 +77,7 @@ function makeAxiosInstance({
   proxyMode = 'off',
   proxyModeReason = '',
   proxyConfig = {},
-  requestMaxRedirects = 5,
+  requestMaxRedirects = DEFAULT_MAX_REDIRECTS,
   httpsAgentRequestFields = {},
   interpolationOptions = {},
   followRedirects = true,

@@ -398,6 +398,7 @@ const handleRequest = (mockServerUid, req, res) => {
     }
   };
 
+  // adding a try-catch block to handle any errors that may occur during the response
   if (delay > 0) {
     setTimeout(() => {
       try {
