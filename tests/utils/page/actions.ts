@@ -468,11 +468,8 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
     // Click on the collection first to open it if it's closed
     await locators.sidebar.collection(collectionName).click();
 
-    // Find the request within the collection's context
-    // Use the collection container (.collection-name) scoped to sidebar to scope the search
-    const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: collectionName });
-    const collectionWrapper = collectionContainer.locator('..');
-    const request = collectionWrapper.locator('.collection-item-name').filter({ hasText: requestName });
+    // Flat, virtualized sidebar. scope by the collection's `data-collection-id` rather than DOM nesting.
+    const request = locators.sidebar.collectionScope(collectionName).locator('.collection-item-name').filter({ hasText: requestName });
 
     await request.hover();
     await request.locator('.menu-icon').click();
@@ -1118,10 +1115,10 @@ const sendRequest = async (
 */
 const openRequest = async (page: Page, collectionName: string, requestName: string, { persist = false } = {}) => {
   await test.step(`Navigate to collection "${collectionName}" and open request "${requestName}"`, async () => {
-    const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
-    await collectionContainer.click();
-    const collectionWrapper = collectionContainer.locator('..');
-    const request = collectionWrapper.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName });
+    const { sidebar } = buildCommonLocators(page);
+    await sidebar.collectionRow(collectionName).click();
+    // Flat, virtualized sidebar: scope by the collection's `data-collection-id` rather than DOM nesting.
+    const request = sidebar.collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ hasText: requestName });
     if (!persist) {
       await request.click();
     } else {
@@ -1139,10 +1136,10 @@ const openRequest = async (page: Page, collectionName: string, requestName: stri
  */
 const openfolder = async (page: Page, collectionName: string, folderName: string, { persist = false } = {}) => {
   await test.step(`Open folder "${folderName}" in collection "${collectionName}"`, async () => {
-    const collectionContainer = page.getByTestId('sidebar-collection-row').filter({ hasText: collectionName });
-    await collectionContainer.click();
-    const collectionWrapper = collectionContainer.locator('..');
-    const folder = collectionWrapper.getByTestId('sidebar-collection-item-row').filter({ hasText: folderName });
+    const { sidebar } = buildCommonLocators(page);
+    await sidebar.collectionRow(collectionName).click();
+    // Flat, virtualized sidebar: scope by the collection's `data-collection-id` rather than DOM nesting.
+    const folder = sidebar.collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ hasText: folderName });
     if (!persist) {
       await folder.click();
     } else {
@@ -1273,13 +1270,11 @@ const focusCollectionSettingsTab = async (page: Page, { timeout = 10000 } = {}) 
 const openFolderRequest = async (page: Page, collectionName: string, folderName: string, requestName: string) => {
   await test.step(`Open folder request "${requestName}" in "${folderName}"`, async () => {
     const { sidebar, tabs } = buildCommonLocators(page);
-    const collectionRow = sidebar.collectionRow(collectionName);
-    await collectionRow.click();
-    const collectionWrapper = collectionRow.locator('..');
-    const folder = collectionWrapper.locator('.collection-item-name').filter({ has: page.getByText(folderName, { exact: true }) });
+    await sidebar.collectionRow(collectionName).click();
+    const folder = sidebar.collectionScope(collectionName).locator('.collection-item-name').filter({ has: page.getByText(folderName, { exact: true }) });
     await folder.waitFor({ state: 'visible' });
     await folder.click();
-    const request = collectionWrapper.locator('.collection-item-name').filter({ has: page.getByText(requestName, { exact: true }) });
+    const request = sidebar.folderScope(folderName).locator('.collection-item-name').filter({ has: page.getByText(requestName, { exact: true }) });
     await request.waitFor({ state: 'visible' });
     await request.click();
     await expect(tabs.activeRequestTab()).toContainText(requestName);
@@ -2168,11 +2163,9 @@ const createExampleFromSidebar = async (page: Page, requestName: string, example
 
 const openExampleFromSidebar = async (page: Page, requestName: string, exampleName: string, index: number = 0) => {
   const requestRow = page.locator('.collection-item-name').filter({ hasText: requestName }).first();
-  const requestBranch = requestRow.locator('..');
-  const exampleRow = requestBranch
-    .locator('.collection-item-name')
-    .filter({ has: page.locator('.example-icon') })
-    .getByText(exampleName, { exact: true })
+  const exampleRow = page.locator(`[data-parent-name="${requestName}"]`)
+    .getByTestId('sidebar-response-example-item')
+    .filter({ has: page.getByText(exampleName, { exact: true }) })
     .nth(index);
 
   if (!(await exampleRow.isVisible())) {
