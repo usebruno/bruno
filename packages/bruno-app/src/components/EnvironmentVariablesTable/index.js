@@ -95,6 +95,7 @@ const TableRow = React.memo(
       && prevCtx.dragEnabled === nextCtx.dragEnabled
       && prevCtx.dragOverKey === nextCtx.dragOverKey
       && prevCtx.draggingKey === nextCtx.draggingKey
+      && prevCtx.duplicateSecretNames === nextCtx.duplicateSecretNames
     );
   }
 );
@@ -215,7 +216,11 @@ const EnvVarValueCell = React.memo(
   },
   (prev, next) => {
     return (
-      prev.variable === next.variable
+      prev.variable?.value === next.variable?.value
+      && prev.variable?.secret === next.variable?.secret
+      && prev.variable?.dataType === next.variable?.dataType
+      && prev.variable?.uid === next.variable?.uid
+      && prev.variable?.ephemeral === next.variable?.ephemeral
       && prev.actualIndex === next.actualIndex
       && prev.isLastRow === next.isLastRow
       && prev.isLastEmptyRow === next.isLastEmptyRow
@@ -225,55 +230,86 @@ const EnvVarValueCell = React.memo(
   }
 );
 
-const ErrorMessage = React.memo(
-  ({ name, index, formik, duplicateSecretNames }) => {
-    const meta = formik.getFieldMeta(name);
-    const id = `error-${name}-${index}`;
-
-    const isLastRow = index === formik.values.length - 1;
-    const variable = formik.values[index];
-    const isEmptyRow = !variable?.name || variable.name.trim() === '';
-
-    if (isLastRow && isEmptyRow) {
-      return null;
-    }
-
-    const isDuplicateSecret
-      = variable?.secret
-        && !isEmptyRow
-        && duplicateSecretNames?.has(variable.name.trim());
-    const error
-      = meta?.error
-        || (isDuplicateSecret ? DUPLICATE_SECRET_NAME_FIELD_ERROR : null);
-
-    if (!error) {
-      return null;
-    }
+const EnvVarDescriptionCell = React.memo(
+  ({
+    description,
+    actualIndex,
+    isLastRow,
+    isLastEmptyRow,
+    isSecretTab,
+    storedTheme,
+    collection,
+    formik,
+    handleSave
+  }) => {
     return (
-      <span>
-        <IconAlertCircle
-          id={id}
-          data-testid="env-var-name-error"
-          className="text-red-600 cursor-pointer"
-          size={20}
-        />
-        <Tooltip className="tooltip-mod" anchorId={id} html={error} />
-      </span>
+      <MultiLineEditor
+        theme={storedTheme}
+        collection={collection}
+        name={`${actualIndex}.description`}
+        value={description ?? ''}
+        placeholder={
+          isLastEmptyRow
+          && (!description
+            || (typeof description === 'string' && description.trim() === ''))
+            ? 'Description'
+            : ''
+        }
+        onChange={(newValue) => {
+          formik.setFieldValue(`${actualIndex}.description`, newValue, true);
+          if (isLastRow) {
+            setTimeout(() => {
+              formik.setFieldValue(
+                formik.values.length,
+                {
+                  uid: uuid(),
+                  name: '',
+                  value: '',
+                  type: 'text',
+                  secret: isSecretTab,
+                  enabled: true,
+                  description: ''
+                },
+                false
+              );
+            }, 0);
+          }
+        }}
+        onSave={handleSave}
+      />
     );
   },
   (prev, next) => {
-    const prevVar = prev.formik.values[prev.index];
-    const nextVar = next.formik.values[next.index];
     return (
-      prevVar === nextVar
-      && prev.name === next.name
-      && prev.index === next.index
-      && prev.duplicateSecretNames === next.duplicateSecretNames
-      && prev.formik.getFieldMeta(prev.name)?.error
-      === next.formik.getFieldMeta(next.name)?.error
+      prev.description === next.description
+      && prev.actualIndex === next.actualIndex
+      && prev.isLastRow === next.isLastRow
+      && prev.isLastEmptyRow === next.isLastEmptyRow
+      && prev.isSecretTab === next.isSecretTab
+      && prev.storedTheme === next.storedTheme
+      && prev.collection === next.collection
     );
   }
 );
+
+const ErrorMessage = React.memo(({ name, index, error }) => {
+  const id = `error-${name}-${index}`;
+
+  if (!error) {
+    return null;
+  }
+  return (
+    <span>
+      <IconAlertCircle
+        id={id}
+        data-testid="env-var-name-error"
+        className="text-red-600 cursor-pointer"
+        size={20}
+      />
+      <Tooltip className="tooltip-mod" anchorId={id} html={error} />
+    </span>
+  );
+});
 
 const EnvVarRow = React.memo(
   ({
@@ -288,6 +324,7 @@ const EnvVarRow = React.memo(
     isSecretTab,
     storedTheme,
     collection,
+    rowError,
     formik,
     handleRowFocus,
     handleSave,
@@ -296,8 +333,7 @@ const EnvVarRow = React.memo(
     handleNameKeyDown,
     handleRemoveVar,
     handleDragHandleMouseDown,
-    renderExtraValueContent,
-    duplicateSecretNames
+    renderExtraValueContent
   }) => {
     return (
       <>
@@ -307,11 +343,7 @@ const EnvVarRow = React.memo(
               data-testid="drag-handle"
               className="drag-handle group absolute z-10 left-[-8px] top-1/2 -translate-y-1/2 p-1 cursor-grab"
               onMouseDown={(e) =>
-                handleDragHandleMouseDown(
-                  e,
-                  variable.uid,
-                  variable.name
-                )}
+                handleDragHandleMouseDown(e, variable.uid, variable.name)}
             >
               <IconGripVertical
                 size={14}
@@ -367,15 +399,11 @@ const EnvVarRow = React.memo(
             <ErrorMessage
               name={`${actualIndex}.name`}
               index={actualIndex}
-              formik={formik}
-              duplicateSecretNames={duplicateSecretNames}
+              error={rowError}
             />
           </div>
         </td>
-        <td
-          style={{ width: columnWidths.value }}
-          className="overflow-hidden"
-        >
+        <td style={{ width: columnWidths.value }} className="overflow-hidden">
           <EnvVarValueCell
             variable={variable}
             actualIndex={actualIndex}
@@ -391,43 +419,16 @@ const EnvVarRow = React.memo(
           />
         </td>
         <td style={{ width: columnWidths.description }}>
-          <MultiLineEditor
-            theme={storedTheme}
+          <EnvVarDescriptionCell
+            description={variable.description}
+            actualIndex={actualIndex}
+            isLastRow={isLastRow}
+            isLastEmptyRow={isLastEmptyRow}
+            isSecretTab={isSecretTab}
+            storedTheme={storedTheme}
             collection={collection}
-            name={`${actualIndex}.description`}
-            value={variable.description ?? ''}
-            placeholder={
-              isLastEmptyRow
-              && (!variable.description
-                || (typeof variable.description === 'string'
-                  && variable.description.trim() === ''))
-                ? 'Description'
-                : ''
-            }
-            onChange={(newValue) => {
-              formik.setFieldValue(
-                `${actualIndex}.description`,
-                newValue,
-                true
-              );
-              if (isLastRow) {
-                setTimeout(() => {
-                  formik.setFieldValue(
-                    formik.values.length,
-                    {
-                      uid: uuid(),
-                      name: '',
-                      value: '',
-                      type: 'text',
-                      secret: isSecretTab,
-                      enabled: true
-                    },
-                    false
-                  );
-                }, 0);
-              }
-            }}
-            onSave={handleSave}
+            formik={formik}
+            handleSave={handleSave}
           />
         </td>
         <td>
@@ -452,7 +453,7 @@ const EnvVarRow = React.memo(
       && prev.storedTheme === next.storedTheme
       && prev.collection === next.collection
       && prev.isSecretTab === next.isSecretTab
-      && prev.duplicateSecretNames === next.duplicateSecretNames
+      && prev.rowError === next.rowError
     );
   }
 );
@@ -616,10 +617,12 @@ const EnvironmentVariablesTable = ({
   const mountedRef = useRef(false);
   const pendingDraftRestoreRef = useRef(false);
 
-  const globalEnvironmentVariables = getGlobalEnvironmentVariables({
-    globalEnvironments,
-    activeGlobalEnvironmentUid
-  });
+  const globalEnvironmentVariables = useMemo(() => {
+    return getGlobalEnvironmentVariables({
+      globalEnvironments,
+      activeGlobalEnvironmentUid
+    });
+  }, [globalEnvironments, activeGlobalEnvironmentUid]);
   const workspaceProcessEnvVariables = activeWorkspace?.processEnvVariables;
   // `_collection` flows into every row's MultiLineEditor as the variable-resolution
   // context. Without memoization, `cloneDeep(collection)` runs on every render —
@@ -675,6 +678,8 @@ const EnvironmentVariablesTable = ({
     // switches are handled by the `key={environment.uid}` remount, not reinit.
     enableReinitialize: false,
     initialValues: initialValues,
+    validateOnChange: false,
+    validateOnBlur: false,
     validationSchema: Yup.array().of(
       Yup.object({
         enabled: Yup.boolean(),
@@ -729,6 +734,12 @@ const EnvironmentVariablesTable = ({
     },
     onSubmit: () => {}
   });
+
+  const valuesRef = useRef(formik.values);
+  valuesRef.current = formik.values;
+  const formikRef = useRef(formik);
+  formikRef.current = formik;
+
   const buildSortOrder = useCallback(
     (variables, mode) => {
       if (mode === 'default') return null;
@@ -771,19 +782,20 @@ const EnvironmentVariablesTable = ({
 
   const handleRowReorder = useCallback(
     (fromUid, toUid) => {
+      const currentValues = valuesRef.current;
       const belongsToActiveTab = (variable) =>
         !!variable.secret === isSecretTab;
       const reordered = reorderWithinSubset(
-        formik.values,
+        currentValues,
         belongsToActiveTab,
         fromUid,
         toUid
       );
-      if (reordered !== formik.values) {
-        formik.setValues(reordered);
+      if (reordered !== currentValues) {
+        formikRef.current.setValues(reordered);
       }
     },
-    [formik, isSecretTab]
+    [isSecretTab]
   );
 
   const { draggingKey, dragOverKey, handleDragHandleMouseDown, cancelDrag }
@@ -796,14 +808,35 @@ const EnvironmentVariablesTable = ({
     cancelDrag();
   }, [variableType, cancelDrag]);
 
+  const prevDuplicateSecretNamesRef = useRef(new Set());
+  const duplicateSecretNames = useMemo(() => {
+    const nextSet = getDuplicateSecretNames(formik.values);
+    const prevSet = prevDuplicateSecretNamesRef.current;
+    if (
+      prevSet.size === nextSet.size
+      && [...prevSet].every((name) => nextSet.has(name))
+    ) {
+      return prevSet;
+    }
+    prevDuplicateSecretNamesRef.current = nextSet;
+    return nextSet;
+  }, [formik.values]);
+
   const dragContext = useMemo(
     () => ({
       dragEnabled,
       dragOverKey,
       draggingKey,
-      lastFormikIndex: formik.values.length - 1
+      lastFormikIndex: formik.values.length - 1,
+      duplicateSecretNames
     }),
-    [dragEnabled, dragOverKey, draggingKey, formik.values.length]
+    [
+      dragEnabled,
+      dragOverKey,
+      draggingKey,
+      formik.values.length,
+      duplicateSecretNames
+    ]
   );
 
   // Restore draft values on mount or environment switch (not on external filesystem reloads)
@@ -922,50 +955,32 @@ const EnvironmentVariablesTable = ({
     onDraftClear
   ]);
 
-  const duplicateSecretNames = useMemo(
-    () => getDuplicateSecretNames(formik.values),
-    [formik.values]
-  );
-
-  const ErrorMessage = ({ name, index }) => {
-    const meta = formik.getFieldMeta(name);
-    const id = `error-${name}-${index}`;
-
+  const getRowError = (variable, index) => {
     const isLastRow = index === formik.values.length - 1;
-    const variable = formik.values[index];
     const isEmptyRow = !variable?.name || variable.name.trim() === '';
 
     if (isLastRow && isEmptyRow) {
       return null;
     }
 
-    const isDuplicateSecret
-      = variable?.secret
-        && !isEmptyRow
-        && duplicateSecretNames.has(variable.name.trim());
-    const error
-      = meta.error
-        || (isDuplicateSecret ? DUPLICATE_SECRET_NAME_FIELD_ERROR : null);
-
-    if (!error) {
-      return null;
+    if (!variable?.name || variable.name.trim() === '') {
+      return 'Name cannot be empty';
     }
-    return (
-      <span>
-        <IconAlertCircle
-          id={id}
-          data-testid="env-var-name-error"
-          className="text-red-600 cursor-pointer"
-          size={20}
-        />
-        <Tooltip className="tooltip-mod" anchorId={id} html={error} />
-      </span>
-    );
+
+    if (!variableNameRegex.test(variable.name)) {
+      return 'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.';
+    }
+
+    if (variable.secret && duplicateSecretNames.has(variable.name.trim())) {
+      return DUPLICATE_SECRET_NAME_FIELD_ERROR;
+    }
+
+    return null;
   };
 
   const handleRemoveVar = useCallback(
     (id) => {
-      const currentValues = formik.values;
+      const currentValues = valuesRef.current;
 
       if (!currentValues || currentValues.length === 0) {
         return;
@@ -1003,24 +1018,25 @@ const EnvironmentVariablesTable = ({
             }
           ];
 
-      formik.setValues(newValues);
+      formikRef.current.setValues(newValues);
     },
-    [formik.values]
+    [isSecretTab]
   );
 
   const handleNameChange = useCallback(
     (index, e) => {
-      formik.handleChange(e);
-      // Touch the field as it changes so its validation icon surfaces while typing, not only after blur.
-      formik.setFieldTouched(`${index}.name`, true, false);
-      const isLastRow = index === formik.values.length - 1;
+      const newName = e.target.value;
+      const currentValues = valuesRef.current;
+      const isLastRow = index === currentValues.length - 1;
 
-      if (isLastRow) {
-        // Pin the newly-named row's secret flag to the active tab synchronously; the
-        // passive sync effect runs after paint and is racy for fast input.
-        formik.setFieldValue(`${index}.secret`, isSecretTab, false);
-
-        const newVariable = {
+      if (isLastRow && newName.trim() !== '') {
+        const newValues = [...currentValues];
+        newValues[index] = {
+          ...newValues[index],
+          name: newName,
+          secret: isSecretTab
+        };
+        newValues.push({
           uid: uuid(),
           name: '',
           value: '',
@@ -1028,31 +1044,22 @@ const EnvironmentVariablesTable = ({
           secret: isSecretTab,
           enabled: true,
           description: ''
-        };
-        setTimeout(() => {
-          formik.setFieldValue(formik.values.length, newVariable, false);
-        }, 0);
+        });
+        formikRef.current.setValues(newValues);
+      } else {
+        formikRef.current.setFieldValue(`${index}.name`, newName, false);
       }
     },
-    [formik, isSecretTab]
+    [isSecretTab]
   );
 
-  const handleNameBlur = useCallback(
-    (index) => {
-      formik.setFieldTouched(`${index}.name`, true, true);
-    },
-    [formik]
-  );
+  const handleNameBlur = useCallback((index) => {}, []);
 
-  const handleNameKeyDown = useCallback(
-    (index, e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        formik.setFieldTouched(`${index}.name`, true, true);
-      }
-    },
-    [formik]
-  );
+  const handleNameKeyDown = useCallback((index, e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+    }
+  }, []);
 
   const handleSave = useCallback(() => {
     const belongsToActiveTab = (variable) =>
@@ -1454,6 +1461,7 @@ const EnvironmentVariablesTable = ({
             const isLastRow = actualIndex === formik.values.length - 1;
             const isEmptyRow = !variable.name || variable.name.trim() === '';
             const isLastEmptyRow = isLastRow && isEmptyRow;
+            const rowError = getRowError(variable, actualIndex);
 
             return (
               <EnvVarRow
@@ -1468,6 +1476,7 @@ const EnvironmentVariablesTable = ({
                 isSecretTab={isSecretTab}
                 storedTheme={storedTheme}
                 collection={_collection}
+                rowError={rowError}
                 formik={formik}
                 handleRowFocus={handleRowFocus}
                 handleSave={handleSave}
@@ -1477,7 +1486,6 @@ const EnvironmentVariablesTable = ({
                 handleRemoveVar={handleRemoveVar}
                 handleDragHandleMouseDown={handleDragHandleMouseDown}
                 renderExtraValueContent={renderExtraValueContent}
-                duplicateSecretNames={duplicateSecretNames}
               />
             );
           }}
