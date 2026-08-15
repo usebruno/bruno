@@ -33,14 +33,23 @@ const Wrapper = styled.div`
     font-size: 12px;
     line-height: 1.4;
   }
+
+  .empty-app-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
 `;
 
-const EmptyAppState = ({ title = 'No app yet', hint }) => (
+const EmptyAppState = ({ title = 'No app yet', hint, actions }) => (
   <Wrapper data-testid="empty-app-state">
     <div className="empty-app-inner">
       <IconAppWindow size={32} strokeWidth={1.25} />
       <div className="empty-app-title">{title}</div>
       {hint ? <div className="empty-app-hint">{hint}</div> : null}
+      {actions ? <div className="empty-app-actions">{actions}</div> : null}
     </div>
   </Wrapper>
 );

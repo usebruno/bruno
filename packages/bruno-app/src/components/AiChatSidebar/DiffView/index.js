@@ -194,7 +194,11 @@ const DiffView = ({ originalCode, newCode, onAccept, onReject, status, contentTy
         </div>
       )}
 
-      {isExpanded && <div className="diff-content">{renderHunks()}</div>}
+      {isExpanded && (
+        <div className="diff-content">
+          <div className="diff-lines">{renderHunks()}</div>
+        </div>
+      )}
 
       <button className="diff-toggle" onClick={() => setIsExpanded((v) => !v)}>
         {isExpanded ? (

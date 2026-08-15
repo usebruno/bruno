@@ -72,9 +72,9 @@ test.describe('bru.setGlobalEnvVar(name, value) - secret variable persistence (w
         await expect(locators.environment.varRow('apiToken')).toBeVisible();
 
         await locators.environment.varRowEyeToggle('apiToken').click();
-        await expect(locators.environment.varRow('apiToken').locator('.CodeMirror').first())
+        await expect(locators.environment.varRowValueEditor('apiToken'))
           .toHaveClass(/CodeMirror-empty/);
-        await expect(locators.environment.varRow('apiToken').locator('.CodeMirror'))
+        await expect(locators.environment.varRowValueEditor('apiToken'))
           .not.toContainText(NEW_VALUE);
 
         await closeEnvironmentPanel(page, 'global');
@@ -117,7 +117,7 @@ test.describe('bru.setGlobalEnvVar(name, value) - secret variable persistence (w
         await expect(envTab.locator('.close-gradient')).not.toHaveClass(/has-changes/);
 
         await locators.environment.varRowEyeToggle('apiToken').click();
-        await expect(locators.environment.varRow('apiToken').locator('.CodeMirror'))
+        await expect(locators.environment.varRowValueEditor('apiToken'))
           .toContainText(NEW_VALUE);
 
         await closeEnvironmentPanel(page, 'global');
@@ -171,7 +171,7 @@ test.describe('bru.setGlobalEnvVar(name, value) - secret variable persistence (w
         await locators.environment.secretsTab().click();
         await expect(locators.environment.varRow('apiToken')).toBeVisible();
         await locators.environment.varRowEyeToggle('apiToken').click();
-        await expect(locators.environment.varRow('apiToken').locator('.CodeMirror'))
+        await expect(locators.environment.varRowValueEditor('apiToken'))
           .toContainText(INITIAL_VALUE);
         await closeEnvironmentPanel(page, 'global');
 
@@ -202,9 +202,9 @@ test.describe('bru.setGlobalEnvVar(name, value) - secret variable persistence (w
         await expect(envTab.locator('.close-gradient')).not.toHaveClass(/has-changes/);
 
         await locators.environment.varRowEyeToggle('apiToken').click();
-        await expect(locators.environment.varRow('apiToken').locator('.CodeMirror'))
+        await expect(locators.environment.varRowValueEditor('apiToken'))
           .toContainText(NEW_VALUE);
-        await expect(locators.environment.varRow('apiToken').locator('.CodeMirror'))
+        await expect(locators.environment.varRowValueEditor('apiToken'))
           .not.toContainText(INITIAL_VALUE);
         await closeEnvironmentPanel(page, 'global');
 

@@ -1,0 +1,25 @@
+meta {
+  name: api
+}
+
+headers {
+  @description('''Single-line header desc''')
+  X-Version: 2.0
+  @description('''
+    Header line one
+    Header line two
+  ''')
+  X-Multi: value
+  X-Plain: plain-value
+}
+
+vars:pre-request {
+  @description('''Single-line var desc''')
+  baseUrl: https://example.com
+  @description('''
+    Var line one
+    Var line two
+  ''')
+  apiKey: abc123
+  plain: no-desc
+}

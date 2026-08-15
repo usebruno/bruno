@@ -259,3 +259,103 @@ describe('collectionChangeFileEvent — raw content', () => {
     expect(item.draft.request.url).toBe('https://example.com/locally-edited');
   });
 });
+
+describe('collectionChangeFileEvent — failed parse', () => {
+  const makeFailedFileEvent = ({ raw = 'meta {\n  name: user_info', message = 'unexpected token' } = {}) => ({
+    file: {
+      meta: {
+        collectionUid: COLLECTION_UID,
+        pathname: '/coll/user_info.bru',
+        name: 'user_info.bru'
+      },
+      data: {
+        uid: ITEM_UID,
+        name: 'user_info',
+        type: 'http-request',
+        raw
+      },
+      partial: true,
+      loading: false,
+      size: 0,
+      error: { message }
+    }
+  });
+
+  const makeSuccessFileEvent = ({ raw, request = makeRequest(), seq = 1 } = {}) => ({
+    file: {
+      meta: {
+        collectionUid: COLLECTION_UID,
+        pathname: '/coll/user_info.bru',
+        name: 'user_info.bru'
+      },
+      data: {
+        uid: ITEM_UID,
+        name: 'user_info',
+        type: 'http-request',
+        seq,
+        raw,
+        request
+      },
+      size: 0.001
+    }
+  });
+
+  test('flags the item as not-loaded and keeps the raw content', () => {
+    const state = reducer(makeInitialState(), collectionChangeFileEvent(makeFailedFileEvent()));
+
+    const item = state.collections[0].items[0];
+    expect(item.partial).toBe(true);
+    expect(item.loading).toBe(false);
+    expect(item.error).toEqual({ message: 'unexpected token' });
+    expect(item.raw).toBe('meta {\n  name: user_info');
+  });
+
+  test('does not wipe a user draft on a failed parse', () => {
+    let state = makeInitialState({ fileMode: true });
+    state = reducer(
+      state,
+      updateFileContent({ collectionUid: COLLECTION_UID, itemUid: ITEM_UID, content: 'unsaved edit' })
+    );
+
+    state = reducer(state, collectionChangeFileEvent(makeFailedFileEvent()));
+
+    const item = state.collections[0].items[0];
+    expect(item.draft).not.toBeNull();
+    expect(item.draft.raw).toBe('unsaved edit');
+  });
+
+  test('clears the not-loaded flags when a subsequent valid save arrives', () => {
+    let state = reducer(makeInitialState(), collectionChangeFileEvent(makeFailedFileEvent()));
+    expect(state.collections[0].items[0].partial).toBe(true);
+
+    const fixedRaw = 'meta {\n  name: user_info\n}';
+    state = reducer(
+      state,
+      collectionChangeFileEvent(makeSuccessFileEvent({ raw: fixedRaw, request: makeRequest({ url: 'https://example.com/fixed' }) }))
+    );
+
+    const item = state.collections[0].items[0];
+    expect(item.partial).toBeFalsy();
+    expect(item.error).toBeFalsy();
+    expect(item.raw).toBe(fixedRaw);
+    expect(item.request.url).toBe('https://example.com/fixed');
+  });
+
+  test('recovers an item that mounted with an empty request (corrupted from the start)', () => {
+    const state0 = makeInitialState({ item: { request: {}, partial: true, error: { message: 'bad' }, loading: false } });
+
+    const fixedRaw = 'meta {\n  name: user_info\n}\n\nget {\n  url: https://example.com/recovered\n}';
+    const state = reducer(
+      state0,
+      collectionChangeFileEvent(
+        makeSuccessFileEvent({ raw: fixedRaw, request: makeRequest({ url: 'https://example.com/recovered' }) })
+      )
+    );
+
+    const item = state.collections[0].items[0];
+    expect(item.partial).toBeFalsy();
+    expect(item.error).toBeFalsy();
+    expect(item.request.url).toBe('https://example.com/recovered');
+    expect(item.raw).toBe(fixedRaw);
+  });
+});

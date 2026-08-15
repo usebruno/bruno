@@ -9,6 +9,7 @@ export interface EnvironmentVariable {
   type: 'text';
   enabled?: boolean;
   secret?: boolean;
+  description?: string | null;
   dataType?: EnvironmentVariableDataType;
   annotations?: Annotation[] | null;
 }

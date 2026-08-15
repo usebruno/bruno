@@ -13,24 +13,25 @@ import {
   IconCheck,
   IconFolder,
   IconUpload,
+  IconServer2,
   IconFileCode,
   IconFileOff,
   IconCode,
   IconAppWindow,
-  IconTransform,
-  IconStars
+  IconTransform
 } from '@tabler/icons';
+import IconSparkles from 'components/Icons/IconSparkles';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { toggleCollectionFileMode, toggleAppMode } from 'providers/ReduxStore/slices/collections';
+import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections';
 import { toggleAiSidebar } from 'providers/ReduxStore/slices/chat';
-import MigrateToYmlModal from 'components/CollectionSettings/Overview/Migration/MigrateToYmlModal';
+import { showMigrateToYmlModal } from 'providers/ReduxStore/slices/collection-migration';
 import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
 import find from 'lodash/find';
 import get from 'lodash/get';
-import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
+import { addTab, focusTab, setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
 import Dropdown from 'components/Dropdown';
@@ -46,12 +47,13 @@ import { normalizePath } from 'utils/common/path';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
-
-const MIGRATE_PILL_DISMISSED_KEY = 'bruno.migrateToYmlPill.dismissed';
+import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
+import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
+import { getMockServerInstances, openMockServerDashboard } from 'utils/mock-server/mock-server-instances';
 
 const readDismissedCollections = () => {
   try {
-    const raw = localStorage.getItem(MIGRATE_PILL_DISMISSED_KEY);
+    const raw = localStorage.getItem('bruno.migrateToYmlPill.dismissed');
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -74,6 +76,8 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   // Get the current active workspace
   const currentWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const gitRootPath = collection?.git?.gitRootPath;
+  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
+  const mockServerInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
 
   // Active request (used by the Request / App / File view-mode toggle)
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -82,13 +86,15 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
       || (focusedTab.pathname ? findItemInCollectionByPathname(collection, focusedTab.pathname) : null))
     : null;
   const isHttpRequestActive = activeItem?.type === 'http-request';
-  const appEnabled = activeItem
-    ? (activeItem.draft ? get(activeItem, 'draft.app.enabled', false) : get(activeItem, 'app.enabled', false))
-    : false;
+  const activeItemSource = activeItem ? activeItem.draft || activeItem : null;
+  // The "Enable App" request setting (persisted as app.enabled) gates the whole
+  // Request/App/File mode toggle.
+  const appAvailable = isHttpRequestActive && get(activeItemSource, 'app.enabled', false) === true;
+  const appEnabled = appAvailable && focusedTab?.appPreview !== false;
 
   const handleToggleAppMode = (enabled) => {
     if (isHttpRequestActive) {
-      dispatch(toggleAppMode({ enabled, itemUid: activeItem.uid, collectionUid: collection.uid }));
+      dispatch(setTabAppPreview({ uid: focusedTab.uid, appPreview: enabled }));
     }
   };
 
@@ -98,9 +104,8 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const [workspaceNameError, setWorkspaceNameError] = useState('');
   const [closeWorkspaceModalOpen, setCloseWorkspaceModalOpen] = useState(false);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
-  const [showMigrateModal, setShowMigrateModal] = useState(false);
+  const [showCreateMockServerModal, setShowCreateMockServerModal] = useState(false);
 
-  // Migrate-to-YML pill dismissal state (persisted by collection pathname)
   const [migratePillDismissed, setMigratePillDismissed] = useState(true);
   useEffect(() => {
     if (!collection?.pathname) return;
@@ -115,10 +120,20 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     if (!dismissed.includes(collection.pathname)) {
       dismissed.push(collection.pathname);
       try {
-        localStorage.setItem(MIGRATE_PILL_DISMISSED_KEY, JSON.stringify(dismissed));
+        localStorage.setItem('bruno.migrateToYmlPill.dismissed', JSON.stringify(dismissed));
       } catch { }
     }
     setMigratePillDismissed(true);
+  };
+
+  const openMigrateToYmlModal = () => {
+    dispatch(
+      showMigrateToYmlModal({
+        collectionUid: collection.uid,
+        collectionPathname: collection.pathname,
+        collectionName: collection.name
+      })
+    );
   };
 
   const switcherRef = useRef();
@@ -285,6 +300,19 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     }));
   };
 
+  const viewMockServer = () => {
+    const existingInstance = mockServerInstances.find((instance) => (
+      instance.sourceType === 'collection' && instance.collectionUid === collection.uid
+    ));
+
+    if (existingInstance) {
+      dispatch(openMockServerDashboard(existingInstance, collection.uid));
+      return;
+    }
+
+    setShowCreateMockServerModal(true);
+  };
+
   const handleFileModeClick = () => {
     dispatch(
       toggleCollectionFileMode({
@@ -296,13 +324,16 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   // Build overflow menu items for the "..." dropdown
   const overflowMenuItems = [
     { id: 'variables', label: 'Variables', leftSection: IconEye, onClick: viewVariables },
-    // File mode is exposed via the Request/App/File view-mode toggle when a request is active;
-    // keep it in the overflow as a fallback for non-request contexts.
-    ...(!isHttpRequestActive
+    // File mode is exposed via the Request/App/File view-mode toggle when the active
+    // request has apps enabled; keep it in the overflow as a fallback everywhere else.
+    ...(!appAvailable
       ? [{ id: 'file-mode', label: collection.fileMode ? 'Switch to Code Mode' : 'Switch to File Mode', leftSection: collection.fileMode ? IconFileOff : IconFileCode, onClick: handleFileModeClick }]
       : []),
     ...(!hasOpenApiSyncConfigured
       ? [{ id: 'openapi-sync', label: 'OpenAPI', leftSection: OpenAPISyncIcon, onClick: viewOpenApiSync }]
+      : []),
+    ...(isMockServerEnabled
+      ? [{ id: 'mock-server', label: 'Mock Server', leftSection: IconServer2, onClick: viewMockServer }]
       : []),
     { id: 'collection-settings', label: 'Collection Settings', leftSection: IconSettings, onClick: viewCollectionSettings }
   ];
@@ -482,7 +513,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   };
 
   return (
-    <StyledWrapper>
+    <StyledWrapper data-testid="collection-header">
       {closeWorkspaceModalOpen && currentWorkspace?.uid && (
         <CloseWorkspace
           workspaceUid={currentWorkspace.uid}
@@ -492,6 +523,13 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
 
       {createWorkspaceModalOpen && (
         <CreateWorkspace onClose={handleAdvancedCreateClose} />
+      )}
+
+      {showCreateMockServerModal && (
+        <CreateMockServerModal
+          defaultCollectionUid={collection.uid}
+          onClose={() => setShowCreateMockServerModal(false)}
+        />
       )}
 
       <div className="flex items-center justify-between gap-2 py-2 px-4">
@@ -555,7 +593,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                 appendTo={() => document.body}
                 icon={(
                   <button className="switcher-trigger">
-                    <span className={classNames('switcher-name', { 'scratch-collection': isScratchCollection })}>{displayName}</span>
+                    <span data-testid="workspace-switcher-name" className={classNames('switcher-name', { 'scratch-collection': isScratchCollection })}>{displayName}</span>
                     <IconChevronDown size={14} strokeWidth={1.5} className="chevron" />
                   </button>
                 )}
@@ -620,7 +658,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
               placement="bottom-start"
               onCreate={onWorkspaceActionsCreate}
               appendTo={() => document.body}
-              icon={<IconDots size={18} strokeWidth={1.5} className="workspace-actions-trigger" />}
+              icon={<IconDots size={18} strokeWidth={1.5} data-testid="workspace-actions-trigger" className="workspace-actions-trigger" />}
             >
               <div className="dropdown-item" onClick={handleRenameWorkspaceClick}>
                 <div className="dropdown-icon">
@@ -650,10 +688,10 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
           )}
         </div>
 
-        <div className="flex flex-grow gap-1.5 items-center justify-end">
+        <div className="header-actions flex gap-1.5 items-center">
           {!isScratchCollection && (
             <>
-              {isHttpRequestActive && (
+              {appAvailable && (
                 <div className="mode-toggle" data-testid="view-mode-toggle">
                   <ToolHint text="Request" toolhintId="ViewModeRequestToolhintId" place="bottom">
                     <button
@@ -708,7 +746,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                     data-testid="ai-assistant"
                     className={isAiSidebarOpen ? 'active' : ''}
                   >
-                    <IconStars size={16} strokeWidth={1.5} />
+                    <IconSparkles size={16} strokeWidth={1.5} />
                   </ActionIcon>
                 </ToolHint>
               )}
@@ -721,7 +759,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   <button
                     type="button"
                     className="pill-main"
-                    onClick={() => setShowMigrateModal(true)}
+                    onClick={openMigrateToYmlModal}
                   >
                     <IconTransform size={13} strokeWidth={1.5} />
                     <span className="pill-label">Migrate to YML</span>
@@ -774,12 +812,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
           )}
         </div>
       </div>
-      {showMigrateModal && (
-        <MigrateToYmlModal
-          collection={collection}
-          onClose={() => setShowMigrateModal(false)}
-        />
-      )}
     </StyledWrapper>
   );
 };

@@ -69,8 +69,7 @@ describe('Testing Framework Translation', () => {
     expect(translatedCode).toContain('bru.setEnvVar("userId", response.user.id);');
   });
 
-  // TODO: Restore once UI update fixes are live for setCollectionVar
-  it.skip('should translate pm.collectionVariables.set inside test functions', () => {
+  it('should translate pm.collectionVariables.set inside test functions', () => {
     const code = 'pm.collectionVariables.set("sessionId", response.session.id);';
     const translatedCode = translateCode(code);
     expect(translatedCode).toContain('bru.setCollectionVar("sessionId", response.session.id);');

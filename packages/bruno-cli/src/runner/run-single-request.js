@@ -9,6 +9,7 @@ const { interpolateString, interpolateObject } = require('./interpolate-string')
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, formatErrorWithContext, SCRIPT_TYPES } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
+const { applyVariableUpdates, persistVariableUpdates } = require('../utils/persist-variables');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { setupProxyAgents } = require('../utils/proxy-util');
@@ -17,8 +18,8 @@ const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const { NtlmClient } = require('axios-ntlm');
-const { addDigestInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
+const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig, applySentHeadersToRequest } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
 const {
@@ -28,7 +29,8 @@ const {
   extractPromptVariables,
   isFormData,
   extractBoundaryFromContentType,
-  hasExplicitScheme
+  hasExplicitScheme,
+  DEFAULT_MAX_REDIRECTS
 } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
@@ -77,6 +79,9 @@ const extractPromptVariablesForRequest = ({ request, collection, envVariables, r
   // client certificate config
   const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
   for (let clientCert of clientCertConfig) {
+    if (clientCert?.disabled) {
+      continue;
+    }
     const domain = interpolateString(clientCert?.domain, interpolationOptions);
     if (domain) {
       const hostRegex = getCACertHostRegex(domain);
@@ -101,8 +106,32 @@ const runSingleRequest = async function (
   runtime,
   collection,
   runSingleRequestByPathname,
-  globalEnvVars = {}
+  globalEnvVars = {},
+  persistPaths = {}
 ) {
+  const syncVariableUpdates = (result, currentRequest) => {
+    if (!result) return;
+    applyVariableUpdates(result, {
+      envVariables,
+      runtimeVariables,
+      globalEnvVars,
+      request: currentRequest
+    });
+    // Persistence is a side effect — never tank the run for it. In CI, env files may sit on
+    // read-only mounts or the user's shell may lack write permissions; log and continue.
+    try {
+      persistVariableUpdates(result, {
+        envFile: persistPaths.envFile,
+        globalEnvFile: persistPaths.globalEnvFile,
+        collection,
+        collectionRootPath: persistPaths.collectionRootPath,
+        envVarOverrides: persistPaths.envVarOverrides,
+        globalEnvVarOverrides: persistPaths.globalEnvVarOverrides
+      });
+    } catch (err) {
+      console.warn(chalk.yellow(`Warning: failed to persist variable updates: ${err.message}`));
+    }
+  };
   const { pathname: itemPathname } = item;
   const relativeItemPathname = path.relative(collectionPath, itemPathname);
 
@@ -236,6 +265,7 @@ const runSingleRequest = async function (
           scriptingConfig,
           runSingleRequestByPathname,
           collectionName);
+        syncVariableUpdates(result, request);
         if (result?.nextRequestName !== undefined) {
           nextRequestName = result.nextRequestName;
         }
@@ -288,6 +318,9 @@ const runSingleRequest = async function (
 
         // Extract partial results from the error (tests that passed before the error)
         preRequestTestResults = error?.partialResults?.results || [];
+
+        // Persist any variable changes the script made before erroring
+        syncVariableUpdates(error?.partialResults, request);
 
         // Preserve nextRequestName if it was set before the error
         if (error?.partialResults?.nextRequestName !== undefined) {
@@ -347,12 +380,12 @@ const runSingleRequest = async function (
       }
     }
 
-    if (request.settings?.encodeUrl) {
-      request.url = encodeUrl(request.url);
-    }
-
     if (!hasExplicitScheme(request.url)) {
       request.url = `http://${request.url}`;
+    }
+
+    if (request.settings?.encodeUrl) {
+      request.url = encodeUrl(request.url);
     }
 
     const insecure = get(options, 'insecure', false);
@@ -380,6 +413,9 @@ const runSingleRequest = async function (
     // client certificate config
     const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
     for (let clientCert of clientCertConfig) {
+      if (clientCert?.disabled) {
+        continue;
+      }
       const domain = interpolateString(clientCert?.domain, interpolationOptions);
       const type = clientCert?.type || 'cert';
       if (domain) {
@@ -522,12 +558,15 @@ const runSingleRequest = async function (
     // Get followRedirects setting, default to true for backward compatibility
     const followRedirects = request.settings?.followRedirects ?? true;
 
+    // Get forwardAuthorizationHeader setting, default to true for backward compatibility
+    const forwardAuthorizationHeader = request.settings?.forwardAuthorizationHeader ?? true;
+
     // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
-    let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
+    let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
 
     // Ensure it's a valid number
     if (typeof requestMaxRedirects !== 'number' || requestMaxRedirects < 0) {
-      requestMaxRedirects = 5; // Default to 5 redirects
+      requestMaxRedirects = DEFAULT_MAX_REDIRECTS;
     }
 
     // If followRedirects is disabled, set maxRedirects to 0 to disable all redirects
@@ -628,6 +667,7 @@ const runSingleRequest = async function (
         requestMaxRedirects: requestMaxRedirects,
         disableCookies: options.disableCookies,
         followRedirects: followRedirects,
+        forwardAuthorizationHeader: forwardAuthorizationHeader,
         proxyMode,
         proxyConfig,
         systemProxyConfig: cachedSystemProxy,
@@ -672,6 +712,11 @@ const runSingleRequest = async function (
         delete request.digestConfig;
       }
 
+      if (request.edgeGridConfig) {
+        addEdgeGridInterceptor(axiosInstance, request);
+        delete request.edgeGridConfig;
+      }
+
       /** @type {import('axios').AxiosResponse} */
       response = await axiosInstance(request);
 
@@ -704,6 +749,7 @@ const runSingleRequest = async function (
         }
       } else {
         console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
+        applySentHeadersToRequest(request, err);
         return {
           test: {
             filename: relativeItemPathname
@@ -737,6 +783,7 @@ const runSingleRequest = async function (
     }
 
     response.responseTime = responseTime;
+    applySentHeadersToRequest(request, response);
 
     console.log(
       chalk.green(stripExtension(relativeItemPathname))
@@ -750,7 +797,7 @@ const runSingleRequest = async function (
     const postResponseVars = get(item, 'request.vars.res');
     if (postResponseVars?.length) {
       const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
-      varsRuntime.runPostResponseVars(
+      const result = varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
         response,
@@ -759,6 +806,9 @@ const runSingleRequest = async function (
         collectionPath,
         processEnvVars
       );
+      // Expressions can invoke bru.setEnvVar / setGlobalEnvVar / setCollectionVar as a side effect,
+      // mirroring how the desktop app surfaces these mutations after the vars block.
+      syncVariableUpdates(result, request);
     }
 
     // run post response script
@@ -779,6 +829,7 @@ const runSingleRequest = async function (
           runSingleRequestByPathname,
           collectionName
         );
+        syncVariableUpdates(result, request);
         if (result?.nextRequestName !== undefined) {
           nextRequestName = result.nextRequestName;
         }
@@ -809,6 +860,8 @@ const runSingleRequest = async function (
             isScriptError: true
           }
         ];
+
+        syncVariableUpdates(error?.partialResults, request);
 
         if (error?.partialResults?.nextRequestName !== undefined) {
           nextRequestName = error.partialResults.nextRequestName;
@@ -855,6 +908,7 @@ const runSingleRequest = async function (
           runSingleRequestByPathname,
           collectionName
         );
+        syncVariableUpdates(result, request);
         testResults = get(result, 'results', []);
 
         if (result?.nextRequestName !== undefined) {
@@ -886,6 +940,8 @@ const runSingleRequest = async function (
             isScriptError: true
           }
         ];
+
+        syncVariableUpdates(error?.partialResults, request);
 
         if (error?.partialResults?.nextRequestName !== undefined) {
           nextRequestName = error.partialResults.nextRequestName;

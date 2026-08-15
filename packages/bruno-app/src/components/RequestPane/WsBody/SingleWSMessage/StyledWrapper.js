@@ -3,6 +3,11 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   border-bottom: 1px solid ${(props) => props.theme.border.border0};
 
+  /* No divider below the last message */
+  &:last-child {
+    border-bottom: none;
+  }
+
   /* Dim the row content when disabled, but not the tooltip */
   .accordion-left > :not(.toolhint),
   .accordion-actions,
@@ -19,6 +24,15 @@ const StyledWrapper = styled.div`
   }
 
   .accordion-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: ${(props) => props.theme.bg};
+
+    &:hover {
+      z-index: 2;
+    }
+
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -102,7 +116,7 @@ const StyledWrapper = styled.div`
   }
 
   &:not(.disabled) .accordion-header .message-label {
-    color: ${(props) => props.theme.primary.text};
+    color: ${(props) => props.theme.ws.activeMessage.label};
   }
 `;
 

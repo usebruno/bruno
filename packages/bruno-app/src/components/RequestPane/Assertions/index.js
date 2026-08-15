@@ -8,6 +8,7 @@ import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import SingleLineEditor from 'components/SingleLineEditor';
 import AssertionOperator from './AssertionOperator';
 import EditableTable from 'components/EditableTable';
+import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
@@ -91,13 +92,22 @@ const Assertions = ({ item, collection }) => {
     }));
   }, [dispatch, collection.uid, item.uid]);
 
+  const descriptionColumn = createDescriptionColumn({
+    theme: storedTheme,
+    onSave,
+    onRun: handleRun,
+    collection,
+    item,
+    nameFromRowIndex: true
+  });
+
   const columns = [
     {
       key: 'name',
       name: 'Expr',
       isKeyField: true,
       placeholder: 'Expr',
-      width: '30%'
+      width: '20%'
     },
     {
       key: 'operator',
@@ -161,13 +171,15 @@ const Assertions = ({ item, collection }) => {
           />
         );
       }
-    }
+    },
+    descriptionColumn
   ];
 
   const defaultRow = {
     name: '',
     value: 'eq ',
-    operator: 'eq'
+    operator: 'eq',
+    description: ''
   };
 
   return (

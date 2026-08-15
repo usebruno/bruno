@@ -35,10 +35,10 @@
 Remember, these rules are here to make our codebase harmonious. If something doesn't fit perfectly, let's chat about it. Happy coding! 🚀
 
 
-## Tests 
+## Tests
 
 - Add tests for any new functionality or meaningful changes. If code is added, removed, or significantly modified, corresponding tests should be updated or created.
- 
+
 - Prioritise high-value tests over maximum coverage. Focus on testing behaviour that is critical, complex, or likely to break—don’t chase coverage numbers for their own sake.
 
 - Write behaviour-driven tests, not implementation-driven ones. Tests should validate real expected output and observable behaviour, not internal details or mocked-out logic unless absolutely necessary.
@@ -59,7 +59,7 @@ Remember, these rules are here to make our codebase harmonious. If something doe
 
 - Tests should be fast enough to run continuously. Avoid long-running operations unless absolutely necessary; prefer lightweight fixtures and isolated units.
 
-### E2E Tests 
+### E2E Tests
 
 When reviewing Electron-specific Playwright tests, treat `<project-root>/tests/**` as the canonical location for specs, typically matching `<project-root>/tests/**/*.spec.{ts,js}`. For broader Playwright workflow guidance, also refer to `docs/playwright-testing-guide.md`.
 
@@ -94,6 +94,8 @@ Rules:
    - Assert: verify observable behavioural outcome.
    - Cleanup: remove isolated resources.
 
+6. Centralise locators and actions in page modules under `tests/utils/page/*` — never inline raw selectors in a spec. See the **Best Practices** section of `docs/playwright-testing-guide.md` for the page-module pattern and `buildCommonLocators` usage.
+
 For each test file:
 - Identify behavioural vs non-behavioural tests.
 - Flag brittle selectors, hardcoded waits, shared state, serial dependencies, and fake assertions.
@@ -101,12 +103,12 @@ For each test file:
 - Make them parallel-ready.
 - Explain briefly why each rewrite is better.
 
-## UI Specific instructions 
+## UI Specific instructions
 
 ### React
 
-- Use styled component's theme prop to manage CSS colors and not CSS variables when in the context of a styled component or any react component using the styled component 
-- Styled Components are used as wrappers to define both self and children components style, tailwind classes are used specifically for layout based styles. 
+- Use styled component's theme prop to manage CSS colors and not CSS variables when in the context of a styled component or any react component using the styled component
+- Styled Components are used as wrappers to define both self and children components style, tailwind classes are used specifically for layout based styles.
 - Styled Component CSS might also change layout but tailwind classes shouldn't define colors.
 - MUST: Prefer custom hooks for business logic, data fetching, and side-effects.
 - MUST: Avoid `useEffect` unless absolutely needed. Prefer derived state, event handlers.
@@ -122,9 +124,11 @@ For each test file:
 
 ## Readability and Abstractions
 
-- Avoid abstractions unless the exact same code is being used in more than 3 places.
+- Extract abstractions that improve readability or serve clear, anticipated reuse.
+- Avoid abstractions that add complexity without improving clarity or earning reuse.
 - Names for functions need to be concise and descriptive.
 - Add in JSDoc comments to add more details to the abstractions if needed.
 - Follow functional programming but just enough to be readable, we don't need to go as deep as ADTs and Monads, we want to keep the code pipeline obvious and easy for everyone to read and contribute to.
 - Avoid single line abstractions where all that's being done is increasing the call stack with one additional function.
 - Add in meaningful comments instead of obvious ones where complex code flow is explained properly.
+- Avoid optional chaining (`?.`) where it doesn't make sense — it hides whether a value can genuinely be null and works against TypeScript's guarantees. Only use it when the null case is handled right there (fallback, early return, or guard); otherwise fix the type or narrow first.
