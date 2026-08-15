@@ -11,7 +11,7 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import { saveMockResponse, deleteMockResponse, loadMockResponses, startMockServer, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
 import { closeTabs, updateTabMeta, updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
-import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest } from 'utils/mock-server/mock-responses';
+import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest, getMockResponseNameError, getMockResponseDescriptionError } from 'utils/mock-server/mock-responses';
 import {
   findMockServerInstance,
   resolveMockServerStartPayload,
@@ -25,7 +25,7 @@ import StyledWrapper from 'components/ResponseExample/StyledWrapper';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
-const MIN_TOP_PANE_HEIGHT = 150;
+const MIN_TOP_PANE_HEIGHT = 210;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
 
 const MockResponse = ({ instance, collection, responseUid }) => {
@@ -225,8 +225,10 @@ const MockResponse = ({ instance, collection, responseUid }) => {
         editor.savedMockResponse
       );
 
-      if (!mockResponse.name?.trim()) {
-        toast.error('Mock response name is required');
+      const validationError = getMockResponseNameError(mockResponse.name)
+        || getMockResponseDescriptionError(mockResponse.description);
+      if (validationError) {
+        toast.error(validationError);
         return;
       }
 

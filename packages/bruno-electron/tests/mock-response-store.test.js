@@ -12,7 +12,9 @@ const {
   listMockServers,
   readWorkspaceStore,
   saveMockResponse,
-  saveMockServer
+  saveMockServer,
+  setMockServerResponses,
+  invalidateWorkspaceStoreCache
 } = require('../src/app/mock-server/mock-response-store');
 
 describe('mock-response-store', () => {
@@ -24,6 +26,71 @@ describe('mock-response-store', () => {
 
   afterEach(() => {
     fs.rmSync(workspacePath, { recursive: true, force: true });
+  });
+
+  it('re-reads mockserver.yml from disk after cache invalidation', () => {
+    const location = {
+      mockServerUid: 'mock-1',
+      sourceType: 'spec',
+      workspacePath
+    };
+
+    saveMockResponse(location, {
+      uid: 'response-1',
+      name: 'Users',
+      request: { url: '/users', method: 'GET' },
+      response: { status: 200, body: { type: 'json', content: '{}' } },
+      rules: { operator: 'AND', conditions: [] }
+    });
+
+    const storePath = getWorkspaceStorePath(workspacePath);
+    fs.writeFileSync(storePath, yaml.dump({
+      version: 1,
+      mockServers: {
+        'mock-2': {
+          name: 'Pulled Server',
+          responses: []
+        }
+      }
+    }), 'utf8');
+
+    expect(readWorkspaceStore(workspacePath).mockServers['mock-1']).toBeTruthy();
+
+    invalidateWorkspaceStoreCache(workspacePath);
+
+    const reloaded = readWorkspaceStore(workspacePath);
+    expect(reloaded.mockServers['mock-2']).toBeTruthy();
+    expect(reloaded.mockServers['mock-1']).toBeUndefined();
+  });
+
+  it('keeps a debounced write when the watcher invalidates the cache', () => {
+    const jestWorkerId = process.env.JEST_WORKER_ID;
+    delete process.env.JEST_WORKER_ID;
+    jest.useFakeTimers();
+
+    try {
+      const location = { mockServerUid: 'mock-1', sourceType: 'spec', workspacePath };
+      saveMockResponse(location, { uid: 'response-1', name: 'Users', request: { url: '/users', method: 'GET' } });
+
+      invalidateWorkspaceStoreCache(workspacePath);
+      jest.runAllTimers();
+
+      const written = yaml.load(fs.readFileSync(getWorkspaceStorePath(workspacePath), 'utf8'));
+      expect(written.mockServers['mock-1'].responses).toHaveLength(1);
+    } finally {
+      jest.useRealTimers();
+      process.env.JEST_WORKER_ID = jestWorkerId;
+    }
+  });
+
+  it('throws when mockserver.yml is corrupt instead of replacing it with an empty store', () => {
+    const storePath = getWorkspaceStorePath(workspacePath);
+    const corruptContent = 'mockServers:\n  broken: [';
+    fs.mkdirSync(path.dirname(storePath), { recursive: true });
+    fs.writeFileSync(storePath, corruptContent, 'utf8');
+
+    expect(() => readWorkspaceStore(workspacePath)).toThrow(/Failed to read mock server store/);
+    expect(fs.readFileSync(storePath, 'utf8')).toBe(corruptContent);
   });
 
   it('stores all mock servers in workspace/mocks/mockserver.yml', () => {
@@ -83,6 +150,77 @@ describe('mock-response-store', () => {
     const store = readWorkspaceStore(workspacePath);
     expect(store.mockServers['mock-1'].responses).toHaveLength(1);
     expect(store.mockServers['mock-2'].responses).toHaveLength(1);
+  });
+
+  it('rejects a duplicate mock response name on the same server (case- and whitespace-insensitive)', () => {
+    const location = {
+      mockServerUid: 'mock-1',
+      sourceType: 'spec',
+      workspacePath
+    };
+
+    saveMockResponse(location, {
+      uid: 'response-1',
+      name: 'Users',
+      request: { url: '/users', method: 'GET' },
+      response: { status: 200, body: { type: 'json', content: '{}' } },
+      rules: { operator: 'AND', conditions: [] }
+    });
+
+    expect(() => saveMockResponse(location, {
+      uid: 'response-2',
+      name: '  users  ',
+      request: { url: '/users', method: 'GET' },
+      response: { status: 200, body: { type: 'json', content: '{}' } },
+      rules: { operator: 'AND', conditions: [] }
+    })).toThrow('A mock response with this name already exists');
+
+    // Same uid, same name is a legitimate update — must not throw
+    expect(() => saveMockResponse(location, {
+      uid: 'response-1',
+      name: 'Users',
+      request: { url: '/users', method: 'POST' },
+      response: { status: 201, body: { type: 'json', content: '{}' } },
+      rules: { operator: 'AND', conditions: [] }
+    })).not.toThrow();
+
+    expect(listMockResponses(location)).toHaveLength(1);
+  });
+
+  // append/generate can create sibling responses that already share a name
+  it('allows saving an existing response when a sibling already has the same name', () => {
+    const location = {
+      mockServerUid: 'mock-1',
+      sourceType: 'spec',
+      workspacePath
+    };
+
+    setMockServerResponses(location, [
+      {
+        uid: 'response-1',
+        name: 'Users',
+        request: { url: '/users', method: 'GET' },
+        response: { status: 200, body: { type: 'json', content: '{}' } },
+        rules: { operator: 'AND', conditions: [] }
+      },
+      {
+        uid: 'response-2',
+        name: 'Users',
+        request: { url: '/users/me', method: 'GET' },
+        response: { status: 200, body: { type: 'json', content: '{}' } },
+        rules: { operator: 'AND', conditions: [] }
+      }
+    ]);
+
+    expect(() => saveMockResponse(location, {
+      uid: 'response-1',
+      name: 'Users',
+      request: { url: '/users', method: 'POST' },
+      response: { status: 201, body: { type: 'json', content: '{}' } },
+      rules: { operator: 'AND', conditions: [] }
+    })).not.toThrow();
+
+    expect(listMockResponses(location).find((item) => item.uid === 'response-1').request.method).toBe('POST');
   });
 
   it('removes a mock server block from workspace mockserver.yml on delete', () => {

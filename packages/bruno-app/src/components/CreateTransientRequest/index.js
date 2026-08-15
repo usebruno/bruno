@@ -6,17 +6,11 @@ import { newHttpRequest, newGrpcRequest, newWsRequest } from 'providers/ReduxSto
 import { sanitizeName } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
-import { flattenItems, isItemARequest, isItemTransientRequest } from 'utils/collections';
+import { flattenItems, isItemTransientRequest } from 'utils/collections';
 import filter from 'lodash/filter';
 import { get } from 'lodash';
 import { formatIpcError } from 'utils/common/error';
-
-const REQUEST_TYPE = {
-  HTTP: 'http',
-  GRAPHQL: 'graphql',
-  GRPC: 'grpc',
-  WEBSOCKET: 'websocket'
-};
+import { PRESET_REQUEST_TYPES as REQUEST_TYPE } from 'utils/common/constants';
 
 /**
  * Generate a request name for transient requests in the pattern "Untitled {Count}"
@@ -76,15 +70,6 @@ const CreateTransientRequest = ({ collectionUid }) => {
         }
       });
     }
-  };
-
-  const handleLeftClick = () => {
-    handleItemClick(collectionPresets.requestType);
-  };
-
-  const handleRightClick = (e) => {
-    e.preventDefault();
-    setDropdownVisible(true);
   };
 
   const handleCreateHttpRequest = useCallback(() => {
@@ -185,10 +170,19 @@ const CreateTransientRequest = ({ collectionUid }) => {
       case REQUEST_TYPE.GRPC:
         handleCreateGrpcRequest();
         break;
-      case REQUEST_TYPE.WEBSOCKET:
+      case REQUEST_TYPE.WS:
         handleCreateWebSocketRequest();
         break;
     }
+  };
+
+  const handleLeftClick = () => {
+    handleItemClick(collectionPresets.requestType);
+  };
+
+  const handleRightClick = (e) => {
+    e.preventDefault();
+    setDropdownVisible(true);
   };
 
   if (!collection) {
@@ -233,7 +227,7 @@ const CreateTransientRequest = ({ collectionUid }) => {
         </div>
         <div className="dropdown-label">gRPC</div>
       </div>
-      <div className="dropdown-item" onClick={() => handleItemClick(REQUEST_TYPE.WEBSOCKET)}>
+      <div className="dropdown-item" onClick={() => handleItemClick(REQUEST_TYPE.WS)}>
         <div className="dropdown-icon">
           <IconPlugConnected size={16} strokeWidth={2} />
         </div>

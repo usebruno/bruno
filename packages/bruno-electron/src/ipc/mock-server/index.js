@@ -115,15 +115,6 @@ const registerMockServerIpc = (mainWindow) => {
     }
   });
 
-  ipcMain.handle('renderer:mock-server-set-delay', async (_event, { mockServerUid, collectionUid, delay }) => {
-    try {
-      mockServer.setDelay(mockServerUid || collectionUid, delay);
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
-  });
-
   ipcMain.handle('renderer:mock-server-clear-log', async (_event, { mockServerUid, collectionUid }) => {
     mockServer.clearLog(mockServerUid || collectionUid);
     return { success: true };
@@ -169,14 +160,16 @@ const registerMockServerIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:mock-server-create-response', async (_event, payload) => {
     try {
-      const response = createEmptyMockResponse(payload?.name);
-      if (payload?.description) {
+      validateWorkspacePath(payload.workspacePath);
+
+      const response = createEmptyMockResponse(payload.name);
+      if (payload.description) {
         response.description = payload.description;
       }
-      if (payload?.statusCode) {
+      if (payload.statusCode) {
         response.response.status = Number(payload.statusCode) || 200;
       }
-      if (payload?.bodyType) {
+      if (payload.bodyType) {
         response.response.body.type = payload.bodyType;
       }
       const savedResponse = saveMockResponse(payload, response);
@@ -190,6 +183,9 @@ const registerMockServerIpc = (mainWindow) => {
   ipcMain.handle('renderer:mock-server-save-response', async (_event, payload) => {
     try {
       const { response, ...location } = payload;
+
+      validateWorkspacePath(location.workspacePath);
+
       const savedResponse = saveMockResponse(location, response);
       const routeResult = await mockServer.reloadRoutesFromStore(location.mockServerUid, location);
       return { success: true, response: savedResponse, routes: routeResult?.routes || [] };
@@ -201,6 +197,9 @@ const registerMockServerIpc = (mainWindow) => {
   ipcMain.handle('renderer:mock-server-delete-response', async (_event, payload) => {
     try {
       const { responseUid, ...location } = payload;
+
+      validateWorkspacePath(location.workspacePath);
+
       deleteMockResponse(location, responseUid);
       const routeResult = await mockServer.reloadRoutesFromStore(location.mockServerUid, location);
       return { success: true, responseUid, routes: routeResult?.routes || [] };
@@ -212,6 +211,9 @@ const registerMockServerIpc = (mainWindow) => {
   ipcMain.handle('renderer:mock-server-replace-responses', async (_event, payload) => {
     try {
       const { responses, ...location } = payload;
+
+      validateWorkspacePath(location.workspacePath);
+
       setMockServerResponses(location, responses || []);
       const routeResult = await mockServer.reloadRoutesFromStore(location.mockServerUid, location);
       return { success: true, responses: responses || [], routes: routeResult?.routes || [] };
@@ -252,6 +254,8 @@ const registerMockServerIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:mock-server-delete', async (_event, payload) => {
     try {
+      validateWorkspacePath(payload.workspacePath);
+
       deleteMockServer(payload);
       await mockServer.reloadRoutesFromStore(payload.mockServerUid, payload);
       return { success: true, mockServerUid: payload.mockServerUid };

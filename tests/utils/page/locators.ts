@@ -15,11 +15,19 @@ import { buildToastLocators } from './toast';
 import { buildRequestLocators } from '../request';
 import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildEnvironmentLocators } from './environments';
+import { buildTimelineHeaderLocators } from './timeline-headers';
+import { buildDevToolsLocators } from './devtools-console';
+import { buildVariablesTabLocators } from './variables-tab';
+import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
+
+export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
 export const buildCommonLocators = (page: Page) => ({
   collectionHeader: buildCollectionHeaderLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
+  timelineHeaders: buildTimelineHeaderLocators(page),
+  devtools: buildDevToolsLocators(page),
   codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
   openApi: {
     render: buildApiSpecPanelLocators(page)
@@ -34,9 +42,11 @@ export const buildCommonLocators = (page: Page) => ({
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
+  workspaceOverview: buildWorkspaceOverviewLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),
+  variablesTab: buildVariablesTabLocators(page),
   actions: {
     collectionActions: (collectionName: string) =>
       page.getByTestId('collections').locator('.collection-name')
@@ -58,8 +68,10 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsTab: () =>
       page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
+    activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
     closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
-    draftIndicator: () => page.locator('.request-tab.active .has-changes-icon')
+    draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
+    tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon')
   },
   paneTabs: {
     responsiveTab: (key: string) => page.getByTestId(`responsive-tab-${key}`),
@@ -161,7 +173,7 @@ export const buildCommonLocators = (page: Page) => ({
     dropdownItem: (id: string) => page.getByTestId(`auth-mode-dropdown-${id}`)
   },
   presets: {
-    requestType: (type: 'http' | 'graphql' | 'grpc' | 'ws') =>
+    requestType: (type: PresetRequestType) =>
       page.getByTestId(`presets-request-type-${type}`),
     requestUrl: () => page.getByTestId('presets-request-url'),
     saveBtn: () => page.getByTestId('presets-save-btn'),
@@ -240,7 +252,10 @@ export const buildCommonLocators = (page: Page) => ({
     container: () => page.getByTestId('timeline-container'),
     entries: () => page.getByTestId('timeline-container').getByTestId('timeline-entry'),
     networkButton: (item: Locator) => item.getByRole('button', { name: 'Network' }),
-    networkLogs: (item: Locator) => item.locator('.network-logs-container')
+    networkLogs: (item: Locator) => item.locator('.network-logs-container'),
+    headerRow: (item: Locator, name: string) => buildTimelineHeaderRow(page, item, name),
+    headerValue: (item: Locator, name: string) =>
+      buildTimelineHeaderRow(page, item, name).getByTestId('tl-header-value-request')
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
@@ -306,6 +321,8 @@ export const buildCommonLocators = (page: Page) => ({
         return row.getByTestId(`column-${columnKey}`);
       },
       rowCheckbox: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-checkbox'),
+      rowCheckboxByName: (name: string) =>
+        container().locator(`tbody tr[data-row-name="${name}"]`).getByTestId('column-checkbox'),
       rowDeleteButton: (rowIndex: number) => getBodyRow(rowIndex).getByTestId('column-delete'),
       allRows: () => container().locator('tbody tr')
     };
@@ -332,6 +349,11 @@ export const buildCommonLocators = (page: Page) => ({
     };
   }
 });
+
+const buildTimelineHeaderRow = (page: Page, item: Locator, name: string) =>
+  item.getByTestId('tl-header-row-request').filter({
+    has: page.getByTestId('tl-header-name-request').and(page.getByText(name, { exact: true }))
+  });
 
 export const getTableCell = (row: any, index: number) => row.locator('td').nth(index + 1);
 

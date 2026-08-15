@@ -12,6 +12,7 @@ export const buildSidebarLocators = (page: Page) => {
     collection: (name?: string) => name ? page.locator('#sidebar-collection-name').filter({ hasText: name }) : page.locator('#sidebar-collection-name'),
     folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
+    collectionChevron: (name: string) => collectionRow(name).getByTestId('collection-chevron'),
     folderRequest: (folderName: string, requestName: string) => {
       // The sidebar is a flat, virtualized list — rows are siblings, not nested. Each row's
       // wrapper carries `data-parent-name` (its containing folder), so scope by that instead

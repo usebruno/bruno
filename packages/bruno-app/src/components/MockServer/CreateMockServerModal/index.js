@@ -7,7 +7,6 @@ import { IconCaretDown, IconTrash } from '@tabler/icons';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import Button from 'ui/Button';
-import { validateName, validateNameError } from 'utils/common/regex';
 import { normalizePath } from 'utils/common/path';
 import { isScratchCollection } from 'utils/collections';
 import { matchLoadedApiSpecs } from 'components/Sidebar/ApiSpecs/matchLoadedApiSpecs';
@@ -17,11 +16,14 @@ import {
   getMockServerInstances,
   checkMockServerPortAvailable,
   getMockServerPortError,
+  getMockServerNameError,
   openMockServerDashboard,
   resolveTabCollectionUid,
   saveMockServerInstance,
   suggestAvailableMockServerPort,
-  updateMockServerTabName
+  updateMockServerTabName,
+  toMockServerDelayInputValue,
+  blockMockServerDelayKeys
 } from 'utils/mock-server/mock-server-instances';
 
 const resolveSelectedSpecUid = (editingInstance, apiSpecs) => {
@@ -183,11 +185,12 @@ const CreateMockServerModal = ({
     },
     validationSchema: Yup.object({
       name: Yup.string()
+        .trim()
         .min(1, 'Must be at least 1 character')
         .max(255, 'Must be 255 characters or less')
         .test('is-valid-name', function (value) {
-          const isValid = validateName(value);
-          return isValid ? true : this.createError({ message: validateNameError(value) });
+          const error = getMockServerNameError(value);
+          return error ? this.createError({ message: error }) : true;
         })
         .required('Name is required')
         .test('duplicate-name', 'A mock server with this name already exists', (value) => {
@@ -210,8 +213,7 @@ const CreateMockServerModal = ({
       }),
       port: Yup.number()
         .min(1, 'Port must be at least 1')
-        .max(65535, 'Port must be 65535 or less')
-        .required('Port is required'),
+        .max(65535, 'Port must be 65535 or less'),
       globalDelay: Yup.number().min(0, 'Delay cannot be negative')
     }, [['sourceType', 'linkSource']]),
     onSubmit: async (values) => {
@@ -328,6 +330,12 @@ const CreateMockServerModal = ({
     formik.handleSubmit();
   };
 
+  const handleCancel = () => {
+    formik.resetForm({ values: formik.values });
+    setPortError(null);
+    onClose();
+  };
+
   const handleDelete = () => {
     if (editingInstance && onDelete) {
       onDelete(editingInstance);
@@ -341,7 +349,7 @@ const CreateMockServerModal = ({
         title={isEditing ? 'Mock Server Settings' : 'Create Mock Server'}
         confirmText={isEditing ? 'Save' : 'Create'}
         handleConfirm={handleConfirm}
-        handleCancel={onClose}
+        handleCancel={handleCancel}
         footerLeft={isEditing && onDelete ? (
           <Button
             type="button"
@@ -519,9 +527,9 @@ const CreateMockServerModal = ({
                     className="block textbox w-full mt-2"
                     min={1}
                     max={65535}
-                    value={formik.values.port}
+                    value={formik.values.port || ''}
                     onChange={(event) => {
-                      formik.handleChange(event);
+                      formik.setFieldValue('port', event.target.value ? Number(event.target.value) : '');
                       if (portError) {
                         setPortError(null);
                       }
@@ -559,7 +567,8 @@ const CreateMockServerModal = ({
                     min={0}
                     step={100}
                     value={formik.values.globalDelay}
-                    onChange={formik.handleChange}
+                    onChange={(event) => formik.setFieldValue('globalDelay', toMockServerDelayInputValue(event.target.value))}
+                    onKeyDown={blockMockServerDelayKeys}
                     onBlur={formik.handleBlur}
                     data-testid="mock-server-settings-delay-input"
                   />

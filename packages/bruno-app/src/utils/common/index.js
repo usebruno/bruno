@@ -556,12 +556,15 @@ export function isHexFormat(str) {
 }
 
 export const formatProxyTimestamp = (timestamp) => {
-  return new Date(timestamp).toLocaleString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  });
+  return new Date(timestamp)
+    .toLocaleString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    })
+    .replace(/[\u00A0\u202F]/g, ' ')
+    .replace(/\b(a|p)m\b/gi, (match) => match.toUpperCase());
 };

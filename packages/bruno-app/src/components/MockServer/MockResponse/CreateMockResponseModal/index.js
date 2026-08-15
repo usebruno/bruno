@@ -2,9 +2,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
-import { collectCollectionExamples } from 'utils/mock-server/mock-responses';
+import {
+  collectCollectionExamples,
+  getMockResponseNameError,
+  getMockResponseNameLengthError,
+  getMockResponseDescriptionError,
+  isMockResponseNameTaken
+} from 'utils/mock-server/mock-responses';
 
-const STATUS_CODES = [200, 201, 204, 400, 401, 403, 404, 500, 502, 503];
 const BODY_TYPES = [
   { value: 'json', label: 'JSON' },
   { value: 'text', label: 'Text' },
@@ -12,12 +17,7 @@ const BODY_TYPES = [
   { value: 'html', label: 'HTML' }
 ];
 
-const formatStatusOption = (code) => {
-  const phrase = statusCodePhraseMap[code];
-  return phrase ? `${code} ${phrase}` : String(code);
-};
-
-const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
+const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate, onClose }) => {
   const nameInputRef = useRef();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -46,6 +46,7 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
   const nameValue = name || linkedExample?.example?.name || '';
   const statusValue = Number(linkedExample?.example?.response?.status) || statusCode;
   const bodyTypeValue = linkedExample?.example?.response?.body?.type || bodyType;
+  const descriptionError = getMockResponseDescriptionError(description);
 
   useEffect(() => {
     if (nameInputRef.current) {
@@ -54,8 +55,20 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
   }, []);
 
   const handleConfirm = async () => {
-    if (!nameValue.trim()) {
-      setNameError('Mock response name is required');
+    const trimmedName = nameValue.trim();
+
+    const validationError = getMockResponseNameError(trimmedName);
+    if (validationError) {
+      setNameError(validationError);
+      return;
+    }
+
+    if (isMockResponseNameTaken(existingResponses, trimmedName)) {
+      setNameError('A mock response with this name already exists');
+      return;
+    }
+
+    if (descriptionError) {
       return;
     }
 
@@ -67,9 +80,9 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
     setIsSaving(true);
     try {
       await onCreate({
-        name: nameValue.trim(),
+        name: trimmedName,
         description: description.trim(),
-        statusCode: Number(statusValue),
+        statusCode: Number(statusValue) || 200,
         bodyType: bodyTypeValue,
         exampleSelection: linkedExample
       });
@@ -111,9 +124,7 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
               value={nameValue}
               onChange={(event) => {
                 setName(event.target.value);
-                if (nameError) {
-                  setNameError('');
-                }
+                setNameError(getMockResponseNameLengthError(event.target.value) || '');
               }}
               data-testid="mock-response-create-name-input"
             />
@@ -134,6 +145,9 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
               onChange={(event) => setDescription(event.target.value)}
               data-testid="mock-response-create-description-input"
             />
+            {descriptionError ? (
+              <div className="text-red-500 mt-1">{descriptionError}</div>
+            ) : null}
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-4">
@@ -145,11 +159,12 @@ const CreateMockResponseModal = ({ collection, onCreate, onClose }) => {
                 id="mock-response-create-status"
                 className="textbox w-full mt-2"
                 value={statusValue}
-                onChange={(event) => setStatusCode(event.target.value)}
+                onChange={(event) => setStatusCode(Number(event.target.value))}
                 disabled={Boolean(linkedExample)}
+                data-testid="mock-response-create-status-input"
               >
-                {STATUS_CODES.map((code) => (
-                  <option key={code} value={code}>{formatStatusOption(code)}</option>
+                {Object.entries(statusCodePhraseMap).map(([code, phrase]) => (
+                  <option key={code} value={code}>{code} {phrase}</option>
                 ))}
               </select>
             </div>

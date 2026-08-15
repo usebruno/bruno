@@ -728,11 +728,6 @@ const CollectionItemRow = ({ item, collectionUid, collectionPathname, searchText
               <span className="item-name" title={item.name}>
                 {item.name}
               </span>
-              {hasExamples && (
-                <sup className="ml-1 example-count-badge" title={`${item.examples.length} example${item.examples.length > 1 ? 's' : ''}`} data-testid="example-count-badge">
-                  {item.examples.length}
-                </sup>
-              )}
             </div>
           </div>
           <div className="pr-2">

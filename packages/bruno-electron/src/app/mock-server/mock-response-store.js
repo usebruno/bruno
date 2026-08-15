@@ -154,19 +154,25 @@ const readWorkspaceStoreFromDisk = (workspacePath) => {
 
   try {
     const content = fs.readFileSync(filePath, 'utf8');
-    const parsed = parseStoreContent(content, filePath);
+    const parsed = yaml.load(content);
 
-    if (parsed.mockServers) {
-      return {
-        version: parsed.version || STORE_VERSION,
-        mockServers: parsed.mockServers
-      };
+    if (
+      !parsed
+      || typeof parsed !== 'object'
+      || Array.isArray(parsed)
+      || parsed.mockServers == null
+      || typeof parsed.mockServers !== 'object'
+      || Array.isArray(parsed.mockServers)
+    ) {
+      throw new Error('invalid store format');
     }
 
-    return createEmptyStore();
+    return {
+      version: parsed.version || STORE_VERSION,
+      mockServers: parsed.mockServers
+    };
   } catch (err) {
-    console.warn(`[MockResponseStore] Failed to read ${filePath}: ${err.message}`);
-    return createEmptyStore();
+    throw new Error(`Failed to read mock server store (${filePath}): ${err.message}`);
   }
 };
 
@@ -204,15 +210,22 @@ const flushWorkspaceStore = (workspacePath) => {
   const cacheKey = getWorkspaceCacheKey(workspacePath);
   const pendingTimer = workspaceWriteTimers.get(cacheKey);
 
-  if (pendingTimer) {
-    clearTimeout(pendingTimer);
-    workspaceWriteTimers.delete(cacheKey);
+  if (!pendingTimer) {
+    return;
   }
+
+  clearTimeout(pendingTimer);
+  workspaceWriteTimers.delete(cacheKey);
 
   const store = workspaceStoreCache.get(cacheKey);
   if (store) {
     writeWorkspaceStoreToDisk(workspacePath, store);
   }
+};
+
+const invalidateWorkspaceStoreCache = (workspacePath) => {
+  flushWorkspaceStore(workspacePath);
+  workspaceStoreCache.delete(getWorkspaceCacheKey(workspacePath));
 };
 
 const flushAllWorkspaceStores = () => {
@@ -412,6 +425,19 @@ const saveMockResponse = (location, response) => {
   };
 
   const responses = [...getMockServerResponses(location)];
+
+  const normalizedName = nextResponse.name?.trim().toLowerCase();
+  const currentName = responses.find((item) => item.uid === nextResponse.uid)?.name?.trim().toLowerCase();
+
+  if (normalizedName && normalizedName !== currentName) {
+    const isDuplicate = responses.some((item) => (
+      item.uid !== nextResponse.uid && item.name?.trim().toLowerCase() === normalizedName
+    ));
+    if (isDuplicate) {
+      throw new Error('A mock response with this name already exists');
+    }
+  }
+
   const index = responses.findIndex((item) => item.uid === nextResponse.uid);
 
   if (index >= 0) {
@@ -522,6 +548,7 @@ module.exports = {
   flushWorkspaceStore,
   getStorePath: getWorkspaceStorePath,
   getWorkspaceStorePath,
+  invalidateWorkspaceStoreCache,
   listMockResponses,
   listMockServers,
   readWorkspaceStore,
