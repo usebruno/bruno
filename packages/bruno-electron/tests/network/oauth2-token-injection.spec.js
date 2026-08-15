@@ -9,6 +9,8 @@ jest.mock('../../src/utils/oauth2', () => {
   };
 });
 
+const os = require('os');
+const path = require('path');
 const oauth2Utils = require('../../src/utils/oauth2');
 const { prepareWsRequest } = require('../../src/ipc/network/ws-event-handlers');
 const { configureRequest } = require('../../src/ipc/network/index');
@@ -248,7 +250,7 @@ describe('oauth2: token injection through configureRequest', () => {
       oauth2: makeOauth2Config(grantType)
     };
 
-    await configureRequest('collection-uid', {}, request, {}, {}, {}, '/tmp');
+    await configureRequest('collection-uid', {}, request, {}, {}, {}, os.tmpdir());
     expect(grantFetchers[grantType]).toHaveBeenCalled();
     expect(request.headers['Authorization']).toEqual('Bearer nested-token-value');
     expect(JSON.stringify(request.headers)).not.toContain('[object Object]');
@@ -265,7 +267,7 @@ describe('oauth2: token injection through configureRequest', () => {
       oauth2: makeOauth2Config('client_credentials')
     };
 
-    await configureRequest('collection-uid', {}, request, {}, {}, {}, '/tmp');
+    await configureRequest('collection-uid', {}, request, {}, {}, {}, os.tmpdir());
     expect(request.headers['Authorization']).toBeUndefined();
     expect(JSON.stringify(request)).not.toContain('[object Object]');
   });
@@ -281,7 +283,7 @@ describe('oauth2: token injection through configureRequest', () => {
       oauth2: makeOauth2Config('client_credentials', { tokenPlacement: 'url' })
     };
 
-    await configureRequest('collection-uid', {}, request, {}, {}, {}, '/tmp');
+    await configureRequest('collection-uid', {}, request, {}, {}, {}, os.tmpdir());
     expect(request.url).toEqual('http://api.example.com/v1/users?access_token=token-value');
     expect(request.headers['Authorization']).toBeUndefined();
   });
@@ -302,7 +304,7 @@ describe('oauth2: token injection through prepareWsRequest', () => {
 
   const makeCollection = () => ({
     uid: 'collection-uid',
-    pathname: '/tmp/collection',
+    pathname: path.join(os.tmpdir(), 'collection'),
     root: { request: { headers: [], auth: { mode: 'none' } } },
     brunoConfig: {},
     globalEnvironmentVariables: {}
@@ -331,6 +333,17 @@ describe('oauth2: token injection through prepareWsRequest', () => {
     );
     expect(prepared.url).toEqual('ws://api.example.com/socket?access_token=token-value');
     expect(prepared.headers['Authorization']).toBeUndefined();
+  });
+
+  it('Interpolates prompt variables in the final WebSocket interpolation', async () => {
+    oauth2Utils.getOAuth2TokenUsingClientCredentials.mockResolvedValue(mockTokenFetch({ access_token: 'token-value' }));
+
+    const item = makeItem(makeOauth2Config('client_credentials', { tokenPlacement: 'url', tokenQueryKey: 'access_token' }));
+    item.request.url = 'ws://api.example.com/socket/{{?roomId}}';
+    const collection = makeCollection();
+    collection.promptVariables = { '?roomId': 'lobby' };
+    const prepared = await prepareWsRequest(item, collection, { variables: [] }, {});
+    expect(prepared.url).toContain('ws://api.example.com/socket/lobby?access_token=token-value');
   });
 
   it('Interpolates url variables before appending the token', async () => {
@@ -362,6 +375,26 @@ describe('oauth2: token injection through prepareWsRequest', () => {
       {}
     );
     expect(prepared.headers['Authorization']).toEqual('Bearer id-value');
+  });
+
+  it('Routes the resolved token through the gRPC prepare path (configureRequest)', async () => {
+    const { configureRequest } = require('../../src/ipc/network/prepare-grpc-request');
+
+    // Nested provider shape: the token object is unwrapped, never stringified to [object Object].
+    oauth2Utils.getOAuth2TokenUsingClientCredentials.mockResolvedValue(mockTokenFetch({ access_token: { token: 'grpc-token-value' } }));
+
+    const grpcRequest = {
+      uid: 'grpc-uid',
+      url: 'grpc://api.example.com:50051/Service/Method',
+      headers: {},
+      auth: { mode: 'oauth2', oauth2: makeOauth2Config('client_credentials') },
+      oauth2: makeOauth2Config('client_credentials')
+    };
+    const request = { url: 'grpc://api.example.com:50051/Service/Method', headers: {}, method: 'POST', body: '{}' };
+
+    await configureRequest(grpcRequest, request, makeCollection(), {}, {}, {}, {}, undefined);
+    expect(grpcRequest.headers['Authorization']).toBe('Bearer grpc-token-value');
+    expect(String(grpcRequest.headers['Authorization'])).not.toContain('[object Object]');
   });
 
   it('Injects nothing when no token can be resolved', async () => {

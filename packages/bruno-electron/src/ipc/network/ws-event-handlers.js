@@ -21,7 +21,6 @@ const {
   applyOAuth2TokenToRequest
 } = require('../../utils/oauth2');
 const { interpolateString } = require('./interpolate-string');
-const path = require('node:path');
 const { setAuthHeaders } = require('./prepare-request');
 
 const prepareWsRequest = async (item, collection, environment, runtimeVariables, certsAndProxyConfig = {}) => {
@@ -252,7 +251,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
 
   delete wsRequest.apiKeyAuthValueForQueryParams;
 
-  interpolateVars(wsRequest, envVars, runtimeVariables, processEnvVars);
+  interpolateVars(wsRequest, envVars, runtimeVariables, processEnvVars, collection?.promptVariables);
 
   // The token is placed after interpolation: placing it earlier would run new URL() on raw
   // {{var}} templates and percent-encode them beyond the interpolator's reach. The placement
