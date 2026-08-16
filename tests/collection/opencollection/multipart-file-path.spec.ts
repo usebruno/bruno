@@ -149,7 +149,10 @@ test.describe('OpenCollection multipart file paths', () => {
     const responseBody = locators.response.previewContainer();
     await expect(responseBody).toContainText(/multipart\/form-data;\s*boundary=/i);
     await expect(responseBody).not.toContainText(/"content-type":\s*"application\/json"/i);
-    await expect(responseBody).toContainText('payload.json');
+    await expect(responseBody).toContainText(
+      /Content-Disposition:[\s\S]*form-data;[\s\S]*name=\\?"payload\\?"[\s\S]*filename=\\?"payload\.json\\?"/i
+    );
+    await expect(responseBody).toContainText(/\\?"ok\\?"\s*:\s*true/i);
 
     await removeFirstMultipartFile(page);
     await saveRequest(page);
