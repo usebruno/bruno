@@ -5,8 +5,8 @@ import GitRemoteCollectionRow from '../GitRemoteCollectionRow';
 import ExampleItem from '../Collection/CollectionItem/ExampleItem';
 import EmptyCtaRow from './EmptyCtaRow';
 
-// Resolve, in O(1), the live object a row points at - from the maps the flattener produced.
-// Kept identical between renders so the memo comparator below can compare it by reference.
+// Resolve the live object for a row in O(1). Reference equality is used by
+// the memo comparator to avoid re-rendering unchanged rows.
 const resolveRowObject = ({ row, itemsByUid, collectionsByUid, ghostsByPath }) => {
   switch (row.kind) {
     case 'collection':
@@ -69,26 +69,24 @@ const renderRow = ({ row, searchText, itemsByUid, collectionsByUid, ghostsByPath
   }
 };
 
-/**
- * A single flat sidebar row. The wrapper carries ancestry as data-attrs (collection slug +
- * parent folder name) so callers can scope a row to its collection/folder without relying on
- * DOM nesting — which the flat list no longer provides.
- */
 const SidebarRow = (props) => {
   const { row } = props;
   const inner = renderRow(props);
   if (inner === null) return null;
   return (
-    <div data-collection-id={row.collectionId || undefined} data-parent-name={row.parentName || undefined}>
+    <div
+      data-collection-id={row.collectionId || undefined}
+      data-collection-uid={row.collectionUid || undefined}
+      data-parent-name={row.parentName || undefined}
+    >
       {inner}
     </div>
   );
 };
 
-// Value-based comparison. A fresh flatten rebuilds the row wrappers and the resolver maps
-// every time, so comparing prop identity would re-render every row. Instead compare the
-// fields that actually drive rendering: the row's structural values, searchText, and the
-// resolved object reference (which Redux/immer changes only for the row that actually changed).
+// Compare row values instead of prop identity because flattening creates
+// new row objects on every rebuild. Only re-render when the row's structural
+// values, search text, or resolved object reference changes.
 const areEqual = (prev, next) => {
   const a = prev.row;
   const b = next.row;

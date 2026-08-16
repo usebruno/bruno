@@ -126,10 +126,10 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
           ref={virtuosoRef}
           style={{ height: '100%' }}
           data={rows}
-          computeItemKey={(index, row) => row.id}
+          computeItemKey={(_, row) => row.id}
           defaultItemHeight={26}
           increaseViewportBy={{ top: 400, bottom: 600 }}
-          itemContent={(index, row) => (
+          itemContent={(_, row) => (
             <SidebarRow
               row={row}
               searchText={searchText}

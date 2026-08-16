@@ -38,9 +38,9 @@ export const buildSidebarLocators = (page: Page) => {
       page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('request-item-chevron'),
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
     // The flat, virtualized sidebar stamps every row of a collection with
-    // `data-collection-id="<slug>"`; scope queries to it to disambiguate items that share
-    // names across collections (the old `#collection-<slug>` wrapper now holds only the header).
+    // `data-collection-id="<slug>"`.
     collectionScope: (name: string) => page.locator(`[data-collection-id="${name.replace(/\s+/g, '-').toLowerCase()}"]`),
+    collectionScopeByUid: (collectionUid: string) => page.locator(`[data-collection-uid="${collectionUid}"]`),
     // Scope to the direct children of a folder (rows stamped with `data-parent-name`).
     folderScope: (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`),
     dragHandle: () => page.getByTestId('sidebar-drag-handle'),
