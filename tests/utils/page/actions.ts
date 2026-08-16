@@ -107,7 +107,27 @@ const closeAllCollections = async (page) => {
  */
 const openCollection = async (page: Page, collectionName: string) => {
   await test.step(`Open collection "${collectionName}"`, async () => {
-    await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).click();
+    // Virtualization can unmount the collection header when scrolled down.
+    // Reset to the top so the header is rendered before locating it.
+    const collections = page.getByTestId('collections');
+
+    if (await collections.count()) {
+      await collections.evaluate((root) => {
+        // Prefer the tagged Virtuoso scroller; fall back to the first scrollable descendant.
+        const scroller
+          = root.querySelector('[data-testid="sidebar-collections-scroller"]')
+            || Array.from(root.querySelectorAll('*')).find(
+              (el) => el.scrollHeight > el.clientHeight
+            );
+
+        (scroller as HTMLElement | undefined)?.scrollTo({ top: 0 });
+      });
+    }
+
+    await page
+      .locator('#sidebar-collection-name')
+      .filter({ hasText: collectionName })
+      .click();
   });
 };
 

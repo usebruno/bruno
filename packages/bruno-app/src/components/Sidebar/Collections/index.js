@@ -86,11 +86,15 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     ? (rowIndex ?? rowIndexByCollectionUid.get(activeTabUid) ?? null)
     : null;
 
-  useEffect(() => {
-    if (activeRowIndex === null) return;
+  const activeRowIndexRef = useRef(activeRowIndex);
+  activeRowIndexRef.current = activeRowIndex;
 
-    virtuosoRef.current?.scrollIntoView({ index: activeRowIndex, behavior: 'smooth' });
-  }, [activeTabUid, activeRowIndex]);
+  useEffect(() => {
+    const index = activeRowIndexRef.current;
+    if (index === null) return;
+
+    virtuosoRef.current?.scrollIntoView({ index, behavior: 'auto' });
+  }, [activeTabUid]);
 
   if (!sidebarEntries.length) {
     return (
@@ -124,6 +128,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
       <div className="collections-list">
         <Virtuoso
           ref={virtuosoRef}
+          data-testid="sidebar-collections-scroller"
           style={{ height: '100%' }}
           data={rows}
           computeItemKey={(_, row) => row.id}
