@@ -91,6 +91,10 @@ const Wrapper = styled.div`
       tr {
         transition: background 0.1s ease;
 
+        &:hover {
+          background: ${(props) => props.theme.plainGrid.hoverBg};
+        }
+
         &:last-child td {
           border-bottom: none;
         }
@@ -128,7 +132,7 @@ const Wrapper = styled.div`
     left: 0;
     right: 0;
     bottom: 0;
-    /* Above .resize-handle (z-index: 100), which spans the full table height and
+    /* .resize-handle (z-index: 100), which spans the full table height and
        would otherwise paint straight through this bar while a column is dragged. */
     z-index: 101;
     display: flex;
@@ -137,16 +141,17 @@ const Wrapper = styled.div`
     gap: 6px;
     padding: 8px 12px;
     font-size: ${(props) => props.theme.font.size.sm};
-    color: ${(props) => props.theme.colors.text.muted};
+    color: ${(props) => props.theme.text};
     background: ${(props) => props.theme.bg};
-    border: none;
-    border-top: solid 1px ${(props) => props.theme.border.border0};
+    border: solid 1px ${(props) => props.theme.border.border0};
     border-radius: 0 0 8px 8px;
     cursor: pointer;
+    transition: background 0.1s ease, color 0.1s ease;
     animation: add-variable-action-in 120ms ease-out;
 
     &:hover {
-      color: ${(props) => props.theme.text};
+      color: ${(props) => props.theme.brand};
+      background: ${(props) => props.theme.plainGrid.hoverBg};
     }
   }
 
