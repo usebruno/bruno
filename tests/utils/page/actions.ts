@@ -100,6 +100,24 @@ const closeAllCollections = async (page) => {
 };
 
 /**
+ * Reset the virtualized collections list to the top so the collection header
+ * is mounted before it is located.
+ */
+const revealCollectionsTop = async (page: Page) => {
+  const collections = page.getByTestId('collections');
+  if (!(await collections.count())) return;
+
+  await collections.evaluate((root) => {
+    // Prefer the tagged Virtuoso scroller; fall back to the first scrollable descendant.
+    const scroller
+      = root.querySelector('[data-testid="sidebar-collections-scroller"]')
+        || Array.from(root.querySelectorAll('*')).find((el) => el.scrollHeight > el.clientHeight);
+
+    (scroller as HTMLElement | undefined)?.scrollTo({ top: 0 });
+  });
+};
+
+/**
  * Open a collection from the sidebar and accept the JavaScript Sandbox modal
  * @param page - The page object
  * @param collectionName - The name of the collection to open
@@ -107,23 +125,7 @@ const closeAllCollections = async (page) => {
  */
 const openCollection = async (page: Page, collectionName: string) => {
   await test.step(`Open collection "${collectionName}"`, async () => {
-    // Virtualization can unmount the collection header when scrolled down.
-    // Reset to the top so the header is rendered before locating it.
-    const collections = page.getByTestId('collections');
-
-    if (await collections.count()) {
-      await collections.evaluate((root) => {
-        // Prefer the tagged Virtuoso scroller; fall back to the first scrollable descendant.
-        const scroller
-          = root.querySelector('[data-testid="sidebar-collections-scroller"]')
-            || Array.from(root.querySelectorAll('*')).find(
-              (el) => el.scrollHeight > el.clientHeight
-            );
-
-        (scroller as HTMLElement | undefined)?.scrollTo({ top: 0 });
-      });
-    }
-
+    await revealCollectionsTop(page);
     await page
       .locator('#sidebar-collection-name')
       .filter({ hasText: collectionName })
@@ -1207,6 +1209,7 @@ const selectFolderScriptPaneTab = async (page: Page, tabName: 'pre-request' | 'p
  */
 const openCollectionSettings = async (page: Page, collectionName: string, { persist = false } = {}) => {
   await test.step(`Open collection settings for "${collectionName}"`, async () => {
+    await revealCollectionsTop(page);
     const locators = buildCommonLocators(page);
     const collection = locators.sidebar.collection(collectionName);
     if (!persist) {
