@@ -12,6 +12,9 @@ const remoteImageDomains = (process.env.BRUNO_REMOTE_IMAGE_DOMAINS || 'd3icksk7s
   .filter(Boolean);
 
 export default defineConfig({
+  server: {
+    port: 30001
+  },
   plugins: [
     pluginNodePolyfill(),
     pluginReact(),

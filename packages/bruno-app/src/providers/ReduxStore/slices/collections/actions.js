@@ -2408,16 +2408,12 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
 
           const variable = environment.variables.find((v) => v.name === variableName && v.enabled);
 
-          if (!variable) {
-            return reject(new Error('Variable not found'));
-          }
-
-          const updatedVariables = environment.variables.map((v) => {
-            if (v.uid === variable.uid) {
-              return { ...v, value: newValue };
-            }
-            return v;
-          });
+          const updatedVariables = variable
+            ? environment.variables.map((v) => (v.uid === variable.uid ? { ...v, value: newValue } : v))
+            : [
+                ...environment.variables,
+                { uid: uuid(), name: variableName, value: newValue, type: 'text', secret: false, enabled: true, description: '' }
+              ];
 
           const resolvedVariables = resolveSecretNameCollision(updatedVariables, variable);
 

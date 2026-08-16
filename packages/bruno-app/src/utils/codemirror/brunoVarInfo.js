@@ -201,6 +201,8 @@ export const renderVarInfo = (token, options) => {
 
   // Check if this is a dynamic/faker variable (starts with "$")
   let scopeInfo;
+  // Populated only when creating a new request-context variable, to drive the scope selector
+  let newVariableScopeOptions = null;
   if (variableName.startsWith('$oauth2.')) {
     // OAuth2 token variable - look up in variables object
     const oauth2Value = get(options.variables, variableName);
@@ -252,11 +254,27 @@ export const renderVarInfo = (token, options) => {
             data: { folder: item, variable: null } // variable is null since it doesn't exist yet
           };
         } else {
-          // We're in a request - create as request variable
+          // We're in a request - offer a choice of where to create the variable, defaulting
+          // to the active global environment (so it's reusable across requests) when one
+          // exists, falling back to request-scoped otherwise.
+          const activeGlobalEnvUid = store.getState().globalEnvironments?.activeGlobalEnvironmentUid;
+
+          const scopeOptions = [];
+          if (activeGlobalEnvUid) {
+            scopeOptions.push({ type: 'global', data: { environmentUid: activeGlobalEnvUid, variable: null } });
+          }
+          if (collection) {
+            scopeOptions.push({ type: 'collection', data: { collection, variable: null } });
+          }
+          scopeOptions.push({ type: 'request', data: { item, variable: null } });
+
+          newVariableScopeOptions = scopeOptions;
+
+          const defaultScopeOption = scopeOptions[0];
           scopeInfo = {
-            type: 'request',
+            type: defaultScopeOption.type,
             value: '', // Empty value for new variable
-            data: { item, variable: null } // variable is null since it doesn't exist yet
+            data: defaultScopeOption.data
           };
         }
       } else if (collection) {
@@ -304,19 +322,46 @@ export const renderVarInfo = (token, options) => {
   varName.setAttribute('data-testid', 'var-info-name');
   varName.textContent = variableName;
 
-  const scopeBadge = document.createElement('span');
-  scopeBadge.className = 'var-scope-badge';
-  scopeBadge.setAttribute('data-testid', 'var-info-scope-badge');
-
   // Check if a runtime variable exists - if so, show Runtime scope (even if detected as collection/folder/environment)
   const displayScopeType = hasRuntimeVariable ? 'runtime' : (scopeInfo ? scopeInfo.type : 'Unknown');
-  // Show scope label with indication if it's a new variable
-  const scopeLabel = getScopeLabel(displayScopeType);
   const isNewVariable = scopeInfo && scopeInfo.data && scopeInfo.data.variable === null;
-  scopeBadge.textContent = isNewVariable ? `${scopeLabel}` : scopeLabel;
 
   header.appendChild(varName);
-  header.appendChild(scopeBadge);
+
+  if (isNewVariable && !hasRuntimeVariable && newVariableScopeOptions && newVariableScopeOptions.length > 1) {
+    // Let the user choose where this not-yet-existing variable should be created.
+    const scopeSelect = document.createElement('select');
+    scopeSelect.className = 'var-scope-select';
+    scopeSelect.setAttribute('data-testid', 'var-info-scope-select');
+
+    newVariableScopeOptions.forEach((option) => {
+      const optionEl = document.createElement('option');
+      optionEl.value = option.type;
+      optionEl.textContent = getScopeLabel(option.type);
+      scopeSelect.appendChild(optionEl);
+    });
+    scopeSelect.value = scopeInfo.type;
+
+    // Prevent the popup's document-click/outside handlers from treating the dropdown
+    // interaction as a click outside the popup.
+    scopeSelect.addEventListener('click', (e) => e.stopPropagation());
+    scopeSelect.addEventListener('change', (e) => {
+      e.stopPropagation();
+      const selectedOption = newVariableScopeOptions.find((option) => option.type === scopeSelect.value);
+      if (selectedOption) {
+        scopeInfo = { type: selectedOption.type, value: '', data: selectedOption.data };
+      }
+    });
+
+    header.appendChild(scopeSelect);
+  } else {
+    const scopeBadge = document.createElement('span');
+    scopeBadge.className = 'var-scope-badge';
+    scopeBadge.setAttribute('data-testid', 'var-info-scope-badge');
+    scopeBadge.textContent = getScopeLabel(displayScopeType);
+    header.appendChild(scopeBadge);
+  }
+
   into.appendChild(header);
 
   // Check if variable name is valid
