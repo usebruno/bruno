@@ -1,0 +1,10 @@
+info:
+  name: subfolder
+  type: folder
+
+request:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.setEnvVar("folderDir", __dirname);
+        bru.setEnvVar("folderFile", __filename);
