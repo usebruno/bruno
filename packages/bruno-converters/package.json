@@ -21,7 +21,7 @@
   "dependencies": {
     "@usebruno/common": "^0.1.0",
     "@usebruno/schema": "^0.7.0",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.1.1",
     "jscodeshift": "^17.3.0",
     "lodash": "4.18.1",
     "mime-types": "^3.0.2",

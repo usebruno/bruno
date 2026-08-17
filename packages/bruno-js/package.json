@@ -36,7 +36,7 @@
     "uuid": "^10.0.0",
     "xml-formatter": "^3.5.0",
     "xml2js": "^0.6.2",
-    "yaml": "^2.8.3"
+    "yaml": "2.3.4"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^23.0.2",
