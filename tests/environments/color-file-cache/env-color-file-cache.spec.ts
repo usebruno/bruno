@@ -80,12 +80,10 @@ test.describe('[file-cache on] Environment colors', () => {
   });
 
   test('survive a mount served from the file cache', async () => {
-    const environments = buildCommonLocators(page).environment;
-
-    await page.locator('#sidebar-collection-name').filter({ hasText: COLLECTION_NAME }).click();
+    const locators = buildCommonLocators(page);
+    await locators.sidebar.collection(COLLECTION_NAME).click();
     await openEnvironmentSelector(page);
-
-    const colorBadge = environments.listItem(ENVIRONMENT_NAME).locator('.rounded-full').first();
+    const colorBadge = locators.environment.listOptionBadge(ENVIRONMENT_NAME).first();
     await expect(colorBadge).toHaveCSS('background-color', COLOR_RGB);
   });
 });
