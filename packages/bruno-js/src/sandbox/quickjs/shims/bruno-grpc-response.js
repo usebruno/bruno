@@ -3,27 +3,29 @@ const addGrpcMetadataListShimToContext = require('./grpc-metadata-list');
 const addGrpcMessageListShimToContext = require('./grpc-message-list');
 
 // Keep this in step with BrunoGrpcResponse.
-const addBrunoGrpcResponseShimToContext = (vm, res, grpcObject) => {
-  const resObject = vm.newObject();
+const addBrunoGrpcResponseShimToContext = (vm, response, grpcObject) => {
+  const responseObject = vm.newObject();
 
   // Marshalled once, as on the request: the call is over, so no scalar can change mid-hook.
   const scalars = ['statusCode', 'statusMessage', 'duration', 'methodType'];
 
   for (const property of scalars) {
-    const value = marshallToVm(res?.[property], vm);
-    vm.setProp(resObject, property, value);
+    const value = marshallToVm(response?.[property], vm);
+    vm.setProp(responseObject, property, value);
     value.dispose();
   }
 
-  // res.metadata / res.trailers / res.messages — the same lists `bru.grpc.req` gets, read-only here
+  // response.metadata / .trailers / .messages — the same lists `bru.grpc.request` gets, read-only here
   const listEvalCode = ['metadata', 'trailers'].map((property) =>
-    addGrpcMetadataListShimToContext(vm, res[property], resObject, property, 'globalThis.bru.grpc.res')
+    addGrpcMetadataListShimToContext(vm, response[property], responseObject, property, 'globalThis.bru.grpc.response')
   );
 
-  listEvalCode.push(addGrpcMessageListShimToContext(vm, res.messages, resObject, 'globalThis.bru.grpc.res'));
+  listEvalCode.push(
+    addGrpcMessageListShimToContext(vm, response.messages, responseObject, 'globalThis.bru.grpc.response')
+  );
 
-  vm.setProp(grpcObject, 'res', resObject);
-  resObject.dispose();
+  vm.setProp(grpcObject, 'response', responseObject);
+  responseObject.dispose();
 
   return { evalCode: listEvalCode };
 };

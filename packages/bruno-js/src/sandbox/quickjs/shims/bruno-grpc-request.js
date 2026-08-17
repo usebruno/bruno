@@ -3,31 +3,36 @@ const addGrpcMetadataListShimToContext = require('./grpc-metadata-list');
 const addGrpcMessageListShimToContext = require('./grpc-message-list');
 
 // Keep this in step with BrunoGrpcRequest.
-const addBrunoGrpcRequestShimToContext = (vm, req, grpcObject) => {
-  const reqObject = vm.newObject();
+const addBrunoGrpcRequestShimToContext = (vm, request, grpcObject) => {
+  const requestObject = vm.newObject();
 
   const scalars = ['url', 'method', 'methodType', 'authMode', 'protoPath', 'name'];
 
   for (const property of scalars) {
-    const value = marshallToVm(req[property], vm);
-    vm.setProp(reqObject, property, value);
+    const value = marshallToVm(request[property], vm);
+    vm.setProp(requestObject, property, value);
     value.dispose();
   }
 
-  // req.metadata — writable in `beforeCallStart`, read-only in `afterCallEnd`
+  // request.metadata — writable in `beforeCallStart`, read-only in `afterCallEnd`
   const metadataEvalCode = addGrpcMetadataListShimToContext(
     vm,
-    req.metadata,
-    reqObject,
+    request.metadata,
+    requestObject,
     'metadata',
-    'globalThis.bru.grpc.req'
+    'globalThis.bru.grpc.request'
   );
 
-  // req.messages — writable in `beforeCallStart`, read-only in `afterCallEnd`
-  const messagesEvalCode = addGrpcMessageListShimToContext(vm, req.messages, reqObject, 'globalThis.bru.grpc.req');
+  // request.messages — writable in `beforeCallStart`, read-only in `afterCallEnd`
+  const messagesEvalCode = addGrpcMessageListShimToContext(
+    vm,
+    request.messages,
+    requestObject,
+    'globalThis.bru.grpc.request'
+  );
 
-  vm.setProp(grpcObject, 'req', reqObject);
-  reqObject.dispose();
+  vm.setProp(grpcObject, 'request', requestObject);
+  requestObject.dispose();
 
   return { evalCode: [metadataEvalCode, messagesEvalCode] };
 };

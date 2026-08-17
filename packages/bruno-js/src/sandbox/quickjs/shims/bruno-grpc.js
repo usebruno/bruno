@@ -9,10 +9,10 @@ const addBrunoGrpcShimToContext = (vm, grpc) => {
   const bruObject = vm.getProp(vm.global, 'bru');
   const grpcObject = vm.newObject();
 
-  const { evalCode: requestEvalCode } = addBrunoGrpcRequestShimToContext(vm, grpc.req, grpcObject);
-  // `res` is absent in `beforeCallStart`, which has no response yet.
-  const { evalCode: responseEvalCode } = grpc.res
-    ? addBrunoGrpcResponseShimToContext(vm, grpc.res, grpcObject)
+  const { evalCode: requestEvalCode } = addBrunoGrpcRequestShimToContext(vm, grpc.request, grpcObject);
+  // `response` is absent in `beforeCallStart`, which has no response yet.
+  const { evalCode: responseEvalCode } = grpc.response
+    ? addBrunoGrpcResponseShimToContext(vm, grpc.response, grpcObject)
     : { evalCode: [] };
 
   vm.setProp(bruObject, 'grpc', grpcObject);

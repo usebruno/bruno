@@ -4,29 +4,29 @@ const GrpcMetadataList = require('./grpc-metadata-list');
 const GrpcMessageList = require('./grpc-message-list');
 
 /**
- * Reached from hooks as `bru.grpc.res`.
+ * Reached from hooks as `bru.grpc.response`.
  *
- * `messages`, `metadata` and `trailers` are the same list types `bru.grpc.req` uses, always
+ * `messages`, `metadata` and `trailers` are the same list types `bru.grpc.request` uses, always
  * read-only here, since the connection has already been completed.
  *
- * Scalar values have interpolated values unlike the req counterpart.
+ * Scalar values have interpolated values unlike the request counterpart.
  * Keep quickjs shim up to date on any updates to this class
  */
 class BrunoGrpcResponse {
-  #res;
+  #response;
 
   /**
-   * @param {object} res - The completed call
+   * @param {object} response - The completed call
    */
-  constructor(res) {
-    this.#res = res;
-    this.statusCode = res.statusCode;
-    this.statusMessage = res.statusMessage;
-    this.messages = new GrpcMessageList(() => cloneDeep(this.#res.messages) || [], { writable: false });
-    this.metadata = new GrpcMetadataList(() => toMetadataObject(this.#res.metadata), { writable: false });
-    this.trailers = new GrpcMetadataList(() => toMetadataObject(this.#res.trailers), { writable: false });
-    this.duration = res.duration;
-    this.methodType = res.methodType;
+  constructor(response) {
+    this.#response = response;
+    this.statusCode = response.statusCode;
+    this.statusMessage = response.statusMessage;
+    this.messages = new GrpcMessageList(() => cloneDeep(this.#response.messages) || [], { writable: false });
+    this.metadata = new GrpcMetadataList(() => toMetadataObject(this.#response.metadata), { writable: false });
+    this.trailers = new GrpcMetadataList(() => toMetadataObject(this.#response.trailers), { writable: false });
+    this.duration = response.duration;
+    this.methodType = response.methodType;
 
     // Deliberately a plain object, where HTTP's `BrunoResponse` returns a callable so `res('user.id')`
     // queries the body. gRPC body (messages) will vary based on method type, so skipping here.
