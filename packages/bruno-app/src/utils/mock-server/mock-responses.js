@@ -9,28 +9,10 @@ import { extractMockRoutePath, getMockResponseRouteKey } from '@usebruno/common/
 
 export { extractMockRoutePath as extractMockResponseRoutePath, getMockResponseRouteKey };
 
-export const resolveMockResponseLocation = (
-  instance,
-  collection,
-  collections = [],
-  workspaces = [],
-  activeWorkspace = null
-) => {
-  let collectionPath = null;
-
-  if (instance?.sourceType === 'collection') {
-    collectionPath = collection?.pathname
-      || collections.find((item) => item.uid === instance.collectionUid)?.pathname
-      || null;
-  }
-
-  return {
-    mockServerUid: instance.uid,
-    sourceType: instance.sourceType,
-    collectionPath,
-    workspacePath: resolveMockServerWorkspacePath(instance, workspaces, activeWorkspace)
-  };
-};
+export const resolveMockResponseLocation = (instance, workspaces = [], activeWorkspace = null) => ({
+  mockServerUid: instance.uid,
+  workspacePath: resolveMockServerWorkspacePath(instance, workspaces, activeWorkspace)
+});
 
 export const copyExampleToMockResponse = (example, parentRequest) => ({
   name: `${example.name || 'Example'} (mock)`,
@@ -61,7 +43,7 @@ export const copyExampleToMockResponse = (example, parentRequest) => ({
   }
 });
 
-const mergeMockResponsesByRouteKey = (existingResponses = [], nextResponses = [], { keepExistingName = false, ensureUid = false } = {}) => {
+const mergeMockResponsesByRouteKey = (existingResponses = [], nextResponses = [], { keepExistingName = false } = {}) => {
   const responses = [...existingResponses];
   const indexByRouteKey = new Map(
     responses.map((response, index) => [getMockResponseRouteKey(response), index])
@@ -82,11 +64,8 @@ const mergeMockResponsesByRouteKey = (existingResponses = [], nextResponses = []
       continue;
     }
 
-    const toPush = ensureUid && !nextResponse.uid
-      ? { ...nextResponse, uid: uuid() }
-      : nextResponse;
     indexByRouteKey.set(routeKey, responses.length);
-    responses.push(toPush);
+    responses.push(nextResponse);
   }
 
   return responses;
@@ -96,14 +75,13 @@ export const syncMockResponsesFromExamples = (existingResponses = [], exampleEnt
   mergeMockResponsesByRouteKey(
     existingResponses,
     exampleEntries.map(({ item, example }) => copyExampleToMockResponse(example, item)),
-    { keepExistingName: false, ensureUid: true }
+    { keepExistingName: false }
   )
 );
 
 export const syncMockResponsesFromSpec = (existingResponses = [], specResponses = []) => (
   mergeMockResponsesByRouteKey(existingResponses, specResponses, {
-    keepExistingName: true,
-    ensureUid: false
+    keepExistingName: true
   })
 );
 
@@ -371,7 +349,7 @@ export const isMockResponseNameTaken = (responses = [], name, excludeUid = null)
 
 export const cloneMockResponseRecord = (response, { name } = {}) => {
   const cloned = JSON.parse(JSON.stringify(response));
-  cloned.uid = uuid();
+  delete cloned.uid;
   cloned.name = name || `${response.name || 'Mock Response'} copy`;
 
   if (Array.isArray(cloned.response?.headers)) {

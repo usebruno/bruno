@@ -90,12 +90,12 @@ const CloneMockServerModal = ({
       });
 
       try {
-        await dispatch(saveMockServerInstance(newInstance));
+        const savedInstance = await dispatch(saveMockServerInstance(newInstance));
 
         const result = await window.ipcRenderer.invoke('renderer:mock-server-clone-responses', {
           workspacePath,
           sourceMockServerUid: instance.uid,
-          targetMockServerUid: newInstance.uid
+          targetMockServerUid: savedInstance.uid
         });
 
         if (!result.success) {
@@ -103,18 +103,18 @@ const CloneMockServerModal = ({
         }
 
         await dispatch(loadMockResponses({
-          mockServerUid: newInstance.uid,
+          mockServerUid: savedInstance.uid,
           workspacePath
         }));
 
         const tabCollectionUid = resolveTabCollectionUid({
-          sourceType: newInstance.sourceType,
-          collectionUid: newInstance.collectionUid,
+          sourceType: savedInstance.sourceType,
+          collectionUid: savedInstance.collectionUid,
           activeWorkspace,
           workspaceCollections
         });
 
-        dispatch(openMockServerDashboard(newInstance, tabCollectionUid));
+        dispatch(openMockServerDashboard(savedInstance, tabCollectionUid));
         toast.success('Mock server cloned');
         onClose();
       } catch (err) {
