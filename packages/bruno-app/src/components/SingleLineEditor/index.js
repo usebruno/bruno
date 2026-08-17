@@ -1,13 +1,13 @@
-import React, { Component } from 'react';
+import { IconEye, IconEyeOff } from '@tabler/icons';
 import isEqual from 'lodash/isEqual';
+import React, { Component } from 'react';
+import { setupAutoComplete } from 'utils/codemirror/autocomplete';
+import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { MaskedEditor } from 'utils/common/masked-editor';
-import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
-import { IconEye, IconEyeOff } from '@tabler/icons';
-import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 
 const CodeMirror = require('codemirror');
 
@@ -92,13 +92,16 @@ class SingleLineEditor extends Component {
       autoCompleteOptions
     );
 
-    // setupLinkAware must run before setValue() — its 'changes' listener needs to be
-    // registered before the initial setValue() fires, otherwise that first change (the
-    // only one for a value nobody edits again, e.g. the URL bar) is never seen and the
-    // link never gets marked.
-    setupLinkAware(this.editor, {
-      onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
-    });
+    /*
+     * Must run before setValue() below, or it misses the 'change' event setValue() fires
+     * and never marks the link. disableLinkAwareClick fully opts a field out (e.g. the URL
+     * bar) - no marking, no hover underline, no click behaviour at all.
+     */
+    if (!this.props.disableLinkAwareClick) {
+      setupLinkAware(this.editor, {
+        onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
+      });
+    }
 
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);

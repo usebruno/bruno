@@ -17,12 +17,12 @@ import {
 const ECHO_URL = 'http://localhost:8081/api/echo/json';
 const responsePane = (page: Page) => page.locator('[data-testid="response-pane"]');
 
-test.describe('CodeMirror link-aware — Response pane (HTTP/GraphQL, pre-existing PR #8189)', () => {
+test.describe('CodeMirror link-aware - Response pane (HTTP/GraphQL, pre-existing PR #8189)', () => {
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('TC-073 Body — JSON preview tree: clicking a URL value opens it as a transient request', async ({ page, createTmpDir }) => {
+  test('Body - JSON preview tree: clicking a URL value opens it as a transient request', async ({ page, createTmpDir }) => {
     const REMOTE_ECHO_URL = 'https://testbench-sanity.usebruno.com/api/echo/json';
 
     await createCollection(page, 'response-json-preview', await createTmpDir('response-json-preview'));
@@ -42,7 +42,7 @@ test.describe('CodeMirror link-aware — Response pane (HTTP/GraphQL, pre-existi
     await expectTransientRequestOpened(page, { type: 'http', url: 'http://link-aware.test/http-body' });
   });
 
-  test('TC-075 presigned "PutObject" URL defaults the new request to PUT and opens on the Body tab', async ({ page, createTmpDir }) => {
+  test('presigned "PutObject" URL defaults the new request to PUT and opens on the Body tab', async ({ page, createTmpDir }) => {
     const presignedUrl = 'https://bucket.s3.amazonaws.com/key?x-id=PutObject';
     await createCollection(page, 'response-presigned', await createTmpDir('response-presigned'));
     await createRequest(page, 'echo', 'response-presigned', { url: ECHO_URL, method: 'POST' });

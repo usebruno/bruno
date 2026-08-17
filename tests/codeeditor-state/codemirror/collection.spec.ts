@@ -1,5 +1,5 @@
 import { Page, test } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, closeAllTabs, expectLinkOpensRequest, LINK_AWARE_COLLECTION_NAME as COLLECTION_NAME, openCollectionFromDialog, openRequest } from '../../utils/page';
+import { buildCommonLocators, closeAllCollections, closeAllTabs, LINK_AWARE_COLLECTION_NAME as COLLECTION_NAME, expectLinkOpensRequest, openCollectionFromDialog, openRequest } from '../../utils/page';
 
 const settings = (page: Page) => page.locator('.collection-settings-content');
 const url = (path: string) => `http://link-aware.test/${path}`;
@@ -26,13 +26,13 @@ test.describe('CodeMirror link-aware — Collection settings', () => {
     await closeAllCollections(page);
   });
 
-  test('TC-084 Vars: plain click creates a transient request', async ({ page }) => {
+  test('Vars: plain click creates a transient request', async ({ page }) => {
     await openCollectionSettingsTab(page, 'vars');
     const cm = buildCommonLocators(page).codeMirror.valueCellAt(settings(page));
     await expectLinkOpensRequest(page, cm, { type: 'http', url: url('collection-vars') });
   });
 
-  test('TC-086 Pre-Request-Script: plain click creates a transient request', async ({ page }) => {
+  test('Pre-Request-Script: plain click creates a transient request', async ({ page }) => {
     const locators = buildCommonLocators(page);
     await openCollectionSettingsTab(page, 'script');
     await locators.paneTabs.tabTrigger('pre-request').click();
@@ -40,7 +40,7 @@ test.describe('CodeMirror link-aware — Collection settings', () => {
     await expectLinkOpensRequest(page, cm, { type: 'http', url: url('collection-script') });
   });
 
-  test('TC-086 Post-Response-Script: plain click creates a transient request', async ({ page }) => {
+  test('Post-Response-Script: plain click creates a transient request', async ({ page }) => {
     const locators = buildCommonLocators(page);
     await openCollectionSettingsTab(page, 'script');
     await locators.paneTabs.tabTrigger('post-response').click();
@@ -48,7 +48,7 @@ test.describe('CodeMirror link-aware — Collection settings', () => {
     await expectLinkOpensRequest(page, cm, { type: 'http', url: url('collection-script') });
   });
 
-  test('TC-088 Tests: plain click creates a transient request', async ({ page }) => {
+  test('Tests: plain click creates a transient request', async ({ page }) => {
     await openCollectionSettingsTab(page, 'tests');
     const cm = buildCommonLocators(page).codeMirror.within(settings(page));
     await expectLinkOpensRequest(page, cm, { type: 'http', url: url('collection-tests') });
@@ -62,7 +62,7 @@ test.describe('CodeMirror link-aware — Collection settings', () => {
   ];
 
   for (const { radio, type } of presets) {
-    test(`TC-094..097 Presets = ${radio}: Vars link resolves to a transient ${type} request`, async ({ page }) => {
+    test(`Presets = ${radio}: Vars link resolves to a transient ${type} request`, async ({ page }) => {
       await openCollectionSettingsTab(page, 'presets');
       await page.locator(`#${radio}`).check();
       await openCollectionSettingsTab(page, 'vars');
@@ -71,7 +71,7 @@ test.describe('CodeMirror link-aware — Collection settings', () => {
     });
   }
 
-  test('TC-098 Presets never configured: Vars link defaults to a transient HTTP request', async ({ page }) => {
+  test('Presets never configured: Vars link defaults to a transient HTTP request', async ({ page }) => {
     // Fixture's bruno.json already sets presets.requestType to "http" — this is the default
     // path (getRequestTypeFromCollectionPresets() falls back to 'http-request' either way).
     await openCollectionSettingsTab(page, 'vars');
