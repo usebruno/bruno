@@ -284,9 +284,9 @@ const rewriteThenHandlerResponseAccess = (j, handlerPath) => {
     }
   }).forEach((memberPath) => {
     const propertyName = getStaticPropertyName(memberPath.value);
-    if (!Object.hasOwn(responsePropertyMap, propertyName)) return;
-
+    if (!propertyName) return;
     const bruProperty = responsePropertyMap[propertyName];
+    if (typeof bruProperty !== 'string') return;
 
     // skip references shadowed by a nested re-declaration of the name
     if (!resolvesToHandlerParam(memberPath, responseVarName, handler)) return;
