@@ -7,6 +7,7 @@ import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
+import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
 
 const CodeMirror = require('codemirror');
 
@@ -91,6 +92,14 @@ class SingleLineEditor extends Component {
       autoCompleteOptions
     );
 
+    // setupLinkAware must run before setValue() — its 'changes' listener needs to be
+    // registered before the initial setValue() fires, otherwise that first change (the
+    // only one for a value nobody edits again, e.g. the URL bar) is never seen and the
+    // link never gets marked.
+    setupLinkAware(this.editor, {
+      onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
+    });
+
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
     this.editor.on('paste', this._onPaste);
@@ -103,7 +112,6 @@ class SingleLineEditor extends Component {
     if (this.props.showNewlineArrow) {
       this._updateNewlineMarkers();
     }
-    setupLinkAware(this.editor);
 
     // Add mousetrap class so Mousetrap captures shortcuts even when CodeMirror is focused
     const cmInput = this.editor.getInputField();
