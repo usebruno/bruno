@@ -28,7 +28,7 @@
     "jsonwebtoken": "^9.0.3",
     "lodash": "4.18.1",
     "moment": "^2.29.4",
-    "nanoid": "3.3.17",
+    "nanoid": "3.3.18",
     "node-fetch": "^2.7.0",
     "path": "^0.12.7",
     "quickjs-emscripten": "^0.32.0",
