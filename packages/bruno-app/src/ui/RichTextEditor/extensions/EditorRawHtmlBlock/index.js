@@ -74,8 +74,20 @@ const parseSimpleTextBlockElement = (html) => {
   const wrapper = document.createElement('div');
   wrapper.innerHTML = DOMPurify.sanitize(html, SANITIZE_CONFIG);
 
-  const [element, ...rest] = wrapper.children;
-  if (!element || rest.length) {
+  let element = null;
+  for (const node of wrapper.childNodes) {
+    // Uses globalThis.Node (the DOM interface) since the module-level `Node` import above is @tiptap/core's schema Node class.
+    if (node.nodeType === globalThis.Node.ELEMENT_NODE) {
+      if (element) return null;
+      element = node;
+    } else if (node.nodeType === globalThis.Node.TEXT_NODE) {
+      if (node.textContent.trim() !== '') return null;
+    } else {
+      return null;
+    }
+  }
+
+  if (!element) {
     return null;
   }
 

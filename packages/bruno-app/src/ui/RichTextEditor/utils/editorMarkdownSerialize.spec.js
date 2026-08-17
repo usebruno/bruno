@@ -378,16 +378,22 @@ describe('Editor markdown serialization', () => {
 
   it('recognizes a single-quoted checkbox input as inline HTML too, not just the double-quoted form', () => {
     editor = createEditor('');
-    editor.commands.setContent('Check this: <input type=\'checkbox\'>');
+    editor.commands.setContent('<ul data-type="taskList"><li class="task-list-item"><input type=\'checkbox\'> open</li></ul>');
 
     let rawHtmlInlineCount = 0;
+    let taskItemCount = 0;
     editor.state.doc.descendants((node) => {
       if (node.type.name === 'rawHtmlInline') {
         rawHtmlInlineCount += 1;
       }
+      if (node.type.name === 'taskItem') {
+        taskItemCount += 1;
+      }
     });
 
     expect(rawHtmlInlineCount).toBe(0);
+    expect(taskItemCount).toBe(1);
+    expect(getMarkdown(editor)).toMatch(/- \[ \] open/);
   });
 
   describe('raw HTML text blocks', () => {
@@ -535,6 +541,21 @@ describe('Editor markdown serialization', () => {
       expect(rawHtmlBlockCount).toBe(1);
       expect(rawHtmlTextBlockCount).toBe(0);
       expect(getMarkdown(editor)).toBe('<div>Has <b>nested</b> markup</div>');
+    });
+
+    it('falls back to the opaque raw-HTML atom instead of silently dropping stray text beside the tag', () => {
+      editor = createFullEditor('<div class="note">Some plain text</div> stray');
+
+      let rawHtmlBlockCount = 0;
+      let rawHtmlTextBlockCount = 0;
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'rawHtmlBlock') rawHtmlBlockCount += 1;
+        if (node.type.name === 'rawHtmlTextBlock') rawHtmlTextBlockCount += 1;
+      });
+
+      expect(rawHtmlBlockCount).toBe(1);
+      expect(rawHtmlTextBlockCount).toBe(0);
+      expect(getMarkdown(editor)).toContain('<div class="note">Some plain text</div> stray');
     });
 
     it('edits a text block in place and round-trips the change', () => {
