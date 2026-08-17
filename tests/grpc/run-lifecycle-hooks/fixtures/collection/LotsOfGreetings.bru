@@ -43,16 +43,16 @@ script:grpc:after-call-end {
   // A client stream sends nothing on connect, so `req.messages` holds what the user actually
   // streamed — the third authored message is deliberately never sent.
   test('the hook sees only the streamed messages', () => {
-    expect(bru.grpc.req.messages.count()).to.equal(2);
-    expect(bru.grpc.req.messages.get(0).data.greeting).to.equal('streamed-1');
-    expect(bru.grpc.req.messages.get(1).data.greeting).to.equal('streamed-2');
+    expect(bru.grpc.request.messages.count()).to.equal(2);
+    expect(bru.grpc.request.messages.get(0).data.greeting).to.equal('streamed-1');
+    expect(bru.grpc.request.messages.get(1).data.greeting).to.equal('streamed-2');
   });
 
   test('server replied once', () => {
-    expect(bru.grpc.res.messages.count()).to.equal(1);
+    expect(bru.grpc.response.messages.count()).to.equal(1);
   });
 
   test('call finished with OK', () => {
-    expect(bru.grpc.res.statusCode).to.equal(0);
+    expect(bru.grpc.response.statusCode).to.equal(0);
   });
 }

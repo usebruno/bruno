@@ -49,16 +49,16 @@ describe('GrpcScriptRuntime', () => {
     it('applies metadata writes to the request that will be sent', async () => {
       const request = makeRequest();
 
-      const result = await runBeforeCallStart(`bru.grpc.req.metadata.set('x-token', 'from-hook');`, request);
+      const result = await runBeforeCallStart(`bru.grpc.request.metadata.set('x-token', 'from-hook');`, request);
 
       expect(result.request.headers).toEqual({ 'x-token': 'from-hook' });
     });
 
     it('exposes the request scalars and the authored messages', async () => {
       const script = `
-        bru.setVar('method', bru.grpc.req.method);
-        bru.setVar('methodType', bru.grpc.req.methodType);
-        bru.setVar('greeting', bru.grpc.req.messages.get().data.greeting);
+        bru.setVar('method', bru.grpc.request.method);
+        bru.setVar('methodType', bru.grpc.request.methodType);
+        bru.setVar('greeting', bru.grpc.request.messages.get().data.greeting);
       `;
 
       const result = await runBeforeCallStart(script, makeRequest());
@@ -70,10 +70,10 @@ describe('GrpcScriptRuntime', () => {
       });
     });
 
-    it('has no bru.grpc.res, since the call has not run yet', async () => {
-      const result = await runBeforeCallStart(`bru.setVar('hasRes', Boolean(bru.grpc.res));`, makeRequest());
+    it('has no bru.grpc.response, since the call has not run yet', async () => {
+      const result = await runBeforeCallStart(`bru.setVar('hasResponse', Boolean(bru.grpc.response));`, makeRequest());
 
-      expect(result.runtimeVariables.hasRes).toBe(false);
+      expect(result.runtimeVariables.hasResponse).toBe(false);
     });
 
     it('rejects bru.runRequest, which gRPC scripts cannot use', async () => {
@@ -93,7 +93,7 @@ describe('GrpcScriptRuntime', () => {
     it('attaches what the hook set before it threw to the error it re-throws', async () => {
       const script = `
         bru.setVar('ranBefore', true);
-        bru.grpc.req.messages.add({ greeting: 'late' });
+        bru.grpc.request.messages.add({ greeting: 'late' });
       `;
       const request = makeRequest();
 
@@ -116,9 +116,9 @@ describe('GrpcScriptRuntime', () => {
     it('reads and writes the request through the QuickJS shim', async () => {
       await quickJsLoader();
       const script = `
-        bru.grpc.req.metadata.set('x-token', 'from-hook');
-        bru.setVar('metadataCount', bru.grpc.req.metadata.count());
-        bru.setVar('greeting', bru.grpc.req.messages.get().data.greeting);
+        bru.grpc.request.metadata.set('x-token', 'from-hook');
+        bru.setVar('metadataCount', bru.grpc.request.metadata.count());
+        bru.setVar('greeting', bru.grpc.request.messages.get().data.greeting);
       `;
       const request = makeRequest();
 
@@ -132,11 +132,11 @@ describe('GrpcScriptRuntime', () => {
   describe('afterCallEnd (runGrpcResponseScript)', () => {
     it('exposes the completed call', async () => {
       const script = `
-        bru.setVar('statusCode', bru.grpc.res.statusCode);
-        bru.setVar('duration', bru.grpc.res.duration);
-        bru.setVar('reply', bru.grpc.res.messages.get().data.reply);
-        bru.setVar('contentType', bru.grpc.res.metadata.get('content-type'));
-        bru.setVar('grpcStatus', bru.grpc.res.trailers.get('grpc-status'));
+        bru.setVar('statusCode', bru.grpc.response.statusCode);
+        bru.setVar('duration', bru.grpc.response.duration);
+        bru.setVar('reply', bru.grpc.response.messages.get().data.reply);
+        bru.setVar('contentType', bru.grpc.response.metadata.get('content-type'));
+        bru.setVar('grpcStatus', bru.grpc.response.trailers.get('grpc-status'));
       `;
 
       const result = await runAfterCallEnd(script, makeRequest(), makeResponse());
@@ -160,8 +160,8 @@ describe('GrpcScriptRuntime', () => {
         }
       });
       const script = `
-        bru.setVar('count', bru.grpc.req.messages.count());
-        bru.setVar('greeting', bru.grpc.req.messages.get().data.greeting);
+        bru.setVar('count', bru.grpc.request.messages.count());
+        bru.setVar('greeting', bru.grpc.request.messages.get().data.greeting);
       `;
 
       const result = await runAfterCallEnd(script, request, makeResponse(), {
@@ -173,27 +173,27 @@ describe('GrpcScriptRuntime', () => {
 
     it('rejects every write once the call has ended', async () => {
       const script = `
-        try { bru.grpc.req.metadata.set('x-token', 'too-late'); } catch (e) { bru.setVar('reqMetadata', e.message); }
-        try { bru.grpc.req.messages.add({}); } catch (e) { bru.setVar('reqMessages', e.message); }
-        try { bru.grpc.res.trailers.delete('grpc-status'); } catch (e) { bru.setVar('resTrailers', e.message); }
+        try { bru.grpc.request.metadata.set('x-token', 'too-late'); } catch (e) { bru.setVar('requestMetadata', e.message); }
+        try { bru.grpc.request.messages.add({}); } catch (e) { bru.setVar('requestMessages', e.message); }
+        try { bru.grpc.response.trailers.delete('grpc-status'); } catch (e) { bru.setVar('responseTrailers', e.message); }
       `;
       const request = makeRequest();
 
       const result = await runAfterCallEnd(script, request, makeResponse());
 
-      expect(result.runtimeVariables.reqMetadata).toContain('metadata.set() is not available');
-      expect(result.runtimeVariables.reqMessages).toContain('messages.add() is not available');
-      expect(result.runtimeVariables.resTrailers).toContain('metadata.delete() is not available');
+      expect(result.runtimeVariables.requestMetadata).toContain('metadata.set() is not available');
+      expect(result.runtimeVariables.requestMessages).toContain('messages.add() is not available');
+      expect(result.runtimeVariables.responseTrailers).toContain('metadata.delete() is not available');
       expect(request.headers).toEqual({ 'X-Token': 'authored' });
     });
 
     it('reads the completed call through the QuickJS shim', async () => {
       await quickJsLoader();
       const script = `
-        bru.setVar('statusCode', bru.grpc.res.statusCode);
-        bru.setVar('reply', bru.grpc.res.messages.get().data.reply);
-        bru.setVar('contentType', bru.grpc.res.metadata.get('content-type'));
-        bru.setVar('sentCount', bru.grpc.req.messages.count());
+        bru.setVar('statusCode', bru.grpc.response.statusCode);
+        bru.setVar('reply', bru.grpc.response.messages.get().data.reply);
+        bru.setVar('contentType', bru.grpc.response.metadata.get('content-type'));
+        bru.setVar('sentCount', bru.grpc.request.messages.count());
       `;
 
       const result = await runAfterCallEnd(script, makeRequest(), makeResponse(), {

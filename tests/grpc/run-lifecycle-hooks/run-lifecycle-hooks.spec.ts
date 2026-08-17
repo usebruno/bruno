@@ -48,7 +48,7 @@ for (const mode of SANDBOX_MODES) {
 
     // A client or bidi stream sends nothing on connect: each message goes out only when its own
     // send button is clicked, and the call ends when the connection is ended by hand. That is what
-    // makes `bru.grpc.req.messages` in `afterCallEnd` differ from the authored messages.
+    // makes `bru.grpc.request.messages` in `afterCallEnd` differ from the authored messages.
     const streamAndEnd = async (page: Page, locators: GrpcLocators, requestName: string, method: string, messageIndexes: number[]) => {
       await send(page, locators, requestName, method);
       await expect(locators.request.endConnectionButton()).toBeVisible({ timeout: 30000 });
@@ -72,7 +72,7 @@ for (const mode of SANDBOX_MODES) {
         await expect(locators.response.content()).toContainText('set-by-hook');
       });
 
-      // Nothing on a unary call ever streams, so `bru.grpc.req.messages` is rebuilt from the
+      // Nothing on a unary call ever streams, so `bru.grpc.request.messages` is rebuilt from the
       // request body rather than observed — a hook that saw an empty list would be indistinguishable
       // from a working one anywhere else in this suite.
       await test.step('the hook saw the message the unary call sent', async () => {

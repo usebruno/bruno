@@ -69,7 +69,7 @@ class GrpcScriptRuntime {
     });
 
     // Initial scope - messages writable is disabled.
-    bru.grpc = { req: new BrunoGrpcRequest(request, { metadataWritable: true, messagesWritable: false }) };
+    bru.grpc = { request: new BrunoGrpcRequest(request, { metadataWritable: true, messagesWritable: false }) };
 
     // extend bru with result getter methods
     const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);
@@ -200,8 +200,8 @@ class GrpcScriptRuntime {
 
     // Passing sentMessages so only messages sent by client is accessible
     bru.grpc = {
-      req: new BrunoGrpcRequest(request, { sentMessages }),
-      res: new BrunoGrpcResponse(response)
+      request: new BrunoGrpcRequest(request, { sentMessages }),
+      response: new BrunoGrpcResponse(response)
     };
 
     // extend bru with result getter methods

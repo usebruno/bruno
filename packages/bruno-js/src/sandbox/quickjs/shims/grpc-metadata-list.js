@@ -1,14 +1,14 @@
 const { createPropertyListBridge } = require('../utils/property-list-bridge');
 
 /**
- * Bridges a GrpcMetadataList — `bru.grpc.req.metadata`, `bru.grpc.res.metadata`,
- * `bru.grpc.res.trailers` — onto a VM object. Keep in sync with GrpcMetadataList
+ * Bridges a GrpcMetadataList — `bru.grpc.request.metadata`, `bru.grpc.response.metadata`,
+ * `bru.grpc.response.trailers` — onto a VM object. Keep in sync with GrpcMetadataList
  *
  * @param {Object} vm - QuickJS VM instance
  * @param {Object} list - The native GrpcMetadataList
  * @param {Object} targetObject - VM object handle the list is attached to
  * @param {string} property - Property name on `targetObject`
- * @param {string} objectPath - Path to `targetObject` in the VM, e.g. `globalThis.bru.grpc.req`
+ * @param {string} objectPath - Path to `targetObject` in the VM, e.g. `globalThis.bru.grpc.request`
  * @returns {string} Code the caller must eval once `objectPath` resolves
  */
 const addGrpcMetadataListShimToContext = (vm, list, targetObject, property, objectPath) => {

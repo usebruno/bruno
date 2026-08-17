@@ -41,15 +41,15 @@ body:grpc {
 
 script:grpc:after-call-end {
   test('both streamed messages reach the hook, in order', () => {
-    expect(bru.grpc.req.messages.count()).to.equal(2);
-    expect(bru.grpc.req.messages.map((message) => message.data.greeting)).to.eql(['bidi-1', 'bidi-2']);
+    expect(bru.grpc.request.messages.count()).to.equal(2);
+    expect(bru.grpc.request.messages.map((message) => message.data.greeting)).to.eql(['bidi-1', 'bidi-2']);
   });
 
   test('server replied to each message', () => {
-    expect(bru.grpc.res.messages.count()).to.equal(2);
+    expect(bru.grpc.response.messages.count()).to.equal(2);
   });
 
   test('call finished with OK', () => {
-    expect(bru.grpc.res.statusCode).to.equal(0);
+    expect(bru.grpc.response.statusCode).to.equal(0);
   });
 }
