@@ -1,9 +1,10 @@
 import { Editor } from '@tiptap/core';
 import createExtensions from '../extensions';
 
+// Excluding rawHtmlBlock or rawHtmlTextBlock alone leaves html_block content orphaned since they share a patched renderer.
 const createEditor = (content) =>
   new Editor({
-    extensions: createExtensions().filter((ext) => ext.name !== 'rawHtmlBlock'),
+    extensions: createExtensions().filter((ext) => !['rawHtmlBlock', 'rawHtmlTextBlock'].includes(ext.name)),
     content
   });
 
@@ -307,5 +308,144 @@ describe('Editor markdown serialization', () => {
     const markdown = getMarkdown(editor);
     expect(markdown).toContain('```javascript');
     expect(markdown).toContain('const x = 1;');
+  });
+
+  it('parses literal inline HTML formatting tags into their marks, not raw HTML', () => {
+    editor = createEditor('');
+    editor.commands.setContent('Some <b>bold</b>, <em>italic</em>, <s>struck</s> and <code>code</code> text.');
+
+    expect(editor.getHTML()).not.toContain('data-raw-html-inline');
+
+    let boldCount = 0;
+    let italicCount = 0;
+    let strikeCount = 0;
+    let codeCount = 0;
+    editor.state.doc.descendants((node) => {
+      const markNames = node.marks?.map((mark) => mark.type.name) || [];
+      if (markNames.includes('bold')) boldCount += 1;
+      if (markNames.includes('italic')) italicCount += 1;
+      if (markNames.includes('strike')) strikeCount += 1;
+      if (markNames.includes('code')) codeCount += 1;
+    });
+
+    expect(boldCount).toBe(1);
+    expect(italicCount).toBe(1);
+    expect(strikeCount).toBe(1);
+    expect(codeCount).toBe(1);
+  });
+
+  it('preserves a non-checkbox input as opaque raw HTML instead of a task-list checkbox', () => {
+    editor = createEditor('');
+    editor.commands.setContent('Enter your name: <input type="text" placeholder="Name">');
+
+    let rawHtmlInlineCount = 0;
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === 'rawHtmlInline') {
+        rawHtmlInlineCount += 1;
+        expect(node.attrs.html).toContain('type="text"');
+      }
+    });
+
+    expect(rawHtmlInlineCount).toBe(1);
+
+    const markdown = getMarkdown(editor);
+    expect(markdown).toContain('<input type="text" placeholder="Name">');
+  });
+
+  describe('raw HTML text blocks', () => {
+    // These exercise rawHtmlTextBlock directly, requiring it in the schema unlike createEditor() which excludes it for its fixtures.
+    const createFullEditor = (content) => new Editor({ extensions: createExtensions(), content });
+
+    it('makes a plain-text <div>/<p> an editable node instead of an opaque atom, preserving its attributes', () => {
+      editor = createFullEditor('Before.\n\n<div class="note">Some plain text</div>\n\nAfter.');
+
+      let textBlockNode = null;
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'rawHtmlTextBlock') {
+          textBlockNode = node;
+        }
+      });
+
+      expect(textBlockNode).not.toBeNull();
+      expect(editor.schema.nodes.rawHtmlTextBlock.isAtom).toBe(false);
+      expect(textBlockNode.attrs).toEqual({ tag: 'div', htmlAttrs: { class: 'note' } });
+      expect(textBlockNode.textContent).toBe('Some plain text');
+
+      expect(getMarkdown(editor)).toBe('Before.\n\n<div class="note">Some plain text</div>\n\nAfter.');
+    });
+
+    it('strips dangerous attributes from a text block before they reach the DOM', () => {
+      editor = createFullEditor('<div onclick="alert(1)" class="note">text</div>');
+
+      let textBlockNode = null;
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'rawHtmlTextBlock') {
+          textBlockNode = node;
+        }
+      });
+
+      expect(textBlockNode).not.toBeNull();
+      expect(textBlockNode.attrs.htmlAttrs).not.toHaveProperty('onclick');
+      expect(textBlockNode.attrs.htmlAttrs).toEqual({ class: 'note' });
+    });
+
+    it('falls back to the opaque raw-HTML atom when a block tag has nested elements', () => {
+      editor = createFullEditor('<div>Has <b>nested</b> markup</div>');
+
+      let rawHtmlBlockCount = 0;
+      let rawHtmlTextBlockCount = 0;
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'rawHtmlBlock') rawHtmlBlockCount += 1;
+        if (node.type.name === 'rawHtmlTextBlock') rawHtmlTextBlockCount += 1;
+      });
+
+      expect(rawHtmlBlockCount).toBe(1);
+      expect(rawHtmlTextBlockCount).toBe(0);
+      expect(getMarkdown(editor)).toBe('<div>Has <b>nested</b> markup</div>');
+    });
+
+    it('edits a text block in place and round-trips the change', () => {
+      editor = createFullEditor('<div class="note">Some plain text</div>');
+
+      let textBlockPos = null;
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === 'rawHtmlTextBlock') {
+          textBlockPos = pos;
+        }
+      });
+
+      editor.commands.insertContentAt(textBlockPos + 1 + 'Some plain text'.length, ' EDITED');
+
+      expect(getMarkdown(editor)).toBe('<div class="note">Some plain text EDITED</div>');
+    });
+
+    it('preserves a <br> line break inside a text block on parse, edit, and round-trip', () => {
+      editor = createFullEditor('<div class="note">Line one<br>Line two</div>');
+
+      let textBlockNode = null;
+      let textBlockPos = null;
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === 'rawHtmlTextBlock') {
+          textBlockNode = node;
+          textBlockPos = pos;
+        }
+      });
+
+      expect(textBlockNode).not.toBeNull();
+      const childTypes = [];
+      textBlockNode.forEach((child) => childTypes.push(child.type.name));
+      expect(childTypes).toEqual(['text', 'hardBreak', 'text']);
+      expect(getMarkdown(editor)).toBe('<div class="note">Line one<br>Line two</div>');
+
+      // setHardBreak explicitly catches isolating node issues since it refuses to insert there, unlike raw insertContentAt.
+      const insertAt = textBlockPos + 1 + 'Line one'.length;
+      editor.commands.setTextSelection(insertAt);
+      expect(editor.can().setHardBreak()).toBe(true);
+
+      const inserted = editor.commands.setHardBreak();
+
+      expect(inserted).toBe(true);
+      expect(getMarkdown(editor)).toBe('<div class="note">Line one<br><br>Line two</div>');
+    });
   });
 });

@@ -8,7 +8,7 @@ import { EditorKbd, EditorSuperscript } from './EditorInlineHtmlMarks';
 import EditorListKeyboard from './EditorListKeyboard';
 import EditorParagraph from './EditorParagraph';
 import { createEditorImage, createEditorLink } from './EditorRelativeAssets';
-import EditorRawHtmlBlock, { EditorRawHtmlInline } from './EditorRawHtmlBlock';
+import EditorRawHtmlBlock, { EditorRawHtmlInline, EditorRawHtmlTextBlock } from './EditorRawHtmlBlock';
 import EditorTable from './EditorTable';
 import { EditorTableCell, EditorTableHeader } from './EditorTableAlignment';
 import EditorTableKeyboard from './EditorTableKeyboard';
@@ -103,7 +103,7 @@ const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
     }
   }),
   EditorTableKeyboard,
-  ...(allowHtml ? [EditorRawHtmlBlock, EditorRawHtmlInline] : []),
+  ...(allowHtml ? [EditorRawHtmlBlock, EditorRawHtmlInline, EditorRawHtmlTextBlock] : []),
   EditorKbd,
   EditorSuperscript,
   createEditorLink(collectionPath).configure({
@@ -118,22 +118,12 @@ const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
   }),
   Markdown.configure({
     html: allowHtml,
-    // A lone `\n` inside a paragraph is a CommonMark soft break (renders as a
-    // space), not a line break. With `breaks: true`, tiptap-markdown parses
-    // it as a hardBreak node instead, and EditorHardBreak's serializer then
-    // writes that back out as an explicit `\` line-continuation — so loading
-    // and re-saving any doc with hand-wrapped prose silently turned every
-    // wrapped line into a forced break. `breaks: false` keeps soft breaks as
-    // plain reflowable text, matching how any other CommonMark renderer
-    // (e.g. GitHub) would display the same file.
+    // We disable 'breaks' so soft breaks aren't promoted to hard breaks, preventing hand-wrapped lines from being rewritten with escapes.
     breaks: false,
     linkify: true,
     transformPastedText: true,
     transformCopiedText: true,
-    // The parsed ProseMirror bulletList node has no memory of whether the
-    // source used `-`, `*`, or `+` — the marker carries no semantic meaning,
-    // so serialization always normalizes to one consistent marker rather than
-    // reading this option from an unset config (which read as accidental).
+    // ProseMirror bulletList nodes don't retain the original source marker, so serialization normalizes to a single consistent marker.
     bulletListMarker: '-'
   })
 ];

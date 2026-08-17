@@ -4,32 +4,75 @@ import runMarkdownitSetupOnce from '../../utils/markdownitSetupOnce';
 
 const RAW_HTML_BLOCK_ATTR = 'data-raw-html-block';
 const RAW_HTML_INLINE_ATTR = 'data-raw-html-inline';
+const TEXT_BLOCK_TAG_ATTR = 'data-raw-html-text-block';
 
-// This raw HTML is rendered straight into the page via `innerHTML`, not a
-// contained iframe/shadow DOM, so DOMPurify's default allowlist (which
-// permits <style>) would let an untrusted collection's docs inject CSS rules
-// that affect the whole app UI, not just this block.
+// We forbid <style> in DOMPurify to prevent untrusted docs from injecting CSS that affects the whole app UI.
 const SANITIZE_CONFIG = { FORBID_TAGS: ['style'] };
 
-// A standalone `<br/>` is how an empty paragraph marks itself for
-// reparse (see EditorParagraph's serializer) — treat it as an ordinary
-// hard break inside an (auto-wrapped) empty paragraph, not as opaque
-// raw HTML, so a blank line stays an editable paragraph on reload.
+// A standalone <br/> marks an empty paragraph; treating it as a hard break ensures blank lines remain editable paragraphs.
 const BLANK_LINE_MARKER_PATTERN = /^<br\s*\/?>$/i;
 
-// These inline tags are already consumed by something else in the pipeline
-// before an unrecognized tag would need to fall back to an opaque raw-HTML
-// atom: `br` -> EditorHardBreak, `kbd`/`sup` -> EditorInlineHtmlMarks (both
-// via their own parseHTML rule matching the literal tag), and `input` -> the
-// task-list checkbox that markdown-it-task-lists renders as inline HTML and
-// editorMarkdownParse's updateDOM reads directly off the DOM. Matching by tag
-// name (not the full tag string) so this still applies regardless of the
-// attributes markdown-it-task-lists puts on a given checkbox.
-const RECOGNIZED_INLINE_HTML_TAGS = new Set(['br', 'kbd', 'sup', 'input']);
+// Recognized inline tags bypass the raw HTML atom wrapper so their dedicated parseHTML rules can still process them natively.
+const RECOGNIZED_INLINE_HTML_TAGS = new Set([
+  'br', 'kbd', 'sup', 'a',
+  'strong', 'b', 'em', 'i', 's', 'del', 'strike', 'code'
+]);
+
+// Task list checkboxes are passed through as plain HTML since updateDOM reads them directly; all other <input> tags remain opaque raw-HTML atoms.
+const TASK_LIST_CHECKBOX_PATTERN = /^<input\b[^>]*\btype="checkbox"/i;
 
 const getInlineHtmlTagName = (html) => {
   const match = html.trim().match(/^<\/?([a-zA-Z][\w-]*)/);
   return match ? match[1].toLowerCase() : null;
+};
+
+const isRecognizedInlineHtml = (html) => {
+  const trimmed = html.trim();
+  const tagName = getInlineHtmlTagName(trimmed);
+
+  if (RECOGNIZED_INLINE_HTML_TAGS.has(tagName)) {
+    return true;
+  }
+
+  return tagName === 'input' && TASK_LIST_CHECKBOX_PATTERN.test(trimmed);
+};
+
+// Self-contained widgets (video, forms, tables) stay fully opaque. Other block tags (div, p) can become editable text blocks if they sanitize down to plain text.
+const NON_TEXT_BLOCK_TAGS = new Set([
+  'video', 'audio', 'iframe', 'embed', 'object', 'canvas', 'svg',
+  'source', 'track', 'map', 'area',
+  'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'colgroup', 'col',
+  'form', 'input', 'button', 'select', 'option', 'optgroup', 'textarea', 'label', 'fieldset', 'legend',
+  'script', 'style', 'noscript',
+  'details', 'summary',
+  'hr'
+]);
+
+const escapeHtmlText = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const escapeHtmlAttrValue = (value) => escapeHtmlText(value).replace(/"/g, '&quot;');
+
+// Returns the top-level element if it sanitizes down to a single wrapper with only plain text and <br>s; otherwise returns null to fall back to an opaque raw-HTML atom.
+const parseSimpleTextBlockElement = (html) => {
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = DOMPurify.sanitize(html, SANITIZE_CONFIG);
+
+  const [element, ...rest] = wrapper.children;
+  if (!element || rest.length) {
+    return null;
+  }
+
+  const hasOnlyLineBreakChildren = [...element.children].every((child) => child.tagName === 'BR');
+  return hasOnlyLineBreakChildren ? element : null;
+};
+
+// Serializes text and hardBreaks for rawHtmlTextBlock, explicitly converting hardBreaks to <br> so they aren't silently dropped.
+const serializeTextBlockContent = (element) => {
+  let inner = '';
+  element.childNodes.forEach((child) => {
+    inner += child.tagName === 'BR' ? '<br>' : escapeHtmlText(child.textContent || '');
+  });
+  return inner;
 };
 
 const encodeRawHtml = (html) => {
@@ -48,13 +91,7 @@ const decodeRawHtml = (encoded) => {
   }
 };
 
-// markdown-it's default html_block rule writes the raw HTML straight through
-// to the rendered HTML string, but the editor's ProseMirror schema only knows
-// how to build nodes for tags it has a parseHTML rule for — so arbitrary raw
-// HTML (<details>, <video>, <iframe>, comments, …) never becomes a node and
-// silently disappears. Rendering every html_block token as this placeholder
-// (matched by rawHtmlBlock's parseHTML below) guarantees it always survives
-// as an opaque node instead, regardless of which tag it contains.
+// Wraps html_block tokens in placeholders to guarantee arbitrary raw HTML survives as an opaque node rather than silently disappearing during parsing.
 const setupRawHtmlBlockParser = (markdownit) => {
   runMarkdownitSetupOnce(markdownit, '__docsRawHtmlBlockPatched', (md) => {
     md.renderer.rules.html_block = (tokens, idx) => {
@@ -64,22 +101,29 @@ const setupRawHtmlBlockParser = (markdownit) => {
         return html;
       }
 
+      const textBlockElement = parseSimpleTextBlockElement(html);
+      const tagName = textBlockElement?.tagName.toLowerCase();
+
+      if (textBlockElement && !NON_TEXT_BLOCK_TAGS.has(tagName)) {
+        const attrs = [...textBlockElement.attributes]
+          .map((attr) => ` ${attr.name}="${escapeHtmlAttrValue(attr.value)}"`)
+          .join('');
+
+        return `<${tagName} ${TEXT_BLOCK_TAG_ATTR}="${tagName}"${attrs}>${serializeTextBlockContent(textBlockElement)}</${tagName}>`;
+      }
+
       return `<div ${RAW_HTML_BLOCK_ATTR}="${encodeRawHtml(html)}"></div>`;
     };
   });
 };
 
-// Same rationale as setupRawHtmlBlockParser, but for inline HTML (<u>,
-// <span>, <mark>, <abbr>, …) that markdown-it tokenizes as html_inline —
-// without this, those tags have no schema mapping and silently disappear.
-// Registered separately from the block version (its own runMarkdownitSetupOnce
-// key) so each raw-HTML node only patches the renderer rule it actually needs.
+// Wraps html_inline tokens in placeholders so unrecognized inline tags survive as opaque nodes rather than silently disappearing.
 const setupRawHtmlInlineParser = (markdownit) => {
   runMarkdownitSetupOnce(markdownit, '__docsRawHtmlInlinePatched', (md) => {
     md.renderer.rules.html_inline = (tokens, idx) => {
       const html = tokens[idx].content;
 
-      if (RECOGNIZED_INLINE_HTML_TAGS.has(getInlineHtmlTagName(html))) {
+      if (isRecognizedInlineHtml(html)) {
         return html;
       }
 
@@ -88,9 +132,7 @@ const setupRawHtmlInlineParser = (markdownit) => {
   });
 };
 
-// The block- and inline-level raw-HTML placeholders only differ in their tag,
-// attribute, grouping, and markdown wiring — everything else (encode/decode,
-// sanitized node view, update handling) is identical.
+// Shared factory for raw HTML nodes, as block and inline placeholders only differ in tags, attributes, and markdown wiring.
 const createRawHtmlNode = ({ name, tag, attr, className, extra, serialize, setupParser }) =>
   Node.create({
     name,
@@ -187,6 +229,78 @@ export const EditorRawHtmlInline = createRawHtmlNode({
     state.write(node.attrs.html);
   },
   setupParser: setupRawHtmlInlineParser
+});
+
+// Editable HTML block that sanitizes to plain text. The original tag and attributes are preserved on the node to ensure they round-trip properly.
+export const EditorRawHtmlTextBlock = Node.create({
+  name: 'rawHtmlTextBlock',
+  group: 'block',
+  // Allows text and hardBreak so Shift+Enter works, but excludes marks. Not isolated to allow HardBreak's command to insert line breaks.
+  content: '(text|hardBreak)*',
+
+  addAttributes() {
+    return {
+      tag: {
+        default: 'div'
+      },
+      htmlAttrs: {
+        default: {}
+      }
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: `[${TEXT_BLOCK_TAG_ATTR}]`,
+        // Uses high priority so this rule claims marked text blocks before native node rules (like paragraph's <p>) strip their attributes.
+        priority: 1000,
+        getAttrs: (element) => {
+          const htmlAttrs = {};
+          [...element.attributes].forEach((attr) => {
+            if (attr.name !== TEXT_BLOCK_TAG_ATTR) {
+              htmlAttrs[attr.name] = attr.value;
+            }
+          });
+
+          return {
+            tag: element.getAttribute(TEXT_BLOCK_TAG_ATTR) || element.tagName.toLowerCase(),
+            htmlAttrs
+          };
+        }
+      }
+    ];
+  },
+
+  renderHTML({ node }) {
+    return [node.attrs.tag, { [TEXT_BLOCK_TAG_ATTR]: node.attrs.tag, ...node.attrs.htmlAttrs }, 0];
+  },
+
+  addStorage() {
+    return {
+      markdown: {
+        serialize(state, node) {
+          const { tag, htmlAttrs } = node.attrs;
+          const attrs = Object.entries(htmlAttrs || {})
+            .map(([name, value]) => ` ${name}="${escapeHtmlAttrValue(value)}"`)
+            .join('');
+
+          let inner = '';
+          node.forEach((child) => {
+            inner += child.type.name === 'hardBreak' ? '<br>' : escapeHtmlText(child.text || '');
+          });
+
+          state.write(`<${tag}${attrs}>${inner}</${tag}>`);
+          state.closeBlock(node);
+        },
+        parse: {
+          setup(markdownit) {
+            setupRawHtmlBlockParser(markdownit);
+          }
+        }
+      }
+    };
+  }
 });
 
 export default EditorRawHtmlBlock;

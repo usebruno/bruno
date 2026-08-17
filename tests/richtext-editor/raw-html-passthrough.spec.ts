@@ -116,4 +116,59 @@ test.describe('Rich Text Editor Edge Cases - Raw HTML Passthrough', () => {
       expect(roundTripped).toContain('[x] Task done');
     });
   });
+
+  const TEXT_BLOCK_MARKDOWN_SOURCE = [
+    'Before the block.',
+    '',
+    '<div class="note">Some plain text</div>',
+    '',
+    'After the block.',
+    ''
+  ].join('\n');
+
+  test('A plain-text block tag like <div> is editable in place, unlike a non-text raw HTML block', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-text-block');
+
+    await setMarkdownSource(locators, TEXT_BLOCK_MARKDOWN_SOURCE);
+
+    await locators.docs.modeSwitchDocs().click();
+    const prosemirror = locators.docs.proseMirror();
+    await expect(prosemirror).toBeVisible();
+
+    const textBlock = prosemirror.locator('div.note');
+
+    await test.step('The <div> renders as real, editable content, not an opaque atom', async () => {
+      await expect(textBlock).toHaveText('Some plain text');
+      await expect(textBlock).not.toHaveClass(/editor-raw-html-block/);
+      // The opaque raw-HTML atom explicitly sets contentEditable="false"; this
+      // node never does, so it inherits editability from the ProseMirror root.
+      await expect(textBlock).not.toHaveAttribute('contenteditable', 'false');
+    });
+
+    await test.step('Typing inside it actually edits the text', async () => {
+      await textBlock.click();
+      await page.keyboard.press('End');
+      await page.keyboard.type(' EDITED');
+      await expect(textBlock).toHaveText('Some plain text EDITED');
+    });
+
+    await test.step('Shift+Enter inserts a line break inside the block', async () => {
+      await page.keyboard.down('Shift');
+      await page.keyboard.press('Enter');
+      await page.keyboard.up('Shift');
+      await page.keyboard.type('Second line');
+
+      await expect(textBlock.locator('br')).toHaveCount(1);
+      // Still one block-level div, not split into two.
+      await expect(prosemirror.locator('div.note')).toHaveCount(1);
+    });
+
+    await test.step('The edit round-trips, still wrapped in the original tag and attributes', async () => {
+      const roundTripped = await getMarkdownSource(locators);
+
+      expect(roundTripped).toContain('<div class="note">Some plain text EDITED<br>Second line</div>');
+      expect(roundTripped).toContain('Before the block.');
+      expect(roundTripped).toContain('After the block.');
+    });
+  });
 });
