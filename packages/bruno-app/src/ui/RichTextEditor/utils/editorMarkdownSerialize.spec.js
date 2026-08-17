@@ -1,5 +1,15 @@
 import { Editor } from '@tiptap/core';
+import { DOMParser as ProseMirrorDOMParser } from 'prosemirror-model';
 import createExtensions from '../extensions';
+
+// Mirrors what ProseMirror's own paste handling does with clipboard HTML: parses a raw DOM
+// element straight through the schema's parseHTML rules, bypassing the markdown-it pipeline
+// (and its DOMPurify sanitization) entirely.
+const parsePastedHtml = (editor, html) => {
+  const dom = document.createElement('div');
+  dom.innerHTML = html;
+  return ProseMirrorDOMParser.fromSchema(editor.schema).parseSlice(dom, { preserveWhitespace: true });
+};
 
 // Excluding rawHtmlBlock or rawHtmlTextBlock alone leaves html_block content orphaned since they share a patched renderer.
 const createEditor = (content) =>
@@ -303,6 +313,20 @@ describe('Editor markdown serialization', () => {
     expect(markdown).toMatch(/line two/);
   });
 
+  it('reflows a hand-wrapped single-newline paragraph onto one line instead of treating it as a hard break', () => {
+    editor = createEditor('Line one\nLine two');
+
+    let hardBreakCount = 0;
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === 'hardBreak') {
+        hardBreakCount += 1;
+      }
+    });
+
+    expect(hardBreakCount).toBe(0);
+    expect(getMarkdown(editor)).toBe('Line one Line two');
+  });
+
   it('serializes code blocks with language', () => {
     editor = createEditor('<pre><code class="language-javascript">const x = 1;</code></pre>');
     const markdown = getMarkdown(editor);
@@ -352,6 +376,20 @@ describe('Editor markdown serialization', () => {
     expect(markdown).toContain('<input type="text" placeholder="Name">');
   });
 
+  it('recognizes a single-quoted checkbox input as inline HTML too, not just the double-quoted form', () => {
+    editor = createEditor('');
+    editor.commands.setContent('Check this: <input type=\'checkbox\'>');
+
+    let rawHtmlInlineCount = 0;
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === 'rawHtmlInline') {
+        rawHtmlInlineCount += 1;
+      }
+    });
+
+    expect(rawHtmlInlineCount).toBe(0);
+  });
+
   describe('raw HTML text blocks', () => {
     // These exercise rawHtmlTextBlock directly, requiring it in the schema unlike createEditor() which excludes it for its fixtures.
     const createFullEditor = (content) => new Editor({ extensions: createExtensions(), content });
@@ -368,10 +406,33 @@ describe('Editor markdown serialization', () => {
 
       expect(textBlockNode).not.toBeNull();
       expect(editor.schema.nodes.rawHtmlTextBlock.isAtom).toBe(false);
-      expect(textBlockNode.attrs).toEqual({ tag: 'div', htmlAttrs: { class: 'note' } });
+      expect(textBlockNode.attrs.tag).toBe('div');
+      expect(textBlockNode.attrs.htmlAttrs).toEqual({ class: 'note' });
       expect(textBlockNode.textContent).toBe('Some plain text');
 
       expect(getMarkdown(editor)).toBe('Before.\n\n<div class="note">Some plain text</div>\n\nAfter.');
+    });
+
+    it('preserves a legacy block\'s exact original bytes on round-trip when it is never edited', () => {
+      const legacySource = 'Before.\n\n<DIV CLASS=\'note\'>Some &amp; plain text</DIV>\n\nAfter.';
+      editor = createFullEditor(legacySource);
+
+      expect(getMarkdown(editor)).toBe(legacySource);
+    });
+
+    it('reconstructs a legacy block\'s markup only once its content is actually edited', () => {
+      editor = createFullEditor('<DIV CLASS=\'note\'>Some plain text</DIV>');
+
+      let textBlockPos = null;
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === 'rawHtmlTextBlock') {
+          textBlockPos = pos;
+        }
+      });
+
+      editor.commands.insertContentAt(textBlockPos + 1 + 'Some plain text'.length, ' EDITED');
+
+      expect(getMarkdown(editor)).toBe('<div class="note">Some plain text EDITED</div>');
     });
 
     it('strips dangerous attributes from a text block before they reach the DOM', () => {
@@ -387,6 +448,78 @@ describe('Editor markdown serialization', () => {
       expect(textBlockNode).not.toBeNull();
       expect(textBlockNode.attrs.htmlAttrs).not.toHaveProperty('onclick');
       expect(textBlockNode.attrs.htmlAttrs).toEqual({ class: 'note' });
+    });
+
+    it('strips a dangerous attribute from HTML parsed directly by the schema, as ProseMirror does for clipboard paste', () => {
+      editor = createFullEditor('');
+
+      const slice = parsePastedHtml(
+        editor,
+        '<div data-raw-html-text-block="div" onerror="alert(1)" class="note">payload</div>'
+      );
+
+      let textBlockNode = null;
+      slice.content.descendants((node) => {
+        if (node.type.name === 'rawHtmlTextBlock') {
+          textBlockNode = node;
+        }
+      });
+
+      expect(textBlockNode).not.toBeNull();
+      expect(textBlockNode.attrs.htmlAttrs).not.toHaveProperty('onerror');
+      expect(textBlockNode.attrs.htmlAttrs).toEqual({ class: 'note' });
+    });
+
+    it('refuses to substitute a dangerous tag via the marker attribute on pasted HTML', () => {
+      editor = createFullEditor('');
+
+      const slice = parsePastedHtml(editor, '<div data-raw-html-text-block="script">alert(1)</div>');
+
+      let scriptTextBlockNode = null;
+      slice.content.descendants((node) => {
+        if (node.type.name === 'rawHtmlTextBlock' && node.attrs.tag === 'script') {
+          scriptTextBlockNode = node;
+        }
+      });
+
+      expect(scriptTextBlockNode).toBeNull();
+    });
+
+    it('does not trust an original-bytes payload whose attributes don\'t match the sanitized element', () => {
+      editor = createFullEditor('');
+
+      const forgedOriginal = Buffer.from('<div class="different">payload</div>', 'utf-8').toString('base64');
+      const slice = parsePastedHtml(
+        editor,
+        `<div data-raw-html-text-block="div" data-raw-html-original="${forgedOriginal}" class="note">payload</div>`
+      );
+
+      let textBlockNode = null;
+      slice.content.descendants((node) => {
+        if (node.type.name === 'rawHtmlTextBlock') {
+          textBlockNode = node;
+        }
+      });
+
+      expect(textBlockNode).not.toBeNull();
+      expect(textBlockNode.attrs.originalHtml).toBeNull();
+    });
+
+    it('never serializes smuggled original-bytes content that differs from the actual pasted text', () => {
+      editor = createFullEditor('');
+
+      const forgedOriginal = Buffer.from('<div class="note">forged</div>', 'utf-8').toString('base64');
+      const slice = parsePastedHtml(
+        editor,
+        `<div data-raw-html-text-block="div" data-raw-html-original="${forgedOriginal}" class="note">payload</div>`
+      );
+
+      const tr = editor.state.tr.replaceWith(0, editor.state.doc.content.size, slice.content);
+      editor.view.dispatch(tr);
+
+      const markdown = getMarkdown(editor);
+      expect(markdown).toContain('payload');
+      expect(markdown).not.toContain('forged');
     });
 
     it('falls back to the opaque raw-HTML atom when a block tag has nested elements', () => {

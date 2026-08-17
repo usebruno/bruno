@@ -160,7 +160,7 @@ test.describe('Rich Text Editor Edge Cases - Raw HTML Passthrough', () => {
 
       await expect(textBlock.locator('br')).toHaveCount(1);
       // Still one block-level div, not split into two.
-      await expect(prosemirror.locator('div.note')).toHaveCount(1);
+      await expect(textBlock).toHaveCount(1);
     });
 
     await test.step('The edit round-trips, still wrapped in the original tag and attributes', async () => {

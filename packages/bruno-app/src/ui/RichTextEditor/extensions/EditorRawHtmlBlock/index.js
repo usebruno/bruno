@@ -5,6 +5,7 @@ import runMarkdownitSetupOnce from '../../utils/markdownitSetupOnce';
 const RAW_HTML_BLOCK_ATTR = 'data-raw-html-block';
 const RAW_HTML_INLINE_ATTR = 'data-raw-html-inline';
 const TEXT_BLOCK_TAG_ATTR = 'data-raw-html-text-block';
+const ORIGINAL_HTML_ATTR = 'data-raw-html-original';
 
 // We forbid <style> in DOMPurify to prevent untrusted docs from injecting CSS that affects the whole app UI.
 const SANITIZE_CONFIG = { FORBID_TAGS: ['style'] };
@@ -19,7 +20,7 @@ const RECOGNIZED_INLINE_HTML_TAGS = new Set([
 ]);
 
 // Task list checkboxes are passed through as plain HTML since updateDOM reads them directly; all other <input> tags remain opaque raw-HTML atoms.
-const TASK_LIST_CHECKBOX_PATTERN = /^<input\b[^>]*\btype="checkbox"/i;
+const TASK_LIST_CHECKBOX_PATTERN = /^<input\b[^>]*\btype=["']checkbox["']/i;
 
 const getInlineHtmlTagName = (html) => {
   const match = html.trim().match(/^<\/?([a-zA-Z][\w-]*)/);
@@ -51,6 +52,22 @@ const NON_TEXT_BLOCK_TAGS = new Set([
 const escapeHtmlText = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 const escapeHtmlAttrValue = (value) => escapeHtmlText(value).replace(/"/g, '&quot;');
+
+// Reads an element's attributes into a plain object, so callers can compare/serialize them without touching the DOM.
+const attributesToObject = (element, excludedNames = []) => {
+  const attrs = {};
+  [...element.attributes].forEach((attr) => {
+    if (!excludedNames.includes(attr.name)) {
+      attrs[attr.name] = attr.value;
+    }
+  });
+  return attrs;
+};
+
+const buildAttrString = (attrs) =>
+  Object.entries(attrs)
+    .map(([name, value]) => ` ${name}="${escapeHtmlAttrValue(value)}"`)
+    .join('');
 
 // Returns the top-level element if it sanitizes down to a single wrapper with only plain text and <br>s; otherwise returns null to fall back to an opaque raw-HTML atom.
 const parseSimpleTextBlockElement = (html) => {
@@ -105,11 +122,11 @@ const setupRawHtmlBlockParser = (markdownit) => {
       const tagName = textBlockElement?.tagName.toLowerCase();
 
       if (textBlockElement && !NON_TEXT_BLOCK_TAGS.has(tagName)) {
-        const attrs = [...textBlockElement.attributes]
-          .map((attr) => ` ${attr.name}="${escapeHtmlAttrValue(attr.value)}"`)
-          .join('');
+        const attrs = buildAttrString(attributesToObject(textBlockElement));
+        // The trailing newline(s) markdown-it includes at the end of an html_block token aren't part of the tag itself.
+        const originalHtml = encodeRawHtml(html.replace(/\n+$/, ''));
 
-        return `<${tagName} ${TEXT_BLOCK_TAG_ATTR}="${tagName}"${attrs}>${serializeTextBlockContent(textBlockElement)}</${tagName}>`;
+        return `<${tagName} ${TEXT_BLOCK_TAG_ATTR}="${tagName}" ${ORIGINAL_HTML_ATTR}="${originalHtml}"${attrs}>${serializeTextBlockContent(textBlockElement)}</${tagName}>`;
       }
 
       return `<div ${RAW_HTML_BLOCK_ATTR}="${encodeRawHtml(html)}"></div>`;
@@ -133,10 +150,10 @@ const setupRawHtmlInlineParser = (markdownit) => {
 };
 
 // Shared factory for raw HTML nodes, as block and inline placeholders only differ in tags, attributes, and markdown wiring.
-const createRawHtmlNode = ({ name, tag, attr, className, extra, serialize, setupParser }) =>
+const createRawHtmlNode = ({ name, tag, attr, className, schemaOptions, serialize, setupParser }) =>
   Node.create({
     name,
-    ...extra,
+    ...schemaOptions,
 
     addAttributes() {
       return {
@@ -201,7 +218,7 @@ const EditorRawHtmlBlock = createRawHtmlNode({
   tag: 'div',
   attr: RAW_HTML_BLOCK_ATTR,
   className: 'editor-raw-html-block',
-  extra: {
+  schemaOptions: {
     group: 'block',
     atom: true,
     selectable: true,
@@ -219,7 +236,7 @@ export const EditorRawHtmlInline = createRawHtmlNode({
   tag: 'span',
   attr: RAW_HTML_INLINE_ATTR,
   className: 'editor-raw-html-inline',
-  extra: {
+  schemaOptions: {
     group: 'inline',
     inline: true,
     atom: true,
@@ -231,12 +248,35 @@ export const EditorRawHtmlInline = createRawHtmlNode({
   setupParser: setupRawHtmlInlineParser
 });
 
+// Resolves the ORIGINAL_HTML_ATTR payload to trusted original bytes, or null if it's missing, unparseable, or doesn't
+// describe the same tag/attributes we already sanitized — guarding against a pasted element smuggling an unrelated
+// payload through this bookkeeping attribute for verbatim output on serialize.
+const resolveOriginalHtml = (encodedOriginal, tag, htmlAttrs) => {
+  if (!encodedOriginal) {
+    return null;
+  }
+
+  const decoded = decodeRawHtml(encodedOriginal);
+  const reparsed = parseSimpleTextBlockElement(decoded);
+  if (!reparsed || reparsed.tagName.toLowerCase() !== tag) {
+    return null;
+  }
+
+  const reparsedAttrs = attributesToObject(reparsed);
+  const attrNames = Object.keys(htmlAttrs);
+  const attrsMatch = attrNames.length === Object.keys(reparsedAttrs).length
+    && attrNames.every((name) => reparsedAttrs[name] === htmlAttrs[name]);
+
+  return attrsMatch ? decoded : null;
+};
+
 // Editable HTML block that sanitizes to plain text. The original tag and attributes are preserved on the node to ensure they round-trip properly.
 export const EditorRawHtmlTextBlock = Node.create({
   name: 'rawHtmlTextBlock',
   group: 'block',
   // Allows text and hardBreak so Shift+Enter works, but excludes marks. Not isolated to allow HardBreak's command to insert line breaks.
   content: '(text|hardBreak)*',
+  marks: '',
 
   addAttributes() {
     return {
@@ -245,6 +285,11 @@ export const EditorRawHtmlTextBlock = Node.create({
       },
       htmlAttrs: {
         default: {}
+      },
+      // Exact source bytes this block was parsed from, if any — lets serialize reproduce a legacy doc's
+      // formatting untouched (quotes, tag case, entities) for blocks the user never actually edited.
+      originalHtml: {
+        default: null
       }
     };
   },
@@ -255,18 +300,23 @@ export const EditorRawHtmlTextBlock = Node.create({
         tag: `[${TEXT_BLOCK_TAG_ATTR}]`,
         // Uses high priority so this rule claims marked text blocks before native node rules (like paragraph's <p>) strip their attributes.
         priority: 1000,
+        // This rule also matches arbitrary pasted HTML (not just our own generated markup), so attributes are
+        // re-derived through the same DOMPurify sanitization as the markdown path rather than trusted as-is.
         getAttrs: (element) => {
-          const htmlAttrs = {};
-          [...element.attributes].forEach((attr) => {
-            if (attr.name !== TEXT_BLOCK_TAG_ATTR) {
-              htmlAttrs[attr.name] = attr.value;
-            }
-          });
+          const tag = (element.getAttribute(TEXT_BLOCK_TAG_ATTR) || element.tagName.toLowerCase()).toLowerCase();
+          if (NON_TEXT_BLOCK_TAGS.has(tag)) {
+            return false;
+          }
 
-          return {
-            tag: element.getAttribute(TEXT_BLOCK_TAG_ATTR) || element.tagName.toLowerCase(),
-            htmlAttrs
-          };
+          const sanitized = parseSimpleTextBlockElement(element.outerHTML);
+          if (!sanitized) {
+            return false;
+          }
+
+          const htmlAttrs = attributesToObject(sanitized, [TEXT_BLOCK_TAG_ATTR, ORIGINAL_HTML_ATTR]);
+          const originalHtml = resolveOriginalHtml(sanitized.getAttribute(ORIGINAL_HTML_ATTR), tag, htmlAttrs);
+
+          return { tag, htmlAttrs, originalHtml };
         }
       }
     ];
@@ -280,17 +330,17 @@ export const EditorRawHtmlTextBlock = Node.create({
     return {
       markdown: {
         serialize(state, node) {
-          const { tag, htmlAttrs } = node.attrs;
-          const attrs = Object.entries(htmlAttrs || {})
-            .map(([name, value]) => ` ${name}="${escapeHtmlAttrValue(value)}"`)
-            .join('');
+          const { tag, htmlAttrs, originalHtml } = node.attrs;
 
           let inner = '';
           node.forEach((child) => {
             inner += child.type.name === 'hardBreak' ? '<br>' : escapeHtmlText(child.text || '');
           });
 
-          state.write(`<${tag}${attrs}>${inner}</${tag}>`);
+          const originalElement = originalHtml ? parseSimpleTextBlockElement(originalHtml) : null;
+          const isUnedited = originalElement && serializeTextBlockContent(originalElement) === inner;
+
+          state.write(isUnedited ? originalHtml : `<${tag}${buildAttrString(htmlAttrs)}>${inner}</${tag}>`);
           state.closeBlock(node);
         },
         parse: {
