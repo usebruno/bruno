@@ -292,9 +292,6 @@ const editorContentStyles = css`
 
   .editor-raw-html-block {
     margin: 0.5rem 0;
-    padding: 0.5rem;
-    border: dashed 1px ${(props) => props.theme.border.border0};
-    border-radius: ${(props) => props.theme.border.radius.sm};
   }
 
   /* Syntax Highlighting for code blocks (highlight.js classes from lowlight) */
