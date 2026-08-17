@@ -306,6 +306,7 @@ const Collection = ({ collection, searchText }) => {
     type: isDragDisabled ? 'disabled-drag' : 'collection',
     item: {
       ...collection,
+      wasSelected: isSelected,
       ...(multiDragItems ? { multiSelectedItems: multiDragItems } : {})
     },
     collect: (monitor) => ({
@@ -356,7 +357,7 @@ const Collection = ({ collection, searchText }) => {
           dispatch(handleMultipleCollectionItemsDrop({ targetItem: collection, draggedItems: validDraggedItems, dropType: 'inside', collectionUid: collection.uid }));
         }
 
-        if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
+        if (draggedItem.wasSelected) {
           dispatch(clearSidebarSelection());
         }
       } else {
@@ -375,7 +376,7 @@ const Collection = ({ collection, searchText }) => {
           await dispatch(moveCollectionAndPersist({ draggedItem: dragged, targetItem: collection }));
         }
 
-        if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
+        if (draggedItem.wasSelected) {
           dispatch(clearSidebarSelection());
         }
       }

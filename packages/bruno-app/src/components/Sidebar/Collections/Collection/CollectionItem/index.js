@@ -180,6 +180,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     item: {
       ...item,
       sourceCollectionUid: collectionUid,
+      wasSelected: isSelected,
       ...(multiDragItems ? { multiSelectedItems: multiDragItems } : {})
     },
     collect: (monitor) => ({
@@ -277,7 +278,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         }));
       }
 
-      if (draggedItem.multiSelectedItems && draggedItem.multiSelectedItems.length > 0) {
+      if (draggedItem.wasSelected) {
         dispatch(clearSidebarSelection());
       }
 
