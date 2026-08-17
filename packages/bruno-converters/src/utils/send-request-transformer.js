@@ -220,14 +220,17 @@ const getPromiseChainLinks = (callPath) => {
  */
 const isPromiseChainHandler = (functionPath) => {
   const parent = functionPath.parent;
-  if (!parent || parent.value.type !== 'CallExpression') return false; // means the function is not a handler
-  if (!parent.value.arguments.includes(functionPath.value)) return false; // means the function is not a handler
+  if (!parent || parent.value.type !== 'CallExpression') return false;
+  if (!parent.value.arguments.includes(functionPath.value)) return false;
 
   const callee = parent.value.callee;
   return callee.type === 'MemberExpression' && PROMISE_CHAIN_METHODS.has(getStaticPropertyName(callee));
 };
 
 /**
+ * Bruno runs scripts in an async closure, so top-level `await` is always legal. Making a
+ * function async is safe only for promise-chain handlers — they already run asynchronously;
+ * for any other function it would change caller semantics.
  * @param {Object} j - jscodeshift API
  * @param {Object} path - Path the await would be emitted at
  * @returns {boolean}
@@ -556,7 +559,8 @@ const sendRequestTransformer = (path, j) => {
     if (!hasFulfilledHandler) continue;
 
     if (handler.type !== 'FunctionExpression' && handler.type !== 'ArrowFunctionExpression') break;
-    if (handler.params[0]?.type !== 'Identifier') break; // if the handler does not have a parameter then break
+    // rewriting response access requires a plain identifier param — destructuring can't be tracked
+    if (handler.params.length === 0 || handler.params[0].type !== 'Identifier') break;
 
     const handlerPath = link.callPath.get('arguments', 0);
 
