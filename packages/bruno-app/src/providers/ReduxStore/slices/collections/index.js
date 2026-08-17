@@ -37,6 +37,7 @@ const FILE_DERIVED_REQUEST_FIELDS = [
   'request',
   'settings',
   'examples',
+  'app',
   'raw',
   'filename',
   'pathname',

@@ -55,7 +55,7 @@ const defaultPreferences = {
   },
   beta: {
     'openapi-sync': false,
-    'mock-server': true
+    'mock-server': false
   },
   onboarding: {
     hasLaunchedBefore: false,

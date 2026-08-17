@@ -2,26 +2,6 @@ import ws from 'ws';
 import { hexy as hexdump } from 'hexy';
 import { getParsedWsUrlObject } from './ws-url';
 
-/**
- * Safely parse JSON string with error handling
- * @param {string} jsonString - The JSON string to parse
- * @param {string} context - Context for error messages
- * @returns {Object} Parsed object or throws error with context
- * @throws {Error} If JSON parsing fails
- */
-const safeParseJSON = (jsonString, context = 'JSON string') => {
-  try {
-    return JSON.parse(jsonString);
-  } catch (error) {
-    const errorMessage = `Failed to parse ${context}: ${error.message}`;
-    console.error(errorMessage, {
-      originalString: jsonString,
-      parseError: error
-    });
-    throw new Error(errorMessage);
-  }
-};
-
 const normalizeMessageByFormat = (message, format) => {
   if (!message) {
     return '';
@@ -58,18 +38,8 @@ const createSequencer = () => {
     return ++seq[requestId][collectionId];
   };
 
-  /**
-   * @param {string} requestId
-   * @param {string} [collectionId]
-   */
-  const clean = (requestId, collectionId = undefined) => {
-    if (!seq[requestId]) return;
-    if (collectionId) {
-      delete seq[requestId][collectionId];
-    }
-    if (!Object.keys(seq[requestId]).length) {
-      delete seq[requestId];
-    }
+  const clean = (requestId) => {
+    delete seq[requestId];
   };
 
   return {
@@ -114,9 +84,14 @@ class WsClient {
     }
 
     // Reuse in-flight / open socket so ensure+connect races don't open a second connection.
-    const existing = this.activeConnections.get(requestId)?.connection;
+    const meta = this.activeConnections.get(requestId);
+    const existing = meta?.connection;
     if (existing && (existing.readyState === ws.WebSocket.CONNECTING || existing.readyState === ws.WebSocket.OPEN)) {
       return existing;
+    }
+    if (existing) {
+      this.#detachSocket(requestId);
+      this.activeConnections.delete(requestId);
     }
 
     try {
@@ -173,31 +148,23 @@ class WsClient {
     }
   }
 
-  #getMessageQueueId(requestId) {
-    return `${requestId}`;
-  }
-
   queueMessage(requestId, collectionUid, message, format = 'raw') {
     const connectionMeta = this.activeConnections.get(requestId);
 
-    const mqKey = this.#getMessageQueueId(requestId);
-    this.messageQueues[mqKey] ||= [];
-    this.messageQueues[mqKey].push({
-      message,
-      format
-    });
+    const queue = (this.messageQueues[requestId] ||= { collectionUid, messages: [] });
+    queue.collectionUid = collectionUid;
+    queue.messages.push({ message, format });
 
     if (connectionMeta && connectionMeta.connection && connectionMeta.connection.readyState === WebSocket.OPEN) {
       this.#flushQueue(requestId, collectionUid);
-      return;
     }
   }
 
   #flushQueue(requestId, collectionUid) {
-    const mqKey = this.#getMessageQueueId(requestId);
-    if (!(mqKey in this.messageQueues)) return;
-    while (this.messageQueues[mqKey].length > 0) {
-      const { message, format } = this.messageQueues[mqKey].shift();
+    const queue = this.messageQueues[requestId];
+    if (!queue) return;
+    while (queue.messages.length > 0) {
+      const { message, format } = queue.messages.shift();
       this.sendMessage(requestId, collectionUid, message, format);
     }
   }
@@ -255,7 +222,7 @@ class WsClient {
     }
 
     if (!connectionMeta?.connection) {
-      seq.clean(requestId);
+      this.#forgetRequest(requestId);
       return Promise.resolve();
     }
 
@@ -265,6 +232,9 @@ class WsClient {
     });
 
     const collectionUid = connectionMeta.collectionUid;
+
+    // Drop the queue before the handshake so a late 'open' cannot flush it.
+    this.#clearClientState(requestId);
 
     // Notify the UI that we're actively disconnecting so it can show a blink state
     this.eventCallback('main:ws:disconnecting', requestId, collectionUid);
@@ -280,8 +250,14 @@ class WsClient {
       const resolver = this.closingResolvers.get(requestId);
       if (resolver) {
         this.closingResolvers.delete(requestId);
-        this.#removeConnection(requestId);
-        seq.clean(requestId, collectionUid);
+        // Emit before forget — a late 'close' from terminate will miss the map and skip emit.
+        this.eventCallback('main:ws:close', requestId, collectionUid, {
+          code: 1006,
+          reason: '',
+          seq: seq.next(requestId, collectionUid),
+          timestamp: Date.now()
+        });
+        this.#forgetRequest(requestId);
         resolve();
       }
     }, 5000);
@@ -310,31 +286,35 @@ class WsClient {
   }
 
   closeForCollection(collectionUid) {
-    [...this.activeConnections.keys()].forEach((k) => {
-      const meta = this.activeConnections.get(k);
-      if (meta.collectionUid === collectionUid) {
-        meta.connection.close();
-        this.activeConnections.delete(k);
+    for (const requestId of [...this.activeConnections.keys()]) {
+      if (this.activeConnections.get(requestId)?.collectionUid === collectionUid) {
+        this.close(requestId);
       }
-    });
+    }
+    for (const [requestId, queue] of Object.entries(this.messageQueues)) {
+      if (queue.collectionUid === collectionUid) {
+        this.#forgetRequest(requestId);
+      }
+    }
   }
 
   /**
    * Clear all active connections
    */
   clearAllConnections() {
-    const connectionIds = this.getActiveConnectionIds();
+    const requestIds = new Set([...this.activeConnections.keys(), ...Object.keys(this.messageQueues)]);
 
-    this.activeConnections.forEach((connection) => {
-      if (connection.readyState === WebSocket.OPEN) {
-        connection.close(1000, 'Client clearing all connections');
-      }
-    });
+    for (const requestId of requestIds) {
+      this.#discard(requestId);
+    }
 
-    this.activeConnections.clear();
+    for (const [requestId, resolver] of this.closingResolvers) {
+      clearTimeout(resolver.timeoutId);
+      this.closingResolvers.delete(requestId);
+      resolver.resolve();
+    }
 
-    // Emit an event with empty active connection IDs
-    if (connectionIds.length > 0) {
+    if (requestIds.size > 0) {
       this.eventCallback('main:ws:connections-changed', {
         type: 'cleared',
         activeConnectionIds: []
@@ -435,8 +415,7 @@ class WsClient {
         seq: seq.next(requestId, collectionUid),
         timestamp: Date.now()
       });
-      seq.clean(requestId, collectionUid);
-      this.#removeConnection(requestId);
+      this.#forgetRequest(requestId);
     });
 
     ws.on('error', (error) => {
@@ -466,26 +445,49 @@ class WsClient {
     });
   }
 
-  /**
-   * Remove a connection from the active connections map and emit an event
-   * @param {string} requestId - The request ID
-   * @private
-   */
-  #removeConnection(requestId) {
+  #detachSocket(requestId) {
+    const meta = this.activeConnections.get(requestId);
+    const conn = meta?.connection;
+    // Detach before terminate so a sync close does not re-enter #forgetRequest.
+    if (meta) meta.connection = null;
+    if (conn) {
+      try {
+        conn.terminate();
+      } catch (_) {
+      }
+    }
     if (this.connectionKeepAlive.has(requestId)) {
       clearInterval(this.connectionKeepAlive.get(requestId));
       this.connectionKeepAlive.delete(requestId);
     }
+  }
 
-    const mqId = this.#getMessageQueueId(requestId);
-    if (mqId in this.messageQueues) {
-      this.messageQueues[mqId] = [];
+  #discard(requestId) {
+    this.#detachSocket(requestId);
+    this.#forgetRequest(requestId);
+  }
+
+  #clearClientState(requestId) {
+    if (this.connectionKeepAlive.has(requestId)) {
+      clearInterval(this.connectionKeepAlive.get(requestId));
+      this.connectionKeepAlive.delete(requestId);
     }
+    delete this.messageQueues[requestId];
+  }
+
+  /**
+   * Drop queue, keepalive, sequencer, and any map entry for this request.
+   * Safe to call when there is no live connection.
+   * @param {string} requestId
+   * @private
+   */
+  #forgetRequest(requestId) {
+    this.#clearClientState(requestId);
+    seq.clean(requestId);
 
     if (this.activeConnections.has(requestId)) {
       this.activeConnections.delete(requestId);
 
-      // Emit an event with all active connection IDs
       this.eventCallback('main:ws:connections-changed', {
         type: 'removed',
         requestId,
