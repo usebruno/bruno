@@ -23,6 +23,7 @@ const { getCACertificates, transformProxyConfig, applySentHeadersToRequest } = r
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
+const { applyOmitHeaders } = require('@usebruno/common');
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -465,12 +466,21 @@ const runSingleRequest = async function (
     }
     // else: collection proxy is disabled, proxyMode stays 'off'
 
+    const { omitConnection } = applyOmitHeaders({ set() {} }, {
+      omitHeaders: request.settings?.omitHeaders,
+      headersToDelete: request.__headersToDelete,
+      explicitHeaderNames: Object.keys(request.headers || {})
+    });
+
     await setupProxyAgents({
       requestConfig: request,
       proxyMode,
       proxyConfig,
       systemProxyConfig: cachedSystemProxy,
-      httpsAgentRequestFields,
+      httpsAgentRequestFields: {
+        ...httpsAgentRequestFields,
+        keepAlive: !omitConnection
+      },
       interpolationOptions,
       disableCache
     });

@@ -5,7 +5,7 @@ const { createFormData } = require('./form-data');
 const { setupProxyAgents } = require('./proxy-util');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { applyOmitHeaders } = require('@usebruno/common');
-const { getSentHeaders } = require('@usebruno/requests');
+const { getSentHeaders, applyOmitConnectionToAxiosConfig } = require('@usebruno/requests');
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
@@ -122,8 +122,9 @@ function makeAxiosInstance({
     });
     delete config.__headersToDelete;
 
+    // Node keep-alive agents re-add Connection after Axios header prep; strip on the ClientRequest.
     if (omitConnection) {
-      config.headers.set('Connection', null);
+      applyOmitConnectionToAxiosConfig(config);
     }
 
     // Add cookies to request if available and not disabled
@@ -213,12 +214,21 @@ function makeAxiosInstance({
             }
           }
 
+          const { omitConnection: omitConnectionOnRedirect } = applyOmitHeaders({ set() {} }, {
+            omitHeaders: requestConfig.settings?.omitHeaders,
+            headersToDelete: requestConfig.__headersToDelete,
+            explicitHeaderNames: requestConfig.__explicitHeaderNames
+          });
+
           await setupProxyAgents({
             requestConfig,
             proxyMode,
             proxyConfig,
             systemProxyConfig,
-            httpsAgentRequestFields,
+            httpsAgentRequestFields: {
+              ...httpsAgentRequestFields,
+              keepAlive: !omitConnectionOnRedirect
+            },
             interpolationOptions,
             disableCache
           });
