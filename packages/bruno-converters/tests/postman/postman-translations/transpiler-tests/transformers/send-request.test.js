@@ -1044,7 +1044,8 @@ await bru.sendRequest({
 
     it('should treat a bracket-notation then as a chain', () => {
       const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' })['then']((res) => res.json());`;
-      expect(translateCode(code)).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' })['then']((res) => res.data);`);
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' })['then']((res) => res.data);`);
     });
 
     it('should not treat a computed variable key as a promise method', () => {
