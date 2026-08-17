@@ -106,8 +106,6 @@ const setJsonPathValue = (target, jsonPath, value) => {
   current[segments[segments.length - 1]] = value;
 };
 
-const REGEX_CLASS_SAMPLES = { d: '1', w: 'a', s: ' ' };
-
 // Expand common tokens into a literal the matcher will accept.
 // Unrecognized patterns fall through to the raw value in demoValueForMatches.
 const buildRegexSample = (pattern) => String(pattern)
@@ -172,6 +170,9 @@ export const buildDemoRequestFromRules = (request, rules) => {
     const bodyObject = {};
     bodyConditions.forEach((condition) => setJsonPathValue(bodyObject, condition.key, demoValueForCondition(condition)));
     body = { mode: 'json', content: JSON.stringify(bodyObject, null, 2) };
+    if (body?.mode === 'json' && body?.content) {
+      body.json = JSON.parse(body.content);
+    }
   }
 
   return {
