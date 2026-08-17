@@ -1689,12 +1689,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         const sourceDirname = path.dirname(sourcePathname);
         const pathnamesBefore = await getPaths(sourcePathname);
         const pathnamesAfter = pathnamesBefore?.map((p) => p?.replace(sourceDirname, targetDirname));
-        await copyPath(sourcePathname, targetDirname);
-        await removePath(sourcePathname);
-        // move the request uids of the previous file/folders to the new file/folder items
+        // Update the UID cache with the new paths before copying files.
+        // Otherwise, the file watcher might see the new files too early
+        // and assign them brand new UIDs instead of preserving the old ones.
         pathnamesAfter?.forEach((_, index) => {
           moveRequestUid(pathnamesBefore[index], pathnamesAfter[index]);
         });
+        await copyPath(sourcePathname, targetDirname);
+        await removePath(sourcePathname);
       }
     } catch (error) {
       return Promise.reject(error);
@@ -1727,10 +1729,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const parsedRequest = parseRequest(sourceContent, { format: sourceFormat });
       const finalContent = stringifyRequest(parsedRequest, { format: targetFormat });
 
+      moveRequestUid(sourcePathname, targetPathname);
+
       await writeFile(targetPathname, finalContent);
       await removePath(sourcePathname);
-
-      moveRequestUid(sourcePathname, targetPathname);
 
       return { newPathname: targetPathname };
     } catch (error) {
