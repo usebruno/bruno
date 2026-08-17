@@ -5,14 +5,15 @@ meta {
 }
 
 post {
-  url: https://echo.usebruno.com
+  url: {{echo-host}}
   body: none
   auth: inherit
 }
 
 tests {
   await test("send request with a get url string", async () => {
-    const res = await bru.sendRequest("https://testbench-sanity.usebruno.com/ping");
+    const host = bru.getEnvVar("host");
+    const res = await bru.sendRequest(host + "/ping");
     expect(res.data).to.eql('pong');
   });
 }

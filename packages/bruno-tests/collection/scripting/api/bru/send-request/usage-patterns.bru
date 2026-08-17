@@ -5,39 +5,41 @@ meta {
 }
 
 post {
-  url: https://echo.usebruno.com
+  url: {{echo-host}}
   body: none
   auth: inherit
 }
 
 tests {
+  const echoHost = bru.getEnvVar("echo-host");
+
   // pattern 1: using async/await
   await test("post request with async/await - success case", async () => {
     const res = await bru.sendRequest({
-      url: 'https://echo.usebruno.com',
+      url: echoHost,
       method: 'POST',
       data: 'ping'
     });
     expect(res.data).to.eql('ping');
   });
-  
+
   await test("post request with async/await - error case", async () => {
     try {
       await bru.sendRequest({
-        url: 'https://echo.usebruno.com/invalid',
+        url: echoHost + '/invalid',
         method: 'POST',
         data: 'ping'
-      }); 
+      });
     }
     catch(err) {
       expect(err.status).to.eql(404);
     }
   });
-  
+
   // pattern 2: using promise (.then/.catch)
   await test("post request with promise chain - success case", async () => {
     await bru.sendRequest({
-      url: 'https://echo.usebruno.com',
+      url: echoHost,
       method: 'POST',
       data: 'ping'
     })
@@ -45,10 +47,10 @@ tests {
       expect(res.data).to.eql('ping');
     });
   });
-  
+
   await test("post request with promise chain - error case", async () => {
     await bru.sendRequest({
-      url: 'https://echo.usebruno.com/invalid',
+      url: echoHost + '/invalid',
       method: 'POST',
       data: 'ping'
     })
@@ -56,21 +58,21 @@ tests {
       expect(err.status).to.eql(404);
     });
   });
-  
+
   // pattern 3: using callbacks
   await test("post request with callback - success case", async () => {
     await bru.sendRequest({
-      url: 'https://echo.usebruno.com',
+      url: echoHost,
       method: 'POST',
       data: 'ping'
     }, function(error, response) {
       expect(response.data).to.eql('ping');
     });
   });
-  
+
   await test("post request with callback - error case", async () => {
     await bru.sendRequest({
-      url: 'https://echo.usebruno.com/invalid',
+      url: echoHost + '/invalid',
       method: 'POST',
       data: 'ping'
     }, function(error, response) {

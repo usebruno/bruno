@@ -17,11 +17,13 @@ assert {
 
 tests {
   test("res.url", function() {
-    expect(res.url).to.equal("https://testbench-sanity.usebruno.com/ping");
+    expect(res.url).to.be.a("string");
+    expect(res.url).to.match(/\/ping$/);
   });
-  
+
   test("res.getUrl()", function() {
     const url = res.getUrl();
-    expect(url).to.equal("https://testbench-sanity.usebruno.com/ping");
+    expect(url).to.be.a("string");
+    expect(url).to.equal(res.url);
   });
 }
