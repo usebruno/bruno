@@ -1,0 +1,44 @@
+info:
+  name: dirname-request
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: '{{host}}/ping'
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const fs = require('fs');
+        const path = require('path');
+        bru.setEnvVar("requestDir", __dirname);
+        bru.setEnvVar("requestFile", __filename);
+        const raw = fs.readFileSync(path.join(__dirname, 'data.json'), 'utf-8');
+        bru.setVar("readData", JSON.parse(raw).greeting);
+    - type: tests
+      code: |-
+        test("collection __dirname differs from folder __dirname", function() {
+          expect(bru.getCollectionVar("collectionDir")).to.not.equal(bru.getEnvVar("folderDir"));
+        });
+
+        test("folder and request live in the same directory", function() {
+          expect(bru.getEnvVar("folderDir")).to.equal(bru.getEnvVar("requestDir"));
+        });
+
+        test("collection __filename ends with opencollection.yml", function() {
+          expect(bru.getCollectionVar("collectionFile").endsWith("opencollection.yml")).to.equal(true);
+        });
+
+        test("folder __filename ends with folder.yml", function() {
+          expect(bru.getEnvVar("folderFile").endsWith("folder.yml")).to.equal(true);
+        });
+
+        test("request __filename ends with dirname-request.yml", function() {
+          expect(bru.getEnvVar("requestFile").endsWith("dirname-request.yml")).to.equal(true);
+        });
+
+        test("reads data.json relative to __dirname", function() {
+          expect(bru.getVar("readData")).to.equal("hello");
+        });

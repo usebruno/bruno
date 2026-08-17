@@ -224,18 +224,21 @@ const mergeVars = (collection, request, requestTreePath) => {
 /**
  * Wraps a script in an IIFE closure to isolate its scope
  * @param {string} script - The script code to wrap
+ * @param {{ dirname: string, filename: string } | null} paths - Absolute paths bound to __dirname / __filename
  * @returns {string} The wrapped script
  */
-const wrapScriptInClosure = (script) => {
+const wrapScriptInClosure = (script, paths = null) => {
   if (!script || script.trim() === '') {
     return '';
   }
   // Wrap script in async IIFE to create isolated scope
   // This prevents variable re-declaration errors and allows early returns
   // to only affect the current script segment
-  return `await (async () => {
+  const dirnameParam = paths?.dirname != null ? JSON.stringify(paths.dirname) : '__dirname';
+  const filenameParam = paths?.filename != null ? JSON.stringify(paths.filename) : '__filename';
+  return `await (async (__dirname, __filename) => {
 ${script}
-})();`;
+})(${dirnameParam}, ${filenameParam});`;
 };
 
 /**
@@ -250,8 +253,16 @@ ${script}
  * @param {number} requestIndex - Index in scripts of the request-level segment.
  * @returns {{ code: string, metadata: { requestStartLine: number, requestEndLine: number } | null }}
  */
-const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null) => {
-  const wrapped = scripts.map((s) => wrapScriptInClosure(s));
+const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, requestSegmentSource = null) => {
+  const buildPaths = (i) => {
+    const filePath = i === requestIndex
+      ? requestSegmentSource?.filePath
+      : segmentSources?.[i]?.filePath;
+    if (!filePath) return null;
+    return { dirname: path.dirname(filePath), filename: filePath };
+  };
+
+  const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildPaths(i)));
   const code = wrapped.filter(Boolean).join('\n\n');
 
   let offset = 0;
@@ -302,6 +313,10 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     displayPath: config.collectionFile
   };
 
+  const requestItem = requestTreePath?.[requestTreePath.length - 1];
+  const requestPathname = request?.pathname || requestItem?.pathname;
+  const requestSegmentSource = requestPathname ? { filePath: requestPathname } : null;
+
   let combinedPreReqScript = [];
   let combinedPreReqSources = [];
   let combinedPostResScript = [];
@@ -347,7 +362,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     request?.script?.req || ''
   ];
   const preReqSources = [collectionSource, ...combinedPreReqSources, null];
-  const preReq = wrapAndJoinScripts(preReqScripts, preReqScripts.length - 1, preReqSources);
+  const preReq = wrapAndJoinScripts(preReqScripts, preReqScripts.length - 1, preReqSources, requestSegmentSource);
   request.script.req = preReq.code;
   request.script.reqMetadata = preReq.metadata;
 
@@ -359,7 +374,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       request?.script?.res || ''
     ];
     const postResSources = [collectionSource, ...combinedPostResSources, null];
-    const postRes = wrapAndJoinScripts(postResScripts, postResScripts.length - 1, postResSources);
+    const postRes = wrapAndJoinScripts(postResScripts, postResScripts.length - 1, postResSources, requestSegmentSource);
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
   } else {
@@ -370,7 +385,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       collectionPostResScript
     ];
     const postResSources = [null, ...[...combinedPostResSources].reverse(), collectionSource];
-    const postRes = wrapAndJoinScripts(postResScripts, 0, postResSources);
+    const postRes = wrapAndJoinScripts(postResScripts, 0, postResSources, requestSegmentSource);
     request.script.res = postRes.code;
     request.script.resMetadata = postRes.metadata;
   }
@@ -383,7 +398,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       request?.tests || ''
     ];
     const testSources = [collectionSource, ...combinedTestsSources, null];
-    const tests = wrapAndJoinScripts(testScripts, testScripts.length - 1, testSources);
+    const tests = wrapAndJoinScripts(testScripts, testScripts.length - 1, testSources, requestSegmentSource);
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
   } else {
@@ -394,7 +409,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
       collectionTests
     ];
     const testSources = [null, ...[...combinedTestsSources].reverse(), collectionSource];
-    const tests = wrapAndJoinScripts(testScripts, 0, testSources);
+    const tests = wrapAndJoinScripts(testScripts, 0, testSources, requestSegmentSource);
     request.tests = tests.code;
     request.testsMetadata = tests.metadata;
   }
@@ -713,6 +728,7 @@ module.exports = {
   mergeHeaders,
   mergeVars,
   mergeScripts,
+  wrapAndJoinScripts,
   findItemInCollection,
   getTreePathFromCollectionToItem,
   createCollectionFromBrunoObject,
