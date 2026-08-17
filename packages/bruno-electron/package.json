@@ -78,7 +78,7 @@
     "mime-types": "^2.1.35",
     "nanoid": "3.3.17",
     "qs": "^6.15.2",
-    "simple-git": "3.32.3",
+    "simple-git": "3.36.0",
     "socks-proxy-agent": "^8.0.2",
     "tough-cookie": "^6.0.0",
     "uuid": "^10.0.0",
