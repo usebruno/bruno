@@ -107,6 +107,7 @@ const Script = ({ item, collection }) => {
           <CodeEditor
             ref={preRequestEditorRef}
             collection={collection}
+            item={item}
             docKey="script:pre-request"
             value={requestScript || ''}
             theme={displayedTheme}
@@ -126,6 +127,7 @@ const Script = ({ item, collection }) => {
           <CodeEditor
             ref={postResponseEditorRef}
             collection={collection}
+            item={item}
             docKey="script:post-response"
             value={responseScript || ''}
             theme={displayedTheme}
