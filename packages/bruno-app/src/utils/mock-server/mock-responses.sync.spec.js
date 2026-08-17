@@ -52,7 +52,9 @@ describe('syncMockResponsesFromExamples', () => {
     expect(synced).toHaveLength(3);
     expect(synced.find((item) => item.uid === 'custom-1')?.response.body.content).toBe('{"custom":true}');
     expect(synced.find((item) => item.uid === 'users-1')?.response.body.content).toBe('{"synced":true}');
-    expect(synced.find((item) => item.uid === 'generated-uid')?.name).toBe('Create order (mock)');
+    const createdResponse = synced.find((item) => item.name === 'Create order (mock)');
+    expect(createdResponse).toBeTruthy();
+    expect(createdResponse.uid).toBeUndefined();
     expect(getMockResponseRouteKey(synced.find((item) => item.uid === 'users-1'))).toBe('GET /users::200');
   });
 });

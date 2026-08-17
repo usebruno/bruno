@@ -37,7 +37,7 @@ const ChangelogTab = ({ collectionUid }) => {
   return (
     <StyledWrapper>
       <div className="changelog-body" onClick={handleClick}>
-        <Markdown content={content} onDoubleClick={() => {}} />
+        <Markdown content={content} hideLinkPopover={true} />
       </div>
     </StyledWrapper>
   );

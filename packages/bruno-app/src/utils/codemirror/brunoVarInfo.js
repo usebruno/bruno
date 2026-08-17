@@ -945,6 +945,20 @@ if (!SERVER_RENDERED) {
       }
     };
 
+    // The popup is position:fixed, so any scroller around the editor strands it;
+    // scroll events do not bubble, hence the capture-phase listener on document.
+    const onScroll = function (e) {
+      if (popup.contains(e.target)) {
+        return;
+      }
+      const wrapper = cm.getWrapperElement();
+      if (!e.target.contains(wrapper) && !wrapper.contains(e.target)) {
+        return;
+      }
+      isPinned = false;
+      hidePopup({ immediate: true });
+    };
+
     const hidePopup = function (options = {}) {
       if (isHidden) {
         return;
@@ -959,6 +973,7 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       CodeMirror.off(document, 'click', onDocumentClick);
       CodeMirror.off(cm, 'change', onEditorChange);
+      document.removeEventListener('scroll', onScroll, true);
 
       // Cleanup CodeMirror and MaskedEditor instances
       const valueContainer = popup.querySelector('.var-value-container');
@@ -1022,6 +1037,7 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
     CodeMirror.on(document, 'click', onDocumentClick);
     CodeMirror.on(cm, 'change', onEditorChange);
+    document.addEventListener('scroll', onScroll, true);
   }
 }
 

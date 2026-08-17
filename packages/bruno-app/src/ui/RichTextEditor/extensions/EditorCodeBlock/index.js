@@ -35,6 +35,7 @@ const LANGUAGES = [
 
 const EditorCodeBlock = ({ node, updateAttributes, editor }) => {
   const language = node.attrs.language || 'auto';
+  const isAutoLanguage = language === 'auto';
   const preRef = useRef(null);
   const pasteTimeoutRef = useRef(null);
   const { copied, copyToClipboard } = useCopyToClipboard();
@@ -78,13 +79,26 @@ const EditorCodeBlock = ({ node, updateAttributes, editor }) => {
     updateAttributes({ language: lang === 'auto' ? null : lang });
   }, [updateAttributes]);
 
+  const guessedLanguage = useMemo(() => {
+    if (!isAutoLanguage) return null;
+
+    const text = node.textContent;
+    if (!text || !text.trim()) return null;
+
+    const result = lowlight.highlightAuto(text);
+    return (result && result.data && result.data.language) || null;
+  }, [isAutoLanguage, node.textContent]);
+
+  const autoLabel = guessedLanguage ? `auto (${guessedLanguage})` : 'auto';
+  const languageLabel = isAutoLanguage ? autoLabel : language;
+
   const languageItems = useMemo(() => (
     ['auto', ...LANGUAGES].map((lang) => ({
       id: lang,
-      label: lang,
+      label: lang === 'auto' ? autoLabel : lang,
       onClick: () => setLanguage(lang)
     }))
-  ), [setLanguage]);
+  ), [setLanguage, autoLabel]);
 
   const handleCopy = useCallback((e) => {
     e.stopPropagation();
@@ -110,7 +124,7 @@ const EditorCodeBlock = ({ node, updateAttributes, editor }) => {
               className="editor-code-block-lang-selector flex items-center gap-1 cursor-pointer px-2 py-1 rounded transition-colors duration-150"
               data-testid="code-block-lang-selector"
             >
-              <span>{language}</span>
+              <span>{languageLabel}</span>
               <IconChevronDown size={14} />
             </div>
           </MenuDropdown>
