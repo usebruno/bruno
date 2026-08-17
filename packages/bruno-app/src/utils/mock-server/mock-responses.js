@@ -220,13 +220,13 @@ export const buildMockServerTryRequest = ({
   const body = request?.body;
   let requestBody = null;
 
-  if (body?.mode === 'json' && body.content) {
-    requestBody = body.content;
+  if (body?.mode === 'json' && body.json) {
+    requestBody = body.json;
     if (!headers['Content-Type'] && !headers['content-type']) {
       headers['Content-Type'] = 'application/json';
     }
-  } else if (body?.mode === 'text' && body.content) {
-    requestBody = body.content;
+  } else if (body?.mode === 'text' && body.text) {
+    requestBody = body.text;
     if (!headers['Content-Type'] && !headers['content-type']) {
       headers['Content-Type'] = 'text/plain';
     }
