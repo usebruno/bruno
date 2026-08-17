@@ -7,7 +7,7 @@ import { toBrunoVariables } from './common/variables';
 import { toBrunoPostResponseVariables } from './common/actions';
 import { toBrunoScripts } from './common/scripts';
 import { ensureString } from '../../utils';
-import type { BrunoPresetsExtension } from '../../types';
+import type { BrunoOnExitExtension, BrunoPresetsExtension } from '../../types';
 
 interface ParsedCollection {
   collectionRoot: FolderRoot;
@@ -47,6 +47,18 @@ const parseCollection = (ymlString: string): ParsedCollection => {
           brunoConfig.presets.defaultEnvironment = presets.defaultEnvironment;
         }
       }
+    }
+
+    if (brunoExtension?.onExit) {
+      const onExit = brunoExtension.onExit as BrunoOnExitExtension;
+      brunoConfig.onExit = {
+        enabled: onExit.enabled === true,
+        showReminder: onExit.showReminder !== false,
+        reminderMessage: typeof onExit.reminderMessage === 'string' ? onExit.reminderMessage : '',
+        requestPaths: Array.isArray(onExit.requestPaths)
+          ? onExit.requestPaths.filter((requestPath: unknown) => typeof requestPath === 'string')
+          : []
+      };
     }
 
     // bruno-specific extensions

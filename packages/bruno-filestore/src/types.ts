@@ -28,3 +28,10 @@ export interface BrunoPresetsExtension {
   };
   defaultEnvironment?: string;
 }
+
+export interface BrunoOnExitExtension {
+  enabled?: boolean;
+  showReminder?: boolean;
+  reminderMessage?: string;
+  requestPaths?: string[];
+}

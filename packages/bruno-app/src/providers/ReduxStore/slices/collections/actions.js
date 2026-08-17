@@ -625,7 +625,7 @@ const extractPromptVariablesForRequest = async (item, collection) => {
   });
 };
 
-export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
+export const sendRequest = (item, collectionUid, options = {}) => (dispatch, getState) => {
   const state = getState();
   const { globalEnvironments, activeGlobalEnvironmentUid } = state.globalEnvironments;
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -659,6 +659,9 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       collectionCopy.promptVariables = promptVariables ?? {};
     } catch (error) {
       if (error === 'cancelled') {
+        if (options.rejectOnError) {
+          return reject(new Error('Request cancelled'));
+        }
         return resolve(); // Resolve without error if user cancels prompt
       }
       return reject(error);
@@ -694,6 +697,12 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     } else {
       sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
         .then((response) => {
+          if (options.rejectOnError && response?.error) {
+            const message = typeof response.error === 'string'
+              ? response.error
+              : response.error.message || 'Cleanup request failed';
+            throw new Error(message);
+          }
           const { requestSent, ...responseData } = response;
           // Ensure any timestamps in the response are converted to numbers
           const serializedResponse = {
@@ -727,7 +736,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
                 requestSent
               })
             );
-            return;
+            if (options.rejectOnError) return reject(err);
+            return resolve();
           }
 
           const errorResponse = {
@@ -738,7 +748,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
             duration: 0
           };
 
-          dispatch(
+          const responseAction = dispatch(
             responseReceived({
               itemUid,
               collectionUid,
@@ -746,6 +756,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
               requestSent
             })
           );
+          if (options.rejectOnError) return reject(err);
+          resolve(responseAction);
         });
     }
   });
@@ -762,6 +774,17 @@ export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) =>
       );
     })
     .catch((err) => console.log(err));
+};
+
+export const cancelRequestByItemUid = (itemUid, collectionUid) => (dispatch, getState) => {
+  const collection = findCollectionByUid(getState().collections.collections, collectionUid);
+  const item = collection && findItemInCollection(collection, itemUid);
+
+  if (!item?.cancelTokenUid) {
+    return Promise.resolve(false);
+  }
+
+  return dispatch(cancelRequest(item.cancelTokenUid, item, collection)).then(() => true);
 };
 
 export const cancelRunnerExecution = (cancelTokenUid) => (dispatch) => {
