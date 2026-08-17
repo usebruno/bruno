@@ -27,14 +27,8 @@ export const toOpenCollectionVariables = (variables: BrunoFolderRequest['vars'] 
 
   const ocVariables: Variable[] = reqVarsArray.map((v: BrunoVariable): Variable => {
     const valueStr = serializeVariableValue(v.value);
-    // OpenCollection has no dedicated field for Bruno's `local` flag, so we reuse the
-    // same leading-`@` marker the .bru grammar uses. Always prepend when local — even if
-    // the raw name already starts with `@`, so that reading the marker back (strip one
-    // `@`) is lossless: `@@foo` reads as name=`@foo`, local=true, matching bruToJson.
-    const rawName = v.name || '';
-    const serializedName = v.local === true ? `@${rawName}` : rawName;
     const variable: Variable = {
-      name: serializedName,
+      name: v.name || '',
       value: hasTypedMetadata(v) ? toOpenCollectionTypedValue(v, valueStr) : valueStr
     };
 
@@ -63,14 +57,12 @@ export const toBrunoVariables = (variables: Variable[] | null | undefined): { re
   const reqVars: BrunoVariables = [];
 
   variables.forEach((v: Variable) => {
-    const rawName = ensureString(v.name);
-    const isLocal = rawName.length > 0 && rawName.charAt(0) === '@';
     const base: BrunoVariable = {
       uid: uuid(),
-      name: isLocal ? rawName.slice(1) : rawName,
+      name: ensureString(v.name),
       value: '',
       enabled: v.disabled !== true,
-      local: isLocal
+      local: false
     };
 
     if (isTypedValue(v.value)) {
