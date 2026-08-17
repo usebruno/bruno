@@ -1772,6 +1772,73 @@ export const isItemTransientRequest = (item) => {
 };
 
 /**
+ * Generate a request name for transient requests in the pattern "Untitled {Count}"
+ * @param {Object} collection - The collection object
+ * @returns {string} A request name like "Untitled 1", "Untitled 2", etc.
+ */
+export const generateTransientRequestName = (collection) => {
+  if (!collection || !collection.items) {
+    return 'Untitled 1';
+  }
+  const allItems = flattenItems(collection.items);
+  const transientRequests = filter(allItems, (item) => {
+    return isItemTransientRequest(item);
+  });
+
+  // Find the highest "Untitled X" number among transient requests
+  let maxNumber = 0;
+  transientRequests.forEach((item) => {
+    const match = item.name?.match(/^Untitled (\d+)$/);
+    if (match) {
+      const number = parseInt(match[1], 10);
+      if (number > maxNumber) {
+        maxNumber = number;
+      }
+    }
+  });
+
+  // Increment from the highest number found, or start at 1 if none found
+  const count = maxNumber + 1;
+
+  return `Untitled ${count}`;
+};
+
+/**
+ * Maps a collection's "Presets" request type (used to default new requests created from
+ * the sidebar) to the request item type used elsewhere in the app.
+ * @param {Object} collection - The collection object
+ * @returns {string} One of 'http-request' | 'graphql-request' | 'grpc-request' | 'ws-request'
+ */
+export const getRequestTypeFromCollectionPresets = (collection) => {
+  const presets = collection?.draft?.brunoConfig
+    ? collection?.draft?.brunoConfig?.presets
+    : collection?.brunoConfig?.presets;
+
+  switch (presets?.requestType) {
+    case 'graphql':
+      return 'graphql-request';
+    case 'grpc':
+      return 'grpc-request';
+    case 'ws':
+      return 'ws-request';
+    default:
+      return 'http-request';
+  }
+};
+
+/**
+ * S3 (and compatible) presigned "PutObject" URLs are meant to be uploaded to, not fetched.
+ * A request linked from such a URL should default to PUT instead of GET.
+ */
+export const isPutObjectPresignedUrl = (url) => {
+  try {
+    return new URL(url).searchParams.get('x-id')?.toLowerCase() === 'putobject';
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
  * Recursively filter out transient items from a collection's items array.
  * Used for collection runner, exports, and other operations that shouldn't include transient requests.
  * @param {Array} items - The items array to filter
