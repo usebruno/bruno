@@ -107,6 +107,104 @@ export const syncMockResponsesFromSpec = (existingResponses = [], specResponses 
   })
 );
 
+// Mirrors the main process rule matcher's path semantics: `$.a.b` walks
+// dot-separated object keys.
+const setJsonPathValue = (target, jsonPath, value) => {
+  const segments = String(jsonPath || '').replace(/^\$\.?/, '').split('.').filter(Boolean);
+
+  if (!segments.length) {
+    return;
+  }
+
+  let current = target;
+  segments.slice(0, -1).forEach((segment) => {
+    if (typeof current[segment] !== 'object' || current[segment] === null) {
+      current[segment] = {};
+    }
+    current = current[segment];
+  });
+
+  current[segments[segments.length - 1]] = value;
+};
+
+// Expand common tokens into a literal the matcher will accept.
+// Unrecognized patterns fall through to the raw value in demoValueForMatches.
+const buildRegexSample = (pattern) => String(pattern)
+  .replace(/^\^|\$$/g, '')
+  .replace(/\\d(?:\{(\d+)\})?/g, (_, n) => '1'.repeat(Number(n) || 1))
+  .replace(/\\(.)/g, '$1')
+  .replace(/\(([^)|]*)(?:\|[^)]*)?\)/g, '$1')
+  .replace(/\[([^\]]+)\](?:\{(\d+)\})?/g, (_, chars, n) => (
+    (chars.startsWith('^') ? 'a' : chars[0]).repeat(Number(n) || 1)
+  ))
+  .replace(/[?*+]/g, '');
+
+// The stored value of a 'matches' rule is a regex pattern, which usually does
+// not satisfy itself, generate a sample the matcher will accept.
+const demoValueForMatches = (pattern) => {
+  let regex;
+  try {
+    regex = new RegExp(pattern);
+  } catch {
+    return pattern;
+  }
+
+  for (const candidate of [buildRegexSample(pattern), pattern]) {
+    if (regex.test(candidate)) {
+      return candidate;
+    }
+  }
+
+  return pattern;
+};
+
+// 'not_equals' matches anything except the value; an empty sample keeps the demo readable.
+const demoValueForCondition = (condition) => {
+  if (condition.operator === 'not_equals') {
+    return '';
+  }
+
+  if (condition.operator === 'matches') {
+    return demoValueForMatches(condition.value || '');
+  }
+
+  return condition.value || '';
+};
+
+// Builds a request that satisfies the response's rules: header/query conditions
+// become headers/params and body conditions build a JSON body from their $.paths.
+// This is what the Demo Request tab shows and what Try sends.
+export const buildDemoRequestFromRules = (request, rules) => {
+  const conditions = (rules?.conditions || []).filter((condition) => condition?.key);
+
+  const headers = conditions
+    .filter((condition) => condition.target === 'header')
+    .map((condition) => ({ name: condition.key, value: demoValueForCondition(condition), enabled: true }));
+
+  const params = conditions
+    .filter((condition) => condition.target === 'query')
+    .map((condition) => ({ name: condition.key, value: demoValueForCondition(condition), type: 'query', enabled: true }));
+
+  const bodyConditions = conditions.filter((condition) => condition.target === 'body');
+  let body = null;
+  if (bodyConditions.length) {
+    const bodyObject = {};
+    bodyConditions.forEach((condition) => setJsonPathValue(bodyObject, condition.key, demoValueForCondition(condition)));
+    body = { mode: 'json', content: JSON.stringify(bodyObject, null, 2) };
+    if (body?.mode === 'json' && body?.content) {
+      body.json = JSON.parse(body.content);
+    }
+  }
+
+  return {
+    url: extractMockRoutePath(request?.url || '/'),
+    method: (request?.method || 'GET').toUpperCase(),
+    headers,
+    params,
+    body
+  };
+};
+
 export const buildMockServerTryUrl = ({
   port,
   requestUrl,
@@ -144,13 +242,13 @@ export const buildMockServerTryRequest = ({
   const body = request?.body;
   let requestBody = null;
 
-  if (body?.mode === 'json' && body.content) {
-    requestBody = body.content;
+  if (body?.mode === 'json' && body.json) {
+    requestBody = body.json;
     if (!headers['Content-Type'] && !headers['content-type']) {
       headers['Content-Type'] = 'application/json';
     }
-  } else if (body?.mode === 'text' && body.content) {
-    requestBody = body.content;
+  } else if (body?.mode === 'text' && body.text) {
+    requestBody = body.text;
     if (!headers['Content-Type'] && !headers['content-type']) {
       headers['Content-Type'] = 'text/plain';
     }
