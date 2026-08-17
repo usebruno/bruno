@@ -57,7 +57,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
   const [showDefaultHeaders, setShowDefaultHeaders] = usePersistedState({
     key: `request-show-default-headers-${item.uid}`,
-    default: true
+    default: false
   });
   const [isDefaultHeadersExpanded, setIsDefaultHeadersExpanded] = usePersistedState({
     key: `request-default-headers-expanded-${item.uid}`,

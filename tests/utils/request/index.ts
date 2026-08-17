@@ -141,6 +141,16 @@ export const fillRequestHeaderValue = async (page: Page, row: Locator, value: st
 };
 
 /**
+ * Reveal the Default Headers accordion (hidden by default) and return header locators.
+ */
+export const showDefaultHeaders = async (page: Page) => {
+  const headers = buildRequestLocators(page).headers;
+  await headers.toggleDefaults().click();
+  await expect(headers.toggleDefaults()).toHaveText('Hide Defaults');
+  return headers;
+};
+
+/**
  * Read the visible response preview editor text.
  */
 export const readResponsePreviewBody = async (page: Page) => {
