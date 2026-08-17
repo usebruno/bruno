@@ -902,6 +902,20 @@ await bru.sendRequest({
       `);
     });
 
+    it('should keep a callback passed to a non-promise method synchronous', () => {
+      const code = `
+        setTimeout(function () {
+            pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res.json());
+        }, 0);
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        setTimeout(function () {
+            bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res.data);
+        }, 0);
+      `);
+    });
+
     it('should rewrite only the first then, since later handlers receive the previous return value', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' })
@@ -1028,6 +1042,18 @@ await bru.sendRequest({
       expect(translatedCode).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' })['then']((res) => res.data);`);
     });
 
+    it('should rewrite bracket-notation response access with a literal key', () => {
+      const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res['json']());`;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res.data);`);
+    });
+
+    it('should leave bracket-notation response access with a variable key alone', () => {
+      const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res[method]());`;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res[method]());`);
+    });
+
     it('should not treat a computed variable key as a promise method', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' })[then]((res) => {
@@ -1040,6 +1066,12 @@ await bru.sendRequest({
             console.log(res.json());
         });
       `);
+    });
+
+    it('should not treat a chain method passed as a value as a chain call', () => {
+      const code = `register(pm.sendRequest({ url: 'https://echo.usebruno.com' }).then);`;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`register((await bru.sendRequest({ url: 'https://echo.usebruno.com' })).then);`);
     });
 
     it('should leave a destructured handler param alone', () => {
@@ -1332,6 +1364,50 @@ await bru.sendRequest({
       `);
     });
 
+    it('should not count a nested function\'s return as the handler\'s own', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              const extract = () => { return res.json(); };
+              console.log(extract());
+              return res;
+          })
+          .then((r) => r.code);
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              const extract = () => { return res.data; };
+              console.log(extract());
+              return res;
+          })
+          .then((r) => r.status);
+      `);
+    });
+
+    it('should rewrite past a handler whose nested function shadows and returns the parameter name', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              const pick = (res) => { return res; };
+              console.log(pick(items));
+              return res;
+          })
+          .then((r) => r.code);
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              const pick = (res) => { return res; };
+              console.log(pick(items));
+              return res;
+          })
+          .then((r) => r.status);
+      `);
+    });
+
     it('should stop at a catch, whose handler can replace the response for the rest of the chain', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' })
@@ -1399,6 +1475,24 @@ await bru.sendRequest({
       const translatedCode = translateCode(code);
       expect(translatedCode).toBe(`
         await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(null, (err) => {
+            console.log(err);
+        }).then((res) => {
+            console.log(res.data);
+        });
+      `);
+    });
+
+    it('should continue past a rejection-only then(undefined, onRejected)', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' }).then(undefined, (err) => {
+            console.log(err);
+        }).then((res) => {
+            console.log(res.json());
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(undefined, (err) => {
             console.log(err);
         }).then((res) => {
             console.log(res.data);
