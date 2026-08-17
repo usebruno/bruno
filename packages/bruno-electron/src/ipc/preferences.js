@@ -37,7 +37,7 @@ const registerPreferencesIpc = (mainWindow) => {
       activeGlobalEnvironmentUid = globalEnvironments?.find((env) => env?.uid == activeGlobalEnvironmentUid) ? activeGlobalEnvironmentUid : null;
       mainWindow.webContents.send('main:load-global-environments', { globalEnvironments, activeGlobalEnvironmentUid });
     } catch (error) {
-      console.error('Error occured while fetching global environements!');
+      console.error('Error occurred while fetching global environments!');
       console.error(error);
     }
 
