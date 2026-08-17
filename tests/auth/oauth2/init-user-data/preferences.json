@@ -6,10 +6,6 @@
       "oauth2": {
         "useSystemBrowser": true
       }
-    },
-    "onboarding": {
-      "hasLaunchedBefore": true,
-      "hasSeenWelcomeModal": true
     }
   }
 }
