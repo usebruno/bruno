@@ -1979,11 +1979,16 @@ const addGrpcHookScript = async (page: Page, hook: GrpcScriptHook, content: stri
  * @param page - The page object
  * @param hook - The lifecycle hook to read
  */
-const readGrpcHookScript = async (page: Page, hook: GrpcScriptHook): Promise<string | undefined> => {
+const readGrpcHookScript = async (page: Page, hook: GrpcScriptHook): Promise<string> => {
   await selectScriptSubTab(page, hook);
+  const editorTestId = `${hook}-script-editor`;
   return buildCommonLocators(page)
-    .codeMirror.byTestId(`${hook}-script-editor`)
-    .evaluate((el) => (el as any).CodeMirror?.getValue());
+    .codeMirror.byTestId(editorTestId)
+    .evaluate((el: any, testId: string) => {
+      const cm = el.CodeMirror;
+      if (!cm) throw new Error(`CodeMirror instance not found for "${testId}"`);
+      return cm.getValue();
+    }, editorTestId);
 };
 
 const openGrpcTestsTab = async (page: Page) => {
