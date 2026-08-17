@@ -306,7 +306,7 @@ describe('wrapAndJoinScripts', () => {
 
   test('tracks correct request line range with collection script before it', () => {
     const result = wrapAndJoinScripts(['let x = 1;', '', 'let y = 2;'], 2);
-    // Collection script: 3 lines (await (async () => {\nlet x = 1;\n})();)
+    // Collection script: 3 lines (IIFE opener + body + closer — args stay on the opener)
     // Empty gap: 1 line (blank line separator)
     // Request script starts at line 5
     expect(result.metadata.requestStartLine).toBe(5);
@@ -353,6 +353,45 @@ describe('wrapAndJoinScripts', () => {
     expect(result.metadata.segments[0].displayPath).toBe('collection.bru');
     expect(result.metadata.segments[1].displayPath).toBe('sub/folder.bru');
     expect(result.metadata.requestStartLine).toBeGreaterThan(result.metadata.segments[1].endLine);
+  });
+
+  test('binds per-segment __dirname/__filename via IIFE args when filePath is provided', () => {
+    const sources = [
+      { filePath: '/col/collection.bru', displayPath: 'collection.bru' },
+      { filePath: '/col/sub/folder.bru', displayPath: 'sub/folder.bru' },
+      null
+    ];
+    const requestSegmentSource = { filePath: '/col/sub/req.bru', displayPath: 'sub/req.bru' };
+    const result = wrapAndJoinScripts(
+      ['let a = 1;', 'let b = 2;', 'let c = 3;'],
+      2,
+      sources,
+      requestSegmentSource
+    );
+
+    expect(result.code).toContain('async (__dirname, __filename) => {');
+    expect(result.code).toContain(')("/col", "/col/collection.bru");');
+    expect(result.code).toContain(')("/col/sub", "/col/sub/folder.bru");');
+    expect(result.code).toContain(')("/col/sub", "/col/sub/req.bru");');
+  });
+
+  test('preserves line counts when injecting IIFE args (opener stays on one line)', () => {
+    const withPaths = wrapAndJoinScripts(
+      ['let x = 1;', '', 'let y = 2;'],
+      2,
+      [{ filePath: '/col/collection.bru', displayPath: 'collection.bru' }, null, null],
+      { filePath: '/col/sub/req.bru', displayPath: 'sub/req.bru' }
+    );
+    const withoutPaths = wrapAndJoinScripts(['let x = 1;', '', 'let y = 2;'], 2);
+    // Stack-trace mapping depends on line ranges staying stable.
+    expect(withPaths.metadata.requestStartLine).toBe(withoutPaths.metadata.requestStartLine);
+    expect(withPaths.metadata.requestEndLine).toBe(withoutPaths.metadata.requestEndLine);
+  });
+
+  test('falls back to __dirname/__filename identifiers when no filePath is provided', () => {
+    const result = wrapAndJoinScripts(['', '', 'console.log("hi");'], 2);
+    expect(result.code).toContain('async (__dirname, __filename) => {');
+    expect(result.code).toContain(')(__dirname, __filename);');
   });
 });
 
@@ -542,5 +581,32 @@ describe('mergeScripts metadata', () => {
     mergeScripts(collection, request, [request], 'non-sequential');
 
     expect(request.script.resMetadata.requestScriptContent).toBe('let req = 2;');
+  });
+
+  test('injects hierarchical __dirname/__filename per script segment', () => {
+    const collection = makeCollection({ preReq: 'let col = 1;' });
+    const folder = makeFolder('subfolder', { preReq: 'let fold = 2;' });
+    const request = { ...makeRequest({ preReq: 'let req = 3;' }), pathname: '/test/collection/subfolder/req.bru' };
+    mergeScripts(collection, request, [folder, request], 'sequential');
+
+    const code = request.script.req;
+    const collectionDir = path.join('/test/collection');
+    const collectionFile = path.join('/test/collection', 'collection.bru');
+    const folderDir = path.join('/test/collection/subfolder');
+    const folderFile = path.join('/test/collection/subfolder', 'folder.bru');
+    const requestDir = path.join('/test/collection/subfolder');
+    const requestFile = '/test/collection/subfolder/req.bru';
+
+    expect(code).toContain(`)(${JSON.stringify(collectionDir)}, ${JSON.stringify(collectionFile)});`);
+    expect(code).toContain(`)(${JSON.stringify(folderDir)}, ${JSON.stringify(folderFile)});`);
+    expect(code).toContain(`)(${JSON.stringify(requestDir)}, ${JSON.stringify(requestFile)});`);
+  });
+
+  test('falls back to sandbox __dirname/__filename when request has no pathname', () => {
+    const collection = makeCollection();
+    const request = makeRequest({ preReq: 'let req = 1;' });
+    mergeScripts(collection, request, [request], 'sequential');
+
+    expect(request.script.req).toContain(')(__dirname, __filename);');
   });
 });

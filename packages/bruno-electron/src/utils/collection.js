@@ -165,7 +165,7 @@ const mergeVars = (collection, request, requestTreePath = []) => {
 
 // __bruSetScope must stay on the IIFE opener line so wrapAndJoinScripts' line
 // counts (and stack-trace mapping) are unaffected.
-const wrapScriptInClosure = (script, scopeInfo = null) => {
+const wrapScriptInClosure = (script, scopeInfo = null, paths = null) => {
   if (!script || script.trim() === '') {
     return '';
   }
@@ -176,9 +176,12 @@ const wrapScriptInClosure = (script, scopeInfo = null) => {
   const scopeSetter = scopeInfo
     ? ` __bruSetScope(${JSON.stringify(scopeInfo)});`
     : '';
-  return `await (async () => {${scopeSetter}
+  // Shadow sandbox globals so each segment sees its own source-file dir.
+  const dirnameParam = paths?.dirname != null ? JSON.stringify(paths.dirname) : '__dirname';
+  const filenameParam = paths?.filename != null ? JSON.stringify(paths.filename) : '__filename';
+  return `await (async (__dirname, __filename) => {${scopeSetter}
 ${script}
-})();`;
+})(${dirnameParam}, ${filenameParam});`;
 };
 
 /**
@@ -234,7 +237,15 @@ const wrapAndJoinScripts = (scripts, requestIndex, segmentSources = null, reques
     return { type: seg.type, sourceFile: seg.displayPath };
   };
 
-  const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildScopeInfo(i)));
+  const buildPaths = (i) => {
+    const filePath = i === requestIndex
+      ? requestSegmentSource?.filePath
+      : segmentSources?.[i]?.filePath;
+    if (!filePath) return null;
+    return { dirname: path.dirname(filePath), filename: filePath };
+  };
+
+  const wrapped = scripts.map((s, i) => wrapScriptInClosure(s, buildScopeInfo(i), buildPaths(i)));
   const code = wrapped.filter(Boolean).join('\n\n');
 
   let offset = 0;
@@ -289,7 +300,10 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   const requestItem = requestTreePath?.[requestTreePath.length - 1];
   const requestPathname = request?.pathname || requestItem?.pathname;
   const requestSegmentSource = requestPathname && collection?.pathname
-    ? { displayPath: posixifyPath(path.relative(collection.pathname, requestPathname)) }
+    ? {
+        displayPath: posixifyPath(path.relative(collection.pathname, requestPathname)),
+        filePath: requestPathname
+      }
     : null;
 
   const withContent = (source, script) =>
