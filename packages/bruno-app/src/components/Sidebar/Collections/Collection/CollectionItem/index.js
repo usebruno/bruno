@@ -321,7 +321,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
     'drop-target-above': isOver && canDrop && dropType === 'above',
     'drop-target-below': isOver && canDrop && dropType === 'below',
     'item-keyboard-focused': isKeyboardFocused,
-    'collection-selected': isSelected,
+    'collection-item-selected': isSelected,
     'drag-disabled': isDragDisabled
   });
 
