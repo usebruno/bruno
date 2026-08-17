@@ -110,7 +110,7 @@
     "shell-quote": "^1.9.0",
     "strip-json-comments": "^5.0.1",
     "styled-components": "^5.3.3",
-    "swagger-ui-react": "^5.31.2",
+    "swagger-ui-react": "5.31.2",
     "system": "^2.0.1",
     "tiptap-markdown": "^0.8.10",
     "url": "^0.11.3",

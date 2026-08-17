@@ -101,7 +101,7 @@
     ]
   },
   "overrides": {
-    "axios": "1.16.0",
+    "axios": "1.18.1",
     "tar": "7.5.22",
     "app-builder-lib": {
       "tar": "7.5.22"
