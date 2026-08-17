@@ -15,7 +15,11 @@ const ResponseStopWatch = ({ startTimestamp }) => {
     };
   }, []);
 
-  const elapsedMillis = startTimestamp ? Math.max(0, now - startTimestamp) : 0;
+  const isValidTimeStamp = (timestamp) => {
+    return Number.isInteger(timestamp) && timestamp > 0 && timestamp <= now;
+  };
+
+  const elapsedMillis = isValidTimeStamp(startTimestamp, now) ? Math.max(0, now - startTimestamp) : 0;
   const secondsFormatted = `${(elapsedMillis / 1000).toFixed(1)}s`;
   const width = secondsFormatted.length * 0.4; // Calculate width manually to stop parent layout from "flickering" by changing width too fast
 
