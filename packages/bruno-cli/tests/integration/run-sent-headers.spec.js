@@ -10,6 +10,16 @@ const writeFixtureFile = (filePath, content) => {
   fs.writeFileSync(filePath, content);
 };
 
+/** The json reporter writes either a single `{ summary, results }` or an array holding one of
+ *  those per iteration. On the array form `report.results` is undefined, so reaching straight
+ *  for `report.results[0]` throws instead of failing an assertion. Pick the run first. */
+const readReportedHeaders = (dir) => {
+  const report = JSON.parse(fs.readFileSync(path.join(dir, 'report.json'), 'utf8'));
+  const run = Array.isArray(report) ? report[0] : report;
+
+  return run.results[0].request.headers;
+};
+
 /**
  * The transport headers (Host, Connection, Accept-Encoding, ...) only exist once the request is
  * on the wire, so nothing that runs before the axios interceptors can know about them.
@@ -79,11 +89,7 @@ ${extra}`;
     const { code } = await runCli(['run', 'req.bru', '--noproxy', '--reporter-json', 'report.json'], tmpDir);
     expect(code).toBe(0);
 
-    /** The json reporter writes either a single `{ summary, results }` or an array holding one of
-     *  those per iteration. On the array form `report.results` is undefined, so reaching straight
-     *  for `report.results[0]` throws instead of failing an assertion. Pick the run first. */
-    const report = JSON.parse(fs.readFileSync(path.join(tmpDir, 'report.json'), 'utf8'));
-    const sent = (Array.isArray(report) ? report[0] : report).results[0].request.headers;
+    const sent = readReportedHeaders(tmpDir);
     const reported = Object.keys(sent).map((name) => name.toLowerCase());
 
     expect(Object.keys(receivedHeaders).filter((name) => !reported.includes(name))).toEqual([]);
@@ -104,9 +110,7 @@ ${extra}`;
     const { code } = await runCli(['run', 'req.bru', '--noproxy', '--reporter-json', 'report.json'], tmpDir);
     expect(code).toBe(0);
 
-    /** Array form holds one run per iteration, see the first test. */
-    const report = JSON.parse(fs.readFileSync(path.join(tmpDir, 'report.json'), 'utf8'));
-    const sent = (Array.isArray(report) ? report[0] : report).results[0].request.headers;
+    const sent = readReportedHeaders(tmpDir);
 
     expect(sent['user-agent']).toBe('mine/1.0');
     expect(sent['User-Agent']).toBeUndefined();
