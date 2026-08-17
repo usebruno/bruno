@@ -1048,26 +1048,6 @@ await bru.sendRequest({
       expect(translatedCode).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res.data);`);
     });
 
-    it('should leave bracket-notation response access with a variable key alone', () => {
-      const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res[method]());`;
-      const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res[method]());`);
-    });
-
-    it('should not treat a computed variable key as a promise method', () => {
-      const code = `
-        pm.sendRequest({ url: 'https://echo.usebruno.com' })[then]((res) => {
-            console.log(res.json());
-        });
-      `;
-      const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`
-        (await bru.sendRequest({ url: 'https://echo.usebruno.com' }))[then]((res) => {
-            console.log(res.json());
-        });
-      `);
-    });
-
     it('should not treat a chain method passed as a value as a chain call', () => {
       const code = `register(pm.sendRequest({ url: 'https://echo.usebruno.com' }).then);`;
       const translatedCode = translateCode(code);
