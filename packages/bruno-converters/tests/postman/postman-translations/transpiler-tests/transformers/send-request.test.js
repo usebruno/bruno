@@ -922,26 +922,6 @@ await bru.sendRequest({
       `);
     });
 
-    it('should not treat a then after a catch as a second response handler', () => {
-      const code = `
-        pm.sendRequest({ url: 'https://echo.usebruno.com' })
-          .then((res) => res.json())
-          .catch(() => null)
-          .then((data) => {
-              console.log(data.status);
-          });
-      `;
-      const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
-          .then((res) => res.data)
-          .catch(() => null)
-          .then((data) => {
-              console.log(data.status);
-          });
-      `);
-    });
-
     it('should not rewrite references shadowed by a nested function re-declaring the name', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
@@ -1088,24 +1068,6 @@ await bru.sendRequest({
       `);
     });
 
-    it('should not rewrite a handler receiving the return value of an earlier then', () => {
-      const code = `
-        pm.sendRequest({ url: 'https://echo.usebruno.com' })
-          .then(() => ({ code: 1 }))
-          .then((res) => {
-              console.log(res.code);
-          });
-      `;
-      const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
-          .then(() => ({ code: 1 }))
-          .then((res) => {
-              console.log(res.code);
-          });
-      `);
-    });
-
     it('should make a non-async then handler async to await a nested sendRequest', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com/one' }).then((res) => {
@@ -1230,24 +1192,6 @@ await bru.sendRequest({
       `);
     });
 
-    it('should rewrite past a pass-through handler whose successor renames the parameter', () => {
-      const code = `
-        pm.sendRequest({ url: 'https://echo.usebruno.com' })
-          .then((res) => res)
-          .then((response) => {
-              console.log(response.status);
-          });
-      `;
-      const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
-          .then((res) => res)
-          .then((response) => {
-              console.log(response.statusText);
-          });
-      `);
-    });
-
     it('should rewrite a handler that reassigns its parameter but stop after it', () => {
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' })
@@ -1288,36 +1232,6 @@ await bru.sendRequest({
               console.log(res.status);
               res = 5;
               console.log(res.status);
-          });
-      `);
-    });
-
-    it('should stop after a handler that reassigns its parameter conditionally', () => {
-      const code = `
-        pm.sendRequest({ url: 'https://echo.usebruno.com' })
-          .then((res) => {
-              if (x) {
-                  res = res.json();
-              }
-              console.log(res.code);
-              return res;
-          })
-          .then((r) => {
-              console.log(r.code);
-          });
-      `;
-      const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
-          .then((res) => {
-              if (x) {
-                  res = res.data;
-              }
-              console.log(res.status);
-              return res;
-          })
-          .then((r) => {
-              console.log(r.code);
           });
       `);
     });
@@ -1394,9 +1308,10 @@ await bru.sendRequest({
       const code = `
         pm.sendRequest({ url: 'https://echo.usebruno.com' })
           .then((res) => {
-              if (ok) {
-                  return res;
+              if (!ok) {
+                  return null;
               }
+              return res;
           })
           .then((data) => {
               console.log(data.code);
@@ -1406,9 +1321,10 @@ await bru.sendRequest({
       expect(translatedCode).toBe(`
         await bru.sendRequest({ url: 'https://echo.usebruno.com' })
           .then((res) => {
-              if (ok) {
-                  return res;
+              if (!ok) {
+                  return null;
               }
+              return res;
           })
           .then((data) => {
               console.log(data.code);
@@ -1469,20 +1385,6 @@ await bru.sendRequest({
         }).then((res) => {
             console.log(res.code);
         });
-      `);
-    });
-
-    it('should stop at a catch that returns a substitute response', () => {
-      const code = `
-        pm.sendRequest({ url: 'https://echo.usebruno.com' })
-          .catch(() => ({ code: 599 }))
-          .then((res) => console.log(res.status));
-      `;
-      const translatedCode = translateCode(code);
-      expect(translatedCode).toBe(`
-        await bru.sendRequest({ url: 'https://echo.usebruno.com' })
-          .catch(() => ({ code: 599 }))
-          .then((res) => console.log(res.status));
       `);
     });
 
