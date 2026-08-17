@@ -215,6 +215,39 @@ describe('buildDemoRequestFromRules', () => {
     expect(demo.body.mode).toBe('json');
   });
 
+  it('generates a sample that satisfies matches patterns instead of echoing them', () => {
+    const patterns = [
+      '^\\d+$',
+      '^user-\\d{3}$',
+      '^(cat|dog)s?$',
+      '^[a-f0-9]{4}$',
+      'v\\d+\\.\\d+'
+    ];
+
+    patterns.forEach((pattern) => {
+      const demo = buildDemoRequestFromRules(request, {
+        operator: 'AND',
+        conditions: [{ target: 'header', key: 'X-Match', operator: 'matches', value: pattern }]
+      });
+
+      expect(new RegExp(pattern).test(demo.headers[0].value)).toBe(true);
+    });
+  });
+
+  it('falls back to the raw value for unsatisfiable matches patterns', () => {
+    const demo = buildDemoRequestFromRules(request, {
+      operator: 'AND',
+      conditions: [
+        { target: 'header', key: 'X-Bad', operator: 'matches', value: '(' },
+        { target: 'query', key: 'plain', operator: 'matches', value: 'literal' }
+      ]
+    });
+
+    expect(demo.headers[0].value).toBe('(');
+    expect(demo.params[0].value).toBe('literal');
+    expect(new RegExp('literal').test(demo.params[0].value)).toBe(true);
+  });
+
   it('uses an empty sample for not_equals and skips keyless conditions', () => {
     const demo = buildDemoRequestFromRules(request, {
       operator: 'OR',

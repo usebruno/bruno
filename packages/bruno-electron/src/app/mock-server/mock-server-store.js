@@ -108,9 +108,15 @@ const removeMockServerFileFromCache = (pathname) => {
 // small, and a debounce would let a pending in-memory write race an external
 // edit (and leave created filenames unreserved on disk).
 const writeMockServerFile = (entry) => {
+  try {
+    ensureDir(path.dirname(entry.pathname));
+    fs.writeFileSync(entry.pathname, stringifyMockServer(entry.data, { format: 'yml' }), 'utf8');
+  } catch (err) {
+    fileCache.delete(entry.pathname);
+    throw err;
+  }
+
   fileCache.set(entry.pathname, entry);
-  ensureDir(path.dirname(entry.pathname));
-  fs.writeFileSync(entry.pathname, stringifyMockServer(entry.data, { format: 'yml' }), 'utf8');
   return entry.pathname;
 };
 

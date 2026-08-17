@@ -105,10 +105,140 @@ const setJsonPathValue = (target, jsonPath, value) => {
   current[segments[segments.length - 1]] = value;
 };
 
+const REGEX_CLASS_SAMPLES = { d: '1', w: 'a', s: ' ' };
+
+const buildRegexSample = (pattern) => {
+  let sample = '';
+  let i = 0;
+
+  const consumeQuantifier = () => {
+    const char = pattern[i];
+    if (char === '+') {
+      i += 1;
+    } else if (char === '*' || char === '?') {
+      i += 1;
+      if (pattern[i] === '?') i += 1;
+      return 0;
+    } else if (char === '{') {
+      const end = pattern.indexOf('}', i);
+      if (end > i) {
+        const min = parseInt(pattern.slice(i + 1, end).split(',')[0], 10);
+        i = end + 1;
+        if (pattern[i] === '?') i += 1;
+        return Number.isNaN(min) ? 1 : min;
+      }
+    }
+    if (pattern[i] === '?') i += 1;
+    return 1;
+  };
+
+  while (i < pattern.length) {
+    const char = pattern[i];
+
+    if (char === '^' || char === '$') {
+      i += 1;
+      continue;
+    }
+
+    if (char === '\\') {
+      const next = pattern[i + 1] ?? '';
+      i += 2;
+      sample += (REGEX_CLASS_SAMPLES[next] ?? next).repeat(consumeQuantifier());
+      continue;
+    }
+
+    if (char === '[') {
+      let end = i + 1;
+      while (end < pattern.length && pattern[end] !== ']') {
+        end += pattern[end] === '\\' ? 2 : 1;
+      }
+      const body = pattern.slice(i + 1, end);
+      i = end + 1;
+
+      let unit;
+      if (body.startsWith('^')) {
+        unit = 'a';
+      } else if (body.startsWith('\\')) {
+        unit = REGEX_CLASS_SAMPLES[body[1]] ?? body[1] ?? '';
+      } else {
+        unit = body[0] ?? '';
+      }
+      sample += unit.repeat(consumeQuantifier());
+      continue;
+    }
+
+    if (char === '(') {
+      i += 1;
+      if (pattern.slice(i, i + 2) === '?:') i += 2;
+      continue;
+    }
+
+    if (char === ')') {
+      i += 1;
+      consumeQuantifier();
+      continue;
+    }
+
+    if (char === '|') {
+      // Keep the first alternative: skip to the end of the enclosing group.
+      let depth = 0;
+      while (i < pattern.length) {
+        const c = pattern[i];
+        if (c === '\\') {
+          i += 2;
+          continue;
+        }
+        if (c === '(') depth += 1;
+        if (c === ')' && depth-- === 0) break;
+        i += 1;
+      }
+      continue;
+    }
+
+    if (char === '.') {
+      i += 1;
+      sample += 'a'.repeat(consumeQuantifier());
+      continue;
+    }
+
+    i += 1;
+    sample += char.repeat(consumeQuantifier());
+  }
+
+  return sample;
+};
+
+// The stored value of a 'matches' rule is a regex pattern, which usually does
+// not satisfy itself, generate a sample the matcher will accept.
+const demoValueForMatches = (pattern) => {
+  let regex;
+  try {
+    regex = new RegExp(pattern);
+  } catch {
+    return pattern;
+  }
+
+  for (const candidate of [buildRegexSample(pattern), pattern]) {
+    if (regex.test(candidate)) {
+      return candidate;
+    }
+  }
+
+  return pattern;
+};
+
 // 'not_equals' matches anything except the value; an empty sample keeps the demo readable.
-const demoValueForCondition = (condition) => (
-  condition.operator === 'not_equals' ? '' : (condition.value || '')
-);
+const demoValueForCondition = (condition) => {
+  if (condition.operator === 'not_equals') {
+    return '';
+  }
+
+  if (condition.operator === 'matches') {
+    return demoValueForMatches(condition.value || '');
+  }
+
+  return condition.value || '';
+};
 
 // Builds a request that satisfies the response's rules: header/query conditions
 // become headers/params and body conditions build a JSON body from their $.paths.

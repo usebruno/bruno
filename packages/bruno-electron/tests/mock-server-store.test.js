@@ -164,6 +164,21 @@ describe('mock-server-store', () => {
       expect(listMockServers(workspacePath, 'workspace-1')).toEqual([]);
     });
 
+    it('does not cache data that failed to reach disk', () => {
+      const instance = createServer();
+      const location = { mockServerUid: instance.uid, workspacePath };
+      saveMockResponse(location, createEmptyMockResponse('Persisted response'));
+
+      const writeSpy = jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {
+        throw new Error('disk full');
+      });
+      expect(() => saveMockResponse(location, createEmptyMockResponse('Lost response'))).toThrow('disk full');
+      writeSpy.mockRestore();
+
+      const names = listMockResponses(location).map((response) => response.name);
+      expect(names).toEqual(['Persisted response']);
+    });
+
     it('writes synchronously so an external edit after invalidation wins', () => {
       const instance = createServer();
 
