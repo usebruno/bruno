@@ -130,11 +130,10 @@ export const syncRunningMockServers = createAsyncThunk(
 
 export const loadMockServerInstances = createAsyncThunk(
   'mockServer/loadInstances',
-  async ({ workspacePath, workspaceUid, migrateFrom = [] }, { rejectWithValue }) => {
+  async ({ workspacePath, workspaceUid }, { rejectWithValue }) => {
     const result = await window.ipcRenderer.invoke('renderer:mock-server-list-instances', {
       workspacePath,
-      workspaceUid,
-      migrateFrom
+      workspaceUid
     });
 
     if (!result.success) {
@@ -143,8 +142,7 @@ export const loadMockServerInstances = createAsyncThunk(
 
     return {
       workspaceUid,
-      instances: result.instances || [],
-      migratedCount: migrateFrom.length
+      instances: result.instances || []
     };
   }
 );
@@ -333,6 +331,11 @@ export const mockServerSlice = createSlice({
       delete state.mockResponses[mockServerUid];
     },
 
+    setMockResponses: (state, action) => {
+      const { mockServerUid, responses } = action.payload;
+      state.mockResponses[mockServerUid] = responses || [];
+    },
+
     upsertMockServerInstance: (state, action) => {
       const { workspaceUid, instance } = action.payload;
       const instances = [...(state.instancesByWorkspace[workspaceUid] || [])];
@@ -437,6 +440,7 @@ export const {
   addRequestLogEntries,
   setRequestLogs,
   removeMockServerData,
+  setMockResponses,
   upsertMockServerInstance,
   removeMockServerInstance
 } = mockServerSlice.actions;
