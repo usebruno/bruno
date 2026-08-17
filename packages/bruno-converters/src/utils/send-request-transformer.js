@@ -228,9 +228,6 @@ const isPromiseChainHandler = (functionPath) => {
 };
 
 /**
- * Whether `await` may be emitted here. Bruno runs scripts in an async closure, so top level is
- * always awaitable. Inside a non-async function `await` is a syntax error that breaks the whole
- * script, so we emit it only after making that function async — safe only for promise-chain handlers.
  * @param {Object} j - jscodeshift API
  * @param {Object} path - Path the await would be emitted at
  * @returns {boolean}
@@ -307,7 +304,7 @@ const rewriteThenHandlerResponseAccess = (j, handlerPath) => {
 };
 
 /**
- * The return statements belonging to the handler itself.
+* The return statements belonging to the handler itself.
 * @example
  * sendRequest(req).then((res) => {
  *   const extract = () => {
@@ -327,7 +324,8 @@ const findOwnReturns = (j, handlerPath) =>
     .filter((returnPath) => j(returnPath).closest(j.Function).get().value === handlerPath.value);
 
 /**
- * Whether every value the handler can return is its own response parameter
+ * Whether the handler forwards its response parameter untouched, so response-shape
+ * rewriting can safely continue on the next `.then` in the chain.
  * @param {Object} j - jscodeshift API
  * @param {Object} handlerPath - Path of the `.then` fulfilled handler argument
  * @returns {boolean}
