@@ -180,7 +180,7 @@ const getStaticPropertyName = (memberExpr) => {
  * @param {Object} node - Argument node
  * @returns {boolean}
  */
-const isNullLiteral = (node) =>
+const isNullish = (node) =>
   (node.type === 'Literal' && node.value === null)
   || (node.type === 'Identifier' && node.name === 'undefined');
 
@@ -235,7 +235,7 @@ const isPromiseChainHandler = (functionPath) => {
  * @param {Object} path - Path the await would be emitted at
  * @returns {boolean}
  */
-const makeAwaitable = (j, path) => {
+const ensureAsyncContext = (j, path) => {
   const enclosingFunction = j(path).closest(j.Function);
 
   const isTopLevel = enclosingFunction.size() === 0;
@@ -249,6 +249,19 @@ const makeAwaitable = (j, path) => {
   }
 
   return false;
+};
+
+/**
+ * Whether an identifier reference inside a handler resolves to the handler's own
+ * parameter rather than a nested re-declaration of the same name.
+ * @param {Object} path - Path of the reference
+ * @param {string} name - Parameter name
+ * @param {Object} handler - Handler function node owning the parameter
+ * @returns {boolean}
+ */
+const resolvesToHandlerParam = (path, name, handler) => {
+  const declaringScope = path.scope.lookup(name);
+  return Boolean(declaringScope) && declaringScope.node === handler;
 };
 
 /**
@@ -277,31 +290,21 @@ const rewriteThenHandlerResponseAccess = (j, handlerPath) => {
     if (!bruProperty) return;
 
     // skip references shadowed by a nested re-declaration of the name
-    const declaringScope = memberPath.scope.lookup(responseVarName);
-    if (!declaringScope || declaringScope.node !== handler) return;
+    if (!resolvesToHandlerParam(memberPath, responseVarName, handler)) return;
 
     const replacement = j.memberExpression(j.identifier(responseVarName), j.identifier(bruProperty));
 
-    const parentPath = memberPath.parent;
-    if (parentPath.value.type === 'CallExpression' && parentPath.value.callee === memberPath.value) {
-      j(parentPath).replaceWith(replacement);
+    const parent = memberPath.parent;
+    const isMethodCall = parent.value.type === 'CallExpression' && parent.value.callee === memberPath.value;
+
+    // `json()`/`text()` are methods on the Postman response but plain properties on Bruno's,
+    // so the call has to lose its parentheses: `res.json()` -> `res.data`
+    if (isMethodCall) {
+      j(parent).replaceWith(replacement);
     } else {
       j(memberPath).replaceWith(replacement);
     }
   });
-};
-
-/**
- * Whether an identifier reference inside a handler resolves to the handler's own
- * parameter rather than a nested re-declaration of the same name.
- * @param {Object} path - Path of the reference
- * @param {string} name - Parameter name
- * @param {Object} handler - Handler function node owning the parameter
- * @returns {boolean}
- */
-const resolvesToHandlerParam = (path, name, handler) => {
-  const declaringScope = path.scope.lookup(name);
-  return Boolean(declaringScope) && declaringScope.node === handler;
 };
 
 /**
@@ -541,7 +544,7 @@ const sendRequestTransformer = (path, j) => {
   const chainLinks = getPromiseChainLinks(callPath);
 
   if (!chainLinks.length) {
-    return makeAwaitable(j, callPath) ? j.awaitExpression(sendRequestCall) : sendRequestCall;
+    return ensureAsyncContext(j, callPath) ? j.awaitExpression(sendRequestCall) : sendRequestCall;
   }
 
   for (const link of chainLinks) {
@@ -551,7 +554,7 @@ const sendRequestTransformer = (path, j) => {
     // past it no longer receive the response we mapped.
     if (link.methodName === 'catch') break;
 
-    const hasFulfilledHandler = link.methodName === 'then' && Boolean(handler) && !isNullLiteral(handler);
+    const hasFulfilledHandler = link.methodName === 'then' && Boolean(handler) && !isNullish(handler);
 
     if (!hasFulfilledHandler) continue;
 
@@ -570,7 +573,10 @@ const sendRequestTransformer = (path, j) => {
   }
 
   const outermostPath = chainLinks[chainLinks.length - 1].callPath;
-  if (outermostPath.parent.value.type !== 'AwaitExpression' && makeAwaitable(j, outermostPath)) {
+  const isAlreadyAwaited = outermostPath.parent.value.type === 'AwaitExpression';
+  const shouldAwaitChain = !isAlreadyAwaited && ensureAsyncContext(j, outermostPath);
+
+  if (shouldAwaitChain) {
     outermostPath.parentPath.value[outermostPath.name] = j.awaitExpression(outermostPath.value);
   }
 
