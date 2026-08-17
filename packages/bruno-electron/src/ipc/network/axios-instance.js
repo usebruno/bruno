@@ -10,6 +10,7 @@ const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
 const { getSentHeaders } = require('@usebruno/requests');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
+const { applyOmitHeaders } = require('@usebruno/common');
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -173,31 +174,23 @@ function makeAxiosInstance({
     config.headers['request-start-time'] = Date.now();
 
     /**
-      Apply header deletions requested via req.deleteHeader() in pre-request scripts.
+      Apply omitHeaders (settings) and req.deleteHeader() suppressions.
       Using set(name, null) rather than delete(): the axios http adapter guards its
       own defaults (User-Agent, Accept-Encoding) with set(..., false) which only
       skips writing when the key already exists. delete() removes the key entirely,
       so the guard misses and the adapter re-adds the default. null keeps the key
       present (blocking the guard) while toJSON() omits null values from the wire.
      */
-    const headersToDelete = config.__headersToDelete;
-
-    if (headersToDelete && Array.isArray(headersToDelete)) {
-      headersToDelete.forEach((headerName) => {
-        const lower = headerName.toLowerCase();
-        if (lower === 'host') return;
-        if (lower === 'connection') {
-          // Handled after setupProxyAgents to avoid being overwritten by keepAlive:true.
-          return;
-        }
-        config.headers.set(headerName, null);
-      });
-      delete config.__headersToDelete;
-    }
+    const { omitConnection } = applyOmitHeaders(config.headers, {
+      omitHeaders: config.settings?.omitHeaders,
+      headersToDelete: config.__headersToDelete,
+      explicitHeaderNames: config.__explicitHeaderNames
+    });
+    delete config.__headersToDelete;
 
     const agentOptions = {
       ...httpsAgentRequestFields,
-      keepAlive: true
+      keepAlive: !omitConnection
     };
 
     try {
@@ -219,6 +212,11 @@ function makeAxiosInstance({
       });
     }
 
+    // Clear Connection after agents are attached so keepAlive does not reintroduce it.
+    if (omitConnection) {
+      config.headers.set('Connection', null);
+    }
+
     config.metadata.timeline = timeline;
     return config;
   });
@@ -229,7 +227,8 @@ function makeAxiosInstance({
     (response) => {
       let timeline;
       const end = Date.now();
-      const start = response.config.headers['request-start-time'];
+      const start = response.config?.metadata?.startTime
+        ?? response.config.headers['request-start-time'];
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
 
@@ -306,7 +305,8 @@ function makeAxiosInstance({
       });
       if (error.response) {
         const end = Date.now();
-        const start = error.config.headers['request-start-time'];
+        const start = error.config?.metadata?.startTime
+          ?? error.config.headers['request-start-time'];
         error.response.headers['request-duration'] = end - start;
         const duration = end - config?.metadata?.startTime;
         if (error.response && redirectResponseCodes.includes(error.response.status)) {
@@ -562,5 +562,23 @@ function makeAxiosInstance({
 }
 
 module.exports = {
-  makeAxiosInstance
+  makeAxiosInstance,
+  refreshExplicitHeaderNames
 };
+
+/**
+ * Recompute which headers were set on the request itself (not Axios defaults).
+ * Call after pre-request scripts and immediately before axiosInstance(request).
+ */
+function refreshExplicitHeaderNames(request) {
+  if (!request?.headers || typeof request.headers !== 'object') {
+    return request;
+  }
+
+  request.__explicitHeaderNames = Object.keys(request.headers).filter((name) => {
+    const value = request.headers[name];
+    return value !== undefined && value !== null && value !== false;
+  });
+
+  return request;
+}

@@ -35,6 +35,46 @@ describe('makeAxiosInstance', () => {
     expect(stubAdapter.getConfig().headers['User-Agent']).toMatch(/^bruno-runtime\//);
   });
 
+  it('omits default headers listed in settings.omitHeaders', async () => {
+    const stubAdapter = createStubAdapter();
+    const instance = makeAxiosInstance();
+
+    await instance({
+      url: 'https://api.example.com/test',
+      method: 'get',
+      adapter: stubAdapter,
+      settings: {
+        omitHeaders: ['User-Agent', 'Accept', 'request-start-time']
+      },
+      __explicitHeaderNames: []
+    });
+
+    const headers = stubAdapter.getConfig().headers;
+    expect(headers['User-Agent']).toBeNull();
+    expect(headers['Accept']).toBeNull();
+    expect(headers['request-start-time']).toBeNull();
+  });
+
+  it('keeps an explicit User-Agent when omitHeaders also lists User-Agent', async () => {
+    const stubAdapter = createStubAdapter();
+    const instance = makeAxiosInstance();
+
+    await instance({
+      url: 'https://api.example.com/test',
+      method: 'get',
+      adapter: stubAdapter,
+      headers: {
+        'User-Agent': 'my-client/1.0'
+      },
+      settings: {
+        omitHeaders: ['User-Agent']
+      },
+      __explicitHeaderNames: ['User-Agent']
+    });
+
+    expect(stubAdapter.getConfig().headers['User-Agent']).toBe('my-client/1.0');
+  });
+
   describe('cross-origin redirects authorization stripping', () => {
     function createRedirectingStubAdapter(redirectUrl, redirectStatus = 302) {
       const calls = [];

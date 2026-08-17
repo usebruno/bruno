@@ -10,7 +10,7 @@ const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, formatErrorWithC
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const { applyVariableUpdates, persistVariableUpdates } = require('../utils/persist-variables');
-const { makeAxiosInstance } = require('../utils/axios-instance');
+const { makeAxiosInstance, refreshExplicitHeaderNames } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { setupProxyAgents } = require('../utils/proxy-util');
 const path = require('path');
@@ -709,7 +709,7 @@ const runSingleRequest = async function (
       }
 
       /** @type {import('axios').AxiosResponse} */
-      response = await axiosInstance(request);
+      response = await axiosInstance(refreshExplicitHeaderNames(request));
 
       const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
