@@ -23,8 +23,6 @@ export const startMockServer = createAsyncThunk(
       status: 'starting',
       port,
       error: null,
-      routeCount: 0,
-      exampleCount: 0,
       globalDelay: globalDelay || 0
     }));
 
@@ -36,8 +34,6 @@ export const startMockServer = createAsyncThunk(
         status: 'error',
         port: null,
         error: result.error,
-        routeCount: 0,
-        exampleCount: 0,
         globalDelay: 0
       }));
       throw new Error(result.error);
@@ -48,8 +44,6 @@ export const startMockServer = createAsyncThunk(
       status: 'running',
       port: result.port,
       baseUrl: result.baseUrl,
-      routeCount: result.routeCount,
-      exampleCount: result.exampleCount,
       globalDelay: globalDelay || 0,
       error: null
     }));
@@ -79,22 +73,6 @@ export const refreshMockRoutes = createAsyncThunk(
     }
 
     return result;
-  }
-);
-
-export const updateMockDelay = createAsyncThunk(
-  'mockServer/updateDelay',
-  async (payload) => {
-    const mockServerUid = resolveMockServerUid(payload);
-    const { delay } = payload;
-    const result = await window.ipcRenderer.invoke('renderer:mock-server-set-delay', {
-      mockServerUid,
-      delay: Number(delay) || 0
-    });
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-    return { mockServerUid, delay: Number(delay) || 0 };
   }
 );
 
@@ -299,6 +277,8 @@ export const mockServerSlice = createSlice({
   reducers: {
     updateServerStatus: (state, action) => {
       const { mockServerUid, collectionUid, ...status } = action.payload;
+      delete status.routeCount;
+      delete status.exampleCount;
       const uid = mockServerUid || collectionUid;
       state.servers[uid] = {
         ...(state.servers[uid] || {}),
@@ -371,17 +351,9 @@ export const mockServerSlice = createSlice({
           port: null,
           baseUrl: null,
           error: null,
-          routeCount: 0,
-          exampleCount: 0,
           globalDelay: 0
         };
         state.requestLogs[mockServerUid] = [];
-      })
-      .addCase(updateMockDelay.fulfilled, (state, action) => {
-        const { mockServerUid, delay } = action.payload;
-        if (state.servers[mockServerUid]) {
-          state.servers[mockServerUid].globalDelay = delay;
-        }
       })
       .addCase(clearMockLog.fulfilled, (state, action) => {
         const { mockServerUid } = action.payload;

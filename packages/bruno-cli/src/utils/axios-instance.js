@@ -3,7 +3,8 @@ const { CLI_VERSION } = require('../constants');
 const { addCookieToJar, getCookieStringForUrl } = require('./cookies');
 const { createFormData } = require('./form-data');
 const { setupProxyAgents } = require('./proxy-util');
-const { isSameOrigin } = require('@usebruno/common').utils;
+const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
+const { getSentHeaders } = require('@usebruno/requests');
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
@@ -74,7 +75,7 @@ const createRedirectConfig = (error, redirectUrl) => {
  * @returns {axios.AxiosInstance}
  */
 function makeAxiosInstance({
-  requestMaxRedirects = 5,
+  requestMaxRedirects = DEFAULT_MAX_REDIRECTS,
   disableCookies,
   followRedirects = true,
   forwardAuthorizationHeader = true,
@@ -138,14 +139,17 @@ function makeAxiosInstance({
       const start = response.config.headers['request-start-time'];
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
+      response.sentHeaders = getSentHeaders(response.request);
 
       return response;
     },
     async (error) => {
+      error.sentHeaders = getSentHeaders(error.response?.request || error.request);
       if (error.response) {
         const end = Date.now();
         const start = error.config.headers['request-start-time'];
         error.response.headers['request-duration'] = end - start;
+        error.response.sentHeaders = error.sentHeaders;
 
         if (redirectResponseCodes.includes(error.response.status)) {
           if (!followRedirects) {
@@ -181,13 +185,26 @@ function makeAxiosInstance({
 
           const requestConfig = createRedirectConfig(error, redirectUrl);
 
-          if (!forwardAuthorizationHeader && !isSameOrigin(error.config.url, redirectUrl)) {
+          if (!isSameOrigin(error.config.url, redirectUrl)) {
+            /* AWS SigV4 signs a request for a specific host; re-signing after a cross-origin
+            * redirect would send a freshly valid signature to an unrelated host, regardless of
+            * the forwardAuthorizationHeader setting below.
+            */
+            requestConfig.__skipAwsV4Sign = true;
             Object.keys(requestConfig.headers).forEach((key) => {
-              const lowerKey = key.toLowerCase();
-              if (lowerKey === 'authorization' || lowerKey === 'proxy-authorization') {
+              if (key.toLowerCase().startsWith('x-amz-')) {
                 delete requestConfig.headers[key];
               }
             });
+
+            if (!forwardAuthorizationHeader) {
+              Object.keys(requestConfig.headers).forEach((key) => {
+                const lowerKey = key.toLowerCase();
+                if (lowerKey === 'authorization' || lowerKey === 'proxy-authorization') {
+                  delete requestConfig.headers[key];
+                }
+              });
+            }
           }
 
           await setupProxyAgents({

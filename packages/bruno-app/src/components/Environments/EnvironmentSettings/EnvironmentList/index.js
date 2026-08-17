@@ -625,6 +625,7 @@ const EnvironmentList = ({
                   <div
                     key={env.uid}
                     id={env.uid}
+                    data-testid="collection-env-list-item"
                     className={classnames('environment-item', {
                       active: activeView === 'environment' && selectedEnvironment?.uid === env.uid,
                       renaming: renamingEnvUid === env.uid,
