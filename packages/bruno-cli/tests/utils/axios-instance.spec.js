@@ -55,6 +55,46 @@ describe('makeAxiosInstance', () => {
     expect(headers['request-start-time']).toBeNull();
   });
 
+  it('omits Connection on the wire when listed in settings.omitHeaders', async () => {
+    const http = require('http');
+    let seenHeaders;
+    const server = http.createServer((req, res) => {
+      seenHeaders = req.headers;
+      res.writeHead(200);
+      res.end('ok');
+    });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const url = `http://127.0.0.1:${server.address().port}/`;
+
+    try {
+      const { setupProxyAgents } = require('../../src/utils/proxy-util');
+      const request = {
+        url,
+        method: 'get',
+        headers: {},
+        settings: { omitHeaders: ['Connection', 'Accept'] },
+        __explicitHeaderNames: []
+      };
+      await setupProxyAgents({
+        requestConfig: request,
+        proxyMode: 'off',
+        proxyConfig: {},
+        systemProxyConfig: {},
+        httpsAgentRequestFields: { keepAlive: false },
+        interpolationOptions: {},
+        disableCache: true
+      });
+
+      const instance = makeAxiosInstance({ proxyMode: 'off', disableCache: true });
+      await instance(request);
+
+      expect(seenHeaders.connection).toBeUndefined();
+      expect(seenHeaders.accept).toBeUndefined();
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  });
+
   it('keeps an explicit User-Agent when omitHeaders also lists User-Agent', async () => {
     const stubAdapter = createStubAdapter();
     const instance = makeAxiosInstance();

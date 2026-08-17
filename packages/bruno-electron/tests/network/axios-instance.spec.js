@@ -497,6 +497,35 @@ describe('axios-instance: sent headers', () => {
     });
   });
 
+  test('omits Connection on the wire when listed in settings.omitHeaders', async () => {
+    let seenHeaders;
+    const echoServer = http.createServer((req, res) => {
+      seenHeaders = req.headers;
+      res.writeHead(200);
+      res.end('ok');
+    });
+    await new Promise((resolve) => echoServer.listen(0, '127.0.0.1', resolve));
+    const echoUrl = `http://127.0.0.1:${echoServer.address().port}/`;
+
+    try {
+      const instance = makeAxiosInstance();
+      // Attach a keepAlive agent the way production setupProxyAgents would.
+      await instance({
+        url: echoUrl,
+        method: 'get',
+        headers: {},
+        httpAgent: new http.Agent({ keepAlive: true }),
+        settings: { omitHeaders: ['Connection', 'Accept'] },
+        __explicitHeaderNames: []
+      });
+
+      expect(seenHeaders.connection).toBeUndefined();
+      expect(seenHeaders.accept).toBeUndefined();
+    } finally {
+      await new Promise((resolve) => echoServer.close(resolve));
+    }
+  });
+
   test('the proxy credential stays visible but its value is masked', async () => {
     const instance = makeAxiosInstance();
     const credential = 'Basic dXNlcjpwYXNzd29yZA==';

@@ -8,7 +8,7 @@ const { addCookieToJar, getCookieStringForUrl } = require('../../utils/cookies')
 const { preferencesUtil } = require('../../store/preferences');
 const { safeStringifyJSON } = require('../../utils/common');
 const { createFormData } = require('../../utils/form-data');
-const { getSentHeaders } = require('@usebruno/requests');
+const { getSentHeaders, applyOmitConnectionToAxiosConfig } = require('@usebruno/requests');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { applyOmitHeaders } = require('@usebruno/common');
 
@@ -212,9 +212,9 @@ function makeAxiosInstance({
       });
     }
 
-    // Clear Connection after agents are attached so keepAlive does not reintroduce it.
+    // Node keep-alive agents re-add Connection after Axios header prep; strip on the ClientRequest.
     if (omitConnection) {
-      config.headers.set('Connection', null);
+      applyOmitConnectionToAxiosConfig(config);
     }
 
     config.metadata.timeline = timeline;
