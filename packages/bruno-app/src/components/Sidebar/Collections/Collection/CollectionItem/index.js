@@ -334,8 +334,8 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   };
 
   const handleClick = (event) => {
-    if (event && event.detail != 1) return;
     if (handleSelectionClick(event)) return;
+    if (event && event.detail != 1) return;
     // scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
     const isRequest = isItemARequest(item);

@@ -172,12 +172,11 @@ const Collection = ({ collection, searchText }) => {
   });
 
   const handleClick = (event) => {
+    if (handleSelectionClick(event)) return;
     if (event.detail != 1) return;
 
     // Check if the click came from the chevron icon
     const isChevronClick = event.target.closest('svg')?.classList.contains('chevron-icon');
-
-    if (handleSelectionClick(event)) return;
 
     setTimeout(scrollToTheActiveTab, 50);
 
