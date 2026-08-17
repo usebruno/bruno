@@ -15,13 +15,11 @@ const ResponseStopWatch = ({ startTimestamp }) => {
     };
   }, []);
 
-  const isValidTimeStamp = (timestamp) => {
-    return Number.isInteger(timestamp) && timestamp > 0 && timestamp <= now;
-  };
+  const isValidTimestamp = Number.isFinite(startTimestamp) && startTimestamp > 0;
 
-  const elapsedMillis = isValidTimeStamp(startTimestamp, now) ? Math.max(0, now - startTimestamp) : 0;
+  const elapsedMillis = isValidTimestamp(startTimestamp) ? Math.max(0, now - startTimestamp) : 0;
   const secondsFormatted = `${(elapsedMillis / 1000).toFixed(1)}s`;
-  const width = secondsFormatted.length * 0.4; // Calculate width manually to stop parent layout from "flickering" by changing width too fast
+  const width = secondsFormatted.length * 0.4;
 
   return (
     <StyledWrapper className="ml-2" style={{ width: `${width}rem` }} data-testid="response-elapsed-time">
