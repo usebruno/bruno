@@ -28,7 +28,7 @@ test.describe('SSE Elapsed Time', () => {
       await switchToOpenTab(page, 'sse-stream-request');
     });
 
-    await test.step('The elapsed time covers the time spent away', async () => {
+    await test.step('The elapsed time is not reset after switching back to the stream', async () => {
       await expect(locators.response.elapsedTime()).toBeVisible();
       expect(await elapsedSeconds(page)).toBeGreaterThanOrEqual(elapsedBefore);
     });
