@@ -20,7 +20,7 @@ const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-requ
 const { prepareRequest } = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { applyCollectionVarsToCollectionRoot } = require('./apply-collection-vars');
-const { makeAxiosInstance } = require('./axios-instance');
+const { makeAxiosInstance, refreshExplicitHeaderNames } = require('./axios-instance');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest } = require('../../utils/common');
@@ -435,7 +435,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
       collection.globalEnvironmentVariables
     );
 
-    const response = await axiosInstance(request);
+    const response = await axiosInstance(refreshExplicitHeaderNames(request));
 
     return {
       status: response.status,
@@ -1034,7 +1034,7 @@ const registerNetworkIpc = (mainWindow) => {
       const sseChunks = [];
       try {
         /** @type {import('axios').AxiosResponse} */
-        response = await axiosInstance(request);
+        response = await axiosInstance(refreshExplicitHeaderNames(request));
         isResponseStream = hasStreamHeaders(response.headers);
 
         if (!isResponseStream) {
@@ -1872,7 +1872,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
 
               /** @type {import('axios').AxiosResponse} */
-              response = await axiosInstance(request);
+              response = await axiosInstance(refreshExplicitHeaderNames(request));
               response.data = await promisifyStream(response.data, currentAbortController, false);
               timeEnd = Date.now();
 

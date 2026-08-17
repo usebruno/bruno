@@ -14,3 +14,9 @@ export * from './mock-server';
 export * from '../snapshot';
 export * from './request-settings';
 export * from './variables-tab';
+export {
+  fillRequestHeaderName,
+  fillRequestHeaderValue,
+  readResponsePreviewBody,
+  createRequestFromCurl
+} from '../request';

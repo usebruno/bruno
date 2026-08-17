@@ -782,11 +782,32 @@ ${indentString(tests)}
   }
 
   if (settings && Object.keys(settings).length) {
-    bru += 'settings {\n';
-    for (const key in settings) {
-      bru += `  ${key}: ${settings[key]}\n`;
+    const omitHeaders = settings.omitHeaders;
+    const settingsWithoutOmitHeaders = { ...settings };
+    delete settingsWithoutOmitHeaders.omitHeaders;
+
+    const hasOmitHeaders = Array.isArray(omitHeaders) && omitHeaders.some((name) => name && String(name).trim().length);
+    const hasOtherSettings = Object.keys(settingsWithoutOmitHeaders).length > 0;
+
+    if (hasOmitHeaders || hasOtherSettings) {
+      bru += 'settings {\n';
+
+      for (const key in settingsWithoutOmitHeaders) {
+        bru += `  ${key}: ${settingsWithoutOmitHeaders[key]}\n`;
+      }
+
+      if (hasOmitHeaders) {
+        bru += `  omitHeaders: [\n`;
+        for (const headerName of omitHeaders) {
+          if (headerName && String(headerName).trim().length) {
+            bru += `    ${String(headerName).trim()}\n`;
+          }
+        }
+        bru += `  ]\n`;
+      }
+
+      bru += '}\n\n';
     }
-    bru += '}\n\n';
   }
 
   if (docs && docs.length) {
