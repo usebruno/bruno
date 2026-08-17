@@ -12,8 +12,11 @@ const writeFixtureFile = (filePath, content) => {
 
 /**
  * The transport headers (Host, Connection, Accept-Encoding, ...) only exist once the request is
- * on the wire, so nothing upstream of the axios interceptors can report them. These cover the
- * whole path: interceptor -> request.headers -> json reporter, and the same set inside a
+ * on the wire, so nothing that runs before the axios interceptors can know about them.
+ *
+ * These cover the whole path end to end: the response interceptor reads them back off the
+ * ClientRequest, the runner folds them into `request.headers`, and from there they have to reach
+ * both the json reporter and `req.getHeaders()` inside a post-response script.
  */
 describe('CLI run — headers the request actually sent', () => {
   let server;
@@ -76,11 +79,15 @@ ${extra}`;
     const { code } = await runCli(['run', 'req.bru', '--noproxy', '--reporter-json', 'report.json'], tmpDir);
     expect(code).toBe(0);
 
+    /** The json reporter writes either a single `{ summary, results }` or an array holding one of
+     *  those per iteration. On the array form `report.results` is undefined, so reaching straight
+     *  for `report.results[0]` throws instead of failing an assertion. Pick the run first. */
     const report = JSON.parse(fs.readFileSync(path.join(tmpDir, 'report.json'), 'utf8'));
-    const reported = Object.keys(report.results[0].request.headers).map((name) => name.toLowerCase());
+    const sent = (Array.isArray(report) ? report[0] : report).results[0].request.headers;
+    const reported = Object.keys(sent).map((name) => name.toLowerCase());
 
     expect(Object.keys(receivedHeaders).filter((name) => !reported.includes(name))).toEqual([]);
-    expect(report.results[0].request.headers).toMatchObject({
+    expect(sent).toMatchObject({
       'Host': `127.0.0.1:${port}`,
       'Connection': 'keep-alive',
       'Accept-Encoding': 'gzip, compress, deflate, br',
@@ -97,15 +104,19 @@ ${extra}`;
     const { code } = await runCli(['run', 'req.bru', '--noproxy', '--reporter-json', 'report.json'], tmpDir);
     expect(code).toBe(0);
 
+    /** Array form holds one run per iteration, see the first test. */
     const report = JSON.parse(fs.readFileSync(path.join(tmpDir, 'report.json'), 'utf8'));
+    const sent = (Array.isArray(report) ? report[0] : report).results[0].request.headers;
 
-    expect(report.results[0].request.headers['user-agent']).toBe('mine/1.0');
-    expect(report.results[0].request.headers['User-Agent']).toBeUndefined();
+    expect(sent['user-agent']).toBe('mine/1.0');
+    expect(sent['User-Agent']).toBeUndefined();
   });
 
   it('hands the same set to a post-response script', async () => {
     stageCollection(
-      // A bru block keyword only parses at column 0, so this stays flush left
+      /** A bru block keyword only parses at column 0. Indented, the whole file fails to parse,
+       *  the script never runs, and the run still exits 0, so the only symptom is the stdout match
+       *  below coming back null. */
       httpRequest(`
 script:post-response {
   console.log('SENT_HEADERS ' + JSON.stringify(Object.keys(req.getHeaders()).sort()));
