@@ -107,106 +107,17 @@ const setJsonPathValue = (target, jsonPath, value) => {
 
 const REGEX_CLASS_SAMPLES = { d: '1', w: 'a', s: ' ' };
 
-const buildRegexSample = (pattern) => {
-  let sample = '';
-  let i = 0;
-
-  const consumeQuantifier = () => {
-    const char = pattern[i];
-    if (char === '+') {
-      i += 1;
-    } else if (char === '*' || char === '?') {
-      i += 1;
-      if (pattern[i] === '?') i += 1;
-      return 0;
-    } else if (char === '{') {
-      const end = pattern.indexOf('}', i);
-      if (end > i) {
-        const min = parseInt(pattern.slice(i + 1, end).split(',')[0], 10);
-        i = end + 1;
-        if (pattern[i] === '?') i += 1;
-        return Number.isNaN(min) ? 1 : min;
-      }
-    }
-    if (pattern[i] === '?') i += 1;
-    return 1;
-  };
-
-  while (i < pattern.length) {
-    const char = pattern[i];
-
-    if (char === '^' || char === '$') {
-      i += 1;
-      continue;
-    }
-
-    if (char === '\\') {
-      const next = pattern[i + 1] ?? '';
-      i += 2;
-      sample += (REGEX_CLASS_SAMPLES[next] ?? next).repeat(consumeQuantifier());
-      continue;
-    }
-
-    if (char === '[') {
-      let end = i + 1;
-      while (end < pattern.length && pattern[end] !== ']') {
-        end += pattern[end] === '\\' ? 2 : 1;
-      }
-      const body = pattern.slice(i + 1, end);
-      i = end + 1;
-
-      let unit;
-      if (body.startsWith('^')) {
-        unit = 'a';
-      } else if (body.startsWith('\\')) {
-        unit = REGEX_CLASS_SAMPLES[body[1]] ?? body[1] ?? '';
-      } else {
-        unit = body[0] ?? '';
-      }
-      sample += unit.repeat(consumeQuantifier());
-      continue;
-    }
-
-    if (char === '(') {
-      i += 1;
-      if (pattern.slice(i, i + 2) === '?:') i += 2;
-      continue;
-    }
-
-    if (char === ')') {
-      i += 1;
-      consumeQuantifier();
-      continue;
-    }
-
-    if (char === '|') {
-      // Keep the first alternative: skip to the end of the enclosing group.
-      let depth = 0;
-      while (i < pattern.length) {
-        const c = pattern[i];
-        if (c === '\\') {
-          i += 2;
-          continue;
-        }
-        if (c === '(') depth += 1;
-        if (c === ')' && depth-- === 0) break;
-        i += 1;
-      }
-      continue;
-    }
-
-    if (char === '.') {
-      i += 1;
-      sample += 'a'.repeat(consumeQuantifier());
-      continue;
-    }
-
-    i += 1;
-    sample += char.repeat(consumeQuantifier());
-  }
-
-  return sample;
-};
+// Expand common tokens into a literal the matcher will accept.
+// Unrecognized patterns fall through to the raw value in demoValueForMatches.
+const buildRegexSample = (pattern) => String(pattern)
+  .replace(/^\^|\$$/g, '')
+  .replace(/\\d(?:\{(\d+)\})?/g, (_, n) => '1'.repeat(Number(n) || 1))
+  .replace(/\\(.)/g, '$1')
+  .replace(/\(([^)|]*)(?:\|[^)]*)?\)/g, '$1')
+  .replace(/\[([^\]]+)\](?:\{(\d+)\})?/g, (_, chars, n) => (
+    (chars.startsWith('^') ? 'a' : chars[0]).repeat(Number(n) || 1)
+  ))
+  .replace(/[?*+]/g, '');
 
 // The stored value of a 'matches' rule is a regex pattern, which usually does
 // not satisfy itself, generate a sample the matcher will accept.
