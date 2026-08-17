@@ -50,7 +50,7 @@
 
 ```sh
 # بر روی مک از طریق brew
-brew install bruno
+brew install --cask bruno
 
 # بر روی ویندوز از طریق Chocolatey
 choco install bruno
