@@ -1,6 +1,6 @@
 /**
- * GrpcMessageList — the `bru.grpc.req.messages` and `bru.grpc.res.messages` API in hooks, and the
- * only way a hook reads or writes gRPC messages.
+ * GrpcMessageList — the `bru.grpc.request.messages` and `bru.grpc.response.messages` API in
+ * hooks, and the only way a hook reads or writes gRPC messages.
  * Keep quickjs shim up to date on any updates to this class
  */
 class GrpcMessageList {
