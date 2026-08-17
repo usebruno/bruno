@@ -16,21 +16,28 @@ const DeleteCollectionItems = ({ entries, onClose }) => {
 
   const folderCount = entries.filter((entry) => isItemAFolder(entry.item)).length;
   const requestCount = entries.filter((entry) => isItemARequest(entry.item)).length;
+  const appCount = entries.filter((entry) => entry.item.type === 'app').length;
 
   const folderDescription = folderCount > 0 ? `${folderCount} ${pluralizeWord('folder', folderCount)}` : null;
   const requestDescription = requestCount > 0 ? `${requestCount} ${pluralizeWord('request', requestCount)}` : null;
+  const appDescription = appCount > 0 ? `${appCount} ${pluralizeWord('app', appCount)}` : null;
 
+  const types = [folderDescription, requestDescription, appDescription].filter(Boolean);
   const description = entries.length === 1 ? (
     <span className="font-medium">{entries[0].item.name}</span>
   ) : (
-    [folderDescription, requestDescription].filter(Boolean).join(' and ')
+    types.length > 2
+      ? `${types.slice(0, -1).join(', ')} and ${types[types.length - 1]}`
+      : types.join(' and ')
   );
 
   let title;
-  if (folderCount > 0 && requestCount > 0) {
+  if (types.length > 1) {
     title = 'Delete Items';
   } else if (folderCount > 0) {
     title = `Delete ${pluralizeWord('Folder', folderCount)}`;
+  } else if (appCount > 0) {
+    title = `Delete ${pluralizeWord('App', appCount)}`;
   } else {
     title = `Delete ${pluralizeWord('Request', requestCount)}`;
   }
