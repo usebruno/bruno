@@ -1063,7 +1063,8 @@ await bru.sendRequest({
 
     it('should leave a destructured handler param alone', () => {
       const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' }).then(({ code }) => console.log(code));`;
-      expect(translateCode(code)).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(({ code }) => console.log(code));`);
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(({ code }) => console.log(code));`);
     });
 
     it('should translate a nested sendRequest chain inside an async then handler', () => {
