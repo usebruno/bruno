@@ -23,7 +23,7 @@ const addBrunoGrpcRequestShimToContext = (vm, request, grpcObject) => {
     'globalThis.bru.grpc.request'
   );
 
-  // request.messages — writable in `beforeCallStart`, read-only in `afterCallEnd`
+  // request.messages — read-only in `beforeCallStart` and `afterCallEnd`
   const messagesEvalCode = addGrpcMessageListShimToContext(
     vm,
     request.messages,
