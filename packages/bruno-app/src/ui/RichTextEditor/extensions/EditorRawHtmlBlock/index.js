@@ -47,7 +47,7 @@ const NON_TEXT_BLOCK_TAGS = new Set([
   'form', 'input', 'button', 'select', 'option', 'optgroup', 'textarea', 'label', 'fieldset', 'legend',
   'script', 'style', 'noscript',
   'details', 'summary',
-  'hr'
+  'hr', 'pre'
 ]);
 
 const escapeHtmlText = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
