@@ -1,3 +1,4 @@
+const { cloneDeep } = require('lodash');
 const GrpcMetadataList = require('./grpc-metadata-list');
 const GrpcMessageList = require('./grpc-message-list');
 
@@ -30,7 +31,9 @@ class BrunoGrpcRequest {
     this.protoPath = request.protoPath;
     this.name = request.name;
     this.metadata = new GrpcMetadataList(() => this.#metadataEntries(), { writable: metadataWritable });
-    this.messages = new GrpcMessageList(() => sentMessages);
+    // Cloned on every read, as `response.messages` is, so a hook editing a message cannot reach
+    // what the call actually sent.
+    this.messages = new GrpcMessageList(() => cloneDeep(sentMessages));
   }
 
   // Provides reference for in-memory edits on setters
