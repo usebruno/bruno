@@ -2,8 +2,8 @@ const { describe, it, expect, beforeAll, afterAll, afterEach } = require('@jest/
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
-const { runCli } = require('../../helpers/run-cli');
-const { prepareFixtureWorkdir } = require('../../helpers/fixture-workdir');
+const { runCli } = require('../helpers/run-cli');
+const { createCollectionFixture } = require('../helpers/collection-fixture');
 
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'dirname-filename-cli');
 
@@ -34,7 +34,7 @@ describe('CLI run — __dirname/__filename are bound per script segment (node-vm
   });
 
   it('collection, folder, and request scripts each see their own __dirname/__filename', async () => {
-    workDir = prepareFixtureWorkdir(FIXTURE_DIR);
+    workDir = createCollectionFixture(FIXTURE_DIR);
     const result = await runCli(
       [
         'run', 'subfolder/dirname-request.yml',
@@ -43,7 +43,7 @@ describe('CLI run — __dirname/__filename are bound per script segment (node-vm
         '--sandbox', 'developer',
         '--noproxy'
       ],
-      { cwd: workDir }
+      workDir
     );
 
     if (result.code !== 0) {
