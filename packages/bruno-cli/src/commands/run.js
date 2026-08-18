@@ -4,18 +4,18 @@ const path = require('path');
 const yaml = require('js-yaml');
 const { forOwn, cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
-const { exists, stripExtension, isSafeFileName } = require('../utils/filesystem');
+const { exists, stripExtension, isSafeFileName, resolveYamlPath } = require('../utils/filesystem');
+const { COLLECTION_LAYOUTS, isRequestTagsIncluded, isYamlFilename } = require('@usebruno/common');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { getEnvVars } = require('../utils/bru');
 const { parseEnvironmentJson } = require('../utils/environment');
-const { isRequestTagsIncluded } = require('@usebruno/common');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { getOptions } = require('../utils/bru');
 const { parseDotEnv, parseEnvironment } = require('@usebruno/filestore');
 const constants = require('../constants');
 const Table = require('cli-table3');
-const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, FORMAT_CONFIG } = require('../utils/collection');
+const { findItemInCollection, createCollectionJsonFromPathname, getCallStack } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
 const { sanitizeResultsForReporter } = require('../utils/sanitize-results');
@@ -382,9 +382,8 @@ const handler = async function (argv) {
     const globalEnvVarOverrides = new Map();
 
     const resolveEnvFileFormat = (filePath) => {
-      const ext = path.extname(filePath).toLowerCase();
-      if (ext === '.json') return 'json';
-      if (ext === '.yml') return 'yml';
+      if (path.extname(filePath).toLowerCase() === '.json') return 'json';
+      if (isYamlFilename(filePath)) return 'yml';
       return 'bru';
     };
 
@@ -401,11 +400,11 @@ const handler = async function (argv) {
         const rawName = normalizedEnv?.name;
         const trimmedName = typeof rawName === 'string' ? rawName.trim() : '';
         result.__name__ = trimmedName || path.basename(filePath, '.json');
-      } else if (fileExt === '.yml') {
+      } else if (isYamlFilename(filePath)) {
         const content = fs.readFileSync(filePath, 'utf8');
         const envJson = parseEnvironment(content, { format: 'yml' });
         result = getEnvVars(envJson);
-        result.__name__ = nameOverride || path.basename(filePath, '.yml');
+        result.__name__ = nameOverride || path.basename(filePath, fileExt);
       } else {
         const content = fs.readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
         const envJson = parseEnvironment(content, { format: 'bru' });
@@ -445,7 +444,7 @@ const handler = async function (argv) {
           chalk.yellow(`Ignoring invalid default environment name: `) + chalk.dim(defaultEnvironment)
         );
       } else {
-        const envExt = FORMAT_CONFIG[collection.format].ext;
+        const envExt = COLLECTION_LAYOUTS[collection.format].ext;
         const defaultEnvFilePath = path.join(collectionPath, 'environments', `${defaultEnvironment}${envExt}`);
         if (await exists(defaultEnvFilePath)) {
           try {
@@ -468,7 +467,7 @@ const handler = async function (argv) {
 
     // Load --env and merge (collection env takes precedence)
     if (env) {
-      const envExt = FORMAT_CONFIG[collection.format].ext;
+      const envExt = COLLECTION_LAYOUTS[collection.format].ext;
       const collectionEnvFilePath = path.join(collectionPath, 'environments', `${env}${envExt}`);
       if (!(await exists(collectionEnvFilePath))) {
         console.error(chalk.red(`Environment file not found: `) + chalk.dim(`environments/${env}${envExt}`));
@@ -488,8 +487,7 @@ const handler = async function (argv) {
       const findWorkspacePath = (startPath) => {
         let currentPath = startPath;
         while (currentPath !== path.dirname(currentPath)) {
-          const workspaceYmlPath = path.join(currentPath, 'workspace.yml');
-          if (fs.existsSync(workspaceYmlPath)) {
+          if (resolveYamlPath(currentPath, 'workspace')) {
             return currentPath;
           }
           currentPath = path.dirname(currentPath);
@@ -512,23 +510,21 @@ const handler = async function (argv) {
         process.exit(constants.EXIT_STATUS.ERROR_WORKSPACE_NOT_FOUND);
       }
 
-      const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
-      const workspaceYmlExists = await exists(workspaceYmlPath);
-      if (!workspaceYmlExists) {
-        console.error(chalk.red(`Invalid workspace: workspace.yml not found in `) + chalk.dim(workspacePath));
+      if (!resolveYamlPath(workspacePath, 'workspace')) {
+        console.error(chalk.red(`Invalid workspace: workspace.yml (or workspace.yaml) not found in `) + chalk.dim(workspacePath));
         process.exit(constants.EXIT_STATUS.ERROR_WORKSPACE_NOT_FOUND);
       }
 
-      const globalEnvFilePath = path.join(workspacePath, 'environments', `${globalEnv}.yml`);
-      const globalEnvFileExists = await exists(globalEnvFilePath);
-      if (!globalEnvFileExists) {
-        console.error(chalk.red(`Global environment not found: `) + chalk.dim(`environments/${globalEnv}.yml`));
+      const globalEnvFilePath = resolveYamlPath(path.join(workspacePath, 'environments'), globalEnv);
+      if (!globalEnvFilePath) {
+        console.error(chalk.red(`Global environment not found: `) + chalk.dim(`environments/${globalEnv}.yml (or .yaml)`));
         console.error(chalk.dim(`Workspace: ${workspacePath}`));
         process.exit(constants.EXIT_STATUS.ERROR_GLOBAL_ENV_NOT_FOUND);
       }
 
       try {
         const globalEnvContent = fs.readFileSync(globalEnvFilePath, 'utf8');
+        // Both extensions hold the same OpenCollection YAML, so the serializer is `yml` either way.
         const globalEnvJson = parseEnvironment(globalEnvContent, { format: 'yml' });
         globalEnvVars = getEnvVars(globalEnvJson);
         globalEnvVars.__name__ = globalEnv;
@@ -709,8 +705,7 @@ const handler = async function (argv) {
 
     const runtime = getJsSandboxRuntime(sandbox);
 
-    const collectionRootFile = collection.format === 'yml' ? 'opencollection.yml' : 'collection.bru';
-    const collectionRootPath = path.join(collectionPath, collectionRootFile);
+    const collectionRootPath = path.join(collectionPath, COLLECTION_LAYOUTS[collection.format].collectionFile);
     const persistPaths = {
       envFile: envFileDescriptor,
       globalEnvFile: globalEnvFileDescriptor,
@@ -729,7 +724,7 @@ const handler = async function (argv) {
     }
 
     const runSingleRequestByPathname = async (relativeItemPathname) => {
-      const ext = FORMAT_CONFIG[collection.format].ext;
+      const ext = COLLECTION_LAYOUTS[collection.format].ext;
       return new Promise(async (resolve, reject) => {
         let itemPathname = path.join(collectionPath, relativeItemPathname);
         if (itemPathname && !itemPathname?.endsWith(ext)) {

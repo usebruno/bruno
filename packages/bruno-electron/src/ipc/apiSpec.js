@@ -2,7 +2,7 @@ const { ipcMain } = require('electron');
 const { openApiSpecDialog, openApiSpec, validateApiSpec } = require('../app/apiSpecs');
 const { writeFile, isDirectory } = require('../utils/filesystem');
 const { removeApiSpecUid } = require('../cache/apiSpecUids');
-const { removeApiSpecFromWorkspace } = require('../utils/workspace-config');
+const { removeApiSpecFromWorkspace, resolveWorkspaceFilePath } = require('../utils/workspace-config');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const { makeAxiosInstance } = require('./network/axios-instance');
 const { proxySwaggerFetch } = require('./swagger-fetch');
@@ -59,9 +59,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedApiSpecs) 
         removeApiSpecUid(pathname);
 
         if (workspacePath) {
-          const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
-
-          if (fs.existsSync(workspaceFilePath)) {
+          if (resolveWorkspaceFilePath(workspacePath)) {
             await removeApiSpecFromWorkspace(workspacePath, pathname);
           }
         }

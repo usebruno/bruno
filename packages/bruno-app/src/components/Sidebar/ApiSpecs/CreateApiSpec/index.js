@@ -12,6 +12,7 @@ import { exportApiSpec } from 'utils/exporters/openapi-spec';
 import { each } from 'lodash';
 import { showApiSpecPage } from 'providers/ReduxStore/slices/app';
 import { validateName, validateNameError } from 'utils/common/regex';
+import { stripRequestExtension } from '@usebruno/common';
 
 export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
   let variables = {};
@@ -87,7 +88,7 @@ const CreateApiSpec = ({ onClose }) => {
         }
         // Convert envVariables (keyed by filename) to environments array for multi-server export
         const environmentsList = Object.entries(envVariables || {}).map(([envFile, vars]) => ({
-          name: envFile.replace(/\.(bru|yml)$/, ''),
+          name: stripRequestExtension(envFile),
           variables: vars
         }));
         // Create API spec yaml

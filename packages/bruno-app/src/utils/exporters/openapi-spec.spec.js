@@ -6,8 +6,10 @@ jest.mock('nanoid', () => ({
   ...jest.requireActual('nanoid')
 }));
 
-// Mock @usebruno/common to provide a working interpolate function
+// Override only `interpolate` with a test double; everything else must stay real, otherwise
+// converters that reach for other exports (e.g. isOpenCollectionLayout) get undefined.
 jest.mock('@usebruno/common', () => ({
+  ...jest.requireActual('@usebruno/common'),
   interpolate: (str, vars) => {
     if (!str || typeof str !== 'string') return str;
     let result = str;

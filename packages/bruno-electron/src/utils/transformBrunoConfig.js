@@ -1,8 +1,14 @@
 const path = require('path');
-const { isFile, isDirectory } = require('./filesystem');
+const { isFile, isDirectory, detectCollectionLayout } = require('./filesystem');
 const { transformProxyConfig } = require('@usebruno/requests');
 
 function transformBrunoConfigBeforeSave(brunoConfig) {
+  // `format` is detected from disk on every read (see transformBrunoConfigAfterRead) and is not
+  // part of the on-disk contract — writing it back would persist a derived value.
+  if (brunoConfig) {
+    delete brunoConfig.format;
+  }
+
   if (brunoConfig && !brunoConfig.opencollection) {
     const userVersion = brunoConfig.version;
     brunoConfig.version = '1'; // bru schema marker
@@ -43,6 +49,14 @@ function transformBrunoConfigBeforeSave(brunoConfig) {
 }
 
 async function transformBrunoConfigAfterRead(brunoConfig, collectionPathname) {
+  // Stamp the on-disk layout so the renderer knows which extension this collection uses.
+  // `opencollection` alone can't tell `.yml` from `.yaml`, and the renderer builds filenames
+  // for new requests/folders from this — deriving it there would write the wrong extension.
+  const layout = detectCollectionLayout(collectionPathname);
+  if (brunoConfig && layout) {
+    brunoConfig.format = layout;
+  }
+
   if (brunoConfig && !brunoConfig.opencollection) {
     if (brunoConfig.collectionVersion) {
       brunoConfig.version = brunoConfig.collectionVersion;

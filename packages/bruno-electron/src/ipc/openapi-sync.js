@@ -13,6 +13,14 @@ const {
 } = require('@usebruno/filestore');
 const { openApiToBruno } = require('@usebruno/converters');
 const { writeFile, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
+const {
+  COLLECTION_LAYOUTS,
+  getLayoutForFilename,
+  isCollectionRootBasename,
+  isFolderRootBasename,
+  isOpenCollectionLayout,
+  isRequestFilename
+} = require('@usebruno/common');
 
 const RESERVED_FOLDER_NAMES = ['node_modules', '.git', 'environments', 'mocks'];
 const { getEnvVars } = require('../utils/collection');
@@ -71,6 +79,10 @@ const isPathInsideCollection = (targetPath, collectionPath) => {
   const resolvedCollection = path.resolve(collectionPath);
   return resolvedTarget.startsWith(resolvedCollection + path.sep) || resolvedTarget === resolvedCollection;
 };
+
+// A request file, excluding the folder and collection roots that share its extension.
+const isSyncableRequestFile = (basename) =>
+  isRequestFilename(basename) && !isFolderRootBasename(basename) && !isCollectionRootBasename(basename);
 
 /**
  * Validate that a URL uses http or https scheme only.
@@ -243,17 +255,18 @@ const normalizeUrlPath = (urlStr) => {
 
 /**
  * Load bruno config from disk. Returns { format, brunoConfig, collectionRoot }.
- * collectionRoot is only set for yml format collections.
+ * collectionRoot is only set for OpenCollection (yml/yaml) collections.
  */
 const loadBrunoConfig = (collectionPath) => {
   const format = getCollectionFormat(collectionPath);
   let brunoConfig;
   let collectionRoot;
 
-  if (format === 'yml') {
-    const configFilePath = path.join(collectionPath, 'opencollection.yml');
+  if (isOpenCollectionLayout(format)) {
+    const { collectionFile } = COLLECTION_LAYOUTS[format];
+    const configFilePath = path.join(collectionPath, collectionFile);
     if (!fs.existsSync(configFilePath)) {
-      throw new Error('opencollection.yml not found');
+      throw new Error(`${collectionFile} not found`);
     }
     const content = fs.readFileSync(configFilePath, 'utf8');
     const parsed = parseCollection(content, { format });
@@ -279,7 +292,7 @@ const loadBrunoConfig = (collectionPath) => {
 };
 
 /**
- * Save bruno config to disk (bruno.json or opencollection.yml).
+ * Save bruno config to disk (bruno.json or the collection's OpenCollection root).
  */
 const saveBrunoConfig = async (collectionPath, format, brunoConfig, collectionRoot) => {
   // Convert absolute openapi sourceUrls back to collection-relative for git-shareability
@@ -293,9 +306,9 @@ const saveBrunoConfig = async (collectionPath, format, brunoConfig, collectionRo
     }));
   }
 
-  if (format === 'yml') {
+  if (isOpenCollectionLayout(format)) {
     const content = await stringifyCollection(collectionRoot, configToSave, { format });
-    await writeFile(path.join(collectionPath, 'opencollection.yml'), content);
+    await writeFile(path.join(collectionPath, COLLECTION_LAYOUTS[format].collectionFile), content);
   } else {
     const brunoJsonPath = path.join(collectionPath, 'bruno.json');
     await writeFile(brunoJsonPath, JSON.stringify(configToSave, null, 2));
@@ -336,11 +349,10 @@ const findRequestFileOnDisk = (dirPath, method, urlPath) => {
     if (stats.isDirectory() && !RESERVED_FOLDER_NAMES.includes(file)) {
       const found = findRequestFileOnDisk(filePath, method, urlPath);
       if (found) return found;
-    } else if (file.endsWith('.bru') || file.endsWith('.yml') || file.endsWith('.yaml')) {
-      if (file.startsWith('folder.') || file.startsWith('collection.')) continue;
+    } else if (isSyncableRequestFile(file)) {
       try {
         const content = fs.readFileSync(filePath, 'utf8');
-        const fileFormat = file.endsWith('.yml') || file.endsWith('.yaml') ? 'yml' : 'bru';
+        const fileFormat = getLayoutForFilename(file);
         const request = parseRequest(content, { format: fileFormat });
         if (request?.request) {
           const reqMethod = request.request.method?.toUpperCase();
@@ -700,7 +712,7 @@ const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false, pr
 
 /**
  * Ensure a tag-based folder exists in the collection directory.
- * Creates the folder and its folder.bru/folder.yml file if missing.
+ * Creates the folder and its folder root file if missing.
  * Returns the resolved target folder path (falls back to collectionPath on reserved/traversal names).
  */
 const ensureTagFolder = async (collectionPath, folderName, format) => {
@@ -716,7 +728,7 @@ const ensureTagFolder = async (collectionPath, folderName, format) => {
   }
   if (!fs.existsSync(targetFolder)) {
     fs.mkdirSync(targetFolder, { recursive: true });
-    const folderBruPath = path.join(targetFolder, `folder.${format}`);
+    const folderBruPath = path.join(targetFolder, COLLECTION_LAYOUTS[format].folderFile);
     const folderContent = await stringifyFolder({ meta: { name: safeFolderName } }, { format });
     await writeFile(folderBruPath, folderContent);
   }
@@ -1133,8 +1145,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           const stats = fs.statSync(fullPath);
           if (stats.isDirectory()) {
             files.push(...scanCollectionFiles(fullPath, relPath));
-          } else if ((entry.endsWith('.bru') || entry.endsWith('.yml') || entry.endsWith('.yaml'))
-            && !entry.startsWith('folder.') && !entry.startsWith('collection.') && !entry.startsWith('opencollection.')) {
+          } else if (isSyncableRequestFile(entry)) {
             files.push({ fullPath, relativePath: relPath });
           }
         }
@@ -1146,7 +1157,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       for (const { fullPath, relativePath } of collectionFiles) {
         try {
           const content = fs.readFileSync(fullPath, 'utf8');
-          const fileFormat = fullPath.endsWith('.yml') || fullPath.endsWith('.yaml') ? 'yml' : 'bru';
+          const fileFormat = getLayoutForFilename(fullPath);
           const parsed = parseRequest(content, { format: fileFormat });
           if (!parsed?.request) continue;
           collectionEndpoints.push({
@@ -1399,11 +1410,10 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 
             if (stats.isDirectory() && !RESERVED_FOLDER_NAMES.includes(file)) {
               await findAndResetRequest(filePath);
-            } else if ((file.endsWith('.bru') || file.endsWith('.yml') || file.endsWith('.yaml'))
-              && !file.startsWith('folder.') && !file.startsWith('collection.')) {
+            } else if (isSyncableRequestFile(file)) {
               try {
                 const content = fs.readFileSync(filePath, 'utf8');
-                const fileFormat = file.endsWith('.yml') || file.endsWith('.yaml') ? 'yml' : 'bru';
+                const fileFormat = getLayoutForFilename(file);
                 const existingRequest = parseRequest(content, { format: fileFormat });
 
                 if (existingRequest?.request) {
@@ -1484,11 +1494,10 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 
             if (stats.isDirectory() && !RESERVED_FOLDER_NAMES.includes(file)) {
               findAndRemoveRequest(filePath);
-            } else if ((file.endsWith('.bru') || file.endsWith('.yml') || file.endsWith('.yaml'))
-              && !file.startsWith('folder.') && !file.startsWith('collection.')) {
+            } else if (isSyncableRequestFile(file)) {
               try {
                 const content = fs.readFileSync(filePath, 'utf8');
-                const request = parseRequest(content, { format: file.endsWith('.yml') || file.endsWith('.yaml') ? 'yml' : 'bru' });
+                const request = parseRequest(content, { format: getLayoutForFilename(file) });
 
                 if (request?.request) {
                   const method = request.request.method?.toUpperCase();
@@ -1529,7 +1538,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
             }
             if (fs.existsSync(fullPath)) {
               try {
-                const fileFormat = fullPath.endsWith('.yml') || fullPath.endsWith('.yaml') ? 'yml' : 'bru';
+                const fileFormat = getLayoutForFilename(fullPath);
                 const content = fs.readFileSync(fullPath, 'utf8');
                 const parsed = parseRequest(content, { format: fileFormat });
                 if (parsed?.request) {
@@ -1636,7 +1645,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
               }
               if (fs.existsSync(fullPath)) {
                 try {
-                  const fileFormat = fullPath.endsWith('.yml') || fullPath.endsWith('.yaml') ? 'yml' : 'bru';
+                  const fileFormat = getLayoutForFilename(fullPath);
                   const existingContent = fs.readFileSync(fullPath, 'utf8');
                   const existingRequest = parseRequest(existingContent, { format: fileFormat });
                   const mergedRequest = mergeSpecIntoRequest(existingRequest, specItem, { fullReset: true });
@@ -1846,7 +1855,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           }
 
           try {
-            const fileFormat = endpoint.pathname.endsWith('.yml') || endpoint.pathname.endsWith('.yaml') ? 'yml' : 'bru';
+            const fileFormat = getLayoutForFilename(endpoint.pathname);
             const existingContent = fs.readFileSync(endpoint.pathname, 'utf8');
             const existingRequest = parseRequest(existingContent, { format: fileFormat });
             const mergedRequest = mergeSpecIntoRequest(existingRequest, specItem, { fullReset: true });

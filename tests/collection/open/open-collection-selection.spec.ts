@@ -3,9 +3,11 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { buildCommonLocators, closeAllCollections, toggleOpenCollectionItem, closeOpenCollectionModal } from '../../utils/page';
 
-const writeCollection = (dir: string, name: string) => {
+// `ext` selects the on-disk spelling: hand-authored, converted, or third-party-tool trees use
+// `.yaml`, and the app must open them exactly like `.yml`.
+const writeCollection = (dir: string, name: string, ext = '.yml') => {
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'opencollection.yml'), `opencollection: "1.0.0"\ninfo:\n  name: ${name}\n`);
+  fs.writeFileSync(path.join(dir, `opencollection${ext}`), `opencollection: "1.0.0"\ninfo:\n  name: ${name}\n`);
 };
 
 const writeBrunoJsonCollection = (dir: string, name: string) => {
@@ -16,9 +18,9 @@ const writeBrunoJsonCollection = (dir: string, name: string) => {
   );
 };
 
-const writeInvalidCollection = (dir: string) => {
+const writeInvalidCollection = (dir: string, ext = '.yml') => {
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'opencollection.yml'), 'opencollection: "1.0.0"\ninfo: {name:');
+  fs.writeFileSync(path.join(dir, `opencollection${ext}`), 'opencollection: "1.0.0"\ninfo: {name:');
 };
 
 const mockPickerPaths = async (electronApp: ElectronApplication, filePaths: string[]) => {
@@ -75,6 +77,37 @@ test.describe('Open Collection - selection flow', () => {
 
     await expect(locators.sidebar.collection('Single Collection')).toBeVisible();
     await expect(openCollectionModal(page)).toHaveCount(0);
+    await closeAllCollections(page);
+  });
+
+  test('opens an opencollection.yaml collection directly', async ({ page, electronApp, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    const dir = await createTmpDir('single-yaml-ext');
+    writeCollection(dir, 'Dotyaml Root', '.yaml');
+
+    await mockPickerPaths(electronApp, [dir]);
+    await openViaSidebar(page);
+
+    await expect(locators.sidebar.collection('Dotyaml Root')).toBeVisible();
+    await expect(openCollectionModal(page)).toHaveCount(0);
+    await closeAllCollections(page);
+  });
+
+  test('scans for a nested opencollection.yaml collection', async ({ page, electronApp, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+    const base = await createTmpDir('nested-yaml-ext');
+    writeCollection(path.join(base, 'nested'), 'Nested Dotyaml Tree', '.yaml');
+
+    await mockPickerPaths(electronApp, [base]);
+    await openViaSidebar(page);
+
+    await expect(openCollectionModal(page)).toBeVisible();
+    await expect(listTitles(page)).toHaveText('Nested Dotyaml Tree');
+
+    await toggleOpenCollectionItem(page, 'Nested Dotyaml Tree');
+    await locators.modal.button('Open').click();
+
+    await expect(locators.sidebar.collection('Nested Dotyaml Tree')).toBeVisible();
     await closeAllCollections(page);
   });
 
@@ -272,7 +305,7 @@ test.describe('Open Collection - selection flow', () => {
     await openViaSidebar(page);
 
     await expect(
-      page.getByText('No Bruno collections found. Couldn\'t find a bruno.json or opencollection.yml')
+      page.getByText('No Bruno collections found. Couldn\'t find a bruno.json or opencollection file')
     ).toBeVisible();
     await expect(openCollectionModal(page)).toHaveCount(0);
   });

@@ -2,7 +2,8 @@ import { parseRequest, stringifyRequest } from './index';
 import { DEFAULT_MAX_REDIRECTS } from '@usebruno/common/utils';
 import type { CollectionFormat } from './types';
 
-const FORMATS: CollectionFormat[] = ['bru', 'yml'];
+// `yaml` is the same YAML under a different extension, so it must round-trip identically.
+const FORMATS: CollectionFormat[] = ['bru', 'yml', 'yaml'];
 
 const requestWithMaxRedirects = (maxRedirects: number) => ({
   uid: 'req-uid',
@@ -29,6 +30,19 @@ const roundTripRequest = (maxRedirects: number, format: CollectionFormat) =>
   parseRequest(stringifyRequest(requestWithMaxRedirects(maxRedirects) as any, { format }), { format })
     .settings.maxRedirects;
 
+const yamlDocument = (rawValue: string) => `info:
+  name: Get Users
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: https://restcountries.com/v2/alpha/in
+
+settings:
+  maxRedirects: ${rawValue}
+`;
+
 const HAND_EDITED_DOCUMENTS: Record<CollectionFormat, (rawValue: string) => string> = {
   bru: (rawValue) => `meta {
   name: Get Users
@@ -46,18 +60,8 @@ settings {
   maxRedirects: ${rawValue}
 }
 `,
-  yml: (rawValue) => `info:
-  name: Get Users
-  type: http
-  seq: 1
-
-http:
-  method: GET
-  url: https://restcountries.com/v2/alpha/in
-
-settings:
-  maxRedirects: ${rawValue}
-`
+  yml: (rawValue) => yamlDocument(rawValue),
+  yaml: (rawValue) => yamlDocument(rawValue)
 };
 
 // Parses a document stated byte-for-byte, for values Bruno's writer would never produce

@@ -8,6 +8,7 @@ const { preferencesUtil } = require('../store/preferences');
 const path = require('path');
 const { DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
+const { COLLECTION_LAYOUTS, isOpenCollectionLayout } = require('@usebruno/common');
 
 /**
  * Returns the variable's runtime value with datatype-driven coercion applied.
@@ -16,11 +17,6 @@ const { parseValueByDataType } = require('@usebruno/common/utils');
  * via the UI takes effect at request-execution time without requiring a save.
  */
 const resolveTypedValue = (v) => parseValueByDataType(v.value, v.dataType);
-
-const FORMAT_CONFIG = {
-  yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
-  bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
-};
 
 const mergeHeaders = (collection, request, requestTreePath, options = {}) => {
   const { includeDisabledHeaders = false } = options;
@@ -279,7 +275,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
 
   // Build source file info for error trace mapping
   const format = collection.format || 'bru';
-  const config = FORMAT_CONFIG[format];
+  const config = COLLECTION_LAYOUTS[format];
   const collectionSource = {
     type: 'collection',
     filePath: path.join(collection.pathname, config.collectionFile),
@@ -578,7 +574,7 @@ const parseYmlFileMeta = (data) => {
 
 // Format-aware meta parsing function
 const parseFileMeta = (data, format = DEFAULT_COLLECTION_FORMAT) => {
-  if (format === 'yml') {
+  if (isOpenCollectionLayout(format)) {
     return parseYmlFileMeta(data);
   } else {
     return parseBruFileMeta(data);

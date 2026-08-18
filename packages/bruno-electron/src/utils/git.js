@@ -3,6 +3,12 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 const { parseRequest } = require('@usebruno/filestore');
+const {
+  FOLDER_ROOT_BASENAMES,
+  READABLE_COLLECTION_ROOT_BASENAMES,
+  getLayoutForFilename,
+  isRequestFilename
+} = require('@usebruno/common');
 
 let collectionPathToGitRootPathMap = new Map();
 
@@ -1452,17 +1458,17 @@ const supportsVisualDiff = (filePath) => {
   if (!filePath) return false;
 
   const fileName = filePath.split('/').pop();
-  const excludedFiles = ['folder.yml', 'folder.bru', 'opencollection.yml', 'collection.bru'];
-  if (excludedFiles.includes(fileName)) {
+  // Folder and collection roots are not requests, so the request-shaped diff view can't render them.
+  if (FOLDER_ROOT_BASENAMES.includes(fileName) || READABLE_COLLECTION_ROOT_BASENAMES.includes(fileName)) {
     return false;
   }
 
-  return filePath.endsWith('.bru') || filePath.endsWith('.yml');
+  return isRequestFilename(filePath);
 };
 
 /**
  * Parse content for visual diff viewer
- * Uses parseRequest to get consistent BrunoItem structure for both .bru and .yml files
+ * Uses parseRequest to get consistent BrunoItem structure for .bru, .yml and .yaml files
  * @param {string} content - Raw file content
  * @param {string} filePath - Path to the file
  * @returns {object|null} Parsed BrunoItem or null if parsing fails
@@ -1470,12 +1476,9 @@ const supportsVisualDiff = (filePath) => {
 const parseContentForVisualDiff = (content, filePath) => {
   if (!content) return null;
   try {
-    if (filePath?.endsWith('.bru')) {
-      return parseRequest(content, { format: 'bru' });
-    } else if (filePath?.endsWith('.yml')) {
-      return parseRequest(content, { format: 'yml' });
-    }
-    return null;
+    const layout = getLayoutForFilename(filePath);
+    if (!layout) return null;
+    return parseRequest(content, { format: layout });
   } catch (err) {
     console.error('Error parsing content for visual diff:', err);
     return null;

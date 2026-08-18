@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
+import { getLayoutConfig } from '@usebruno/common';
 import Method from './Common/Method/index';
 import Status from './Common/Status/index';
 import { RelativeTime } from './Common/Time/index';
@@ -79,7 +80,7 @@ const TimelineItem = ({
 
   const isMainOrOauth = !source || source === 'main' || isOauth2;
   const scopeType = scope?.type || (isMainOrOauth ? null : 'request');
-  const requestExt = collection?.format === 'yml' ? '.yml' : '.bru';
+  const requestExt = getLayoutConfig(collection?.format).ext;
   const scopeFile = scope?.sourceFile
     || (scopeType === 'request' ? (item?.filename || (item?.name ? `${item.name}${requestExt}` : null)) : null);
   const sourceFile = isMainOrOauth ? null : scopeFile;

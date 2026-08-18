@@ -4,9 +4,14 @@ const path = require('path');
 const chokidar = require('chokidar');
 const yaml = require('js-yaml');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
-const { getWorkspaceUid, normalizeWorkspaceConfig } = require('../utils/workspace-config');
+const { getWorkspaceUid, normalizeWorkspaceConfig, resolveWorkspaceFilePath } = require('../utils/workspace-config');
 const { parseEnvironment } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
+const { YAML_EXTENSIONS, stripYamlExtension } = require('@usebruno/common');
+
+// Watch both YAML spellings: the file may not exist yet at watch time, and a workspace can
+// legitimately use either extension.
+const yamlGlobs = (dir, basename = '*') => YAML_EXTENSIONS.map((ext) => path.join(dir, `${basename}${ext}`));
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const { decryptStringSafe } = require('../utils/encryption');
 const dotEnvWatcher = require('./dotenv-watcher');
@@ -29,9 +34,9 @@ const envHasSecrets = (environment) => {
 
 const handleWorkspaceFileChange = (win, workspacePath) => {
   try {
-    const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
+    const workspaceFilePath = resolveWorkspaceFilePath(workspacePath);
 
-    if (!fs.existsSync(workspaceFilePath)) {
+    if (!workspaceFilePath) {
       return;
     }
 
@@ -59,7 +64,7 @@ const handleWorkspaceFileChange = (win, workspacePath) => {
 
 const parseGlobalEnvironmentFile = async (pathname, workspacePath, workspaceUid) => {
   const basename = path.basename(pathname);
-  const environmentName = basename.slice(0, -'.yml'.length);
+  const environmentName = stripYamlExtension(basename);
 
   const file = {
     meta: {
@@ -185,7 +190,7 @@ class WorkspaceWatcher {
       return;
     }
 
-    const mockServerWatcher = chokidar.watch(path.join(mocksDir, '*.yml'), {
+    const mockServerWatcher = chokidar.watch(yamlGlobs(mocksDir), {
       ignoreInitial: true,
       persistent: true,
       ignorePermissionErrors: true,
@@ -211,7 +216,7 @@ class WorkspaceWatcher {
   }
 
   addWatcher(win, workspacePath) {
-    const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
+    const workspaceFilePaths = yamlGlobs(workspacePath, 'workspace');
     const environmentsDir = path.join(workspacePath, 'environments');
     const workspaceUid = getWorkspaceUid(workspacePath);
 
@@ -229,7 +234,7 @@ class WorkspaceWatcher {
         return;
       }
 
-      const watcher = chokidar.watch(workspaceFilePath, {
+      const watcher = chokidar.watch(workspaceFilePaths, {
         ignoreInitial: true,
         persistent: true,
         ignorePermissionErrors: true,
@@ -247,7 +252,7 @@ class WorkspaceWatcher {
       self._addMockServerWatcher(win, workspacePath, workspaceUid);
 
       if (fs.existsSync(environmentsDir)) {
-        const envWatcher = chokidar.watch(path.join(environmentsDir, `*.yml`), {
+        const envWatcher = chokidar.watch(yamlGlobs(environmentsDir), {
           ignoreInitial: true,
           persistent: true,
           ignorePermissionErrors: true,

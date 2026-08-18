@@ -60,8 +60,16 @@ const FILE_DERIVED_FOLDER_FIELDS = [
 // Derive from the config on disk only — never keep a previous collection.format.
 // After a migrate-to-yml followed by a git revert to bru, a stale 'yml' would hide
 // the "Convert to YML" action forever.
+//
+// `brunoConfig.format` is the layout the main process detected on disk (`bru`/`yml`/`yaml`) and
+// is re-stamped on every read, so it stays disk-truthy. Prefer it: `opencollection` alone cannot
+// distinguish `.yml` from `.yaml`, and this value decides the extension of every file the
+// renderer asks the main process to create.
 const deriveCollectionFormat = (brunoConfig) => {
-  return brunoConfig?.opencollection ? 'yml' : brunoConfig?.format || 'bru';
+  if (brunoConfig?.format) {
+    return brunoConfig.format;
+  }
+  return brunoConfig?.opencollection ? 'yml' : 'bru';
 };
 
 const mergeTreeItems = (existingItems, newItems) => {

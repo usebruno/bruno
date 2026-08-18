@@ -1,7 +1,6 @@
-const fs = require('fs');
 const path = require('path');
 const snapshotManager = require('../services/snapshot');
-const { readWorkspaceConfig, validateWorkspaceConfig } = require('./workspace-config');
+const { readWorkspaceConfig, validateWorkspaceConfig, resolveWorkspaceFilePath } = require('./workspace-config');
 
 const normalizeWorkspacePathname = (workspacePath) => {
   if (typeof workspacePath !== 'string' || !workspacePath.length) {
@@ -36,9 +35,7 @@ const prioritizeActiveWorkspacePath = (workspacePaths, activeWorkspacePath) => {
 };
 
 const isValidWorkspacePathOnDisk = (workspacePath, { validateConfig = false } = {}) => {
-  const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
-
-  if (!fs.existsSync(workspaceYmlPath)) {
+  if (!resolveWorkspaceFilePath(workspacePath)) {
     return false;
   }
 

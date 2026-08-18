@@ -2,10 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const { ipcMain } = require('electron');
 const Yup = require('yup');
-const { isDirectory, getCollectionStats, normalizeAndResolvePath } = require('../utils/filesystem');
+const { isDirectory, getCollectionStats, normalizeAndResolvePath, resolveYamlPath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { parseCollection } = require('@usebruno/filestore');
+const { getLayoutForFilename } = require('@usebruno/common');
 
 // Track scratch collection paths (temp directories for workspace scratch requests)
 const scratchCollectionPaths = new Set();
@@ -59,25 +60,23 @@ const validateSchema = async (config) => {
 };
 
 const getCollectionConfigFile = async (pathname) => {
-  // Check for opencollection.yml first
-  const ocYmlPath = path.join(pathname, 'opencollection.yml');
-  if (fs.existsSync(ocYmlPath)) {
+  // An OpenCollection root holds the bruno config, so it takes precedence over bruno.json.
+  const rootPath = resolveYamlPath(pathname, 'opencollection');
+  if (rootPath) {
     try {
-      const content = fs.readFileSync(ocYmlPath, 'utf8');
-      const {
-        brunoConfig
-      } = parseCollection(content, { format: 'yml' });
+      const content = fs.readFileSync(rootPath, 'utf8');
+      const { brunoConfig } = parseCollection(content, { format: getLayoutForFilename(rootPath) });
       await validateSchema(brunoConfig);
       return brunoConfig;
     } catch (err) {
-      throw new Error(`Unable to parse opencollection.yml: ${err.message}`);
+      throw new Error(`Unable to parse ${path.basename(rootPath)}: ${err.message}`);
     }
   }
 
   // Fall back to bruno.json
   const configFilePath = path.join(pathname, 'bruno.json');
   if (!fs.existsSync(configFilePath)) {
-    throw new Error(`The collection is not valid (neither bruno.json nor opencollection.yml found)`);
+    throw new Error(`The collection is not valid (neither bruno.json nor an opencollection file found)`);
   }
 
   const config = await readConfigFile(configFilePath);

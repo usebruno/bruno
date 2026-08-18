@@ -1,6 +1,7 @@
 import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
 import path, { normalizePath } from 'utils/common/path';
 import { uuid } from 'utils/common';
+import { getLayoutConfig } from '@usebruno/common';
 
 const normalizeTabType = (type) => {
   if (type === 'mock-server-dashboard' || type === 'mocker') {
@@ -384,8 +385,8 @@ export const getCollectionEnvironmentPath = (collection, environment, defaultVal
     return environment.name || defaultValue;
   }
 
-  const extension = collection.format === 'yml' ? 'yml' : 'bru';
-  return normalizePath(path.join(collection.pathname, 'environments', `${environment.name}.${extension}`));
+  const { ext } = getLayoutConfig(collection.format);
+  return normalizePath(path.join(collection.pathname, 'environments', `${environment.name}${ext}`));
 };
 
 export const findCollectionEnvironmentFromSnapshot = (collection, snapshotData = {}) => {

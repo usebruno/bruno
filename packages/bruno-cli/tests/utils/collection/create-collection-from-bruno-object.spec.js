@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { describe, it, expect, afterEach } = require('@jest/globals');
-const { parseRequest, parseFolder } = require('@usebruno/filestore');
+const { parseRequest, parseFolder, parseCollection, parseEnvironment } = require('@usebruno/filestore');
 const { createCollectionFromBrunoObject } = require('../../../src/utils/collection');
 
 describe('createCollectionFromBrunoObject', () => {
@@ -199,5 +199,140 @@ describe('createCollectionFromBrunoObject', () => {
         { format: 'bru' }
       )
     ).rejects.toThrow('Unsupported item type: unsupported-type');
+  });
+
+  // `.yaml` is an alternate extension for the same OpenCollection YAML content, so both layouts
+  // must produce identical bytes under different filenames — anything that diverges is a bug.
+  describe.each([
+    { format: 'yml', ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
+    { format: 'yaml', ext: '.yaml', collectionFile: 'opencollection.yaml', folderFile: 'folder.yaml' }
+  ])('$format layout', ({ format, ext, collectionFile, folderFile }) => {
+    const seed = (dirPath) =>
+      createCollectionFromBrunoObject(
+        {
+          name: 'opencollection-collection',
+          root: { request: { headers: [{ name: 'X-Collection-Header', value: 'v', enabled: true }] } },
+          environments: [{ name: 'Development', variables: [{ name: 'baseUrl', value: 'https://api.dev', enabled: true }] }],
+          items: [
+            {
+              type: 'folder',
+              name: 'Users',
+              seq: 3,
+              root: { meta: { name: 'Users' } },
+              items: [
+                {
+                  type: 'http-request',
+                  name: 'List Users',
+                  seq: 1,
+                  request: { method: 'GET', url: 'https://api.example.com/users' }
+                }
+              ]
+            },
+            {
+              type: 'http-request',
+              name: 'Get Users',
+              filename: `get-users${ext}`,
+              seq: 1,
+              request: { method: 'GET', url: 'https://api.example.com/users' }
+            }
+          ]
+        },
+        dirPath,
+        { format }
+      );
+
+    it(`writes the collection root as ${collectionFile} and no bruno.json`, async () => {
+      createOutputDir();
+      await seed(outputDir);
+
+      const rootPath = path.join(outputDir, collectionFile);
+      expect(fs.existsSync(rootPath)).toBe(true);
+      // bruno.json is a bru-format artifact; the opencollection config lives inside the root file.
+      expect(fs.existsSync(path.join(outputDir, 'bruno.json'))).toBe(false);
+
+      const parsed = parseCollection(fs.readFileSync(rootPath, 'utf8'), { format: 'yml' });
+      expect(parsed).toHaveProperty('brunoConfig.opencollection', '1.0.0');
+      expect(parsed).toHaveProperty('brunoConfig.name', 'opencollection-collection');
+      expect(parsed).toHaveProperty('collectionRoot.request.headers[0].name', 'X-Collection-Header');
+    });
+
+    it(`writes request files with the ${ext} extension`, async () => {
+      createOutputDir();
+      await seed(outputDir);
+
+      // Explicit filename already carries the extension; the name-derived one gets it appended.
+      const explicitPath = path.join(outputDir, `get-users${ext}`);
+      const derivedPath = path.join(outputDir, 'Users', `List Users${ext}`);
+
+      expect(fs.existsSync(explicitPath)).toBe(true);
+      expect(fs.existsSync(derivedPath)).toBe(true);
+
+      const request = parseRequest(fs.readFileSync(explicitPath, 'utf8'), { format: 'yml' });
+      expect(request).toHaveProperty('type', 'http-request');
+      expect(request).toHaveProperty('request.method', 'GET');
+      expect(request).toHaveProperty('request.url', 'https://api.example.com/users');
+    });
+
+    it(`writes the folder root as ${folderFile}`, async () => {
+      createOutputDir();
+      await seed(outputDir);
+
+      const folderRootPath = path.join(outputDir, 'Users', folderFile);
+      expect(fs.existsSync(folderRootPath)).toBe(true);
+
+      const folder = parseFolder(fs.readFileSync(folderRootPath, 'utf8'), { format: 'yml' });
+      expect(folder).toHaveProperty('meta.name', 'Users');
+      expect(folder).toHaveProperty('meta.seq', 3);
+    });
+
+    it(`writes environment files with the ${ext} extension`, async () => {
+      createOutputDir();
+      await seed(outputDir);
+
+      const envPath = path.join(outputDir, 'environments', `Development${ext}`);
+      expect(fs.existsSync(envPath)).toBe(true);
+
+      const env = parseEnvironment(fs.readFileSync(envPath, 'utf8'), { format: 'yml' });
+      expect(env).toHaveProperty('name', 'Development');
+      expect(env).toHaveProperty('variables[0].name', 'baseUrl');
+      expect(env).toHaveProperty('variables[0].value', 'https://api.dev');
+    });
+  });
+
+  it('writes byte-identical content for the yml and yaml layouts', async () => {
+    const collection = () => ({
+      name: 'parity-collection',
+      root: { request: { headers: [{ name: 'X-Header', value: 'v', enabled: true }] } },
+      items: [
+        {
+          type: 'folder',
+          name: 'Users',
+          seq: 1,
+          root: { meta: { name: 'Users' } },
+          items: [
+            { type: 'http-request', name: 'List Users', seq: 1, request: { method: 'GET', url: 'https://api.example.com/users' } }
+          ]
+        }
+      ]
+    });
+
+    const ymlDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-import-yml-'));
+    const yamlDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-import-yaml-'));
+
+    try {
+      await createCollectionFromBrunoObject(collection(), ymlDir, { format: 'yml' });
+      await createCollectionFromBrunoObject(collection(), yamlDir, { format: 'yaml' });
+
+      const read = (dir, file) => fs.readFileSync(path.join(dir, file), 'utf8');
+
+      expect(read(yamlDir, 'opencollection.yaml')).toBe(read(ymlDir, 'opencollection.yml'));
+      expect(read(yamlDir, path.join('Users', 'folder.yaml'))).toBe(read(ymlDir, path.join('Users', 'folder.yml')));
+      expect(read(yamlDir, path.join('Users', 'List Users.yaml'))).toBe(
+        read(ymlDir, path.join('Users', 'List Users.yml'))
+      );
+    } finally {
+      fs.rmSync(ymlDir, { recursive: true, force: true });
+      fs.rmSync(yamlDir, { recursive: true, force: true });
+    }
   });
 });

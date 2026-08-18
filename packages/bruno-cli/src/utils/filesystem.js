@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs-extra');
+const { YAML_EXTENSIONS } = require('@usebruno/common');
 const fsPromises = require('fs/promises');
 
 const exists = async (p) => {
@@ -103,6 +104,24 @@ const stripExtension = (filename = '') => {
   return filename.replace(/\.[^/.]+$/, '');
 };
 
+/**
+ * Resolve a YAML file that may carry either supported extension. `.yml` is tried first, so a
+ * Bruno-written file always wins when both are present.
+ *
+ * @param {string} dir - Directory to look in.
+ * @param {string} basename - File name without extension (e.g. `workspace`, or an environment name).
+ * @returns {string|null} Absolute path of the first candidate that exists, or null if neither does.
+ */
+const resolveYamlPath = (dir, basename) => {
+  for (const extension of YAML_EXTENSIONS) {
+    const candidate = path.join(dir, `${basename}${extension}`);
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+};
+
 const getSubDirectories = (dir) => {
   try {
     const files = fs.readdirSync(dir);
@@ -202,6 +221,7 @@ module.exports = {
   searchForFiles,
   searchForBruFiles,
   stripExtension,
+  resolveYamlPath,
   getSubDirectories,
   sanitizeName,
   validateName,

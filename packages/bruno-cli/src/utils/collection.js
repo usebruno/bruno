@@ -6,27 +6,23 @@ const { sanitizeName } = require('./filesystem');
 const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const constants = require('../constants');
 const chalk = require('chalk');
+const { COLLECTION_LAYOUTS, COLLECTION_LAYOUT_ORDER, isOpenCollectionLayout } = require('@usebruno/common');
 
-const FORMAT_CONFIG = {
-  yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
-  bru: { ext: '.bru', collectionFile: 'collection.bru', folderFile: 'folder.bru' }
-};
 const REQUEST_ITEM_TYPES = ['http-request', 'graphql-request'];
 
-const getCollectionFormat = (collectionPath) => {
-  if (fs.existsSync(path.join(collectionPath, 'opencollection.yml'))) return 'yml';
-  if (fs.existsSync(path.join(collectionPath, 'bruno.json'))) return 'bru';
-  return null;
-};
+const getCollectionFormat = (collectionPath) => COLLECTION_LAYOUT_ORDER.find(
+  (layout) => fs.existsSync(path.join(collectionPath, COLLECTION_LAYOUTS[layout].marker))
+) || null;
 
 const getCollectionConfig = (collectionPath, format) => {
-  if (format === 'yml') {
-    const content = fs.readFileSync(path.join(collectionPath, 'opencollection.yml'), 'utf8');
-    const parsed = parseCollection(content, { format: 'yml' });
+  const { collectionFile } = COLLECTION_LAYOUTS[format];
+  if (isOpenCollectionLayout(format)) {
+    const content = fs.readFileSync(path.join(collectionPath, collectionFile), 'utf8');
+    const parsed = parseCollection(content, { format });
     return { brunoConfig: parsed.brunoConfig, collectionRoot: parsed.collectionRoot || {} };
   }
   const brunoConfig = JSON.parse(fs.readFileSync(path.join(collectionPath, 'bruno.json'), 'utf8'));
-  const collectionBruPath = path.join(collectionPath, 'collection.bru');
+  const collectionBruPath = path.join(collectionPath, collectionFile);
   const collectionRoot = fs.existsSync(collectionBruPath)
     ? parseCollection(fs.readFileSync(collectionBruPath, 'utf8'), { format: 'bru' })
     : {};
@@ -34,7 +30,8 @@ const getCollectionConfig = (collectionPath, format) => {
 };
 
 const getFolderRoot = (dir, format) => {
-  const folderPath = path.join(dir, FORMAT_CONFIG[format].folderFile);
+  const { folderFile } = COLLECTION_LAYOUTS[format];
+  const folderPath = path.join(dir, folderFile);
   if (!fs.existsSync(folderPath)) return null;
   return parseFolder(fs.readFileSync(folderPath, 'utf8'), { format });
 };
@@ -47,7 +44,7 @@ const createCollectionJsonFromPathname = (collectionPath) => {
   }
 
   const { brunoConfig, collectionRoot } = getCollectionConfig(collectionPath, format);
-  const { ext, collectionFile, folderFile } = FORMAT_CONFIG[format];
+  const { ext, collectionFile, folderFile } = COLLECTION_LAYOUTS[format];
   const environmentsPath = path.join(collectionPath, 'environments');
 
   const traverse = (currentPath) => {
@@ -296,7 +293,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
 
   // Build source file info for error trace mapping
   const format = collection.format || 'bru';
-  const config = FORMAT_CONFIG[format];
+  const config = COLLECTION_LAYOUTS[format];
   const collectionSource = {
     filePath: path.join(collection.pathname, config.collectionFile),
     displayPath: config.collectionFile
@@ -540,6 +537,7 @@ const safeWriteFileSync = (filePath, content) => {
  */
 const createCollectionFromBrunoObject = async (collection, dirPath, options = {}) => {
   const { format = DEFAULT_COLLECTION_FORMAT } = options;
+  const { ext, collectionFile } = COLLECTION_LAYOUTS[format];
   // Create brunoConfig for yml format
   const brunoConfig = {
     version: '1',
@@ -548,14 +546,12 @@ const createCollectionFromBrunoObject = async (collection, dirPath, options = {}
     ignore: ['node_modules', '.git']
   };
 
-  if (format === 'yml') {
+  if (isOpenCollectionLayout(format)) {
     brunoConfig.opencollection = '1.0.0';
   }
 
-  const collectionContent = await stringifyCollection(collection.root || {}, brunoConfig, {
-    format
-  });
-  const collectionRootFilePath = format == 'bru' ? path.join(dirPath, 'collection.bru') : path.join(dirPath, 'opencollection.yml');
+  const collectionContent = await stringifyCollection(collection.root || {}, brunoConfig, { format });
+  const collectionRootFilePath = path.join(dirPath, collectionFile);
 
   if (format === 'bru') {
     fs.writeFileSync(
@@ -575,7 +571,7 @@ const createCollectionFromBrunoObject = async (collection, dirPath, options = {}
 
     for (const env of collection.environments) {
       const content = stringifyEnvironment(env, { format });
-      const filename = format === 'bru' ? sanitizeName(`${env.name}.bru`) : sanitizeName(`${env.name}.yml`);
+      const filename = sanitizeName(`${env.name}${ext}`);
       fs.writeFileSync(path.join(envDirPath, filename), content);
     }
   }
@@ -592,10 +588,11 @@ const createCollectionFromBrunoObject = async (collection, dirPath, options = {}
  * @param {Array} items - Collection items
  * @param {string} currentPath - Current directory path
  * @param {object} [options] - Current directory path
- * @param {"bru"|"yml"} options.format - Current directory path
+ * @param {"bru"|"yml"|"yaml"} options.format - On-disk layout of the collection being written
  */
 const processCollectionItems = async (items = [], currentPath, options = {}) => {
   const { format = DEFAULT_COLLECTION_FORMAT } = options;
+  const { ext, folderFile } = COLLECTION_LAYOUTS[format];
   for (const item of items) {
     if (item.type === 'folder') {
       // Create folder
@@ -603,10 +600,9 @@ const processCollectionItems = async (items = [], currentPath, options = {}) => 
       const folderPath = path.join(currentPath, sanitizedFolderName);
       fs.mkdirSync(folderPath, { recursive: true });
 
-      // Create folder.yml file if root exists
+      // Create folder root file if root exists
       if (item?.root?.meta?.name) {
-        const folderFileName = format === 'bru' ? 'folder.bru' : 'folder.yml';
-        const folderFilePath = path.join(folderPath, folderFileName);
+        const folderFilePath = path.join(folderPath, folderFile);
         if (item.seq) {
           item.root.meta.seq = item.seq;
         }
@@ -620,17 +616,9 @@ const processCollectionItems = async (items = [], currentPath, options = {}) => 
       }
     } else if (REQUEST_ITEM_TYPES.includes(item.type)) {
       // Create request file
-      let sanitizedFilename;
-      if (format == 'yml') {
-        sanitizedFilename = sanitizeName(item?.filename || `${item.name}.yml`);
-        if (!sanitizedFilename.endsWith('.yml')) {
-          sanitizedFilename += '.yml';
-        }
-      } else {
-        sanitizedFilename = sanitizeName(item?.filename || `${item.name}.bru`);
-        if (!sanitizedFilename.endsWith('.bru')) {
-          sanitizedFilename += '.bru';
-        }
+      let sanitizedFilename = sanitizeName(item?.filename || `${item.name}${ext}`);
+      if (!sanitizedFilename.endsWith(ext)) {
+        sanitizedFilename += ext;
       }
 
       // Convert to YML format
@@ -656,7 +644,6 @@ const processCollectionItems = async (items = [], currentPath, options = {}) => 
         examples: item.examples || []
       };
 
-      // Convert to YML format and write to file
       const content = stringifyRequest(itemJson, { format });
       safeWriteFileSync(path.join(currentPath, sanitizedFilename), content);
     } else {
@@ -707,7 +694,6 @@ const sortByNameThenSequence = (items) => {
 };
 
 module.exports = {
-  FORMAT_CONFIG,
   getCollectionFormat,
   createCollectionJsonFromPathname,
   mergeHeaders,

@@ -4,6 +4,7 @@ const path = require('path');
 const chokidar = require('chokidar');
 const {
   hasRequestExtension,
+  isCollectionRootFile,
   isWSLPath,
   normalizeAndResolvePath,
   sizeInMB,
@@ -19,6 +20,11 @@ const {
 
 const { uuid } = require('../utils/common');
 const { parseValueByDataType } = require('@usebruno/common/utils');
+const {
+  COLLECTION_LAYOUTS,
+  isCollectionRootBasename,
+  isOpenCollectionLayout
+} = require('@usebruno/common');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptStringSafe } = require('../utils/encryption');
 const { setBrunoConfig, getBrunoConfig } = require('../store/bruno-config');
@@ -68,29 +74,18 @@ const isEnvironmentsFolder = (pathname, collectionPath) => {
   return path.normalize(dirname) === path.normalize(envDirectory);
 };
 
-const isFolderRootFile = (pathname, collectionPath) => {
-  const basename = path.basename(pathname);
-  const format = getCollectionFormat(collectionPath);
+const isFolderRootFile = (pathname, layout) =>
+  path.basename(pathname).toLowerCase() === COLLECTION_LAYOUTS[layout].folderFile;
 
-  if (format === 'yml') {
-    return basename === 'folder.yml';
-  } else if (format === 'bru') {
-    return basename === 'folder.bru';
+// A watcher event can arrive while the collection's marker file is momentarily missing (e.g. a
+// migration rewriting the root). Log and skip that event rather than rejecting.
+const resolveCollectionFormat = (collectionPath) => {
+  try {
+    return getCollectionFormat(collectionPath);
+  } catch (error) {
+    console.error(`Error getting collection format for: ${collectionPath}`, error);
+    return null;
   }
-
-  return false;
-};
-
-const isCollectionRootFile = (pathname, collectionPath) => {
-  const dirname = path.dirname(pathname);
-  const basename = path.basename(pathname);
-
-  // return if we are not at the root of the collection
-  if (path.normalize(dirname) !== path.normalize(collectionPath)) {
-    return false;
-  }
-
-  return basename === 'collection.bru' || basename === 'opencollection.yml';
 };
 
 const envHasSecrets = (environment = {}) => {
@@ -248,8 +243,12 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     return addEnvironmentFile(win, pathname, collectionUid, collectionPath);
   }
 
+  // Detecting the layout probes the filesystem, so resolve it once for the whole event. It can
+  // throw when the marker is momentarily absent (mid-migration), which is not this event's problem.
+  const format = resolveCollectionFormat(collectionPath);
+  if (!format) return;
+
   if (isCollectionRootFile(pathname, collectionPath)) {
-    const format = getCollectionFormat(collectionPath);
     const file = {
       meta: {
         collectionUid,
@@ -264,7 +263,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       const parsed = await parseCollection(content, { format });
 
       let collectionRoot, brunoConfig;
-      if (format === 'yml') {
+      if (isOpenCollectionLayout(format)) {
         collectionRoot = parsed.collectionRoot;
         brunoConfig = parsed.brunoConfig;
       } else {
@@ -279,8 +278,8 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
       hydrateCollectionRootWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
 
-      // in yml format, opencollection.yml also contains the bruno config
-      if (format === 'yml') {
+      // in an OpenCollection layout, the collection root file also contains the bruno config
+      if (isOpenCollectionLayout(format)) {
         // Transform the config to add exists metadata for protobuf files and import paths
         brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
 
@@ -300,7 +299,7 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     return;
   }
 
-  if (isFolderRootFile(pathname, collectionPath)) {
+  if (isFolderRootFile(pathname, format)) {
     const file = {
       meta: {
         collectionUid,
@@ -311,7 +310,6 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     };
 
     try {
-      const format = getCollectionFormat(collectionPath);
       const content = fs.readFileSync(pathname, 'utf8');
       file.data = await parseFolder(content, { format });
       stageToCache(collectionPath, pathname, file.data);
@@ -325,7 +323,6 @@ const add = async (win, pathname, collectionUid, collectionPath, useWorkerThread
     }
   }
 
-  const format = getCollectionFormat(collectionPath);
   if (hasRequestExtension(pathname, format)) {
     watcher.addFileToProcessing(collectionUid, pathname);
 
@@ -494,6 +491,11 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     return changeEnvironmentFile(win, pathname, collectionUid, collectionPath);
   }
 
+  // Detecting the layout probes the filesystem, so resolve it once for the whole event. It can
+  // throw when the marker is momentarily absent (mid-migration), which is not this event's problem.
+  const format = resolveCollectionFormat(collectionPath);
+  if (!format) return;
+
   if (isCollectionRootFile(pathname, collectionPath)) {
     const file = {
       meta: {
@@ -506,11 +508,10 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const format = getCollectionFormat(collectionPath);
       const parsed = await parseCollection(content, { format });
 
       let collectionRoot, brunoConfig;
-      if (format === 'yml') {
+      if (isOpenCollectionLayout(format)) {
         collectionRoot = parsed.collectionRoot;
         brunoConfig = parsed.brunoConfig;
       } else {
@@ -525,8 +526,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       hydrateCollectionRootWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'change', file);
 
-      // in yml format, opencollection.yml also contains the bruno config
-      if (format === 'yml') {
+      // in an OpenCollection layout, the collection root file also contains the bruno config
+      if (isOpenCollectionLayout(format)) {
         // Transform the config to add exists metadata for protobuf files and import paths
         brunoConfig = await transformBrunoConfigAfterRead(brunoConfig, collectionPath);
 
@@ -546,7 +547,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
-  if (isFolderRootFile(pathname, collectionPath)) {
+  if (isFolderRootFile(pathname, format)) {
     const file = {
       meta: {
         collectionUid,
@@ -557,7 +558,6 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     };
 
     try {
-      const format = getCollectionFormat(collectionPath);
       const content = fs.readFileSync(pathname, 'utf8');
       file.data = await parseFolder(content, { format });
       stageToCache(collectionPath, pathname, file.data);
@@ -571,7 +571,6 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     }
   }
 
-  const format = getCollectionFormat(collectionPath);
   if (hasRequestExtension(pathname, format)) {
     const file = {
       meta: {
@@ -630,18 +629,14 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
       return unlinkEnvironmentFile(win, pathname, collectionUid);
     }
 
-    let format;
-    try {
-      format = getCollectionFormat(collectionPath);
-    } catch (error) {
-      console.error(`Error getting collection format for: ${collectionPath}`, error);
-      return;
-    }
+    const format = resolveCollectionFormat(collectionPath);
+    if (!format) return;
     if (hasRequestExtension(pathname, format)) {
       const basename = path.basename(pathname);
       const dirname = path.dirname(pathname);
 
-      if (basename === 'opencollection.yml' && path.normalize(dirname) === path.normalize(collectionPath)) {
+      // The collection root shares the request extension; it is not a request.
+      if (isCollectionRootBasename(basename) && path.normalize(dirname) === path.normalize(collectionPath)) {
         return;
       }
 
@@ -670,14 +665,9 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
       return;
     }
 
-    let format;
-    try {
-      format = getCollectionFormat(collectionPath);
-    } catch (error) {
-      console.error(`Error getting collection format for: ${collectionPath}`, error);
-      return;
-    }
-    const folderFilePath = path.join(pathname, `folder.${format}`);
+    const format = resolveCollectionFormat(collectionPath);
+    if (!format) return;
+    const folderFilePath = path.join(pathname, COLLECTION_LAYOUTS[format].folderFile);
 
     let name = path.basename(pathname);
 

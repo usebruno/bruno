@@ -5,6 +5,7 @@ const { sanitizeName, createDirectory, writeFile, safeWriteFileSync, getCollecti
 const { generateUidBasedOnHash, stringifyJson } = require('./common');
 const { stringifyRequestViaWorker, stringifyCollection, stringifyEnvironment, stringifyFolder, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { transformProxyConfig } = require('@usebruno/requests/dist/cjs');
+const { COLLECTION_LAYOUTS, isOpenCollectionLayout } = require('@usebruno/common');
 
 /**
  * Recursively find a unique folder name by appending incremental numbers
@@ -26,6 +27,11 @@ async function findUniqueFolderName(baseName, collectionLocation, counter = 0) {
  * @param {boolean} options.skipOpenEvent - If true, don't send main:collection-opened event (caller will handle it)
  */
 async function importCollection(collection, collectionLocation, mainWindow, uniqueFolderName = null, format = DEFAULT_COLLECTION_FORMAT, options = {}) {
+  const layoutConfig = COLLECTION_LAYOUTS[format];
+  if (!layoutConfig) {
+    throw new Error(`Invalid format: ${format}`);
+  }
+  const { ext, collectionFile, folderFile } = layoutConfig;
   // Use provided unique folder name or use collection name
   let folderName = uniqueFolderName ? sanitizeName(uniqueFolderName) : sanitizeName(collection.name);
   let collectionPath = path.join(collectionLocation, folderName);
@@ -38,7 +44,7 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
   const parseCollectionItems = async (items = [], currentPath) => {
     for (const item of items) {
       if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
-        let sanitizedFilename = sanitizeName(item.filename || `${item.name}.${format}`);
+        let sanitizedFilename = sanitizeName(item.filename || `${item.name}${ext}`);
         const content = await stringifyRequestViaWorker(item, { format });
         const filePath = path.join(currentPath, sanitizedFilename);
         safeWriteFileSync(filePath, content);
@@ -49,7 +55,7 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
         fs.mkdirSync(folderPath);
 
         if (item.root?.meta?.name) {
-          const folderFilePath = path.join(folderPath, `folder.${format}`);
+          const folderFilePath = path.join(folderPath, folderFile);
           item.root.meta.seq = item.seq;
           const folderContent = await stringifyFolder(item.root, { format });
           safeWriteFileSync(folderFilePath, folderContent);
@@ -76,7 +82,7 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
 
     for (const env of environments) {
       const content = await stringifyEnvironment(env, { format });
-      let sanitizedEnvFilename = sanitizeName(`${env.name}.${format}`);
+      let sanitizedEnvFilename = sanitizeName(`${env.name}${ext}`);
       const filePath = path.join(envDirPath, sanitizedEnvFilename);
       safeWriteFileSync(filePath, content);
     }
@@ -105,10 +111,10 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
   const uid = generateUidBasedOnHash(collectionPath);
   let brunoConfig = getBrunoJsonConfig(collection);
 
-  if (format === 'yml') {
+  if (isOpenCollectionLayout(format)) {
     brunoConfig.opencollection = '1.0.0';
     const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });
-    await writeFile(path.join(collectionPath, 'opencollection.yml'), collectionContent);
+    await writeFile(path.join(collectionPath, collectionFile), collectionContent);
   } else if (format === 'bru') {
     const bruJsonConfig = { ...brunoConfig, version: '1' };
     if (brunoConfig.version) {
@@ -120,9 +126,7 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
     await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
     const collectionContent = await stringifyCollection(collection.root, brunoConfig, { format });
-    await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
-  } else {
-    throw new Error(`Invalid format: ${format}`);
+    await writeFile(path.join(collectionPath, collectionFile), collectionContent);
   }
 
   const { size, filesCount } = await getCollectionStats(collectionPath);
