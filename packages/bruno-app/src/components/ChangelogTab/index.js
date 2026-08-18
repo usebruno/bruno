@@ -7,8 +7,7 @@ import changelogContent from './CHANGELOG.md';
 import StyledWrapper from './StyledWrapper';
 
 const PREFERENCE_LINKS = {
-  '#preferences/ai': 'ai',
-  '#preferences/cache': 'cache'
+  // Preferences links mapping
 };
 
 const content = changelogContent;
