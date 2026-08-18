@@ -1,6 +1,7 @@
 import React from 'react';
 import Tippy from '@tippyjs/react';
 import StyledWrapper from './StyledWrapper';
+import classNames from 'classnames';
 
 // Popper modifier that forces the dropdown popover to match the width of its
 // reference (trigger) element. Enabled via the `sameWidth` prop.
@@ -40,7 +41,9 @@ const Dropdown = ({ icon, children, onCreate, placement, transparent, visible, a
     <Tippy
       render={(attrs) => (
         <StyledWrapper
-          className={`tippy-box dropdown ${hideOnReferenceClip ? 'hide-on-reference-clipped' : ''}`}
+          className={classNames('tippy-box', 'dropdown', {
+            'hide-on-reference-clipped': hideOnReferenceClip
+          })}
           transparent={transparent}
           noPadding={noPadding}
           tabIndex={-1}
