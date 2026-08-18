@@ -135,26 +135,32 @@ const getBrunoTypeMetadata = (obj) => {
 const renderTextWithLinks = (text) => {
   if (typeof text !== 'string') return text;
 
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const urlRegex = /(https?:\/\/[^\s"'()]*[^\s"'().,;!?])/g;
+  if (!text.match(urlRegex)) return text;
+
   const parts = text.split(urlRegex);
 
-  return parts.map((part, index) => {
-    if (part.match(urlRegex)) {
-      return (
-        <a
-          key={index}
-          href={part}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-link"
-          style={{ textDecoration: 'underline', color: 'inherit' }}
-        >
-          {part}
-        </a>
-      );
-    }
-    return part;
-  });
+  return (
+    <React.Fragment>
+      {parts.map((part, index) => {
+        if (part.match(urlRegex)) {
+          return (
+            <a
+              key={index}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-link"
+              style={{ textDecoration: 'underline', color: 'inherit' }}
+            >
+              {part}
+            </a>
+          );
+        }
+        return part;
+      })}
+    </React.Fragment>
+  );
 };
 
 const LogMessage = ({ message, args }) => {
