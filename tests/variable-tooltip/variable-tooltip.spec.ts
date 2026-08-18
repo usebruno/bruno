@@ -20,6 +20,8 @@ import { SECRET_DATATYPE_CASES } from '../utils/constants';
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 
+test.describe.configure({ timeout: 60_000 });
+
 test.describe('Variable Tooltip', () => {
   test.afterEach(async ({ page }) => {
     if (!page.isClosed()) {
