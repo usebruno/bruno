@@ -6,9 +6,10 @@ const childNodes = (node) => node?.content?.content ?? [];
 
 const hasSpan = (node) => node.attrs.colspan > 1 || node.attrs.rowspan > 1;
 
-// A cell's block+ content can legally hold a pasted list/blockquote/etc, whose own multi-line
-// markdown would corrupt the single-line table row — such cells must fall back to HTML instead.
-const hasBlockContent = (cell) => childNodes(cell).some((block) => !block.isTextblock);
+// Only these two are guaranteed single-line output; every other block type (heading, lists,
+// codeBlock, blockquote, table, rawHtmlBlock's raw bytes) can emit a newline and corrupt the row.
+const INLINE_SAFE_CELL_BLOCK_TYPES = new Set(['paragraph', 'rawHtmlTextBlock']);
+const hasBlockContent = (cell) => childNodes(cell).some((block) => !INLINE_SAFE_CELL_BLOCK_TYPES.has(block.type.name));
 
 const isMarkdownSerializableTable = (node) => {
   const rows = childNodes(node);

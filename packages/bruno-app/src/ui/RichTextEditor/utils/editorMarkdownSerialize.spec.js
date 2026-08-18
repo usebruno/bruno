@@ -443,6 +443,28 @@ describe('Editor markdown serialization', () => {
       editor.commands.setContent(markdown);
       expect(getMarkdown(editor)).toBe(markdown);
     });
+
+    // heading/codeBlock are textblocks too, but serializeTableCell only inlines paragraphs —
+    // each has its own multi-line serializer, which would corrupt the row just like a list.
+    it('falls back to an HTML table for a cell containing a heading', () => {
+      editor = createEditor('');
+      pasteHtml(editor, '<table><tbody><tr><th>a</th></tr><tr><td><h2>Big Heading</h2></td></tr></tbody></table>');
+
+      const markdown = getMarkdown(editor);
+
+      expect(markdown).toContain('<table');
+      expect(markdown).not.toMatch(/^\| /m);
+    });
+
+    it('falls back to an HTML table for a cell containing a code block', () => {
+      editor = createEditor('');
+      pasteHtml(editor, '<table><tbody><tr><th>a</th></tr><tr><td><pre><code>const x = 1;</code></pre></td></tr></tbody></table>');
+
+      const markdown = getMarkdown(editor);
+
+      expect(markdown).toContain('<table');
+      expect(markdown).not.toMatch(/^\| /m);
+    });
   });
 
   describe('raw HTML text blocks', () => {
