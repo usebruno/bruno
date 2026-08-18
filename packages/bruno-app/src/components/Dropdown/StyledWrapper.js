@@ -30,8 +30,8 @@ const Wrapper = styled.div`
     }
   }
 
-  &[data-reference-hidden],
-  &[data-popper-reference-hidden] {
+  &.hide-on-reference-clipped[data-reference-hidden],
+  &.hide-on-reference-clipped[data-popper-reference-hidden] {
     &, * {
       visibility: hidden !important;
       transition: none !important;

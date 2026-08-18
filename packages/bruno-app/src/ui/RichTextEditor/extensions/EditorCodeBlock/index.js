@@ -118,6 +118,7 @@ const EditorCodeBlock = ({ node, updateAttributes, editor }) => {
             showTickMark={false}
             placement="bottom-end"
             menuClassName="flex flex-col max-h-64 overflow-y-auto"
+            hideOnReferenceClip={true}
             {...EDITOR_MENU_DROPDOWN_PROPS}
           >
             <div
