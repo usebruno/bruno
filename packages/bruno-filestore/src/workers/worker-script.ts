@@ -15,7 +15,7 @@ import {
   stringifyYmlFolder,
   stringifyYmlEnvironment
 } from '../formats/yml';
-import { CollectionFormat } from '../types';
+import { CollectionFormat, isYamlFormat } from '../types';
 import { DEFAULT_COLLECTION_FORMAT } from '../constants';
 
 type TaskType
@@ -37,17 +37,17 @@ interface WorkerMessage {
 const runTask = (taskType: TaskType, data: any, format: CollectionFormat): any => {
   switch (taskType) {
     case 'parse':
-      return format === 'yml' ? parseYmlItem(data) : parseBruRequest(data);
+      return isYamlFormat(format) ? parseYmlItem(data) : parseBruRequest(data);
     case 'stringify':
-      return format === 'yml' ? stringifyYmlItem(data) : stringifyBruRequest(data);
+      return isYamlFormat(format) ? stringifyYmlItem(data) : stringifyBruRequest(data);
     case 'parseFolder':
-      return format === 'yml' ? parseYmlFolder(data) : parseBruCollection(data);
+      return isYamlFormat(format) ? parseYmlFolder(data) : parseBruCollection(data);
     case 'stringifyFolder':
-      return format === 'yml' ? stringifyYmlFolder(data) : stringifyBruCollection(data, true);
+      return isYamlFormat(format) ? stringifyYmlFolder(data) : stringifyBruCollection(data, true);
     case 'parseEnvironment':
-      return format === 'yml' ? parseYmlEnvironment(data) : parseBruEnvironment(data);
+      return isYamlFormat(format) ? parseYmlEnvironment(data) : parseBruEnvironment(data);
     case 'stringifyEnvironment':
-      return format === 'yml' ? stringifyYmlEnvironment(data) : stringifyBruEnvironment(data);
+      return isYamlFormat(format) ? stringifyYmlEnvironment(data) : stringifyBruEnvironment(data);
     default:
       throw new Error(`Unknown task type: ${taskType}`);
   }

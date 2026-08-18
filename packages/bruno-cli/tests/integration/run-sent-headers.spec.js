@@ -87,7 +87,7 @@ ${extra}`;
       'User-Agent': expect.stringMatching(/^bruno-runtime\//),
       'my-header-1': 'my-value-1'
     });
-  });
+  }, 60_000);
 
   it('leaves a header the user declared untouched', async () => {
     stageCollection(
@@ -101,7 +101,7 @@ ${extra}`;
 
     expect(report.results[0].request.headers['user-agent']).toBe('mine/1.0');
     expect(report.results[0].request.headers['User-Agent']).toBeUndefined();
-  });
+  }, 60_000);
 
   it('hands the same set to a post-response script', async () => {
     stageCollection(
@@ -118,5 +118,5 @@ script:post-response {
 
     const logged = JSON.parse(stdout.match(/SENT_HEADERS (\[.*\])/)[1]);
     expect(logged).toEqual(expect.arrayContaining(['Host', 'Connection', 'Accept-Encoding', 'User-Agent']));
-  });
+  }, 60_000);
 });

@@ -43,9 +43,17 @@ describe('WorkspaceWatcher mock servers', () => {
   let win;
   let watcher;
 
+  // The mock-server watcher is armed with one glob per supported YAML extension.
+  const mockServerGlobs = () => [
+    path.join(workspacePath, 'mocks', '*.yml'),
+    path.join(workspacePath, 'mocks', '*.yaml')
+  ];
+
   const findMockServerWatcher = () => {
-    const glob = path.join(workspacePath, 'mocks', '*.yml');
-    return chokidar.__watchers.find((item) => item.target === glob);
+    const globs = mockServerGlobs();
+    return chokidar.__watchers.find(
+      (item) => Array.isArray(item.target) && globs.every((glob) => item.target.includes(glob))
+    );
   };
 
   beforeEach(() => {
@@ -65,6 +73,39 @@ describe('WorkspaceWatcher mock servers', () => {
     jest.useRealTimers();
     await watcher.closeAllWatchers();
     fs.rmSync(workspacePath, { recursive: true, force: true });
+  });
+
+  it('watches both mocks/*.yml and mocks/*.yaml', () => {
+    watcher.addWatcher(win, workspacePath);
+    jest.advanceTimersByTime(100);
+
+    expect(findMockServerWatcher().target).toEqual(mockServerGlobs());
+  });
+
+  it('emits added/changed for a .yaml mock server file', () => {
+    // Hand-authored or converted workspaces may use `.yaml`; the watcher and reader must
+    // treat it exactly like `.yml`.
+    const instance = saveMockServer(workspacePath, {
+      name: 'Cat API Mock',
+      port: 4002,
+      sourceType: 'manual',
+      globalDelay: 0
+    });
+    const yamlPathname = instance.pathname.replace(/\.yml$/, '.yaml');
+    fs.renameSync(instance.pathname, yamlPathname);
+
+    watcher.addWatcher(win, workspacePath);
+    jest.advanceTimersByTime(100);
+
+    findMockServerWatcher().emit('add', yamlPathname);
+
+    expect(win.webContents.send).toHaveBeenCalledWith(
+      'main:workspace-mock-server-added',
+      'workspace-1',
+      expect.objectContaining({
+        instance: expect.objectContaining({ uid: getMockServerUid(yamlPathname), name: 'Cat API Mock', port: 4002 })
+      })
+    );
   });
 
   it('watches mocks/*.yml and emits added/changed with the parsed mock server', () => {

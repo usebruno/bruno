@@ -9,8 +9,12 @@ const {
   generateYamlContent,
   readWorkspaceConfig,
   validateWorkspaceConfig,
-  isValidCollectionEntry
+  isValidCollectionEntry,
+  resolveWorkspaceFilePath,
+  WORKSPACE_FILE_BASENAME
 } = require('../utils/workspace-config');
+const { ENV_FILE_EXTENSION } = require('./workspace-environments');
+const { isYamlFilename, stripYamlExtension } = require('@usebruno/common');
 
 const OPENCOLLECTION_VERSION = '1.0.0';
 const WORKSPACE_TYPE = 'workspace';
@@ -86,10 +90,10 @@ class DefaultWorkspaceManager {
     const envDir = path.join(workspacePath, 'environments');
     if (fs.existsSync(envDir)) {
       try {
-        const envFiles = fs.readdirSync(envDir).filter((f) => f.endsWith('.yml'));
+        const envFiles = fs.readdirSync(envDir).filter((f) => isYamlFilename(f));
         for (const file of envFiles) {
           const envPath = path.join(envDir, file);
-          recovered.environments.push({ path: envPath, name: path.basename(file, '.yml') });
+          recovered.environments.push({ path: envPath, filename: file });
         }
       } catch (error) {
         console.error('Failed to read environments during recovery:', error);
@@ -158,8 +162,7 @@ class DefaultWorkspaceManager {
       return false;
     }
 
-    const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
-    if (!fs.existsSync(workspaceYmlPath)) {
+    if (!resolveWorkspaceFilePath(workspacePath)) {
       return false;
     }
 
@@ -262,12 +265,12 @@ class DefaultWorkspaceManager {
       const envDir = path.join(workspacePath, 'environments');
       for (const env of recoveredData.environments) {
         try {
-          const destPath = path.join(envDir, `${env.name}.yml`);
+          const destPath = path.join(envDir, env.filename);
           if (fs.existsSync(env.path)) {
             fs.copyFileSync(env.path, destPath);
           }
         } catch (error) {
-          console.error('Failed to copy environment:', env.name, error);
+          console.error('Failed to copy environment:', env.filename, error);
         }
       }
     }
@@ -282,7 +285,7 @@ class DefaultWorkspaceManager {
     }
 
     const yamlContent = generateYamlContent(workspaceConfig);
-    await writeFile(path.join(workspacePath, 'workspace.yml'), yamlContent);
+    await writeFile(path.join(workspacePath, WORKSPACE_FILE_BASENAME), yamlContent);
 
     await this.setDefaultWorkspacePath(workspacePath);
 
@@ -345,8 +348,8 @@ class DefaultWorkspaceManager {
         if (fs.existsSync(environmentsDir)) {
           try {
             existingEnvNames = fs.readdirSync(environmentsDir)
-              .filter((f) => f.endsWith('.yml'))
-              .map((f) => f.replace('.yml', ''));
+              .filter((f) => isYamlFilename(f))
+              .map((f) => stripYamlExtension(f));
           } catch (error) {
             console.error('Failed to read environments directory:', error);
           }
@@ -363,7 +366,7 @@ class DefaultWorkspaceManager {
             continue;
           }
 
-          const envFilePath = path.join(environmentsDir, `${env.name}.yml`);
+          const envFilePath = path.join(environmentsDir, `${env.name}${ENV_FILE_EXTENSION}`);
           const environment = { name: env.name, variables: env.variables || [] };
           const content = stringifyEnvironment(environment, { format: 'yml' });
           await writeFile(envFilePath, content);

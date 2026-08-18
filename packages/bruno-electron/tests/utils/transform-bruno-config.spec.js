@@ -1,3 +1,6 @@
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const { transformBrunoConfigBeforeSave, transformBrunoConfigAfterRead } = require('../../src/utils/transformBrunoConfig');
 
 describe('BrunoConfig Proxy Transform', () => {
@@ -566,5 +569,60 @@ describe('BrunoConfig Proxy Transform', () => {
 
       expect(afterSecondRead.proxy).toEqual(newConfig.proxy);
     });
+  });
+});
+
+// The renderer builds filenames for new requests/folders from `brunoConfig.format`, so the layout
+// detected on disk has to ride along on every read — and must never be written back, since it is
+// derived state, not part of the on-disk contract.
+describe('BrunoConfig layout stamping', () => {
+  let dir;
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-config-layout-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test('stamps the yaml layout so the renderer can tell .yaml from .yml', async () => {
+    fs.writeFileSync(path.join(dir, 'opencollection.yaml'), 'opencollection: "1.0.0"\n');
+
+    const result = await transformBrunoConfigAfterRead({ opencollection: '1.0.0', name: 'c' }, dir);
+
+    expect(result.format).toBe('yaml');
+  });
+
+  test('stamps yml and bru layouts', async () => {
+    fs.writeFileSync(path.join(dir, 'opencollection.yml'), 'opencollection: "1.0.0"\n');
+    expect((await transformBrunoConfigAfterRead({ opencollection: '1.0.0' }, dir)).format).toBe('yml');
+
+    const bruDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-config-layout-bru-'));
+    try {
+      fs.writeFileSync(path.join(bruDir, 'bruno.json'), '{"version":"1","name":"c"}');
+      expect((await transformBrunoConfigAfterRead({ version: '1' }, bruDir)).format).toBe('bru');
+    } finally {
+      fs.rmSync(bruDir, { recursive: true, force: true });
+    }
+  });
+
+  test('re-stamps on every read so a renamed root cannot leave a stale layout', async () => {
+    fs.writeFileSync(path.join(dir, 'opencollection.yaml'), 'opencollection: "1.0.0"\n');
+    const config = { opencollection: '1.0.0', format: 'yml' };
+
+    expect((await transformBrunoConfigAfterRead(config, dir)).format).toBe('yaml');
+  });
+
+  test('leaves format alone when the directory is not a collection', async () => {
+    const result = await transformBrunoConfigAfterRead({ version: '1' }, dir);
+
+    expect(result.format).toBeUndefined();
+  });
+
+  test('strips the derived format before saving so it never reaches disk', () => {
+    const result = transformBrunoConfigBeforeSave({ opencollection: '1.0.0', name: 'c', format: 'yaml' });
+
+    expect(result.format).toBeUndefined();
   });
 });

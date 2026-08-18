@@ -2,9 +2,13 @@ const path = require('path');
 const fs = require('fs');
 const { parseMockServer, stringifyMockServer } = require('@usebruno/filestore');
 const { getMockResponseRouteKey } = require('@usebruno/common').utils;
+const { isYamlFilename } = require('@usebruno/common');
 const { generateUidBasedOnHash } = require('../../utils/common');
 const { sanitizeName, validateName } = require('../../utils/filesystem');
 
+// Mock server files the app creates use `.yml`; an existing `.yaml` file is read and rewritten
+// in place (the pathname is carried through, so writes never change the extension).
+const MOCK_SERVER_FILE_EXTENSION = '.yml';
 const DEFAULT_MOCK_SERVER_PORT = 4000;
 const DEFAULT_MOCK_SERVER_NAME = 'Mock Server';
 
@@ -77,7 +81,7 @@ const listMockServerFilePaths = (workspacePath) => {
   }
 
   return fs.readdirSync(mocksDir)
-    .filter((filename) => filename.toLowerCase().endsWith('.yml'))
+    .filter((filename) => isYamlFilename(filename))
     .map((filename) => path.join(mocksDir, filename));
 };
 
@@ -226,11 +230,11 @@ const createMockServerFilePathname = (workspacePath, name) => {
   const base = sanitized && validateName(sanitized) ? sanitized : 'mock-server';
   const mocksDir = getMocksDirPath(workspacePath);
 
-  let filename = `${base}.yml`;
+  let filename = `${base}${MOCK_SERVER_FILE_EXTENSION}`;
   let counter = 1;
   while (fs.existsSync(path.join(mocksDir, filename))) {
     counter += 1;
-    filename = `${base} ${counter}.yml`;
+    filename = `${base} ${counter}${MOCK_SERVER_FILE_EXTENSION}`;
   }
 
   return path.join(mocksDir, filename);

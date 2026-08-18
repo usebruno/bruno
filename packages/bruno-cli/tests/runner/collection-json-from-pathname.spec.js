@@ -1,8 +1,10 @@
 const path = require('node:path');
 const fs = require('node:fs');
+const os = require('node:os');
 const { describe, it, expect } = require('@jest/globals');
 const constants = require('../../src/constants');
-const { createCollectionJsonFromPathname, getCollectionFormat, FORMAT_CONFIG } = require('../../src/utils/collection');
+const { createCollectionJsonFromPathname, getCollectionFormat, mergeScripts } = require('../../src/utils/collection');
+const { COLLECTION_LAYOUTS } = require('@usebruno/common');
 const { parseEnvironment } = require('@usebruno/filestore');
 
 describe('create collection json from pathname', () => {
@@ -211,12 +213,59 @@ describe('create collection json from pathname', () => {
     expect(getUsersReq).toHaveProperty('request.url', 'https://api.example.com/users');
     expect(getUsersReq.pathname).toContain('get-users.yml');
   });
+
+  it('creates a collection json from OpenCollection yaml files', () => {
+    const collectionPathname = path.join(__dirname, './fixtures/opencollection-yaml/collection');
+    const c = createCollectionJsonFromPathname(collectionPathname);
+
+    expect(c).toBeDefined();
+    expect(c).toHaveProperty('format', 'yaml');
+    expect(c).toHaveProperty('brunoConfig.opencollection', '1.0.0');
+    expect(c).toHaveProperty('brunoConfig.name', 'Test OpenCollection Yaml');
+    expect(c).toHaveProperty('brunoConfig.type', 'collection');
+    expect(c).toHaveProperty('brunoConfig.ignore', ['node_modules', '.git']);
+    expect(c).toHaveProperty('pathname', collectionPathname);
+
+    // collection root headers
+    expect(c).toHaveProperty('root.request.headers[0].name', 'X-Collection-Header');
+    expect(c).toHaveProperty('root.request.headers[0].value', 'collection-header-value');
+    expect(c).toHaveProperty('root.request.headers[0].enabled', true);
+
+    // folder.yaml is recognized as the folder root, so it is not itself listed as a request
+    const usersFolder = c.items.find((i) => i.name === 'users');
+    expect(usersFolder).toHaveProperty('type', 'folder');
+    expect(usersFolder).toHaveProperty('root.meta.name', 'Users');
+    expect(usersFolder).toHaveProperty('root.meta.seq', 1);
+    expect(usersFolder.items.map((i) => i.name)).toEqual(['Create User']);
+
+    // request in folder
+    const createUserReq = usersFolder.items[0];
+    expect(createUserReq).toHaveProperty('type', 'http-request');
+    expect(createUserReq).toHaveProperty('request.method', 'POST');
+    expect(createUserReq).toHaveProperty('request.url', 'https://api.example.com/users');
+    expect(createUserReq.pathname).toContain('create-user.yaml');
+
+    // root level request
+    const getUsersReq = c.items.find((i) => i.name === 'Get Users');
+    expect(getUsersReq).toHaveProperty('type', 'http-request');
+    expect(getUsersReq).toHaveProperty('request.method', 'GET');
+    expect(getUsersReq).toHaveProperty('request.url', 'https://api.example.com/users');
+    expect(getUsersReq.pathname).toContain('get-users.yaml');
+
+    // opencollection.yaml is the collection root, never traversed as a request
+    expect(c.items.some((i) => i.pathname?.endsWith('opencollection.yaml'))).toBe(false);
+  });
 });
 
 describe('getCollectionFormat', () => {
   it('returns yml for OpenCollection', () => {
     const collectionPath = path.join(__dirname, './fixtures/opencollection/collection');
     expect(getCollectionFormat(collectionPath)).toBe('yml');
+  });
+
+  it('returns yaml for OpenCollection with a .yaml root', () => {
+    const collectionPath = path.join(__dirname, './fixtures/opencollection-yaml/collection');
+    expect(getCollectionFormat(collectionPath)).toBe('yaml');
   });
 
   it('returns bru for Bruno collection', () => {
@@ -228,23 +277,18 @@ describe('getCollectionFormat', () => {
     const collectionPath = path.join(__dirname, './fixtures/collection-invalid');
     expect(getCollectionFormat(collectionPath)).toBe(null);
   });
-});
 
-describe('FORMAT_CONFIG', () => {
-  it('has correct config for yml format', () => {
-    expect(FORMAT_CONFIG.yml).toEqual({
-      ext: '.yml',
-      collectionFile: 'opencollection.yml',
-      folderFile: 'folder.yml'
-    });
-  });
-
-  it('has correct config for bru format', () => {
-    expect(FORMAT_CONFIG.bru).toEqual({
-      ext: '.bru',
-      collectionFile: 'collection.bru',
-      folderFile: 'folder.bru'
-    });
+  it('prefers .yml over .yaml when both roots exist', () => {
+    // Two collection roots in one directory is a broken state, but detection must still be
+    // deterministic rather than dependent on readdir order.
+    const collectionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-format-'));
+    try {
+      fs.writeFileSync(path.join(collectionPath, 'opencollection.yml'), 'opencollection: "1.0.0"\n');
+      fs.writeFileSync(path.join(collectionPath, 'opencollection.yaml'), 'opencollection: "1.0.0"\n');
+      expect(getCollectionFormat(collectionPath)).toBe('yml');
+    } finally {
+      fs.rmSync(collectionPath, { recursive: true, force: true });
+    }
   });
 });
 
@@ -261,5 +305,55 @@ describe('OpenCollection environment parsing', () => {
     expect(env.variables[0]).toHaveProperty('value', 'https://api.dev.example.com');
     expect(env.variables[1]).toHaveProperty('name', 'apiKey');
     expect(env.variables[1]).toHaveProperty('value', 'dev-api-key-123');
+  });
+
+  it('parses YAML environment files through the yml serializer', () => {
+    const collectionPath = path.join(__dirname, './fixtures/opencollection-yaml/collection');
+    const format = getCollectionFormat(collectionPath);
+    const envPath = path.join(collectionPath, 'environments', `dev${COLLECTION_LAYOUTS[format].ext}`);
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    const env = parseEnvironment(envContent, { format });
+
+    expect(env).toHaveProperty('name', 'Development');
+    expect(env.variables).toHaveLength(2);
+    expect(env.variables[0]).toHaveProperty('name', 'baseUrl');
+    expect(env.variables[0]).toHaveProperty('value', 'https://api.dev.example.com');
+  });
+});
+
+describe('mergeScripts source paths', () => {
+  const buildCollection = (format, collectionPathname) => ({
+    format,
+    pathname: collectionPathname,
+    root: { request: { script: { req: 'const collectionScript = true;' } } }
+  });
+
+  it('maps a yaml collection script to opencollection.yaml', () => {
+    const collectionPathname = path.join(os.tmpdir(), 'yaml-collection');
+    const collection = buildCollection('yaml', collectionPathname);
+    const request = { script: {} };
+
+    mergeScripts(collection, request, [], 'sequential');
+
+    expect(request.script.reqMetadata.segments[0].displayPath).toBe('opencollection.yaml');
+    expect(request.script.reqMetadata.segments[0].filePath).toBe(
+      path.join(collectionPathname, 'opencollection.yaml')
+    );
+  });
+
+  it('maps a yaml folder script to folder.yaml', () => {
+    const collectionPathname = path.join(os.tmpdir(), 'yaml-collection');
+    const folderPathname = path.join(collectionPathname, 'users');
+    const collection = buildCollection('yaml', collectionPathname);
+    const request = { script: {} };
+    const requestTreePath = [
+      { type: 'folder', pathname: folderPathname, root: { request: { script: { req: 'const folderScript = true;' } } } }
+    ];
+
+    mergeScripts(collection, request, requestTreePath, 'sequential');
+
+    const folderSegment = request.script.reqMetadata.segments.find((s) => s.displayPath !== 'opencollection.yaml');
+    expect(folderSegment.displayPath).toBe(path.join('users', 'folder.yaml'));
+    expect(folderSegment.filePath).toBe(path.join(folderPathname, 'folder.yaml'));
   });
 });

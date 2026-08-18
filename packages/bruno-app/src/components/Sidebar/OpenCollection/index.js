@@ -77,7 +77,7 @@ const OpenCollectionModal = ({ onClose }) => {
           } else if (skippedItems.length) {
             toast.error(`No Bruno collections found. ${skippedItems.length} skipped, config could not be read`);
           } else {
-            toast.error('No Bruno collections found. Couldn\'t find a bruno.json or opencollection.yml');
+            toast.error('No Bruno collections found. Couldn\'t find a bruno.json or opencollection file');
           }
           onClose();
           return;

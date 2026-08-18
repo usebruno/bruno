@@ -8,6 +8,7 @@ import { normalizePath } from 'utils/common/path';
 import { addTab, updateRequestPaneTab, updateScriptPaneTab, setFocusErrorLine } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import StyledWrapper from './StyledWrapper';
+import { isCollectionRootBasename, isFolderRootBasename } from '@usebruno/common';
 
 /**
  * Determines the source of a script error (request, folder, or collection)
@@ -39,8 +40,10 @@ const getErrorSourceInfo = (filePath, item, collection, getTreePath) => {
   // logic and regexes expect forward slashes.
   const normalizedPath = normalizePath(filePath);
 
-  const isFolderFile = /(?:^|\/)folder\.(?:bru|yml)$/.test(normalizedPath);
-  const isCollectionFile = normalizedPath === 'collection.bru' || /^opencollection\.yml$/.test(normalizedPath);
+  const basename = normalizedPath.split('/').pop();
+  const isFolderFile = isFolderRootBasename(basename);
+  // A collection root only counts at the collection root, never nested in a folder.
+  const isCollectionFile = !normalizedPath.includes('/') && isCollectionRootBasename(basename);
 
   // Folder level (check before collection to avoid folder.yml matching as collection)
   if (isFolderFile) {

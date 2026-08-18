@@ -7,7 +7,8 @@ const { parseApiSpecContent } = require('../utils/apiSpecs');
 const {
   addApiSpecToWorkspace,
   readWorkspaceConfig,
-  getWorkspaceUid
+  getWorkspaceUid,
+  resolveWorkspaceFilePath
 } = require('../utils/workspace-config');
 
 const DEFAULT_WORKSPACE_NAME = 'My Workspace';
@@ -58,9 +59,7 @@ const openApiSpec = async (win, watcher, apiSpecPath, options = {}) => {
     const uid = generateUidBasedOnHash(apiSpecPath);
 
     if (options.workspacePath) {
-      const workspaceFilePath = path.join(options.workspacePath, 'workspace.yml');
-
-      if (fs.existsSync(workspaceFilePath)) {
+      if (resolveWorkspaceFilePath(options.workspacePath)) {
         const workspaceConfig = readWorkspaceConfig(options.workspacePath);
         const specs = workspaceConfig.specs;
 

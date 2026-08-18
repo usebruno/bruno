@@ -3,14 +3,43 @@ const path = require('path');
 const _ = require('lodash');
 const { parseEnvironment, stringifyEnvironment } = require('@usebruno/filestore');
 const { parseValueByDataType } = require('@usebruno/common/utils');
-const { writeFile, createDirectory, withFileLock } = require('../utils/filesystem');
+const { writeFile, createDirectory, withFileLock, resolveYamlPath } = require('../utils/filesystem');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 const { decryptStringSafe } = require('../utils/encryption');
 const EnvironmentSecretsStore = require('./env-secrets');
+const { YAML_EXTENSIONS, isYamlFilename, stripYamlExtension } = require('@usebruno/common');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
+// Extension used for global environment files the app creates. Existing files are read under
+// either YAML extension (see `isYamlFilename`); only newly created ones are pinned to `.yml`.
 const ENV_FILE_EXTENSION = '.yml';
+
+// Two files can claim the same environment name (`dev.yml` and `dev.yaml`). Secrets are keyed by
+// name, so loading both would serve one file's secrets to the other and overwrite them on save.
+// Keep only the file `getEnvironmentFilePath` would write to — `.yml` wins — and warn about the
+// shadowed twin instead of silently merging them.
+const dedupeByEnvironmentName = (environmentsDir, files) => {
+  const yamlFiles = files.filter((file) => isYamlFilename(file));
+  const winnerByName = new Map();
+
+  for (const extension of YAML_EXTENSIONS) {
+    for (const file of yamlFiles) {
+      if (!file.toLowerCase().endsWith(extension)) continue;
+      const name = stripYamlExtension(file);
+      if (winnerByName.has(name)) {
+        console.warn(
+          `Ignoring global environment "${path.join(environmentsDir, file)}": `
+          + `"${winnerByName.get(name)}" already defines the environment "${name}".`
+        );
+        continue;
+      }
+      winnerByName.set(name, file);
+    }
+  }
+
+  return [...winnerByName.values()];
+};
 
 class GlobalEnvironmentsManager {
   constructor() {}
@@ -25,7 +54,11 @@ class GlobalEnvironmentsManager {
   }
 
   getEnvironmentFilePath(workspacePath, environmentName) {
-    return path.join(this.getEnvironmentsDir(workspacePath), `${environmentName}${ENV_FILE_EXTENSION}`);
+    const environmentsDir = this.getEnvironmentsDir(workspacePath);
+    // Write back to the file that already exists, whichever extension it uses; a brand new
+    // environment gets ENV_FILE_EXTENSION.
+    return resolveYamlPath(environmentsDir, environmentName)
+      || path.join(environmentsDir, `${environmentName}${ENV_FILE_EXTENSION}`);
   }
 
   findEnvironmentFileByUid(workspacePath, environmentUid) {
@@ -35,19 +68,17 @@ class GlobalEnvironmentsManager {
       return null;
     }
 
-    const files = fs.readdirSync(environmentsDir);
+    const files = dedupeByEnvironmentName(environmentsDir, fs.readdirSync(environmentsDir));
 
     for (const file of files) {
-      if (file.endsWith(ENV_FILE_EXTENSION)) {
-        const filePath = path.join(environmentsDir, file);
-        const fileUid = generateUidBasedOnHash(filePath);
-        if (fileUid === environmentUid) {
-          return {
-            filePath,
-            fileName: file,
-            name: file.slice(0, -ENV_FILE_EXTENSION.length)
-          };
-        }
+      const filePath = path.join(environmentsDir, file);
+      const fileUid = generateUidBasedOnHash(filePath);
+      if (fileUid === environmentUid) {
+        return {
+          filePath,
+          fileName: file,
+          name: stripYamlExtension(file)
+        };
       }
     }
 
@@ -59,7 +90,7 @@ class GlobalEnvironmentsManager {
     const environment = await parseEnvironment(content, { format: 'yml' });
 
     const fileName = path.basename(filePath);
-    environment.name = fileName.slice(0, -ENV_FILE_EXTENSION.length);
+    environment.name = stripYamlExtension(fileName);
     environment.uid = generateUidBasedOnHash(filePath);
 
     _.each(environment.variables, (variable) => {
@@ -96,19 +127,17 @@ class GlobalEnvironmentsManager {
         };
       }
 
-      const files = fs.readdirSync(environmentsDir);
+      const files = dedupeByEnvironmentName(environmentsDir, fs.readdirSync(environmentsDir));
       const environments = [];
 
       for (const file of files) {
-        if (file.endsWith(ENV_FILE_EXTENSION)) {
-          const filePath = path.join(environmentsDir, file);
+        const filePath = path.join(environmentsDir, file);
 
-          try {
-            const environment = await this.parseEnvironmentFile(filePath, workspacePath);
-            environments.push(environment);
-          } catch (parseError) {
-            console.error(`Failed to parse environment file ${file}:`, parseError);
-          }
+        try {
+          const environment = await this.parseEnvironmentFile(filePath, workspacePath);
+          environments.push(environment);
+        } catch (parseError) {
+          console.error(`Failed to parse environment file ${file}:`, parseError);
         }
       }
 

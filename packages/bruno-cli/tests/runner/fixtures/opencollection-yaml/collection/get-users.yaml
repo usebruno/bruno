@@ -1,0 +1,8 @@
+info:
+  name: Get Users
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: https://api.example.com/users

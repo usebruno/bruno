@@ -3,6 +3,7 @@ import filter from 'lodash/filter';
 import find from 'lodash/find';
 import last from 'lodash/last';
 import { uuid } from 'utils/common';
+import { isOpenCollectionLayout } from '@usebruno/common';
 import { isActiveTab as checkIsActiveTab, deserializeTab } from 'utils/snapshot';
 
 // todo: errors should be tracked in each slice and displayed as toasts
@@ -562,7 +563,7 @@ export const tabsSlice = createSlice({
       }
 
       // Drop request tabs remapped by bru↔yml migrate that no longer match collection format
-      const staleExt = collection.format === 'yml' ? /\.bru$/i : /\.ya?ml$/i;
+      const staleExt = isOpenCollectionLayout(collection.format) ? /\.bru$/i : /\.ya?ml$/i;
 
       (snapshotTabs || []).forEach((snapshotTab) => {
         if (typeof snapshotTab.pathname === 'string' && staleExt.test(snapshotTab.pathname)) {

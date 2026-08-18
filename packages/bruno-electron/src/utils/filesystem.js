@@ -4,6 +4,14 @@ const fsPromises = require('fs/promises');
 const { dialog } = require('electron');
 const isValidPathname = require('is-valid-path');
 const os = require('os');
+const {
+  COLLECTION_LAYOUTS,
+  COLLECTION_LAYOUT_ORDER,
+  YAML_EXTENSIONS,
+  isCollectionMarkerBasename,
+  isCollectionRootBasename,
+  isRequestFilename
+} = require('@usebruno/common');
 
 const DEFAULT_GITIGNORE = [
   '# Secrets',
@@ -54,9 +62,7 @@ const isValidCollectionDirectory = (dirPath) => {
   if (!isDirectory(dirPath)) {
     return false;
   }
-  const brunoJsonPath = path.join(dirPath, 'bruno.json');
-  const opencollectionYmlPath = path.join(dirPath, 'opencollection.yml');
-  return fs.existsSync(brunoJsonPath) || fs.existsSync(opencollectionYmlPath);
+  return detectCollectionLayout(dirPath) !== null;
 };
 
 const hasSubDirectories = (dir) => {
@@ -145,12 +151,12 @@ const hasBruExtension = (filename) => {
 const hasRequestExtension = (filename, format = null) => {
   if (!filename || typeof filename !== 'string') return false;
 
+  // A layout pins the extension exactly; without one, accept any layout's extension.
   if (format) {
-    const ext = format === 'yml' ? 'yml' : 'bru';
-    return filename.toLowerCase().endsWith(`.${ext}`);
+    return filename.toLowerCase().endsWith(COLLECTION_LAYOUTS[format].ext);
   }
 
-  return ['bru', 'yml'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
+  return isRequestFilename(filename);
 };
 
 const createDirectory = async (dir) => {
@@ -229,14 +235,12 @@ const searchForFiles = (dir, extension) => {
 
 // Search for request files based on collection filetype by reading config
 const searchForRequestFiles = (dir, collectionPath = null) => {
-  const format = getCollectionFormat(collectionPath || dir);
-  if (format === 'yml') {
-    return searchForFiles(dir, '.yml');
-  } else if (format === 'bru') {
-    return searchForFiles(dir, '.bru');
-  } else {
-    throw new Error(`Invalid format: ${format}`);
+  const layout = getCollectionFormat(collectionPath || dir);
+  const config = COLLECTION_LAYOUTS[layout];
+  if (!config) {
+    throw new Error(`Invalid format: ${layout}`);
   }
+  return searchForFiles(dir, config.ext);
 };
 
 const sanitizeName = (name) => {
@@ -274,18 +278,48 @@ const generateUniqueName = (baseName, checkExists) => {
   return uniqueName;
 };
 
+/**
+ * Resolve a YAML file that may carry either supported extension. `.yml` is tried first, so a
+ * Bruno-written file always wins when both are present.
+ *
+ * @param {string} dir - Directory to look in.
+ * @param {string} basename - File name without extension (e.g. `workspace`, or an environment name).
+ * @returns {string|null} Path of the first candidate that exists, or null if neither does.
+ */
+const resolveYamlPath = (dir, basename) => {
+  for (const extension of YAML_EXTENSIONS) {
+    const candidate = path.join(dir, `${basename}${extension}`);
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+};
+
+/**
+ * The on-disk layout of a collection, or null when the directory is not a collection.
+ *
+ * @param {string} collectionPath
+ * @returns {'yml'|'yaml'|'bru'|null}
+ */
+const detectCollectionLayout = (collectionPath) => {
+  if (!collectionPath) return null;
+  return COLLECTION_LAYOUT_ORDER.find(
+    (layout) => fs.existsSync(path.join(collectionPath, COLLECTION_LAYOUTS[layout].marker))
+  ) || null;
+};
+
+/**
+ * The collection's layout key — `'yml'`, `'yaml'` or `'bru'`. Safe to hand straight to
+ * `@usebruno/filestore`, which accepts either YAML spelling. Callers that build filenames must
+ * read `COLLECTION_LAYOUTS[layout]` rather than interpolating the key.
+ */
 const getCollectionFormat = (collectionPath) => {
-  const ocYmlPath = path.join(collectionPath, 'opencollection.yml');
-  if (fs.existsSync(ocYmlPath)) {
-    return 'yml';
+  const layout = detectCollectionLayout(collectionPath);
+  if (!layout) {
+    throw new Error(`No collection configuration found at: ${collectionPath}`);
   }
-
-  const brunoJsonPath = path.join(collectionPath, 'bruno.json');
-  if (fs.existsSync(brunoJsonPath)) {
-    return 'bru';
-  }
-
-  throw new Error(`No collection configuration found at: ${collectionPath}`);
+  return layout;
 };
 
 const validateName = (name) => {
@@ -531,19 +565,21 @@ const isBrunoConfigFile = (pathname, collectionPath) => {
   return path.normalize(dirname) === path.normalize(collectionPath) && basename === 'bruno.json';
 };
 
-const isBruEnvironmentConfig = (pathname, collectionPath) => {
+// Accepts any layout's extension: a collection's environments are `.bru`, `.yml` or `.yaml`
+// depending on how the collection is laid out on disk.
+const isEnvironmentConfigFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const envDirectory = path.join(collectionPath, 'environments');
   const basename = path.basename(pathname);
 
-  return path.normalize(dirname) === path.normalize(envDirectory) && hasBruExtension(basename);
+  return path.normalize(dirname) === path.normalize(envDirectory) && isRequestFilename(basename);
 };
 
-const isCollectionRootBruFile = (pathname, collectionPath) => {
+const isCollectionRootFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
 
-  return path.normalize(dirname) === path.normalize(collectionPath) && basename === 'collection.bru';
+  return path.normalize(dirname) === path.normalize(collectionPath) && isCollectionRootBasename(basename);
 };
 
 const scanForBrunoFiles = async (dir) => {
@@ -562,7 +598,7 @@ const scanForBrunoFiles = async (dir) => {
             return;
           }
           scanDir(fullPath);
-        } else if ((file === 'bruno.json' || file === 'opencollection.yml') && !brunoFolders.includes(currentDir)) {
+        } else if (isCollectionMarkerBasename(file) && !brunoFolders.includes(currentDir)) {
           brunoFolders.push(currentDir);
         }
       });
@@ -618,7 +654,9 @@ module.exports = {
   isDotEnvFile,
   isValidDotEnvFilename,
   isBrunoConfigFile,
-  isBruEnvironmentConfig,
-  isCollectionRootBruFile,
-  scanForBrunoFiles
+  isEnvironmentConfigFile,
+  isCollectionRootFile,
+  scanForBrunoFiles,
+  resolveYamlPath,
+  detectCollectionLayout
 };

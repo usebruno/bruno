@@ -2,14 +2,16 @@ const fs = require('fs');
 const path = require('path');
 const YAML = require('yaml');
 const { NODEVM_SCRIPT_WRAPPER_OFFSET, QUICKJS_SCRIPT_WRAPPER_OFFSET } = require('./sandbox');
+const { getLayoutForFilename, isRequestFilename, isYamlFilename } = require('@usebruno/common');
+
+// `.bru` must be recognized case-insensitively like every other layout extension — a `FOO.BRU`
+// request is a real file on Windows and macOS, and missing it here returns raw VM line numbers
+// instead of lines mapped into the script block.
+const isBruFilename = (filePath) => getLayoutForFilename(filePath) === 'bru';
 
 const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
 
 const DEFAULT_CONTEXT_LINES = 5;
-const ALLOWED_SOURCE_EXTENSIONS = ['.bru', '.yml'];
-
-const isAllowedSourceFile = (filePath) =>
-  typeof filePath === 'string' && ALLOWED_SOURCE_EXTENSIONS.some((ext) => filePath.endsWith(ext));
 
 const SCRIPT_TYPES = Object.freeze({
   PRE_REQUEST: 'pre-request',
@@ -43,7 +45,7 @@ const BLOCK_PATTERNS = {
 
 /** Find the 1-indexed line where a script block's content starts in a .bru file */
 const findScriptBlockStartLine = (filePath, scriptType, cache = null) => {
-  if (!filePath.endsWith('.bru')) return null;
+  if (!isBruFilename(filePath)) return null;
 
   const cacheKey = `bru:${filePath}:${scriptType}`;
   if (cache?.has(cacheKey)) return cache.get(cacheKey);
@@ -69,7 +71,7 @@ const findScriptBlockStartLine = (filePath, scriptType, cache = null) => {
 
 /** Find the 1-indexed last content line of a script block in a .bru file (excludes closing }) */
 const findScriptBlockEndLine = (filePath, scriptType, cache = null) => {
-  if (!filePath.endsWith('.bru')) return null;
+  if (!isBruFilename(filePath)) return null;
 
   const cacheKey = `bru-end:${filePath}:${scriptType}`;
   if (cache?.has(cacheKey)) return cache.get(cacheKey);
@@ -103,9 +105,9 @@ const findScriptBlockEndLine = (filePath, scriptType, cache = null) => {
   return result;
 };
 
-/** Find the 1-indexed line where a script block's content starts in a .yml file */
+/** Find the 1-indexed line where a script block's content starts in a .yml/.yaml file */
 const findYmlScriptBlockStartLine = (filePath, scriptType, cache = null) => {
-  if (!filePath.endsWith('.yml')) return null;
+  if (!isYamlFilename(filePath)) return null;
 
   const cacheKey = `yml:${filePath}:${scriptType}`;
   if (cache?.has(cacheKey)) return cache.get(cacheKey);
@@ -147,9 +149,9 @@ const findYmlScriptBlockStartLine = (filePath, scriptType, cache = null) => {
   return result;
 };
 
-/** Find the 1-indexed last content line of a script block in a .yml file */
+/** Find the 1-indexed last content line of a script block in a .yml/.yaml file */
 const findYmlScriptBlockEndLine = (filePath, scriptType, cache = null) => {
-  if (!filePath.endsWith('.yml')) return null;
+  if (!isYamlFilename(filePath)) return null;
 
   const cacheKey = `yml-end:${filePath}:${scriptType}`;
   if (cache?.has(cacheKey)) return cache.get(cacheKey);
@@ -192,10 +194,10 @@ const findYmlScriptBlockEndLine = (filePath, scriptType, cache = null) => {
   return result;
 };
 
-/** Adjust a runtime-reported line number to the actual line in the .bru/.yml file */
+/** Adjust a runtime-reported line number to the actual line in the .bru/.yml/.yaml file */
 const adjustLineNumber = (filePath, reportedLine, isQuickJS, scriptType = null, cache = null, scriptMetadata = null) => {
-  const isBruFile = filePath.endsWith('.bru');
-  const isYmlFile = filePath.endsWith('.yml');
+  const isBruFile = isBruFilename(filePath);
+  const isYmlFile = isYamlFilename(filePath);
 
   if (!isBruFile && !isYmlFile) {
     return reportedLine;
@@ -221,7 +223,7 @@ const adjustLineNumber = (filePath, reportedLine, isQuickJS, scriptType = null, 
         }
       } else {
         // Error is in a collection/folder-level script
-        // Cannot map to the request .bru/.yml file, return null to skip source context.
+        // Cannot map to the request source file, return null to skip source context.
         return null;
       }
     }
@@ -241,10 +243,10 @@ const adjustLineNumber = (filePath, reportedLine, isQuickJS, scriptType = null, 
   return scriptRelativeLine;
 };
 
-/** Look up the script block start line for a .bru or .yml file */
+/** Look up the script block start line for a .bru, .yml or .yaml file */
 const findBlockStart = (filePath, scriptType, cache) => {
-  if (filePath.endsWith('.bru')) return findScriptBlockStartLine(filePath, scriptType, cache);
-  if (filePath.endsWith('.yml')) return findYmlScriptBlockStartLine(filePath, scriptType, cache);
+  if (isBruFilename(filePath)) return findScriptBlockStartLine(filePath, scriptType, cache);
+  if (isYamlFilename(filePath)) return findYmlScriptBlockStartLine(filePath, scriptType, cache);
   return null;
 };
 
@@ -262,7 +264,7 @@ const resolveSegmentError = (parsed, metadata, scriptType, cache) => {
 
   for (const segment of metadata.segments) {
     if (scriptRelativeLine >= segment.startLine && scriptRelativeLine <= segment.endLine) {
-      if (!isAllowedSourceFile(segment.filePath)) return null;
+      if (!isRequestFilename(segment.filePath)) return null;
 
       const blockStartLine = findBlockStart(segment.filePath, scriptType, cache);
       if (!blockStartLine) {
@@ -486,7 +488,7 @@ const formatErrorWithContext = (error, relativeFilePath = null, scriptType = nul
 
   const sourceFile = segmentResult ? segmentResult.filePath : filePath;
   const sourceLine = segmentResult ? segmentResult.line : adjustedLine;
-  const context = isAllowedSourceFile(sourceFile) ? getSourceContext(sourceFile, sourceLine, contextLines, cache) : null;
+  const context = isRequestFilename(sourceFile) ? getSourceContext(sourceFile, sourceLine, contextLines, cache) : null;
 
   if (!context) {
     return `${error.message}\n${error.stack || ''}`;
@@ -598,7 +600,7 @@ const resolveErrorContext = ({ adjustedLine, scriptRelativeLine, metadata, segme
     // returned scriptRelativeLine (not a real .bru file line), so stack frame adjustment
     // would produce misleading results — flag it as draft-only.
     const blockStartLine = findBlockStart(filePath, scriptType, cache);
-    const draftOnlyBlock = !blockStartLine && isAllowedSourceFile(filePath);
+    const draftOnlyBlock = !blockStartLine && isRequestFilename(filePath);
     // requestStartLine points to the IIFE wrapper line (`await (async () => {`),
     // so subtracting it yields a 1-based index into the user's script content.
     const lineInScript = scriptRelativeLine - metadata.requestStartLine;
@@ -691,15 +693,15 @@ const formatErrorWithContextV2 = (error, scriptType, scriptMetadata, collectionP
     // so show lines relative to the script block, not absolute .bru file lines.
     const blockStartLine = findBlockStart(sourceFile, scriptType, cache);
 
-    const isBru = sourceFile.endsWith('.bru');
-    const isYml = sourceFile.endsWith('.yml');
+    const isBru = isBruFilename(sourceFile);
+    const isYml = isYamlFilename(sourceFile);
     const blockEndLine = isBru
       ? findScriptBlockEndLine(sourceFile, scriptType, cache)
       : isYml
         ? findYmlScriptBlockEndLine(sourceFile, scriptType, cache)
         : null;
 
-    // If this is a .bru/.yml file but the script block is missing or empty, there's nothing to show
+    // If this is a Bruno source file but the script block is missing or empty, there's nothing to show
     if ((isBru || isYml) && !blockEndLine) return null;
 
     const blockOffset = blockStartLine ? blockStartLine - 1 : 0;

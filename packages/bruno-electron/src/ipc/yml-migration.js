@@ -14,6 +14,7 @@ const {
 } = require('@usebruno/filestore');
 const { transformProxyConfig } = require('@usebruno/requests');
 const { getCollectionFormat, getCollectionStats, writeFile } = require('../utils/filesystem');
+const { isOpenCollectionLayout } = require('@usebruno/common');
 const { openCollection } = require('../app/collections');
 const snapshotManager = require('../services/snapshot');
 const { unmount, clearCollectionIndex } = require('./mount');
@@ -261,7 +262,7 @@ const migrateCollectionToYml = async ({ mainWindow, watcher, collectionPathname,
   const brunoJsonPath = path.join(collectionPathname, 'bruno.json');
   let brunoConfig;
   try {
-    if (getCollectionFormat(collectionPathname) === 'yml') {
+    if (isOpenCollectionLayout(getCollectionFormat(collectionPathname))) {
       throw new Error('Collection is already in YML format');
     }
     brunoConfig = JSON.parse(fs.readFileSync(brunoJsonPath, 'utf8'));

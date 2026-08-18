@@ -2,14 +2,16 @@ import React from 'react';
 import Modal from 'components/Modal';
 import { useSelector, useDispatch } from 'react-redux';
 import { ignoreFolder, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
-import { recursivelyGetAllItemUids } from 'utils/collections';
+import { recursivelyGetAllItemUids, isOpenCollectionFormat } from 'utils/collections';
 import toast from 'react-hot-toast';
+import { getLayoutConfig, isOpenCollectionLayout } from '@usebruno/common';
 
 const IgnoreCollectionItem = ({ onClose, item, collectionUid }) => {
   const dispatch = useDispatch();
   const collection = useSelector((state) => state.collections.collections?.find((c) => c.uid === collectionUid));
-  const isYamlCollection = collection?.format === 'yml' || Boolean(collection?.brunoConfig?.opencollection);
-  const configFileName = isYamlCollection ? 'opencollection.yml' : 'bruno.json';
+  const isYamlCollection = isOpenCollectionLayout(collection?.format) || isOpenCollectionFormat(collection);
+  // Name the file the ignore list actually lands in — a `.yaml` collection has no `opencollection.yml`.
+  const configFileName = isYamlCollection ? getLayoutConfig(collection?.format, 'yml').collectionFile : 'bruno.json';
 
   const onConfirm = () => {
     dispatch(ignoreFolder(item.uid, collectionUid))

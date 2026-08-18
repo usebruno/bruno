@@ -2,6 +2,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { posixifyPath } = require('./filesystem');
+const {
+  getLayoutForFilename,
+  isCollectionRootBasename,
+  isFolderRootBasename
+} = require('@usebruno/common');
 
 const DENY_DIRS = new Set(['node_modules', '.git', '.svn', '.hg', '.bruno']);
 const DEFAULT_DENYLIST = ['**/.DS_Store', '**/Thumbs.db'];
@@ -66,8 +71,6 @@ const walk = (root, denylist) => {
   return out;
 };
 
-const COLLECTION_ROOT_BASENAMES = new Set(['collection.bru', 'collection.yml', 'opencollection.yml']);
-const FOLDER_ROOT_BASENAMES = new Set(['folder.bru', 'folder.yml']);
 const BRUNO_CONFIG_BASENAME = 'bruno.json';
 const ENVIRONMENTS_DIR = 'environments';
 
@@ -80,16 +83,13 @@ const defaultClassify = (relativePath) => {
     return { format: 'json', type: 'config' };
   }
 
-  const ext = path.extname(basename).slice(1).toLowerCase();
-  let format;
-  if (ext === 'bru') format = 'bru';
-  else if (ext === 'yml' || ext === 'yaml') format = 'yml';
-  else return null;
+  const format = getLayoutForFilename(basename);
+  if (!format) return null;
 
-  if (COLLECTION_ROOT_BASENAMES.has(basename) && segments.length === 0) {
+  if (isCollectionRootBasename(basename) && segments.length === 0) {
     return { format, type: 'collection' };
   }
-  if (FOLDER_ROOT_BASENAMES.has(basename)) {
+  if (isFolderRootBasename(basename)) {
     return { format, type: 'folder' };
   }
   if (segments[0] === ENVIRONMENTS_DIR && segments.length === 1) {
@@ -99,8 +99,6 @@ const defaultClassify = (relativePath) => {
 };
 
 module.exports = {
-  COLLECTION_ROOT_BASENAMES,
-  FOLDER_ROOT_BASENAMES,
   BRUNO_CONFIG_BASENAME,
   ENVIRONMENTS_DIR,
   hashFile,

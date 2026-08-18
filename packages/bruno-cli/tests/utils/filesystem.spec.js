@@ -1,4 +1,6 @@
-const { isLargeFile, isSafeFileName } = require('../../src/utils/filesystem');
+const os = require('os');
+const path = require('path');
+const { isLargeFile, isSafeFileName, resolveYamlPath } = require('../../src/utils/filesystem');
 const fs = require('fs-extra');
 
 describe('isSafeFileName', () => {
@@ -22,6 +24,48 @@ describe('isSafeFileName', () => {
     expect(isSafeFileName(undefined)).toBe(false);
     expect(isSafeFileName(null)).toBe(false);
     expect(isSafeFileName(42)).toBe(false);
+  });
+});
+
+describe('resolveYamlPath', () => {
+  let dir;
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-cli-resolve-yaml-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('resolves a .yml file', () => {
+    fs.writeFileSync(path.join(dir, 'workspace.yml'), '');
+    expect(resolveYamlPath(dir, 'workspace')).toBe(path.join(dir, 'workspace.yml'));
+  });
+
+  it('resolves a .yaml file', () => {
+    fs.writeFileSync(path.join(dir, 'workspace.yaml'), '');
+    expect(resolveYamlPath(dir, 'workspace')).toBe(path.join(dir, 'workspace.yaml'));
+  });
+
+  it('prefers .yml when both extensions are present', () => {
+    fs.writeFileSync(path.join(dir, 'workspace.yml'), '');
+    fs.writeFileSync(path.join(dir, 'workspace.yaml'), '');
+    expect(resolveYamlPath(dir, 'workspace')).toBe(path.join(dir, 'workspace.yml'));
+  });
+
+  it('returns null when neither extension exists', () => {
+    expect(resolveYamlPath(dir, 'workspace')).toBe(null);
+  });
+
+  it('returns null for a missing directory', () => {
+    expect(resolveYamlPath(path.join(dir, 'nope'), 'workspace')).toBe(null);
+  });
+
+  it('does not match a bare basename with no extension', () => {
+    // A directory named `environments/Global` must not be mistaken for the env file.
+    fs.writeFileSync(path.join(dir, 'Global'), '');
+    expect(resolveYamlPath(dir, 'Global')).toBe(null);
   });
 });
 

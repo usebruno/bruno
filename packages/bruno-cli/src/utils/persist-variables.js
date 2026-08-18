@@ -332,9 +332,9 @@ const persistEnvFile = (envFile, scriptVars, options = {}) => {
  * Mutate the in-memory collection root and write it out. The mutation matters:
  * subsequent requests in the same iteration read `collection.root` and must see the updated vars.
  *
- * @param {{ root?: object, format: 'bru' | 'yml', brunoConfig?: object }} collection - Loaded collection; mutated in place.
+ * @param {{ root?: object, format: 'bru' | 'yml' | 'yaml', brunoConfig?: object }} collection - Loaded collection; mutated in place.
  * @param {Object<string, any>} scriptCollVars - Flat map of collection vars the script declared.
- * @param {string} collectionRootPath - Absolute path to the collection root file (`collection.bru` / `opencollection.yml`).
+ * @param {string} collectionRootPath - Absolute path to the collection root file (`collection.bru` / `opencollection.yml` / `opencollection.yaml`).
  * @returns {void}
  *
  * @example
@@ -357,8 +357,7 @@ const persistCollectionVars = (collection, scriptCollVars, collectionRootPath) =
   collectionRoot.request.vars.req = merged;
   collection.root = collectionRoot;
 
-  const format = collection.format;
-  const content = stringifyCollection(collectionRoot, collection.brunoConfig || {}, { format });
+  const content = stringifyCollection(collectionRoot, collection.brunoConfig || {}, { format: collection.format });
   const existing = fs.existsSync(collectionRootPath) ? fs.readFileSync(collectionRootPath, 'utf8') : null;
   if (existing !== null) {
     writeIfChanged(collectionRootPath, content, existing);
@@ -390,7 +389,7 @@ const persistCollectionVars = (collection, scriptCollVars, collectionRootPath) =
  *   `globalEnvVarOverrides` applies the same leak-guard to the global env file, seeded from
  *   `--global-env-var name=value`.
  *   `globalEnvFile.format` is yml-only because the CLI's `--global-env <name>` flag looks
- *   up `<workspace>/environments/<name>.yml` (no JSON/bru equivalent exists today).
+ *   up `<workspace>/environments/<name>.{yml,yaml}` (no JSON/bru equivalent exists today).
  * @returns {void}
  *
  * @example

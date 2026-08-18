@@ -370,6 +370,38 @@ describe('persistVariableUpdates — collection vars', () => {
     // Plain strings stay as raw `value: ...` — no type/data block, no `type: string`.
     expect(written).not.toMatch(/name:\s*k1[\s\S]*?type:\s*string/);
   });
+
+  it('writes collection vars back to opencollection.yaml for yaml-format collections', () => {
+    // A `.yaml` collection persists through the same serializer as `.yml`, writing back to the
+    // `opencollection.yaml` it was read from rather than creating a `.yml` sibling.
+    const collectionRootPath = writeFile('opencollection.yaml',
+      'opencollection: 1.0.0\ninfo:\n  name: yaml-collection\nrequest:\n  vars:\n    - name: k1\n      value: old\n'
+    );
+    const collection = {
+      format: 'yaml',
+      brunoConfig: { name: 'yaml-collection' },
+      root: {
+        meta: null,
+        request: {
+          headers: [],
+          auth: { mode: 'none' },
+          script: { req: null, res: null },
+          tests: null,
+          vars: { req: [{ uid: 'v1', name: 'k1', value: 'old', enabled: true, type: 'request' }], res: [] }
+        }
+      }
+    };
+    persistVariableUpdates(
+      { collectionVariables: { k1: 'new', k2: 'fresh' } },
+      { collection, collectionRootPath }
+    );
+    const written = fs.readFileSync(collectionRootPath, 'utf8');
+    expect(written).toMatch(/name:\s*k1/);
+    expect(written).toMatch(/value:\s*new/);
+    expect(written).toMatch(/name:\s*k2/);
+    expect(written).toMatch(/value:\s*fresh/);
+    expect(collection.root.request.vars.req.map((v) => v.name).sort()).toEqual(['k1', 'k2']);
+  });
 });
 
 describe('persistVariableUpdates — .bru env format', () => {

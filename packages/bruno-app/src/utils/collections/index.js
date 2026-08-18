@@ -1,8 +1,8 @@
 import { cloneDeep, isEqual, sortBy, filter, map, isString, findIndex, find, each, get } from 'lodash';
 import { uuid } from 'utils/common';
 import { sortByNameThenSequence } from 'utils/common/index';
-import path, { normalizePath } from 'utils/common/path';
-import { isRequestTagsIncluded } from '@usebruno/common';
+import path, { getRelativePath, normalizePath } from 'utils/common/path';
+import { isFolderRootBasename, isRequestTagsIncluded } from '@usebruno/common';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -92,6 +92,24 @@ export const findCollectionByItemUid = (collections, itemUid) => {
 
 export const findItemByPathname = (items = [], pathname) => {
   return find(items, (i) => i.pathname === pathname);
+};
+
+/**
+ * Resolve the folder whose root file a script scope points at, e.g. `users/folder.yaml`.
+ * Returns null when `sourceFile` is not a folder root or names no folder.
+ */
+export const findFolderByScopeFile = (collection, sourceFile) => {
+  if (!collection?.pathname || !sourceFile) return null;
+  // The scope's source file arrives posixified from the main process, but normalize anyway so a
+  // Windows-separated path can't smuggle the whole path in as the basename. `getRelativePath`
+  // posixifies the side it derives, so both sides of the comparison agree.
+  const segments = normalizePath(sourceFile).split('/');
+  if (!isFolderRootBasename(segments[segments.length - 1])) return null;
+  const dir = segments.slice(0, -1).join('/');
+  if (!dir) return null;
+  return flattenItems(collection.items || []).find(
+    (i) => i.type === 'folder' && getRelativePath(collection.pathname, i.pathname) === dir
+  ) || null;
 };
 
 export const findItemInCollectionByPathname = (collection, pathname) => {

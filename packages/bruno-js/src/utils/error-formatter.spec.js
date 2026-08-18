@@ -126,6 +126,7 @@ describe('Error Formatter', () => {
   let testDir;
   let bruFilePath;
   let ymlFilePath;
+  let yamlFilePath;
   let bruWithCommentsPath;
   let collectionYmlPath;
 
@@ -139,6 +140,8 @@ describe('Error Formatter', () => {
     fs.writeFileSync(ymlFilePath, MULTI_BLOCK_YML);
     fs.writeFileSync(bruWithCommentsPath, BRU_WITH_COMMENTS);
     fs.writeFileSync(collectionYmlPath, COLLECTION_YML);
+    yamlFilePath = path.join(testDir, 'test.yaml');
+    fs.writeFileSync(yamlFilePath, MULTI_BLOCK_YML);
   });
 
   afterEach(() => {
@@ -202,6 +205,12 @@ describe('Error Formatter', () => {
       fs.writeFileSync(noRuntimePath, 'info:\n  name: simple\n  version: "1"\n');
       expect(findYmlScriptBlockStartLine(noRuntimePath, 'pre-request')).toBeNull();
     });
+
+    it('should treat .yaml identically to .yml', () => {
+      expect(findYmlScriptBlockStartLine(yamlFilePath, 'pre-request')).toBe(8);
+      expect(findYmlScriptBlockStartLine(yamlFilePath, 'post-response')).toBe(12);
+      expect(findYmlScriptBlockStartLine(yamlFilePath, 'test')).toBe(16);
+    });
   });
 
   describe('findYmlScriptBlockEndLine', () => {
@@ -227,6 +236,12 @@ describe('Error Formatter', () => {
       expect(findYmlScriptBlockEndLine(bruFilePath, 'pre-request')).toBeNull();
     });
 
+    it('should treat .yaml identically to .yml', () => {
+      expect(findYmlScriptBlockEndLine(yamlFilePath, 'pre-request')).toBe(9);
+      expect(findYmlScriptBlockEndLine(yamlFilePath, 'post-response')).toBe(13);
+      expect(findYmlScriptBlockEndLine(yamlFilePath, 'test')).toBe(18);
+    });
+
     it('should return null for invalid YAML', () => {
       const invalidYmlPath = path.join(testDir, 'invalid.yml');
       fs.writeFileSync(invalidYmlPath, ':\n  - :\n    bad: [unclosed');
@@ -247,10 +262,30 @@ describe('Error Formatter', () => {
       expect(adjustLineNumber(bruFilePath, 4, false, 'post-response')).toBe(20);
     });
 
+    it('should adjust lines for an uppercase .BRU file exactly as for .bru', () => {
+      // `FOO.BRU` is a real file on Windows and macOS; a case-sensitive check here would skip
+      // script-block mapping and report the raw VM line instead.
+      const upperBruPath = path.join(testDir, 'upper.BRU');
+      fs.writeFileSync(upperBruPath, MULTI_BLOCK_BRU);
+
+      expect(adjustLineNumber(upperBruPath, 4, false, 'post-response'))
+        .toBe(adjustLineNumber(bruFilePath, 4, false, 'post-response'));
+      expect(findScriptBlockStartLine(upperBruPath, 'pre-request'))
+        .toBe(findScriptBlockStartLine(bruFilePath, 'pre-request'));
+    });
+
     it('should adjust lines for .yml files', () => {
       expect(adjustLineNumber(ymlFilePath, 10, true, 'pre-request')).toBe(8);
       expect(adjustLineNumber(ymlFilePath, 11, true, 'post-response')).toBe(13);
       expect(adjustLineNumber(ymlFilePath, 4, false, 'post-response')).toBe(13);
+    });
+
+    it('should adjust lines for .yaml files exactly as for .yml', () => {
+      // A .yaml source must map to the same lines; falling through to the raw reported line
+      // would point the user at the wrong place in their script.
+      expect(adjustLineNumber(yamlFilePath, 10, true, 'pre-request')).toBe(8);
+      expect(adjustLineNumber(yamlFilePath, 11, true, 'post-response')).toBe(13);
+      expect(adjustLineNumber(yamlFilePath, 4, false, 'post-response')).toBe(13);
     });
 
     it('should adjust lines correctly when script has comments', () => {

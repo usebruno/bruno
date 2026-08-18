@@ -1,13 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
-const { writeFile, validateName, isValidCollectionDirectory } = require('./filesystem');
+const { writeFile, validateName, isValidCollectionDirectory, resolveYamlPath } = require('./filesystem');
 const { generateUidBasedOnHash } = require('./common');
 const { withLock, getWorkspaceLockKey } = require('./workspace-lock');
 
 // Normalize Windows backslash paths to forward slashes for cross-platform compatibility.
 const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
 
+// New workspaces are created as `workspace.yml`; an existing `workspace.yaml` is read and
+// written in place.
+const WORKSPACE_FILE_BASENAME = 'workspace.yml';
 const WORKSPACE_TYPE = 'workspace';
 const OPENCOLLECTION_VERSION = '1.0.0';
 const GITIGNORE_MANAGED_BLOCK_START = '# Bruno managed collection remotes';
@@ -26,8 +29,16 @@ const quoteYamlValue = (value) => {
   return `"${escaped}"`;
 };
 
+// The workspace marker under whichever YAML extension it uses, or null when absent.
+// `.yml` wins if both exist, matching collection-root detection.
+const resolveWorkspaceFilePath = (workspacePath) => resolveYamlPath(workspacePath, 'workspace');
+
+// Where to write the marker: the existing file if there is one, otherwise a new `.yml`.
+const workspaceFilePathForWrite = (workspacePath) =>
+  resolveWorkspaceFilePath(workspacePath) || path.join(workspacePath, WORKSPACE_FILE_BASENAME);
+
 const writeWorkspaceFileAtomic = async (workspacePath, content) => {
-  const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
+  const workspaceFilePath = workspaceFilePathForWrite(workspacePath);
   await writeFile(workspaceFilePath, content);
 
   // Previous atomic write implementation commented out due to permission issues on Linux
@@ -173,9 +184,8 @@ const validateWorkspacePath = (workspacePath) => {
     throw new Error(`Workspace path does not exist: ${workspacePath}`);
   }
 
-  const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
-  if (!fs.existsSync(workspaceFilePath)) {
-    throw new Error('Invalid workspace: workspace.yml not found');
+  if (!resolveWorkspaceFilePath(workspacePath)) {
+    throw new Error('Invalid workspace: workspace.yml (or workspace.yaml) not found');
   }
 
   return true;
@@ -217,10 +227,10 @@ const normalizeWorkspaceConfig = (config) => {
 };
 
 const readWorkspaceConfig = (workspacePath) => {
-  const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
+  const workspaceFilePath = resolveWorkspaceFilePath(workspacePath);
 
-  if (!fs.existsSync(workspaceFilePath)) {
-    throw new Error('Invalid workspace: workspace.yml not found');
+  if (!workspaceFilePath) {
+    throw new Error('Invalid workspace: workspace.yml (or workspace.yaml) not found');
   }
 
   const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
@@ -702,6 +712,8 @@ const getWorkspaceUid = (workspacePath) => {
 };
 
 module.exports = {
+  WORKSPACE_FILE_BASENAME,
+  resolveWorkspaceFilePath,
   makeRelativePath,
   normalizeCollectionEntry,
   validateWorkspacePath,

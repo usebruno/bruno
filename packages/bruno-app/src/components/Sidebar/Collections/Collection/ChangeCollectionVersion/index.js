@@ -5,6 +5,7 @@ import { IconArrowRight, IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 import Portal from 'components/Portal';
 import { findCollectionByUid, getCollectionVersion, isOpenCollectionFormat } from 'utils/collections/index';
+import { getLayoutConfig } from '@usebruno/common';
 import { saveCollectionVersion } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper, { ModalTitle } from './StyledWrapper';
 
@@ -29,7 +30,7 @@ const ChangeCollectionVersion = ({ collectionUid, onClose }) => {
   const currentVersion = getCollectionVersion(collection);
   const isYml = isOpenCollectionFormat(collection);
   const targetKey = isYml ? 'info.version' : 'collectionVersion';
-  const targetFile = isYml ? 'opencollection.yml' : 'bruno.json';
+  const targetFile = isYml ? getLayoutConfig(collection?.format, 'yml').collectionFile : 'bruno.json';
   const [newVersion, setNewVersion] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 

@@ -149,6 +149,14 @@ describe('sanitizeTag', () => {
         expect(sanitizeTag('   ', { collectionFormat: 'yml' })).toBeNull();
       });
 
+      it('treats the yaml layout identically to yml', () => {
+        // A `.yaml` collection is the same OpenCollection schema; applying BRU's tag
+        // restrictions there would mangle tag names on import.
+        expect(sanitizeTag('Pets & Dogs', { collectionFormat: 'yaml' })).toBe('Pets & Dogs');
+        expect(sanitizeTag('API (v1)', { collectionFormat: 'yaml' })).toBe('API (v1)');
+        expect(sanitizeTag('   ', { collectionFormat: 'yaml' })).toBeNull();
+      });
+
       it('reads .name from tag-object input', () => {
         expect(sanitizeTag({ name: 'R&D' }, { collectionFormat: 'yml' })).toBe('R&D');
       });

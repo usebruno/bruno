@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
+import { getLayoutConfig } from '@usebruno/common';
 import Method from './Common/Method/index';
 import Status from './Common/Status/index';
 import { RelativeTime } from './Common/Time/index';
@@ -9,20 +10,10 @@ import Request from './Request/index';
 import Response from './Response/index';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState/index';
-import { flattenItems } from 'utils/collections/index';
-import { getRelativePath } from 'utils/common/path';
+import { findFolderByScopeFile } from 'utils/collections/index';
 import { addTab, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { getBadge } from '../entryMeta';
-
-const findFolderByScopeFile = (collection, sourceFile) => {
-  if (!collection?.pathname || !sourceFile) return null;
-  const dir = sourceFile.replace(/\/folder\.(?:bru|yml)$/, '');
-  if (!dir || dir === sourceFile) return null;
-  return flattenItems(collection.items || []).find(
-    (i) => i.type === 'folder' && getRelativePath(collection.pathname, i.pathname) === dir
-  ) || null;
-};
 
 const TimelineItem = ({
   timestamp,
@@ -79,7 +70,7 @@ const TimelineItem = ({
 
   const isMainOrOauth = !source || source === 'main' || isOauth2;
   const scopeType = scope?.type || (isMainOrOauth ? null : 'request');
-  const requestExt = collection?.format === 'yml' ? '.yml' : '.bru';
+  const requestExt = getLayoutConfig(collection?.format).ext;
   const scopeFile = scope?.sourceFile
     || (scopeType === 'request' ? (item?.filename || (item?.name ? `${item.name}${requestExt}` : null)) : null);
   const sourceFile = isMainOrOauth ? null : scopeFile;

@@ -3,6 +3,7 @@ import get from 'lodash/get';
 import { customAlphabet } from 'nanoid';
 import cloneDeep from 'lodash/cloneDeep';
 import { collectionSchema } from '@usebruno/schema';
+import { isOpenCollectionLayout } from '@usebruno/common';
 
 export const safeParseJSON = (str) => {
   if (!str || !str.length || typeof str !== 'string') {
@@ -49,7 +50,7 @@ export const uuid = () => {
  *
  * @param {string} tag - The tag to sanitize
  * @param {Object} options - Sanitization options
- * @param {string} options.collectionFormat - The collection format ('yml' for OpenCollection YAML)
+ * @param {string} options.collectionFormat - The collection layout ('yml' or 'yaml' for OpenCollection YAML)
  * @returns {string|null} - The sanitized tag, or null if the result is empty
  */
 export const sanitizeTag = (tag, options = {}) => {
@@ -62,9 +63,9 @@ export const sanitizeTag = (tag, options = {}) => {
 
   let trimmed = usableTagString.trim();
 
-  // OpenCollection (yml) schema imposes no character restriction on tags.
+  // OpenCollection (yml/yaml) schema imposes no character restriction on tags.
   // Preserve the source value verbatim so folder names round-trip (BRU-3175).
-  if (options.collectionFormat === 'yml') {
+  if (isOpenCollectionLayout(options.collectionFormat)) {
     return trimmed || null;
   }
 

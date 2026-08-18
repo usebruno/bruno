@@ -31,7 +31,8 @@ const {
   normalizeCollectionEntry,
   validateWorkspacePath,
   validateWorkspaceDirectory,
-  getWorkspaceUid
+  getWorkspaceUid,
+  resolveWorkspaceFilePath
 } = require('../utils/workspace-config');
 
 const DEFAULT_WORKSPACE_NAME = 'My Workspace';
@@ -216,10 +217,10 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         throw new Error('Workspace path is undefined');
       }
 
-      const workspaceFilePath = path.join(workspacePath, 'workspace.yml');
+      const workspaceFilePath = resolveWorkspaceFilePath(workspacePath);
 
-      if (!fs.existsSync(workspaceFilePath)) {
-        throw new Error('Invalid workspace: workspace.yml not found');
+      if (!workspaceFilePath) {
+        throw new Error('Invalid workspace: workspace.yml (or workspace.yaml) not found');
       }
 
       const yamlContent = fs.readFileSync(workspaceFilePath, 'utf8');
@@ -371,9 +372,9 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
           }
         }
 
-        const workspaceYmlPath = path.join(workspaceDir, 'workspace.yml');
-        if (!fs.existsSync(workspaceYmlPath)) {
-          throw new Error('Invalid workspace: workspace.yml not found in the zip file');
+        const workspaceYmlPath = resolveWorkspaceFilePath(workspaceDir);
+        if (!workspaceYmlPath) {
+          throw new Error('Invalid workspace: workspace.yml (or workspace.yaml) not found in the zip file');
         }
 
         const workspaceConfig = yaml.load(fs.readFileSync(workspaceYmlPath, 'utf8'));
@@ -631,8 +632,8 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
 
       for (const workspacePath of workspacePaths) {
         try {
-          const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
-          if (fs.existsSync(workspaceYmlPath)) {
+          const workspaceYmlPath = resolveWorkspaceFilePath(workspacePath);
+          if (workspaceYmlPath) {
             const workspaceConfig = yaml.load(fs.readFileSync(workspaceYmlPath, 'utf8')) || {};
             const collections = workspaceConfig.collections || [];
 
