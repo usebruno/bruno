@@ -364,6 +364,7 @@ export const buildGrpcCommonLocators = (page: Page) => ({
     queryUrlContainer: () => page.getByTestId('grpc-query-url-container'),
     sendButton: () => page.getByTestId('grpc-send-request-button'),
     messagesContainer: () => page.getByTestId('grpc-messages-container'),
+    messages: () => page.getByTestId('grpc-messages-container').locator('.message-container'),
     addMessageButton: () => page.getByTestId('grpc-add-message-button'),
     regenerateMessage: (index: number) => page.getByTestId(`grpc-regenerate-message-${index}`),
     sendMessage: (index: number) => page.getByTestId(`grpc-send-message-${index}`),
