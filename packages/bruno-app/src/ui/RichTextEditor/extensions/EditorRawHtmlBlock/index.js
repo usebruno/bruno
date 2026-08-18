@@ -7,13 +7,8 @@ const RAW_HTML_INLINE_ATTR = 'data-raw-html-inline';
 const TEXT_BLOCK_TAG_ATTR = 'data-raw-html-text-block';
 const ORIGINAL_HTML_ATTR = 'data-raw-html-original';
 
-// We forbid <style> in DOMPurify since an injected stylesheet's selectors (e.g. `body {...}`)
-// can reach elements outside this editor entirely, which no amount of CSS containment on our
-// side can stop. The `style` *attribute* is intentionally still allowed — StyledWrapper's
-// `contain: paint` already clips a descendant's fixed/absolute-positioned box (even one sized
-// with vw/vh units) to the editor's own bounds, so a position:fixed style can no longer escape
-// to cover the app; forbidding the attribute outright would instead silently strip legitimate
-// styling (text color, font size, ...) from existing docs on their next edit.
+// <style> tags are forbidden (selectors can reach outside the editor); the style attribute
+// stays allowed since StyledWrapper's `contain: paint` already clips it to the editor's bounds.
 const SANITIZE_CONFIG = { FORBID_TAGS: ['style'] };
 
 // A standalone <br/> marks an empty paragraph; treating it as a hard break ensures blank lines remain editable paragraphs.

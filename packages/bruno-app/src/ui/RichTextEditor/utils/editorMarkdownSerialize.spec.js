@@ -97,10 +97,8 @@ describe('Editor markdown serialization', () => {
 
     const markdown = getMarkdown(editor);
 
-    // '  \n' (trailing double space) is CommonMark's hard-break syntax — the same one
-    // EditorHardBreak itself writes for an explicit in-list-item break — so this
-    // actually reparses as a break instead of a markdown softbreak, which would
-    // collapse to a single space and silently merge "one" and "two" into one word.
+    // '  \n' is CommonMark's hard-break syntax, so this reparses as a break, not a
+    // softbreak (which would collapse to a space and merge "one"/"two" into one word).
     expect(markdown).toMatch(/- one {2}\n  two/);
 
     editor.commands.setContent(markdown);
@@ -416,9 +414,8 @@ describe('Editor markdown serialization', () => {
   });
 
   describe('table serialization', () => {
-    // A pasted list/blockquote/code block inside a cell is schema-legal (tableCell/tableHeader
-    // content is block+), but only arises via a real clipboard paste — markdown source can't
-    // produce it — so these use the DOM-parser paste path directly, like parsePastedHtml above.
+    // Block content in a cell only arises via a real paste, so these use the DOM-parser
+    // paste path directly (like parsePastedHtml above), not markdown source.
     const pasteHtml = (targetEditor, html) => {
       const slice = parsePastedHtml(targetEditor, html);
       targetEditor.view.dispatch(targetEditor.state.tr.replaceWith(0, targetEditor.state.doc.content.size, slice.content));
@@ -760,10 +757,8 @@ describe('Editor markdown serialization', () => {
     });
 
     it('keeps a style attribute instead of stripping it — a fixed/absolute overlay is contained via CSS, not sanitization', () => {
-      // StyledWrapper's `contain: paint` (verified separately, in a real browser) clips a
-      // descendant's position:fixed/absolute box to the editor's own bounds regardless of its
-      // style, so the style attribute itself doesn't need to be stripped — which would otherwise
-      // silently drop legitimate styling (color, font size, ...) from existing docs on next edit.
+      // StyledWrapper's `contain: paint` (verified in a real browser) already clips a fixed/
+      // absolute descendant to the editor's bounds, so the style attribute need not be stripped.
       editor = createFullEditor(
         '<div style="position:fixed;width:100vw;height:100vh;z-index:99999" class="note">not stripped</div>'
       );

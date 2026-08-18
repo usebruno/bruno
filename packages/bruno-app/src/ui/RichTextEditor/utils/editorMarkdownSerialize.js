@@ -6,11 +6,8 @@ const childNodes = (node) => node?.content?.content ?? [];
 
 const hasSpan = (node) => node.attrs.colspan > 1 || node.attrs.rowspan > 1;
 
-// tableCell/tableHeader's schema content is `block+`, so a pasted list, blockquote, code
-// block, or nested table is schema-legal inside a cell — but serializeTableCell only knows
-// how to inline actual textblocks (joined with <br/>); a genuine block child would have its
-// own multi-line markdown (e.g. "- item one\n- item two") written straight into the single
-// table row line, corrupting it. Cells like that must fall back to the HTML table path.
+// A cell's block+ content can legally hold a pasted list/blockquote/etc, whose own multi-line
+// markdown would corrupt the single-line table row — such cells must fall back to HTML instead.
 const hasBlockContent = (cell) => childNodes(cell).some((block) => !block.isTextblock);
 
 const isMarkdownSerializableTable = (node) => {
@@ -75,11 +72,8 @@ const serializeFlattenedEntryContent = (state, entry) => {
 
   entry.blocks.forEach((block, blockIndex) => {
     if (blockIndex) {
-      // A bare '\n' is a markdown softbreak, which (with this editor's breaks:false
-      // config, see EditorHardBreak) reparses as a single space — silently merging
-      // separate paragraphs into one run-on line. '  \n' is the same hard-break
-      // syntax EditorHardBreak itself writes for an explicit in-list-item break,
-      // so the boundary between flattened paragraphs actually survives reparse.
+      // '  \n' (EditorHardBreak's own in-list-item hard break) — a bare '\n' reparses as a
+      // softbreak (a single space), silently merging separate paragraphs into one line.
       state.write('  \n');
     }
 

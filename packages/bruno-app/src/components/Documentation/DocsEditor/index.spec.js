@@ -11,9 +11,7 @@ import DocsEditor from './index';
 
 const mockTheme = themes.light;
 
-// Mirrors WorkspaceDocs/FolderSettings' Documentation: onSave is a fresh
-// closure every render, reading the parent's current docs state; onEdit is
-// what DocsEditor's onUpdate calls on doc changes.
+// Mirrors WorkspaceDocs: onSave is a fresh closure every render, reading current docs state.
 const Harness = ({ onSaveSpy }) => {
   const [localDocs, setLocalDocs] = useState('original content');
 

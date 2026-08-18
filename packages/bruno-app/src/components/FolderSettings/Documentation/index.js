@@ -11,11 +11,8 @@ import DocsEditor from 'components/Documentation/DocsEditor';
 const Documentation = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { isEditing, setEditing } = useDocsEditingState();
-  // Scroll tracking (both the rich-text preview/edit view and markdown mode's
-  // CodeEditor) lives in DocsEditor itself; this just owns the persisted value.
-  // Called unconditionally (with folder?.uid) so it runs on every render even
-  // when folder is momentarily falsy, keeping hook order stable — the actual
-  // null guard has to come after every hook call, not before.
+  // Scroll tracking lives in DocsEditor; called unconditionally (folder?.uid) so hook
+  // order stays stable even when folder is falsy — the guard must come after all hooks.
   const [scroll, setScroll] = usePersistedState({ key: `folder-docs-scroll-${folder?.uid}`, default: 0 });
 
   if (!folder) {
