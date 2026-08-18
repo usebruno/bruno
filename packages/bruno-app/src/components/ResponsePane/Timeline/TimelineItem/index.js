@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
-import { getLayoutConfig, isFolderRootBasename } from '@usebruno/common';
+import { getLayoutConfig } from '@usebruno/common';
 import Method from './Common/Method/index';
 import Status from './Common/Status/index';
 import { RelativeTime } from './Common/Time/index';
@@ -10,22 +10,10 @@ import Request from './Request/index';
 import Response from './Response/index';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState/index';
-import { flattenItems } from 'utils/collections/index';
-import { getRelativePath } from 'utils/common/path';
+import { findFolderByScopeFile } from 'utils/collections/index';
 import { addTab, updateRequestPaneTab, updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab, updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { getBadge } from '../entryMeta';
-
-const findFolderByScopeFile = (collection, sourceFile) => {
-  if (!collection?.pathname || !sourceFile) return null;
-  const segments = sourceFile.split('/');
-  if (!isFolderRootBasename(segments[segments.length - 1])) return null;
-  const dir = segments.slice(0, -1).join('/');
-  if (!dir) return null;
-  return flattenItems(collection.items || []).find(
-    (i) => i.type === 'folder' && getRelativePath(collection.pathname, i.pathname) === dir
-  ) || null;
-};
 
 const TimelineItem = ({
   timestamp,

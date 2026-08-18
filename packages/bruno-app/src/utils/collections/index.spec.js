@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts } from './index';
+import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts, findFolderByScopeFile } from './index';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
@@ -130,5 +130,42 @@ describe('getCollectionItemCounts', () => {
   it('returns zero counts for empty or missing items', () => {
     expect(getCollectionItemCounts([])).toEqual({ folderCount: 0, requestCount: 0 });
     expect(getCollectionItemCounts(undefined)).toEqual({ folderCount: 0, requestCount: 0 });
+  });
+});
+
+describe('findFolderByScopeFile', () => {
+  const collection = {
+    pathname: '/coll',
+    items: [
+      { type: 'folder', name: 'users', pathname: '/coll/users', items: [] },
+      { type: 'folder', name: 'admin', pathname: '/coll/admin/nested', items: [] },
+      { type: 'http-request', name: 'ping', pathname: '/coll/ping.yaml' }
+    ]
+  };
+
+  it.each(['folder.bru', 'folder.yml', 'folder.yaml'])('resolves a %s scope to its folder', (folderFile) => {
+    // A `.yaml` folder root must resolve too, or its timeline link is silently disabled.
+    expect(findFolderByScopeFile(collection, `users/${folderFile}`)?.pathname).toBe('/coll/users');
+  });
+
+  it('resolves a Windows-separated scope path', () => {
+    // The main process posixifies this today, but the consumer must not depend on that — an
+    // unnormalized separator would make the whole path look like the basename.
+    expect(findFolderByScopeFile(collection, 'admin\\nested\\folder.yaml')?.pathname).toBe('/coll/admin/nested');
+  });
+
+  it('returns null when the scope file is not a folder root', () => {
+    expect(findFolderByScopeFile(collection, 'users/get-users.yaml')).toBe(null);
+    expect(findFolderByScopeFile(collection, 'opencollection.yaml')).toBe(null);
+  });
+
+  it('returns null for a folder root at the collection root, which names no folder', () => {
+    expect(findFolderByScopeFile(collection, 'folder.yaml')).toBe(null);
+  });
+
+  it('returns null for missing inputs and unknown folders', () => {
+    expect(findFolderByScopeFile(null, 'users/folder.yml')).toBe(null);
+    expect(findFolderByScopeFile(collection, null)).toBe(null);
+    expect(findFolderByScopeFile(collection, 'nope/folder.yml')).toBe(null);
   });
 });
