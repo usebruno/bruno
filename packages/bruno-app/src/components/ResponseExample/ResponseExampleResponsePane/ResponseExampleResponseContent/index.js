@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { useSelector } from 'react-redux';
 import get from 'lodash/get';
 import { updateResponseExampleResponse } from 'providers/ReduxStore/slices/collections';
 import CodeEditor from 'components/CodeEditor';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
+import { detectContentTypeFromBase64 } from 'utils/response';
+import ResponseExampleBinaryPreview, { getBinaryPreviewType } from '../ResponseExampleBinaryPreview';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid, onSave }) => {
@@ -69,6 +70,31 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
     }
   };
 
+  const isBinaryBody = response?.body?.type === 'binary';
+
+  const headerContentType
+    = response.headers?.find((h) => h.name?.toLowerCase() === 'content-type')?.value || '';
+
+  const contentType
+    = headerContentType
+      || detectContentTypeFromBase64(response.body?.content)
+      || '';
+
+  const binaryPreviewType = isBinaryBody
+    ? getBinaryPreviewType(contentType)
+    : null;
+
+  if (binaryPreviewType) {
+    return (
+      <StyledWrapper className="w-full px-4">
+        <ResponseExampleBinaryPreview
+          contentType={contentType}
+          content={response.body.content}
+        />
+      </StyledWrapper>
+    );
+  }
+
   return (
     <StyledWrapper className="w-full px-4">
       <div className="code-editor-container">
@@ -79,12 +105,12 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
           value={getResponseContent()}
-          onEdit={onResponseEdit}
-          onRun={() => {}}
+          onEdit={isBinaryBody ? undefined : onResponseEdit}
+          onRun={() => { }}
           onSave={onSave}
           mode={getCodeMirrorMode()}
           enableVariableHighlighting={false}
-          readOnly={!editMode}
+          readOnly={!editMode || isBinaryBody}
         />
       </div>
     </StyledWrapper>

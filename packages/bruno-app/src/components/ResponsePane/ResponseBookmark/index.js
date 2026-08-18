@@ -1,4 +1,4 @@
-import React, { useState, useMemo, forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { useState, forwardRef, useImperativeHandle, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { IconBookmark } from '@tabler/icons';
 import { addResponseExample } from 'providers/ReduxStore/slices/collections';
@@ -8,6 +8,7 @@ import { uuid, formatResponse } from 'utils/common';
 import toast from 'react-hot-toast';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
 import { getBodyType } from 'utils/responseBodyProcessor';
+import { detectContentTypeFromBase64 } from 'utils/response';
 import { getInitialExampleName } from 'utils/collections/index';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
@@ -82,15 +83,26 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
     const contentTypeHeader = headersArray.find((h) => h.name?.toLowerCase() === 'content-type');
     const contentType = contentTypeHeader?.value?.toLowerCase() || '';
 
-    const bodyType = getBodyType(contentType);
-    const content = formatResponse(response.data, response.dataBuffer, bodyType);
+    const bodyTypeFromContentType = getBodyType(contentType);
+    const contentTypeFromBytes = detectContentTypeFromBase64(response.dataBuffer);
+
+    const isBinaryResponse
+      = bodyTypeFromContentType === 'text' && contentTypeFromBytes === 'binary';
+
+    const content = isBinaryResponse
+      ? response.dataBuffer
+      : formatResponse(
+          response.data,
+          response.dataBuffer,
+          bodyTypeFromContentType
+        );
 
     const exampleData = {
       name: name,
       status: response.status || 200,
       headers: headersArray,
       body: {
-        type: bodyType,
+        type: bodyTypeFromContentType,
         content: content
       },
       description: description
