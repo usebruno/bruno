@@ -32,9 +32,6 @@ const Wrapper = styled.div`
 
   &[data-reference-hidden],
   &[data-popper-reference-hidden] {
-    visibility: hidden;
-    pointer-events: none;
-
     &, * {
       visibility: hidden !important;
       transition: none !important;
