@@ -143,4 +143,24 @@ describe('executeCleanupPlans', () => {
     })).rejects.toThrow('no longer exist');
     expect(runRequest).not.toHaveBeenCalled();
   });
+
+  it('preflights every plan before running requests from an earlier valid plan', async () => {
+    const runRequest = jest.fn();
+    const onRequestStart = jest.fn();
+    const validPlan = { ...plans[0], requests: [requestOne] };
+    const invalidLaterPlan = {
+      collectionUid: 'collection-2',
+      collectionName: 'Broken API',
+      requests: [requestTwo],
+      missingRequestPaths: ['cleanup/missing-request.bru']
+    };
+
+    await expect(executeCleanupPlans({
+      plans: [validPlan, invalidLaterPlan],
+      runRequest,
+      onRequestStart
+    })).rejects.toThrow('no longer exist in “Broken API”');
+    expect(runRequest).not.toHaveBeenCalled();
+    expect(onRequestStart).not.toHaveBeenCalled();
+  });
 });

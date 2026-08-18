@@ -59,11 +59,12 @@ export const executeCleanupPlans = async ({
   timeoutMs = DEFAULT_CLEANUP_REQUEST_TIMEOUT_MS,
   cancellationTimeoutMs = DEFAULT_CLEANUP_CANCELLATION_TIMEOUT_MS
 }) => {
-  for (const plan of plans) {
-    if (plan.missingRequestPaths.length) {
-      throw new Error(`One or more cleanup requests no longer exist in “${plan.collectionName}”.`);
-    }
+  const invalidPlan = plans.find((plan) => plan.missingRequestPaths.length);
+  if (invalidPlan) {
+    throw new Error(`One or more cleanup requests no longer exist in “${invalidPlan.collectionName}”.`);
+  }
 
+  for (const plan of plans) {
     for (const request of plan.requests) {
       const requestName = `${plan.collectionName} — ${request.name || request.filename}`;
       onRequestStart?.({ plan, request, requestName });
