@@ -64,6 +64,17 @@ describe('BrunoGrpcRequest', () => {
       expect(req.messages.get()).toEqual({ data: { greeting: 'hi' }, timestamp: 1700000000 });
     });
 
+    test('messages are cloned, so editing one cannot reach what the call sent', () => {
+      const sentMessages = [{ data: { greeting: 'hi' }, timestamp: 1700000000 }];
+      const req = new BrunoGrpcRequest(makeReq(), { sentMessages });
+
+      const message = req.messages.get();
+      message.data.greeting = 'tampered';
+      message.timestamp = 0;
+
+      expect(sentMessages).toEqual([{ data: { greeting: 'hi' }, timestamp: 1700000000 }]);
+    });
+
     test('a call that has sent nothing yet has no messages', () => {
       const req = new BrunoGrpcRequest(makeReq());
 
