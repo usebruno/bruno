@@ -12,7 +12,8 @@ const {
   parseEnvironmentViaWorker,
   stringifyEnvironmentViaWorker
 } = require('@usebruno/filestore');
-const { getCollectionFormat, searchForFiles, getCollectionStats, writeFile } = require('../utils/filesystem');
+const { transformProxyConfig } = require('@usebruno/requests');
+const { getCollectionFormat, getCollectionStats, writeFile } = require('../utils/filesystem');
 const { openCollection } = require('../app/collections');
 const snapshotManager = require('../services/snapshot');
 const { unmount, clearCollectionIndex } = require('./mount');
@@ -20,10 +21,38 @@ const { clearBrunoConfig } = require('../store/bruno-config');
 const { clearRequestUidsForCollection } = require('../cache/requestUids');
 
 const MIGRATION_CANCELLED_MESSAGE = 'Migration cancelled';
+const MIGRATION_IGNORED_DIRS = new Set(['node_modules', '.git']);
 
 // Cancellation is cooperative: the pipeline checks this set between file operations,
 // so a cancel takes effect at the next file boundary — never mid-write.
 const migrationCancellations = new Set();
+
+const collectBruFilesForMigration = (root, extraIgnored = []) => {
+  const ignoredNames = new Set([...MIGRATION_IGNORED_DIRS, ...extraIgnored]);
+  const results = [];
+
+  const walk = (dir) => {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (_) {
+      return;
+    }
+    for (const entry of entries) {
+      if (ignoredNames.has(entry.name)) continue;
+      if (entry.isSymbolicLink()) continue;
+      const entryPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(entryPath);
+      } else if (entry.isFile() && path.extname(entry.name) === '.bru') {
+        results.push(entryPath);
+      }
+    }
+  };
+
+  walk(root);
+  return results;
+};
 
 /**
  * Converts every .bru file of a collection to its yml equivalent on disk, then removes
@@ -74,10 +103,15 @@ const migrateCollectionOnDisk = async ({
     }
     delete ymlBrunoConfig.collectionVersion;
 
+    if (ymlBrunoConfig.proxy) {
+      ymlBrunoConfig.proxy = transformProxyConfig(ymlBrunoConfig.proxy);
+    }
+
     // bruno.json + collection.bru merge into a single opencollection.yml
     const ymlCollectionContent = stringifyCollection(collectionRoot, ymlBrunoConfig, { format: 'yml' });
 
-    const bruFiles = searchForFiles(collectionPathname, '.bru');
+    const userIgnored = Array.isArray(brunoConfig?.ignore) ? brunoConfig.ignore : [];
+    const bruFiles = collectBruFilesForMigration(collectionPathname, userIgnored);
 
     // Phase 1: read → parse → convert in memory; nothing is written until every file
     // converted cleanly. Parse/stringify runs on the filestore worker pool so the main

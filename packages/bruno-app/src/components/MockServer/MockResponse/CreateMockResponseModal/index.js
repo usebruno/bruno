@@ -5,7 +5,7 @@ import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-c
 import {
   collectCollectionExamples,
   getMockResponseNameError,
-  getMockResponseNameLengthError,
+  getMockResponseNameInputError,
   getMockResponseDescriptionError,
   isMockResponseNameTaken
 } from 'utils/mock-server/mock-responses';
@@ -23,7 +23,7 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
   const [description, setDescription] = useState('');
   const [statusCode, setStatusCode] = useState(200);
   const [bodyType, setBodyType] = useState('json');
-  const [nameError, setNameError] = useState('');
+  const [submitError, setSubmitError] = useState('');
   const [exampleError, setExampleError] = useState('');
   const [useExample, setUseExample] = useState(false);
   const [selectedExampleKey, setSelectedExampleKey] = useState('');
@@ -44,9 +44,16 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
   // A picked example owns the response shape, so its values drive the (disabled) fields
   const linkedExample = useExample ? selectedExample : null;
   const nameValue = name || linkedExample?.example?.name || '';
+  const trimmedName = nameValue.trim();
   const statusValue = Number(linkedExample?.example?.response?.status) || statusCode;
   const bodyTypeValue = linkedExample?.example?.response?.body?.type || bodyType;
   const descriptionError = getMockResponseDescriptionError(description);
+
+  const inputNameError = getMockResponseNameInputError(nameValue)
+    || (trimmedName && isMockResponseNameTaken(existingResponses, trimmedName)
+      ? 'A mock response with this name already exists'
+      : null);
+  const nameError = inputNameError || submitError;
 
   useEffect(() => {
     if (nameInputRef.current) {
@@ -55,16 +62,14 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
   }, []);
 
   const handleConfirm = async () => {
-    const trimmedName = nameValue.trim();
-
     const validationError = getMockResponseNameError(trimmedName);
     if (validationError) {
-      setNameError(validationError);
+      setSubmitError(validationError);
       return;
     }
 
     if (isMockResponseNameTaken(existingResponses, trimmedName)) {
-      setNameError('A mock response with this name already exists');
+      setSubmitError('A mock response with this name already exists');
       return;
     }
 
@@ -98,7 +103,7 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
         size="md"
         title="Create Mock Response"
         confirmText={isSaving ? 'Creating...' : 'Create'}
-        confirmDisabled={isSaving}
+        confirmDisabled={isSaving || !trimmedName || Boolean(inputNameError) || Boolean(descriptionError)}
         handleConfirm={handleConfirm}
         handleCancel={() => {
           if (!isSaving) {
@@ -124,7 +129,7 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
               value={nameValue}
               onChange={(event) => {
                 setName(event.target.value);
-                setNameError(getMockResponseNameLengthError(event.target.value) || '');
+                setSubmitError('');
               }}
               data-testid="mock-response-create-name-input"
             />

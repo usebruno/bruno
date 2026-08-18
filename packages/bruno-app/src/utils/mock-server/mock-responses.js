@@ -5,32 +5,15 @@ import {
   getGlobalEnvironmentVariablesMasked
 } from 'utils/collections';
 import { resolveMockServerWorkspacePath } from 'utils/mock-server/mock-server-instances';
+import { validateName, validateNameError } from 'utils/common/regex';
 import { extractMockRoutePath, getMockResponseRouteKey } from '@usebruno/common/utils';
 
 export { extractMockRoutePath as extractMockResponseRoutePath, getMockResponseRouteKey };
 
-export const resolveMockResponseLocation = (
-  instance,
-  collection,
-  collections = [],
-  workspaces = [],
-  activeWorkspace = null
-) => {
-  let collectionPath = null;
-
-  if (instance?.sourceType === 'collection') {
-    collectionPath = collection?.pathname
-      || collections.find((item) => item.uid === instance.collectionUid)?.pathname
-      || null;
-  }
-
-  return {
-    mockServerUid: instance.uid,
-    sourceType: instance.sourceType,
-    collectionPath,
-    workspacePath: resolveMockServerWorkspacePath(instance, workspaces, activeWorkspace)
-  };
-};
+export const resolveMockResponseLocation = (instance, workspaces = [], activeWorkspace = null) => ({
+  mockServerUid: instance.uid,
+  workspacePath: resolveMockServerWorkspacePath(instance, workspaces, activeWorkspace)
+});
 
 export const copyExampleToMockResponse = (example, parentRequest) => ({
   name: `${example.name || 'Example'} (mock)`,
@@ -61,7 +44,7 @@ export const copyExampleToMockResponse = (example, parentRequest) => ({
   }
 });
 
-const mergeMockResponsesByRouteKey = (existingResponses = [], nextResponses = [], { keepExistingName = false, ensureUid = false } = {}) => {
+const mergeMockResponsesByRouteKey = (existingResponses = [], nextResponses = [], { keepExistingName = false } = {}) => {
   const responses = [...existingResponses];
   const indexByRouteKey = new Map(
     responses.map((response, index) => [getMockResponseRouteKey(response), index])
@@ -82,11 +65,8 @@ const mergeMockResponsesByRouteKey = (existingResponses = [], nextResponses = []
       continue;
     }
 
-    const toPush = ensureUid && !nextResponse.uid
-      ? { ...nextResponse, uid: uuid() }
-      : nextResponse;
     indexByRouteKey.set(routeKey, responses.length);
-    responses.push(toPush);
+    responses.push(nextResponse);
   }
 
   return responses;
@@ -96,16 +76,113 @@ export const syncMockResponsesFromExamples = (existingResponses = [], exampleEnt
   mergeMockResponsesByRouteKey(
     existingResponses,
     exampleEntries.map(({ item, example }) => copyExampleToMockResponse(example, item)),
-    { keepExistingName: false, ensureUid: true }
+    { keepExistingName: false }
   )
 );
 
 export const syncMockResponsesFromSpec = (existingResponses = [], specResponses = []) => (
   mergeMockResponsesByRouteKey(existingResponses, specResponses, {
-    keepExistingName: true,
-    ensureUid: false
+    keepExistingName: true
   })
 );
+
+// Mirrors the main process rule matcher's path semantics: `$.a.b` walks
+// dot-separated object keys.
+const setJsonPathValue = (target, jsonPath, value) => {
+  const segments = String(jsonPath || '').replace(/^\$\.?/, '').split('.').filter(Boolean);
+
+  if (!segments.length) {
+    return;
+  }
+
+  let current = target;
+  segments.slice(0, -1).forEach((segment) => {
+    if (typeof current[segment] !== 'object' || current[segment] === null) {
+      current[segment] = {};
+    }
+    current = current[segment];
+  });
+
+  current[segments[segments.length - 1]] = value;
+};
+
+// Expand common tokens into a literal the matcher will accept.
+// Unrecognized patterns fall through to the raw value in demoValueForMatches.
+const buildRegexSample = (pattern) => String(pattern)
+  .replace(/^\^|\$$/g, '')
+  .replace(/\\d(?:\{(\d+)\})?/g, (_, n) => '1'.repeat(Number(n) || 1))
+  .replace(/\\(.)/g, '$1')
+  .replace(/\(([^)|]*)(?:\|[^)]*)?\)/g, '$1')
+  .replace(/\[([^\]]+)\](?:\{(\d+)\})?/g, (_, chars, n) => (
+    (chars.startsWith('^') ? 'a' : chars[0]).repeat(Number(n) || 1)
+  ))
+  .replace(/[?*+]/g, '');
+
+// The stored value of a 'matches' rule is a regex pattern, which usually does
+// not satisfy itself, generate a sample the matcher will accept.
+const demoValueForMatches = (pattern) => {
+  let regex;
+  try {
+    regex = new RegExp(pattern);
+  } catch {
+    return pattern;
+  }
+
+  for (const candidate of [buildRegexSample(pattern), pattern]) {
+    if (regex.test(candidate)) {
+      return candidate;
+    }
+  }
+
+  return pattern;
+};
+
+// 'not_equals' matches anything except the value; an empty sample keeps the demo readable.
+const demoValueForCondition = (condition) => {
+  if (condition.operator === 'not_equals') {
+    return '';
+  }
+
+  if (condition.operator === 'matches') {
+    return demoValueForMatches(condition.value || '');
+  }
+
+  return condition.value || '';
+};
+
+// Builds a request that satisfies the response's rules: header/query conditions
+// become headers/params and body conditions build a JSON body from their $.paths.
+// This is what the Demo Request tab shows and what Try sends.
+export const buildDemoRequestFromRules = (request, rules) => {
+  const conditions = (rules?.conditions || []).filter((condition) => condition?.key);
+
+  const headers = conditions
+    .filter((condition) => condition.target === 'header')
+    .map((condition) => ({ name: condition.key, value: demoValueForCondition(condition), enabled: true }));
+
+  const params = conditions
+    .filter((condition) => condition.target === 'query')
+    .map((condition) => ({ name: condition.key, value: demoValueForCondition(condition), type: 'query', enabled: true }));
+
+  const bodyConditions = conditions.filter((condition) => condition.target === 'body');
+  let body = null;
+  if (bodyConditions.length) {
+    const bodyObject = {};
+    bodyConditions.forEach((condition) => setJsonPathValue(bodyObject, condition.key, demoValueForCondition(condition)));
+    body = { mode: 'json', content: JSON.stringify(bodyObject, null, 2) };
+    if (body?.mode === 'json' && body?.content) {
+      body.json = JSON.parse(body.content);
+    }
+  }
+
+  return {
+    url: extractMockRoutePath(request?.url || '/'),
+    method: (request?.method || 'GET').toUpperCase(),
+    headers,
+    params,
+    body
+  };
+};
 
 export const buildMockServerTryUrl = ({
   port,
@@ -144,13 +221,13 @@ export const buildMockServerTryRequest = ({
   const body = request?.body;
   let requestBody = null;
 
-  if (body?.mode === 'json' && body.content) {
-    requestBody = body.content;
+  if (body?.mode === 'json' && body.json) {
+    requestBody = body.json;
     if (!headers['Content-Type'] && !headers['content-type']) {
       headers['Content-Type'] = 'application/json';
     }
-  } else if (body?.mode === 'text' && body.content) {
-    requestBody = body.content;
+  } else if (body?.mode === 'text' && body.text) {
+    requestBody = body.text;
     if (!headers['Content-Type'] && !headers['content-type']) {
       headers['Content-Type'] = 'text/plain';
     }
@@ -230,24 +307,24 @@ export const MOCK_RESPONSE_NAME_MAX_LENGTH = 255;
 
 export const MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH = 1000;
 
-export const getMockResponseNameLengthError = (name) => {
+export const getMockResponseNameError = (name) => {
   const value = name == null ? '' : String(name).trim();
 
-  if (value.length > MOCK_RESPONSE_NAME_MAX_LENGTH) {
-    return `Name must be ${MOCK_RESPONSE_NAME_MAX_LENGTH} characters or less`;
+  if (!validateName(value)) {
+    return validateNameError(value);
   }
 
   return null;
 };
 
-export const getMockResponseNameError = (name) => {
+export const getMockResponseNameInputError = (name) => {
   const value = name == null ? '' : String(name).trim();
 
   if (!value) {
-    return 'Mock response name is required';
+    return null;
   }
 
-  return getMockResponseNameLengthError(value);
+  return getMockResponseNameError(value);
 };
 
 export const getMockResponseDescriptionError = (description) => {
@@ -273,7 +350,7 @@ export const isMockResponseNameTaken = (responses = [], name, excludeUid = null)
 
 export const cloneMockResponseRecord = (response, { name } = {}) => {
   const cloned = JSON.parse(JSON.stringify(response));
-  cloned.uid = uuid();
+  delete cloned.uid;
   cloned.name = name || `${response.name || 'Mock Response'} copy`;
 
   if (Array.isArray(cloned.response?.headers)) {
@@ -366,6 +443,8 @@ export const buildMockRouteTable = (responses = []) => {
       `${left.method} ${left.path}`.localeCompare(`${right.method} ${right.path}`)
     ));
 };
+
+export const countMockRoutes = (responses = []) => buildMockRouteTable(responses).length;
 
 export const countMatchedRouteHits = (entries = []) => {
   const hitCounts = {};
