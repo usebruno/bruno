@@ -14,9 +14,11 @@ import {
 type EnvironmentScope = 'global' | 'collection';
 
 const openEnvironment = async (page: Page, scope: EnvironmentScope) => {
-  await buildCommonLocators(page).sidebar.collection('reference-types').click();
+  const locators = buildCommonLocators(page);
+  await locators.sidebar.collection('reference-types').click();
   await selectEnvironment(page, `${scope}-environment`, scope);
   await openEnvironmentConfigTab(page, scope);
+  await expect(locators.environment.varRows().first()).toBeVisible();
 };
 
 const mismatchIcon = async (page: Page, name: string) => {

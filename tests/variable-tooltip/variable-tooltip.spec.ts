@@ -61,6 +61,7 @@ test.describe('Variable Tooltip', () => {
 
     await test.step('Test secret variable with toggle', async () => {
       await page.mouse.move(0, 0);
+      await expect(varInfoPopup.all()).toHaveCount(0);
 
       await selectRequestPaneTab(page, 'Headers');
 
@@ -639,7 +640,7 @@ test.describe('Variable Tooltip - Global Secret Variables', () => {
         });
 
         await environment.saveAll().click();
-        await closeEnvironmentPanel(page);
+        await closeEnvironmentPanel(page, 'global');
       });
 
       await test.step('Reference the global secret in a request URL', async () => {
