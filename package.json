@@ -27,7 +27,7 @@
     "@playwright/test": "^1.51.1",
     "@rollup/plugin-json": "^6.1.0",
     "@storybook/addon-docs": "^10.1.10",
-    "@storybook/addon-webpack5-compiler-babel": "^4.0.0",
+    "@storybook/addon-webpack5-compiler-babel": "^4.0.1",
     "@storybook/builder-webpack5": "^10.1.10",
     "@storybook/react": "^10.1.10",
     "@storybook/react-webpack5": "^10.1.10",
