@@ -68,8 +68,8 @@ class GrpcScriptRuntime {
       requestUrl: request?.url
     });
 
-    // Initial scope - messages writable is disabled.
-    bru.grpc = { request: new BrunoGrpcRequest(request, { metadataWritable: true, messagesWritable: false }) };
+    // Initial scope - `request.messages` reports what the call sent, so it is still empty here.
+    bru.grpc = { request: new BrunoGrpcRequest(request, { metadataWritable: true }) };
 
     // extend bru with result getter methods
     const { __brunoTestResults, test } = createBruTestResultMethods(bru, assertionResults, chai);

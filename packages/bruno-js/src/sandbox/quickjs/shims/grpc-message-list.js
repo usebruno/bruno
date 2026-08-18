@@ -17,7 +17,6 @@ const addGrpcMessageListShimToContext = (vm, list, targetObject, objectPath) => 
     globalPath: `${objectPath}.messages`,
     syncReadMethods: ['count'],
     syncReadObjectMethods: ['get', 'all', 'toJSON'],
-    syncWriteMethods: ['set', 'add', 'prepend', 'delete', 'deleteAll'],
     withIterators: true
   });
 

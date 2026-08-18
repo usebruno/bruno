@@ -22,7 +22,7 @@ class BrunoGrpcResponse {
     this.#response = response;
     this.statusCode = response.statusCode;
     this.statusMessage = response.statusMessage;
-    this.messages = new GrpcMessageList(() => cloneDeep(this.#response.messages) || [], { writable: false });
+    this.messages = new GrpcMessageList(() => cloneDeep(this.#response.messages) || []);
     this.metadata = new GrpcMetadataList(() => toMetadataObject(this.#response.metadata), { writable: false });
     this.trailers = new GrpcMetadataList(() => toMetadataObject(this.#response.trailers), { writable: false });
     this.duration = response.duration;

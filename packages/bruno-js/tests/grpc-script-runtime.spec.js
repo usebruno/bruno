@@ -54,11 +54,11 @@ describe('GrpcScriptRuntime', () => {
       expect(result.request.headers).toEqual({ 'x-token': 'from-hook' });
     });
 
-    it('exposes the request scalars and the authored messages', async () => {
+    it('exposes the request scalars, with no messages sent yet', async () => {
       const script = `
         bru.setVar('method', bru.grpc.request.method);
         bru.setVar('methodType', bru.grpc.request.methodType);
-        bru.setVar('greeting', bru.grpc.request.messages.get().data.greeting);
+        bru.setVar('sentCount', bru.grpc.request.messages.count());
       `;
 
       const result = await runBeforeCallStart(script, makeRequest());
@@ -66,7 +66,7 @@ describe('GrpcScriptRuntime', () => {
       expect(result.runtimeVariables).toEqual({
         method: '/hello.HelloService/SayHello',
         methodType: 'unary',
-        greeting: 'hi'
+        sentCount: 0
       });
     });
 
@@ -93,15 +93,13 @@ describe('GrpcScriptRuntime', () => {
     it('attaches what the hook set before it threw to the error it re-throws', async () => {
       const script = `
         bru.setVar('ranBefore', true);
-        bru.grpc.request.messages.add({ greeting: 'late' });
+        throw new Error('hook exploded');
       `;
-      const request = makeRequest();
 
-      const error = await runBeforeCallStart(script, request).catch((e) => e);
+      const error = await runBeforeCallStart(script, makeRequest()).catch((e) => e);
 
-      expect(error.message).toContain('messages.add() is not available once the call has been sent');
+      expect(error.message).toContain('hook exploded');
       expect(error.partialResults.runtimeVariables).toEqual({ ranBefore: true });
-      expect(request.body.grpc).toHaveLength(1);
     });
 
     it('returns null for the variable scopes the hook did not touch', async () => {
@@ -118,14 +116,14 @@ describe('GrpcScriptRuntime', () => {
       const script = `
         bru.grpc.request.metadata.set('x-token', 'from-hook');
         bru.setVar('metadataCount', bru.grpc.request.metadata.count());
-        bru.setVar('greeting', bru.grpc.request.messages.get().data.greeting);
+        bru.setVar('sentCount', bru.grpc.request.messages.count());
       `;
       const request = makeRequest();
 
       const result = await runBeforeCallStart(script, request, 'quickjs');
 
       expect(result.request.headers).toEqual({ 'x-token': 'from-hook' });
-      expect(result.runtimeVariables).toEqual({ metadataCount: 1, greeting: 'hi' });
+      expect(result.runtimeVariables).toEqual({ metadataCount: 1, sentCount: 0 });
     });
   });
 
@@ -171,10 +169,9 @@ describe('GrpcScriptRuntime', () => {
       expect(result.runtimeVariables).toEqual({ count: 1, greeting: 'hi' });
     });
 
-    it('rejects every write once the call has ended', async () => {
+    it('rejects every metadata write once the call has ended', async () => {
       const script = `
         try { bru.grpc.request.metadata.set('x-token', 'too-late'); } catch (e) { bru.setVar('requestMetadata', e.message); }
-        try { bru.grpc.request.messages.add({}); } catch (e) { bru.setVar('requestMessages', e.message); }
         try { bru.grpc.response.trailers.delete('grpc-status'); } catch (e) { bru.setVar('responseTrailers', e.message); }
       `;
       const request = makeRequest();
@@ -182,7 +179,6 @@ describe('GrpcScriptRuntime', () => {
       const result = await runAfterCallEnd(script, request, makeResponse());
 
       expect(result.runtimeVariables.requestMetadata).toContain('metadata.set() is not available');
-      expect(result.runtimeVariables.requestMessages).toContain('messages.add() is not available');
       expect(result.runtimeVariables.responseTrailers).toContain('metadata.delete() is not available');
       expect(request.headers).toEqual({ 'X-Token': 'authored' });
     });
