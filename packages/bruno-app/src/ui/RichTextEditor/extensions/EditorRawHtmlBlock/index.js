@@ -7,8 +7,9 @@ const RAW_HTML_INLINE_ATTR = 'data-raw-html-inline';
 const TEXT_BLOCK_TAG_ATTR = 'data-raw-html-text-block';
 const ORIGINAL_HTML_ATTR = 'data-raw-html-original';
 
-// We forbid <style> in DOMPurify to prevent untrusted docs from injecting CSS that affects the whole app UI.
-const SANITIZE_CONFIG = { FORBID_TAGS: ['style'] };
+// We forbid <style> and the style attribute in DOMPurify to prevent untrusted docs from injecting CSS
+// (e.g. position:fixed;width:100vw;height:100vh) that affects the whole app UI.
+const SANITIZE_CONFIG = { FORBID_TAGS: ['style'], FORBID_ATTR: ['style'] };
 
 // A standalone <br/> marks an empty paragraph; treating it as a hard break ensures blank lines remain editable paragraphs.
 const BLANK_LINE_MARKER_PATTERN = /^<br\s*\/?>$/i;
@@ -50,6 +51,9 @@ const NON_TEXT_BLOCK_TAGS = new Set([
 ]);
 
 const escapeHtmlText = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// Mimics ProseMirror's whitespace collapse to correct the original bytes for the "unedited" comparison below.
+const normalizeWhitespace = (text) => text.replace(/\s+/g, ' ').trim();
 
 const escapeHtmlAttrValue = (value) => escapeHtmlText(value).replace(/"/g, '&quot;');
 
@@ -349,8 +353,10 @@ export const EditorRawHtmlTextBlock = Node.create({
             inner += child.type.name === 'hardBreak' ? '<br>' : escapeHtmlText(child.text || '');
           });
 
+          // Normalizes only the original to offset parse-time whitespace collapse; comparing against unmodified 'inner' ensures real edits remain detectable.
           const originalElement = originalHtml ? parseSimpleTextBlockElement(originalHtml) : null;
-          const isUnedited = originalElement && serializeTextBlockContent(originalElement) === inner;
+          const isUnedited = originalElement
+            && normalizeWhitespace(serializeTextBlockContent(originalElement)) === inner;
 
           state.write(isUnedited ? originalHtml : `<${tag}${buildAttrString(htmlAttrs)}>${inner}</${tag}>`);
           state.closeBlock(node);

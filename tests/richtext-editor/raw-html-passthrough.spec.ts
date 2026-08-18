@@ -171,4 +171,40 @@ test.describe('Rich Text Editor Edge Cases - Raw HTML Passthrough', () => {
       expect(roundTripped).toContain('After the block.');
     });
   });
+
+  const LIST_ITEM_RAW_HTML_SOURCE = [
+    '- <div class="callout">Raw HTML alone in a list item</div>',
+    `- <video controls width="320" src="${VIDEO_SRC}"/>`,
+    '- A normal list item'
+  ].join('\n');
+
+  test('A raw HTML block that is the sole content of a list item stays nested in that item', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-list-item-raw-html');
+
+    await setMarkdownSource(locators, LIST_ITEM_RAW_HTML_SOURCE);
+
+    await test.step('Rich Text keeps every item, including the raw-HTML ones, inside the list', async () => {
+      await locators.docs.modeSwitchDocs().click();
+      const prosemirror = locators.docs.proseMirror();
+      await expect(prosemirror).toBeVisible();
+
+      // Before the fix, a list item whose only content was a raw HTML block
+      // failed to satisfy the schema's leading-paragraph requirement and was
+      // ejected as a sibling after the whole list, leaving an empty item behind.
+      const listItems = prosemirror.locator('ul > li');
+      await expect(listItems).toHaveCount(3);
+
+      await expect(listItems.nth(0).locator('div.callout')).toHaveText('Raw HTML alone in a list item');
+      await expect(listItems.nth(1).locator('.editor-raw-html-block video')).toHaveAttribute('src', VIDEO_SRC);
+      await expect(listItems.nth(2)).toHaveText('A normal list item');
+    });
+
+    await test.step('Switching back to Markdown round-trips every item, none dropped outside the list', async () => {
+      const roundTripped = await getMarkdownSource(locators);
+
+      expect(roundTripped).toContain('- <div class="callout">Raw HTML alone in a list item</div>');
+      expect(roundTripped).toContain(`src="${VIDEO_SRC}"`);
+      expect(roundTripped).toContain('- A normal list item');
+    });
+  });
 });

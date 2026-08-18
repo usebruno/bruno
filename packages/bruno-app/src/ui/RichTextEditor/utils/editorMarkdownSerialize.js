@@ -44,6 +44,19 @@ const flattenListItemParagraphs = (listNode) => {
   return entries;
 };
 
+// Safely inlines plain paragraphs; returns true if handled, or false to preserve custom tags/attrs via state.render fallback.
+const renderInlineParagraph = (state, block) => {
+  if (!block.isTextblock || block.type.name !== 'paragraph') {
+    return false;
+  }
+
+  if (block.textContent.length || block.content.size > 0) {
+    state.renderInline(block);
+  }
+
+  return true;
+};
+
 const serializeFlattenedEntryContent = (state, entry) => {
   state.inListItem = true;
 
@@ -57,10 +70,7 @@ const serializeFlattenedEntryContent = (state, entry) => {
       state.write('\n');
     }
 
-    if (block.isTextblock) {
-      if (block.textContent.length || block.content.size > 0) {
-        state.renderInline(block);
-      }
+    if (renderInlineParagraph(state, block)) {
       return;
     }
 
@@ -150,10 +160,7 @@ const serializeInlineBlocks = (state, parent, separator = '<br/>') => {
 
     first = false;
 
-    if (block.isTextblock) {
-      if (block.textContent.length || block.content.size > 0) {
-        state.renderInline(block);
-      }
+    if (renderInlineParagraph(state, block)) {
       return;
     }
 

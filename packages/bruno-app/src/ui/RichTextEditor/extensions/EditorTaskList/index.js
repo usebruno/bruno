@@ -51,6 +51,8 @@ const EditorOrderedList = OrderedList.extend({
 });
 
 const EditorListItem = ListItem.extend({
+  // Allows any block to prevent ProseMirror from ejecting non-paragraph content (e.g. HTML blocks) out of the list.
+  content: 'block+',
   parseHTML() {
     return [
       {
@@ -101,6 +103,9 @@ const EditorTaskList = TaskList.extend({
 });
 
 const EditorTaskItem = TaskItem.extend({
+  // See EditorListItem: 'block+' lets a task item's only content be a non-paragraph block
+  // without ProseMirror ejecting it from the item during parsing.
+  content: 'block+',
   parseHTML() {
     return [
       {

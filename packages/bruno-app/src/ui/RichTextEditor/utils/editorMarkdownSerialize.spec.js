@@ -601,5 +601,128 @@ describe('Editor markdown serialization', () => {
       expect(inserted).toBe(true);
       expect(getMarkdown(editor)).toBe('<div class="note">Line one<br><br>Line two</div>');
     });
+
+    it('preserves tag and attributes for a text block nested inside a list item', () => {
+      editor = createFullEditor('');
+      editor.commands.setContent({
+        type: 'doc',
+        content: [
+          {
+            type: 'bulletList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'rawHtmlTextBlock',
+                    attrs: { tag: 'div', htmlAttrs: { class: 'note' }, originalHtml: null },
+                    content: [{ type: 'text', text: 'plain text' }]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      });
+
+      expect(getMarkdown(editor)).toBe('- <div class="note">plain text</div>');
+    });
+
+    it('preserves tag and attributes for a text block nested inside a table cell', () => {
+      editor = createFullEditor('');
+      editor.commands.setContent({
+        type: 'doc',
+        content: [
+          {
+            type: 'table',
+            content: [
+              {
+                type: 'tableRow',
+                content: [
+                  { type: 'tableHeader', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'h' }] }] }
+                ]
+              },
+              {
+                type: 'tableRow',
+                content: [
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'rawHtmlTextBlock',
+                        attrs: { tag: 'div', htmlAttrs: { class: 'note' }, originalHtml: null },
+                        content: [{ type: 'text', text: 'cell text' }]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      });
+
+      expect(getMarkdown(editor)).toContain('<div class="note">cell text</div>');
+    });
+
+    it('preserves an unedited multi-line legacy block byte-for-byte instead of collapsing its whitespace', () => {
+      const legacySource = 'Before.\n\n<div class="note">Line one\nLine two</div>\n\nAfter.';
+      editor = createFullEditor(legacySource);
+
+      expect(getMarkdown(editor)).toBe(legacySource);
+    });
+
+    it('reflects a whitespace-only edit instead of silently keeping the stale original bytes', () => {
+      const legacySource = '<div class="note">Line one\nLine two</div>';
+      editor = createFullEditor(legacySource);
+
+      let textBlockPos = null;
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === 'rawHtmlTextBlock') {
+          textBlockPos = pos;
+        }
+      });
+
+      // A real keystroke inserts text via a plain transaction, not insertContentAt's content
+      // parsing (which would re-collapse a lone space before it ever reaches the document).
+      const insertAt = textBlockPos + 1 + 'Line one'.length;
+      editor.view.dispatch(editor.state.tr.insertText(' ', insertAt));
+
+      expect(getMarkdown(editor)).toBe('<div class="note">Line one  Line two</div>');
+    });
+
+    it('keeps a whitespace-significant <pre> block opaque instead of promoting it to an editable text block', () => {
+      const source = 'Before.\n\n<pre>line one\nline two</pre>\n\nAfter.';
+      editor = createFullEditor(source);
+
+      let rawHtmlBlockCount = 0;
+      let rawHtmlTextBlockCount = 0;
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'rawHtmlBlock') rawHtmlBlockCount += 1;
+        if (node.type.name === 'rawHtmlTextBlock') rawHtmlTextBlockCount += 1;
+      });
+
+      expect(rawHtmlBlockCount).toBe(1);
+      expect(rawHtmlTextBlockCount).toBe(0);
+      expect(getMarkdown(editor)).toBe(source);
+    });
+
+    it('strips a style attribute that could render a full-viewport overlay', () => {
+      editor = createFullEditor(
+        '<div style="position:fixed;width:100vw;height:100vh;z-index:99999" class="note">gotcha</div>'
+      );
+
+      let textBlockNode = null;
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'rawHtmlTextBlock') {
+          textBlockNode = node;
+        }
+      });
+
+      expect(textBlockNode).not.toBeNull();
+      expect(textBlockNode.attrs.htmlAttrs).not.toHaveProperty('style');
+      expect(textBlockNode.attrs.htmlAttrs).toEqual({ class: 'note' });
+      expect(editor.getHTML()).not.toContain('style=');
+    });
   });
 });

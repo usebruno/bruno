@@ -7,6 +7,8 @@ const StyledWrapper = styled.div`
     min-height: 0;
     overflow-y: auto;
     position: relative;
+    /* Uses paint containment to prevent untrusted raw HTML from using fixed/absolute positioning to escape the panel bounds. */
+    contain: paint;
   }
 
   .tiptap {
