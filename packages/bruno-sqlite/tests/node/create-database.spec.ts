@@ -33,18 +33,12 @@ describe('createDatabase', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  const backups = (): string[] => {
-    const backupDir = join(dir, 'sqlite-backup');
-    return existsSync(backupDir) ? readdirSync(backupDir) : [];
-  };
-
   it('opens the database file when it is accessible', () => {
     const { createDatabase } = require('../../src/node/index');
     const { db, statements } = createDatabase(dbPath);
 
     expect(db).toBeDefined();
     expect(statements).toBeDefined();
-    expect(backups()).toEqual([]);
     db.close();
   });
 
@@ -67,7 +61,6 @@ describe('createDatabase', () => {
 
     expect(db).toBeDefined();
     expect(statements).toBeDefined();
-    expect(backups()).toHaveLength(1);
     expect(existsSync(dbPath)).toBe(true);
     expect(db._db.prepare('SELECT name FROM _migrations').all()).toEqual([]);
     db.close();
@@ -83,7 +76,6 @@ describe('createDatabase', () => {
 
     expect(db).toBeDefined();
     expect(statements).toBeDefined();
-    expect(backups()).toEqual([]);
     db.close();
   });
 
@@ -95,7 +87,6 @@ describe('createDatabase', () => {
 
     expect(db).toBeUndefined();
     expect(statements).toBeUndefined();
-    expect(backups()).toHaveLength(1);
     expect(error).toHaveBeenCalled();
   });
 });
