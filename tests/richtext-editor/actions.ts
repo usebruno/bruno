@@ -85,6 +85,18 @@ export const getMarkdownSource = async (locators: DocsLocators): Promise<string>
   return codeEditor.evaluate((el) => (el.closest('.CodeMirror') as any).CodeMirror.getValue());
 };
 
+// Dispatches a synthetic clipboard paste event (plain text) to the Rich Text editor since Playwright has no OS clipboard.
+export const pasteIntoRichTextEditor = async (locators: DocsLocators, text: string) => {
+  const prosemirror = locators.docs.proseMirror();
+  await expect(prosemirror).toBeVisible();
+  await prosemirror.click();
+  await prosemirror.evaluate((el, pastedText) => {
+    const dataTransfer = new DataTransfer();
+    dataTransfer.setData('text/plain', pastedText);
+    el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dataTransfer, bubbles: true, cancelable: true }));
+  }, text);
+};
+
 export const clickDocsToolbarBtn = async (locators: DocsLocators, label: string) => {
   const btn = locators.docs.toolbarBtn(label);
   const overflowMenuTrigger = locators.docs.overflowMenuTrigger();
