@@ -40,6 +40,7 @@ class Bru {
     folderVariables,
     requestVariables,
     globalEnvironmentVariables,
+    globalEnvironmentName,
     oauth2CredentialVariables,
     collectionName,
     promptVariables,
@@ -54,6 +55,7 @@ class Bru {
     this.folderVariables = folderVariables || {};
     this.requestVariables = requestVariables || {};
     this.globalEnvironmentVariables = globalEnvironmentVariables || {};
+    this.globalEnvironmentName = globalEnvironmentName;
     this.oauth2CredentialVariables = oauth2CredentialVariables || {};
     this.collectionPath = collectionPath;
     this.collectionName = collectionName;
@@ -183,6 +185,10 @@ class Bru {
     return this.envVariables.__name__;
   }
 
+  getGlobalEnvName() {
+    return this.globalEnvironmentName;
+  }
+
   getProcessEnv(key) {
     return this.processEnvVars[key];
   }
@@ -261,6 +267,7 @@ class Bru {
   }
 
   deleteGlobalEnvVar(key) {
+    if (key === '__name__') return;
     if (Object.hasOwn(this.globalEnvironmentVariables, key)) {
       delete this.globalEnvironmentVariables[key];
       this._globalEnvDirty = true;
@@ -268,16 +275,21 @@ class Bru {
   }
 
   getAllGlobalEnvVars() {
-    return Object.assign({}, this.globalEnvironmentVariables);
+    const vars = Object.assign({}, this.globalEnvironmentVariables);
+    delete vars.__name__;
+    return vars;
   }
 
   deleteAllGlobalEnvVars() {
     const keys = Object.keys(this.globalEnvironmentVariables);
     if (!keys.length) return;
+    let removed = false;
     for (const key of keys) {
+      if (key === '__name__') continue;
       delete this.globalEnvironmentVariables[key];
+      removed = true;
     }
-    this._globalEnvDirty = true;
+    if (removed) this._globalEnvDirty = true;
   }
 
   getOauth2CredentialVar(key) {
