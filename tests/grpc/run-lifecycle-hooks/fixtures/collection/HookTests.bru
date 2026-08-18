@@ -46,6 +46,11 @@ script:grpc:before-call-start {
     expect(bru.grpc.request.metadata.one('x-keep')).to.eql({ key: 'x-keep', value: 'kept-value' });
   });
 
+  // `messages` always reports what the call sent, and the call has yet to send anything.
+  test('no messages have been sent when the hook runs', () => {
+    expect(bru.grpc.request.messages.count()).to.equal(0);
+  });
+
   test('metadata can be changed before the call starts', () => {
     bru.grpc.request.metadata.delete('x-remove');
     bru.grpc.request.metadata.set('x-hook', 'set-by-hook');
