@@ -52,9 +52,10 @@ const renderInlineParagraph = (state, block) => {
 
   if (block.textContent.length || block.content.size > 0) {
     state.renderInline(block);
+    return true;
   }
 
-  return true;
+  return false;
 };
 
 const serializeFlattenedEntryContent = (state, entry) => {
