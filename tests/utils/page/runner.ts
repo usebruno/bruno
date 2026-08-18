@@ -1,5 +1,5 @@
 import { Page, expect, test } from '../../../playwright';
-import { buildSandboxLocators } from './locators';
+import { buildCommonLocators, buildSandboxLocators } from './locators';
 
 /**
  * Builds locators for the runner results view
@@ -23,7 +23,8 @@ export const buildRunnerLocators = (page: Page) => ({
   delayInput: () => page.getByTestId('runner-delay-input'),
   resultItems: () => page.getByTestId('runner-result-item'),
   requestLoader: () => page.getByTestId('runner-result-item').locator('.animate-spin'),
-  requestStatusLabel: () => page.getByTestId('runner-iteration-status-label')
+  requestStatusLabel: () => page.getByTestId('runner-iteration-status-label'),
+  resultTimelineEntries: () => page.getByTestId('timeline-entry')
 });
 
 /**
@@ -123,6 +124,23 @@ export const runCollection = async (page: Page, collectionName: string) => {
 
     // Wait for the run to complete
     await locators.runAgainButton().waitFor({ timeout: 2 * 60 * 1000 });
+  });
+};
+
+export const openRunnerResultTimeline = async (page: Page, requestName: string) => {
+  await test.step(`Open the "${requestName}" runner result on its Timeline tab`, async () => {
+    const locators = buildRunnerLocators(page);
+    const result = locators.resultItems().filter({ hasText: requestName });
+    await result.first().waitFor({ state: 'visible', timeout: 10000 });
+    await result.locator('.link').first().click();
+
+    const timelineTab = page.locator('[role="tab"]').filter({ hasText: 'Timeline' }).last();
+    await timelineTab.click();
+
+    const { timeline } = buildCommonLocators(page);
+    const entry = locators.resultTimelineEntries().first();
+    await entry.waitFor({ state: 'visible', timeout: 10000 });
+    await timeline.itemHeader(entry).click();
   });
 };
 
