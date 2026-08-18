@@ -44,12 +44,20 @@ const DocsEditor = ({
   const lastEmittedDocsRef = useRef(DOCS_NOT_YET_EMITTED);
   const isMarkdownModeRef = useRef(isMarkdownMode);
   const isEditingRef = useRef(isEditing);
-  // Plain assignment during render — these refs exist only so the onUpdate
-  // closure below can read the latest mode/editing flags without being
-  // recreated on every change; there's no external system to synchronize
-  // with, so an effect would just add an unnecessary extra render pass.
+  const onSaveRef = useRef(onSave);
+  // Plain assignment during render — these refs exist only so the onUpdate/
+  // handleKeyDown closures below can read the latest mode/editing flags and
+  // onSave without being recreated on every change; there's no external
+  // system to synchronize with, so an effect would just add an unnecessary
+  // extra render pass. onSave specifically needs this because useEditor's
+  // options (including editorProps.handleKeyDown) are only synced into the
+  // live editor when a dep in [collectionPath] changes — a re-render driven
+  // by the parent handing down a new onSave (e.g. after an edit updates its
+  // local docs state) does not, so a stale ref here would silently save
+  // pre-edit content on Ctrl+S.
   isMarkdownModeRef.current = isMarkdownMode;
   isEditingRef.current = isEditing;
+  onSaveRef.current = onSave;
 
   const editor = useEditor(
     {
@@ -71,7 +79,7 @@ const DocsEditor = ({
         handleKeyDown: (_view, event) => {
           if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
             event.preventDefault();
-            onSave();
+            onSaveRef.current();
             return true;
           }
           return false;

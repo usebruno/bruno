@@ -48,6 +48,18 @@ const getListItemCount = (editor, typeName = 'listItem') => {
   return count;
 };
 
+const getHardBreakCount = (editor) => {
+  let count = 0;
+
+  editor.state.doc.descendants((node) => {
+    if (node.type.name === 'hardBreak') {
+      count += 1;
+    }
+  });
+
+  return count;
+};
+
 describe('Editor markdown serialization', () => {
   let editor;
 
@@ -80,43 +92,50 @@ describe('Editor markdown serialization', () => {
     expect(getListItemCount(editor)).toBe(2);
   });
 
-  it('keeps multi-paragraph list items as a single markdown entry', () => {
+  it('keeps multi-paragraph list items as a single markdown entry, preserving the break on reparse', () => {
     editor = createEditor('<ul><li><p>one</p><p>two</p></li></ul>');
 
     const markdown = getMarkdown(editor);
 
-    expect(markdown).toMatch(/- one\n  two/);
+    // '  \n' (trailing double space) is CommonMark's hard-break syntax — the same one
+    // EditorHardBreak itself writes for an explicit in-list-item break — so this
+    // actually reparses as a break instead of a markdown softbreak, which would
+    // collapse to a single space and silently merge "one" and "two" into one word.
+    expect(markdown).toMatch(/- one {2}\n  two/);
 
     editor.commands.setContent(markdown);
 
     expect(getListItemCount(editor)).toBe(1);
     expect(getListItemParagraphCount(editor)).toBe(1); // TipTap parses soft breaks as hard breaks in a single paragraph
+    expect(getHardBreakCount(editor)).toBe(1);
   });
 
-  it('keeps multi-paragraph ordered list items as a single markdown entry', () => {
+  it('keeps multi-paragraph ordered list items as a single markdown entry, preserving the break on reparse', () => {
     editor = createEditor('<ol><li><p>first</p><p>second</p></li></ol>');
 
     const markdown = getMarkdown(editor);
 
-    expect(markdown).toMatch(/1\. first\n   second/);
+    expect(markdown).toMatch(/1\. first {2}\n   second/);
 
     editor.commands.setContent(markdown);
 
     expect(getListItemCount(editor)).toBe(1);
+    expect(getHardBreakCount(editor)).toBe(1);
   });
 
-  it('keeps multi-paragraph task items as a single markdown entry', () => {
+  it('keeps multi-paragraph task items as a single markdown entry, preserving the break on reparse', () => {
     editor = createEditor(
       '<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>todo one</p><p>todo two</p></li></ul>'
     );
 
     const markdown = getMarkdown(editor);
 
-    expect(markdown).toMatch(/- \[ \] todo one\n  todo two/);
+    expect(markdown).toMatch(/- \[ \] todo one {2}\n  todo two/);
 
     editor.commands.setContent(markdown);
 
     expect(getListItemCount(editor, 'taskItem')).toBe(1);
+    expect(getHardBreakCount(editor)).toBe(1);
   });
 
   it('serializes task lists using github-flavored checkbox syntax', () => {
@@ -394,6 +413,39 @@ describe('Editor markdown serialization', () => {
     expect(rawHtmlInlineCount).toBe(0);
     expect(taskItemCount).toBe(1);
     expect(getMarkdown(editor)).toMatch(/- \[ \] open/);
+  });
+
+  describe('table serialization', () => {
+    // A pasted list/blockquote/code block inside a cell is schema-legal (tableCell/tableHeader
+    // content is block+), but only arises via a real clipboard paste — markdown source can't
+    // produce it — so these use the DOM-parser paste path directly, like parsePastedHtml above.
+    const pasteHtml = (targetEditor, html) => {
+      const slice = parsePastedHtml(targetEditor, html);
+      targetEditor.view.dispatch(targetEditor.state.tr.replaceWith(0, targetEditor.state.doc.content.size, slice.content));
+    };
+
+    it('still uses GFM pipe-table syntax for a table with only inline cell content', () => {
+      editor = createEditor('');
+      pasteHtml(editor, '<table><tbody><tr><th>a</th><th>b</th></tr><tr><td>1</td><td>2</td></tr></tbody></table>');
+
+      expect(getMarkdown(editor)).toBe('| a | b |\n| --- | --- |\n| 1 | 2 |\n');
+    });
+
+    it('falls back to an HTML table instead of corrupting the row when a cell has block content', () => {
+      editor = createEditor('');
+      pasteHtml(
+        editor,
+        '<table><tbody><tr><th>a</th></tr><tr><td><ul><li>item one</li><li>item two</li></ul></td></tr></tbody></table>'
+      );
+
+      const markdown = getMarkdown(editor);
+
+      expect(markdown).toContain('<table');
+      expect(markdown).not.toMatch(/^\| /m);
+
+      editor.commands.setContent(markdown);
+      expect(getMarkdown(editor)).toBe(markdown);
+    });
   });
 
   describe('raw HTML text blocks', () => {

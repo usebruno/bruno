@@ -11,11 +11,18 @@ import DocsEditor from 'components/Documentation/DocsEditor';
 const Documentation = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { isEditing, setEditing } = useDocsEditingState();
-  const docs = folder.draft ? get(folder, 'draft.docs', '') : get(folder, 'root.docs', '');
-
   // Scroll tracking (both the rich-text preview/edit view and markdown mode's
   // CodeEditor) lives in DocsEditor itself; this just owns the persisted value.
-  const [scroll, setScroll] = usePersistedState({ key: `folder-docs-scroll-${folder.uid}`, default: 0 });
+  // Called unconditionally (with folder?.uid) so it runs on every render even
+  // when folder is momentarily falsy, keeping hook order stable — the actual
+  // null guard has to come after every hook call, not before.
+  const [scroll, setScroll] = usePersistedState({ key: `folder-docs-scroll-${folder?.uid}`, default: 0 });
+
+  if (!folder) {
+    return null;
+  }
+
+  const docs = folder.draft ? get(folder, 'draft.docs', '') : get(folder, 'root.docs', '');
 
   const toggleViewMode = () => {
     setEditing(!isEditing);
@@ -32,10 +39,6 @@ const Documentation = ({ collection, folder }) => {
   };
 
   const onSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
-
-  if (!folder) {
-    return null;
-  }
 
   return (
     <StyledWrapper className="h-full w-full relative flex flex-col">
