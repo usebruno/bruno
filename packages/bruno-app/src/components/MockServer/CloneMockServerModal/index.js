@@ -8,9 +8,11 @@ import Modal from 'components/Modal';
 import { loadMockResponses } from 'providers/ReduxStore/slices/mock-server/index';
 import {
   cloneMockServerInstancePayload,
+  checkMockServerPortAvailable,
   DEFAULT_MOCK_SERVER_PORT,
   getMockServerInstances,
   getMockServerNameError,
+  getMockServerPortError,
   isMockServerNameTaken,
   isMockServerPortTaken,
   openMockServerDashboard,
@@ -52,31 +54,48 @@ const CloneMockServerModal = ({
           !isMockServerNameTaken(existingInstances, value)
         )),
       port: Yup.number()
+        .typeError('Port is required')
+        .required('Port is required')
+        .integer('Port must be a whole number')
         .min(1, 'Port must be at least 1')
         .max(65535, 'Port must be 65535 or less')
-        .test('duplicate-port', 'This port is already used by another mock server', (value) => (
-          !isMockServerPortTaken(configuredInstances, value)
-        ))
+        .test('duplicate-port', 'This port is already used by another mock server', (value) => {
+          const normalizedPort = Number(value);
+          if (!normalizedPort) {
+            return true;
+          }
+
+          return !isMockServerPortTaken(configuredInstances, normalizedPort);
+        })
     }),
-    onSubmit: async (values) => {
+    onSubmit: async (values, { setFieldError }) => {
       if (!workspacePath) {
         toast.error('Workspace path is required to clone mock responses');
         return;
       }
 
+      const resolvedPort = Number(values.port);
+      const portCheck = await checkMockServerPortAvailable(resolvedPort, configuredInstances);
+      const portError = getMockServerPortError(portCheck, resolvedPort);
+      if (portError) {
+        setFieldError('port', portError);
+        toast.error(portError);
+        return;
+      }
+
       const newInstance = cloneMockServerInstancePayload(instance, {
         name: values.name.trim(),
-        port: Number(values.port),
+        port: resolvedPort,
         workspaceUid: activeWorkspaceUid
       });
 
       try {
-        await dispatch(saveMockServerInstance(newInstance));
+        const savedInstance = await dispatch(saveMockServerInstance(newInstance));
 
         const result = await window.ipcRenderer.invoke('renderer:mock-server-clone-responses', {
           workspacePath,
           sourceMockServerUid: instance.uid,
-          targetMockServerUid: newInstance.uid
+          targetMockServerUid: savedInstance.uid
         });
 
         if (!result.success) {
@@ -84,18 +103,18 @@ const CloneMockServerModal = ({
         }
 
         await dispatch(loadMockResponses({
-          mockServerUid: newInstance.uid,
+          mockServerUid: savedInstance.uid,
           workspacePath
         }));
 
         const tabCollectionUid = resolveTabCollectionUid({
-          sourceType: newInstance.sourceType,
-          collectionUid: newInstance.collectionUid,
+          sourceType: savedInstance.sourceType,
+          collectionUid: savedInstance.collectionUid,
           activeWorkspace,
           workspaceCollections
         });
 
-        dispatch(openMockServerDashboard(newInstance, tabCollectionUid));
+        dispatch(openMockServerDashboard(savedInstance, tabCollectionUid));
         toast.success('Mock server cloned');
         onClose();
       } catch (err) {

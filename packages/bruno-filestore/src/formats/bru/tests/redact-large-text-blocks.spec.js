@@ -169,6 +169,83 @@ body:json {
 }
 `;
 
+const appBru = `meta {
+  name: App Request
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com
+  body: none
+  auth: none
+}
+
+app {
+  enabled: true
+  code: '''
+    <div id="x">hi</div>
+    <style>
+    body {
+      color: red;
+    }
+    </style>
+    <script>
+      function go() {
+        return { ok: 1 };
+      }
+    </script>
+  '''
+}
+
+docs {
+  # Docs after the app block
+}
+`;
+
+const standaloneAppBru = `meta {
+  name: Dashboard
+  type: app
+  seq: 2
+}
+
+app {
+  code: '''
+    <div id="app">standalone</div>
+  '''
+}
+`;
+
+const appWithoutCodeBru = `meta {
+  name: No Code
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com
+  body: none
+  auth: none
+}
+
+app {
+  enabled: true
+}
+`;
+
+const appEmptyCodeBru = `meta {
+  name: Empty Code
+  type: http
+  seq: 1
+}
+
+app {
+  enabled: true
+  code: '''
+  '''
+}
+`;
+
 describe('redactLargeBruTextBlocks', () => {
   describe('matches a normal parse (ohm oracle)', () => {
     const requestCases = [
@@ -177,7 +254,12 @@ describe('redactLargeBruTextBlocks', () => {
       ['xml + sparql bodies', xmlSparqlBru],
       ['CRLF request', toCRLF(requestBru)],
       ['leading + trailing blank lines in body', blankLinesBru],
-      ['CRLF leading + trailing blank lines', toCRLF(blankLinesBru)]
+      ['CRLF leading + trailing blank lines', toCRLF(blankLinesBru)],
+      ['request-level app code', appBru],
+      ['CRLF request-level app code', toCRLF(appBru)],
+      ['standalone app item', standaloneAppBru],
+      ['app block without code', appWithoutCodeBru],
+      ['app block with an empty code value', appEmptyCodeBru]
     ];
 
     it.each(requestCases)('%s', (_name, content) => {
@@ -226,6 +308,22 @@ body:json {
     expect(bru.length).toBeGreaterThan(4 * 1024 * 1024);
     expect(skeleton.length).toBeLessThan(1024);
     expect(blocks[0].value).toContain(blob);
+  });
+
+  it('keeps huge app code out of the skeleton, pair and delimiters intact', () => {
+    const blob = 'x'.repeat(4 * 1024 * 1024);
+    const bru = appBru.replace('<div id="x">hi</div>', `<div>${blob}</div>`);
+
+    const { skeleton, blocks } = redactLargeBruTextBlocks(bru);
+    expect(skeleton.length).toBeLessThan(1024);
+    expect(skeleton).toMatch(/code: '''\n\s+__BRU_REDACTED_TEXT_BLOCK_\w+__\n\s+'''/);
+    expect(skeleton).toContain('enabled: true');
+    expect(blocks.some((block) => block.value.includes(blob))).toBe(true);
+  });
+
+  it('leaves an app block whose code has no value untouched', () => {
+    const { blocks } = redactLargeBruTextBlocks(appEmptyCodeBru);
+    expect(blocks).toEqual([]);
   });
 
   it('leaves dictionary body blocks untouched', () => {

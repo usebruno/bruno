@@ -4,7 +4,8 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "start": "node ."
+    "start": "node .",
+    "start:grpc": "node ./src/grpc/index.js"
   },
   "repository": {
     "type": "git",
@@ -18,6 +19,9 @@
   },
   "homepage": "https://github.com/usebruno/bruno-testbench#readme",
   "dependencies": {
+    "@grpc/grpc-js": "^1.14.4",
+    "@grpc/proto-loader": "^0.7.15",
+    "@grpc/reflection": "^1.0.4",
     "axios": "1.18.0",
     "body-parser": "2.2.1",
     "cookie-parser": "^1.4.6",

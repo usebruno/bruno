@@ -11,7 +11,10 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import { saveMockResponse, deleteMockResponse, loadMockResponses, startMockServer, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
 import { closeTabs, updateTabMeta, updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
-import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest, getMockResponseNameError, getMockResponseDescriptionError } from 'utils/mock-server/mock-responses';
+import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest, buildDemoRequestFromRules, buildMockServerTryUrl, getMockResponseNameError, getMockResponseDescriptionError } from 'utils/mock-server/mock-responses';
+import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sanitizeName } from 'utils/common/regex';
+import { flattenItems, isItemTransientRequest } from 'utils/collections';
 import {
   findMockServerInstance,
   resolveMockServerStartPayload,
@@ -25,7 +28,7 @@ import StyledWrapper from 'components/ResponseExample/StyledWrapper';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
-const MIN_TOP_PANE_HEIGHT = 150;
+const MIN_TOP_PANE_HEIGHT = 210;
 const MIN_BOTTOM_PANE_HEIGHT = 150;
 
 const MockResponse = ({ instance, collection, responseUid }) => {
@@ -77,8 +80,8 @@ const MockResponse = ({ instance, collection, responseUid }) => {
   ]);
 
   const location = useMemo(() => (
-    resolveMockResponseLocation(instance, resolvedCollection, collections, workspaces, activeWorkspace)
-  ), [instance, resolvedCollection, collections, workspaces, activeWorkspace]);
+    resolveMockResponseLocation(instance, workspaces, activeWorkspace)
+  ), [instance, workspaces, activeWorkspace]);
 
   const storedResponse = useMemo(() => (
     responses.find((item) => item.uid === responseUid) || null
@@ -120,7 +123,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     return () => {
       cancelled = true;
     };
-  }, [dispatch, location.mockServerUid, location.collectionPath, location.sourceType, location.workspacePath]);
+  }, [dispatch, location.mockServerUid, location.workspacePath]);
 
   useEffect(() => {
     if (!storedResponse) {
@@ -322,7 +325,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     try {
       const result = await tryMockResponseRequest({
         port: mockServerPort,
-        request: example.request
+        request: buildDemoRequestFromRules(example.request, editor.rules)
       });
 
       setTryState({ responseUid, result });
@@ -335,6 +338,64 @@ const MockResponse = ({ instance, collection, responseUid }) => {
       toast.error(err.message || 'Could not reach the mock server');
     } finally {
       setIsTrying(false);
+    }
+  };
+
+  const resolveTransientRequestName = (targetCollection, baseName) => {
+    const transientFilenames = new Set(
+      flattenItems(targetCollection.items)
+        .filter(isItemTransientRequest)
+        .map((request) => (request.filename || '').trim().toLowerCase())
+    );
+
+    let name = baseName;
+    let counter = 1;
+    while (transientFilenames.has(`${sanitizeName(name)}.${targetCollection.format || 'bru'}`.toLowerCase())) {
+      counter += 1;
+      name = `${baseName} ${counter}`;
+    }
+
+    return name;
+  };
+
+  const handleOpenAsRequest = async () => {
+    const example = item?.draft?.examples?.find((entry) => entry.uid === responseUid)
+      || item?.examples?.find((entry) => entry.uid === responseUid);
+
+    if (!example?.request?.url) {
+      toast.error('Set a request URL before opening it as a request');
+      return;
+    }
+
+    if (!resolvedCollection?.uid) {
+      toast.error('Open a collection in this workspace to create a request');
+      return;
+    }
+
+    const demoRequest = buildDemoRequestFromRules(example.request, editor.rules);
+    const requestUrl = buildMockServerTryUrl({
+      port: mockServerPort,
+      requestUrl: demoRequest.url,
+      params: demoRequest.params
+    });
+    const requestName = resolveTransientRequestName(resolvedCollection, storedResponse?.name || 'Mock Request');
+
+    try {
+      await dispatch(newHttpRequest({
+        requestName,
+        filename: sanitizeName(requestName),
+        requestType: 'http-request',
+        requestUrl,
+        requestMethod: demoRequest.method,
+        collectionUid: resolvedCollection.uid,
+        itemUid: null,
+        isTransient: true,
+        headers: demoRequest.headers,
+        ...(demoRequest.body ? { body: { mode: 'json', json: demoRequest.body.content } } : {})
+      }));
+      toast.success('Opened demo request in a new tab');
+    } catch (err) {
+      toast.error(err.message || 'Failed to open the demo request');
     }
   };
 
@@ -396,6 +457,9 @@ const MockResponse = ({ instance, collection, responseUid }) => {
               isServerRunning={isServerRunning}
               onStartServer={handleStartServer}
               isStartingServer={isStartingServer}
+              mockServerPort={mockServerPort}
+              onOpenAsRequest={handleOpenAsRequest}
+              onEditToggle={() => setEditMode(true)}
             />
           </div>
         </section>

@@ -3,7 +3,7 @@ import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import {
   getMockResponseNameError,
-  getMockResponseNameLengthError,
+  getMockResponseNameInputError,
   isMockResponseNameTaken
 } from 'utils/mock-server/mock-responses';
 
@@ -16,7 +16,14 @@ const RenameMockResponseModal = ({
 }) => {
   const inputRef = useRef();
   const [name, setName] = useState(response?.name || '');
-  const [nameError, setNameError] = useState('');
+  const [submitError, setSubmitError] = useState('');
+
+  const trimmedName = name.trim();
+  const inputNameError = getMockResponseNameInputError(name)
+    || (trimmedName && isMockResponseNameTaken(existingResponses, trimmedName, response?.uid)
+      ? 'A mock response with this name already exists'
+      : null);
+  const nameError = inputNameError || submitError;
 
   useEffect(() => {
     if (inputRef.current) {
@@ -26,16 +33,14 @@ const RenameMockResponseModal = ({
   }, []);
 
   const handleConfirm = () => {
-    const trimmedName = name.trim();
-
     const validationError = getMockResponseNameError(trimmedName);
     if (validationError) {
-      setNameError(validationError);
+      setSubmitError(validationError);
       return;
     }
 
     if (isMockResponseNameTaken(existingResponses, trimmedName, response?.uid)) {
-      setNameError('A mock response with this name already exists');
+      setSubmitError('A mock response with this name already exists');
       return;
     }
 
@@ -51,7 +56,7 @@ const RenameMockResponseModal = ({
         cancelText="Cancel"
         handleConfirm={handleConfirm}
         handleCancel={onClose}
-        confirmDisabled={isSaving || !name.trim()}
+        confirmDisabled={isSaving || !trimmedName || Boolean(inputNameError)}
         dataTestId="rename-mock-response-modal"
       >
         <div>
@@ -66,7 +71,7 @@ const RenameMockResponseModal = ({
             value={name}
             onChange={(event) => {
               setName(event.target.value);
-              setNameError(getMockResponseNameLengthError(event.target.value) || '');
+              setSubmitError('');
             }}
             data-testid="mock-response-rename-name-input"
           />
