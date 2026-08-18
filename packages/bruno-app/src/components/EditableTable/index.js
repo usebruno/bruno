@@ -55,6 +55,7 @@ const EditableTable = ({
   defaultRow,
   getRowError,
   showCheckbox = true,
+  showRowNumbers = false,
   showDelete = true,
   disableCheckbox = false,
   checkboxLabel = '',
@@ -131,8 +132,8 @@ const EditableTable = ({
         const newWidths = {};
 
         headerCells.forEach((cell, cellIndex) => {
-          const checkboxOffset = showCheckbox ? 1 : 0;
-          const colIndex = cellIndex - checkboxOffset;
+          const leadingCellCount = (showCheckbox ? 1 : 0) + (showRowNumbers ? 1 : 0);
+          const colIndex = cellIndex - leadingCellCount;
 
           if (colIndex >= 0 && colIndex < columns.length) {
             const colKey = columns[colIndex]?.key;
@@ -154,7 +155,7 @@ const EditableTable = ({
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [columns, showCheckbox, widths, handleColumnWidthsChange]);
+  }, [columns, showCheckbox, showRowNumbers, widths, handleColumnWidthsChange]);
 
   const getColumnWidth = useCallback((column) => {
     return widths[column.key] || column.width || 'auto';
@@ -361,8 +362,11 @@ const EditableTable = ({
 
   const fixedHeaderContent = useCallback(() => (
     <tr>
+      {showRowNumbers && (
+        <td className="row-number-cell" data-testid="row-number-header"></td>
+      )}
       {showCheckbox && (
-        <td className="text-center">{checkboxLabel}</td>
+        <td className="text-center checkbox-cell">{checkboxLabel}</td>
       )}
       {columns.map((column, colIndex) => (
         <td
@@ -387,7 +391,7 @@ const EditableTable = ({
         </td>
       )}
     </tr>
-  ), [showCheckbox, checkboxLabel, columns, getColumnWidth, resizing, tableHeight, handleResizeStart, showDelete]);
+  ), [showCheckbox, checkboxLabel, columns, getColumnWidth, resizing, tableHeight, handleResizeStart, showDelete, showRowNumbers]);
 
   const itemContent = useCallback((rowIndex, row) => {
     const isEmpty = isLastEmptyRow(row, rowIndex);
@@ -395,8 +399,13 @@ const EditableTable = ({
 
     return (
       <>
+        {showRowNumbers && (
+          <td className="row-number-cell" data-testid="row-number">
+            {isEmpty ? '' : rowIndex + 1}
+          </td>
+        )}
         {showCheckbox && (
-          <td className="text-center relative">
+          <td className="text-center relative checkbox-cell">
             {reorderable && canDrag && (
               <div
                 draggable
@@ -455,7 +464,7 @@ const EditableTable = ({
         )}
       </>
     );
-  }, [showCheckbox, reorderable, reorderableRowCount, isLastEmptyRow, checkboxKey, disableCheckbox, handleCheckboxChange, columns, renderCell, showDelete, handleRemoveRow]);
+  }, [showCheckbox, showRowNumbers, reorderable, reorderableRowCount, isLastEmptyRow, checkboxKey, disableCheckbox, handleCheckboxChange, columns, renderCell, showDelete, handleRemoveRow]);
 
   const initialTopMostItemIndex = useRef(Math.max(0, Math.floor(initialScroll / ROW_HEIGHT))).current;
 
@@ -463,7 +472,7 @@ const EditableTable = ({
     <StyledWrapper
       ref={wrapperRef}
       data-testid={testId}
-      className={`${showCheckbox ? 'has-checkbox' : 'no-checkbox'} ${resizing ? 'is-resizing' : ''}`}
+      className={`${showCheckbox ? 'has-checkbox' : 'no-checkbox'} ${showRowNumbers ? 'has-row-numbers' : ''} ${resizing ? 'is-resizing' : ''}`}
     >
       {scrollParent && (
         <TableVirtuoso

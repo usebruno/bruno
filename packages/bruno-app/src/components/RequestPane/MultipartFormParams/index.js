@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import get from 'lodash/get';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
@@ -17,6 +17,7 @@ import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
+import BulkEditor from '../../BulkEditor';
 import path, { getRelativePathWithinBasePath, normalizePath } from 'utils/common/path';
 import { getMultipartAutoContentType } from 'utils/common/multipartContentType';
 import { usePersistedState } from 'hooks/usePersistedState';
@@ -29,6 +30,7 @@ const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const wrapperRef = useRef(null);
+  const [isBulkEditMode, setIsBulkEditMode] = useState(false);
   const [scroll, setScroll] = usePersistedState({ key: `request-body-multipartForm-scroll-${item.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -61,6 +63,10 @@ const MultipartFormParams = ({ item, collection }) => {
       updateReorderedItem
     }));
   }, [dispatch, collection.uid, item.uid]);
+
+  const toggleBulkEditMode = () => {
+    setIsBulkEditMode(!isBulkEditMode);
+  };
 
   const handleBrowseFiles = useCallback((row, onChange) => {
     dispatch(browseFiles([], ['multiSelections']))
@@ -248,6 +254,21 @@ const MultipartFormParams = ({ item, collection }) => {
     description: ''
   };
 
+  if (isBulkEditMode) {
+    return (
+      <StyledWrapper className="w-full mt-3">
+        <BulkEditor
+          mode="multipart"
+          params={params || []}
+          onChange={handleParamsChange}
+          onToggle={toggleBulkEditMode}
+          onSave={onSave}
+          onRun={handleRun}
+        />
+      </StyledWrapper>
+    );
+  }
+
   return (
     <StyledWrapper className="w-full" ref={wrapperRef}>
       <EditableTable
@@ -261,8 +282,18 @@ const MultipartFormParams = ({ item, collection }) => {
         onReorder={handleParamDrag}
         columnWidths={multipartFormWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('multipart-form', widths)}
+        showRowNumbers={true}
         initialScroll={scroll}
       />
+      <div className="bulk-edit-bar flex justify-end mt-2">
+        <button
+          className="btn-action text-link select-none"
+          data-testid="multipart-bulk-edit-toggle"
+          onClick={toggleBulkEditMode}
+        >
+          Bulk Edit
+        </button>
+      </div>
     </StyledWrapper>
   );
 };

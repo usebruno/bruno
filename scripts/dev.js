@@ -42,8 +42,12 @@ const webProcess = spawn('npm', ['run', 'dev'], {
 });
 
 webProcess.stdout.on('data', (data) => {
-  const output = data.toString();
-  process.stdout.write(output);
+  const rawOutput = data.toString();
+  process.stdout.write(rawOutput);
+
+  // Rsbuild emits ANSI color codes around the URL even when stdout is piped,
+  // which would break the port regex below. Strip them before matching.
+  const output = rawOutput.replace(/\x1b\[[0-9;]*m/g, '');
 
   // Try to detect the port from rsbuild output
   if (!detectedPort) {

@@ -187,12 +187,21 @@ if (useSingleInstance && !gotTheLock) {
 app.on('ready', async () => {
   initializeShellEnv();
 
-  if (isDev) {
+  // In offline / intranet environments the devtools extensions cannot be
+  // fetched from the network. Timebox the download so a hanging network
+  // request cannot block window creation; setting
+  // BRUNO_SKIP_DEVTOOLS_EXTENSIONS=1 skips the attempt entirely.
+  if (isDev && !process.env.BRUNO_SKIP_DEVTOOLS_EXTENSIONS) {
     const { installExtension, REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer');
     try {
-      const extensions = await installExtension([REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS], {
-        loadExtensionOptions: { allowFileAccess: true }
-      });
+      const extensions = await Promise.race([
+        installExtension([REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS], {
+          loadExtensionOptions: { allowFileAccess: true }
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timed out fetching devtools extensions')), 5000)
+        )
+      ]);
       console.log(`Added Extensions:  ${extensions.map((ext) => ext.name).join(', ')}`);
       await require('node:timers/promises').setTimeout(1000);
       session.defaultSession.getAllExtensions().map((ext) => {

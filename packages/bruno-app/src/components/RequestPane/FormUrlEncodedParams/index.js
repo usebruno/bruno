@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -12,6 +12,7 @@ import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
+import BulkEditor from '../../BulkEditor';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
 
@@ -19,6 +20,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const wrapperRef = useRef(null);
+  const [isBulkEditMode, setIsBulkEditMode] = useState(false);
   const [scroll, setScroll] = usePersistedState({ key: `request-body-formUrlEncoded-scroll-${item.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: '.flex-boundary', onChange: setScroll, initialValue: scroll });
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -51,6 +53,10 @@ const FormUrlEncodedParams = ({ item, collection }) => {
       updateReorderedItem
     }));
   }, [dispatch, collection.uid, item.uid]);
+
+  const toggleBulkEditMode = () => {
+    setIsBulkEditMode(!isBulkEditMode);
+  };
 
   const descriptionColumn = createDescriptionColumn({
     theme: storedTheme,
@@ -95,6 +101,20 @@ const FormUrlEncodedParams = ({ item, collection }) => {
     description: ''
   };
 
+  if (isBulkEditMode) {
+    return (
+      <StyledWrapper className="w-full mt-3">
+        <BulkEditor
+          params={params || []}
+          onChange={handleParamsChange}
+          onToggle={toggleBulkEditMode}
+          onSave={onSave}
+          onRun={handleRun}
+        />
+      </StyledWrapper>
+    );
+  }
+
   return (
     <StyledWrapper className="w-full" ref={wrapperRef}>
       <EditableTable
@@ -108,8 +128,18 @@ const FormUrlEncodedParams = ({ item, collection }) => {
         onReorder={handleParamDrag}
         columnWidths={formUrlEncodedWidths}
         onColumnWidthsChange={(widths) => handleColumnWidthsChange('form-url-encoded', widths)}
+        showRowNumbers={true}
         initialScroll={scroll}
       />
+      <div className="bulk-edit-bar flex justify-end mt-2">
+        <button
+          className="btn-action text-link select-none"
+          data-testid="form-urlencoded-bulk-edit-toggle"
+          onClick={toggleBulkEditMode}
+        >
+          Bulk Edit
+        </button>
+      </div>
     </StyledWrapper>
   );
 };

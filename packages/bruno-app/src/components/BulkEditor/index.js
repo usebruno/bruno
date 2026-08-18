@@ -3,7 +3,12 @@ import get from 'lodash/get';
 import CodeEditor from 'components/CodeEditor';
 import { useTheme } from 'providers/Theme';
 import { useSelector } from 'react-redux';
-import { parseBulkKeyValue, serializeBulkKeyValue } from 'utils/common/bulkKeyValueUtils';
+import {
+  parseBulkKeyValue,
+  parseMultipartBulkKeyValue,
+  serializeBulkKeyValue,
+  serializeMultipartBulkKeyValue
+} from 'utils/common/bulkKeyValueUtils';
 
 /**
  * Preserve hidden metadata (uid, description, annotations) across a bulk edit
@@ -55,19 +60,75 @@ const preserveMetadata = (parsed, original) => {
   });
 };
 
-const BulkEditor = ({ params, onChange, onToggle, onSave, onRun }) => {
+/**
+ * Same as preserveMetadata, but also keeps the multipart-specific fields
+ * (contentType) intact when the parsed param matches an original of the same type.
+ */
+const preserveMultipartMetadata = (parsed, original) => {
+  const candidatesByName = new Map();
+  original.forEach((param, index) => {
+    const name = param.name || '';
+    if (!candidatesByName.has(name)) {
+      candidatesByName.set(name, []);
+    }
+    candidatesByName.get(name).push({ index, param, matched: false });
+  });
+
+  return parsed.map((item, index) => {
+    const name = item.name || '';
+    const candidates = candidatesByName.get(name);
+
+    if (!candidates || candidates.length === 0) {
+      return { ...item, description: '', annotations: null, contentType: '' };
+    }
+
+    let best = null;
+    let bestDistance = Infinity;
+
+    for (const candidate of candidates) {
+      if (candidate.matched) continue;
+      const distance = Math.abs(candidate.index - index);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = candidate;
+      }
+    }
+
+    if (best) {
+      best.matched = true;
+      return {
+        ...item,
+        uid: best.param.uid,
+        description: best.param.description || '',
+        annotations: best.param.annotations ?? null,
+        contentType: best.param.type === item.type ? best.param.contentType || '' : ''
+      };
+    }
+
+    return { ...item, description: '', annotations: null, contentType: '' };
+  });
+};
+
+const BulkEditor = ({ params, onChange, onToggle, onSave, onRun, mode = 'keyValue' }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
+
+  const isMultipart = mode === 'multipart';
 
   // Capture the original params on mount so we can preserve fields (like descriptions)
   // that aren't shown in the bulk editor but should survive the roundtrip.
   const originalParamsRef = useRef(params);
 
-  const parsedParams = useMemo(() => serializeBulkKeyValue(params), [params]);
+  const parsedParams = useMemo(
+    () => (isMultipart ? serializeMultipartBulkKeyValue(params) : serializeBulkKeyValue(params)),
+    [params, isMultipart]
+  );
 
   const handleEdit = (value) => {
-    const parsed = parseBulkKeyValue(value);
-    const withPreservedMeta = preserveMetadata(parsed, originalParamsRef.current);
+    const parsed = isMultipart ? parseMultipartBulkKeyValue(value) : parseBulkKeyValue(value);
+    const withPreservedMeta = isMultipart
+      ? preserveMultipartMetadata(parsed, originalParamsRef.current)
+      : preserveMetadata(parsed, originalParamsRef.current);
     onChange(withPreservedMeta);
   };
 

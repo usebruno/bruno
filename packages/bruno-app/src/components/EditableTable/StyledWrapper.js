@@ -72,9 +72,26 @@ const StyledWrapper = styled.div`
     }
   }
 
-  &.has-checkbox thead td:nth-child(1) {
+  &.has-checkbox thead td.checkbox-cell {
     width: 25px !important;
     border-right: none;
+  }
+
+  &.has-row-numbers {
+    thead td.row-number-cell,
+    tbody td.row-number-cell {
+      width: 40px !important;
+      min-width: 40px !important;
+      max-width: 40px !important;
+      padding: 0 4px !important;
+      text-align: center;
+      vertical-align: middle;
+      color: ${(props) => props.theme.colors.text.muted};
+      font-size: 12px;
+      border-right: none;
+      user-select: none;
+      overflow: hidden;
+    }
   }
 
   tbody {
@@ -158,7 +175,7 @@ const StyledWrapper = styled.div`
     }
   }
 
-  &.has-checkbox tbody td:nth-child(1) {
+  &.has-checkbox tbody td.checkbox-cell {
     width: 25px;
     border-right: none;
     text-align: center;

@@ -26,6 +26,14 @@ const Wrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.base};
   }
 
+  .bulk-edit-bar {
+    position: sticky;
+    bottom: 0;
+    background: ${(props) => props.theme.bg};
+    padding-top: 8px;
+    padding-bottom: 4px;
+  }
+
   input[type='text'] {
     width: 100%;
     border: solid 1px transparent;
