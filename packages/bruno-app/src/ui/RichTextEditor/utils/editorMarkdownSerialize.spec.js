@@ -759,9 +759,13 @@ describe('Editor markdown serialization', () => {
       expect(getMarkdown(editor)).toBe(source);
     });
 
-    it('strips a style attribute that could render a full-viewport overlay', () => {
+    it('keeps a style attribute instead of stripping it — a fixed/absolute overlay is contained via CSS, not sanitization', () => {
+      // StyledWrapper's `contain: paint` (verified separately, in a real browser) clips a
+      // descendant's position:fixed/absolute box to the editor's own bounds regardless of its
+      // style, so the style attribute itself doesn't need to be stripped — which would otherwise
+      // silently drop legitimate styling (color, font size, ...) from existing docs on next edit.
       editor = createFullEditor(
-        '<div style="position:fixed;width:100vw;height:100vh;z-index:99999" class="note">gotcha</div>'
+        '<div style="position:fixed;width:100vw;height:100vh;z-index:99999" class="note">not stripped</div>'
       );
 
       let textBlockNode = null;
@@ -772,9 +776,24 @@ describe('Editor markdown serialization', () => {
       });
 
       expect(textBlockNode).not.toBeNull();
-      expect(textBlockNode.attrs.htmlAttrs).not.toHaveProperty('style');
-      expect(textBlockNode.attrs.htmlAttrs).toEqual({ class: 'note' });
-      expect(editor.getHTML()).not.toContain('style=');
+      expect(textBlockNode.attrs.htmlAttrs).toEqual({ style: 'position:fixed;width:100vw;height:100vh;z-index:99999', class: 'note' });
+      expect(editor.getHTML()).toContain('style=');
+    });
+
+    it('still forbids a <style> tag, since its selectors could reach elements outside the editor', () => {
+      editor = createFullEditor('<style>body { display: none; }</style>');
+
+      // The tag survives as an opaque rawHtmlBlock atom (so the original bytes still round-trip),
+      // but DOMPurify strips the actual <style> element from what gets rendered into the live DOM.
+      let rawHtmlBlockCount = 0;
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'rawHtmlBlock') {
+          rawHtmlBlockCount += 1;
+        }
+      });
+
+      expect(rawHtmlBlockCount).toBe(1);
+      expect(editor.getHTML()).not.toContain('<style');
     });
   });
 });
