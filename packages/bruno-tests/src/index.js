@@ -13,6 +13,7 @@ const setupGraphQL = require('./graphql');
 const sseRouter = require('./sse');
 const fileBinaryRouter = require('./file-binary');
 const waitForRouter = require('./wait-for');
+const largePayloadRouter = require('./large-payload');
 const grpcServer = require('./grpc');
 
 const app = new express();
@@ -60,6 +61,7 @@ app.use('/api/redirect', redirectRouter);
 app.use('/api/mix', mixRouter);
 app.use('/api/sse', sseRouter);
 app.use('/api/wait-for', waitForRouter);
+app.use('/api/large-payload', largePayloadRouter);
 
 app.get('/ping', function (req, res) {
   return res.send('pong');
