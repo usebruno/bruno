@@ -18,6 +18,7 @@ import StyledWrapper from './StyledWrapper';
 import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
 import { AUTH_MODES_GRPC } from 'utils/common/constants';
+import StatusBadge from 'ui/StatusBadge';
 
 const GrpcRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -107,7 +108,12 @@ const GrpcRequestPane = ({ item, collection, handleRun }) => {
       },
       {
         key: 'script',
-        label: 'Script',
+        label: (
+          <span className="flex items-center gap-2">
+            Script
+            <StatusBadge status="info" size="xs">Beta</StatusBadge>
+          </span>
+        ),
         indicator: hasScript ? <StatusDot type={hasScriptError ? 'error' : 'default'} dataTestId="script" /> : null
       },
       {
