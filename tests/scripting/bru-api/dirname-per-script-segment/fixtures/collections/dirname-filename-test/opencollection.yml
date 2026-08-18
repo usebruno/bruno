@@ -1,0 +1,13 @@
+opencollection: "1.0.0"
+
+info:
+  name: dirname-filename-test
+
+request:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.setCollectionVar("collectionDir", __dirname);
+        bru.setCollectionVar("collectionFile", __filename);
+
+bundled: false
