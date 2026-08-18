@@ -57,6 +57,30 @@ describe('buildTree — app code', () => {
   });
 });
 
+describe('buildTree — environments', () => {
+  const buildSingleEnvironment = (data) =>
+    buildTree(COLLECTION_PATH, new Map([[path.join('environments', 'Local.yml'), { data, raw: '' }]])).environments[0];
+
+  it('carries the color of an environment', () => {
+    const node = buildSingleEnvironment({ name: 'Local', color: '#CE4F3B', variables: [] });
+
+    expect(node.color).toBe('#CE4F3B');
+  });
+
+  it('carries external secrets alongside the variables', () => {
+    const externalSecrets = { type: 'infisical', variables: [{ name: 'token' }] };
+    const node = buildSingleEnvironment({ name: 'Local', variables: [], externalSecrets });
+
+    expect(node.externalSecrets).toEqual(externalSecrets);
+  });
+
+  it('names the environment after its file, not the name stored inside it', () => {
+    const node = buildSingleEnvironment({ name: 'stale', variables: [] });
+
+    expect(node.name).toBe('Local');
+  });
+});
+
 describe('buildTree — uid hydration', () => {
   it('hydrates exactly the request lists this spec covers', () => {
     expect(REQUEST_UID_PATHS.map(([dotPath]) => dotPath).sort()).toEqual(
