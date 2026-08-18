@@ -743,6 +743,13 @@ describe('Editor markdown serialization', () => {
       expect(getMarkdown(editor)).toBe(legacySource);
     });
 
+    it('preserves an unedited &nbsp; entity instead of normalizing it away as whitespace', () => {
+      const legacySource = '<div class="note">Before&nbsp;After</div>';
+      editor = createFullEditor(legacySource);
+
+      expect(getMarkdown(editor)).toBe(legacySource);
+    });
+
     it('reflects a whitespace-only edit instead of silently keeping the stale original bytes', () => {
       const legacySource = '<div class="note">Line one\nLine two</div>';
       editor = createFullEditor(legacySource);
@@ -811,6 +818,38 @@ describe('Editor markdown serialization', () => {
 
       expect(rawHtmlBlockCount).toBe(1);
       expect(editor.getHTML()).not.toContain('<style');
+    });
+
+    // <dialog>/popover/command-invoker render in the browser's top layer, which sits outside
+    // the normal paint tree and ignores `contain: paint` entirely — verified in a real browser
+    // that an unforbidden popover fully escapes a `contain: paint` container.
+    it('strips popover/command-invoker attributes that would escape contain: paint via the top layer', () => {
+      editor = createFullEditor('<div popover popovertarget="x" style="color:red" class="note">hi</div>');
+
+      let textBlockNode = null;
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'rawHtmlTextBlock') {
+          textBlockNode = node;
+        }
+      });
+
+      expect(textBlockNode).not.toBeNull();
+      expect(textBlockNode.attrs.htmlAttrs).toEqual({ style: 'color:red', class: 'note' });
+      expect(editor.getHTML()).not.toContain('popover');
+    });
+
+    it('strips a <dialog> tag, since showModal() promotes it to the top layer too', () => {
+      editor = createFullEditor('<dialog>secret text</dialog>');
+
+      expect(editor.getHTML()).not.toContain('<dialog');
+      expect(editor.storage.markdown.getMarkdown()).toBe('<dialog>secret text</dialog>');
+    });
+
+    it('strips command/commandfor, the declarative (script-free) way to invoke a dialog/popover', () => {
+      editor = createFullEditor('<div style="color:blue"><button command="show-modal" commandfor="x">go</button></div>');
+
+      expect(editor.getHTML()).not.toContain('command=');
+      expect(editor.getHTML()).not.toContain('commandfor=');
     });
   });
 });

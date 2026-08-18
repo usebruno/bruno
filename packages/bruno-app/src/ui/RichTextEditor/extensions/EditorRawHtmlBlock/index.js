@@ -7,9 +7,13 @@ const RAW_HTML_INLINE_ATTR = 'data-raw-html-inline';
 const TEXT_BLOCK_TAG_ATTR = 'data-raw-html-text-block';
 const ORIGINAL_HTML_ATTR = 'data-raw-html-original';
 
-// <style> tags are forbidden (selectors can reach outside the editor); the style attribute
-// stays allowed since StyledWrapper's `contain: paint` already clips it to the editor's bounds.
-const SANITIZE_CONFIG = { FORBID_TAGS: ['style'] };
+// <style> selectors can reach outside the editor; <dialog>/popover/command-invoker render in
+// the browser's top layer, which ignores `contain: paint` entirely — declarative, script-free
+// ways to cover the app that no CSS containment on our side can stop.
+const SANITIZE_CONFIG = {
+  FORBID_TAGS: ['style', 'dialog'],
+  FORBID_ATTR: ['popover', 'popovertarget', 'popovertargetaction', 'command', 'commandfor']
+};
 
 // A standalone <br/> marks an empty paragraph; treating it as a hard break ensures blank lines remain editable paragraphs.
 const BLANK_LINE_MARKER_PATTERN = /^<br\s*\/?>$/i;
@@ -52,8 +56,9 @@ const NON_TEXT_BLOCK_TAGS = new Set([
 
 const escapeHtmlText = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-// Mimics ProseMirror's whitespace collapse to correct the original bytes for the "unedited" comparison below.
-const normalizeWhitespace = (text) => text.replace(/\s+/g, ' ').trim();
+// Matches ProseMirror's own DOM-parse whitespace collapse exactly (not JS \s, which also
+// matches &nbsp; and other Unicode spaces ProseMirror leaves untouched).
+const normalizeWhitespace = (text) => text.replace(/[ \t\r\n\f]+/g, ' ').trim();
 
 const escapeHtmlAttrValue = (value) => escapeHtmlText(value).replace(/"/g, '&quot;');
 
