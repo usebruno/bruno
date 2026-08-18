@@ -1,6 +1,6 @@
 import { test, expect } from '../../playwright';
 import { closeAllCollections } from '../utils/page/actions';
-import { setupRequestDocs, clickDocsToolbarBtn, pasteHtmlIntoRichTextEditor, getMarkdownSource } from './actions';
+import { setupRequestDocs, clickDocsToolbarBtn, pasteHtmlIntoRichTextEditor, setMarkdownSource, getMarkdownSource } from './actions';
 
 test.describe('Rich Text Editor Edge Cases - Tables', () => {
   test.afterEach(async ({ page }) => {
@@ -58,6 +58,30 @@ test.describe('Rich Text Editor Edge Cases - Tables', () => {
 
       await expect(prosemirror.locator('table')).toBeVisible();
       await expect(prosemirror.locator('table h2')).toHaveText('Cell Heading');
+    });
+  });
+
+  // An unrecognized inline HTML tag inside a table cell (reachable via typed/loaded markdown,
+  // unlike a heading/list which needs a paste) is handled as inline HTML, not a block — it must
+  // keep its tag and attributes and the table must stay in GFM pipe format.
+  test('A table cell with inline raw HTML keeps its tag and attributes, still as a GFM table', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-table-inline-html-cell');
+
+    await setMarkdownSource(locators, '| a |\n| --- |\n| <div class="note">hi</div> |');
+
+    await test.step('Rich Text renders the tag in place inside the cell', async () => {
+      await locators.docs.modeSwitchDocs().click();
+      const prosemirror = locators.docs.proseMirror();
+
+      await expect(prosemirror.locator('table')).toBeVisible();
+      await expect(prosemirror.locator('table td')).toContainText('hi');
+    });
+
+    await test.step('Switching to Markdown keeps the GFM pipe-table format with the tag and attributes inline', async () => {
+      const markdown = await getMarkdownSource(locators);
+
+      expect(markdown).toMatch(/^\|.*<div class="note">hi<\/div>.*\|$/m);
+      expect(markdown).not.toContain('<table');
     });
   });
 });

@@ -236,4 +236,79 @@ test.describe('Rich Text Editor Edge Cases - Raw HTML Passthrough', () => {
       expect(roundTripped).toContain('style="color: rgb(255, 0, 0);"');
     });
   });
+
+  const UNTOUCHED_BLOCK_MARKDOWN_SOURCE = 'Before.\n\n<div class="note">Line one\nLine two</div>\n\nAfter.';
+
+  // The "was this block edited?" check compared against a normalized copy of the original bytes,
+  // but ProseMirror collapses whitespace on parse — an unrelated edit anywhere else in the doc
+  // used to make every untouched multi-line block fail that check and get rewritten/reformatted.
+  test('Editing an unrelated paragraph does not rewrite an untouched multi-line raw HTML block', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-untouched-block');
+
+    await setMarkdownSource(locators, UNTOUCHED_BLOCK_MARKDOWN_SOURCE);
+    await locators.docs.modeSwitchDocs().click();
+
+    const prosemirror = locators.docs.proseMirror();
+    await expect(prosemirror.locator('div.note')).toBeVisible();
+
+    await test.step('Editing the unrelated "After." paragraph leaves the raw HTML block\'s bytes untouched', async () => {
+      await prosemirror.locator('p').filter({ hasText: 'After.' }).click();
+      await page.keyboard.press('End');
+      await page.keyboard.type('!');
+
+      const roundTripped = await getMarkdownSource(locators);
+
+      expect(roundTripped).toContain('<div class="note">Line one\nLine two</div>');
+      expect(roundTripped).toContain('After.!');
+    });
+  });
+
+  const PRE_MARKDOWN_SOURCE = 'Before.\n\n<pre>line one\nline two</pre>\n\nAfter.';
+
+  test('A <pre> block stays opaque (not promoted to an editable text block), preserving its whitespace', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-pre-block');
+
+    await setMarkdownSource(locators, PRE_MARKDOWN_SOURCE);
+    await locators.docs.modeSwitchDocs().click();
+
+    const prosemirror = locators.docs.proseMirror();
+
+    await test.step('Rich Text renders the <pre> as an opaque, non-editable block', async () => {
+      const preBlock = prosemirror.locator('.editor-raw-html-block pre');
+      await expect(preBlock).toBeVisible();
+      await expect(prosemirror.locator('pre[data-raw-html-text-block]')).toHaveCount(0);
+    });
+
+    await test.step('Switching to Markdown round-trips it byte-for-byte, whitespace intact', async () => {
+      const roundTripped = await getMarkdownSource(locators);
+
+      expect(roundTripped).toBe(PRE_MARKDOWN_SOURCE);
+    });
+  });
+
+  // A DOM/attribute check can't tell whether the overlay actually escapes visually — only what's
+  // really painted can. `getBoundingClientRect` is the wrong tool here: vw/vh units resolve
+  // against the viewport regardless of `contain: paint`, so the element's computed layout box
+  // stays full-size even when properly contained — only its *paint* is clipped. Checking which
+  // element is actually painted at a point far outside the panel is what proves containment.
+  test('A position:fixed;100vw;100vh style stays visually contained inside the docs panel', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-overlay-containment');
+
+    await setMarkdownSource(
+      locators,
+      '<div style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:99999;background:red" class="note">HOSTILE</div>'
+    );
+    await locators.docs.modeSwitchDocs().click();
+
+    const hostileDiv = locators.docs.proseMirror().locator('div.note');
+    await expect(hostileDiv).toBeVisible();
+
+    // The far top-left corner is always the collections sidebar in this layout, well outside
+    // the docs panel; if the overlay escaped, it would paint over this point instead.
+    const paintedElementIsHostile = await page.evaluate(
+      () => document.elementFromPoint(10, 10)?.closest('.note') !== null
+    );
+
+    expect(paintedElementIsHostile).toBe(false);
+  });
 });
