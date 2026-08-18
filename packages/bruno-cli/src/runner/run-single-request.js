@@ -19,10 +19,10 @@ const { getCookieStringForUrl, saveCookies } = require('../utils/cookies');
 const { createFormData } = require('../utils/form-data');
 const { NtlmClient } = require('axios-ntlm');
 const { addDigestInterceptor, addEdgeGridInterceptor, getHttpHttpsAgents, makeAxiosInstance: makeAxiosInstanceForOauth2, applyOAuth1ToRequest } = require('@usebruno/requests');
-const { getCACertificates, transformProxyConfig } = require('@usebruno/requests');
+const { getCACertificates, transformProxyConfig, applySentHeadersToRequest } = require('@usebruno/requests');
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
-const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme } = require('@usebruno/common').utils;
+const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -70,6 +70,9 @@ const extractPromptVariablesForRequest = ({ request, collection, envVariables, r
   // client certificate config
   const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
   for (let clientCert of clientCertConfig) {
+    if (clientCert?.disabled) {
+      continue;
+    }
     const domain = interpolateString(clientCert?.domain, interpolationOptions);
     if (domain) {
       const hostRegex = getCACertHostRegex(domain);
@@ -113,7 +116,8 @@ const runSingleRequest = async function (
         globalEnvFile: persistPaths.globalEnvFile,
         collection,
         collectionRootPath: persistPaths.collectionRootPath,
-        envVarOverrides: persistPaths.envVarOverrides
+        envVarOverrides: persistPaths.envVarOverrides,
+        globalEnvVarOverrides: persistPaths.globalEnvVarOverrides
       });
     } catch (err) {
       console.warn(chalk.yellow(`Warning: failed to persist variable updates: ${err.message}`));
@@ -367,12 +371,12 @@ const runSingleRequest = async function (
       }
     }
 
-    if (request.settings?.encodeUrl) {
-      request.url = encodeUrl(request.url);
-    }
-
     if (!hasExplicitScheme(request.url)) {
       request.url = `http://${request.url}`;
+    }
+
+    if (request.settings?.encodeUrl) {
+      request.url = encodeUrl(request.url);
     }
 
     const insecure = get(options, 'insecure', false);
@@ -400,6 +404,9 @@ const runSingleRequest = async function (
     // client certificate config
     const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
     for (let clientCert of clientCertConfig) {
+      if (clientCert?.disabled) {
+        continue;
+      }
       const domain = interpolateString(clientCert?.domain, interpolationOptions);
       const type = clientCert?.type || 'cert';
       if (domain) {
@@ -542,12 +549,15 @@ const runSingleRequest = async function (
     // Get followRedirects setting, default to true for backward compatibility
     const followRedirects = request.settings?.followRedirects ?? true;
 
+    // Get forwardAuthorizationHeader setting, default to true for backward compatibility
+    const forwardAuthorizationHeader = request.settings?.forwardAuthorizationHeader ?? true;
+
     // Get maxRedirects from request settings, fallback to request.maxRedirects, then default to 5
-    let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? 5;
+    let requestMaxRedirects = request.settings?.maxRedirects ?? request.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
 
     // Ensure it's a valid number
     if (typeof requestMaxRedirects !== 'number' || requestMaxRedirects < 0) {
-      requestMaxRedirects = 5; // Default to 5 redirects
+      requestMaxRedirects = DEFAULT_MAX_REDIRECTS;
     }
 
     // If followRedirects is disabled, set maxRedirects to 0 to disable all redirects
@@ -648,6 +658,7 @@ const runSingleRequest = async function (
         requestMaxRedirects: requestMaxRedirects,
         disableCookies: options.disableCookies,
         followRedirects: followRedirects,
+        forwardAuthorizationHeader: forwardAuthorizationHeader,
         proxyMode,
         proxyConfig,
         systemProxyConfig: cachedSystemProxy,
@@ -729,6 +740,7 @@ const runSingleRequest = async function (
         }
       } else {
         console.log(chalk.red(stripExtension(relativeItemPathname)) + chalk.dim(` (${err.message})`));
+        applySentHeadersToRequest(request, err);
         return {
           test: {
             filename: relativeItemPathname
@@ -762,6 +774,7 @@ const runSingleRequest = async function (
     }
 
     response.responseTime = responseTime;
+    applySentHeadersToRequest(request, response);
 
     console.log(
       chalk.green(stripExtension(relativeItemPathname))

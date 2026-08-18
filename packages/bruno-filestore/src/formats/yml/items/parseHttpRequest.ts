@@ -11,6 +11,8 @@ import { toBrunoScripts } from '../common/scripts';
 import { toBrunoAssertions } from '../common/assertions';
 import { toBrunoApp } from '../common/app';
 import { uuid, ensureString } from '../../../utils';
+import { utils } from '@usebruno/common';
+const { toBool, toMaxRedirects } = utils;
 
 const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
   const info = ocRequest.info;
@@ -113,11 +115,7 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
   if (ocRequest.settings) {
     const settings: BrunoHttpItemSettings = {};
 
-    if (typeof ocRequest.settings.encodeUrl === 'boolean') {
-      settings.encodeUrl = ocRequest.settings.encodeUrl;
-    } else {
-      settings.encodeUrl = true;
-    }
+    settings.encodeUrl = toBool(ocRequest.settings.encodeUrl, true);
 
     if (typeof ocRequest.settings.timeout === 'number') {
       settings.timeout = ocRequest.settings.timeout;
@@ -127,17 +125,9 @@ const parseHttpRequest = (ocRequest: HttpRequest): BrunoItem => {
       settings.timeout = 0;
     }
 
-    if (typeof ocRequest.settings.followRedirects === 'boolean') {
-      settings.followRedirects = ocRequest.settings.followRedirects;
-    } else {
-      settings.followRedirects = true;
-    }
-
-    if (typeof ocRequest.settings.maxRedirects === 'number') {
-      settings.maxRedirects = ocRequest.settings.maxRedirects;
-    } else {
-      settings.maxRedirects = 5;
-    }
+    settings.followRedirects = toBool(ocRequest.settings.followRedirects, true);
+    settings.maxRedirects = toMaxRedirects(ocRequest.settings.maxRedirects);
+    settings.forwardAuthorizationHeader = toBool(ocRequest.settings.forwardAuthorizationHeader, true);
 
     brunoItem.settings = settings;
   }

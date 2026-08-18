@@ -12,6 +12,8 @@ const wsRouter = require('./ws');
 const setupGraphQL = require('./graphql');
 const sseRouter = require('./sse');
 const fileBinaryRouter = require('./file-binary');
+const waitForRouter = require('./wait-for');
+const grpcServer = require('./grpc');
 
 const app = new express();
 const port = process.env.PORT || 8081;
@@ -57,6 +59,7 @@ app.use('/api/multipart', multipartRouter);
 app.use('/api/redirect', redirectRouter);
 app.use('/api/mix', mixRouter);
 app.use('/api/sse', sseRouter);
+app.use('/api/wait-for', waitForRouter);
 
 app.get('/ping', function (req, res) {
   return res.send('pong');
@@ -103,6 +106,11 @@ app.use((err, req, res, next) => {
 const server = require('http').createServer(app);
 
 server.on('upgrade', wsRouter);
+
+grpcServer.start().catch((err) => {
+  console.error('Failed to start gRPC testbench', err);
+  process.exit(1);
+});
 
 setupGraphQL(app).then(() => {
   server.listen(port, function () {

@@ -1,9 +1,10 @@
-import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import GrpcQueryUrl from './index';
+
+const mockCancelScheduledReflection = jest.fn();
 
 const theme = {
   background: {
@@ -82,7 +83,9 @@ jest.mock('./MethodDropdown', () => () => <div data-testid="grpc-method-dropdown
 jest.mock('./ProtoFileDropdown', () => () => <div data-testid="grpc-proto-dropdown" />);
 jest.mock('./GrpcurlModal', () => () => null);
 jest.mock('hooks/useReflectionManagement/index', () => () => ({
-  loadMethodsFromReflection: jest.fn(() => new Promise(() => {}))
+  loadMethodsFromReflection: jest.fn(() => new Promise(() => {})),
+  scheduleReflection: jest.fn(),
+  cancelScheduledReflection: mockCancelScheduledReflection
 }));
 jest.mock('hooks/useProtoFileManagement/index', () => () => ({
   loadMethodsFromProtoFile: jest.fn(() => new Promise(() => {}))
@@ -129,6 +132,10 @@ const renderGrpcQueryUrl = (requestUrl = 'grpc://localhost:50051') => {
 };
 
 describe('GrpcQueryUrl', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('keeps the editor scheme-less while persisting the TLS scheme on toggle', () => {
     const store = renderGrpcQueryUrl('grpc://localhost:50051');
 
@@ -141,13 +148,14 @@ describe('GrpcQueryUrl', () => {
     expect(store.getState().collections.lastUrl).toBe('grpcs://localhost:50051');
   });
 
-  it('uses the latest editor value when toggling before the debounced URL change runs', () => {
+  it('uses the latest editor value when toggling after a URL change', () => {
     const store = renderGrpcQueryUrl('grpc://localhost:50051');
 
     const editor = screen.getByTestId('grpc-url-editor');
     fireEvent.change(editor, { target: { value: 'api.example.com:443' } });
     fireEvent.click(screen.getByTestId('grpc-tls-toggle'));
 
+    expect(mockCancelScheduledReflection).toHaveBeenCalledTimes(1);
     expect(editor).toHaveValue('api.example.com:443');
     expect(store.getState().collections.lastUrl).toBe('grpcs://api.example.com:443');
   });

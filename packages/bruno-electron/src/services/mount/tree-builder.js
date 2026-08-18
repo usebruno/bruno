@@ -21,7 +21,8 @@ const REQUEST_UID_PATHS = [
   ['request.assertions', 'assertions'],
   ['request.body.formUrlEncoded', 'body.formUrlEncoded'],
   ['request.body.multipartForm', 'body.multipartForm'],
-  ['request.body.file', 'body.file']
+  ['request.body.file', 'body.file'],
+  ['request.body.ws', 'body.ws']
 ];
 
 const EXAMPLE_UID_PATHS = [
@@ -129,6 +130,7 @@ const buildRequestNode = (absolutePath, basename, entry, uidOverrides, uidFor) =
     request: data.request || {},
     settings: data.settings,
     examples: data.examples,
+    app: data.app ?? null,
     raw: entry.raw ?? null,
     size: sizeInMB(entry.raw ? Buffer.byteLength(entry.raw, 'utf8') : 0),
     filename: basename,
@@ -201,7 +203,8 @@ const buildTree = (collectionPath, parserResults, options = {}) => {
   for (const { relativePath, entry } of requests) {
     const segments = path.dirname(relativePath).split(path.sep).filter((s) => s && s !== '.');
     const { cursor } = ensureFolder(collectionPath, tree.items, segments, uidFor);
-    cursor.push(buildRequestNode(
+    const buildNode = buildRequestNode;
+    cursor.push(buildNode(
       path.join(collectionPath, relativePath),
       path.basename(relativePath),
       entry,
@@ -240,4 +243,4 @@ const buildTree = (collectionPath, parserResults, options = {}) => {
   return tree;
 };
 
-module.exports = { buildTree };
+module.exports = { buildTree, REQUEST_UID_PATHS };

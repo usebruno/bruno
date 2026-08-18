@@ -3,7 +3,13 @@ import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginBabel } from '@rsbuild/plugin-babel';
 import { pluginStyledComponents } from '@rsbuild/plugin-styled-components';
 import { pluginSass } from '@rsbuild/plugin-sass';
-import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill'
+import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
+import { pluginRemoteImages } from './plugins/remote-images/index.mjs';
+
+const remoteImageDomains = (process.env.BRUNO_REMOTE_IMAGE_DOMAINS || 'd3icksk7srk4uh.cloudfront.net')
+  .split(',')
+  .map((d) => d.trim())
+  .filter(Boolean);
 
 export default defineConfig({
   plugins: [
@@ -16,6 +22,10 @@ export default defineConfig({
       babelLoaderOptions(opts) {
         opts.plugins?.unshift('babel-plugin-react-compiler');
       }
+    }),
+    pluginRemoteImages({
+      domains: remoteImageDomains,
+      include: [/\.md$/]
     })
   ],
   source: {
@@ -37,10 +47,7 @@ export default defineConfig({
             // This loads the JavaScript contents from a library along with the main JavaScript bundle.
             dynamicImportMode: "eager",
           },
-        },
-        rules: [
-          { test: /\.md$/, type: 'asset/source' }
-        ]
+        }
       },
       ignoreWarnings: [
         (warning) =>  warning.message.includes('Critical dependency: the request of a dependency is an expression') && warning?.moduleDescriptor?.name?.includes('flow-parser')
@@ -51,7 +58,25 @@ export default defineConfig({
         // Format: 'module-name': 'commonjs module-name'
         'worker_threads': 'commonjs worker_threads',
         // 'path': 'commonjs path'
+      },
+      optimization: {
+        splitChunks: {
+          cacheGroups: {
+            // CodeMirror's modes/addons/themes + codemirror-graphql are all
+            // required upfront (pages/Bruno/index.js) but rarely change —
+            // pulling them into their own initial chunk lets the browser
+            // fetch it in parallel with the main bundle instead of inflating
+            // one monolithic file.
+            codemirror: {
+              test: /[\\/]node_modules[\\/]codemirror(-.*)?[\\/]/,
+              name: 'lib-codemirror',
+              chunks: 'all',
+              priority: 10
+            }
+          }
+        }
       }
     },
   }
 });
+``

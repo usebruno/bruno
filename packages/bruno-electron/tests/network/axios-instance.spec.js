@@ -30,6 +30,7 @@ jest.mock('../../src/utils/form-data', () => ({
   createFormData: jest.fn()
 }));
 
+const http = require('http');
 const { makeAxiosInstance } = require('../../src/ipc/network/axios-instance');
 
 function createStubAdapter() {
@@ -205,5 +206,269 @@ describe('axios-instance: DNS lookup behavior (GitHub #7343)', () => {
     expect(config.lookup).toBeDefined();
     expect(typeof config.lookup).toBe('function');
     expect(config.lookup).not.toBe(inheritedLookup);
+  });
+});
+
+describe('axios-instance: cross-origin redirects authorization stripping', () => {
+  function createRedirectingStubAdapter(redirectUrl, redirectStatus = 302) {
+    const calls = [];
+    const adapter = (config) => {
+      calls.push(config);
+      if (calls.length === 1) {
+        const err = new Error('Redirect ' + redirectStatus);
+        err.config = config;
+        err.response = {
+          status: redirectStatus,
+          statusText: 'Found',
+          headers: {
+            location: redirectUrl
+          },
+          data: {}
+        };
+        return Promise.reject(err);
+      }
+      return Promise.resolve({
+        data: { success: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config
+      });
+    };
+    adapter.getCalls = () => calls;
+    return adapter;
+  }
+
+  test('should strip Authorization and Proxy-Authorization headers on cross-origin redirect when forwardAuthorizationHeader is false', async () => {
+    const stubAdapter = createRedirectingStubAdapter('https://other-domain.com/target');
+    const instance = makeAxiosInstance({
+      followRedirects: true,
+      forwardAuthorizationHeader: false
+    });
+
+    await instance({
+      url: 'https://api.example.com/start',
+      method: 'get',
+      headers: {
+        'Authorization': 'Bearer my-token',
+        'Proxy-Authorization': 'Bearer proxy-token',
+        'X-Amz-Date': '20230806T000000Z',
+        'X-Amz-Security-Token': 'some-token',
+        'Custom-Header': 'keep-me'
+      },
+      adapter: stubAdapter
+    });
+
+    const calls = stubAdapter.getCalls();
+    expect(calls.length).toBe(2);
+
+    // First call should have headers
+    expect(calls[0].headers['Authorization']).toBe('Bearer my-token');
+    expect(calls[0].headers['Proxy-Authorization']).toBe('Bearer proxy-token');
+    expect(calls[0].headers['X-Amz-Date']).toBe('20230806T000000Z');
+    expect(calls[0].headers['X-Amz-Security-Token']).toBe('some-token');
+    expect(calls[0].headers['Custom-Header']).toBe('keep-me');
+
+    // Redirected call should strip auth headers but keep custom headers
+    expect(calls[1].url).toBe('https://other-domain.com/target');
+    expect(calls[1].headers['Authorization']).toBeUndefined();
+    expect(calls[1].headers['Proxy-Authorization']).toBeUndefined();
+    expect(calls[1].headers['X-Amz-Date']).toBeUndefined();
+    expect(calls[1].headers['X-Amz-Security-Token']).toBeUndefined();
+    expect(calls[1].headers['Custom-Header']).toBe('keep-me');
+    expect(calls[1].__skipAwsV4Sign).toBe(true);
+  });
+
+  test('should preserve Authorization and Proxy-Authorization headers on cross-origin redirect when forwardAuthorizationHeader is true', async () => {
+    const stubAdapter = createRedirectingStubAdapter('https://other-domain.com/target');
+    const instance = makeAxiosInstance({
+      followRedirects: true,
+      forwardAuthorizationHeader: true
+    });
+
+    await instance({
+      url: 'https://api.example.com/start',
+      method: 'get',
+      headers: {
+        'authorization': 'Bearer my-token',
+        'proxy-authorization': 'Bearer proxy-token',
+        'Custom-Header': 'keep-me'
+      },
+      adapter: stubAdapter
+    });
+
+    const calls = stubAdapter.getCalls();
+    expect(calls.length).toBe(2);
+    expect(calls[1].url).toBe('https://other-domain.com/target');
+    expect(calls[1].headers['authorization']).toBe('Bearer my-token');
+    expect(calls[1].headers['proxy-authorization']).toBe('Bearer proxy-token');
+    expect(calls[1].headers['Custom-Header']).toBe('keep-me');
+  });
+
+  test('should preserve Authorization and Proxy-Authorization headers on same-origin redirect even if forwardAuthorizationHeader is false', async () => {
+    const stubAdapter = createRedirectingStubAdapter('https://api.example.com/target');
+    const instance = makeAxiosInstance({
+      followRedirects: true,
+      forwardAuthorizationHeader: false
+    });
+
+    await instance({
+      url: 'https://api.example.com/start',
+      method: 'get',
+      headers: {
+        'Authorization': 'Bearer my-token',
+        'Proxy-Authorization': 'Bearer proxy-token'
+      },
+      adapter: stubAdapter
+    });
+
+    const calls = stubAdapter.getCalls();
+    expect(calls.length).toBe(2);
+    expect(calls[1].url).toBe('https://api.example.com/target');
+    expect(calls[1].headers['Authorization']).toBe('Bearer my-token');
+    expect(calls[1].headers['Proxy-Authorization']).toBe('Bearer proxy-token');
+  });
+
+  test('should preserve Authorization and Proxy-Authorization headers on relative redirect even if forwardAuthorizationHeader is false', async () => {
+    const stubAdapter = createRedirectingStubAdapter('/relative-target');
+    const instance = makeAxiosInstance({
+      followRedirects: true,
+      forwardAuthorizationHeader: false
+    });
+
+    await instance({
+      url: 'https://api.example.com/start',
+      method: 'get',
+      headers: {
+        'Authorization': 'Bearer my-token',
+        'Proxy-Authorization': 'Bearer proxy-token'
+      },
+      adapter: stubAdapter
+    });
+
+    const calls = stubAdapter.getCalls();
+    expect(calls.length).toBe(2);
+    expect(calls[1].url).toBe('https://api.example.com/relative-target');
+    expect(calls[1].headers['Authorization']).toBe('Bearer my-token');
+    expect(calls[1].headers['Proxy-Authorization']).toBe('Bearer proxy-token');
+  });
+
+  test('should strip Authorization and Proxy-Authorization headers on cross-origin redirect chains', async () => {
+    function createChainRedirectingStubAdapter(redirectUrls) {
+      const calls = [];
+      const adapter = (config) => {
+        calls.push(config);
+        if (calls.length <= redirectUrls.length) {
+          const err = new Error('Redirect 302');
+          err.config = config;
+          err.response = {
+            status: 302,
+            statusText: 'Found',
+            headers: {
+              location: redirectUrls[calls.length - 1]
+            },
+            data: {}
+          };
+          return Promise.reject(err);
+        }
+        return Promise.resolve({
+          data: { success: true },
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config
+        });
+      };
+      adapter.getCalls = () => calls;
+      return adapter;
+    }
+
+    const stubAdapter = createChainRedirectingStubAdapter([
+      'https://api.example.com/intermediate',
+      'https://other-domain.com/target',
+      '/final-target'
+    ]);
+    const instance = makeAxiosInstance({
+      followRedirects: true,
+      forwardAuthorizationHeader: false
+    });
+
+    await instance({
+      url: 'https://api.example.com/start',
+      method: 'get',
+      headers: {
+        'Authorization': 'Bearer my-token',
+        'Proxy-Authorization': 'Bearer proxy-token'
+      },
+      adapter: stubAdapter
+    });
+
+    const calls = stubAdapter.getCalls();
+    expect(calls.length).toBe(4);
+
+    // First call (same origin)
+    expect(calls[0].url).toBe('https://api.example.com/start');
+    expect(calls[0].headers['Authorization']).toBe('Bearer my-token');
+
+    // Second call (same origin redirect)
+    expect(calls[1].url).toBe('https://api.example.com/intermediate');
+    expect(calls[1].headers['Authorization']).toBe('Bearer my-token');
+
+    // Third call (cross origin redirect) - headers stripped
+    expect(calls[2].url).toBe('https://other-domain.com/target');
+    expect(calls[2].headers['Authorization']).toBeUndefined();
+
+    // Fourth call (relative redirect on cross origin) - headers still stripped
+    expect(calls[3].url).toBe('https://other-domain.com/final-target');
+    expect(calls[3].headers['Authorization']).toBeUndefined();
+  });
+});
+
+describe('axios-instance: sent headers', () => {
+  let server;
+  let baseUrl;
+
+  beforeAll(async () => {
+    server = http.createServer((_req, res) => {
+      res.writeHead(404, { 'content-type': 'text/plain' });
+      res.end('not found');
+    });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    baseUrl = `http://127.0.0.1:${server.address().port}/`;
+  });
+
+  afterAll(async () => {
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  // The runner rebuilds its response object out of error.response, so a non-2xx has to carry
+  // the transport headers or post-response scripts lose them.
+  test('a non-2xx carries the transport headers on error.response', async () => {
+    const instance = makeAxiosInstance();
+
+    const error = await instance({ url: baseUrl, method: 'get' }).catch((err) => err);
+
+    expect(error.response.status).toBe(404);
+    expect(error.response.sentHeaders).toMatchObject({
+      'Host': `127.0.0.1:${server.address().port}`,
+      'Connection': 'keep-alive',
+      'User-Agent': expect.stringMatching(/^bruno-runtime\//),
+      'request-start-time': expect.stringMatching(/^\d+$/)
+    });
+  });
+
+  test('the proxy credential stays visible but its value is masked', async () => {
+    const instance = makeAxiosInstance();
+    const credential = 'Basic dXNlcjpwYXNzd29yZA==';
+
+    const error = await instance({
+      url: baseUrl,
+      method: 'get',
+      headers: { 'Proxy-Authorization': credential }
+    }).catch((err) => err);
+
+    const masked = error.response.sentHeaders['Proxy-Authorization'];
+    expect(masked).toBe('*'.repeat(credential.length));
+    expect(masked).not.toContain('dXNlcj');
   });
 });

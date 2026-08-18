@@ -49,6 +49,7 @@ jest.mock('../../src/utils/form-data', () => ({
 }));
 jest.mock('@usebruno/requests', () => ({
   addDigestInterceptor: jest.fn(),
+  applySentHeadersToRequest: jest.fn(),
   getHttpHttpsAgents: jest.fn(() => ({})),
   makeAxiosInstance: jest.fn(),
   getCACertificates: jest.fn(() => ({ caCertificates: [] })),

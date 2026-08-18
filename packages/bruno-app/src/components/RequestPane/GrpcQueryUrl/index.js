@@ -22,7 +22,6 @@ import {
   endGrpcConnection
 } from 'utils/network/index';
 import GrpcurlModal from './GrpcurlModal';
-import { debounce } from 'lodash';
 import { getPropertyFromDraftOrRequest } from 'utils/collections';
 import useReflectionManagement from 'hooks/useReflectionManagement/index';
 import useProtoFileManagement from 'hooks/useProtoFileManagement/index';
@@ -70,12 +69,10 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   const methodDropdownRef = useRef(null);
   const protoDropdownRef = useRef(null);
-  const haveFetchedMethodsRef = useRef(false);
-  const onUrlChangeRef = useRef(null);
-  const debouncedOnUrlChangeRef = useRef(null);
+  const latestReflectionRequestIdRef = useRef(0);
 
   const protoFileManagement = useProtoFileManagement(collection, protoFilePath);
-  const reflectionManagement = useReflectionManagement(item, collection.uid);
+  const reflectionManagement = useReflectionManagement(item, collection);
 
   const onMethodSelect = ({ path, type }) => {
     if (isConnectionActive) {
@@ -123,46 +120,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     return finalUrl;
   };
 
-  const onUrlChange = (value) => {
-    if (!editorRef.current?.editor) return;
-    const editor = editorRef.current.editor;
-    const cursor = editor.getCursor();
-
-    const finalUrl = resolveFinalUrlFromInput(value);
-
-    dispatch(
-      requestUrlChanged({
-        itemUid: item.uid,
-        collectionUid: collection.uid,
-        url: finalUrl
-      })
-    );
-
-    if (getDisplayGrpcUrl(finalUrl) !== value) {
-      setTimeout(() => {
-        if (editor) {
-          editor.setCursor(cursor);
-        }
-      }, 0);
-    }
-
-    if (!protoFilePath && hasGrpcUrlHost(finalUrl)) {
-      setIsReflectionMode(true);
-      handleReflection(finalUrl);
-    }
-  };
-
-  onUrlChangeRef.current = onUrlChange;
-  if (!debouncedOnUrlChangeRef.current) {
-    debouncedOnUrlChangeRef.current = debounce((value) => {
-      onUrlChangeRef.current?.(value);
-    }, 1000);
-  }
-  const debouncedOnUrlChange = debouncedOnUrlChangeRef.current;
-
-  const handleReflection = async (url, isManualRefresh = false) => {
-    const { methods, error, fromCache } = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
-
+  const applyReflectionResult = ({ methods, error, fromCache }) => {
     if (error) {
       toast.error(`Failed to load gRPC methods: ${error.message || 'Unknown error'}`);
       return;
@@ -200,6 +158,51 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           });
         }
       }
+    }
+  };
+
+  const handleReflection = async (url, isManualRefresh = false) => {
+    const requestId = ++latestReflectionRequestIdRef.current;
+    const result = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
+    if (requestId !== latestReflectionRequestIdRef.current) return;
+
+    applyReflectionResult(result);
+  };
+
+  const scheduleReflection = (url) => {
+    const requestId = ++latestReflectionRequestIdRef.current;
+    reflectionManagement.scheduleReflection(url, (result) => {
+      if (requestId !== latestReflectionRequestIdRef.current) return;
+      applyReflectionResult(result);
+    });
+  };
+
+  const onUrlChange = (value) => {
+    if (!editorRef.current?.editor) return;
+    const editor = editorRef.current.editor;
+    const cursor = editor.getCursor();
+
+    const finalUrl = resolveFinalUrlFromInput(value);
+
+    dispatch(
+      requestUrlChanged({
+        itemUid: item.uid,
+        collectionUid: collection.uid,
+        url: finalUrl
+      })
+    );
+
+    if (getDisplayGrpcUrl(finalUrl) !== value) {
+      setTimeout(() => {
+        if (editor) {
+          editor.setCursor(cursor);
+        }
+      }, 0);
+    }
+
+    if (!protoFilePath && hasGrpcUrlHost(finalUrl)) {
+      setIsReflectionMode(true);
+      scheduleReflection(finalUrl);
     }
   };
 
@@ -266,7 +269,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
   const handleTlsToggle = (e) => {
     e.stopPropagation();
-    debouncedOnUrlChange.cancel();
+    reflectionManagement.cancelScheduledReflection();
 
     const currentValue = editorRef.current?.editor?.getValue() ?? displayUrl;
     const currentUrl = resolveFinalUrlFromInput(currentValue);
@@ -343,17 +346,6 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   };
 
   useEffect(() => {
-    return () => {
-      debouncedOnUrlChange.cancel();
-    };
-  }, [debouncedOnUrlChange]);
-
-  useEffect(() => {
-    if (haveFetchedMethodsRef.current) {
-      return;
-    }
-    haveFetchedMethodsRef.current = true;
-
     if (protoFilePath) {
       setIsReflectionMode(false);
       handleProtoFileLoad(protoFilePath);
@@ -362,7 +354,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     if (!url) return;
     setIsReflectionMode(true);
     handleReflection(url);
-  }, []);
+  }, [collection.activeEnvironmentUid]);
 
   return (
     <StyledWrapper className="flex items-center relative" data-testid="grpc-query-url-container">
@@ -396,7 +388,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
           value={displayUrl}
           onSave={(finalValue) => onSave(finalValue)}
           theme={storedTheme}
-          onChange={(newValue) => debouncedOnUrlChange(newValue)}
+          onChange={onUrlChange}
           onRun={handleRun}
           collection={collection}
           highlightPathParams={true}

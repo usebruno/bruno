@@ -50,7 +50,7 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import { updateIsDragging } from 'providers/ReduxStore/slices/app';
 import { findItemInCollection, findItemInCollectionByPathname, isItemAFolder, isItemARequest } from 'utils/collections';
-import { buildAiVariablesPayload, getAiStatus } from 'utils/ai';
+import { buildAiVariablesPayload, buildAiRequestsPayload, getAiStatus } from 'utils/ai';
 
 import StyledWrapper from './StyledWrapper';
 import DiffView from './DiffView';
@@ -214,6 +214,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
   const messagesContainerRef = useRef(null);
   const isNearBottomRef = useRef(true);
   const textareaRef = useRef(null);
+  const wasLoadingRef = useRef(false);
 
   const isOpen = useSelector((state) => state.chat.isOpen);
   const allChats = useSelector((state) => state.chat.chats);
@@ -262,6 +263,15 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
     return () => { cancelled = true; };
   }, [isOpen, aiEnabled, preferences?.ai]);
 
+  useEffect(() => {
+    const { ipcRenderer } = window;
+    if (!ipcRenderer) return;
+    const unsub = ipcRenderer.on('main:ai-status-changed', (status) => {
+      setAvailableModels(status?.availableModels || []);
+    });
+    return () => unsub();
+  }, []);
+
   // Auto = empty string. We don't auto-correct to the first model — let the
   // backend pick, so users get smart defaults that adapt as providers change.
   useEffect(() => {
@@ -273,6 +283,15 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
   }, [availableModels, selectedModel]);
 
   const requestName = aiContext?.name || activeItem?.name || 'Untitled';
+
+  const appEnabled = useMemo(() => {
+    if (aiContext?.kind !== 'request' || !activeItem) return true;
+    if (activeItem.type === 'app') return true;
+    return activeItem.draft
+      ? get(activeItem, 'draft.app.enabled', false)
+      : get(activeItem, 'app.enabled', false);
+  }, [aiContext?.kind, activeItem]);
+
   const requestMethod = useMemo(() => {
     if (aiContext?.kind === 'folder') return 'FOLDER';
     if (aiContext?.kind === 'collection') return 'ROOT';
@@ -281,14 +300,11 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
     if (activeItem.type === 'ws-request') return 'WS';
     if (activeItem.type === 'graphql-request') return 'GQL';
     if (activeItem.type === 'app') return 'APP';
-    const appOn = activeItem.draft
-      ? get(activeItem, 'draft.app.enabled', false)
-      : get(activeItem, 'app.enabled', false);
-    if (appOn) return 'APP';
+    if (appEnabled) return 'APP';
     return activeItem.draft
       ? get(activeItem, 'draft.request.method', 'GET')
       : get(activeItem, 'request.method', 'GET');
-  }, [aiContext?.kind, activeItem]);
+  }, [aiContext?.kind, activeItem, appEnabled]);
 
   // contentType drives the AI prompt, the diff target, and which entry of
   // allContent the backend treats as "active". For requests it follows the
@@ -413,6 +429,8 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
     return buildAiVariablesPayload(collection, null);
   }, [collection, aiContext]);
 
+  const aiRequests = useMemo(() => buildAiRequestsPayload(collection), [collection]);
+
   const chatsWithMessages = useMemo(() => {
     if (!collection) return [];
     return Object.entries(allChats)
@@ -458,6 +476,15 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
   useEffect(() => {
     if (isOpen) textareaRef.current?.focus();
   }, [isOpen]);
+
+  // Return focus to the prompt input when an AI response completes so
+  // the user can immediately type a follow-up without clicking back in.
+  useEffect(() => {
+    if (wasLoadingRef.current && !isLoading && isOpen) {
+      textareaRef.current?.focus();
+    }
+    wasLoadingRef.current = isLoading;
+  }, [isLoading, isOpen]);
 
   // Re-measure the textarea on mount when a draft was restored from the
   // module cache (pop-out/dock remount) so it isn't stuck at one row.
@@ -528,7 +555,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     try {
-      await dispatch(sendAiMessage(activeTabUid, text, allContent, requestContext, selectedModel, contentType, aiVariables));
+      await dispatch(sendAiMessage(activeTabUid, text, allContent, requestContext, selectedModel, contentType, aiVariables, appEnabled, aiRequests));
       setProcessingStage('applying');
       setTimeout(() => setProcessingStage(null), 500);
     } catch (err) {
@@ -866,7 +893,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
             <button
               className="icon-btn"
               onClick={handleNewChat}
-              title="New chat"
+              title="New Session"
               disabled={isLoading || messages.length === 0}
             >
               <IconPlus size={14} />

@@ -653,6 +653,42 @@ const StyledWrapper = styled.div`
         height: 14px;
       }
 
+      /* ── Errors panel ── */
+      .errors-wrapper {
+        margin: 16px 20px;
+        padding: 10px 16px;
+        border: 1px solid ${(props) => props.theme.status.danger.border};
+        border-radius: 4px;
+        background: ${(props) => props.theme.status.danger.background};
+        overflow-wrap: anywhere;
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: auto;
+
+        .errors,
+        .error-wrapper,
+        .error-wrapper > div {
+          min-width: 0;
+          max-width: 100%;
+        }
+
+        .errors__title {
+          color: ${(props) => props.theme.status.danger.text};
+        }
+
+        .errors h4 {
+          color: ${(props) => props.theme.text};
+        }
+
+        .errors small {
+          color: ${(props) => props.theme.colors.text.muted};
+        }
+
+        .errors .message {
+          color: ${(props) => props.theme.text};
+        }
+      }
+
       /* ── Misc / catch-all ── */
       .loading-container .loading::after {
         color: ${(props) => props.theme.colors.text.muted};
