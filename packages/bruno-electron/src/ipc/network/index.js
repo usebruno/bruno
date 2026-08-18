@@ -156,7 +156,7 @@ const configureRequest = async (
 
   const { promptVariables = {} } = collection;
   let { proxyMode, proxyModeReason, proxyConfig, httpsAgentRequestFields, interpolationOptions } = certsAndProxyConfig;
-  let axiosInstance = makeAxiosInstance({
+  const axiosInstance = makeAxiosInstance({
     proxyMode,
     proxyModeReason,
     proxyConfig,
@@ -168,7 +168,9 @@ const configureRequest = async (
   });
 
   if (request.ntlmConfig) {
-    axiosInstance = NtlmClient(request.ntlmConfig, axiosInstance.defaults);
+    // Keeps Bruno's interceptors and the single prepared connection across the handshake.
+    const ntlmInstance = NtlmClient(request.ntlmConfig, {});
+    axiosInstance.defaults.adapter = (config) => ntlmInstance.request({ ...config, adapter: axios.getAdapter('http') });
     delete request.ntlmConfig;
   }
 
