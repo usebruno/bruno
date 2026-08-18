@@ -1,8 +1,4 @@
-/**
- * Normalize omitHeaders from YAML / in-memory settings into a clean string[].
- * Returns undefined when there is nothing to persist.
- * OpenCollection HttpRequestSettings may not declare omitHeaders yet; YAML can still carry it.
- */
+/** Trim omitHeaders; return undefined when there is nothing to save. */
 export const normalizeOmitHeaders = (omitHeaders: unknown): string[] | undefined => {
   if (!Array.isArray(omitHeaders) || !omitHeaders.length) {
     return undefined;

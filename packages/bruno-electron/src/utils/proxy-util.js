@@ -97,7 +97,7 @@ async function setupProxyAgents({
 
   const disableCache = !preferencesUtil.isSslSessionCachingEnabled();
 
-  // Default keepAlive true for connection reuse; callers can pass false when omitting Connection.
+  // keepAlive defaults to true; pass false to omit Connection.
   const keepAlive = httpsAgentRequestFields?.keepAlive !== false;
 
   // Ensure TLS options are properly set

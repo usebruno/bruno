@@ -107,14 +107,8 @@ function makeAxiosInstance({
     config.metadata.startTime = Date.now();
     config.headers['request-start-time'] = config.metadata.startTime;
 
-    /**
-      Apply omitHeaders (settings) and req.deleteHeader() suppressions.
-      Using set(name, null) rather than delete(): the axios http adapter guards its
-      own defaults (User-Agent, Accept-Encoding) with set(..., false) which only
-      skips writing when the key already exists. delete() removes the key entirely,
-      so the guard misses and the adapter re-adds the default. null keeps the key
-      present (blocking the guard) while toJSON() omits null values from the wire.
-    */
+    // Omit listed defaults and script-deleted headers. set(null) so Axios
+    // does not put User-Agent / Accept-Encoding back.
     const { omitConnection } = applyOmitHeaders(config.headers, {
       omitHeaders: config.settings?.omitHeaders,
       headersToDelete: config.__headersToDelete,
@@ -122,7 +116,7 @@ function makeAxiosInstance({
     });
     delete config.__headersToDelete;
 
-    // Node keep-alive agents re-add Connection after Axios header prep; strip on the ClientRequest.
+    // Node keep-alive agents add Connection; strip it on the ClientRequest.
     if (omitConnection) {
       applyOmitConnectionToAxiosConfig(config);
     }
@@ -250,10 +244,7 @@ function makeAxiosInstance({
   return instance;
 }
 
-/**
- * Recompute which headers were set on the request itself (not Axios defaults).
- * Call after pre-request scripts and immediately before axiosInstance(request).
- */
+/** Headers the user or scripts set, not Axios defaults. Refresh before send. */
 function refreshExplicitHeaderNames(request) {
   if (!request?.headers || typeof request.headers !== 'object') {
     return request;

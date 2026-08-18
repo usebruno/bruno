@@ -252,9 +252,7 @@ const EditableTable = ({
       return [createEmptyRow()];
     }
 
-    // Section/default rows are not editable data rows. If the last row is one of
-    // those (e.g. an open "Request Headers" accordion with no entries yet), still
-    // append a trailing empty add-row so the table body stays usable.
+    // Always keep one empty add-row under section/default rows.
     const lastRow = rows[rows.length - 1];
     if (!isSyntheticRow(lastRow) && !hasAnyValue(lastRow)) {
       return rows;
@@ -301,9 +299,7 @@ const EditableTable = ({
       return row;
     });
 
-    // Remove any fully-empty data rows from the persisted data. Keep synthetic
-    // rows (section/default); the trailing empty "add row" is re-added by
-    // rowsWithEmpty so there's always exactly one empty row at the bottom.
+    // Drop empty data rows; keep section/default rows. The add-row is rebuilt.
     const result = showAddRow
       ? updatedRows.filter((row) => isSyntheticRow(row) || hasAnyValue(row))
       : updatedRows;
