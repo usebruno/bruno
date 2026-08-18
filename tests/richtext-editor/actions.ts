@@ -1,4 +1,4 @@
-import { expect, Page } from '../../playwright';
+import { expect, Page, Locator } from '../../playwright';
 import { createCollection, createFolder, openCollectionSettings, openFolderSettings, selectCollectionPaneTab, selectfolderPaneTab, selectRequestPaneTab } from '../utils/page/actions';
 import { buildCommonLocators } from '../utils/page/locators';
 
@@ -95,6 +95,21 @@ export const pasteIntoRichTextEditor = async (locators: DocsLocators, text: stri
     dataTransfer.setData('text/plain', pastedText);
     el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dataTransfer, bubbles: true, cancelable: true }));
   }, text);
+};
+
+// Same as pasteIntoRichTextEditor but with an HTML clipboard payload, so ProseMirror parses it
+// through the schema's own parseHTML rules (like a real rich paste), not through markdown-it.
+// Pastes at `target` (defaults to the whole editor) so callers can paste into a specific cell/node.
+export const pasteHtmlIntoRichTextEditor = async (locators: DocsLocators, html: string, target?: Locator) => {
+  const prosemirror = locators.docs.proseMirror();
+  await expect(prosemirror).toBeVisible();
+  const pasteTarget = target || prosemirror;
+  await pasteTarget.click();
+  await pasteTarget.evaluate((el, pastedHtml) => {
+    const dataTransfer = new DataTransfer();
+    dataTransfer.setData('text/html', pastedHtml);
+    el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dataTransfer, bubbles: true, cancelable: true }));
+  }, html);
 };
 
 export const clickDocsToolbarBtn = async (locators: DocsLocators, label: string) => {

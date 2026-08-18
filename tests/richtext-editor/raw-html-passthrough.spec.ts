@@ -207,4 +207,33 @@ test.describe('Rich Text Editor Edge Cases - Raw HTML Passthrough', () => {
       expect(roundTripped).toContain('- A normal list item');
     });
   });
+
+  // A full-viewport overlay (position:fixed + contain: paint escape via <dialog>/popover) is a
+  // separate, already-covered security concern; this only guards that closing that gap didn't
+  // regress into stripping ordinary styling from existing docs.
+  test('A style attribute on raw HTML is preserved, not stripped', async ({ page, createTmpDir }) => {
+    const locators = await setupRequestDocs(page, createTmpDir, 'test-richtext-style-attr');
+
+    await setMarkdownSource(locators, '<div style="color: rgb(255, 0, 0);" class="note">Styled text</div>');
+
+    const styledDiv = locators.docs.proseMirror().locator('div.note');
+
+    await test.step('Rich Text applies the style live, not just preserving it as inert markup', async () => {
+      await locators.docs.modeSwitchDocs().click();
+
+      await expect(styledDiv).toBeVisible();
+      await expect(styledDiv).toHaveCSS('color', 'rgb(255, 0, 0)');
+    });
+
+    await test.step('Editing the text keeps the style attribute in the serialized markdown', async () => {
+      await styledDiv.click();
+      await page.keyboard.press('End');
+      await page.keyboard.type('!');
+      await expect(styledDiv).toHaveText('Styled text!');
+
+      const roundTripped = await getMarkdownSource(locators);
+
+      expect(roundTripped).toContain('style="color: rgb(255, 0, 0);"');
+    });
+  });
 });
