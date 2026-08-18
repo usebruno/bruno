@@ -86,7 +86,7 @@ async function setupProxyAgents({
   delete requestConfig.httpAgent;
   delete requestConfig.httpsAgent;
 
-  // Default keepAlive true for connection reuse; callers can pass false when omitting Connection.
+  // keepAlive defaults to true; pass false to omit Connection.
   const keepAlive = httpsAgentRequestFields?.keepAlive !== false;
   const tlsOptions = { ...httpsAgentRequestFields, keepAlive };
   const httpAgentOptions = { keepAlive };

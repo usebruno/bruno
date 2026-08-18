@@ -17,12 +17,8 @@ type AxiosConfigLike = {
 };
 
 /**
- * Node's http.Agent(keepAlive) injects `Connection: keep-alive` after Axios headers
- * are prepared. `headers.set('Connection', null)` alone cannot stop that.
- *
- * Axios allows a custom `transport`; wrap it so we `removeHeader('connection')` on
- * the ClientRequest (sets Node's `_removedConnection`), which keeps the header off
- * the wire even when the agent still has keepAlive enabled.
+ * Keep Connection off the wire. Node keep-alive agents add it after Axios
+ * prepares headers, so also removeHeader on the ClientRequest.
  */
 export const applyOmitConnectionToAxiosConfig = (config: AxiosConfigLike): void => {
   if (!config?.headers || typeof config.headers.set !== 'function') {

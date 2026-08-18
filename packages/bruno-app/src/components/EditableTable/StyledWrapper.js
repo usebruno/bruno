@@ -173,9 +173,6 @@ const StyledWrapper = styled.div`
 
       &.section-header-row {
         position: relative;
-
-        /* Sit above the header's full-height resize guide so it cannot paint
-           across the section label. */
         td.full-width-row {
           position: relative;
           z-index: 11;

@@ -145,7 +145,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
 
     const requestRows = (headers || []).map((header) => ({ ...header, rowType: 'request' }));
 
-    // When defaults are hidden, show a flat request-headers table (no accordion chrome).
+    // Hide the defaults accordion.
     if (!showDefaultHeaders) {
       return requestRows;
     }
