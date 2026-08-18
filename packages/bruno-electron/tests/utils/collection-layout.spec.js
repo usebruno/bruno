@@ -1,7 +1,10 @@
-jest.mock('electron', () => ({
-  dialog: { showOpenDialog: jest.fn(), showSaveDialog: jest.fn() },
-  app: { getPath: jest.fn(() => '/tmp') }
-}));
+jest.mock('electron', () => {
+  const os = require('os');
+  return {
+    dialog: { showOpenDialog: jest.fn(), showSaveDialog: jest.fn() },
+    app: { getPath: jest.fn(() => os.tmpdir()) }
+  };
+});
 
 const fs = require('fs');
 const os = require('os');
@@ -18,6 +21,7 @@ const {
   scanForBrunoFiles
 } = require('../../src/utils/filesystem');
 const { defaultClassify } = require('../../src/utils/mount');
+const { COLLECTION_LAYOUTS } = require('@usebruno/common');
 
 // A collection may be laid out as `.bru`, `.yml` or `.yaml`. Detection has to name the layout
 // (which drives every filename the app writes) rather than just the serializer, and `.yaml` must
@@ -37,6 +41,10 @@ describe('collection layout detection', () => {
   const seedRoot = (basename, content = 'opencollection: "1.0.0"\ninfo:\n  name: c\n') => {
     fs.writeFileSync(path.join(dir, basename), content);
   };
+
+  // The basename any write to this collection's root would target.
+  const getCollectionLayoutConfigFor = (collectionPath) =>
+    COLLECTION_LAYOUTS[detectCollectionLayout(collectionPath)].collectionFile;
 
   describe('detectCollectionLayout', () => {
     it('detects a .yml collection', () => {
@@ -65,6 +73,18 @@ describe('collection layout detection', () => {
       seedRoot('opencollection.yaml');
       fs.writeFileSync(path.join(dir, 'bruno.json'), '{"version":"1","name":"c","type":"collection"}');
       expect(detectCollectionLayout(dir)).toBe('yaml');
+    });
+
+    it('picks the canonically-cased root when both spellings coexist', () => {
+      // On a case-sensitive filesystem `OpenCollection.YML` and `opencollection.yml` can both
+      // exist. Detection goes through fs.existsSync on the layout's marker, so it resolves the
+      // canonical name and every later write targets that same file — an oddly-cased sibling is
+      // never written to and no second root is created.
+      seedRoot('opencollection.yml');
+      seedRoot('OpenCollection.YML');
+
+      expect(detectCollectionLayout(dir)).toBe('yml');
+      expect(getCollectionLayoutConfigFor(dir)).toBe('opencollection.yml');
     });
 
     it('returns null when the directory is not a collection', () => {

@@ -299,6 +299,38 @@ describe('createCollectionFromBrunoObject', () => {
     });
   });
 
+  // An imported item's `filename` carries whatever extension its source used; writing it verbatim
+  // into a different layout produces `users.yml` in a `.yaml` collection, which the app ignores.
+  it.each([
+    ['users.bru', 'users.yaml'],
+    ['users.yml', 'users.yaml'],
+    ['users.yaml', 'users.yaml'],
+    ['users.YAML', 'users.yaml'],
+    ['my.request', 'my.request.yaml'],
+    [undefined, 'Get Users.yaml']
+  ])('normalizes an item filename of %s to %s for the yaml layout', async (filename, expected) => {
+    createOutputDir();
+
+    await createCollectionFromBrunoObject(
+      {
+        name: 'ext-normalization',
+        items: [
+          {
+            type: 'http-request',
+            name: 'Get Users',
+            ...(filename ? { filename } : {}),
+            seq: 1,
+            request: { method: 'GET', url: 'https://api.example.com/users' }
+          }
+        ]
+      },
+      outputDir,
+      { format: 'yaml' }
+    );
+
+    expect(fs.readdirSync(outputDir).filter((f) => f !== 'opencollection.yaml')).toEqual([expected]);
+  });
+
   it('writes byte-identical content for the yml and yaml layouts', async () => {
     const collection = () => ({
       name: 'parity-collection',

@@ -21,7 +21,12 @@ export interface CollectionLayoutConfig {
    * is `bruno.json`, not `collectionFile` — `collection.bru` is optional.
    */
   marker: string;
-  /** Root basenames this layout still reads but no longer writes. */
+  /**
+   * Root basenames this layout recognizes but neither writes nor detects by. These exist so a
+   * legacy root is not mistaken for an ordinary request when classifying files; opening a
+   * collection still requires {@link CollectionLayoutConfig.marker}, because a layout key alone
+   * cannot say which of several root filenames a given collection actually uses.
+   */
   legacyCollectionFiles: string[];
 }
 

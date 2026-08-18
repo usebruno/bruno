@@ -2,7 +2,12 @@ const fs = require('fs');
 const path = require('path');
 const YAML = require('yaml');
 const { NODEVM_SCRIPT_WRAPPER_OFFSET, QUICKJS_SCRIPT_WRAPPER_OFFSET } = require('./sandbox');
-const { isRequestFilename, isYamlFilename } = require('@usebruno/common');
+const { getLayoutForFilename, isRequestFilename, isYamlFilename } = require('@usebruno/common');
+
+// `.bru` must be recognized case-insensitively like every other layout extension — a `FOO.BRU`
+// request is a real file on Windows and macOS, and missing it here returns raw VM line numbers
+// instead of lines mapped into the script block.
+const isBruFilename = (filePath) => getLayoutForFilename(filePath) === 'bru';
 
 const posixifyPath = (p) => (p ? p.replace(/\\/g, '/') : p);
 
@@ -40,7 +45,7 @@ const BLOCK_PATTERNS = {
 
 /** Find the 1-indexed line where a script block's content starts in a .bru file */
 const findScriptBlockStartLine = (filePath, scriptType, cache = null) => {
-  if (!filePath.endsWith('.bru')) return null;
+  if (!isBruFilename(filePath)) return null;
 
   const cacheKey = `bru:${filePath}:${scriptType}`;
   if (cache?.has(cacheKey)) return cache.get(cacheKey);
@@ -66,7 +71,7 @@ const findScriptBlockStartLine = (filePath, scriptType, cache = null) => {
 
 /** Find the 1-indexed last content line of a script block in a .bru file (excludes closing }) */
 const findScriptBlockEndLine = (filePath, scriptType, cache = null) => {
-  if (!filePath.endsWith('.bru')) return null;
+  if (!isBruFilename(filePath)) return null;
 
   const cacheKey = `bru-end:${filePath}:${scriptType}`;
   if (cache?.has(cacheKey)) return cache.get(cacheKey);
@@ -191,7 +196,7 @@ const findYmlScriptBlockEndLine = (filePath, scriptType, cache = null) => {
 
 /** Adjust a runtime-reported line number to the actual line in the .bru/.yml/.yaml file */
 const adjustLineNumber = (filePath, reportedLine, isQuickJS, scriptType = null, cache = null, scriptMetadata = null) => {
-  const isBruFile = filePath.endsWith('.bru');
+  const isBruFile = isBruFilename(filePath);
   const isYmlFile = isYamlFilename(filePath);
 
   if (!isBruFile && !isYmlFile) {
@@ -240,7 +245,7 @@ const adjustLineNumber = (filePath, reportedLine, isQuickJS, scriptType = null, 
 
 /** Look up the script block start line for a .bru, .yml or .yaml file */
 const findBlockStart = (filePath, scriptType, cache) => {
-  if (filePath.endsWith('.bru')) return findScriptBlockStartLine(filePath, scriptType, cache);
+  if (isBruFilename(filePath)) return findScriptBlockStartLine(filePath, scriptType, cache);
   if (isYamlFilename(filePath)) return findYmlScriptBlockStartLine(filePath, scriptType, cache);
   return null;
 };
@@ -688,7 +693,7 @@ const formatErrorWithContextV2 = (error, scriptType, scriptMetadata, collectionP
     // so show lines relative to the script block, not absolute .bru file lines.
     const blockStartLine = findBlockStart(sourceFile, scriptType, cache);
 
-    const isBru = sourceFile.endsWith('.bru');
+    const isBru = isBruFilename(sourceFile);
     const isYml = isYamlFilename(sourceFile);
     const blockEndLine = isBru
       ? findScriptBlockEndLine(sourceFile, scriptType, cache)

@@ -6,7 +6,12 @@ const { sanitizeName } = require('./filesystem');
 const { parseRequest, parseCollection, parseFolder, stringifyCollection, stringifyFolder, stringifyEnvironment, stringifyRequest, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const constants = require('../constants');
 const chalk = require('chalk');
-const { COLLECTION_LAYOUTS, COLLECTION_LAYOUT_ORDER, isOpenCollectionLayout } = require('@usebruno/common');
+const {
+  COLLECTION_LAYOUTS,
+  COLLECTION_LAYOUT_ORDER,
+  isOpenCollectionLayout,
+  stripRequestExtension
+} = require('@usebruno/common');
 
 const REQUEST_ITEM_TYPES = ['http-request', 'graphql-request'];
 
@@ -615,11 +620,9 @@ const processCollectionItems = async (items = [], currentPath, options = {}) => 
         await processCollectionItems(item.items, folderPath, options);
       }
     } else if (REQUEST_ITEM_TYPES.includes(item.type)) {
-      // Create request file
-      let sanitizedFilename = sanitizeName(item?.filename || `${item.name}${ext}`);
-      if (!sanitizedFilename.endsWith(ext)) {
-        sanitizedFilename += ext;
-      }
+      // Create request file. Strip any recognized request extension first, so an item carrying
+      // `users.yml` or `request.YAML` lands as `users.yaml` rather than `users.yml.yaml`.
+      const sanitizedFilename = `${sanitizeName(stripRequestExtension(item?.filename || item.name))}${ext}`;
 
       // Convert to YML format
       const itemJson = {

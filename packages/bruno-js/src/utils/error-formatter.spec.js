@@ -262,6 +262,18 @@ describe('Error Formatter', () => {
       expect(adjustLineNumber(bruFilePath, 4, false, 'post-response')).toBe(20);
     });
 
+    it('should adjust lines for an uppercase .BRU file exactly as for .bru', () => {
+      // `FOO.BRU` is a real file on Windows and macOS; a case-sensitive check here would skip
+      // script-block mapping and report the raw VM line instead.
+      const upperBruPath = path.join(testDir, 'upper.BRU');
+      fs.writeFileSync(upperBruPath, MULTI_BLOCK_BRU);
+
+      expect(adjustLineNumber(upperBruPath, 4, false, 'post-response'))
+        .toBe(adjustLineNumber(bruFilePath, 4, false, 'post-response'));
+      expect(findScriptBlockStartLine(upperBruPath, 'pre-request'))
+        .toBe(findScriptBlockStartLine(bruFilePath, 'pre-request'));
+    });
+
     it('should adjust lines for .yml files', () => {
       expect(adjustLineNumber(ymlFilePath, 10, true, 'pre-request')).toBe(8);
       expect(adjustLineNumber(ymlFilePath, 11, true, 'post-response')).toBe(13);

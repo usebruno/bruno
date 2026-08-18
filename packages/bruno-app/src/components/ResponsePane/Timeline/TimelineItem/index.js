@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons';
-import { getLayoutConfig } from '@usebruno/common';
+import { getLayoutConfig, isFolderRootBasename } from '@usebruno/common';
 import Method from './Common/Method/index';
 import Status from './Common/Status/index';
 import { RelativeTime } from './Common/Time/index';
@@ -18,8 +18,10 @@ import { getBadge } from '../entryMeta';
 
 const findFolderByScopeFile = (collection, sourceFile) => {
   if (!collection?.pathname || !sourceFile) return null;
-  const dir = sourceFile.replace(/\/folder\.(?:bru|yml)$/, '');
-  if (!dir || dir === sourceFile) return null;
+  const segments = sourceFile.split('/');
+  if (!isFolderRootBasename(segments[segments.length - 1])) return null;
+  const dir = segments.slice(0, -1).join('/');
+  if (!dir) return null;
   return flattenItems(collection.items || []).find(
     (i) => i.type === 'folder' && getRelativePath(collection.pathname, i.pathname) === dir
   ) || null;

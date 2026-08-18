@@ -5,7 +5,7 @@ const { sanitizeName, createDirectory, writeFile, safeWriteFileSync, getCollecti
 const { generateUidBasedOnHash, stringifyJson } = require('./common');
 const { stringifyRequestViaWorker, stringifyCollection, stringifyEnvironment, stringifyFolder, DEFAULT_COLLECTION_FORMAT } = require('@usebruno/filestore');
 const { transformProxyConfig } = require('@usebruno/requests/dist/cjs');
-const { COLLECTION_LAYOUTS, isOpenCollectionLayout } = require('@usebruno/common');
+const { COLLECTION_LAYOUTS, isOpenCollectionLayout, stripRequestExtension } = require('@usebruno/common');
 
 /**
  * Recursively find a unique folder name by appending incremental numbers
@@ -44,7 +44,9 @@ async function importCollection(collection, collectionLocation, mainWindow, uniq
   const parseCollectionItems = async (items = [], currentPath) => {
     for (const item of items) {
       if (['http-request', 'graphql-request', 'grpc-request'].includes(item.type)) {
-        let sanitizedFilename = sanitizeName(item.filename || `${item.name}${ext}`);
+        // Strip any recognized request extension so an item imported from a `.yml` source lands
+        // as `.yaml` in a yaml-layout collection — otherwise the watcher ignores the file.
+        const sanitizedFilename = `${sanitizeName(stripRequestExtension(item.filename || item.name))}${ext}`;
         const content = await stringifyRequestViaWorker(item, { format });
         const filePath = path.join(currentPath, sanitizedFilename);
         safeWriteFileSync(filePath, content);
