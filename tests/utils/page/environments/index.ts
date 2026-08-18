@@ -7,6 +7,11 @@ export const buildEnvironmentLocators = (page: Page) => ({
   globalTab: () => page.getByTestId('env-tab-global'),
   envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
   listOption: (name: string) => page.locator('.environment-list .dropdown-item', { hasText: name }),
+  listOptionBadge: (name: string) =>
+    page
+      .locator('.environment-list .dropdown-item')
+      .filter({ has: page.getByText(name, { exact: true }) })
+      .getByTestId('color-badge'),
   currentEnvironment: () => page.locator('.current-environment'),
   configureButton: () => page.locator('#configure-env'),
   saveButton: () => page.getByTestId('save-env'),
