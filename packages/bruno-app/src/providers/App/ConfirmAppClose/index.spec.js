@@ -164,4 +164,18 @@ describe('ConfirmAppClose cleanup lifecycle', () => {
     expect(mockRunRequest).toHaveBeenCalledTimes(2);
     fireEvent.click(screen.getByRole('button', { name: 'Cancel cleanup' }));
   });
+
+  it('surfaces cancellation failures before enabling retry', async () => {
+    jest.useFakeTimers();
+    mockRunRequest.mockReturnValue(new Promise(() => undefined));
+    mockCancelRequest.mockRejectedValue(new Error('unable to cancel request'));
+    await startQuitFlow();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run cleanup and quit' }));
+    await act(async () => jest.advanceTimersByTimeAsync(30000));
+
+    expect(screen.getByText('unable to cancel request')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry cleanup' })).toBeInTheDocument();
+    expect(mockRunRequest).toHaveBeenCalledTimes(1);
+  });
 });

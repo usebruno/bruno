@@ -1,6 +1,23 @@
 export const DEFAULT_CLEANUP_REQUEST_TIMEOUT_MS = 30000;
+export const DEFAULT_CLEANUP_CANCELLATION_TIMEOUT_MS = 5000;
 
-const runWithTimeout = ({ execute, onTimeout, timeoutMs, requestName }) => {
+const waitForCancellation = ({ onTimeout, cancellationTimeoutMs, requestName }) => {
+  let cancellationTimeoutId;
+  const cancellationTimeout = new Promise((_, reject) => {
+    cancellationTimeoutId = setTimeout(() => reject(
+      new Error(
+        `Cancellation for cleanup request “${requestName}” timed out after ${Math.round(cancellationTimeoutMs / 1000)} seconds.`
+      )
+    ), cancellationTimeoutMs);
+  });
+
+  return Promise.race([
+    Promise.resolve().then(() => onTimeout?.()),
+    cancellationTimeout
+  ]).finally(() => clearTimeout(cancellationTimeoutId));
+};
+
+const runWithTimeout = ({ execute, onTimeout, timeoutMs, cancellationTimeoutMs, requestName }) => {
   let timeoutId;
   let settlementClaimed = false;
 
@@ -9,12 +26,11 @@ const runWithTimeout = ({ execute, onTimeout, timeoutMs, requestName }) => {
       if (settlementClaimed) return;
       settlementClaimed = true;
 
-      Promise.resolve()
-        .then(() => onTimeout?.())
-        .catch(() => undefined)
+      waitForCancellation({ onTimeout, cancellationTimeoutMs, requestName })
         .then(() => reject(
           new Error(`Cleanup request “${requestName}” timed out after ${Math.round(timeoutMs / 1000)} seconds.`)
-        ));
+        ))
+        .catch(reject);
     }, timeoutMs);
 
     Promise.resolve()
@@ -40,7 +56,8 @@ export const executeCleanupPlans = async ({
   runRequest,
   cancelRequest,
   onRequestStart,
-  timeoutMs = DEFAULT_CLEANUP_REQUEST_TIMEOUT_MS
+  timeoutMs = DEFAULT_CLEANUP_REQUEST_TIMEOUT_MS,
+  cancellationTimeoutMs = DEFAULT_CLEANUP_CANCELLATION_TIMEOUT_MS
 }) => {
   for (const plan of plans) {
     if (plan.missingRequestPaths.length) {
@@ -55,6 +72,7 @@ export const executeCleanupPlans = async ({
         execute: () => runRequest(request, plan),
         onTimeout: () => cancelRequest?.(request, plan),
         timeoutMs,
+        cancellationTimeoutMs,
         requestName
       });
     }

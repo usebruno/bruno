@@ -781,10 +781,16 @@ export const cancelRequestByItemUid = (itemUid, collectionUid) => (dispatch, get
   const item = collection && findItemInCollection(collection, itemUid);
 
   if (!item?.cancelTokenUid) {
-    return Promise.resolve(false);
+    return Promise.reject(new Error('Unable to cancel cleanup request because no cancellation token is available'));
   }
 
-  return dispatch(cancelRequest(item.cancelTokenUid, item, collection)).then(() => true);
+  return cancelNetworkRequest(item.cancelTokenUid).then(() => {
+    dispatch(requestCancelled({
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    }));
+    return true;
+  });
 };
 
 export const cancelRunnerExecution = (cancelTokenUid) => (dispatch) => {

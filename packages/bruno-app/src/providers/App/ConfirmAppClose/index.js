@@ -66,7 +66,8 @@ const ConfirmAppClose = () => {
     const activeRequest = activeCleanupRequestRef.current;
     activeCleanupRequestRef.current = null;
     if (activeRequest) {
-      dispatch(cancelRequestByItemUid(activeRequest.itemUid, activeRequest.collectionUid));
+      Promise.resolve(dispatch(cancelRequestByItemUid(activeRequest.itemUid, activeRequest.collectionUid)))
+        .catch(() => undefined);
     }
   }, [dispatch]);
 

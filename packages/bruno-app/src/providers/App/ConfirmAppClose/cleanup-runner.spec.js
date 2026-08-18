@@ -74,7 +74,8 @@ describe('executeCleanupPlans', () => {
         finishRequest = resolve;
       }),
       cancelRequest,
-      timeoutMs: 1000
+      timeoutMs: 1000,
+      cancellationTimeoutMs: 5000
     });
     execution.catch(() => {
       timeoutReported = true;
@@ -90,6 +91,46 @@ describe('executeCleanupPlans', () => {
 
     finishCancellation();
     await expect(execution).rejects.toThrow('timed out after 1 seconds');
+    expect(timeoutReported).toBe(true);
+  });
+
+  it('propagates a cancellation failure instead of reporting a successful timeout cancellation', async () => {
+    jest.useFakeTimers();
+    const cancellationError = new Error('request cancellation failed');
+    const execution = executeCleanupPlans({
+      plans: [{ ...plans[0], requests: [requestOne] }],
+      runRequest: () => new Promise(() => undefined),
+      cancelRequest: () => Promise.reject(cancellationError),
+      timeoutMs: 1000,
+      cancellationTimeoutMs: 5000
+    });
+    const rejection = expect(execution).rejects.toBe(cancellationError);
+
+    await jest.advanceTimersByTimeAsync(1000);
+
+    await rejection;
+  });
+
+  it('bounds the wait when cancellation never completes', async () => {
+    jest.useFakeTimers();
+    let timeoutReported = false;
+    const execution = executeCleanupPlans({
+      plans: [{ ...plans[0], requests: [requestOne] }],
+      runRequest: () => new Promise(() => undefined),
+      cancelRequest: () => new Promise(() => undefined),
+      timeoutMs: 1000,
+      cancellationTimeoutMs: 2000
+    });
+    const rejection = expect(execution).rejects.toThrow('Cancellation for cleanup request');
+    execution.catch(() => {
+      timeoutReported = true;
+    });
+
+    await jest.advanceTimersByTimeAsync(2999);
+    expect(timeoutReported).toBe(false);
+
+    await jest.advanceTimersByTimeAsync(1);
+    await rejection;
     expect(timeoutReported).toBe(true);
   });
 
