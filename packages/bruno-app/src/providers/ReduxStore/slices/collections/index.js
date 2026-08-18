@@ -1970,18 +1970,24 @@ export const collectionsSlice = createSlice({
     },
     updateRequestMethod: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (!collection) return;
 
-      if (collection) {
-        const item = findItemInCollection(collection, action.payload.itemUid);
+      const item = findItemInCollection(collection, action.payload.itemUid);
+      if (!item || !isItemARequest(item)) return;
 
-        if (item && isItemARequest(item)) {
-          if (!item.draft) {
-            item.draft = cloneDeep(item);
-          }
-          item.draft.request.method = action.payload.method;
-          item.draft.request.methodType = action.payload.methodType;
-        }
+      const source = item.draft ? item.draft : item;
+      if (
+        source.request.method === action.payload.method
+        && source.request.methodType === action.payload.methodType
+      ) {
+        return;
       }
+
+      if (!item.draft) {
+        item.draft = cloneDeep(item);
+      }
+      item.draft.request.method = action.payload.method;
+      item.draft.request.methodType = action.payload.methodType;
     },
     updateRequestProtoPath: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
