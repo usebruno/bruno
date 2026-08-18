@@ -10,6 +10,10 @@ const Wrapper = styled.div`
       border: inherit !important;
     }
   }
+
+  .delete-item-name {
+    overflow-wrap: anywhere;
+  }
 `;
 
 export default Wrapper;
