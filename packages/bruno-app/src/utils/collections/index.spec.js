@@ -1,4 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
+import path from 'path';
 import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts, findFolderByScopeFile } from './index';
 
 describe('mergeHeaders', () => {
@@ -134,24 +135,29 @@ describe('getCollectionItemCounts', () => {
 });
 
 describe('findFolderByScopeFile', () => {
+  const collectionPath = path.resolve('coll');
   const collection = {
-    pathname: '/coll',
+    pathname: collectionPath,
     items: [
-      { type: 'folder', name: 'users', pathname: '/coll/users', items: [] },
-      { type: 'folder', name: 'admin', pathname: '/coll/admin/nested', items: [] },
-      { type: 'http-request', name: 'ping', pathname: '/coll/ping.yaml' }
+      { type: 'folder', name: 'users', pathname: path.join(collectionPath, 'users'), items: [] },
+      { type: 'folder', name: 'admin', pathname: path.join(collectionPath, 'admin', 'nested'), items: [] },
+      { type: 'http-request', name: 'ping', pathname: path.join(collectionPath, 'ping.yaml') }
     ]
   };
 
   it.each(['folder.bru', 'folder.yml', 'folder.yaml'])('resolves a %s scope to its folder', (folderFile) => {
     // A `.yaml` folder root must resolve too, or its timeline link is silently disabled.
-    expect(findFolderByScopeFile(collection, `users/${folderFile}`)?.pathname).toBe('/coll/users');
+    expect(findFolderByScopeFile(collection, path.posix.join('users', folderFile))?.pathname).toBe(
+      path.join(collectionPath, 'users')
+    );
   });
 
   it('resolves a Windows-separated scope path', () => {
     // The main process posixifies this today, but the consumer must not depend on that — an
     // unnormalized separator would make the whole path look like the basename.
-    expect(findFolderByScopeFile(collection, 'admin\\nested\\folder.yaml')?.pathname).toBe('/coll/admin/nested');
+    expect(findFolderByScopeFile(collection, path.win32.join('admin', 'nested', 'folder.yaml'))?.pathname).toBe(
+      path.join(collectionPath, 'admin', 'nested')
+    );
   });
 
   it('returns null when the scope file is not a folder root', () => {
