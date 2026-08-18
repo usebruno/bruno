@@ -100,6 +100,7 @@ function makeAxiosInstance({
     },
     proxy: false,
     maxRedirects: 0,
+    insecureHTTPParser: true,
     headers: {}
   });
 
