@@ -177,9 +177,9 @@ for (const mode of SANDBOX_MODES) {
       });
 
       await test.step('each hook gets its own section', async () => {
-        await expect(tests.summary('beforeCallStart')).toContainText('Before Call Start Tests (3), Passed: 3, Failed: 0');
+        await expect(tests.summary('beforeCallStart')).toContainText('Before Call Start Tests (4), Passed: 4, Failed: 0');
         await expect(tests.summary('afterCallEnd')).toContainText('After Call End Tests (6), Passed: 5, Failed: 1');
-        await expect(tests.passedRows('beforeCallStart')).toHaveCount(3);
+        await expect(tests.passedRows('beforeCallStart')).toHaveCount(4);
         await expect(tests.passedRows('afterCallEnd')).toHaveCount(5);
       });
 

@@ -16,13 +16,12 @@ class BrunoGrpcRequest {
    * @param {object} request - The prepared gRPC request
    * @param {object} [options]
    * @param {boolean} [options.metadataWritable=false] - When true, `metadata` accepts writes
-   * @param {boolean} [options.messagesWritable=false] - When true, `messages` accepts writes
-   * @param {object[]} [options.sentMessages] - What the call sent, as `{ data, timestamp }`. Given
-   *   by `afterCallEnd`, where `messages` answers what went out rather than what was authored —
-   *   the two differ whenever the user streams a subset of the authored messages, or none. Mutually
-   *   exclusive with `messagesWritable`: what was sent can no longer be changed.
+   * @param {object[]} [options.sentMessages=[]] - What the call sent, as `{ data, timestamp }`.
+   *   `messages` always answers with these, never with the messages authored in the UI — the two
+   *   differ whenever the user streams a subset of the authored messages, or none. It is therefore
+   *   empty in `beforeCallStart`, where the call has yet to send anything.
    */
-  constructor(request, { metadataWritable = false, messagesWritable = false, sentMessages } = {}) {
+  constructor(request, { metadataWritable = false, sentMessages = [] } = {}) {
     this.#request = request;
     this.url = request.url;
     this.method = request.method;
@@ -31,20 +30,7 @@ class BrunoGrpcRequest {
     this.protoPath = request.protoPath;
     this.name = request.name;
     this.metadata = new GrpcMetadataList(() => this.#metadataEntries(), { writable: metadataWritable });
-    // The sent messages arrive as the `{ data, timestamp }` envelope `response.messages` uses, so they
-    // need neither conversion nor the live `body.grpc` reference the authored list keeps for writes.
-    this.messages = sentMessages
-      ? new GrpcMessageList(() => sentMessages, { writable: false })
-      : new GrpcMessageList(() => this.#messageEntries(), {
-        writable: messagesWritable,
-        // returns payload in { data: PAYLOAD } format
-        toValue: (entry) => ({ data: this.#safeParseJSON(entry?.content) }),
-        // Creates a Wrapper identical to the messages array in request.body.grpc
-        toEntry: (message, existing, index) => ({
-          name: existing?.name || `message ${index + 1}`,
-          content: typeof message === 'string' ? message : this.#safeStringifyJSON(message)
-        })
-      });
+    this.messages = new GrpcMessageList(() => sentMessages);
   }
 
   // Provides reference for in-memory edits on setters
@@ -52,33 +38,6 @@ class BrunoGrpcRequest {
     this.#request.headers ??= {};
 
     return this.#request.headers;
-  }
-
-  // Provides reference for in-memory edits on setters
-  #messageEntries() {
-    this.#request.body ??= {};
-
-    if (!Array.isArray(this.#request.body.grpc)) {
-      this.#request.body.grpc = [];
-    }
-
-    return this.#request.body.grpc;
-  }
-
-  #safeParseJSON(str) {
-    try {
-      return JSON.parse(str);
-    } catch (e) {
-      return str;
-    }
-  }
-
-  #safeStringifyJSON(value) {
-    try {
-      return JSON.stringify(value, null, 2);
-    } catch (e) {
-      return String(value);
-    }
   }
 }
 
