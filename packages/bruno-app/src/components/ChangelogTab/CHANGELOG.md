@@ -54,7 +54,7 @@ Client certificates can now be configured once at the app level instead of being
 
 [Read Docs →](https://link.usebruno.com/docs/client-certificates?version=4.1.0)
 
-### Docs Playground
+### Generated Docs Playground
 
 * Inherited auth from folders and parent requests now resolves correctly
 * Variable hover cards support highlighting and inline editing
