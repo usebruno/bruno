@@ -160,10 +160,17 @@ const CollectionSettings = ({ collection }) => {
             Protobuf
             {protobufConfig.protoFiles && protobufConfig.protoFiles.length > 0 && <StatusDot />}
           </div>
-          <div className={getTabClassname('onExit')} role="tab" data-testid="collection-settings-tab-onExit" onClick={() => setTab('onExit')}>
+          <button
+            type="button"
+            className={getTabClassname('onExit')}
+            role="tab"
+            aria-selected={tab === 'onExit'}
+            data-testid="collection-settings-tab-onExit"
+            onClick={() => setTab('onExit')}
+          >
             On Exit
             {onExitConfig.enabled && <StatusDot />}
-          </div>
+          </button>
         </div>
         {AI_TABS.includes(tab) && (
           <div className="flex items-center gap-2 flex-shrink-0">

@@ -7,6 +7,7 @@ import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
 let mockState;
 let mockDispatch;
 let mockRunRequest;
+let mockCancelRequest;
 let mockQuitListener;
 
 jest.mock('react-redux', () => ({
@@ -63,12 +64,16 @@ const createState = (showReminder) => ({
 });
 
 describe('ConfirmAppClose cleanup lifecycle', () => {
+  afterEach(() => jest.useRealTimers());
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockState = createState(true);
     mockRunRequest = jest.fn(() => Promise.resolve());
+    mockCancelRequest = jest.fn(() => Promise.resolve());
     mockDispatch = jest.fn((action) => {
       if (action.type === 'TEST_SEND_REQUEST') return mockRunRequest(action.payload);
+      if (action.type === 'TEST_CANCEL_REQUEST') return mockCancelRequest(action.payload);
       return action;
     });
     mockQuitListener = null;
@@ -131,5 +136,32 @@ describe('ConfirmAppClose cleanup lifecycle', () => {
     expect(cancelRequestByItemUid).toHaveBeenCalledWith('request-1', 'collection-1');
     expect(completeQuitFlow).not.toHaveBeenCalled();
     expect(screen.queryByText('Running cleanup requests…')).not.toBeInTheDocument();
+  });
+
+  it('does not enable retry until timeout cancellation finishes', async () => {
+    jest.useFakeTimers();
+    let finishCancellation;
+    mockRunRequest.mockReturnValue(new Promise(() => undefined));
+    mockCancelRequest.mockReturnValue(new Promise((resolve) => {
+      finishCancellation = resolve;
+    }));
+    await startQuitFlow();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run cleanup and quit' }));
+    await act(async () => jest.advanceTimersByTimeAsync(30000));
+
+    expect(mockRunRequest).toHaveBeenCalledTimes(1);
+    expect(mockCancelRequest).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: 'Retry cleanup' })).not.toBeInTheDocument();
+
+    mockRunRequest.mockReturnValue(new Promise(() => undefined));
+    await act(async () => finishCancellation());
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Retry cleanup' }));
+      await Promise.resolve();
+    });
+
+    expect(mockRunRequest).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel cleanup' }));
   });
 });

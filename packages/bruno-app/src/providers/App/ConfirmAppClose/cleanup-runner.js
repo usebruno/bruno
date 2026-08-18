@@ -2,15 +2,36 @@ export const DEFAULT_CLEANUP_REQUEST_TIMEOUT_MS = 30000;
 
 const runWithTimeout = ({ execute, onTimeout, timeoutMs, requestName }) => {
   let timeoutId;
+  let settlementClaimed = false;
 
-  const timeout = new Promise((_, reject) => {
+  const execution = new Promise((resolve, reject) => {
     timeoutId = setTimeout(() => {
-      Promise.resolve(onTimeout?.()).catch(() => undefined);
-      reject(new Error(`Cleanup request “${requestName}” timed out after ${Math.round(timeoutMs / 1000)} seconds.`));
+      if (settlementClaimed) return;
+      settlementClaimed = true;
+
+      Promise.resolve()
+        .then(() => onTimeout?.())
+        .catch(() => undefined)
+        .then(() => reject(
+          new Error(`Cleanup request “${requestName}” timed out after ${Math.round(timeoutMs / 1000)} seconds.`)
+        ));
     }, timeoutMs);
+
+    Promise.resolve()
+      .then(execute)
+      .then((result) => {
+        if (settlementClaimed) return;
+        settlementClaimed = true;
+        resolve(result);
+      })
+      .catch((error) => {
+        if (settlementClaimed) return;
+        settlementClaimed = true;
+        reject(error);
+      });
   });
 
-  return Promise.race([Promise.resolve().then(execute), timeout])
+  return execution
     .finally(() => clearTimeout(timeoutId));
 };
 

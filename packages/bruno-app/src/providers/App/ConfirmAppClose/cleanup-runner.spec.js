@@ -60,6 +60,39 @@ describe('executeCleanupPlans', () => {
     expect(cancelRequest).toHaveBeenCalledWith(requestOne, timeoutPlan);
   });
 
+  it('does not report the timeout until asynchronous cancellation has completed', async () => {
+    jest.useFakeTimers();
+    let finishCancellation;
+    let finishRequest;
+    let timeoutReported = false;
+    const cancelRequest = jest.fn(() => new Promise((resolve) => {
+      finishCancellation = resolve;
+    }));
+    const execution = executeCleanupPlans({
+      plans: [{ ...plans[0], requests: [requestOne] }],
+      runRequest: () => new Promise((resolve) => {
+        finishRequest = resolve;
+      }),
+      cancelRequest,
+      timeoutMs: 1000
+    });
+    execution.catch(() => {
+      timeoutReported = true;
+    });
+
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(cancelRequest).toHaveBeenCalledTimes(1);
+    expect(timeoutReported).toBe(false);
+
+    finishRequest();
+    await Promise.resolve();
+    expect(timeoutReported).toBe(false);
+
+    finishCancellation();
+    await expect(execution).rejects.toThrow('timed out after 1 seconds');
+    expect(timeoutReported).toBe(true);
+  });
+
   it('fails before executing anything when a configured request is missing', async () => {
     const runRequest = jest.fn();
 

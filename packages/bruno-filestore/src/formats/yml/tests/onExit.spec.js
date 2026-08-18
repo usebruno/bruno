@@ -24,4 +24,33 @@ describe('yml collection - on-exit cleanup round-trip', () => {
     const { brunoConfig: parsed } = parseCollection(yml);
     expect(parsed.onExit).toEqual(brunoConfig.onExit);
   });
+
+  it('normalizes malformed cleanup configuration values', () => {
+    const yml = `
+opencollection: 1.0.0
+info:
+  name: My API
+extensions:
+  bruno:
+    onExit:
+      enabled: "true"
+      showReminder: "false"
+      reminderMessage:
+        invalid: value
+      requestPaths:
+        - cleanup/valid-request.bru
+        - 42
+        - true
+        - cleanup/another-request.bru
+`;
+
+    const { brunoConfig } = parseCollection(yml);
+
+    expect(brunoConfig.onExit).toEqual({
+      enabled: false,
+      showReminder: true,
+      reminderMessage: '',
+      requestPaths: ['cleanup/valid-request.bru', 'cleanup/another-request.bru']
+    });
+  });
 });
