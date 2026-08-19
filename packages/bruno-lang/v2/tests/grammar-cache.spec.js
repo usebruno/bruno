@@ -53,6 +53,30 @@ describe('grammar recipes', () => {
 
   describe('falling back to compiling from source', () => {
     const tiny = 'Tiny { start = "a" }';
+    const TEMP_KEY = 'temp-fallback-fixture';
+
+    // The guards read from disk, so the only faithful way to exercise them is with a recipe file.
+    const withRecipe = (recipe, assert) => {
+      fs.writeFileSync(grammarCache.recipePath(TEMP_KEY), JSON.stringify(recipe));
+      const makeRecipe = jest.spyOn(ohm, 'makeRecipe');
+      try {
+        assert(grammarCache.compileGrammar(TEMP_KEY, tiny), makeRecipe);
+      } finally {
+        makeRecipe.mockRestore();
+        fs.rmSync(grammarCache.recipePath(TEMP_KEY), { force: true });
+      }
+    };
+
+    const compiledFromSource = (grammar, makeRecipe) => {
+      expect(makeRecipe).not.toHaveBeenCalled();
+      expect(grammar.name).toBe('Tiny');
+      expect(grammar.match('a').succeeded()).toBe(true);
+    };
+
+    afterAll(() => {
+      // Belt and braces: nothing should be left behind next to the real recipes.
+      expect(fs.existsSync(grammarCache.recipePath(TEMP_KEY))).toBe(false);
+    });
 
     it('compiles from source when no recipe exists', () => {
       const grammar = grammarCache.compileGrammar('does-not-exist', tiny);
@@ -67,6 +91,46 @@ describe('grammar recipes', () => {
 
       expect(grammar.name).toBe('Tiny');
       expect(grammar.match('a').succeeded()).toBe(true);
+    });
+
+    it('ignores a recipe built by a different ohm-js', () => {
+      withRecipe(
+        {
+          grammarName: 'Tiny',
+          ohmVersion: '0.0.0-not-this-one',
+          sourceHash: grammarCache.hashSource(tiny),
+          recipe: ['grammar', { source: tiny }]
+        },
+        compiledFromSource
+      );
+    });
+
+    it('ignores a recipe that passes its metadata but cannot be rebuilt', () => {
+      withRecipe(
+        {
+          grammarName: 'Tiny',
+          ohmVersion: grammarCache.OHM_VERSION,
+          sourceHash: grammarCache.hashSource(tiny),
+          // Metadata all checks out, but ohm has no such operation, so makeRecipe() throws.
+          recipe: ['notAnOhmOperation', { source: tiny }]
+        },
+        (grammar, makeRecipe) => {
+          expect(makeRecipe).toHaveBeenCalled();
+          expect(grammar.name).toBe('Tiny');
+          expect(grammar.match('a').succeeded()).toBe(true);
+        }
+      );
+    });
+
+    it('ignores a recipe that is not readable as JSON', () => {
+      fs.writeFileSync(grammarCache.recipePath(TEMP_KEY), 'not json at all');
+      const makeRecipe = jest.spyOn(ohm, 'makeRecipe');
+      try {
+        compiledFromSource(grammarCache.compileGrammar(TEMP_KEY, tiny), makeRecipe);
+      } finally {
+        makeRecipe.mockRestore();
+        fs.rmSync(grammarCache.recipePath(TEMP_KEY), { force: true });
+      }
     });
 
     it('hashes line endings alike, so a CRLF checkout still matches its recipe', () => {
