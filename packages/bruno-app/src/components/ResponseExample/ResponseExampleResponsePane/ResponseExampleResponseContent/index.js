@@ -74,11 +74,11 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
 
   const headerContentType
     = response.headers?.find((h) => h.name?.toLowerCase() === 'content-type')?.value || '';
+  const headerMime = String(headerContentType).toLowerCase().split(';')[0].trim();
 
-  const contentType
-    = headerContentType
-      || detectContentTypeFromBase64(response.body?.content)
-      || '';
+  const contentType = getBinaryPreviewType(headerMime)
+    ? headerMime
+    : detectContentTypeFromBase64(response.body?.content) || headerMime;
 
   const binaryPreviewType = isBinaryBody
     ? getBinaryPreviewType(contentType)
