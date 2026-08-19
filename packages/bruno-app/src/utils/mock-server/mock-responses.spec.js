@@ -10,9 +10,11 @@ jest.mock('utils/common', () => {
 });
 
 import {
+  buildDemoRequestFromRules,
   cloneMockResponseRecord,
   getMockResponseDescriptionError,
   getMockResponseNameError,
+  getMockResponseNameInputError,
   isMockResponseNameTaken,
   MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH,
   MOCK_RESPONSE_NAME_MAX_LENGTH,
@@ -120,20 +122,32 @@ describe('resolveMockResponseEditorCollection', () => {
 
   describe('getMockResponseNameError', () => {
     it('flags empty and whitespace-only names', () => {
-      expect(getMockResponseNameError('')).toBe('Mock response name is required');
-      expect(getMockResponseNameError('   ')).toBe('Mock response name is required');
-      expect(getMockResponseNameError(null)).toBe('Mock response name is required');
-      expect(getMockResponseNameError(undefined)).toBe('Mock response name is required');
+      expect(getMockResponseNameError('')).toBe('Name cannot be empty.');
+      expect(getMockResponseNameError('   ')).toBe('Name cannot be empty.');
+      expect(getMockResponseNameError(null)).toBe('Name cannot be empty.');
+      expect(getMockResponseNameError(undefined)).toBe('Name cannot be empty.');
     });
 
     it('flags names longer than the max length after trimming', () => {
       const overflow = 'a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH + 1);
-      expect(getMockResponseNameError(overflow))
-        .toBe(`Name must be ${MOCK_RESPONSE_NAME_MAX_LENGTH} characters or less`);
+      expect(getMockResponseNameError(overflow)).toBe('Name cannot exceed 255 characters.');
+    });
+
+    it('rejects Bruno-disallowed special characters', () => {
+      expect(getMockResponseNameError('bad/name'))
+        .toBe('Special characters aren\'t allowed in the name. Invalid character \'/\'.');
+      expect(getMockResponseNameError('what?'))
+        .toBe('Special characters aren\'t allowed in the name. Invalid character \'?\'.');
+    });
+
+    it('rejects Windows reserved device names', () => {
+      expect(getMockResponseNameError('CON')).toBe('Name cannot be a reserved device name.');
+      expect(getMockResponseNameError('com1')).toBe('Name cannot be a reserved device name.');
     });
 
     it('accepts names within bounds', () => {
       expect(getMockResponseNameError('Order 200')).toBeNull();
+      expect(getMockResponseNameError('#$$@##$#@')).toBeNull();
       expect(getMockResponseNameError('a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH))).toBeNull();
       // trailing spaces are ignored — they get trimmed on save
       expect(getMockResponseNameError('Order 200   ')).toBeNull();
@@ -143,8 +157,23 @@ describe('resolveMockResponseEditorCollection', () => {
       const paddedAtLimit = `   ${'a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH)}   `;
       const paddedOverLimit = `   ${'a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH + 1)}   `;
       expect(getMockResponseNameError(paddedAtLimit)).toBeNull();
-      expect(getMockResponseNameError(paddedOverLimit))
-        .toBe(`Name must be ${MOCK_RESPONSE_NAME_MAX_LENGTH} characters or less`);
+      expect(getMockResponseNameError(paddedOverLimit)).toBe('Name cannot exceed 255 characters.');
+    });
+  });
+
+  describe('getMockResponseNameInputError', () => {
+    it('stays quiet for empty and whitespace-only values so the input does not flash while typing', () => {
+      expect(getMockResponseNameInputError('')).toBeNull();
+      expect(getMockResponseNameInputError('   ')).toBeNull();
+      expect(getMockResponseNameInputError(null)).toBeNull();
+    });
+
+    it('still surfaces character, length and reserved-name violations', () => {
+      expect(getMockResponseNameInputError('bad/name'))
+        .toBe('Special characters aren\'t allowed in the name. Invalid character \'/\'.');
+      expect(getMockResponseNameInputError('a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH + 1)))
+        .toBe('Name cannot exceed 255 characters.');
+      expect(getMockResponseNameInputError('CON')).toBe('Name cannot be a reserved device name.');
     });
   });
 
@@ -188,6 +217,88 @@ describe('resolveMockResponseEditorCollection', () => {
     it('handles an empty response list', () => {
       expect(isMockResponseNameTaken([], 'anything')).toBe(false);
       expect(isMockResponseNameTaken(undefined, 'anything')).toBe(false);
+    });
+  });
+});
+
+describe('buildDemoRequestFromRules', () => {
+  const request = { url: '{{baseUrl}}/users/:id', method: 'get' };
+
+  it('derives headers, params and a json body from the rules', () => {
+    const demo = buildDemoRequestFromRules(request, {
+      operator: 'AND',
+      conditions: [
+        { target: 'header', key: 'Authorization', operator: 'equals', value: 'token' },
+        { target: 'query', key: 'page', operator: 'contains', value: '2' },
+        { target: 'body', key: '$.user.type', operator: 'equals', value: 'admin' },
+        { target: 'body', key: 'user.plan', operator: 'equals', value: 'pro' }
+      ]
+    });
+
+    expect(demo.url).toBe('/users/:id');
+    expect(demo.method).toBe('GET');
+    expect(demo.headers).toEqual([{ name: 'Authorization', value: 'token', enabled: true }]);
+    expect(demo.params).toEqual([{ name: 'page', value: '2', type: 'query', enabled: true }]);
+    expect(JSON.parse(demo.body.content)).toEqual({ user: { type: 'admin', plan: 'pro' } });
+    expect(demo.body.mode).toBe('json');
+  });
+
+  it('generates a sample that satisfies matches patterns instead of echoing them', () => {
+    const patterns = [
+      '^\\d+$',
+      '^user-\\d{3}$',
+      '^(cat|dog)s?$',
+      '^[a-f0-9]{4}$',
+      'v\\d+\\.\\d+'
+    ];
+
+    patterns.forEach((pattern) => {
+      const demo = buildDemoRequestFromRules(request, {
+        operator: 'AND',
+        conditions: [{ target: 'header', key: 'X-Match', operator: 'matches', value: pattern }]
+      });
+
+      expect(new RegExp(pattern).test(demo.headers[0].value)).toBe(true);
+    });
+  });
+
+  it('falls back to the raw value for unsatisfiable matches patterns', () => {
+    const demo = buildDemoRequestFromRules(request, {
+      operator: 'AND',
+      conditions: [
+        { target: 'header', key: 'X-Bad', operator: 'matches', value: '(' },
+        { target: 'query', key: 'plain', operator: 'matches', value: 'literal' }
+      ]
+    });
+
+    expect(demo.headers[0].value).toBe('(');
+    expect(demo.params[0].value).toBe('literal');
+    expect(new RegExp('literal').test(demo.params[0].value)).toBe(true);
+  });
+
+  it('uses an empty sample for not_equals and skips keyless conditions', () => {
+    const demo = buildDemoRequestFromRules(request, {
+      operator: 'OR',
+      conditions: [
+        { target: 'header', key: 'X-Env', operator: 'not_equals', value: 'prod' },
+        { target: 'query', key: '', operator: 'equals', value: 'ignored' }
+      ]
+    });
+
+    expect(demo.headers).toEqual([{ name: 'X-Env', value: '', enabled: true }]);
+    expect(demo.params).toEqual([]);
+    expect(demo.body).toBeNull();
+  });
+
+  it('returns a bare request when there are no rules', () => {
+    const demo = buildDemoRequestFromRules(request, { operator: 'AND', conditions: [] });
+
+    expect(demo).toEqual({
+      url: '/users/:id',
+      method: 'GET',
+      headers: [],
+      params: [],
+      body: null
     });
   });
 });
