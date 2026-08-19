@@ -141,17 +141,12 @@ const MAX_FILENAME_LENGTH = 255;
 
 /**
  * Build the nth suffixed filename. n === 0 -> no suffix.
- *
- *   nextSuffixedName('login', 'bru', 0) -> 'login.bru'
- *   nextSuffixedName('login', 'bru', 2) -> 'login2.bru'
- *   nextSuffixedName('My Folder', '', 1) -> 'My Folder1'
- *
  * @param {string} base   basename without extension
  * @param {string} ext    extension without a leading dot ('' for directories)
  * @param {number} n      0 for the unsuffixed name, otherwise the suffix number
  */
 const nextSuffixedName = (base, ext, n) => {
-  const suffix = n === 0 ? '' : String(n);
+  const suffix = n === 0 ? '' : ` ${n}`;
   return ext ? `${base}${suffix}.${ext}` : `${base}${suffix}`;
 };
 
@@ -166,8 +161,9 @@ const nextSuffixedName = (base, ext, n) => {
  */
 const truncateBaseForSuffix = (base, ext) => {
   const extLength = ext ? ext.length + 1 : 0;
-  // Longest numeric suffix the duplicate cap can append (e.g. 199 -> 3 chars).
-  const SUFFIX_RESERVE = String(MAX_DUPLICATE_NAMES - 1).length;
+  // Longest suffix the duplicate cap can append, incl. the leading space
+  // separator (e.g. " 199" -> 4 chars).
+  const SUFFIX_RESERVE = String(MAX_DUPLICATE_NAMES - 1).length + 1;
   const maxBaseLength = Math.max(1, MAX_FILENAME_LENGTH - extLength - SUFFIX_RESERVE);
   return base.length > maxBaseLength ? base.slice(0, maxBaseLength) : base;
 };
@@ -207,7 +203,7 @@ const writeFileUnique = async (dirname, baseFilename, ext, content) => {
 
 /**
  * Creates a unique directory inside `dirname`.
- * If `baseName` already exists, tries `baseName1`, `baseName2`, etc.
+ * If `baseName` already exists, tries `baseName 1`, `baseName 2`, etc.
  * Stops after MAX_DUPLICATE_NAMES attempts.
  *
  * @returns {Promise<{ pathname: string, name: string }>} The created directory.
@@ -409,6 +405,18 @@ const safeToRename = (oldPath, newPath) => {
   }
 };
 
+/**
+ * Canonicalize a path to its real on-disk form (actual casing + symlinks
+ * resolved) so path comparisons are correct on case-insensitive volumes.
+ */
+const canonicalPath = (p) => {
+  try {
+    return fs.realpathSync.native(p);
+  } catch (_) {
+    return path.resolve(p);
+  }
+};
+
 const getUniqueRenamePath = (oldPath, desiredNewPath) => {
   const dir = path.dirname(desiredNewPath);
   const ext = isDirectory(oldPath) ? '' : path.extname(desiredNewPath);
@@ -418,14 +426,15 @@ const getUniqueRenamePath = (oldPath, desiredNewPath) => {
   // Leave room for numeric suffixes within the filename limit.
   const base = truncateBaseForSuffix(rawBase, extNoDot);
 
-  // Start with the requested name, if it's taken, then try numbered suffixes.
+  const sourceReal = canonicalPath(oldPath);
+
+  // Start with the requested name; if it's taken, try numbered suffixes.
   for (let counter = 0; counter < MAX_DUPLICATE_NAMES; counter++) {
     const candidatePath = path.join(
       dir,
       nextSuffixedName(base, extNoDot, counter)
     );
-
-    if (safeToRename(oldPath, candidatePath)) {
+    if (!fs.existsSync(candidatePath) || canonicalPath(candidatePath) === sourceReal) {
       return candidatePath;
     }
   }
@@ -441,18 +450,6 @@ const getUniqueRenamePath = (oldPath, desiredNewPath) => {
 const getUniqueTargetPath = (sourcePathname, targetDirname) => {
   const desired = path.join(targetDirname, path.basename(sourcePathname));
   return getUniqueRenamePath(sourcePathname, desired);
-};
-
-/**
- * Canonicalize a path to its real on-disk form (actual casing + symlinks
- * resolved) so path comparisons are correct on case-insensitive volumes.
- */
-const canonicalPath = (p) => {
-  try {
-    return fs.realpathSync(p);
-  } catch (_) {
-    return path.resolve(p);
-  }
 };
 
 /**

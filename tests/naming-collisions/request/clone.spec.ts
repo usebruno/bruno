@@ -59,7 +59,7 @@ test.describe('Naming collisions - clone request', () => {
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');
       expect(files).toContain('login copy.bru');
-      expect(files).toContain('login copy1.bru');
+      expect(files).toContain('login copy 1.bru');
     });
   });
 

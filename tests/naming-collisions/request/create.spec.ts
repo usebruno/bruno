@@ -33,7 +33,7 @@ test.describe('Naming collisions - create request', () => {
     await test.step('On disk: typed name preserved, second file silently suffixed', async () => {
       const files = listRequestFiles(testDir);
       expect(files).toContain('users.bru');
-      expect(files).toContain('users1.bru');
+      expect(files).toContain('users 1.bru');
     });
   });
 
@@ -47,7 +47,7 @@ test.describe('Naming collisions - create request', () => {
     await test.step('On disk: both files are .yml, second silently suffixed', async () => {
       const files = listRequestFiles(testDir, '.yml');
       expect(files).toContain('users.yml');
-      expect(files).toContain('users1.yml');
+      expect(files).toContain('users 1.yml');
     });
   });
 
@@ -64,7 +64,7 @@ test.describe('Naming collisions - create request', () => {
     await test.step('On disk: both files live under "Auth", second suffixed', async () => {
       const files = listRequestFiles(path.join(testDir, 'Create In Folder', 'Auth'));
       expect(files).toContain('login.bru');
-      expect(files).toContain('login1.bru');
+      expect(files).toContain('login 1.bru');
     });
   });
 
@@ -95,7 +95,7 @@ test.describe('Naming collisions - create request', () => {
       await expect(nc.itemByTitle('My Login')).toHaveCount(1);
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');
-      expect(files).toContain('login1.bru');
+      expect(files).toContain('login 1.bru');
     });
   });
 
@@ -140,7 +140,7 @@ test.describe('Naming collisions - create request', () => {
       expect(files).toContain('login.bru');
       // Branch on the *observed* filesystem behavior, not the OS.
       if (isCaseInsensitiveFs(findCollectionDir(testDir))) {
-        expect(files).toContain('Login1.bru'); // collides case-insensitively -> suffixed
+        expect(files).toContain('Login 1.bru'); // collides case-insensitively -> suffixed
       } else {
         expect(files).toContain('Login.bru'); // distinct free name, no suffix
       }

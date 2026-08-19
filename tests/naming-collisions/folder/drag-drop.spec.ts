@@ -44,8 +44,8 @@ test.describe('Naming collisions - drag/drop folder', () => {
     await test.step('Target keeps both folders (dir suffixed); moved subtree intact; source emptied', async () => {
       const collDir = findCollectionDir(targetDir);
       await expect.poll(() => fs.existsSync(path.join(collDir, 'Auth')), { timeout: 10000 }).toBe(true);
-      await expect.poll(() => fs.existsSync(path.join(collDir, 'Auth1')), { timeout: 10000 }).toBe(true);
-      expect(listRequestFiles(path.join(collDir, 'Auth1'))).toContain('login.bru');
+      await expect.poll(() => fs.existsSync(path.join(collDir, 'Auth 1')), { timeout: 10000 }).toBe(true);
+      expect(listRequestFiles(path.join(collDir, 'Auth 1'))).toContain('login.bru');
       expect(fs.existsSync(path.join(findCollectionDir(sourceDir), 'Auth'))).toBe(false);
     });
   });
@@ -76,7 +76,7 @@ test.describe('Naming collisions - drag/drop folder', () => {
     await test.step('Target has "Auth" (no suffix) with subtree; source emptied', async () => {
       const collDir = findCollectionDir(targetDir);
       await expect.poll(() => fs.existsSync(path.join(collDir, 'Auth')), { timeout: 10000 }).toBe(true);
-      expect(fs.existsSync(path.join(collDir, 'Auth1'))).toBe(false);
+      expect(fs.existsSync(path.join(collDir, 'Auth 1'))).toBe(false);
       expect(listRequestFiles(path.join(collDir, 'Auth'))).toContain('login.bru');
       expect(fs.existsSync(path.join(findCollectionDir(sourceDir), 'Auth'))).toBe(false);
     });
@@ -102,8 +102,8 @@ test.describe('Naming collisions - drag/drop folder', () => {
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Alpha'))).toBe(true);
       expect(fs.existsSync(path.join(collDir, 'Beta'))).toBe(true);
-      expect(fs.existsSync(path.join(collDir, 'Alpha1'))).toBe(false);
-      expect(fs.existsSync(path.join(collDir, 'Beta1'))).toBe(false);
+      expect(fs.existsSync(path.join(collDir, 'Alpha 1'))).toBe(false);
+      expect(fs.existsSync(path.join(collDir, 'Beta 1'))).toBe(false);
     });
   });
 });

@@ -57,7 +57,7 @@ test.describe('Naming collisions - clone folder', () => {
     await test.step('On disk: display name preserved, directory names suffixed', async () => {
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Users copy'))).toBe(true);
-      expect(fs.existsSync(path.join(collDir, 'Users copy1'))).toBe(true);
+      expect(fs.existsSync(path.join(collDir, 'Users copy 1'))).toBe(true);
     });
   });
 

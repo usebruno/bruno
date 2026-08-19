@@ -48,7 +48,7 @@ test.describe('Naming collisions - rename request', () => {
       await expect(nc.itemByTitle('signin')).toHaveCount(2);
       const files = listRequestFiles(testDir);
       expect(files).toContain('signin.bru');
-      expect(files).toContain('signin1.bru');
+      expect(files).toContain('signin 1.bru');
       expect(files).not.toContain('login.bru');
     });
   });
@@ -117,7 +117,7 @@ test.describe('Naming collisions - rename request', () => {
       await expect(nc.itemByTitle('signin')).toHaveCount(2);
       const files = listRequestFiles(testDir, '.yml');
       expect(files).toContain('signin.yml');
-      expect(files).toContain('signin1.yml');
+      expect(files).toContain('signin 1.yml');
       expect(files).not.toContain('login.yml');
     });
   });
@@ -151,7 +151,7 @@ test.describe('Naming collisions - rename request', () => {
       await expect(nc.itemByTitle('login')).toHaveCount(1);
       const files = listRequestFiles(testDir);
       expect(files).toContain('signin.bru');
-      expect(files).toContain('signin1.bru');
+      expect(files).toContain('signin 1.bru');
       expect(files).not.toContain('login.bru');
     });
   });
@@ -170,7 +170,7 @@ test.describe('Naming collisions - rename request', () => {
     await test.step('On disk: both files under "Auth", second suffixed, old file gone', async () => {
       const files = listRequestFiles(path.join(testDir, 'Rename In Folder', 'Auth'));
       expect(files).toContain('signin.bru');
-      expect(files).toContain('signin1.bru');
+      expect(files).toContain('signin 1.bru');
       expect(files).not.toContain('login.bru');
     });
   });
@@ -193,7 +193,7 @@ test.describe('Naming collisions - rename request', () => {
       expect(files).not.toContain('signin.bru'); // renamed away
       // Branch on the *observed* filesystem behavior, not the OS.
       if (isCaseInsensitiveFs(findCollectionDir(testDir))) {
-        expect(files).toContain('Login1.bru'); // collides case-insensitively -> suffixed
+        expect(files).toContain('Login 1.bru'); // collides case-insensitively -> suffixed
       } else {
         expect(files).toContain('Login.bru'); // distinct free name, no suffix
       }

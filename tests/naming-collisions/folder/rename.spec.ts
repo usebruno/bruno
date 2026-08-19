@@ -72,7 +72,7 @@ test.describe('Naming collisions - rename folder', () => {
       await expect(nc.itemByTitle('Accounts')).toHaveCount(2);
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Accounts'))).toBe(true);
-      expect(fs.existsSync(path.join(collDir, 'Accounts1'))).toBe(true);
+      expect(fs.existsSync(path.join(collDir, 'Accounts 1'))).toBe(true);
       expect(fs.existsSync(path.join(collDir, 'Auth'))).toBe(false);
     });
   });
@@ -86,11 +86,11 @@ test.describe('Naming collisions - rename folder', () => {
     await createFolder(page, 'Auth', 'Rename Dir Collision');
     await renameViaFilename(page, 'Auth', 'Accounts', 'folder');
 
-    await test.step('Display name stays "Auth"; directory silently suffixed to "Accounts1"', async () => {
+    await test.step('Display name stays "Auth"; directory silently suffixed to "Accounts 1"', async () => {
       await expect(nc.itemByTitle('Auth')).toHaveCount(1);
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Accounts'))).toBe(true);
-      expect(fs.existsSync(path.join(collDir, 'Accounts1'))).toBe(true);
+      expect(fs.existsSync(path.join(collDir, 'Accounts 1'))).toBe(true);
       expect(fs.existsSync(path.join(collDir, 'Auth'))).toBe(false);
     });
   });
@@ -107,7 +107,7 @@ test.describe('Naming collisions - rename folder', () => {
       await expect(nc.itemByTitle('Auth')).toHaveCount(1);
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Accounts'))).toBe(true);
-      expect(fs.existsSync(path.join(collDir, 'Accounts1'))).toBe(false);
+      expect(fs.existsSync(path.join(collDir, 'Accounts 1'))).toBe(false);
       expect(fs.existsSync(path.join(collDir, 'Auth'))).toBe(false);
     });
   });
@@ -127,7 +127,7 @@ test.describe('Naming collisions - rename folder', () => {
       await expect(nc.itemByTitle('Alpha')).toHaveCount(2);
       const parentDir = path.join(findCollectionDir(testDir), 'Parent');
       expect(fs.existsSync(path.join(parentDir, 'Alpha'))).toBe(true);
-      expect(fs.existsSync(path.join(parentDir, 'Alpha1'))).toBe(true);
+      expect(fs.existsSync(path.join(parentDir, 'Alpha 1'))).toBe(true);
       expect(fs.existsSync(path.join(parentDir, 'Beta'))).toBe(false);
     });
   });
@@ -196,8 +196,8 @@ test.describe('Naming collisions - rename folder', () => {
       await expect(nc.itemByTitle('Auth')).toHaveCount(1);
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Auth'))).toBe(true);
-      expect(fs.existsSync(path.join(collDir, 'Auth1'))).toBe(false);
-      expect(fs.existsSync(path.join(collDir, 'auth1'))).toBe(false);
+      expect(fs.existsSync(path.join(collDir, 'Auth 1'))).toBe(false);
+      expect(fs.existsSync(path.join(collDir, 'auth 1'))).toBe(false);
     });
   });
 
@@ -214,7 +214,7 @@ test.describe('Naming collisions - rename folder', () => {
       await expect(nc.itemByTitle('Accounts')).toHaveCount(2);
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Accounts'))).toBe(true);
-      expect(fs.existsSync(path.join(collDir, 'Accounts1'))).toBe(true);
+      expect(fs.existsSync(path.join(collDir, 'Accounts 1'))).toBe(true);
       expect(fs.existsSync(path.join(collDir, 'Auth'))).toBe(false);
     });
   });

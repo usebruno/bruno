@@ -38,12 +38,12 @@ describe('nextSuffixedName', () => {
   });
 
   it('appends the counter before the extension', () => {
-    expect(nextSuffixedName('login', 'bru', 2)).toBe('login2.bru');
+    expect(nextSuffixedName('login', 'bru', 2)).toBe('login 2.bru');
   });
 
   it('handles folders (no extension)', () => {
     expect(nextSuffixedName('My Folder', '', 0)).toBe('My Folder');
-    expect(nextSuffixedName('My Folder', '', 1)).toBe('My Folder1');
+    expect(nextSuffixedName('My Folder', '', 1)).toBe('My Folder 1');
   });
 });
 

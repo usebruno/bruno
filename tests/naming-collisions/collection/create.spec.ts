@@ -26,7 +26,7 @@ test.describe('Naming collisions - create collection', () => {
 
       // The new collection lands in a silently-suffixed directory.
       await expect
-        .poll(() => fs.existsSync(path.join(location, 'MyColl1', 'bruno.json')), { timeout: 10000 })
+        .poll(() => fs.existsSync(path.join(location, 'MyColl 1', 'bruno.json')), { timeout: 10000 })
         .toBe(true);
     });
   });
@@ -44,7 +44,7 @@ test.describe('Naming collisions - create collection', () => {
       expect(fs.existsSync(path.join(location, 'MyColl', 'opencollection.yml'))).toBe(false);
 
       await expect
-        .poll(() => fs.existsSync(path.join(location, 'MyColl1', 'opencollection.yml')), { timeout: 10000 })
+        .poll(() => fs.existsSync(path.join(location, 'MyColl 1', 'opencollection.yml')), { timeout: 10000 })
         .toBe(true);
     });
   });
@@ -56,11 +56,11 @@ test.describe('Naming collisions - create collection', () => {
 
     await createCollection(page, 'MyColl', location, 'yml');
 
-    await test.step('On disk: the empty dir is reused (opencollection.yml written into it); no "MyColl1" created', async () => {
+    await test.step('On disk: the empty dir is reused (opencollection.yml written into it); no "MyColl 1" created', async () => {
       await expect
         .poll(() => fs.existsSync(path.join(location, 'MyColl', 'opencollection.yml')), { timeout: 10000 })
         .toBe(true);
-      expect(fs.existsSync(path.join(location, 'MyColl1'))).toBe(false);
+      expect(fs.existsSync(path.join(location, 'MyColl 1'))).toBe(false);
     });
   });
 
@@ -72,11 +72,11 @@ test.describe('Naming collisions - create collection', () => {
 
     await createCollection(page, 'MyColl', location, 'bru');
 
-    await test.step('On disk: the empty dir is reused (bruno.json written into it); no "MyColl1" created', async () => {
+    await test.step('On disk: the empty dir is reused (bruno.json written into it); no "MyColl 1" created', async () => {
       await expect
         .poll(() => fs.existsSync(path.join(location, 'MyColl', 'bruno.json')), { timeout: 10000 })
         .toBe(true);
-      expect(fs.existsSync(path.join(location, 'MyColl1'))).toBe(false);
+      expect(fs.existsSync(path.join(location, 'MyColl 1'))).toBe(false);
     });
   });
 });

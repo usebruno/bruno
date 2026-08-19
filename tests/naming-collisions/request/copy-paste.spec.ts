@@ -44,14 +44,14 @@ test.describe('Naming collisions - copy/paste request', () => {
 
     await copyItem(page, 'login');
     await pasteIntoCollection(page, 'Paste Twice'); // login copy
-    await pasteIntoCollection(page, 'Paste Twice'); // login copy (display) -> login copy1.bru
+    await pasteIntoCollection(page, 'Paste Twice'); // login copy (display) -> login copy 1.bru
 
     await test.step('Two "login copy" entries; filesystem name suffixed', async () => {
       await expect(nc.itemByTitle('login copy')).toHaveCount(2);
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');
       expect(files).toContain('login copy.bru');
-      expect(files).toContain('login copy1.bru');
+      expect(files).toContain('login copy 1.bru');
     });
   });
 
@@ -90,7 +90,7 @@ test.describe('Naming collisions - copy/paste request', () => {
     await test.step('Two "login copy" in the folder; second file suffixed', async () => {
       const files = listRequestFiles(path.join(testDir, 'Paste Folder Twice', 'Auth'));
       expect(files).toContain('login copy.bru');
-      expect(files).toContain('login copy1.bru');
+      expect(files).toContain('login copy 1.bru');
     });
   });
 

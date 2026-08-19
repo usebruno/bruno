@@ -30,7 +30,7 @@ test.describe('Naming collisions - drag/drop request', () => {
     await test.step('Target keeps both files (silently suffixed); source is emptied', async () => {
       await expect
         .poll(() => listRequestFiles(targetDir).sort(), { timeout: 10000 })
-        .toEqual(['login.bru', 'login1.bru']);
+        .toEqual(['login.bru', 'login 1.bru'].sort());
       expect(listRequestFiles(sourceDir)).not.toContain('login.bru');
     });
   });
@@ -101,7 +101,7 @@ test.describe('Naming collisions - drag/drop request', () => {
     await test.step('Target holds two .yml files (converted + suffixed); source emptied', async () => {
       await expect
         .poll(() => listRequestFiles(targetDir, '.yml').sort(), { timeout: 10000 })
-        .toEqual(['login.yml', 'login1.yml']);
+        .toEqual(['login.yml', 'login 1.yml'].sort());
       expect(listRequestFiles(sourceDir)).not.toContain('login.bru');
     });
   });

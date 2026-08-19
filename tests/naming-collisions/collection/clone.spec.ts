@@ -82,9 +82,9 @@ test.describe('Naming collisions - clone collection', () => {
       await expect(nc.toast('Collection created!').first()).toBeVisible({ timeout: 5000 });
     });
 
-    await test.step('On disk: directory silently suffixed to "MyColl copy1"', async () => {
+    await test.step('On disk: directory silently suffixed to "MyColl copy 1"', async () => {
       await expect
-        .poll(() => fs.existsSync(path.join(cloneLocation, 'MyColl copy1', 'bruno.json')), { timeout: 10000 })
+        .poll(() => fs.existsSync(path.join(cloneLocation, 'MyColl copy 1', 'bruno.json')), { timeout: 10000 })
         .toBe(true);
     });
   });

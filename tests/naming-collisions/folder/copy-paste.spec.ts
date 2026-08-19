@@ -48,13 +48,13 @@ test.describe('Naming collisions - copy/paste folder', () => {
 
     await copyItem(page, 'Users');
     await pasteIntoCollection(page, 'Paste Folder Twice'); // Users copy
-    await pasteIntoCollection(page, 'Paste Folder Twice'); // Users copy (display) -> Users copy1 dir
+    await pasteIntoCollection(page, 'Paste Folder Twice'); // Users copy (display) -> Users copy 1 dir
 
     await test.step('Two "Users copy" folders; directory names suffixed', async () => {
       await expect(nc.itemByTitle('Users copy')).toHaveCount(2);
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Users copy'))).toBe(true);
-      expect(fs.existsSync(path.join(collDir, 'Users copy1'))).toBe(true);
+      expect(fs.existsSync(path.join(collDir, 'Users copy 1'))).toBe(true);
     });
   });
 

@@ -33,7 +33,7 @@ test.describe('Naming collisions - create folder', () => {
     await test.step('On disk: typed name preserved, second directory silently suffixed', async () => {
       const collDir = findCollectionDir(testDir);
       expect(fs.existsSync(path.join(collDir, 'Auth'))).toBe(true);
-      expect(fs.existsSync(path.join(collDir, 'Auth1'))).toBe(true);
+      expect(fs.existsSync(path.join(collDir, 'Auth 1'))).toBe(true);
     });
   });
 

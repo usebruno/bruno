@@ -43,7 +43,7 @@ test.describe('Naming collisions - double-paste race', () => {
       const targetDir = path.join(findCollectionDir(testDir), 'Target');
       await expect
         .poll(() => listRequestFiles(targetDir).sort(), { timeout: 10000 })
-        .toEqual(['login copy.bru', 'login copy1.bru']);
+        .toEqual(['login copy.bru', 'login copy 1.bru'].sort());
       await expect(nc.toast(/already exists/i)).toHaveCount(0);
     });
   });
@@ -69,7 +69,7 @@ test.describe('Naming collisions - save transient request', () => {
       await expect(nc.itemByTitle('login')).toHaveCount(2);
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');
-      expect(files).toContain('login1.bru');
+      expect(files).toContain('login 1.bru');
     });
   });
 
@@ -81,7 +81,7 @@ test.describe('Naming collisions - save transient request', () => {
     await createRequest(page, 'login', 'Transient Open', { method: 'POST' });
     await createTransientRequest(page); // Untitled draft (GET)
 
-    await saveTransientRequestAs(page, 'login'); // collides with login.bru -> writes login1.bru
+    await saveTransientRequestAs(page, 'login'); // collides with login.bru -> writes login 1.bru
 
     await test.step('The opened tab is the freshly-saved request (GET), not the pre-existing "login" (POST)', async () => {
       await expect(tabs.activeRequestTab()).toContainText('login');
@@ -93,7 +93,7 @@ test.describe('Naming collisions - save transient request', () => {
       await expect(nc.itemByTitle('login')).toHaveCount(2);
       const files = listRequestFiles(testDir);
       expect(files).toContain('login.bru');
-      expect(files).toContain('login1.bru');
+      expect(files).toContain('login 1.bru');
     });
   });
 });
