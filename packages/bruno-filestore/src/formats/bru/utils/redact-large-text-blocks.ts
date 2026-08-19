@@ -41,6 +41,7 @@ const tokenFor = (content: string): string => {
 const blockValue = (content: string[]): string =>
   outdentString(content.join('\n').replace(/^(?:\r?\n)+/, '').replace(/\r$/, ''));
 
+const APP_BLOCK_OPENING = /^app[ \t]*\{\r?$/;
 const MULTILINE_DELIMITER = '\'\'\'';
 const APP_CODE_PAIR = `code: ${MULTILINE_DELIMITER}`;
 
@@ -49,11 +50,23 @@ const appCodeValue = (code: string[]): string =>
 
 const redactAppCode = (source: string, blocks: RedactedBlock[]): string => {
   const lines = source.split('\n');
-  const opening = lines.findIndex((line) => line.trim() === APP_CODE_PAIR);
+
+  const start = lines.findIndex((line) => APP_BLOCK_OPENING.test(line));
+  if (start === -1) {
+    return source;
+  }
+
+  const closingBrace = lines.findIndex((line, index) => index > start && isClosing(line));
+  const end = closingBrace === -1 ? lines.length : closingBrace;
+
+  const opening = lines.findIndex((line, index) => index > start && index < end && line.trim() === APP_CODE_PAIR);
   if (opening === -1) {
     return source;
   }
-  const closing = lines.findIndex((line, index) => index > opening && line.trim() === MULTILINE_DELIMITER);
+
+  const closing = lines.findIndex(
+    (line, index) => index > opening && index < end && line.trim() === MULTILINE_DELIMITER
+  );
   if (closing === -1) {
     return source;
   }
