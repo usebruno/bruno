@@ -866,6 +866,51 @@ describe('setAuthHeaders', () => {
         additionalParameters: { authorization: [], token: [], refresh: [] }
       });
     });
+
+    test('should propagate JWT client-auth fields (private_key_jwt) from collection inheritance', () => {
+      mockCollectionRoot.request.auth = {
+        mode: 'oauth2',
+        oauth2: {
+          grantType: 'authorization_code',
+          callbackUrl: 'https://example.com/callback',
+          authorizationUrl: 'https://example.com/auth',
+          accessTokenUrl: 'https://example.com/token',
+          clientId: 'fapi-client',
+          scope: 'openid',
+          pkce: true,
+          tokenEndpointAuthMethod: 'private_key_jwt',
+          tokenEndpointAuthSigningAlg: 'RS256',
+          privateKey: '/path/to/key.pem',
+          privateKeyType: 'file',
+          privateKeyFormat: 'pem',
+          keyId: 'key-1',
+          audience: 'https://issuer.example.com',
+          assertionLifetime: 60,
+          additionalClaims: [{ name: 'scope', value: 'openid', enabled: true }],
+          credentialsId: 'test-credentials',
+          tokenPlacement: 'header',
+          tokenHeaderPrefix: 'Bearer',
+          autoFetchToken: true
+        }
+      };
+
+      mockRequest.auth.mode = 'inherit';
+
+      const result = setAuthHeaders(mockAxiosRequest, mockRequest, mockCollectionRoot);
+
+      // The JWT client-auth fields used to be silently dropped at this inheritance step.
+      expect(result.oauth2.tokenEndpointAuthMethod).toBe('private_key_jwt');
+      expect(result.oauth2.tokenEndpointAuthSigningAlg).toBe('RS256');
+      expect(result.oauth2.privateKey).toBe('/path/to/key.pem');
+      expect(result.oauth2.privateKeyType).toBe('file');
+      expect(result.oauth2.privateKeyFormat).toBe('pem');
+      expect(result.oauth2.keyId).toBe('key-1');
+      expect(result.oauth2.audience).toBe('https://issuer.example.com');
+      expect(result.oauth2.assertionLifetime).toBe(60);
+      expect(result.oauth2.additionalClaims).toEqual([
+        { name: 'scope', value: 'openid', enabled: true }
+      ]);
+    });
   });
 
   describe('Edge cases and error handling', () => {
