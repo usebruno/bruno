@@ -22,13 +22,13 @@ test.describe('req.onFail', () => {
     await test.step('Send the onFail request — the URL is unreachable, so the handler runs', async () => {
       await openRequest(page, 'onfail-collection', 'onFail');
       await locators.request.sendButton().click();
-      await expect(locators.response.errorMessage()).toBeVisible();
+      await expect(locators.response.errorMessage()).toBeVisible({ timeout: 5000 });
     });
 
     await test.step('Verify the handler overwrote the runtime, environment and global values', async () => {
       await openVariablesTab(page, 'onfail-collection');
-      await expect.poll(() => readVariableValue(page, 'runtime', 'var')).toBe('"updated"');
-      await expect.poll(() => readVariableValue(page, 'environment', 'envVar')).toBe('"updated"');
+      await expect.poll(() => readVariableValue(page, 'runtime', 'var'), { timeout: 5000 }).toBe('"updated"');
+      await expect.poll(() => readVariableValue(page, 'environment', 'envVar'), { timeout: 5000 }).toBe('"updated"');
 
       await openEnvironmentConfigTab(page, 'global');
       await expect(locators.environment.varRowsByValue('globalEnvVar', 'updated')).toHaveCount(1);

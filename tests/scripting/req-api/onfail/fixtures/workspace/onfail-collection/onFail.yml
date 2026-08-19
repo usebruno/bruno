@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://127.0.0.1:59999/nope
+  url: http://127.0.0.1:45123/nope
 
 runtime:
   scripts:
@@ -24,3 +24,6 @@ runtime:
           bru.setEnvVar("envVar", "updated");
           bru.setGlobalEnvVar("globalEnvVar", "updated");
         });
+
+settings:
+  timeout: 500
