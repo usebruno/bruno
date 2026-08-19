@@ -1,5 +1,6 @@
 import {
   DEFAULT_MOCK_SERVER_PORT,
+  getMockServerNameError,
   isMockServerRelatedTab,
   isMockServerNameTaken,
   isMockServerPortTaken,
@@ -65,5 +66,23 @@ describe('mock server instance validation helpers', () => {
     expect(isMockServerPortTaken(instances, 4000)).toBe(true);
     expect(isMockServerPortTaken(instances, 4000, 'a')).toBe(false);
     expect(isMockServerPortTaken(instances, 4010)).toBe(false);
+  });
+});
+
+describe('mock server name validation', () => {
+  it('follows collection-name rules: any characters are allowed', () => {
+    expect(getMockServerNameError('Shop Mock')).toBe('');
+    expect(getMockServerNameError('mock-1')).toBe('');
+    expect(getMockServerNameError('12345')).toBe('');
+    expect(getMockServerNameError('!@££@!£@!')).toBe('');
+    expect(getMockServerNameError('Dog / Cat: API? *v2*')).toBe('');
+  });
+
+  it('rejects empty and over-long names', () => {
+    expect(getMockServerNameError('')).toBe('Name is required');
+    expect(getMockServerNameError('   ')).toBe('Name is required');
+    expect(getMockServerNameError(null)).toBe('Name is required');
+    expect(getMockServerNameError('a'.repeat(256))).toBe('Must be 255 characters or less');
+    expect(getMockServerNameError('a'.repeat(255))).toBe('');
   });
 });

@@ -3,7 +3,6 @@ import { useTheme } from 'providers/Theme';
 import { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
-import AIAssist from 'components/AIAssist';
 import RichTextEditor from 'ui/RichTextEditor';
 import ModeSwitch from 'components/ModeSwitch';
 import { useEditor } from '@tiptap/react';
@@ -22,9 +21,6 @@ const DocsEditor = ({
   isEditing,
   collection,
   collectionPath,
-  requestContext,
-  docsContext,
-  variables,
   emptyPreviewContent,
   onRequestEdit,
   initialScroll,
@@ -80,6 +76,18 @@ const DocsEditor = ({
           }
           return false;
         }
+      },
+      onCreate: ({ editor: createdEditor }) => {
+        // by default Mousetrap ignores key events that originates from contenteditable elements (like TipTap's editor),
+        // adding mousetrap class to the editor's dom element will make Mousetrap listen to key events from TipTap's editor
+        createdEditor.view.dom.classList.add('mousetrap');
+
+        // Prevent keydown events which are bind to TipTap from bubbling up to the global Mousetrap handlers
+        createdEditor.view.dom.addEventListener('keydown', (event) => {
+          if (event.defaultPrevented) {
+            event.stopPropagation();
+          }
+        });
       }
     },
     [collectionPath]
@@ -111,6 +119,12 @@ const DocsEditor = ({
     }
   }, [docs, editor, isMarkdownMode, isEditing, emptyPreviewContent]);
 
+  const handleDoubleClick = () => {
+    if (!isEditing && onRequestEdit) {
+      onRequestEdit();
+    }
+  };
+
   // The rich-text view (preview AND WYSIWYG edit mode) stays mounted the
   // whole time — only markdown mode swaps it out for CodeEditor below. So
   // scroll tracking here should only pause when markdown mode's CodeEditor
@@ -126,7 +140,7 @@ const DocsEditor = ({
   });
 
   return (
-    <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative" data-testid={testId}>
+    <StyledWrapper className="flex flex-col gap-y-1 h-full w-full min-w-0 max-w-full relative" data-testid={testId}>
       {isEditing && (
         <div className="docs-tab-strip">
           {!isMarkdownMode && (
@@ -156,20 +170,12 @@ const DocsEditor = ({
             initialScroll={initialScroll}
             onScroll={onScroll}
           />
-          <AIAssist
-            scriptType="docs"
-            currentScript={docs || ''}
-            requestContext={requestContext}
-            docsContext={docsContext}
-            variables={variables}
-            onApply={onEdit}
-          />
         </div>
       )}
       <section
         ref={richTextWrapperRef}
-        className={`flex flex-col flex-1 min-h-0 w-full ${isEditing && isMarkdownMode ? 'hidden' : ''}`}
-        onDoubleClick={() => !isEditing && onRequestEdit && onRequestEdit()}
+        className={`flex flex-col flex-1 min-h-0 min-w-0 max-w-full w-full ${isEditing && isMarkdownMode ? 'hidden' : ''}`}
+        onDoubleClick={handleDoubleClick}
       >
         <RichTextEditor editor={editor} />
       </section>
