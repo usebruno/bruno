@@ -24,6 +24,11 @@ const isDisabled = () => {
   return value !== undefined && value !== '' && value !== '0' && value !== 'false';
 };
 
+const warnUnavailable = (reason) => {
+  const detail = reason ? ` (${reason})` : '';
+  console.error(chalk.yellow(`Warning: could not read the shell environment${detail}. Continuing.`));
+};
+
 const fetchAndApplyShellEnv = () => {
   if (isDisabled()) {
     return Promise.resolve();
@@ -39,11 +44,16 @@ const fetchAndApplyShellEnv = () => {
   // a run that has already read them.
   return Promise.race([fetchShellEnv(), timeout])
     .then((shellEnvVars) => {
+      // fetchShellEnv swallows whatever went wrong and reports null, so there is no reason to relay -
+      // but staying silent would leave missing proxy or CA settings with no explanation.
+      if (shellEnvVars === null) {
+        warnUnavailable();
+        return;
+      }
+
       applyShellEnv(shellEnvVars);
     })
-    .catch((err) => {
-      console.error(chalk.yellow(`Warning: could not read the shell environment (${err.message}). Continuing.`));
-    })
+    .catch((err) => warnUnavailable(err.message))
     .finally(() => clearTimeout(timer));
 };
 

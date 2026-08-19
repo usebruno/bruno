@@ -61,6 +61,16 @@ describe('shell env', () => {
 
     await expect(shellEnv.ensureShellEnv()).resolves.toBeUndefined();
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('no shell for you'));
+    expect(mockApply).not.toHaveBeenCalled();
+  });
+
+  it('warns rather than silently continuing when the shell reports no environment', async () => {
+    // fetchShellEnv swallows its own errors and resolves null, so this is what a failed read looks like.
+    mockFetch = jest.fn().mockResolvedValue(null);
+
+    await expect(shellEnv.ensureShellEnv()).resolves.toBeUndefined();
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('could not read the shell environment'));
+    expect(mockApply).not.toHaveBeenCalled();
   });
 
   it('gives up rather than waiting indefinitely when the shell never returns', async () => {
