@@ -76,7 +76,10 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
     = response.headers?.find((h) => h.name?.toLowerCase() === 'content-type')?.value || '';
   const headerMime = String(headerContentType).toLowerCase().split(';')[0].trim();
 
-  const contentType = headerMime || detectContentTypeFromBase64(response.body?.content) || '';
+  // For binary bodies trust the actual bytes over the Content-Type header (the header may be
+  // missing or wrong); fall back to the header for formats the sniffer doesn't recognize.
+  const sniffedMime = isBinaryBody ? detectContentTypeFromBase64(response.body?.content) : null;
+  const contentType = sniffedMime || headerMime || '';
 
   const binaryPreviewType = isBinaryBody
     ? getBinaryPreviewType(contentType)

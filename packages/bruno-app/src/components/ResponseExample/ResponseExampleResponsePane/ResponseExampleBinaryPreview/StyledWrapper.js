@@ -8,8 +8,8 @@ const StyledWrapper = styled.div`
     background-color: transparent !important;
   }
   .react-pdf__Page__textContent {
-    border: 1px solid darkgrey;
-    box-shadow: 5px 5px 5px 1px #ccc;
+    border: 1px solid ${(props) => props.theme.border.border1};
+    box-shadow: ${(props) => props.theme.shadow.md};
     border-radius: 0px;
     margin: 0 auto;
   }
