@@ -88,7 +88,7 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
 
     const isBinaryResponse
       = bodyTypeFromContentType === 'binary'
-        || (bodyTypeFromContentType === 'text' && isBinaryContentType(contentTypeFromBytes));
+        || isBinaryContentType(contentTypeFromBytes);
 
     const bodyType = isBinaryResponse ? 'binary' : bodyTypeFromContentType;
 
