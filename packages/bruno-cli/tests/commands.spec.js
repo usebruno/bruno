@@ -39,4 +39,13 @@ describe('command registration', () => {
       expect(typeof mod.handler).toBe('function');
     }
   });
+
+  // .commandDir() also honoured these exports. Registering by hand does not, so a command adding one
+  // would lose it silently - fail here instead, as a prompt to wire it into the registry.
+  it.each(['aliases', 'middlewares', 'deprecated'])('does not silently drop a module\'s %s', (key) => {
+    for (const { name } of COMMANDS) {
+      const mod = require(path.join(COMMANDS_DIR, name));
+      expect(mod[key]).toBeUndefined();
+    }
+  });
 });

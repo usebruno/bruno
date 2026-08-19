@@ -19,11 +19,13 @@ const registerCommands = (yargsInstance) => {
   for (const { name, command, desc } of COMMANDS) {
     const load = () => require(`./commands/${name}`);
 
+    // Forward every argument: yargs passes a second value to the builder, and the module's own
+    // builder/handler signatures should stay authoritative rather than being narrowed here.
     yargsInstance.command(
       command,
       desc,
-      (subYargs) => load().builder(subYargs),
-      (argv) => load().handler(argv)
+      (...args) => load().builder(...args),
+      (...args) => load().handler(...args)
     );
   }
 
