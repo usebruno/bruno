@@ -1,7 +1,10 @@
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { makeAxiosInstance } from '../network';
+import cookies from '../cookies';
 import { getHttpHttpsAgents } from '../utils/http-https-agents';
 import type { GetHttpHttpsAgentsParams } from '../utils/http-https-agents';
+
+const { getCookieStringForUrl, saveCookies } = cookies;
 
 type T_SendRequestCallback = (error: any, response: any) => void;
 
@@ -9,8 +12,15 @@ type T_SendRequestCallback = (error: any, response: any) => void;
  * Configuration for creating a sendRequest function with proxy/certs support.
  * This is the same config used by getHttpHttpsAgents, minus requestUrl which is
  * extracted from the actual request.
+ *
+ * shouldSendCookies/shouldStoreCookies mirror the app's sendCookies/storeCookies
+ * preferences so bru.sendRequest shares the same session cookie jar as the main
+ * request. See issue #7727.
  */
-type SendRequestConfig = Omit<GetHttpHttpsAgentsParams, 'requestUrl'>;
+type SendRequestConfig = Omit<GetHttpHttpsAgentsParams, 'requestUrl'> & {
+  shouldSendCookies?: boolean;
+  shouldStoreCookies?: boolean;
+};
 
 type SendRequestEntry = {
   request: { method: string; url: string | undefined; headers: Record<string, any>; data: any };
@@ -121,6 +131,52 @@ type SendRequestOptions = {
   onComplete?: (entry: SendRequestEntry) => void;
 };
 
+// Attach cookies from the shared jar to the outgoing request, mirroring the main
+// request flow. Jar cookies take precedence over a Cookie header the script set.
+const applyRequestCookies = (cfg: AxiosRequestConfig): void => {
+  const url = cfg.url;
+  if (!url) return;
+
+  const cookieString = getCookieStringForUrl(url);
+  if (typeof cookieString !== 'string' || !cookieString.length) return;
+
+  const headers: Record<string, any> = cfg.headers || (cfg.headers = {} as any);
+  const existingCookieHeaderName = Object.keys(headers).find(
+    (name) => name.toLowerCase() === 'cookie'
+  );
+  const existingCookieString = existingCookieHeaderName ? headers[existingCookieHeaderName] : '';
+
+  // Helper function to parse cookies into an object
+  const parseCookies = (str: string): Record<string, string> =>
+    str.split(';').reduce((acc: Record<string, string>, cookie) => {
+      const [name, ...rest] = cookie.split('=');
+      if (name && name.trim()) {
+        acc[name.trim()] = rest.join('=').trim();
+      }
+      return acc;
+    }, {} as Record<string, string>);
+
+  const mergedCookies = {
+    ...parseCookies(existingCookieString),
+    ...parseCookies(cookieString)
+  };
+
+  const combinedCookieString = Object.entries(mergedCookies)
+    .map(([name, value]) => `${name}=${value}`)
+    .join('; ');
+
+  headers[existingCookieHeaderName || 'Cookie'] = combinedCookieString;
+};
+
+// Persist Set-Cookie headers from the response into the shared jar so a follow-up
+// request (or the next main request) sends the session cookies.
+const persistResponseCookies = (url: string | undefined, response: AxiosResponse | null | undefined): void => {
+  if (!url || !response || !response.headers) return;
+  try {
+    saveCookies(url, response.headers);
+  } catch (_) {}
+};
+
 /**
  * Creates a sendRequest function configured with proxy and certificate settings.
  * This allows bru.sendRequest to use the same proxy/certs config as the main request.
@@ -131,6 +187,10 @@ type SendRequestOptions = {
  */
 const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOptions) => {
   const onComplete = options?.onComplete;
+  // Default to enabled so cookie sharing works even without a config (matches the
+  // sendCookies/storeCookies preferences, which default to true).
+  const shouldSendCookies = config?.shouldSendCookies !== false;
+  const shouldStoreCookies = config?.shouldStoreCookies !== false;
 
   const recordEntry = (
     normalizedConfig: AxiosRequestConfig,
@@ -182,15 +242,21 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
       }
     }
 
+    if (shouldSendCookies) {
+      applyRequestCookies(normalizedConfig);
+    }
+
     const axiosInstance = makeAxiosInstance();
     const startedAt = Date.now();
 
     if (!callback) {
       try {
         const response = await axiosInstance(normalizedConfig);
+        if (shouldStoreCookies) persistResponseCookies(normalizedConfig.url, response);
         recordEntry(normalizedConfig, response, null, startedAt);
         return response;
       } catch (error: any) {
+        if (shouldStoreCookies) persistResponseCookies(normalizedConfig.url, error?.response);
         recordEntry(normalizedConfig, null, error, startedAt);
         throw error;
       }
@@ -198,6 +264,7 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
 
     try {
       const response = await axiosInstance(normalizedConfig);
+      if (shouldStoreCookies) persistResponseCookies(normalizedConfig.url, response);
       recordEntry(normalizedConfig, response, null, startedAt);
       try {
         await callback(null, response);
@@ -213,6 +280,7 @@ const createSendRequest = (config?: SendRequestConfig, options?: SendRequestOpti
         = error && typeof error.response?.status === 'number'
           ? { ...error, status: error.response.status }
           : error;
+      if (shouldStoreCookies) persistResponseCookies(normalizedConfig.url, error?.response);
       recordEntry(normalizedConfig, null, error, startedAt);
       try {
         await callback(errForCallback, null);
