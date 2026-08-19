@@ -76,9 +76,7 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
     = response.headers?.find((h) => h.name?.toLowerCase() === 'content-type')?.value || '';
   const headerMime = String(headerContentType).toLowerCase().split(';')[0].trim();
 
-  const contentType = getBinaryPreviewType(headerMime)
-    ? headerMime
-    : detectContentTypeFromBase64(response.body?.content) || headerMime;
+  const contentType = headerMime || detectContentTypeFromBase64(response.body?.content) || '';
 
   const binaryPreviewType = isBinaryBody
     ? getBinaryPreviewType(contentType)
@@ -87,10 +85,14 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
   if (binaryPreviewType) {
     return (
       <StyledWrapper className="w-full px-4">
-        <ResponseExampleBinaryPreview
-          contentType={contentType}
-          content={response.body.content}
-        />
+        <div className="flex-1 relative">
+          <div className="absolute top-0 left-0 h-full w-full">
+            <ResponseExampleBinaryPreview
+              contentType={contentType}
+              content={response.body.content}
+            />
+          </div>
+        </div>
       </StyledWrapper>
     );
   }
