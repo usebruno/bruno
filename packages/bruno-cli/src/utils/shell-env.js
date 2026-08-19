@@ -1,5 +1,5 @@
 const chalk = require('chalk');
-const { initializeShellEnv } = require('@usebruno/requests');
+const { fetchShellEnv, applyShellEnv } = require('@usebruno/requests');
 
 /**
  * Reading the shell environment starts the user's login shell to pick up PATH and proxy variables
@@ -11,9 +11,10 @@ const { initializeShellEnv } = require('@usebruno/requests');
  * on with the environment it already has.
  */
 
-// Matches the guard bruno-electron uses in src/store/shell-env-state.js. This frees the command to
-// get on with its work, but it cannot cancel a shell that is already running: a shell wedged on
-// input can still delay process exit, and can still add variables after the command has read them.
+// Matches the guard bruno-electron uses in src/store/shell-env-state.js. It cannot cancel a shell
+// that is already running - shell-env exposes no signal or timeout - so a wedged shell can still
+// delay process exit. It does bound how long the command waits, and because the merge happens only
+// on the winning branch below, a result that arrives after the timeout is never applied.
 const TIMEOUT_MS = 60_000;
 
 // For callers that run bru repeatedly as a subprocess and already pass down a complete environment,
@@ -23,7 +24,7 @@ const isDisabled = () => {
   return value !== undefined && value !== '' && value !== '0' && value !== 'false';
 };
 
-const applyShellEnv = () => {
+const fetchAndApplyShellEnv = () => {
   if (isDisabled()) {
     return Promise.resolve();
   }
@@ -33,9 +34,13 @@ const applyShellEnv = () => {
     timer = setTimeout(() => reject(new Error('Shell environment initialization timed out')), TIMEOUT_MS);
   });
 
-  // The variables land on process.env, so callers only need to know the work is done.
-  return Promise.race([initializeShellEnv(), timeout])
-    .then(() => undefined)
+  // Fetching and applying are separate steps on purpose: if the timeout wins the race, the merge
+  // below never runs, so a late-arriving environment cannot change PATH or proxy settings underneath
+  // a run that has already read them.
+  return Promise.race([fetchShellEnv(), timeout])
+    .then((shellEnvVars) => {
+      applyShellEnv(shellEnvVars);
+    })
     .catch((err) => {
       console.error(chalk.yellow(`Warning: could not read the shell environment (${err.message}). Continuing.`));
     })
@@ -51,7 +56,7 @@ let shellEnvPromise = null;
  */
 const ensureShellEnv = () => {
   if (!shellEnvPromise) {
-    shellEnvPromise = applyShellEnv();
+    shellEnvPromise = fetchAndApplyShellEnv();
   }
   return shellEnvPromise;
 };
