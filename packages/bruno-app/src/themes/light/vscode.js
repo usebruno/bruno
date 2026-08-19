@@ -60,14 +60,14 @@ const colors = {
   }
 };
 
-const border = {
-  BORDER3: '#c6c6c6',
-  BORDER2: '#d4d4d4',
-  BORDER1: '#e5e5e5',
-  BORDER0: '#e8e8e8'
-};
-
 export const palette = {};
+
+palette.border = {
+  BORDER3: colors.GRAY_5,
+  BORDER2: colors.GRAY_4,
+  BORDER1: colors.BORDER,
+  BORDER0: colors.GRAY_2
+};
 
 palette.intent = {
   INFO: colors.BLUE,
@@ -158,10 +158,10 @@ const vscodeLightTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border3: border.BORDER3,
-    border2: border.BORDER2,
-    border1: border.BORDER1,
-    border0: border.BORDER0
+    border3: palette.border.BORDER3,
+    border2: palette.border.BORDER2,
+    border1: palette.border.BORDER1,
+    border0: palette.border.BORDER0
   },
 
   colors: {

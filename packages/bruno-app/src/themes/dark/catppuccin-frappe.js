@@ -51,14 +51,14 @@ const colors = {
   }
 };
 
-const border = {
-  BORDER3: '#737994',
-  BORDER2: '#626880',
-  BORDER1: '#51576d',
-  BORDER0: '#414559'
-};
-
 export const palette = {};
+
+palette.border = {
+  BORDER3: colors.OVERLAY0,
+  BORDER2: colors.SURFACE2,
+  BORDER1: colors.SURFACE1,
+  BORDER0: colors.SURFACE0
+};
 
 palette.intent = {
   INFO: colors.BLUE,
@@ -155,10 +155,10 @@ const catppuccinFrappeTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border3: border.BORDER3,
-    border2: border.BORDER2,
-    border1: border.BORDER1,
-    border0: border.BORDER0
+    border3: palette.border.BORDER3,
+    border2: palette.border.BORDER2,
+    border1: palette.border.BORDER1,
+    border0: palette.border.BORDER0
   },
 
   colors: {

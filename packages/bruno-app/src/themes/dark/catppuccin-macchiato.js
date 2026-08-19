@@ -51,14 +51,14 @@ const colors = {
   }
 };
 
-const border = {
-  BORDER3: '#6e738d',
-  BORDER2: '#5b6078',
-  BORDER1: '#494d64',
-  BORDER0: '#363a4f'
-};
-
 export const palette = {};
+
+palette.border = {
+  BORDER3: colors.OVERLAY0,
+  BORDER2: colors.SURFACE2,
+  BORDER1: colors.SURFACE1,
+  BORDER0: colors.SURFACE0
+};
 
 palette.intent = {
   INFO: colors.BLUE,
@@ -155,10 +155,10 @@ const catppuccinMacchiatoTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border3: border.BORDER3,
-    border2: border.BORDER2,
-    border1: border.BORDER1,
-    border0: border.BORDER0
+    border3: palette.border.BORDER3,
+    border2: palette.border.BORDER2,
+    border1: palette.border.BORDER1,
+    border0: palette.border.BORDER0
   },
 
   colors: {

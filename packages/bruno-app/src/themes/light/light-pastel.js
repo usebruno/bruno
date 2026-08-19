@@ -56,14 +56,14 @@ const colors = {
   }
 };
 
-const border = {
-  BORDER3: '#b8b0a3',
-  BORDER2: '#d3cabc',
-  BORDER1: '#e2dbd1',
-  BORDER0: '#f0ebe4'
-};
-
 export const palette = {};
+
+palette.border = {
+  BORDER3: colors.GRAY_5,
+  BORDER2: colors.GRAY_4,
+  BORDER1: colors.GRAY_3,
+  BORDER0: colors.GRAY_2
+};
 
 palette.intent = {
   INFO: colors.BLUE,
@@ -154,10 +154,10 @@ const lightPastelTheme = {
       lg: '10px',
       xl: '12px'
     },
-    border3: border.BORDER3,
-    border2: border.BORDER2,
-    border1: border.BORDER1,
-    border0: border.BORDER0
+    border3: palette.border.BORDER3,
+    border2: palette.border.BORDER2,
+    border1: palette.border.BORDER1,
+    border0: palette.border.BORDER0
   },
 
   colors: {
