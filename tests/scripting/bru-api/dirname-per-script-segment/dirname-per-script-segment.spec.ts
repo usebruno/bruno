@@ -17,7 +17,7 @@ test.describe('__dirname / __filename in node-vm scripts (developer mode)', () =
 
     await validateRunnerResults(page, {
       totalRequests: 1,
-      passed: 5,
+      passed: 6,
       failed: 0
     });
 

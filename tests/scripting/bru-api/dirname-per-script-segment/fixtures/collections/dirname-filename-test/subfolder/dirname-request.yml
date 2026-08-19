@@ -31,6 +31,10 @@ runtime:
           expect(bru.getCollectionVar("collectionFile").endsWith("opencollection.yml")).to.equal(true);
         });
 
+        test("folder __filename ends with folder.yml", function() {
+          expect(bru.getEnvVar("folderFile").endsWith("folder.yml")).to.equal(true);
+        });
+
         test("request __filename ends with dirname-request.yml", function() {
           expect(bru.getEnvVar("requestFile").endsWith("dirname-request.yml")).to.equal(true);
         });
