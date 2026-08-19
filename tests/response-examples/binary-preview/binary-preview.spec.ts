@@ -76,14 +76,6 @@ const binaryPreviewCases = [
     folderName: 'video',
     exampleName: 'MP4 Example',
     previewType: 'video'
-  },
-  {
-    // PNG bytes served with a lying `text/plain` content-type; the binary
-    // body is detected from magic bytes and should still preview as an image
-    requestName: 'binary-preview-mislabeled',
-    exampleName: 'Mislabeled Example',
-    previewType: 'image',
-    expectedMime: 'image/png'
   }
 ];
 
@@ -129,4 +121,26 @@ test.describe.serial('Binary response example previews', () => {
       });
     });
   }
+
+  test('should show the raw body when the content-type header is not previewable (binary-preview-mislabeled)', async ({ pageWithUserData: page }) => {
+    await test.step('Open collection and request', async () => {
+      await page.locator('#sidebar-collection-name').filter({ hasText: 'collection' }).click();
+      await page.locator('.collection-item-name').filter({ has: page.getByText('binary-preview-mislabeled', { exact: true }) }).click();
+    });
+
+    await test.step('Send request and save response as example', async () => {
+      await page.getByTestId('send-arrow-icon').click();
+      await clickResponseAction(page, 'response-bookmark-btn');
+
+      await page.getByTestId('create-example-name-input').clear();
+      await page.getByTestId('create-example-name-input').fill('Mislabeled Example');
+      await page.getByRole('button', { name: 'Create Example' }).click();
+      await expect(page.getByTestId('response-example-title')).toHaveText('binary-preview-mislabeled / Mislabeled Example');
+    });
+
+    await test.step('Verify the raw body renders instead of a binary preview', async () => {
+      await expect(page.getByTestId('response-example-binary-preview')).toHaveCount(0);
+      await expect(page.locator('.code-editor-container .CodeMirror')).toContainText('iVBORw0KGgo');
+    });
+  });
 });

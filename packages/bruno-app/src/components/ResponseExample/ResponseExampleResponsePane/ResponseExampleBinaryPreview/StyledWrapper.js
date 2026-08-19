@@ -1,6 +1,8 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  height: 100%;
+
   .react-pdf__Page {
     margin-top: 10px;
     background-color: transparent !important;
