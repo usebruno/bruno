@@ -5,8 +5,8 @@ import get from 'lodash/get';
 import { updateResponseExampleResponse } from 'providers/ReduxStore/slices/collections';
 import CodeEditor from 'components/CodeEditor';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
-import { detectContentTypeFromBase64 } from 'utils/response';
-import ResponseExampleBinaryPreview, { getBinaryPreviewType } from '../ResponseExampleBinaryPreview';
+import { detectContentTypeFromBase64, getBinaryPreviewType } from 'utils/response';
+import ResponseExampleBinaryPreview from '../ResponseExampleBinaryPreview';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid, onSave }) => {
