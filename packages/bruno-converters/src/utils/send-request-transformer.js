@@ -1,3 +1,5 @@
+import { getChainedPromiseMemberPath } from './send-request-chain-transformer';
+
 /**
  * Convert Postman header array format to Bruno headers object
  * @param {Object} j - jscodeshift API
@@ -279,6 +281,11 @@ const sendRequestTransformer = (path, j) => {
   // Check if original call was awaited
   const wasAwaited = path.parent.parent.value.type === 'AwaitExpression';
 
+  // A call chained into .then/.catch/.finally must stay a bare promise —
+  // awaiting it here would leave `.then` called on the resolved response.
+  // The chain post-pass awaits the outermost link instead.
+  const isChained = Boolean(getChainedPromiseMemberPath(path.parent));
+
   // transform the request config options
   if (requestOptions.type === 'ObjectExpression') {
     // Transform headers
@@ -311,7 +318,7 @@ const sendRequestTransformer = (path, j) => {
       transformedCallback ? [requestOptions, transformedCallback] : [requestOptions]
     );
 
-    return wasAwaited ? sendRequestCall : j.awaitExpression(sendRequestCall);
+    return wasAwaited || isChained ? sendRequestCall : j.awaitExpression(sendRequestCall);
   }
 
   // If there's no callback, just transform to await bru.sendRequest
@@ -320,7 +327,7 @@ const sendRequestTransformer = (path, j) => {
     [requestOptions]
   );
 
-  return wasAwaited ? sendRequestCall : j.awaitExpression(sendRequestCall);
+  return wasAwaited || isChained ? sendRequestCall : j.awaitExpression(sendRequestCall);
 };
 
 export default sendRequestTransformer;

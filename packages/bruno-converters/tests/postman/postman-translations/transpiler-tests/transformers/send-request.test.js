@@ -803,4 +803,370 @@ describe('Send Request Translation', () => {
       `);
     });
   });
+
+  describe('Promise chains', () => {
+    it('should keep the chain intact and await the outermost call', () => {
+      const code = `
+pm.sendRequest({
+  url: 'https://echo.usebruno.com',
+  method: 'POST',
+  header: {
+    'Content-Type': 'application/json'
+  },
+  body: {
+    mode: 'raw',
+    raw: JSON.stringify({
+      title: 'Bruno'
+    })
+  }
+})
+  .then((res) => {
+    console.log(res.json());
+  })
+  .catch((err) => {
+    console.error(err);
+  });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+await bru.sendRequest({
+  url: 'https://echo.usebruno.com',
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  data: JSON.stringify({
+    title: 'Bruno'
+  })
+}).then(
+  (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+)
+  .then((res) => {
+    console.log(res.json());
+  })
+  .catch((err) => {
+    console.error(err);
+  });
+      `);
+    });
+
+    it('should shim the response so both handlers of then(onFulfilled, onRejected) see Postman-shape methods', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
+            console.log(res.json());
+        }, (res) => {
+            console.log(res.json());
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then((res) => {
+            console.log(res.json());
+        }, (res) => {
+            console.log(res.json());
+        });
+      `);
+    });
+
+    it('should not double-await an already awaited chain', () => {
+      const code = `
+        await pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
+            console.log(res.json());
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then((res) => {
+            console.log(res.json());
+        });
+      `);
+    });
+
+    it('should map code and status inside a then handler', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
+            console.log(res.code);
+            console.log(res.status);
+            console.log(res.headers);
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then((res) => {
+            console.log(res.code);
+            console.log(res.status);
+            console.log(res.headers);
+        });
+      `);
+    });
+
+    it('should transform the request config when it is passed as a variable', () => {
+      const code = `
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            header: {
+                'Content-Type': 'application/json'
+            },
+            body: {
+                mode: 'raw',
+                raw: '{}'
+            }
+        };
+        pm.sendRequest(requestConfig).then((res) => {
+            console.log(res.json());
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        const requestConfig = {
+            url: 'https://echo.usebruno.com',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            data: '{}'
+        };
+        await bru.sendRequest(requestConfig).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then((res) => {
+            console.log(res.json());
+        });
+      `);
+    });
+
+    it('should not await a chain inside a non-async function', () => {
+      const code = `
+        function fetchData() {
+            pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
+                console.log(res.json());
+            });
+        }
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        function fetchData() {
+            bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+                (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+            ).then((res) => {
+                console.log(res.json());
+            });
+        }
+      `);
+    });
+
+    it('should shim the response so later handlers can still call Postman methods through their param', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => res.json())
+          .then((data) => {
+              console.log(data.text);
+              console.log(data.status);
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        )
+          .then((res) => res.json())
+          .then((data) => {
+              console.log(data.text);
+              console.log(data.status);
+          });
+      `);
+    });
+
+    it('should shim the response before a then that follows a catch', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => res.json())
+          .catch(() => null)
+          .then((data) => {
+              console.log(data.status);
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        )
+          .then((res) => res.json())
+          .catch(() => null)
+          .then((data) => {
+              console.log(data.status);
+          });
+      `);
+    });
+
+    it('should not touch nested functions that re-declare the response name', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => {
+            console.log(res.json());
+            items.forEach((res) => {
+                console.log(res.json());
+            });
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then((res) => {
+            console.log(res.json());
+            items.forEach((res) => {
+                console.log(res.json());
+            });
+        });
+      `);
+    });
+
+    it('should handle a chain ending in finally', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then((res) => {
+              console.log(res.json());
+          })
+          .catch((err) => {
+              console.error(err);
+          })
+          .finally(() => {
+              console.log('done');
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        )
+          .then((res) => {
+              console.log(res.json());
+          })
+          .catch((err) => {
+              console.error(err);
+          })
+          .finally(() => {
+              console.log('done');
+          });
+      `);
+    });
+
+    it('should await a chain returned from an async function', () => {
+      const code = `
+        async function fetchData() {
+            return pm.sendRequest({ url: 'https://echo.usebruno.com' }).then((res) => res.json());
+        }
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        async function fetchData() {
+            return await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+                (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+            ).then((res) => res.json());
+        }
+      `);
+    });
+
+    it('should translate each of several chains in the same script', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com/one' }).then((res) => {
+            console.log(res.json());
+        });
+        pm.sendRequest({ url: 'https://echo.usebruno.com/two' }).then((res) => {
+            console.log(res.code);
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com/one' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then((res) => {
+            console.log(res.json());
+        });
+        await bru.sendRequest({ url: 'https://echo.usebruno.com/two' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then((res) => {
+            console.log(res.code);
+        });
+      `);
+    });
+
+    it('should shim through a variable-referenced handler so downstream handlers keep Postman-shape access', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })
+          .then(maybeHandler)
+          .then((res) => {
+              console.log(res.json());
+          });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        )
+          .then(maybeHandler)
+          .then((res) => {
+              console.log(res.json());
+          });
+      `);
+    });
+
+    it('should treat a bracket-notation then as a chain', () => {
+      const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' })['then']((res) => res.json());`;
+      expect(translateCode(code)).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+  (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+)['then']((res) => res.json());`);
+    });
+
+    it('should not treat a computed variable key as a promise method', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com' })[then]((res) => {
+            console.log(res.json());
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        (await bru.sendRequest({ url: 'https://echo.usebruno.com' }))[then]((res) => {
+            console.log(res.json());
+        });
+      `);
+    });
+
+    it('should shim so a destructured handler param sees Postman-shape properties', () => {
+      const code = `pm.sendRequest({ url: 'https://echo.usebruno.com' }).then(({ code }) => console.log(code));`;
+      expect(translateCode(code)).toBe(`await bru.sendRequest({ url: 'https://echo.usebruno.com' }).then(
+  (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+).then(({ code }) => console.log(code));`);
+    });
+
+    it('should translate a nested sendRequest chain inside an async then handler', () => {
+      const code = `
+        pm.sendRequest({ url: 'https://echo.usebruno.com/users/1' }).then(async (userRes) => {
+            const userId = userRes.json().id;
+            return pm.sendRequest({ url: 'https://echo.usebruno.com/posts' }).then((postsRes) => {
+                console.log(postsRes.json());
+            });
+        });
+      `;
+      const translatedCode = translateCode(code);
+      expect(translatedCode).toBe(`
+        await bru.sendRequest({ url: 'https://echo.usebruno.com/users/1' }).then(
+            (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+        ).then(async (userRes) => {
+            const userId = userRes.json().id;
+            return await bru.sendRequest({ url: 'https://echo.usebruno.com/posts' }).then(
+                (res) => ({ ...res, json: () => res.data, text: () => res.data, code: res.status, status: res.statusText })
+            ).then((postsRes) => {
+                console.log(postsRes.json());
+            });
+        });
+      `);
+    });
+  });
 });
