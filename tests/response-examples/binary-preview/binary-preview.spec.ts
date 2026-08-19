@@ -1,5 +1,6 @@
-import { test, expect } from '../../../playwright';
-import { clickResponseAction } from '../../utils/page/actions';
+import { test, expect, Page } from '../../../playwright';
+import { buildCommonLocators } from '../../utils/page/locators';
+import { clickResponseAction, expandCollection, expandFolder } from '../../utils/page/actions';
 
 /**
  * Each fixture request POSTs to the local test server's /api/echo/custom
@@ -63,48 +64,68 @@ const binaryPreviewCases = [
     folderName: 'audio',
     exampleName: 'AAC Example',
     previewType: 'audio',
-    expectedMime: 'audio/mp4'
+    // Served as audio/mp4, but the preview trusts the sniffed bytes (M4A signature)
+    expectedMime: 'audio/m4a'
   },
   {
     requestName: 'binary-preview-video-webm',
     folderName: 'video',
     exampleName: 'WebM Example',
-    previewType: 'video'
+    previewType: 'video',
+    expectedMime: 'video/webm'
   },
   {
     requestName: 'binary-preview-video-mp4',
     folderName: 'video',
     exampleName: 'MP4 Example',
-    previewType: 'video'
+    previewType: 'video',
+    expectedMime: 'video/mp4'
   }
 ];
 
-test.describe.serial('Binary response example previews', () => {
+const openBinaryPreviewRequest = async (page: Page, folderName: string | undefined, requestName: string) => {
+  const locators = buildCommonLocators(page);
+  await expandCollection(page, 'collection');
+  if (folderName) {
+    await expandFolder(page, folderName);
+    await locators.sidebar.folderRequest(folderName, requestName).click();
+  } else {
+    await locators.sidebar.request(requestName).click();
+  }
+};
+
+const saveResponseAsExample = async (page: Page, requestName: string, exampleName: string) => {
+  const { request, responseExample } = buildCommonLocators(page);
+  await request.sendButton().click();
+  await clickResponseAction(page, 'response-bookmark-btn');
+
+  await responseExample.nameInput().clear();
+  await responseExample.nameInput().fill(exampleName);
+  await page.getByRole('button', { name: 'Create Example' }).click();
+  await expect(responseExample.title()).toHaveText(`${requestName} / ${exampleName}`);
+};
+
+// The app instance (and its temp collection copy) is reused across tests and CI
+// retries in a worker, so example names must be unique per attempt to avoid
+// colliding with an example a failed attempt already created.
+const uniqueExampleName = (exampleName: string, testInfo: { retry: number }) =>
+  testInfo.retry ? `${exampleName} (retry ${testInfo.retry})` : exampleName;
+
+test.describe('Binary response example previews', () => {
   for (const { requestName, folderName, exampleName, previewType, expectedMime } of binaryPreviewCases) {
-    test(`should preview a saved ${previewType} response (${requestName})`, async ({ pageWithUserData: page }) => {
+    test(`should preview a saved ${previewType} response (${requestName})`, async ({ pageWithUserData: page }, testInfo) => {
+      const savedExampleName = uniqueExampleName(exampleName, testInfo);
+
       await test.step('Open collection and request', async () => {
-        await page.locator('#sidebar-collection-name').filter({ hasText: 'collection' }).click();
-        const requestRow = page.locator('.collection-item-name').filter({ has: page.getByText(requestName, { exact: true }) });
-        // Collapsed folders don't render their children, and folder expansion
-        // persists across serial tests — only toggle when the row is hidden
-        if (folderName && !(await requestRow.isVisible())) {
-          await page.locator('.collection-item-name').filter({ has: page.getByText(folderName, { exact: true }) }).click();
-        }
-        await requestRow.click();
+        await openBinaryPreviewRequest(page, folderName, requestName);
       });
 
       await test.step('Send request and save response as example', async () => {
-        await page.getByTestId('send-arrow-icon').click();
-        await clickResponseAction(page, 'response-bookmark-btn');
-
-        await page.getByTestId('create-example-name-input').clear();
-        await page.getByTestId('create-example-name-input').fill(exampleName);
-        await page.getByRole('button', { name: 'Create Example' }).click();
-        await expect(page.getByTestId('response-example-title')).toHaveText(`${requestName} / ${exampleName}`);
+        await saveResponseAsExample(page, requestName, savedExampleName);
       });
 
       await test.step('Verify the binary preview renders', async () => {
-        const preview = page.getByTestId('response-example-binary-preview');
+        const preview = buildCommonLocators(page).responseExample.binaryPreview();
         await expect(preview).toBeVisible();
         await expect(preview).toHaveAttribute('data-preview-type', previewType);
 
@@ -122,25 +143,42 @@ test.describe.serial('Binary response example previews', () => {
     });
   }
 
-  test('should show the raw body when the content-type header is not previewable (binary-preview-mislabeled)', async ({ pageWithUserData: page }) => {
+  test('should sniff the real content type when the header is mislabeled (binary-preview-mislabeled)', async ({ pageWithUserData: page }, testInfo) => {
     await test.step('Open collection and request', async () => {
-      await page.locator('#sidebar-collection-name').filter({ hasText: 'collection' }).click();
-      await page.locator('.collection-item-name').filter({ has: page.getByText('binary-preview-mislabeled', { exact: true }) }).click();
+      await openBinaryPreviewRequest(page, undefined, 'binary-preview-mislabeled');
     });
 
     await test.step('Send request and save response as example', async () => {
-      await page.getByTestId('send-arrow-icon').click();
-      await clickResponseAction(page, 'response-bookmark-btn');
-
-      await page.getByTestId('create-example-name-input').clear();
-      await page.getByTestId('create-example-name-input').fill('Mislabeled Example');
-      await page.getByRole('button', { name: 'Create Example' }).click();
-      await expect(page.getByTestId('response-example-title')).toHaveText('binary-preview-mislabeled / Mislabeled Example');
+      await saveResponseAsExample(page, 'binary-preview-mislabeled', uniqueExampleName('Mislabeled Example', testInfo));
     });
 
+    // The response is PNG bytes served with a text/plain header — the preview
+    // trusts the sniffed bytes over the header and renders an image.
+    await test.step('Verify the sniffed image preview renders', async () => {
+      const preview = buildCommonLocators(page).responseExample.binaryPreview();
+      await expect(preview).toBeVisible();
+      await expect(preview).toHaveAttribute('data-preview-type', 'image');
+      await expect(preview.locator('img')).toHaveAttribute('src', /^data:image\/png;base64,/);
+    });
+  });
+
+  test('should show the raw body when the bytes are not previewable (binary-preview-unknown-binary)', async ({ pageWithUserData: page }, testInfo) => {
+    const locators = buildCommonLocators(page);
+
+    await test.step('Open collection and request', async () => {
+      await openBinaryPreviewRequest(page, undefined, 'binary-preview-unknown-binary');
+    });
+
+    await test.step('Send request and save response as example', async () => {
+      await saveResponseAsExample(page, 'binary-preview-unknown-binary', uniqueExampleName('Unknown Binary Example', testInfo));
+    });
+
+    // application/octet-stream bytes with no recognizable signature have no
+    // visual preview — the raw base64 body renders in the editor instead.
     await test.step('Verify the raw body renders instead of a binary preview', async () => {
-      await expect(page.getByTestId('response-example-binary-preview')).toHaveCount(0);
-      await expect(page.locator('.code-editor-container .CodeMirror')).toContainText('iVBORw0KGgo');
+      await expect(locators.responseExample.title()).toBeVisible();
+      await expect(locators.responseExample.binaryPreview()).toHaveCount(0);
+      await expect(locators.responseExample.responseContent().locator('.CodeMirror').first()).toContainText('AAECAwQFBgcI');
     });
   });
 });

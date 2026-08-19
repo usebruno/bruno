@@ -102,7 +102,7 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
 
   return (
     <StyledWrapper className="w-full px-4">
-      <div className="code-editor-container">
+      <div className="code-editor-container" data-testid="response-example-response-content">
         <CodeEditor
           collection={collection}
           item={item}
