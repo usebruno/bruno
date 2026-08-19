@@ -1,5 +1,6 @@
 import { test, expect } from '../../../../playwright';
-import { openCollection, selectEnvironment, openRequest, openVariablesTab, openEnvironmentConfigTab } from '../../../utils/page';
+import { openCollection, selectEnvironment, openRequest, openEnvironmentConfigTab } from '../../../utils/page';
+import { openVariablesTab, readVariableValue } from '../../../utils/page/variables-tab';
 import { buildCommonLocators } from '../../../utils/page/locators';
 
 test.describe('req.onFail', () => {
@@ -11,8 +12,8 @@ test.describe('req.onFail', () => {
       await selectEnvironment(page, 'Test');
       await selectEnvironment(page, 'Global', 'global');
 
-      await openVariablesTab(page);
-      await expect(locators.variables.environmentValue('envVar')).toHaveText('"original"');
+      await openVariablesTab(page, 'onfail-collection');
+      await expect.poll(() => readVariableValue(page, 'environment', 'envVar')).toBe('"original"');
 
       await openEnvironmentConfigTab(page, 'global');
       await expect(locators.environment.varRowsByValue('globalEnvVar', 'original')).toHaveCount(1);
@@ -21,12 +22,13 @@ test.describe('req.onFail', () => {
     await test.step('Send the onFail request — the URL is unreachable, so the handler runs', async () => {
       await openRequest(page, 'onfail-collection', 'onFail');
       await locators.request.sendButton().click();
+      await expect(locators.response.errorMessage()).toBeVisible();
     });
 
     await test.step('Verify the handler overwrote the runtime, environment and global values', async () => {
-      await openVariablesTab(page);
-      await expect(locators.variables.runtimeValue('var')).toHaveText('"updated"');
-      await expect(locators.variables.environmentValue('envVar')).toHaveText('"updated"');
+      await openVariablesTab(page, 'onfail-collection');
+      await expect.poll(() => readVariableValue(page, 'runtime', 'var')).toBe('"updated"');
+      await expect.poll(() => readVariableValue(page, 'environment', 'envVar')).toBe('"updated"');
 
       await openEnvironmentConfigTab(page, 'global');
       await expect(locators.environment.varRowsByValue('globalEnvVar', 'updated')).toHaveCount(1);

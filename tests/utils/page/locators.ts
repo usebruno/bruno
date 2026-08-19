@@ -47,14 +47,6 @@ export const buildCommonLocators = (page: Page) => ({
   migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),
   variablesTab: buildVariablesTabLocators(page),
-  variables: {
-    runtimeSection: () => page.getByTestId('runtime-variables'),
-    environmentSection: () => page.getByTestId('environment-variables'),
-    runtimeValue: (name: string) =>
-      page.getByTestId('runtime-variables').getByTestId(`variable-row-${name}`).getByTestId('variable-value'),
-    environmentValue: (name: string) =>
-      page.getByTestId('environment-variables').getByTestId(`variable-row-${name}`).getByTestId('variable-value')
-  },
   actions: {
     collectionActions: (collectionName: string) =>
       page.getByTestId('collections').locator('.collection-name')
