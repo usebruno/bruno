@@ -2611,6 +2611,8 @@ const renameWsMessage = async (page: Page, index: number, name: string) => {
   });
 };
 
+const SETTLE_MS = 2_000;
+
 /**
  * Scroll a row inside a react-virtuoso table (request/folder/collection vars or
  * env vars — both rendered with the `table-container` className) into view so it
@@ -2620,7 +2622,7 @@ const renameWsMessage = async (page: Page, index: number, name: string) => {
  */
 const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
   if (await target.count()) {
-    await target.scrollIntoViewIfNeeded().catch(() => { });
+    await target.scrollIntoViewIfNeeded({ timeout: SETTLE_MS }).catch(() => { });
     return;
   }
 
@@ -2638,7 +2640,7 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
     await scroll(true);
     await page.waitForTimeout(120);
     if (await target.count()) {
-      await target.scrollIntoViewIfNeeded().catch(() => { });
+      await target.scrollIntoViewIfNeeded({ timeout: SETTLE_MS }).catch(() => { });
       return;
     }
   }
@@ -2648,7 +2650,7 @@ const scrollVirtuosoRowIntoView = async (page: Page, target: Locator) => {
     if (!(await scroll(false))) break;
     await page.waitForTimeout(120);
   }
-  await target.scrollIntoViewIfNeeded().catch(() => { });
+  await target.scrollIntoViewIfNeeded({ timeout: SETTLE_MS }).catch(() => { });
 };
 
 /**
