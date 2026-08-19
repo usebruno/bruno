@@ -6,6 +6,7 @@ import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { GlobalWorkerOptions } from 'pdfjs-dist/build/pdf';
 GlobalWorkerOptions.workerSrc = 'pdfjs-dist/legacy/build/pdf.worker.min.mjs';
 import VideoPreview from 'components/ResponsePane/QueryResult/QueryResultPreview/VideoPreview';
+import StyledWrapper from './StyledWrapper';
 
 export const getBinaryPreviewType = (mime) => {
   if (typeof mime !== 'string') {
@@ -64,9 +65,9 @@ const ResponseExampleBinaryPreview = ({ contentType, content }) => {
   }
 
   return (
-    <div data-testid="response-example-binary-preview" data-preview-type={previewType}>
+    <StyledWrapper data-testid="response-example-binary-preview" data-preview-type={previewType}>
       {preview}
-    </div>
+    </StyledWrapper>
   );
 };
 
