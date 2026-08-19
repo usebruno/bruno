@@ -48,10 +48,11 @@ const ResponseExampleResponseHeaders = ({ editMode, item, collection, exampleUid
 
     if (contentTypeHeader && oldContentTypeHeader && contentTypeHeader.value !== oldContentTypeHeader.value) {
       const newContentType = contentTypeHeader.value?.toLowerCase() || '';
-      const newBodyType = getBodyType(newContentType);
       const currentBodyType = response.body?.type || 'text';
 
-      // Only update if the body type has changed
+      const derivedBodyType = getBodyType(newContentType);
+      const newBodyType = currentBodyType === 'binary' || derivedBodyType === 'binary' ? currentBodyType : derivedBodyType;
+
       if (newBodyType !== currentBodyType) {
         dispatch(updateResponseExampleResponse({
           itemUid: item.uid,
