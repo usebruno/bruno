@@ -2,6 +2,8 @@
  * Utility functions for processing response body content and determining body type
  */
 
+import { normalizeMime } from './response';
+
 /**
  * Determines whether a content-type denotes binary media that should be
  * persisted as base64 rather than decoded to text.
@@ -10,7 +12,7 @@
  * @returns {boolean}
  */
 export const isBinaryContentType = (contentType = '') => {
-  const mime = String(contentType).toLowerCase().split(';')[0].trim();
+  const mime = normalizeMime(contentType);
 
   if (mime.endsWith('+xml')) {
     return false;

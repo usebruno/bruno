@@ -6,12 +6,12 @@ import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { GlobalWorkerOptions } from 'pdfjs-dist/build/pdf';
 GlobalWorkerOptions.workerSrc = 'pdfjs-dist/legacy/build/pdf.worker.min.mjs';
 import VideoPreview from 'components/ResponsePane/QueryResult/QueryResultPreview/VideoPreview';
-import { getBinaryPreviewType } from 'utils/response';
+import { getBinaryPreviewType, normalizeMime } from 'utils/response';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseExampleBinaryPreview = ({ contentType, content }) => {
   const [numPages, setNumPages] = useState(null);
-  const mime = String(contentType).toLowerCase().split(';')[0].trim();
+  const mime = normalizeMime(contentType);
   const previewType = getBinaryPreviewType(mime);
 
   const renderPreview = () => {
