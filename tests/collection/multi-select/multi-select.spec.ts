@@ -50,18 +50,18 @@ test.describe('Sidebar multi-select and bulk actions', () => {
       await folderA.click({ modifiers: [SELECT_MODIFIER] });
       await reqRoot.click({ modifiers: [SELECT_MODIFIER] });
 
-      await expect(folderARow).toHaveClass(/collection-item-selected/);
-      await expect(reqRootRow).toHaveClass(/collection-item-selected/);
+      await expect(folderARow).toHaveAttribute('data-selected', 'true');
+      await expect(reqRootRow).toHaveAttribute('data-selected', 'true');
     });
 
     await test.step('Ctrl/Cmd-click on an already-selected row toggles it back out of the selection', async () => {
       await reqRoot.click({ modifiers: [SELECT_MODIFIER] });
-      await expect(reqRootRow).not.toHaveClass(/collection-item-selected/);
-      await expect(folderARow).toHaveClass(/collection-item-selected/);
+      await expect(reqRootRow).not.toHaveAttribute('data-selected', 'true');
+      await expect(folderARow).toHaveAttribute('data-selected', 'true');
 
       // Re-select it so the remaining steps see a folder + request selection again.
       await reqRoot.click({ modifiers: [SELECT_MODIFIER] });
-      await expect(reqRootRow).toHaveClass(/collection-item-selected/);
+      await expect(reqRootRow).toHaveAttribute('data-selected', 'true');
     });
 
     await test.step('Right-clicking a selected row opens the adaptive bulk menu (Collapse + Delete, no Remove)', async () => {
@@ -75,8 +75,8 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await test.step('Clicking empty sidebar space clears the selection', async () => {
       await clickEmptySidebarSpace(page);
 
-      await expect(folderARow).not.toHaveClass(/collection-item-selected/);
-      await expect(reqRootRow).not.toHaveClass(/collection-item-selected/);
+      await expect(folderARow).not.toHaveAttribute('data-selected', 'true');
+      await expect(reqRootRow).not.toHaveAttribute('data-selected', 'true');
     });
 
     await test.step('With nothing selected, right-clicking a row shows the normal per-item menu instead', async () => {
@@ -122,9 +122,9 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await locators.sidebar.request('Req Root').click({ modifiers: ['Shift'] });
 
     // The range from Folder A to Req Root, inclusive, also covers Req A1 in between.
-    await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/collection-item-selected/);
-    await expect(locators.sidebar.itemRow('Req A1')).toHaveClass(/collection-item-selected/);
-    await expect(locators.sidebar.itemRow('Req Root')).toHaveClass(/collection-item-selected/);
+    await expect(locators.sidebar.itemRow('Folder A')).toHaveAttribute('data-selected', 'true');
+    await expect(locators.sidebar.itemRow('Req A1')).toHaveAttribute('data-selected', 'true');
+    await expect(locators.sidebar.itemRow('Req Root')).toHaveAttribute('data-selected', 'true');
   });
 
   test('Shift-click with no prior click anchor selects only the clicked row, not everything above it', async ({ page, createTmpDir }) => {
@@ -132,9 +132,9 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
     await locators.sidebar.folder('Folder A').click({ modifiers: ['Shift'] });
 
-    await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/collection-item-selected/);
-    await expect(locators.sidebar.collectionRow(collectionAName)).not.toHaveClass(/collection-selected/);
-    await expect(locators.sidebar.request('Req Root')).not.toHaveClass(/collection-item-selected/);
+    await expect(locators.sidebar.itemRow('Folder A')).toHaveAttribute('data-selected', 'true');
+    await expect(locators.sidebar.collectionRow(collectionAName)).not.toHaveAttribute('data-selected', 'true');
+    await expect(locators.sidebar.request('Req Root')).not.toHaveAttribute('data-selected', 'true');
   });
 
   test('A normally-clicked row is NOT carried into the selection on the next Ctrl/Cmd-click', async ({ page, createTmpDir }) => {
@@ -142,13 +142,13 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
     // Plain click: opens the request and becomes the anchor, but isn't itself "selected" yet.
     await locators.sidebar.request('Req Root').click();
-    await expect(locators.sidebar.itemRow('Req Root')).not.toHaveClass(/collection-item-selected/);
+    await expect(locators.sidebar.itemRow('Req Root')).not.toHaveAttribute('data-selected', 'true');
     await expect(locators.tabs.requestTab('Req Root')).toBeVisible(); // verifies that the request opened properly
 
     await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
 
-    await expect(locators.sidebar.itemRow('Req Root')).not.toHaveClass(/collection-item-selected/);
-    await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/collection-item-selected/);
+    await expect(locators.sidebar.itemRow('Req Root')).not.toHaveAttribute('data-selected', 'true');
+    await expect(locators.sidebar.itemRow('Folder A')).toHaveAttribute('data-selected', 'true');
   });
 
   test('Selecting a folder and its own child collapses to just the folder (parent wins) when deleting', async ({ page, createTmpDir }) => {
@@ -340,11 +340,6 @@ test.describe('Sidebar multi-select and bulk actions', () => {
   });
 
   test('Dragging the same folder back and forth across collections repeatedly keeps it fully interactive', async ({ page, createTmpDir }) => {
-    // Regression test for a reported crash/hang: repeatedly selecting and dragging a folder
-    // (together with its own child) shortly after a prior cross-collection move used to hit a
-    // stale react-dnd drop target and, separately, a folder whose identity (uid) was
-    // regenerated by the move instead of preserved. Both are fixed now; this exercises the
-    // full reported sequence end-to-end rather than either fix in isolation.
     const { locators, collectionAName, collectionBName } = await setupFixture(page, createTmpDir, 'repeatedfolderdrag');
 
     await test.step('Move Folder A (with its child) to Collection B', async () => {
@@ -402,7 +397,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     // The drop handler used to only clear the selection when `multiSelectedItems` was
     // populated (2+ effectively selected items), so a lone selected item's drag left it
     // stuck "selected" at its new location.
-    await expect(locators.sidebar.scopedItem(collectionBName, 'Req Root')).not.toHaveClass(/collection-item-selected/);
+    await expect(locators.sidebar.scopedItem(collectionBName, 'Req Root')).not.toHaveAttribute('data-selected', 'true');
   });
 
   test('Reselecting a new item after a single-item drag selects only that item, not the stale prior selection', async ({ page, createTmpDir }) => {
@@ -416,11 +411,8 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await test.step('Ctrl/Cmd-selecting a different item selects only that item', async () => {
       await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
 
-      await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/collection-item-selected/);
-      // Before the fix, the never-cleared selection from the drag meant this Ctrl-click just
-      // toggled Folder A into the old selection, leaving the already-moved Req Root marked
-      // as selected too.
-      await expect(locators.sidebar.scopedItem(collectionBName, 'Req Root')).not.toHaveClass(/collection-item-selected/);
+      await expect(locators.sidebar.itemRow('Folder A')).toHaveAttribute('data-selected', 'true');
+      await expect(locators.sidebar.scopedItem(collectionBName, 'Req Root')).not.toHaveAttribute('data-selected', 'true');
     });
   });
 
@@ -433,7 +425,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     await locators.sidebar.itemRow('Req Root').dragTo(locators.sidebar.folder('Folder A'));
 
     await expandFolder(page, 'Folder A');
-    await expect(locators.sidebar.scopedItem(collectionAName, 'Req Root')).not.toHaveClass(/collection-item-selected/);
+    await expect(locators.sidebar.scopedItem(collectionAName, 'Req Root')).not.toHaveAttribute('data-selected', 'true');
   });
 
   test('A single Ctrl/Cmd-selected collection still drags normally (not treated as a multi-collection drag)', async ({ page, createTmpDir }) => {
@@ -454,7 +446,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
       targetPosition: { x: 5, y: 5 }
     });
 
-    const rows = page.getByTestId('sidebar-collection-row');
+    const rows = locators.sidebar.collectionRows();
     await expect(rows.nth(0)).toContainText(collectionCName);
     await expect(rows.nth(1)).toContainText(collectionAName);
     await expect(rows.nth(2)).toContainText(collectionBName);
@@ -462,7 +454,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     // The drop handler used to only clear the selection when `multiSelectedItems` was
     // populated (2+ effectively selected collections), so a lone selected collection's drag
     // left it stuck "selected" at its new position.
-    await expect(locators.sidebar.collectionRow(collectionCName)).not.toHaveClass(/collection-selected/);
+    await expect(locators.sidebar.collectionRow(collectionCName)).not.toHaveAttribute('data-selected', 'true');
   });
 
   test('Dragging two multi-selected folders together moves both (with their children) to another collection', async ({ page, createTmpDir }) => {
@@ -538,7 +530,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
       await createCollection(page, collectionCName, await createTmpDir('multicoldrag-c'));
       await clickEmptySidebarSpace(page);
 
-      const rows = page.getByTestId('sidebar-collection-row');
+      const rows = locators.sidebar.collectionRows();
       await expect(rows.nth(0)).toContainText(collectionAName);
       await expect(rows.nth(1)).toContainText(collectionBName);
       await expect(rows.nth(2)).toContainText(collectionCName);
@@ -554,15 +546,15 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     });
 
     await test.step('Both selected collections land above Collection B, keeping their prior relative order', async () => {
-      const rows = page.getByTestId('sidebar-collection-row');
+      const rows = locators.sidebar.collectionRows();
       await expect(rows.nth(0)).toContainText(collectionAName);
       await expect(rows.nth(1)).toContainText(collectionCName);
       await expect(rows.nth(2)).toContainText(collectionBName);
     });
 
     await test.step('Selection clears after the drop', async () => {
-      await expect(locators.sidebar.collectionRow(collectionAName)).not.toHaveClass(/collection-selected/);
-      await expect(locators.sidebar.collectionRow(collectionCName)).not.toHaveClass(/collection-selected/);
+      await expect(locators.sidebar.collectionRow(collectionAName)).not.toHaveAttribute('data-selected', 'true');
+      await expect(locators.sidebar.collectionRow(collectionCName)).not.toHaveAttribute('data-selected', 'true');
     });
   });
 
@@ -589,7 +581,7 @@ test.describe('Sidebar multi-select and bulk actions', () => {
       targetPosition: { x: 5, y: 5 }
     });
 
-    const rows = page.getByTestId('sidebar-collection-row');
+    const rows = locators.sidebar.collectionRows();
     await expect(rows.nth(0)).toContainText(collectionCName);
     await expect(rows.nth(1)).toContainText(collectionAName);
     await expect(rows.nth(2)).toContainText(collectionBName);
@@ -615,8 +607,8 @@ test.describe('Sidebar multi-select and bulk actions', () => {
       await expect(locators.sidebar.request('Req A1')).toBeVisible();
 
       // A blocked drag never drops, so the selection is never cleared by it.
-      await expect(collectionBRow).toHaveClass(/collection-selected/);
-      await expect(reqRootRow).toHaveClass(/collection-item-selected/);
+      await expect(collectionBRow).toHaveAttribute('data-selected', 'true');
+      await expect(reqRootRow).toHaveAttribute('data-selected', 'true');
 
       await clickEmptySidebarSpace(page);
     });
@@ -634,8 +626,8 @@ test.describe('Sidebar multi-select and bulk actions', () => {
       await expect(locators.sidebar.request('Req A1')).toBeVisible();
       await expect(locators.sidebar.scopedItem(collectionBName, 'Folder A')).toHaveCount(0);
 
-      await expect(collectionBRow).toHaveClass(/collection-selected/);
-      await expect(folderARow).toHaveClass(/collection-item-selected/);
+      await expect(collectionBRow).toHaveAttribute('data-selected', 'true');
+      await expect(folderARow).toHaveAttribute('data-selected', 'true');
 
       await clickEmptySidebarSpace(page);
     });
@@ -655,9 +647,9 @@ test.describe('Sidebar multi-select and bulk actions', () => {
       await expect(locators.sidebar.scopedItem(collectionAName, 'Req Root')).toBeVisible();
       await expect(locators.sidebar.scopedItem(collectionBName, 'Folder A')).toHaveCount(0);
 
-      await expect(collectionBRow).toHaveClass(/collection-selected/);
-      await expect(folderARow).toHaveClass(/collection-item-selected/);
-      await expect(reqRootRow).toHaveClass(/collection-item-selected/);
+      await expect(collectionBRow).toHaveAttribute('data-selected', 'true');
+      await expect(folderARow).toHaveAttribute('data-selected', 'true');
+      await expect(reqRootRow).toHaveAttribute('data-selected', 'true');
     });
   });
 
@@ -666,14 +658,14 @@ test.describe('Sidebar multi-select and bulk actions', () => {
 
     await locators.sidebar.folder('Folder A').click({ modifiers: [SELECT_MODIFIER] });
     await locators.sidebar.request('Req Root').click({ modifiers: [SELECT_MODIFIER] });
-    await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/collection-item-selected/);
-    await expect(locators.sidebar.itemRow('Req Root')).toHaveClass(/collection-item-selected/);
+    await expect(locators.sidebar.itemRow('Folder A')).toHaveAttribute('data-selected', 'true');
+    await expect(locators.sidebar.itemRow('Req Root')).toHaveAttribute('data-selected', 'true');
 
     await locators.sidebar.request('Req A1').click();
 
-    await expect(locators.sidebar.itemRow('Folder A')).not.toHaveClass(/collection-item-selected/);
-    await expect(locators.sidebar.itemRow('Req Root')).not.toHaveClass(/collection-item-selected/);
-    await expect(locators.sidebar.itemRow('Req A1')).not.toHaveClass(/collection-item-selected/);
+    await expect(locators.sidebar.itemRow('Folder A')).not.toHaveAttribute('data-selected', 'true');
+    await expect(locators.sidebar.itemRow('Req Root')).not.toHaveAttribute('data-selected', 'true');
+    await expect(locators.sidebar.itemRow('Req A1')).not.toHaveAttribute('data-selected', 'true');
   });
 
   test('Bulk menu for a pure collection selection offers Remove Selected, Collapse Selected, Remove Unselected and Collapse Unselected together', async ({ page, createTmpDir }) => {
@@ -815,8 +807,8 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     });
 
     await test.step('Selection clears once the action completes', async () => {
-      await expect(locators.sidebar.collectionRow(collectionAName)).not.toHaveClass(/collection-selected/);
-      await expect(locators.sidebar.collectionRow(collectionBName)).not.toHaveClass(/collection-selected/);
+      await expect(locators.sidebar.collectionRow(collectionAName)).not.toHaveAttribute('data-selected', 'true');
+      await expect(locators.sidebar.collectionRow(collectionBName)).not.toHaveAttribute('data-selected', 'true');
     });
   });
 
@@ -931,8 +923,8 @@ test.describe('Sidebar multi-select and bulk actions', () => {
     });
 
     await test.step('Verify selection is cleared', async () => {
-      await expect(locators.sidebar.itemRow('Folder One')).not.toHaveClass(/collection-item-selected/);
-      await expect(locators.sidebar.itemRow('Folder Two')).not.toHaveClass(/collection-item-selected/);
+      await expect(locators.sidebar.itemRow('Folder One')).not.toHaveAttribute('data-selected', 'true');
+      await expect(locators.sidebar.itemRow('Folder Two')).not.toHaveAttribute('data-selected', 'true');
     });
   });
 
@@ -952,8 +944,8 @@ test.describe('Sidebar multi-select and bulk actions', () => {
       await locators.modal.closeButton().click();
       await expect(deleteModal).not.toBeVisible();
 
-      await expect(locators.sidebar.itemRow('Folder A')).toHaveClass(/collection-item-selected/);
-      await expect(locators.sidebar.itemRow('Req Root')).toHaveClass(/collection-item-selected/);
+      await expect(locators.sidebar.itemRow('Folder A')).toHaveAttribute('data-selected', 'true');
+      await expect(locators.sidebar.itemRow('Req Root')).toHaveAttribute('data-selected', 'true');
       await expect(locators.sidebar.folder('Folder A')).toBeVisible();
       await expect(locators.sidebar.request('Req Root')).toBeVisible();
     });
@@ -985,8 +977,8 @@ test.describe('Sidebar multi-select and bulk actions', () => {
       await locators.modal.button('Cancel').click();
       await expect(removeModal).not.toBeVisible();
 
-      await expect(locators.sidebar.collectionRow(collectionAName)).toHaveClass(/collection-selected/);
-      await expect(locators.sidebar.collectionRow(collectionBName)).toHaveClass(/collection-selected/);
+      await expect(locators.sidebar.collectionRow(collectionAName)).toHaveAttribute('data-selected', 'true');
+      await expect(locators.sidebar.collectionRow(collectionBName)).toHaveAttribute('data-selected', 'true');
       await expect(locators.sidebar.collection(collectionAName)).toBeVisible();
       await expect(locators.sidebar.collection(collectionBName)).toBeVisible();
     });

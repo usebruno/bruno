@@ -635,6 +635,7 @@ const Collection = ({ collection, searchText }) => {
         onFocus={handleFocus}
         onBlur={handleBlur}
         data-testid="sidebar-collection-row"
+        data-selected={isSelected ? 'true' : undefined}
       >
         <div
           className="flex flex-grow items-center overflow-hidden"

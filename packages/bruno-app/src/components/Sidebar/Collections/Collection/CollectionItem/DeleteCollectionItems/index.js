@@ -14,9 +14,15 @@ const DeleteCollectionItems = ({ entries, onClose }) => {
     return null;
   }
 
-  const folderCount = entries.filter((entry) => isItemAFolder(entry.item)).length;
-  const requestCount = entries.filter((entry) => isItemARequest(entry.item)).length;
-  const appCount = entries.filter((entry) => entry.item.type === 'app').length;
+  let folderCount = 0;
+  let requestCount = 0;
+  let appCount = 0;
+
+  for (const { item } of entries) {
+    if (isItemAFolder(item)) folderCount++;
+    else if (isItemARequest(item)) requestCount++;
+    else if (item.type === 'app') appCount++;
+  }
 
   const folderDescription = folderCount > 0 ? `${folderCount} ${pluralizeWord('folder', folderCount)}` : null;
   const requestDescription = requestCount > 0 ? `${requestCount} ${pluralizeWord('request', requestCount)}` : null;

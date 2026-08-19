@@ -21,6 +21,7 @@ export const buildSidebarLocators = (page: Page) => {
     },
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
     collectionRow,
+    collectionRows: () => page.getByTestId('sidebar-collection-row'),
     itemRow,
     // The "..." menu on a sidebar row. `type` picks the row and the testid prefix:
     // 'item' for a collection item row (`collection-item-menu-*`), 'collection' for a

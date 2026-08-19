@@ -778,6 +778,7 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         onBlur={handleBlur}
         onContextMenu={handleContextMenu}
         data-testid="sidebar-collection-item-row"
+        data-selected={isSelected ? 'true' : undefined}
       >
         <div className="flex items-center h-full w-full">
           {indents && indents.length
