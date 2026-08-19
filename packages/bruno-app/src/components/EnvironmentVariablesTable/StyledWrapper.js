@@ -164,15 +164,6 @@ const Wrapper = styled.div`
     }
   }
 
-  .no-results-row td {
-    padding: 16px 10px !important;
-    text-align: center;
-    font-weight: 400;
-    background: ${(props) => props.theme.bg};
-    color: ${(props) => props.theme.colors.text.muted};
-    border-right: none !important;
-  }
-
   .no-results {
     padding: 24px;
     text-align: center;

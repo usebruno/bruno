@@ -47,8 +47,6 @@ export const buildEnvironmentLocators = (page: Page) => ({
   addVariableButton: () => page.getByTestId('add-variable'),
   // Floating action pinned to the bottom of the table
   floatingAddAction: () => page.getByTestId('add-variable-action'),
-  // In-body row shown in place of results when a search matches nothing.
-  noResultsRow: () => page.locator('.no-results-row'),
   variableNameInput: (index: number) => page.locator(`input[name="${index}.name"]`),
   variableSecretCheckbox: (index: number) => page.locator(`input[name="${index}.secret"]`),
   variableRow: (index: number) => page.locator('tr').filter({ has: page.locator(`input[name="${index}.name"]`) }),

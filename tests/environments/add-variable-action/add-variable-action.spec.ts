@@ -67,17 +67,6 @@ const openSeededEnvironment = async (page: Page, tmpDir: string, env: SeededEnv)
   });
 };
 
-const searchEnv = async (page: Page, query: string) => {
-  await test.step(`Search for "${query}"`, async () => {
-    const input = envLocators(page).searchInput();
-    if ((await input.count()) === 0) {
-      await envLocators(page).searchAction().click();
-      await input.waitFor({ state: 'visible' });
-    }
-    await input.fill(query);
-  });
-};
-
 test.describe('Environment variables — floating "Add variable" action', () => {
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
@@ -128,24 +117,6 @@ test.describe('Environment variables — floating "Add variable" action', () => 
       await envLocators(page).secretsTab().click();
       await expect(envLocators(page).varRow('secret001')).toBeVisible();
       await expect(floatingAdd(page)).toContainText('Add secret');
-    });
-  });
-
-  test('a search with no matches still leaves the add row usable', async ({ page, createTmpDir }) => {
-    const tmpDir = await createTmpDir('add-variable-action-search');
-    await openSeededEnvironment(page, tmpDir, LARGE_ENV);
-
-    await searchEnv(page, 'zzz-matches-nothing');
-
-    await test.step('The empty state renders inside the table body', async () => {
-      await expect(envLocators(page).noResultsRow()).toContainText('No results found');
-      await expect(envLocators(page).noResultsRow()).toContainText('zzz-matches-nothing');
-    });
-
-    await test.step('A variable can still be added while the search is active', async () => {
-      await expect(addRowNameInput(page)).toBeVisible();
-      await addRowNameInput(page).fill('addedDuringSearch');
-      await expect(envLocators(page).varRow('addedDuringSearch')).toBeVisible();
     });
   });
 });
