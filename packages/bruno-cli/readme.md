@@ -120,6 +120,20 @@ Import Options:
 | --client-cert-config         | Client certificate configuration by passing a JSON file                       |
 | --delay [number]             | Add delay to each request                                                     |
 
+## Environment Variables
+
+| Variable         | Details                                    |
+| ---------------- | ------------------------------------------ |
+| BRU_NO_SHELL_ENV | Skip reading the login shell environment   |
+
+Before running a collection, bru reads your login shell's environment to pick up `PATH` and proxy
+variables that a GUI app or cron job would not otherwise pass down. On macOS and Linux that costs
+roughly half a second per invocation; on Windows there is nothing to read, so the variable has no
+effect there.
+
+Set `BRU_NO_SHELL_ENV=1` when bru is invoked repeatedly as a subprocess by a caller that already
+provides a complete environment.
+
 ## Scripting
 
 Bruno cli returns the following exit status codes:
