@@ -1,4 +1,4 @@
-const ohm = require('ohm-js');
+const { compileGrammar } = require('../../grammar-cache');
 const _ = require('lodash');
 const { safeParseJson, outdentString } = require('../../utils');
 const astBaseAttribute = require('../../common/attributes');
@@ -16,7 +16,7 @@ const {
  * Handles parsing of request blocks within example files.
  * Supports all body types: json, text, xml, sparql, graphql, form-urlencoded, multipart-form, file
  */
-const requestGrammar = ohm.grammar(`Request {
+const requestGrammar = compileGrammar('example-request', `Request {
   RequestFile = requestcontent*
   
   nl = "\\r"? "\\n"

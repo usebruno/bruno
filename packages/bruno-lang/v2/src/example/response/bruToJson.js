@@ -1,4 +1,4 @@
-const ohm = require('ohm-js');
+const { compileGrammar } = require('../../grammar-cache');
 const _ = require('lodash');
 const { safeParseJson, outdentString } = require('../../utils');
 const astBaseAttribute = require('../../common/attributes');
@@ -10,7 +10,7 @@ const { mapPairListToKeyValPairs } = require('../../common/semantic-utils');
  * Handles parsing of response blocks within example files.
  * Supports headers, status, and body parsing.
  */
-const responseGrammar = ohm.grammar(`Response {
+const responseGrammar = compileGrammar('example-response', `Response {
   ResponseFile = responsecontent*
   
   nl = "\\r"? "\\n"
