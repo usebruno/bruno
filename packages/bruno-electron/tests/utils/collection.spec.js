@@ -359,12 +359,17 @@ describe('wrapAndJoinScripts', () => {
   });
 
   test('binds per-segment __dirname/__filename via IIFE args when filePath is provided', () => {
+    const colDir = path.resolve('/col');
+    const collectionFile = path.join(colDir, 'collection.bru');
+    const subDir = path.join(colDir, 'sub');
+    const folderFile = path.join(subDir, 'folder.bru');
+    const requestFile = path.join(subDir, 'req.bru');
     const sources = [
-      { filePath: '/col/collection.bru', displayPath: 'collection.bru' },
-      { filePath: '/col/sub/folder.bru', displayPath: 'sub/folder.bru' },
+      { filePath: collectionFile, displayPath: 'collection.bru' },
+      { filePath: folderFile, displayPath: path.join('sub', 'folder.bru') },
       null
     ];
-    const requestSegmentSource = { filePath: '/col/sub/req.bru', displayPath: 'sub/req.bru' };
+    const requestSegmentSource = { filePath: requestFile, displayPath: path.join('sub', 'req.bru') };
     const result = wrapAndJoinScripts(
       ['let a = 1;', 'let b = 2;', 'let c = 3;'],
       2,
@@ -373,17 +378,20 @@ describe('wrapAndJoinScripts', () => {
     );
 
     expect(result.code).toContain('async (__dirname, __filename) => {');
-    expect(result.code).toContain(')("/col", "/col/collection.bru");');
-    expect(result.code).toContain(')("/col/sub", "/col/sub/folder.bru");');
-    expect(result.code).toContain(')("/col/sub", "/col/sub/req.bru");');
+    expect(result.code).toContain(`)(${JSON.stringify(colDir)}, ${JSON.stringify(collectionFile)});`);
+    expect(result.code).toContain(`)(${JSON.stringify(subDir)}, ${JSON.stringify(folderFile)});`);
+    expect(result.code).toContain(`)(${JSON.stringify(subDir)}, ${JSON.stringify(requestFile)});`);
   });
 
   test('preserves line counts when injecting IIFE args (opener stays on one line)', () => {
+    const colDir = path.resolve('/col');
+    const collectionFile = path.join(colDir, 'collection.bru');
+    const requestFile = path.join(colDir, 'sub', 'req.bru');
     const withPaths = wrapAndJoinScripts(
       ['let x = 1;', '', 'let y = 2;'],
       2,
-      [{ filePath: '/col/collection.bru', displayPath: 'collection.bru' }, null, null],
-      { filePath: '/col/sub/req.bru', displayPath: 'sub/req.bru' }
+      [{ filePath: collectionFile, displayPath: 'collection.bru' }, null, null],
+      { filePath: requestFile, displayPath: path.join('sub', 'req.bru') }
     );
     const withoutPaths = wrapAndJoinScripts(['let x = 1;', '', 'let y = 2;'], 2);
     // Stack-trace mapping depends on line ranges staying stable.
