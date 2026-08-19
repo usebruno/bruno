@@ -276,3 +276,26 @@ export const detectContentTypeFromBase64 = (base64) => {
 
   return null;
 };
+
+/**
+ * Maps a mime type to the binary preview it can render (image, pdf, audio, video),
+ * or null when the type has no visual preview and should be shown as raw text.
+ */
+export const getBinaryPreviewType = (mime) => {
+  if (typeof mime !== 'string') {
+    return null;
+  }
+  if (mime === 'application/pdf') {
+    return 'pdf';
+  }
+  if (mime.startsWith('image/') && !mime.endsWith('+xml')) {
+    return 'image';
+  }
+  if (mime.startsWith('audio/')) {
+    return 'audio';
+  }
+  if (mime.startsWith('video/')) {
+    return 'video';
+  }
+  return null;
+};

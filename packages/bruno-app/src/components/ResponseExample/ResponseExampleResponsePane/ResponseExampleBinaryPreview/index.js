@@ -6,26 +6,8 @@ import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { GlobalWorkerOptions } from 'pdfjs-dist/build/pdf';
 GlobalWorkerOptions.workerSrc = 'pdfjs-dist/legacy/build/pdf.worker.min.mjs';
 import VideoPreview from 'components/ResponsePane/QueryResult/QueryResultPreview/VideoPreview';
+import { getBinaryPreviewType } from 'utils/response';
 import StyledWrapper from './StyledWrapper';
-
-export const getBinaryPreviewType = (mime) => {
-  if (typeof mime !== 'string') {
-    return null;
-  }
-  if (mime === 'application/pdf') {
-    return 'pdf';
-  }
-  if (mime.startsWith('image/') && !mime.endsWith('+xml')) {
-    return 'image';
-  }
-  if (mime.startsWith('audio/')) {
-    return 'audio';
-  }
-  if (mime.startsWith('video/')) {
-    return 'video';
-  }
-  return null;
-};
 
 const ResponseExampleBinaryPreview = ({ contentType, content }) => {
   const [numPages, setNumPages] = useState(null);

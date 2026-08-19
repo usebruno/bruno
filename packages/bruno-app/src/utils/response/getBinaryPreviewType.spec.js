@@ -1,12 +1,5 @@
 import { getBinaryPreviewType } from './index';
 
-jest.mock('react-pdf', () => ({ Document: () => null, Page: () => null }));
-jest.mock('pdfjs-dist/build/pdf.worker', () => ({}));
-jest.mock('pdfjs-dist/build/pdf', () => ({ GlobalWorkerOptions: {} }));
-jest.mock('react-pdf/dist/esm/Page/AnnotationLayer.css', () => ({}));
-jest.mock('react-pdf/dist/esm/Page/TextLayer.css', () => ({}));
-jest.mock('components/ResponsePane/QueryResult/QueryResultPreview/VideoPreview', () => () => null);
-
 describe('getBinaryPreviewType', () => {
   it('maps pdf mime to pdf', () => {
     expect(getBinaryPreviewType('application/pdf')).toBe('pdf');
