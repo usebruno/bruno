@@ -11,9 +11,6 @@ const config = {
     name: '@storybook/react-webpack5',
     options: {}
   },
-  docs: {
-    autodocs: true
-  },
   webpackFinal: async (config) => {
     // Add path aliases to match jsconfig.json
     config.resolve.alias = {
