@@ -126,7 +126,6 @@ const buildMockResponseRecord = ({
     : `${baseName} (${statusLabel})`;
 
   return {
-    uid: uuidv4(),
     name,
     description: operation.description || '',
     copiedFrom: {
