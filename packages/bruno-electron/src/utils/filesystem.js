@@ -87,6 +87,17 @@ function isWSLPath(pathname) {
   return pathname.startsWith('\\\\') || pathname.startsWith('//') || pathname.startsWith('/wsl.localhost/') || pathname.startsWith('\\wsl.localhost');
 }
 
+function isWSLMountPath(pathname) {
+  if (!pathname || typeof pathname !== 'string') {
+    return false;
+  }
+  // Normalize slashes and collapse the leading run of slashes to exactly two,
+  // so "\\wsl.localhost\...", "//wsl.localhost/...", and the single-leading-
+  // slash "/wsl.localhost/..." form.
+  const normalized = pathname.toLowerCase().replace(/\//g, '\\').replace(/^\\+/, '\\\\');
+  return normalized.startsWith('\\\\wsl.localhost\\') || normalized.startsWith('\\\\wsl$\\');
+}
+
 function normalizeWSLPath(pathname) {
   // Replace the WSL path prefix and convert forward slashes to backslashes
   // This is done to achieve WSL paths (linux style) to Windows UNC equivalent (Universal Naming Conversion)
@@ -586,6 +597,7 @@ module.exports = {
   isValidCollectionDirectory,
   normalizeAndResolvePath,
   isWSLPath,
+  isWSLMountPath,
   normalizeWSLPath,
   writeFile,
   withFileLock,
