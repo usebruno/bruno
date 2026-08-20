@@ -6,7 +6,7 @@ import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelect
 import StyledWrapper from './StyledWrapper';
 import get from 'lodash/get';
 
-const ResponseExampleUrlBar = ({ item, collection, editMode, onSave, exampleUid, allowMethodSelect = false, urlPrefix = null }) => {
+const ResponseExampleUrlBar = ({ item, collection, editMode, onSave, exampleUid, allowMethodSelect = false, urlPrefix = null, highlightPathParams = true }) => {
   const dispatch = useDispatch();
 
   const exampleData = useMemo(() => {
@@ -96,7 +96,7 @@ const ResponseExampleUrlBar = ({ item, collection, editMode, onSave, exampleUid,
             onSave={onSave}
             onChange={onChange}
             collection={collection}
-            highlightPathParams={true}
+            highlightPathParams={highlightPathParams}
             item={item}
             readOnly={!editMode}
           />
