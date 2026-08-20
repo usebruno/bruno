@@ -55,7 +55,7 @@ const Response = ({ collection, response, item }) => {
         duration={duration}
         size={size}
       />
-      <Headers headers={headers} />
+      <Headers headers={headers} variant="response" />
       <BodyBlock
         collection={collection}
         data={data}

@@ -27,7 +27,7 @@ import MockResponsesList from 'components/MockServer/MockResponse/MockResponsesL
 import Tab from 'components/Tab';
 import ActionIcon from 'ui/ActionIcon';
 import Button from 'ui/Button';
-import { resolveMockResponseCollection, resolveMockResponseLocation, countMockRoutes } from 'utils/mock-server/mock-responses';
+import { resolveMockResponseLocation, countMockRoutes } from 'utils/mock-server/mock-responses';
 import StyledWrapper from './StyledWrapper';
 
 const MockServerLogCount = ({ mockServerUid }) => {
@@ -50,7 +50,6 @@ const MockServerDashboard = ({ instance, collection }) => {
   const [nameDraft, setNameDraft] = useState(null);
   const [delayDraft, setDelayDraft] = useState(null);
   const [portError, setPortError] = useState(null);
-  const collections = useSelector((state) => state.collections.collections);
   const apiSpecs = useSelector((state) => state.apiSpec.apiSpecs);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
@@ -66,18 +65,9 @@ const MockServerDashboard = ({ instance, collection }) => {
     workspaces.find((workspace) => workspace.uid === activeWorkspaceUid) || null
   ), [workspaces, activeWorkspaceUid]);
 
-  const resolvedCollection = useMemo(() => (
-    resolveMockResponseCollection({
-      collection,
-      instance,
-      collections,
-      activeWorkspace
-    })
-  ), [collection, instance, collections, activeWorkspace]);
-
   const location = useMemo(() => (
-    resolveMockResponseLocation(instance, resolvedCollection, collections, workspaces, activeWorkspace)
-  ), [instance, resolvedCollection, collections, workspaces, activeWorkspace]);
+    resolveMockResponseLocation(instance, workspaces, activeWorkspace)
+  ), [instance, workspaces, activeWorkspace]);
 
   const serverState = useSelector((state) => state.mockServer.servers[mockServerUid]) || {
     status: 'stopped',
@@ -122,7 +112,7 @@ const MockServerDashboard = ({ instance, collection }) => {
 
   useEffect(() => {
     dispatch(syncMockServerState(location));
-  }, [dispatch, location.mockServerUid, location.collectionPath, location.sourceType, location.workspacePath]);
+  }, [dispatch, location.mockServerUid, location.workspacePath]);
 
   const resolveStartPayload = () => resolveMockServerStartPayload(storedInstance, {
     collection,

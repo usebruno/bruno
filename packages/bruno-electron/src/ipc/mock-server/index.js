@@ -10,13 +10,12 @@ const {
   createEmptyMockResponse,
   deleteMockResponse,
   deleteMockServer,
-  flushAllWorkspaceStores,
   listMockResponses,
   listMockServers,
   saveMockResponse,
   saveMockServer,
   setMockServerResponses
-} = require('../../app/mock-server/mock-response-store');
+} = require('../../app/mock-server/mock-server-store');
 
 const getResponses = (location) => listMockResponses(location);
 
@@ -149,7 +148,11 @@ const registerMockServerIpc = (mainWindow) => {
           continue;
         }
 
-        results[location.mockServerUid] = { responses: getResponses(location) };
+        try {
+          results[location.mockServerUid] = { responses: getResponses(location) };
+        } catch (err) {
+          console.warn(`[MockServer] Skipping responses for ${location.mockServerUid}: ${err.message}`);
+        }
       }
 
       return { success: true, results };
@@ -214,9 +217,9 @@ const registerMockServerIpc = (mainWindow) => {
 
       validateWorkspacePath(location.workspacePath);
 
-      setMockServerResponses(location, responses || []);
+      const storedResponses = setMockServerResponses(location, responses || []);
       const routeResult = await mockServer.reloadRoutesFromStore(location.mockServerUid, location);
-      return { success: true, responses: responses || [], routes: routeResult?.routes || [] };
+      return { success: true, responses: storedResponses, routes: routeResult?.routes || [] };
     } catch (err) {
       return { success: false, error: err.message };
     }
@@ -224,11 +227,11 @@ const registerMockServerIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:mock-server-list-instances', async (_event, payload) => {
     try {
-      const { workspacePath, workspaceUid, migrateFrom = [] } = payload;
+      const { workspacePath, workspaceUid } = payload;
 
       validateWorkspacePath(workspacePath);
 
-      const instances = listMockServers(workspacePath, workspaceUid, { migrateFrom });
+      const instances = listMockServers(workspacePath, workspaceUid);
       return { success: true, instances };
     } catch (err) {
       return { success: false, error: err.message };
@@ -240,10 +243,6 @@ const registerMockServerIpc = (mainWindow) => {
       const { workspacePath, instance } = payload;
 
       validateWorkspacePath(workspacePath);
-
-      if (!instance?.uid) {
-        throw new Error('Mock server id is required.');
-      }
 
       const savedInstance = saveMockServer(workspacePath, instance);
       return { success: true, instance: savedInstance };
@@ -257,7 +256,7 @@ const registerMockServerIpc = (mainWindow) => {
       validateWorkspacePath(payload.workspacePath);
 
       deleteMockServer(payload);
-      await mockServer.reloadRoutesFromStore(payload.mockServerUid, payload);
+      await mockServer.stop(payload.mockServerUid);
       return { success: true, mockServerUid: payload.mockServerUid };
     } catch (err) {
       return { success: false, error: err.message };
@@ -322,7 +321,6 @@ const registerMockServerIpc = (mainWindow) => {
   });
 
   ipcMain.on('main:start-quit-flow', () => {
-    flushAllWorkspaceStores();
     mockServer.stopAll().catch((err) => {
       console.error('[MockServer] Error stopping servers on quit:', err.message);
     });

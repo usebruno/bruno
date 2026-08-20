@@ -96,14 +96,19 @@ describe('getMockServerPortRangeError', () => {
 });
 
 describe('mock server name validation', () => {
-  it('rejects digit-only and symbol-only names', () => {
-    expect(getMockServerNameError('12345')).toBe('Name must contain at least one letter.');
-    expect(getMockServerNameError('!@££@!£@!')).toBe('Special characters aren\'t allowed in the name.');
-  });
-
-  it('allows normal names with letters', () => {
+  it('follows collection-name rules: any characters are allowed', () => {
     expect(getMockServerNameError('Shop Mock')).toBe('');
     expect(getMockServerNameError('mock-1')).toBe('');
-    expect(getMockServerNameError('Auth Server')).toBe('');
+    expect(getMockServerNameError('12345')).toBe('');
+    expect(getMockServerNameError('!@££@!£@!')).toBe('');
+    expect(getMockServerNameError('Dog / Cat: API? *v2*')).toBe('');
+  });
+
+  it('rejects empty and over-long names', () => {
+    expect(getMockServerNameError('')).toBe('Name is required');
+    expect(getMockServerNameError('   ')).toBe('Name is required');
+    expect(getMockServerNameError(null)).toBe('Name is required');
+    expect(getMockServerNameError('a'.repeat(256))).toBe('Must be 255 characters or less');
+    expect(getMockServerNameError('a'.repeat(255))).toBe('');
   });
 });
