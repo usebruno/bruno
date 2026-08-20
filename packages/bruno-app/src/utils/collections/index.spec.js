@@ -1,5 +1,10 @@
 const { describe, it, expect } = require('@jest/globals');
-import { mergeHeaders, transformRequestToSaveToFilesystem, getCollectionItemCounts } from './index';
+import {
+  generateUniqueRequestFilename,
+  getCollectionItemCounts,
+  mergeHeaders,
+  transformRequestToSaveToFilesystem
+} from './index';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
@@ -130,5 +135,46 @@ describe('getCollectionItemCounts', () => {
   it('returns zero counts for empty or missing items', () => {
     expect(getCollectionItemCounts([])).toEqual({ folderCount: 0, requestCount: 0 });
     expect(getCollectionItemCounts(undefined)).toEqual({ folderCount: 0, requestCount: 0 });
+  });
+});
+
+describe('generateUniqueRequestFilename', () => {
+  const collection = {
+    items: [
+      {
+        type: 'http-request',
+        filename: 'users.bru',
+        request: {}
+      },
+      {
+        type: 'graphql-request',
+        filename: 'users1.bru',
+        request: {}
+      },
+      {
+        uid: 'folder-1',
+        type: 'folder',
+        filename: 'nested',
+        items: [
+          {
+            type: 'http-request',
+            filename: 'users.bru',
+            request: {}
+          }
+        ]
+      }
+    ]
+  };
+
+  it('returns the original filename when it is available', () => {
+    expect(generateUniqueRequestFilename(collection, 'orders')).toBe('orders');
+  });
+
+  it('adds the next numeric suffix at the collection root', () => {
+    expect(generateUniqueRequestFilename(collection, 'users')).toBe('users2');
+  });
+
+  it('checks filename collisions only within the selected folder', () => {
+    expect(generateUniqueRequestFilename(collection, 'users', 'folder-1')).toBe('users1');
   });
 });

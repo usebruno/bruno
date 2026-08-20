@@ -1859,6 +1859,41 @@ export const isVariableSecret = (scopeInfo) => {
 };
 
 /**
+ * Generates an available request filename within a collection or folder.
+ *
+ * @param {Object} collection - The collection object
+ * @param {string} filename - The filename without its request extension
+ * @param {string|null} itemUid - The parent folder UID, or null for the collection root
+ * @returns {string} An available filename without its request extension
+ */
+export const generateUniqueRequestFilename = (collection, filename, itemUid = null) => {
+  if (!collection) {
+    return filename;
+  }
+
+  const parentItem = itemUid ? findItemInCollection(collection, itemUid) : collection;
+  if (!parentItem) {
+    return filename;
+  }
+
+  const existingFilenames = new Set(
+    (parentItem.items || [])
+      .filter((item) => isItemARequest(item))
+      .map((item) => item.filename.trim().replace(/\.(bru|yml|yaml)$/i, ''))
+  );
+
+  let candidate = filename;
+  let counter = 1;
+
+  while (existingFilenames.has(candidate)) {
+    candidate = `${filename}${counter}`;
+    counter += 1;
+  }
+
+  return candidate;
+};
+
+/**
  * Generate a unique request name by checking existing filenames in the collection and filesystem
  * @param {Object} collection - The collection object
  * @param {string} baseName - The base name (default: 'Untitled')
