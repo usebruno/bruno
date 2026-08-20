@@ -59,6 +59,10 @@ export const flattenItems = (items = []) => {
 
   const flatten = (itms, flattened) => {
     each(itms, (i) => {
+      if (!i) {
+        return;
+      }
+
       flattened.push(i);
 
       if (i.items && i.items.length) {
