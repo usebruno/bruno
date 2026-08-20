@@ -99,6 +99,11 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
 
   const isExampleLinked = formik.values.useExample && Boolean(findExample(formik.values.selectedExampleKey));
 
+  const handleFieldChange = (event) => {
+    formik.setFieldTouched(event.target.name, true, false);
+    formik.handleChange(event);
+  };
+
   return (
     <Portal>
       <Modal
@@ -130,7 +135,7 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
               autoCapitalize="off"
               spellCheck="false"
               value={formik.values.name}
-              onChange={formik.handleChange}
+              onChange={handleFieldChange}
               onBlur={formik.handleBlur}
               data-testid="mock-response-create-name-input"
             />
@@ -149,7 +154,7 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
               className="block textbox w-full mt-2"
               rows={2}
               value={formik.values.description}
-              onChange={formik.handleChange}
+              onChange={handleFieldChange}
               onBlur={formik.handleBlur}
               data-testid="mock-response-create-description-input"
             />

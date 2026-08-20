@@ -95,6 +95,39 @@ describe('CreateMockResponseModal', () => {
     expect(submitBtn()).toBeDisabled();
   });
 
+  it('shows the error while typing, without waiting for the field to lose focus', async () => {
+    renderModal();
+
+    typeName('user@list');
+
+    await waitFor(() => expect(
+      screen.getByText('Special characters aren\'t allowed in the name. Invalid character \'@\'.')
+    ).toBeInTheDocument());
+    expect(submitBtn()).toBeDisabled();
+  });
+
+  it('clears the error as soon as the name becomes valid, still without blurring', async () => {
+    renderModal();
+
+    typeName('user@list');
+    await waitFor(() => expect(screen.getByText(/Invalid character/)).toBeInTheDocument());
+
+    typeName('user list');
+
+    await waitFor(() => expect(screen.queryByText(/Invalid character/)).not.toBeInTheDocument());
+    expect(submitBtn()).toBeEnabled();
+  });
+
+  it('reports the empty name once the field has been typed in and cleared', async () => {
+    renderModal();
+
+    typeName('abc');
+    typeName('');
+
+    await waitFor(() => expect(screen.getByText('Name cannot be empty.')).toBeInTheDocument());
+    expect(submitBtn()).toBeDisabled();
+  });
+
   it('blocks Create for a name over 255 characters', async () => {
     renderModal();
 

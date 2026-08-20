@@ -33,6 +33,11 @@ const RenameMockResponseModal = ({
     }
   }, []);
 
+  const handleNameChange = (event) => {
+    formik.setFieldTouched('name', true, false);
+    formik.handleChange(event);
+  };
+
   return (
     <Portal>
       <Modal
@@ -60,7 +65,7 @@ const RenameMockResponseModal = ({
             autoCapitalize="off"
             spellCheck="false"
             value={formik.values.name}
-            onChange={formik.handleChange}
+            onChange={handleNameChange}
             onBlur={formik.handleBlur}
             data-testid="mock-response-rename-name-input"
           />
