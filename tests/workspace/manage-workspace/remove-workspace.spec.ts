@@ -20,8 +20,7 @@ test.describe('Manage Workspace — remove', () => {
 
     try {
       await createWorkspace(page, 'Removable WS');
-      // Removing the active workspace switches back to the default one and leaves the
-      // Manage Workspace section, so remove a workspace that isn't the active one.
+      // Switching to removable workspace that isn't the active one.
       await switchWorkspace(page, 'My Workspace');
 
       let workspacePath = '';
