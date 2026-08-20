@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { runCli } = require('../helpers/run-cli');
 const { createCollectionFixture } = require('../helpers/collection-fixture');
-const { startNtlmServer } = require('../../../../bruno-tests/src/ntlm/server');
+const { startNtlmServer } = require('../../../../bruno-tests/src/ntlm');
 
 const FIXTURE_COLLECTION = path.join(__dirname, 'fixtures', 'collection');
 const FIXTURE_PASSWORD = 'Br!unoNtlm';
