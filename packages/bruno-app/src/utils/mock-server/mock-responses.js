@@ -31,7 +31,7 @@ export const copyExampleToMockResponse = (example, parentRequest) => ({
   },
   response: {
     status: Number(example.response?.status) || 200,
-    statusText: example.response?.statusText || 'OK',
+    statusText: example.response?.statusText || '',
     headers: example.response?.headers || [],
     body: {
       type: example.response?.body?.type || 'json',
@@ -44,14 +44,22 @@ export const copyExampleToMockResponse = (example, parentRequest) => ({
   }
 });
 
+const getMockResponseMergeKey = (response) => {
+  const { exampleName, requestPathname } = response?.copiedFrom || {};
+
+  return exampleName && requestPathname
+    ? `example::${requestPathname}::${exampleName}`
+    : getMockResponseRouteKey(response);
+};
+
 const mergeMockResponsesByRouteKey = (existingResponses = [], nextResponses = [], { keepExistingName = false } = {}) => {
   const responses = [...existingResponses];
   const indexByRouteKey = new Map(
-    responses.map((response, index) => [getMockResponseRouteKey(response), index])
+    responses.map((response, index) => [getMockResponseMergeKey(response), index])
   );
 
   for (const nextResponse of nextResponses) {
-    const routeKey = getMockResponseRouteKey(nextResponse);
+    const routeKey = getMockResponseMergeKey(nextResponse);
     const existingIndex = indexByRouteKey.get(routeKey);
 
     if (existingIndex !== undefined) {
@@ -436,7 +444,7 @@ export const buildMockRouteTable = (responses = []) => {
           status: Number(item.response?.status) || 200,
           sourceFile: 'mock-response'
         })),
-        defaultResponse: items[0]?.name || null
+        defaultResponse: items.find((item) => !item.rules?.conditions?.length)?.name || null
       };
     })
     .sort((left, right) => (
