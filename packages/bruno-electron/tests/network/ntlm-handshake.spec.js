@@ -37,8 +37,9 @@ describe('an ntlm request against a live server', () => {
 
   test('keeps a streamed response on that single connection', async () => {
     const response = await send({ responseType: 'stream' });
-    await new Promise((resolve) => {
-      response.data.on('end', resolve);
+    await new Promise((resolve, reject) => {
+      response.data.once('end', resolve);
+      response.data.once('error', reject);
       response.data.resume();
     });
 
