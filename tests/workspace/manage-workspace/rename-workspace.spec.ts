@@ -4,6 +4,7 @@ import yaml from 'js-yaml';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { createWorkspace, waitForReadyPage } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
+import { buildTitleBarLocators } from '../../utils/page/title-bar';
 import { openManageWorkspaces, openWorkspaceActionsMenu } from '../../utils/page/workspace/manage-workspace';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
@@ -18,6 +19,7 @@ test.describe('Manage Workspace — rename', () => {
     const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
     const page = await waitForReadyPage(app);
     const { manageWorkspace } = buildCommonLocators(page);
+    const titleBar = buildTitleBarLocators(page);
 
     try {
       await createWorkspace(page, 'Rename Me WS');
@@ -62,14 +64,14 @@ test.describe('Manage Workspace — rename', () => {
       });
 
       await test.step('Verify the renamed workspace is still the active one in the title bar', async () => {
-        await expect(page.getByTestId('workspace-name')).toHaveText('Renamed WS');
+        await expect(titleBar.activeWorkspaceName()).toHaveText('Renamed WS');
       });
 
       await test.step('Verify the new name is persisted in workspace.yml', async () => {
         const config = yaml.load(
           fs.readFileSync(path.join(workspacePath, 'workspace.yml'), 'utf8')
-        ) as { info?: { name?: string } };
-        expect(config?.info?.name).toBe('Renamed WS');
+        );
+        expect(config).toMatchObject({ info: { name: 'Renamed WS' } });
       });
 
       await test.step('Verify renaming to an existing workspace name is rejected', async () => {

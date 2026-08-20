@@ -12,7 +12,7 @@ test.describe('Manage Workspace', () => {
 
     const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
     const page = await waitForReadyPage(app);
-    const { manageWorkspace } = buildCommonLocators(page);
+    const { manageWorkspace, devtools } = buildCommonLocators(page);
 
     try {
       await createWorkspace(page, 'Terminal Workspace');
@@ -36,7 +36,7 @@ test.describe('Manage Workspace', () => {
       });
 
       await test.step('Verify terminal session opens at the workspace folder', async () => {
-        const terminalSession = page.getByTestId('session-list-0');
+        const terminalSession = devtools.terminalSession(0);
         await expect(terminalSession).toBeVisible({ timeout: 5000 });
         await expect(terminalSession).toContainText(path.basename(workspacePath));
       });

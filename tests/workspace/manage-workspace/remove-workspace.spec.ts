@@ -3,6 +3,7 @@ import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { createWorkspace, switchWorkspace, waitForReadyPage } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
+import { buildTitleBarLocators } from '../../utils/page/title-bar';
 import { openManageWorkspaces, openWorkspaceActionsMenu } from '../../utils/page/workspace/manage-workspace';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
@@ -17,6 +18,7 @@ test.describe('Manage Workspace — remove', () => {
     const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
     const page = await waitForReadyPage(app);
     const { manageWorkspace } = buildCommonLocators(page);
+    const titleBar = buildTitleBarLocators(page);
 
     try {
       await createWorkspace(page, 'Removable WS');
@@ -67,7 +69,7 @@ test.describe('Manage Workspace — remove', () => {
         await openManageWorkspaces(page);
         await expect(manageWorkspace.workspaceItems()).toHaveCount(1);
         await expect(manageWorkspace.workspaceItem('Removable WS')).toHaveCount(0);
-        await expect(page.getByTestId('workspace-name')).toHaveText('My Workspace');
+        await expect(titleBar.activeWorkspaceName()).toHaveText('My Workspace');
       });
 
       await test.step('Verify the removed workspace still exists on the file system', async () => {
