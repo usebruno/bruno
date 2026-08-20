@@ -3,14 +3,8 @@ jest.mock('../../src/store/bruno-config', () => require('./helpers/app-state').b
 jest.mock('../../src/store/system-proxy', () => require('./helpers/app-state').systemProxy);
 
 const { appState, resetAppState, disableTlsVerification, trustCertificateAsCustomCa } = require('./helpers/app-state');
-const {
-  credentials,
-  buildRequest,
-  sendThroughStubTransport,
-  okResponse,
-  redirectResponse,
-  CUSTOM_CA_PATH
-} = require('./helpers/ntlm-request');
+const { credentials, buildRequest } = require('./helpers/ntlm-request');
+const { sendThroughStubTransport, okResponse, redirectResponse, CUSTOM_CA_PATH } = require('./helpers/stub-transport');
 
 beforeEach(resetAppState);
 
