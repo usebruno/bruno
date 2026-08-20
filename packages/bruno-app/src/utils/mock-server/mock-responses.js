@@ -316,11 +316,18 @@ export const MOCK_RESPONSE_NAME_MAX_LENGTH = 255;
 
 export const MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH = 1000;
 
+const disallowedMockResponseNameCharacter = /[^\p{L}\p{N} _.-]/u;
+
 export const getMockResponseNameError = (name) => {
   const value = name == null ? '' : String(name).trim();
 
   if (!validateName(value)) {
     return validateNameError(value);
+  }
+
+  const disallowed = value.match(disallowedMockResponseNameCharacter);
+  if (disallowed) {
+    return `Special characters aren't allowed in the name. Invalid character '${disallowed[0]}'.`;
   }
 
   return null;

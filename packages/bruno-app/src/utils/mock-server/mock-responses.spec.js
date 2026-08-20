@@ -149,10 +149,33 @@ describe('resolveMockResponseEditorCollection', () => {
 
     it('accepts names within bounds', () => {
       expect(getMockResponseNameError('Order 200')).toBeNull();
-      expect(getMockResponseNameError('#$$@##$#@')).toBeNull();
       expect(getMockResponseNameError('a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH))).toBeNull();
       // trailing spaces are ignored — they get trimmed on save
       expect(getMockResponseNameError('Order 200   ')).toBeNull();
+    });
+
+    it('rejects special characters that the shared filesystem rules would allow', () => {
+      expect(getMockResponseNameError('#$$@##$#@'))
+        .toBe('Special characters aren\'t allowed in the name. Invalid character \'#\'.');
+      expect(getMockResponseNameError('user@list'))
+        .toBe('Special characters aren\'t allowed in the name. Invalid character \'@\'.');
+      expect(getMockResponseNameError('50% off'))
+        .toBe('Special characters aren\'t allowed in the name. Invalid character \'%\'.');
+      expect(getMockResponseNameError('users!'))
+        .toBe('Special characters aren\'t allowed in the name. Invalid character \'!\'.');
+    });
+
+    it('allows letters, digits, spaces, hyphens, underscores and inner dots', () => {
+      expect(getMockResponseNameError('user_list-2 v1.2')).toBeNull();
+      expect(getMockResponseNameError('404')).toBeNull();
+      expect(getMockResponseNameError('12345')).toBeNull();
+      expect(getMockResponseNameError('Get user list')).toBeNull();
+    });
+
+    it('keeps accepting non-ascii letters', () => {
+      expect(getMockResponseNameError('ユーザー')).toBeNull();
+      expect(getMockResponseNameError('réponse')).toBeNull();
+      expect(getMockResponseNameError('用户列表')).toBeNull();
     });
 
     it('measures the trimmed length, not the raw length', () => {
@@ -248,11 +271,16 @@ describe('resolveMockResponseEditorCollection', () => {
         .toBe('Special characters aren\'t allowed in the name. Invalid character \'/\'.');
     });
 
-    it('accepts valid names, including ones the shared rules allow', () => {
+    it('accepts valid names', () => {
       expect(nameError('Order 200')).toBeNull();
       expect(nameError('404')).toBeNull();
-      expect(nameError('#$$@##$#@')).toBeNull();
+      expect(nameError('user_list-2 v1.2')).toBeNull();
       expect(nameError('a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH))).toBeNull();
+    });
+
+    it('rejects disallowed special characters through the schema', () => {
+      expect(nameError('#$$@##$#@'))
+        .toBe('Special characters aren\'t allowed in the name. Invalid character \'#\'.');
     });
 
     it('rejects a name already used by a sibling response', () => {
