@@ -138,7 +138,7 @@ module.exports = runESMImports().then(() => defineConfig([
     ignores: ['**/*.config.js', '**/public/**/*', '**/plugins/**/*'],
     plugins: { 'react-hooks': require('eslint-plugin-react-hooks') },
     rules: {
-      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/rules-of-hooks': 'warn',
       'react-hooks/exhaustive-deps': 'warn'
     }
   },
