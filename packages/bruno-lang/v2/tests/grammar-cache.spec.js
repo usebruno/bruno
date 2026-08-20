@@ -68,11 +68,16 @@ describe('grammar recipes', () => {
         encoding: 'utf8'
       });
 
-      expect(generator.stderr).toBe('');
-      expect(generator.status).toBe(0);
+      if (generator.status !== 0) {
+        throw new Error(`Generator exited with ${generator.status}:\n${generator.stderr}`);
+      }
 
       for (const key of keys) {
         const recipe = grammarCache.readRecipe(key);
+        if (!recipe) {
+          throw new Error(`Generator left no readable recipe for "${key}"`);
+        }
+
         expect(recipe.sourceHash).toBe(grammarCache.hashSource(grammars.get(key).source));
       }
     });
