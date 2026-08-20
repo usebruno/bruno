@@ -1,5 +1,5 @@
 import { test, expect } from '../../../../playwright';
-import { openCollection, selectEnvironment, openRequest, openEnvironmentConfigTab } from '../../../utils/page';
+import { openCollection, selectEnvironment, openRequest, openEnvironmentConfigTab, setSandboxMode } from '../../../utils/page';
 import { openVariablesTab, readVariableValue } from '../../../utils/page/variables-tab';
 import { buildCommonLocators } from '../../../utils/page/locators';
 
@@ -9,6 +9,7 @@ test.describe('req.onFail', () => {
 
     await test.step('Verify both environments start at their original values', async () => {
       await openCollection(page, 'onfail-collection');
+      await setSandboxMode(page, 'onfail-collection', 'developer');
       await selectEnvironment(page, 'Test');
       await selectEnvironment(page, 'Global', 'global');
 
