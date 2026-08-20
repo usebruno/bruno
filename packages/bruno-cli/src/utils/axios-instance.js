@@ -135,8 +135,7 @@ function makeAxiosInstance({
   instance.interceptors.response.use(
     (response) => {
       const end = Date.now();
-      const start = response.config?.metadata?.startTime
-        ?? response.config.headers['request-start-time'];
+      const start = response.config.metadata.startTime;
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
       response.sentHeaders = getSentHeaders(response.request);
@@ -147,8 +146,7 @@ function makeAxiosInstance({
       error.sentHeaders = getSentHeaders(error.response?.request || error.request);
       if (error.response) {
         const end = Date.now();
-        const start = error.config?.metadata?.startTime
-          ?? error.config.headers['request-start-time'];
+        const start = error.config.metadata.startTime;
         error.response.headers['request-duration'] = end - start;
         error.response.sentHeaders = error.sentHeaders;
 

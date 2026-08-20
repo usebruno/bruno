@@ -104,7 +104,7 @@ test('hides defaults and shows a flat editable request headers table', async ({ 
     await headers.toggleDefaults().click();
     await expect(headers.defaultSectionRow()).toBeVisible();
     await expect(headers.requestSectionRow()).toBeVisible();
-    await expect(headers.toggleDefaults()).toHaveText('Hide Defaults');
+    await expect(headers.toggleDefaults()).toHaveText('Hide Inherited Headers');
 
     await headers.toggleDefaults().click();
     await expect(headers.defaultSectionRow()).not.toBeVisible();

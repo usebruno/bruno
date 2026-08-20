@@ -146,7 +146,7 @@ export const fillRequestHeaderValue = async (page: Page, row: Locator, value: st
 export const showDefaultHeaders = async (page: Page) => {
   const headers = buildRequestLocators(page).headers;
   await headers.toggleDefaults().click();
-  await expect(headers.toggleDefaults()).toHaveText('Hide Defaults');
+  await expect(headers.toggleDefaults()).toHaveText('Hide Inherited Headers');
   return headers;
 };
 
