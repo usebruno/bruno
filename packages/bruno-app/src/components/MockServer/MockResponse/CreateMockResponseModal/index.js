@@ -121,6 +121,10 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
             onClose();
           }
         }}
+        disableEscapeKey={formik.isSubmitting}
+        disableCloseOnOutsideClick={formik.isSubmitting}
+        hideClose={formik.isSubmitting}
+        hideCancel={formik.isSubmitting}
         dataTestId="create-mock-response-modal"
       >
         <form className="bruno-form" onSubmit={(event) => event.preventDefault()}>

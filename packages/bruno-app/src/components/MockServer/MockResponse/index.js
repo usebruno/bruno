@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
@@ -215,7 +215,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     }
   }, [isVerticalLayout, screenWidth, leftSidebarWidth]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!item || !editor) {
       return;
     }
@@ -261,7 +261,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [item, editor, responseUid, responses, location, dispatch]);
 
   const handleCancel = () => {
     dispatch(cancelMockResponseEditorEdit({ responseUid }));
@@ -295,7 +295,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [editMode, item, editor]);
+  }, [editMode, item, handleSave]);
 
   const handleStartServer = async () => {
     try {
