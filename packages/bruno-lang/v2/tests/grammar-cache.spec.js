@@ -43,12 +43,14 @@ describe('grammar recipes', () => {
     expect(fromRecipe.toRecipe()).toEqual(ohm.grammar(source).toRecipe());
   });
 
-  it('ships the recipes with the package', () => {
+  it('ships the recipes with the package even though they are not committed', () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8'));
 
-    // The recipes live under v2/, so that entry is what puts them in the published tarball.
-    expect(manifest.files).toContain('v2');
-    expect(path.relative(path.join(__dirname, '..'), grammarCache.GENERATED_DIR)).toBe(path.join('src', 'generated'));
+    // The recipes are build output, so `files` is the only thing putting them in the tarball, and
+    // `prepare` is the only thing creating them for a fresh install.
+    expect(manifest.files).toContain('generated');
+    expect(manifest.scripts.prepare).toContain('generate:grammars');
+    expect(path.relative(path.join(__dirname, '../..'), grammarCache.GENERATED_DIR)).toBe('generated');
   });
 
   describe('falling back to compiling from source', () => {
