@@ -27,7 +27,7 @@ describe.each([
   ['tls verification turned off', disableTlsVerification],
   ['the server certificate trusted as a custom CA', trustViaCustomCa]
 ])('a self-signed https endpoint with %s', (_label, trustTheServer) => {
-  test('completes the tls handshake for a request without ntlm', async () => {
+  test('reaches the server and is challenged when the request has no ntlm auth', async () => {
     trustTheServer();
 
     await expect(send({ ntlmConfig: null })).rejects.toMatchObject({
