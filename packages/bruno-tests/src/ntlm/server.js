@@ -66,31 +66,31 @@ const handleRequest = ({ password, legs }) => async (req, res) => {
   }
 };
 
-const createTlsListener = ({ requireClientCert, handler }) => {
+const createCertificates = (requireClientCert) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-ntlm-tls-'));
-  const server = generateSelfSignedCert(dir, 'server', 'localhost');
-  const client = requireClientCert ? generateSelfSignedCert(dir, 'client', CLIENT_CERT_NAME) : null;
 
-  const listener = https.createServer(
-    {
-      key: fs.readFileSync(server.keyPath),
-      cert: fs.readFileSync(server.certPath),
-      ...(client ? { requestCert: true, rejectUnauthorized: true, ca: [fs.readFileSync(client.certPath)] } : {})
-    },
-    handler
-  );
-
-  return { listener, certificates: { dir, server, client } };
+  return {
+    dir,
+    server: generateSelfSignedCert(dir, 'server', 'localhost'),
+    client: requireClientCert ? generateSelfSignedCert(dir, 'client', CLIENT_CERT_NAME) : null
+  };
 };
+
+const tlsOptionsFor = ({ server, client }) => ({
+  key: fs.readFileSync(server.keyPath),
+  cert: fs.readFileSync(server.certPath),
+  ...(client ? { requestCert: true, rejectUnauthorized: true, ca: [fs.readFileSync(client.certPath)] } : {})
+});
 
 const startNtlmServer = async ({ tls = false, password = 'pass', requireClientCert = false } = {}) => {
   const legs = [];
   const sockets = [];
   const handler = handleRequest({ password, legs });
 
-  const { listener, certificates } = tls
-    ? createTlsListener({ requireClientCert, handler })
-    : { listener: http.createServer(handler), certificates: null };
+  const certificates = tls ? createCertificates(requireClientCert) : null;
+  const listener = certificates
+    ? https.createServer(tlsOptionsFor(certificates), handler)
+    : http.createServer(handler);
 
   let socketId = 0;
   listener.on('connection', (socket) => {
