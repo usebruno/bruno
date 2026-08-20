@@ -23,6 +23,7 @@ test.describe('Manage Workspace', () => {
         await openManageWorkspaces(page);
         await expect(manageWorkspace.title()).toHaveText('Manage Workspace');
         workspacePath = (await manageWorkspace.workspacePath('Terminal Workspace').innerText()).trim();
+        expect(workspacePath).not.toBe('');
       });
 
       await test.step('Verify default workspace has no actions menu', async () => {
