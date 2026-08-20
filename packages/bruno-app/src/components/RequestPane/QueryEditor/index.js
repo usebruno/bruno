@@ -6,6 +6,7 @@
  */
 
 import React, { createRef } from 'react';
+import classnames from 'classnames';
 import isEqual from 'lodash/isEqual';
 import MD from 'markdown-it';
 import { format } from 'prettier/standalone';
@@ -260,7 +261,9 @@ export default class QueryEditor extends React.Component {
   render() {
     return (
       <StyledWrapper
-        className={`h-full w-full flex flex-col relative graphiql-container ${this.state.searchBarVisible ? 'search-bar-visible' : ''}`}
+        className={classnames('h-full w-full flex flex-col relative graphiql-container', {
+          'search-bar-visible': this.state.searchBarVisible
+        })}
         aria-label="Query Editor"
         font={this.props.font}
         fontSize={this.props.fontSize}
