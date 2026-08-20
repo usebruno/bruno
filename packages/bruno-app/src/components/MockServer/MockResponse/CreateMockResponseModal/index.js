@@ -7,7 +7,7 @@ import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-c
 import {
   collectCollectionExamples,
   buildMockResponseNameSchema,
-  buildMockResponseDescriptionSchema
+  mockResponseDescriptionSchema
 } from 'utils/mock-server/mock-responses';
 
 const BODY_TYPES = [
@@ -40,13 +40,14 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
     },
     validationSchema: Yup.object({
       name: buildMockResponseNameSchema({ existingResponses }),
-      description: buildMockResponseDescriptionSchema(),
+      description: mockResponseDescriptionSchema,
       selectedExampleKey: Yup.string().when('useExample', {
         is: true,
         then: (schema) => schema.required('Select a collection example')
       })
     }),
-    onSubmit: async (values, { setFieldError, setSubmitting }) => {
+    onSubmit: async (values, { setStatus }) => {
+      setStatus(null);
       try {
         await onCreate({
           name: values.name.trim(),
@@ -57,8 +58,7 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
         });
         onClose();
       } catch (err) {
-        setFieldError('name', err.message || 'Failed to create mock response');
-        setSubmitting(false);
+        setStatus(err.message || 'Failed to create mock response');
       }
     }
   });
@@ -78,6 +78,7 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
       return;
     }
 
+    formik.setTouched({ ...formik.touched, name: true }, false);
     formik.setValues({
       ...formik.values,
       selectedExampleKey: key,
@@ -93,16 +94,19 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
     formik.setValues({
       ...formik.values,
       useExample: checked,
-      selectedExampleKey: checked ? formik.values.selectedExampleKey : ''
+      selectedExampleKey: ''
     });
   };
 
   const isExampleLinked = formik.values.useExample && Boolean(findExample(formik.values.selectedExampleKey));
 
   const handleFieldChange = (event) => {
+    formik.setStatus(null);
     formik.setFieldTouched(event.target.name, true, false);
     formik.handleChange(event);
   };
+
+  const nameError = (formik.touched.name && formik.errors.name) || formik.status || null;
 
   return (
     <Portal>
@@ -110,7 +114,7 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
         size="md"
         title="Create Mock Response"
         confirmText={formik.isSubmitting ? 'Creating...' : 'Create'}
-        confirmDisabled={formik.isSubmitting || !formik.isValid}
+        confirmDisabled={formik.isSubmitting || !formik.isValid || !formik.values.name.trim()}
         handleConfirm={() => formik.handleSubmit()}
         handleCancel={() => {
           if (!formik.isSubmitting) {
@@ -139,8 +143,8 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
               onBlur={formik.handleBlur}
               data-testid="mock-response-create-name-input"
             />
-            {formik.touched.name && formik.errors.name ? (
-              <div className="text-red-500 mt-1">{formik.errors.name}</div>
+            {nameError ? (
+              <div className="text-red-500 mt-1">{nameError}</div>
             ) : null}
           </div>
 

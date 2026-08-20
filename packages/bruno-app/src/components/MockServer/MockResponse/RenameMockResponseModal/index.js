@@ -15,7 +15,6 @@ const RenameMockResponseModal = ({
   const inputRef = useRef();
 
   const formik = useFormik({
-    enableReinitialize: true,
     validateOnMount: true,
     initialValues: {
       name: response?.name || ''
@@ -47,7 +46,7 @@ const RenameMockResponseModal = ({
         cancelText="Cancel"
         handleConfirm={() => formik.handleSubmit()}
         handleCancel={onClose}
-        confirmDisabled={isSaving || formik.isSubmitting || !formik.isValid}
+        confirmDisabled={isSaving || !formik.isValid || !formik.values.name.trim()}
         dataTestId="rename-mock-response-modal"
       >
         <form className="bruno-form" onSubmit={(event) => event.preventDefault()}>

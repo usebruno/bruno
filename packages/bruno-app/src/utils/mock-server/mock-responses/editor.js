@@ -82,8 +82,8 @@ export const mockResponseFromEditorItem = (item, responseUid, rules, savedMockRe
 
   return {
     uid: responseUid,
-    name: (example.name || '').trim(),
-    description: (example.description || '').trim(),
+    name: example.name || '',
+    description: example.description || '',
     request: {
       ...cloneDeep(example.request),
       url: extractMockResponseRoutePath(example.request?.url)

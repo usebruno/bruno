@@ -12,8 +12,7 @@ import get from 'lodash/get';
 import Button from 'ui/Button';
 import {
   getMockResponseDescriptionError,
-  getMockResponseNameInputError,
-  isMockResponseNameTaken
+  getMockResponseNameValidationError
 } from 'utils/mock-server/mock-responses';
 
 const MockResponseTopBar = ({
@@ -26,7 +25,8 @@ const MockResponseTopBar = ({
   onCancel,
   onDelete,
   copiedFrom,
-  existingResponses = []
+  existingResponses = [],
+  responseUid
 }) => {
   const dispatch = useDispatch();
 
@@ -58,11 +58,10 @@ const MockResponseTopBar = ({
     return null;
   }
 
-  const trimmedName = (example.name || '').trim();
-  const nameError = getMockResponseNameInputError(example.name)
-    || (trimmedName && isMockResponseNameTaken(existingResponses, trimmedName, exampleUid)
-      ? 'A mock response with this name already exists'
-      : null);
+  const nameError = getMockResponseNameValidationError(example.name, {
+    existingResponses,
+    excludeUid: responseUid
+  });
   const descriptionError = getMockResponseDescriptionError(example.description);
 
   if (editMode) {
@@ -121,7 +120,7 @@ const MockResponseTopBar = ({
                 size="sm"
                 icon={<IconDeviceFloppy size={16} />}
                 onClick={onSave}
-                disabled={!trimmedName || Boolean(nameError || descriptionError)}
+                disabled={Boolean(nameError || descriptionError)}
                 data-testid="mock-response-save-btn"
               >
                 Save

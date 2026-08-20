@@ -316,6 +316,8 @@ export const MOCK_RESPONSE_NAME_MAX_LENGTH = 255;
 
 export const MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH = 1000;
 
+export const MOCK_RESPONSE_DUPLICATE_NAME_ERROR = 'A mock response with this name already exists';
+
 const disallowedMockResponseNameCharacter = /[^\p{L}\p{N} _.-]/u;
 
 export const getMockResponseNameError = (name) => {
@@ -331,16 +333,6 @@ export const getMockResponseNameError = (name) => {
   }
 
   return null;
-};
-
-export const getMockResponseNameInputError = (name) => {
-  const value = name == null ? '' : String(name).trim();
-
-  if (!value) {
-    return null;
-  }
-
-  return getMockResponseNameError(value);
 };
 
 export const getMockResponseDescriptionError = (description) => {
@@ -364,24 +356,37 @@ export const isMockResponseNameTaken = (responses = [], name, excludeUid = null)
   ));
 };
 
-export const buildMockResponseNameSchema = ({ existingResponses = [], excludeUid = null } = {}) => (
-  Yup.string()
-    .test('is-valid-name', function (value) {
-      const error = getMockResponseNameError(value);
-      return error ? this.createError({ message: error }) : true;
-    })
-    .test('duplicate-name', 'A mock response with this name already exists', (value) => (
-      !isMockResponseNameTaken(existingResponses, value, excludeUid)
-    ))
+export const getMockResponseNameValidationError = (name, {
+  existingResponses = [],
+  excludeUid = null
+} = {}) => {
+  const value = name == null ? '' : String(name).trim();
+
+  if (!value) {
+    return validateNameError(value);
+  }
+
+  const formatError = getMockResponseNameError(value);
+  if (formatError) {
+    return formatError;
+  }
+
+  return isMockResponseNameTaken(existingResponses, value, excludeUid)
+    ? MOCK_RESPONSE_DUPLICATE_NAME_ERROR
+    : null;
+};
+
+export const buildMockResponseNameSchema = (options = {}) => (
+  Yup.string().test('mock-response-name', function (value) {
+    const error = getMockResponseNameValidationError(value, options);
+    return error ? this.createError({ message: error }) : true;
+  })
 );
 
-export const buildMockResponseDescriptionSchema = () => (
-  Yup.string()
-    .test('max-length', function (value) {
-      const error = getMockResponseDescriptionError(value);
-      return error ? this.createError({ message: error }) : true;
-    })
-);
+export const mockResponseDescriptionSchema = Yup.string().test('mock-response-description', function (value) {
+  const error = getMockResponseDescriptionError(value);
+  return error ? this.createError({ message: error }) : true;
+});
 
 export const cloneMockResponseRecord = (response, { name } = {}) => {
   const cloned = JSON.parse(JSON.stringify(response));
