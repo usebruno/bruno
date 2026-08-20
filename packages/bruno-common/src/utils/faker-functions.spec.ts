@@ -21,7 +21,7 @@ describe('mockDataFunctions Regex Validation', () => {
   test('all values should match their expected patterns', () => {
     const patterns: Record<string, RegExp> = {
       guid: /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/,
-      randomUUID: /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/,
+      randomUUID: /^[\da-f]{8}-[\da-f]{4}-7[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/,
       randomNanoId: /^[\w-]{21,}$/,
       randomAlphaNumeric: /^[\w]$/,
       randomBoolean: /^(true|false)$/,
