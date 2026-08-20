@@ -134,6 +134,15 @@ module.exports = runESMImports().then(() => defineConfig([
     }
   },
   {
+    files: ['packages/bruno-app/**/*.{js,jsx,ts}'],
+    ignores: ['**/*.config.js', '**/public/**/*', '**/plugins/**/*'],
+    plugins: { 'react-hooks': require('eslint-plugin-react-hooks') },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn'
+    }
+  },
+  {
     // It prevents lint errors when using CommonJS exports (module.exports) in Jest mocks.
     files: ['packages/bruno-app/src/test-utils/mocks/codemirror.js'],
     languageOptions: {
