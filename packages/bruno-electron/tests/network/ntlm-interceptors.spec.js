@@ -3,38 +3,46 @@ jest.mock('../../src/store/bruno-config', () => require('./helpers/app-state').b
 jest.mock('../../src/store/system-proxy', () => require('./helpers/app-state').systemProxy);
 
 const { appState, resetAppState, disableTlsVerification, trustCertificateAsCustomCa } = require('./helpers/app-state');
-const { credentials, buildRequest } = require('./helpers/ntlm-request');
-const { sendThroughStubTransport, okResponse, redirectResponse, CUSTOM_CA_PATH } = require('./helpers/stub-transport');
+const { credentials, buildRequest, CUSTOM_CA_PATH } = require('./helpers/ntlm-request');
+const { sendThroughStubAdapter, negotiateThroughStubAdapter } = require('./helpers/stub-adapter');
+const replies = require('./helpers/stub-responses');
 
 beforeEach(resetAppState);
 
-describe.each([
-  ['without ntlm auth', null],
-  ['with ntlm auth', credentials]
-])('a request %s', (_label, ntlmConfig) => {
-  const withAuth = (request) => (ntlmConfig ? { ...request, ntlmConfig: { ...ntlmConfig } } : request);
+describe('a request negotiating ntlm through the adapter the fix installs', () => {
+  const send = ({ responses, ...overrides }) =>
+    negotiateThroughStubAdapter({
+      request: buildRequest({ ...overrides, ntlmConfig: credentials }),
+      responses: [replies.bareChallenge, replies.type2Challenge(), ...responses]
+    });
+
+  test('negotiates every leg over one agent', async () => {
+    const { response, calls, legTypesAsSent } = await send({ responses: [replies.ok] });
+
+    expect(legTypesAsSent).toEqual([null, 1, 3]);
+    expect(calls.every((call) => call.httpsAgent === calls[0].httpsAgent)).toBe(true);
+    expect(response.status).toBe(200);
+  });
 
   test('skips certificate verification when the user turned it off', async () => {
     disableTlsVerification();
 
-    const { calls } = await sendThroughStubTransport({ request: withAuth(buildRequest()), responses: [okResponse] });
+    const { calls } = await send({ responses: [replies.ok] });
 
-    expect(calls[0].httpsAgent.options.rejectUnauthorized).toBe(false);
+    expect(calls.every((call) => call.httpsAgent.options.rejectUnauthorized === false)).toBe(true);
   });
 
   test('follows a 302 to its target', async () => {
-    const { response, calls } = await sendThroughStubTransport({
-      request: withAuth(buildRequest()),
-      responses: [redirectResponse('https://ntlm.example.com/landing'), okResponse]
+    const { response, calls } = await send({
+      responses: [replies.redirectTo('https://ntlm.example.com/landing'), replies.ok]
     });
 
-    expect(calls).toHaveLength(2);
-    expect(calls[1].url).toBe('https://ntlm.example.com/landing');
+    expect(calls.at(-1).url).toBe('https://ntlm.example.com/landing');
     expect(response.status).toBe(200);
   });
 
   test('attaches a timeline to the response', async () => {
-    const { response } = await sendThroughStubTransport({ request: withAuth(buildRequest()), responses: [okResponse] });
+    const { response } = await send({ responses: [replies.ok] });
 
     const rows = response.timeline.map((entry) => entry.type).filter((type) => type !== 'info' && type !== 'separator');
 
@@ -42,18 +50,19 @@ describe.each([
   });
 
   test('reports how long the response took', async () => {
-    const { response } = await sendThroughStubTransport({ request: withAuth(buildRequest()), responses: [okResponse] });
+    const { response } = await send({ responses: [replies.ok] });
 
     expect(response.headers['request-duration']).toEqual(expect.any(Number));
   });
 
-  test('drops a header removed by req.deleteHeader()', async () => {
-    const { calls } = await sendThroughStubTransport({
-      request: withAuth(buildRequest({ headers: { 'X-Remove-Me': 'leak' }, __headersToDelete: ['X-Remove-Me'] })),
-      responses: [okResponse]
+  test('drops a header removed by req.deleteHeader() from every leg', async () => {
+    const { calls } = await send({
+      headers: { 'X-Remove-Me': 'leak' },
+      __headersToDelete: ['X-Remove-Me'],
+      responses: [replies.ok]
     });
 
-    expect(calls[0].headers['X-Remove-Me']).toBeNull();
+    expect(calls.every((call) => call.headers['X-Remove-Me'] === null)).toBe(true);
   });
 });
 
@@ -62,7 +71,7 @@ describe('a collection using a custom CA certificate', () => {
     trustCertificateAsCustomCa(CUSTOM_CA_PATH);
     appState.shouldKeepDefaultCaCertificates = false;
 
-    const { calls } = await sendThroughStubTransport({ request, responses: [okResponse] });
+    const { calls } = await sendThroughStubAdapter({ request, responses: [replies.ok] });
     return calls[0].httpsAgent.options;
   };
 

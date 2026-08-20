@@ -4,6 +4,7 @@ const { configureRequest } = require('../../../src/ipc/network/index');
 const { startNtlmServer } = require('../../../../bruno-tests/src/ntlm');
 
 const FIXTURES_PATH = path.join(__dirname, '..', 'fixtures');
+const CUSTOM_CA_PATH = path.join(FIXTURES_PATH, 'ntlm-custom-ca.crt');
 
 const credentials = { username: 'user', password: 'pass', domain: 'CORP', workstation: 'WS1' };
 
@@ -28,4 +29,4 @@ const sendRequest = async ({ ntlmConfig = credentials, ...options } = {}) => {
   return axiosInstance(request);
 };
 
-module.exports = { credentials, startNtlmEndpoint, buildRequest, configureFor, sendRequest, FIXTURES_PATH };
+module.exports = { credentials, startNtlmEndpoint, buildRequest, configureFor, sendRequest, CUSTOM_CA_PATH };
