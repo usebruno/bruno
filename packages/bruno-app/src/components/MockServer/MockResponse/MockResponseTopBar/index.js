@@ -10,7 +10,11 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import get from 'lodash/get';
 import Button from 'ui/Button';
-import { getMockResponseDescriptionError, getMockResponseNameInputError } from 'utils/mock-server/mock-responses';
+import {
+  getMockResponseDescriptionError,
+  getMockResponseNameInputError,
+  isMockResponseNameTaken
+} from 'utils/mock-server/mock-responses';
 
 const MockResponseTopBar = ({
   item,
@@ -21,7 +25,8 @@ const MockResponseTopBar = ({
   onSave,
   onCancel,
   onDelete,
-  copiedFrom
+  copiedFrom,
+  existingResponses = []
 }) => {
   const dispatch = useDispatch();
 
@@ -53,7 +58,11 @@ const MockResponseTopBar = ({
     return null;
   }
 
-  const nameError = getMockResponseNameInputError(example.name);
+  const trimmedName = (example.name || '').trim();
+  const nameError = getMockResponseNameInputError(example.name)
+    || (trimmedName && isMockResponseNameTaken(existingResponses, trimmedName, exampleUid)
+      ? 'A mock response with this name already exists'
+      : null);
   const descriptionError = getMockResponseDescriptionError(example.description);
 
   if (editMode) {
@@ -112,7 +121,7 @@ const MockResponseTopBar = ({
                 size="sm"
                 icon={<IconDeviceFloppy size={16} />}
                 onClick={onSave}
-                disabled={Boolean(nameError || descriptionError)}
+                disabled={!trimmedName || Boolean(nameError || descriptionError)}
                 data-testid="mock-response-save-btn"
               >
                 Save

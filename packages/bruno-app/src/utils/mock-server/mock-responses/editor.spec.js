@@ -59,6 +59,26 @@ describe('mock response editor utils', () => {
     expect(mockResponse.copiedFrom.exampleName).toBe('Users');
   });
 
+  it('trims surrounding whitespace off the name and description before saving', () => {
+    const item = buildMockResponseEditorItem(sampleMockResponse);
+    item.draft.examples[0].name = '   Padded name   ';
+    item.draft.examples[0].description = '  Padded description  ';
+
+    const mockResponse = mockResponseFromEditorItem(item, 'response-1', sampleMockResponse.rules, sampleMockResponse);
+
+    expect(mockResponse.name).toBe('Padded name');
+    expect(mockResponse.description).toBe('Padded description');
+  });
+
+  it('keeps whitespace inside the name', () => {
+    const item = buildMockResponseEditorItem(sampleMockResponse);
+    item.draft.examples[0].name = 'Get  user  list';
+
+    const mockResponse = mockResponseFromEditorItem(item, 'response-1', sampleMockResponse.rules, sampleMockResponse);
+
+    expect(mockResponse.name).toBe('Get  user  list');
+  });
+
   it('drops the rules table row ids so they never reach the saved mock response', () => {
     const item = buildMockResponseEditorItem(sampleMockResponse);
 

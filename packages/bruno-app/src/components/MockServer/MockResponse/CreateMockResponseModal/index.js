@@ -1,13 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
 import {
   collectCollectionExamples,
-  getMockResponseNameError,
-  getMockResponseNameInputError,
-  getMockResponseDescriptionError,
-  isMockResponseNameTaken
+  buildMockResponseNameSchema,
+  buildMockResponseDescriptionSchema
 } from 'utils/mock-server/mock-responses';
 
 const BODY_TYPES = [
@@ -19,41 +19,49 @@ const BODY_TYPES = [
 
 const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate, onClose }) => {
   const nameInputRef = useRef();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [statusCode, setStatusCode] = useState(200);
-  const [bodyType, setBodyType] = useState('json');
-  const [submitError, setSubmitError] = useState('');
-  const [exampleError, setExampleError] = useState('');
-  const [useExample, setUseExample] = useState(false);
-  const [selectedExampleKey, setSelectedExampleKey] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
 
   const examples = useMemo(() => (
     collection ? collectCollectionExamples(collection) : []
   ), [collection]);
 
-  const selectedExample = useMemo(() => {
-    if (!selectedExampleKey) {
-      return null;
+  const findExample = (key) => (
+    examples.find(({ item, example }) => `${item.uid}:${example.uid}` === key) || null
+  );
+
+  const formik = useFormik({
+    validateOnMount: true,
+    initialValues: {
+      name: '',
+      description: '',
+      statusCode: 200,
+      bodyType: 'json',
+      useExample: false,
+      selectedExampleKey: ''
+    },
+    validationSchema: Yup.object({
+      name: buildMockResponseNameSchema({ existingResponses }),
+      description: buildMockResponseDescriptionSchema(),
+      selectedExampleKey: Yup.string().when('useExample', {
+        is: true,
+        then: (schema) => schema.required('Select a collection example')
+      })
+    }),
+    onSubmit: async (values, { setFieldError, setSubmitting }) => {
+      try {
+        await onCreate({
+          name: values.name.trim(),
+          description: values.description.trim(),
+          statusCode: Number(values.statusCode) || 200,
+          bodyType: values.bodyType,
+          exampleSelection: values.useExample ? findExample(values.selectedExampleKey) : null
+        });
+        onClose();
+      } catch (err) {
+        setFieldError('name', err.message || 'Failed to create mock response');
+        setSubmitting(false);
+      }
     }
-
-    return examples.find(({ item, example }) => `${item.uid}:${example.uid}` === selectedExampleKey) || null;
-  }, [examples, selectedExampleKey]);
-
-  // A picked example owns the response shape, so its values drive the (disabled) fields
-  const linkedExample = useExample ? selectedExample : null;
-  const nameValue = name || linkedExample?.example?.name || '';
-  const trimmedName = nameValue.trim();
-  const statusValue = Number(linkedExample?.example?.response?.status) || statusCode;
-  const bodyTypeValue = linkedExample?.example?.response?.body?.type || bodyType;
-  const descriptionError = getMockResponseDescriptionError(description);
-
-  const inputNameError = getMockResponseNameInputError(nameValue)
-    || (trimmedName && isMockResponseNameTaken(existingResponses, trimmedName)
-      ? 'A mock response with this name already exists'
-      : null);
-  const nameError = inputNameError || submitError;
+  });
 
   useEffect(() => {
     if (nameInputRef.current) {
@@ -61,52 +69,46 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
     }
   }, []);
 
-  const handleConfirm = async () => {
-    const validationError = getMockResponseNameError(trimmedName);
-    if (validationError) {
-      setSubmitError(validationError);
+  const handleExampleChange = (event) => {
+    const key = event.target.value;
+    const selected = findExample(key);
+
+    if (!selected) {
+      formik.setFieldValue('selectedExampleKey', key);
       return;
     }
 
-    if (isMockResponseNameTaken(existingResponses, trimmedName)) {
-      setSubmitError('A mock response with this name already exists');
-      return;
-    }
-
-    if (descriptionError) {
-      return;
-    }
-
-    if (useExample && !selectedExample) {
-      setExampleError('Select a collection example');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      await onCreate({
-        name: trimmedName,
-        description: description.trim(),
-        statusCode: Number(statusValue) || 200,
-        bodyType: bodyTypeValue,
-        exampleSelection: linkedExample
-      });
-      onClose();
-    } catch {
-      setIsSaving(false);
-    }
+    formik.setValues({
+      ...formik.values,
+      selectedExampleKey: key,
+      name: selected.example.name || '',
+      statusCode: Number(selected.example.response?.status) || 200,
+      bodyType: selected.example.response?.body?.type || 'json'
+    });
   };
+
+  const handleUseExampleChange = (event) => {
+    const { checked } = event.target;
+
+    formik.setValues({
+      ...formik.values,
+      useExample: checked,
+      selectedExampleKey: checked ? formik.values.selectedExampleKey : ''
+    });
+  };
+
+  const isExampleLinked = formik.values.useExample && Boolean(findExample(formik.values.selectedExampleKey));
 
   return (
     <Portal>
       <Modal
         size="md"
         title="Create Mock Response"
-        confirmText={isSaving ? 'Creating...' : 'Create'}
-        confirmDisabled={isSaving || !trimmedName || Boolean(inputNameError) || Boolean(descriptionError)}
-        handleConfirm={handleConfirm}
+        confirmText={formik.isSubmitting ? 'Creating...' : 'Create'}
+        confirmDisabled={formik.isSubmitting || !formik.isValid}
+        handleConfirm={() => formik.handleSubmit()}
         handleCancel={() => {
-          if (!isSaving) {
+          if (!formik.isSubmitting) {
             onClose();
           }
         }}
@@ -119,6 +121,7 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
             </label>
             <input
               id="mock-response-create-name"
+              name="name"
               type="text"
               ref={nameInputRef}
               className="block textbox w-full mt-2"
@@ -126,15 +129,13 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck="false"
-              value={nameValue}
-              onChange={(event) => {
-                setName(event.target.value);
-                setSubmitError('');
-              }}
+              value={formik.values.name}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
               data-testid="mock-response-create-name-input"
             />
-            {nameError ? (
-              <div className="text-red-500 mt-1">{nameError}</div>
+            {formik.touched.name && formik.errors.name ? (
+              <div className="text-red-500 mt-1">{formik.errors.name}</div>
             ) : null}
           </div>
 
@@ -144,14 +145,16 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
             </label>
             <textarea
               id="mock-response-create-description"
+              name="description"
               className="block textbox w-full mt-2"
               rows={2}
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
+              value={formik.values.description}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
               data-testid="mock-response-create-description-input"
             />
-            {descriptionError ? (
-              <div className="text-red-500 mt-1">{descriptionError}</div>
+            {formik.touched.description && formik.errors.description ? (
+              <div className="text-red-500 mt-1">{formik.errors.description}</div>
             ) : null}
           </div>
 
@@ -162,10 +165,11 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
               </label>
               <select
                 id="mock-response-create-status"
+                name="statusCode"
                 className="textbox w-full mt-2"
-                value={statusValue}
-                onChange={(event) => setStatusCode(Number(event.target.value))}
-                disabled={Boolean(linkedExample)}
+                value={formik.values.statusCode}
+                onChange={formik.handleChange}
+                disabled={isExampleLinked}
                 data-testid="mock-response-create-status-input"
               >
                 {Object.entries(statusCodePhraseMap).map(([code, phrase]) => (
@@ -180,10 +184,11 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
               </label>
               <select
                 id="mock-response-create-body-type"
+                name="bodyType"
                 className="textbox w-full mt-2"
-                value={bodyTypeValue}
-                onChange={(event) => setBodyType(event.target.value)}
-                disabled={Boolean(linkedExample)}
+                value={formik.values.bodyType}
+                onChange={formik.handleChange}
+                disabled={isExampleLinked}
               >
                 {BODY_TYPES.map((type) => (
                   <option key={type.value} value={type.value}>{type.label}</option>
@@ -197,15 +202,10 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
               <label className="flex items-start gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
+                  name="useExample"
                   className="mt-1 cursor-pointer"
-                  checked={useExample}
-                  onChange={(event) => {
-                    setUseExample(event.target.checked);
-                    setExampleError('');
-                    if (!event.target.checked) {
-                      setSelectedExampleKey('');
-                    }
-                  }}
+                  checked={formik.values.useExample}
+                  onChange={handleUseExampleChange}
                   data-testid="mock-response-use-example-checkbox"
                 />
                 <span>
@@ -216,15 +216,14 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
                 </span>
               </label>
 
-              {useExample ? (
+              {formik.values.useExample ? (
                 <>
                   <select
+                    name="selectedExampleKey"
                     className="textbox w-full mt-2"
-                    value={selectedExampleKey}
-                    onChange={(event) => {
-                      setSelectedExampleKey(event.target.value);
-                      setExampleError('');
-                    }}
+                    value={formik.values.selectedExampleKey}
+                    onChange={handleExampleChange}
+                    onBlur={formik.handleBlur}
                     data-testid="mock-response-example-select"
                   >
                     <option value="">Select an example</option>
@@ -234,8 +233,8 @@ const CreateMockResponseModal = ({ collection, existingResponses = [], onCreate,
                       </option>
                     ))}
                   </select>
-                  {exampleError ? (
-                    <div className="text-red-500 mt-1">{exampleError}</div>
+                  {formik.errors.selectedExampleKey ? (
+                    <div className="text-red-500 mt-1">{formik.errors.selectedExampleKey}</div>
                   ) : null}
                 </>
               ) : null}

@@ -11,6 +11,8 @@ jest.mock('utils/common', () => {
 
 import {
   buildDemoRequestFromRules,
+  buildMockResponseDescriptionSchema,
+  buildMockResponseNameSchema,
   cloneMockResponseRecord,
   getMockResponseDescriptionError,
   getMockResponseNameError,
@@ -217,6 +219,80 @@ describe('resolveMockResponseEditorCollection', () => {
     it('handles an empty response list', () => {
       expect(isMockResponseNameTaken([], 'anything')).toBe(false);
       expect(isMockResponseNameTaken(undefined, 'anything')).toBe(false);
+    });
+  });
+
+  describe('buildMockResponseNameSchema', () => {
+    const existingResponses = [
+      { uid: 'r-1', name: 'Success' },
+      { uid: 'r-2', name: 'Not Found' }
+    ];
+
+    const nameError = (value, options) => {
+      try {
+        buildMockResponseNameSchema(options).validateSync(value);
+        return null;
+      } catch (err) {
+        return err.message;
+      }
+    };
+
+    it('surfaces the same messages as getMockResponseNameError', () => {
+      expect(nameError('')).toBe('Name cannot be empty.');
+      expect(nameError('   ')).toBe('Name cannot be empty.');
+      expect(nameError(undefined)).toBe('Name cannot be empty.');
+      expect(nameError('a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH + 1)))
+        .toBe('Name cannot exceed 255 characters.');
+      expect(nameError('CON')).toBe('Name cannot be a reserved device name.');
+      expect(nameError('bad/name'))
+        .toBe('Special characters aren\'t allowed in the name. Invalid character \'/\'.');
+    });
+
+    it('accepts valid names, including ones the shared rules allow', () => {
+      expect(nameError('Order 200')).toBeNull();
+      expect(nameError('404')).toBeNull();
+      expect(nameError('#$$@##$#@')).toBeNull();
+      expect(nameError('a'.repeat(MOCK_RESPONSE_NAME_MAX_LENGTH))).toBeNull();
+    });
+
+    it('rejects a name already used by a sibling response', () => {
+      expect(nameError('success', { existingResponses }))
+        .toBe('A mock response with this name already exists');
+      expect(nameError('  Not Found  ', { existingResponses }))
+        .toBe('A mock response with this name already exists');
+    });
+
+    it('allows a response to keep its own name when excluded', () => {
+      expect(nameError('Success', { existingResponses, excludeUid: 'r-1' })).toBeNull();
+      expect(nameError('Success', { existingResponses, excludeUid: 'r-2' }))
+        .toBe('A mock response with this name already exists');
+    });
+
+    it('reports the format error before the duplicate error', () => {
+      expect(nameError('bad/name', { existingResponses }))
+        .toBe('Special characters aren\'t allowed in the name. Invalid character \'/\'.');
+    });
+  });
+
+  describe('buildMockResponseDescriptionSchema', () => {
+    const descriptionError = (value) => {
+      try {
+        buildMockResponseDescriptionSchema().validateSync(value);
+        return null;
+      } catch (err) {
+        return err.message;
+      }
+    };
+
+    it('flags descriptions over the max length', () => {
+      expect(descriptionError('a'.repeat(MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH + 1)))
+        .toBe(`Description must be ${MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH} characters or less`);
+    });
+
+    it('accepts empty and in-bounds descriptions', () => {
+      expect(descriptionError('')).toBeNull();
+      expect(descriptionError(undefined)).toBeNull();
+      expect(descriptionError('a'.repeat(MOCK_RESPONSE_DESCRIPTION_MAX_LENGTH))).toBeNull();
     });
   });
 });

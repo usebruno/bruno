@@ -1,3 +1,4 @@
+import * as Yup from 'yup';
 import { uuid } from 'utils/common';
 import { cloneDeep } from 'lodash';
 import {
@@ -355,6 +356,25 @@ export const isMockResponseNameTaken = (responses = [], name, excludeUid = null)
     response.uid !== excludeUid && response.name?.trim().toLowerCase() === normalized
   ));
 };
+
+export const buildMockResponseNameSchema = ({ existingResponses = [], excludeUid = null } = {}) => (
+  Yup.string()
+    .test('is-valid-name', function (value) {
+      const error = getMockResponseNameError(value);
+      return error ? this.createError({ message: error }) : true;
+    })
+    .test('duplicate-name', 'A mock response with this name already exists', (value) => (
+      !isMockResponseNameTaken(existingResponses, value, excludeUid)
+    ))
+);
+
+export const buildMockResponseDescriptionSchema = () => (
+  Yup.string()
+    .test('max-length', function (value) {
+      const error = getMockResponseDescriptionError(value);
+      return error ? this.createError({ message: error }) : true;
+    })
+);
 
 export const cloneMockResponseRecord = (response, { name } = {}) => {
   const cloned = JSON.parse(JSON.stringify(response));

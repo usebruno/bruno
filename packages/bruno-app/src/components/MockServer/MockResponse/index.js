@@ -11,7 +11,7 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import { saveMockResponse, deleteMockResponse, loadMockResponses, startMockServer, syncMockServerState } from 'providers/ReduxStore/slices/mock-server/index';
 import { closeTabs, updateTabMeta, updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
-import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest, buildDemoRequestFromRules, buildMockServerTryUrl, getMockResponseNameError, getMockResponseDescriptionError } from 'utils/mock-server/mock-responses';
+import { resolveMockResponseLocation, resolveMockResponseCollection, resolveMockResponseEditorCollection, tryMockResponseRequest, buildDemoRequestFromRules, buildMockServerTryUrl, getMockResponseNameError, getMockResponseDescriptionError, isMockResponseNameTaken } from 'utils/mock-server/mock-responses';
 import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sanitizeName } from 'utils/common/regex';
 import { flattenItems, isItemTransientRequest } from 'utils/collections';
@@ -229,7 +229,10 @@ const MockResponse = ({ instance, collection, responseUid }) => {
       );
 
       const validationError = getMockResponseNameError(mockResponse.name)
-        || getMockResponseDescriptionError(mockResponse.description);
+        || getMockResponseDescriptionError(mockResponse.description)
+        || (isMockResponseNameTaken(responses, mockResponse.name, responseUid)
+          ? 'A mock response with this name already exists'
+          : null);
       if (validationError) {
         toast.error(validationError);
         return;
@@ -430,6 +433,7 @@ const MockResponse = ({ instance, collection, responseUid }) => {
         onCancel={handleCancel}
         onDelete={handleDelete}
         copiedFrom={editor.savedMockResponse?.copiedFrom}
+        existingResponses={responses}
       />
 
       <section ref={mainSectionRef} className={`main wrapper flex mt-4 ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto scrollbar-hover`}>
