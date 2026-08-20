@@ -10,7 +10,6 @@ const Wrapper = styled.div`
   justify-content: center;
   border: 1px dashed ${(props) => props.theme.border.border1};
   border-radius: 4px;
-  background: ${(props) => props.theme.background.surface0};
   color: ${(props) => props.theme.colors.text.muted};
 
   .empty-app-inner {
