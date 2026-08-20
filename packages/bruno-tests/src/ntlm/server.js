@@ -93,7 +93,7 @@ const startNtlmServer = async ({ tls = false, password = 'pass', requireClientCe
     : http.createServer(handler);
 
   let socketId = 0;
-  listener.on('connection', (socket) => {
+  listener.on(tls ? 'secureConnection' : 'connection', (socket) => {
     socket.ntlmSocketId = ++socketId;
     sockets.push(socket);
   });

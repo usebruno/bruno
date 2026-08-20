@@ -21,7 +21,8 @@ describe('CLI run — ntlm', () => {
   });
 
   afterEach(async () => {
-    await endpoint.close();
+    await endpoint?.close();
+    endpoint = undefined;
     fs.rmSync(collectionDir, { recursive: true, force: true });
   });
 

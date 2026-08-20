@@ -37,7 +37,10 @@ describe('an ntlm request against a live server', () => {
 
   test('keeps a streamed response on that single connection', async () => {
     const response = await send({ responseType: 'stream' });
-    response.data.resume();
+    await new Promise((resolve) => {
+      response.data.on('end', resolve);
+      response.data.resume();
+    });
 
     expect(server.messageTypesSeen()).toEqual([null, 1, 3]);
     expect(server.connectionsUsed()).toBe(1);
