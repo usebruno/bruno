@@ -17,7 +17,7 @@ const ResponseStopWatch = ({ startTimestamp }) => {
 
   const isValidTimestamp = Number.isFinite(startTimestamp) && startTimestamp > 0;
 
-  const elapsedMillis = isValidTimestamp(startTimestamp) ? Math.max(0, now - startTimestamp) : 0;
+  const elapsedMillis = isValidTimestamp ? Math.max(0, now - startTimestamp) : 0;
   const secondsFormatted = `${(elapsedMillis / 1000).toFixed(1)}s`;
   const width = secondsFormatted.length * 0.4;
 
