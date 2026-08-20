@@ -31,7 +31,7 @@ export const copyExampleToMockResponse = (example, parentRequest) => ({
   },
   response: {
     status: Number(example.response?.status) || 200,
-    statusText: example.response?.statusText || 'OK',
+    statusText: example.response?.statusText || '',
     headers: example.response?.headers || [],
     body: {
       type: example.response?.body?.type || 'json',
