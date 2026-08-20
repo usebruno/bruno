@@ -40,7 +40,7 @@ export const buildMockResponseEditorItem = (mockResponse) => {
     },
     response: {
       status: Number(mockResponse.response?.status) || 200,
-      statusText: mockResponse.response?.statusText || 'OK',
+      statusText: mockResponse.response?.statusText || '',
       headers: cloneDeep(mockResponse.response?.headers || []),
       body: cloneDeep(mockResponse.response?.body || { type: 'json', content: '' })
     }
