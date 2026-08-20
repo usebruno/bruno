@@ -1,4 +1,4 @@
-const { type2Message } = require('../../../../bruno-tests/src/ntlm/messages');
+const { type2Message } = require('../../../../bruno-tests/src/ntlm');
 
 module.exports = {
   ok: { status: 200 },

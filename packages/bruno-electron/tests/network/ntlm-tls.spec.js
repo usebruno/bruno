@@ -84,14 +84,14 @@ describe('ntlmv2 over an https endpoint that demands a client certificate', () =
     expect(response.status).toBe(200);
     expect(response.data).toMatchObject({ authenticated: true });
     expect(server.messageTypesSeen()).toEqual([null, 1, 3]);
-    expect(server.legs.every((leg) => leg.clientCertName === server.clientCertName)).toBe(true);
+    expect(server.legs.map((leg) => leg.clientCertName)).toEqual(Array(3).fill(server.clientCertName));
     expect(server.connectionsUsed()).toBe(1);
   });
 
   test('fails when no client certificate is configured', async () => {
     appState.globalClientCertificates = [];
 
-    await expect(send()).rejects.toThrow();
+    await expect(send()).rejects.toMatchObject({ code: 'ERR_SSL_TLSV13_ALERT_CERTIFICATE_REQUIRED' });
   });
 });
 

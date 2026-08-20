@@ -37,7 +37,7 @@ describe('CLI run — ntlm', () => {
     expect(endpoint.connectionsUsed()).toBe(1);
   });
 
-  it('negotiates again for every request of a collection run, and cannot re-authenticate a redirect that lands on a new connection', async () => {
+  it('negotiates for each request of a collection run, where the redirect is refused on its new connection', async () => {
     endpoint = await startEndpoint();
 
     const { code, stdout } = await run(['.']);

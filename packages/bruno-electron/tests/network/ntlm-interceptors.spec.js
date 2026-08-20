@@ -9,7 +9,7 @@ const replies = require('./helpers/stub-responses');
 
 beforeEach(resetAppState);
 
-describe('a request negotiating ntlm through the adapter the fix installs', () => {
+describe('a request negotiating ntlm', () => {
   const send = ({ responses, ...overrides }) =>
     negotiateThroughStubAdapter({
       request: buildRequest({ ...overrides, ntlmConfig: credentials }),
@@ -20,7 +20,7 @@ describe('a request negotiating ntlm through the adapter the fix installs', () =
     const { response, calls, legTypesAsSent } = await send({ responses: [replies.ok] });
 
     expect(legTypesAsSent).toEqual([null, 1, 3]);
-    expect(calls.every((call) => call.httpsAgent === calls[0].httpsAgent)).toBe(true);
+    expect(new Set(calls.map((call) => call.httpsAgent)).size).toBe(1);
     expect(response.status).toBe(200);
   });
 
@@ -29,7 +29,7 @@ describe('a request negotiating ntlm through the adapter the fix installs', () =
 
     const { calls } = await send({ responses: [replies.ok] });
 
-    expect(calls.every((call) => call.httpsAgent.options.rejectUnauthorized === false)).toBe(true);
+    expect(calls.map((call) => call.httpsAgent.options.rejectUnauthorized)).toEqual([false, false, false]);
   });
 
   test('follows a 302 to its target', async () => {
@@ -62,7 +62,7 @@ describe('a request negotiating ntlm through the adapter the fix installs', () =
       responses: [replies.ok]
     });
 
-    expect(calls.every((call) => call.headers['X-Remove-Me'] === null)).toBe(true);
+    expect(calls.map((call) => call.headers['X-Remove-Me'])).toEqual([null, null, null]);
   });
 });
 

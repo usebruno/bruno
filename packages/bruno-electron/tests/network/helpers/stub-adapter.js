@@ -1,6 +1,6 @@
 const axios = require('axios');
 const { AxiosError } = axios;
-const { messageType } = require('../../../../bruno-tests/src/ntlm/messages');
+const { messageType } = require('../../../../bruno-tests/src/ntlm');
 
 const { configureFor } = require('./ntlm-request');
 
@@ -30,7 +30,7 @@ const sendThroughStubAdapter = async ({ request, responses }) => {
   return { response, calls };
 };
 
-// A stub in the request's adapter would shadow the one the fix installs, so this sits beneath it.
+// A stub in the request's adapter would shadow the ntlm adapter, so this one sits beneath it.
 const negotiateThroughStubAdapter = async ({ request, responses }) => {
   const calls = [];
   const legTypesAsSent = [];
