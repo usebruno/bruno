@@ -1,6 +1,7 @@
 import {
   DEFAULT_MOCK_SERVER_PORT,
   getMockServerNameError,
+  getMockServerPortError,
   getMockServerPortRangeError,
   isMockServerRelatedTab,
   isMockServerNameTaken,
@@ -92,6 +93,31 @@ describe('getMockServerPortRangeError', () => {
     expect(getMockServerPortRangeError(1)).toBeNull();
     expect(getMockServerPortRangeError(65535)).toBeNull();
     expect(getMockServerPortRangeError(4000)).toBeNull();
+    expect(getMockServerPortRangeError(' 8080 ')).toBeNull();
+  });
+
+  it('treats whitespace-only values as missing rather than out of range', () => {
+    expect(getMockServerPortRangeError('   ')).toBe('Port is required');
+  });
+
+  it('rejects negative ports', () => {
+    expect(getMockServerPortRangeError(-1)).toBe('Port must be at least 1');
+  });
+});
+
+describe('getMockServerPortError', () => {
+  it('returns null when the port is available', () => {
+    expect(getMockServerPortError({ available: true }, 4000)).toBeNull();
+  });
+
+  it('reports ports held by another process', () => {
+    expect(getMockServerPortError({ available: false, reason: 'system' }, 4000))
+      .toBe('Port 4000 is already in use on this system.');
+  });
+
+  it('reports ports held by another mock server', () => {
+    expect(getMockServerPortError({ available: false, reason: 'bruno' }, 4000))
+      .toBe('Port 4000 is already used by another mock server in Bruno.');
   });
 });
 

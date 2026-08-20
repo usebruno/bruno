@@ -16,11 +16,13 @@ export const MOCK_SERVER_PORT_MIN = 1;
 export const MOCK_SERVER_PORT_MAX = 65535;
 
 export const getMockServerPortRangeError = (port) => {
-  if (port === '' || port === null || port === undefined) {
+  const trimmedPort = typeof port === 'string' ? port.trim() : port;
+
+  if (trimmedPort === '' || trimmedPort === null || trimmedPort === undefined) {
     return 'Port is required';
   }
 
-  const normalizedPort = Number(port);
+  const normalizedPort = Number(trimmedPort);
 
   if (!Number.isInteger(normalizedPort)) {
     return 'Port must be a whole number';
