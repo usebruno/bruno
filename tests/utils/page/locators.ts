@@ -20,7 +20,6 @@ import { buildDevToolsLocators } from './devtools-console';
 import { buildVariablesTabLocators } from './variables-tab';
 import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
 import { buildManageWorkspaceLocators } from './workspace/manage-workspace';
-import { buildWorkspaceEnvironmentsLocators } from './workspace/workspace-environments';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -46,7 +45,6 @@ export const buildCommonLocators = (page: Page) => ({
   sidebar: buildSidebarLocators(page),
   workspaceOverview: buildWorkspaceOverviewLocators(page),
   manageWorkspace: buildManageWorkspaceLocators(page),
-  workspaceEnvironments: buildWorkspaceEnvironmentsLocators(page),
   deleteCollectionItemModal: buildDeleteCollectionItemModalLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),

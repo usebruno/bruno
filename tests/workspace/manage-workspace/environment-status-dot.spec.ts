@@ -3,11 +3,11 @@ import { test, expect, closeElectronApp } from '../../../playwright';
 import { addRowToActiveTab, waitForReadyPage } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import {
-  addWorkspaceDotEnvVariable,
-  createWorkspaceDotEnvFile,
-  createWorkspaceEnvironment,
+  addDotEnvVariable,
+  createDotEnvFile,
+  createEnvironmentFromSidebar,
   openWorkspaceEnvironmentsTab
-} from '../../utils/page/workspace/workspace-environments';
+} from '../../utils/page/environments';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 
@@ -19,7 +19,7 @@ test.describe('Workspace Environments status dot', () => {
     const wsLocation = await createTmpDir('ws-location-env-dot');
     const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
     const page = await waitForReadyPage(app);
-    const { tabs, workspaceEnvironments } = buildCommonLocators(page);
+    const { tabs, environment } = buildCommonLocators(page);
 
     try {
       await test.step('Workspace overview loads successfully', async () => {
@@ -28,32 +28,32 @@ test.describe('Workspace Environments status dot', () => {
 
       await test.step('Environments tab lists workspace environments and .env files', async () => {
         await openWorkspaceEnvironmentsTab(page);
-        await createWorkspaceEnvironment(page, 'Staging');
-        await createWorkspaceDotEnvFile(page, '.env');
+        await createEnvironmentFromSidebar(page, 'Staging');
+        await createDotEnvFile(page, '.env');
 
-        await expect(workspaceEnvironments.environmentItem('Staging')).toBeVisible();
-        await expect(workspaceEnvironments.dotEnvFileItem('.env')).toBeVisible();
-        await expect(workspaceEnvironments.tabDraftIcon()).toBeHidden();
+        await expect(environment.sidebarListItem('global', 'Staging')).toBeVisible();
+        await expect(environment.dotEnvFileItem('.env')).toBeVisible();
+        await expect(environment.workspaceEnvTabDraftIcon()).toBeHidden();
       });
 
       await test.step('Adding a variable to an environment shows the status dot on the tab', async () => {
-        await workspaceEnvironments.environmentItem('Staging').click();
+        await environment.sidebarListItem('global', 'Staging').click();
         await addRowToActiveTab(page, 'statusDotVar', 'dot-value');
 
-        await expect(workspaceEnvironments.tabDraftIcon()).toBeVisible();
+        await expect(environment.workspaceEnvTabDraftIcon()).toBeVisible();
       });
 
       await test.step('Resetting the environment clears the status dot', async () => {
-        await workspaceEnvironments.resetEnvironmentButton().click();
+        await environment.resetButton().click();
 
-        await expect(workspaceEnvironments.tabDraftIcon()).toBeHidden();
+        await expect(environment.workspaceEnvTabDraftIcon()).toBeHidden();
       });
 
       await test.step('Adding a variable to a .env file shows the status dot on the tab', async () => {
-        await workspaceEnvironments.dotEnvFileItem('.env').click();
-        await addWorkspaceDotEnvVariable(page, 'DOT_ENV_VAR', 'dotenv-value');
+        await environment.dotEnvFileItem('.env').click();
+        await addDotEnvVariable(page, 'DOT_ENV_VAR', 'dotenv-value');
 
-        await expect(workspaceEnvironments.tabDraftIcon()).toBeVisible();
+        await expect(environment.workspaceEnvTabDraftIcon()).toBeVisible();
       });
     } finally {
       await closeElectronApp(app);
