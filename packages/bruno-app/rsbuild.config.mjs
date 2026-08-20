@@ -61,7 +61,7 @@ export default defineConfig({
         }
       },
       ignoreWarnings: [
-        (warning) =>  warning.message.includes('Critical dependency: the request of a dependency is an expression') && warning?.moduleDescriptor?.name?.includes('flow-parser')
+        (warning) => warning.message.includes('Critical dependency: the request of a dependency is an expression') && warning?.moduleDescriptor?.name?.includes('flow-parser')
       ],
       // Add externals configuration to exclude Node.js libraries
       externals: {

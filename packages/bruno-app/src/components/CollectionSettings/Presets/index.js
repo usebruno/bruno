@@ -102,7 +102,7 @@ const PresetsSettings = ({ collection }) => {
 
         <div className="preset-field">
           <label className="preset-field-label" htmlFor="default-environment">Default Environment</label>
-          <p className="preset-field-subtitle">Automatically selected in the Environment when the collection is exported and opened first.</p>
+          <p className="preset-field-subtitle">Selected when this collection is shared and first opened.</p>
           <div className="default-env-dropdown">
             <MenuDropdown
               items={defaultEnvironmentItems}
