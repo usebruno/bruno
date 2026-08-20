@@ -1,6 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{collectionPath}}"
+    "{{collectionPath}}/bru-collection",
+    "{{collectionPath}}/yml-collection"
   ]
 }

@@ -10,36 +10,11 @@ import { clickResponseAction, expandCollection, expandFolder } from '../../utils
  *
  * The collection is a temp copy (via collectionFixturePath), so saving
  * examples never mutates the committed fixture.
+ *
+ * These cases cover the `.bru` collection; the image requests live in the
+ * sibling `.yml` collection and are covered by binary-preview-yml.spec.ts.
  */
 const binaryPreviewCases = [
-  {
-    requestName: 'binary-preview-image-png',
-    folderName: 'images',
-    exampleName: 'PNG Example',
-    previewType: 'image',
-    expectedMime: 'image/png'
-  },
-  {
-    requestName: 'binary-preview-image-jpeg',
-    folderName: 'images',
-    exampleName: 'JPEG Example',
-    previewType: 'image',
-    expectedMime: 'image/jpeg'
-  },
-  {
-    requestName: 'binary-preview-image-gif',
-    folderName: 'images',
-    exampleName: 'GIF Example',
-    previewType: 'image',
-    expectedMime: 'image/gif'
-  },
-  {
-    requestName: 'binary-preview-image-webp',
-    folderName: 'images',
-    exampleName: 'WebP Example',
-    previewType: 'image',
-    expectedMime: 'image/webp'
-  },
   {
     requestName: 'binary-preview-pdf',
     exampleName: 'PDF Example',
@@ -85,7 +60,7 @@ const binaryPreviewCases = [
 
 const openBinaryPreviewRequest = async (page: Page, folderName: string | undefined, requestName: string) => {
   const locators = buildCommonLocators(page);
-  await expandCollection(page, 'collection');
+  await expandCollection(page, 'bru-collection');
   if (folderName) {
     await expandFolder(page, folderName);
     await locators.sidebar.folderRequest(folderName, requestName).click();
