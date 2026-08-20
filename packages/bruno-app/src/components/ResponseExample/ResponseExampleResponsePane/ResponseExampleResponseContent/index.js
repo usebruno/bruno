@@ -5,7 +5,7 @@ import get from 'lodash/get';
 import { updateResponseExampleResponse } from 'providers/ReduxStore/slices/collections';
 import CodeEditor from 'components/CodeEditor';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
-import { detectContentTypeFromBase64, getBinaryPreviewType, normalizeMime } from 'utils/response';
+import { detectContentTypeFromBase64, getBinaryPreviewType } from 'utils/response';
 import StyledWrapper from './StyledWrapper';
 import QueryResult from 'components/ResponsePane/QueryResult';
 
@@ -71,19 +71,8 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
   };
 
   const isBinaryBody = response?.body?.type === 'binary';
-
-  const headerContentType
-    = response.headers?.find((h) => h.name?.toLowerCase() === 'content-type')?.value || '';
-  const headerMime = normalizeMime(headerContentType);
-
-  // For binary bodies trust the actual bytes over the Content-Type header (the header may be
-  // missing or wrong); fall back to the header for formats the sniffer doesn't recognize.
   const sniffedMime = isBinaryBody ? detectContentTypeFromBase64(response.body?.content) : null;
-  const contentType = sniffedMime || headerMime || '';
-
-  const binaryPreviewType = isBinaryBody
-    ? getBinaryPreviewType(contentType)
-    : null;
+  const binaryPreviewType = getBinaryPreviewType(sniffedMime);
 
   if (binaryPreviewType) {
     return (
