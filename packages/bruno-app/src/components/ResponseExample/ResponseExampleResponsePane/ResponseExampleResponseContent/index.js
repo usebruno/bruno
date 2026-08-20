@@ -6,8 +6,8 @@ import { updateResponseExampleResponse } from 'providers/ReduxStore/slices/colle
 import CodeEditor from 'components/CodeEditor';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 import { detectContentTypeFromBase64, getBinaryPreviewType, normalizeMime } from 'utils/response';
-import ResponseExampleBinaryPreview from '../ResponseExampleBinaryPreview';
 import StyledWrapper from './StyledWrapper';
+import QueryResult from 'components/ResponsePane/QueryResult';
 
 const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid, onSave }) => {
   const dispatch = useDispatch();
@@ -87,15 +87,19 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
 
   if (binaryPreviewType) {
     return (
-      <StyledWrapper className="w-full px-4">
-        <div className="flex-1 relative">
-          <div className="absolute top-0 left-0 h-full w-full">
-            <ResponseExampleBinaryPreview
-              contentType={contentType}
-              content={response.body.content}
-            />
-          </div>
-        </div>
+      <StyledWrapper className="w-full px-4 ">
+        <QueryResult
+          item={item}
+          collection={collection}
+          data={response.body.content}
+          dataBuffer={response.body.content}
+          headers={response.headers}
+          error={response.error}
+          selectedFormat="base64"
+          selectedTab="preview"
+          disableRunEventListener
+          docKey={`response-example-response-content:${exampleUid}`}
+        />
       </StyledWrapper>
     );
   }
