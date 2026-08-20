@@ -90,7 +90,7 @@ test.describe('Cross-Collection Drag and Drop for folder', () => {
     await sourceFolder.dragTo(targetCollection);
 
     // check for error toast notification
-    await expect(page.getByText(/Error: Cannot copy.*already exists/i)).toBeVisible();
+    await expect(page.getByText(/already exists in the target folder/i)).toBeVisible();
 
     // source and target collection request should remain unchanged
     const sourceCollectionContainer = page

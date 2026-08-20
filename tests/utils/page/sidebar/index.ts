@@ -21,6 +21,7 @@ export const buildSidebarLocators = (page: Page) => {
     },
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
     collectionRow,
+    collectionRows: () => page.getByTestId('sidebar-collection-row'),
     itemRow,
     // The "..." menu on a sidebar row. `type` picks the row and the testid prefix:
     // 'item' for a collection item row (`collection-item-menu-*`), 'collection' for a
@@ -40,6 +41,9 @@ export const buildSidebarLocators = (page: Page) => {
     // The sidebar tree wraps each collection in `#collection-<slug>`; scope queries
     // to it to disambiguate items that share names across collections.
     collectionScope: (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`),
+    scopedItem: function (collectionName: string, itemName: string) {
+      return this.collectionScope(collectionName).locator('.collection-item-name').filter({ hasText: itemName });
+    },
     dragHandle: () => page.getByTestId('sidebar-drag-handle'),
     toggleSidebarButton: () => page.getByTestId('toggle-sidebar-button'),
     sidebarContainer: () => page.getByTestId('sidebar')

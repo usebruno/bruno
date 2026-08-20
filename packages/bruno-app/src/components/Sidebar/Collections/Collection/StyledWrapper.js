@@ -6,7 +6,7 @@ const Wrapper = styled.div`
     cursor: pointer;
     user-select: none;
     padding-left: 4px;
-    border: ${(props) => props.theme.dragAndDrop.borderStyle} transparent;
+    border-left: 4px solid transparent;
 
     .rotate-90 {
       transform: rotateZ(90deg);
@@ -31,6 +31,10 @@ const Wrapper = styled.div`
       border-bottom: 2px solid transparent;
     }
 
+    &.drag-disabled:active {
+      cursor: not-allowed !important;
+    }
+
     &:hover {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
     }
@@ -39,14 +43,6 @@ const Wrapper = styled.div`
       position: relative;
       top: -0.625rem;
       font-weight: 400;
-    }
-
-    div.dropdown-item.delete-collection {
-      color: ${(props) => props.theme.colors.text.danger};
-      &:hover {
-        background-color: ${(props) => props.theme.colors.bg.danger};
-        color: white;
-      }
     }
 
     &.drop-target {
@@ -89,11 +85,6 @@ const Wrapper = styled.div`
       }
     }
 
-    &.collection-selected {
-      background: ${(props) => props.theme.sidebar.collection.item.bg};
-      border-left: 3px solid ${(props) => props.theme.sidebar.collection.item.selectedBorder};
-      padding-left: 2px;
-    }
   }
 
   #sidebar-collection-name {

@@ -5,6 +5,7 @@ import StyledWrapper from './StyledWrapper';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateLeftSidebarWidth, updateIsDragging, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
+import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import { setLocalStorageValue, SIDEBAR_WIDTH_KEY } from 'utils/common/localStorage';
 import CollectionsSection from './Sections/CollectionsSection/index';
 import ApiSpecsSection from './Sections/ApiSpecsSection/index';
@@ -53,6 +54,22 @@ const Sidebar = () => {
     dispatch(toggleSidebarSearch());
     return false;
   });
+
+  const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
+
+  useEffect(() => {
+    if (!selectedSidebarUids || selectedSidebarUids.length === 0) return;
+
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && !e.defaultPrevented) {
+        dispatch(clearSidebarSelection());
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [dispatch, selectedSidebarUids]);
 
   const displayWidth = dragging ? asideWidth : leftSidebarWidth;
   const currentWidth = sidebarCollapsed ? 0 : displayWidth;
