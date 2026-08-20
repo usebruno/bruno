@@ -26,8 +26,6 @@
     "@jest/globals": "^29.2.0",
     "@playwright/test": "1.62.1",
     "@rollup/plugin-json": "^6.1.0",
-    "@storybook/addon-docs": "^10.5.9",
-    "@storybook/react": "^10.5.9",
     "@stylistic/eslint-plugin": "^5.3.1",
     "@types/adm-zip": "^0.5.8",
     "@types/jest": "^29.5.11",
@@ -51,8 +49,6 @@
     "pretty-quick": "^3.1.3",
     "randomstring": "^1.2.2",
     "rimraf": "^6.0.1",
-    "storybook": "^10.5.9",
-    "storybook-react-rsbuild": "3.4.2",
     "ts-jest": "^29.2.6"
   },
   "scripts": {
