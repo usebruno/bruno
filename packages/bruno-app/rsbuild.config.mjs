@@ -41,9 +41,8 @@ export default defineConfig({
       '**/*.test.*',
       '**/*.spec.*'
     ],
-    // swagger-ui-react nests immutable@3 (CJS default export). sass hoists
-    // immutable@5 to the repo root, which dropped that default; redux-immutable
-    // is also hoisted there, so without this alias it loads v5 and crashes.
+    // swagger-ui-react needs immutable@4 (CJS default export). sass hoists
+    // immutable@5 to the repo root; redux-immutable is hoisted there too.
     alias: {
       immutable$: swaggerImmutable
     }
@@ -91,4 +90,3 @@ export default defineConfig({
     },
   }
 });
-``
