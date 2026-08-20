@@ -87,7 +87,7 @@ const ResponseExampleResponseContent = ({ editMode, item, collection, exampleUid
 
   if (binaryPreviewType) {
     return (
-      <StyledWrapper className="w-full px-4 ">
+      <StyledWrapper className="w-full px-4" data-testid="response-example-binary-preview" data-preview-type={binaryPreviewType}>
         <QueryResult
           item={item}
           collection={collection}
