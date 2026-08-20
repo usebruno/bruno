@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const ohm = require('ohm-js');
+const { spawnSync } = require('child_process');
 
 const grammarCache = require('../src/grammar-cache');
 
@@ -43,14 +44,38 @@ describe('grammar recipes', () => {
     expect(fromRecipe.toRecipe()).toEqual(ohm.grammar(source).toRecipe());
   });
 
-  it('ships the recipes with the package even though they are not committed', () => {
-    const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8'));
+  describe('shipping recipes that are not committed', () => {
+    const PACKAGE_ROOT = path.join(__dirname, '../..');
+    const manifest = JSON.parse(fs.readFileSync(path.join(PACKAGE_ROOT, 'package.json'), 'utf8'));
 
-    // The recipes are build output, so `files` is the only thing putting them in the tarball, and
-    // `prepare` is the only thing creating them for a fresh install.
-    expect(manifest.files).toContain('generated');
-    expect(manifest.scripts.prepare).toContain('generate:grammars');
-    expect(path.relative(path.join(__dirname, '../..'), grammarCache.GENERATED_DIR)).toBe('generated');
+    it.each(keys)('has actually written a recipe file for %s', (key) => {
+      expect(fs.existsSync(grammarCache.recipePath(key))).toBe(true);
+    });
+
+    it('writes them inside a directory the manifest publishes', () => {
+      // `files` is the only thing carrying build output into the tarball, so it has to cover wherever
+      // the recipes are actually written - not merely name a directory that sounds right.
+      const [firstSegment] = path.relative(PACKAGE_ROOT, grammarCache.recipePath(keys[0])).split(path.sep);
+
+      expect(manifest.files).toContain(firstSegment);
+    });
+
+    it('regenerates every recipe by running the generator', () => {
+      // `prepare` runs this script on install and before publish. If it were broken, the recipes would
+      // quietly stop being produced and the startup cost would come back, so run it for real.
+      const generator = spawnSync(process.execPath, [path.join(PACKAGE_ROOT, 'scripts/generate-grammars.js')], {
+        cwd: PACKAGE_ROOT,
+        encoding: 'utf8'
+      });
+
+      expect(generator.stderr).toBe('');
+      expect(generator.status).toBe(0);
+
+      for (const key of keys) {
+        const recipe = grammarCache.readRecipe(key);
+        expect(recipe.sourceHash).toBe(grammarCache.hashSource(grammars.get(key).source));
+      }
+    });
   });
 
   describe('falling back to compiling from source', () => {
