@@ -7,7 +7,7 @@ import { openManageWorkspaces, openWorkspaceActionsMenu } from '../../utils/page
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 
 test.describe('Manage Workspace', () => {
-  test('should open terminal from the workspace actions menu', async ({ launchElectronApp, createTmpDir }) => {
+  test('TC-3109: should open terminal from the workspace actions menu', async ({ launchElectronApp, createTmpDir }) => {
     const wsLocation = await createTmpDir('ws-location-terminal');
 
     const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });

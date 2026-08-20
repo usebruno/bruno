@@ -14,7 +14,6 @@ export const buildWorkspaceEnvironmentsLocators = (page: Page) => {
 
   return {
     tab,
-    // Dot shown next to the tab label while the workspace environments have unsaved changes.
     tabDraftIcon: () => tab().getByTestId('tab-draft-icon'),
     environmentItem: (name: string) => page.getByTestId('workspace-env-list-item').filter({ hasText: name }),
     resetEnvironmentButton: () => page.getByTestId('reset-env'),

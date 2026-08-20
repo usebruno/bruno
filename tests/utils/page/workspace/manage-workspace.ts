@@ -7,9 +7,6 @@ type WorkspaceAction = 'open-in-terminal' | 'rename' | 'remove';
  * Manage Workspace section locators.
  */
 export const buildManageWorkspaceLocators = (page: Page) => {
-  // Match on the name element rather than the row's text: a row also renders the
-  // workspace path, and renaming a workspace leaves its folder (and therefore the
-  // old name) in that path.
   const workspaceItem = (workspaceName: string) =>
     page.locator('.workspace-list .workspace-item').filter({
       has: page.locator('.workspace-name', { hasText: workspaceName })
