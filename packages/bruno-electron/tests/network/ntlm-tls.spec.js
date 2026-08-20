@@ -4,7 +4,7 @@ jest.mock('../../src/store/system-proxy', () => require('./helpers/app-state').s
 
 const { appState, resetAppState, disableTlsVerification, trustCertificateAsCustomCa } = require('./helpers/app-state');
 const { startNtlmEndpoint, sendRequest, credentials } = require('./helpers/ntlm-request');
-const { startConnectProxy } = require('./helpers/proxies');
+const { startProxyForHttps } = require('./helpers/proxies');
 
 let server;
 
@@ -99,9 +99,9 @@ describe('ntlmv2 over an https endpoint reached through a connect proxy', () => 
   let proxy;
 
   beforeEach(async () => {
-    proxy = await startConnectProxy();
+    proxy = await startProxyForHttps();
     disableTlsVerification();
-    appState.brunoConfig = proxy.brunoConfig();
+    appState.brunoConfig = proxy.brunoConfig;
   });
 
   afterEach(async () => {

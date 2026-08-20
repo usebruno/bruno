@@ -5,7 +5,7 @@ jest.mock('../../src/utils/cookies', () => require('./helpers/app-state').cookie
 
 const { appState, resetAppState } = require('./helpers/app-state');
 const { startNtlmEndpoint, sendRequest } = require('./helpers/ntlm-request');
-const { startForwardingProxy, writePacFile } = require('./helpers/proxies');
+const { startProxyForHttp } = require('./helpers/proxies');
 
 let server;
 let baseUrl;
@@ -82,8 +82,8 @@ describe('an ntlm request through a proxy', () => {
   let proxy;
 
   beforeEach(async () => {
-    proxy = await startForwardingProxy();
-    appState.brunoConfig = proxy.brunoConfig();
+    proxy = await startProxyForHttp();
+    appState.brunoConfig = proxy.brunoConfig;
   });
 
   afterEach(async () => {
@@ -100,7 +100,7 @@ describe('an ntlm request through a proxy', () => {
   });
 
   test('completes the handshake through a proxy a pac file resolves to', async () => {
-    const pac = writePacFile(proxy.port);
+    const pac = await proxy.servePacFile();
     appState.brunoConfig = {};
     appState.globalProxyConfig = pac.globalProxyConfig;
 
@@ -112,7 +112,7 @@ describe('an ntlm request through a proxy', () => {
       expect(server.messageTypesSeen()).toEqual([null, 1, 3]);
       expect(server.connectionsUsed()).toBe(1);
     } finally {
-      pac.remove();
+      await pac.close();
     }
   });
 });
