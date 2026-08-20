@@ -1,8 +1,6 @@
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
-// No keyUsage extension is requested on purpose: a trust anchor whose keyUsage omits keyCertSign is
-// refused by BoringSSL, and these certificates are handed to clients as a custom CA.
 const generateSelfSignedCert = (dir, name, commonName) => {
   const keyPath = path.join(dir, `${name}-key.pem`);
   const certPath = path.join(dir, `${name}-cert.pem`);
