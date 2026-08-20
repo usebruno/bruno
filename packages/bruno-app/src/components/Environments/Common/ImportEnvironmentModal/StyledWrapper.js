@@ -101,6 +101,10 @@ export const StyledWrapper = styled.div`
     align-items: center;
     color: ${(props) => props.theme.colors.text.base};
     margin-bottom: 0.5rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 
   .warning-title {
@@ -109,6 +113,10 @@ export const StyledWrapper = styled.div`
   
   .warning-icon {
     color: ${(props) => props.theme.colors.text.yellow};
+  }
+
+  .error-icon {
+    color: #CE4F3B
   }
 
   .search-block {
@@ -221,6 +229,12 @@ export const StyledWrapper = styled.div`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-top: 0.125rem;
+  }
+
+  .env-error {
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: #CE4F3B;
     margin-top: 0.125rem;
   }
 

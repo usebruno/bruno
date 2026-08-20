@@ -205,27 +205,6 @@ test.describe('Import environment - name conflict handling', () => {
         await expect(locators.environment.sidebarListItemExact('collection', 'Test copy')).toBeVisible();
       });
     });
-
-    test('an invalid or unsupported file blocks the import and reports the error', async ({ page, createTmpDir }) => {
-      const locators = buildCommonLocators(page);
-      await createCollection(page, 'name-conflict-invalid', await createTmpDir('name-conflict-invalid'));
-
-      await openEnvironmentSelector(page, 'collection');
-      await locators.environment.importEmptyStateButton().click();
-      const importModal = locators.environment.importModal('collection');
-      await expect(importModal).toBeVisible();
-
-      const fileChooserPromise = page.waitForEvent('filechooser');
-      await locators.environment.importFileTrigger('collection').click();
-      const fileChooser = await fileChooserPromise;
-      await fileChooser.setFiles(fixture('invalid-env.json'));
-
-      await expect(locators.toast.byMessage('One or more environment files have an invalid or unsupported format')).toBeVisible();
-      await expect(importModal).toBeVisible();
-      await expect(locators.environment.sidebarListItem('collection', 'Invalid Env')).toHaveCount(0);
-
-      await page.getByTestId('modal-close-button').click();
-    });
   });
 
   test.describe('global scope', () => {

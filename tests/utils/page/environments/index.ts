@@ -129,7 +129,10 @@ export const buildEnvironmentLocators = (page: Page) => ({
   importReplaceButton: (name: string) => buildEnvironmentLocators(page).importReviewItem(name).getByTestId('env-import-replace-btn'),
   importGroupDropdownTrigger: () => page.getByTestId('env-import-group-dropdown'),
   importGroupDropdownCopyOption: () => page.getByTestId('menu-dropdown-copy'),
-  importGroupDropdownReplaceOption: () => page.getByTestId('menu-dropdown-replace')
+  importGroupDropdownReplaceOption: () => page.getByTestId('menu-dropdown-replace'),
+  importInvalidGroup: () => page.locator('.group-container').filter({ hasText: 'Invalid or unsupported' }),
+  importInvalidCount: () => page.getByTestId('env-import-invalid-count'),
+  importInvalidItem: (fileName: string) => page.getByTestId('env-import-invalid-item').filter({ has: page.getByText(fileName, { exact: true }) })
 });
 
 /**

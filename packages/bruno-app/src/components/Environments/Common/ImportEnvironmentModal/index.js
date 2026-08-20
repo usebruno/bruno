@@ -7,6 +7,7 @@ import Modal from 'components/Modal';
 import Checkbox from 'components/Checkbox';
 import SearchInput from 'components/SearchInput';
 import IconAlertTriangleFilled from 'components/Icons/IconAlertTriangleFilled';
+import IconFileAlertFilled from 'components/Icons/IconFileAlertFilled';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import importPostmanEnvironment from 'utils/importers/postman-environment';
@@ -74,25 +75,31 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
 
   const handleImportEnvironment = async (files) => {
     try {
-      const parsedFiles = await readMultipleFiles(Array.from(files));
-      const format = detectEnvironmentFormat(parsedFiles[0].content);
-      let result;
+      const { parsedFiles, invalidFiles } = await readMultipleFiles(Array.from(files));
 
-      if (format === 'postman') {
-        result = await importPostmanEnvironment(parsedFiles);
-      } else {
-        result = await importBrunoEnvironment(parsedFiles);
-      }
+      const filesByFormat = parsedFiles.reduce((acc, file) => {
+        const format = detectEnvironmentFormat(file.content);
+        (acc[format] = acc[format] || []).push(file);
+        return acc;
+      }, {});
+
+      const results = await Promise.all(
+        Object.entries(filesByFormat).map(([format, filesForFormat]) =>
+          format === 'postman' ? importPostmanEnvironment(filesForFormat) : importBrunoEnvironment(filesForFormat)
+        )
+      );
+
+      const result = {
+        valid: results.flatMap((r) => r.valid),
+        invalid: results.flatMap((r) => r.invalid)
+      };
 
       const validEnvironments = result.valid.filter((env) => env.name && env.name !== 'undefined');
-      const missingNameEnvs = result.valid.filter((env) => !env.name || env.name === 'undefined').map((env) => ({ fileName: 'Unknown', error: 'Environment has no name' }));
+      const missingNameEnvs = result.valid
+        .filter((env) => !env.name || env.name === 'undefined')
+        .map((env) => ({ fileName: env.fileName || 'Unknown', error: 'Environment has no name' }));
 
-      const allInvalid = [...result.invalid, ...missingNameEnvs];
-
-      if (allInvalid.length > 0) {
-        toast.error('One or more environment files have an invalid or unsupported format');
-        return;
-      }
+      const allInvalid = [...invalidFiles, ...result.invalid, ...missingNameEnvs];
 
       const duplicates = validEnvironments.filter((e) => existingNames.includes(e.name));
       const newEnvs = validEnvironments.filter((e) => !existingNames.includes(e.name));
@@ -242,6 +249,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
   const filteredDuplicates = parsedData.duplicates.filter((env) => env.name.toLowerCase().includes(searchText.toLowerCase()));
 
   const totalEnvironments = parsedData.new.length + parsedData.duplicates.length;
+  const totalParsedCount = totalEnvironments + parsedData.invalid.length;
 
   if (step === 'UPLOAD') {
     return (
@@ -313,6 +321,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
         handleCancel={onClose}
         dataTestId={modalTestId}
         disableCloseOnOutsideClick
+        confirmDisabled={totalEnvironments === 0}
         footerLeft={(
           <div className="footer-left-content">
             <span style={{ color: theme.brand }}>{selectedIndices.size}</span> of {totalEnvironments} selected
@@ -322,17 +331,25 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
         <StyledWrapper>
           <div className="modal-content">
             <div className="modal-header">
-              Environments <CountBadge size="md" className="ml-2" data-testid="env-import-total-count">{totalEnvironments}</CountBadge>
+              Environments <CountBadge size="md" className="ml-2" data-testid="env-import-total-count">{totalParsedCount}</CountBadge>
             </div>
 
             <div className="scroll-area">
               <div className="environments-list-container">
-                {parsedData.duplicates.length > 0 && (
+                {(parsedData.duplicates.length > 0 || parsedData.invalid.length > 0) && (
                   <div className="warning-block">
-                    <div className="warning-header">
-                      <IconAlertTriangleFilled size={16} className="mr-2 warning-icon" />
-                      <span className="warning-title">{parsedData.duplicates.length} {pluralizeWord('environment', parsedData.duplicates.length)}&nbsp;</span> already {parsedData.duplicates.length > 1 ? 'exist' : 'exists'} with the same name
-                    </div>
+                    {parsedData.duplicates.length > 0 && (
+                      <div className="warning-header">
+                        <IconAlertTriangleFilled size={16} className="mr-2 warning-icon" />
+                        <span className="warning-title">{parsedData.duplicates.length} {pluralizeWord('environment', parsedData.duplicates.length)}&nbsp;</span> already {parsedData.duplicates.length > 1 ? 'exist' : 'exists'} with the same name
+                      </div>
+                    )}
+                    {parsedData.invalid.length > 0 && (
+                      <div className="warning-header danger">
+                        <IconFileAlertFilled size={16} className="mr-2 error-icon" />
+                        <span className="warning-title">{parsedData.invalid.length} {pluralizeWord('file', parsedData.invalid.length)}&nbsp;</span> {parsedData.invalid.length > 1 ? 'have' : 'has'} an invalid or unsupported format
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -360,6 +377,31 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                     <span className="select-all-text">Select all</span>
                   </div>
                 </div>
+
+                {/* Invalid Group */}
+                {parsedData.invalid.length > 0 && (
+                  <div className={`group-container ${(parsedData.duplicates.length > 0 || parsedData.new.length > 0) ? 'has-border-bottom' : ''}`}>
+                    <div className="group-header">
+                      <div className="group-title-wrapper" onClick={() => toggleGroupExpanded('invalid')}>
+                        {expandedGroups.invalid ? <IconChevronDown size={16} className="text-zinc-500" /> : <IconChevronRight size={16} className="text-zinc-500" />}
+                        <span className="group-title">Invalid or unsupported</span>
+                        <CountBadge variant="danger" className="ml-2" data-testid="env-import-invalid-count">{parsedData.invalid.length}</CountBadge>
+                      </div>
+                    </div>
+                    {expandedGroups.invalid && (
+                      <div className="group-list">
+                        {parsedData.invalid.map((item, idx) => (
+                          <div key={idx} className="env-item" data-testid="env-import-invalid-item">
+                            <div className="env-item-content">
+                              <div className="env-name">{item.fileName}</div>
+                              <div className="env-error">{item.error}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Duplicates Group */}
                 {parsedData.duplicates.length > 0 && (
