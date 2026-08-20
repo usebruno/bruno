@@ -49,13 +49,34 @@ describe('syncMockResponsesFromExamples', () => {
 
     const synced = syncMockResponsesFromExamples(existingResponses, exampleEntries);
 
-    expect(synced).toHaveLength(3);
+    expect(synced).toHaveLength(4);
     expect(synced.find((item) => item.uid === 'custom-1')?.response.body.content).toBe('{"custom":true}');
-    expect(synced.find((item) => item.uid === 'users-1')?.response.body.content).toBe('{"synced":true}');
+    expect(synced.find((item) => item.uid === 'users-1')?.response.body.content).toBe('{}');
+    const syncedUsers = synced.find((item) => item.name === 'Users success (mock)');
+    expect(syncedUsers?.response.body.content).toBe('{"synced":true}');
     const createdResponse = synced.find((item) => item.name === 'Create order (mock)');
     expect(createdResponse).toBeTruthy();
     expect(createdResponse.uid).toBeUndefined();
     expect(getMockResponseRouteKey(synced.find((item) => item.uid === 'users-1'))).toBe('GET /users::200');
+  });
+
+  it('keeps one response per example when examples share a route and status', () => {
+    const entryFor = (name) => ({
+      item: { pathname: 'users.bru', request: { url: '/users', method: 'GET' } },
+      example: {
+        name,
+        request: { url: '/users', method: 'GET' },
+        response: { status: 200, body: { type: 'json', content: `{"from":"${name}"}` } }
+      }
+    });
+
+    const synced = syncMockResponsesFromExamples([], [entryFor('First'), entryFor('Second')]);
+
+    expect(synced).toHaveLength(2);
+    expect(synced.map((item) => item.name)).toEqual(['First (mock)', 'Second (mock)']);
+
+    const resynced = syncMockResponsesFromExamples(synced, [entryFor('First'), entryFor('Second')]);
+    expect(resynced).toHaveLength(2);
   });
 });
 
@@ -88,6 +109,41 @@ describe('buildMockRouteTable', () => {
         defaultResponse: 'Users'
       }
     ]);
+  });
+
+  it('defaults to the first rule-less response, not the first response', () => {
+    const [route] = buildMockRouteTable([
+      {
+        uid: 'a',
+        name: 'Users page 1',
+        request: { url: '/users', method: 'GET' },
+        response: { status: 200 },
+        rules: { operator: 'AND', conditions: [{ target: 'query', key: 'page', operator: 'equals', value: '1' }] }
+      },
+      {
+        uid: 'b',
+        name: 'All users',
+        request: { url: '/users', method: 'GET' },
+        response: { status: 200 },
+        rules: { operator: 'AND', conditions: [] }
+      }
+    ]);
+
+    expect(route.defaultResponse).toBe('All users');
+  });
+
+  it('has no default when every response carries rules', () => {
+    const [route] = buildMockRouteTable([
+      {
+        uid: 'a',
+        name: 'Users page 1',
+        request: { url: '/users', method: 'GET' },
+        response: { status: 200 },
+        rules: { operator: 'AND', conditions: [{ target: 'query', key: 'page', operator: 'equals', value: '1' }] }
+      }
+    ]);
+
+    expect(route.defaultResponse).toBeNull();
   });
 });
 
