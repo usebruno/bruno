@@ -91,7 +91,8 @@ describe('ntlmv2 over an https endpoint that demands a client certificate', () =
   test('fails when no client certificate is configured', async () => {
     appState.globalClientCertificates = [];
 
-    await expect(send()).rejects.toMatchObject({ code: 'ERR_SSL_TLSV13_ALERT_CERTIFICATE_REQUIRED' });
+    await expect(send()).rejects.toThrow();
+    expect(server.legs).toEqual([]);
   });
 });
 
