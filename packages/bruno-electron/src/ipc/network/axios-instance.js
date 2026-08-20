@@ -221,8 +221,7 @@ function makeAxiosInstance({
     (response) => {
       let timeline;
       const end = Date.now();
-      const start = response.config?.metadata?.startTime
-        ?? response.config.headers['request-start-time'];
+      const start = response.config.metadata.startTime;
       response.headers['request-duration'] = end - start;
       redirectCount = 0;
 
@@ -299,8 +298,7 @@ function makeAxiosInstance({
       });
       if (error.response) {
         const end = Date.now();
-        const start = error.config?.metadata?.startTime
-          ?? error.config.headers['request-start-time'];
+        const start = error.config.metadata.startTime;
         error.response.headers['request-duration'] = end - start;
         const duration = end - config?.metadata?.startTime;
         if (error.response && redirectResponseCodes.includes(error.response.status)) {
