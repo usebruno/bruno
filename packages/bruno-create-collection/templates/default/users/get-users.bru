@@ -1,0 +1,70 @@
+meta {
+  name: Get Users
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{BASE_URL}}/users?page={{DEFAULT_PAGE}}&limit={{DEFAULT_PAGE_SIZE}}&order=desc
+  body: json
+  auth: bearer
+}
+
+params:query {
+  page: {{DEFAULT_PAGE}}
+  limit: {{DEFAULT_PAGE_SIZE}}
+  order: desc
+}
+
+headers {
+  Content-Type: {{CONTENT_TYPE}}
+  Accept: {{ACCEPT}}
+  Authorization: Bearer {{AUTH_TOKEN}}
+  X-API-Key: {{API_KEY}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq OK
+  res.body.data[0].id: isNumber
+}
+
+tests {
+  test("users should have required fields", function() {
+    const users = res.getBody().data;
+    
+    expect(users).to.have.lengthOf(10);
+    expect(users[0]).to.have.property('firstname');
+  })
+}
+
+docs {
+  # Get Users API
+  This endpoint retrieves a paginated list of users with optional filtering.
+  
+  ## Query Parameters
+  - page (number, optional): Page number [default: 1]
+  - limit (number, optional): Items per page [default: 10]
+  - status (string, optional): Filter by user status
+  - role (string, optional): Filter by user role
+  - sort (string, optional): Sort field [default: created_at]
+  - order (string, optional): Sort order (asc/desc) [default: desc]
+  
+  ## Response Format
+  ```json
+  {
+    "data": [User],
+    "meta": {
+      "total": number,
+      "page": number,
+      "limit": number,
+      "totalPages": number
+    }
+  }
+  ```
+  
+  ## Response Codes
+  - 200: Success
+  - 400: Invalid query parameters
+  - 401: Unauthorized
+}
