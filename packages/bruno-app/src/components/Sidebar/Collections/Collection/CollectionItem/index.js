@@ -72,10 +72,8 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
 import useKeybinding from 'hooks/useKeybinding';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
-import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
-import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
-const CollectionItem = ({ item, collectionUid, collectionPathname, searchText }) => {
+const CollectionItem = ({ item, collectionUid, collectionPathname, searchText, openBulkMenu }) => {
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const selectorInput = {
@@ -100,7 +98,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
   const isSelected = selectedSidebarUids.includes(item.uid);
   const handleSelectionClick = useSidebarSelectionClick({ uid: item.uid, searchText });
-  const { openBulkMenu, menuProps } = useBulkActionsMenu();
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const activeWorkspace = workspaces?.find((w) => w.uid === activeWorkspaceUid);
@@ -761,7 +758,6 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
       {itemInfoModalOpen && (
         <CollectionItemInfo item={item} onClose={() => setItemInfoModalOpen(false)} />
       )}
-      <BulkActionsMenu menuProps={menuProps} />
       <CreateExampleModal
         isOpen={createExampleModalOpen}
         onClose={() => setCreateExampleModalOpen(false)}
@@ -861,17 +857,17 @@ const CollectionItem = ({ item, collectionUid, collectionPathname, searchText })
         <div>
           {folderItems && folderItems.length
             ? folderItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} />;
               })
             : null}
           {appItems && appItems.length
             ? appItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} />;
               })
             : null}
           {requestItems && requestItems.length
             ? requestItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} />;
+                return <CollectionItem key={i.uid} item={i} collectionUid={collectionUid} collectionPathname={collectionPathname} searchText={searchText} openBulkMenu={openBulkMenu} />;
               })
             : null}
           {showEmptyFolderMessage ? (

@@ -196,8 +196,8 @@ describe('sidebar selection reducers', () => {
   });
 });
 
-describe('collapseFullItem', () => {
-  it('recursively collapses a folder and everything nested under it', () => {
+describe('collapseItem', () => {
+  it('collapses a folder without affecting nested items', () => {
     const folder = {
       uid: 'folder1',
       type: 'folder',
@@ -219,13 +219,13 @@ describe('collapseFullItem', () => {
 
     const [collapsedFolder] = next.collections[0].items;
     expect(collapsedFolder.collapsed).toBe(true);
-    expect(collapsedFolder.items[0].collapsed).toBe(true);
-    expect(collapsedFolder.items[0].items[0].collapsed).toBe(true);
+    expect(collapsedFolder.items[0].collapsed).toBe(false);
+    expect(collapsedFolder.items[0].items[0].collapsed).toBe(false);
   });
 });
 
-describe('expandFullItem', () => {
-  it('recursively expands a folder and everything nested under it', () => {
+describe('expandItem', () => {
+  it('expands a folder without affecting nested items', () => {
     const folder = {
       uid: 'folder1',
       type: 'folder',
@@ -247,7 +247,7 @@ describe('expandFullItem', () => {
 
     const [expandedFolder] = next.collections[0].items;
     expect(expandedFolder.collapsed).toBe(false);
-    expect(expandedFolder.items[0].collapsed).toBe(false);
-    expect(expandedFolder.items[0].items[0].collapsed).toBe(false);
+    expect(expandedFolder.items[0].collapsed).toBe(true);
+    expect(expandedFolder.items[0].items[0].collapsed).toBe(true);
   });
 });

@@ -47,21 +47,6 @@ export const collapseAllItemsInCollection = (collection) => {
   setCollapsedRecursively(collection.items, true);
 };
 
-export const collapseAllItemsInFolder = (item) => {
-  item.collapsed = true;
-  setCollapsedRecursively(item.items, true);
-};
-
-export const expandAllItemsInCollection = (collection) => {
-  collection.collapsed = false;
-  setCollapsedRecursively(collection.items, false);
-};
-
-export const expandAllItemsInFolder = (item) => {
-  item.collapsed = false;
-  setCollapsedRecursively(item.items, false);
-};
-
 export const sortItems = (collection) => {
   const sort = (obj) => {
     if (obj.items && obj.items.length) {

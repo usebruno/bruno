@@ -9,12 +9,16 @@ import InlineCollectionCreator from './InlineCollectionCreator';
 import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
 import { buildSidebarEntries } from 'utils/collections/index';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
+import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
+import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
   const { collections, collectionSortOrder } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const dispatch = useDispatch();
+
+  const { openBulkMenu, menuProps } = useBulkActionsMenu();
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
 
@@ -67,12 +71,13 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         )}
         {sidebarEntries.map((entry) => {
           if (entry.kind === 'loaded') {
-            return <Collection searchText={searchText} collection={entry.collection} key={entry.key} />;
+            return <Collection searchText={searchText} collection={entry.collection} key={entry.key} openBulkMenu={openBulkMenu} />;
           }
           return <GitRemoteCollectionRow entry={entry.entry} key={entry.key} />;
         })}
       </div>
       <CollectionItemDragPreview />
+      <BulkActionsMenu menuProps={menuProps} />
     </StyledWrapper>
   );
 };

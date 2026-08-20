@@ -61,14 +61,12 @@ import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
 import StatusBadge from 'ui/StatusBadge';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
-import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
-import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 
 // Delay before showing empty collection state (ms)
 // This prevents flicker from race condition between loading state and item batch updates
 const EMPTY_STATE_DELAY_MS = 300;
 
-const Collection = ({ collection, searchText }) => {
+const Collection = ({ collection, searchText, openBulkMenu }) => {
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -96,7 +94,6 @@ const Collection = ({ collection, searchText }) => {
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
   const isSelected = selectedSidebarUids.includes(collection.uid);
   const handleSelectionClick = useSidebarSelectionClick({ uid: collection.uid, searchText });
-  const { openBulkMenu, menuProps } = useBulkActionsMenu();
   const menuDropdownRef = useRef(null);
 
   // 'Move into Workspace' is available for collections opened from outside the current workspace.
@@ -627,7 +624,6 @@ const Collection = ({ collection, searchText }) => {
           onClose={() => setShowCreateMockServerModal(false)}
         />
       )}
-      <BulkActionsMenu menuProps={menuProps} />
       <div
         className={collectionRowClassName}
         ref={collectionRef}
@@ -681,13 +677,13 @@ const Collection = ({ collection, searchText }) => {
         {!collectionIsCollapsed ? (
           <div>
             {folderItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} openBulkMenu={openBulkMenu} />;
             })}
             {appItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} openBulkMenu={openBulkMenu} />;
             })}
             {requestItems?.map?.((i) => {
-              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} />;
+              return <CollectionItem key={i.uid} item={i} collectionUid={collection.uid} collectionPathname={collection.pathname} searchText={searchText} openBulkMenu={openBulkMenu} />;
             })}
             {showEmptyCollectionMessage ? (
               <div className="empty-collection-message">

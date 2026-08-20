@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import { rgba } from 'polished';
 
 const Wrapper = styled.div`
   .collection-name {
