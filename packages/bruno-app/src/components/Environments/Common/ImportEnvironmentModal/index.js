@@ -4,6 +4,7 @@ import MenuDropdown from 'ui/MenuDropdown';
 import { DropdownTrigger, ResolutionButton, StyledWrapper } from './StyledWrapper';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
+import Checkbox from 'components/Checkbox';
 import SearchInput from 'components/SearchInput';
 import IconAlertTriangleFilled from 'components/Icons/IconAlertTriangleFilled';
 import toast from 'react-hot-toast';
@@ -329,7 +330,7 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                 {parsedData.duplicates.length > 0 && (
                   <div className="warning-block">
                     <div className="warning-header">
-                      <IconAlertTriangleFilled size={16} className="mr-2" fill={theme.colors.text.yellow} />
+                      <IconAlertTriangleFilled size={16} className="mr-2 warning-icon" />
                       <span className="warning-title">{parsedData.duplicates.length} {pluralizeWord('environment', parsedData.duplicates.length)}&nbsp;</span> already {parsedData.duplicates.length > 1 ? 'exist' : 'exists'} with the same name
                     </div>
                   </div>
@@ -350,13 +351,11 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                     />
                   </div>
                   <div className="select-all-wrapper" onClick={() => toggleSelectAll(!isAllSelected)}>
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       className="select-all-checkbox"
                       checked={isAllSelected}
                       onChange={(e) => toggleSelectAll(e.target.checked)}
-                      onClick={(e) => e.stopPropagation()}
-                      data-testid="env-import-select-all"
+                      dataTestId="env-import-select-all"
                     />
                     <span className="select-all-text">Select all</span>
                   </div>
@@ -395,12 +394,11 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                           return (
                             <div key={idx} className="env-item group" data-testid="env-import-item">
                               <label className="env-item-label">
-                                <input
-                                  type="checkbox"
+                                <Checkbox
                                   className="env-item-checkbox"
                                   checked={isSelected}
                                   onChange={() => toggleItemSelection(env)}
-                                  data-testid="env-import-item-checkbox"
+                                  dataTestId="env-import-item-checkbox"
                                 />
                                 <div className="env-item-content">
                                   <div className="env-name">{env.name}</div>
@@ -456,14 +454,13 @@ const ImportEnvironmentModal = ({ type = 'collection', collection, onClose, onEn
                           const globalIdx = [...parsedData.new, ...parsedData.duplicates].indexOf(env);
                           const isSelected = selectedIndices.has(globalIdx);
                           return (
-                            <div key={idx} className="env-item" data-testid="env-import-item">
+                            <div key={idx} className="env-item group" data-testid="env-import-item">
                               <label className="env-item-label">
-                                <input
-                                  type="checkbox"
+                                <Checkbox
                                   className="env-item-checkbox"
                                   checked={isSelected}
                                   onChange={() => toggleItemSelection(env)}
-                                  data-testid="env-import-item-checkbox"
+                                  dataTestId="env-import-item-checkbox"
                                 />
                                 <div className="env-item-content">
                                   <div className="env-name">{env.name}</div>

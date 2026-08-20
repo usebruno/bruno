@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 export const StyledWrapper = styled.div`
   /* Upload Step */
@@ -84,7 +85,7 @@ export const StyledWrapper = styled.div`
   }
 
   .warning-block {
-    background-color: ${(props) => props.theme.colors.bg.yellow};
+    background-color: ${(props) => rgba(props.theme.colors.text.yellow, 0.1)};
     border-bottom: 1px solid ${(props) => props.theme.border.border0};
     color: ${(props) => props.theme.colors.text.base};
     padding: 0.75rem;
@@ -98,12 +99,16 @@ export const StyledWrapper = styled.div`
     letter-spacing: normal;
     display: flex;
     align-items: center;
-    color: ${(props) => props.theme.colors.text.yellow};
+    color: ${(props) => props.theme.colors.text.base};
     margin-bottom: 0.5rem;
   }
 
   .warning-title {
     font-weight: 700;
+  }
+  
+  .warning-icon {
+    color: ${(props) => props.theme.colors.text.yellow};
   }
 
   .search-block {
@@ -130,11 +135,14 @@ export const StyledWrapper = styled.div`
   .select-all-checkbox {
     margin-right: 0.5rem;
     cursor: pointer;
+    background: transparent;
   }
 
   .select-all-text {
-    font-size: 0.875rem;
+    font-size: ${(props) => props.theme.font.size.base};
     font-weight: 500;
+    line-height: 20px;
+    letter-spacing: 0%;
   }
 
   .group-container {
@@ -190,6 +198,7 @@ export const StyledWrapper = styled.div`
     margin-right: 0.75rem;
     margin-top: 0.25rem;
     cursor: pointer;
+    background: transparent;
   }
 
   .env-item-content {
