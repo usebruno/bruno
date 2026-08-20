@@ -25,7 +25,7 @@ const getSidebarEntryName = (entry) => {
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
-  const filterText = useDebounce(searchText, SEARCH_DEBOUNCE_MS, { skipDebounce: isEmptyQuery });
+  const debouncedSearchText = useDebounce(searchText, SEARCH_DEBOUNCE_MS, { skipDebounce: isEmptyQuery });
   const { collections, collectionSortOrder } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
 
@@ -97,7 +97,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         )}
         {sidebarEntries.map((entry) => {
           if (entry.kind === 'loaded') {
-            return <Collection searchText={filterText} collection={entry.collection} key={entry.key} />;
+            return <Collection searchText={debouncedSearchText} collection={entry.collection} key={entry.key} />;
           }
           return <GitRemoteCollectionRow entry={entry.entry} key={entry.key} />;
         })}
