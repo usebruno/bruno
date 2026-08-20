@@ -1876,16 +1876,18 @@ export const generateUniqueRequestFilename = (collection, filename, itemUid = nu
     return filename;
   }
 
+  const normalizeFilename = (value) => value.trim().replace(/\.(bru|yml|yaml)$/i, '').toLowerCase();
+
   const existingFilenames = new Set(
     (parentItem.items || [])
       .filter((item) => isItemARequest(item))
-      .map((item) => item.filename.trim().replace(/\.(bru|yml|yaml)$/i, ''))
+      .map((item) => normalizeFilename(item.filename))
   );
 
   let candidate = filename;
   let counter = 1;
 
-  while (existingFilenames.has(candidate)) {
+  while (existingFilenames.has(normalizeFilename(candidate))) {
     candidate = `${filename}${counter}`;
     counter += 1;
   }

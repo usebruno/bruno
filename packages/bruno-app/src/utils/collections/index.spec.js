@@ -174,6 +174,20 @@ describe('generateUniqueRequestFilename', () => {
     expect(generateUniqueRequestFilename(collection, 'users')).toBe('users2');
   });
 
+  it('treats filenames as case-insensitive when selecting a suffix', () => {
+    const collectionWithMixedCaseFilename = {
+      items: [
+        {
+          type: 'http-request',
+          filename: 'Users.bru',
+          request: {}
+        }
+      ]
+    };
+
+    expect(generateUniqueRequestFilename(collectionWithMixedCaseFilename, 'users')).toBe('users1');
+  });
+
   it('checks filename collisions only within the selected folder', () => {
     expect(generateUniqueRequestFilename(collection, 'users', 'folder-1')).toBe('users1');
   });
