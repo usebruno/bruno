@@ -25,9 +25,8 @@ describe('ResponseStopWatch', () => {
   });
 
   it('derives elapsed time from the request start timestamp', () => {
-    const startTime = Date.now() - 1500;
-
-    renderStopWatch({ startTime, startMillis: 200 });
+    const startTimestamp = Date.now() - 1500;
+    renderStopWatch({ startTimestamp });
 
     expect(screen.getByText('1.5s')).toBeInTheDocument();
 
@@ -39,8 +38,8 @@ describe('ResponseStopWatch', () => {
   });
 
   it('preserves elapsed time after unmounting and remounting', () => {
-    const startTime = Date.now() - 1000;
-    const firstRender = renderStopWatch({ startTime, startMillis: 100 });
+    const startTimestamp = Date.now() - 1000;
+    const firstRender = renderStopWatch({ startTimestamp });
 
     expect(screen.getByText('1.0s')).toBeInTheDocument();
     firstRender.unmount();
@@ -49,38 +48,38 @@ describe('ResponseStopWatch', () => {
       jest.advanceTimersByTime(2000);
     });
 
-    renderStopWatch({ startTime, startMillis: 100 });
+    renderStopWatch({ startTimestamp });
 
     expect(screen.getByText('3.0s')).toBeInTheDocument();
   });
 
-  it('continues from the supplied duration when start time is unavailable', () => {
-    renderStopWatch({ startMillis: 400 });
+  it('shows zero while the request start timestamp is unavailable', () => {
+    renderStopWatch({});
 
-    expect(screen.getByText('0.4s')).toBeInTheDocument();
+    expect(screen.getByText('0.0s')).toBeInTheDocument();
 
     act(() => {
       jest.advanceTimersByTime(300);
     });
 
-    expect(screen.getByText('0.7s')).toBeInTheDocument();
+    expect(screen.getByText('0.0s')).toBeInTheDocument();
   });
 
   it('does not display a negative duration for a future start timestamp', () => {
-    renderStopWatch({ startTime: Date.now() + 1000, startMillis: 400 });
+    renderStopWatch({ startTimestamp: Date.now() + 1000 });
 
     expect(screen.getByText('0.0s')).toBeInTheDocument();
   });
 
   it('uses a request start timestamp received after the initial render', () => {
-    const { rerender } = renderStopWatch({ startMillis: 200 });
+    const { rerender } = renderStopWatch({});
 
-    expect(screen.getByText('0.2s')).toBeInTheDocument();
+    expect(screen.getByText('0.0s')).toBeInTheDocument();
 
-    const startTime = Date.now() - 1500;
+    const startTimestamp = Date.now() - 1500;
     rerender(
       <ThemeProvider theme={theme}>
-        <ResponseStopWatch startTime={startTime} startMillis={200} />
+        <ResponseStopWatch startTimestamp={startTimestamp} />
       </ThemeProvider>
     );
 
