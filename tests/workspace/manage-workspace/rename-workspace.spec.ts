@@ -1,0 +1,88 @@
+import path from 'path';
+import fs from 'fs';
+import yaml from 'js-yaml';
+import { test, expect, closeElectronApp } from '../../../playwright';
+import { createWorkspace, waitForReadyPage } from '../../utils/page';
+import { buildCommonLocators } from '../../utils/page/locators';
+import { openManageWorkspaces, openWorkspaceActionsMenu } from '../../utils/page/workspace/manage-workspace';
+
+const initUserDataPath = path.join(__dirname, 'init-user-data');
+
+test.describe('Manage Workspace — rename', () => {
+  test('TC-2612: Verify renaming a workspace from manage workspace section', { tag: '@sanity' }, async ({
+    launchElectronApp,
+    createTmpDir
+  }) => {
+    const wsLocation = await createTmpDir('ws-location-rename');
+
+    const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
+    const page = await waitForReadyPage(app);
+    const { manageWorkspace } = buildCommonLocators(page);
+
+    try {
+      await createWorkspace(page, 'Rename Me WS');
+
+      let workspacePath = '';
+
+      await test.step('Navigate to the Manage Workspace section', async () => {
+        await openManageWorkspaces(page);
+        await expect(manageWorkspace.title()).toHaveText('Manage Workspace');
+        await expect(manageWorkspace.workspaceItem('Rename Me WS')).toBeVisible();
+
+        workspacePath = (await manageWorkspace.workspacePath('Rename Me WS').innerText()).trim();
+        expect(workspacePath).not.toBe('');
+      });
+
+      await test.step('Open the workspace actions menu and verify the Rename option', async () => {
+        await openWorkspaceActionsMenu(page, 'Rename Me WS');
+        await expect(manageWorkspace.actionsMenuItem('rename')).toBeVisible();
+        await expect(manageWorkspace.actionsMenuItem('rename')).toHaveText('Rename');
+      });
+
+      await test.step('Click Rename to open the rename workspace modal', async () => {
+        await manageWorkspace.actionsMenuItem('rename').click();
+        await expect(manageWorkspace.renameModal()).toBeVisible();
+        await expect(manageWorkspace.renameNameInput()).toHaveValue('Rename Me WS');
+      });
+
+      await test.step('Enter a new name for the workspace', async () => {
+        await manageWorkspace.renameNameInput().fill('Renamed WS');
+        await expect(manageWorkspace.renameNameInput()).toHaveValue('Renamed WS');
+        await expect(manageWorkspace.renameError()).toHaveCount(0);
+      });
+
+      await test.step('Confirm the rename', async () => {
+        await manageWorkspace.renameSubmitButton().click();
+        await expect(manageWorkspace.renameModal()).toBeHidden();
+      });
+
+      await test.step('Verify the new name is reflected in the workspace list', async () => {
+        await expect(manageWorkspace.workspaceItem('Renamed WS')).toBeVisible();
+        await expect(manageWorkspace.workspaceItem('Rename Me WS')).toHaveCount(0);
+      });
+
+      await test.step('Verify the renamed workspace is still the active one in the title bar', async () => {
+        await expect(page.getByTestId('workspace-name')).toHaveText('Renamed WS');
+      });
+
+      await test.step('Verify the new name is persisted in workspace.yml', async () => {
+        const config = yaml.load(
+          fs.readFileSync(path.join(workspacePath, 'workspace.yml'), 'utf8')
+        ) as { info?: { name?: string } };
+        expect(config?.info?.name).toBe('Renamed WS');
+      });
+
+      await test.step('Verify renaming to an existing workspace name is rejected', async () => {
+        await openWorkspaceActionsMenu(page, 'Renamed WS');
+        await manageWorkspace.actionsMenuItem('rename').click();
+        await manageWorkspace.renameNameInput().fill('My Workspace');
+        await manageWorkspace.renameSubmitButton().click();
+
+        await expect(manageWorkspace.renameError()).toHaveText('A workspace with this name already exists');
+        await expect(manageWorkspace.renameModal()).toBeVisible();
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+});
