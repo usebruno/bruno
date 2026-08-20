@@ -5,9 +5,6 @@ const config = {
   framework: {
     name: 'storybook-react-rsbuild',
     options: {}
-  },
-  docs: {
-    autodocs: true
   }
 };
 
