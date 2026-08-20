@@ -264,9 +264,6 @@ const GlobalStyle = createGlobalStyle`
     .cm-variable-prompt {
       color: ${(props) => props.theme.codemirror.variable.prompt};
     }
-
-    /* Applied by CodeMirrorSearch via markText/addLineClass, so they land inside
-       the editor and cannot be styled from the search bar's own wrapper. */
     .cm-search-line-highlight {
       background: ${(props) => props.theme.codemirror.searchLineHighlightCurrent};
     }
