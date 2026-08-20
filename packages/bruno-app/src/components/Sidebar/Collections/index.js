@@ -11,6 +11,7 @@ import { isScratchCollection } from 'utils/collections';
 import useDebounce from 'hooks/useDebounce';
 
 const SEARCH_DEBOUNCE_MS = 300;
+const isEmptyQuery = (value) => value === '';
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
@@ -24,8 +25,7 @@ const getSidebarEntryName = (entry) => {
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
-  const debouncedSearchText = useDebounce(searchText, SEARCH_DEBOUNCE_MS);
-  const filterText = searchText === '' ? '' : debouncedSearchText;
+  const filterText = useDebounce(searchText, SEARCH_DEBOUNCE_MS, { skipDebounce: isEmptyQuery });
   const { collections, collectionSortOrder } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
 
