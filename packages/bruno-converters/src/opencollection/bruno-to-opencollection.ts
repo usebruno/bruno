@@ -167,6 +167,7 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
     ignore?: string[];
     presets?: BrunoPresets;
     scripts?: { flow?: 'sandwich' | 'sequential' };
+    openapi?: BrunoConfig['openapi'];
   } = {};
 
   if (brunoConfig?.ignore?.length) {
@@ -190,6 +191,17 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
   const scriptFlow = brunoConfig?.scripts?.flow;
   if (scriptFlow === 'sandwich' || scriptFlow === 'sequential') {
     brunoExtension.scripts = { flow: scriptFlow };
+  }
+  const openApiExtensions = brunoConfig?.openapi;
+  if (Array.isArray(openApiExtensions) && openApiExtensions.length > 0) {
+    brunoExtension.openapi = openApiExtensions.map((entry: any) => ({
+      sourceUrl: entry.sourceUrl,
+      groupBy: entry.groupBy,
+      ...(entry.lastSyncDate && { lastSyncDate: entry.lastSyncDate }),
+      ...(entry.specHash && { specHash: entry.specHash }),
+      autoCheck: entry.autoCheck !== false,
+      autoCheckInterval: entry.autoCheckInterval || 5
+    }));
   }
 
   if (Object.keys(brunoExtension).length > 0) {
