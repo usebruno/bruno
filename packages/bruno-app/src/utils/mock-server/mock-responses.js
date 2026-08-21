@@ -24,7 +24,7 @@ export const copyExampleToMockResponse = (example, parentRequest) => ({
     requestPathname: parentRequest?.pathname || null
   },
   request: {
-    url: extractMockRoutePath(example.request?.url || parentRequest?.request?.url || '/'),
+    url: extractMockRoutePath(example.request?.url || parentRequest?.request?.url || '/', { preserveTemplateVars: true }),
     method: (example.request?.method || parentRequest?.request?.method || 'GET').toUpperCase(),
     headers: example.request?.headers || [],
     params: example.request?.params || [],
