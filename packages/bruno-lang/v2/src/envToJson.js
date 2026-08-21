@@ -1,4 +1,4 @@
-const ohm = require('ohm-js');
+const { compileGrammar } = require('./grammar-cache');
 const _ = require('lodash');
 const {
   parseAnnotationMultilineTextBlock,
@@ -21,7 +21,7 @@ const ANNOTATIONS_KEY = Symbol('annotations');
 //   '''
 // }
 const indentLevel = 4;
-const grammar = ohm.grammar(`Bru {
+const grammar = compileGrammar('env', `Bru {
   BruEnvFile = (vars | secretvars | externalsecrets | color)*
 
   nl = "\\r"? "\\n"

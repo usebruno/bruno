@@ -4,13 +4,16 @@
   "license": "MIT",
   "main": "src/index.js",
   "files": [
+    "generated",
     "src",
     "v1",
     "v2",
     "package.json"
   ],
   "scripts": {
-    "test": "jest"
+    "prepare": "npm run generate:grammars",
+    "test": "jest",
+    "generate:grammars": "node ./scripts/generate-grammars.js"
   },
   "dependencies": {
     "arcsecond": "^5.0.0",
