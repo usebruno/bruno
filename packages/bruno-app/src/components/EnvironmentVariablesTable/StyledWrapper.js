@@ -9,6 +9,10 @@ const Wrapper = styled.div`
   &.is-resizing {
     cursor: col-resize !important;
     user-select: none;
+
+    .add-variable-action {
+      pointer-events: none;
+    }
   }
 
   .table-container {
@@ -87,6 +91,10 @@ const Wrapper = styled.div`
       tr {
         transition: background 0.1s ease;
 
+        &:hover {
+          background: ${(props) => props.theme.plainGrid.hoverBg};
+        }
+
         &:last-child td {
           border-bottom: none;
         }
@@ -110,6 +118,50 @@ const Wrapper = styled.div`
   .name-cell-wrapper {
     position: relative;
     width: 100%;
+  }
+
+  .table-viewport {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .add-variable-action {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    /* .resize-handle (z-index: 100), which spans the full table height and
+       would otherwise paint straight through this bar while a column is dragged. */
+    z-index: 101;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 8px 12px;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.text};
+    background: ${(props) => props.theme.bg};
+    border: solid 1px ${(props) => props.theme.border.border0};
+    border-radius: 0 0 8px 8px;
+    cursor: pointer;
+    transition: background 0.1s ease, color 0.1s ease;
+    animation: add-variable-action-in 120ms ease-out;
+
+    &:hover {
+      color: ${(props) => props.theme.brand};
+      background: ${(props) => props.theme.plainGrid.hoverBg};
+    }
+  }
+
+  @keyframes add-variable-action-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   .no-results {
