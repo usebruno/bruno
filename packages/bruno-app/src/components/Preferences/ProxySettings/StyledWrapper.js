@@ -6,23 +6,84 @@ const StyledWrapper = styled.div`
   gap: 1rem;
   width: 100%;
 
-  .settings-label {
-    width: 100px;
+  color: ${(props) => props.theme.text};
+
+  form.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 40rem;
   }
 
-  .textbox {
-    border: 1px solid #ccc;
-    padding: 0.15rem 0.45rem;
-    box-shadow: none;
-    outline: none;
-    transition: border-color ease-in-out 0.1s;
-    border-radius: 3px;
+  .server-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 8.5rem;
+    gap: 1rem;
+  }
+
+  .auth-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  /* Deliberately not reusing the .textbox class here. The wrapper needs its own
+     padding so the nested input can sit flush inside it; mixing the two means a
+     padding shorthand and a longhand at equal specificity, where the winner
+     depends on stylesheet order. Restating the .textbox visuals keeps this box
+     exactly as tall as a plain input next to it. */
+  .password-field {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    width: 100%;
+    line-height: 1.5;
+    padding: 0.45rem;
+    border-radius: ${(props) => props.theme.border.radius.sm};
     background-color: ${(props) => props.theme.input.bg};
     border: 1px solid ${(props) => props.theme.input.border};
+    color: ${(props) => props.theme.text};
 
-    &:focus {
-      border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
-      outline: none !important;
+    &:focus-within {
+      border-color: ${(props) => props.theme.input.focusBorder};
+    }
+
+    .password-input {
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 0;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      line-height: inherit;
+
+      &:disabled {
+        cursor: not-allowed;
+      }
+    }
+
+    /* zero padding/line-height so the icon can't make this row taller than the
+       plain inputs beside it */
+    .password-toggle {
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+      padding: 0;
+      border: none;
+      background: none;
+      line-height: 0;
+      color: ${(props) => props.theme.colors.text.muted};
+      cursor: pointer;
+
+      &:hover:not(:disabled) {
+        color: ${(props) => props.theme.text};
+      }
+
+      &:disabled {
+        cursor: not-allowed;
+      }
     }
   }
 
@@ -32,12 +93,10 @@ const StyledWrapper = styled.div`
     border: 1px solid ${(props) => props.theme.input.border};
     border-radius: ${(props) => props.theme.border.radius.base};
     overflow: hidden;
-    margin-right: 12px;
   }
 
   .pac-mode-btn {
-    height: 34px;
-    padding: 0.1rem 0.6rem;
+    padding: 0.45rem 0.75rem;
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 500;
     color: ${(props) => props.theme.colors.text.muted};
@@ -58,7 +117,8 @@ const StyledWrapper = styled.div`
   }
 
   .pac-source-input {
-    width: 265px;
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .pac-file-btn {
@@ -70,11 +130,19 @@ const StyledWrapper = styled.div`
     text-overflow: ellipsis;
   }
 
-  .pac-hint {
-    font-size: ${(props) => props.theme.font.size.xs};
-    color: ${(props) => props.theme.colors.text.muted};
-    margin-top: 4px;
-    padding-left: 100px;
+  .pac-refetch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    width: fit-content;
+    margin-top: 0.625rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.textLink};
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
   }
 
   .system-proxy-settings {

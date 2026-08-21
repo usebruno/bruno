@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
@@ -8,8 +8,24 @@ import { savePreferences, refreshPacCache } from 'providers/ReduxStore/slices/ap
 import StyledWrapper from './StyledWrapper';
 import { useDispatch, useSelector } from 'react-redux';
 import { IconEye, IconEyeOff, IconRefresh } from '@tabler/icons';
-import { useState } from 'react';
+
 import SystemProxy from './SystemProxy';
+import SegmentedControl from 'ui/SegmentedControl';
+import { SettingsGroup, CheckboxSetting, SettingsField } from '../SettingsLayout';
+
+const PROXY_MODES = [
+  { 'value': 'off', 'label': 'Off', 'data-testid': 'off-proxy-mode' },
+  { 'value': 'manual', 'label': 'On', 'data-testid': 'manual-proxy-mode' },
+  { 'value': 'inherit', 'label': 'System Proxy', 'data-testid': 'system-proxy-mode' },
+  { 'value': 'pac', 'label': 'PAC', 'data-testid': 'pac-proxy-mode' }
+];
+
+const PROXY_PROTOCOLS = [
+  { value: 'http', label: 'HTTP' },
+  { value: 'https', label: 'HTTPS' },
+  { value: 'socks4', label: 'SOCKS4' },
+  { value: 'socks5', label: 'SOCKS5' }
+];
 
 const ProxySettings = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -131,343 +147,260 @@ const ProxySettings = ({ close }) => {
     };
   }, [formik.values, formik.dirty, formik.isValid, debouncedSave, proxyMode]);
 
+  const applyMode = (mode) => {
+    setProxyMode(mode);
+    if (mode === 'off') {
+      formik.setFieldValue('disabled', true);
+      return;
+    }
+    formik.setFieldValue('disabled', false);
+    formik.setFieldValue('source', mode);
+  };
+
+  const authEnabled = !formik.values.config.auth.disabled;
+
   return (
-    <StyledWrapper>
+    <StyledWrapper className="w-full">
       <div className="section-header">Proxy Settings</div>
-      <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="mb-3 flex items-center mt-2">
-          <label className="settings-label" htmlFor="protocol">
-            Mode
-          </label>
-          <div className="flex items-center">
-            <label className="flex items-center cursor-pointer" data-testid="off-proxy-mode">
-              <input
-                type="radio"
-                name="mode"
-                value="off"
-                checked={proxyMode === 'off'}
-                onChange={(e) => {
-                  setProxyMode('off');
-                  formik.setFieldValue('disabled', true);
-                }}
-                className="mr-1 cursor-pointer"
-              />
-              Off
-            </label>
-            <label className="flex items-center ml-4 cursor-pointer" data-testid="manual-proxy-mode">
-              <input
-                type="radio"
-                name="mode"
-                value="manual"
-                checked={proxyMode === 'manual'}
-                onChange={(e) => {
-                  setProxyMode('manual');
-                  formik.setFieldValue('disabled', false);
-                  formik.setFieldValue('source', 'manual');
-                }}
-                className="mr-1 cursor-pointer"
-              />
-              On
-            </label>
-            <label className="flex items-center ml-4 cursor-pointer" data-testid="system-proxy-mode">
-              <input
-                type="radio"
-                name="mode"
-                value="inherit"
-                checked={proxyMode === 'inherit'}
-                onChange={(e) => {
-                  setProxyMode('inherit');
-                  formik.setFieldValue('disabled', false);
-                  formik.setFieldValue('source', 'inherit');
-                }}
-                className="mr-1 cursor-pointer"
-              />
-              System Proxy
-            </label>
-            <label className="flex items-center ml-4 cursor-pointer" data-testid="pac-proxy-mode">
-              <input
-                type="radio"
-                name="mode"
-                value="pac"
-                checked={proxyMode === 'pac'}
-                onChange={(e) => {
-                  setProxyMode('pac');
-                  formik.setFieldValue('disabled', false);
-                  formik.setFieldValue('source', 'pac');
-                }}
-                className="mr-1 cursor-pointer"
-              />
-              PAC
-            </label>
-          </div>
-        </div>
+      <form className="bruno-form settings-form" onSubmit={formik.handleSubmit}>
+        <SettingsGroup title="Connection">
+          <SettingsField label="Mode" className="proxy-mode-field">
+            <SegmentedControl
+              name="mode"
+              variant="outlined"
+              size="md"
+              ariaLabel="Proxy mode"
+              data-testid="proxy-mode"
+              value={proxyMode}
+              onChange={applyMode}
+              items={PROXY_MODES}
+            />
+          </SettingsField>
+        </SettingsGroup>
+
         {proxyMode === 'inherit' ? (
-          <div className="mb-3 pt-1 text-muted system-proxy-settings">
-            <SystemProxy />
-          </div>
+          <SettingsGroup title="System Proxy">
+            <div className="text-muted system-proxy-settings">
+              <SystemProxy />
+            </div>
+          </SettingsGroup>
         ) : null}
+
         {proxyMode === 'manual' ? (
           <>
-            <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="protocol">
-                Protocol
-              </label>
-              <div className="flex items-center">
-                <label className="flex items-center">
+            <SettingsGroup title="Server">
+              <SettingsField label="Protocol" className="protocol-field">
+                <SegmentedControl
+                  name="config.protocol"
+                  variant="outlined"
+                  size="md"
+                  ariaLabel="Proxy protocol"
+                  data-testid="proxy-protocol"
+                  value={formik.values.config.protocol}
+                  onChange={(value) => formik.setFieldValue('config.protocol', value)}
+                  items={PROXY_PROTOCOLS}
+                />
+              </SettingsField>
+
+              <div className="server-grid">
+                <SettingsField label="Hostname" htmlFor="config.hostname" error={formik.errors.config?.hostname}>
                   <input
-                    type="radio"
-                    name="config.protocol"
-                    value="http"
-                    checked={formik.values.config.protocol === 'http'}
+                    id="config.hostname"
+                    type="text"
+                    name="config.hostname"
+                    className="textbox w-full"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    placeholder="proxy.internal"
                     onChange={formik.handleChange}
-                    className="mr-1"
+                    onBlur={formik.handleBlur}
+                    value={formik.values.config.hostname || ''}
                   />
-                  HTTP
-                </label>
-                <label className="flex items-center ml-4">
+                </SettingsField>
+                <SettingsField label="Port" htmlFor="config.port" error={formik.errors.config?.port}>
                   <input
-                    type="radio"
-                    name="config.protocol"
-                    value="https"
-                    checked={formik.values.config.protocol === 'https'}
+                    id="config.port"
+                    type="number"
+                    name="config.port"
+                    className="textbox w-full"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    placeholder="0"
                     onChange={formik.handleChange}
-                    className="mr-1"
+                    onBlur={formik.handleBlur}
+                    value={formik.values.config.port}
                   />
-                  HTTPS
-                </label>
-                <label className="flex items-center ml-4">
-                  <input
-                    type="radio"
-                    name="config.protocol"
-                    value="socks4"
-                    checked={formik.values.config.protocol === 'socks4'}
-                    onChange={formik.handleChange}
-                    className="mr-1"
-                  />
-                  SOCKS4
-                </label>
-                <label className="flex items-center ml-4">
-                  <input
-                    type="radio"
-                    name="config.protocol"
-                    value="socks5"
-                    checked={formik.values.config.protocol === 'socks5'}
-                    onChange={formik.handleChange}
-                    className="mr-1"
-                  />
-                  SOCKS5
-                </label>
+                </SettingsField>
               </div>
-            </div>
-            <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="config.hostname">
-                Hostname
-              </label>
-              <input
-                id="config.hostname"
-                type="text"
-                name="config.hostname"
-                className="block textbox"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                onChange={formik.handleChange}
-                value={formik.values.config.hostname || ''}
-              />
-              {formik.touched.config?.hostname && formik.errors.config?.hostname ? (
-                <div className="ml-3 text-red-500">{formik.errors.config.hostname}</div>
-              ) : null}
-            </div>
-            <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="config.port">
-                Port
-              </label>
-              <input
-                id="config.port"
-                type="number"
-                name="config.port"
-                className="block textbox"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                onChange={formik.handleChange}
-                value={formik.values.config.port}
-              />
-              {formik.touched.config?.port && formik.errors.config?.port ? (
-                <div className="ml-3 text-red-500">{formik.errors.config.port}</div>
-              ) : null}
-            </div>
-            <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="config.auth.disabled">
-                Auth
-              </label>
-              <input
+            </SettingsGroup>
+
+            <SettingsGroup>
+              <CheckboxSetting
                 id="config.auth.disabled"
-                type="checkbox"
                 name="config.auth.disabled"
-                checked={!formik.values.config.auth.disabled}
-                onChange={(e) => {
-                  formik.setFieldValue('config.auth.disabled', !e.target.checked);
-                }}
-                className="mousetrap mr-0"
+                label="Authentication"
+                checked={authEnabled}
+                onChange={(e) => formik.setFieldValue('config.auth.disabled', !e.target.checked)}
               />
-            </div>
-            <div>
-              <div className="mb-3 flex items-center">
-                <label className="settings-label" htmlFor="config.auth.username">
-                  Username
-                </label>
+              <div className="auth-grid">
+                <SettingsField
+                  label="Username"
+                  htmlFor="config.auth.username"
+                  error={formik.errors.config?.auth?.username}
+                >
+                  <input
+                    id="config.auth.username"
+                    type="text"
+                    name="config.auth.username"
+                    className="textbox w-full"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    value={formik.values.config.auth.username}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                  />
+                </SettingsField>
+                <SettingsField
+                  label="Password"
+                  htmlFor="config.auth.password"
+                  error={formik.errors.config?.auth?.password}
+                >
+                  <div className="password-field">
+                    <input
+                      id="config.auth.password"
+                      type={passwordVisible ? 'text' : 'password'}
+                      name="config.auth.password"
+                      className="password-input"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      value={formik.values.config.auth.password}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      aria-label={passwordVisible ? 'Hide password' : 'Show password'}
+                      onClick={() => setPasswordVisible(!passwordVisible)}
+                    >
+                      {passwordVisible ? (
+                        <IconEyeOff size={16} strokeWidth={1.5} />
+                      ) : (
+                        <IconEye size={16} strokeWidth={1.5} />
+                      )}
+                    </button>
+                  </div>
+                </SettingsField>
+              </div>
+            </SettingsGroup>
+
+            <SettingsGroup
+              title="Bypass"
+              description="Hosts that should skip the proxy — comma separated, wildcards allowed"
+            >
+              <SettingsField htmlFor="config.bypassProxy" error={formik.errors.config?.bypassProxy}>
                 <input
-                  id="config.auth.username"
+                  id="config.bypassProxy"
                   type="text"
-                  name="config.auth.username"
-                  className="block textbox"
+                  name="config.bypassProxy"
+                  className="textbox w-full"
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
                   spellCheck="false"
-                  value={formik.values.config.auth.username}
+                  placeholder="localhost, 127.0.0.1, *.internal"
                   onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  value={formik.values.config.bypassProxy || ''}
                 />
-                {formik.touched.config?.auth?.username && formik.errors.config?.auth?.username ? (
-                  <div className="ml-3 text-red-500">{formik.errors.config.auth.username}</div>
-                ) : null}
-              </div>
-              <div className="mb-3 flex items-center">
-                <label className="settings-label" htmlFor="config.auth.password">
-                  Password
-                </label>
-                <div className="textbox flex flex-row items-center w-[13.2rem] h-[2.25rem] relative">
-                  <input
-                    id="config.auth.password"
-                    type={passwordVisible ? `text` : 'password'}
-                    name="config.auth.password"
-                    className="outline-none w-[10.5rem] bg-transparent"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    value={formik.values.config.auth.password}
-                    onChange={formik.handleChange}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-sm absolute right-0"
-                    onClick={() => setPasswordVisible(!passwordVisible)}
-                  >
-                    {passwordVisible ? <IconEyeOff size={18} strokeWidth={2} /> : <IconEye size={18} strokeWidth={2} />}
-                  </button>
-                </div>
-                {formik.touched.config?.auth?.password && formik.errors.config?.auth?.password ? (
-                  <div className="ml-3 text-red-500">{formik.errors.config.auth.password}</div>
-                ) : null}
-              </div>
-            </div>
-            <div className="mb-3 flex items-center">
-              <label className="settings-label" htmlFor="config.bypassProxy">
-                Proxy Bypass
-              </label>
-              <input
-                id="config.bypassProxy"
-                type="text"
-                name="config.bypassProxy"
-                className="block textbox"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                onChange={formik.handleChange}
-                value={formik.values.config.bypassProxy || ''}
-              />
-              {formik.touched.config?.bypassProxy && formik.errors.config?.bypassProxy ? (
-                <div className="ml-3 text-red-500">{formik.errors.config.bypassProxy}</div>
-              ) : null}
-            </div>
+              </SettingsField>
+            </SettingsGroup>
           </>
         ) : null}
+
         {proxyMode === 'pac' ? (
-          <>
-            <div className="mb-3">
-              <div className="flex items-center">
-                <label className="settings-label">PAC</label>
-                <div className="pac-mode-toggle">
-                  <button
-                    type="button"
-                    className={`pac-mode-btn ${pacInputMode === 'url' ? 'active' : ''}`}
-                    onClick={() => {
-                      setPacInputMode('url');
-                      formik.setFieldValue('pac.source', '');
-                    }}
-                  >
-                    URL
-                  </button>
-                  <button
-                    type="button"
-                    className={`pac-mode-btn ${pacInputMode === 'file' ? 'active' : ''}`}
-                    onClick={() => {
-                      setPacInputMode('file');
-                      formik.setFieldValue('pac.source', '');
-                    }}
-                  >
-                    File
-                  </button>
-                </div>
-                {pacInputMode === 'url' ? (
-                  <input
-                    id="pac.source"
-                    type="text"
-                    name="pac.source"
-                    className="block textbox pac-source-input"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    onChange={formik.handleChange}
-                    value={formik.values.pac.source || ''}
-                    placeholder="https://example.com/proxy.pac"
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    className="textbox pac-source-input pac-file-btn"
-                    onClick={() => {
-                      window.ipcRenderer
-                        .invoke('renderer:browse-pac-file')
-                        .then((fileUrl) => {
-                          if (fileUrl) {
-                            formik.setFieldValue('pac.source', fileUrl);
-                          }
-                        })
-                        .catch(() => toast.error('Failed to open file picker'));
-                    }}
-                  >
-                    {formik.values.pac.source
-                      ? decodeURIComponent(formik.values.pac.source.split('/').pop())
-                      : 'Select File'}
-                  </button>
-                )}
-                {formik.touched.pac?.source && formik.errors.pac?.source ? (
-                  <div className="ml-3 text-red-500">{formik.errors.pac.source}</div>
-                ) : null}
-              </div>
-              <p className="pac-hint">
-                {pacInputMode === 'url'
-                  ? 'Enter the URL to your PAC file'
-                  : 'Supports .pac files for automatic proxy configuration'}
-              </p>
-              {formik.values.pac.source ? (
-                <span
-                  className="text-link cursor-pointer hover:underline flex flex-row items-center w-fit mt-2"
-                  onClick={handleRefreshPac}
+          <SettingsGroup
+            title="PAC"
+            description={
+              pacInputMode === 'url'
+                ? 'Enter the URL to your PAC file'
+                : 'Supports .pac files for automatic proxy configuration'
+            }
+          >
+            <SettingsField error={formik.errors.pac?.source}>
+              <div className="pac-mode-toggle">
+                <button
+                  type="button"
+                  className={`pac-mode-btn ${pacInputMode === 'url' ? 'active' : ''}`}
+                  onClick={() => {
+                    setPacInputMode('url');
+                    formik.setFieldValue('pac.source', '');
+                  }}
                 >
-                  <IconRefresh size={14} strokeWidth={1.5} className="mr-1" />
-                  Refetch
-                </span>
-              ) : null}
-            </div>
-          </>
+                  URL
+                </button>
+                <button
+                  type="button"
+                  className={`pac-mode-btn ${pacInputMode === 'file' ? 'active' : ''}`}
+                  onClick={() => {
+                    setPacInputMode('file');
+                    formik.setFieldValue('pac.source', '');
+                  }}
+                >
+                  File
+                </button>
+              </div>
+              {pacInputMode === 'url' ? (
+                <input
+                  id="pac.source"
+                  type="text"
+                  name="pac.source"
+                  className="textbox pac-source-input"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  value={formik.values.pac.source || ''}
+                  placeholder="https://example.com/proxy.pac"
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="textbox pac-source-input pac-file-btn"
+                  onClick={() => {
+                    window.ipcRenderer
+                      .invoke('renderer:browse-pac-file')
+                      .then((fileUrl) => {
+                        if (fileUrl) {
+                          formik.setFieldValue('pac.source', fileUrl);
+                        }
+                      })
+                      .catch(() => toast.error('Failed to open file picker'));
+                  }}
+                >
+                  {formik.values.pac.source
+                    ? decodeURIComponent(formik.values.pac.source.split('/').pop())
+                    : 'Select File'}
+                </button>
+              )}
+            </SettingsField>
+            {formik.values.pac.source ? (
+              <span className="pac-refetch" onClick={handleRefreshPac}>
+                <IconRefresh size={14} strokeWidth={1.5} />
+                Refetch
+              </span>
+            ) : null}
+          </SettingsGroup>
         ) : null}
       </form>
     </StyledWrapper>
