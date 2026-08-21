@@ -208,18 +208,3 @@ export const writesCollidingSecrets = (submittedVariables, savedVariables) => {
   const secretsKey = (variables) => JSON.stringify((variables || []).filter((v) => v.secret).map(stripEnvVarUid));
   return secretsKey(submittedVariables) !== secretsKey(savedVariables);
 };
-
-/**
- * Settles a collision in favour of the row just edited, dropping its namesakes. Since a save is
- * refused while secrets collide, editing one row is how the user clears it.
- *
- * Names compare exactly, not trimmed: the store keys on the untrimmed name, so `token` and
- * `  token  ` are two separately readable secrets and dropping either would discard a live value.
- */
-export const resolveSecretNameCollision = (variables, editedVariable) => {
-  const editedName = editedVariable?.name;
-  if (!editedVariable?.secret || !editedName?.trim() || !getDuplicateSecretNames(variables).has(editedName.trim())) {
-    return variables;
-  }
-  return (variables || []).filter((v) => v.uid === editedVariable.uid || !(v.secret && v.name === editedName));
-};
