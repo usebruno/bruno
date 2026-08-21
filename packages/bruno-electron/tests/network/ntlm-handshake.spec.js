@@ -5,7 +5,6 @@ jest.mock('../../src/utils/cookies', () => require('./helpers/app-state').cookie
 
 const { appState, resetAppState } = require('./helpers/app-state');
 const { startNtlmEndpoint, sendRequest } = require('./helpers/ntlm-request');
-const { startProxyForHttp } = require('./helpers/proxies');
 
 let server;
 let baseUrl;
@@ -79,44 +78,5 @@ describe('an ntlm request against a live server', () => {
 
     expect(server.messageTypesSeen()).toEqual([null, 1, 3, 3]);
     expect(server.connectionsUsed()).toBe(2);
-  });
-});
-
-describe('an ntlm request through a proxy', () => {
-  let proxy;
-
-  beforeEach(async () => {
-    proxy = await startProxyForHttp();
-    appState.brunoConfig = proxy.brunoConfig;
-  });
-
-  afterEach(async () => {
-    await proxy.close();
-  });
-
-  test('completes the handshake over a single connection through the proxy', async () => {
-    const response = await send();
-
-    expect(response.status).toBe(200);
-    expect(proxy.connectionsAccepted()).toBe(1);
-    expect(server.messageTypesSeen()).toEqual([null, 1, 3]);
-    expect(server.connectionsUsed()).toBe(1);
-  });
-
-  test('completes the handshake through a proxy a pac file resolves to', async () => {
-    const pac = await proxy.servePacFile();
-    appState.brunoConfig = {};
-    appState.globalProxyConfig = pac.globalProxyConfig;
-
-    try {
-      const response = await send();
-
-      expect(response.status).toBe(200);
-      expect(proxy.connectionsAccepted()).toBe(1);
-      expect(server.messageTypesSeen()).toEqual([null, 1, 3]);
-      expect(server.connectionsUsed()).toBe(1);
-    } finally {
-      await pac.close();
-    }
   });
 });

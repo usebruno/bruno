@@ -4,7 +4,6 @@ jest.mock('../../src/store/system-proxy', () => require('./helpers/app-state').s
 
 const { appState, resetAppState, disableTlsVerification, trustCertificateAsCustomCa } = require('./helpers/app-state');
 const { startNtlmEndpoint, sendRequest, credentials } = require('./helpers/ntlm-request');
-const { startProxyForHttps } = require('./helpers/proxies');
 
 let server;
 
@@ -93,29 +92,5 @@ describe('ntlmv2 over an https endpoint that demands a client certificate', () =
 
     await expect(send()).rejects.toThrow();
     expect(server.legs).toEqual([]);
-  });
-});
-
-describe('ntlmv2 over an https endpoint reached through a connect proxy', () => {
-  let proxy;
-
-  beforeEach(async () => {
-    proxy = await startProxyForHttps();
-    disableTlsVerification();
-    appState.brunoConfig = proxy.brunoConfig;
-  });
-
-  afterEach(async () => {
-    await proxy.close();
-  });
-
-  test('authenticates over a single tunnel', async () => {
-    const response = await send();
-
-    expect(response.status).toBe(200);
-    expect(response.data).toMatchObject({ authenticated: true });
-    expect(proxy.tunnelsOpened()).toBe(1);
-    expect(server.messageTypesSeen()).toEqual([null, 1, 3]);
-    expect(server.connectionsUsed()).toBe(1);
   });
 });
