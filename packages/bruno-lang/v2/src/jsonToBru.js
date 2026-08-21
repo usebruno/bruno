@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const { getPhasesByRequestType, REQUEST_TYPES } = require('@usebruno/common');
 const { indentString, getValueString, getKeyString, getValueUrl, serializeVar, serializeAnnotations, buildAnnotationsFromKVItem } = require('./utils');
 const jsonToExampleBru = require('./example/jsonToBru');
 
@@ -634,7 +635,7 @@ ${indentString(body.sparql)}
         bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
 
         // Convert content to JSON string if it's an object
-        let jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
+        const jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
 
         // Wrap content with triple quotes for multiline support, without extra indentation
         bru += `${indentString(`content: '''\n${indentString(jsonValue)}\n'''`)}\n`;
@@ -660,7 +661,7 @@ ${indentString(body.sparql)}
         }
 
         // Convert content to JSON string if it's an object
-        let contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '';
+        const contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '';
 
         // Wrap content with triple quotes for multiline support, without extra indentation
         bru += `${indentString(`content: '''\n${indentString(contentValue)}\n'''`)}\n`;
@@ -669,8 +670,8 @@ ${indentString(body.sparql)}
     }
   }
 
-  let reqvars = _.get(vars, 'req');
-  let resvars = _.get(vars, 'res');
+  const reqvars = _.get(vars, 'req');
+  const resvars = _.get(vars, 'res');
   if (reqvars && reqvars.length) {
     const varsEnabled = _.filter(reqvars, (v) => v.enabled && !v.local);
     const varsDisabled = _.filter(reqvars, (v) => !v.enabled && !v.local);
@@ -746,20 +747,18 @@ ${indentString(body.sparql)}
     bru += '\n}\n\n';
   }
 
-  if (script && script.req && script.req.length) {
-    bru += `script:pre-request {
-${indentString(script.req)}
+  if (script) {
+    const requestType = grpc ? REQUEST_TYPES.GRPC : REQUEST_TYPES.HTTP;
+    for (const { FIELD, BRU_TYPE } of getPhasesByRequestType(requestType)) {
+      const code = script[FIELD];
+      if (code && code.length) {
+        bru += `script:${BRU_TYPE} {
+${indentString(code)}
 }
 
 `;
-  }
-
-  if (script && script.res && script.res.length) {
-    bru += `script:post-response {
-${indentString(script.res)}
-}
-
-`;
+      }
+    }
   }
 
   if (tests && tests.length) {

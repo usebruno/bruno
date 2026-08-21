@@ -3,7 +3,8 @@ import get from 'lodash/get';
 import find from 'lodash/find';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
-import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/slices/collections';
+import { buildAiContextPayload } from 'utils/ai';
+import { updateScript } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateScriptPaneTab } from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
@@ -11,76 +12,82 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from 'components/Tabs';
 import StatusDot from 'components/StatusDot';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useFocusErrorLine } from 'hooks/useFocusErrorLine';
-import { getActiveScriptTab } from 'utils/tabs';
+import { getPhasesByRequestType, REQUEST_TYPES } from '@usebruno/common';
+import { useMemo } from 'react';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const preRequestEditorRef = useRef(null);
-  const postResponseEditorRef = useRef(null);
-  const requestScript = item.draft ? get(item, 'draft.request.script.req') : get(item, 'request.script.req');
-  const responseScript = item.draft ? get(item, 'draft.request.script.res') : get(item, 'request.script.res');
+
+  const editorRefs = useRef({});
 
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const scriptPaneTab = focusedTab?.scriptPaneTab;
 
-  const activeTab = getActiveScriptTab(scriptPaneTab, requestScript);
-
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
-  const [preReqScroll, setPreReqScroll] = usePersistedState({ key: `request-pre-req-scroll-${item.uid}`, default: 0 });
-  const [postResScroll, setPostResScroll] = usePersistedState({ key: `request-post-res-scroll-${item.uid}`, default: 0 });
+  const SCRIPT_PHASES = useMemo(() => getPhasesByRequestType(item?.type), [item?.type]);
 
-  // Refresh CodeMirror when tab becomes visible and restore scroll position.
-  // CodeMirror's scrollTo() is silently ignored when the editor is inside a display:none container
-  // (TabsContent hides inactive tabs via display:none). So the scroll set during componentDidMount
-  // is lost for the hidden editor. After refresh() recalculates layout, we re-apply scrollTo().
+  const getEditorRef = (phaseKey) => {
+    return (editorRefs.current[phaseKey] ??= { current: null });
+  };
+
+  const getScript = (field) => {
+    return item.draft
+      ? get(item, `draft.request.script.${field}`)
+      : get(item, `request.script.${field}`);
+  };
+
+  const getDefaultTab = () => {
+    if (item?.type === REQUEST_TYPES.GRPC) {
+      const firstPhaseWithScript = SCRIPT_PHASES.find(({ FIELD }) => getScript(FIELD)?.length);
+      return (firstPhaseWithScript || SCRIPT_PHASES[0])?.SCRIPT_TYPE;
+    }
+
+    const hasFirstScript = getScript(SCRIPT_PHASES[0].FIELD);
+    return hasFirstScript ? SCRIPT_PHASES[0].SCRIPT_TYPE : SCRIPT_PHASES[1]?.SCRIPT_TYPE;
+  };
+
+  const activeTab = scriptPaneTab || getDefaultTab();
+
+  const [scrollMap, setScrollMap] = usePersistedState({
+    key: `script-scroll-${item.uid}`,
+    default: {}
+  });
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (activeTab === 'pre-request' && preRequestEditorRef.current?.editor) {
-        preRequestEditorRef.current.editor.refresh();
-        preRequestEditorRef.current.editor.scrollTo(null, preReqScroll);
-      } else if (activeTab === 'post-response' && postResponseEditorRef.current?.editor) {
-        postResponseEditorRef.current.editor.refresh();
-        postResponseEditorRef.current.editor.scrollTo(null, postResScroll);
+      const activePhase = SCRIPT_PHASES.find(({ SCRIPT_TYPE }) => SCRIPT_TYPE === activeTab);
+      if (!activePhase) return;
+
+      const editorRef = getEditorRef(activeTab);
+
+      const scroll = scrollMap?.[activeTab] || 0;
+
+      if (editorRef.current?.editor) {
+        editorRef.current.editor.refresh();
+        editorRef.current.editor.scrollTo(null, scroll);
       }
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [activeTab]);
+  }, [activeTab, SCRIPT_PHASES]);
 
   useFocusErrorLine({
     uid: item.uid,
-    editorRef: preRequestEditorRef,
-    scriptPhase: 'pre-request',
-    isVisible: activeTab === 'pre-request'
+    editorRef: getEditorRef(activeTab),
+    scriptPhase: activeTab
   });
 
-  useFocusErrorLine({
-    uid: item.uid,
-    editorRef: postResponseEditorRef,
-    scriptPhase: 'post-response',
-    isVisible: activeTab === 'post-response'
-  });
-
-  const onRequestScriptEdit = (value) => {
+  const onScriptEdit = (field, value) => {
     dispatch(
-      updateRequestScript({
+      updateScript({
         script: value,
         itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
-  };
-
-  const onResponseScriptEdit = (value) => {
-    dispatch(
-      updateResponseScript({
-        script: value,
-        itemUid: item.uid,
-        collectionUid: collection.uid
+        collectionUid: collection.uid,
+        field
       })
     );
   };
@@ -88,76 +95,78 @@ const Script = ({ item, collection }) => {
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
-  const hasPostResponseScript = responseScript && responseScript.trim().length > 0;
+  const { requestContext, variables: aiVariables } = useMemo(
+    () => buildAiContextPayload(item, collection),
+    [item, collection]
+  );
 
   const onScriptTabChange = (tab) => {
     dispatch(updateScriptPaneTab({ uid: item.uid, scriptPaneTab: tab }));
+  };
+
+  const renderEditor = ({ SCRIPT_TYPE, FIELD, HINTS }) => {
+    const value = getScript(FIELD);
+
+    return (
+      <div className="relative h-full">
+        <CodeEditor
+          ref={getEditorRef(SCRIPT_TYPE)}
+          collection={collection}
+          item={item}
+          requestType={item?.type}
+          docKey={`script:${SCRIPT_TYPE}`}
+          value={value || ''}
+          theme={displayedTheme}
+          font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
+          mode="javascript"
+          onEdit={(val) => onScriptEdit(FIELD, val)}
+          onRun={onRun}
+          onSave={onSave}
+          showHintsFor={HINTS}
+          scriptType={SCRIPT_TYPE}
+          initialScroll={scrollMap?.[SCRIPT_TYPE] || 0}
+          onScroll={(pos) =>
+            setScrollMap({
+              ...scrollMap,
+              [SCRIPT_TYPE]: pos
+            })}
+        />
+      </div>
+    );
   };
 
   return (
     <div className="w-full h-full flex flex-col">
       <Tabs value={activeTab} onValueChange={onScriptTabChange}>
         <TabsList>
-          <TabsTrigger value="pre-request">
-            Pre Request
-            {hasPreRequestScript && (
-              <StatusDot type={item.preRequestScriptErrorMessage ? 'error' : 'default'} />
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="post-response">
-            Post Response
-            {hasPostResponseScript && (
-              <StatusDot type={item.postResponseScriptErrorMessage ? 'error' : 'default'} />
-            )}
-          </TabsTrigger>
+          {SCRIPT_PHASES.map((phase) => {
+            const value = getScript(phase.FIELD);
+            const hasScript = value && value.trim().length > 0;
+
+            return (
+              <TabsTrigger key={phase.SCRIPT_TYPE} value={phase.SCRIPT_TYPE}>
+                {phase.LABEL}
+                {hasScript && (
+                  <StatusDot type={item?.[`${phase.ERROR_STATE_KEY}Message`] ? 'error' : 'default'} />
+                )}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
-        <TabsContent value="pre-request" className="mt-2" dataTestId="pre-request-script-editor">
-          <div className="relative h-full">
-            <CodeEditor
-              ref={preRequestEditorRef}
-              collection={collection}
-              item={item}
-              docKey="script:pre-request"
-              value={requestScript || ''}
-              theme={displayedTheme}
-              font={get(preferences, 'font.codeFont', 'default')}
-              fontSize={get(preferences, 'font.codeFontSize')}
-              onEdit={onRequestScriptEdit}
-              mode="javascript"
-              onRun={onRun}
-              onSave={onSave}
-              showHintsFor={['req', 'bru']}
-              scriptType="pre-request"
-              initialScroll={preReqScroll}
-              onScroll={setPreReqScroll}
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="post-response" className="mt-2" dataTestId="post-response-script-editor">
-          <div className="relative h-full">
-            <CodeEditor
-              ref={postResponseEditorRef}
-              collection={collection}
-              item={item}
-              docKey="script:post-response"
-              value={responseScript || ''}
-              theme={displayedTheme}
-              font={get(preferences, 'font.codeFont', 'default')}
-              fontSize={get(preferences, 'font.codeFontSize')}
-              onEdit={onResponseScriptEdit}
-              mode="javascript"
-              onRun={onRun}
-              onSave={onSave}
-              showHintsFor={['req', 'res', 'bru']}
-              scriptType="post-response"
-              initialScroll={postResScroll}
-              onScroll={setPostResScroll}
-            />
-          </div>
-        </TabsContent>
+        {SCRIPT_PHASES.map((phase) => {
+          return (
+            <TabsContent
+              key={phase.SCRIPT_TYPE}
+              value={phase.SCRIPT_TYPE}
+              className="mt-2"
+              dataTestId={`${phase.SCRIPT_TYPE}-script-editor`}
+            >
+              {activeTab === phase.SCRIPT_TYPE ? renderEditor(phase) : null}
+            </TabsContent>
+          );
+        })}
       </Tabs>
     </div>
   );

@@ -41,11 +41,11 @@ const baseRequest = { method: 'GET', url: 'http://localhost/', headers: {}, data
 const baseResponse = { status: 200, statusText: 'OK', data: {} };
 
 describe('ScriptRuntime — scripted entries across the three script phases', () => {
-  describe('pre-request (runRequestScript)', () => {
+  describe('pre-request (runHttpPreRequestScript)', () => {
     test('drains bru.sendRequest calls into result.scriptedRequestEntries', async () => {
       const script = `await bru.sendRequest('https://example.com/ping');`;
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-      const result = await runtime.runRequestScript(
+      const result = await runtime.runHttpPreRequestScript(
         script, { ...baseRequest }, {}, {}, '.', null, process.env
       );
 
@@ -60,7 +60,7 @@ describe('ScriptRuntime — scripted entries across the three script phases', ()
 
     test('returns an empty array when the script makes no scripted requests', async () => {
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-      const result = await runtime.runRequestScript(
+      const result = await runtime.runHttpPreRequestScript(
         `bru.setVar('foo', 'bar');`, { ...baseRequest }, {}, {}, '.', null, process.env
       );
       expect(result.scriptedRequestEntries).toEqual([]);
@@ -74,7 +74,7 @@ describe('ScriptRuntime — scripted entries across the three script phases', ()
         await bru.sendRequest('https://example.com/b');
       `;
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-      const result = await runtime.runRequestScript(
+      const result = await runtime.runHttpPreRequestScript(
         script, { ...baseRequest }, {}, {}, '.', null, process.env
       );
 
@@ -102,7 +102,7 @@ describe('ScriptRuntime — scripted entries across the three script phases', ()
         await bru.runRequest('target.bru');
       `;
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-      const result = await runtime.runRequestScript(
+      const result = await runtime.runHttpPreRequestScript(
         script, { ...baseRequest }, {}, {}, '.', null, process.env, {}, host
       );
 
@@ -120,11 +120,11 @@ describe('ScriptRuntime — scripted entries across the three script phases', ()
     });
   });
 
-  describe('post-response (runResponseScript)', () => {
+  describe('post-response (runHttpPostResponseScript)', () => {
     test('drains bru.sendRequest calls into result.scriptedRequestEntries', async () => {
       const script = `await bru.sendRequest('https://example.com/after');`;
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-      const result = await runtime.runResponseScript(
+      const result = await runtime.runHttpPostResponseScript(
         script, { ...baseRequest }, { ...baseResponse }, {}, {}, '.', null, process.env
       );
       expect(result.scriptedRequestEntries).toHaveLength(1);
@@ -147,7 +147,7 @@ describe('ScriptRuntime — scripted entries across the three script phases', ()
         await bru.runRequest('next.bru');
       `;
       const runtime = new ScriptRuntime({ runtime: 'nodevm' });
-      const result = await runtime.runResponseScript(
+      const result = await runtime.runHttpPostResponseScript(
         script, { ...baseRequest }, { ...baseResponse }, {}, {}, '.', null, process.env, {}, host
       );
 
@@ -195,7 +195,7 @@ describe('ScriptRuntime — scripted entries across the three script phases', ()
 
       let captured;
       try {
-        await runtime.runRequestScript(script, { ...baseRequest }, {}, {}, '.', null, process.env);
+        await runtime.runHttpPreRequestScript(script, { ...baseRequest }, {}, {}, '.', null, process.env);
       } catch (err) {
         captured = err;
       }
