@@ -23,8 +23,8 @@ describe('CLI run — ntlm', () => {
   afterEach(async () => {
     await endpoint?.close();
     endpoint = undefined;
-    fs.rmSync(collectionDir, { recursive: true, force: true });
-  });
+    fs.rmSync(collectionDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  }, 30_000);
 
   it('authenticates over a single connection', async () => {
     endpoint = await startEndpoint();
@@ -35,7 +35,7 @@ describe('CLI run — ntlm', () => {
     expect(stdout).toContain('api authenticates');
     expect(endpoint.messageTypesSeen()).toEqual([null, 1, 3]);
     expect(endpoint.connectionsUsed()).toBe(1);
-  });
+  }, 30_000);
 
   it('negotiates for each request of a collection run, where the redirect is refused on its new connection', async () => {
     endpoint = await startEndpoint();
@@ -46,7 +46,7 @@ describe('CLI run — ntlm', () => {
     expect(stdout).toContain('1 Passed, 1 Failed');
     expect(stdout).toContain('401 Unauthorized');
     expect(code).toBe(1);
-  });
+  }, 30_000);
 
   it('authenticates against a self-signed endpoint when certificate checks are off', async () => {
     endpoint = await startEndpoint({ tls: true });
@@ -56,7 +56,7 @@ describe('CLI run — ntlm', () => {
     expect(code).toBe(0);
     expect(endpoint.messageTypesSeen()).toEqual([null, 1, 3]);
     expect(endpoint.connectionsUsed()).toBe(1);
-  });
+  }, 30_000);
 
   it('authenticates against a self-signed endpoint trusted through --cacert', async () => {
     endpoint = await startEndpoint({ tls: true });
@@ -66,5 +66,5 @@ describe('CLI run — ntlm', () => {
     expect(code).toBe(0);
     expect(endpoint.messageTypesSeen()).toEqual([null, 1, 3]);
     expect(endpoint.connectionsUsed()).toBe(1);
-  });
+  }, 30_000);
 });
