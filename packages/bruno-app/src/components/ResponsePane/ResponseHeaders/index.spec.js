@@ -57,4 +57,32 @@ describe('ResponseHeaders', () => {
     const { container } = renderWithTheme(<ResponseHeaders headers={{}} item={item} />);
     expect(container.querySelector('tbody').children.length).toBe(0);
   });
+
+  it.each([
+    ['javascript', 'javascript:alert(1)'],
+    ['file', 'file:///etc/passwd'],
+    ['ftp', 'ftp://example.com/file.txt'],
+    ['mailto', 'mailto:user@example.com'],
+    ['custom scheme', 'myapp://open/thing']
+  ])('should not render a link for a non-http(s) %s value', (_label, value) => {
+    const headers = { 'x-custom': value };
+    renderWithTheme(<ResponseHeaders headers={headers} item={item} />);
+    expect(screen.getByText(value)).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('should not open externally when clicking a rejected-protocol value', () => {
+    const headers = { 'x-custom': 'javascript:alert(1)' };
+    renderWithTheme(<ResponseHeaders headers={headers} item={item} />);
+    expect(global.window.ipcRenderer.openExternal).not.toHaveBeenCalled();
+  });
+
+  it('should link an http(s) value that has surrounding whitespace', () => {
+    const headers = { location: '  https://example.com/next  ' };
+    renderWithTheme(<ResponseHeaders headers={headers} item={item} />);
+    const link = screen.getByRole('link');
+    expect(link).toHaveAttribute('href', 'https://example.com/next');
+    fireEvent.click(link);
+    expect(global.window.ipcRenderer.openExternal).toHaveBeenCalledWith('https://example.com/next');
+  });
 });
