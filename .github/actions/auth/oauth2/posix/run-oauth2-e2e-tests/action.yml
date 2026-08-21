@@ -1,0 +1,37 @@
+name: 'Run OAuth2 E2E Tests - POSIX'
+description: 'Run OAuth2 (Keycloak) E2E tests on Linux and macOS'
+
+inputs:
+  use-xvfb:
+    description: 'Wrap the test run in xvfb-run (needed on headless Linux)'
+    required: false
+    default: 'false'
+  artifact-suffix:
+    description: 'Suffix for the uploaded Playwright report artifact name'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run OAuth2 E2E tests
+      shell: bash
+      env:
+        USE_XVFB: ${{ inputs.use-xvfb }}
+      run: |
+        set -euo pipefail
+
+        if [ "${USE_XVFB}" = "true" ]; then
+          xvfb-run npm run test:e2e:auth:oauth2
+        else
+          npm run test:e2e:auth:oauth2
+        fi
+
+    - name: Upload Playwright Report
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report-oauth2-${{ inputs.artifact-suffix }}
+        path: |
+          playwright-report/
+          test-results/
+        retention-days: 30
