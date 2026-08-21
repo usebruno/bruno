@@ -64,6 +64,16 @@ const deriveCollectionFormat = (brunoConfig) => {
   return brunoConfig?.opencollection ? 'yml' : brunoConfig?.format || 'bru';
 };
 
+const setActiveEnvironment = (collection, environmentUid) => {
+  const previousEnvironmentUid = collection.activeEnvironmentUid || null;
+  const nextEnvironmentUid = environmentUid || null;
+
+  collection.activeEnvironmentUid = nextEnvironmentUid;
+  if (previousEnvironmentUid !== nextEnvironmentUid) {
+    collection.runtimeVariables = {};
+  }
+};
+
 const mergeTreeItems = (existingItems, newItems) => {
   if (!Array.isArray(existingItems) || existingItems.length === 0) return newItems;
   const existingByUid = new Map();
@@ -422,11 +432,12 @@ export const collectionsSlice = createSlice({
           const environment = findEnvironmentInCollection(collection, environmentUid);
 
           if (environment) {
-            collection.activeEnvironmentUid = environmentUid;
+            setActiveEnvironment(collection, environmentUid);
           }
         } else {
-          collection.activeEnvironmentUid = null;
+          setActiveEnvironment(collection, null);
         }
+
         // Any explicit selection (including "No Environment") cancels a pending default
         // so a late-loading environment file can't re-apply the default over this choice.
         collection.pendingDefaultEnvironment = null;
@@ -442,7 +453,7 @@ export const collectionsSlice = createSlice({
 
       const environment = (collection.environments || []).find((env) => env?.name === defaultEnvironmentName);
       if (environment) {
-        collection.activeEnvironmentUid = environment.uid;
+        setActiveEnvironment(collection, environment.uid);
         collection.pendingDefaultEnvironment = null;
       } else {
         // Environment files aren't loaded yet - remember to apply the default once the
@@ -555,9 +566,11 @@ export const collectionsSlice = createSlice({
       }
     },
     runtimeVariablesUpdateEvent: (state, action) => {
-      const { collectionUid, runtimeVariables } = action.payload;
+      const { collectionUid, environmentUid, runtimeVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
-      if (collection) {
+      const activeEnvironmentUid = collection?.activeEnvironmentUid || null;
+
+      if (collection && activeEnvironmentUid === (environmentUid || null)) {
         collection.runtimeVariables = runtimeVariables;
       }
     },
@@ -3179,7 +3192,7 @@ export const collectionsSlice = createSlice({
           if (lastAction && lastAction.type === 'ADD_ENVIRONMENT') {
             collection.lastAction = null;
             if (lastAction.payload === environment.name) {
-              collection.activeEnvironmentUid = environment.uid;
+              setActiveEnvironment(collection, environment.uid);
             }
           }
         }
@@ -3191,7 +3204,7 @@ export const collectionsSlice = createSlice({
           && !collection.activeEnvironmentUid
           && environment.name === collection.pendingDefaultEnvironment
         ) {
-          collection.activeEnvironmentUid = environment.uid;
+          setActiveEnvironment(collection, environment.uid);
           collection.pendingDefaultEnvironment = null;
         }
       }

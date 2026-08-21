@@ -523,7 +523,8 @@ const registerNetworkIpc = (mainWindow) => {
       mainWindow.webContents.send('main:runtime-variables-update', {
         runtimeVariables: result.runtimeVariables,
         requestUid,
-        collectionUid
+        collectionUid,
+        environmentUid: collection.activeEnvironmentUid || null
       });
     }
 
