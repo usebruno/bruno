@@ -277,6 +277,7 @@ const logRequest = (collection, mockServerUid, data) => {
     matchedResponseUid: data.matchedResponseUid || null,
     matchTrace: data.matchTrace || null,
     statusCode: data.statusCode,
+    error: data.error || null,
     delay: data.delay || 0,
     duration: data.duration || 0
   };
@@ -361,32 +362,7 @@ const handleRequest = (mockServerUid, req, res) => {
 
   const sendResponse = () => {
     const statusCode = selected.response.status || 200;
-
-    for (const header of selected.response.headers) {
-      if (!header.name || !header.value) continue;
-
-      const name = header.name.toLowerCase();
-      if (
-        name === 'transfer-encoding'
-        || name === 'content-length'
-        || name === 'content-encoding'
-        || name === 'connection'
-      ) continue;
-
-      res.setHeader(header.name, header.value);
-    }
-
-    if (!res.getHeader('content-type')) {
-      const contentTypeMap = {
-        json: 'application/json',
-        xml: 'application/xml',
-        text: 'text/plain',
-        html: 'text/html'
-      };
-      res.setHeader('content-type', contentTypeMap[selected.response.body.type] || 'text/plain');
-    }
-
-    logRequest(collection, mockServerUid, {
+    const logEntry = {
       method: req.method,
       path: reqPath,
       matched: true,
@@ -394,8 +370,56 @@ const handleRequest = (mockServerUid, req, res) => {
       matchedSourceFile: selected.sourceFile,
       matchedResponseUid: selected.responseUid || null,
       matchTrace,
+      delay
+    };
+
+    // A saved mock response can hold a header node refuses to write - an invalid
+    // HTTP token in the name, a newline in the value. Log the failure so the
+    // request still shows up in the request log with the status we actually sent.
+    try {
+      for (const header of selected.response.headers) {
+        if (!header.name || !header.value) continue;
+
+        const name = header.name.toLowerCase();
+        if (
+          name === 'transfer-encoding'
+          || name === 'content-length'
+          || name === 'content-encoding'
+          || name === 'connection'
+        ) continue;
+
+        res.setHeader(header.name, header.value);
+      }
+
+      if (!res.getHeader('content-type')) {
+        const contentTypeMap = {
+          json: 'application/json',
+          xml: 'application/xml',
+          text: 'text/plain',
+          html: 'text/html'
+        };
+        res.setHeader('content-type', contentTypeMap[selected.response.body.type] || 'text/plain');
+      }
+    } catch (err) {
+      const message = err.message || 'Mock response failed';
+
+      logRequest(collection, mockServerUid, {
+        ...logEntry,
+        statusCode: 500,
+        error: message,
+        duration: Date.now() - startTime
+      });
+
+      if (!res.headersSent) {
+        res.status(500).json({ error: message });
+      }
+
+      return;
+    }
+
+    logRequest(collection, mockServerUid, {
+      ...logEntry,
       statusCode,
-      delay,
       duration: Date.now() - startTime
     });
 
@@ -406,8 +430,10 @@ const handleRequest = (mockServerUid, req, res) => {
     }
   };
 
-  // adding a try-catch block to handle any errors that may occur during the response
   if (delay > 0) {
+    // A throw inside the timer callback has no express frame to land in, so it
+    // would take down the main process. Keep the net even though header failures
+    // are already handled above.
     setTimeout(() => {
       try {
         sendResponse();

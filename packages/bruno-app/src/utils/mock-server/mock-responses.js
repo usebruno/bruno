@@ -23,7 +23,7 @@ export const copyExampleToMockResponse = (example, parentRequest) => ({
     requestPathname: parentRequest?.pathname || null
   },
   request: {
-    url: extractMockRoutePath(example.request?.url || parentRequest?.request?.url || '/', { preserveTemplateVars: true }),
+    url: extractMockRoutePath(example.request?.url || parentRequest?.request?.url || '/'),
     method: (example.request?.method || parentRequest?.request?.method || 'GET').toUpperCase(),
     headers: example.request?.headers || [],
     params: example.request?.params || [],
@@ -31,7 +31,7 @@ export const copyExampleToMockResponse = (example, parentRequest) => ({
   },
   response: {
     status: Number(example.response?.status) || 200,
-    statusText: example.response?.statusText || '',
+    statusText: example.response?.statusText || 'OK',
     headers: example.response?.headers || [],
     body: {
       type: example.response?.body?.type || 'json',
@@ -458,7 +458,7 @@ export const countMatchedRouteHits = (entries = []) => {
   const hitCounts = {};
 
   for (const entry of entries) {
-    if (!entry?.matched) {
+    if (!entry?.matched || entry.error) {
       continue;
     }
 
