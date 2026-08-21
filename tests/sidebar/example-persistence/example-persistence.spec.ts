@@ -6,27 +6,29 @@ import { initBruCollection, writeBruRequest } from '../../utils/fixtures/bru-col
 const COLLECTION_NAME = 'ExampleCol';
 const FILLER_COUNT = 45; // enough for the tree to overflow the sidebar viewport
 const reqName = (i: number) => `req-${String(i).padStart(3, '0')}`;
+// req-ex occupies seq 1, so the fillers run 2..FILLER_COUNT + 1.
+const LAST_SEQ = FILLER_COUNT + 1;
+const LAST_REQUEST = reqName(LAST_SEQ);
+
+const WHEEL_TIMEOUT = 15000;
+const WHEEL_INTERVAL = 60;
 
 const buildCollectionOnDisk = (dir: string) => {
   initBruCollection(dir, COLLECTION_NAME);
-  // The request-with-examples sits at the top. fillers below make the top scrollable out of view.
   writeBruRequest(dir, 'req-ex', { seq: 1, examples: ['ex-one', 'ex-two'] });
-  for (let i = 2; i <= FILLER_COUNT + 1; i++) writeBruRequest(dir, reqName(i), { seq: i });
+  for (let i = 2; i <= LAST_SEQ; i++) {
+    writeBruRequest(dir, reqName(i), { seq: i });
+  }
 };
 
-// Wheel the sidebar until `target` is within the viewport (dy < 0 scrolls up, > 0 down).
+// Wheel the sidebar until `target` is within the viewport.
 const wheelUntilInViewport = async (page: Page, hover: Locator, target: Locator, dy: number) => {
   await hover.hover();
-  for (let i = 0; i < 50; i++) {
-    try {
-      await expect(target).toBeInViewport({ timeout: 150 });
-      return;
-    } catch {
-      await page.mouse.wheel(0, dy);
-      await page.waitForTimeout(60);
-    }
-  }
-  await expect(target).toBeInViewport();
+  await target.waitFor({ state: 'attached' });
+  await expect(async () => {
+    await page.mouse.wheel(0, dy);
+    await expect(target).toBeInViewport({ timeout: WHEEL_INTERVAL });
+  }).toPass({ timeout: WHEEL_TIMEOUT, intervals: [WHEEL_INTERVAL] });
 };
 
 test.describe('Sidebar response-example persistence', () => {
@@ -55,11 +57,12 @@ test.describe('Sidebar response-example persistence', () => {
         await expect(locators.sidebar.example('ex-two')).toBeVisible();
       });
 
-      await test.step('Scroll the request (and its examples) out of view', async () => {
-        await wheelUntilInViewport(page, sidebar, locators.sidebar.request(reqName(FILLER_COUNT + 1)), 400);
+      await test.step('Scroll to the last item so that the request (and its examples) out of view', async () => {
+        await wheelUntilInViewport(page, sidebar, locators.sidebar.request(LAST_REQUEST), 400);
+        await expect(locators.sidebar.request('req-ex')).not.toBeInViewport();
       });
 
-      await test.step('Scroll back up — examples are still expanded', async () => {
+      await test.step('Scroll back up, examples are still expanded', async () => {
         await wheelUntilInViewport(page, sidebar, locators.sidebar.request('req-ex'), -400);
         await expect(locators.sidebar.example('ex-one')).toBeVisible();
         await expect(locators.sidebar.example('ex-two')).toBeVisible();

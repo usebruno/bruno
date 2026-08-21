@@ -1,15 +1,24 @@
 import { test, expect, closeElectronApp, type Locator } from '../../../playwright';
 import path from 'path';
-import { buildCommonLocators } from '../../utils/page';
+import { buildCommonLocators, renameCollectionItem } from '../../utils/page';
 import { initBruCollection, writeBruRequest } from '../../utils/fixtures/bru-collection';
 
 const COLLECTION_NAME = 'ScrollKeepCol';
 const REQUEST_COUNT = 50;
 const reqName = (i: number) => `req-${String(i).padStart(3, '0')}`;
 
+const FIRST_REQUEST = reqName(1);
+const TARGET_REQUEST = reqName(30);
+const REFERENCE_REQUEST = reqName(28);
+const RENAMED_REQUEST = 'renamed-req';
+// Drift tolerated between the two measurements of the reference row's top edge.
+const MAX_DRIFT_PX = 5;
+
 const buildCollectionOnDisk = (dir: string) => {
   initBruCollection(dir, COLLECTION_NAME);
-  for (let i = 1; i <= REQUEST_COUNT; i++) writeBruRequest(dir, reqName(i), { seq: i });
+  for (let i = 1; i <= REQUEST_COUNT; i++) {
+    writeBruRequest(dir, reqName(i), { seq: i });
+  }
 };
 
 const topOf = async (loc: Locator) => {
@@ -29,41 +38,32 @@ test.describe('Sidebar scroll-position preservation', () => {
     });
     const page = await app.firstWindow();
     const locators = buildCommonLocators(page);
-    const row = (name: string) => page.locator('.collection-item-name').filter({ hasText: name });
 
-    // A reference row NOT touched by the edit — its viewport position reflects the scroll offset.
-    const reference = row('req-028');
+    const firstRow = locators.sidebar.request(FIRST_REQUEST);
+    const reference = locators.sidebar.request(REFERENCE_REQUEST);
+    const target = locators.sidebar.request(TARGET_REQUEST);
 
     try {
       await test.step('Load and scroll down into the middle of the list', async () => {
         await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
         await locators.sidebar.collection(COLLECTION_NAME).click();
-        await expect(row(reqName(1))).toBeVisible({ timeout: 15000 });
-        // Scroll req-030 into view (Playwright auto-scrolls on hover); req-028 sits just above it.
-        await row('req-030').hover();
+        await expect(firstRow).toBeVisible({ timeout: 15000 });
+        // Scroll the target into view (Playwright auto-scrolls on hover). the reference sits just above it.
+        await target.hover();
+        await expect(firstRow).not.toBeInViewport();
         await expect(reference).toBeVisible();
       });
 
       const before = await topOf(reference);
 
-      await test.step('Rename req-030 (a content edit that re-renders the sidebar)', async () => {
-        await row('req-030').hover();
-        await locators.actions.collectionItemActions('req-030').click();
-        await locators.dropdown.item('Rename').click();
-
-        const modal = page.locator('.bruno-modal').filter({ hasText: 'Rename Request' });
-        await modal.waitFor({ state: 'visible' });
-        await modal.locator('#collection-item-name').fill('renamed-req');
-        await modal.getByTestId('rename-item-button').click();
-        await modal.waitFor({ state: 'hidden' });
-
-        await expect(row('renamed-req')).toBeVisible({ timeout: 10000 });
+      await test.step('Rename the target request (a content edit that re-renders the sidebar)', async () => {
+        await renameCollectionItem(page, TARGET_REQUEST, RENAMED_REQUEST);
       });
 
       await test.step('The sidebar has not jumped — the reference row is still where it was', async () => {
         await expect(reference).toBeVisible();
         const after = await topOf(reference);
-        expect(Math.abs(after - before)).toBeLessThan(5);
+        expect(Math.abs(after - before)).toBeLessThan(MAX_DRIFT_PX);
       });
     } finally {
       await closeElectronApp(app);

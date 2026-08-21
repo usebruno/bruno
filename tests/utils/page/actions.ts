@@ -431,6 +431,40 @@ const deleteRequest = async (page, requestName: string, collectionName: string) 
 };
 
 /**
+ * Rename a request or folder from the sidebar, via its row's "..." menu -> Rename.
+ * Waits for the rename modal to close and the renamed row to appear.
+ * @param page - The page object
+ * @param currentName - The item's current name in the sidebar
+ * @param newName - The name to rename it to
+ * @param options - `type` selects the row and modal variant; defaults to 'request'
+ * @returns void
+ */
+const renameCollectionItem = async (
+  page: Page,
+  currentName: string,
+  newName: string,
+  { type = 'request' }: { type?: 'request' | 'folder' } = {}
+) => {
+  await test.step(`Rename ${type} "${currentName}" to "${newName}"`, async () => {
+    const locators = buildCommonLocators(page);
+    const rowFor = (name: string) =>
+      type === 'folder' ? locators.sidebar.folder(name) : locators.sidebar.request(name);
+
+    await rowFor(currentName).hover();
+    await locators.actions.collectionItemActions(currentName).click();
+    await locators.dropdown.item('Rename').click();
+    const modal = locators.modal.byTitle(type === 'folder' ? 'Rename Folder' : 'Rename Request');
+    await modal.waitFor({ state: 'visible' });
+    await modal.locator('#collection-item-name').fill(newName);
+    await modal.getByTestId('rename-item-button').click();
+    await modal.waitFor({ state: 'hidden' });
+
+    // The rename round-trips through the filesystem, so allow for the watcher.
+    await expect(rowFor(newName)).toBeVisible({ timeout: 10000 });
+  });
+};
+
+/**
  * Delete a collection permanently from disk via the workspace overview page
  * @param page - The page object
  * @param collectionName - The name of the collection to delete
@@ -2613,6 +2647,7 @@ export {
   createTransientRequest,
   fillRequestUrl,
   deleteRequest,
+  renameCollectionItem,
   deleteCollectionFromOverview,
   importCollection,
   openBulkImportModal,
