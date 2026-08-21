@@ -606,6 +606,12 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       _settings.keepAliveInterval = keepAliveInterval;
     }
 
+    if (Array.isArray(settings.omitHeaders) && settings.omitHeaders.length) {
+      _settings.omitHeaders = settings.omitHeaders
+        .map((name) => (typeof name === 'string' ? name.trim() : ''))
+        .filter((name) => name.length > 0);
+    }
+
     return {
       settings: _settings
     };

@@ -10,7 +10,7 @@ const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, formatErrorWithC
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const { applyVariableUpdates, persistVariableUpdates } = require('../utils/persist-variables');
-const { makeAxiosInstance } = require('../utils/axios-instance');
+const { makeAxiosInstance, refreshExplicitHeaderNames } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { setupProxyAgents } = require('../utils/proxy-util');
 const path = require('path');
@@ -23,6 +23,7 @@ const { getCACertificates, transformProxyConfig, applySentHeadersToRequest } = r
 const { getOAuth2Token, getFormattedOauth2Credentials } = require('../utils/oauth2');
 const tokenStore = require('../store/tokenStore');
 const { encodeUrl, buildFormUrlEncodedPayload, extractPromptVariables, isFormData, extractBoundaryFromContentType, hasExplicitScheme, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
+const { applyOmitHeaders } = require('@usebruno/common');
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -465,12 +466,21 @@ const runSingleRequest = async function (
     }
     // else: collection proxy is disabled, proxyMode stays 'off'
 
+    const { omitConnection } = applyOmitHeaders({ set() {} }, {
+      omitHeaders: request.settings?.omitHeaders,
+      headersToDelete: request.__headersToDelete,
+      explicitHeaderNames: Object.keys(request.headers || {})
+    });
+
     await setupProxyAgents({
       requestConfig: request,
       proxyMode,
       proxyConfig,
       systemProxyConfig: cachedSystemProxy,
-      httpsAgentRequestFields,
+      httpsAgentRequestFields: {
+        ...httpsAgentRequestFields,
+        keepAlive: !omitConnection
+      },
       interpolationOptions,
       disableCache
     });
@@ -709,7 +719,7 @@ const runSingleRequest = async function (
       }
 
       /** @type {import('axios').AxiosResponse} */
-      response = await axiosInstance(request);
+      response = await axiosInstance(refreshExplicitHeaderNames(request));
 
       const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;

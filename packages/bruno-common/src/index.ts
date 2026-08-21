@@ -16,5 +16,17 @@ export type {
   OAuth2CredentialRecord
 } from './generate-code/har';
 
+export {
+  BRUNO_DEFAULT_HEADERS,
+  getBrunoDefaultHeaderNames,
+  applyOmitHeaders,
+  getBrunoRuntimeUserAgent
+} from './headers/default-headers';
+export type {
+  BrunoDefaultHeader,
+  BrunoDefaultHeaderSource,
+  ApplyOmitHeadersResult
+} from './headers/default-headers';
+
 export * as utils from './utils';
 export * from './constants';

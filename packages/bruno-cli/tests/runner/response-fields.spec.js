@@ -23,7 +23,8 @@ jest.mock('../../src/utils/bru', () => ({
   getOptions: jest.fn(() => ({}))
 }));
 jest.mock('../../src/utils/axios-instance', () => ({
-  makeAxiosInstance: jest.fn()
+  makeAxiosInstance: jest.fn(),
+  refreshExplicitHeaderNames: (request) => request
 }));
 jest.mock('../../src/runner/awsv4auth-helper', () => ({
   addAwsV4Interceptor: jest.fn(),
