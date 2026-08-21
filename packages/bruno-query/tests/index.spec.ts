@@ -57,4 +57,33 @@ describe('get', () => {
   ])('%s should be %j for %s', (expr, result, filter) => {
     expect(get(data, expr, filter)).toEqual(result);
   });
+
+  // null and undefined handling in deep and direct navigation
+  const dataWithNulls = {
+    user: {
+      id: 101,
+      deletedAt: null,
+      profile: null,
+      address: {
+        city: 'bangalore'
+      }
+    },
+    items: [
+      { id: 1, extra: null },
+      null,
+      { id: 2 }
+    ]
+  };
+
+  it.each([
+    ['..city', ['bangalore']],
+    ['..id', [101, 1, 2]],
+    ['..deletedAt', undefined],
+    ['user.profile', null],
+    ['user.profile.nested', null],
+    ['items.id', [1, 2]]
+  ])('with null values: %s should be %j', (expr, result) => {
+    expect(get(dataWithNulls, expr)).toEqual(result);
+  });
 });
+
