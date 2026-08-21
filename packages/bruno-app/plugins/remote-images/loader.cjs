@@ -2,10 +2,16 @@
 
 const crypto = require('crypto');
 const fs = require('fs');
+const net = require('net');
 const path = require('path');
 const { Readable, Transform } = require('stream');
 const { pipeline } = require('stream/promises');
 const { findRemoteImageUrls, assetFilenameFromHash, buildModuleSource } = require('./utils');
+
+// fetch/undici default is 250ms; too short since the domain might be in a different location.
+if (typeof net.setDefaultAutoSelectFamilyAttemptTimeout === 'function') {
+  net.setDefaultAutoSelectFamilyAttemptTimeout(500);
+}
 
 const CACHE_DIR = path.join(process.cwd(), 'node_modules/.cache/bruno-remote-images');
 
@@ -141,7 +147,13 @@ module.exports = function remoteImagesLoader(source) {
 
     const urlToAssetPath = new Map();
     for (const url of urls) {
-      const { cachePath, hash } = await ensureCachedImage(url);
+      const { cachePath, hash } = await ensureCachedImage(url).catch((err) => {
+        console.warn(`remote-images: failed to download ${url} (${err.message})`);
+        return { cachePath: null, hash: null };
+      });
+      if (!cachePath || !hash) {
+        continue;
+      }
       const filename = assetFilenameFromHash(hash, url);
       // emitFile API needs Buffer; read one file at a time after streaming to disk
       const buffer = await readCachedFile(cachePath);
