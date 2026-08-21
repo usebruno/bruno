@@ -1,12 +1,16 @@
+import fs from 'fs';
+import path from 'path';
 import { test, expect } from '../../../playwright';
 import { buildCommonLocators } from '../../utils/page/locators';
 import { closeAllCollections } from '../../utils/page';
 
 test.describe('Create HTTP Requests', () => {
   let locators: ReturnType<typeof buildCommonLocators>;
+  let mountedCollectionPath: string;
 
-  test.beforeAll(async ({ pageWithUserData: page }) => {
+  test.beforeAll(async ({ pageWithUserData: page, collectionFixturePath }) => {
     locators = buildCommonLocators(page);
+    mountedCollectionPath = collectionFixturePath!;
   });
 
   test.afterAll(async ({ pageWithUserData: page }) => {
@@ -65,6 +69,43 @@ test.describe('Create HTTP Requests', () => {
       // Open request and verify it is the active request
       await folderRequestItem.click();
       await expect(locators.tabs.activeRequestTab()).toContainText('Folder HTTP Request');
+    });
+  });
+
+  test('Allows HTTP requests to share the same request name', async ({ pageWithUserData: page }) => {
+    await test.step('Create GET /users', async () => {
+      await locators.sidebar.collection('create-requests').hover();
+      await locators.actions.collectionActions('create-requests').click();
+      await locators.dropdown.item('New Request').click();
+
+      await locators.modal.newRequestName().fill('/users');
+      await locators.modal.newRequestUrl().click();
+      await page.keyboard.type('https://echo.usebruno.com/users');
+      await locators.modal.button('Create').click();
+    });
+
+    await test.step('Create POST /users', async () => {
+      await locators.sidebar.collection('create-requests').hover();
+      await locators.actions.collectionActions('create-requests').click();
+      await locators.dropdown.item('New Request').click();
+
+      await locators.modal.newRequestMethodSelector().click();
+      await locators.modal.newRequestMethodOption('post').click();
+      await locators.modal.newRequestName().fill('/users');
+      await locators.modal.newRequestUrl().click();
+      await page.keyboard.type('https://echo.usebruno.com/users');
+      await locators.modal.button('Create').click();
+    });
+
+    await test.step('Verify both requests and their unique files', async () => {
+      await expect(locators.sidebar.request('/users')).toHaveCount(2);
+
+      await expect.poll(() => {
+        return [
+          fs.existsSync(path.join(mountedCollectionPath, 'users.bru')),
+          fs.existsSync(path.join(mountedCollectionPath, 'users1.bru'))
+        ];
+      }).toEqual([true, true]);
     });
   });
 });
