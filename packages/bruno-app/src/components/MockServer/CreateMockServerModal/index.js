@@ -154,12 +154,9 @@ const CreateMockServerModal = ({
     buildCollectionSelectOptions(workspaceCollections, collections, editingInstance)
   ), [workspaceCollections, collections, editingInstance]);
 
-  const defaultCollection = workspaceCollections.find((collection) => collection.uid === defaultCollectionUid)
-    || workspaceCollections[0]
-    || null;
-  const defaultSpec = specSelectOptions.find((spec) => spec.uid === resolveSelectedSpecUid(editingInstance, apiSpecs))
-    || specSelectOptions[0]
-    || null;
+  const defaultCollection = defaultCollectionUid
+    ? workspaceCollections.find((collection) => collection.uid === defaultCollectionUid) || null
+    : null;
 
   const existingInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
   // getMockServerInstances rebuilds a new array wrapper each call; shallowEqual keeps the
@@ -168,16 +165,17 @@ const CreateMockServerModal = ({
   const hasCollectionOptions = collectionSelectOptions.length > 0;
   const hasSpecOptions = specSelectOptions.length > 0;
   const canLinkSource = hasCollectionOptions || hasSpecOptions;
+  const initialCollectionUid = editingInstance?.collectionUid || defaultCollection?.uid || '';
   const initialSpecUid = editingInstance
     ? resolveSelectedSpecUid(editingInstance, apiSpecs)
-    : (defaultSpec?.uid || '');
+    : '';
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       name: editingInstance?.name || 'New Mock Server',
       sourceType: editingInstance?.sourceType === 'manual' ? 'collection' : (editingInstance?.sourceType || defaultSourceType),
-      collectionUid: editingInstance?.collectionUid || defaultCollection?.uid || '',
+      collectionUid: initialCollectionUid,
       specUid: initialSpecUid,
       port: editingInstance?.port || suggestedPort,
       globalDelay: editingInstance?.globalDelay || 0,
@@ -228,20 +226,29 @@ const CreateMockServerModal = ({
       // Advanced closed: pick a free port at create time (matches the helper copy).
       // Advanced open / edit: validate unless this mock is keeping its current port
       // (a running instance would otherwise look like a system conflict).
-      if (!isEditing && !showAdvancedPort) {
-        resolvedPort = await suggestAvailableMockServerPort(configuredInstances, {
-          excludeUid: editingInstance?.uid
-        });
-      } else if (!portUnchanged) {
-        const portCheck = await checkMockServerPortAvailable(resolvedPort, configuredInstances, {
-          excludeUid: editingInstance?.uid
-        });
-        const error = getMockServerPortError(portCheck, resolvedPort);
-        if (error) {
-          setPortError(error);
-          toast.error(error);
-          return;
+      try {
+        if (!isEditing && !showAdvancedPort) {
+          resolvedPort = await suggestAvailableMockServerPort(configuredInstances, {
+            excludeUid: editingInstance?.uid
+          });
         }
+
+        if (!portUnchanged) {
+          const portCheck = await checkMockServerPortAvailable(resolvedPort, configuredInstances, {
+            excludeUid: editingInstance?.uid
+          });
+          const error = getMockServerPortError(portCheck, resolvedPort);
+          if (error) {
+            setPortError(error);
+            toast.error(error);
+            return;
+          }
+        }
+      } catch (err) {
+        const error = err.message || 'Failed to validate port';
+        setPortError(error);
+        toast.error(error);
+        return;
       }
 
       const resolvedSourceType = values.linkSource ? values.sourceType : 'manual';

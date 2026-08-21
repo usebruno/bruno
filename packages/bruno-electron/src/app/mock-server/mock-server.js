@@ -414,6 +414,8 @@ const handleRequest = (mockServerUid, req, res) => {
       } catch (err) {
         if (!res.headersSent) {
           res.status(500).json({ error: err.message || 'Mock response failed' });
+        } else if (!res.writableEnded && !res.destroyed) {
+          res.destroy();
         }
       }
     }, delay);
