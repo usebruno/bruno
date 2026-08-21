@@ -336,10 +336,11 @@ const ProxySettings = ({ close }) => {
             }
           >
             <SettingsField error={formik.errors.pac?.source}>
-              <div className="pac-mode-toggle">
+              <div className="pac-mode-toggle" role="group" aria-label="PAC source type">
                 <button
                   type="button"
                   className={`pac-mode-btn ${pacInputMode === 'url' ? 'active' : ''}`}
+                  aria-pressed={pacInputMode === 'url'}
                   onClick={() => {
                     setPacInputMode('url');
                     formik.setFieldValue('pac.source', '');
@@ -350,6 +351,7 @@ const ProxySettings = ({ close }) => {
                 <button
                   type="button"
                   className={`pac-mode-btn ${pacInputMode === 'file' ? 'active' : ''}`}
+                  aria-pressed={pacInputMode === 'file'}
                   onClick={() => {
                     setPacInputMode('file');
                     formik.setFieldValue('pac.source', '');
@@ -395,10 +397,10 @@ const ProxySettings = ({ close }) => {
               )}
             </SettingsField>
             {formik.values.pac.source ? (
-              <span className="pac-refetch" onClick={handleRefreshPac}>
+              <button type="button" className="pac-refetch" onClick={handleRefreshPac}>
                 <IconRefresh size={14} strokeWidth={1.5} />
                 Refetch
-              </span>
+              </button>
             ) : null}
           </SettingsGroup>
         ) : null}

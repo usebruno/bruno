@@ -135,7 +135,11 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 0.25rem;
     width: fit-content;
+    padding: 0;
+    border: none;
+    background: none;
     margin-top: 0.625rem;
+    font-family: inherit;
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.textLink};
     cursor: pointer;
