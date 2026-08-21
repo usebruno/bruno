@@ -1,5 +1,5 @@
 import path from 'path';
-import { initializeShellEnv } from './shell-env';
+import { initializeShellEnv, applyShellEnv } from './shell-env';
 
 let mockShellEnvResult: Record<string, string> = {};
 
@@ -90,5 +90,24 @@ describe('initializeShellEnv', () => {
 
     expect(result).toEqual({});
     expect(process.env.SHOULD_NOT_APPEAR).toBeUndefined();
+  });
+});
+
+describe('applyShellEnv', () => {
+  test('should apply a previously fetched environment without fetching again', () => {
+    delete process.env.APPLIED_VAR;
+
+    const result = applyShellEnv({ APPLIED_VAR: 'applied' });
+
+    expect(result).toEqual({ APPLIED_VAR: 'applied' });
+    expect(process.env.APPLIED_VAR).toBe('applied');
+    delete process.env.APPLIED_VAR;
+  });
+
+  test('should do nothing when there is no environment to apply', () => {
+    const before = { ...process.env };
+
+    expect(applyShellEnv(null)).toEqual({});
+    expect(process.env).toEqual(before);
   });
 });
