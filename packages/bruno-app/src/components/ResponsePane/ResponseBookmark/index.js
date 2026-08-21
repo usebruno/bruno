@@ -1,4 +1,4 @@
-import React, { useState, useMemo, forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { useState, forwardRef, useImperativeHandle, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { IconBookmark } from '@tabler/icons';
 import { addResponseExample } from 'providers/ReduxStore/slices/collections';
@@ -7,7 +7,8 @@ import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import { uuid, formatResponse } from 'utils/common';
 import toast from 'react-hot-toast';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
-import { getBodyType } from 'utils/responseBodyProcessor';
+import { getBodyType, isBinaryContentType } from 'utils/responseBodyProcessor';
+import { detectContentTypeFromBase64 } from 'utils/response';
 import { getInitialExampleName } from 'utils/collections/index';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
@@ -82,8 +83,14 @@ const ResponseBookmark = forwardRef(({ item, collection, responseSize, children 
     const contentTypeHeader = headersArray.find((h) => h.name?.toLowerCase() === 'content-type');
     const contentType = contentTypeHeader?.value?.toLowerCase() || '';
 
-    const bodyType = getBodyType(contentType);
-    const content = formatResponse(response.data, response.dataBuffer, bodyType);
+    // Sniffed bytes win the binary decision (the header may be missing or wrong);
+    // among the text shapes (json/xml/html/text) the header decides.
+    const sniffedMime = detectContentTypeFromBase64(response.dataBuffer);
+    const bodyType = isBinaryContentType(sniffedMime) ? 'binary' : getBodyType(contentType);
+
+    const content = bodyType === 'binary'
+      ? response.dataBuffer
+      : formatResponse(response.data, response.dataBuffer, bodyType);
 
     const exampleData = {
       name: name,
