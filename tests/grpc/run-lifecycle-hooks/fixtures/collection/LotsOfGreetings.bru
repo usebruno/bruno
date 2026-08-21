@@ -1,0 +1,58 @@
+meta {
+  name: LotsOfGreetings
+  type: grpc
+  seq: 6
+}
+
+grpc {
+  url: {{host}}
+  method: /hello.HelloService/LotsOfGreetings
+  body: grpc
+  auth: none
+  methodType: client-streaming
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {
+      "greeting": "streamed-1"
+    }
+  '''
+}
+
+body:grpc {
+  name: message 2
+  content: '''
+    {
+      "greeting": "streamed-2"
+    }
+  '''
+}
+
+body:grpc {
+  name: message 3
+  content: '''
+    {
+      "greeting": "never-streamed"
+    }
+  '''
+}
+
+script:grpc:after-call-end {
+  // A client stream sends nothing on connect, so `req.messages` holds what the user actually
+  // streamed — the third authored message is deliberately never sent.
+  test('the hook sees only the streamed messages', () => {
+    expect(bru.grpc.request.messages.count()).to.equal(2);
+    expect(bru.grpc.request.messages.get(0).data.greeting).to.equal('streamed-1');
+    expect(bru.grpc.request.messages.get(1).data.greeting).to.equal('streamed-2');
+  });
+
+  test('server replied once', () => {
+    expect(bru.grpc.response.messages.count()).to.equal(1);
+  });
+
+  test('call finished with OK', () => {
+    expect(bru.grpc.response.statusCode).to.equal(0);
+  });
+}

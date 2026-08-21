@@ -14,14 +14,18 @@ const isAllowedSourceFile = (filePath) =>
 const SCRIPT_TYPES = Object.freeze({
   PRE_REQUEST: 'pre-request',
   POST_RESPONSE: 'post-response',
-  TEST: 'test'
+  TEST: 'test',
+  BEFORE_CALL_START: 'before-call-start',
+  AFTER_CALL_END: 'after-call-end'
 });
 
 // Bruno script types → OpenCollection YAML script types
 const SCRIPT_TYPE_TO_YML = {
   [SCRIPT_TYPES.PRE_REQUEST]: 'before-request',
   [SCRIPT_TYPES.POST_RESPONSE]: 'after-response',
-  [SCRIPT_TYPES.TEST]: 'tests'
+  [SCRIPT_TYPES.TEST]: 'tests',
+  [SCRIPT_TYPES.BEFORE_CALL_START]: 'grpc:before-call-start',
+  [SCRIPT_TYPES.AFTER_CALL_END]: 'grpc:after-call-end'
 };
 
 const readFile = (filePath, cache = null) => {
@@ -38,7 +42,9 @@ const readFile = (filePath, cache = null) => {
 const BLOCK_PATTERNS = {
   [SCRIPT_TYPES.PRE_REQUEST]: /^script:pre-request\s*\{/,
   [SCRIPT_TYPES.POST_RESPONSE]: /^script:post-response\s*\{/,
-  [SCRIPT_TYPES.TEST]: /^tests\s*\{/
+  [SCRIPT_TYPES.TEST]: /^tests\s*\{/,
+  [SCRIPT_TYPES.BEFORE_CALL_START]: /^script:grpc:before-call-start\s*\{/,
+  [SCRIPT_TYPES.AFTER_CALL_END]: /^script:grpc:after-call-end\s*\{/
 };
 
 /** Find the 1-indexed line where a script block's content starts in a .bru file */

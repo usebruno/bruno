@@ -1,0 +1,14 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": [
+    "{{projectRoot}}/tests/grpc/run-lifecycle-hooks/fixtures/collection"
+  ],
+  "preferences": {
+    "beta": {
+      "nodevm": true
+    },
+    "layout": {
+      "responsePaneOrientation": "vertical"
+    }
+  }
+}

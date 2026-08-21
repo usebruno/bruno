@@ -66,6 +66,12 @@ const BETA_FEATURES = [
     label: 'Mock Server',
     description: 'Run a local mock server using response examples defined in your collection. Serve mock API responses for frontend development without a real backend.',
     toggle: true
+  },
+  {
+    id: BETA_FEATURE_IDS.GRPC_SCRIPTING,
+    label: 'gRPC Scripting',
+    description: 'Write scripts for gRPC requests. Inspect messages, metadata, and status across the call lifecycle.',
+    docsUrl: 'https://link.usebruno.com/docs/grpc-scripting'
   }
 ];
 
