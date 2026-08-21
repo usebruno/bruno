@@ -6,7 +6,7 @@
 // Frost: nord7-nord10 (#8fbcbb, #88c0d0, #81a1c1, #5e81ac)
 // Aurora: nord11-nord15 (#bf616a, #d08770, #ebcb8b, #a3be8c, #b48ead)
 
-import { rgba } from 'polished';
+import { rgba, lighten } from 'polished';
 
 const colors = {
   // Polar Night
@@ -155,6 +155,7 @@ const nordTheme = {
       lg: '10px',
       xl: '12px'
     },
+    border3: lighten(0.15, colors.NORD3),
     border2: colors.NORD3,
     border1: colors.NORD2,
     border0: colors.NORD1
