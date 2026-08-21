@@ -126,6 +126,7 @@ const MockResponseRequestPane = ({
             onSave={onSave}
             allowMethodSelect
             urlPrefix={mockServerPort ? `localhost:${mockServerPort}` : null}
+            highlightPathParams={false}
           />
         </div>
         <div className="try-action">

@@ -23,7 +23,7 @@ export const copyExampleToMockResponse = (example, parentRequest) => ({
     requestPathname: parentRequest?.pathname || null
   },
   request: {
-    url: extractMockRoutePath(example.request?.url || parentRequest?.request?.url || '/'),
+    url: extractMockRoutePath(example.request?.url || parentRequest?.request?.url || '/', { preserveTemplateVars: true }),
     method: (example.request?.method || parentRequest?.request?.method || 'GET').toUpperCase(),
     headers: example.request?.headers || [],
     params: example.request?.params || [],
@@ -31,7 +31,7 @@ export const copyExampleToMockResponse = (example, parentRequest) => ({
   },
   response: {
     status: Number(example.response?.status) || 200,
-    statusText: example.response?.statusText || 'OK',
+    statusText: example.response?.statusText || '',
     headers: example.response?.headers || [],
     body: {
       type: example.response?.body?.type || 'json',
@@ -44,14 +44,22 @@ export const copyExampleToMockResponse = (example, parentRequest) => ({
   }
 });
 
+const getMockResponseMergeKey = (response) => {
+  const { exampleName, requestPathname } = response?.copiedFrom || {};
+
+  return exampleName && requestPathname
+    ? `example::${requestPathname}::${exampleName}`
+    : getMockResponseRouteKey(response);
+};
+
 const mergeMockResponsesByRouteKey = (existingResponses = [], nextResponses = [], { keepExistingName = false } = {}) => {
   const responses = [...existingResponses];
   const indexByRouteKey = new Map(
-    responses.map((response, index) => [getMockResponseRouteKey(response), index])
+    responses.map((response, index) => [getMockResponseMergeKey(response), index])
   );
 
   for (const nextResponse of nextResponses) {
-    const routeKey = getMockResponseRouteKey(nextResponse);
+    const routeKey = getMockResponseMergeKey(nextResponse);
     const existingIndex = indexByRouteKey.get(routeKey);
 
     if (existingIndex !== undefined) {
@@ -105,8 +113,6 @@ const setJsonPathValue = (target, jsonPath, value) => {
 
   current[segments[segments.length - 1]] = value;
 };
-
-const REGEX_CLASS_SAMPLES = { d: '1', w: 'a', s: ' ' };
 
 // Expand common tokens into a literal the matcher will accept.
 // Unrecognized patterns fall through to the raw value in demoValueForMatches.
@@ -172,6 +178,9 @@ export const buildDemoRequestFromRules = (request, rules) => {
     const bodyObject = {};
     bodyConditions.forEach((condition) => setJsonPathValue(bodyObject, condition.key, demoValueForCondition(condition)));
     body = { mode: 'json', content: JSON.stringify(bodyObject, null, 2) };
+    if (body?.mode === 'json' && body?.content) {
+      body.json = JSON.parse(body.content);
+    }
   }
 
   return {
@@ -220,13 +229,13 @@ export const buildMockServerTryRequest = ({
   const body = request?.body;
   let requestBody = null;
 
-  if (body?.mode === 'json' && body.content) {
-    requestBody = body.content;
+  if (body?.mode === 'json' && body.json) {
+    requestBody = body.json;
     if (!headers['Content-Type'] && !headers['content-type']) {
       headers['Content-Type'] = 'application/json';
     }
-  } else if (body?.mode === 'text' && body.content) {
-    requestBody = body.content;
+  } else if (body?.mode === 'text' && body.text) {
+    requestBody = body.text;
     if (!headers['Content-Type'] && !headers['content-type']) {
       headers['Content-Type'] = 'text/plain';
     }
@@ -435,7 +444,7 @@ export const buildMockRouteTable = (responses = []) => {
           status: Number(item.response?.status) || 200,
           sourceFile: 'mock-response'
         })),
-        defaultResponse: items[0]?.name || null
+        defaultResponse: items.find((item) => !item.rules?.conditions?.length)?.name || null
       };
     })
     .sort((left, right) => (

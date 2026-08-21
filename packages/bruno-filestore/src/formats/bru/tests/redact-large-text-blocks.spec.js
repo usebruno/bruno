@@ -246,6 +246,50 @@ app {
 }
 `;
 
+const docsAboutAppCodeBru = `meta {
+  name: Docs About App Code
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com
+}
+
+docs {
+  # How the app block works
+
+  app {
+    code: '''
+      <div>hi</div>
+    '''
+  }
+}
+`;
+
+const appWithoutCodeThenDocsBru = `meta {
+  name: No Code Then Docs
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com
+}
+
+app {
+  enabled: true
+}
+
+docs {
+  Set the code like this:
+
+  code: '''
+    <div>hi</div>
+  '''
+}
+`;
+
 describe('redactLargeBruTextBlocks', () => {
   describe('matches a normal parse (ohm oracle)', () => {
     const requestCases = [
@@ -259,7 +303,9 @@ describe('redactLargeBruTextBlocks', () => {
       ['CRLF request-level app code', toCRLF(appBru)],
       ['standalone app item', standaloneAppBru],
       ['app block without code', appWithoutCodeBru],
-      ['app block with an empty code value', appEmptyCodeBru]
+      ['app block with an empty code value', appEmptyCodeBru],
+      ['docs documenting an app code block', docsAboutAppCodeBru],
+      ['app block without code followed by docs holding a code pair', appWithoutCodeThenDocsBru]
     ];
 
     it.each(requestCases)('%s', (_name, content) => {
@@ -324,6 +370,21 @@ body:json {
   it('leaves an app block whose code has no value untouched', () => {
     const { blocks } = redactLargeBruTextBlocks(appEmptyCodeBru);
     expect(blocks).toEqual([]);
+  });
+
+  it('leaves a code pair outside the app block untouched', () => {
+    const { blocks } = redactLargeBruTextBlocks(docsAboutAppCodeBru);
+    expect(blocks.length).toBe(1);
+    expect(blocks[0].value).toContain("code: '''");
+    expect(blocks[0].value).toContain('<div>hi</div>');
+    expect(blocks[0].value).not.toContain('__BRU_REDACTED_TEXT_BLOCK_');
+  });
+
+  it('leaves a code pair after an app block that has no code untouched', () => {
+    const { blocks } = redactLargeBruTextBlocks(appWithoutCodeThenDocsBru);
+    expect(blocks.length).toBe(1);
+    expect(blocks[0].value).toContain("code: '''");
+    expect(blocks[0].value).not.toContain('__BRU_REDACTED_TEXT_BLOCK_');
   });
 
   it('leaves dictionary body blocks untouched', () => {
