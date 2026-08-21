@@ -4,6 +4,7 @@ export * from './code-editor-search';
 export * from './file-mode';
 export * from './runner';
 export * from './locators';
+export * from './naming-collisions';
 export * from './websocket';
 export * from './sidebar';
 export * from './mounting';

@@ -23,7 +23,7 @@ export const ToastProvider = (props) => {
 
   return (
     <ToastContext.Provider {...props} value="toastProvider">
-      <Toaster toastOptions={toastOptions} />
+      <Toaster toastOptions={toastOptions} containerClassName="toast-container" />
       <div>{props.children}</div>
     </ToastContext.Provider>
   );
