@@ -2,13 +2,13 @@ const parseUrl = require('url').parse;
 const http = require('node:http');
 const https = require('node:https');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
-const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const {
   getOrCreateHttpsAgent,
   getOrCreateHttpAgent,
   resolveAgentsFromPac,
-  PatchedHttpsProxyAgent
+  PatchedHttpsProxyAgent,
+  PatchedHttpProxyAgent
 } = require('@usebruno/requests');
 const { interpolateString } = require('../runner/interpolate-string');
 
@@ -101,20 +101,27 @@ async function setupProxyAgents({
       const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
       const proxyAuthEnabled = !get(proxyConfig, 'auth.disabled', false);
       const socksEnabled = proxyProtocol?.includes('socks') ?? false;
+      const kerberosProxyAuth = proxyAuthEnabled && get(proxyConfig, 'auth.mode', 'basic') === 'kerberos' && !socksEnabled;
       let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
       let proxyUri;
-      if (proxyAuthEnabled) {
+      if (proxyAuthEnabled && !kerberosProxyAuth) {
         const proxyAuthUsername = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions));
         const proxyAuthPassword = encodeURIComponent(interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions));
 
         proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
       } else {
+        // Kerberos mode: no credentials in the proxy URI, so the agents'
+        // Basic auth logic cannot clobber the Negotiate header.
         proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
       }
       // When the proxy itself uses HTTPS, the agent connecting to it needs TLS options
       // (e.g., ca certs) even for plain HTTP requests
       const isHttpsProxy = proxyProtocol === 'https';
-      const httpProxyAgentOptions = isHttpsProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions;
+      const httpProxyAgentOptions = {
+        ...(isHttpsProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions),
+        ...(kerberosProxyAuth ? { kerberosProxyAuth: true } : {})
+      };
+      const httpsProxyAgentOptions = kerberosProxyAuth ? { ...tlsOptions, kerberosProxyAuth: true } : tlsOptions;
 
       // Only set the agent needed for the request protocol
       if (socksEnabled) {
@@ -125,9 +132,9 @@ async function setupProxyAgents({
         }
       } else {
         if (isHttpsRequest) {
-          requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: tlsOptions, proxyUri, disableCache, hostname });
+          requestConfig.httpsAgent = getOrCreateHttpsAgent({ AgentClass: PatchedHttpsProxyAgent, options: httpsProxyAgentOptions, proxyUri, disableCache, hostname });
         } else {
-          requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: httpProxyAgentOptions, proxyUri, disableCache, hostname });
+          requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: PatchedHttpProxyAgent, options: httpProxyAgentOptions, proxyUri, disableCache, hostname });
         }
       }
     }
@@ -150,7 +157,7 @@ async function setupProxyAgents({
               const parsedHttpProxy = new URL(http_proxy);
               const isHttpsSystemProxy = parsedHttpProxy.protocol === 'https:';
               const systemHttpProxyAgentOptions = isHttpsSystemProxy ? { ...httpAgentOptions, ...tlsOptions } : httpAgentOptions;
-              requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: HttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, disableCache, hostname });
+              requestConfig.httpAgent = getOrCreateHttpAgent({ AgentClass: PatchedHttpProxyAgent, options: systemHttpProxyAgentOptions, proxyUri: http_proxy, disableCache, hostname });
             }
           } catch (error) {
             throw new Error('Invalid system http_proxy');

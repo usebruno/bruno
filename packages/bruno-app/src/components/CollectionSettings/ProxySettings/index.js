@@ -105,10 +105,15 @@ const ProxySettings = ({ collection }) => {
   };
 
   const handleProtocolChange = (e) => {
+    const protocol = e.target.value;
     updateProxy({
       config: {
         ...currentProxyConfig.config,
-        protocol: e.target.value
+        protocol,
+        // Kerberos applies to HTTP proxies only
+        ...(protocol.includes('socks') && currentProxyConfig.config?.auth?.mode === 'kerberos'
+          ? { auth: { ...currentProxyConfig.config.auth, mode: 'basic' } }
+          : {})
       }
     });
   };
@@ -144,6 +149,18 @@ const ProxySettings = ({ collection }) => {
         auth: {
           ...currentProxyConfig.config.auth,
           disabled: !e.target.checked
+        }
+      }
+    });
+  };
+
+  const handleAuthModeChange = (e) => {
+    updateProxy({
+      config: {
+        ...currentProxyConfig.config,
+        auth: {
+          ...currentProxyConfig.config.auth,
+          mode: e.target.value
         }
       }
     });
@@ -347,51 +364,91 @@ const ProxySettings = ({ collection }) => {
                 onChange={handleAuthEnabledChange}
               />
             </div>
-            <div>
+            {!(currentProxyConfig.config?.protocol || 'http').includes('socks') ? (
               <div className="mb-3 flex items-center">
-                <label className="settings-label" htmlFor="auth.username">
-                  Username
+                <label className="settings-label" htmlFor="auth.mode">
+                  Auth Type
                 </label>
-                <input
-                  id="auth.username"
-                  type="text"
-                  name="auth.username"
-                  className="block textbox"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                  value={currentProxyConfig.config?.auth?.username || ''}
-                  onChange={handleAuthUsernameChange}
-                />
+                <div className="flex items-center">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="auth.mode"
+                      value="basic"
+                      checked={(currentProxyConfig.config?.auth?.mode || 'basic') === 'basic'}
+                      onChange={handleAuthModeChange}
+                      className="mr-1"
+                    />
+                    Basic
+                  </label>
+                  <label className="flex items-center ml-4">
+                    <input
+                      type="radio"
+                      name="auth.mode"
+                      value="kerberos"
+                      checked={currentProxyConfig.config?.auth?.mode === 'kerberos'}
+                      onChange={handleAuthModeChange}
+                      className="mr-1"
+                    />
+                    Kerberos (SPNEGO)
+                  </label>
+                </div>
               </div>
+            ) : null}
+            {currentProxyConfig.config?.auth?.mode === 'kerberos' ? (
               <div className="mb-3 flex items-center">
-                <label className="settings-label" htmlFor="auth.password">
-                  Password
-                </label>
-                <div className="textbox flex flex-row items-center w-[13.2rem] h-[1.70rem] relative">
+                <label className="settings-label"></label>
+                <div className="text-muted text-xs">
+                  Uses your system Kerberos credentials (kinit ticket cache on Linux/macOS, logged-on user on Windows).
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="mb-3 flex items-center">
+                  <label className="settings-label" htmlFor="auth.username">
+                    Username
+                  </label>
                   <input
-                    id="auth.password"
-                    type={passwordVisible ? 'text' : 'password'}
-                    name="auth.password"
-                    className="outline-none bg-transparent w-[10.5rem]"
+                    id="auth.username"
+                    type="text"
+                    name="auth.username"
+                    className="block textbox"
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck="false"
-                    value={currentProxyConfig.config?.auth?.password || ''}
-                    onChange={handleAuthPasswordChange}
+                    value={currentProxyConfig.config?.auth?.username || ''}
+                    onChange={handleAuthUsernameChange}
                   />
-                  <button
-                    type="button"
-                    className="btn btn-sm absolute right-0"
-                    onClick={() => setPasswordVisible(!passwordVisible)}
-                  >
-                    {passwordVisible ? <IconEyeOff size={18} strokeWidth={1.5} /> : <IconEye size={18} strokeWidth={1.5} />}
-                  </button>
+                </div>
+                <div className="mb-3 flex items-center">
+                  <label className="settings-label" htmlFor="auth.password">
+                    Password
+                  </label>
+                  <div className="textbox flex flex-row items-center w-[13.2rem] h-[1.70rem] relative">
+                    <input
+                      id="auth.password"
+                      type={passwordVisible ? 'text' : 'password'}
+                      name="auth.password"
+                      className="outline-none bg-transparent w-[10.5rem]"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      value={currentProxyConfig.config?.auth?.password || ''}
+                      onChange={handleAuthPasswordChange}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-sm absolute right-0"
+                      onClick={() => setPasswordVisible(!passwordVisible)}
+                    >
+                      {passwordVisible ? <IconEyeOff size={18} strokeWidth={1.5} /> : <IconEye size={18} strokeWidth={1.5} />}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="bypassProxy">
                 Proxy Bypass

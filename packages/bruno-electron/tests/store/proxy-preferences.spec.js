@@ -205,6 +205,49 @@ describe('Proxy Preferences Migration', () => {
     });
   });
 
+  describe('Proxy auth mode (Negotiate)', () => {
+    it('should preserve config.auth.mode for new-format preferences', () => {
+      mockStoreData['preferences'] = {
+        proxy: {
+          source: 'manual',
+          pac: { source: '' },
+          config: {
+            protocol: 'http',
+            hostname: 'proxy.example.com',
+            port: 8080,
+            auth: { mode: 'kerberos', username: '', password: '' },
+            bypassProxy: ''
+          }
+        }
+      };
+
+      const preferences = getPreferences();
+
+      expect(preferences.proxy.config.auth.mode).toBe('kerberos');
+    });
+
+    it('should preserve the top-level proxy.kerberosAuth preference (system/PAC modes)', () => {
+      mockStoreData['preferences'] = {
+        proxy: {
+          source: 'inherit',
+          kerberosAuth: true,
+          pac: { source: '' },
+          config: {
+            protocol: 'http',
+            hostname: '',
+            port: null,
+            auth: { username: '', password: '' },
+            bypassProxy: ''
+          }
+        }
+      };
+
+      const preferences = getPreferences();
+
+      expect(preferences.proxy.kerberosAuth).toBe(true);
+    });
+  });
+
   describe('v1 → v3 Migration (enabled boolean)', () => {
     it('should migrate enabled: true → source: manual', () => {
       mockStoreData['preferences'] = {

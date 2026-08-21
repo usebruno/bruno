@@ -6,6 +6,7 @@
 
 interface OldProxyAuth {
   enabled?: boolean;
+  mode?: 'basic' | 'kerberos';
   username?: string;
   password?: string;
 }
@@ -21,6 +22,7 @@ interface OldProxyConfig {
 
 interface NewProxyAuth {
   disabled?: boolean;
+  mode?: 'basic' | 'kerberos';
   username?: string;
   password?: string;
 }
@@ -51,6 +53,7 @@ export const transformProxyConfig = (proxy: OldProxyConfig | NewProxyConfig | nu
         hostname: oldProxy.hostname || '',
         port: oldProxy.port || null,
         auth: {
+          ...(oldProxy.auth?.mode ? { mode: oldProxy.auth.mode } : {}),
           username: oldProxy.auth?.username || '',
           password: oldProxy.auth?.password || ''
         },

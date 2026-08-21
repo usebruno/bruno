@@ -168,7 +168,8 @@ function getAgentCacheKey(agentClassId: number, options: AgentOptions, proxyUri:
     pfx: hashValue(options.pfx),
     passphrase: hashValue(options.passphrase),
     minVersion: options.minVersion,
-    secureProtocol: options.secureProtocol
+    secureProtocol: options.secureProtocol,
+    kerberosProxyAuth: options.kerberosProxyAuth || false
   };
   return JSON.stringify(keyData);
 }
@@ -182,7 +183,8 @@ function getHttpAgentCacheKey(agentClassId: number, options: HttpAgentOptions, p
     agentClassId,
     hostname: proxyUri?.length ? null : hostname,
     proxyUri,
-    keepAlive: options.keepAlive
+    keepAlive: options.keepAlive,
+    kerberosProxyAuth: options.kerberosProxyAuth || false
   };
   return JSON.stringify(keyData);
 }

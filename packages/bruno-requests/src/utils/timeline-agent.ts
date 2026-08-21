@@ -28,6 +28,7 @@ type AgentOptions = {
   caCertificatesCount?: CaCertificatesCount;
   proxy?: string;
   secureContext?: any;
+  kerberosProxyAuth?: boolean;
 };
 
 type AgentClass = new (options: AgentOptions, timeline?: TimelineEntry[]) => https.Agent;
@@ -36,6 +37,7 @@ type ProxyAgentClass = new (proxyUri: string, options?: AgentOptions) => https.A
 type HttpAgentOptions = {
   keepAlive?: boolean;
   proxy?: string;
+  kerberosProxyAuth?: boolean;
 };
 
 type HttpAgentClass = new (options: HttpAgentOptions, timeline?: TimelineEntry[]) => http.Agent;
