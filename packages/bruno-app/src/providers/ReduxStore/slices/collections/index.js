@@ -1017,6 +1017,17 @@ export const collectionsSlice = createSlice({
         collection.collapsed = false;
       }
     },
+    expandCollectionItem: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && item.type === 'folder') {
+          item.collapsed = false;
+        }
+      }
+    },
     toggleCollectionItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -4070,6 +4081,7 @@ export const {
   collapseFullCollection,
   toggleCollection,
   expandCollection,
+  expandCollectionItem,
   toggleCollectionItem,
   requestUrlChanged,
   updateItemSettings,
