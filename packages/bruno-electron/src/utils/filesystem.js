@@ -243,8 +243,14 @@ const sanitizeName = (name) => {
   const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
   name = name
     .replace(invalidCharacters, '-') // replace invalid characters with hyphens
-    .replace(/^[\s\-]+/, '') // remove leading spaces and hyphens
-    .replace(/[.\s]+$/, ''); // remove trailing dots and spaces
+    .replace(/^[\s\-]+/, ''); // remove leading spaces and hyphens
+  // Reject reserved path names '.' and '..'
+// Preserve other dot-only names like '...' (ellipsis)
+if (name === '.' || name === '..') {
+  name = '_';
+}else if (!/^\.+$/.test(name)) {
+  name = name.replace(/[.\s]+$/, '');
+}
   return name;
 };
 
