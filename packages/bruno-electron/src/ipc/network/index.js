@@ -28,7 +28,7 @@ const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } 
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
-const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials, clearOauth2CredentialsByCredentialsId } = require('../../utils/oauth2');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials, clearOauth2CredentialsByCredentialsId, applyOAuth2TokenToRequest } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
@@ -243,69 +243,25 @@ const configureRequest = async (
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingAuthorizationCode({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        {
-          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
-          if (tokenPlacement == 'header' && tokenValue) {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
-          } else if (tokenValue) {
-            try {
-              const url = new URL(request.url);
-              url.searchParams.set(tokenQueryKey, tokenValue);
-              request.url = url.toString();
-            } catch (error) { }
-          }
-        }
+        applyOAuth2TokenToRequest(request, { credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource });
         break;
       case 'implicit':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingImplicitGrant({ request: requestCopy, collectionUid }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        {
-          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
-          if (tokenPlacement == 'header' && tokenValue) {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
-          } else if (tokenValue) {
-            try {
-              const url = new URL(request.url);
-              url.searchParams.set(tokenQueryKey, tokenValue);
-              request.url = url.toString();
-            } catch (error) { }
-          }
-        }
+        applyOAuth2TokenToRequest(request, { credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource });
         break;
       case 'client_credentials':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingClientCredentials({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        {
-          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
-          if (tokenPlacement == 'header' && tokenValue) {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
-          } else if (tokenValue) {
-            try {
-              const url = new URL(request.url);
-              url.searchParams.set(tokenQueryKey, tokenValue);
-              request.url = url.toString();
-            } catch (error) { }
-          }
-        }
+        applyOAuth2TokenToRequest(request, { credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource });
         break;
       case 'password':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars, promptVariables);
         ({ credentials, url: oauth2Url, credentialsId, debugInfo } = await getOAuth2TokenUsingPasswordCredentials({ request: requestCopy, collectionUid, certsAndProxyConfigForTokenUrl, certsAndProxyConfigForRefreshUrl }));
         request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId, debugInfo, folderUid: request.oauth2Credentials?.folderUid };
-        {
-          const tokenValue = tokenSource === 'id_token' ? credentials?.id_token : credentials?.access_token;
-          if (tokenPlacement == 'header' && tokenValue) {
-            request.headers['Authorization'] = `${tokenHeaderPrefix} ${tokenValue}`.trim();
-          } else if (tokenValue) {
-            try {
-              const url = new URL(request.url);
-              url.searchParams.set(tokenQueryKey, tokenValue);
-              request.url = url.toString();
-            } catch (error) { }
-          }
-        }
+        applyOAuth2TokenToRequest(request, { credentials, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, tokenSource });
         break;
     }
   }
