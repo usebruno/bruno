@@ -19,7 +19,6 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: stretch;
     gap: 0.5rem;
-    max-width: 28rem;
   }
 
   .ca-certificate-input {
