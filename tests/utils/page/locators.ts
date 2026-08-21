@@ -17,6 +17,8 @@ import { buildCollectionHeaderLocators } from './collection/collection-header';
 import { buildEnvironmentLocators } from './environments';
 
 export const buildCommonLocators = (page: Page) => ({
+  // The app root carries `data-app-state="loaded"` once the renderer has finished booting.
+  appReady: () => page.locator('[data-app-state="loaded"]'),
   collectionHeader: buildCollectionHeaderLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
@@ -82,6 +84,7 @@ export const buildCommonLocators = (page: Page) => ({
   modal: {
     title: (title: string) => page.locator('.bruno-modal-header-title').filter({ hasText: title }),
     byTitle: (title: string) => page.locator('.bruno-modal').filter({ has: page.locator('.bruno-modal-header-title').filter({ hasText: title }) }),
+    itemNameInput: (root?: Locator) => (root ?? page.locator('.bruno-modal')).locator('#collection-item-name'),
     button: (name: string) => page.locator('.bruno-modal').getByRole('button', { name: name, exact: true }),
     closeButton: () => page.locator('.bruno-modal').getByTestId('modal-close-button'),
     card: () => page.locator('.bruno-modal-card'),

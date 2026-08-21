@@ -6,22 +6,25 @@ import { Page } from '../../../../playwright';
 export const buildSidebarLocators = (page: Page) => {
   const collectionRow = (name: string) => page.getByTestId('sidebar-collection-row').filter({ hasText: name });
   const itemRow = (name: string) => page.getByTestId('sidebar-collection-item-row').filter({ hasText: name });
+  const item = (name: string) => page.locator('.collection-item-name').filter({ hasText: name });
 
   return {
     collectionsContainer: () => page.getByTestId('collections'),
     collection: (name?: string) => name ? page.locator('#sidebar-collection-name').filter({ hasText: name }) : page.locator('#sidebar-collection-name'),
-    folder: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
-    request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
+    item,
+    folder: item,
+    request: item,
     folderRequest: (folderName: string, requestName: string) => {
       // Find the folder's collection-item-name, then navigate to its parent wrapper container (StyledWrapper),
       // and search for the request within that container's descendants.
       // Using .locator('..') gets the parent element of the folder's collection-item-name div.
-      const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
+      const folderWrapper = item(folderName).locator('..');
       return folderWrapper.locator('.collection-item-name').filter({ hasText: requestName });
     },
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
     collectionRow,
     itemRow,
+    collectionChevron: (name: string) => collectionRow(name).locator('.chevron-icon'),
     // The "..." menu on a sidebar row. `type` picks the row and the testid prefix:
     // 'item' for a collection item row (`collection-item-menu-*`), 'collection' for a
     // top-level collection row (`collection-actions-*`). Trigger is in the row; items

@@ -46,7 +46,7 @@ test.describe('Sidebar response-example persistence', () => {
 
     try {
       await test.step('Load the collection', async () => {
-        await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+        await expect(locators.appReady()).toBeVisible({ timeout: 30000 });
         await locators.sidebar.collection(COLLECTION_NAME).click();
         await expect(locators.sidebar.request('req-ex')).toBeVisible({ timeout: 15000 });
       });

@@ -28,7 +28,7 @@ test.describe('Sidebar scroll-to-active-tab', () => {
 
     try {
       await test.step('App loads with the collection populated', async () => {
-        await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+        await expect(locators.appReady()).toBeVisible({ timeout: 30000 });
         // Expand the collection, then wait for the last request
         // deterministic since every file already exists on disk
         await locators.sidebar.collection(COLLECTION_NAME).click();

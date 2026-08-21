@@ -25,13 +25,13 @@ test.describe('Sidebar collapse / expand', () => {
     });
     const page = await app.firstWindow();
     const locators = buildCommonLocators(page);
-    const row = (name: string) => page.locator('.collection-item-name').filter({ hasText: name });
-    const collectionChevron = locators.sidebar.collectionRow(COLLECTION_NAME).locator('.chevron-icon');
+    const row = locators.sidebar.item;
+    const collectionChevron = locators.sidebar.collectionChevron(COLLECTION_NAME);
     const folderChevron = locators.folder.chevron('folder-a');
 
     try {
       await test.step('Open the collection', async () => {
-        await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+        await expect(locators.appReady()).toBeVisible({ timeout: 30000 });
         await locators.sidebar.collection(COLLECTION_NAME).click();
         await expect(row('top-req')).toBeVisible({ timeout: 15000 });
         await expect(row('folder-a')).toBeVisible();

@@ -447,20 +447,16 @@ const renameCollectionItem = async (
 ) => {
   await test.step(`Rename ${type} "${currentName}" to "${newName}"`, async () => {
     const locators = buildCommonLocators(page);
-    const rowFor = (name: string) =>
-      type === 'folder' ? locators.sidebar.folder(name) : locators.sidebar.request(name);
-
-    await rowFor(currentName).hover();
+    await locators.sidebar.item(currentName).hover();
     await locators.actions.collectionItemActions(currentName).click();
     await locators.dropdown.item('Rename').click();
     const modal = locators.modal.byTitle(type === 'folder' ? 'Rename Folder' : 'Rename Request');
     await modal.waitFor({ state: 'visible' });
-    await modal.locator('#collection-item-name').fill(newName);
+    await locators.modal.itemNameInput(modal).fill(newName);
     await modal.getByTestId('rename-item-button').click();
     await modal.waitFor({ state: 'hidden' });
 
-    // The rename round-trips through the filesystem, so allow for the watcher.
-    await expect(rowFor(newName)).toBeVisible({ timeout: 10000 });
+    await locators.sidebar.item(newName).waitFor({ state: 'visible', timeout: 10000 });
   });
 };
 

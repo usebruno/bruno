@@ -27,12 +27,11 @@ test.describe('Sidebar search filtering', () => {
     const page = await app.firstWindow();
     const locators = buildCommonLocators(page);
     const searchInput = page.getByTestId('sidebar-search-input');
-    // Any sidebar row (folder / request / app) carries `.collection-item-name`.
-    const row = (name: string) => page.locator('.collection-item-name').filter({ hasText: name });
+    const row = locators.sidebar.item;
 
     try {
       await test.step('Load the collection, expand the folder, add an app', async () => {
-        await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+        await expect(locators.appReady()).toBeVisible({ timeout: 30000 });
         await locators.sidebar.collection(COLLECTION_NAME).click();
         await expect(row('search-me')).toBeVisible({ timeout: 15000 });
         // Expand `auth` for real so its requests stay visible after the search is cleared.

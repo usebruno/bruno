@@ -45,7 +45,7 @@ test.describe('Sidebar scroll-position preservation', () => {
 
     try {
       await test.step('Load and scroll down into the middle of the list', async () => {
-        await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
+        await expect(locators.appReady()).toBeVisible({ timeout: 30000 });
         await locators.sidebar.collection(COLLECTION_NAME).click();
         await expect(firstRow).toBeVisible({ timeout: 15000 });
         // Scroll the target into view (Playwright auto-scrolls on hover). the reference sits just above it.
@@ -58,6 +58,8 @@ test.describe('Sidebar scroll-position preservation', () => {
 
       await test.step('Rename the target request (a content edit that re-renders the sidebar)', async () => {
         await renameCollectionItem(page, TARGET_REQUEST, RENAMED_REQUEST);
+        await expect(locators.sidebar.item(RENAMED_REQUEST)).toBeVisible();
+        await expect(locators.sidebar.item(TARGET_REQUEST)).toHaveCount(0);
       });
 
       await test.step('The sidebar has not jumped — the reference row is still where it was', async () => {
