@@ -34,6 +34,7 @@
     "http-proxy-agent": "~7.0.2",
     "https-proxy-agent": "~7.0.6",
     "is-ip": "^5.0.1",
+    "protobufjs": "^7.6.5",
     "shell-env": "^4.0.1",
     "socks-proxy-agent": "~8.0.5",
     "system-ca": "^2.0.1",
