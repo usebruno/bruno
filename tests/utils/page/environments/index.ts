@@ -1,6 +1,13 @@
 import { expect, Page, test } from '../../../../playwright';
 import { buildCollectionHeaderLocators } from '../collection/collection-header';
 
+export type EnvironmentScope = 'collection' | 'global';
+
+// The workspace-home "Environments" tab renders the same global-scoped editor as the
+// standalone "Global Environments" tab, but keeps the collection tab's label.
+const workspaceEnvTab = (page: Page) =>
+  page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Environments' }) });
+
 export const buildEnvironmentLocators = (page: Page) => ({
   selector: () => page.getByTestId('environment-selector-trigger'),
   collectionTab: () => page.getByTestId('env-tab-collection'),
@@ -105,7 +112,24 @@ export const buildEnvironmentLocators = (page: Page) => ({
       .getByTestId(scope === 'global' ? 'workspace-env-list-item' : 'collection-env-list-item')
       .filter({ hasText: name }),
   varRowEnabledCheckbox: (name: string) =>
-    page.getByTestId(`env-var-row-${name}`).getByTestId('env-var-enabled-checkbox')
+    page.getByTestId(`env-var-row-${name}`).getByTestId('env-var-enabled-checkbox'),
+  resetButton: () => page.getByTestId('reset-env'),
+  workspaceEnvTab: () => workspaceEnvTab(page),
+  // The workspace Environments tab can't be closed, so unsaved changes surface as the
+  // tab's draft icon instead of a close button.
+  workspaceEnvTabDraftIcon: () => workspaceEnvTab(page).getByTestId('tab-draft-icon'),
+  // The `.env` files section is shared by the collection and workspace environment editors.
+  dotEnvSection: () => page.getByTestId('dotenv-files-section'),
+  createDotEnvFileButton: () => page.getByTestId('create-dotenv-file'),
+  dotEnvNameInput: () => page.getByTestId('dotenv-name-input'),
+  dotEnvFileItem: (filename: string) => page.locator('.environment-item').filter({ hasText: filename }),
+  dotEnvVarRow: (name: string) => page.getByTestId(`dotenv-var-row-${name}`),
+  // The trailing empty "add new variable" row's name input.
+  dotEnvAddRowNameInput: () => page.getByTestId('dotenv-var-name-input').last(),
+  dotEnvVarValueEditor: (name: string) =>
+    page.getByTestId(`dotenv-var-row-${name}`).getByTestId(/^test-multiline-editor-\d+\.value$/).locator('.CodeMirror').first(),
+  saveDotEnvButton: () => page.getByTestId('save-dotenv'),
+  resetDotEnvButton: () => page.getByTestId('reset-dotenv')
 });
 
 /**
@@ -147,5 +171,77 @@ export const selectNoEnvironment = async (page: Page) => {
     await environment.selector().click();
     await environment.noEnvironmentItem().click();
     await expect(environment.selector()).toContainText('No Environment');
+  });
+};
+
+/**
+ * Opens the workspace-level Environments tab, which edits global-scoped environments.
+ * @param page - The page object
+ */
+export const openWorkspaceEnvironmentsTab = async (page: Page) => {
+  await test.step('Open the workspace Environments tab', async () => {
+    await buildEnvironmentLocators(page).workspaceEnvTab().click();
+    await expect(page.locator('.request-tab.active').locator('.tab-label')).toHaveText('Environments');
+  });
+};
+
+/**
+ * Creates an environment from the environment editor's sidebar, using the inline
+ * create row rather than the environment selector dropdown.
+ * @param page - The page object
+ * @param name - Environment name
+ * @param scope - Environment scope the editor is showing
+ */
+export const createEnvironmentFromSidebar = async (
+  page: Page,
+  name: string,
+  scope: EnvironmentScope = 'global'
+) => {
+  await test.step(`Create ${scope} environment "${name}"`, async () => {
+    const environment = buildEnvironmentLocators(page);
+
+    await environment.settingsCreateButton().click();
+    const nameInput = environment.settingsCreateNameInput();
+    await expect(nameInput).toBeVisible();
+    await nameInput.fill(name);
+    await nameInput.press('Enter');
+
+    await expect(environment.sidebarListItem(scope, name)).toBeVisible();
+  });
+};
+
+/**
+ * Creates a `.env` file from the environment editor's `.env Files` section.
+ * @param page - The page object
+ * @param filename - Name of the file to create (must start with `.env`)
+ */
+export const createDotEnvFile = async (page: Page, filename = '.env') => {
+  await test.step(`Create "${filename}" file`, async () => {
+    const environment = buildEnvironmentLocators(page);
+
+    await environment.dotEnvSection().click();
+    await environment.createDotEnvFileButton().click();
+    await environment.dotEnvNameInput().fill(filename);
+    await environment.dotEnvNameInput().press('Enter');
+
+    await expect(environment.dotEnvFileItem(filename)).toBeVisible();
+  });
+};
+
+/**
+ * Adds a variable to the `.env` file currently open in the environment editor.
+ * @param page - The page object
+ * @param name - Variable name
+ * @param value - Variable value
+ */
+export const addDotEnvVariable = async (page: Page, name: string, value: string) => {
+  await test.step(`Add "${name}" to the open .env file`, async () => {
+    const environment = buildEnvironmentLocators(page);
+
+    await environment.dotEnvAddRowNameInput().fill(name);
+    await expect(environment.dotEnvVarRow(name)).toBeVisible();
+
+    await environment.dotEnvVarValueEditor(name).click();
+    await page.keyboard.type(value);
   });
 };
