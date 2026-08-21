@@ -76,6 +76,46 @@ const COLLECTION_BRU = `docs {
 }
 `;
 
+const REQUEST_BRU_WITH_RUN_REQUEST = `meta {
+  name: chain
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:3000/chain
+}
+
+script:pre-request {
+  await bru.runRequest("newFolder/SecondReq.bru");
+  await bru.runRequest('single/quoted.bru');
+}
+
+script:post-response {
+  await bru.runRequest(\`template/literal.bru\`);
+  await bru.runRequest("no-ext");
+  await bru.runRequest("keeper.bruv");
+}
+
+tests {
+  await bru.runRequest("tests/only.bru");
+}
+`;
+
+const FOLDER_BRU_WITH_RUN_REQUEST = `meta {
+  name: chained
+}
+
+script:pre-request {
+  await bru.runRequest("folder-scoped/first.bru");
+}
+`;
+
+const COLLECTION_BRU_WITH_RUN_REQUEST = `script:pre-request {
+  await bru.runRequest("collection-scoped/first.bru");
+}
+`;
+
 describe('migrateCollectionOnDisk', () => {
   let collectionDir;
   let backupRootDir;
@@ -313,6 +353,33 @@ describe('migrateCollectionOnDisk', () => {
 
     const ocYml = fs.readFileSync(filePath('opencollection.yml'), 'utf8');
     expect(ocYml).toContain('proxy.example.com');
+  });
+
+  it('strips the .bru extension from bru.runRequest calls across request, folder and collection scripts', async () => {
+    fs.writeFileSync(filePath('collection.bru'), COLLECTION_BRU_WITH_RUN_REQUEST);
+    fs.writeFileSync(filePath('chain.bru'), REQUEST_BRU_WITH_RUN_REQUEST);
+    fs.writeFileSync(filePath('api', 'folder.bru'), FOLDER_BRU_WITH_RUN_REQUEST);
+
+    await runMigration();
+
+    const chainYml = fs.readFileSync(filePath('chain.yml'), 'utf8');
+    expect(chainYml).toContain('bru.runRequest("newFolder/SecondReq")');
+    expect(chainYml).toContain("bru.runRequest('single/quoted')");
+    expect(chainYml).toContain('bru.runRequest(`template/literal`)');
+    expect(chainYml).toContain('bru.runRequest("tests/only")');
+    // Untouched: extensionless call and a look-alike extension.
+    expect(chainYml).toContain('bru.runRequest("no-ext")');
+    expect(chainYml).toContain('bru.runRequest("keeper.bruv")');
+    // No stray literal ".bru" survived any of the rewritten calls.
+    expect(chainYml).not.toMatch(/bru\.runRequest\([^)]*\.bru['"`]\)/);
+
+    const folderYml = fs.readFileSync(filePath('api', 'folder.yml'), 'utf8');
+    expect(folderYml).toContain('bru.runRequest("folder-scoped/first")');
+    expect(folderYml).not.toContain('folder-scoped/first.bru');
+
+    const ocYml = fs.readFileSync(filePath('opencollection.yml'), 'utf8');
+    expect(ocYml).toContain('bru.runRequest("collection-scoped/first")');
+    expect(ocYml).not.toContain('collection-scoped/first.bru');
   });
 
   it('keeps the backup and reports when a source cannot be restored', async () => {

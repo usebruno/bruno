@@ -27,6 +27,37 @@ const MIGRATION_IGNORED_DIRS = new Set(['node_modules', '.git']);
 // so a cancel takes effect at the next file boundary — never mid-write.
 const migrationCancellations = new Set();
 
+// Rewrites the string literal argument of `bru.runRequest("path.bru")` to drop the
+// trailing `.bru`. The network handler (ipc/network/index.js — `runRequestByItemPathname`)
+// appends the collection's current format extension when the pathname has none, so an
+// extensionless path resolves correctly in both bru and yml collections — a migrated
+// script that still says `"foo.bru"` would otherwise try to load a file that no longer
+// exists. Emitting extensionless paths also keeps the script portable across any future
+// format change without another script rewrite.
+//
+// Matches `bru.runRequest(` (with optional whitespace) followed by a matching quoted
+// path ending in `.bru`. The path content excludes the opening quote and newlines,
+// covering every realistic callsite while keeping the pattern linear-time on script
+// length.
+const RUN_REQUEST_BRU_EXT_REGEX = /(\bbru\.runRequest\s*\(\s*(['"`]))([^'"`\r\n]*?)\.bru\2/g;
+
+const stripBruExtInRunRequest = (code) => {
+  if (typeof code !== 'string' || code.length === 0) return code;
+  // Cheap prefix filter: skip the regex engine entirely when the token isn't present.
+  if (code.indexOf('runRequest') === -1) return code;
+  return code.replace(RUN_REQUEST_BRU_EXT_REGEX, '$1$3$2');
+};
+
+const stripBruExtInParsedScripts = (parsed) => {
+  const request = parsed?.request;
+  if (!request) return;
+  if (request.script) {
+    request.script.req = stripBruExtInRunRequest(request.script.req);
+    request.script.res = stripBruExtInRunRequest(request.script.res);
+  }
+  request.tests = stripBruExtInRunRequest(request.tests);
+};
+
 const collectBruFilesForMigration = (root, extraIgnored = []) => {
   const ignoredNames = new Set([...MIGRATION_IGNORED_DIRS, ...extraIgnored]);
   const results = [];
@@ -92,6 +123,7 @@ const migrateCollectionOnDisk = async ({
     let collectionRoot = {};
     if (fs.existsSync(collectionBruPath)) {
       collectionRoot = parseCollection(fs.readFileSync(collectionBruPath, 'utf8'), { format: 'bru' });
+      stripBruExtInParsedScripts(collectionRoot);
     }
 
     const ymlBrunoConfig = { ...brunoConfig };
@@ -151,10 +183,12 @@ const migrateCollectionOnDisk = async ({
           ymlContent = await stringifyEnvironmentViaWorker(envData, { format: 'yml' });
         } else if (basename === 'folder.bru') {
           const folderData = await parseFolderViaWorker(bruContent, { format: 'bru' });
+          stripBruExtInParsedScripts(folderData);
           ymlPath = path.join(dirname, 'folder.yml');
           ymlContent = await stringifyFolderViaWorker(folderData, { format: 'yml' });
         } else {
           const requestData = await parseRequestViaWorker(bruContent, { format: 'bru' });
+          stripBruExtInParsedScripts(requestData);
           ymlPath = bruFilePath.replace(/\.bru$/, '.yml');
           ymlContent = await stringifyRequestViaWorker(requestData, { format: 'yml' });
         }
