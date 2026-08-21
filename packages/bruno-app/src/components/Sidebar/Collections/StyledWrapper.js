@@ -14,9 +14,8 @@ const Wrapper = styled.div`
     min-height: 0;
     padding-top: 4px;
     padding-bottom: 4px;
-    overflow-y: auto;
-    overflow-x: hidden;
-
+    /* Virtuoso owns the scroll container; keep this a bounded, non-scrolling flex box. */
+    overflow: hidden;
   }
 `;
 

@@ -153,17 +153,15 @@ export const openRunnerResultTimeline = async (page: Page, requestName: string) 
  */
 export const runFolder = async (page: Page, collectionName: string, folderPath: string[]) => {
   await test.step(`Run folder "${folderPath.join('/')}" in "${collectionName}"`, async () => {
-    // Scope to the specific collection by its DOM id (collection-<name-kebab>)
-    const collectionId = `collection-${collectionName.replace(/\s+/g, '-').toLowerCase()}`;
-    const collectionContainer = page.locator(`#${collectionId}`);
-    await collectionContainer.waitFor({ state: 'visible', timeout: 5000 });
+    // Flat, virtualized sidebar: scope by `data-collection-id` / `data-parent-name` rather than DOM
+    // nesting.
+    const collectionScope = page.locator(`[data-collection-id="${collectionName.replace(/\s+/g, '-').toLowerCase()}"]`);
+    await collectionScope.first().waitFor({ state: 'visible', timeout: 5000 });
 
-    // Walk down the folder path, scoping each step to the previous folder's container.
-    // Each CollectionItem renders as a StyledWrapper div containing:
-    //   - div.collection-item-name (the row with chevron, name, menu)
-    //   - div (children container when expanded)
-    // We scope to the parent wrapper so the next folder lookup is unambiguous.
-    let scope = collectionContainer;
+    // Walk down the folder path, expanding each folder; scope the next lookup to that folder's
+    // direct children (rows carry `data-parent-name="<folder>"`).
+    let scope = collectionScope;
+    let targetRow = scope.locator('.collection-item-name').filter({ hasText: folderPath[0] }).first();
     for (const folderName of folderPath) {
       const row = scope.locator('.collection-item-name').filter({ hasText: folderName }).first();
       await row.waitFor({ state: 'visible', timeout: 5000 });
@@ -175,12 +173,11 @@ export const runFolder = async (page: Page, collectionName: string, folderPath: 
         await chevron.click();
       }
 
-      // Scope to this folder's wrapper (parent of the row) for the next iteration
-      scope = row.locator('..');
+      targetRow = row;
+      scope = page.locator(`[data-parent-name="${folderName}"]`);
     }
 
-    // The target folder row is the last one we found — hover to reveal menu
-    const targetRow = scope.locator('.collection-item-name').filter({ hasText: folderPath[folderPath.length - 1] }).first();
+    // The deepest folder row we found — hover to reveal its menu.
     await targetRow.hover();
 
     // Click the menu icon

@@ -23,12 +23,12 @@ export const buildCollectionTreeLocators = (page: Page) => {
     has: page.locator('#sidebar-collection-name', { hasText: name })
   });
 
-  const itemScope = (collectionName?: string) => collectionName
-    ? collectionRow(collectionName).locator('..')
-    : page;
+  const collectionScope = (name: string) => page.locator(`[data-collection-id="${name.replace(/\s+/g, '-').toLowerCase()}"]`);
+  const itemScope = (collectionName?: string) => collectionName ? collectionScope(collectionName) : page;
 
   return {
-  /**
+    collectionScope,
+    /**
    * Collection-level locators
    */
     collection: {
@@ -201,13 +201,8 @@ export const getCollectionItemCount = async (
   collectionName: string
 ): Promise<number> => {
   const locators = buildCollectionTreeLocators(page);
-
-  // Get the parent wrapper that contains the collection and its items
-  const collectionWrapper = locators.collection.row(collectionName).locator('..');
-
-  // Count all collection items within this collection
-  const items = collectionWrapper.getByTestId('sidebar-collection-item-row');
-  return await items.count();
+  // Counts currently-mounted item rows (exact for collections that fit without scrolling).
+  return await locators.item.allRows(collectionName).count();
 };
 
 /**
@@ -223,95 +218,76 @@ export const getCollectionTreeStructure = async (
   const locators = buildCollectionTreeLocators(page);
 
   return await test.step(`Get tree structure for collection "${collectionName}"`, async () => {
-    const collectionRow = locators.collection.row(collectionName);
-
-    // Ensure collection is expanded
-    const isExpanded = await locators.collection.isExpanded(collectionName);
-    if (!isExpanded) {
-      await collectionRow.click();
+    // Ensure the collection is expanded.
+    if (!(await locators.collection.isExpanded(collectionName))) {
+      await locators.collection.row(collectionName).click();
     }
-
-    // Wait for collection to finish mounting after expansion
     await waitForCollectionMount(page, collectionName);
 
-    // Collection structure:
-    // StyledWrapper > [collection-row, children-wrapper > inner-container > items]
-    // Get the sibling div that contains the children (not the collection row itself)
-    const collectionWrapper = collectionRow.locator('..');
-    const childrenContainer = collectionWrapper.locator(':scope > div:not([data-testid="sidebar-collection-row"]) > div').first();
+    // Expand every folder so the whole subtree is present in the (flat, virtualized) list.
+    await expandAllFolders(page, collectionName, locators);
 
-    const items = await extractItemsFromContainer(page, childrenContainer, collectionName);
+    // The sidebar is a flat, DFS-ordered list of rows; reconstruct the tree from each row's
+    // indent depth (number of `.indent-block` spacers).
+    const flat: FlatItem[] = [];
+    for (const row of await locators.item.allRows(collectionName).all()) {
+      const name = (await locators.item.getNameFromRow(row).innerText()).trim();
+      const isFolder = (await locators.item.isFolderRow(row).count()) > 0;
+      const depth = await row.locator('.indent-block').count();
+      let method: string | undefined;
+      if (!isFolder) {
+        const badge = row.locator('.mr-1 span').first();
+        method = (await badge.count()) > 0 ? (await badge.innerText()).trim().toUpperCase() : undefined;
+      }
+      flat.push({ name, isFolder, depth, method });
+    }
 
-    return {
-      name: collectionName,
-      items
-    };
+    return { name: collectionName, items: buildTreeFromFlat(flat) };
   });
 };
 
-/**
- * Helper function to extract items from a container (collection or folder).
- */
-async function extractItemsFromContainer(
+type FlatItem = { name: string; isFolder: boolean; depth: number; method?: string };
+
+/** Expand every collapsed folder in the collection (expanding one can reveal more, so loop). */
+async function expandAllFolders(
   page: Page,
-  container: ReturnType<Page['locator']>,
-  collectionName?: string
-): Promise<CollectionTreeItem[]> {
-  const locators = buildCollectionTreeLocators(page);
-  const items: CollectionTreeItem[] = [];
-
-  // Get direct child StyledWrappers, each contains one item
-  // Structure: container > StyledWrapper > [item-row, children-div?]
-  const childWrappers = container.locator(':scope > div:has([data-testid="sidebar-collection-item-row"])');
-  const count = await childWrappers.count();
-
-  for (let i = 0; i < count; i++) {
-    const wrapper = childWrappers.nth(i);
-    const itemRow = wrapper.getByTestId('sidebar-collection-item-row').first();
-    const itemName = (await locators.item.getNameFromRow(itemRow).innerText()).trim();
-
-    // Check if it's a folder by looking for folder chevron within this specific row
-    const isFolder = await locators.item.isFolderRow(itemRow).count() > 0;
-
-    if (isFolder) {
-      // It's a folder - expand it via the chevron in this exact row to avoid
-      // matching same-named folders elsewhere in the tree.
-      const folderChevron = locators.item.isFolderRow(itemRow);
-      const rowIsExpanded = await itemRow.locator('.rotate-90').count() > 0;
-      if (!rowIsExpanded) {
-        await folderChevron.click();
-        await expect.poll(async () => await itemRow.locator('.rotate-90').count() > 0).toBe(true);
+  collectionName: string,
+  locators: ReturnType<typeof buildCollectionTreeLocators>
+): Promise<void> {
+  for (let pass = 0; pass < 200; pass++) {
+    const chevrons = locators.item.allRows(collectionName).getByTestId('folder-chevron');
+    const total = await chevrons.count();
+    let clicked = false;
+    for (let i = 0; i < total; i++) {
+      const chevron = chevrons.nth(i);
+      const expanded = await chevron.evaluate((el) => el.classList.contains('rotate-90')).catch(() => true);
+      if (!expanded) {
+        await chevron.click();
+        await page.waitForTimeout(50);
+        clicked = true;
+        break;
       }
+    }
+    if (!clicked) break;
+  }
+}
 
-      // Children are in a sibling div after the item row (within the same wrapper)
-      // Structure: wrapper > [item-row, children-container]
-      const childrenContainer = wrapper.locator(':scope > div:not([data-testid="sidebar-collection-item-row"])').first();
-      const hasChildren = await childrenContainer.count() > 0;
-      const nestedItems = hasChildren ? await extractItemsFromContainer(page, childrenContainer, collectionName) : [];
-
-      items.push({
-        name: itemName,
-        type: 'folder',
-        items: nestedItems
-      });
+/** Rebuild the nested tree from a flat, DFS-ordered list of rows keyed by indent depth. */
+function buildTreeFromFlat(flat: FlatItem[]): CollectionTreeItem[] {
+  const root: CollectionTreeItem[] = [];
+  const stack: { depth: number; items: CollectionTreeItem[] }[] = [{ depth: 0, items: root }];
+  for (const r of flat) {
+    while (stack.length > 1 && stack[stack.length - 1].depth >= r.depth) stack.pop();
+    const parent = stack[stack.length - 1].items;
+    if (r.isFolder) {
+      const node: CollectionTreeItem = { name: r.name, type: 'folder', items: [] };
+      parent.push(node);
+      stack.push({ depth: r.depth, items: node.items as CollectionTreeItem[] });
     } else {
-      // It's a request - read the method badge from this exact row to avoid
-      // colliding with same-named requests elsewhere.
-      const methodBadge = itemRow.locator('.mr-1 span').first();
-      let method = '';
-      if (await methodBadge.count() > 0) {
-        method = (await methodBadge.innerText()).trim().toUpperCase();
-      }
-
-      items.push({
-        name: itemName,
-        type: 'request',
-        method: method || undefined
-      });
+      parent.push({ name: r.name, type: 'request', method: r.method });
     }
   }
-
-  return items;
+  return root;
 }
 
 /**
@@ -367,10 +343,7 @@ export const waitForItemCount = async (
   const locators = buildCollectionTreeLocators(page);
 
   await test.step(`Wait for ${expectedCount} items in collection "${collectionName}"`, async () => {
-    const collectionWrapper = locators.collection.row(collectionName).locator('..');
-    const items = collectionWrapper.getByTestId('sidebar-collection-item-row');
-
-    await expect(items).toHaveCount(expectedCount, { timeout });
+    await expect(locators.item.allRows(collectionName)).toHaveCount(expectedCount, { timeout });
   });
 };
 
@@ -382,7 +355,7 @@ export const waitForItemCount = async (
  */
 export const hasErrorItems = async (page: Page, collectionName: string): Promise<boolean> => {
   const locators = buildCollectionTreeLocators(page);
-  const collectionWrapper = locators.collection.row(collectionName).locator('..');
+  const collectionWrapper = locators.collectionScope(collectionName);
 
   // Look for error indicators (typically a red icon or error class)
   const errorIndicators = collectionWrapper.locator('.item-error, .error-indicator, [class*="error"]');
@@ -397,7 +370,7 @@ export const hasErrorItems = async (page: Page, collectionName: string): Promise
  */
 export const getErrorItemNames = async (page: Page, collectionName: string): Promise<string[]> => {
   const locators = buildCollectionTreeLocators(page);
-  const collectionWrapper = locators.collection.row(collectionName).locator('..');
+  const collectionWrapper = locators.collectionScope(collectionName);
 
   const errorItems = collectionWrapper.getByTestId('sidebar-collection-item-row').filter({
     has: page.locator('.item-error, .error-indicator, [class*="error"]')

@@ -14,11 +14,10 @@ export const buildSidebarLocators = (page: Page) => {
     request: (name: string) => page.locator('.collection-item-name').filter({ hasText: name }),
     collectionChevron: (name: string) => collectionRow(name).getByTestId('collection-chevron'),
     folderRequest: (folderName: string, requestName: string) => {
-      // Find the folder's collection-item-name, then navigate to its parent wrapper container (StyledWrapper),
-      // and search for the request within that container's descendants.
-      // Using .locator('..') gets the parent element of the folder's collection-item-name div.
-      const folderWrapper = page.locator('.collection-item-name').filter({ hasText: folderName }).locator('..');
-      return folderWrapper.locator('.collection-item-name').filter({ hasText: requestName });
+      // The sidebar is a flat, virtualized list — rows are siblings, not nested. Each row's
+      // wrapper carries `data-parent-name` (its containing folder), so scope by that instead
+      // of DOM nesting.
+      return page.locator(`[data-parent-name="${folderName}"]`).locator('.collection-item-name').filter({ hasText: requestName });
     },
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
     collectionRow,
@@ -38,9 +37,12 @@ export const buildSidebarLocators = (page: Page) => {
     requestExamplesToggle: (requestName: string) =>
       page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('request-item-chevron'),
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
-    // The sidebar tree wraps each collection in `#collection-<slug>`; scope queries
-    // to it to disambiguate items that share names across collections.
-    collectionScope: (name: string) => page.locator(`#collection-${name.replace(/\s+/g, '-').toLowerCase()}`),
+    // The flat, virtualized sidebar stamps every row of a collection with
+    // `data-collection-id="<slug>"`.
+    collectionScope: (name: string) => page.locator(`[data-collection-id="${name.replace(/\s+/g, '-').toLowerCase()}"]`),
+    collectionScopeByUid: (collectionUid: string) => page.locator(`[data-collection-uid="${collectionUid}"]`),
+    // Scope to the direct children of a folder (rows stamped with `data-parent-name`).
+    folderScope: (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`),
     dragHandle: () => page.getByTestId('sidebar-drag-handle'),
     toggleSidebarButton: () => page.getByTestId('toggle-sidebar-button'),
     sidebarContainer: () => page.getByTestId('sidebar')
