@@ -72,6 +72,47 @@ describe('interpolate-vars: interpolateVars', () => {
   });
 });
 
+describe('interpolate-vars: path params', () => {
+  it('supports an escaped colon after a resolved path param (issue #3810)', () => {
+    const request = {
+      method: 'GET',
+      url: 'https://example.com/:foo/:bar\\:publish',
+      pathParams: [
+        { type: 'path', name: 'foo', value: 'a' },
+        { type: 'path', name: 'bar', value: 'b' }
+      ]
+    };
+
+    const result = interpolateVars(request, {}, null, null);
+    expect(result.url).toBe('https://example.com/a/b:publish');
+  });
+
+  it('resolves an escaped colon literal even without any configured path params', () => {
+    const request = {
+      method: 'GET',
+      url: 'https://example.com/foo/\\:literal',
+      pathParams: []
+    };
+
+    const result = interpolateVars(request, {}, null, null);
+    expect(result.url).toBe('https://example.com/foo/:literal');
+  });
+
+  it('does not corrupt a path param value that looks like the internal escape placeholder', () => {
+    const request = {
+      method: 'GET',
+      url: 'https://example.com/:foo/:bar\\:publish',
+      pathParams: [
+        { type: 'path', name: 'foo', value: 'zzzBRUNOESCAPEDCOLONabc123zzz' },
+        { type: 'path', name: 'bar', value: 'b' }
+      ]
+    };
+
+    const result = interpolateVars(request, {}, null, null);
+    expect(result.url).toBe('https://example.com/zzzBRUNOESCAPEDCOLONabc123zzz/b:publish');
+  });
+});
+
 describe('interpolate-vars: api key header name sidecar', () => {
   it('interpolates apiKeyHeaderName in lockstep with interpolated header keys', () => {
     const request = {
