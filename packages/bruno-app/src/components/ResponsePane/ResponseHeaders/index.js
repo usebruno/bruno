@@ -11,19 +11,30 @@ const ResponseHeaders = ({ headers, item }) => {
   useTrackScroll({ ref: wrapperRef, selector: '.response-tab-content', onChange: setScroll, initialValue: scroll });
 
   const renderValue = (value) => {
-    if (typeof value === 'string' && isValidUrl(value)) {
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    const trimmed = value.trim();
+
+    // Only allow http(s) links from response headers.
+    if (/^https?:\/\//i.test(trimmed) && isValidUrl(trimmed)) {
       return (
         <a
-          href={value}
+          href={trimmed}
           onClick={(e) => {
-            e.preventDefault();
-            window?.ipcRenderer?.openExternal(value);
+            const openExternal = window?.ipcRenderer?.openExternal;
+            if (typeof openExternal === 'function') {
+              e.preventDefault();
+              openExternal(trimmed);
+            }
           }}
         >
           {value}
         </a>
       );
     }
+
     return value;
   };
 
