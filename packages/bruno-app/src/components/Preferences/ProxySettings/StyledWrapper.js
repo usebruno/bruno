@@ -27,11 +27,6 @@ const StyledWrapper = styled.div`
     gap: 1rem;
   }
 
-  /* Deliberately not reusing the .textbox class here. The wrapper needs its own
-     padding so the nested input can sit flush inside it; mixing the two means a
-     padding shorthand and a longhand at equal specificity, where the winner
-     depends on stylesheet order. Restating the .textbox visuals keeps this box
-     exactly as tall as a plain input next to it. */
   .password-field {
     display: flex;
     align-items: center;
@@ -64,8 +59,6 @@ const StyledWrapper = styled.div`
       }
     }
 
-    /* zero padding/line-height so the icon can't make this row taller than the
-       plain inputs beside it */
     .password-toggle {
       display: inline-flex;
       align-items: center;
