@@ -20,6 +20,9 @@ const hasLength = (str) => {
   return str.length > 0;
 };
 
+const findActivePathParam = (params, name) =>
+  (params || []).find((p) => p?.name === name && p?.type === 'path' && p?.enabled !== false);
+
 const hasResolvablePathParamValue = (pathParam) => {
   if (!pathParam || pathParam.enabled === false) {
     return false;
@@ -178,9 +181,8 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
         // traditional path parameters
         if (segment.startsWith(':')) {
           const name = segment.slice(1);
-          const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
+          const pathParam = findActivePathParam(params, name);
           return hasResolvablePathParamValue(pathParam) ? substituteValue(pathParam.value) : segment;
-          // return pathParam ? substituteValue(pathParam.value) : segment;
         }
 
         // for OData-style parameters (parameters inside parentheses)
@@ -202,7 +204,7 @@ export const interpolateUrlPathParams = (url, params, variables = {}, options = 
           name = name.replace(/^[('"`]+/, '');
           if (!name) continue;
 
-          const pathParam = params.find((p) => p?.name === name && p?.type === 'path');
+          const pathParam = findActivePathParam(params, name);
           if (hasResolvablePathParamValue(pathParam)) {
             result = result.replace(':' + match[1], substituteValue(pathParam.value));
           }

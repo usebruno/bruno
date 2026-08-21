@@ -21,6 +21,18 @@ describe('transformUrl', () => {
     });
   });
 
+  it('should export only the enabled row when a path param has disabled alternates', () => {
+    const url = 'https://example.com/v1/images/:kind';
+    const params = [
+      { name: 'kind', value: 'Logo', type: 'path', enabled: true },
+      { name: 'kind', value: 'Signature', type: 'path', enabled: false }
+    ];
+
+    const result = transformUrl(url, params);
+
+    expect(result.variable).toEqual([{ key: 'kind', value: 'Logo' }]);
+  });
+
   it('should handle URL with query parameters', () => {
     const url = 'https://example.com/api/resource?limit=10&offset=20';
     const params = [

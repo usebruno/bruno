@@ -55,6 +55,62 @@ describe('interpolate-vars: interpolateVars', () => {
     });
 
     describe('With path params', () => {
+      it('skips a disabled row and uses the enabled one sharing its name', async () => {
+        const request = {
+          method: 'PUT',
+          url: 'http://example.com/v1/images/:kind',
+          pathParams: [
+            { type: 'path', name: 'kind', value: 'Logo', enabled: false },
+            { type: 'path', name: 'kind', value: 'Signature', enabled: true }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/v1/images/Signature');
+      });
+
+      it('keeps the colon segment when every row sharing a name is disabled', async () => {
+        const request = {
+          method: 'PUT',
+          url: 'http://example.com/v1/images/:kind',
+          pathParams: [
+            { type: 'path', name: 'kind', value: 'Logo', enabled: false },
+            { type: 'path', name: 'kind', value: 'Signature', enabled: false }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/v1/images/:kind');
+      });
+
+      it('skips a disabled row inside an OData segment and uses the enabled sibling', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/odata/Products(\':productId\')',
+          pathParams: [
+            { type: 'path', name: 'productId', value: 'OLD', enabled: false },
+            { type: 'path', name: 'productId', value: 'NEW', enabled: true }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/odata/Products(\'NEW\')');
+      });
+
+      it('keeps an OData segment literal when every row sharing its name is disabled', async () => {
+        const request = {
+          method: 'GET',
+          url: 'http://example.com/odata/Products(\':productId\')',
+          pathParams: [
+            { type: 'path', name: 'productId', value: 'OLD', enabled: false },
+            { type: 'path', name: 'productId', value: 'NEW', enabled: false }
+          ]
+        };
+
+        const result = interpolateVars(request, null, null, null);
+        expect(result.url).toBe('http://example.com/odata/Products(\':productId\')');
+      });
+
       it('keeps the original url search params as is', async () => {
         const request = {
           method: 'GET',
