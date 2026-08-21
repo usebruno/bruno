@@ -46,14 +46,14 @@ const PROVIDERS = {
 // autocomplete drop those params for reasoning models to silence warnings.
 const MODEL_DEFINITIONS = {
   // OpenAI
-  'gpt-4o-mini': { provider: 'openai', modelId: 'gpt-4o-mini', label: 'GPT-4o Mini' },
-  'gpt-4o': { provider: 'openai', modelId: 'gpt-4o', label: 'GPT-4o' },
-  'gpt-5': { provider: 'openai', modelId: 'gpt-5', label: 'GPT-5', reasoning: true },
-  'gpt-5-mini': { provider: 'openai', modelId: 'gpt-5-mini', label: 'GPT-5 Mini', reasoning: true },
+  'gpt-4o-mini': { provider: 'openai', modelId: 'gpt-4o-mini', label: 'GPT-4o Mini', apiFormat: 'chat-completions' },
+  'gpt-4o': { provider: 'openai', modelId: 'gpt-4o', label: 'GPT-4o', apiFormat: 'chat-completions' },
+  'gpt-5': { provider: 'openai', modelId: 'gpt-5', label: 'GPT-5', reasoning: true, apiFormat: 'chat-completions' },
+  'gpt-5-mini': { provider: 'openai', modelId: 'gpt-5-mini', label: 'GPT-5 Mini', reasoning: true, apiFormat: 'chat-completions' },
   // Anthropic
-  'claude-opus-4-7': { provider: 'anthropic', modelId: 'claude-opus-4-7', label: 'Claude Opus 4.7', reasoning: true },
-  'claude-sonnet-4-6': { provider: 'anthropic', modelId: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', reasoning: true },
-  'claude-haiku-4-5': { provider: 'anthropic', modelId: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5', reasoning: true }
+  'claude-opus-4-7': { provider: 'anthropic', modelId: 'claude-opus-4-7', label: 'Claude Opus 4.7', reasoning: true, apiFormat: 'chat-completions' },
+  'claude-sonnet-4-6': { provider: 'anthropic', modelId: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', reasoning: true, apiFormat: 'chat-completions' },
+  'claude-haiku-4-5': { provider: 'anthropic', modelId: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5', reasoning: true, apiFormat: 'chat-completions' }
 };
 
 const isReasoningModel = (modelId) => Boolean(MODEL_DEFINITIONS[modelId]?.reasoning);
@@ -133,7 +133,8 @@ const listModels = (aiPreferences) => {
     id,
     label: def.label,
     provider: def.provider,
-    isCustom: false
+    isCustom: false,
+    apiFormat: def.apiFormat || 'chat-completions'
   }));
 
   const endpoints = Array.isArray(aiPreferences?.openaiCompatibleEndpoints)
@@ -149,7 +150,8 @@ const listModels = (aiPreferences) => {
         id: model.id,
         label: model.label || model.modelId,
         provider: providerIdFromEndpointId(endpoint.id),
-        isCustom: true
+        isCustom: true,
+        apiFormat: model.apiFormat || 'chat-completions'
       });
     }
   }
@@ -165,7 +167,8 @@ const resolveModelDefinition = (modelId, aiPreferences) => {
       providerId: def.provider,
       sdkModelId: def.modelId,
       label: def.label,
-      baseURL: null
+      baseURL: null,
+      apiFormat: def.apiFormat || 'chat-completions'
     };
   }
 
@@ -180,7 +183,8 @@ const resolveModelDefinition = (modelId, aiPreferences) => {
         providerId: providerIdFromEndpointId(endpoint.id),
         sdkModelId: match.modelId,
         label: match.label || match.modelId,
-        baseURL: endpoint.baseURL || ''
+        baseURL: endpoint.baseURL || '',
+        apiFormat: match.apiFormat || 'chat-completions'
       };
     }
   }
@@ -203,7 +207,7 @@ const providerLabel = (providerId, aiPreferences) => {
  * Resolve a Bruno model id to a vercel-ai SDK model instance.
  * Throws if the provider isn't configured (no key) or the model is unknown.
  */
-const getModel = (modelId, { aiPreferences, getApiKey }) => {
+const getModel = (modelId, { aiPreferences, getApiKey, apiFormatOverride }) => {
   const def = resolveModelDefinition(modelId, aiPreferences);
   if (!def) throw new Error(`Unknown model: ${modelId}`);
 
@@ -223,7 +227,22 @@ const getModel = (modelId, { aiPreferences, getApiKey }) => {
   }
 
   const sdk = getSdk({ providerId: def.providerId, apiKey, baseURL: def.baseURL });
-  if (isOpenAiCompatibleProviderId(def.providerId)) return sdk.chat(def.sdkModelId);
+
+    const format = apiFormatOverride || def.apiFormat || 'chat-completions';
+    if (format && format !== 'chat-completions' && format !== 'responses') {
+      throw new Error(`Unsupported API format "${format}" for ${providerLabel(def.providerId, aiPreferences)}. Supported formats are Chat Completions and Responses.`);
+    }
+  if (format === 'responses') {
+    if (typeof sdk.responses === 'function') {
+      return sdk.responses(def.sdkModelId);
+    }
+    throw new Error(`${providerLabel(def.providerId, aiPreferences)} does not support the Responses API. Switch this model to Chat Completions in Preferences > AI.`);
+  }
+
+  if (typeof sdk.chat === 'function') {
+    return sdk.chat(def.sdkModelId);
+  }
+
   return sdk(def.sdkModelId);
 };
 
@@ -247,7 +266,12 @@ const getAvailableModels = ({ aiPreferences, hasApiKey }) => {
       if (!endpoint?.baseURL) continue;
     }
 
-    out.push({ id: model.id, label: model.label, provider: model.provider });
+    out.push({
+      id: model.id,
+      label: model.label,
+      provider: model.provider,
+      apiFormat: model.apiFormat || 'chat-completions'
+    });
   }
   return out;
 };
