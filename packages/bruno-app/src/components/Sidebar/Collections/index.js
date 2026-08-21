@@ -8,6 +8,10 @@ import CollectionSearch from './CollectionSearch/index';
 import InlineCollectionCreator from './InlineCollectionCreator';
 import path, { normalizePath } from 'utils/common/path';
 import { isScratchCollection } from 'utils/collections';
+import useDebounce from 'hooks/useDebounce';
+
+const SEARCH_DEBOUNCE_MS = 300;
+const isEmptyQuery = (value) => value === '';
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
@@ -21,6 +25,7 @@ const getSidebarEntryName = (entry) => {
 
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
+  const debouncedSearchText = useDebounce(searchText, SEARCH_DEBOUNCE_MS, { skipDebounce: isEmptyQuery });
   const { collections, collectionSortOrder } = useSelector((state) => state.collections);
   const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
 
@@ -92,7 +97,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
         )}
         {sidebarEntries.map((entry) => {
           if (entry.kind === 'loaded') {
-            return <Collection searchText={searchText} collection={entry.collection} key={entry.key} />;
+            return <Collection searchText={debouncedSearchText} collection={entry.collection} key={entry.key} />;
           }
           return <GitRemoteCollectionRow entry={entry.entry} key={entry.key} />;
         })}
