@@ -227,6 +227,32 @@ describe('runtime', () => {
         );
         expect(result.runtimeVariables.validation).toBeTruthy();
       });
+
+      it.each(['nodevm', 'quickjs'])('should return the raw response body in %s', async (runtimeName) => {
+        const rawBody = '1234567890'.repeat(7) + '1234567';
+        const script = `
+          bru.setVar('parsedBodyType', typeof res.getBody());
+          bru.setVar('rawBody', res.getBody({ raw: true }));
+        `;
+        const runtime = new ScriptRuntime({ runtime: runtimeName });
+        const result = await runtime.runResponseScript(
+          script,
+          { ...baseRequest },
+          {
+            ...baseResponse,
+            data: JSON.parse(rawBody),
+            dataBuffer: Buffer.from(rawBody)
+          },
+          {},
+          {},
+          '.',
+          () => {},
+          process.env
+        );
+
+        expect(result.runtimeVariables.parsedBodyType).toBe('number');
+        expect(result.runtimeVariables.rawBody).toBe(rawBody);
+      });
     });
   });
 
