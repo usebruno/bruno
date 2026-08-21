@@ -32,6 +32,8 @@ export {
   toOpenCollectionVariables,
   fromOpenCollectionScripts,
   toOpenCollectionScripts,
+  fromOpenCollectionGrpcScripts,
+  toOpenCollectionGrpcScripts,
   fromOpenCollectionAssertions,
   toOpenCollectionAssertions
 } from './common';

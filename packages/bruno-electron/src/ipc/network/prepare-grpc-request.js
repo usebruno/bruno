@@ -1,6 +1,6 @@
 const { cloneDeep, each, get } = require('lodash');
 const interpolateVars = require('./interpolate-vars');
-const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, mergeAuth, getFormattedCollectionOauth2Credentials } = require('../../utils/collection');
+const { getEnvVars, getTreePathFromCollectionToItem, mergeHeaders, mergeGrpcScripts, mergeVars, mergeAuth, getFormattedCollectionOauth2Credentials } = require('../../utils/collection');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingAuthorizationCode } = require('../../utils/oauth2');
 const { setAuthHeaders } = require('./prepare-request');
@@ -31,7 +31,7 @@ const placeOAuth2Token = (grpcRequest, credentials, tokenPlacement, tokenHeaderP
 
 const configureRequest = async (grpcRequest, request, collection, envVars, runtimeVariables, processEnvVars, promptVariables, certsAndProxyConfig) => {
   if (grpcRequest.oauth2) {
-    let requestCopy = cloneDeep(grpcRequest);
+    const requestCopy = cloneDeep(grpcRequest);
     const { uid: collectionUid, pathname: collectionPath, globalEnvironmentVariables } = collection;
     const { oauth2: { grantType, tokenPlacement, tokenHeaderPrefix, tokenQueryKey, accessTokenUrl, refreshTokenUrl } = {}, collectionVariables, folderVariables, requestVariables } = requestCopy || {};
     let credentials, credentialsId, oauth2Url, debugInfo;
@@ -124,12 +124,11 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
   const url = request.url;
   const { promptVariables = {} } = collection;
 
-  const scriptFlow = collection?.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
     mergeAuth(collection, request, requestTreePath);
     mergeHeaders(collection, request, requestTreePath);
-    mergeScripts(collection, request, requestTreePath, scriptFlow);
+    mergeGrpcScripts(collection, request, requestTreePath);
     mergeVars(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
     request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
@@ -147,6 +146,8 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
 
   let grpcRequest = {
     uid: item.uid,
+    pathname: item.pathname,
+    type: 'grpc-request',
     mode: request.body.mode,
     method: request.method,
     methodType: request.methodType,
@@ -158,6 +159,7 @@ const prepareGrpcRequest = async (item, collection, environment, runtimeVariable
     promptVariables,
     body: request.body,
     protoPath: request.protoPath,
+    script: request.script,
     // Add variable properties for interpolation
     vars: request.vars,
     collectionVariables: request.collectionVariables,

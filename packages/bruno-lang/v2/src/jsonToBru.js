@@ -634,7 +634,7 @@ ${indentString(body.sparql)}
         bru += `${indentString(`name: ${getValueString(name)}`)}\n`;
 
         // Convert content to JSON string if it's an object
-        let jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
+        const jsonValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '{}';
 
         // Wrap content with triple quotes for multiline support, without extra indentation
         bru += `${indentString(`content: '''\n${indentString(jsonValue)}\n'''`)}\n`;
@@ -660,7 +660,7 @@ ${indentString(body.sparql)}
         }
 
         // Convert content to JSON string if it's an object
-        let contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '';
+        const contentValue = typeof content === 'object' ? JSON.stringify(content, null, 2) : content || '';
 
         // Wrap content with triple quotes for multiline support, without extra indentation
         bru += `${indentString(`content: '''\n${indentString(contentValue)}\n'''`)}\n`;
@@ -669,8 +669,8 @@ ${indentString(body.sparql)}
     }
   }
 
-  let reqvars = _.get(vars, 'req');
-  let resvars = _.get(vars, 'res');
+  const reqvars = _.get(vars, 'req');
+  const resvars = _.get(vars, 'res');
   if (reqvars && reqvars.length) {
     const varsEnabled = _.filter(reqvars, (v) => v.enabled && !v.local);
     const varsDisabled = _.filter(reqvars, (v) => !v.enabled && !v.local);
@@ -746,20 +746,55 @@ ${indentString(body.sparql)}
     bru += '\n}\n\n';
   }
 
-  if (script && script.req && script.req.length) {
-    bru += `script:pre-request {
+  if (grpc) {
+    // A gRPC call has one script block per call phase instead of the pre-request/post-response pair.
+    if (script && script.beforeCallStart && script.beforeCallStart.length) {
+      bru += `script:grpc:before-call-start {
+${indentString(script.beforeCallStart)}
+}
+
+`;
+    }
+
+    if (script && script.beforeMessageSend && script.beforeMessageSend.length) {
+      bru += `script:grpc:before-message-send {
+${indentString(script.beforeMessageSend)}
+}
+
+`;
+    }
+
+    if (script && script.afterMessageReceive && script.afterMessageReceive.length) {
+      bru += `script:grpc:after-message-receive {
+${indentString(script.afterMessageReceive)}
+}
+
+`;
+    }
+
+    if (script && script.afterCallEnd && script.afterCallEnd.length) {
+      bru += `script:grpc:after-call-end {
+${indentString(script.afterCallEnd)}
+}
+
+`;
+    }
+  } else {
+    if (script && script.req && script.req.length) {
+      bru += `script:pre-request {
 ${indentString(script.req)}
 }
 
 `;
-  }
+    }
 
-  if (script && script.res && script.res.length) {
-    bru += `script:post-response {
+    if (script && script.res && script.res.length) {
+      bru += `script:post-response {
 ${indentString(script.res)}
 }
 
 `;
+    }
   }
 
   if (tests && tests.length) {

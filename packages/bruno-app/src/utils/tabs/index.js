@@ -24,3 +24,12 @@ export const getActiveScriptTab = (scriptPaneTab, requestScript) => {
   const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
   return hasPreRequestScript ? 'pre-request' : 'post-response';
 };
+
+export const getActiveGrpcScriptTab = (scriptPaneTab, scripts) => {
+  if (scriptPaneTab) return scriptPaneTab;
+  if (scripts?.beforeCallStart && scripts.beforeCallStart.trim().length > 0) return 'grpc:before-call-start';
+  if (scripts?.beforeMessageSend && scripts.beforeMessageSend.trim().length > 0) return 'grpc:before-message-send';
+  if (scripts?.afterMessageReceive && scripts.afterMessageReceive.trim().length > 0) return 'grpc:after-message-receive';
+  if (scripts?.afterCallEnd && scripts.afterCallEnd.trim().length > 0) return 'grpc:after-call-end';
+  return 'grpc:before-call-start';
+};

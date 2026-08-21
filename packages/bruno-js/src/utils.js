@@ -240,11 +240,23 @@ const cleanCircularJson = (data) => {
   }
 };
 
+const safeParseJSON = (str) => {
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    return str;
+  }
+};
+
+const isObject = (obj) => obj !== null && typeof obj === 'object';
+
 module.exports = {
   evaluateJsExpression,
   evaluateJsTemplateLiteral,
   createResponseParser,
   internalExpressionCache,
   cleanJson,
-  cleanCircularJson
+  cleanCircularJson,
+  safeParseJSON,
+  isObject
 };
