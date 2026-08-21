@@ -36,6 +36,10 @@ const prioritizeActiveWorkspacePath = (workspacePaths, activeWorkspacePath) => {
 };
 
 const isValidWorkspacePathOnDisk = (workspacePath, { validateConfig = false } = {}) => {
+  if (typeof workspacePath !== 'string' || !workspacePath.length) {
+    return false;
+  }
+
   const workspaceYmlPath = path.join(workspacePath, 'workspace.yml');
 
   if (!fs.existsSync(workspaceYmlPath)) {
