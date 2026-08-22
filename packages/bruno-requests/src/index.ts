@@ -1,6 +1,7 @@
 export { addDigestInterceptor, getOAuth2Token, createOAuth1Authorizer, computeBodyHash, applyOAuth1ToRequest, addEdgeGridInterceptor } from './auth';
 export { GrpcClient, generateGrpcSampleMessage } from './grpc';
 export { WsClient } from './ws/ws-client';
+export { getParsedWsUrlObject } from './ws/ws-url';
 export { default as cookies } from './cookies';
 
 export { getCACertificates } from './utils/ca-cert';
