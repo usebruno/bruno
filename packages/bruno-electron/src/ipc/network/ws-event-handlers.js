@@ -281,7 +281,10 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
 
   // add cookies to request
   if (preferencesUtil.shouldSendCookies()) {
-    attachCookieHeader(getParsedWsUrlObject(wsRequest.url).fullUrl, wsRequest.headers);
+    const { fullUrl } = getParsedWsUrlObject(wsRequest.url);
+    if (fullUrl) {
+      attachCookieHeader(fullUrl, wsRequest.headers);
+    }
   }
 
   return wsRequest;
