@@ -191,8 +191,9 @@ const SaveRequestsModal = ({ onClose, onComplete, forceCloseTabs = false, tabUid
             dispatch(saveRequest(draft.uid, draft.collectionUid, true)).catch(() => null)
           )
         );
-        onClose();
-        return;
+        if (!forceCloseTabs) {
+          onClose();
+        }
       }
 
       // Save environment drafts, skipping any with invalid variable names
